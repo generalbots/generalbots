@@ -10,21 +10,21 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/timeclock/clock` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
-| POST | `/api/timeclock/clock` | registered in crates/bottimeclock/src/routes.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
-| POST | `/api/timeclock/forms/break-end` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
-| POST | `/api/timeclock/forms/break-start` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
-| POST | `/api/timeclock/forms/clock-in` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
-| POST | `/api/timeclock/forms/clock-out` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
-| POST | `/api/timeclock/forms/justification` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| POST | `/api/timeclock/clock` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
+| POST | `/api/timeclock/forms/break-end` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| POST | `/api/timeclock/forms/break-start` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| POST | `/api/timeclock/forms/clock-in` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| POST | `/api/timeclock/forms/clock-out` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| POST | `/api/timeclock/forms/justification` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
 | GET | `/api/timeclock/forms/overtime` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
-| POST | `/api/timeclock/forms/overtime` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
-| POST | `/api/timeclock/forms/overtime/:param/approve` | registered in crates/botuifragments/src/ui_fragments/timeclock.rs | yes | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
-| GET | `/api/timeclock/overtime` | registered in crates/bottimeclock/src/routes.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
+| POST | `/api/timeclock/forms/overtime` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
+| POST | `/api/timeclock/forms/overtime/:param/approve` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
+| GET | `/api/timeclock/overtime` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
 | POST | `/api/timeclock/overtime` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
 | GET | `/api/timeclock/overtime/:param/approve` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
-| POST | `/api/timeclock/overtime/:param/approve` | registered in crates/bottimeclock/src/routes.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
-| GET | `/api/timeclock/records` | registered in crates/bottimeclock/src/routes.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
+| POST | `/api/timeclock/overtime/:param/approve` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
+| GET | `/api/timeclock/records` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
 | POST | `/api/timeclock/records` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
-| GET | `/api/timeclock/reports` | registered in crates/bottimeclock/src/routes.rs | yes | `botserver/crates/bottimeclock/src/routes.rs` |
+| GET | `/api/timeclock/reports` | schema not modeled | no | `botserver/crates/bottimeclock/src/routes.rs` |
 
 [All families](./README.md)

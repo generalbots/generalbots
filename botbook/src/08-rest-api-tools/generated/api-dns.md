@@ -9,18 +9,18 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/dns/:param/edit` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| GET | `/api/dns/:param/edit` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | PUT | `/api/dns/:param/edit` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| GET | `/api/dns/list` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| GET | `/api/dns/list` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | POST | `/api/dns/list` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | PUT | `/api/dns/list` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | GET | `/api/dns/register` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| POST | `/api/dns/register` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| POST | `/api/dns/register` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | PUT | `/api/dns/register` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | GET | `/api/dns/remove` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| POST | `/api/dns/remove` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| POST | `/api/dns/remove` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | PUT | `/api/dns/remove` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| GET | `/api/dns/search` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| GET | `/api/dns/search` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | POST | `/api/dns/search` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 | PUT | `/api/dns/search` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
 

@@ -2,7 +2,7 @@
 
 # API / meet
 
-36 routes in the `meet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+32 routes in the `meet` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -31,16 +31,12 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/meet/recordings` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | GET | `/api/meet/recordings/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | POST | `/api/meet/recordings/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| GET | `/api/meet/recordings/:param/file` | Stream or download a meeting recording file | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
 | GET | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | POST | `/api/meet/recordings/:param/transcribe` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | PUT | `/api/meet/recordings/:param/transcribe` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | GET | `/api/meet/recordings/bot/:param` | registered in crates/botmeet/src/minutes/handlers.rs | yes | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | POST | `/api/meet/recordings/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
 | PUT | `/api/meet/recordings/bot/:param` | schema not modeled | no | `botserver/crates/botmeet/src/minutes/handlers.rs` |
-| POST | `/api/meet/rooms/:param/recording/start` | Start recording a meeting (host/co-host only) | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| POST | `/api/meet/rooms/:param/recording/stop` | Stop the active meeting recording | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/meet/rooms/:param/recordings` | List recordings for a meeting room | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
 | DELETE | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |
 | GET | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |
 | POST | `/api/meet/trunks` | schema not modeled | no | `botserver/crates/botmeet/src/trunks.rs` |

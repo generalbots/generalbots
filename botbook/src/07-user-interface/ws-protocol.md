@@ -77,7 +77,7 @@ Every chat message, in both directions, is this JSON object
 | `connected` | `botserver/src/core/bot/ws/session.rs` |
 | `gb.steer` | `botserver/src/core/bot/ws/stream/turn.rs` |
 | `gb.steering_queued` | `botserver/src/core/bot/ws/session/inbound.rs` |
-| `message_received` | `botserver/src/core/bot/ws/session/inbound.rs` |
+| `message_received` | `botserver/src/core/bot/ws/session.rs`, `botserver/src/core/bot/ws/session/inbound.rs` |
 | `rate_limited` | `botserver/src/core/bot/ws/session.rs` |
 | `run_cancelled` | `botserver/src/core/bot/ws/session/inbound.rs` |
 | `run_resume_done` | `botserver/src/core/bot/ws/session/resume.rs` |

@@ -19,17 +19,17 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/learn/certificates/issue` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/certificates/verify` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/certificates/verify` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
-| GET | `/api/learn/certifications` | List certifications earned by the current user | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| GET | `/api/learn/certifications` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/certifications` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/complete/:param` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/complete/:param` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/content` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/content` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
-| GET | `/api/learn/courses` | List published courses with filters (category, difficulty, search) | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
-| POST | `/api/learn/courses` | Create a course draft | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| GET | `/api/learn/courses` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| POST | `/api/learn/courses` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | PUT | `/api/learn/courses` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/courses/:param/enroll` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
-| POST | `/api/learn/courses/:param/enroll` | Enroll the current user in a course | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| POST | `/api/learn/courses/:param/enroll` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | PUT | `/api/learn/courses/:param/enroll` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/courses/:param/publish` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/courses/:param/publish` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
@@ -37,8 +37,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/learn/enroll` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/enroll` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
 | PUT | `/api/learn/enroll` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
-| GET | `/api/learn/leaderboard` | Leaderboard of learners by XP | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
-| GET | `/api/learn/progress` | Current user learning progress and stats | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| GET | `/api/learn/leaderboard` | registered in crates/botlearn/src/routes_learn.rs | yes | `botserver/crates/botlearn/src/routes_learn.rs` |
+| GET | `/api/learn/progress` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | POST | `/api/learn/progress` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | PUT | `/api/learn/progress` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |
 | GET | `/api/learn/progress/:param` | schema not modeled | no | `botserver/crates/botlearn/src/routes_learn.rs` |

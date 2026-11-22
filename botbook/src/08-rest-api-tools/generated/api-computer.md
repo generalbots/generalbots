@@ -10,8 +10,8 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/computer/actions` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
-| POST | `/api/computer/actions` | Propose a browser or terminal action for a conversation (session_id, kind, action); the suite asks the user for consent | yes | `botserver/src/main_module/routes/computer_use_routes.rs` |
-| GET | `/api/computer/actions/:param` | Read one computer-use action with the user's decision and its result | yes | `botserver/src/main_module/routes/computer_use_routes.rs` |
+| POST | `/api/computer/actions` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
+| GET | `/api/computer/actions/:param` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | POST | `/api/computer/actions/:param` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | GET | `/api/computer/actions/:param/approve` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | POST | `/api/computer/actions/:param/approve` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
@@ -19,7 +19,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/computer/actions/:param/execute` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | GET | `/api/computer/actions/:param/result` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | POST | `/api/computer/actions/:param/result` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
-| GET | `/api/computer/actions/pending` | Poll the actions awaiting consent for a session (session_id, kind=browser\|terminal) | yes | `botserver/src/main_module/routes/computer_use_routes.rs` |
+| GET | `/api/computer/actions/pending` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | POST | `/api/computer/actions/pending` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 
 [All families](./README.md)

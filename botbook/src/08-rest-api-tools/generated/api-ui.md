@@ -2,75 +2,80 @@
 
 # API / ui
 
-271 routes in the `ui` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+273 routes in the `ui` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/ui/analytics/activity/recent` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/activity/recent` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | POST | `/api/ui/analytics/activity/recent` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/bots/performance` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/bots/performance` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | POST | `/api/ui/analytics/bots/performance` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/channels/distribution` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/channels/distribution` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | POST | `/api/ui/analytics/channels/distribution` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | GET | `/api/ui/analytics/chat` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
-| POST | `/api/ui/analytics/chat` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/dashboard` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/errors/count` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/llm/tokens` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/messages/count` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/metric` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/metrics/list` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/queries/top` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
+| POST | `/api/ui/analytics/chat` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/dashboard` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/errors/count` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/llm/tokens` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/messages/count` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/metric` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/metrics/list` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/ops/cost` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/ops/endpoints` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/ops/queue` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/ops/slo` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/ops/traffic` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/queries/top` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | POST | `/api/ui/analytics/queries/top` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/response/avg` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/sessions/active` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/storage/usage` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/timeseries/messages` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/analytics/timeseries/response_time` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
-| GET | `/api/ui/attendant/agents` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/agents/online` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/dashboard` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/queues` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/queues/:param/stats` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/sessions` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/sessions/:param` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/sessions/active` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/sessions/count` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
-| GET | `/api/ui/attendant/sessions/waiting` | registered in crates/botattendant/src/ui/mod.rs | yes | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/analytics/response/avg` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/sessions/active` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/storage/usage` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/timeseries/messages` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/analytics/timeseries/response_time` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/ui/attendant/agents` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/agents/online` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/dashboard` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/queues` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/queues/:param/stats` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/sessions` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/sessions/:param` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/sessions/active` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/sessions/count` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
+| GET | `/api/ui/attendant/sessions/waiting` | schema not modeled | no | `botserver/crates/botattendant/src/ui/mod.rs` |
 | GET | `/api/ui/autotask/create` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| POST | `/api/ui/autotask/create` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| GET | `/api/ui/billing/dashboard/alerts` | registered in crates/botbilling/src/billing_admin.rs | yes | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
-| GET | `/api/ui/billing/dashboard/bot-usage` | registered in crates/botbilling/src/billing_admin.rs | yes | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
-| GET | `/api/ui/billing/dashboard/cost-breakdown` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| POST | `/api/ui/autotask/create` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| GET | `/api/ui/billing/dashboard/alerts` | schema not modeled | no | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
+| GET | `/api/ui/billing/dashboard/bot-usage` | schema not modeled | no | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
+| GET | `/api/ui/billing/dashboard/cost-breakdown` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | POST | `/api/ui/billing/dashboard/cost-breakdown` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/dashboard/metrics` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/dashboard/quotas` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/dashboard/metrics` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/dashboard/quotas` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | POST | `/api/ui/billing/dashboard/quotas` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | PUT | `/api/ui/billing/dashboard/quotas` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/dashboard/recent-invoices` | registered in crates/botbilling/src/billing_admin.rs | yes | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
-| GET | `/api/ui/billing/dashboard/spending-chart` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/dashboard/recent-invoices` | schema not modeled | no | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
+| GET | `/api/ui/billing/dashboard/spending-chart` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | POST | `/api/ui/billing/dashboard/spending-chart` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/gl/accounts` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/gl/balance-sheet` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/gl/income-statement` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/inventory` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/invoices` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/invoices/admin` | registered in crates/botbilling/src/billing_admin.rs | yes | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
+| GET | `/api/ui/billing/gl/accounts` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/gl/balance-sheet` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/gl/income-statement` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/inventory` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/invoices` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/invoices/admin` | schema not modeled | no | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
 | POST | `/api/ui/billing/invoices/admin` | schema not modeled | no | `botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs` |
-| GET | `/api/ui/billing/invoices/export` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/invoices/export` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | POST | `/api/ui/billing/invoices/export` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | PUT | `/api/ui/billing/invoices/export` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/payments` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/procurement` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/procurement/orders` | registered in crates/botbilling/src/erp_ui.rs | yes | `botserver/crates/botbilling/src/erp_ui.rs` |
-| GET | `/api/ui/billing/quotes` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/search` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/stats/overdue` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/stats/paid-month` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
-| GET | `/api/ui/billing/stats/pending` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/payments` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/procurement` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/procurement/orders` | schema not modeled | no | `botserver/crates/botbilling/src/erp_ui.rs` |
+| GET | `/api/ui/billing/quotes` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/search` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/stats/overdue` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/stats/paid-month` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
+| GET | `/api/ui/billing/stats/pending` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | GET | `/api/ui/billing/stats/revenue-month` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | GET | `/api/ui/billing/subscription/cancel` | schema not modeled | no | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
 | POST | `/api/ui/billing/subscription/cancel` | registered in crates/botbilling/src/billing_ui.rs | yes | `botserver/crates/botbilling/src/billing_ui/html_escape.rs` |
@@ -109,6 +114,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/ui/crm/opportunities` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/ui/crm/pipeline` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/ui/crm/records/:param/:param` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
+| GET | `/api/ui/crm/revenue/attribution` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/ui/crm/stats/forecast` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/ui/crm/stats/funnel` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | DELETE | `/api/ui/email/:param/delete` | registered in crates/botemail/src/routes.rs | yes | `botserver/crates/botemail/src/routes.rs` |
@@ -189,11 +195,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/ui/project/tasks` | registered in src/project/project_ui.rs | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
 | GET | `/api/ui/project/tasks/list` | registered in src/project/project_ui.rs | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
 | GET | `/api/ui/project/timeline` | registered in src/project/project_ui.rs | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
-| POST | `/api/ui/research/web/deep` | Deep research on a topic | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/ui/research/web/instant` | Instant answer from the web | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| POST | `/api/ui/research/web/search` | Web search (DuckDuckGo) | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| POST | `/api/ui/research/web/summarize` | Summarize web search results | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/ui/search` | Unified search across business entities | yes | `botserver/src/main_module/routes/unified_search.rs` |
+| GET | `/api/ui/search` | registered in src/main_module/routes/unified_search.rs | yes | `botserver/src/main_module/routes/unified_search.rs` |
 | GET | `/api/ui/settings/accounts/email` | registered in crates/botsettings/src/lib.rs | yes | `botserver/crates/botsettings/src/lib.rs` |
 | POST | `/api/ui/settings/accounts/email` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
 | GET | `/api/ui/settings/accounts/messaging` | registered in crates/botsettings/src/lib.rs | yes | `botserver/crates/botsettings/src/lib.rs` |

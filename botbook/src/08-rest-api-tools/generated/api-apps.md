@@ -2,17 +2,17 @@
 
 # API / apps
 
-25 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+33 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/apps/catalog` | Suite application catalog | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/apps/integrations/catalog` | Search the integration provider and action catalog | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/apps/integrations/catalog/:param` | Get one integration provider and its action catalog | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/apps/integrations/context` | Resolve the default active bot id, name and integration-connections base URL for suite apps | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| GET | `/api/apps/catalog` | registered in src/apps/mod.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
+| GET | `/api/apps/integrations/catalog` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
+| GET | `/api/apps/integrations/catalog/:param` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
+| GET | `/api/apps/integrations/context` | registered in crates/botintegrations/src/routes.rs; default active bot plus integration-connections base URL | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/apps/integrations/mentions` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | DELETE | `/apps` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/apps` | schema not modeled | no | `botserver/crates/botbasic_system/src/keywords/app_server/serve_suite_js_file.rs` |
@@ -23,6 +23,12 @@ Base URL: `http://localhost:8080` — see
 | POST | `/apps/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | PUT | `/apps/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/apps/:param/:param` | schema not modeled | no | `botserver/crates/botbasic_system/src/keywords/app_server/serve_suite_js_file.rs` |
+| GET | `/apps/:param/campaign-clicks` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| POST | `/apps/:param/campaign-clicks` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| GET | `/apps/:param/campaign-link` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| POST | `/apps/:param/campaign-link` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| GET | `/apps/:param/domain` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| POST | `/apps/:param/domain` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | DELETE | `/apps/:param/pages` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/apps/:param/pages` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | POST | `/apps/:param/pages` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
@@ -34,5 +40,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/apps/:param/preview` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/apps/:param/publish` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | POST | `/apps/:param/publish` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| GET | `/apps/:param/unpublish` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| POST | `/apps/:param/unpublish` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 
 [All families](./README.md)

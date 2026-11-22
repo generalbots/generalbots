@@ -9,7 +9,7 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| DELETE | `/api/tasks/:param` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| DELETE | `/api/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
@@ -23,7 +23,7 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/tasks/:param/assignments` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | DELETE | `/api/tasks/:param/dependencies` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/tasks/:param/dependencies` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| POST | `/api/tasks/:param/dependencies` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| POST | `/api/tasks/:param/dependencies` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/tasks/:param/dependencies` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | DELETE | `/api/tasks/:param/dependencies/remove` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/tasks/:param/dependencies/remove` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
@@ -31,7 +31,7 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/tasks/:param/dependencies/remove` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/tasks/:param/progress` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/tasks/:param/progress` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| PUT | `/api/tasks/:param/progress` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| PUT | `/api/tasks/:param/progress` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | DELETE | `/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/tasks/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |

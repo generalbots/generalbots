@@ -9,13 +9,13 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/ops/endpoints/performance` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/errors/recent` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/health` | registered in crates/botsettings/src/lib.rs | yes | `botserver/crates/botsettings/src/lib.rs` |
-| GET | `/api/ops/metrics/requests` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/metrics/summary` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/services/health` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/status` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
-| GET | `/api/ops/traces` | registered in crates/botsettings/src/ops.rs | yes | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/endpoints/performance` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/errors/recent` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/health` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| GET | `/api/ops/metrics/requests` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/metrics/summary` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/services/health` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/status` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
+| GET | `/api/ops/traces` | schema not modeled | no | `botserver/crates/botsettings/src/ops.rs` |
 
 [All families](./README.md)

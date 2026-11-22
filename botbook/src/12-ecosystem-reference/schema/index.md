@@ -10,7 +10,7 @@ This reference is generated from `botschema/src/**` (`table!`, `joinable!`) and
 python3 scripts/gen_schema_reference.py
 ```
 
-Tables: **301** · columns: **3548** · domains: **34** · join edges: **187** · `allow_tables_to_appear_in_same_query!` groups: **18**
+Tables: **306** · columns: **3580** · domains: **35** · join edges: **189** · `allow_tables_to_appear_in_same_query!` groups: **19**
 
 ## Domains
 
@@ -41,7 +41,7 @@ Tables: **301** · columns: **3548** · domains: **34** · join edges: **187** �
 | `marketplace` | 3 | [marketplace](./marketplace.md) |
 | `meet` | 9 | [meet](./meet.md) |
 | `memory` | 1 | [memory](./memory.md) |
-| `people` | 42 | [people-2](./people-2.md) · [people-3](./people-3.md) · [people](./people.md) |
+| `people` | 43 | [people-2](./people-2.md) · [people-3](./people-3.md) · [people](./people.md) |
 | `project` | 5 | [project](./project.md) |
 | `research` | 9 | [research](./research.md) |
 | `runs` | 1 | [runs](./runs.md) |
@@ -49,6 +49,7 @@ Tables: **301** · columns: **3548** · domains: **34** · join edges: **187** �
 | `social` | 13 | [social](./social.md) |
 | `tickets` | 6 | [tickets](./tickets.md) |
 | `video` | 8 | [video](./video.md) |
+| `weba` | 4 | [weba](./weba.md) |
 | `workspaces` | 14 | [workspaces](./workspaces.md) |
 
 ## Feature gates
@@ -75,7 +76,7 @@ Tables: **301** · columns: **3548** · domains: **34** · join edges: **187** �
 | `#[cfg(feature = "marketplace")]` | 3 |
 | `#[cfg(feature = "meet")]` | 9 |
 | `#[cfg(feature = "memory")]` | 1 |
-| `#[cfg(feature = "people")]` | 42 |
+| `#[cfg(feature = "people")]` | 43 |
 | `#[cfg(feature = "project")]` | 5 |
 | `#[cfg(feature = "research")]` | 9 |
 | `#[cfg(feature = "security")]` | 6 |
@@ -83,7 +84,7 @@ Tables: **301** · columns: **3548** · domains: **34** · join edges: **187** �
 | `#[cfg(feature = "tickets")]` | 6 |
 | `#[cfg(feature = "video")]` | 8 |
 | `#[cfg(feature = "workspaces")]` | 14 |
-| `always available` | 44 |
+| `always available` | 48 |
 
 ## See also
 

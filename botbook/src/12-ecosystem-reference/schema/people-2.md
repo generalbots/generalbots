@@ -272,6 +272,22 @@ Indexes: `idx_marketing_email_opens_email(email, opened_at)`
 | opened_at | timestamptz | yes | — | — | — |
 | clicked_at | timestamptz | yes | — | — | — |
 
+### marketing_suppressions
+
+- Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.9.2-marketing-suppressions`
+- Rust source: `botschema/src/people/people_skills_tables.rs`
+
+| Column | SQL type | Null | Default | Key | References |
+|---|---|---|---|---|---|
+| id | UUID | no | gen_random_uuid() | PK | — |
+| branch_id | UUID | no | — | — | — |
+| email | TEXT | no | — | — | — |
+| channel | TEXT | no | — | — | — |
+| reason | TEXT | no | 'unsubscribed' | — | — |
+| created_at | TIMESTAMPTZ | no | NOW() | — | — |
+
+Indexes: `marketing_suppressions_branch_channel_email_idx(branch_id, channel, email)`, `marketing_suppressions_branch_email_idx(branch_id, email)`
+
 ### marketing_templates
 
 - Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.5.23-branch-scope-cleanup`
@@ -348,24 +364,3 @@ Indexes: `idx_org_ips_org(org_id, is_active)`
 | updated_at | TIMESTAMPTZ | no | NOW() | — | — |
 
 Indexes: `idx_unified_search_people(to_tsvector('english', COALESCE(first_name::text, '')`
-
-### people_departments
-
-- Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.5.23-branch-scope-cleanup`
-- Rust source: `botschema/src/people.rs`
-
-| Column | SQL type | Null | Default | Key | References |
-|---|---|---|---|---|---|
-| id | UUID | no | gen_random_uuid() | PK | — |
-| org_id | UUID | no | — | FK | organizations.org_id |
-| bot_id | UUID | no | — | — | — |
-| name | VARCHAR(255) | no | — | — | — |
-| description | TEXT | yes | — | — | — |
-| code | VARCHAR(255) | yes | — | — | — |
-| parent_id | UUID | yes | — | FK | people_departments.id |
-| head_id | UUID | yes | — | FK | people.id |
-| cost_center | VARCHAR(255) | yes | — | — | — |
-| is_active | BOOLEAN | no | TRUE | — | — |
-| created_at | TIMESTAMPTZ | no | NOW() | — | — |
-| updated_at | TIMESTAMPTZ | no | NOW() | — | — |
-| branch_id | UUID | yes | — | FK | branches.id |

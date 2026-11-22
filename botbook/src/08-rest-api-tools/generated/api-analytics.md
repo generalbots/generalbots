@@ -2,7 +2,7 @@
 
 # API / analytics
 
-18 routes in the `analytics` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+23 routes in the `analytics` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -20,6 +20,11 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/analytics/errors/count` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
 | GET | `/api/analytics/llm/tokens` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
 | GET | `/api/analytics/messages/count` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/analytics/ops/cost` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/analytics/ops/endpoints` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/analytics/ops/queue` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/analytics/ops/slo` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
+| GET | `/api/analytics/ops/traffic` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | GET | `/api/analytics/queries/top` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |
 | POST | `/api/analytics/queries/top` | schema not modeled | no | `botserver/crates/botanalytics/src/routes.rs` |
 | GET | `/api/analytics/response/avg` | registered in crates/botanalytics/src/routes.rs | yes | `botserver/crates/botanalytics/src/routes.rs` |

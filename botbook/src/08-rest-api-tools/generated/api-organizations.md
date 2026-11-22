@@ -10,22 +10,22 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/organizations` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/organizations` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/organizations` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | DELETE | `/api/organizations/current` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| GET | `/api/organizations/current` | Current organization profile | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/organizations/current` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/organizations/current` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| PUT | `/api/organizations/current` | Update organization profile | yes | `botserver/src/main_module/routes/api_setup.rs` |
-| GET | `/api/organizations/current/audit` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| PUT | `/api/organizations/current` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/organizations/current/audit` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/organizations/current/audit` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/organizations/current/branding` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/organizations/current/branding` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/organizations/current/branding` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/organizations/current/contact` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/organizations/current/contact` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
-| GET | `/api/organizations/current/export` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/organizations/current/contact` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/organizations/current/export` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/organizations/current/export` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| GET | `/api/organizations/current/settings` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/organizations/current/settings` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/organizations/current/settings` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| GET | `/api/organizations/current/stats` | Organization statistics | yes | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/organizations/current/stats` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/organizations/current/stats` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | DELETE | `/organizations/:param` | schema not modeled | no | `botserver/crates/botcoredirectory/src/router.rs` |
 | GET | `/organizations/:param` | schema not modeled | no | `botserver/crates/botcoredirectory/src/router.rs` |

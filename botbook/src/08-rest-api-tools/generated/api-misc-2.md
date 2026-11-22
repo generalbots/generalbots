@@ -4,19 +4,44 @@
 
 Families with fewer than 8 routes, grouped so the book stays navigable. `Inventory` and `Registered in` mean the same as on the family pages.
 
+## `integrations`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/integrations/connectors` | registered in crates/botintegrations/src/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
+| POST | `/api/integrations/connectors/:param/connect` | registered in crates/botintegrations/src/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
+| POST | `/api/integrations/connectors/:param/disconnect` | registered in crates/botintegrations/src/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
+| GET | `/api/integrations/etl` | registered in crates/botintegrations/src/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory_editor_email.rs` |
+| GET | `/api/integrations/oauth/:param/callback` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
+| POST | `/api/integrations/oauth/:param/callback` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
+
+## `invitations`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/invitations/accept` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
+| POST | `/invitations/accept` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
+| GET | `/invitations/decline` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
+| POST | `/invitations/decline` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
+| GET | `/invitations/validate/:param` | schema not modeled | no | `botserver/crates/botcore/src/organization_invitations/configure.rs` |
+
+## `js`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/js/:param` | schema not modeled | no | `botserver/crates/botbasic_system/src/keywords/app_server/serve_suite_js_file.rs` |
+| GET | `/js/vendor/:param` | schema not modeled | no | `botserver/crates/botbasic_system/src/keywords/app_server/serve_suite_js_file.rs` |
+
 ## `jukebox`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
+| GET | `/api/jukebox/audio` | Stream a generated ACE-Step music track. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
+| POST | `/api/jukebox/format` | Enhance a music prompt and lyrics. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
+| POST | `/api/jukebox/generate` | Create an ACE-Step music generation job. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
 | GET | `/api/jukebox/health` | Check ACE-Step music engine health. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
 | GET | `/api/jukebox/jobs/:param` | Get an ACE-Step music generation job. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
 | GET | `/api/jukebox/models` | List available ACE-Step music models. | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
-
-## `llm`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| POST | `/api/llm/subscription/chat/completions` | schema not modeled | no | `botserver/src/main_module/routes/subscription_llm.rs` |
 
 ## `llm-tools`
 
@@ -46,15 +71,6 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/api/manifest` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/manifest` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-
-## `marketing`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/marketing/track/click/:param` | signed click redirect (u/e/s query params) | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/marketing/track/click/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| GET | `/api/marketing/track/open/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/marketing/track/open/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 
 ## `mcp`
 
@@ -98,8 +114,9 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| POST | `/api/msteams/messages` | registered in crates/botmsteams/src/webhook.rs | yes | `botserver/crates/botmsteams/src/webhook.rs` |
-| POST | `/api/msteams/send` | registered in crates/botmsteams/src/webhook.rs | yes | `botserver/crates/botmsteams/src/webhook.rs` |
+| POST | `/api/msteams/messages` | schema not modeled | no | `botserver/crates/botmsteams/src/webhook.rs` |
+| GET | `/api/msteams/send` | schema not modeled | no | `botserver/crates/botmsteams/src/webhook.rs` |
+| POST | `/api/msteams/send` | schema not modeled | no | `botserver/crates/botmsteams/src/webhook.rs` |
 
 ## `news`
 
@@ -108,27 +125,51 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/news` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
 | POST | `/news` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
 
+## `oauth`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/oauth/:param/callback` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| GET | `/api/oauth/:param/connect` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| POST | `/api/oauth/:param/connect` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| GET | `/api/oauth/:param/unlink` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| POST | `/api/oauth/:param/unlink` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| GET | `/api/oauth/accounts` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+| POST | `/api/oauth/accounts` | schema not modeled | no | `botserver/crates/botsettings/src/lib.rs` |
+
+## `ok`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/ok` | schema not modeled | no | `botserver/crates/botsecurity-core/src/headers/tests.rs` |
+
 ## `pages`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | DELETE | `/api/pages/:param` | schema not modeled | no | `botserver/crates/botworkspaces/src/lib.rs` |
-| GET | `/api/pages/:param` | registered in crates/botworkspaces/src/lib.rs | yes | `botserver/crates/botworkspaces/src/lib.rs` |
+| GET | `/api/pages/:param` | schema not modeled | no | `botserver/crates/botworkspaces/src/lib.rs` |
 | PUT | `/api/pages/:param` | schema not modeled | no | `botserver/crates/botworkspaces/src/lib.rs` |
-| GET | `/api/pages/current` | registered in crates/botworkspaces/src/lib.rs | yes | `botserver/crates/botworkspaces/src/ui_current.rs` |
+| GET | `/api/pages/current` | schema not modeled | no | `botserver/crates/botworkspaces/src/ui_current.rs` |
 | PUT | `/api/pages/current` | schema not modeled | no | `botserver/crates/botworkspaces/src/ui_current.rs` |
+
+## `ping`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/ping` | schema not modeled | no | `botserver/crates/botsecurity-core/src/cors/cors_test_support.rs` |
 
 ## `pos`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/pos/orders` | registered in crates/botpos/src/routes.rs | yes | `botserver/crates/botpos/src/routes.rs` |
-| POST | `/api/pos/orders` | registered in crates/botpos/src/routes.rs | yes | `botserver/crates/botpos/src/routes.rs` |
-| GET | `/api/pos/orders/:param` | registered in crates/botpos/src/routes.rs | yes | `botserver/crates/botpos/src/routes.rs` |
-| GET | `/api/pos/products` | registered in crates/botpos/src/routes.rs | yes | `botserver/crates/botpos/src/routes.rs` |
-| POST | `/api/pos/products` | registered in crates/botpos/src/routes.rs | yes | `botserver/crates/botpos/src/routes.rs` |
-| POST | `/api/pos/sales` | registered in crates/botproducts/src/routes.rs | yes | `botserver/crates/botproducts/src/routes.rs` |
-| POST | `/api/pos/sales/validate-stock` | registered in crates/botproducts/src/routes.rs | yes | `botserver/crates/botproducts/src/routes.rs` |
+| GET | `/api/pos/orders` | schema not modeled | no | `botserver/crates/botpos/src/routes.rs` |
+| POST | `/api/pos/orders` | schema not modeled | no | `botserver/crates/botpos/src/routes.rs` |
+| GET | `/api/pos/orders/:param` | schema not modeled | no | `botserver/crates/botpos/src/routes.rs` |
+| GET | `/api/pos/products` | schema not modeled | no | `botserver/crates/botpos/src/routes.rs` |
+| POST | `/api/pos/products` | schema not modeled | no | `botserver/crates/botpos/src/routes.rs` |
+| POST | `/api/pos/sales` | schema not modeled | no | `botserver/crates/botproducts/src/routes.rs` |
+| POST | `/api/pos/sales/validate-stock` | schema not modeled | no | `botserver/crates/botproducts/src/routes.rs` |
 
 ## `preview`
 
@@ -137,12 +178,18 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/preview` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
 | POST | `/preview` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
 
+## `private`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/private` | schema not modeled | no | `botserver/crates/botsecurity-core/src/headers/tests.rs` |
+
 ## `product`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/product` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/product` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/api/product` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| PUT | `/api/product` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 
 ## `prompts`
 
@@ -167,6 +214,13 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/r/:param` | schema not modeled | no | `botserver/crates/botvibe/src/publish/site.rs` |
 
+## `ready`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/ready` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/ready` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+
 ## `refresh`
 
 | Method | Path | Summary | Inventory | Registered in |
@@ -188,6 +242,7 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/render/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/render/:param/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
+| POST | `/render/:param/:param` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 
 ## `repositories`
 
@@ -211,74 +266,5 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/resources/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-
-## `root`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| DELETE | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
-| GET | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
-| POST | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
-| PUT | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
-
-## `runs`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/runs/subagents` | schema not modeled | no | `botserver/src/main_module/routes/subagents.rs` |
-| POST | `/api/runs/subagents` | schema not modeled | no | `botserver/src/main_module/routes/subagents.rs` |
-| GET | `/api/runs/tools` | native surface tool manifests (name, inputSchema, annotations) for run-event capable clients | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
-
-## `scan`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| DELETE | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| GET | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| POST | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| PUT | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-
-## `services`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/services/summary` | registered in src/main_module/routes/misc_handlers.rs | yes | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-| POST | `/api/services/summary` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
-
-## `sessions`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| POST | `/api/sessions/current/message` | registered in src/main_module/routes/chat_handlers.rs | yes | `botserver/src/main_module/routes/chat_handlers.rs` |
-
-## `setup`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| POST | `/api/setup/configure` | registered in crates/botapi/src/system.rs | yes | `botserver/crates/botapi/src/system.rs` |
-| GET | `/api/setup/status` | registered in crates/botapi/src/system.rs | yes | `botserver/crates/botapi/src/system.rs` |
-| POST | `/api/setup/status` | schema not modeled | no | `botserver/crates/botapi/src/system.rs` |
-
-## `speech`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/speech/duplex` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-| POST | `/api/speech/duplex` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
-
-## `stats`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| DELETE | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| GET | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-| POST | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
-
-## `storage`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/storage` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
-| POST | `/storage` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
 
 [All families](./README.md)

@@ -10,14 +10,14 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | DELETE | `/api/user/api-keys` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| GET | `/api/user/api-keys` | List API keys with scopes and last-used time | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| POST | `/api/user/api-keys` | Create an API key (name, scopes, expiry days) | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| DELETE | `/api/user/api-keys/:param` | Revoke an API key | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| GET | `/api/user/api-keys` | registered in crates/botsettings/src/settings_api.rs | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| POST | `/api/user/api-keys` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| DELETE | `/api/user/api-keys/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/api-keys/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | POST | `/api/user/api-keys/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | DELETE | `/api/user/api-keys/:param/rotate` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/api-keys/:param/rotate` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| POST | `/api/user/api-keys/:param/rotate` | Rotate an API key secret | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| POST | `/api/user/api-keys/:param/rotate` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/billing/invoices` | registered in crates/botsettings/src/settings_api.rs | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | POST | `/api/user/billing/invoices` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/billing/payment-methods` | registered in crates/botsettings/src/settings_api.rs | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
@@ -55,14 +55,14 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/user/usage/summary` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | PUT | `/api/user/usage/summary` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | DELETE | `/api/user/webhooks` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| GET | `/api/user/webhooks` | List webhook endpoints | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| POST | `/api/user/webhooks` | Register a webhook endpoint (URL, events) | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| DELETE | `/api/user/webhooks/:param` | Delete a webhook endpoint | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| GET | `/api/user/webhooks` | registered in crates/botsettings/src/settings_api.rs | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| POST | `/api/user/webhooks` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| DELETE | `/api/user/webhooks/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/webhooks/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | POST | `/api/user/webhooks/:param` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| GET | `/api/user/webhooks/:param/deliveries` | List webhook delivery history | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| GET | `/api/user/webhooks/:param/deliveries` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/webhooks/:param/test` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
-| POST | `/api/user/webhooks/:param/test` | Send a signed test event to a webhook | yes | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
+| POST | `/api/user/webhooks/:param/test` | schema not modeled | no | `botserver/crates/botsettings/src/settings_api/saas_jwt_secret.rs` |
 | GET | `/api/user/workspace/tabs` | schema not modeled | no | `botserver/src/main_module/routes/workspace_tabs.rs` |
 | PUT | `/api/user/workspace/tabs` | schema not modeled | no | `botserver/src/main_module/routes/workspace_tabs.rs` |
 

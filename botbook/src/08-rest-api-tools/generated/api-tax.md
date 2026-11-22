@@ -10,17 +10,17 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/api/tax/calculate` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
-| POST | `/api/tax/calculate` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
+| POST | `/api/tax/calculate` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | GET | `/api/tax/calculations` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
-| GET | `/api/tax/cte` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
+| GET | `/api/tax/cte` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | POST | `/api/tax/cte` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
-| GET | `/api/tax/nfe` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
+| GET | `/api/tax/nfe` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | POST | `/api/tax/nfe` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | GET | `/api/tax/nfe/:param/authorize` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
-| POST | `/api/tax/nfe/:param/authorize` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
-| GET | `/api/tax/nfse` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
+| POST | `/api/tax/nfe/:param/authorize` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
+| GET | `/api/tax/nfse` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | POST | `/api/tax/nfse` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
-| GET | `/api/tax/sped` | registered in crates/bottax/src/routes.rs | yes | `botserver/crates/bottax/src/routes.rs` |
+| GET | `/api/tax/sped` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 | POST | `/api/tax/sped` | schema not modeled | no | `botserver/crates/bottax/src/routes.rs` |
 
 [All families](./README.md)

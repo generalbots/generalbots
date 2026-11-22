@@ -9,17 +9,17 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/reports/billing/aging` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/billing/monthly` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/billing/payments` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/billing/revenue` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/crm/conversion` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/crm/forecast` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/crm/pipeline` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/crm/won-lost` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/support/ai-rate` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/support/by-category` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/support/by-priority` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
-| GET | `/api/reports/support/resolution-time` | registered in crates/botanalytics/src/reports.rs | yes | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/billing/aging` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/billing/monthly` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/billing/payments` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/billing/revenue` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/crm/conversion` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/crm/forecast` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/crm/pipeline` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/crm/won-lost` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/support/ai-rate` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/support/by-category` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/support/by-priority` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
+| GET | `/api/reports/support/resolution-time` | schema not modeled | no | `botserver/crates/botanalytics/src/reports/billing_payments.rs` |
 
 [All families](./README.md)

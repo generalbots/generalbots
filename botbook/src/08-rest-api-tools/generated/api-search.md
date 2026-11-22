@@ -9,15 +9,15 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/search/entities` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
-| GET | `/api/search/entity` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
+| GET | `/api/search/entities` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
+| GET | `/api/search/entity` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
 | GET | `/api/search/reindex` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
-| POST | `/api/search/reindex` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
+| POST | `/api/search/reindex` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
 | GET | `/api/search/reindex/:param` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
-| POST | `/api/search/reindex/:param` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
-| GET | `/api/search/settings` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
+| POST | `/api/search/reindex/:param` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
+| GET | `/api/search/settings` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
 | POST | `/api/search/settings` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
-| GET | `/api/search/stats` | registered in crates/botsearch/src/routes.rs | yes | `botserver/crates/botsearch/src/routes.rs` |
+| GET | `/api/search/stats` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
 | POST | `/api/search/stats` | schema not modeled | no | `botserver/crates/botsearch/src/routes.rs` |
 | DELETE | `/search` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
 | GET | `/search` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |

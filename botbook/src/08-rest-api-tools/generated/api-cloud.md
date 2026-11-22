@@ -16,9 +16,9 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/cloud/appstore/purchase` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | POST | `/api/cloud/appstore/purchase` | registered in crates/botcloud/src/api.rs | yes | `botserver/crates/botcloud/src/api/mod.rs` |
 | GET | `/api/cloud/auth/login` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
-| POST | `/api/cloud/auth/login` | Log into the cloud | yes | `botserver/crates/botcloud/src/api/mod.rs` |
+| POST | `/api/cloud/auth/login` | registered in crates/botcloud/src/api.rs | yes | `botserver/crates/botcloud/src/api/mod.rs` |
 | GET | `/api/cloud/auth/signup` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
-| POST | `/api/cloud/auth/signup` | Create a cloud workspace account | yes | `botserver/crates/botcloud/src/api/mod.rs` |
+| POST | `/api/cloud/auth/signup` | registered in crates/botcloud/src/api.rs | yes | `botserver/crates/botcloud/src/api/mod.rs` |
 | GET | `/api/cloud/billing-portal` | registered in crates/botcloud/src/api.rs | yes | `botserver/crates/botcloud/src/api/mod.rs` |
 | POST | `/api/cloud/billing-portal` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | PUT | `/api/cloud/billing-portal` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
@@ -31,8 +31,8 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/cloud/checkout/success` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | PUT | `/api/cloud/checkout/success` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | DELETE | `/api/cloud/domains` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
-| GET | `/api/cloud/domains` | List bot domain mappings | yes | `botserver/crates/botcloud/src/api/mod.rs` |
-| POST | `/api/cloud/domains` | Map a domain to a bot | yes | `botserver/crates/botcloud/src/api/mod.rs` |
+| GET | `/api/cloud/domains` | registered in crates/botcloud/src/api.rs | yes | `botserver/crates/botcloud/src/api/mod.rs` |
+| POST | `/api/cloud/domains` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | PUT | `/api/cloud/domains` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | DELETE | `/api/cloud/domains/:param` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |
 | GET | `/api/cloud/domains/:param` | schema not modeled | no | `botserver/crates/botcloud/src/api/mod.rs` |

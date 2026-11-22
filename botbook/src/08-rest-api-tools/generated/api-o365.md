@@ -9,20 +9,20 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/o365/calendar` | registered in crates/botm365/src/routes.rs | yes | `botserver/crates/botm365/src/routes.rs` |
+| GET | `/api/o365/calendar` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/calendar` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | GET | `/api/o365/connect` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/connect` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | GET | `/api/o365/disconnect` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/disconnect` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
-| GET | `/api/o365/onedrive` | registered in crates/botm365/src/routes.rs | yes | `botserver/crates/botm365/src/routes.rs` |
+| GET | `/api/o365/onedrive` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/onedrive` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | GET | `/api/o365/onedrive/download/:param` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/onedrive/download/:param` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
-| GET | `/api/o365/settings` | registered in crates/botm365/src/routes.rs | yes | `botserver/crates/botm365/src/routes.rs` |
+| GET | `/api/o365/settings` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | GET | `/api/o365/settings/sync` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/settings/sync` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
-| GET | `/api/o365/sharepoint` | registered in crates/botm365/src/routes.rs | yes | `botserver/crates/botm365/src/routes.rs` |
+| GET | `/api/o365/sharepoint` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/sharepoint` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | GET | `/api/o365/sync` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |
 | POST | `/api/o365/sync` | schema not modeled | no | `botserver/crates/botm365/src/routes.rs` |

@@ -2,7 +2,7 @@
 
 # API / ai-accounts
 
-9 routes in the `ai-accounts` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+11 routes in the `ai-accounts` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -17,6 +17,8 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/ai-accounts/:param/status` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/use-for-chat` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/:param/use-for-vibe` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| POST | `/api/ai-accounts/antigravity/code` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 | POST | `/api/ai-accounts/claude-code/code` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
+| POST | `/api/ai-accounts/codex-cli/code` | schema not modeled | no | `botserver/src/main_module/routes/ai_accounts.rs` |
 
 [All families](./README.md)

@@ -4,6 +4,27 @@
 
 Part of the [generated database reference](./index.md).
 
+### people_departments
+
+- Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.5.23-branch-scope-cleanup`
+- Rust source: `botschema/src/people.rs`
+
+| Column | SQL type | Null | Default | Key | References |
+|---|---|---|---|---|---|
+| id | UUID | no | gen_random_uuid() | PK | — |
+| org_id | UUID | no | — | FK | organizations.org_id |
+| bot_id | UUID | no | — | — | — |
+| name | VARCHAR(255) | no | — | — | — |
+| description | TEXT | yes | — | — | — |
+| code | VARCHAR(255) | yes | — | — | — |
+| parent_id | UUID | yes | — | FK | people_departments.id |
+| head_id | UUID | yes | — | FK | people.id |
+| cost_center | VARCHAR(255) | yes | — | — | — |
+| is_active | BOOLEAN | no | TRUE | — | — |
+| created_at | TIMESTAMPTZ | no | NOW() | — | — |
+| updated_at | TIMESTAMPTZ | no | NOW() | — | — |
+| branch_id | UUID | yes | — | FK | branches.id |
+
 ### people_org_chart
 
 - Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.5.23-branch-scope-cleanup`

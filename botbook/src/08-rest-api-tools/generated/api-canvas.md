@@ -10,7 +10,7 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | DELETE | `/api/canvas` | schema not modeled | no | `botserver/crates/botcanvas/src/lib.rs` |
-| GET | `/api/canvas` | registered in crates/botcanvas/src/lib.rs | yes | `botserver/crates/botcanvas/src/lib.rs` |
+| GET | `/api/canvas` | test | yes | `botserver/crates/botcanvas/src/lib.rs` |
 | POST | `/api/canvas` | Create an editable vector and bitmap canvas | yes | `botserver/crates/botcanvas/src/lib.rs` |
 | PUT | `/api/canvas` | schema not modeled | no | `botserver/crates/botcanvas/src/lib.rs` |
 | DELETE | `/api/canvas/:param` | Delete a canvas | yes | `botserver/crates/botcanvas/src/lib.rs` |

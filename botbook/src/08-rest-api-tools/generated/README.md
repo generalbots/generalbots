@@ -33,13 +33,13 @@ request/response fields are invented here.
 
 ## Counts
 
-- method/path pairs parsed from route literals: **4068**
-- catalog entries: **1418**
-- merged routes: **4153**
-- catalog-only (no route literal found): **85**
-- route-only (no catalog summary): **2735**
-- families: **174**
-- `.nest(` calls (mount prefixes, unresolved): **6**
+- method/path pairs parsed from route literals: **4211**
+- catalog entries: **797**
+- merged routes: **4261**
+- catalog-only (no route literal found): **50**
+- route-only (no catalog summary): **3464**
+- families: **184**
+- `.nest(` calls (mount prefixes, unresolved): **7**
 
 A catalog-only entry is usually a route mounted inside a nested router;
 `prefix: unresolved` is reported instead of guessing the prefix.
@@ -51,22 +51,23 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `accounts` | 9 | [api-accounts](./api-accounts.md) |
 | `admin` | 40 | [api-admin](./api-admin.md) |
 | `agent` | 25 | [api-agent](./api-agent.md) |
-| `ai-accounts` | 9 | [api-ai-accounts](./api-ai-accounts.md) |
-| `analytics` | 18 | [api-analytics](./api-analytics.md) |
+| `ai-accounts` | 11 | [api-ai-accounts](./api-ai-accounts.md) |
+| `analytics` | 23 | [api-analytics](./api-analytics.md) |
 | `app-logs` | 8 | [api-app-logs](./api-app-logs.md) |
-| `apps` | 25 | [api-apps](./api-apps.md) |
+| `approvals` | 20 | [api-approvals](./api-approvals.md) |
+| `apps` | 33 | [api-apps](./api-apps.md) |
 | `attendance` | 45 | [api-attendance](./api-attendance.md) |
-| `attendant` | 53 | [api-attendant](./api-attendant.md) |
+| `attendant` | 48 | [api-attendant](./api-attendant.md) |
 | `auth` | 15 | [api-auth](./api-auth.md) |
 | `automations` | 15 | [api-automations](./api-automations.md) |
 | `autotask` | 29 | [api-autotask](./api-autotask.md) |
 | `banking` | 59 | [api-banking](./api-banking.md) |
-| `billing` | 66 | [api-billing](./api-billing.md) |
-| `bots` | 42 | [api-bots](./api-bots.md) |
+| `billing` | 65 | [api-billing](./api-billing.md) |
+| `bots` | 41 | [api-bots](./api-bots.md) |
 | `browser` | 73 | [api-browser](./api-browser.md) |
 | `calendar` | 23 | [api-calendar](./api-calendar.md) |
 | `canvas` | 40 | [api-canvas](./api-canvas.md) |
-| `chat` | 20 | [api-chat](./api-chat.md) |
+| `chat` | 24 | [api-chat](./api-chat.md) |
 | `cloud` | 124 | [api-cloud](./api-cloud.md) |
 | `collab` | 52 | [api-collab](./api-collab.md) |
 | `compliance` | 61 | [api-compliance](./api-compliance.md) |
@@ -75,21 +76,20 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `consent` | 9 | [api-consent](./api-consent.md) |
 | `contacts` | 11 | [api-contacts](./api-contacts.md) |
 | `conversations` | 34 | [api-conversations](./api-conversations.md) |
-| `crm` | 157 | [api-crm](./api-crm.md) |
+| `crm` | 172 | [api-crm](./api-crm.md) |
 | `dashboards` | 36 | [api-dashboards](./api-dashboards.md) |
 | `database` | 39 | [api-database](./api-database.md) |
 | `deploy` | 10 | [api-deploy](./api-deploy.md) |
 | `deployment` | 10 | [api-deployment](./api-deployment.md) |
-| `desktop` | 8 | [api-desktop](./api-desktop.md) |
 | `directory` | 67 | [api-directory](./api-directory.md) |
 | `dns` | 14 | [api-dns](./api-dns.md) |
-| `docs` | 109 | [api-docs](./api-docs.md) |
+| `docs` | 102 | [api-docs](./api-docs.md) |
 | `editor` | 12 | [api-editor](./api-editor.md) |
 | `email` | 71 | [api-email](./api-email.md) |
 | `erp` | 22 | [api-erp](./api-erp.md) |
-| `events` | 13 | [api-events](./api-events.md) |
+| `events` | 19 | [api-events](./api-events.md) |
 | `external-drives` | 14 | [api-external-drives](./api-external-drives.md) |
-| `files` | 68 | [api-files](./api-files.md) |
+| `files` | 64 | [api-files](./api-files.md) |
 | `fraud` | 24 | [api-fraud](./api-fraud.md) |
 | `git` | 17 | [api-git](./api-git.md) |
 | `goals` | 35 | [api-goals](./api-goals.md) |
@@ -98,51 +98,52 @@ A catalog-only entry is usually a route mounted inside a nested router;
 | `hr` | 23 | [api-hr](./api-hr.md) |
 | `insights` | 16 | [api-insights](./api-insights.md) |
 | `instagram` | 10 | [api-instagram](./api-instagram.md) |
-| `integrations` | 11 | [api-integrations](./api-integrations.md) |
 | `itsm` | 10 | [api-itsm](./api-itsm.md) |
 | `kyc` | 11 | [api-kyc](./api-kyc.md) |
 | `learn` | 36 | [api-learn](./api-learn.md) |
 | `legal` | 20 | [api-legal](./api-legal.md) |
+| `llm` | 39 | [api-llm](./api-llm.md) |
 | `m365` | 27 | [api-m365](./api-m365.md) |
+| `marketing` | 10 | [api-marketing](./api-marketing.md) |
 | `marketplace` | 11 | [api-marketplace](./api-marketplace.md) |
-| `meet` | 36 | [api-meet](./api-meet.md) |
+| `meet` | 32 | [api-meet](./api-meet.md) |
 | `memory` | 11 | [api-memory](./api-memory.md) |
 | `minutes` | 28 | [api-minutes](./api-minutes.md) |
 | `monitoring` | 56 | [api-monitoring](./api-monitoring.md) |
 | `o365` | 19 | [api-o365](./api-o365.md) |
-| `oauth` | 10 | [api-oauth](./api-oauth.md) |
 | `ops` | 8 | [api-ops](./api-ops.md) |
 | `organizations` | 40 | [api-organizations](./api-organizations.md) |
+| `os` | 37 | [api-os](./api-os.md) |
 | `param` | 53 | [api-param](./api-param.md) |
 | `peer` | 14 | [api-peer](./api-peer.md) |
 | `people` | 41 | [api-people](./api-people.md) |
-| `plan` | 22 | [api-plan](./api-plan.md) |
-| `player` | 34 | [api-player](./api-player.md) |
+| `plan` | 20 | [api-plan](./api-plan.md) |
+| `player` | 33 | [api-player](./api-player.md) |
 | `products` | 37 | [api-products](./api-products.md) |
 | `projects` | 59 | [api-projects](./api-projects.md) |
 | `rbac` | 50 | [api-rbac](./api-rbac.md) |
 | `reports` | 12 | [api-reports](./api-reports.md) |
-| `retail` | 12 | [api-retail](./api-retail.md) |
-| `sales` | 29 | [api-sales](./api-sales.md) |
+| `retail` | 10 | [api-retail](./api-retail.md) |
+| `sales` | 14 | [api-sales](./api-sales.md) |
 | `scim` | 26 | [api-scim](./api-scim.md) |
 | `search` | 13 | [api-search](./api-search.md) |
 | `security` | 41 | [api-security](./api-security.md) |
-| `settings` | 55 | [api-settings](./api-settings.md) |
-| `sheet` | 103 | [api-sheet](./api-sheet.md) |
-| `slides` | 64 | [api-slides](./api-slides.md) |
+| `settings` | 57 | [api-settings](./api-settings.md) |
+| `sheet` | 101 | [api-sheet](./api-sheet.md) |
+| `slides` | 63 | [api-slides](./api-slides.md) |
 | `social` | 42 | [api-social](./api-social.md) |
-| `suite` | 227 | [api-suite](./api-suite.md) |
+| `suite` | 225 | [api-suite](./api-suite.md) |
 | `sync` | 13 | [api-sync](./api-sync.md) |
-| `system` | 12 | [api-system](./api-system.md) |
+| `system` | 17 | [api-system](./api-system.md) |
 | `tasks` | 58 | [api-tasks](./api-tasks.md) |
 | `tax` | 13 | [api-tax](./api-tax.md) |
 | `tickets` | 57 | [api-tickets](./api-tickets.md) |
 | `timeclock` | 17 | [api-timeclock](./api-timeclock.md) |
-| `ui` | 271 | [api-ui](./api-ui.md) |
+| `ui` | 273 | [api-ui](./api-ui.md) |
 | `user` | 56 | [api-user](./api-user.md) |
 | `users` | 59 | [api-users](./api-users.md) |
 | `vibe` | 195 | [api-vibe](./api-vibe.md) |
 | `video` | 86 | [api-video](./api-video.md) |
 | `workspaces` | 22 | [api-workspaces](./api-workspaces.md) |
-| `ws` | 8 | [api-ws](./api-ws.md) |
-| `misc (7 routes or fewer, grouped)` | 237 | [api-misc](./api-misc.md), [api-misc-2](./api-misc-2.md), [api-misc-3](./api-misc-3.md) |
+| `ws` | 12 | [api-ws](./api-ws.md) |
+| `misc (7 routes or fewer, grouped)` | 262 | [api-misc](./api-misc.md), [api-misc-2](./api-misc-2.md), [api-misc-3](./api-misc-3.md) |

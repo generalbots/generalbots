@@ -2,7 +2,7 @@
 
 # Database Tables
 
-All **301** tables declared in `botschema` are documented in the
+All **306** tables declared in `botschema` are documented in the
 [generated schema reference](./schema/index.md); this page is only its index.
 Regenerate with `python3 scripts/gen_schema_reference.py`.
 
@@ -180,6 +180,7 @@ Regenerate with `python3 scripts/gen_schema_reference.py`.
 | `marketing_list_contacts` | `people` | 3 | 6.5.51-isolated-marketing-lists | [people](./schema/people-2.md) |
 | `marketing_lists` | `people` | 14 | 6.5.36-schema-reconcile | [people](./schema/people-2.md) |
 | `marketing_recipients` | `people` | 18 | 6.5.48-marketing-recipients-reconcile | [people](./schema/people-2.md) |
+| `marketing_suppressions` | `people` | 6 | 6.9.2-marketing-suppressions | [people](./schema/people-2.md) |
 | `marketing_templates` | `people` | 15 | 6.5.23-branch-scope-cleanup | [people](./schema/people-2.md) |
 | `meeting_chat_messages` | `meet` | 10 | 6.5.15.1-consolidated | [meet](./schema/meet.md) |
 | `meeting_participants` | `meet` | 13 | 6.5.15.1-consolidated | [meet](./schema/meet.md) |
@@ -294,6 +295,10 @@ Regenerate with `python3 scripts/gen_schema_reference.py`.
 | `video_layers` | `video` | 19 | 6.7.13-video-json-columns | [video](./schema/video.md) |
 | `video_projects` | `video` | 19 | 6.0.6-01-video | [video](./schema/video.md) |
 | `warmup_schedules` | `people` | 14 | 6.7.12-missing-feature-tables | [people](./schema/people-2.md) |
+| `weba_form_submissions` | `weba` | 8 | — | [weba](./schema/weba.md) |
+| `weba_pages` | `weba` | 8 | — | [weba](./schema/weba.md) |
+| `weba_sites` | `weba` | 7 | — | [weba](./schema/weba.md) |
+| `weba_snapshots` | `weba` | 3 | 6.8.20-weba-sites | [weba](./schema/weba.md) |
 | `website_crawls` | `core` | 15 | 6.5.23-branch-scope-cleanup | [core](./schema/core-2.md) |
 | `whatsapp_business` | `people` | 8 | 6.5.15.1-consolidated | [people](./schema/people-2.md) |
 | `whiteboard_elements` | `meet` | 13 | 6.5.15.1-consolidated | [meet](./schema/meet.md) |

@@ -2,7 +2,7 @@
 
 # API / billing
 
-66 routes in the `billing` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+65 routes in the `billing` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -49,7 +49,6 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/billing/payments/:param` | registered in crates/botbilling/src/api.rs | yes | `botserver/crates/botbilling/src/api/accept_quote.rs` |
 | POST | `/api/billing/payments/:param` | schema not modeled | no | `botserver/crates/botbilling/src/api/accept_quote.rs` |
 | PUT | `/api/billing/payments/:param` | schema not modeled | no | `botserver/crates/botbilling/src/api/accept_quote.rs` |
-| GET | `/api/billing/payroll/months` | Monthly invoice totals as a payroll basis | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
 | DELETE | `/api/billing/quotes` | schema not modeled | no | `botserver/crates/botbilling/src/api/accept_quote.rs` |
 | GET | `/api/billing/quotes` | registered in crates/botbilling/src/api.rs | yes | `botserver/crates/botbilling/src/api/accept_quote.rs` |
 | POST | `/api/billing/quotes` | schema not modeled | no | `botserver/crates/botbilling/src/api/accept_quote.rs` |

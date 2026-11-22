@@ -10,21 +10,21 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | DELETE | `/api/dashboards` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| GET | `/api/dashboards` | List dashboards with their widgets | yes | `botserver/crates/botdashboards/src/lib.rs` |
-| POST | `/api/dashboards` | Create a dashboard | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| GET | `/api/dashboards` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| POST | `/api/dashboards` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | PUT | `/api/dashboards` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| DELETE | `/api/dashboards/:param` | Delete a dashboard | yes | `botserver/crates/botdashboards/src/lib.rs` |
-| GET | `/api/dashboards/:param` | Get a dashboard with its widgets and filters | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| DELETE | `/api/dashboards/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
+| GET | `/api/dashboards/:param` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | POST | `/api/dashboards/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| PUT | `/api/dashboards/:param` | Rename or reconfigure a dashboard | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| PUT | `/api/dashboards/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | DELETE | `/api/dashboards/:param/widgets` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | GET | `/api/dashboards/:param/widgets` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| POST | `/api/dashboards/:param/widgets` | Add a widget to a dashboard | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| POST | `/api/dashboards/:param/widgets` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | PUT | `/api/dashboards/:param/widgets` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| DELETE | `/api/dashboards/:param/widgets/:param` | Remove a widget from a dashboard | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| DELETE | `/api/dashboards/:param/widgets/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | GET | `/api/dashboards/:param/widgets/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | POST | `/api/dashboards/:param/widgets/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| PUT | `/api/dashboards/:param/widgets/:param` | Update a widget title, size or chart configuration | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| PUT | `/api/dashboards/:param/widgets/:param` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | DELETE | `/api/dashboards/:param/widgets/:param/data` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | GET | `/api/dashboards/:param/widgets/:param/data` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | POST | `/api/dashboards/:param/widgets/:param/data` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
@@ -33,7 +33,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/dashboards/data-sources/test` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | POST | `/api/dashboards/query` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | DELETE | `/api/dashboards/sources` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
-| GET | `/api/dashboards/sources` | List dashboard data sources | yes | `botserver/crates/botdashboards/src/lib.rs` |
+| GET | `/api/dashboards/sources` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | POST | `/api/dashboards/sources` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |
 | DELETE | `/api/dashboards/sources/:param` | registered in crates/botdashboards/src/lib.rs | yes | `botserver/crates/botdashboards/src/lib.rs` |
 | GET | `/api/dashboards/sources/:param` | schema not modeled | no | `botserver/crates/botdashboards/src/lib.rs` |

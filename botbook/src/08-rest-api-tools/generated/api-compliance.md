@@ -21,7 +21,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/compliance/checks/:param/run` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | POST | `/api/compliance/checks/:param/run` | registered in crates/botcompliance/src/lib.rs | yes | `botserver/crates/botcompliance/src/lib.rs` |
 | PUT | `/api/compliance/checks/:param/run` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| POST | `/api/compliance/controls` | Add a control to a compliance framework | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| POST | `/api/compliance/controls` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | PUT | `/api/compliance/controls` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | DELETE | `/api/compliance/controls/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | POST | `/api/compliance/controls/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
@@ -40,20 +40,20 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/compliance/evidence` | registered in crates/botcompliance/src/lib.rs | yes | `botserver/crates/botcompliance/src/lib.rs` |
 | DELETE | `/api/compliance/evidence/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | DELETE | `/api/compliance/evidence/:param/approve` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| POST | `/api/compliance/evidence/:param/approve` | Approve attached evidence | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| POST | `/api/compliance/evidence/:param/approve` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | DELETE | `/api/compliance/evidence/attach` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| POST | `/api/compliance/evidence/attach` | Attach drive evidence to a control | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| POST | `/api/compliance/evidence/attach` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | GET | `/api/compliance/export` | registered in crates/botcompliance/src/dashboard.rs | yes | `botserver/crates/botcompliance/src/dashboard/mod.rs` |
-| GET | `/api/compliance/frameworks` | List compliance frameworks with control counts | yes | `botserver/crates/botcompliance/src/lib.rs` |
-| POST | `/api/compliance/frameworks` | Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS, custom) | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| GET | `/api/compliance/frameworks` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
+| POST | `/api/compliance/frameworks` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | PUT | `/api/compliance/frameworks` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| GET | `/api/compliance/frameworks/:param` | Framework detail with controls, evidence and coverage | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| GET | `/api/compliance/frameworks/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | POST | `/api/compliance/frameworks/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| PUT | `/api/compliance/frameworks/:param` | Update a compliance framework | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| PUT | `/api/compliance/frameworks/:param` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | GET | `/api/compliance/frameworks/:param/archive` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| POST | `/api/compliance/frameworks/:param/archive` | Archive a compliance framework | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| POST | `/api/compliance/frameworks/:param/archive` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | PUT | `/api/compliance/frameworks/:param/archive` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
-| GET | `/api/compliance/frameworks/:param/export.csv` | Audit-ready compliance scorecard CSV export | yes | `botserver/crates/botcompliance/src/lib.rs` |
+| GET | `/api/compliance/frameworks/:param/export.csv` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | POST | `/api/compliance/frameworks/:param/export.csv` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | PUT | `/api/compliance/frameworks/:param/export.csv` | schema not modeled | no | `botserver/crates/botcompliance/src/lib.rs` |
 | GET | `/api/compliance/issues` | registered in crates/botcompliance/src/lib.rs | yes | `botserver/crates/botcompliance/src/lib.rs` |

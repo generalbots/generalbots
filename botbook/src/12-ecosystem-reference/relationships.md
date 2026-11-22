@@ -6,7 +6,7 @@ Every edge below comes from a `joinable!` in `botschema` or an explicit SQL
 `REFERENCES` in `botserver/migrations`. A `_id` suffix alone is never a
 foreign key. Each domain page carries the Mermaid graph and the edge table.
 
-Total edges: **524** · tables with at least one edge: **266** · tables without edges: **35**
+Total edges: **526** · tables with at least one edge: **269** · tables without edges: **37**
 
 | Domain | Edges | Graph and edges |
 |---|---|---|
@@ -38,10 +38,11 @@ Total edges: **524** · tables with at least one edge: **266** · tables without
 | `social` | 25 | [`social`](./schema/relationships-social.md) |
 | `tickets` | 12 | [`tickets`](./schema/relationships-tickets.md) |
 | `video` | 7 | [`video`](./schema/relationships-video.md) |
+| `weba` | 2 | [`weba`](./schema/relationships-weba.md) |
 | `workspaces` | 20 | [`workspaces`](./schema/relationships-workspaces.md) |
 
 ## Tables without relationships
 
-36 tables declare no `joinable!` and no SQL `REFERENCES`:
+38 tables declare no `joinable!` and no SQL `REFERENCES`:
 
-`app_permissions`, `audit_log`, `billing_customers`, `billing_payment_methods`, `browse_sessions`, `browser_tasks`, `call_logs`, `campaign_metrics`, `channel_bindings`, `chat_preferences`, `clicks`, `cloud_audit_log`, `compute_usage_hourly`, `consent_audit`, `conversation_autotasks`, `drive_share_links`, `drive_starred`, `drive_user_permissions`, `hr_clock_entries`, `hr_holidays`, `hr_overtime_rules`, `hr_schedules`, `hr_work_periods`, `ip_reputation`, `ip_rotations`, `marketing_email_opens`, `org_api_keys`, `org_ips`, `page_facts`, `run_events`, `sandbox_runs`, `session_tool_associations`, `user_memories`, `user_workspace_tabs`, `warmup_schedules`, `whatsapp_business`
+`app_permissions`, `audit_log`, `billing_customers`, `billing_payment_methods`, `browse_sessions`, `browser_tasks`, `call_logs`, `campaign_metrics`, `channel_bindings`, `chat_preferences`, `clicks`, `cloud_audit_log`, `compute_usage_hourly`, `consent_audit`, `conversation_autotasks`, `drive_share_links`, `drive_starred`, `drive_user_permissions`, `hr_clock_entries`, `hr_holidays`, `hr_overtime_rules`, `hr_schedules`, `hr_work_periods`, `ip_reputation`, `ip_rotations`, `marketing_email_opens`, `marketing_suppressions`, `org_api_keys`, `org_ips`, `page_facts`, `run_events`, `sandbox_runs`, `session_tool_associations`, `user_memories`, `user_workspace_tabs`, `warmup_schedules`, `weba_snapshots`, `whatsapp_business`

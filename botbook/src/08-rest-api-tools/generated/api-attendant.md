@@ -2,7 +2,7 @@
 
 # API / attendant
 
-53 routes in the `attendant` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+48 routes in the `attendant` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -15,8 +15,6 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/attendant/agents/:param/status` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/agents/:param/status` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/agents/:param/status` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |
-| POST | `/api/attendant/attachments` | Upload an attachment to an attendant conversation | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
-| GET | `/api/attendant/attachments/:param` | Download an attendant conversation attachment | yes | `botserver/src/core/bot/api_catalog/commands_list.rs` |
 | GET | `/api/attendant/attachments/:param/download` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/attachments/:param/download` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/attachments/:param/download` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
@@ -47,16 +45,13 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/attendant/sessions/:param/attachments` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/sessions/:param/attachments` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/sessions/:param/attachments` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
-| GET | `/api/attendant/sessions/:param/end` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/sessions/:param/end` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/sessions/:param/end` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |
 | GET | `/api/attendant/sessions/:param/messages` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/sessions/:param/messages` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |
-| PUT | `/api/attendant/sessions/:param/messages` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | GET | `/api/attendant/sessions/:param/rate` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/sessions/:param/rate` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/sessions/:param/rate` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |
-| GET | `/api/attendant/sessions/:param/transfer` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | POST | `/api/attendant/sessions/:param/transfer` | schema not modeled | no | `botserver/crates/botattendant/src/routes.rs` |
 | PUT | `/api/attendant/sessions/:param/transfer` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |
 | GET | `/api/attendant/stats` | registered in crates/botattendant/src/routes.rs | yes | `botserver/crates/botattendant/src/routes.rs` |

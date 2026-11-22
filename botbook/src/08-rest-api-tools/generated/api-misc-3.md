@@ -4,26 +4,95 @@
 
 Families with fewer than 8 routes, grouped so the book stays navigable. `Inventory` and `Registered in` mean the same as on the family pages.
 
+## `root`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| DELETE | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
+| GET | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
+| POST | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
+| PUT | `/` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
+
+## `runs`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/runs/subagents` | schema not modeled | no | `botserver/src/main_module/routes/subagents.rs` |
+| POST | `/api/runs/subagents` | schema not modeled | no | `botserver/src/main_module/routes/subagents.rs` |
+| GET | `/api/runs/tools` | native surface tool manifests (name, inputSchema, annotations) for run-event capable clients | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
+
+## `scan`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| DELETE | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| GET | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| POST | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| PUT | `/scan` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+
+## `services`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/services/summary` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+| POST | `/api/services/summary` | schema not modeled | no | `botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs` |
+
+## `sessions`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| POST | `/api/sessions/current/message` | schema not modeled | no | `botserver/src/main_module/routes/chat_handlers.rs` |
+
+## `setup`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| POST | `/api/setup/configure` | schema not modeled | no | `botserver/crates/botapi/src/system.rs` |
+| GET | `/api/setup/status` | schema not modeled | no | `botserver/crates/botapi/src/system.rs` |
+| POST | `/api/setup/status` | schema not modeled | no | `botserver/crates/botapi/src/system.rs` |
+
+## `speech`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/speech/duplex` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/speech/duplex` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+
+## `stats`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| DELETE | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| GET | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+| POST | `/stats` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
+
+## `storage`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/storage` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
+| POST | `/storage` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
+
 ## `strict`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/strict` | schema not modeled | no | `botserver/crates/botsecurity-core/src/headers/mod.rs` |
+| GET | `/strict` | schema not modeled | no | `botserver/crates/botsecurity-core/src/headers/tests.rs` |
 
 ## `telegram`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| POST | `/api/telegram/send` | registered in crates/bottelegram/src/webhook.rs | yes | `botserver/crates/bottelegram/src/webhook.rs` |
+| POST | `/api/telegram/send` | schema not modeled | no | `botserver/crates/bottelegram/src/webhook.rs` |
 
 ## `templates`
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| POST | `/api/templates/deploy/:param` | registered in crates/bottemplates/src/routes.rs | yes | `botserver/crates/bottemplates/src/routes.rs` |
-| GET | `/api/templates/list` | registered in crates/bottemplates/src/routes.rs | yes | `botserver/crates/bottemplates/src/routes.rs` |
+| POST | `/api/templates/deploy/:param` | schema not modeled | no | `botserver/crates/bottemplates/src/routes.rs` |
+| GET | `/api/templates/list` | schema not modeled | no | `botserver/crates/bottemplates/src/routes.rs` |
 | POST | `/api/templates/list` | schema not modeled | no | `botserver/crates/bottemplates/src/routes.rs` |
-| GET | `/api/templates/preview/:param` | registered in crates/bottemplates/src/routes.rs | yes | `botserver/crates/bottemplates/src/routes.rs` |
+| GET | `/api/templates/preview/:param` | schema not modeled | no | `botserver/crates/bottemplates/src/routes.rs` |
 | POST | `/api/templates/preview/:param` | schema not modeled | no | `botserver/crates/bottemplates/src/routes.rs` |
 | GET | `/templates` | schema not modeled | no | `botserver/crates/botdesigner/src/canvas_api/handlers.rs` |
 | POST | `/templates` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |
@@ -34,7 +103,7 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/api/terminal/audit` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 | GET | `/api/terminal/exec` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
-| POST | `/api/terminal/exec` | Execute an approved terminal command inside the user's workspace container; requires approved=true and refuses destructive patterns | yes | `botserver/src/main_module/routes/computer_use_routes.rs` |
+| POST | `/api/terminal/exec` | schema not modeled | no | `botserver/src/main_module/routes/computer_use_routes.rs` |
 
 ## `tools`
 
@@ -90,7 +159,7 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| POST | `/api/website/force-recrawl` | registered in src/main_module/routes/sub_router.rs | yes | `botserver/src/main_module/routes/feature_merge_office.rs` |
+| POST | `/api/website/force-recrawl` | registered in src/main_module/routes/sub_router.rs | yes | `botserver/src/main_module/routes/feature_merge_office/tail.rs` |
 
 ## `well-known`
 

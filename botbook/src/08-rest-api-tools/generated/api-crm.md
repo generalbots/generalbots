@@ -2,7 +2,7 @@
 
 # API / crm
 
-157 routes in the `crm` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+172 routes in the `crm` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -30,8 +30,8 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/crm/audit` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | PUT | `/api/crm/audit` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | DELETE | `/api/crm/campaigns` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| GET | `/api/crm/campaigns` | List marketing campaigns across channels | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/crm/campaigns` | Create a marketing campaign (name, channel, content template) | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/campaigns` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/campaigns` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | PUT | `/api/crm/campaigns` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | DELETE | `/api/crm/campaigns/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
@@ -39,18 +39,14 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/crm/campaigns/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/:param/control/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/campaigns/:param/control/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| DELETE | `/api/crm/campaigns/:param/events` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/:param/events` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/campaigns/:param/events` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| PUT | `/api/crm/campaigns/:param/events` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/:param/publish` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/campaigns/:param/publish` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/:param/send` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/crm/campaigns/:param/send` | Send a campaign to its recipient list | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| DELETE | `/api/crm/campaigns/worker/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/campaigns/:param/send` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/campaigns/worker/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/campaigns/worker/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| PUT | `/api/crm/campaigns/worker/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/contact/by-email/:param` | registered in crates/botemail/src/routes.rs | yes | `botserver/crates/botemail/src/routes.rs` |
 | POST | `/api/crm/contact/by-email/:param` | schema not modeled | no | `botserver/crates/botemail/src/routes.rs` |
 | DELETE | `/api/crm/contacts` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
@@ -110,18 +106,24 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/crm/leads/import` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | POST | `/api/crm/leads/import` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | PUT | `/api/crm/leads/import` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
-| DELETE | `/api/crm/lists` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| GET | `/api/crm/lists` | List audience lists with member counts | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/crm/lists` | Create an audience list (name, type, segment query) | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| PUT | `/api/crm/lists` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| DELETE | `/api/crm/lists/:param` | Delete an audience list | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/lists` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/lists` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| DELETE | `/api/crm/lists/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/lists/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/lists/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | PUT | `/api/crm/lists/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| DELETE | `/api/crm/lists/:param/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/lists/:param/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/lists/:param/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| PUT | `/api/crm/lists/:param/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | DELETE | `/api/crm/lists/:param/refresh` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/lists/:param/refresh` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/lists/:param/refresh` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | PUT | `/api/crm/lists/:param/refresh` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| DELETE | `/api/crm/lists/segment/fields` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/lists/segment/fields` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/lists/segment/fields` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| PUT | `/api/crm/lists/segment/fields` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/metrics/aggregate` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/metrics/aggregate` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/metrics/campaign/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
@@ -142,6 +144,9 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/crm/opportunities/:param/close` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | PUT | `/api/crm/opportunities/:param/close` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/opportunities/search` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
+| ANY | `/api/crm/orders` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
+| GET | `/api/crm/orders` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
+| POST | `/api/crm/orders` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
 | GET | `/api/crm/pipeline` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | DELETE | `/api/crm/pipeline/stages` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/pipeline/stages` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
@@ -150,17 +155,27 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/crm/pipeline/stages/:param` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/pipeline/stages/:param` | schema not modeled | no | `botserver/crates/botcontacts/src/routes.rs` |
 | PUT | `/api/crm/pipeline/stages/:param` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
+| ANY | `/api/crm/quotes` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
+| GET | `/api/crm/quotes` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
+| POST | `/api/crm/quotes` | schema not modeled | no | `botserver/crates/botsales/src/routes.rs` |
+| GET | `/api/crm/revenue/attribution` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
+| GET | `/api/crm/revenue/contacts/:param/bridge` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
+| GET | `/api/crm/revenue/contacts/:param/timeline` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/search` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
+| DELETE | `/api/crm/segments/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/segments/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/segments/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| PUT | `/api/crm/segments/preview` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/stats` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/stats/avg-deal` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/stats/conversion-rate` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/stats/pipeline-value` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | GET | `/api/crm/stats/won-month` | registered in crates/botcontacts/src/routes.rs | yes | `botserver/crates/botcontacts/src/routes.rs` |
 | DELETE | `/api/crm/templates` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| GET | `/api/crm/templates` | List channel templates (email, WhatsApp, social, SMS) | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/crm/templates` | Create a channel template with variables | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/crm/templates` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/crm/templates` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | PUT | `/api/crm/templates` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
-| DELETE | `/api/crm/templates/:param` | Delete a channel template | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| DELETE | `/api/crm/templates/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/crm/templates/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/crm/templates/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | PUT | `/api/crm/templates/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |

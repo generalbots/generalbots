@@ -2,7 +2,7 @@
 
 # API / suite
 
-227 routes in the `suite` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+225 routes in the `suite` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -77,10 +77,9 @@ Base URL: `http://localhost:8080` — see
 | POST | `/suite/docs/modals/style` | schema not modeled | no | `botserver/crates/botdocs/src/ui_fragments/mod.rs` |
 | GET | `/suite/docs/modals/template` | schema not modeled | no | `botserver/crates/botdocs/src/ui_fragments/mod.rs` |
 | POST | `/suite/docs/modals/template` | schema not modeled | no | `botserver/crates/botdocs/src/ui_fragments/mod.rs` |
-| GET | `/suite/docs/modals/track-changes` | schema not modeled | no | `botserver/crates/botdocs/src/ui_fragments/mod.rs` |
 | POST | `/suite/docs/modals/track-changes` | schema not modeled | no | `botserver/crates/botdocs/src/ui_fragments/mod.rs` |
 | GET | `/suite/learn` | schema not modeled | no | `botserver/crates/botlearn/src/ui/routes.rs` |
-| GET | `/suite/learn/:param` | schema not modeled | no | `botserver/crates/botlearn/src/ui/routes.rs` |
+| GET | `/suite/learn/course/:param` | schema not modeled | no | `botserver/crates/botlearn/src/ui/routes.rs` |
 | GET | `/suite/learn/create` | schema not modeled | no | `botserver/crates/botlearn/src/ui/routes.rs` |
 | GET | `/suite/legal` | schema not modeled | no | `botserver/crates/botlegal/src/handle_legal_new_page.rs` |
 | GET | `/suite/legal/:param` | schema not modeled | no | `botserver/crates/botlegal/src/handle_legal_new_page.rs` |
@@ -103,8 +102,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/suite/minutes/fragments/upcoming` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/minutes_app.rs` |
 | GET | `/suite/plugins` | schema not modeled | no | `botserver/crates/botdesigner/src/plugin_manifest/handlers.rs` |
 | GET | `/suite/research` | schema not modeled | no | `botserver/crates/botresearch/src/ui.rs` |
-| GET | `/suite/research/:param` | schema not modeled | no | `botserver/crates/botresearch/src/ui.rs` |
 | GET | `/suite/research/new` | schema not modeled | no | `botserver/crates/botresearch/src/ui.rs` |
+| GET | `/suite/research/project/:param` | schema not modeled | no | `botserver/crates/botresearch/src/ui.rs` |
 | GET | `/suite/sheet/forms/chart` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/forms/chart` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | GET | `/suite/sheet/forms/conditional-format` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
@@ -126,7 +125,6 @@ Base URL: `http://localhost:8080` — see
 | GET | `/suite/sheet/fragments/array-formulas` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/fragments/array-formulas` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/fragments/charts` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
-| GET | `/suite/sheet/fragments/comments` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/fragments/comments` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/fragments/conditional-formats` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
 | POST | `/suite/sheet/fragments/external-links` | schema not modeled | no | `botserver/crates/botsheet/src/ui_fragments/mod.rs` |
@@ -213,8 +211,8 @@ Base URL: `http://localhost:8080` — see
 | GET | `/suite/slides/modals/transition` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | POST | `/suite/slides/modals/transition` | schema not modeled | no | `botserver/crates/botslides/src/ui_fragments/mod.rs` |
 | GET | `/suite/social` | schema not modeled | no | `botserver/crates/botsocial/src/handle_trending_topics.rs` |
-| GET | `/suite/social/:param` | schema not modeled | no | `botserver/crates/botsocial/src/handle_trending_topics.rs` |
 | GET | `/suite/social/compose` | schema not modeled | no | `botserver/crates/botsocial/src/handle_trending_topics.rs` |
+| GET | `/suite/social/post/:param` | schema not modeled | no | `botserver/crates/botsocial/src/handle_trending_topics.rs` |
 | GET | `/suite/sources` | schema not modeled | no | `botserver/crates/botsources/src/ui/configure_sources_ui_routes.rs` |
 | GET | `/suite/sources/mcp/add` | schema not modeled | no | `botserver/crates/botsources/src/ui/configure_sources_ui_routes.rs` |
 | GET | `/suite/sources/mcp/catalog` | schema not modeled | no | `botserver/crates/botsources/src/ui/configure_sources_ui_routes.rs` |
@@ -234,7 +232,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/suite/timeclock/fragments/team` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
 | GET | `/suite/timeclock/fragments/today` | schema not modeled | no | `botserver/crates/botuifragments/src/ui_fragments/timeclock.rs` |
 | GET | `/suite/video` | schema not modeled | no | `botserver/crates/botvideo/src/ui/routes.rs` |
-| GET | `/suite/video/:param` | schema not modeled | no | `botserver/crates/botvideo/src/ui/routes.rs` |
+| GET | `/suite/video/detail/:param` | schema not modeled | no | `botserver/crates/botvideo/src/ui/routes.rs` |
 | GET | `/suite/video/upload` | schema not modeled | no | `botserver/crates/botvideo/src/ui/routes.rs` |
 
 [All families](./README.md)

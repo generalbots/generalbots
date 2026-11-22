@@ -2,7 +2,7 @@
 
 # API / chat
 
-20 routes in the `chat` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+24 routes in the `chat` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -13,16 +13,20 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/chat` | registered in src/main_module/routes/chat_handlers.rs | yes | `botserver/src/main_module/routes/chat_handlers.rs` |
 | DELETE | `/api/chat/attachments/preview` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | GET | `/api/chat/attachments/preview` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
+| PATCH | `/api/chat/attachments/preview` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | PUT | `/api/chat/attachments/preview` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | GET | `/api/chat/context` | schema not modeled | no | `botserver/src/main_module/routes/chat_handlers.rs` |
 | POST | `/api/chat/context` | registered in src/main_module/routes/chat_handlers.rs | yes | `botserver/src/main_module/routes/chat_handlers.rs` |
+| DELETE | `/api/chat/history/sessions` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | GET | `/api/chat/history/sessions` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | DELETE | `/api/chat/history/sessions/:param` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
+| PATCH | `/api/chat/history/sessions/:param` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
+| POST | `/api/chat/history/sessions/:param` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | PUT | `/api/chat/history/sessions/:param` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | POST | `/api/chat/history/sessions/:param/lock` | schema not modeled | no | `botserver/src/main_module/routes/chat_history_lock.rs` |
 | DELETE | `/api/chat/history/sessions/:param/messages` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | GET | `/api/chat/history/sessions/:param/messages` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
-| PUT | `/api/chat/history/sessions/:param/messages` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
+| POST | `/api/chat/history/sessions/:param/truncate` | schema not modeled | no | `botserver/src/main_module/routes/chat_history.rs` |
 | POST | `/api/chat/history/sessions/:param/unlock` | schema not modeled | no | `botserver/src/main_module/routes/chat_history_lock.rs` |
 | GET | `/api/chat/message` | schema not modeled | no | `botserver/src/main_module/routes/chat_handlers.rs` |
 | POST | `/api/chat/message` | registered in src/main_module/routes/chat_handlers.rs | yes | `botserver/src/main_module/routes/chat_handlers.rs` |

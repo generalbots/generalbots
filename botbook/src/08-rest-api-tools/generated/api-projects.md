@@ -10,19 +10,19 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | DELETE | `/api/projects` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| DELETE | `/api/projects/:param` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects/:param` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| DELETE | `/api/projects/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects/:param` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects/:param/critical-path` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects/:param/critical-path` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param/critical-path` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects/:param/critical-path` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/projects/:param/export` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param/export` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects/:param/gantt` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects/:param/gantt` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param/gantt` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects/:param/gantt` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | DELETE | `/api/projects/:param/resources` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
@@ -31,10 +31,10 @@ Base URL: `http://localhost:8080` — see
 | DELETE | `/api/projects/:param/status` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/projects/:param/status` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param/status` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects/:param/tasks` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
-| POST | `/api/projects/:param/tasks` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects/:param/tasks` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
+| POST | `/api/projects/:param/tasks` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects/:param/tasks` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
-| GET | `/api/projects/:param/timeline` | registered in crates/botproject/src/lib.rs | yes | `botserver/crates/botproject/src/lib.rs` |
+| GET | `/api/projects/:param/timeline` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | POST | `/api/projects/:param/timeline` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | PUT | `/api/projects/:param/timeline` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |
 | GET | `/api/projects/import` | schema not modeled | no | `botserver/crates/botproject/src/lib.rs` |

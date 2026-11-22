@@ -9,16 +9,16 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| POST | `/api/autotask/classify` | Classify a plain-language intent into an automation plan | yes | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/compile` | Compile an automation plan into a BASIC script | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/classify` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/compile` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/create-and-execute` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/create-and-execute` | Turn a plain-language request into an automated task and run it | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/create-and-execute` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | PUT | `/api/autotask/create-and-execute` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | DELETE | `/api/autotask/decide` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/decide` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/decide` | Decide immediate vs scheduled execution mode | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/decide` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/execute` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/execute` | Execute an automation plan (compiled BASIC script) | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/execute` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | PUT | `/api/autotask/execute` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/items/:param/source` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | POST | `/api/autotask/items/:param/source` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
@@ -28,15 +28,15 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/autotask/source/rephrase` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/sources` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | POST | `/api/autotask/sources` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| GET | `/api/autotask/stats` | AutoTask statistics: runs, success rate, pending approvals | yes | `botserver/crates/botautotask/src/api.rs` |
+| GET | `/api/autotask/stats` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | POST | `/api/autotask/stats` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/tables` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | POST | `/api/autotask/tables` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| GET | `/api/autotask/tasks` | List AutoTask runs and their status | yes | `botserver/crates/botautotask/src/api.rs` |
+| GET | `/api/autotask/tasks` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | POST | `/api/autotask/tasks` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/tasks/:param/approve` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/tasks/:param/approve` | Approve a pending automated task | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/tasks/:param/approve` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 | GET | `/api/autotask/tasks/:param/cancel` | schema not modeled | no | `botserver/crates/botautotask/src/api.rs` |
-| POST | `/api/autotask/tasks/:param/cancel` | Cancel a queued or running automated task | yes | `botserver/crates/botautotask/src/api.rs` |
+| POST | `/api/autotask/tasks/:param/cancel` | registered in crates/botautotask/src/api.rs | yes | `botserver/crates/botautotask/src/api.rs` |
 
 [All families](./README.md)

@@ -93,11 +93,11 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/vibe/proactivity/triggers/:param/consent` | schema not modeled | no | `botserver/crates/botvibe/src/proactivity_api.rs` |
 | POST | `/api/vibe/proactivity/triggers/:param/consent` | schema not modeled | no | `botserver/crates/botvibe/src/proactivity_api.rs` |
 | DELETE | `/api/vibe/projects` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
-| GET | `/api/vibe/projects` | List the user's Vibe projects | yes | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
+| GET | `/api/vibe/projects` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | POST | `/api/vibe/projects` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | PUT | `/api/vibe/projects` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | DELETE | `/api/vibe/projects/:param` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
-| GET | `/api/vibe/projects/:param` | Get a Vibe project | yes | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
+| GET | `/api/vibe/projects/:param` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | POST | `/api/vibe/projects/:param` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | PUT | `/api/vibe/projects/:param` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | GET | `/api/vibe/projects/:param/backups` | schema not modeled | no | `botserver/crates/botvibe/src/ops_api.rs` |
@@ -144,7 +144,7 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/vibe/projects/:param/members/group/:param` | schema not modeled | no | `botserver/crates/botvibe/src/members_api.rs` |
 | POST | `/api/vibe/projects/:param/members/transfer-ownership` | schema not modeled | no | `botserver/crates/botvibe/src/members_api.rs` |
 | GET | `/api/vibe/projects/:param/metering` | schema not modeled | no | `botserver/crates/botvibe/src/metering_api.rs` |
-| GET | `/api/vibe/projects/:param/preview` | Resolve a selected project's live preview | yes | `botserver/crates/botvibe/src/ops_api.rs` |
+| GET | `/api/vibe/projects/:param/preview` | schema not modeled | no | `botserver/crates/botvibe/src/ops_api.rs` |
 | POST | `/api/vibe/projects/:param/preview` | schema not modeled | no | `botserver/crates/botvibe/src/ops_api.rs` |
 | POST | `/api/vibe/projects/:param/run` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
 | GET | `/api/vibe/projects/:param/serve/:param` | schema not modeled | no | `botserver/crates/botvibe/src/projects_api/workspace.rs` |
@@ -162,7 +162,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/vibe/projects/:param/vms/:param` | schema not modeled | no | `botserver/crates/botvibe/src/vms_api.rs` |
 | POST | `/api/vibe/projects/:param/vms/:param` | schema not modeled | no | `botserver/crates/botvibe/src/vms_api.rs` |
 | GET | `/api/vibe/run` | schema not modeled | no | `botserver/crates/botvibe/src/api/tools.rs` |
-| POST | `/api/vibe/run` | Run an authenticated Vibe agent request against a selected project | yes | `botserver/crates/botvibe/src/api/tools.rs` |
+| POST | `/api/vibe/run` | registered in crates/botvibe/src/api.rs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
 | GET | `/api/vibe/run/:param` | registered in crates/botvibe/src/api.rs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
 | POST | `/api/vibe/run/:param` | schema not modeled | no | `botserver/crates/botvibe/src/api/tools.rs` |
 | POST | `/api/vibe/run/:param/approve` | registered in crates/botvibe/src/api.rs | yes | `botserver/src/core/bot/endpoint_inventory_ui_billing.rs` |
@@ -171,7 +171,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/vibe/run/:param/execute` | registered in crates/botvibe/src/api.rs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
 | GET | `/api/vibe/run/:param/grounding` | registered in crates/botvibe/src/grounding.rs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
 | POST | `/api/vibe/run/:param/grounding` | schema not modeled | no | `botserver/crates/botvibe/src/api/tools.rs` |
-| GET | `/api/vibe/runs` | List Vibe agent runs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
+| GET | `/api/vibe/runs` | registered in crates/botvibe/src/api.rs | yes | `botserver/crates/botvibe/src/api/tools.rs` |
 | GET | `/api/vibe/sessions` | schema not modeled | no | `botserver/crates/botvibe/src/sessions.rs` |
 | POST | `/api/vibe/sessions` | schema not modeled | no | `botserver/crates/botvibe/src/sessions.rs` |
 | GET | `/api/vibe/sessions/:param` | schema not modeled | no | `botserver/crates/botvibe/src/sessions.rs` |

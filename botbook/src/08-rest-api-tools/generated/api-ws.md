@@ -2,7 +2,7 @@
 
 # API / ws
 
-8 routes in the `ws` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+12 routes in the `ws` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -10,9 +10,13 @@ Base URL: `http://localhost:8080` — see
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
 | GET | `/ws/:param` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/ws/canvas/:param` | schema not modeled | no | `botserver/crates/botcanvas/src/lib.rs` |
 | GET | `/ws/docs/:param` | schema not modeled | no | `botserver/crates/botdocs/src/lib.rs` |
+| GET | `/ws/events` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| GET | `/ws/events/stream` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
 | GET | `/ws/logs` | schema not modeled | no | `botserver/crates/botmonitoring/src/lib.rs` |
-| GET | `/ws/plan/:param` | schema not modeled | no | `botserver/crates/botplan/src/get_store.rs` |
+| GET | `/ws/plan/:param` | schema not modeled | no | `botserver/crates/botplan/src/routes.rs` |
+| POST | `/ws/plan/:param` | schema not modeled | no | `botserver/crates/botplan/src/routes.rs` |
 | GET | `/ws/sheet/:param` | schema not modeled | no | `botserver/crates/botsheet/src/routes.rs` |
 | GET | `/ws/slides/:param` | schema not modeled | no | `botserver/crates/botslides/src/routes.rs` |
 | GET | `/ws/task-progress` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |

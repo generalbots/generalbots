@@ -18,11 +18,11 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/banking/accounts/sync` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/accounts/sync` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/accounts/sync` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| GET | `/api/banking/diagnosis` | Cash-flow diagnosis of the branch | yes | `botserver/crates/botbanking/src/routes.rs` |
+| GET | `/api/banking/diagnosis` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/diagnosis` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/diagnosis` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/imports/cashflow` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| POST | `/api/banking/imports/cashflow` | Import a monthly cash-flow CSV | yes | `botserver/crates/botbanking/src/routes.rs` |
+| POST | `/api/banking/imports/cashflow` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/imports/cashflow` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/pix` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/pix` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
@@ -34,22 +34,22 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/banking/pix/receive` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/pix/transfer` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/pix/transfer` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| GET | `/api/banking/platforms` | List delivery platforms | yes | `botserver/crates/botbanking/src/routes.rs` |
+| GET | `/api/banking/platforms` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/platforms` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/platforms` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/platforms/:param/sync` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/platforms/:param/sync` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/platforms/:param/sync` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/reconcile` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| POST | `/api/banking/reconcile` | Run reconciliation | yes | `botserver/crates/botbanking/src/routes.rs` |
+| POST | `/api/banking/reconcile` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/reconcile` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/reconcile/match` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| POST | `/api/banking/reconcile/match` | Manual reconciliation match | yes | `botserver/crates/botbanking/src/routes.rs` |
+| POST | `/api/banking/reconcile/match` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/reconcile/match` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/reconcile/pairs` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/reconcile/pairs` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/reconcile/pairs` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| GET | `/api/banking/reports` | Banking reports | yes | `botserver/crates/botbanking/src/routes.rs` |
+| GET | `/api/banking/reports` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/reports` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | PUT | `/api/banking/reports` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/reports/generate` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
@@ -66,7 +66,7 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/banking/statements/:param/download` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | GET | `/api/banking/stats` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 | POST | `/api/banking/stats` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
-| GET | `/api/banking/transactions` | List bank transactions | yes | `botserver/crates/botbanking/src/routes.rs` |
-| POST | `/api/banking/transactions` | Create a bank transaction | yes | `botserver/crates/botbanking/src/routes.rs` |
+| GET | `/api/banking/transactions` | registered in crates/botbanking/src/routes.rs | yes | `botserver/crates/botbanking/src/routes.rs` |
+| POST | `/api/banking/transactions` | schema not modeled | no | `botserver/crates/botbanking/src/routes.rs` |
 
 [All families](./README.md)

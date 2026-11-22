@@ -2,7 +2,7 @@
 
 # API / bots
 
-42 routes in the `bots` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+41 routes in the `bots` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -16,25 +16,24 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/bots/:param/config` | schema not modeled | no | `botserver/src/main_module/routes/bot_tree/handle_bot_config_get.rs` |
 | PUT | `/api/bots/:param/config` | schema not modeled | no | `botserver/src/main_module/routes/bot_tree/handle_bot_config_get.rs` |
 | GET | `/api/bots/:param/integration-actions/invoke` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
-| POST | `/api/bots/:param/integration-actions/invoke` | Execute an implemented provider action (provider, action, params); credentials load from Vault and never return | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| POST | `/api/bots/:param/integration-actions/invoke` | registered in crates/botintegrations/src/routes.rs; executes a registered provider action with Vault-only credentials | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | DELETE | `/api/bots/:param/integration-automations` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/bots/:param/integration-automations` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | PATCH | `/api/bots/:param/integration-automations` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | POST | `/api/bots/:param/integration-automations` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | DELETE | `/api/bots/:param/integration-automations/:param` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
-| GET | `/api/bots/:param/integration-automations/:param` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | PATCH | `/api/bots/:param/integration-automations/:param` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | DELETE | `/api/bots/:param/integration-connections` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
-| GET | `/api/bots/:param/integration-connections` | List integration connections for a bot; credentials stay in Vault | yes | `botserver/crates/botintegrations/src/routes.rs` |
-| POST | `/api/bots/:param/integration-connections` | Create an integration connection (provider_slug, display_name, auth_kind); secret keys are stored in Vault only | yes | `botserver/crates/botintegrations/src/routes.rs` |
-| DELETE | `/api/bots/:param/integration-connections/:param` | Delete an integration connection and purge its Vault credentials | yes | `botserver/crates/botintegrations/src/routes.rs` |
-| GET | `/api/bots/:param/integration-connections/:param` | Get one integration connection; never returns vault path or credential material | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| GET | `/api/bots/:param/integration-connections` | registered in crates/botintegrations/src/routes.rs; credentials vault-only | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| POST | `/api/bots/:param/integration-connections` | registered in crates/botintegrations/src/routes.rs; secret keys go to Vault only | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| DELETE | `/api/bots/:param/integration-connections/:param` | registered in crates/botintegrations/src/routes.rs; removes row and vaulted credentials | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| GET | `/api/bots/:param/integration-connections/:param` | registered in crates/botintegrations/src/routes.rs; never returns vault path or credentials | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | POST | `/api/bots/:param/integration-connections/:param` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
-| GET | `/api/bots/:param/integration-connections/:param/events` | List the sanitized audit event trail of an integration connection | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| GET | `/api/bots/:param/integration-connections/:param/events` | registered in crates/botintegrations/src/routes.rs; sanitized audit trail | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | POST | `/api/bots/:param/integration-connections/:param/events` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/bots/:param/integration-connections/:param/rotate` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
-| POST | `/api/bots/:param/integration-connections/:param/rotate` | Rotate connection credentials in Vault and increment credential_version | yes | `botserver/crates/botintegrations/src/routes.rs` |
-| POST | `/api/bots/:param/integration-connections/:param/test` | Validate stored credentials shape (no outbound call); outcome is recorded as unverified | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| POST | `/api/bots/:param/integration-connections/:param/rotate` | registered in crates/botintegrations/src/routes.rs; writes Vault and bumps credential_version | yes | `botserver/crates/botintegrations/src/routes.rs` |
+| POST | `/api/bots/:param/integration-connections/:param/test` | registered in crates/botintegrations/src/routes.rs; shape check only, no outbound call | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/bots/:param/integration-connections/:param/use-for-vibe` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | POST | `/api/bots/:param/integration-connections/:param/use-for-vibe` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/bots/:param/integrations/oauth/:param/callback` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |

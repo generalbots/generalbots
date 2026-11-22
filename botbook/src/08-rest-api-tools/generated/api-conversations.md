@@ -9,8 +9,8 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/conversations/:param/autotasks` | List the cron/systemd jobs a conversation owns, with live status, schedule and next run | yes | `botserver/src/main_module/routes/conversation_autotasks/mod.rs` |
-| POST | `/api/conversations/:param/autotasks` | Create a conversation autotask (title, schedule, command, kind=cron\|systemd); installs a cron entry or systemd unit in the agent workspace | yes | `botserver/src/main_module/routes/conversation_autotasks/mod.rs` |
+| GET | `/api/conversations/:param/autotasks` | schema not modeled | no | `botserver/src/main_module/routes/conversation_autotasks/mod.rs` |
+| POST | `/api/conversations/:param/autotasks` | schema not modeled | no | `botserver/src/main_module/routes/conversation_autotasks/mod.rs` |
 | POST | `/conversations/:param/calls/join` | registered in crates/botmeet/src/lib.rs | yes | `botserver/crates/botmeet/src/configure.rs` |
 | POST | `/conversations/:param/calls/leave` | registered in crates/botmeet/src/lib.rs | yes | `botserver/crates/botmeet/src/configure.rs` |
 | POST | `/conversations/:param/calls/mute` | registered in crates/botmeet/src/lib.rs | yes | `botserver/crates/botmeet/src/configure.rs` |

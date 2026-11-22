@@ -9,19 +9,19 @@ Base URL: `http://localhost:8080` — see
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/external-drives/callback` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/callback` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| GET | `/api/external-drives/connect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/connect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| GET | `/api/external-drives/connections` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/disconnect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| GET | `/api/external-drives/download/:param/:param` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/download/:param/:param` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| GET | `/api/external-drives/files` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/files` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/settings` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/sync` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| GET | `/api/external-drives/upload` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
-| POST | `/api/external-drives/upload` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes.rs` |
+| GET | `/api/external-drives/callback` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/callback` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| GET | `/api/external-drives/connect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/connect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| GET | `/api/external-drives/connections` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/disconnect` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| GET | `/api/external-drives/download/:param/:param` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/download/:param/:param` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| GET | `/api/external-drives/files` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/files` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/settings` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/sync` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| GET | `/api/external-drives/upload` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
+| POST | `/api/external-drives/upload` | schema not modeled | no | `botserver/crates/botdrive/src/external/routes/mod.rs` |
 
 [All families](./README.md)

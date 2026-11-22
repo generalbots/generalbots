@@ -2,13 +2,19 @@
 
 # API / events
 
-13 routes in the `events` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+19 routes in the `events` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
+| GET | `/api/events/dead-letters` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| POST | `/api/events/dead-letters` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| GET | `/api/events/publish` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| POST | `/api/events/publish` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| GET | `/api/events/replay` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
+| POST | `/api/events/replay` | schema not modeled | no | `botserver/src/main_module/routes/feature_merge_platform/commerce.rs` |
 | DELETE | `/events/:param/contacts` | schema not modeled | no | `botserver/crates/botcontacts/src/calendar_routes.rs` |
 | GET | `/events/:param/contacts` | schema not modeled | no | `botserver/crates/botcontacts/src/calendar_routes.rs` |
 | POST | `/events/:param/contacts` | schema not modeled | no | `botserver/crates/botcontacts/src/calendar_routes.rs` |
