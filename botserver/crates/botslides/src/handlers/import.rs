@@ -1,20 +1,38 @@
-use crate::storage::{
-    load_presentation_pptx, save_presentation_pptx,
-    save_presentation_to_drive, DriveOps,
-};
 use crate::auth::SlidesUser;
+use crate::storage::{
+    load_presentation_pptx, save_presentation_pptx, save_presentation_to_drive, DriveOps,
+};
 use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
+use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// #2522 — opt-out for the fail-closed malware requirement. Only an explicit
+/// `1`/`true` disables it; the scan decision is still logged as `NotConfigured`
+/// and never reported as clean.
+const UNCHECKED_IMPORT_OPT_OUT: &str = "GB_ALLOW_UNSCANNED_SLIDES_IMPORT";
+
+fn policy_for_opt_out(opted_out: bool) -> upload_policy::HostileFilePolicy {
+    upload_policy::HostileFilePolicy {
+        require_malware_scanner: !opted_out,
+        ..upload_policy::HostileFilePolicy::default()
+    }
+}
+
+/// #2522 — presentations fail closed: without a registered malware scanner the
+/// import is refused. A deployment that deliberately accepts unscanned decks
+/// can set `GB_ALLOW_UNSCANNED_SLIDES_IMPORT=1`; this is the documented opt-out
+/// and the only path that lowers the requirement.
+pub(crate) fn slides_hostile_policy() -> upload_policy::HostileFilePolicy {
+    let opted_out = std::env::var(UNCHECKED_IMPORT_OPT_OUT)
+        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"));
+    policy_for_opt_out(opted_out)
+}
 
 /// #2522 — run the hostile-file gate explicitly at this import boundary and
 /// audit its report before any parser (PPTX/JSON/markdown) touches the payload.
@@ -42,15 +60,19 @@ fn audit_hostile_upload(
         return Ok(());
     }
 
-    let report = upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(
-        |error| {
-            log::warn!("{context}: hostile-file gate refused upload: {}", error.log_detail());
+    let report =
+        upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(|error| {
+            log::warn!(
+                "{context}: hostile-file gate refused upload: {}",
+                error.log_detail()
+            );
             upload_policy::rejection_json(&error, headers)
-        },
-    )?;
+        })?;
 
     if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
-        log::warn!("{context}: no malware scanner configured — scan result is NotConfigured, not clean");
+        log::warn!(
+            "{context}: no malware scanner configured — scan result is NotConfigured, not clean"
+        );
     }
     log::info!(
         "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
@@ -80,7 +102,7 @@ pub async fn handle_import_presentation<D: DriveOps>(
     user: SlidesUser,
     headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
-) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     // #2132 — refuse an oversized body before it is buffered.
     if let Err(error) =
         upload_policy::check_declared_length(UploadClass::PresentationImport, &headers)
@@ -122,12 +144,41 @@ pub async fn handle_import_presentation<D: DriveOps>(
         )
     })?;
 
+    // #2522 — strip executable parts *before* the shared gate so a
+    // macro-enabled deck imports with macros removed and the caller receives a
+    // machine-readable notice. The original bytes are never modified.
+    let stripped = match macro_strip::strip_executable_parts(&bytes) {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!(
+                "botslides::import: macro stripping failed: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
+    };
+    let mut notices = Vec::new();
+    let effective: &[u8] = match &stripped {
+        Some(result) => {
+            log::warn!(
+                "botslides::import: removed {} executable part(s) before conversion",
+                result.removed_count
+            );
+            notices.push(crate::import_notice::macro_notice(
+                result.removed_parts.clone(),
+                result.removed_count,
+            ));
+            &result.bytes
+        }
+        None => &bytes,
+    };
+
     // #2132 — the extension, the declared type and the magic bytes must agree.
     let upload = match upload_policy::validate_upload(
         UploadClass::PresentationImport,
         &filename,
         &content_type,
-        &bytes,
+        effective,
     ) {
         Ok(upload) => upload,
         Err(error) => {
@@ -135,35 +186,35 @@ pub async fn handle_import_presentation<D: DriveOps>(
                 "botslides::import: upload policy refused: {}",
                 error.log_detail()
             );
+            if password_guard::is_encrypted_rejection(&error) {
+                return Err(password_guard::actionable_rejection(&error, &headers));
+            }
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
     let filename = upload.filename;
 
-    // #2522 — inspect and audit before any parser runs. The helper skips
-    // Markdown/JSON decks, which are plain text.
+    // #2522 — inspect and audit before any parser runs. Fail closed when no
+    // malware scanner is registered (documented opt-out in slides_hostile_policy).
+    // The helper skips Markdown/JSON decks, which are plain text.
     audit_hostile_upload(
-        &bytes,
+        effective,
         &filename,
         &headers,
         "botslides::import",
-        &upload_policy::HostileFilePolicy::default(),
+        &slides_hostile_policy(),
     )?;
 
-    let ext = filename
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     let theme = create_default_theme();
 
     let slides = match ext.as_str() {
         "md" | "markdown" => {
-            let content = String::from_utf8_lossy(&bytes);
+            let content = String::from_utf8_lossy(effective);
             slides_from_markdown(&content)
         }
         "json" => {
-            let pres: Result<Presentation, _> = serde_json::from_slice(&bytes);
+            let pres: Result<Presentation, _> = serde_json::from_slice(effective);
             match pres {
                 Ok(p) => p.slides,
                 Err(e) => {
@@ -173,19 +224,21 @@ pub async fn handle_import_presentation<D: DriveOps>(
                     return Err((
                         StatusCode::BAD_REQUEST,
                         Json(serde_json::json!({ "error": "Invalid JSON" })),
-                    ))
+                    ));
                 }
             }
         }
-        "pptx" => crate::pptx::load_pptx(&bytes)
-            .map_err(|e| {
-                log::warn!("slides import: PPTX parse failed: {e}");
-                (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({ "error": "Invalid PPTX" })),
-                )
-            })?
-            .slides,
+        "pptx" => {
+            crate::pptx::load_pptx(effective)
+                .map_err(|e| {
+                    log::warn!("slides import: PPTX parse failed: {e}");
+                    (
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({ "error": "Invalid PPTX" })),
+                    )
+                })?
+                .slides
+        }
         _ => {
             return Err((
                 StatusCode::BAD_REQUEST,
@@ -212,7 +265,8 @@ pub async fn handle_import_presentation<D: DriveOps>(
         Some(stable_source_id(&source_bucket, &source_path))
     };
     if let (Some(id), Some(drive)) = (source_id.as_ref(), state.drive.as_ref()) {
-        if let Ok(mut existing) = crate::storage::load_presentation_by_id(drive, &user_id, id).await {
+        if let Ok(mut existing) = crate::storage::load_presentation_by_id(drive, &user_id, id).await
+        {
             // Decks imported before the source fields existed have no identity:
             // record it on re-open so their next save also writes the sibling
             // .gbslides.pptx (#1710).
@@ -225,16 +279,20 @@ pub async fn handle_import_presentation<D: DriveOps>(
             }
             // #2041 — a deck imported before the original package was kept
             // (JSON only) gets it on the next open, so its first save already
-            // preserves theme, notes and media.
-            if ext == "pptx" && load_presentation_pptx(drive, &user_id, &existing.id).await.is_none()
+            // preserves theme, notes and media. #2522 — store the sanitized
+            // package, never the macro-bearing original.
+            if ext == "pptx"
+                && load_presentation_pptx(drive, &user_id, &existing.id)
+                    .await
+                    .is_none()
             {
                 if let Err(e) =
-                    save_presentation_pptx(drive, &user_id, &existing.id, &bytes).await
+                    save_presentation_pptx(drive, &user_id, &existing.id, effective).await
                 {
                     log::warn!("slides import: could not store the original PPTX: {e}");
                 }
             }
-            return Ok(Json(existing));
+            return crate::import_notice::with_notices(existing, notices);
         }
     }
     let presentation = Presentation {
@@ -253,15 +311,18 @@ pub async fn handle_import_presentation<D: DriveOps>(
         if let Err(e) = save_presentation_to_drive(drive, &user_id, &presentation).await {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::import", None)})),
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::import", None)}),
+                ),
             ));
         }
         // #2041 — keep the uploaded package. The JSON model is what the canvas
-        // edits; the original bytes are what a save writes back (patched for
-        // text edits, untouched when nothing changed).
+        // edits; the sanitized bytes are what a save writes back (patched for
+        // text edits, untouched when nothing changed). #2522 — executable
+        // parts were removed from these bytes above, never from the original.
         if ext == "pptx" {
             if let Err(e) =
-                save_presentation_pptx(drive, &user_id, &presentation.id, &bytes).await
+                save_presentation_pptx(drive, &user_id, &presentation.id, effective).await
             {
                 log::warn!(
                     "slides import: could not store the original PPTX for {}: {e}",
@@ -271,94 +332,9 @@ pub async fn handle_import_presentation<D: DriveOps>(
         }
     }
 
-    Ok(Json(presentation))
+    crate::import_notice::with_notices(presentation, notices)
 }
 
 #[cfg(test)]
-mod hostile_import_tests {
-    use super::*;
-    use std::io::{Cursor, Write};
-
-    fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
-        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
-        for (name, body) in entries {
-            let options =
-                zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
-            writer.start_file(*name, options).expect("test entry");
-            writer.write_all(body).expect("test body");
-        }
-        writer.finish().expect("test zip").into_inner()
-    }
-
-    fn is_sanitized_rejection(
-        result: Result<(), (StatusCode, Json<serde_json::Value>)>,
-        code: &str,
-    ) -> bool {
-        match result {
-            Err((status, Json(body))) => {
-                status == StatusCode::BAD_REQUEST
-                    && body["code"] == code
-                    && body.get("presentation.xml").is_none()
-            }
-            Ok(()) => false,
-        }
-    }
-
-    #[test]
-    fn a_compression_ratio_bomb_is_refused_before_conversion() {
-        let bytes = zip_with(&[("ppt/slides/slide1.xml", vec![b' '; 512 * 1024])]);
-        let result = audit_hostile_upload(
-            &bytes,
-            "bomb.pptx",
-            &axum::http::HeaderMap::new(),
-            "test",
-            &upload_policy::HostileFilePolicy::default(),
-        );
-        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
-    }
-
-    #[test]
-    fn an_oversized_uncompressed_entry_is_refused_before_conversion() {
-        let bytes = zip_with(&[("ppt/slides/slide1.xml", vec![b'x'; 8192])]);
-        let policy = upload_policy::HostileFilePolicy {
-            max_uncompressed_bytes: 1024,
-            ..upload_policy::HostileFilePolicy::default()
-        };
-        let result = audit_hostile_upload(
-            &bytes,
-            "bomb.pptx",
-            &axum::http::HeaderMap::new(),
-            "test",
-            &policy,
-        );
-        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
-    }
-
-    #[test]
-    fn a_macro_part_is_refused_before_conversion() {
-        let bytes = zip_with(&[
-            ("ppt/presentation.xml", b"<p:presentation/>".to_vec()),
-            ("ppt/vbaProject.bin", vec![0x01, 0x02, 0x03]),
-        ]);
-        let result = audit_hostile_upload(
-            &bytes,
-            "macro.pptx",
-            &axum::http::HeaderMap::new(),
-            "test",
-            &upload_policy::HostileFilePolicy::default(),
-        );
-        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
-    }
-
-    #[test]
-    fn a_plain_format_is_not_mistaken_for_a_zip_package() {
-        let result = audit_hostile_upload(
-            b"# Slide\nplain markdown",
-            "deck.md",
-            &axum::http::HeaderMap::new(),
-            "test",
-            &upload_policy::HostileFilePolicy::default(),
-        );
-        assert!(result.is_ok());
-    }
-}
+#[path = "import_tests.rs"]
+mod hostile_import_tests;

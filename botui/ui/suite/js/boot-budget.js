@@ -276,12 +276,25 @@
     });
   }
 
+  /* #2522 — import security notices are not an optional surface: load them in
+   * every form factor (compact included), once, before an import can happen. */
+  var SECURITY_NOTICES_SRC = "/suite/js/import-security-notices.js?v=1";
+
+  function ensureImportSecurityNotices() {
+    var existing = doc.querySelector('script[src^="/suite/js/import-security-notices.js"]');
+    if (existing) return;
+    var el = doc.createElement("script");
+    el.src = SECURITY_NOTICES_SRC;
+    (doc.head || doc.body).appendChild(el);
+  }
+
   /** Single public entry point. Called by the shell for 'desktop' and by the
    * chat fragment (and the htmx:afterSwap hook below) for 'chat'. Safe to call
    * repeatedly: injection happens once per scope, gating is re-applied so a
    * freshly swapped chat window is gated too. */
   function init(scope) {
     if (!state[scope] || !doc) return;
+    ensureImportSecurityNotices();
     if (doc.readyState === "loading") {
       doc.addEventListener("DOMContentLoaded", function () {
         onReady(scope);
@@ -312,7 +325,8 @@
   global.GBBootBudget = {
     init: init,
     isCompact: isCompact,
-    deferred: DEFERRED
+    deferred: DEFERRED,
+    ensureImportSecurityNotices: ensureImportSecurityNotices
   };
 
   hookChatSwap();
