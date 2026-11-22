@@ -55,16 +55,19 @@ external use". Consequences:
 - Other crates cannot `use botserver::...`; they depend on `botcore`,
   `botbasic_*`, `botsecurity*` and the other libraries instead.
 
-`src/main.rs` declares three unconditional modules and re-exports the bootstrap
+`src/main.rs` declares two unconditional modules and re-exports the bootstrap
 surface:
 
 ```rust
 pub mod main_module;
 pub mod session_pool;
-pub mod soon_features;
 pub use main_module::{BootstrapProgress, health_check, health_check_simple,
                       receive_client_errors};
 ```
+
+`soon_features.rs` still exists in the tree but is **not** declared in the
+module tree (`grep` finds no `mod soon_features` and no consumer), so it is
+never compiled — a retired, orphaned file (#2541).
 
 Every other top-level module is feature-gated (`#[cfg(feature = "…")]`), e.g.
 `analytics`, `billing`, `management` (`saas`), `vibe`, `basic` (`scripting`).
