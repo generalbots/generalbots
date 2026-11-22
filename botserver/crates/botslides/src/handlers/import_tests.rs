@@ -148,3 +148,8 @@ fn a_missing_scanner_refuses_a_clean_deck_under_fail_closed_policy() {
     );
     assert!(is_sanitized_rejection(result, "error-file-upload-failed"));
 }
+
+// #2522 — Slides-specific hostile corpus (PPTX paths). Compiled from this
+// test module because the gate helpers it reuses are private to `import`.
+#[path = "../hostile_corpus_tests.rs"]
+mod slides_hostile_corpus;
