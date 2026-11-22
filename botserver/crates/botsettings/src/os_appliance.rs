@@ -317,6 +317,14 @@ async fn diagnostics_bundle(
         "block_devices": probe("lsblk", &["-J", "-o", "NAME,LABEL,FSTYPE,SIZE,MOUNTPOINT,TRAN"])
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_else(|| json!({ "blockdevices": [] })),
+        // #2481 — GPU/VA-API strings for support reports (no hardware probe here).
+        "graphics": json!({
+            "gpu": probe("lspci", &["-nn"]).map(|s| redact(&s.lines()
+                .filter(|l| l.contains("VGA") || l.contains("Display") || l.contains("3D"))
+                .take(8).collect::<Vec<_>>().join("\n"))),
+            "vaapi": probe("vainfo", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n"))),
+            "glx": probe("glxinfo", &["-B"]).map(|s| redact(&s.lines().take(12).collect::<Vec<_>>().join("\n")))
+        }),
         "botserver_log_tail": redact(&log),
         "note": "Secrets (tokens, passwords, keys, bearer headers) are redacted."
     });
