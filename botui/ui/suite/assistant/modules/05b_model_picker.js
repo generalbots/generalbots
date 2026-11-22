@@ -189,6 +189,9 @@
         var wrap = anchor.parentElement;
         wrap.classList.add("gb-model-anchor");
         anchor.after(menu);
+        /* Keyboard-navigation hook (05f_model_menu_keys.js). Must fire
+           after the menu is in the DOM so focus() works. */
+        if (typeof A.onModelMenuOpen === "function") { A.onModelMenuOpen(menu, anchor); }
         document.addEventListener("click", closeModelMenuOutside);
         document.addEventListener("keydown", closeModelMenuOnEscape);
     }
@@ -250,7 +253,6 @@
        run in the agent workspace, so picking one turns the Agent switch on. ---- */
     var AGENT_LOGO = { "claude-code": "anthropic", "codex-cli": "openai", "antigravity": "gemini" };
     function pickAgent(value) {
-        if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
         selectModel(value);
     }
     function addAgentGroup(menu) {
@@ -408,6 +410,9 @@
             A.confirmExternal(target, anchor, function () { applyModel(model); });
         });
     }
+
+    /* Exposed for the keyboard-navigation module (05f). */
+    A.closeModelMenu = closeModelMenu;
 
     function applyModel(model) {
         A.selectedModel = model;
