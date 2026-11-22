@@ -16,7 +16,10 @@ pub async fn ai_suggest_for_ticket(
         .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let lower_subject = ticket.subject.to_lowercase();
-    let lower_body = ticket.description.unwrap_or_default().to_lowercase();
+    let lower_body = match ticket.description.as_deref() {
+        Some(description) => description.to_lowercase(),
+        None => String::new(),
+    };
     let haystack = format!("{lower_subject} {lower_body}");
 
     let (suggested_category, suggested_priority, reasoning) = if haystack.contains("password")

@@ -109,7 +109,13 @@ pub struct ProgressDoc {
 impl ProgressDoc {
     pub fn parse(value: Option<&serde_json::Value>) -> Self {
         match value {
-            Some(v) => serde_json::from_value::<Self>(v.clone()).unwrap_or_default(),
+            Some(v) => match serde_json::from_value::<Self>(v.clone()) {
+                Ok(doc) => doc,
+                Err(e) => {
+                    tracing::warn!("invalid browser task progress document, using empty: {e}");
+                    Self::default()
+                }
+            },
             None => Self::default(),
         }
     }

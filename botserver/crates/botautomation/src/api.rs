@@ -110,7 +110,10 @@ pub async fn create_schedule(
     }
 
     let now = chrono::Utc::now();
-    let prefs = body.delivery.unwrap_or_default();
+    let prefs = match body.delivery {
+        Some(prefs) => prefs,
+        None => Default::default(),
+    };
     let delivery_json = serde_json::to_value(&prefs)
         .unwrap_or_else(|_| json!({ "email": true, "sms": false, "channels": [] }));
     let max_runtime = body.max_runtime_secs.unwrap_or(900).clamp(30, 86400);
@@ -383,11 +386,14 @@ fn poll_tick(state: &AutomationService, run_id: Uuid, emitted: usize) -> Option<
 /// SSE auth: EventSource cannot set headers, so the suite passes the
 /// Bearer token as `?token=`. Either transport must yield a subject.
 fn sse_authorized(headers: &HeaderMap, token_param: &str) -> bool {
-    let header_token = headers
+    let header_token = match headers
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
-        .unwrap_or_default();
+    {
+        Some(token) => token,
+        None => "",
+    };
     let candidate = if header_token.is_empty() { token_param } else { header_token };
     if candidate.is_empty() {
         return false;
@@ -401,7 +407,11 @@ pub async fn run_events(
     Query(query): Query<std::collections::HashMap<String, String>>,
     headers: HeaderMap,
 ) -> Result<Sse<impl futures::Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> {
-    if !sse_authorized(&headers, query.get("token").map(|s| s.as_str()).unwrap_or_default()) {
+    let token_param = match query.get("token") {
+        Some(token) => token.as_str(),
+        None => "",
+    };
+    if !sse_authorized(&headers, token_param) {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }
     let stream = async_stream::stream! {

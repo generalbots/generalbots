@@ -73,8 +73,16 @@ pub async fn dispatch(
         return json!({ "status": "skipped", "reason": "schedule no longer exists" });
     };
 
-    let prefs: DeliveryPrefs =
-        serde_json::from_value(schedule.delivery.clone()).unwrap_or_default();
+    let prefs: DeliveryPrefs = match serde_json::from_value(schedule.delivery.clone()) {
+        Ok(prefs) => prefs,
+        Err(e) => {
+            tracing::warn!(
+                "automation schedule {}: invalid delivery preferences, using defaults: {e}",
+                schedule.id
+            );
+            DeliveryPrefs::default()
+        }
+    };
     let (subject, body) = format_notification(schedule, run);
     let mut attempts: Vec<serde_json::Value> = Vec::new();
 

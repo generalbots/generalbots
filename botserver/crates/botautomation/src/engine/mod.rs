@@ -182,7 +182,16 @@ fn finalize(ctx: &RunCtx, report: ExecReport, verdict: Option<serde_json::Value>
         .iter()
         .find_map(|o| o.error.clone().filter(|_| final_status != STATUS_COMPLETED));
 
-    let steps_json = serde_json::to_value(&report.outcomes).ok();
+    let steps_json = match serde_json::to_value(&report.outcomes) {
+        Ok(value) => Some(value),
+        Err(e) => {
+            tracing::warn!(
+                "automation run {}: could not serialize step outcomes: {e}",
+                ctx.run_id
+            );
+            None
+        }
+    };
     let mut conn = match pool_conn(&ctx.state, "finalize") {
         Some(c) => c,
         None => return,
@@ -215,7 +224,11 @@ fn finalize(ctx: &RunCtx, report: ExecReport, verdict: Option<serde_json::Value>
                 delivery::dispatch(delivery_state.clone(), schedule_ref.as_ref(), &run_final)
                     .await;
             if let Some(mut conn) = pool_conn(&delivery_state, "delivery status") {
-                let _ = delivery::save_delivery_status(&mut conn, run_id, &doc);
+                if let Err(e) = delivery::save_delivery_status(&mut conn, run_id, &doc) {
+                    tracing::warn!(
+                        "automation run {run_id}: could not persist delivery status: {e}"
+                    );
+                }
             }
         });
     }

@@ -54,7 +54,10 @@ pub(super) async fn list_kb_articles(
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::error!("List KB articles task error: {e}");
+        Vec::new()
+    });
 
     Json(rows)
 }
@@ -73,7 +76,10 @@ pub(super) async fn create_kb_article(
     let title = payload.title.clone();
     let body = payload.body.clone();
     let category = payload.category.clone();
-    let tags = payload.tags.clone().unwrap_or_default();
+    let tags = match payload.tags.clone() {
+        Some(tags) => tags,
+        None => Vec::new(),
+    };
     let is_published = payload.is_published.unwrap_or(true);
 
     let (title_c, body_c, category_c, tags_c) = (
@@ -91,7 +97,7 @@ pub(super) async fn create_kb_article(
                 return;
             }
         };
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "INSERT INTO ticket_kb_articles (id, org_id, branch_id, title, body, category, tags, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -102,7 +108,10 @@ pub(super) async fn create_kb_article(
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&category_c)
         .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(&tags_c)
         .bind::<diesel::sql_types::Bool, _>(&is_published)
-        .execute(&mut db_conn);
+        .execute(&mut db_conn)
+        {
+            log::error!("Failed to create KB article: {e}");
+        }
     })
     .await
     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Task error: {e}")))?;
@@ -183,7 +192,10 @@ pub(super) async fn update_kb_article(
     let title = payload.title.clone();
     let body = payload.body.clone();
     let category = payload.category.clone();
-    let tags = payload.tags.clone().unwrap_or_default();
+    let tags = match payload.tags.clone() {
+        Some(tags) => tags,
+        None => Vec::new(),
+    };
     let is_published = payload.is_published.unwrap_or(true);
 
     let (title_c, body_c, category_c, tags_c) = (
@@ -292,15 +304,24 @@ pub(super) async fn render_ci_list(state: &Arc<TicketsState>, headers: &HeaderMa
             #[diesel(sql_type = diesel::sql_types::Text)]
             status: String,
         }
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT id, name, ci_type, status FROM ticket_cis WHERE branch_id = $1 ORDER BY name ASC LIMIT 100",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::error!("Failed to list CIs for tickets UI: {e}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::error!("List CIs fragment task error: {e}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return "<div class=\"empty-state\"><p>No CIs configured yet</p></div>".to_string();

@@ -67,6 +67,11 @@ pub async fn create_ticket(
         .and_then(|d| DateTime::parse_from_rfc3339(&d).ok())
         .map(|d| d.with_timezone(&Utc));
 
+    let tags = match req.tags {
+        Some(tags) => tags,
+        None => Vec::new(),
+    };
+
     let ticket = SupportTicket {
         id,
         org_id,
@@ -89,7 +94,7 @@ pub async fn create_ticket(
         closed_at: None,
         satisfaction_rating: None,
         record_type: req.record_type.clone().unwrap_or_else(|| "ticket".to_string()),
-        tags: req.tags.unwrap_or_default().into_iter().map(Some).collect(),
+        tags: tags.into_iter().map(Some).collect(),
         custom_fields: serde_json::json!({}),
         created_at: now,
         updated_at: now,

@@ -166,11 +166,17 @@ pub(super) async fn handle_tickets_list(
         }
     }
 
-    let tickets: Vec<SupportTicket> = q
+    let tickets: Vec<SupportTicket> = match q
         .order(support_tickets::created_at.desc())
         .limit(50)
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(tickets) => tickets,
+        Err(e) => {
+            log::error!("Failed to load tickets for table fragment: {e}");
+            Vec::new()
+        }
+    };
 
     if tickets.is_empty() {
         return Html(render_empty_state(

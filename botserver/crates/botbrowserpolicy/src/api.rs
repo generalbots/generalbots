@@ -77,7 +77,10 @@ fn resolve_user_id_sse(
     headers: &HeaderMap,
     token_param: &str,
 ) -> Result<Uuid, SafeErrorResponse> {
-    let header_token = bearer_token(headers).unwrap_or_default();
+    let header_token = match bearer_token(headers) {
+        Some(token) => token,
+        None => "",
+    };
     let token = if header_token.is_empty() {
         token_param.trim()
     } else {
@@ -289,10 +292,11 @@ pub async fn task_events(
     Query(query): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Sse<impl futures::Stream<Item = Result<Event, std::convert::Infallible>>>, SafeErrorResponse>
 {
-    resolve_user_id_sse(
-        &headers,
-        query.get("token").map(|s| s.as_str()).unwrap_or_default(),
-    )?;
+    let token_param = match query.get("token") {
+        Some(token) => token.as_str(),
+        None => "",
+    };
+    resolve_user_id_sse(&headers, token_param)?;
     let stream = async_stream::stream! {
         let mut emitted: usize = 0;
         for _ in 0..SSE_MAX_TICKS {
@@ -344,18 +348,30 @@ fn read_global_policy(svc: &SharedService) -> PolicyConfig {
     use crate::schema::user_preferences::dsl as up;
 
     let Ok(mut conn) = svc.pool().get() else {
+        tracing::warn!("browser policy read: pool unavailable, using defaults");
         return PolicyConfig::default();
     };
-    up::user_preferences
+    let value = match up::user_preferences
         .filter(up::user_id.eq(GLOBAL_SCOPE_USER))
         .filter(up::preference_key.eq(POLICY_PREFERENCE_KEY))
         .select(up::preference_value)
         .first::<serde_json::Value>(&mut conn)
         .optional()
-        .ok()
-        .flatten()
-        .and_then(|v| serde_json::from_value::<PolicyConfig>(v).ok())
-        .unwrap_or_default()
+    {
+        Ok(Some(value)) => value,
+        Ok(None) => return PolicyConfig::default(),
+        Err(e) => {
+            tracing::warn!("browser policy read failed, using defaults: {e}");
+            return PolicyConfig::default();
+        }
+    };
+    match serde_json::from_value::<PolicyConfig>(value) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            tracing::warn!("browser policy document invalid, using defaults: {e}");
+            PolicyConfig::default()
+        }
+    }
 }
 
 pub async fn get_policy_handler(

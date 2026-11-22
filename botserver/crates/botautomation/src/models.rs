@@ -31,7 +31,16 @@ impl AgentSchedule {
     /// Parses the `delivery` JSONB column into typed preferences; a malformed
     /// value degrades to the documented defaults instead of failing the read.
     pub fn delivery_prefs(&self) -> DeliveryPrefs {
-        serde_json::from_value(self.delivery.clone()).unwrap_or_default()
+        match serde_json::from_value(self.delivery.clone()) {
+            Ok(prefs) => prefs,
+            Err(e) => {
+                tracing::warn!(
+                    "automation schedule {}: invalid delivery preferences, using defaults: {e}",
+                    self.id
+                );
+                DeliveryPrefs::default()
+            }
+        }
     }
 
     /// Returns the tool allowlist as string names; `None` means unrestricted.

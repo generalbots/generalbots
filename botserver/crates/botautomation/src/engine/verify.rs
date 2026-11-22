@@ -39,11 +39,10 @@ fn build_digest(goal: &str, outcomes: &[StepOutcome]) -> String {
         if index > 0 {
             digest.push(',');
         }
-        let output = outcome
-            .output
-            .as_deref()
-            .map(|o| o.chars().take(OUTPUT_DIGEST_CHARS).collect::<String>())
-            .unwrap_or_default();
+        let output = match outcome.output.as_deref() {
+            Some(output) => output.chars().take(OUTPUT_DIGEST_CHARS).collect::<String>(),
+            None => String::new(),
+        };
         let entry = serde_json::json!({
             "id": outcome.id,
             "name": outcome.name,
@@ -104,11 +103,10 @@ pub(crate) async fn verify_and_repair(
     }
 
     let llm = ctx.state.llm().clone();
-    let goal = ctx
-        .schedule
-        .as_ref()
-        .map(|s| s.goal.clone())
-        .unwrap_or_default();
+    let goal = match ctx.schedule.as_ref() {
+        Some(schedule) => schedule.goal.clone(),
+        None => String::new(),
+    };
 
     for iteration in 0..MAX_REPAIR_ITERATIONS {
         let raw = llm(VERIFIER_SYSTEM, &build_digest(&goal, &outcomes), "{}");

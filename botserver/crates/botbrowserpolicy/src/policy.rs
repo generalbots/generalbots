@@ -49,9 +49,16 @@ impl PolicyConfig {
     /// Extracts the per-task policy embedded in the task `plan` JSONB, or the
     /// documented defaults when absent.
     pub fn from_plan(plan: Option<&serde_json::Value>) -> Self {
-        plan.and_then(|p| p.get("policy"))
-            .and_then(|v| serde_json::from_value::<Self>(v.clone()).ok())
-            .unwrap_or_default()
+        let Some(value) = plan.and_then(|p| p.get("policy")) else {
+            return Self::default();
+        };
+        match serde_json::from_value::<Self>(value.clone()) {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                tracing::warn!("invalid per-task browsing policy in plan, using defaults: {e}");
+                Self::default()
+            }
+        }
     }
 }
 

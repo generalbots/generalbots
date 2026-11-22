@@ -21,11 +21,17 @@ pub(super) async fn handle_tickets_cards(
         }
     }
 
-    let tickets: Vec<SupportTicket> = q
+    let tickets: Vec<SupportTicket> = match q
         .order(support_tickets::created_at.desc())
         .limit(20)
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(tickets) => tickets,
+        Err(e) => {
+            log::error!("Failed to load ticket cards: {e}");
+            Vec::new()
+        }
+    };
 
     if tickets.is_empty() {
         return Html(render_empty_state(
@@ -54,7 +60,10 @@ pub(super) async fn handle_tickets_search(
 
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
-    let search_term = query.q.unwrap_or_default();
+    let search_term = match query.q {
+        Some(term) => term,
+        None => String::new(),
+    };
     if search_term.is_empty() {
         return Html(render_empty_state(
             "🔍",
@@ -65,7 +74,7 @@ pub(super) async fn handle_tickets_search(
 
     let pattern = format!("%{search_term}%");
 
-    let tickets: Vec<SupportTicket> = support_tickets::table
+    let tickets: Vec<SupportTicket> = match support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
         .filter(
             support_tickets::subject
@@ -76,7 +85,13 @@ pub(super) async fn handle_tickets_search(
         .order(support_tickets::created_at.desc())
         .limit(20)
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(tickets) => tickets,
+        Err(e) => {
+            log::error!("Failed to search tickets: {e}");
+            Vec::new()
+        }
+    };
 
     if tickets.is_empty() {
         return Html(render_empty_state(
@@ -111,11 +126,17 @@ pub(super) async fn handle_ticket_detail(
         return Html(render_empty_state("❌", "Not found", "Ticket not found"));
     };
 
-    let comments: Vec<TicketComment> = ticket_comments::table
+    let comments: Vec<TicketComment> = match ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(id))
         .order(ticket_comments::created_at.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(comments) => comments,
+        Err(e) => {
+            log::error!("Failed to load comments for ticket detail {id}: {e}");
+            Vec::new()
+        }
+    };
 
     let requester = ticket
         .requester_name
@@ -253,11 +274,17 @@ pub(super) async fn handle_ticket_comments(
         return Html("<p class=\"no-comments\">Ticket not found</p>".to_string());
     }
 
-    let comments: Vec<TicketComment> = ticket_comments::table
+    let comments: Vec<TicketComment> = match ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(id))
         .order(ticket_comments::created_at.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(comments) => comments,
+        Err(e) => {
+            log::error!("Failed to load comments for ticket {id}: {e}");
+            Vec::new()
+        }
+    };
 
     if comments.is_empty() {
         return Html("<p class=\"no-comments\">No comments yet</p>".to_string());

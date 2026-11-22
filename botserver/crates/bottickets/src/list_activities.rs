@@ -29,7 +29,10 @@ pub async fn list_activities(
             id: c.id,
             ticket_id: c.ticket_id,
             actor_id: c.author_id,
-            actor_name: c.author_name.unwrap_or_default(),
+            actor_name: match c.author_name {
+                Some(name) => name,
+                None => String::new(),
+            },
             activity_type: if c.is_internal { "internal_note".to_string() } else { "comment".to_string() },
             description: c.content,
             metadata: c.attachments,
@@ -112,7 +115,10 @@ pub async fn add_activity(
         id,
         ticket_id,
         actor_id: None,
-        actor_name: comment.author_name.unwrap_or_default(),
+        actor_name: match comment.author_name {
+            Some(name) => name,
+            None => String::new(),
+        },
         activity_type: req.activity_type,
         description: comment.content,
         metadata: comment.attachments,

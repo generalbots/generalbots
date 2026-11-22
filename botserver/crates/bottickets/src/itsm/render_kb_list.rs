@@ -22,15 +22,24 @@ pub(super) async fn render_kb_list(state: &Arc<TicketsState>, headers: &HeaderMa
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
             category: Option<String>,
         }
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT id, title, category FROM ticket_kb_articles WHERE branch_id = $1 AND is_published = TRUE ORDER BY title ASC LIMIT 100",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::error!("Failed to list KB articles for tickets UI: {e}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::error!("List KB articles fragment task error: {e}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return "<div class=\"empty-state\"><p>No KB articles yet</p></div>".to_string();

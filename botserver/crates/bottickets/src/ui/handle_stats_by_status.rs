@@ -135,12 +135,18 @@ pub(super) async fn handle_avg_resolution(
 
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
-    let resolved_tickets: Vec<SupportTicket> = support_tickets::table
+    let resolved_tickets: Vec<SupportTicket> = match support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::resolved_at.is_not_null())
         .limit(100)
         .load(&mut conn)
-        .unwrap_or_default();
+    {
+        Ok(tickets) => tickets,
+        Err(e) => {
+            log::error!("Failed to load resolved tickets for average resolution: {e}");
+            Vec::new()
+        }
+    };
 
     if resolved_tickets.is_empty() {
         return Html("-".to_string());

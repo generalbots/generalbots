@@ -73,7 +73,10 @@ pub(super) async fn list_cis(
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::error!("List CIs task error: {e}");
+        Vec::new()
+    });
 
     Json(rows)
 }
@@ -109,7 +112,7 @@ pub(super) async fn create_ci(
                 return;
             }
         };
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "INSERT INTO ticket_cis (id, org_id, branch_id, name, ci_type, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -119,7 +122,10 @@ pub(super) async fn create_ci(
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&ci_type_c)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&description_c)
         .bind::<diesel::sql_types::Text, _>(&status_c)
-        .execute(&mut db_conn);
+        .execute(&mut db_conn)
+        {
+            log::error!("Failed to create CI: {e}");
+        }
     })
     .await
     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Task error: {e}")))?;

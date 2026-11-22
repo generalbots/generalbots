@@ -196,7 +196,12 @@ async fn deliver_call(ctx: &Arc<RunCtx>) -> StepResult {
     };
     let doc = delivery::dispatch(ctx.state.clone(), ctx.schedule.as_ref(), &run).await;
     if let Some(mut conn) = pool_conn(&ctx.state, "delivery status") {
-        let _ = delivery::save_delivery_status(&mut conn, ctx.run_id, &doc);
+        if let Err(e) = delivery::save_delivery_status(&mut conn, ctx.run_id, &doc) {
+            tracing::warn!(
+                "automation run {}: could not persist delivery status: {e}",
+                ctx.run_id
+            );
+        }
     }
     Ok((doc.to_string(), 0, 0))
 }
@@ -206,12 +211,10 @@ async fn fork_call(
     step: &PlanStep,
     parent_span: Option<Uuid>,
 ) -> StepResult {
-    let children = step
-        .input
-        .get("children")
-        .and_then(|c| c.as_array())
-        .cloned()
-        .unwrap_or_default();
+    let children = match step.input.get("children").and_then(|c| c.as_array()) {
+        Some(children) => children.clone(),
+        None => Vec::new(),
+    };
     if children.is_empty() {
         return Err("fork step has no children array in input".to_string());
     }
