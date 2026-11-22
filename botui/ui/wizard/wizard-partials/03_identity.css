@@ -1,48 +1,14 @@
 /*
- * Identity overlay — applies the edition's visual language to the wizard.
+ * Identity overlay — the edition's visual language applied to the wizard.
  *
- * Imported after 01_root.css and 02_model-grid.css. Since the base files now
- * use --id-* tokens directly, this file adds only the edition's decorative
- * elements: the paper grid, the glow, the accent picker, the welcome greeting,
- * and the dark-theme logo handling.
+ * Imported after 01_root.css and 02_model-grid.css. Matches the app's
+ * Settings > Modelo page: hairline borders, squared cards, mono labels,
+ * the accent picker, and clean light/dark backgrounds without glow or grid.
  */
 
-/* == Paper grid (20px, 4% opacity) and one drifting glow ================ */
+/* == No decorative paper grid or glow (removed) ======================== */
 .wizard::before,
-.wizard::after {
-  content: "";
-  position: fixed;
-  pointer-events: none;
-  z-index: 0;
-}
-.wizard::before {
-  inset: 0;
-  opacity: .04;
-  background-image:
-    linear-gradient(var(--id-gray-500) 1px, transparent 1px),
-    linear-gradient(90deg, var(--id-gray-500) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-.wizard::after {
-  width: 520px;
-  height: 520px;
-  border-radius: 50%;
-  top: 18%;
-  right: -80px;
-  background: radial-gradient(circle, var(--id-accent-glow) 0%, transparent 70%);
-  filter: blur(40px);
-  animation: id-glow-drift var(--id-dur-glow) ease-in-out infinite alternate;
-}
-@keyframes id-glow-drift {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(-60px, 40px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wizard::after { animation: none; }
-}
-
-/* All direct children above the backdrop. */
-.wizard > * { position: relative; z-index: 1; }
+.wizard::after { display: none; }
 
 /* == Accent picker ====================================================== */
 
@@ -122,3 +88,262 @@
   cursor: pointer;
 }
 .radio-label input { accent-color: var(--id-accent); }
+
+/* == Engine cards (matches the app's gb-of-mode pattern) ================ */
+
+.wiz-engine-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.wiz-engine-label {
+  font-family: var(--id-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--id-ink);
+  margin-bottom: var(--id-space-2);
+}
+
+/* Four cards in one row at the real window width (1040 px, content ~770 px).
+   2x2 at the 900x560 minimum. No empty cells may show through. */
+.wiz-engine-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--id-line);
+  border: var(--id-stroke) solid var(--id-line);
+  border-bottom: 0;
+  border-radius: var(--id-radius-panel) var(--id-radius-panel) 0 0;
+  overflow: hidden;
+}
+@media (max-width: 900px) {
+  .wiz-engine-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.wiz-engine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 10px 10px;
+  background: var(--id-paper);
+  cursor: pointer;
+  min-height: 110px;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  font: inherit;
+  color: var(--id-ink);
+  margin: 0;
+  transition: background-color var(--id-dur-fast);
+}
+.wiz-engine:hover,
+.wiz-engine.selected {
+  background: var(--id-surface-solid);
+}
+.wiz-engine.selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--id-accent);
+}
+.wiz-engine:focus-visible {
+  outline: none;
+  box-shadow: var(--id-focus);
+  z-index: 1;
+}
+
+.wiz-engine-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.wiz-engine-ico {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--id-stroke) solid var(--id-line);
+  background: var(--id-surface-solid);
+  color: var(--id-text);
+  flex: none;
+}
+.wiz-engine.selected .wiz-engine-ico {
+  color: var(--id-accent-text);
+}
+.wiz-engine-num {
+  font: 600 10.5px/normal var(--id-font-mono);
+  color: var(--id-muted);
+}
+.wiz-engine-sp { flex: 1; }
+.wiz-engine-tag {
+  font: 600 10px/1.4 var(--id-font-mono);
+  letter-spacing: .04em;
+  padding: 2px 6px;
+  background: var(--id-accent);
+  color: var(--id-on-accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.wiz-engine-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.wiz-engine-txt strong {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -.2px;
+}
+.wiz-engine-txt span {
+  font-size: 11.5px;
+  color: var(--id-muted);
+  line-height: 1.35;
+}
+.wiz-engine-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wiz-engine-dest {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.wiz-engine-sq {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: currentColor;
+  display: inline-block;
+}
+.wiz-engine-dest[data-tone="ok"] { color: var(--id-success-text); }
+.wiz-engine-dest[data-tone="mid"] { color: var(--id-warn-text); }
+.wiz-engine-dest[data-tone="out"] { color: var(--id-danger-text); }
+
+/* Privacy meter segments */
+.wiz-segs { display: flex; gap: 3px; flex: none; }
+.wiz-segs i {
+  display: block;
+  width: 8px;
+  height: 4px;
+  background: var(--id-line);
+}
+.wiz-segs[data-tone="ok"] i.on { background: var(--id-success-text); }
+.wiz-segs[data-tone="mid"] i.on { background: var(--id-warn-text); }
+.wiz-segs[data-tone="out"] i.on { background: var(--id-danger-text); }
+
+/* == Detail panel under cards =========================================== */
+
+.wiz-engine-dhead {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border: var(--id-stroke) solid var(--id-line);
+  border-top: 0;
+  padding: 8px 16px;
+  background: var(--id-surface-solid);
+}
+.wiz-engine-dhead > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wiz-engine-k {
+  font-family: var(--id-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--id-muted);
+}
+.wiz-engine-dname {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.wiz-engine-dbody {
+  border: var(--id-stroke) solid var(--id-line);
+  border-top: 0;
+  border-radius: 0 0 var(--id-radius-panel) var(--id-radius-panel);
+  background: var(--id-paper);
+  padding: 14px 16px 16px;
+}
+
+.wiz-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 620px;
+}
+.wiz-detail-text {
+  margin: 0;
+  font-size: var(--id-text-sm);
+  color: var(--id-text);
+  line-height: 1.55;
+}
+.wiz-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wiz-detail-label {
+  font-size: var(--id-text-sm);
+  font-weight: 600;
+  color: var(--id-ink);
+}
+
+/* Advanced disclosure for free model */
+.wiz-advanced {
+  margin-top: 4px;
+}
+.wiz-advanced > summary {
+  cursor: pointer;
+  font-size: var(--id-text-sm);
+  font-weight: 600;
+  color: var(--id-muted);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.wiz-advanced > summary::-webkit-details-marker { display: none; }
+.wiz-advanced > summary::before {
+  content: "\25B6";
+  font-size: 8px;
+  transition: transform var(--id-dur-fast);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wiz-advanced > summary::before { transition: none; }
+}
+.wiz-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* ACP fallback engine choice */
+.wiz-fallback-choices {
+  display: flex;
+  gap: var(--id-space-3);
+  flex-wrap: wrap;
+}
+.wiz-fallback-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--id-space-2);
+  font-size: var(--id-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.wiz-fallback-choice input {
+  accent-color: var(--id-accent);
+}

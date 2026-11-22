@@ -94,6 +94,9 @@
         } else if (desktopLocalWindows()) {
           draft.skip_all_agentic_work = true;
         }
+        if (typeof saved.want_agents === "boolean") {
+          draft.want_agents = saved.want_agents;
+        }
       } else if (desktopLocalWindows()) {
         // First run: Chat/Drive is the default mode, not an error to dismiss.
         draft.skip_all_agentic_work = true;

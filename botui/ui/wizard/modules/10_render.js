@@ -15,21 +15,27 @@
   function persistDraft() { return App.persistDraft(); }
 
   function renderRail() {
+    var label = document.getElementById("railSectionLabel");
+    if (label) { label.textContent = "// " + t("rail.section-label"); }
     el.rail.innerHTML = W.STEPS.map(function (step, index) {
       var n = index + 1;
+      var num = (n < 10 ? "0" : "") + n;
       var current = n === state.step;
       var done = n < state.step || (state.provisioning.ready && n <= 5);
       return '<li class="rail-step' + (done ? " done" : "") + '"' +
         (current ? ' aria-current="step"' : "") + ">" +
-        '<span class="num" aria-hidden="true">' + (done ? "✓" : n) + "</span>" +
-        '<span class="name">' + esc(t(step.key)) + "</span></li>";
+        '<span class="rail-step-name">' + esc(t(step.key)) + "</span>" +
+        '<span class="rail-step-num" aria-hidden="true">' +
+          (done ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : num) +
+        "</span></li>";
     }).join("");
   }
 
   function renderFooter() {
     var last = state.step === state.totalSteps;
     el.back.disabled = state.step === 1 || state.provisioning.running;
-    el.next.textContent = last ? t("wizard.open-assistant") : t("wizard.next");
+    el.next.innerHTML = esc(last ? t("wizard.open-assistant") : t("wizard.next")) +
+      (last ? "" : ' <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
     el.next.disabled = !canAdvance();
     el.progress.style.width = Math.round((state.step / state.totalSteps) * 100) + "%";
     el.footLabel.textContent = t("wizard.foot-step", { current: state.step, total: state.totalSteps });
@@ -72,37 +78,45 @@
     }
 
     if (state.step === 2) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-model-mode]'), function (card) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-engine]'), function (card) {
         card.addEventListener("click", function () {
-          var mode = card.getAttribute("data-model-mode");
-          draft.model.mode = mode;
-          if (mode === "claude-code" || mode === "chatgpt-plan") {
-            draft.model.provider = mode;
-            draft.model.endpoint = "";
-            draft.model.model = W.defaultModelName(mode);
-            draft.model.api_key = "";
-            draft.model.tested = true;
-          } else if (mode === "free") {
-            draft.model.provider = "kilo";
-            draft.model.endpoint = W.defaultModelEndpoint("kilo");
-            draft.model.model = W.defaultModelName("kilo");
-            draft.model.api_key = "";
-            draft.model.tested = false;
-          } else if (mode === "own-key" || mode === "hosted") {
-            if (!W.defaultModelEndpoint(draft.model.provider)) {
-              draft.model.provider = "openai";
+          var engine = card.getAttribute("data-engine");
+          if (engine === "acp") {
+            draft.want_agents = true;
+            draft.skip_all_agentic_work = false;
+            if (draft.model.mode !== "local" && draft.model.mode !== "free") {
+              draft.model.mode = "free";
+              draft.model.provider = "kilo";
+              draft.model.endpoint = W.defaultModelEndpoint("kilo");
+              draft.model.model = W.defaultModelName("kilo");
+              draft.model.api_key = "";
             }
-            draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
-            draft.model.model = W.defaultModelName(draft.model.provider);
-            draft.model.tested = false;
-          } else if (mode === "local") {
-            draft.model.tested = true;
+          } else {
+            draft.want_agents = false;
+            draft.model.mode = engine;
+            if (engine === "free") {
+              draft.model.provider = "kilo";
+              draft.model.endpoint = W.defaultModelEndpoint("kilo");
+              draft.model.model = W.defaultModelName("kilo");
+              draft.model.api_key = "";
+              draft.model.tested = false;
+            } else if (engine === "own-key") {
+              if (!W.defaultModelEndpoint(draft.model.provider)) {
+                draft.model.provider = "openai";
+              }
+              draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
+              draft.model.model = W.defaultModelName(draft.model.provider);
+              draft.model.tested = false;
+            } else if (engine === "local") {
+              draft.model.tested = true;
+            }
           }
           persistDraft();
           render();
         });
       });
       bindModelDetail();
+      bindAcpFallback();
     }
 
     if (state.step === 3) {
@@ -129,6 +143,23 @@
     if (state.step === 6) { bindNetwork(); }
     if (state.step === 7) { bindInstall(); }
     if (state.step === 8) { bindFinish(); }
+  }
+
+  function bindAcpFallback() {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="acpFallback"]'), function (radio) {
+      radio.addEventListener("change", function () {
+        draft.model.mode = radio.value;
+        if (radio.value === "free") {
+          draft.model.provider = "kilo";
+          draft.model.endpoint = W.defaultModelEndpoint("kilo");
+          draft.model.model = W.defaultModelName("kilo");
+          draft.model.api_key = "";
+        }
+        draft.model.tested = radio.value === "local";
+        persistDraft();
+        renderFooter();
+      });
+    });
   }
 
   function bindModelDetail() {
@@ -164,6 +195,15 @@
     if (endpoint) { endpoint.addEventListener("input", function () { draft.model.endpoint = endpoint.value.trim(); draft.model.tested = false; renderFooter(); }); }
     if (modelName) { modelName.addEventListener("input", function () { draft.model.model = modelName.value.trim(); draft.model.tested = false; renderFooter(); }); }
     if (key) { key.addEventListener("input", function () { draft.model.api_key = key.value; draft.model.tested = false; renderFooter(); }); }
+    var toggleKey = document.getElementById("toggleKeyBtn");
+    if (toggleKey && key) {
+      toggleKey.addEventListener("click", function () {
+        var reveal = key.type === "password";
+        key.type = reveal ? "text" : "password";
+        toggleKey.setAttribute("aria-pressed", reveal ? "true" : "false");
+        toggleKey.textContent = t(reveal ? "model.hide-key" : "model.show-key");
+      });
+    }
     if (test) {
       test.addEventListener("click", function () {
         var status = document.getElementById("modelTestStatus");
@@ -269,6 +309,7 @@
   App.bindStep = bindStep;
   App.bindModelDetail = bindModelDetail;
   App.checkWorkspace = checkWorkspace;
+  App.bindAcpFallback = bindAcpFallback;
   App.bindServices = bindServices;
   App.bindPrivacy = bindPrivacy;
   App.bindNetwork = bindNetwork;

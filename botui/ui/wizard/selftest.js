@@ -69,27 +69,32 @@
     await waitFor(function () { return window.GBWizard.state.step === 2; }, 1500);
     assert(window.GBWizard.state.step === 2, "Next advances to the model step");
 
-    var claudeCard = document.querySelector('[data-model-mode="claude-code"]');
-    var chatgptCard = document.querySelector('[data-model-mode="chatgpt-plan"]');
-    assert(!!claudeCard && !!chatgptCard, "Claude and ChatGPT are offered in step 2");
-    assert(!!document.querySelector('img[src*="logo-claude"]') &&
-      !!document.querySelector('img[src*="logo-chatgpt"]'), "provider logos are rendered");
+    var engines = document.querySelectorAll('[data-engine]');
+    assert(engines.length === 4, "four engine cards in step 2", String(engines.length));
+    var engineIds = Array.prototype.map.call(engines, function (e) { return e.getAttribute("data-engine"); });
+    assert(engineIds.join(",") === "local,own-key,free,acp", "engine order is local, own-key, free, acp", engineIds.join(","));
 
     // Own key without a key must block.
-    if (claudeCard) { click('[data-model-mode="claude-code"]'); }
-    await waitFor(function () { return window.GBWizard.state.step === 2; }, 500);
-    click('[data-model-mode="own-key"]');
+    click('[data-engine="own-key"]');
     await waitFor(function () { return !!document.getElementById("modelKey"); }, 1000);
     click("#nextBtn");
     assert(window.GBWizard.state.step === 2, "Next is blocked without a provider key");
 
-    click('[data-model-mode="free"]');
-    await waitFor(function () { return !!document.getElementById("modelProvider"); }, 1000);
-    assert(!!document.getElementById("modelProvider"), "free provider selector is rendered");
+    // Free model shows no mandatory fields by default.
+    click('[data-engine="free"]');
+    await waitFor(function () { return !!document.getElementById("wizEngineDetail"); }, 1000);
     var kilo = window.GBWizard.freeProviderById("kilo");
     assert(!!kilo && kilo.needsKey === false, "Kilo Code is offered without a key");
+    var freeDetail = text("#wizEngineDetail");
+    assert(freeDetail.length > 10, "free model detail panel has content");
 
-    click('[data-model-mode="local"]');
+    // Acp card sets want_agents flag.
+    click('[data-engine="acp"]');
+    await waitFor(function () { return window.GBWizard.state.draft.want_agents === true; }, 1000);
+    assert(window.GBWizard.state.draft.want_agents === true, "acp sets want_agents flag");
+    assert(window.GBWizard.state.draft.skip_all_agentic_work === false, "acp clears skip_all_agentic_work");
+
+    click('[data-engine="local"]');
     await waitFor(function () { return !document.getElementById("modelKey"); }, 1000);
     click("#nextBtn");    await waitFor(function () { return window.GBWizard.state.step === 3; }, 1500);
     assert(window.GBWizard.state.step === 3, "local model passes validation");

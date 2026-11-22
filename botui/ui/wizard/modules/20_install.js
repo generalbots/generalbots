@@ -83,19 +83,28 @@
 
   /* -- toggle details (show/hide live output column) ------------------ */
 
+  var detailsOpen = false;
+
+  function setDetailsOpen(open) {
+    detailsOpen = open;
+    var output = document.getElementById("installOutputCol");
+    var cols = document.getElementById("installColumns");
+    var icon = document.getElementById("toggleDetailsIcon");
+    var toggle = document.getElementById("toggleInstallDetails");
+    if (!output || !cols) { return; }
+    output.style.display = open ? "" : "none";
+    cols.style.gridTemplateColumns = open ? "45% 1fr" : "1fr";
+    if (icon) { icon.textContent = open ? "▼" : "▶"; }
+    if (toggle) { toggle.lastChild.textContent = " " + t(open ? "install.hide-details" : "install.show-details"); }
+  }
+
   function bindToggleDetails() {
     var toggle = document.getElementById("toggleInstallDetails");
     if (!toggle) { return; }
+    /* Details closed by default; a first-time user sees only the step list. */
+    setDetailsOpen(false);
     toggle.addEventListener("click", function () {
-      var output = document.getElementById("installOutputCol");
-      var cols = document.getElementById("installColumns");
-      var icon = document.getElementById("toggleDetailsIcon");
-      if (!output || !cols) { return; }
-      var hidden = output.style.display === "none";
-      output.style.display = hidden ? "" : "none";
-      cols.style.gridTemplateColumns = hidden ? "45% 1fr" : "1fr";
-      if (icon) { icon.textContent = hidden ? "▼" : "▶"; }
-      toggle.lastChild.textContent = " " + t(hidden ? "install.hide-details" : "install.show-details");
+      setDetailsOpen(!detailsOpen);
     });
   }
 
@@ -131,10 +140,16 @@
 
   /* -- component template and rendering ------------------------------- */
 
+  function componentName(component) {
+    var key = "install.comp." + component.id;
+    var translated = t(key);
+    return translated !== key ? translated : component.label;
+  }
+
   function componentTemplate(component) {
     return '<div class="install-step-item" data-comp="' + esc(component.id) + '">' +
       '<span class="install-step-icon" aria-hidden="true"></span>' +
-      '<span class="install-step-name">' + esc(component.label) + "</span>" +
+      '<span class="install-step-name">' + esc(componentName(component)) + "</span>" +
       '<span class="install-step-dur"></span></div>';
   }
 
@@ -242,6 +257,8 @@
   function setProvisionUi(running) {
     var cancel = document.getElementById("cancelSetupBtn");
     if (cancel) { cancel.disabled = !running; }
+    var reset = document.getElementById("resetStackBtn");
+    if (reset) { reset.hidden = running; }
     if (running) {
       state.provisioning.running = true;
       state.provisioning.failed = null;
@@ -318,6 +335,8 @@
       var retry = document.getElementById("retryComponentBtn");
       if (retry) { retry.addEventListener("click", startProvisioning); }
     }
+    /* Reveal the log on failure so the user can see what went wrong. */
+    setDetailsOpen(true);
     setProvisionUi(false);
   }
 

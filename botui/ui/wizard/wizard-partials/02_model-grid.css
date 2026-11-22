@@ -1,66 +1,10 @@
 /*
- * Engine choice cards, inline rows, buttons, badges, notes, install bar,
- * component board, data map, summary, footer and modal.
+ * Inline rows, buttons, badges, notes, install bar, component board,
+ * data map, summary, footer and modal.
  *
  * Uses --id-* tokens throughout. No legacy colour variables.
+ * Engine cards moved to 03_identity.css (wiz-engine-* classes).
  */
-
-/* -- Engine choice cards (#1655) ---------------------------------------- */
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--id-space-3);
-}
-.model-card {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  text-align: left;
-  padding: var(--id-space-4);
-  border: var(--id-stroke) solid var(--id-line);
-  border-radius: var(--id-radius-card);
-  background: var(--id-surface);
-  box-shadow: var(--id-shadow-card);
-  cursor: pointer;
-  min-height: 100px;
-  transition: border-color var(--id-dur-fast), box-shadow var(--id-dur-fast);
-}
-.model-card:hover {
-  border-color: var(--id-gray-300);
-  box-shadow: var(--id-shadow-card-hover);
-}
-.model-card.selected {
-  border-color: var(--id-accent);
-  background: var(--id-accent-soft);
-  box-shadow: 0 0 0 1px var(--id-accent);
-}
-.model-logo { width: 40px; height: 40px; object-fit: contain; flex: 0 0 40px; }
-.model-logo-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  border-radius: var(--id-radius-sm);
-  background: var(--id-fill);
-}
-.model-copy { display: flex; flex-direction: column; gap: 3px; }
-.model-title { font-weight: 600; font-size: var(--id-text-md); }
-.model-desc { font-size: var(--id-text-sm); color: var(--id-muted); line-height: 1.4; }
-.model-badge {
-  align-self: flex-start;
-  margin-top: var(--id-space-1);
-  font-family: var(--id-font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  padding: 2px 7px;
-  border-radius: var(--id-radius-sm);
-  background: var(--id-fill);
-  color: var(--id-muted);
-}
-.card-title .model-logo { width: 22px; height: 22px; vertical-align: middle; }
-@media (max-width: 760px) { .model-grid { grid-template-columns: 1fr; } }
 
 /* -- Inline row --------------------------------------------------------- */
 .inline-row { display: flex; gap: var(--id-space-2); align-items: center; flex-wrap: wrap; }
@@ -98,6 +42,8 @@
 .btn-danger { background: var(--id-danger); color: #fff; }
 .btn-text { background: transparent; color: var(--id-muted); padding-left: 0; border: none; }
 .btn-text:hover { color: var(--id-ink); }
+.btn-danger-text { color: var(--id-danger-text); }
+.btn-danger-text:hover { color: var(--id-danger); }
 .btn-sm { padding: 6px 12px; font-size: var(--id-text-sm); }
 
 /* -- Cards -------------------------------------------------------------- */

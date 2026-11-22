@@ -12,85 +12,13 @@
       .replace(/"/g, "&quot;");
   };
 
-  var MI = { local: "M3 4h18v12H3zM8 20h8M12 16v4", free: "M13 2 3 14h9l-1 8 10-12h-9z", "own-key": "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01" };
-  function svgIcon(id) { var d = MI[id] || MI.free; return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; }
-
   function statusBadge(text, kind) {
     return '<span class="badge ' + (kind || "") + '">' + esc(text) + "</span>";
-  }
-
-  function modelDetail(draft) {
-    var m = draft.model;
-    if (m.mode === "claude-code" || m.mode === "chatgpt-plan") {
-      var name = m.mode === "claude-code" ? "Claude Code" : "ChatGPT plan";
-      return '<div class="card"><p class="note ok">' + esc(t("model.subscription-note", { name: name })) + "</p></div>";
-    }
-    if (m.mode === "local") {
-      return '<div class="card"><p class="note ok">' + esc(t("model.local-note")) + "</p></div>";
-    }
-    if (m.mode === "free") {
-      var freeOptions = W.FREE_PROVIDERS.map(function (p) {
-        return '<option value="' + p.id + '"' + (m.provider === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>";
-      }).join("");
-      var freeEndpoint = m.endpoint || W.defaultModelEndpoint(m.provider);
-      var freeModel = m.model || W.defaultModelName(m.provider);
-      var free = W.freeProviderById(m.provider);
-      var keyHint = free && free.needsKey
-        ? t("model.key-hint-llm7")
-        : t("model.key-hint-keyless");
-      return '' +
-        '<div class="card">' +
-          '<div class="field-grid">' +
-            '<div class="field"><label for="modelProvider">' + esc(t("model.free-provider")) + "</label>" +
-              '<select id="modelProvider">' + freeOptions + "</select>" +
-              '<span class="hint">' + esc(t("model.free-hint")) + "</span></div>" +
-            '<div class="field"><label for="modelEndpoint">' + esc(t("model.endpoint")) + "</label>" +
-              '<input type="text" id="modelEndpoint" value="' + esc(freeEndpoint) + '" placeholder="https://…" />' +
-              '<span class="hint">' + esc(t("model.endpoint-hint")) + "</span></div>" +
-            '<div class="field"><label for="modelName">' + esc(t("model.name")) + "</label>" +
-              '<input type="text" id="modelName" value="' + esc(freeModel) + '" placeholder="' + esc(t("model.name-placeholder")) + '" /></div>' +
-            '<div class="field"><label for="modelKey">' + esc(t("model.key-optional")) + "</label>" +
-              '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="' + esc(t("model.key-placeholder")) + '" />' +
-              '<span class="hint">' + esc(keyHint) + "</span></div>" +
-            '<div class="inline-row">' +
-              '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">' + esc(t("model.test")) + "</button>" +
-              '<span class="note" id="modelTestStatus" role="status">' + esc(t("model.untested")) + "</span>" +
-            "</div>" +
-          "</div>" +
-        "</div>";
-    }
-    var providerOptions = ["openai", "anthropic", "nvidia", "custom"].map(function (id) {
-      return '<option value="' + id + '"' + (m.provider === id ? " selected" : "") + ">" +
-        esc(id === "custom" ? t("model.other") : id.charAt(0).toUpperCase() + id.slice(1)) +
-        "</option>";
-    }).join("");
-    var endpoint = m.endpoint || (m.provider === "custom" ? "" : W.defaultModelEndpoint(m.provider));
-    var modelName = m.model || (m.provider === "custom" ? "" : W.defaultModelName(m.provider));
-    return '' +
-      '<div class="card">' +
-        '<div class="field-grid">' +
-          '<div class="field"><label for="modelProvider">' + esc(t("model.provider")) + "</label>" +
-            '<select id="modelProvider">' + providerOptions + "</select></div>" +
-          '<div class="field"><label for="modelEndpoint">' + esc(t("model.endpoint")) + "</label>" +
-            '<input type="text" id="modelEndpoint" value="' + esc(endpoint) + '" placeholder="https://…" />' +
-            '<span class="hint">' + esc(t("model.endpoint-hint")) + "</span></div>" +
-          '<div class="field"><label for="modelName">' + esc(t("model.name")) + "</label>" +
-            '<input type="text" id="modelName" value="' + esc(modelName) + '" placeholder="' + esc(t("model.name-placeholder")) + '" /></div>' +
-          '<div class="field"><label for="modelKey">' + esc(t("model.key")) + "</label>" +
-            '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="' + esc(t("model.key-placeholder-own")) + '" />' +
-            '<span class="hint">' + esc(t("model.key-hint-own")) + "</span></div>" +
-          '<div class="inline-row">' +
-            '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">' + esc(t("model.test")) + "</button>" +
-            '<span class="note" id="modelTestStatus" role="status">' + esc(t("model.untested")) + "</span>" +
-          "</div>" +
-        "</div>" +
-      "</div>";
   }
 
   function renderWelcome(draft, ctx) {
     var accentHtml = window.GBWizardApp && window.GBWizardApp.accentPickerHtml ? window.GBWizardApp.accentPickerHtml(draft, esc, t) : "";
     return '' +
-      '<div class="brand-hero"><img src="/wizard/logo.svg" alt="General Bots" /></div>' +
       '<p class="welcome-greeting">' + esc(t("welcome.greeting")) + "</p>" +
       '<p class="lead">' + esc(t("welcome.lead")) + "</p>" +
       '<div class="card">' +
@@ -106,27 +34,7 @@
   }
 
   function renderModel(draft) {
-    var choices = W.MODELS.map(function (option) {
-      var selected = draft.model.mode === option.id;
-      var logo = option.logo
-        ? '<img class="model-logo" src="' + esc(option.logo) + '" alt="" aria-hidden="true" />'
-        : '<span class="model-logo model-logo-text" aria-hidden="true">' + svgIcon(option.id) + "</span>";
-      var badge = option.badgeKey
-        ? '<span class="model-badge">' + esc(t(option.badgeKey)) + "</span>"
-        : "";
-      return '<button type="button" class="model-card' + (selected ? " selected" : "") + '"' +
-        ' data-model-mode="' + esc(option.id) + '" aria-pressed="' + (selected ? "true" : "false") + '">' +
-        logo +
-        '<span class="model-copy">' +
-          '<span class="model-title">' + esc(t(option.titleKey)) + "</span>" +
-          '<span class="model-desc">' + esc(t(option.descKey)) + "</span>" +
-          badge +
-        "</span></button>";
-    }).join("");
-    return '' +
-      '<p class="lead">' + esc(t("model.lead")) + "</p>" +
-      '<div class="model-grid">' + choices + "</div>" +
-      '<div style="margin-top:14px" id="modelDetail">' + modelDetail(draft) + "</div>";
+    return window.GBWizardEngine.renderEngine(draft);
   }
 
   function renderWorkspace(draft, ctx) {
@@ -289,6 +197,10 @@
             '<span class="log-count" id="logLineCount">0 ' + esc(t("install.lines")) + "</span>" +
           "</div>" +
           '<pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre>" +
+          '<div class="inline-row" style="margin-top:8px">' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">' + esc(t("install.open-logs")) + "</button>" +
+            '<button type="button" class="btn btn-text btn-sm btn-danger-text" id="resetStackBtn">' + esc(t("install.reset")) + "</button>" +
+          "</div>" +
         "</div>" +
       "</div>" +
       '<div id="provisionError" class="note err" role="status"></div>' +
@@ -296,51 +208,41 @@
       '<div class="install-footer">' +
         '<div class="install-footer-left">' +
           '<button type="button" class="install-toggle-details" id="toggleInstallDetails">' +
-            '<span id="toggleDetailsIcon">&#9660;</span> ' + esc(t("install.hide-details")) +
+            '<span id="toggleDetailsIcon">&#9654;</span> ' + esc(t("install.show-details")) +
           "</button>" +
         "</div>" +
         '<div class="install-footer-right">' +
           '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">' + esc(t("install.start")) + "</button>" +
           '<button type="button" class="btn btn-secondary btn-sm" id="cancelSetupBtn" disabled>' + esc(t("install.cancel")) + "</button>" +
-          '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">' + esc(t("install.open-logs")) + "</button>" +
-          '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">' + esc(t("install.reset")) + "</button>" +
         "</div>" +
       "</div>";
   }
 
   function renderFinishAccount(draft) {
-    var subscription = draft.model.mode === "claude-code" || draft.model.mode === "chatgpt-plan";
-    if (!subscription) { return ""; }
-    var name = draft.model.mode === "claude-code" ? "Claude Code" : "ChatGPT plan";
-    var logo = draft.model.mode === "claude-code" ? "/wizard/logo-claude.svg" : "/wizard/logo-chatgpt.svg";
-    var codeRow = draft.model.mode === "claude-code"
-      ? '<div class="field" id="finishAccountCodeRow" hidden>' +
-          '<label for="finishAccountCode">' + esc(t("accounts.code")) + "</label>" +
-          '<div class="inline-row">' +
-            '<input type="text" id="finishAccountCode" autocomplete="off" placeholder="' + esc(t("accounts.code-placeholder")) + '" />' +
-            '<button type="button" class="btn btn-primary btn-sm" id="finishAccountCodeBtn">' + esc(t("accounts.submit")) + "</button>" +
-          "</div></div>"
-      : "";
+    /* Subscription agents are connected AFTER setup, in the app. The wizard
+       only shows a reminder when the person chose "Agente por assinatura". */
+    if (!draft.want_agents) { return ""; }
     return '' +
-      '<div class="card" id="finishAccountCard" style="margin-top:16px">' +
-        '<div class="card-head"><span class="card-title"><img class="model-logo" src="' + logo + '" alt="" aria-hidden="true" /> ' +
-          esc(t("finish.connect-title", { name: name })) + "</span>" +
-          '<span class="badge" id="finishAccountStatus">' + esc(t("accounts.checking")) + "</span></div>" +
-        '<p class="note" style="margin:8px 0">' + esc(t("finish.connect-note", { name: name })) + "</p>" +
-        '<div class="inline-row">' +
-          '<button type="button" class="btn btn-primary btn-sm" id="finishAccountConnect">' + esc(t("finish.connect-button", { name: name })) + "</button>" +
-          '<button type="button" class="btn btn-secondary btn-sm" id="finishAccountDisconnect" hidden>' + esc(t("accounts.disconnect")) + "</button>" +
-        "</div>" +
-        '<div class="note" id="finishAccountDetail" role="status" style="margin-top:8px"></div>' +
-        codeRow +
+      '<div class="card" id="finishAgentReminder" style="margin-top:16px">' +
+        '<div class="card-head"><span class="card-title">' +
+          esc(t("finish.agent-reminder-title")) + "</span></div>" +
+        '<p class="note" style="margin:8px 0">' + esc(t("finish.agent-reminder-text")) + "</p>" +
       "</div>";
   }
 
   function renderFinish(draft, ctx) {
-    var modelLabel = draft.model.mode === "local"
-      ? t("finish.model-local")
-      : (draft.model.mode === "own-key" ? t("finish.model-own") : t("finish.model-hosted")) +
+    var modelLabel;
+    if (draft.want_agents) {
+      var fb = draft.model.mode === "local" ? t("finish.model-local") : t("finish.model-free-fb");
+      modelLabel = t("finish.model-acp", { fallback: fb });
+    } else if (draft.model.mode === "local") {
+      modelLabel = t("finish.model-local");
+    } else if (draft.model.mode === "free") {
+      modelLabel = t("finish.model-free-fb");
+    } else {
+      modelLabel = (draft.model.mode === "own-key" ? t("finish.model-own") : t("finish.model-hosted")) +
         (W.endpointHost(draft.model.endpoint) || draft.model.provider);
+    }
     var connected = W.PROVIDERS.filter(function (p) {
       var s = draft.services[p.id];
       return s && s.client_id;
@@ -408,21 +310,20 @@
   function validate(step, draft) {
     if (step === 2) {
       if (draft.model.mode === "local") { return { ok: true }; }
-      if (draft.model.mode === "claude-code" || draft.model.mode === "chatgpt-plan") {
-        return { ok: true };
-      }
-      if (!draft.model.endpoint) { return { ok: false, reason: t("model.endpoint") + " — " + t("workspace.choose") }; }
-      if (!draft.model.model) { return { ok: false, reason: t("model.name") }; }
-      if (draft.model.mode !== "free" && !draft.model.api_key) {
-        return { ok: false, reason: t("model.key") };
-      }
       if (draft.model.mode === "free") {
         var free = W.freeProviderById(draft.model.provider);
         if (free && free.needsKey && !draft.model.api_key) {
           return { ok: false, reason: t("model.key-hint-llm7") };
         }
+        return { ok: true };
       }
-      if (!draft.model.tested && draft.model.mode !== "free") { return { ok: false, reason: t("model.test") }; }
+      if (draft.model.mode === "own-key") {
+        if (!draft.model.endpoint) { return { ok: false, reason: t("model.endpoint") + " — " + t("workspace.choose") }; }
+        if (!draft.model.model) { return { ok: false, reason: t("model.name") }; }
+        if (!draft.model.api_key) { return { ok: false, reason: t("model.key") }; }
+        if (!draft.model.tested) { return { ok: false, reason: t("model.test") }; }
+        return { ok: true };
+      }
       return { ok: true };
     }
     if (step === 3) {
@@ -438,7 +339,7 @@
     heading: heading,
     validate: validate,
     dataMapRows: dataMapRows,
-    modelDetail: modelDetail,
+    engineDetail: function (draft) { return window.GBWizardEngine.engineDetail(draft); },
     esc: esc
   };
 })();

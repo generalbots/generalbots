@@ -47,76 +47,77 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--id-ink);
 }
 
+/* -- Brand block: the same lockup the app's title bar shows ---- */
 .rail-brand {
   display: flex;
   align-items: center;
-  gap: var(--id-space-2);
   min-height: 30px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
 }
-.rail-mark {
-  height: 24px;
+.rail-logo {
+  height: 20px;
   width: auto;
-  flex: 0 0 auto;
-}
-.rail-wordmark {
-  height: 11px;
-  width: auto;
-  max-width: 140px;
 }
 
+/* -- Section label: // CONFIGURACAO INICIAL ---- */
+.rail-section-label {
+  font-family: var(--id-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--id-muted);
+  margin-top: var(--id-space-2);
+}
+
+/* -- Step list: rows with right-aligned mono two-digit numbers ---- */
 .rail-steps {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .rail-step {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--id-space-3);
-  padding: 7px 10px;
-  border-radius: var(--id-radius-sm);
+  padding: 8px 10px;
   color: var(--id-muted);
   border: none;
-  transition: background-color var(--id-dur-fast) var(--id-ease-standard);
+  border-left: 2px solid transparent;
+  transition: background-color var(--id-dur-fast) var(--id-ease-standard),
+              border-color var(--id-dur-fast) var(--id-ease-standard);
 }
-.rail-step .num {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  border: var(--id-stroke) solid var(--id-gray-300);
-  font-size: 13px;
-  font-weight: 600;
-  flex: 0 0 auto;
-  background: transparent;
-  color: var(--id-muted);
+.rail-step + .rail-step {
+  border-top: var(--id-stroke) solid var(--id-line);
 }
-.rail-step .name {
+.rail-step-name {
   font-size: var(--id-text-sm);
   font-weight: 500;
+}
+.rail-step-num {
+  font-family: var(--id-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--id-muted);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
 .rail-step[aria-current="step"] {
   color: var(--id-ink);
   background: var(--id-accent-soft);
+  border-left-color: var(--id-accent);
 }
-.rail-step[aria-current="step"] .num {
-  background: var(--id-accent);
-  border-color: var(--id-accent);
-  color: var(--id-on-accent);
+.rail-step[aria-current="step"] .rail-step-num {
+  color: var(--id-accent-text);
 }
 .rail-step.done {
   color: var(--id-text);
 }
-.rail-step.done .num {
-  background: transparent;
-  border-color: var(--id-accent-light);
+.rail-step.done .rail-step-num {
   color: var(--id-accent-text);
 }
 
@@ -155,16 +156,25 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-weight: 600;
   color: var(--id-muted);
 }
+/* Styled select matching the app's control pattern: same border, radius, height
+   and focus ring as .gb-set-lang-btn. The native arrow is kept but re-coloured. */
 .pane-lang select {
-  padding: 6px 28px 6px 10px;
+  height: 32px;
+  padding: 0 28px 0 10px;
   border: var(--id-stroke) solid var(--id-line);
-  border-radius: var(--id-radius-pill);
-  background: var(--id-surface);
+  border-radius: var(--id-radius-sm);
+  background: var(--id-surface-solid);
   color: var(--id-ink);
-  font: inherit;
-  font-size: var(--id-text-sm);
+  font: 500 var(--id-text-sm) var(--id-font);
   cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23737373' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  box-shadow: var(--id-shadow-btn);
+  transition: background-color var(--id-dur-fast), border-color var(--id-dur-fast);
 }
+.pane-lang select:hover { background: var(--id-fill); }
 .pane-lang select:focus-visible {
   outline: none;
   box-shadow: var(--id-focus);
@@ -180,8 +190,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   text-transform: uppercase;
   color: var(--id-accent-text);
 }
-/* The // marker injected by JS. */
-.step-counter .wiz-sl {
+/* The // marker: same pattern everywhere (step counter, engine labels, rail). */
+.wiz-sl {
   font-family: "Open Sans", sans-serif;
   font-weight: 700;
   letter-spacing: -0.05em;
@@ -281,3 +291,35 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .choice input { margin-top: 3px; accent-color: var(--id-accent); }
 .choice .choice-title { display: block; font-weight: 600; margin-bottom: 2px; }
 .choice .choice-desc { display: block; font-size: var(--id-text-sm); color: var(--id-muted); }
+
+/* -- Narrow window: rail becomes a horizontal strip --------------------- */
+@media (max-width: 900px) {
+  .wizard { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .rail {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: var(--id-space-3) var(--id-space-4);
+    border-right: 0;
+    border-bottom: var(--id-stroke) solid var(--id-line);
+    overflow-x: auto;
+  }
+  .rail-logo { height: 16px; }
+  .rail-note, .rail-section-label { display: none; }
+  .rail-steps { flex-direction: row; gap: var(--id-space-1); }
+  .rail-step {
+    padding: var(--id-space-1) 6px;
+    border-left: none;
+    border-top: none !important;
+    border-bottom: 2px solid transparent;
+  }
+  .rail-step[aria-current="step"] { border-left-color: transparent; border-bottom-color: var(--id-accent); }
+  .rail-step-name { display: none; }
+  .rail-step-num { font-size: 12px; }
+  .pane-head { padding: var(--id-space-5) var(--id-space-4) 0; }
+  .pane-lang { top: 14px; right: var(--id-space-4); }
+  .pane-lang label { display: none; }
+  .pane-body { padding: var(--id-space-3) var(--id-space-4) var(--id-space-5); }
+  .pane-foot { padding: 12px var(--id-space-4); }
+  .step-heading { font-size: var(--id-text-2xl); }
+}

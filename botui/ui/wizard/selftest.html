@@ -17,11 +17,10 @@
   <main class="wizard" id="wizardRoot" data-state="loading">
     <aside class="rail" aria-label="Setup steps">
       <div class="rail-brand">
-        <img class="rail-mark" src="/wizard/logo-mark.svg" alt="" aria-hidden="true" />
-        <img class="rail-wordmark" src="/wizard/logo-text.svg" alt="General Bots" />
+        <img class="rail-logo" src="/suite/assistant/icons/gb-lite-logo.svg" alt="General Bots Lite" />
       </div>
+      <div class="rail-section-label" id="railSectionLabel">// INITIAL SETUP</div>
       <ol class="rail-steps" id="railSteps" role="list"></ol>
-      <p class="rail-note" id="railNote">Nothing is installed until you choose Start setup.</p>
     </aside>
 
     <section class="pane" aria-live="polite">
@@ -73,6 +72,7 @@
   <script src="/wizard/wizard-i18n.js"></script>
   <script src="/wizard/wizard-state.js"></script>
   <script src="/wizard/wizard-bridge.js"></script>
+  <script src="/wizard/wizard-steps-engine.js"></script>
   <script src="/wizard/wizard-steps.js"></script>
   <script src="/wizard/wizard-host.js"></script>
   <script src="/wizard/modules/00_core.js"></script>

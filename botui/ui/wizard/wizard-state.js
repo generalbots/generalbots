@@ -46,36 +46,14 @@
     }
   ];
 
+  /* Four engines, same order and words as the app's Settings > Modelo page
+     (10c_settings_garage.js INFO map). Subscription agents (Claude Code, Codex,
+     Antigravity) are connected AFTER setup, inside the app. */
   var MODELS = [
-    {
-      id: "claude-code",
-      titleKey: "model.claude.title",
-      descKey: "model.claude.desc",
-      logo: "/wizard/logo-claude.svg",
-      badgeKey: "model.subscription"
-    },
-    {
-      id: "chatgpt-plan",
-      titleKey: "model.chatgpt.title",
-      descKey: "model.chatgpt.desc",
-      logo: "/wizard/logo-chatgpt.svg",
-      badgeKey: "model.subscription"
-    },
-    {
-      id: "local",
-      titleKey: "model.local.title",
-      descKey: "model.local.desc"
-    },
-    {
-      id: "free",
-      titleKey: "model.free.title",
-      descKey: "model.free.desc"
-    },
-    {
-      id: "own-key",
-      titleKey: "model.ownkey.title",
-      descKey: "model.ownkey.desc"
-    }
+    { id: "local",   num: "01", titleKey: "model.local.title",  descKey: "model.local.desc",  consequenceKey: "model.local.consequence",  tone: "ok",  privacy: 5, icon: "M3 4h18v12H3zM8 20h8M12 16v4" },
+    { id: "own-key", num: "02", titleKey: "model.ownkey.title", descKey: "model.ownkey.desc", consequenceKey: "model.ownkey.consequence", tone: "mid", privacy: 3, icon: "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01" },
+    { id: "free",    num: "03", titleKey: "model.free.title",   descKey: "model.free.desc",   consequenceKey: "model.free.consequence",   tone: "out", privacy: 1, icon: "M13 2 3 14h9l-1 8 10-12h-9z" },
+    { id: "acp",     num: "04", titleKey: "model.acp.title",    descKey: "model.acp.desc",    consequenceKey: "model.acp.consequence",    tone: "out", privacy: 2, icon: "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3" }
   ];
 
   // The free tier ships a single keyless provider. Kilo's gateway is the only
@@ -118,7 +96,11 @@
       appearance: { accent: "" },
       // Windows agent mode requires WSL2; Chat/Drive-only users can skip all
       // agent-related setup. Persisted so re-runs remember the choice (#1937).
-      skip_all_agentic_work: false
+      skip_all_agentic_work: false,
+      // True when the person chose "Agente por assinatura" and wants to connect
+      // a subscription agent after setup. model.mode holds the fallback engine
+      // (free or local) that answers until the agent is connected.
+      want_agents: false
     },
     provisioning: {
       running: false,
