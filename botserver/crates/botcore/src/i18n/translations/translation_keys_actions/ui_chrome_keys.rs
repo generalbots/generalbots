@@ -24,6 +24,12 @@ pub(super) const KEYS: &[&str] = &[
     "app-actions-unavailable",
     // #2444 — press-and-hold power confirmation
     "power-menu-hold",
+    // #2445 — configurable critical-battery action
+    "os-power-critical-action",
+    "os-power-critical-none",
+    "os-power-critical-suspend",
+    "os-power-critical-hibernate",
+    "os-power-critical-shutdown",
     "action-save",
     "action-cancel",
     "action-delete",

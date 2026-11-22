@@ -19,7 +19,16 @@
   </div>
   <div class="setting-card">
     <div class="card-header"><h2 data-i18n="os-power-status">Power status</h2></div>
-    <p class="os-hint" data-i18n="os-power-readonly">Shows battery and AC status when host telemetry is available. Low-battery notifications fire at 20%, 10%, and 5%. Lid policy and configurable critical actions require backend support and remain read-only in this build.</p>
+    <p class="os-hint" data-i18n="os-power-readonly">Shows battery and AC status when host telemetry is available. Low-battery notifications fire at 20%, 10%, and 5%. Lid policy is managed by the OS image; the critical-battery action is configurable below.</p>
+    <div class="setting-row">
+      <label for="osCriticalAction" data-i18n="os-power-critical-action">Critical battery action (at 5%)</label>
+      <select id="osCriticalAction" aria-label="Critical battery action">
+        <option value="none" data-i18n="os-power-critical-none">None (notify only)</option>
+        <option value="suspend" data-i18n="os-power-critical-suspend">Suspend</option>
+        <option value="hibernate" data-i18n="os-power-critical-hibernate">Hibernate</option>
+        <option value="shutdown" data-i18n="os-power-critical-shutdown">Shut down</option>
+      </select>
+    </div>
     <div id="os-power-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
   </div>
 </section>

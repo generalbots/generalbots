@@ -127,6 +127,21 @@
     // keep overflow menu labels fresh on next rebuild
   }
 
+  function triggerCriticalAction() {
+    var action = "none";
+    try { action = localStorage.getItem("gb-os-critical-action") || "none"; } catch (e) { /* ignore */ }
+    if (!action || action === "none") return;
+    if (action === "hibernate") action = "suspend"; // API exposes suspend; hibernate is logind-owned
+    if (["suspend", "shutdown"].indexOf(action) < 0) return;
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    fetch("/api/system/power", {
+      method: "POST", headers: headers, credentials: "same-origin",
+      body: JSON.stringify({ action: action })
+    }).catch(function () { /* the notification already fired */ });
+  }
+
   function maybeNotifyThresholds(data) {
     if (!data || !data.present || typeof data.percent !== "number") return;
     var state = String(data.state || "").toLowerCase();
@@ -144,6 +159,9 @@
         if (typeof window.Notification === "function" && window.Notification.permission === "granted") {
           try { new window.Notification(t("taskbar-battery", "Battery"), { body: msg }); } catch (e) { /* ignore */ }
         }
+        // #2445 — at the critical level, run the user's configured action once
+        // per discharge cycle through the audited power API.
+        if (threshold === 5) triggerCriticalAction();
       }
     });
   }

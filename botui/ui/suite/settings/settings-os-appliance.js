@@ -65,7 +65,7 @@
     lines.push('</div>');
     lines.push('<ul class="os-power-notes">');
     lines.push('<li>' + esc(t("os-power-thresholds-note", "Low-battery notifications are shown at 20%, 10%, and 5% when host telemetry is available.")) + '</li>');
-    lines.push('<li>' + esc(t("os-power-policy-note", "Lid policy and configurable critical actions (suspend/hibernate/shutdown) require backend support and remain unavailable in this build.")) + '</li>');
+    lines.push('<li>' + esc(t("os-power-policy-note", "Lid policy is managed by the OS image; the critical-battery action is configurable above.")) + '</li>');
     lines.push('</ul>');
     return lines.join("");
   }
@@ -119,6 +119,29 @@
   function onHash() {
     var hash = (window.location.hash || "").replace(/^#/, "");
     loadIfActive(hash);
+  }
+
+  // #2445 — configurable critical-battery action, persisted per browser and
+  // consumed by the tray threshold notifier. "none" means notify only.
+  var CRITICAL_KEY = "gb-os-critical-action";
+  function initCriticalAction() {
+    var select = byId("osCriticalAction");
+    if (!select) return;
+    try {
+      var saved = localStorage.getItem(CRITICAL_KEY);
+      if (saved && Array.prototype.some.call(select.options, function (o) { return o.value === saved; })) {
+        select.value = saved;
+      }
+    } catch (e) { /* storage may be disabled */ }
+    select.addEventListener("change", function () {
+      try { localStorage.setItem(CRITICAL_KEY, select.value); } catch (e) { /* ignore */ }
+      document.dispatchEvent(new CustomEvent("gb:critical-action-change", { detail: { action: select.value } }));
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCriticalAction);
+  } else {
+    initCriticalAction();
   }
 
   window.loadOsAppliancePage = loadIfActive;
