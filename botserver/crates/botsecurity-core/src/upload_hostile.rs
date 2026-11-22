@@ -15,7 +15,9 @@
 //!   policy used for outbound fetches, so `file://` and loopback/link-local
 //!   targets are rejected;
 //! * a malware-scan hook whose default decision is `NotConfigured`, never a
-//!   fabricated `Clean`.
+//!   fabricated `Clean`; the shared default *requires* a scanner, so an
+//!   unscanned package is refused (fail-closed) unless an operator explicitly
+//!   opts out — see [`opt_out`].
 //!
 //! Entry bodies are read only in bounded slices (4 bytes for nested-container
 //! magic, 1 MiB for relationships and XML headers). The only disk writes are
@@ -31,7 +33,12 @@ use crate::validation::validate_url_ssrf_strict;
 pub mod corpus;
 pub mod macro_strip;
 pub mod malware;
+pub mod opt_out;
 pub mod password;
+
+pub use opt_out::{
+    malware_scanner_required, malware_scanner_required_from, UNCHECKED_IMPORT_OPT_OUT_ENV,
+};
 
 /// Compressed payload cap for the standalone gate (matches the largest
 /// `UploadClass` budget; handlers may tighten it through their own limits).
@@ -53,8 +60,8 @@ pub struct HostileFilePolicy {
     pub max_entries: usize,
     pub max_compression_ratio: u64,
     /// When true, a missing scanner is a typed error instead of a recorded
-    /// `NotConfigured` decision. Off by default so deployments without a
-    /// scanner keep working while the result stays honest.
+    /// `NotConfigured` decision. The shared default is fail-closed: this is
+    /// `true` unless [`opt_out`] records an explicit operator opt-out.
     pub require_malware_scanner: bool,
 }
 
@@ -65,7 +72,7 @@ impl Default for HostileFilePolicy {
             max_uncompressed_bytes: DEFAULT_MAX_UNCOMPRESSED_BYTES,
             max_entries: DEFAULT_MAX_ENTRIES,
             max_compression_ratio: DEFAULT_MAX_COMPRESSION_RATIO,
-            require_malware_scanner: false,
+            require_malware_scanner: opt_out::malware_scanner_required(),
         }
     }
 }

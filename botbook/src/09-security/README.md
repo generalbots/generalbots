@@ -206,6 +206,60 @@ count is ratcheted down by `scripts/check_raw_error_strings.py`, a blocking CI
 guard. This envelope is the contract referenced by the API command catalog for
 LLM-driven calls.
 
+## Office imports fail closed without a malware scanner (#2522)
+
+The shared hostile-file gate in `botsecurity-core` protects every zip-based
+Office import (Docs `.docx`/`.odt`, Sheets `.xlsx`, Slides `.pptx`). It checks
+the archive *inside* the container — macros, encrypted and nested parts, zip
+bombs, DOCTYPE entities and SSRF-bearing relationships — and finishes with a
+malware-scan decision. That decision is honest: with no scanner registered it
+is `NotConfigured`, never a fabricated `Clean`.
+
+Since #2522 the shared `HostileFilePolicy::default()` sets
+`require_malware_scanner` to `true`. A zip import is therefore **refused** with
+the typed `MalwareScannerMissing` error when no scanner has been installed,
+instead of being accepted unscanned. This applies both to the central
+`validate_upload` gate and to the explicit import-boundary audits in Docs,
+Sheets and Slides. Slides additionally owns its own boundary switch,
+`GB_ALLOW_UNSCANNED_SLIDES_IMPORT`, which still governs that app's override.
+
+### Opt-out and rollback path
+
+A deployment that cannot deploy a scanner yet can temporarily restore the
+permissive behaviour with one explicit environment switch:
+
+```sh
+GB_ALLOW_UNSCANNED_IMPORT=1   # also accepts true / yes / on, case-insensitive
+```
+
+Only `1`, `true`, `yes` or `on` (whitespace trimmed, case-insensitive) opt out;
+an unset variable or any other value keeps the fail-closed default. The switch
+is read by `HostileFilePolicy::default()` through
+`botsecurity_core::upload_hostile::opt_out`. The scan decision is still recorded
+as `NotConfigured` — the opt-out lowers the *requirement*, it does not claim a
+clean scan. To roll back the change, remove the variable and restart botserver;
+imports then fail closed again.
+
+The switch is an environment variable so it can be injected by the deployment,
+including from Vault-backed configuration. A caller that reads the same flag
+from Vault (or another configuration store) reaches the identical decision by
+passing the value to `botsecurity_core::upload_hostile::malware_scanner_required_from`,
+which interprets env- and Vault-sourced values with the same grammar:
+
+```rust
+use botsecurity_core::upload_hostile::{HostileFilePolicy, malware_scanner_required_from};
+
+let vault_value = std::env::var("GB_ALLOW_UNSCANNED_IMPORT").ok(); // or a Vault read
+let policy = HostileFilePolicy {
+    require_malware_scanner: malware_scanner_required_from(vault_value.as_deref()),
+    ..HostileFilePolicy::default()
+};
+```
+
+Leaving the opt-out enabled in a production deployment accepts unscanned Office
+packages; it is intended only as a temporary rollback and should be removed as
+soon as a scanner is registered with `set_malware_scanner`.
+
 ## Data-protection honesty on the OS appliance (#2470)
 
 On the OS edition (`edition=os`) the Settings → Storage & Reset panel exposes a

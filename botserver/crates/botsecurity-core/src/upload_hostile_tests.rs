@@ -23,6 +23,16 @@ fn docx() -> Vec<u8> {
     ])
 }
 
+/// Tests that exercise a non-malware guard state the scanner requirement
+/// explicitly, so they stay deterministic whatever the process environment
+/// says about the fail-closed opt-out.
+fn policy_allowing_unscanned() -> HostileFilePolicy {
+    HostileFilePolicy {
+        require_malware_scanner: false,
+        ..HostileFilePolicy::default()
+    }
+}
+
 /// Flips the ZipCrypto flag in both the local and the central header so the
 /// reader recognises the entry as encrypted without needing a writer feature.
 fn mark_encrypted(bytes: &mut [u8]) {
@@ -116,7 +126,7 @@ fn a_macro_part_is_refused_with_a_typed_error() {
 #[test]
 fn a_bin_part_outside_word_and_ppt_is_not_a_macro() {
     let bytes = zip_with(&[("media/blob.bin", vec![0x01, 0x02])]);
-    assert!(inspect_hostile_upload(&bytes).is_ok());
+    assert!(inspect_hostile_upload_with(&bytes, "media.zip", &policy_allowing_unscanned()).is_ok());
 }
 
 #[test]
@@ -182,7 +192,7 @@ fn a_safe_relationship_part_is_accepted() {
     let rels = br#"<Relationships><Relationship Id="rId1" Target="https://example.com/a&amp;b" TargetMode="External"/><Relationship Id="rId2" Target="media/image1.png"/></Relationships>"#;
     let bytes = zip_with(&[("_rels/.rels", rels.to_vec())]);
 
-    assert!(inspect_hostile_upload(&bytes).is_ok());
+    assert!(inspect_hostile_upload_with(&bytes, "rels.zip", &policy_allowing_unscanned()).is_ok());
 }
 
 #[test]
@@ -191,9 +201,33 @@ fn the_default_malware_hook_reports_not_configured() {
         scan_for_malware(b"bytes", "report.docx"),
         MalwareScanDecision::NotConfigured
     );
-    let report = inspect_hostile_upload(&docx()).expect("a clean docx must pass the gate");
+    // With no scanner, a clean package passes only a policy that does not
+    // require one; the decision stays NotConfigured, never Clean.
+    let report = inspect_hostile_upload_with(&docx(), "report.docx", &policy_allowing_unscanned())
+        .expect("a clean docx must pass a policy that does not require a scanner");
     assert_eq!(report.malware_scan, MalwareScanDecision::NotConfigured);
     assert_eq!(report.entry_count, 2);
+}
+
+#[test]
+fn the_shared_default_is_tied_to_the_opt_out_resolver() {
+    // The policy may be permissive only through the documented opt-out; the
+    // field must always reflect the resolver rather than a hardcoded value.
+    assert_eq!(
+        HostileFilePolicy::default().require_malware_scanner,
+        malware_scanner_required()
+    );
+}
+
+#[test]
+fn a_fail_closed_policy_refuses_a_clean_package_without_a_scanner() {
+    let policy = HostileFilePolicy {
+        require_malware_scanner: true,
+        ..HostileFilePolicy::default()
+    };
+    let error = inspect_hostile_upload_with(&docx(), "report.docx", &policy)
+        .expect_err("a missing scanner must be refused when the policy requires one");
+    assert_eq!(error, UploadError::MalwareScannerMissing);
 }
 
 #[test]
