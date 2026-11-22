@@ -345,3 +345,62 @@ fn client_mime_aliases_are_canonicalized() {
     let png_alias = validate_upload(UploadClass::Image, "avatar.jpg", "image/jpg", PNG);
     assert!(png_alias.is_err(), "an image/jpg claim over PNG bytes must fail");
 }
+
+#[test]
+fn password_protected_ooxml_is_reported_as_encrypted_before_the_magic_check() {
+    // #2522 — CFB/OLE magic under a zip-based Office extension is a
+    // password-protected package. It must reach the actionable
+    // `ArchiveEncrypted` refusal instead of the generic magic-byte mismatch.
+    let declared = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    let error = validate_upload(UploadClass::DocumentImport, "report.docx", declared, OLE)
+        .expect_err("a CFB-wrapped DOCX must be refused as encrypted");
+    assert_eq!(error, UploadError::ArchiveEncrypted);
+
+    let xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    let error = validate_upload(UploadClass::SpreadsheetImport, "report.xlsx", xlsx, OLE)
+        .expect_err("a CFB-wrapped XLSX must be refused as encrypted");
+    assert_eq!(error, UploadError::ArchiveEncrypted);
+}
+
+#[test]
+fn cfb_bytes_with_a_legacy_office_extension_keep_their_current_behavior() {
+    // A legacy `.doc` is itself a genuine OLE2 compound file, so the same CFB
+    // magic is legitimate and must NOT be reported as encrypted.
+    let result = validate_upload(UploadClass::Drive, "old.doc", "application/msword", OLE);
+    assert!(result.is_ok(), "legacy OLE .doc stays accepted: {result:?}");
+}
+
+#[test]
+fn cfb_bytes_with_a_non_office_extension_are_not_treated_as_encrypted() {
+    // The helper requires a zip-based Office extension; a mislabeled binary
+    // must still fail the ordinary magic-byte check, not look encrypted.
+    let error = validate_upload(UploadClass::ChatAttachment, "payload.png", "image/png", OLE)
+        .expect_err("CFB bytes named .png are a type mismatch");
+    assert!(
+        matches!(error, UploadError::TypeMismatch { .. }),
+        "expected TypeMismatch, got {error:?}"
+    );
+    assert!(!matches!(error, UploadError::ArchiveEncrypted));
+}
+
+#[test]
+fn a_normal_zip_docx_still_passes_the_early_password_check() {
+    // A genuine (unencrypted) zip-based DOCX must not trip the new early
+    // password-container check. A policy without the malware requirement keeps
+    // the test independent of process-wide scanner configuration.
+    let declared = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    let policy = HostileFilePolicy {
+        require_malware_scanner: false,
+        ..HostileFilePolicy::default()
+    };
+    let bytes = docx();
+    let upload = validate_upload_with_policy(
+        UploadClass::DocumentImport,
+        "report.docx",
+        declared,
+        &bytes,
+        &policy,
+    )
+    .expect("a real DOCX must still be accepted");
+    assert_eq!(upload.extension, "docx");
+}

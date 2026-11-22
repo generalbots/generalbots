@@ -17,7 +17,11 @@
 //!    `a.png.html` is refused (the *last* extension decides) and so is an
 //!    unknown extension;
 //! 5. the declared `Content-Type` must agree with the extension;
-//! 6. the magic bytes must agree with the extension;
+//! 6. the magic bytes must agree with the extension — except that a
+//!    password-protected OOXML package (CFB magic under a `.docx`/`.xlsx`/
+//!    `.pptx` name) is reported as [`UploadError::ArchiveEncrypted`] before
+//!    this check, so the caller gets the actionable refusal instead of a
+//!    generic content mismatch (#2522);
 //! 7. zip containers are opened and refused when they look like a bomb
 //!    (entry count, decompressed size, unsafe entry names);
 //! 8. #2522 — zip containers additionally go through the hostile-file gate
@@ -306,6 +310,17 @@ pub fn validate_upload_with_policy(
             extension,
             allowed: limits.extensions,
         });
+    }
+
+    // #2522 — a password-protected DOCX/XLSX/PPTX is an OLE/CFB compound file,
+    // not a zip, so the magic-byte check below would otherwise reject it with
+    // the generic `error-file-content-mismatch`. Detect it before that check
+    // and surface the typed `ArchiveEncrypted` error, which import handlers map
+    // to the actionable `action: "remove-password"` refusal. The helper only
+    // matches CFB magic *and* a zip-based Office extension, so a genuinely
+    // mislabeled binary is never mistaken for an encrypted container here.
+    if crate::upload_hostile::password::is_password_protected_container(data, &filename) {
+        return Err(UploadError::ArchiveEncrypted);
     }
 
     let declared_raw = normalize_mime(content_type);
