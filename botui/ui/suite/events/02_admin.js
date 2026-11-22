@@ -49,7 +49,8 @@
         "Already delivered for {key} — no second delivery (total {count}).",
         { key: result.key, count: result.count });
     } else {
-      out = contract.tr("events-replay-not-found", "No dead letter for that key.");
+      out = contract.tr("events-replay-not-found", "No dead letter for that key.",
+        { key: result.key });
     }
     status.textContent = out;
   }
