@@ -254,7 +254,7 @@
        pricing_available, engines:[{engine,tokens,messages,cost,providers:[…]}] }.
        When engines is present and non-empty, group by engine type then provider. */
     function usageEngineName(key) {
-        if (key === "unknown") { return tr("Sem registro", "Not recorded"); }
+        if (key === "unknown") { return tr("Uso anterior ao registro por motor", "Usage from before engines were recorded"); }
         return A.engineNameByLimitKind(key, "group") || key;
     }
     function providerName(p, engine) {
@@ -288,6 +288,12 @@
                 var heading = node("div", "gb-quota-group-head");
                 heading.append(node("span", "gb-quota-gutter"), node("strong", "gb-quota-group-title", usageEngineName(eng.engine)), metrics(eng));
                 rows.push(heading);
+                if (eng.engine === "unknown") {
+                    var hint = node("p", "gb-quota-note gb-quota-note--muted",
+                        tr("Respostas antigas, de antes de o motor ser registrado.",
+                           "Older answers, from before the engine was recorded."));
+                    rows.push(hint);
+                }
                 (eng.providers || []).forEach(function (prov) {
                     var singleModel = (prov.models || []).length === 1;
                     var provLabel = providerName(prov, eng.engine);

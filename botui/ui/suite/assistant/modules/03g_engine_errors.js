@@ -89,6 +89,20 @@
         }
     }
 
+    /* An error frame with error_code arriving without is_complete (e.g. on
+       a streaming frame) would enter the streaming path and lose its card.
+       Promote it to complete so onBotMessage renders through the error path. */
+    var origOnBot = A.onBotMessage;
+    if (typeof origOnBot === "function") {
+        A.onBotMessage = function (data) {
+            if (data.error_code && !data.is_complete &&
+                (data.is_error || data.status === "failed" || data.turn_status === "failed" || data.turn_status === "error")) {
+                data = Object.assign({}, data, { is_complete: true });
+            }
+            return origOnBot(data);
+        };
+    }
+
     /**
      * A.renderEngineError(code, params)
      * Returns true if the code was handled; false to fall through to the

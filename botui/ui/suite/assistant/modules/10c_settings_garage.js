@@ -30,9 +30,16 @@ var I = { info: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 11v5M12 8h.01", hel
   lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4", globe: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20" };
 function sl() { return '<span class="gb-of-sl">//</span>'; }
 function help(text, label) { return '<span class="gb-of-help" tabindex="0" data-tip="' + esc(text) + '">' + svg(I.info, 13, 1.8) + (label ? esc(label) : '') + '</span>'; }
+function segDesc(n) {
+  if (n >= 5) { return tr("Nada sai deste computador", "Nothing leaves this computer"); }
+  if (n >= 4) { return tr("O texto fica na sua rede", "Your text stays on your network"); }
+  if (n >= 3) { return tr("O texto vai a um servidor externo que você escolheu", "Your text goes to an external server you chose"); }
+  return tr("O texto vai a um provedor externo", "Your text goes to an external provider");
+}
 function segs(n, tone, cls) {
+  var label = tr("Privacidade", "Privacy") + " " + n + "/5: " + segDesc(n);
   var h = ""; for (var i = 0; i < 5; i++) { h += '<i class="' + (i < n ? "on" : "") + '"></i>'; }
-  return '<span class="gb-of-segs' + (cls ? " " + cls : "") + '" data-tone="' + tone + '" role="img" aria-label="' + esc(tr("Privacidade", "Privacy") + " " + n + "/5") + '">' + h + '</span>';
+  return '<span class="gb-of-segs' + (cls ? " " + cls : "") + '" data-tone="' + tone + '" role="img" aria-label="' + esc(label) + '" title="' + esc(label) + '">' + h + '</span>';
 }
 function cap(kind, text) { return '<span class="gb-of-cap' + (kind === "yes" ? "" : kind === "part" ? " part" : " no") + '"><b>' + (kind === "yes" ? "✓" : kind === "part" ? "~" : "–") + '</b>' + esc(text) + '</span>'; }
 function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }

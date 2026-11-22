@@ -116,10 +116,25 @@ function runFor(runId) {
     return runs[key];
 }
 
+function isLocalOnly(run) {
+    return run.steps.length > 0 && run.steps.every(function (s) { return s.key === "local_engine_start"; });
+}
+
+function runTitle(run, status) {
+    if (isLocalOnly(run)) {
+        if (status === "running") { return t("Preparando o modelo local", "Preparing the local model"); }
+        return status === "failed" ? t("Falhou ao preparar o modelo local", "Failed to prepare the local model")
+            : t("Modelo local pronto", "Local model ready");
+    }
+    if (status === "running") { return t("Executando na Máquina Virtual", "Running on the virtual machine"); }
+    return status === "failed" ? t("Falhou na Máquina Virtual", "Failed on the virtual machine")
+        : t("Executou na Máquina Virtual", "Ran on the virtual machine");
+}
+
 function showRun(run) {
     if (!run.vm) { return; }
     if (!run.el || !document.body.contains(run.el)) {
-        run.el = B.block({ kind: "machine", icon: "terminal", title: t("Executando na Máquina Virtual", "Running on the virtual machine"),
+        run.el = B.block({ kind: "machine", icon: "terminal", title: runTitle(run, "running"),
             summary: "", status: "running", open: true });
         run.el.dataset.runId = run.key;
         place(run.el);
@@ -133,9 +148,7 @@ function paintRun(run) {
     var current = run.steps.filter(function (s) { return s.state === "running"; })[0];
     var status = failed ? "failed" : (!current && run.ok !== null ? "done" : "running");
     var el = run.el;
-    el.querySelector(".gb-block-title").textContent = status === "running"
-        ? t("Executando na Máquina Virtual", "Running on the virtual machine")
-        : (failed ? t("Falhou na Máquina Virtual", "Failed on the virtual machine") : t("Executou na Máquina Virtual", "Ran on the virtual machine"));
+    el.querySelector(".gb-block-title").textContent = runTitle(run, status);
     el.querySelector(".gb-block-summary").textContent = current ? (current.detail || stepLabel(current)) : "";
     var count = el.querySelector(".gb-block-count");
     if (!count) {

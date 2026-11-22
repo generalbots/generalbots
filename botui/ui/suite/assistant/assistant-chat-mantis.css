@@ -167,6 +167,7 @@
 }
 .gb-quota-label::before { content: "//"; margin-inline-end: 5px; font-family: var(--id-font-mark, inherit); font-weight: 700; letter-spacing: -.05em; }
 .gb-quota-note { margin: 0; padding: 10px 14px; font-size: var(--id-text-xs); line-height: 1.5; color: var(--id-text); border-bottom: 1px solid var(--id-line); }
+.gb-quota-note--muted { color: var(--id-text-muted, var(--id-text)); opacity: .7; padding-top: 2px; border-bottom: none; }
 .gb-quota-row {
     display: flex; align-items: stretch; gap: 0; min-height: 44px;
     border-bottom: 1px solid var(--id-line); font-size: var(--id-text-sm);

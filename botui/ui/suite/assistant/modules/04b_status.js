@@ -11,6 +11,25 @@
         var d = document.createElement("span"); d.textContent = s; return d.innerHTML;
     }
 
+    /** Match a destination host to a known account or provider catalogue name. */
+    function providerDisplayName(host) {
+        if (!host) { return ""; }
+        var h = host.toLowerCase();
+        var accounts = A.accounts || [];
+        for (var ai = 0; ai < accounts.length; ai++) {
+            var ah = (accounts[ai].host || "").toLowerCase();
+            if (ah && h.indexOf(ah) >= 0) { return accounts[ai].name || accounts[ai].id || ""; }
+        }
+        var catalogue = A._modelProviders ? A._modelProviders.list : [];
+        for (var ci = 0; ci < catalogue.length; ci++) {
+            try {
+                var pu = new URL(catalogue[ci].url);
+                if (h === pu.hostname || h.indexOf(pu.hostname) >= 0) { return catalogue[ci].name; }
+            } catch (e) { /* skip */ }
+        }
+        return "";
+    }
+
     /* ---- Status line ---- */
     A.renderStatus = function () {
         var textEl = document.getElementById("gbStatusText");
@@ -62,8 +81,15 @@
                     (host ? " (" + host + ")" : "");
             } else if (scope === "external") {
                 isExternal = true;
-                label = short + " \xb7 " + A.t("assistant.external", "external") +
-                    (host ? ": " + host : "");
+                var providerLabel = providerDisplayName(host);
+                if (A.engineMode === "free") {
+                    label = short + " \xb7 " + A.engineName("free", "group").toLowerCase();
+                } else if (providerLabel) {
+                    label = short + " \xb7 " + providerLabel;
+                } else {
+                    label = short + " \xb7 " + A.t("assistant.external", "externo") +
+                        (host ? ": " + host : "");
+                }
             } else {
                 label = short;
             }
