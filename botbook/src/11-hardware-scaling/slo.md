@@ -187,6 +187,93 @@ reviewed pull request that also updates this page when a target changes.
 | Cost per conversation over budget | context growth (history limit), tool loops, a model change |
 | Soak RSS or FD growth | a cache without eviction, a leaked connection pool, a task that never ends |
 
+## Office large-file memory admission (#2530 / #2531)
+
+The Office editors parse OOXML archives synchronously on the request path. A
+small upload can expand into hundreds of megabytes of heap before any other cap
+is checked again, so the shared guard in `botcore` bounds the blast radius of a
+single request. Its machine-readable declaration lives in `ops/office-slo.yaml`
+under `office_memory`, which `scripts/check_office_memory.py` reads; the
+latency SLOs above are a separate table in `ops/slo.yaml`.
+
+### Typed refusals
+
+`AdmissionError` in
+`botserver/crates/botcore/src/shared/memory_admission/error.rs` maps each refusal
+reason to one stable status, code and catalog key:
+
+| Condition | HTTP | Code | i18n key |
+|-----------|------|------|----------|
+| Upload over the per-class cap | 413 | `office_payload_too_large` | `office.admission.payload-too-large` |
+| Estimated peak over the cgroup-derived budget | 507 | `office_memory_budget_exceeded` | `office.admission.memory-budget-exceeded` |
+| No free permit in the class | 429 | `office_busy` | `office.admission.busy` |
+
+The JSON body carries only `error`, `i18n_key`, `message`, `class` and the size
+fields for that reason; a 429 also carries `Retry-After: 1`. `message` is the
+English fallback — the locale catalogs for these keys are owned by a separate
+i18n workstream and are not present in this slice. No document name, text or
+tenant id enters the body. The gate emits a content-free structured event under
+`gb.admission` (`office_request_rejected` with class, reason, requested bytes and
+tenant label, and `office_request_finished` with class and duration).
+
+### Cgroup-aware admission
+
+Detection is one synchronous read on first use, never a watcher
+(`CgroupMemory::detect`): cgroup v2 `memory.max` / `memory.current`, falling back
+to v1 `memory.limit_in_bytes` / `memory.usage_in_bytes`. An absent, `max`, v1
+sentinel or malformed control file yields a 1 GiB fallback instead of a panic.
+The per-request peak-heap budget is three eighths of the ceiling with a 32 MiB
+floor — a 4 GiB ceiling gives 1536 MiB, the 1 GiB fallback gives 384 MiB.
+`MemoryAdmission` checks the fixed per-class upload cap and that budget before
+handing out a RAII semaphore permit. Imports and exports run one job per class;
+the rest queue and the queue depth is observable. Dropping a permit, including
+on client disconnect, releases the slot. The same content-free snapshot
+(`cgroup_limit_bytes`, `cgroup_source`, `cgroup_current_bytes`,
+`request_budget_bytes`, `active[]`, `queued[]`, admitted and rejected totals) is
+exposed as `admission` on `/health`, `/ready` and `/health?deep=1`.
+
+The crate-local bridges are wired into the Docs and Sheets import, export and
+JSON-save handlers. Slides has no bridge in this slice, so its corpus case
+exercises the declaration and the checker, not an enforced route gate.
+
+### Synthetic corpus and the RSS ceiling gate
+
+`scripts/office_largefile_corpus.py` mints structurally OOXML-like DOCX, XLSX and
+PPTX ZIPs at an exact requested size in the declared 5–100 MB range. It writes
+only fixed synthetic markers and fixed-vocabulary placeholders — no document
+text, tenant name or path — and emits a manifest with size, seed and SHA-256 so
+a run can be reproduced.
+
+The archives are byte-for-byte deterministic across operating systems. Members
+are stored (`ZIP_STORED`) because deflate output depends on the zlib version;
+`ZipInfo` uses a fixed 1980-01-01 timestamp and `create_system = 0` (DOS) because
+the Python default is `3` on Unix and would change the central directory on
+Windows; creator fields and permissions are fixed as well. The generator
+self-test asserts that the same seed yields identical bytes and SHA-256, that a
+different seed changes it, and that the ZIP metadata is host-OS independent.
+
+`ops/office-slo.yaml` declares three acceptance cases (DOCX 25 MB, XLSX 25 MB,
+PPTX 50 MB) with per-case peak-RSS ceilings of 900, 1200 and 1100 MiB on the
+4 GiB reference cgroup, plus a 20-cycle soak policy: RSS returns within 10 % of
+baseline, session caches grow by at most 16 MB, and structured events carry no
+document content. In CI the `slo` job runs the generator self-test, the checker
+self-test and `check_office_memory.py --check`. An invalid declaration, a
+missing corpus case or a supplied snapshot over a ceiling fails closed. The
+checker validates that the YAML declares a positive peak multiplier for each
+kind; the values actually enforced live in `MemoryPolicy::from_ceiling` in
+`botcore` and the two tables are not diffed by the gate. The checker does not
+measure RSS itself — it evaluates a snapshot produced by a runtime run.
+
+### Runtime evidence: UNVERIFIED
+
+Without `--snapshot` the checker reports `declaration: PASS, runtime: UNVERIFIED`
+and exits 0: the corpus table and ceilings are sound, but no RSS was measured.
+The soak policy records `evidence: runtime-uat-required`. Peak RSS, the
+20-cycle return-to-baseline check and the "works on a 4 GB cgroup" claim stay
+UNVERIFIED until a measured snapshot (peak/baseline/return RSS, cycles,
+session-cache growth and content-free event count) is supplied and enforced. No
+runtime PASS is claimed for this slice.
+
 ## Related
 
 - [Database Optimization](./database-optimization.md) — indexes and query shapes
