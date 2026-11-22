@@ -120,10 +120,11 @@ pub async fn process_message_internal(
     #[cfg(feature = "integrations")]
     let mentions = super::mentions::parse_lenient_mentions(&parsed);
 
-    {
+    super::turn_watch::bounded("session lookup", super::turn_watch::STEP_LIMIT, async {
         let mut sm = state.session_manager.lock().await;
         let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
-    }
+    })
+    .await;
 
     info!(
         "WS message: type={msg_type} content_chars={} session={session_id} bot={bot_name}",
@@ -136,7 +137,7 @@ pub async fn process_message_internal(
 
     let mut is_switcher_replay = false;
     if msg_type == 8 {
-        let last_user_msg = {
+        let last_user_msg = super::turn_watch::bounded("session history", super::turn_watch::STEP_LIMIT, async {
             let mut sm = state.session_manager.lock().await;
             let history = sm
                 .get_conversation_history(session_id, user_id, Some(1))
@@ -146,7 +147,9 @@ pub async fn process_message_internal(
                     .find(|(role, _)| role == "user")
                     .map(|(_, c)| c)
             })
-        };
+        })
+        .await
+        .flatten();
         if let Some(last_content) = last_user_msg {
             user_text = last_content;
             is_switcher_replay = true;
@@ -181,6 +184,7 @@ pub async fn process_message_internal(
     // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
     // path in this turn (native tools, provider resolution, workspace bridges).
     let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);
+    super::turn_watch::stage("agent switch resolved");
     let ui_automation_enabled = parsed
         .get("ui_automation")
         .and_then(|v| v.as_bool())
@@ -244,6 +248,7 @@ pub async fn process_message_internal(
         state, bot_uuid, bot_name, &parsed, user_text, vision,
     )
     .await;
+    super::turn_watch::stage("attachment read");
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
@@ -350,6 +355,7 @@ pub async fn process_message_internal(
     }
 
     // #1644/#1645 — an explicit URL or command request becomes a consent card.
+    super::turn_watch::stage("consent check");
     if super::turn_hooks::propose_computer_action(identity, msg_type, &user_text).await {
         return Ok(());
     }
@@ -388,12 +394,14 @@ pub async fn process_message_internal(
         };
 
         if !tool_name.is_empty() {
+            super::turn_watch::long_stage("tool exec");
             super::tool_exec::run_tool_exec(identity, &tool_name).await;
         }
         return Ok(());
     }
 
     // #1580 — hearing, start.bas and the opening frames.
+    super::turn_watch::stage("start gate");
     if super::start_gate::gate_turn(identity, rx, start_bas_ran, &user_text).await? {
         return Ok(());
     }
@@ -416,6 +424,7 @@ pub async fn process_message_internal(
         route.route.as_str(),
         route.reason
     );
+    super::turn_watch::stage("prompt build");
 
     // The composer's app-automation/media switches ride with the client
     // capabilities so the prompt only advertises what this turn may use.
@@ -463,12 +472,14 @@ pub async fn process_message_internal(
         format!("{system_prompt}\n\n{canvas_block}")
     };
 
-    let session_context = {
+    let session_context = super::turn_watch::bounded("session context", super::turn_watch::STEP_LIMIT, async {
         let sm = state.session_manager.lock().await;
         sm.get_session_context_data(&session_id, &user_id)
             .ok()
             .unwrap_or_default()
-    };
+    })
+    .await
+    .unwrap_or_default();
 
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
@@ -532,6 +543,7 @@ pub async fn process_message_internal(
         session_id,
         user_id,
     };
+    super::turn_watch::long_stage("project route");
     if super::turn_context::route_project(
         &routing,
         project_context.as_ref(),
@@ -551,6 +563,7 @@ pub async fn process_message_internal(
     // model does not route the request into vm_exec (which never shows refs).
     // #2238 — explicit Agent toggle: skip VM provisioning/inject when off.
     if agent_enabled && !super::turn_hooks::is_informational_request(&user_text) {
+        super::turn_watch::long_stage("workspace");
         super::agent_vm_context::inject(identity, &mut messages).await;
     }
 
@@ -569,6 +582,7 @@ pub async fn process_message_internal(
         .await;
     }
 
+    super::turn_watch::stage("history");
     super::history::append_conversation_history(
         state,
         bot_uuid,
@@ -649,6 +663,7 @@ pub async fn process_message_internal(
     if front_page_turn {
         super::front_page::capture_and_inject(identity, &user_text, &mut messages).await;
     }
+    super::turn_watch::reached_model();
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 
     let turn_timeout_secs = super::enriched_llm::turn_timeout_secs();

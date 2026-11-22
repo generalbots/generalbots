@@ -44,10 +44,15 @@ pub(super) async fn gate_turn(
         return Ok(true);
     }
 
+    use super::turn_watch::{bounded, stage, STEP_LIMIT};
     if !*start_bas_ran {
-        let guards = state.start_bas_guards.lock().await;
-        if !guards.contains_key(&session_id) {
-            drop(guards);
+        let first_turn = bounded("start.bas guard", STEP_LIMIT, async {
+            !state.start_bas_guards.lock().await.contains_key(&session_id)
+        })
+        .await
+        .unwrap_or(false);
+        if first_turn {
+            stage("start.bas");
             *start_bas_ran = super::start_bas::run_start_bas(
                 sink, state, bot_uuid, session_id, user_id, bot_name, rx,
             )
@@ -55,8 +60,13 @@ pub(super) async fn gate_turn(
             .unwrap_or(false);
         }
     }
-    let mut guards = state.start_bas_guards.lock().await;
-    guards.entry(session_id).or_insert(true);
+    // The map is shared by every conversation: release it before the sends
+    // below, so one slow client cannot hold every other turn at this gate.
+    bounded("start.bas guard", STEP_LIMIT, async {
+        state.start_bas_guards.lock().await.entry(session_id).or_insert(true);
+    })
+    .await;
+    stage("suggestions");
 
     let post_start_suggestions = {
         #[cfg(feature = "chat")]

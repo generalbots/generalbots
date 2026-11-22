@@ -32,7 +32,9 @@ pub(super) fn spawn(spec: RunSpec) {
         start_bas_ran,
     } = spec;
     tokio::spawn(async move {
-        let sink = RunBusSink::new(session_id, state.clone());
+        let bus_sink = RunBusSink::new(session_id, state.clone());
+        let watch = pipeline::turn_watch::TurnWatch::new(session_id);
+        let sink = watch.sink(&bus_sink);
         let identity = SessionIdentity {
             sink: &sink,
             state: &state,
@@ -55,13 +57,17 @@ pub(super) fn spawn(spec: RunSpec) {
             }
             let (closed_tx, mut task_rx) = mpsc::channel::<botlib::models::BotResponse>(1);
             drop(closed_tx);
-            let result = pipeline::process_message_internal(
+            let turn = pipeline::process_message_internal(
                 &identity,
                 &mut task_rx,
                 &mut task_start_bas_ran,
                 &turn_text,
-            )
-            .await;
+            );
+            // A turn stuck before the model call already got its timeout frame.
+            let Some(result) = watch.run(&identity, turn).await else {
+                bus::bus().finish(&thread_id, botevents::RunState::Failed);
+                break;
+            };
             match result {
                 Ok(()) => bus::bus().finish(&thread_id, botevents::RunState::Succeeded),
                 Err(error) => {

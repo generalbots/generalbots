@@ -22,14 +22,20 @@ async fn read_agent_enabled(
     user_id: Uuid,
     session_id: Uuid,
 ) -> Option<bool> {
+    use super::turn_watch::{bounded, REDIS_STEP_LIMIT};
     let cache = state.cache.as_ref()?;
-    let mut conn = cache.get_multiplexed_async_connection().await.ok()?;
-    let raw: Option<String> = redis::cmd("GET")
-        .arg(controls_key(user_id, session_id))
-        .query_async(&mut conn)
-        .await
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_str(raw.as_deref()?).ok()?;
+    let raw = bounded("agent switch read", REDIS_STEP_LIMIT, async {
+        let mut conn = cache.get_multiplexed_async_connection().await.ok()?;
+        let raw: Option<String> = redis::cmd("GET")
+            .arg(controls_key(user_id, session_id))
+            .query_async(&mut conn)
+            .await
+            .ok()?;
+        raw
+    })
+    .await
+    .flatten()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
     value.get("agent_enabled").and_then(|v| v.as_bool())
 }
 
@@ -49,18 +55,22 @@ async fn write_agent_enabled(
     session_id: Uuid,
     agent_enabled: bool,
 ) {
+    use super::turn_watch::{bounded, REDIS_STEP_LIMIT};
     let Some(cache) = state.cache.as_ref() else {
         return;
     };
-    let Ok(mut conn) = cache.get_multiplexed_async_connection().await else {
-        return;
-    };
-    let payload = serde_json::json!({ "agent_enabled": agent_enabled }).to_string();
-    let _: Result<(), redis::RedisError> = redis::cmd("SET")
-        .arg(controls_key(user_id, session_id))
-        .arg(payload)
-        .query_async(&mut conn)
-        .await;
+    bounded("agent switch write", REDIS_STEP_LIMIT, async {
+        let Ok(mut conn) = cache.get_multiplexed_async_connection().await else {
+            return;
+        };
+        let payload = serde_json::json!({ "agent_enabled": agent_enabled }).to_string();
+        let _: Result<(), redis::RedisError> = redis::cmd("SET")
+            .arg(controls_key(user_id, session_id))
+            .arg(payload)
+            .query_async(&mut conn)
+            .await;
+    })
+    .await;
 }
 
 #[cfg(not(feature = "cache"))]
