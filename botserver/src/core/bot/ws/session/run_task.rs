@@ -98,9 +98,10 @@ pub(super) fn spawn(spec: RunSpec) {
                     break;
                 }
             }
-            // Deliver steering at the turn boundary. The queued text is
-            // processed exactly once.
-            next_text = bus::bus().take_steering(&thread_id);
+            // Deliver steering at the turn boundary, also after a stop (a
+            // message that replaced a turn waiting on a permission card). The
+            // queued text is processed exactly once.
+            next_text = bus::bus().take_next_turn(&thread_id);
             first_turn = false;
         }
     });

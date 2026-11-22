@@ -1,11 +1,11 @@
 //! Waiting on the person's answer to one card.
 //!
 //! A request lives as long as the turn that raised it
-//! (`botconsent::turn_superseded`): a message the person sends while that
-//! turn runs is queued for it and leaves the card answerable; a stopped turn,
-//! or a new turn started by the person's next message, withdraws the request,
-//! closes the card and marks the step cancelled. So does a turn whose future
-//! is dropped (its time limit), through [`WithdrawOnDrop`].
+//! (`botconsent::turn_superseded`): a stopped turn withdraws the request,
+//! closes the card and marks the step cancelled. A message the person sends
+//! while the card waits stops the turn that way and starts the next one
+//! (`runs::bus::Admission::Replace`). So does a turn whose future is dropped
+//! (its time limit), through [`WithdrawOnDrop`].
 
 use std::sync::Arc;
 use std::time::Duration;

@@ -15,6 +15,9 @@ use uuid::Uuid;
 
 use botevents::RunState;
 
+mod admit;
+pub use admit::Admission;
+
 /// Canonical thread id of a chat session (#2084).
 ///
 /// The turn sink and the socket subscription must derive the id from this one
@@ -172,19 +175,14 @@ impl ThreadChannel {
         self.last_seq.fetch_max(seq, Ordering::SeqCst);
     }
 
-    /// Queues a message sent while the run is active. Delivery happens at the
-    /// next turn boundary; the queue survives until then.
-    pub fn push_steering(&self, text: &str) {
-        let mut queue = match self.steering.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        if queue.len() < 20 {
-            queue.push_back(text.to_string());
-        }
-    }
-
+    /// The next queued message, for a running turn to take as steering. A
+    /// stopped turn takes none: they start the next turn instead
+    /// (`take_next_turn`).
     pub fn take_steering(&self) -> Option<String> {
+        let meta = self.lock_meta();
+        if meta.cancelled {
+            return None;
+        }
         let mut queue = match self.steering.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner(),
@@ -262,10 +260,6 @@ impl RunBus {
 
     pub fn finish(&self, thread_id: &str, state: RunState) {
         self.thread(thread_id).finish(state);
-    }
-
-    pub fn push_steering(&self, thread_id: &str, text: &str) {
-        self.thread(thread_id).push_steering(text);
     }
 
     pub fn take_steering(&self, thread_id: &str) -> Option<String> {

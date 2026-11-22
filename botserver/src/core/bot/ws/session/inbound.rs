@@ -99,23 +99,34 @@ pub(super) async fn handle(frame: Inbound<'_>) {
 
     // #1677 — a message sent during a run is steering: queue it, acknowledge
     // and deliver at the next turn boundary instead of interleaving two agents.
-    if bus::bus().is_running(thread_id) {
-        bus::bus().push_steering(thread_id, &text);
-        let queued = serde_json::json!({
-            "type": "gb.steering_queued",
-            "session_id": session_id,
-            "message": "Queued. The agent will pick this up at the next step.",
-        });
-        let _ = ws_sender
-            .lock()
-            .await
-            .send(Message::Text(queued.to_string()))
-            .await;
-        return;
+    // While the run waits on a permission card the message replaces it: the
+    // run is stopped (its card withdrawn) and the message starts the next one.
+    #[cfg(feature = "consent")]
+    let card_waiting = bus::bus().is_running(thread_id) && card_waiting(thread_id).await;
+    #[cfg(not(feature = "consent"))]
+    let card_waiting = false;
+    let run_id = Uuid::new_v4().to_string();
+    match bus::bus().admit(thread_id, &text, card_waiting, &run_id) {
+        bus::Admission::Start => {}
+        bus::Admission::Steer => {
+            let queued = serde_json::json!({
+                "type": "gb.steering_queued",
+                "session_id": session_id,
+                "message": "Queued. The agent will pick this up at the next step.",
+            });
+            let _ = ws_sender
+                .lock()
+                .await
+                .send(Message::Text(queued.to_string()))
+                .await;
+            return;
+        }
+        bus::Admission::Replace => {
+            botlog::safe_info!("message replaced a turn waiting on a permission card: session={session_id}");
+            return;
+        }
     }
 
-    let run_id = Uuid::new_v4().to_string();
-    bus::bus().start(thread_id, &run_id);
     let task_start_bas_ran = *start_bas_ran;
     *start_bas_ran = true;
     run_task::spawn(run_task::RunSpec {
@@ -128,4 +139,15 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         text,
         start_bas_ran: task_start_bas_ran,
     });
+}
+
+/// Whether the conversation's current run waits on a blocking permission
+/// request (a virtual machine card the person has not answered).
+#[cfg(feature = "consent")]
+async fn card_waiting(thread_id: &str) -> bool {
+    let Some(service) = crate::core::bot::consent_gate::shared_service() else {
+        return false;
+    };
+    let run = bus::bus().current_run_id(thread_id);
+    botconsent::has_blocking_request(&service, thread_id, run.as_deref()).await
 }

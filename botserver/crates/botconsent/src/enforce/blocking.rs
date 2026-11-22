@@ -152,14 +152,31 @@ pub async fn withdraw_thread(state: &Arc<ConsentService>, thread_id: &str) -> us
     ids.len()
 }
 
+/// Whether a blocking request of conversation `thread_id` waits for the
+/// person in `pending`. With a `run_id`, only a request raised in that run
+/// (or one that recorded no run) counts.
+pub(crate) fn waits_in(pending: &super::PendingMap, thread_id: &str, run_id: Option<&str>) -> bool {
+    pending.values().any(|(req, _)| {
+        is_blocking(req)
+            && req.thread_id.as_deref() == Some(thread_id)
+            && (run_id.is_none() || req.run_id.is_none() || req.run_id.as_deref() == run_id)
+    })
+}
+
+/// Whether the turn `run_id` of conversation `thread_id` is waiting on a
+/// blocking request, i.e. a permission card is open for it.
+pub async fn has_blocking_request(state: &Arc<ConsentService>, thread_id: &str, run_id: Option<&str>) -> bool {
+    let pending = state.pending.lock().await;
+    waits_in(&pending, thread_id, run_id)
+}
+
 /// Whether a blocking request outlived the turn that raised it, so it must be
 /// withdrawn and its card removed. The rule: a request stays answerable while
-/// its own turn runs, including when the person sends another message in the
-/// meantime (that message is queued for the running turn). It ends when the
-/// turn is stopped (`cancelled_now`, ignoring a stop flag that was already
-/// set when the request was raised, which belongs to an earlier turn) or when
-/// another turn became the conversation's current one (`current_run` differs
-/// from `raised_in`: the person's new message replaced the turn).
+/// its own turn runs. It ends when the turn is stopped (`cancelled_now`,
+/// ignoring a stop flag that was already set when the request was raised,
+/// which belongs to an earlier turn; a message the person sends while the
+/// card waits stops the turn this way) or when another turn became the
+/// conversation's current one (`current_run` differs from `raised_in`).
 #[must_use]
 pub fn turn_superseded(
     raised_in: Option<&str>,

@@ -42,7 +42,12 @@ pub(super) async fn execute_and_prepare_followup(
         super::super::tool_exec::run_llm_tool_call(identity, rx, full_response, user_text).await
     };
 
-    if tool_depth < max_tool_followups && !tool_output.trim().is_empty() {
+    // A stopped or replaced turn makes no follow-up model call: it would only
+    // answer "Stopped." between the person's new question and its answer.
+    if tool_depth < max_tool_followups
+        && !tool_output.trim().is_empty()
+        && !crate::core::bot::runs::bus::bus().is_cancelled(&session_id_s)
+    {
         let follow_output: String = tool_output.chars().take(12_000).collect();
         let mut follow_messages = messages.clone();
 

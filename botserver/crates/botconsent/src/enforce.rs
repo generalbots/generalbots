@@ -22,7 +22,8 @@ mod tests_owner;
 
 pub use authorize::{authorize, authorize_with_context};
 pub use blocking::{
-    audit_view, is_blocking, raise_blocking, turn_superseded, withdraw, withdraw_thread, AUDIT_KEY,
+    audit_view, has_blocking_request, is_blocking, raise_blocking, turn_superseded, withdraw,
+    withdraw_thread, AUDIT_KEY,
 };
 pub use resolve::{resolve, take_approved_match, take_pending_approved, Resolver, NOT_OWNER};
 pub use service::{

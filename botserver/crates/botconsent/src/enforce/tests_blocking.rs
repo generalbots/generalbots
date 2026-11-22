@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::models::{ConsentScope, Decision, VM_ALL_CLASS};
 
-use super::blocking::{audit_view, check_offer, is_blocking};
+use super::blocking::{audit_view, check_offer, is_blocking, waits_in};
 use super::resolve::resolve_in_memory;
 use super::{PendingMap, PendingRequest, ResolvedOutcome};
 
@@ -93,4 +93,24 @@ fn audit_view_prefers_the_redacted_copy() {
     assert_eq!(audit_view(&req.detail), serde_json::json!({ "command": "ls -la", "hash": "abc" }));
     let plain = serde_json::json!({ "name": "cmd" });
     assert_eq!(audit_view(&plain), plain);
+}
+
+#[test]
+fn an_open_card_is_found_by_its_conversation_and_run() {
+    let mut req = vm_req("r1", "vm_command", Some("t1"), false);
+    req.run_id = Some("run-a".to_string());
+    let (pending, _) = pending_with(req);
+    assert!(waits_in(&pending, "t1", Some("run-a")));
+    assert!(waits_in(&pending, "t1", None));
+    assert!(!waits_in(&pending, "t1", Some("run-b")));
+    assert!(!waits_in(&pending, "t2", Some("run-a")));
+}
+
+#[test]
+fn a_card_that_does_not_block_a_turn_is_not_waiting() {
+    let mut req = vm_req("r1", "vm_command", Some("t1"), false);
+    req.detail = serde_json::json!({ "command": "ls" });
+    let (pending, _) = pending_with(req);
+    assert!(!waits_in(&pending, "t1", None));
+    assert!(!waits_in(&HashMap::new(), "t1", None));
 }
