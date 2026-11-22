@@ -1,6 +1,25 @@
 /* Chat initialisation: deep link, event handlers, model picker, boot. */
 "use strict";
 
+// #OFFLINE-LOGIN — the packaged desktop is an offline-first, single-user
+// shell. Its pages are already mounted when the local sidecar is still
+// starting (or its directory is unreachable), and /api/auth then reports
+// "anonymous" even for a valid session (session rehydration fails closed on
+// a cold DB). Treating that transient answer as a revoked token and calling
+// window.location.href = GB_LOGIN_URL makes the shell "switch to the login
+// page" after it had loaded. Keep the session and let the shell/sidebar own
+// re-authentication instead; the multi-tenant web flow is unchanged.
+function isLocalDesktopShell() {
+  return (
+    !!(window.__TAURI__ || window.__TAURI_INTERNALS__) ||
+    !!(
+      window.productConfig &&
+      (window.productConfig.shell_mode === true ||
+        window.productConfig.edition === "os")
+    )
+  );
+}
+
 function proceedWithChatInit() {
   // Re-entry guard (deep-link relaunch): drop any previous socket so two
   // WebSockets never fight over the same chat window.
@@ -167,11 +186,19 @@ function proceedWithChatInit() {
       // valid suite session). Without this, all cookie-carrying apps (CRM,
       // Drive, ...) silently scope to an empty anonymous branch.
       if (!auth.is_authenticated && auth.status !== "authenticated" && gbToken && !window.__BOT_IS_PUBLIC__) {
-        clearStaleChatAuthTokens();
-        var loginUrl = window.GB_LOGIN_URL || "/login";
-        window.location.href = loginUrl + "?redirect=" + encodeURIComponent(window.location.href);
-        return;
+        if (isLocalDesktopShell()) {
+          // Degraded/offline sidecar: do NOT delete a possibly valid token and
+          // do NOT navigate. Stay on the mounted desktop and continue with an
+          // anonymous chat session until local services answer again.
+          console.warn("[chat] session could not be verified; staying in the local desktop shell");
+        } else {
+          clearStaleChatAuthTokens();
+          var loginUrl = window.GB_LOGIN_URL || "/login";
+          window.location.href = loginUrl + "?redirect=" + encodeURIComponent(window.location.href);
+          return;
+        }
       }
+      window.__gbChatInitRetries = 0;
       ChatState.currentUserId = auth.user_id;
       ChatState.currentSessionId = auth.session_id;
       ChatState.currentBotId = auth.bot_id || "default";
@@ -223,8 +250,16 @@ function proceedWithChatInit() {
           var isPub = cfg.is_public === "true" || cfg.is_public === true;
           var isAuth = window.GBSecurity && window.GBSecurity.isAuthenticated && window.GBSecurity.isAuthenticated();
           if (!isPub && !isAuth) {
-            window.location.href = (window.GB_LOGIN_URL || "/login") + "?redirect=" + encodeURIComponent(window.location.href);
-            return;
+            // Mirror the shell gate's 'default' exemption (04_auth_fullscreen_a.js):
+            // in the packaged desktop "default" is a static segment, not a tenant
+            // bot, and an offline sidecar can report is_public=false with no auth
+            // context. Never bounce a mounted local shell to the login page.
+            if (isLocalDesktopShell() || botName === "default") {
+              console.warn("[chat] bot access could not be verified; staying in the local desktop shell");
+            } else {
+              window.location.href = (window.GB_LOGIN_URL || "/login") + "?redirect=" + encodeURIComponent(window.location.href);
+              return;
+            }
           }
           if (isPub) window.__BOT_IS_PUBLIC__ = true;
           connectWebSocket();
@@ -234,7 +269,13 @@ function proceedWithChatInit() {
       });
     })
     .catch(function () {
-      notify(gbT("chat-notify-failed-to-connect-to-chat-server", "Failed to connect to chat server"), "error");
+      notify("Failed to connect to chat server", "error");
+      // Bound the offline retry loop: without a cap a cold sidecar re-runs the
+      // whole self-heal chain every 3 s forever, eventually landing on a
+      // transient "anonymous" answer that used to bounce to login.
+      var retries = Number(window.__gbChatInitRetries || 0);
+      if (retries >= 20) return; // ~60 s of retries, then let the user retry manually
+      window.__gbChatInitRetries = retries + 1;
       setTimeout(proceedWithChatInit, 3000);
     });
 }
