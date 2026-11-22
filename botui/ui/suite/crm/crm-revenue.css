@@ -15,3 +15,26 @@
     font-size: 0.85rem;
     opacity: 0.85;
 }
+/* #2548 — the unattributed bucket is not an attributed total: give it a
+   distinct accent so a reader cannot mistake it for influenced revenue. */
+.crm-revenue-unattributed-bucket {
+    border-left: 3px solid var(--gb-warning, var(--palette-d2992b, #bf8700));
+    padding-inline-start: 0.5rem;
+    font-weight: 600;
+}
+/* Counts next to a data-quality note are plain numbers in their own node. */
+.crm-revenue-note-count {
+    display: inline-block;
+    margin-inline-start: 0.35rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--gb-surface-muted, var(--palette-afb8c1, #afb8c1));
+    font-variant-numeric: tabular-nums;
+}
+/* N/A lines read as secondary, with a spaced em dash before the reason. */
+.crm-revenue-na {
+    color: var(--gb-text-muted, var(--palette-6e7781, #6e7781));
+}
+.crm-revenue-na-sep {
+    margin: 0 0.3rem;
+}
