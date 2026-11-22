@@ -267,14 +267,15 @@
 .gb-consent-vm .gb-consent-outcome { padding: 10px 14px; color: var(--id-text); }
 
 .gb-vm-allbar {
+    position: relative; z-index: 1;
     flex: none; display: flex; align-items: center; min-height: 30px; padding: 4px 16px;
     border-top: 1px solid var(--id-line); background: var(--id-accent-soft);
-    font-size: var(--id-text-xs); color: var(--id-ink); }
+    font-size: var(--id-text-sm); color: var(--id-ink); }
 .gb-vm-allbar[hidden] { display: none; }
 .gb-vm-allbar-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .gb-vm-allbar-item svg { flex: none; color: var(--id-accent-text); }
 .gb-vm-allbar-item strong { font-weight: 600; }
-.gb-vm-allbar-scope { color: var(--id-muted); }
+.gb-vm-allbar-scope { color: var(--id-text); }
 .gb-vm-allbar-revoke {
     padding: 2px 4px; border: 0; border-radius: var(--id-radius-sm); background: none; cursor: pointer;
     font: 600 var(--id-text-xs) var(--id-font); color: var(--id-accent-text); text-decoration: underline; }
