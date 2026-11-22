@@ -11,6 +11,5 @@ bin
 botserver-stack
 *logfile*
 *-log*
-!ui/suite/assistant/icons/gb-lite-logo.svg
 docs/book
 *.rdb

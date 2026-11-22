@@ -1,0 +1,40 @@
+/* Edition lockup: the General Bots mark followed by the "LITE" tag, as in the
+ * app's title bar. One variable sizes it: --lockup-h is the mark's height and
+ * every other measure keeps the title bar's proportions (at 14px: mark 37x14,
+ * gap 10px, tag padding 1px 5px, type 10px/13px).
+ *
+ * <span class="id-lockup" role="img" aria-label="General Bots Lite">
+ *   <span class="id-lockup-mark" aria-hidden="true"></span>
+ *   <span class="id-lockup-tag" aria-hidden="true">LITE</span>
+ * </span>
+ */
+.id-lockup {
+  --lockup-h: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--lockup-h) * 10 / 14);
+  flex: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.id-lockup-mark {
+  flex: none;
+  width: calc(var(--lockup-h) * 687 / 261);
+  height: var(--lockup-h);
+  background: var(--id-ink, #171717);
+  -webkit-mask: url("/suite/identity/brand-mark.svg") center / contain no-repeat;
+  mask: url("/suite/identity/brand-mark.svg") center / contain no-repeat;
+}
+.id-lockup-tag {
+  flex: none;
+  padding: calc(var(--lockup-h) / 14) calc(var(--lockup-h) * 5 / 14);
+  border: 1px solid var(--id-line, #e8e8e8);
+  color: var(--id-muted, #737373);
+  font: 600 calc(var(--lockup-h) * 10 / 14) / calc(var(--lockup-h) * 13 / 14) var(--id-font-mono, ui-monospace, monospace);
+  letter-spacing: .06em;
+}
+.id-lockup--on-dark .id-lockup-mark { background: #fff; }
+.id-lockup--on-dark .id-lockup-tag { border-color: rgba(255, 255, 255, .42); color: rgba(255, 255, 255, .82); }
+@media (forced-colors: active) {
+  .id-lockup-mark { background: CanvasText; forced-color-adjust: none; }
+}

@@ -55,6 +55,7 @@
     cursor: default;
 }
 .gb-titlebar-dot { color: var(--id-accent, #f28c28); }
+.gb-titlebar-wordmark .id-lockup { pointer-events: none; }
 
 /* ---- Centre: conversation title ---- */
 .gb-titlebar-title {

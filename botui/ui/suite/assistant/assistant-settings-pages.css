@@ -93,8 +93,7 @@
 .gb-sp-keys kbd { min-width: 26px; height: 24px; display: flex; align-items: center; justify-content: center; padding: 0 6px; border: 1px solid var(--id-line); border-bottom-width: 2px; border-radius: 0; background: var(--id-paper); box-shadow: none; color: var(--id-ink); font: 600 11.5px var(--id-font-mono); }
 /* Sobre */
 .gb-sp-about-head { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 22px 16px; border-bottom: 1px solid var(--id-line); }
-.gb-sp-logo { width: 64px; height: 24px; flex: none; background: var(--id-ink); -webkit-mask: url("/suite/assistant/icons/gb-lite-logo.svg") left center / auto 24px no-repeat; mask: url("/suite/assistant/icons/gb-lite-logo.svg") left center / auto 24px no-repeat; }
-.gb-sp-about-head .gb-sp-label { padding: 1px 6px; border: 1px solid var(--id-line); }
+.gb-sp-about-head .id-lockup { --lockup-h: 24px; }
 .gb-sp-about-head .gb-sp-btn { margin-inline-start: auto; }
 .gb-sp-about-head .gb-sp-btn svg { transition: transform .8s; }
 .gb-sp-about-head .gb-sp-btn[aria-busy="true"] svg { transform: rotate(360deg); }

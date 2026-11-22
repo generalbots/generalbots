@@ -46,6 +46,8 @@ body {
     color: var(--id-ink, #2C2C2C);
     margin-bottom: var(--id-space-1, 4px);
 }
+body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark { visibility: hidden; }
+.gb-login-wordmark .id-lockup { --lockup-h: 24px; }
 .gb-login-dot {
     color: var(--id-accent, #F28C28);
 }

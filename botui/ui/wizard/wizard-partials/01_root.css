@@ -53,10 +53,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   align-items: center;
   min-height: 30px;
 }
-.rail-logo {
-  height: 20px;
-  width: auto;
-}
+.rail-brand .id-lockup { --lockup-h: 18px; }
 
 /* -- Section label: // CONFIGURACAO INICIAL ---- */
 .rail-section-label {
@@ -199,17 +196,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   margin-right: 6px;
 }
 
-/* Full General Bots lockup (mark + wordmark) on the welcome screen. */
-.brand-hero {
-  display: flex;
-  justify-content: center;
-  padding: 0 0 10px;
-}
-.brand-hero img {
-  width: 132px;
-  height: auto;
-}
-
 .step-heading {
   margin: 0;
   font-size: 28px;
@@ -304,7 +290,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
     border-bottom: var(--id-stroke) solid var(--id-line);
     overflow-x: auto;
   }
-  .rail-logo { height: 16px; }
+  .rail-brand .id-lockup { --lockup-h: 14px; }
   .rail-note, .rail-section-label { display: none; }
   .rail-steps { flex-direction: row; gap: var(--id-space-1); }
   .rail-step {

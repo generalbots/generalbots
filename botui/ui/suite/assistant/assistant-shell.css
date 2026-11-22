@@ -127,17 +127,7 @@ body[data-screen="settings"] .gb-account-tools .gb-settings-link { border-color:
 .gb-titlebar { height: 34px; min-height: 34px; background: var(--id-surface-solid); border-bottom: 1px solid var(--id-line); }
 body:not([data-screen="chat"]) .gb-export-actions { display: none; }
 .gb-titlebar-wordmark { display: flex; align-items: center; gap: 10px; margin-inline-start: 2px; }
-.gb-titlebar-wordmark img { display: none; }
-.gb-titlebar-wordmark::before {
-    content: ""; width: 37px; height: 14px; flex: none; background: var(--id-ink);
-    -webkit-mask: url("/suite/assistant/icons/gb-mark.svg") center / contain no-repeat;
-    mask: url("/suite/assistant/icons/gb-mark.svg") center / contain no-repeat;
-}
-.gb-titlebar-wordmark::after {
-    content: "LITE"; order: 1; padding: 1px 5px; border: 1px solid var(--id-line); color: var(--id-muted);
-    font: 600 10px/13px var(--id-font-mono); letter-spacing: .06em;
-}
-.gb-titlebar-wordmark small { order: 2; color: var(--id-muted); font: 600 10.5px/14px var(--id-font-mono); pointer-events: none; }
+.gb-titlebar-wordmark small { color: var(--id-muted); font: 600 10.5px/14px var(--id-font-mono); pointer-events: none; }
 .gb-appearance-dialog { margin: auto; padding: 0; width: min(460px, calc(94vw / var(--gb-zoom, 1))); max-height: calc(88vh / var(--gb-zoom, 1)); background: var(--id-surface-solid); color: var(--id-text); border: 1px solid var(--id-line); border-radius: var(--id-radius-panel); box-shadow: var(--id-shadow-float); }
 .gb-appearance-dialog::backdrop { background: var(--id-overlay); }
 .gb-appearance-dialog header { justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid var(--id-line); background: var(--id-paper); }

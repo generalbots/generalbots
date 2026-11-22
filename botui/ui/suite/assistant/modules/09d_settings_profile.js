@@ -145,8 +145,9 @@
         var checked = lastCheck ? tr("Hoje, ", "Today, ") + lastCheck.toLocaleTimeString(A.locale, { hour: "2-digit", minute: "2-digit" }) : "";
         var label = state === "checking" ? tr("Procurando…", "Checking…") :
             state === "latest" ? tr("Você está na versão mais recente", "You’re on the latest version") : tr("Procurar atualizações", "Check for updates");
-        panel.innerHTML = '<section class="gb-sp-card gb-sp-clip"><div class="gb-sp-about-head"><span class="gb-sp-logo" role="img" aria-label="General Bots"></span>' +
-            '<span class="gb-sp-label">' + tr("Edição Lite", "Lite edition") + '</span><button type="button" class="gb-sp-btn" id="gbCheckUpdate"' +
+        panel.innerHTML = '<section class="gb-sp-card gb-sp-clip"><div class="gb-sp-about-head"><span class="id-lockup" role="img" aria-label="General Bots Lite">' +
+            '<span class="id-lockup-mark" aria-hidden="true"></span><span class="id-lockup-tag" aria-hidden="true">LITE</span></span>' +
+            '<button type="button" class="gb-sp-btn" id="gbCheckUpdate"' +
             (state === "checking" ? ' aria-busy="true" disabled' : '') + '>' + A.settingsIcon("M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5", 13, 2) +
             esc(label) + '</button></div><div class="gb-sp-about-status" role="status" hidden></div><div class="gb-sp-grid gb-sp-about">' +
             aboutRow(tr("Produto", "Product"), product.name || "General Bots") +

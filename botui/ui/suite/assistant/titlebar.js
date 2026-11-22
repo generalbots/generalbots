@@ -62,7 +62,8 @@
         wm.className = "gb-titlebar-wordmark";
         wm.setAttribute("data-tauri-drag-region", "");
         if (lite) {
-            wm.innerHTML = '<img src="/suite/assistant/icons/gb-lite-logo.svg" alt="General Bots Lite" /><small id="gbBuildVersion"></small>';
+            wm.innerHTML = '<span class="id-lockup" role="img" aria-label="General Bots Lite"><span class="id-lockup-mark" aria-hidden="true"></span>' +
+                '<span class="id-lockup-tag" aria-hidden="true">LITE</span></span><small id="gbBuildVersion"></small>';
         } else wm.innerHTML = 'General Bots<span class="gb-titlebar-dot">.</span>';
         left.appendChild(wm);
 
