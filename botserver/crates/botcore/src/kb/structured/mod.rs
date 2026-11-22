@@ -13,6 +13,7 @@ mod chunk;
 mod chunker;
 mod index;
 mod index_types;
+mod upsert;
 
 pub use citation::{Citation, SourceKind, SourceRef};
 pub use chunk::{stable_id, AclMetadata, StructuredChunk};
@@ -21,3 +22,4 @@ pub use index::{retrieve_with_citations, StructuredKbIndex};
 pub use index_types::{
     BackfillEntry, BackfillReport, DocumentRecord, IndexDocument, IndexStatus, RetrievedChunk,
 };
+pub use upsert::{UpsertPoint, VectorSlot, DEFAULT_VECTOR_DIMENSION};
