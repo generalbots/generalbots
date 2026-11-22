@@ -42,31 +42,35 @@ cache directory it reads (`BOTSERVER_INSTALLERS_PATH`, default
 
 ## Graphics support in the support bundle (#2481)
 
-Settings → System → Diagnostics produces a support bundle. Its `graphics`
-object carries raw probe strings; `graphics_support` is a pure classification
-of those same strings (`graphics_support_status()` in
-`botserver/crates/botsettings/src/os_appliance.rs`). Generating the bundle
-does not contact a GPU, run `vainfo` on a target laptop or measure a frame
-rate — it classifies text that was already collected.
+Settings → System → Diagnostics produces a support bundle. The bundle runs
+the local probe helpers (`lspci -nn`, `vainfo` and `glxinfo -B`), redacts the
+output and stores it in the `graphics` object. `graphics_support` is a pure
+classification of those same strings (`graphics_support_status()` in
+`botserver/crates/botsettings/src/os_appliance.rs`): the classifier itself
+does no probing, contacts no GPU and measures no frame rate. A bundle value
+describes only the host that produced it; it is not a measurement of any
+other machine.
 
 | Field | Values | Meaning |
 |---|---|---|
-| `graphics.gpu`, `graphics.vaapi`, `graphics.glx` | string or `null` | redacted `lspci`, `vainfo` and `glxinfo -B` text; `null` means the tool is absent or returned nothing |
-| `graphics_support.compositing` | `hardware`, `software`, `unknown` | hardware when the GLX renderer names no software rasterizer, software when it names llvmpipe/softpipe/swrast, unknown when no GLX text was collected |
-| `graphics_support.software_rendering` | boolean | true when a software rasterizer marker appears in the GLX text |
-| `graphics_support.gpu_detected` | boolean | true when the GPU probe lists a VGA, Display or 3D controller |
-| `graphics_support.vaapi.available` | boolean | true when at least one VA-API profile with a decode or encode entrypoint was parsed |
-| `graphics_support.vaapi.decode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names paired with `VAEntrypointVLD` |
-| `graphics_support.vaapi.encode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names paired with an encode entrypoint |
+| `graphics.gpu`, `graphics.vaapi`, `graphics.glx` | string or `null` | redacted `lspci -nn`, `vainfo` and `glxinfo -B` text; `null` means the probe tool is unavailable, failed or returned no output |
+| `graphics_support.compositing` | `hardware`, `software`, `unknown` | `unknown` when no GLX text was collected (tool absent or empty output); `software` when the GLX text contains `llvmpipe`, `softpipe`, `swrast` or `software rasterizer` (case-insensitive); `hardware` otherwise |
+| `graphics_support.software_rendering` | boolean | true when a software rasterizer marker appears in the GLX text; uses the same marker test as `compositing` |
+| `graphics_support.gpu_detected` | boolean | true when the GPU probe text contains a line naming a VGA, Display or 3D controller; false when the probe is absent |
+| `graphics_support.vaapi.available` | boolean | true when at least one `VAProfile*` line with a `VLD` or `ENC` entrypoint was parsed |
+| `graphics_support.vaapi.decode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names whose entrypoint contains `VLD` (normally `VAEntrypointVLD`) |
+| `graphics_support.vaapi.encode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names whose entrypoint contains `ENC` (normally `VAEntrypointEncSlice`) |
 | `graphics_support.note` | string | states that compositing throughput and decode speed are not measured offline |
 
 ### Reading a `software` result
 
 `compositing = "software"` with `software_rendering = true` is the expected
 result inside QEMU or on a host without a DRM driver: Mesa falls back to the
-llvmpipe software rasterizer. That is not evidence of a broken image.
-Conversely `compositing = "hardware"` only means the renderer string did not
-name a software rasterizer; it is not a frame-rate measurement.
+llvmpipe software rasterizer. That is not evidence of a broken image and says
+nothing about whether a different, real laptop has working hardware
+acceleration. Conversely `compositing = "hardware"` only means the collected
+GLX text named no software rasterizer; it is not a frame-rate measurement and
+does not confirm VA-API decode on that host.
 
 ### Image manifest gate
 
