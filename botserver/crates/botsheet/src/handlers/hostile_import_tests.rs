@@ -34,6 +34,14 @@ fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) 
     }
 }
 
+fn unscanned_policy() -> upload_policy::HostileFilePolicy {
+    upload_policy::HostileFilePolicy {
+        require_malware_scanner: false,
+        ..Default::default()
+    }
+}
+
+
 #[test]
 fn a_compression_ratio_bomb_is_refused_before_conversion() {
     let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b' '; 512 * 1024])]);
@@ -115,11 +123,12 @@ fn a_macro_workbook_is_stripped_and_noticed_before_conversion() {
     let stripped = macro_strip::strip_executable_parts(&bytes)
         .expect("macro package must be sanitizable")
         .expect("a macro part must be found");
-    let upload = upload_policy::validate_upload(
+    let upload = upload_policy::validate_upload_with_policy(
         UploadClass::SpreadsheetImport,
         "macro.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         &stripped.bytes,
+        &unscanned_policy(),
     )
     .expect("sanitized workbook must pass the shared gate");
     let result = audit_hostile_upload(

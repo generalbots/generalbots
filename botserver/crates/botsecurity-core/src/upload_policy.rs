@@ -246,11 +246,28 @@ pub fn sanitize_upload_filename(raw: &str, max_len: usize) -> Result<String, Upl
 }
 
 /// Applies the full policy for `class` to an upload.
+/// Backwards-compatible wrapper using the default hostile-file policy.
 pub fn validate_upload(
     class: UploadClass,
     filename: &str,
     content_type: &str,
     data: &[u8],
+) -> Result<ValidatedUpload, UploadError> {
+    validate_upload_with_policy(
+        class,
+        filename,
+        content_type,
+        data,
+        &crate::upload_hostile::HostileFilePolicy::default(),
+    )
+}
+
+pub fn validate_upload_with_policy(
+    class: UploadClass,
+    filename: &str,
+    content_type: &str,
+    data: &[u8],
+    policy: &crate::upload_hostile::HostileFilePolicy,
 ) -> Result<ValidatedUpload, UploadError> {
     let limits = limits_for(class);
 
@@ -326,7 +343,7 @@ pub fn validate_upload(
         // container, so an import handler cannot forget to call it. Handlers
         // that need the report (scanner decision, observed ratios) can call
         // `inspect_hostile_upload_named` themselves with the same defaults.
-        crate::upload_hostile::inspect_hostile_upload_named(data, &filename)?;
+        crate::upload_hostile::inspect_hostile_upload_with(data, &filename, policy)?;
     }
 
     Ok(ValidatedUpload {
