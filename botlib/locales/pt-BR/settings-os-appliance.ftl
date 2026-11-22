@@ -172,3 +172,7 @@ os-periph-printers = Printers
 os-periph-pdf-fallback = No printer configured — printing falls back to PDF in Paper, Docs and Sheet.
 os-periph-no-bt = No Bluetooth devices.
 os-periph-no-printers = No printers configured.
+os-session-title = User session
+os-session-report = User manager: {manager}
+XDG_RUNTIME_DIR: {runtime}
+{services}

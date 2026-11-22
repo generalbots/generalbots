@@ -163,6 +163,9 @@ pub(super) const KEYS: &[&str] = &[
     "os-periph-pdf-fallback",
     "os-periph-no-bt",
     "os-periph-no-printers",
+    // #2449 — session status
+    "os-session-title",
+    "os-session-report",
     "action-save",
     "action-cancel",
     "action-delete",
