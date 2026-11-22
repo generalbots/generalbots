@@ -221,25 +221,10 @@
     line-height: 1;
 }
 
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--sentient-accent, var(--palette-4285f4));
-    color: white;
-    border: none;
-    border-radius: var(--sentient-radius-sm, 4px);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.btn-primary:hover {
-    background: var(--sentient-accent-hover, var(--palette-3367d6));
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --sentient-* redefinition duplicated those properties and
+   pinned the old accent, so it was removed to let the themed pattern apply. */
 
 .btn-secondary {
     display: flex;

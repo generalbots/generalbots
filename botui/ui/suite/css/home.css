@@ -1,3 +1,0 @@
-/* home: ordered partials (issue #1731). Do not reorder, keep @import order. */
-@import url("home-partials/01_home-container.css");
-@import url("home-partials/02_app-icon.css");

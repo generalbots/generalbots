@@ -300,20 +300,10 @@
         gap: 16px;
     }
 
-    .btn-primary {
-        background: var(--primary);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .btn-primary:hover {
-        filter: brightness(1.1);
-    }
+    /* .btn-primary now comes from the shared primitives: components/01_button.css
+       (layout/states) + assistant-skin.css .window-body .btn-primary (identity
+       palette). The former app-local --primary redefinition duplicated those
+       properties and pinned the old palette, so it was removed. */
 
     .btn-secondary {
         background: var(--surface);

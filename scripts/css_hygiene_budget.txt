@@ -28,7 +28,6 @@ bang-important:botui/ui/suite/analytics/partials/business-reports-cards.css 4
 bang-important:botui/ui/suite/analytics/partials/business-reports-layout.css 4
 bang-important:botui/ui/suite/analytics/partials/business-reports-metrics.css 4
 bang-important:botui/ui/suite/assistant/assistant-actions.css 2
-bang-important:botui/ui/suite/assistant/assistant-chat-assistant.css 1
 bang-important:botui/ui/suite/assistant/assistant-chat.css 1
 bang-important:botui/ui/suite/assistant/assistant-feedback.css 22
 bang-important:botui/ui/suite/assistant/assistant-patterns.css 6
@@ -89,7 +88,6 @@ bang-important:botui/ui/suite/crm/crm-detail-forms-form.css 4
 bang-important:botui/ui/suite/crm/crm-detail-forms.css 4
 bang-important:botui/ui/suite/crm/crm-pipeline-partials/01_crm-container.css 4
 bang-important:botui/ui/suite/crm/crm-pipeline-partials/02_pipeline-title.css 4
-bang-important:botui/ui/suite/css/ai-panel.css 7
 bang-important:botui/ui/suite/css/app/01_root.css 4
 bang-important:botui/ui/suite/css/app/02_float_header.css 5
 bang-important:botui/ui/suite/css/app/03_omnibox_chat_welcome.css 6
@@ -146,7 +144,6 @@ bang-important:botui/ui/suite/css/home-partials/01_home-container.css 4
 bang-important:botui/ui/suite/css/home-partials/02_app-icon.css 4
 bang-important:botui/ui/suite/css/markdown-message.css 12
 bang-important:botui/ui/suite/css/mindfulness.css 4
-bang-important:botui/ui/suite/css/partials.css 4
 bang-important:botui/ui/suite/css/screensaver.css 5
 bang-important:botui/ui/suite/css/settings-identity.css 2
 bang-important:botui/ui/suite/css/suite.css 6
@@ -155,8 +152,6 @@ bang-important:botui/ui/suite/css/tour.css 1
 bang-important:botui/ui/suite/dashboards/dashboards/01_dashboards_container.css 4
 bang-important:botui/ui/suite/dashboards/dashboards/02_viewer_content.css 4
 bang-important:botui/ui/suite/dashboards/dashboards/03_keyframes.css 4
-bang-important:botui/ui/suite/designer-canvas.css 4
-bang-important:botui/ui/suite/designer-connections.css 4
 bang-important:botui/ui/suite/designer-partials/01_root.css 4
 bang-important:botui/ui/suite/designer-partials/02_node-port.css 4
 bang-important:botui/ui/suite/designer/designer-partials/01_designer-container.css 4
@@ -181,7 +176,6 @@ bang-important:botui/ui/suite/drive/styles/drive-selection-panels-empty.css 4
 bang-important:botui/ui/suite/drive/styles/drive-selection-panels.css 4
 bang-important:botui/ui/suite/drive/styles/layout-partials/01_root.css 4
 bang-important:botui/ui/suite/drive/styles/layout-partials/02_file-icon.css 4
-bang-important:botui/ui/suite/editor-inline.css 4
 bang-important:botui/ui/suite/editor-partials/01_editor-container.css 4
 bang-important:botui/ui/suite/editor-partials/02_magic-panel.css 4
 bang-important:botui/ui/suite/fraud/fraud.css 4

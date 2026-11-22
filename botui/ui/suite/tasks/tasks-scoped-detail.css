@@ -20,23 +20,11 @@
     gap: 12px;
 }
 
-.btn-primary {
-    padding: 10px 20px;
-    background: var(--primary, var(--palette-c5f82a));
-    border: none;
-    border-radius: 6px;
-    color: var(--bg, #000);
-    font-family: inherit;
-    font-size: var(--text-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-    background: var(--palette-d4ff4a);
-    box-shadow: 0 0 20px var(--primary-light, rgba(197, 248, 42, 0.2));
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --primary/--palette-c5f82a redefinition (incl. its lime
+   glow hover) duplicated those properties and pinned the old palette, so it was
+   removed to let the themed pattern apply. */
 
 .btn-secondary {
     padding: 10px 20px;

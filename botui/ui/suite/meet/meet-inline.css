@@ -1,3 +1,0 @@
-/* meet-inline: ordered partials (issue #1731). Do not reorder, keep @import order. */
-@import url("meet-inline-partials/01_meet-container.css");
-@import url("meet-inline-partials/02_panel-actions.css");

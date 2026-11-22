@@ -113,25 +113,10 @@
     display: block;
 }
 
-/* Primary Button */
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--accent, var(--palette-d4f505));
-    color: var(--bg);
-    border: none;
-    border-radius: 6px;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.btn-primary:hover {
-    filter: brightness(1.1);
-}
+/* Primary button now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --accent/--palette-d4f505 redefinition duplicated those
+   properties and pinned the old palette, so it was removed. */
 
 /* Small Button */
 .btn-sm {
