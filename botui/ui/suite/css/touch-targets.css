@@ -1,0 +1,38 @@
+/* #2325/#2461 — touch-target floor on coarse-pointer devices.
+ * Visual size stays unchanged on a mouse-driven desktop; on a phone or
+ * tablet every actionable chrome control gets a 44x44 CSS-pixel hit area.
+ */
+@media (pointer: coarse) {
+  .gb-feedback-btn,
+  .gb-consent-btn,
+  .chat-tool-toggle,
+  .gb-chat-header-btn,
+  .gb-chat-es-copy,
+  .app-deeplink-btn,
+  .file-btn,
+  .gb-long-toggle,
+  .tray-btn,
+  .gb-chat-conversation-menu-btn,
+  .entity-card-btn,
+  .chat-sidebar-collapsed-icon,
+  .window-dot {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep the 10-14px traffic-light dots visually small while their hit
+     area grows; the pseudo-element carries the extra pointer area. */
+  .window-dot::before {
+    content: "";
+    position: absolute;
+    inset: -15px;
+  }
+
+  /* Thin transcript scroll markers stay visually 6px wide but gain a
+     horizontal hit area so a finger can grab them. */
+  .scrollbar-marker::before {
+    content: "";
+    position: absolute;
+    inset: -12px -19px;
+  }
+}
