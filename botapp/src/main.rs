@@ -294,6 +294,7 @@ fn main() {
         desktop::wizard::wizard_ai_code,
         desktop::wizard::wizard_ai_use_chat,
         desktop::wizard::wizard_finish,
+        desktop::recovery::local_password_reset,
     ]);
 
     #[cfg(not(feature = "desktop-local"))]

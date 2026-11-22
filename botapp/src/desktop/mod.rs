@@ -7,6 +7,8 @@ pub mod payload;
 pub(crate) mod no_window;
 pub mod safe_command;
 #[cfg(feature = "desktop-local")]
+pub mod recovery;
+#[cfg(feature = "desktop-local")]
 pub mod sidecar;
 pub mod splash;
 pub mod sync;

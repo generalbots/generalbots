@@ -8,6 +8,8 @@
   "download-unsupported-scheme": "Somente downloads http(s) são suportados.",
   "download-write-failed": "Não foi possível gravar {path}: {error}",
   "folder-open-failed": "Não foi possível abrir a pasta: {error}",
+  "recovery-confirm-message": "A senha do administrador deste computador será trocada e todas as outras sessões serão encerradas. Continuar?",
+  "recovery-confirm-title": "Trocar a senha do administrador?",
   "setup-already-running": "A configuração já está em execução.",
   "setup-cancel-before-reset": "Cancele a configuração em execução antes de redefinir a stack.",
   "setup-cancelled": "A configuração foi cancelada. Os dados parciais serão reutilizados na próxima vez.",

@@ -101,8 +101,17 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
         .inner_size(width, height)
         .min_inner_size(900.0, 560.0)
         .resizable(true)
-        .center()
         .visible(true);
+    // Test rig: the window is born off-screen and never takes focus, so it
+    // does not flash on the owner's screen before it is parked.
+    let builder = if crate::desktop::splash::is_test_rig() {
+        builder
+            .position(-10000.0, -10000.0)
+            .skip_taskbar(true)
+            .focused(false)
+    } else {
+        builder.center()
+    };
 
     let result = builder
         .build()
@@ -205,11 +214,12 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     // #1919 — WebKitGTK does not realise a hidden webview, so navigate() on
     // a window created with visible:false never changes the URL. Reveal the
     // window first (the always-on-top splash stays above it) before navigating.
-    if SHOW_BEFORE_NAVIGATE {
-        let _ = main.show();
-    }
+    // Test rig: park before showing, so the window never appears on screen.
     if crate::desktop::splash::is_test_rig() {
         crate::desktop::splash::park_offscreen(&main);
+    }
+    if SHOW_BEFORE_NAVIGATE {
+        let _ = main.show();
     }
     let url = suite_url_with_token(url, token);
     if let Err(e) = main.navigate(url.clone()) {

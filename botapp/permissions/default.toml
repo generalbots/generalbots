@@ -56,6 +56,7 @@ permissions = [
     "allow-wizard-ai-code",
     "allow-wizard-ai-use-chat",
     "allow-wizard-finish",
+    "allow-local-password-reset",
 ]
 
 [[permission]]
@@ -332,3 +333,8 @@ commands.allow = ["wizard_ai_use_chat"]
 identifier = "allow-wizard-finish"
 description = "Allow the wizard_finish command"
 commands.allow = ["wizard_finish"]
+
+[[permission]]
+identifier = "allow-local-password-reset"
+description = "Allow the local_password_reset command"
+commands.allow = ["local_password_reset"]

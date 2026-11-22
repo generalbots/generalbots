@@ -56,10 +56,12 @@ pub fn show(app: &tauri::AppHandle) {
     let window_created_at = Instant::now();
     let rig = is_test_rig();
     if let Some(window) = app.get_webview_window("splash") {
-        let _ = window.show();
+        // Test rig: park before showing, so the splash never appears on screen.
         if rig {
             park_offscreen(&window);
-        } else {
+        }
+        let _ = window.show();
+        if !rig {
             if TOPMOST {
                 let _ = window.set_focus();
             }
@@ -205,10 +207,11 @@ fn close(app: &tauri::AppHandle) {
 /// earlier stays closed.
 pub fn raise(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
-        let _ = window.show();
         if is_test_rig() {
             park_offscreen(&window);
-        } else {
+        }
+        let _ = window.show();
+        if !is_test_rig() {
             let _ = window.set_always_on_top(TOPMOST);
             if TOPMOST {
                 let _ = window.set_focus();

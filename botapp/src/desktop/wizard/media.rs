@@ -18,6 +18,9 @@ const WINDOWS_OCR_REMEDIATION: &str =
     "reinstall the BotModels pythonbox (it bundles the RapidOCR fallback)";
 
 pub async fn capabilities() -> Value {
+    if cfg!(feature = "gbgov") {
+        return edition_capabilities();
+    }
     match fetch_health().await {
         Ok(payload) => normalize(payload, true, "botmodels", None),
         Err(error) => {
@@ -48,6 +51,22 @@ async fn fetch_health() -> Result<Value, String> {
         .json::<Value>()
         .await
         .map_err(|e| format!("unreadable health payload: {e}"))
+}
+
+/// The government desktop edition installs no media service: Windows reads
+/// the text in images, and barcode reading is not part of the edition, so the
+/// finish screen must not ask for a media service reinstall.
+fn edition_capabilities() -> Value {
+    json!({
+        "service_running": false,
+        "source": "windows",
+        "barcode": unavailable("barcode reading is not part of this edition", ""),
+        "ocr": {
+            "available": true,
+            "detail": "Windows reads the text in images.",
+            "remediation": Value::Null,
+        },
+    })
 }
 
 fn unavailable(detail: &str, remediation: &str) -> Value {
