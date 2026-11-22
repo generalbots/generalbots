@@ -205,3 +205,24 @@ should read. Handlers still returning `(StatusCode, String)` are legacy; their
 count is ratcheted down by `scripts/check_raw_error_strings.py`, a blocking CI
 guard. This envelope is the contract referenced by the API command catalog for
 LLM-driven calls.
+
+## Data-protection honesty on the OS appliance (#2470)
+
+On the OS edition (`edition=os`) the Settings → Storage & Reset panel exposes a
+data-protection surface whose labels state what this build actually does. The
+authority is `botserver/crates/botsettings/src/os_data_protection.rs`: its status
+response is static and performs no host probing, so the panel cannot drift from
+the shipped behavior.
+
+| Action | Endpoint | What this build does |
+|---|---|---|
+| Disk encryption | — | Not implemented: no LUKS mapping, no TPM sealing and no recovery-key export. General Bots does not encrypt user data at rest in this image. |
+| Snapshots / backup | `POST /api/os/data-protection/snapshots` | Adapter contract only. No btrfs or Drive backend is registered, so a valid request fails closed with `503` and no snapshot is created. If a backend is registered it stages a job descriptor (`202`); restore and pruning are separate typed-confirmation actions supplied by the OS image. Retention counts are a planned policy, not a running scheduler. |
+| Export my data | `POST /api/os/data-protection/export` | Returns `200` with a deterministic, descriptor-only archive manifest (`tar.zst`, `full-archive`). Its `bytes_read` is `0`, `archive_created` is `false` and no data leaves the device. |
+| Reset this PC | `POST /api/os/data-protection/reset` | Requires the exact typed confirmation token (`RESET THIS PC`); the button stays disabled until that token is read from the live status response and entered verbatim. A confirmed request returns `501` — no wipe-and-wizard backend ships and nothing is erased. |
+
+Every action is gated (shell mode + admin/owner + loopback) and written to the
+audit log, including refused and unimplemented attempts. The same text is
+localized in `botlib/locales/*/settings-os-appliance.ftl` under the `os-data-*`
+keys, so all eight catalogs describe the deployed behavior instead of a future
+promise.
