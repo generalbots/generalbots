@@ -1536,6 +1536,16 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Checker self-test (must fail closed)
         run: python3 scripts/check_slo.py --self-test
+      # #2530 — the Office large-file corpus is synthetic-only and byte-for-byte
+      # deterministic; the gate validates it plus the declared RSS ceilings.
+      # The 4 GB cgroup soak needs a measured --snapshot, so runtime criteria are
+      # reported UNVERIFIED here rather than fabricated as PASS.
+      - name: "Guard: Office large-file corpus and memory ceilings (#2530)"
+        run: |
+          set -euo pipefail
+          python3 scripts/office_largefile_corpus.py --self-test
+          python3 scripts/check_office_memory.py --self-test
+          python3 scripts/check_office_memory.py --check
       - name: Committed baseline satisfies every budget
         run: |
           set -euo pipefail

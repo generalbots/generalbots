@@ -115,6 +115,60 @@ cross_cutting:
     required_topics: [frontend_flamegraph, rust_perf_tracing]
     named_owner_per_app: required
 
+# ---------------------------------------------------------------------------
+# #2530 — per-request memory guardrails (declarative half of the gate).
+#
+# The section below declares the synthetic large-file corpus and the RSS
+# ceilings used by scripts/check_office_memory.py. It is deliberately a
+# DECLARATION, not evidence: the 4 GB cgroup soak and the peak-RSS numbers must
+# come from a runtime UAT snapshot, never from values invented here. The CI
+# step validates the corpus generator, this table and (when supplied) a real
+# snapshot; a missing snapshot leaves the runtime criteria unverified, not PASS.
+office_memory:
+  issue: 2530
+  status: declared-offline-gate
+  cgroup_reference_mb: 4096
+  corpus:
+    generator: scripts/office_largefile_corpus.py
+    checker: scripts/check_office_memory.py
+    synthetic_only: true
+    seed: 2530
+    min_size_mb: 5
+    max_size_mb: 100
+    cases:
+      - id: docs-large
+        kind: docx
+        size_mb: 25
+      - id: sheets-large
+        kind: xlsx
+        size_mb: 25
+      - id: slides-large
+        kind: pptx
+        size_mb: 50
+  admission:
+    # Estimated peak heap = upload bytes x multiplier, per upload class. One
+    # heavy job per class; the rest queue with an observable position.
+    peak_multiplier:
+      docx: 24
+      xlsx: 24
+      pptx: 20
+    max_concurrent_per_class: 1
+    queue_observable: true
+  # Single-import process RSS ceilings (MiB) on the 4 GB reference cgroup.
+  # Keyed by corpus case id so a size change cannot silently reuse a ceiling.
+  rss_ceilings_mb:
+    docs-large: 900
+    sheets-large: 1200
+    slides-large: 1100
+  soak:
+    cycles: 20
+    rss_return_tolerance_pct: 10
+    max_session_cache_growth_mb: 16
+    evidence: runtime-uat-required
+  events:
+    structured: true
+    include_document_content: false
+
 deferred:
   - Client instrumentation/Web Vitals and custom marks collection
   - Backend metrics emission and Prometheus exposure/endpoints
