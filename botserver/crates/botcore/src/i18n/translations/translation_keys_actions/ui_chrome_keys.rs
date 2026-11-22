@@ -127,6 +127,13 @@ pub(super) const KEYS: &[&str] = &[
     "os-firmware-install",
     "os-firmware-restart",
     "os-firmware-none",
+    // #2455 — sound controls
+    "os-sound-output",
+    "os-sound-volume",
+    "os-sound-mute",
+    "os-sound-input",
+    "os-sound-meter",
+    "os-sound-test",
     "action-save",
     "action-cancel",
     "action-delete",

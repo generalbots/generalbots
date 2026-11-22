@@ -38,6 +38,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/time", get(os_time_status).post(os_time_set))
         .route("/api/os/firmware", get(os_firmware_status).post(os_firmware_action))
         .route("/api/os/power-profile", get(os_power_profile).post(os_power_profile_set))
+        .route("/api/os/sound/controls", get(os_sound_controls).post(os_sound_control_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -568,4 +569,44 @@ async fn os_power_profile_set(
     }
     let ok = run_display_command("powerprofilesctl", &["set", &p]).await;
     Ok(Json(json!({ "ok": ok, "profile": p })))
+}
+
+/// #2455 — PipeWire sound controls for the appliance.
+async fn os_sound_controls(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    Ok(Json(json!({
+        "status": "ok",
+        "sinks": probe("pactl", &["list", "short", "sinks"]),
+        "sources": probe("pactl", &["list", "short", "sources"]),
+        "volume": probe("pactl", &["get-sink-volume", "@DEFAULT_SINK@"]),
+        "mute": probe("pactl", &["get-sink-mute", "@DEFAULT_SINK@"])
+    })))
+}
+
+#[derive(serde::Deserialize)]
+struct SoundControlRequest { setting: String, value: String }
+
+async fn os_sound_control_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<SoundControlRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let ok = match req.setting.as_str() {
+        "volume" if req.value.chars().all(|c| c.is_ascii_digit()) => {
+            let v = format!("{}%", req.value);
+            run_display_command("pactl", &["set-sink-volume", "@DEFAULT_SINK@", &v]).await
+        }
+        "mute" if req.value == "on" || req.value == "off" =>
+            run_display_command("pactl", &["set-sink-mute", "@DEFAULT_SINK@", &req.value]).await,
+        "output" if req.value.chars().all(|c| c.is_ascii_alphanumeric() || ".-_".contains(c)) =>
+            run_display_command("pactl", &["set-default-sink", &req.value]).await,
+        "input" if req.value.chars().all(|c| c.is_ascii_alphanumeric() || ".-_".contains(c)) =>
+            run_display_command("pactl", &["set-default-source", &req.value]).await,
+        _ => false,
+    };
+    Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
 }

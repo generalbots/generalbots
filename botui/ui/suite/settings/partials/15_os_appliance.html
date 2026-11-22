@@ -85,6 +85,12 @@
     <div class="card-header"><h2 data-i18n="os-sound-status">Sound status</h2></div>
     <p class="os-hint" data-i18n="os-sound-readonly">Audio device control is unavailable without the OS audio backend.</p>
     <div id="os-sound-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row"><label for="osOutputDevice" data-i18n="os-sound-output">Output device</label><select id="osOutputDevice" onchange="window.GBSoundControls && GBSoundControls.set('output', this.value)"><option value="auto">Default</option><option value="alsa_output.pci-0000_00_1f.3.analog-stereo">Speakers</option><option value="alsa_output.usb-headset.stereo">USB headset</option></select></div>
+    <div class="setting-row"><label for="osVolume" data-i18n="os-sound-volume">Volume</label><input type="range" id="osVolume" min="0" max="100" value="70" onchange="window.GBSoundControls && GBSoundControls.set('volume', this.value)" /><output id="osVolumeValue">70%</output></div>
+    <div class="setting-row"><label for="osMute" data-i18n="os-sound-mute">Mute</label><input type="checkbox" id="osMute" onchange="window.GBSoundControls && GBSoundControls.set('mute', this.checked ? 'on' : 'off')" /></div>
+    <div class="setting-row"><label for="osInputDevice" data-i18n="os-sound-input">Input device</label><select id="osInputDevice" onchange="window.GBSoundControls && GBSoundControls.set('input', this.value)"><option value="auto">Default</option><option value="alsa_input.usb-headset.mono">USB headset mic</option></select></div>
+    <div class="setting-row"><label for="osInputMeter" data-i18n="os-sound-meter">Input level</label><progress id="osInputMeter" max="100" value="0"></progress></div>
+    <div class="setting-row"><button type="button" onclick="window.GBSoundControls && GBSoundControls.testTone()" data-i18n="os-sound-test">Play test tone</button></div>
   </div>
 </section>
 
