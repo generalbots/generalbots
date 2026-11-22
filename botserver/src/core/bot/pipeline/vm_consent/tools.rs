@@ -1,11 +1,13 @@
 //! The native tools' side of the gate: each tool's arguments become a
 //! [`VmAction`], a denial becomes the tool result the model reads, and the
-//! result closes the action's step.
+//! result closes the action's step. The person sees the step's outcome; the
+//! texts of a gated tool reach the model only, and its answer is what the
+//! person reads, in their language.
 
 use serde_json::Value;
 
 use super::{ask, report, VmAction, VmActionKind, VmConsent, VmDecision, VmOutcome, VmReceipt};
-use crate::core::bot::pipeline::native_tools::{peek_capture, send};
+use crate::core::bot::pipeline::native_tools::{peek_capture, send, tell_model, ModelOnly};
 use crate::core::bot::pipeline::types::SessionIdentity;
 
 fn strings(value: Option<&Value>) -> Vec<String> {
@@ -41,12 +43,13 @@ pub fn program_action(language: &str, code: &str, packages: &[String], backgroun
     })
 }
 
-/// Asks; on a denial tells the model (as the tool result) and returns `None`.
+/// Asks; on a denial tells the model (as the tool result, never shown to the
+/// person, whose step already reads "denied") and returns `None`.
 pub async fn gate_or_explain(identity: &SessionIdentity<'_>, action: &VmAction) -> Option<VmConsent> {
     match ask(identity, action).await {
         VmDecision::Allowed(ticket) => Some(ticket),
         VmDecision::Denied(denial) => {
-            send(identity, &denial.model_text(action)).await;
+            tell_model(identity.session_id, &denial.model_text(action));
             None
         }
     }
@@ -83,7 +86,7 @@ pub async fn run_repaired(
 pub async fn gate_terminal(identity: &SessionIdentity<'_>, args: &str) -> Option<VmConsent> {
     let parsed = crate::core::bot::pipeline::native_args::parse_args(args).unwrap_or(Value::Null);
     let Some(command) = text(&parsed, &["command"]) else {
-        send(identity, "terminal_run requires a `command`.").await;
+        tell_model(identity.session_id, "terminal_run requires a `command`.");
         return None;
     };
     let action = VmAction::native(VmActionKind::Command {
@@ -101,7 +104,7 @@ pub async fn gate_terminal(identity: &SessionIdentity<'_>, args: &str) -> Option
 pub async fn gate_drive_fetch(identity: &SessionIdentity<'_>, args: &str) -> Option<VmConsent> {
     let parsed = crate::core::bot::pipeline::native_args::parse_args(args).unwrap_or(Value::Null);
     let Some(reference) = text(&parsed, &["path", "name"]) else {
-        send(identity, "Tell me which Drive file to fetch (`path`).").await;
+        tell_model(identity.session_id, "drive_fetch requires the Drive file's `path`.");
         return None;
     };
     let name = reference.rsplit('/').next().unwrap_or(&reference).to_string();
@@ -203,7 +206,9 @@ pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &s
         if let Some(ticket) = gate_drive_fetch(identity, args).await {
             let receipt = ticket.receipt();
             let mark = capture_mark(identity);
+            let scope = ModelOnly::begin(identity.session_id);
             crate::core::bot::pipeline::native_drive::run_drive_fetch(identity, args, ticket).await;
+            drop(scope);
             report_captured(identity, &receipt, mark, Vec::new(), None).await;
         }
         return true;
@@ -217,7 +222,9 @@ pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &s
     if let Some(ticket) = gate_or_explain(identity, &action).await {
         let receipt = ticket.receipt();
         let mark = capture_mark(identity);
+        let scope = ModelOnly::begin(identity.session_id);
         crate::core::bot::pipeline::native_drive::try_run(identity, name, args).await;
+        drop(scope);
         let files = match &action.kind {
             VmActionKind::DriveSave { files, .. } | VmActionKind::ExternalSave { files, .. } => files.clone(),
             _ => Vec::new(),

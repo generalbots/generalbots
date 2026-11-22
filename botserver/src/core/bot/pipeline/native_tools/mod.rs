@@ -12,6 +12,10 @@ use super::types::SessionIdentity;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
+mod model_only;
+#[cfg(feature = "agent-vm")]
+pub(super) use model_only::ModelOnly;
+use model_only::model_only;
 #[cfg(feature = "agent-vm")]
 mod program_repair;
 #[cfg(feature = "agent-vm")]
@@ -72,7 +76,9 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
             if let Some(ticket) = super::vm_consent::tools::gate_terminal(identity, args).await {
                 let receipt = ticket.receipt();
                 let mark = super::vm_consent::tools::capture_mark(identity);
+                let scope = ModelOnly::begin(identity.session_id);
                 let exit_code = terminal::run_terminal_run(identity, args, ticket).await;
+                drop(scope);
                 super::vm_consent::tools::report_captured(identity, &receipt, mark, Vec::new(), exit_code).await;
             }
             #[cfg(not(feature = "agent-vm"))]
@@ -104,6 +110,19 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
     false
 }
 
+/// Records `message` as the tool result the model reads, without showing it
+/// to the person (an instruction for the model, or a result the person
+/// already sees as the outcome of the tool's step).
+pub(super) fn tell_model(session_id: uuid::Uuid, message: &str) {
+    if let Ok(mut map) = capture().lock() {
+        let entry = map.entry(session_id).or_default();
+        if !entry.is_empty() {
+            entry.push('\n');
+        }
+        entry.push_str(message);
+    }
+}
+
 pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
     let SessionIdentity {
         sink,
@@ -112,12 +131,9 @@ pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
         user_id,
         ..
     } = *identity;
-    if let Ok(mut map) = capture().lock() {
-        let entry = map.entry(session_id).or_default();
-        if !entry.is_empty() {
-            entry.push('\n');
-        }
-        entry.push_str(message);
+    tell_model(session_id, message);
+    if model_only(session_id) {
+        return;
     }
     let resp = botlib::models::BotResponse::new(
         bot_uuid.to_string(),
@@ -138,6 +154,9 @@ pub(super) async fn persist(
     user_id: uuid::Uuid,
     text: &str,
 ) {
+    if model_only(session_id) {
+        return;
+    }
     let mut sm = state.session_manager.lock().await;
     if let Err(e) = sm.save_message(session_id, user_id, 2, text, 2) {
         botlog::safe_warn!("failed to persist workspace result for {session_id}: {e}");
