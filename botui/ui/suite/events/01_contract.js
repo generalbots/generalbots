@@ -22,16 +22,12 @@
   ];
 
   function tr(key, fallback, params) {
-    var out = typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
-    // #2503 — when the locale catalogue has not loaded (e.g. offline), gbT
-    // returns the authored fallback verbatim. Substitute {params} here too so
-    // no literal placeholders ever reach the DOM.
-    if (params && typeof out === "string") {
-      Object.keys(params).forEach(function (name) {
-        out = out.split("{" + name + "}").join(String(params[name]));
-      });
-    }
-    return out;
+    // Params are substituted centrally by the shared i18n helper: window.gbT
+    // is tOr(), which substitutes into both the catalogue value (via t()) and
+    // the authored fallback on a catalogue miss (i18n.js tOr, #2503/#2548).
+    // A second local pass here would be redundant and weaker (exact {name}
+    // only, plus a double-substitution hazard), so delegate directly.
+    return typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
   }
   function canonical(type) {
     return ALIASES[type] || type;
