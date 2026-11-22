@@ -22,7 +22,16 @@
   ];
 
   function tr(key, fallback, params) {
-    return typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
+    var out = typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
+    // #2503 — when the locale catalogue has not loaded (e.g. offline), gbT
+    // returns the authored fallback verbatim. Substitute {params} here too so
+    // no literal placeholders ever reach the DOM.
+    if (params && typeof out === "string") {
+      Object.keys(params).forEach(function (name) {
+        out = out.split("{" + name + "}").join(String(params[name]));
+      });
+    }
+    return out;
   }
   function canonical(type) {
     return ALIASES[type] || type;
