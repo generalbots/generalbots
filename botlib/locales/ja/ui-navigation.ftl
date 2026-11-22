@@ -12,6 +12,7 @@ chat-model-auto = 自動
 chat-model-fast = 高速 · 素早い
 chat-model-balanced = バランス · 標準
 chat-model-quality = 品質 · 最良
+chat-model-agents = エージェント
 chat-attach = ファイルを添付
 chat-attached = 添付ファイル
 chat-web-on-short = Web オン

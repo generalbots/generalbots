@@ -12,6 +12,7 @@ chat-model-auto = Automatisch
 chat-model-fast = Schnell · flott
 chat-model-balanced = Ausgewogen · Standard
 chat-model-quality = Qualität · beste
+chat-model-agents = Agenten
 chat-attach = Datei anhängen
 chat-attached = Angehängte Datei
 chat-web-on-short = Web an

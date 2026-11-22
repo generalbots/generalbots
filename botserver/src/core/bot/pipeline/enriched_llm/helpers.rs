@@ -50,12 +50,33 @@ pub(crate) async fn resolve_bot_llm_provider(
     let mut llm_key = cfg
         .get_config(&bot_uuid, "llm-key", Some(""))
         .unwrap_or_default();
-    let mut llm_model = cfg
+    let configured_model = cfg
         .get_config(&bot_uuid, "llm-model", Some(""))
         .unwrap_or_default();
-    let llm_provider = cfg
+    let configured_provider = cfg
         .get_config(&bot_uuid, "llm-provider", Some(""))
         .unwrap_or_default();
+
+    // A connected subscription agent picked in the chat's model menu answers
+    // this turn (`sub:<provider>`); the bot's own default is left untouched.
+    #[cfg(feature = "agent-vm")]
+    let agent_choice = model_preference
+        .trim()
+        .strip_prefix("sub:")
+        .filter(|agent| crate::core::ai_accounts::is_subscription_provider(*agent))
+        .map(|agent| {
+            (
+                agent.to_string(),
+                crate::core::ai_accounts::default_model(agent).to_string(),
+            )
+        });
+    #[cfg(not(feature = "agent-vm"))]
+    let agent_choice: Option<(String, String)> = None;
+
+    let (llm_provider, mut llm_model) = match agent_choice {
+        Some((provider, model)) => (provider, model),
+        None => (configured_provider, configured_model),
+    };
 
     // A model picked in the chat's menu from a provider account (Settings >
     // Modelo): that account's address, key and model answer this turn.

@@ -15,6 +15,7 @@ chat-model-auto = Auto
 chat-model-fast = Fast · cheapest, quick
 chat-model-balanced = Balanced · middle ground
 chat-model-quality = Quality · best, slower
+chat-model-agents = Agents
 chat-attach = Attach file
 chat-attached = Attached file
 chat-web-on-short = Web on

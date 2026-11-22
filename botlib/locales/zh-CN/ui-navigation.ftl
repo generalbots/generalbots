@@ -12,6 +12,7 @@ chat-model-auto = 自动
 chat-model-fast = 快速 · 迅速
 chat-model-balanced = 均衡 · 默认
 chat-model-quality = 质量 · 最佳
+chat-model-agents = 智能体
 chat-attach = 附加文件
 chat-attached = 已附加文件
 chat-web-on-short = 网页开

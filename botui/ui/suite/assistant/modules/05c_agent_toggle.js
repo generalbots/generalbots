@@ -125,6 +125,12 @@
         }
     };
 
+    /* Turned on from the model menu when a subscription agent is picked. */
+    A.setAgentEnabled = function (value) {
+        writeStored(!!value);
+        A.syncAgentToggle();
+    };
+
     /* Called when switching conversations so the toggle reflects the
        stored state for the new conversation. */
     A.syncAgentToggle = function () {

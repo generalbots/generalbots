@@ -28,7 +28,13 @@
     catch (e) { /* storage blocked */ }
   }
   function shortName(model) {
-    return String(model || "").replace(/^acct:/, "").replace(/\.gguf$/i, "");
+    var value = String(model || "");
+    if (value.indexOf("sub:") === 0) {
+      var id = value.slice(4);
+      var hit = (window.gbLinkedAgents || []).filter(function (a) { return a.provider === id; })[0];
+      return (hit && (hit.name || hit.provider)) || id;
+    }
+    return value.replace(/^acct:/, "").replace(/\.gguf$/i, "");
   }
   function pickerModel() {
     try { return localStorage.getItem("gb-model-preference") || "auto"; }

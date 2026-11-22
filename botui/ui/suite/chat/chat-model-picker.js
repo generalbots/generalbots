@@ -4,6 +4,13 @@
 (function () {
   var MODEL_KEY = "gb-model-preference";
   var ACCOUNT_VALUE_PREFIX = "acct:";
+  var AGENT_VALUE_PREFIX = "sub:";
+  var AGENT_NAMES = {
+    "claude-code": "Claude Code",
+    "codex-cli": "Codex",
+    "antigravity": "Antigravity",
+    "chatgpt-plan": "ChatGPT"
+  };
 
   function picker() {
     return document.getElementById("modelPicker");
@@ -97,7 +104,12 @@
   }
 
   function shortName(model) {
-    return String(model || "").replace(/\.gguf$/i, "");
+    var value = String(model || "");
+    if (value.indexOf(AGENT_VALUE_PREFIX) === 0) {
+      var id = value.slice(AGENT_VALUE_PREFIX.length);
+      return AGENT_NAMES[id] || id;
+    }
+    return value.replace(/\.gguf$/i, "");
   }
 
   function enabledModels(account) {
@@ -216,6 +228,41 @@
       });
   }
 
+  /* Subscription agents connected in Settings > AI accounts: picking one
+     answers the turn through its own agent VM (`sub:<provider>`), leaving
+     the bot's default model untouched. Mirrors the assistant model menu. */
+  function hydrateAgents() {
+    var select = picker();
+    if (!select) return;
+    select.querySelectorAll("optgroup.gb-model-agent-group").forEach(function (node) {
+      node.remove();
+    });
+    fetch("/api/ai-accounts", { cache: "no-store", headers: authHeaders() })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.accounts)) return;
+        var agents = data.accounts.filter(function (account) {
+          return account.status === "linked" && account.provider;
+        });
+        if (!agents.length) return;
+        window.gbLinkedAgents = agents;
+        var group = document.createElement("optgroup");
+        group.className = "gb-model-agent-group";
+        group.label = tr("chat-model-agents", "Agents");
+        agents.forEach(function (account) {
+          var option = document.createElement("option");
+          option.value = AGENT_VALUE_PREFIX + account.provider;
+          option.textContent = AGENT_NAMES[account.provider] || account.provider;
+          group.appendChild(option);
+        });
+        select.appendChild(group);
+        restoreSaved(select);
+      })
+      .catch(function (error) {
+        console.debug("[chat-model-picker] linked agents unavailable", error && error.message);
+      });
+  }
+
   function restorePreference() {
     var select = picker();
     if (!select) return;
@@ -233,15 +280,18 @@
     restorePreference();
     hydrate();
     hydrateAccounts();
+    hydrateAgents();
     setTimeout(hydrate, 800);
     setTimeout(hydrate, 2500);
   }
 
   window.hydrateModelTiers = hydrate;
   window.hydrateModelAccounts = hydrateAccounts;
+  window.hydrateModelAgents = hydrateAgents;
   window.addEventListener("gb:auth:login", function () {
     hydrate();
     hydrateAccounts();
+    hydrateAgents();
   });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

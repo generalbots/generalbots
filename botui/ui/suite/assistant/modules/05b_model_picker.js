@@ -13,6 +13,12 @@
     /* ---- Model name helpers ---- */
     A.shortModelName = function (model) {
         if (!model) { return ""; }
+        /* A linked subscription agent is "sub:<provider>". */
+        if (/^sub:/.test(String(model))) {
+            var id = String(model).slice(4);
+            var hit = (A.linkedAgents || []).filter(function (x) { return x.id === id; })[0];
+            return hit ? hit.name : id;
+        }
         /* An account model is "acct:<provider>/<model>": show just the model. */
         var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
@@ -28,6 +34,7 @@
 
     A.fullModelName = function (model) {
         if (!model) { return ""; }
+        if (/^sub:/.test(String(model))) { return A.shortModelName(model); }
         var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
@@ -52,6 +59,10 @@
 
     /* ---- Render / update ---- */
     A.renderModelPickers = function () {
+        if (A.loadLinkedAgents && !A._agentsAsked) {
+            A._agentsAsked = true;
+            A.loadLinkedAgents().then(function () { A.renderModelPickers(); });
+        }
         var pickers = document.querySelectorAll(".gb-model-picker");
         for (var p = 0; p < pickers.length; p++) { replaceWithButton(pickers[p]); }
         var btns = document.querySelectorAll(".gb-model-btn");
@@ -122,6 +133,7 @@
             menu.appendChild(item);
         }
 
+        addAgentGroup(menu);
         addAccountGroups(menu);
         addSwitchEntries(menu, dest);
 
@@ -179,6 +191,19 @@
                 });
             });
         }).catch(function () { /* the menu keeps what it has */ });
+    }
+
+    /* ---- Connected subscription agents (Settings > AI accounts): picking
+       one answers through its own agent VM; the bot's default is untouched. ---- */
+    function addAgentGroup(menu) {
+        var agents = A.linkedAgents || [];
+        if (!agents.length) { return; }
+        addGroup(menu, { id: "agents", name: A.t("chat-model-agents", "Agents"), logo: "" },
+            agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }),
+            function (value) {
+                if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
+                selectModel(value);
+            });
     }
 
     /* ---- Provider accounts: one collapsible group per key, listing the

@@ -3,6 +3,7 @@
 window.GBAssistantLocales = window.GBAssistantLocales || {};
 window.GBAssistantLocales["en"] = {
     "assistant.new-chat":         "New chat",
+    "chat-model-agents":          "Agents",
     "assistant.search":           "Search…",
     "assistant.drive":            "Drive",
     "assistant.settings":         "Settings",

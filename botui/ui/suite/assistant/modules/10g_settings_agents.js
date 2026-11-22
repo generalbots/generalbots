@@ -168,6 +168,17 @@ function renderAgents(el) {
   });
 }
 
+/* The chat model menu lists connected agents (05b_model_picker.js). */
+A.loadLinkedAgents = function () {
+  return api("/api/ai-accounts").then(function (data) {
+    A.linkedAgents = (data.accounts || []).filter(function (x) { return x.status === "linked"; })
+      .map(function (x) {
+        var meta = AGENTS.filter(function (a) { return a.id === x.provider; })[0] || {};
+        return { id: x.provider, name: meta.name || x.provider, logo: meta.logo || "" };
+      });
+  }).catch(function () { A.linkedAgents = []; });
+};
+
 /* Wire the ACP detail pane; tolerate either script load order. */
 if (A._modelProviders) { A._modelProviders.renderAcp = renderAgents; }
 else { A._acpRenderPending = renderAgents; }

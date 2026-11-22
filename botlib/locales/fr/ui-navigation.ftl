@@ -12,6 +12,7 @@ chat-model-auto = Automatique
 chat-model-fast = Rapide · vif
 chat-model-balanced = Équilibré · par défaut
 chat-model-quality = Qualité · meilleur
+chat-model-agents = Agents
 chat-attach = Joindre un fichier
 chat-attached = Fichier joint
 chat-web-on-short = Web activé

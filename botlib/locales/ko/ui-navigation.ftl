@@ -12,6 +12,7 @@ chat-model-auto = 자동
 chat-model-fast = 빠름 · 신속
 chat-model-balanced = 균형 · 기본
 chat-model-quality = 품질 · 최고
+chat-model-agents = 에이전트
 chat-attach = 파일 첨부
 chat-attached = 첨부된 파일
 chat-web-on-short = 웹 켜짐
