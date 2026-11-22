@@ -20,6 +20,12 @@ const APPS_REGISTRY = [
     icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
   { id: "campaigns", title: "Campaigns", category: "business", color: "#f59e0b", hxGet: "/suite/campaigns/campaigns.html",
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
+  // #2503 — Office event stream, delivery ledger and native automations.
+  { id: "events", title: "Events", category: "business", color: "#0ea5e9", hxGet: "/suite/events/events.html",
+    icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
+  // #2501 — approval routing, SLA, delegation, e-signature and records.
+  { id: "approvals", title: "Approvals", category: "office", color: "#f59e0b", hxGet: "/suite/approvals/approvals.html",
+    icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: "analytics", title: "Analytics", category: "business", color: "#0ea5e9", hxGet: "/suite/analytics/analytics.html",
     icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>' },
   { id: "attendant", title: "Attendant", category: "business", color: "#22c55e", hxGet: "/suite/attendant/index.html",

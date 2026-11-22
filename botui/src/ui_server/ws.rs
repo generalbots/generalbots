@@ -192,6 +192,8 @@ fn normalize_ws_bot_name(name: &str) -> String {
         "brazil",
         "browser",
         "campaigns",
+    "events",
+    "approvals",
         "compliance",
         "database",
         "email",

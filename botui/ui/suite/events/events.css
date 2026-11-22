@@ -1,0 +1,60 @@
+/* Issue #2503 — Office event stream admin surface. */
+.events-app {
+  padding: 18px 20px 28px;
+  color: var(--text, #e2e8f0);
+  font-size: var(--text-sm, 13px);
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+.events-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border, #334155);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+.events-title-group { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.events-title { margin: 0; font-size: var(--text-lg, 18px); font-weight: 600; }
+.events-subtitle { color: var(--muted, #94a3b8); font-size: var(--text-xs, 12px); }
+.events-schema { color: var(--accent, #0ea5e9); font-family: monospace; font-size: var(--text-xs, 12px); }
+.events-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.events-panel {
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border, #334155);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.events-panel-title { margin: 0 0 6px; font-size: var(--text-base, 15px); font-weight: 600; }
+.events-panel-desc { margin: 0 0 12px; color: var(--muted, #94a3b8); line-height: 1.5; }
+.events-table-wrap { overflow-x: auto; }
+.events-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs, 12px); }
+.events-table th, .events-table td {
+  text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border, #334155);
+}
+.events-table th { color: var(--muted, #94a3b8); font-weight: 600; }
+.events-table td { font-family: monospace; word-break: break-all; }
+.events-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.events-btn {
+  border: 1px solid var(--border, #334155); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer; font: inherit;
+  background: var(--surface-2, rgba(255, 255, 255, 0.06)); color: inherit;
+}
+.events-btn.primary { background: var(--accent, #0ea5e9); color: #fff; border-color: transparent; }
+.events-btn:hover { filter: brightness(1.1); }
+.events-count { color: var(--muted, #94a3b8); font-size: var(--text-xs, 12px); }
+.events-status { margin: 10px 0 0; min-height: 1.2em; color: var(--accent, #0ea5e9); }
+.events-log { margin: 12px 0 0; padding-left: 20px; line-height: 1.8; }
+.events-catalog-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 24px; }
+.events-catalog-list li {
+  padding: 4px 0; border-bottom: 1px solid var(--border, #334155);
+  break-inside: avoid; font-size: var(--text-xs, 12px);
+}
+.events-catalog-list code { color: var(--accent, #0ea5e9); margin-right: 8px; }
+.events-catalog-list span { color: var(--muted, #94a3b8); }
+@media (max-width: 640px) {
+  .events-catalog-list { columns: 1; }
+}

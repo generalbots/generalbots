@@ -1,0 +1,61 @@
+<link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+<link rel="stylesheet" href="/suite/approvals/approvals.css" />
+<div class="gb-app gb-approvals" data-gb-app="approvals">
+  <header class="gb-appr-header">
+    <div>
+      <h1 id="apprTitle" data-i18n="approvals-title"></h1>
+      <p id="apprSubtitle" data-i18n="approvals-subtitle"></p>
+    </div>
+    <div class="gb-appr-actions">
+      <button type="button" id="apprRefresh" class="gb-appr-btn" data-i18n="approvals-refresh"></button>
+      <button type="button" id="apprSlaSweep" class="gb-appr-btn" data-i18n="approvals-sla-sweep"></button>
+    </div>
+  </header>
+
+  <div id="apprStatus" class="gb-appr-status" role="status" aria-live="polite"></div>
+
+  <div class="gb-appr-layout">
+    <section class="gb-appr-panel" aria-labelledby="apprCreateHeading">
+      <h2 id="apprCreateHeading" data-i18n="approvals-section-create"></h2>
+      <form id="apprForm" autocomplete="off">
+        <label for="apprDocId" data-i18n="approvals-field-doc-id"></label>
+        <input id="apprDocId" type="text" required />
+        <label for="apprDocTitle" data-i18n="approvals-field-title"></label>
+        <input id="apprDocTitle" type="text" />
+        <label for="apprDocClass" data-i18n="approvals-field-class"></label>
+        <input id="apprDocClass" type="text" />
+        <label for="apprOwner" data-i18n="approvals-field-owner"></label>
+        <input id="apprOwner" type="text" required />
+        <label for="apprContent" data-i18n="approvals-field-content"></label>
+        <textarea id="apprContent" rows="3" required></textarea>
+        <label for="apprReviewers" data-i18n="approvals-field-reviewers"></label>
+        <input id="apprReviewers" type="text" />
+        <label for="apprCfo" data-i18n="approvals-field-cfo"></label>
+        <input id="apprCfo" type="text" />
+        <label for="apprSigner" data-i18n="approvals-field-signer"></label>
+        <input id="apprSigner" type="text" />
+        <label for="apprSla" data-i18n="approvals-field-sla"></label>
+        <input id="apprSla" type="number" min="1" />
+        <button type="submit" class="gb-appr-btn gb-appr-btn-primary" id="apprCreate" data-i18n="approvals-action-create"></button>
+      </form>
+    </section>
+
+    <section class="gb-appr-panel" aria-labelledby="apprListHeading">
+      <h2 id="apprListHeading" data-i18n="approvals-section-list"></h2>
+      <div id="apprList"></div>
+    </section>
+
+    <section class="gb-appr-panel gb-appr-detail" aria-labelledby="apprDetailHeading">
+      <h2 id="apprDetailHeading" data-i18n="approvals-section-detail"></h2>
+      <div id="apprDetail"></div>
+      <h3 data-i18n="approvals-section-trail"></h3>
+      <div id="apprTrail"></div>
+      <div id="apprActions"></div>
+    </section>
+  </div>
+</div>
+<script src="/suite/approvals/modules/01_state.js"></script>
+<script src="/suite/approvals/modules/02_api.js"></script>
+<script src="/suite/approvals/modules/03_render.js"></script>
+<script src="/suite/approvals/modules/04_events.js"></script>
+<script src="/suite/approvals/modules/99_init.js"></script>

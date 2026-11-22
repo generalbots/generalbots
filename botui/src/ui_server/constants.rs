@@ -100,6 +100,8 @@ pub const SUITE_DIRS: &[&str] = &[
     "brazil",
     "browser",
     "campaigns",
+    "events",
+    "approvals",
     "compliance",
     "database",
     "desktop",

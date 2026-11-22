@@ -1,0 +1,142 @@
+"use strict";
+if (window.GBAppLifecycle) GBAppLifecycle.begin("approvals");
+
+// English fallbacks for every catalog key used by this app. The driver adds
+// these keys to all 8 locale catalogs; gbT keeps the app readable until then.
+window.GBApprovals = (function () {
+  var STRINGS = {
+    "approvals-title": "Approvals & e-signature",
+    "approvals-subtitle": "Route, approve, sign and publish documents with a signed trail.",
+    "approvals-refresh": "Refresh",
+    "approvals-sla-sweep": "Run SLA sweep",
+    "approvals-section-create": "New approval",
+    "approvals-section-list": "Pending approvals",
+    "approvals-section-detail": "Selected approval",
+    "approvals-section-trail": "Signed decision trail",
+    "approvals-field-doc-id": "Document ID",
+    "approvals-field-title": "Title",
+    "approvals-field-class": "Document class",
+    "approvals-field-owner": "Owner",
+    "approvals-field-content": "Content (hashed for version binding)",
+    "approvals-field-reviewers": "Parallel reviewers (comma separated)",
+    "approvals-field-cfo": "Sequential approver",
+    "approvals-field-signer": "Signer",
+    "approvals-field-sla": "Step SLA (seconds)",
+    "approvals-field-actor": "Actor",
+    "approvals-field-reason": "Reason (required to reject)",
+    "approvals-field-comment": "Comment",
+    "approvals-field-version-hash": "Expected version hash",
+    "approvals-action-create": "Create and route",
+    "approvals-action-view": "View",
+    "approvals-action-approve": "Approve",
+    "approvals-action-reject": "Reject",
+    "approvals-action-request-changes": "Request changes",
+    "approvals-action-sign": "Sign",
+    "approvals-action-publish": "Publish to records",
+    "approvals-action-simulate-breach": "Simulate SLA breach",
+    "approvals-action-edit-content": "Edit content (invalidate)",
+    "approvals-action-verify": "Verify trail",
+    "approvals-col-doc": "Document",
+    "approvals-col-status": "Status",
+    "approvals-col-step": "Step",
+    "approvals-col-version": "Version",
+    "approvals-col-actions": "Actions",
+    "approvals-status-draft": "Draft",
+    "approvals-status-in-review": "In review",
+    "approvals-status-approved": "Approved",
+    "approvals-status-awaiting-signature": "Awaiting signature",
+    "approvals-status-signed": "Signed",
+    "approvals-status-published": "Published",
+    "approvals-status-invalidated": "Invalidated",
+    "approvals-empty-list": "No approvals yet.",
+    "approvals-empty-trail": "No decisions recorded yet.",
+    "approvals-no-selection": "Select an approval to see its trail.",
+    "approvals-status-created": "Approval created and routed.",
+    "approvals-status-routed": "Routing with {count} steps started.",
+    "approvals-status-decision-ok": "Decision recorded and signed.",
+    "approvals-status-decision-error": "Decision failed: {error}",
+    "approvals-msg-signed": "Signature recorded.",
+    "approvals-msg-published": "Published: {entry}",
+    "approvals-msg-invalidated": "Content changed — approval invalidated.",
+    "approvals-error-required": "Required fields are missing.",
+    "approvals-step-reviewers": "Parallel reviewers",
+    "approvals-step-approver": "Authorized approver",
+    "approvals-step-signature": "Electronic signature",
+    "approvals-status-breach": "SLA sweep produced {count} event(s).",
+    "approvals-status-verified": "Decision trail verified: {value}",
+    "approvals-decision-approve": "approved",
+    "approvals-decision-reject": "rejected",
+    "approvals-decision-request-changes": "requested changes",
+    "approvals-sla-reminder": "Reminder",
+    "approvals-sla-escalation": "Escalation",
+    "approvals-label-version": "Version hash",
+    "approvals-label-signature": "Signature",
+    "approvals-label-signed-hash": "Signed hash",
+    "approvals-label-records": "Records entry",
+    "approvals-label-step": "Current step",
+    "approvals-label-due": "Due"
+  };
+
+  function t(key, fallback) {
+    var text = STRINGS[key] || fallback || key;
+    return typeof window.gbT === "function" ? window.gbT(key, text) : text;
+  }
+
+  function applyI18n(root) {
+    var scope = root || document;
+    scope.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    scope.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+    });
+  }
+
+  function esc(value) {
+    var node = document.createElement("div");
+    node.textContent = value === null || value === undefined ? "" : String(value);
+    return node.innerHTML;
+  }
+
+  function format(key, params) {
+    var text = t(key);
+    Object.keys(params || {}).forEach(function (name) {
+      text = text.split("{" + name + "}").join(String(params[name]));
+    });
+    return text;
+  }
+
+  var state = { records: [], selectedId: null, record: null };
+
+  function setStatus(message, isError) {
+    var el = document.getElementById("apprStatus");
+    if (!el) return;
+    el.textContent = message;
+    el.className = "gb-appr-status" + (isError ? " gb-appr-error" : "");
+  }
+
+  var STATUS_KEYS = {
+    draft: "approvals-status-draft",
+    in_review: "approvals-status-in-review",
+    awaiting_signature: "approvals-status-awaiting-signature",
+    approved: "approvals-status-approved",
+    signed: "approvals-status-signed",
+    published: "approvals-status-published",
+    invalidated: "approvals-status-invalidated"
+  };
+
+  function statusLabel(status) {
+    var key = STATUS_KEYS[status];
+    return key ? t(key) : String(status);
+  }
+
+  return {
+    t: t,
+    applyI18n: applyI18n,
+    esc: esc,
+    format: format,
+    state: state,
+    setStatus: setStatus,
+    statusLabel: statusLabel
+  };
+})();

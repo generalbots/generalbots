@@ -1,0 +1,59 @@
+<link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+<link rel="stylesheet" href="/suite/events/events.css?v=1" />
+
+<div class="gb-app events-app" id="events-app" data-gb-app="events">
+  <header class="events-header">
+    <div class="events-title-group">
+      <h2 class="events-title" data-i18n="events-title">Events</h2>
+      <span class="events-subtitle" data-i18n="events-subtitle">Office event stream — admin replay and native automations</span>
+    </div>
+    <span class="events-schema" id="events-schema-version" aria-live="polite"></span>
+  </header>
+
+  <div class="events-grid">
+    <section class="events-panel" aria-labelledby="events-replay-title">
+      <h3 class="events-panel-title" id="events-replay-title" data-i18n="events-replay-title">Dead-letter replay</h3>
+      <p class="events-panel-desc" data-i18n="events-replay-desc">Replay a failed webhook delivery. Each idempotency key is delivered at most once.</p>
+      <div class="events-table-wrap">
+        <table class="events-table">
+          <thead>
+            <tr>
+              <th scope="col" data-i18n="events-col-event">Event</th>
+              <th scope="col" data-i18n="events-col-key">Idempotency key</th>
+              <th scope="col" data-i18n="events-col-attempts">Attempts</th>
+              <th scope="col" data-i18n="events-col-status">Status</th>
+            </tr>
+          </thead>
+          <tbody id="events-dlq"></tbody>
+        </table>
+      </div>
+      <div class="events-actions">
+        <button type="button" id="events-replay-btn" class="events-btn primary" data-i18n="events-replay-button">Replay dead letter</button>
+        <span class="events-count" id="events-delivery-count" role="status" aria-live="polite"></span>
+      </div>
+      <p class="events-status" id="events-replay-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="events-panel" aria-labelledby="events-automation-title">
+      <h3 class="events-panel-title" id="events-automation-title" data-i18n="events-automation-title">Native automation</h3>
+      <p class="events-panel-desc" data-i18n="events-automation-desc">Subscribed to sheet.exported through the in-platform queue — no polling.</p>
+      <div class="events-actions">
+        <button type="button" id="events-export-btn" class="events-btn primary" data-i18n="events-export-button">Export sheet (emit sheet.exported)</button>
+        <span class="events-count" id="events-poll-count" role="status" aria-live="polite"></span>
+      </div>
+      <p class="events-status" id="events-automation-status" role="status" aria-live="polite"></p>
+      <ol class="events-log" id="events-automation-log" aria-label="Automation reactions" data-i18n-aria-label="events-automation-log-aria"></ol>
+    </section>
+  </div>
+
+  <section class="events-panel events-catalog" aria-labelledby="events-catalog-title">
+    <h3 class="events-panel-title" id="events-catalog-title" data-i18n="events-catalog-title">Event catalog</h3>
+    <p class="events-panel-desc" data-i18n="events-catalog-desc">Metadata-only payloads; document bodies are never included by default.</p>
+    <ul class="events-catalog-list" id="events-catalog"></ul>
+  </section>
+</div>
+
+<script src="/suite/events/01_contract.js?v=1"></script>
+<script src="/suite/events/02_admin.js?v=1"></script>
+<script src="/suite/events/03_automation.js?v=1"></script>
+<script src="/suite/events/99_init.js?v=1"></script>
