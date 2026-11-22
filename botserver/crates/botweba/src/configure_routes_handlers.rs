@@ -360,6 +360,3 @@ async fn submit_form_inner(
 
     Ok(Json(serde_json::json!({ "status": "accepted" })))
 }
-
-/// #2538 — custom-domain verification state. TLS termination is handled by
-/// the edge proxy; the appliance only records the verified state.
