@@ -1,4 +1,5 @@
 use crate::auth::{resolve_user_id, SheetUser};
+use crate::handlers::admission::admit;
 use crate::state::{
     delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive, persist_sheet_to_drive,
     save_sheet_to_drive, SheetState,
@@ -17,12 +18,25 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
+use botcore::WorkClass;
 use chrono::Utc;
 use sha2::Digest;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// #2530 — cheap estimate of a full-snapshot JSON save: each cell counts as
+/// 128 bytes (the same convention as `sheet_payload_bytes` in the admission
+/// bridge) plus the literal name. Measuring the request by re-serializing it
+/// would allocate the buffer the gate exists to bound, so we never do that.
+pub(crate) fn save_payload_bytes(req: &SaveRequest) -> u64 {
+    let cells: usize = req.worksheets.iter().map(|sheet| sheet.data.len()).sum();
+    let name_bytes = req.name.as_deref().map_or(0, str::len);
+    (cells as u64)
+        .saturating_mul(128)
+        .saturating_add(name_bytes as u64)
+}
 
 pub async fn handle_new_sheet(
     State(_state): State<Arc<SheetState>>,
@@ -231,3 +245,68 @@ pub async fn handle_load_from_drive(
 
 mod handle_save_sheet;
 pub use handle_save_sheet::*;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use botcore::{CgroupMemory, CgroupSource, MemoryAdmission, MemoryPolicy};
+    use botsheet_core::types::Worksheet;
+
+    const MIB: u64 = 1024 * 1024;
+
+    fn request(cells: usize, name: &str) -> SaveRequest {
+        let mut worksheet = Worksheet::default();
+        for index in 0..cells {
+            worksheet
+                .data
+                .insert(format!("A{index}"), Default::default());
+        }
+        SaveRequest {
+            id: None,
+            name: Some(name.to_string()),
+            worksheets: vec![worksheet],
+            action: None,
+        }
+    }
+
+    #[test]
+    fn save_payload_counts_cells_and_name() {
+        assert_eq!(save_payload_bytes(&request(10, "abc")), 10 * 128 + 3);
+        assert_eq!(save_payload_bytes(&request(0, "")), 0);
+    }
+
+    #[test]
+    fn json_save_over_the_eight_mib_cap_is_a_typed_413() {
+        let ceiling = CgroupMemory {
+            limit_bytes: 4096 * MIB,
+            current_bytes: None,
+            source: CgroupSource::V2,
+        };
+        let gate = MemoryAdmission::new(MemoryPolicy::from_ceiling(ceiling));
+        let payload = save_payload_bytes(&request(70_000, "salaries"));
+        let result = gate.try_admit(WorkClass::OfficeJsonSave, payload);
+        assert!(result.is_err());
+        if let Err(error) = result {
+            assert_eq!(error.status_code(), StatusCode::PAYLOAD_TOO_LARGE);
+            assert_eq!(error.code(), "office_payload_too_large");
+            let body = error.json_body().to_string();
+            assert!(!body.contains("salaries"));
+        }
+    }
+
+    #[test]
+    fn json_save_under_the_cap_is_admitted() {
+        let ceiling = CgroupMemory {
+            limit_bytes: 4096 * MIB,
+            current_bytes: None,
+            source: CgroupSource::V2,
+        };
+        let gate = MemoryAdmission::new(MemoryPolicy::from_ceiling(ceiling));
+        let payload = save_payload_bytes(&request(10, "Budget"));
+        let result = gate.try_admit(WorkClass::OfficeJsonSave, payload);
+        assert!(result.is_ok());
+        if let Ok(permit) = result {
+            assert_eq!(permit.class(), WorkClass::OfficeJsonSave);
+        }
+    }
+}

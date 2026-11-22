@@ -1,4 +1,5 @@
 use crate::auth::DocUser;
+use crate::handlers_api::admission::admit;
 use crate::state::DocState;
 use crate::storage::{
     create_document_with, create_new_document, delete_document_from_drive,
@@ -13,6 +14,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use botcore::WorkClass;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -26,6 +28,14 @@ fn reject_current_doc_id(id: Option<&str>) -> Result<(), (StatusCode, Json<serde
         ));
     }
     Ok(())
+}
+
+/// #2530 — byte estimate of an already-deserialized save body. Re-serializing
+/// just to measure it would allocate the buffer the gate exists to bound.
+fn save_payload_bytes(content: &str, title: &str, mode: Option<&str>) -> u64 {
+    (content.len() as u64)
+        .saturating_add(title.len() as u64)
+        .saturating_add(mode.map_or(0, str::len) as u64)
 }
 
 /// Resolution of the title stored with a save. The editor autosave sends only
@@ -66,6 +76,10 @@ pub async fn handle_docs_save(
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     reject_current_doc_id(req.id.as_deref())?;
     let user_id = user.id().to_string();
+    // #2530 — admit before resolving/appending the old body.
+    let payload_bytes = save_payload_bytes(&req.content, &req.title, req.mode.as_deref());
+    let permit = admit(WorkClass::OfficeJsonSave, payload_bytes, Some(&user_id)).await?;
+    log::debug!("docs save admitted: {}", permit.class().as_str());
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
     let content =
@@ -130,6 +144,12 @@ pub async fn handle_create_document(
     Json(req): Json<CreateDocumentRequest>,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = user.id().to_string();
+    // #2530 — creation is a JSON save too; admit before materializing the body.
+    let content = req.content.as_deref().unwrap_or("");
+    let title = req.title.as_deref().unwrap_or("");
+    let payload_bytes = save_payload_bytes(content, title, None);
+    let permit = admit(WorkClass::OfficeJsonSave, payload_bytes, Some(&user_id)).await?;
+    log::debug!("docs create admitted: {}", permit.class().as_str());
     let doc = create_document_with(&user_id, req.title.as_deref(), req.content.as_deref());
 
     if let Err(e) =
@@ -223,6 +243,10 @@ pub async fn handle_save_document(
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     reject_current_doc_id(req.id.as_deref())?;
     let user_id = user.id().to_string();
+    // #2530 — autosave delegates here, so this gate covers both entry points.
+    let payload_bytes = save_payload_bytes(&req.content, &req.title, req.mode.as_deref());
+    let permit = admit(WorkClass::OfficeJsonSave, payload_bytes, Some(&user_id)).await?;
+    log::debug!("docs autosave admitted: {}", permit.class().as_str());
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
     let content =
@@ -386,4 +410,32 @@ pub async fn handle_open_from_drive(
         toc: None,
         track_changes_enabled: false,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use botcore::{CgroupMemory, CgroupSource, MemoryAdmission, MemoryPolicy};
+
+    fn gate() -> MemoryAdmission {
+        MemoryAdmission::new(MemoryPolicy::from_ceiling(CgroupMemory {
+            limit_bytes: 4096 * 1024 * 1024,
+            current_bytes: None,
+            source: CgroupSource::V2,
+        }))
+    }
+
+    #[test]
+    fn save_payload_and_typed_cap_refusal() {
+        assert_eq!(save_payload_bytes("hello", "budget", Some("append")), 17);
+        assert_eq!(save_payload_bytes("hello", "", None), 5);
+        let bytes = save_payload_bytes(&"x".repeat(9 * 1024 * 1024), "salary", None);
+        let result = gate().try_admit(WorkClass::OfficeJsonSave, bytes);
+        assert!(result.is_err());
+        if let Err(error) = result {
+            assert_eq!(error.status_code(), StatusCode::PAYLOAD_TOO_LARGE);
+            assert_eq!(error.code(), "office_payload_too_large");
+            assert!(!error.json_body().to_string().contains("salary"));
+        }
+    }
 }

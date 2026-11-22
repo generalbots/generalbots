@@ -11,6 +11,17 @@ use botcore::shared::state::AppState;
 /// Every dependency probe is bounded so `/ready` can never hang its caller.
 const DEPENDENCY_TIMEOUT: Duration = Duration::from_millis(500);
 
+/// #2530 Phase 3 — content-free view of the memory-admission policy. The
+/// cgroup ceiling and derived request budget are read once on first use and
+/// cached; no document bytes, names or tenant ids ever enter this snapshot.
+static ADMISSION: std::sync::OnceLock<botcore::MemoryAdmission> = std::sync::OnceLock::new();
+
+pub fn admission_snapshot() -> botcore::AdmissionSnapshot {
+    ADMISSION
+        .get_or_init(botcore::MemoryAdmission::from_system)
+        .snapshot()
+}
+
 /// One dependency's readiness result. Errors are logged, never returned to
 /// clients: only the coarse status and the measured latency are exposed.
 #[derive(serde::Serialize)]
@@ -305,6 +316,7 @@ async fn readiness_response(state: &Arc<AppState>) -> (StatusCode, Json<serde_js
             "build_date": build_date,
             "commit": commit,
             "failing": failing,
+            "admission": admission_snapshot(),
             "dependencies": {
                 "postgres": postgres,
                 "cache": cache,
@@ -354,7 +366,8 @@ pub async fn health_check(
             "version": botcore::product::build_info::version(),
             "build_date": build_date,
             "commit": commit,
-            "database": db_ok
+            "database": db_ok,
+            "admission": admission_snapshot()
         })),
     )
 }
@@ -380,7 +393,8 @@ pub async fn health_check_simple(
             "status": "ok",
             "service": "botserver",
             "version": botcore::product::build_info::version(),
-            "commit": commit
+            "commit": commit,
+            "admission": admission_snapshot()
         })),
     )
 }

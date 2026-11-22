@@ -8,6 +8,17 @@ pub async fn handle_save_sheet(
     Json(req): Json<SaveRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
+    // #2530 — every JSON save is gated as `OfficeJsonSave`: a full snapshot
+    // carries the whole worksheet set, a rename/flush almost nothing. The
+    // typed refusal (413/507/429) is returned verbatim, so no save is silently
+    // lost and the process stays up. The permit covers the persist below.
+    let payload_bytes = save_payload_bytes(&req);
+    let permit = admit(WorkClass::OfficeJsonSave, payload_bytes, Some(&user_id)).await?;
+    log::debug!(
+        "sheet save admitted: class={} bytes={}",
+        permit.class().as_str(),
+        payload_bytes
+    );
     let action = req.action.as_deref().unwrap_or("save");
 
     if action == "rename" {
