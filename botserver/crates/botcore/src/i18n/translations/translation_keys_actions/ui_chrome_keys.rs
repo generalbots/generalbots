@@ -15,6 +15,9 @@ pub(super) const KEYS: &[&str] = &[
     "app-diagnostics-status",
     "app-diagnostics-online",
     "app-diagnostics-updated",
+    // #2450 — kiosk restart/recovery surface
+    "shell-restarting-title",
+    "shell-restarting-hint",
     "action-save",
     "action-cancel",
     "action-delete",

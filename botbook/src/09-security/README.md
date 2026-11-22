@@ -101,3 +101,27 @@ or camera is currently granted, matching the hardware-style LED convention
 users expect from a laptop — the dot is the software equivalent of the camera
 LED. The origin is included in the accessible label and in the server-side
 audit event; no credentials or internal addresses are logged.
+
+## Kiosk shell shortcut map (#2450)
+
+In the OS edition (`edition=os`, the appliance kiosk) the Tauri bundle is built
+without the `devtools` feature, so no WebKit inspector or developer console is
+available in release builds. The main window is undecorated and fullscreen; a
+native close request is intercepted and opens the shell power menu rather than
+exiting to a black screen. A crashed or restarting shell shows a branded
+"Restarting…" surface instead of a TTY.
+
+The only system-level shortcuts exposed to the kiosk user are:
+
+| Shortcut | Action | Locks first? |
+|---|---|---|
+| Power button / tray → Power | Opens the shell power menu | Yes for suspend/restart/shut down |
+| `Ctrl+K` | Opens the app command palette (no OS access) | n/a |
+| `?` | Opens the in-app shortcuts help | n/a |
+| `Esc` | Closes the current dialog or menu | n/a |
+
+No shortcut opens a terminal, a file manager, a WebView inspector, or any host
+shell. Power actions that can interrupt the session route through the lock
+screen and the authenticated `/api/system/power` endpoint; they never bypass
+the lock. The escape hatch at boot is deliberately absent — recovery is by
+reprovisioning (see the appliance diagnostics documentation).

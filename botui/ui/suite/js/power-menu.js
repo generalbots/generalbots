@@ -154,6 +154,13 @@ const PowerMenu = (() => {
         window.location.href = window.GB_LOGIN_URL || "/login";
         return;
       }
+      if (action === "restart" || action === "shutdown") {
+        // #2450 — never leave a black tty after the webview goes away.
+        document.dispatchEvent(new CustomEvent("gb:restarting", {
+          detail: { message: t("power-menu-done", "Request accepted. The computer is shutting down now.") }
+        }));
+        return;
+      }
       await notify(t("power-menu-done", "Request accepted. The computer is shutting down now."));
     } catch (error) {
       await notify(

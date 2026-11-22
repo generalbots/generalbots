@@ -1,0 +1,44 @@
+/* #2450 — branded restart/recovery surface: never a black TTY in kiosk mode. */
+
+#gb-restarting-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-blocker);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text);
+}
+#gb-restarting-screen.is-visible { display: flex; }
+#gb-restarting-screen[hidden] { display: none; }
+
+.gb-restarting-card {
+  text-align: center;
+  max-width: min(520px, 90vw);
+  padding: 32px;
+}
+.gb-restarting-logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+.gb-restarting-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.gb-restarting-detail {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
