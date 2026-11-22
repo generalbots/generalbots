@@ -74,34 +74,72 @@ impl PackageManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
-    /// #2582 — `table_editor` is explicitly out of scope for botserver
-    /// (pending deletion). The default registry assembled here is the single
-    /// source of truth consumed by `register_components`, so the absence of
-    /// the key proves no manager instance can expose it.
-    #[test]
-    fn all_components_exclude_table_editor() {
-        let components = PackageManager::all_components();
-        assert!(
-            !components.contains_key("table_editor"),
-            "table_editor must not be in the default manager component set (#2582)"
-        );
+    /// #2582 — keys botserver must never register or manage.
+    /// `table_editor` is pending deletion, `devtools` was a no-op placeholder
+    /// and `remote_terminal` was renamed to `remote_desktop`. Their absence
+    /// from the registry is what keeps them off the CLI/install surface.
+    const EXCLUDED_KEYS: &[&str] = &["table_editor", "devtools", "remote_terminal"];
+
+    /// #2582 — keys that must be present in the botserver registry.
+    const REQUIRED_KEYS: &[&str] = &["remote_desktop", "timeseries_db", "observability"];
+
+    /// Assert the full membership contract (both exclusions and inclusions)
+    /// for one view of the registry. Shared by the static registry and the
+    /// constructed manager so both surfaces are held to the same bar.
+    fn assert_expected_membership(components: &HashMap<String, ComponentConfig>, label: &str) {
+        for key in REQUIRED_KEYS {
+            assert!(
+                components.contains_key(*key),
+                "{label} must include '{key}' (#2582)"
+            );
+        }
+        for key in EXCLUDED_KEYS {
+            assert!(
+                !components.contains_key(*key),
+                "{label} must exclude '{key}' (#2582)"
+            );
+        }
     }
 
-    /// A concrete `PackageManager` built through the normal constructor path
-    /// must likewise have no `table_editor` in its `components` map.
-    #[test]
-    fn manager_components_exclude_table_editor() {
-        let excluded = PackageManager::with_base_path(
+    fn test_manager() -> PackageManager {
+        PackageManager::with_base_path(
             InstallMode::Local,
             None,
             PathBuf::from("/tmp/gb-manager-test"),
         )
-        .map(|pm| !pm.components.contains_key("table_editor"))
-        .unwrap_or(false);
-        assert!(
-            excluded,
-            "constructed manager must not manage table_editor (#2582)"
+        .expect("with_base_path must succeed with an explicit base path")
+    }
+
+    /// The static registry assembled by `all_components()` is the single
+    /// source of truth consumed by `register_components`, so its membership
+    /// proves no manager instance can expose an excluded key.
+    #[test]
+    fn all_components_have_expected_membership() {
+        let components = PackageManager::all_components();
+        assert_expected_membership(&components, "PackageManager::all_components()");
+    }
+
+    /// A concrete `PackageManager` built through the normal constructor path
+    /// must satisfy the same membership contract as the static registry.
+    #[test]
+    fn manager_components_have_expected_membership() {
+        let manager = test_manager();
+        assert_expected_membership(&manager.components, "constructed PackageManager.components");
+    }
+
+    /// Guard against future divergence: the constructed manager's map must
+    /// expose exactly the keys produced by `all_components()`.
+    #[test]
+    fn manager_components_keys_match_all_components() {
+        let all = PackageManager::all_components();
+        let manager = test_manager();
+        let all_keys: HashSet<&String> = all.keys().collect();
+        let manager_keys: HashSet<&String> = manager.components.keys().collect();
+        assert_eq!(
+            all_keys, manager_keys,
+            "constructed manager must expose exactly all_components() keys (#2582)"
         );
     }
 }
