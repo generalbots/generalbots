@@ -9,9 +9,11 @@ archive: the only strings are fixed synthetic markers and fixed-vocabulary
 placeholders.
 
 ZIP_STORED is deliberate: deflate output is zlib-version dependent, so a
-deflated corpus could change SHA-256 between CI images. Stored members plus a
-fixed ZipInfo timestamp (the ZIP epoch, 1980-01-01) make the bytes reproducible
-on any Python 3 and any OS. The archives are structurally OOXML-like, which is
+deflated corpus could change SHA-256 between CI images. Stored members, a fixed
+ZipInfo timestamp (the ZIP epoch, 1980-01-01) and fixed creator fields make the
+bytes reproducible on any Python 3 and any OS: ZipInfo otherwise derives
+`create_system` from the host OS (3 on Unix, 0 on Windows), which changes the
+central-directory bytes. The archives are structurally OOXML-like, which is
 what the import/memory soak needs; they are not meant to open in Word.
 
 Usage::
@@ -195,19 +197,25 @@ def _xml_part(kind: str, name: str, rng: random.Random, rows: int) -> bytes:
     return body.encode("utf-8")
 
 
+def _stored_info(name: str) -> zipfile.ZipInfo:
+    """Fixed metadata ZipInfo: no host OS, umask, locale or clock leaks into bytes."""
+    info = zipfile.ZipInfo(name, date_time=ZIP_EPOCH)
+    info.compress_type = zipfile.ZIP_STORED
+    info.external_attr = 0o644 << 16
+    info.create_system = 0  # DOS, stable across hosts; ZipInfo defaults to 3 on Unix.
+    info.create_version = 20
+    info.extract_version = 20
+    return info
+
+
 def _write_archive(path: Path, kind: str, target: int, seed: int, rows: int, blob: int) -> None:
     """Write one archive; `blob` is the tuned filler length in bytes."""
     rng = random.Random(seed)
     names = MEMBERS[kind]
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_STORED) as archive:
         for name in names[:-1]:
-            info = zipfile.ZipInfo(name, date_time=ZIP_EPOCH)
-            info.compress_type = zipfile.ZIP_STORED
-            info.external_attr = 0o644 << 16
-            archive.writestr(info, _xml_part(kind, name, rng, rows))
-        info = zipfile.ZipInfo(names[-1], date_time=ZIP_EPOCH)
-        info.compress_type = zipfile.ZIP_STORED
-        info.external_attr = 0o644 << 16
+            archive.writestr(_stored_info(name), _xml_part(kind, name, rng, rows))
+        info = _stored_info(names[-1])
         remaining = blob
         with archive.open(info, "w") as sink:
             while remaining > 0:
@@ -297,27 +305,32 @@ def self_test() -> int:
     try:
         with tempfile.TemporaryDirectory(prefix="office-corpus-selftest-") as folder:
             root = Path(folder)
+            target = (3 << 20) + 1234  # > CHUNK and non-round: exercises tuning + chunk loop
             for kind in KINDS:
-                first = build_payload(kind, 65536, 2530, root / f"{kind}-a.{kind}")
-                second = build_payload(kind, 65536, 2530, root / f"{kind}-b.{kind}")
-                other = build_payload(kind, 65536, 2531, root / f"{kind}-c.{kind}")
-                check(first["size_bytes"] == 65536, f"{kind}: exact target size")
-                check(first["sha256"] == second["sha256"], f"{kind}: deterministic bytes")
-                check(first["sha256"] != other["sha256"], f"{kind}: seed changes bytes")
+                first = build_payload(kind, target, 2530, root / f"{kind}-a.{kind}")
+                second = build_payload(kind, target, 2530, root / f"{kind}-b.{kind}")
+                other = build_payload(kind, target, 2531, root / f"{kind}-c.{kind}")
+                check(first["size_bytes"] == target, f"{kind}: target size exact")
+                check(first["sha256"] == second["sha256"], f"{kind}: same seed -> identical SHA-256")
+                check((root / first["file"]).read_bytes() == (root / second["file"]).read_bytes(),
+                      f"{kind}: same seed -> identical bytes")
+                check(first["sha256"] != other["sha256"], f"{kind}: different seed -> different SHA-256")
                 with zipfile.ZipFile(root / first["file"]) as archive:
                     check(archive.namelist() == list(MEMBERS[kind]), f"{kind}: member list")
                     check(archive.testzip() is None, f"{kind}: CRCs valid")
                     parts = b"".join(archive.read(name) for name in MEMBERS[kind][:-1])
                     check(MARKER.encode() in parts, f"{kind}: synthetic marker present")
                     check(b"corpus.bin" not in parts, f"{kind}: no real-data field names in XML")
-            for bad in (1, 101):
+            check(_stored_info("x").create_system == 0, "ZIP metadata is host-OS independent")
+            for bad in (0, -1, 1, 101, float("nan"), float("inf")):
                 try:
                     resolve_size_mb(bad)
                 except ValueError:
                     check(True, f"policy rejects {bad} MB")
                 else:
                     check(False, f"policy rejects {bad} MB")
-            check(resolve_size_mb(25) == 25.0, "policy accepts 25 MB")
+            for good in (MIN_SIZE_MB, MAX_SIZE_MB, 25):
+                check(resolve_size_mb(good) == float(good), f"policy accepts {good} MB")
             manifest_a = build_manifest([{
                 "file": "xlsx-25mb-seed2530.xlsx", "kind": "xlsx",
                 "size_bytes": 1024, "seed": 2530, "sha256": "abc",

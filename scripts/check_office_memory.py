@@ -39,7 +39,7 @@ import copy
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -135,11 +135,11 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     if not isinstance(corpus.get("seed"), int) or corpus["seed"] < 0:
         problems.append("corpus.seed must be a non-negative integer")
     low, high = corpus.get("min_size_mb"), corpus.get("max_size_mb")
-    if not (_number(low) and _number(high) and 0 < low < high):
+    bounds_ok = bool(_number(low) and _number(high) and 0 < low < high)
+    if not bounds_ok:
         problems.append("corpus.min_size_mb/max_size_mb must be positive and ordered")
-    else:
-        if low != 5 or high != 100:
-            problems.append("corpus size policy must be the declared 5-100 MB range")
+    elif low != 5 or high != 100:
+        problems.append("corpus size policy must be the declared 5-100 MB range")
 
     cases = corpus.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -161,7 +161,7 @@ def validate_config(config: dict[str, Any]) -> list[str]:
             ids.add(identifier)
         if kind not in KINDS:
             problems.append(f"case {identifier}: kind must be one of {KINDS}")
-        if not _number(size) or not (low <= size <= high):
+        if not _number(size) or (bounds_ok and not (low <= size <= high)):
             problems.append(f"case {identifier}: size_mb outside the corpus policy")
 
     if set(ceilings) != ids:
@@ -289,6 +289,14 @@ def self_test(config_path: Path = DEFAULT_CONFIG) -> int:
         if not condition:
             failures.append(label)
 
+    def rejects(label: str, action: Callable[[], Any], errors: tuple[type[BaseException], ...] = (ValueError,)) -> None:
+        try:
+            action()
+        except errors:
+            check(True, label)
+        else:
+            check(False, label)
+
     try:
         config = load_config(config_path)
         check(not validate_config(config), "real ops/office-slo.yaml is valid")
@@ -309,11 +317,15 @@ def self_test(config_path: Path = DEFAULT_CONFIG) -> int:
         first = cases[0]
         over = copy.deepcopy(good)
         over["cases"][first]["peak_rss_mb"] = float(config["rss_ceilings_mb"][first]) + 1
-        check(not evaluate_snapshot(config, over)["ok"], "over-ceiling RSS fails")
+        over_report = evaluate_snapshot(config, over)
+        check(not over_report["ok"] and any("exceeds ceiling" in b["detail"] for b in over_report["breaches"]),
+              "over-ceiling RSS fails")
 
         missing = copy.deepcopy(good)
         del missing["cases"][first]
-        check(not evaluate_snapshot(config, missing)["ok"], "missing case evidence fails")
+        missing_report = evaluate_snapshot(config, missing)
+        check(not missing_report["ok"] and any("no measured case data" in b["detail"] for b in missing_report["breaches"]),
+              "missing case evidence fails")
 
         short = copy.deepcopy(good)
         short["cases"][first]["cycles"] = 19
@@ -339,16 +351,11 @@ def self_test(config_path: Path = DEFAULT_CONFIG) -> int:
         del bad_ceiling["rss_ceilings_mb"][first]
         check(bool(validate_config(bad_ceiling)), "missing ceiling is rejected")
 
-        from office_largefile_corpus import ACCEPTANCE_CASES, resolve_size_mb
+        from office_largefile_corpus import ACCEPTANCE_CASES, build_payload, resolve_size_mb
 
         check(resolve_size_mb(25) == 25.0, "generator accepts a 25 MB case")
-        for size in (1, 101):
-            try:
-                resolve_size_mb(size)
-            except ValueError:
-                check(True, f"generator rejects {size} MB")
-            else:
-                check(False, f"generator rejects {size} MB")
+        for size in (0, 101, float("nan")):
+            rejects(f"generator rejects {size} MB", lambda size=size: resolve_size_mb(size))
         check(
             all(resolve_size_mb(size) == size for _, size, _ in ACCEPTANCE_CASES),
             "generator acceptance table matches the corpus policy",
@@ -358,12 +365,22 @@ def self_test(config_path: Path = DEFAULT_CONFIG) -> int:
 
         with tempfile.TemporaryDirectory(prefix="office-memory-selftest-") as folder:
             missing_path = Path(folder) / "absent.yaml"
-            try:
-                load_config(missing_path)
-            except (OSError, ValueError):
-                check(True, "missing config fails closed")
-            else:
-                check(False, "missing config fails closed")
+            rejects("missing config fails closed", lambda: load_config(missing_path), (OSError, ValueError))
+
+            seed = config["corpus"]["seed"]
+            gen_a = build_payload("xlsx", 65536, seed, Path(folder) / "a.xlsx")
+            gen_b = build_payload("xlsx", 65536, seed, Path(folder) / "b.xlsx")
+            check(gen_a["sha256"] == gen_b["sha256"], "same seed -> identical SHA-256")
+
+            bad_json = Path(folder) / "bad.json"
+            bad_json.write_text("{not json", encoding="utf-8")
+            rejects("malformed snapshot JSON rejected", lambda: load_snapshot(bad_json))
+            no_cases = Path(folder) / "no-cases.json"
+            no_cases.write_text('{"cases": []}', encoding="utf-8")
+            rejects("snapshot without a cases mapping rejected", lambda: load_snapshot(no_cases))
+            bad_case = evaluate_snapshot(config, {"cases": {first: "not-an-object"}})
+            check(not bad_case["ok"] and any("no measured case data" in b["detail"] for b in bad_case["breaches"]),
+                  "malformed snapshot case fails closed")
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f"self-test: unexpected error: {error}", file=sys.stderr)
         return 1
