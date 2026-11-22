@@ -184,3 +184,16 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* #2568 — terminal action buttons use the shared icon-button primitive that
+   previously lived only in editor.css (not loaded by this fragment). */
+.botcoder-btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-muted, var(--text-secondary));
+  cursor: pointer;
+  font-size: var(--text-sm);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.botcoder-btn-icon:hover { color: var(--text); }
