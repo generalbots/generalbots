@@ -6,6 +6,8 @@
   var NS = window.GBEvents;
   if (!NS || !NS.contract) return;
   var contract = NS.contract;
+  // Metadata-only example payload shown next to every catalog event name.
+  var EXAMPLE_PAYLOAD = "evt_01J8Z3KQ2M · doc_456 · metadata only (no body)";
 
   function tr(key, fallback, params) {
     return contract.tr(key, fallback, params);
@@ -21,7 +23,7 @@
       label.textContent = name;
       var example = document.createElement("span");
       example.textContent = tr("events-catalog-example",
-        "example: evt_01J8Z3KQ2M · doc_456 · metadata only (no body)", {});
+        "Example: {example}", { example: EXAMPLE_PAYLOAD });
       item.appendChild(label);
       item.appendChild(example);
       list.appendChild(item);

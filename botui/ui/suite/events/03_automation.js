@@ -12,21 +12,35 @@
     event_type: contract.canonical("sheet.exported")
   };
 
+  // One log <li> is appended per native reaction, so the log is the live
+  // reaction count in both the simulation and the WebSocket transport.
+  function reactionCount() {
+    var list = document.getElementById("events-automation-log");
+    return list ? list.children.length : 0;
+  }
+
   function logReaction(envelope) {
     var list = document.getElementById("events-automation-log");
     if (!list) return;
     var item = document.createElement("li");
     item.textContent = contract.tr("events-automation-log-line",
       "Automation reacted to {type} — event {id}",
-      { type: envelope.event_type, id: envelope.event_id });
+      {
+        event: envelope.event_type,
+        type: envelope.event_type,
+        id: envelope.event_id
+      });
     list.appendChild(item);
+    // The live socket delivers envelopes asynchronously, after the click
+    // handler has already called setStatus(); refresh on each reaction too.
+    setStatus();
   }
 
   function setStatus() {
     var status = document.getElementById("events-automation-status");
     if (status) {
       status.textContent = contract.tr("events-automation-status",
-        "sheet.exported emitted; the automation reacted without polling.");
+        "Reactions: {count}", { count: reactionCount() });
     }
     var poll = document.getElementById("events-poll-count");
     if (poll) {
