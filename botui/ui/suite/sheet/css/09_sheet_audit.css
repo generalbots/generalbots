@@ -11,8 +11,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--sheet-surface, var(--sentient-bg-primary, #ffffff));
-  color: var(--sheet-text, var(--sentient-text-primary, #1f2937));
+  background: var(--sheet-surface, var(--sentient-bg-primary, var(--palette-ffffff)));
+  color: var(--sheet-text, var(--sentient-text-primary, var(--palette-1f2937)));
   border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.35));
   border-radius: 10px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
@@ -43,7 +43,7 @@
   font-size: var(--text-2xs);
   font-weight: 600;
   background: var(--sheet-accent-soft, rgba(59, 130, 246, 0.14));
-  color: var(--sheet-accent, #2563eb);
+  color: var(--sheet-accent, var(--palette-2563eb));
   cursor: help;
 }
 
@@ -63,7 +63,7 @@
 
 .sheet-audit-local-note {
   margin: 8px 14px 4px;
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
   font-size: var(--text-2xs)
 }
 
@@ -85,15 +85,15 @@
   cursor: pointer;
 }
 .sheet-audit-tab[aria-selected="true"] {
-  border-bottom-color: var(--sheet-accent, #2563eb);
-  color: var(--sheet-accent, #2563eb);
+  border-bottom-color: var(--sheet-accent, var(--palette-2563eb));
+  color: var(--sheet-accent, var(--palette-2563eb));
   font-weight: 600;
 }
 
 .sheet-audit-status {
   margin: 6px 14px;
   min-height: 18px;
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
   font-size: var(--text-2xs)
 }
 
@@ -122,7 +122,7 @@
 }
 .sheet-audit-field-label {
   font-size: var(--text-2xs);
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
 }
 
 .sheet-audit-input,
@@ -149,13 +149,13 @@
 }
 .sheet-audit-btn-small { padding: 3px 7px; font-size: var(--text-2xs) }
 .sheet-audit-btn:hover,
-.sheet-audit-btn-small:hover { border-color: var(--sheet-accent, #2563eb); }
+.sheet-audit-btn-small:hover { border-color: var(--sheet-accent, var(--palette-2563eb)); }
 
 .sheet-audit-hint,
 .sheet-audit-note,
 .sheet-audit-empty {
   margin: 6px 0;
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
   font-size: var(--text-2xs)
 }
 .sheet-audit-summary { margin: 8px 0 4px; font-weight: 600; }
@@ -194,12 +194,12 @@
 .sheet-audit-error-cause,
 .sheet-audit-error-fix,
 .sheet-audit-map-counts {
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
   overflow-wrap: anywhere;
 }
 .sheet-audit-error-type {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #b91c1c;
+  color: var(--palette-b91c1c);
 }
 .sheet-audit-error-head {
   display: flex;
@@ -209,7 +209,7 @@
   padding: 5px 7px 3px;
   font-size: 0.85em;
   font-weight: 600;
-  color: var(--sheet-muted, #6b7280);
+  color: var(--sheet-muted, var(--palette-6b7280));
   border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.2));
 }
 .sheet-audit-cycle-item { flex-direction: column; align-items: flex-start; }
@@ -224,8 +224,8 @@
   overflow-wrap: anywhere;
 }
 .sheet-audit-code-active {
-  background: var(--sheet-accent, #2563eb);
-  color: #ffffff;
+  background: var(--sheet-accent, var(--palette-2563eb));
+  color: var(--palette-ffffff);
   border-radius: 3px;
   padding: 1px 2px;
 }
@@ -264,7 +264,7 @@
 
 /* View-only formula swap. The workbook cell data is untouched. */
 .sheet-audit-formula-view {
-  color: var(--sheet-accent, #2563eb);
+  color: var(--sheet-accent, var(--palette-2563eb));
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-2xs)
 }
@@ -283,12 +283,12 @@
 }
 .sheet-audit-arrow {
   fill: none;
-  stroke: #2563eb;
+  stroke: var(--palette-2563eb);
   stroke-width: 1.6;
   opacity: 0.85;
 }
-.sheet-audit-arrow.is-dependent { stroke: #dc2626; }
-.sheet-audit-arrowhead { fill: #2563eb; }
+.sheet-audit-arrow.is-dependent { stroke: var(--palette-dc2626); }
+.sheet-audit-arrowhead { fill: var(--palette-2563eb); }
 
 @media (max-width: 640px) {
   .sheet-audit-dialog {

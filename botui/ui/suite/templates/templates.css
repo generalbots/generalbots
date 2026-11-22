@@ -6,7 +6,7 @@
 }
 
 .template-card {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     padding: 16px;
@@ -15,7 +15,7 @@
 }
 
 .template-card:hover {
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
     transform: translateY(-2px);
 }
 
@@ -29,7 +29,7 @@
 .template-card-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     margin: 0;
 }
 
@@ -42,13 +42,13 @@
     text-transform: uppercase;
 }
 
-.template-channel.email { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-.template-channel.whatsapp { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-.template-channel.instagram { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-.template-channel.facebook { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.template-channel.social { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.template-channel.bot { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-.template-channel.notification { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.template-channel.email { background: rgba(96, 165, 250, 0.15); color: var(--palette-60a5fa); }
+.template-channel.whatsapp { background: rgba(52, 211, 153, 0.15); color: var(--palette-34d399); }
+.template-channel.instagram { background: rgba(236, 72, 153, 0.15); color: var(--palette-ec4899); }
+.template-channel.facebook { background: rgba(59, 130, 246, 0.15); color: var(--palette-3b82f6); }
+.template-channel.social { background: rgba(168, 85, 247, 0.15); color: var(--palette-a855f7); }
+.template-channel.bot { background: rgba(34, 197, 94, 0.15); color: var(--palette-22c55e); }
+.template-channel.notification { background: rgba(234, 179, 8, 0.15); color: var(--palette-eab308); }
 
 .template-preview {
     margin-top: 12px;
@@ -79,7 +79,7 @@
 
 .template-card-actions button:hover {
     background: rgba(255,255,255,0.05);
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .tpl-var-tag {
@@ -89,7 +89,7 @@
     border: 1px solid rgba(59,130,246,0.2);
     border-radius: 4px;
     font-size: var(--text-2xs);
-    color: #60a5fa;
+    color: var(--palette-60a5fa);
     cursor: pointer;
     font-family: monospace;
 }
@@ -103,7 +103,7 @@
     padding: 12px;
     border: 1px solid var(--border, #333);
     border-radius: 8px;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
 }
 
 /* #2016 — grid states: empty catalog, failed load, no match. Spans the grid so
@@ -115,7 +115,7 @@
     line-height: 1.6;
     max-width: 640px;
     margin: 0 auto;
-    color: var(--text-secondary, #8b949e);
+    color: var(--text-secondary, var(--palette-8b949e));
 }
 
 .templates-notice code {

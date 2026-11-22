@@ -1,6 +1,6 @@
 .tree-children {
     display: none;
-    background: var(--bg, #0a0a0a);
+    background: var(--bg, var(--palette-0a0a0a));
 }
 
 .tree-section.expanded .tree-children {
@@ -9,7 +9,7 @@
 
 /* Tree Child (Level 1) - Sub-sections like "Database Schema Design" */
 .tree-child {
-    border-bottom: 1px solid var(--border-light, #151515);
+    border-bottom: 1px solid var(--border-light, var(--palette-151515));
 }
 
 .tree-child:last-child {
@@ -21,7 +21,7 @@
     display: none;
     padding: 8px 0 12px 0;
     padding-left: 24px;
-    background: var(--bg, #080808);
+    background: var(--bg, var(--palette-080808));
 }
 
 .tree-child.expanded .tree-items {
@@ -63,11 +63,11 @@
 }
 
 .tree-item-dot.completed {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
 }
 
 .tree-item-dot.running {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.6));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
@@ -77,7 +77,7 @@
 }
 
 .tree-item-dot.failed {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 @keyframes dot-pulse {
@@ -119,11 +119,11 @@
 }
 
 .tree-item-check.completed {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .tree-item-check.running {
-    color: var(--accent, #c5f82a);
+    color: var(--accent, var(--palette-c5f82a));
 }
 
 .tree-item-check.pending {
@@ -136,7 +136,7 @@
 }
 
 .tree-item.completed .tree-item-dot {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 /* Parent section completed when all children done */
@@ -161,7 +161,7 @@
 }
 
 .tree-item.running .tree-item-name {
-    color: var(--text, #e0e0e0);
+    color: var(--text, var(--palette-e0e0e0));
 }
 
 .tree-item.running {
@@ -184,8 +184,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    background: var(--bg-secondary, #0d0d0d);
-    border-bottom: 1px solid var(--border, #1a1a1a);
+    background: var(--bg-secondary, var(--palette-0d0d0d));
+    border-bottom: 1px solid var(--border, var(--palette-1a1a1a));
     flex-shrink: 0;
 }
 
@@ -208,7 +208,7 @@
 }
 
 .terminal-dot.active {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.5));
     animation: dot-pulse 1.5s infinite;
 }
@@ -222,7 +222,7 @@
 }
 
 .taskmd-terminal-stats strong {
-    color: var(--text-secondary, #e0e0e0);
+    color: var(--text-secondary, var(--palette-e0e0e0));
     font-weight: 500;
 }
 

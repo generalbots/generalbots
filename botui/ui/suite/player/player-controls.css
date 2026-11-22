@@ -176,7 +176,7 @@
     }
 
     .playlist-row-delete:hover {
-        color: #ef4444;
+        color: var(--palette-ef4444);
         background: rgba(239, 68, 68, 0.12);
     }
 
@@ -243,7 +243,7 @@
     }
 
     .playlist-item-remove:hover {
-        color: #ef4444;
+        color: var(--palette-ef4444);
     }
 
     .btn-icon {

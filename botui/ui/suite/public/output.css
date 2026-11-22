@@ -16,7 +16,7 @@
   /* 2 */
   border-style: solid;
   /* 2 */
-  border-color: #e5e7eb;
+  border-color: var(--palette-e5e7eb);
   /* 2 */
 }
 
@@ -357,7 +357,7 @@ textarea {
 input::-moz-placeholder, textarea::-moz-placeholder {
   opacity: 1;
   /* 1 */
-  color: #9ca3af;
+  color: var(--palette-9ca3af);
   /* 2 */
 }
 
@@ -365,7 +365,7 @@ input::placeholder,
 textarea::placeholder {
   opacity: 1;
   /* 1 */
-  color: #9ca3af;
+  color: var(--palette-9ca3af);
   /* 2 */
 }
 
@@ -2287,7 +2287,7 @@ body {
 }
 
 .from-gray-50 {
-  --tw-gradient-from: #f9fafb var(--tw-gradient-from-position);
+  --tw-gradient-from: var(--palette-f9fafb) var(--tw-gradient-from-position);
   --tw-gradient-from-position:  ;
   --tw-gradient-to: rgb(249 250 251 / 0)  var(--tw-gradient-from-position);
   --tw-gradient-to-position:  ;
@@ -2316,7 +2316,7 @@ body {
 }
 
 .to-gray-100 {
-  --tw-gradient-to: #f3f4f6 var(--tw-gradient-to-position);
+  --tw-gradient-to: var(--palette-f3f4f6) var(--tw-gradient-to-position);
   --tw-gradient-to-position:  ;
 }
 
@@ -3102,11 +3102,11 @@ body {
 }
 
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: var(--palette-4b5563);
 }
 
 .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: var(--palette-374151);
 }
 
 .file\:border-0::file-selector-button {
@@ -3595,7 +3595,7 @@ body {
 }
 
 .group.destructive .group-\[\.destructive\]\:focus\:ring-offset-red-600:focus {
-  --tw-ring-offset-color: #dc2626;
+  --tw-ring-offset-color: var(--palette-dc2626);
 }
 
 .peer\/menu-button:hover ~ .peer-hover\/menu-button\:text-sidebar-accent-foreground {

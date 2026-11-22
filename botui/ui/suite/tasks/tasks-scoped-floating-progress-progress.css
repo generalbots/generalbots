@@ -123,7 +123,7 @@
     right: 24px;
     width: 400px;
     background: var(--surface, #111);
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     z-index: var(--z-dropdown);
@@ -155,8 +155,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: var(--surface-hover, #1a1a1a);
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .floating-progress-title {
@@ -171,18 +171,18 @@
 .floating-progress-title .progress-dot {
     width: 10px;
     height: 10px;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 50%;
     animation: pulse 1.5s infinite;
 }
 
 .floating-progress-title .progress-dot.completed {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
     animation: none;
 }
 
 .floating-progress-title .progress-dot.error {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
     animation: none;
 }
 
@@ -201,7 +201,7 @@
     justify-content: center;
     background: transparent;
     border: none;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     font-size: var(--text-md);
     cursor: pointer;
     border-radius: 4px;
@@ -209,7 +209,7 @@
 }
 
 .floating-progress-actions button:hover {
-    background: var(--surface-hover, #1f1f1f);
+    background: var(--surface-hover, var(--palette-1f1f1f));
     color: var(--text, #fff);
 }
 
@@ -219,7 +219,7 @@
 
 .floating-progress-bar {
     height: 8px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 12px;
@@ -227,7 +227,7 @@
 
 .floating-progress-fill {
     height: 100%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 4px;
     transition: width 0.3s ease;
 }

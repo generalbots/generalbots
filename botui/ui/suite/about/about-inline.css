@@ -157,19 +157,19 @@
 
 .feature-badge.enabled {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--palette-22c55e);
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .feature-badge.active {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .feature-badge.disabled {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
@@ -317,7 +317,7 @@ button.resource-link {
 }
 
 .gb-licenses-status[data-state="error"] {
-    color: var(--danger, #ef4444);
+    color: var(--danger, var(--palette-ef4444));
 }
 
 .gb-licenses-text {

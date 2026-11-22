@@ -3,11 +3,11 @@
 
 .decision-context {
     font-size: var(--text-xs);
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary, var(--palette-a1a1a1));
     line-height: 1.6;
     margin-bottom: 16px;
     padding: 12px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 6px;
 }
 
@@ -22,7 +22,7 @@
 
 .btn-primary {
     padding: 10px 20px;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border: none;
     border-radius: 6px;
     color: var(--bg, #000);
@@ -34,14 +34,14 @@
 }
 
 .btn-primary:hover {
-    background: #d4ff4a;
+    background: var(--palette-d4ff4a);
     box-shadow: 0 0 20px var(--primary-light, rgba(197, 248, 42, 0.2));
 }
 
 .btn-secondary {
     padding: 10px 20px;
-    background: var(--surface-hover, #1a1a1a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, #fff);
     font-family: inherit;
@@ -52,15 +52,15 @@
 }
 
 .btn-secondary:hover {
-    background: var(--surface-hover, #1f1f1f);
+    background: var(--surface-hover, var(--palette-1f1f1f));
 }
 
 .btn-danger {
     padding: 10px 20px;
     background: transparent;
-    border: 1px solid var(--danger, #ef4444);
+    border: 1px solid var(--danger, var(--palette-ef4444));
     border-radius: 6px;
-    color: var(--danger, #ef4444);
+    color: var(--danger, var(--palette-ef4444));
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: 500;
@@ -69,7 +69,7 @@
 }
 
 .btn-danger:hover {
-    background: var(--danger, #ef4444);
+    background: var(--danger, var(--palette-ef4444));
     color: #fff;
 }
 
@@ -95,7 +95,7 @@
 .section-title {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0;
@@ -107,7 +107,7 @@
 .btn-collapse {
     background: transparent;
     border: none;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: transform 0.2s ease;
@@ -123,7 +123,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 6px;
     margin-bottom: 8px;
 }
@@ -135,7 +135,7 @@
 
 .status-time {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
 }
 
 .status-substep {
@@ -154,27 +154,27 @@
 }
 
 .substep-dot.active {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
 }
 
 .substep-dot.pending {
-    background: var(--text-secondary, #6b6b6b);
+    background: var(--text-secondary, var(--palette-6b6b6b));
 }
 
 .substep-name {
     flex: 1;
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary, var(--palette-a1a1a1));
 }
 
 .substep-time,
 .substep-note {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
 }
 
 /* Progress Log */
 .progress-log {
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 10px;
     overflow: hidden;
 }
@@ -184,7 +184,7 @@
 }
 
 .log-group {
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .log-group:last-child {
@@ -208,12 +208,12 @@
 
 .log-badge {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     cursor: pointer;
 }
 
 .log-badge:hover {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .log-step {
@@ -222,6 +222,6 @@
     border-radius: 4px;
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

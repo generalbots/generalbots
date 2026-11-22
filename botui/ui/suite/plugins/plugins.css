@@ -1,16 +1,16 @@
 /* Plugin Manager - theme-aware (uses suite tokens with fallbacks) */
 :root {
-  --pm-bg: var(--bg, #0f1115);
-  --pm-surface: var(--surface, #171a21);
-  --pm-surface-2: var(--surface-2, #1e2230);
-  --pm-text: var(--text, #e6e8ee);
-  --pm-text-secondary: var(--text-secondary, #a7b0c0);
-  --pm-border: var(--border, #2a2f3a);
-  --pm-primary: var(--primary, #4f8cff);
-  --pm-primary-hover: var(--primary-hover, #3b78ea);
-  --pm-danger: var(--danger, #dc3545);
-  --pm-danger-hover: #b02a37;
-  --pm-success: var(--success, #28a745);
+  --pm-bg: var(--bg, var(--palette-0f1115));
+  --pm-surface: var(--surface, var(--palette-171a21));
+  --pm-surface-2: var(--surface-2, var(--palette-1e2230));
+  --pm-text: var(--text, var(--palette-e6e8ee));
+  --pm-text-secondary: var(--text-secondary, var(--palette-a7b0c0));
+  --pm-border: var(--border, var(--palette-2a2f3a));
+  --pm-primary: var(--primary, var(--palette-4f8cff));
+  --pm-primary-hover: var(--primary-hover, var(--palette-3b78ea));
+  --pm-danger: var(--danger, var(--palette-dc3545));
+  --pm-danger-hover: var(--palette-b02a37);
+  --pm-success: var(--success, var(--palette-28a745));
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--pm-bg); color: var(--pm-text); }
@@ -51,7 +51,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .empty-state h3 { margin-bottom: 8px; color: var(--pm-text); }
 .file-input { display: none; }
 .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: var(--text-sm); border: 1px solid var(--pm-border); }
-.alert-warning { background: color-mix(in srgb, #f59e0b 18%, transparent); color: #fbbf24; border-color: color-mix(in srgb, #f59e0b 35%, transparent); }
+.alert-warning { background: color-mix(in srgb, var(--palette-f59e0b) 18%, transparent); color: var(--palette-fbbf24); border-color: color-mix(in srgb, var(--palette-f59e0b) 35%, transparent); }
 .alert-success { background: color-mix(in srgb, var(--pm-success) 18%, transparent); color: var(--pm-success); border-color: color-mix(in srgb, var(--pm-success) 35%, transparent); }
 .plugins-loading { text-align: center; padding: 40px; color: var(--pm-text-secondary); }
 .plugins-status { margin-bottom: 16px; }

@@ -1,13 +1,13 @@
     .business-reports-container {
         padding: 20px;
-        background: var(--background, #0a0a0f);
+        background: var(--background, var(--palette-0a0a0f));
     }
 
     .reports-tabs {
         display: flex;
         gap: 8px;
         margin-bottom: 24px;
-        border-bottom: 1px solid var(--border, #2a2a2a);
+        border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
         padding-bottom: 12px;
     }
 
@@ -17,7 +17,7 @@
         gap: 8px;
         padding: 10px 20px;
         background: transparent;
-        border: 1px solid var(--border, #2a2a2a);
+        border: 1px solid var(--border, var(--palette-2a2a2a));
         border-radius: 8px;
         color: var(--text-secondary, #888);
         cursor: pointer;
@@ -32,8 +32,8 @@
     }
 
     .report-tab.active {
-        background: var(--accent, #3b82f6);
-        border-color: var(--accent, #3b82f6);
+        background: var(--accent, var(--palette-3b82f6));
+        border-color: var(--accent, var(--palette-3b82f6));
         color: #fff;
     }
 

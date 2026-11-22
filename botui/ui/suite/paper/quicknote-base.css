@@ -1,17 +1,17 @@
 <style>
 :root {
-    --paper-bg: #fafafa;
-    --paper-surface: #ffffff;
-    --paper-border: #e5e7eb;
-    --paper-text: #1f2937;
-    --paper-text-light: #6b7280;
-    --paper-primary: #6366f1;
-    --paper-primary-dark: #4f46e5;
-    --paper-accent: #f59e0b;
-    --paper-success: #10b981;
-    --paper-danger: #ef4444;
-    --paper-note-bg: #fffef5;
-    --paper-line-color: #e8e5d8;
+    --paper-bg: var(--palette-fafafa);
+    --paper-surface: var(--palette-ffffff);
+    --paper-border: var(--palette-e5e7eb);
+    --paper-text: var(--palette-1f2937);
+    --paper-text-light: var(--palette-6b7280);
+    --paper-primary: var(--palette-6366f1);
+    --paper-primary-dark: var(--palette-4f46e5);
+    --paper-accent: var(--palette-f59e0b);
+    --paper-success: var(--palette-10b981);
+    --paper-danger: var(--palette-ef4444);
+    --paper-note-bg: var(--palette-fffef5);
+    --paper-line-color: var(--palette-e8e5d8);
 }
 
 .paper-app {
@@ -131,7 +131,7 @@
     top: 0;
     bottom: 0;
     width: 1px;
-    background: #f0c4c4;
+    background: var(--palette-f0c4c4);
     opacity: 0.5;
 }
 
@@ -349,9 +349,9 @@
     max-height: 85vh;
     overflow: hidden;
 /* #2315 — the sync chip now reports real state. */
-.sync-status[data-state="error"] .status-dot { background: #d9534f; }
+.sync-status[data-state="error"] .status-dot { background: var(--palette-d9534f); }
 .sync-status[data-state="idle"] .status-dot { background: var(--paper-text-light); }
-.sync-status[data-state="error"] .status-text { color: #d9534f; }
+.sync-status[data-state="error"] .status-text { color: var(--palette-d9534f); }
 .sync-status .status-text { font-size: var(--text-2xs); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

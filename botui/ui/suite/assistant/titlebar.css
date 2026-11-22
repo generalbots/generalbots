@@ -16,7 +16,7 @@
     -webkit-user-select: none;
     font-family: var(--id-font-sans, Inter, system-ui, -apple-system, sans-serif);
     font-size: var(--text-2xs);
-    color: var(--id-muted, #5f6673);
+    color: var(--id-muted, var(--palette-5f6673));
 }
 
 /* ---- Left: sidebar toggle + wordmark ---- */
@@ -35,7 +35,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--id-text, #4b5563);
+    color: var(--id-text, var(--palette-4b5563));
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
@@ -43,18 +43,18 @@
 .gb-titlebar-toggle:hover { background: var(--id-fill, rgba(243,244,246,.8)); }
 .gb-titlebar-toggle:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--id-accent-text, #b45309);
+    box-shadow: 0 0 0 2px var(--id-accent-text, var(--palette-b45309));
     border-radius: 6px;
 }
 .gb-titlebar-wordmark {
     font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
     font-weight: 500;
     font-size: var(--text-sm);
-    color: var(--id-muted, #5f6673);
+    color: var(--id-muted, var(--palette-5f6673));
     white-space: nowrap;
     cursor: default;
 }
-.gb-titlebar-dot { color: var(--id-accent, #f28c28); }
+.gb-titlebar-dot { color: var(--id-accent, var(--palette-f28c28)); }
 
 /* ---- Centre: conversation title ---- */
 .gb-titlebar-title {
@@ -63,7 +63,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--id-gray-400, #9ca3af);
+    color: var(--id-gray-400, var(--palette-9ca3af));
     font-size: var(--text-2xs);
     pointer-events: none;
     padding: 0 8px;
@@ -85,7 +85,7 @@
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: var(--id-text, #4b5563);
+    color: var(--id-text, var(--palette-4b5563));
     cursor: pointer;
     padding: 0;
     transition: background 120ms ease;
@@ -93,11 +93,11 @@
 .gb-titlebar-btn:hover { background: var(--id-fill, rgba(243,244,246,.8)); }
 .gb-titlebar-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--id-accent-text, #b45309);
+    box-shadow: 0 0 0 2px var(--id-accent-text, var(--palette-b45309));
 }
 .gb-titlebar-btn--close:hover {
-    background: #e81123;
-    color: #ffffff;
+    background: var(--palette-e81123);
+    color: var(--palette-ffffff);
 }
 
 /* Hidden when not in Tauri */
@@ -117,7 +117,7 @@
 .gb-titlebar--dark .gb-titlebar-wordmark { color: rgba(232,232,238,.5); }
 .gb-titlebar--dark .gb-titlebar-btn { color: rgba(232,232,238,.7); }
 .gb-titlebar--dark .gb-titlebar-btn:hover { background: rgba(255,255,255,.08); }
-.gb-titlebar--dark .gb-titlebar-btn--close:hover { background: #e81123; color: #fff; }
+.gb-titlebar--dark .gb-titlebar-btn--close:hover { background: var(--palette-e81123); color: #fff; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

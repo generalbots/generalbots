@@ -12,12 +12,12 @@
 }
 
 #model-section .mdl-muted {
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     font-size: var(--text-2xs);
 }
 
 #model-section .mdl-warn {
-    color: var(--danger, #f87171);
+    color: var(--danger, var(--palette-f87171));
     font-size: var(--text-xs);
     margin: 8px 0;
 }
@@ -39,7 +39,7 @@
     align-items: flex-start;
     gap: 6px;
     padding: 12px 14px;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 10px;
     background: var(--surface, transparent);
     color: inherit;
@@ -53,8 +53,8 @@
 }
 
 #model-section .mdl-mode-active {
-    border-color: var(--accent, #7c9cff);
-    box-shadow: 0 0 0 1px var(--accent, #7c9cff) inset;
+    border-color: var(--accent, var(--palette-7c9cff));
+    box-shadow: 0 0 0 1px var(--accent, var(--palette-7c9cff)) inset;
 }
 
 #model-section .mdl-mode-label {
@@ -66,7 +66,7 @@
     font-size: var(--text-2xs);
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--accent, #7c9cff);
+    color: var(--accent, var(--palette-7c9cff));
 }
 
 #model-section .mdl-form {
@@ -78,13 +78,13 @@
 
 #model-section .mdl-label {
     font-size: var(--text-2xs);
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     margin-top: 6px;
 }
 
 #model-section .mdl-input {
     padding: 8px 10px;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 8px;
     background: var(--surface, transparent);
     color: inherit;

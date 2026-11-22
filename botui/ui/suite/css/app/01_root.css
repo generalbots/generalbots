@@ -285,39 +285,39 @@
 /* ============================================ */
 :root {
     /* Sentient Core Colors - used by tasks, attendant, and other apps */
-    --sentient-accent: #d4f505;
-    --sentient-accent-hover: #bfdd04;
+    --sentient-accent: var(--palette-d4f505);
+    --sentient-accent-hover: var(--palette-bfdd04);
     --sentient-accent-light: rgba(212, 245, 5, 0.15);
     --sentient-accent-glow: rgba(212, 245, 5, 0.3);
 
     /* Sentient Background Hierarchy */
-    --sentient-bg-primary: #0a0a0a;
-    --sentient-bg-secondary: #111111;
-    --sentient-bg-tertiary: #161616;
-    --sentient-bg-elevated: #1a1a1a;
-    --sentient-bg-hover: #1e1e1e;
-    --sentient-bg-active: #252525;
+    --sentient-bg-primary: var(--palette-0a0a0a);
+    --sentient-bg-secondary: var(--palette-111111);
+    --sentient-bg-tertiary: var(--palette-161616);
+    --sentient-bg-elevated: var(--palette-1a1a1a);
+    --sentient-bg-hover: var(--palette-1e1e1e);
+    --sentient-bg-active: var(--palette-252525);
 
     /* Sentient Borders */
-    --sentient-border: #2a2a2a;
-    --sentient-border-light: #222222;
+    --sentient-border: var(--palette-2a2a2a);
+    --sentient-border-light: var(--palette-222222);
     --sentient-border-accent: rgba(212, 245, 5, 0.3);
 
     /* Sentient Text Colors */
-    --sentient-text-primary: #ffffff;
-    --sentient-text-secondary: #888888;
-    --sentient-text-tertiary: #666666;
-    --sentient-text-muted: #444444;
-    --sentient-text-accent: #d4f505;
+    --sentient-text-primary: var(--palette-ffffff);
+    --sentient-text-secondary: var(--palette-888888);
+    --sentient-text-tertiary: var(--palette-666666);
+    --sentient-text-muted: var(--palette-444444);
+    --sentient-text-accent: var(--palette-d4f505);
 
     /* Sentient Status Colors */
-    --sentient-success: #22c55e;
+    --sentient-success: var(--palette-22c55e);
     --sentient-success-bg: rgba(34, 197, 94, 0.15);
-    --sentient-warning: #f59e0b;
+    --sentient-warning: var(--palette-f59e0b);
     --sentient-warning-bg: rgba(245, 158, 11, 0.15);
-    --sentient-error: #ef4444;
+    --sentient-error: var(--palette-ef4444);
     --sentient-error-bg: rgba(239, 68, 68, 0.15);
-    --sentient-info: #3b82f6;
+    --sentient-info: var(--palette-3b82f6);
     --sentient-info-bg: rgba(59, 130, 246, 0.15);
 
     /* Sentient Shadows */

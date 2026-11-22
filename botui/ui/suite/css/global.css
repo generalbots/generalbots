@@ -29,7 +29,7 @@ nav {
 nav .logo {
     font-size: 1.5rem;
     font-weight: bold;
-    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    background: linear-gradient(135deg, var(--primary), var(--palette-8b5cf6));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-right: auto;

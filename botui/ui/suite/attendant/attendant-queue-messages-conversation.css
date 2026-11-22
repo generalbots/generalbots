@@ -26,7 +26,7 @@
 
             .status-text {
                 font-size: var(--text-2xs);
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .status-dropdown {
@@ -34,8 +34,8 @@
                 top: 100%;
                 left: 0;
                 right: 0;
-                background: var(--surface, #1e293b);
-                border: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 8px;
                 margin-top: 4px;
                 padding: 8px;
@@ -58,7 +58,7 @@
             }
 
             .status-option:hover {
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
             }
 
             /* Queue Stats */
@@ -66,14 +66,14 @@
                 display: flex;
                 gap: 8px;
                 padding: 16px 20px;
-                border-bottom: 1px solid var(--border, #334155);
+                border-bottom: 1px solid var(--border, var(--palette-334155));
             }
 
             .stat-item {
                 flex: 1;
                 text-align: center;
                 padding: 8px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border-radius: 8px;
             }
 
@@ -101,10 +101,10 @@
 
             .filter-btn {
                 padding: 6px 12px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border: 1px solid transparent;
                 border-radius: 20px;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 font-size: var(--text-2xs);
                 cursor: pointer;
                 transition: all 0.2s;
@@ -114,11 +114,11 @@
             }
 
             .filter-btn:hover {
-                background: var(--border-light, #475569);
+                background: var(--border-light, var(--palette-475569));
             }
 
             .filter-btn.active {
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 color: white;
             }
 
@@ -167,7 +167,7 @@
                 transform: translateY(-50%);
                 width: 8px;
                 height: 8px;
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 border-radius: 50%;
             }
 
@@ -185,12 +185,12 @@
 
             .conversation-time {
                 font-size: var(--text-2xs);
-                color: var(--text-tertiary, #64748b);
+                color: var(--text-tertiary, var(--palette-64748b));
             }
 
             .conversation-preview {
                 font-size: var(--text-xs);
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -207,8 +207,8 @@
                 font-size: var(--text-2xs);
                 padding: 2px 8px;
                 border-radius: 12px;
-                background: var(--border-light, #475569);
-                color: var(--text-secondary, #94a3b8);
+                background: var(--border-light, var(--palette-475569));
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
 @media (prefers-reduced-motion: reduce) {

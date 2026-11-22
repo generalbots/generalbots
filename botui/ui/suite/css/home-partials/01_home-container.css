@@ -171,7 +171,7 @@
 }
 
 .recent-icon.paper {
-    background: linear-gradient(135deg, #ec4899, #db2777);
+    background: linear-gradient(135deg, var(--palette-ec4899), var(--palette-db2777));
     color: white;
 }
 
@@ -240,28 +240,28 @@
     background: linear-gradient(135deg, var(--primary), var(--primary-hover));
 }
 .app-icon.people {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, var(--palette-8b5cf6), var(--palette-7c3aed));
 }
 .app-icon.mail {
     background: linear-gradient(135deg, var(--error), color-mix(in srgb, var(--error) 82%, black));
 }
 .app-icon.meet {
-    background: linear-gradient(135deg, var(--info), #0891b2);
+    background: linear-gradient(135deg, var(--info), var(--palette-0891b2));
 }
 .app-icon.calendar {
-    background: linear-gradient(135deg, #a855f7, #9333ea);
+    background: linear-gradient(135deg, var(--palette-a855f7), var(--palette-9333ea));
 }
 .app-icon.tasks {
     background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 82%, black));
 }
 .app-icon.project {
-    background: linear-gradient(135deg, #14b8a6, #0d9488);
+    background: linear-gradient(135deg, var(--palette-14b8a6), var(--palette-0d9488));
 }
 .app-icon.goals {
-    background: linear-gradient(135deg, #f97316, #ea580c);
+    background: linear-gradient(135deg, var(--palette-f97316), var(--palette-ea580c));
 }
 .app-icon.paper {
-    background: linear-gradient(135deg, #ec4899, #db2777);
+    background: linear-gradient(135deg, var(--palette-ec4899), var(--palette-db2777));
 }
 .app-icon.docs {
     background: linear-gradient(135deg, var(--primary), var(--primary-hover));

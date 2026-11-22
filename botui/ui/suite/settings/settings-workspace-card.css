@@ -11,9 +11,9 @@
     max-width: 720px;
     margin-bottom: 28px;
     padding: 18px 22px;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 12px;
-    background: var(--surface, #17171d);
+    background: var(--surface, var(--palette-17171d));
 }
 
 .workspace-card-head {
@@ -31,7 +31,7 @@
 
 .workspace-line {
     margin: 0;
-    color: var(--text-secondary, #9ca3af);
+    color: var(--text-secondary, var(--palette-9ca3af));
     font-size: var(--text-xs);
 }
 
@@ -39,9 +39,9 @@
     flex: 0 0 auto;
     padding: 4px 10px;
     border-radius: 999px;
-    border: 1px solid var(--border, #2a2a2a);
-    background: var(--surface-hover, #202027);
-    color: var(--text, #e5e7eb);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
+    background: var(--surface-hover, var(--palette-202027));
+    color: var(--text, var(--palette-e5e7eb));
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -49,13 +49,13 @@
 }
 
 .workspace-badge[data-gb-edition="os"] {
-    border-color: #6d28d9;
-    color: #c4b5fd;
+    border-color: var(--palette-6d28d9);
+    color: var(--palette-c4b5fd);
 }
 
 .workspace-badge[data-gb-edition="desktop"] {
-    border-color: #0e7490;
-    color: #67e8f9;
+    border-color: var(--palette-0e7490);
+    color: var(--palette-67e8f9);
 }
 
 .workspace-chips {
@@ -68,16 +68,16 @@
 .workspace-chip {
     padding: 5px 11px;
     border-radius: 999px;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     background: transparent;
-    color: var(--text-secondary, #9ca3af);
+    color: var(--text-secondary, var(--palette-9ca3af));
     font-size: var(--text-2xs);
     cursor: pointer;
 }
 
 .workspace-chip:hover:not(:disabled) {
-    color: var(--text, #e5e7eb);
-    border-color: var(--primary, #3b82f6);
+    color: var(--text, var(--palette-e5e7eb));
+    border-color: var(--primary, var(--palette-3b82f6));
 }
 
 .workspace-chip:disabled {
@@ -86,8 +86,8 @@
 }
 
 .workspace-chip[aria-pressed="true"] {
-    border-color: var(--primary, #3b82f6);
-    color: var(--text, #e5e7eb);
+    border-color: var(--primary, var(--palette-3b82f6));
+    color: var(--text, var(--palette-e5e7eb));
 }
 
 @media (max-width: 640px) {

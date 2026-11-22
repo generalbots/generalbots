@@ -23,12 +23,12 @@
 
     .kpi-trend.positive,
     .comparison-value.positive {
-        color: #4caf50;
+        color: var(--palette-4caf50);
     }
 
     .kpi-trend.negative,
     .comparison-value.negative {
-        color: #f44336;
+        color: var(--palette-f44336);
     }
 
     .kpi-details,
@@ -37,7 +37,7 @@
         display: flex;
         justify-content: space-around;
         padding-top: 16px;
-        border-top: 1px solid var(--border, #2a2a2a);
+        border-top: 1px solid var(--border, var(--palette-2a2a2a));
     }
 
     .kpi-detail-item,
@@ -149,11 +149,11 @@
     }
 
     .revenue-value.warning {
-        color: #ff9800;
+        color: var(--palette-ff9800);
     }
 
     .revenue-value.danger {
-        color: #f44336;
+        color: var(--palette-f44336);
     }
 
     .revenue-change {
@@ -163,7 +163,7 @@
     }
 
     .revenue-change.positive {
-        color: #4caf50;
+        color: var(--palette-4caf50);
     }
 
     .aging-breakdown,
@@ -203,23 +203,23 @@
     }
 
     .aging-bar.current {
-        background: #4caf50;
+        background: var(--palette-4caf50);
     }
     .aging-bar.days-30 {
-        background: #8bc34a;
+        background: var(--palette-8bc34a);
     }
     .aging-bar.days-60 {
-        background: #ffc107;
+        background: var(--palette-ffc107);
     }
     .aging-bar.days-90 {
-        background: #ff9800;
+        background: var(--palette-ff9800);
     }
     .aging-bar.days-over {
-        background: #f44336;
+        background: var(--palette-f44336);
     }
 
     .category-bar {
-        background: var(--accent, #3b82f6);
+        background: var(--accent, var(--palette-3b82f6));
     }
 
     .aging-value,
@@ -328,7 +328,7 @@
     }
 
     .bar.current {
-        background: var(--accent, #3b82f6);
+        background: var(--accent, var(--palette-3b82f6));
     }
 
     .bar-value {
@@ -404,7 +404,7 @@
 
     .forecast-progress {
         height: 100%;
-        background: var(--accent, #3b82f6);
+        background: var(--accent, var(--palette-3b82f6));
         border-radius: 4px;
         transition: width 0.3s;
     }
@@ -419,7 +419,7 @@
         justify-content: space-around;
         margin-top: 16px;
         padding-top: 16px;
-        border-top: 1px solid var(--border, #2a2a2a);
+        border-top: 1px solid var(--border, var(--palette-2a2a2a));
     }
 
     .breakdown-item {

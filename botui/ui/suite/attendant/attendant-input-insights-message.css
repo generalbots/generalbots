@@ -17,7 +17,7 @@
                 width: 36px;
                 height: 36px;
                 border-radius: 50%;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -26,7 +26,7 @@
             }
 
             .message.bot .message-avatar {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--palette-667eea) 0%, var(--palette-764ba2) 100%);
             }
 
             .message-content {
@@ -38,16 +38,16 @@
             .message-bubble {
                 padding: 12px 16px;
                 border-radius: 16px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 max-width: 100%;
             }
 
             .message.customer .message-bubble {
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
             }
 
             .message.attendant .message-bubble {
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 color: white;
             }
 
@@ -81,7 +81,7 @@
             .bot-badge {
                 font-size: var(--text-2xs);
                 padding: 2px 6px;
-                background: linear-gradient(135deg, #667eea, #764ba2);
+                background: linear-gradient(135deg, var(--palette-667eea), var(--palette-764ba2));
                 color: white;
                 border-radius: 4px;
             }
@@ -90,8 +90,8 @@
             /* Input Area */
             .chat-input-area {
                 padding: 16px 20px;
-                background: var(--surface, #1e293b);
-                border-top: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-top: 1px solid var(--border, var(--palette-334155));
             }
 
             .quick-responses {
@@ -103,10 +103,10 @@
 
             .quick-response-btn {
                 padding: 8px 12px;
-                background: var(--surface-hover, #334155);
-                border: 1px solid var(--border, #334155);
+                background: var(--surface-hover, var(--palette-334155));
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 8px;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 font-size: var(--text-2xs);
                 cursor: pointer;
                 transition: all 0.2s;
@@ -114,8 +114,8 @@
             }
 
             .quick-response-btn:hover {
-                background: var(--border-light, #475569);
-                color: var(--text, #f1f5f9);
+                background: var(--border-light, var(--palette-475569));
+                color: var(--text, var(--palette-f1f5f9));
             }
 
             .input-wrapper {
@@ -136,8 +136,8 @@
                 min-height: 44px;
                 border: none;
                 border-radius: 8px;
-                background: var(--surface-hover, #334155);
-                color: var(--text-secondary, #94a3b8);
+                background: var(--surface-hover, var(--palette-334155));
+                color: var(--text-secondary, var(--palette-94a3b8));
                 cursor: pointer;
                 display: flex;
                 align-items: center;
@@ -146,17 +146,17 @@
             }
 
             .input-action-btn:hover {
-                background: var(--border-light, #475569);
-                color: var(--text, #f1f5f9);
+                background: var(--border-light, var(--palette-475569));
+                color: var(--text, var(--palette-f1f5f9));
             }
 
             .chat-input {
                 flex: 1;
                 padding: 12px 16px;
-                border: 1px solid var(--border, #334155);
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 12px;
-                background: var(--surface-hover, #334155);
-                color: var(--text, #f1f5f9);
+                background: var(--surface-hover, var(--palette-334155));
+                color: var(--text, var(--palette-f1f5f9));
                 font-size: var(--text-sm);
                 resize: none;
                 min-height: 44px;
@@ -166,11 +166,11 @@
 
             .chat-input:focus {
                 outline: none;
-                border-color: var(--primary, #3b82f6);
+                border-color: var(--primary, var(--palette-3b82f6));
             }
 
             .chat-input::placeholder {
-                color: var(--text-tertiary, #64748b);
+                color: var(--text-tertiary, var(--palette-64748b));
             }
 
             .send-btn {
@@ -178,7 +178,7 @@
                 height: 44px;
                 border: none;
                 border-radius: 12px;
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 color: white;
                 cursor: pointer;
                 display: flex;
@@ -188,7 +188,7 @@
             }
 
             .send-btn:hover {
-                background: var(--primary-hover, #2563eb);
+                background: var(--primary-hover, var(--palette-2563eb));
             }
 
             .send-btn:disabled {
@@ -198,8 +198,8 @@
 
             /* Right Sidebar - Insights */
             .insights-sidebar {
-                background: var(--surface, #1e293b);
-                border-left: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-left: 1px solid var(--border, var(--palette-334155));
                 overflow-y: auto;
                 display: flex;
                 flex-direction: column;
@@ -207,7 +207,7 @@
 
             .sidebar-section {
                 padding: 20px;
-                border-bottom: 1px solid var(--border, #334155);
+                border-bottom: 1px solid var(--border, var(--palette-334155));
             }
 
             .section-title {
@@ -215,7 +215,7 @@
                 font-weight: 600;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 margin-bottom: 16px;
                 display: flex;
                 align-items: center;
@@ -225,7 +225,7 @@
             /* AI Insights */
             .ai-insight {
                 background: var(--primary-light, rgba(59, 130, 246, 0.1));
-                border: 1px solid var(--border, #334155);
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 8px;
                 padding: 12px;
                 margin-bottom: 12px;

@@ -1,17 +1,17 @@
 
 .terminal-content .log-details {
-    color: #8b949e;
+    color: var(--palette-8b949e);
 }
 
 .terminal-content .log-summary {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid #30363d;
+    border-top: 1px solid var(--palette-30363d);
 }
 
 .terminal-content .summary-pre {
     margin: 0;
-    color: #7ee787;
+    color: var(--palette-7ee787);
     white-space: pre-wrap;
     font-family: inherit;
 }
@@ -22,16 +22,16 @@
 }
 
 .terminal-content::-webkit-scrollbar-track {
-    background: #0d1117;
+    background: var(--palette-0d1117);
 }
 
 .terminal-content::-webkit-scrollbar-thumb {
-    background: #30363d;
+    background: var(--palette-30363d);
     border-radius: 3px;
 }
 
 .terminal-content::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
+    background: var(--palette-484f58);
 }
 
 @media (max-width: 480px) {
@@ -63,8 +63,8 @@
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface, var(--palette-161616));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     font-family: monospace;
 }
@@ -103,7 +103,7 @@
     align-items: center;
     margin-bottom: 24px;
     padding-bottom: 18px;
-    border-bottom: 2px solid var(--border, #2a2a2a);
+    border-bottom: 2px solid var(--border, var(--palette-2a2a2a));
 }
 
 .detail-title-rich {
@@ -125,30 +125,30 @@
 
 .status-badge-rich.status-running,
 .status-badge-rich.status-pending {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     color: var(--bg, #000);
 }
 
 .status-badge-rich.status-completed {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
     color: var(--text, #fff);
 }
 
 .status-badge-rich.status-error,
 .status-badge-rich.status-failed {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
     color: var(--text, #fff);
 }
 
 .status-badge-rich.status-paused {
-    background: var(--warning, var(--warning, #f59e0b));
+    background: var(--warning, var(--warning, var(--palette-f59e0b)));
     color: var(--bg, #000);
 }
 
 /* Section Boxes */
 .detail-section-box {
-    background: var(--surface, #161616);
-    border: 2px solid var(--border, #2a2a2a);
+    background: var(--surface, var(--palette-161616));
+    border: 2px solid var(--border, var(--palette-2a2a2a));
     border-radius: 12px;
     padding: 20px;
 }
@@ -183,7 +183,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
 }
 
 .status-dot.status-running {
@@ -191,11 +191,11 @@
 }
 
 .status-dot.status-completed {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .status-dot.status-error {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 @keyframes pulse-status-dot {

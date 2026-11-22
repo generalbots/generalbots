@@ -2,14 +2,14 @@
 #instructions-section .instr-label {
     display: block;
     font-size: var(--text-2xs);
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     margin: 12px 0 6px;
 }
 
 #instructions-section .instr-textarea {
     width: 100%;
     padding: 10px;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 8px;
     background: var(--surface, transparent);
     color: inherit;
@@ -22,7 +22,7 @@
     display: block;
     text-align: right;
     font-size: var(--text-2xs);
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     margin-top: 4px;
 }
 
@@ -38,7 +38,7 @@
 
 #shortcuts-section .sc-table td {
     padding: 8px 10px;
-    border-bottom: 1px solid var(--border, #262b36);
+    border-bottom: 1px solid var(--border, var(--palette-262b36));
     vertical-align: middle;
 }
 
@@ -50,7 +50,7 @@
 #shortcuts-section kbd {
     display: inline-block;
     padding: 2px 8px;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 5px;
     background: rgba(127, 127, 127, 0.08);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -65,7 +65,7 @@
 
 #appearance-section .ts-btn {
     padding: 7px 14px;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 8px;
     background: var(--surface, transparent);
     color: inherit;
@@ -74,8 +74,8 @@
 }
 
 #appearance-section .ts-btn-active {
-    border-color: var(--accent, #7c9cff);
-    box-shadow: 0 0 0 1px var(--accent, #7c9cff) inset;
+    border-color: var(--accent, var(--palette-7c9cff));
+    box-shadow: 0 0 0 1px var(--accent, var(--palette-7c9cff)) inset;
 }
 
 /* Chat background pattern picker (same patterns chat-assistant-look.css paints) */
@@ -91,7 +91,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px;
-    border: 1px solid var(--id-line, #e5e7eb);
+    border: 1px solid var(--id-line, var(--palette-e5e7eb));
     border-radius: var(--id-radius-control, 10px);
     background: var(--id-surface-solid, transparent);
     color: inherit;
@@ -100,8 +100,8 @@
 }
 
 #appearance-section .chatbg-btn-active {
-    border-color: var(--id-accent, #f28c28);
-    box-shadow: 0 0 0 1px var(--id-accent, #f28c28) inset;
+    border-color: var(--id-accent, var(--palette-f28c28));
+    box-shadow: 0 0 0 1px var(--id-accent, var(--palette-f28c28)) inset;
 }
 
 #appearance-section .chatbg-swatch {
@@ -109,7 +109,7 @@
     height: 46px;
     border-radius: 6px;
     border: 1px solid var(--id-line-soft, transparent);
-    background-color: var(--id-paper, #fff8f2);
+    background-color: var(--id-paper, var(--palette-fff8f2));
     background-size: 16px 16px;
 }
 
@@ -122,39 +122,39 @@
 }
 
 #appearance-section .chatbg-swatch-dots {
-    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 45%, transparent) 1px, transparent 1px);
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 45%, transparent) 1px, transparent 1px);
     background-size: 8px 8px;
 }
 
 #appearance-section .chatbg-swatch-microdots {
-    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 35%, transparent) 1px, transparent 1px);
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 35%, transparent) 1px, transparent 1px);
     background-size: 5px 5px;
 }
 
 #appearance-section .chatbg-swatch-grid {
     background-image:
-        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 28%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 28%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 28%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 28%, transparent) 1px, transparent 1px);
     background-size: 16px 16px;
 }
 
 #appearance-section .chatbg-swatch-blueprint {
     background-image:
-        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 30%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 30%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 30%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 30%, transparent) 1px, transparent 1px);
     background-size: 32px 32px, 32px 32px;
 }
 
 #appearance-section .chatbg-swatch-weave {
     background-image:
-        repeating-linear-gradient(45deg, color-mix(in srgb, var(--id-accent, #f28c28) 22%, transparent) 0 2px, transparent 2px 12px),
-        repeating-linear-gradient(-45deg, color-mix(in srgb, var(--id-accent, #f28c28) 22%, transparent) 0 2px, transparent 2px 12px);
+        repeating-linear-gradient(45deg, color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 22%, transparent) 0 2px, transparent 2px 12px),
+        repeating-linear-gradient(-45deg, color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 22%, transparent) 0 2px, transparent 2px 12px);
 }
 
 #appearance-section .chatbg-swatch-mosaic {
     background-image:
-        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 20%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 20%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 20%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, var(--palette-f28c28)) 20%, transparent) 1px, transparent 1px);
     background-size: 24px 24px;
 }
 

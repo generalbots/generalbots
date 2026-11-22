@@ -108,11 +108,11 @@ font-weight: 600;
 color: #fff;
 flex-shrink: 0;
 }
-.avatar-1 { background: #6366f1; }
-.avatar-2 { background: #3b82f6; }
-.avatar-3 { background: #22c55e; }
-.avatar-4 { background: #f59e0b; }
-.avatar-5 { background: #ef4444; }
+.avatar-1 { background: var(--palette-6366f1); }
+.avatar-2 { background: var(--palette-3b82f6); }
+.avatar-3 { background: var(--palette-22c55e); }
+.avatar-4 { background: var(--palette-f59e0b); }
+.avatar-5 { background: var(--palette-ef4444); }
 .emp-info { flex: 1; min-width: 0; }
 .emp-name { font-size: var(--text-md); font-weight: 600; margin-bottom: 2px; }
 .emp-role { font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; }

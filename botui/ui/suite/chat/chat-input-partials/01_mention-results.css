@@ -4,12 +4,12 @@
 }
 
 .mention-results::-webkit-scrollbar-thumb {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 3px;
 }
 
 .mention-results::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 .mention-item {
@@ -35,7 +35,7 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -51,7 +51,7 @@
 .mention-item-name {
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -78,7 +78,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: white;
     padding: 2px 8px;
     border-radius: 4px;
@@ -88,7 +88,7 @@
 }
 
 .mention-tag:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 .mention-icon {
@@ -102,8 +102,8 @@
 /* Entity Card Tooltip */
 .entity-card-tooltip {
     position: fixed;
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 12px;
     padding: 16px;
     min-width: 280px;
@@ -134,19 +134,19 @@
     letter-spacing: 0.5px;
     padding: 3px 8px;
     border-radius: 4px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: white;
 }
 
 .entity-card-status {
     font-size: var(--text-2xs);
-    color: var(--success, #22c55e);
+    color: var(--success, var(--palette-22c55e));
 }
 
 .entity-card-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     margin-bottom: 8px;
 }
 
@@ -165,9 +165,9 @@
 .entity-card-btn {
     flex: 1;
     padding: 8px 12px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     border-radius: 6px;
     font-size: var(--text-xs);
     cursor: pointer;
@@ -175,8 +175,8 @@
 }
 
 .entity-card-btn:hover {
-    background: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
     color: white;
 }
 

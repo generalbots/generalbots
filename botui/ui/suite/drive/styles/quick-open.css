@@ -26,7 +26,7 @@
     gap: 8px;
     padding: 12px;
     border-radius: 12px;
-    background: var(--surface, var(--card-bg, #ffffff));
+    background: var(--surface, var(--card-bg, var(--palette-ffffff)));
     border: 1px solid var(--border-color, var(--border, rgba(128, 128, 128, 0.28)));
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }
@@ -43,8 +43,8 @@
 }
 
 .gb-quickopen-input:focus {
-    border-color: var(--accent, var(--primary, #2563eb));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #2563eb) 22%, transparent);
+    border-color: var(--accent, var(--primary, var(--palette-2563eb)));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--palette-2563eb)) 22%, transparent);
 }
 
 .gb-quickopen-list {
@@ -101,7 +101,7 @@
 .gb-quickopen-path {
     grid-area: path;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary, var(--palette-6b7280));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -112,7 +112,7 @@
     font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary, var(--palette-6b7280));
     border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
     border-radius: 999px;
     padding: 2px 8px;
@@ -123,5 +123,5 @@
     margin: 0;
     padding: 8px 10px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary, var(--palette-6b7280));
 }

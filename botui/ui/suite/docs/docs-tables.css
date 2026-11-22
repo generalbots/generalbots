@@ -8,18 +8,18 @@
   border-collapse: collapse;
   margin: 0.8em 0;
   width: 100%;
-  color: var(--gb-text, var(--b-text, #0f172a));
+  color: var(--gb-text, var(--b-text, var(--palette-0f172a)));
 }
 .docs-doc-view table.docs-table caption {
   caption-side: top;
   text-align: left;
   font-weight: 600;
   padding: 0.3em 0;
-  color: var(--gb-muted, #64748b);
+  color: var(--gb-muted, var(--palette-64748b));
 }
 .docs-doc-view table.docs-table th,
 .docs-doc-view table.docs-table td {
-  border: 1px solid var(--gb-border, var(--b-border, #cbd5e1));
+  border: 1px solid var(--gb-border, var(--b-border, var(--palette-cbd5e1)));
   padding: 6px 10px;
   min-width: 60px;
   font-size: var(--text-md);
@@ -27,12 +27,12 @@
   outline: none;
 }
 .docs-doc-view table.docs-table th {
-  background: var(--gb-accent-soft, #f1f5f9);
+  background: var(--gb-accent-soft, var(--palette-f1f5f9));
   font-weight: 600;
 }
 .docs-doc-view table.docs-table td.docs-cell-shade,
 .docs-doc-view table.docs-table th.docs-cell-shade {
-  background: var(--gb-accent-soft, #e2e8f0);
+  background: var(--gb-accent-soft, var(--palette-e2e8f0));
 }
 .docs-doc-view table.docs-table td.docs-cell-valign-top,
 .docs-doc-view table.docs-table th.docs-cell-valign-top { vertical-align: top; }
@@ -51,20 +51,20 @@
 .docs-doc-view table.docs-tbl-style-plain th,
 .docs-doc-view table.docs-tbl-style-plain td { border: 0; }
 .docs-doc-view table.docs-tbl-style-grid th,
-.docs-doc-view table.docs-tbl-style-grid td { border: 1px solid var(--gb-border-strong, #94a3b8); }
+.docs-doc-view table.docs-tbl-style-grid td { border: 1px solid var(--gb-border-strong, var(--palette-94a3b8)); }
 .docs-doc-view table.docs-tbl-style-banded tbody tr:nth-child(even) td,
 .docs-doc-view table.docs-tbl-style-banded tbody tr:nth-child(even) th {
-  background: var(--gb-accent-soft, #f8fafc);
+  background: var(--gb-accent-soft, var(--palette-f8fafc));
 }
 .docs-doc-view table.docs-tbl-style-accent th {
   color: var(--gb-surface, #fff);
-  background: var(--gb-accent, #2563eb);
+  background: var(--gb-accent, var(--palette-2563eb));
 }
-.docs-doc-view table.docs-tbl-style-accent td { border-color: var(--gb-accent-soft, #bfdbfe); }
+.docs-doc-view table.docs-tbl-style-accent td { border-color: var(--gb-accent-soft, var(--palette-bfdbfe)); }
 .docs-doc-view table.docs-tbl-style-minimal th,
 .docs-doc-view table.docs-tbl-style-minimal td {
   border: 0;
-  border-bottom: 1px solid var(--gb-border, #cbd5e1);
+  border-bottom: 1px solid var(--gb-border, var(--palette-cbd5e1));
   background: transparent;
 }
 
@@ -73,9 +73,9 @@
 .docs-doc-view table.docs-tbl-noborders th,
 .docs-doc-view table.docs-tbl-noborders td { border: 0; }
 .docs-doc-view table.docs-tbl-borders th,
-.docs-doc-view table.docs-tbl-borders td { border: 2px solid var(--gb-border-strong, #64748b); }
+.docs-doc-view table.docs-tbl-borders td { border: 2px solid var(--gb-border-strong, var(--palette-64748b)); }
 .docs-doc-view table.docs-tbl-banded tbody tr:nth-child(even) {
-  background: var(--gb-accent-soft, #f8fafc);
+  background: var(--gb-accent-soft, var(--palette-f8fafc));
 }
 .docs-doc-view table.docs-tbl-pad-compact th,
 .docs-doc-view table.docs-tbl-pad-compact td { padding: 2px 5px; }
@@ -87,7 +87,7 @@
  * live cells only while the toolbar is open and removed on commit. */
 .docs-doc-view td.gb-dtbl-selected,
 .docs-doc-view th.gb-dtbl-selected {
-  box-shadow: inset 0 0 0 2px var(--gb-accent, #2563eb);
+  box-shadow: inset 0 0 0 2px var(--gb-accent, var(--palette-2563eb));
 }
 
 /* ---- Contextual toolbar ---- */
@@ -100,10 +100,10 @@
   gap: 2px;
   max-width: min(760px, 96vw);
   padding: 5px 6px;
-  border: 1px solid var(--gb-border-strong, #334155);
+  border: 1px solid var(--gb-border-strong, var(--palette-334155));
   border-radius: 10px;
-  background: var(--gb-pane-bar, #1e293b);
-  color: var(--gb-surface, #f8fafc);
+  background: var(--gb-pane-bar, var(--palette-1e293b));
+  color: var(--gb-surface, var(--palette-f8fafc));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -113,7 +113,7 @@
   align-items: center;
   gap: 2px;
   padding: 0 5px;
-  border-right: 1px solid var(--gb-border, #334155);
+  border-right: 1px solid var(--gb-border, var(--palette-334155));
 }
 #gb-docs-tbl-toolbar .gb-dtbl-group:last-of-type { border-right: 0; }
 #gb-docs-tbl-toolbar button {
@@ -132,19 +132,19 @@
 }
 #gb-docs-tbl-toolbar button:hover,
 #gb-docs-tbl-toolbar button:focus-visible {
-  background: var(--gb-accent, #2563eb);
+  background: var(--gb-accent, var(--palette-2563eb));
   color: var(--gb-surface, #fff);
   outline: none;
 }
 #gb-docs-tbl-toolbar button[aria-pressed="true"] {
-  background: var(--gb-accent-soft, #334155);
+  background: var(--gb-accent-soft, var(--palette-334155));
   color: var(--gb-surface, #fff);
 }
 #gb-docs-tbl-toolbar .gb-dtbl-status {
   flex-basis: 100%;
   min-height: 14px;
   font-size: var(--text-2xs);
-  color: var(--gb-muted, #94a3b8);
+  color: var(--gb-muted, var(--palette-94a3b8));
   padding: 2px 4px 0;
 }
 #gb-docs-tbl-toolbar svg { display: block; }
@@ -165,17 +165,17 @@
   max-height: 86vh;
   overflow: auto;
   padding: 18px;
-  border: 1px solid var(--gb-border-strong, #334155);
+  border: 1px solid var(--gb-border-strong, var(--palette-334155));
   border-radius: 12px;
-  background: var(--gb-pane-bar, #1e293b);
-  color: var(--gb-surface, #f8fafc);
+  background: var(--gb-pane-bar, var(--palette-1e293b));
+  color: var(--gb-surface, var(--palette-f8fafc));
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .gb-dtbl-dialog h3 { margin: 0; font-size: var(--text-md) }
-.gb-dtbl-dialog label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-2xs); color: var(--gb-muted, #94a3b8); }
+.gb-dtbl-dialog label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-2xs); color: var(--gb-muted, var(--palette-94a3b8)); }
 .gb-dtbl-dialog textarea,
 .gb-dtbl-dialog input[type="text"],
 .gb-dtbl-dialog input[type="number"],
@@ -183,9 +183,9 @@
   box-sizing: border-box;
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--gb-border-strong, #334155);
+  border: 1px solid var(--gb-border-strong, var(--palette-334155));
   border-radius: 6px;
-  background: var(--gb-bg, #0f172a);
+  background: var(--gb-bg, var(--palette-0f172a));
   color: inherit;
   font: inherit;
   font-size: var(--text-xs)
@@ -194,22 +194,22 @@
 .gb-dtbl-dialog .gb-dtbl-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .gb-dtbl-dialog button {
   padding: 8px 14px;
-  border: 1px solid var(--gb-border-strong, #334155);
+  border: 1px solid var(--gb-border-strong, var(--palette-334155));
   border-radius: 6px;
-  background: var(--gb-border, #334155);
+  background: var(--gb-border, var(--palette-334155));
   color: inherit;
   font-size: var(--text-xs);
   cursor: pointer;
 }
 .gb-dtbl-dialog button.gb-dtbl-primary {
-  border-color: var(--gb-accent, #2563eb);
-  background: var(--gb-accent, #2563eb);
+  border-color: var(--gb-accent, var(--palette-2563eb));
+  background: var(--gb-accent, var(--palette-2563eb));
   color: var(--gb-surface, #fff);
   font-weight: 600;
 }
 .gb-dtbl-style-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .gb-dtbl-style-list button { text-align: left; }
-.gb-dtbl-style-list button[aria-pressed="true"] { border-color: var(--gb-accent, #2563eb); }
+.gb-dtbl-style-list button[aria-pressed="true"] { border-color: var(--gb-accent, var(--palette-2563eb)); }
 
 .gb-dtbl-results { display: flex; flex-direction: column; gap: 6px; min-height: 60px; font-size: var(--text-xs) }
 .gb-dtbl-result {
@@ -217,10 +217,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid var(--gb-border, #334155);
+  border: 1px solid var(--gb-border, var(--palette-334155));
   border-radius: 6px;
-  background: var(--gb-bg, #0f172a);
+  background: var(--gb-bg, var(--palette-0f172a));
 }
 .gb-dtbl-result .gb-dtbl-issue { flex: 1; }
 .gb-dtbl-result button { padding: 4px 10px; }
-.gb-dtbl-status-line { min-height: 18px; font-size: var(--text-2xs); color: var(--gb-muted, #94a3b8); }
+.gb-dtbl-status-line { min-height: 18px; font-size: var(--text-2xs); color: var(--gb-muted, var(--palette-94a3b8)); }

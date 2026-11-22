@@ -190,7 +190,7 @@
         justify-content: space-between;
         padding: 6px 16px;
         border-top: 1px solid var(--border);
-        background: linear-gradient(180deg, var(--card), var(--bg, #101014));
+        background: linear-gradient(180deg, var(--card), var(--bg, var(--palette-101014)));
         font-size: var(--text-2xs);
         color: var(--muted-foreground);
         box-shadow:
@@ -229,7 +229,7 @@
     }
 
     .save-status[data-state="error"] {
-        color: var(--chart-6, #d9534f);
+        color: var(--chart-6, var(--palette-d9534f));
         font-weight: 600;
         text-decoration: underline dotted;
     }

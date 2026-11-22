@@ -22,7 +22,7 @@
     gap: 8px;
     padding: 6px 8px;
     border-bottom: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     flex: 0 0 auto;
 }
 
@@ -62,7 +62,7 @@
     min-width: 0;
     border: 1px solid var(--border, #333);
     border-radius: 6px;
-    background: var(--surface-2, #0e0e1e);
+    background: var(--surface-2, var(--palette-0e0e1e));
     overflow: hidden;
 }
 
@@ -75,13 +75,13 @@
     padding: 6px 10px;
     font-size: var(--text-2xs);
     border-bottom: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     min-height: 18px;
 }
 
 .vibe-git-crumb-link,
 .vibe-git-crumb-file {
-    color: var(--accent, #7aa2ff);
+    color: var(--accent, var(--palette-7aa2ff));
     cursor: pointer;
 }
 
@@ -154,10 +154,10 @@
     color: var(--text, #ddd);
 }
 
-.vibe-git-badge.warn { background: rgba(230, 180, 60, 0.25); color: #e6b43c; }
-.vibe-git-badge.ok   { background: rgba(80, 200, 120, 0.22); color: #50c878; }
-.vibe-git-badge.err  { background: rgba(230, 80, 80, 0.22);  color: #e65050; }
-.vibe-git-badge.info { background: rgba(90, 160, 255, 0.22); color: #5aa0ff; }
+.vibe-git-badge.warn { background: rgba(230, 180, 60, 0.25); color: var(--palette-e6b43c); }
+.vibe-git-badge.ok   { background: rgba(80, 200, 120, 0.22); color: var(--palette-50c878); }
+.vibe-git-badge.err  { background: rgba(230, 80, 80, 0.22);  color: var(--palette-e65050); }
+.vibe-git-badge.info { background: rgba(90, 160, 255, 0.22); color: var(--palette-5aa0ff); }
 
 /* Diff view */
 .vibe-diff {
@@ -174,9 +174,9 @@
     white-space: pre;
 }
 
-.vibe-diff .vibe-diff-add { background: rgba(80, 200, 120, 0.14); color: #7fe3a1; display: inline-block; width: 100%; }
-.vibe-diff .vibe-diff-del { background: rgba(230, 80, 80, 0.14);  color: #ff9b9b; display: inline-block; width: 100%; }
-.vibe-diff .vibe-diff-hunk { color: #5aa0ff; }
+.vibe-diff .vibe-diff-add { background: rgba(80, 200, 120, 0.14); color: var(--palette-7fe3a1); display: inline-block; width: 100%; }
+.vibe-diff .vibe-diff-del { background: rgba(230, 80, 80, 0.14);  color: var(--palette-ff9b9b); display: inline-block; width: 100%; }
+.vibe-diff .vibe-diff-hunk { color: var(--palette-5aa0ff); }
 .vibe-diff .vibe-diff-meta { color: var(--muted, #666); font-style: italic; }
 
 /* ── Right: manual commit panel ─────────────────────────────────────── */
@@ -188,7 +188,7 @@
     border: 1px solid var(--border, #333);
     border-radius: 6px;
     padding: 10px;
-    background: var(--surface-2, #0e0e1e);
+    background: var(--surface-2, var(--palette-0e0e1e));
     min-height: 0;
     box-sizing: border-box;
 }
@@ -244,5 +244,5 @@
 
 .vibe-git-check {
     flex: 0 0 auto;
-    accent-color: var(--accent, #7aa2ff);
+    accent-color: var(--accent, var(--palette-7aa2ff));
 }

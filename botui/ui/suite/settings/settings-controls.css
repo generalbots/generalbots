@@ -297,9 +297,9 @@
 
 
     .modal-content {
-        background: var(--surface, #1a1a24);
+        background: var(--surface, var(--palette-1a1a24));
         border-radius: 16px;
-        border: 1px solid var(--border, #2a2a2a);
+        border: 1px solid var(--border, var(--palette-2a2a2a));
         overflow: hidden;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         max-width: 500px;

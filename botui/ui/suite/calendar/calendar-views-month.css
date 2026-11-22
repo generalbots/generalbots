@@ -123,23 +123,23 @@
 
 .month-event.blue {
     background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 .month-event.green {
     background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 .month-event.red {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 .month-event.purple {
     background: rgba(168, 85, 247, 0.2);
-    color: #a855f7;
+    color: var(--palette-a855f7);
 }
 .month-event.orange {
     background: rgba(249, 115, 22, 0.2);
-    color: #f97316;
+    color: var(--palette-f97316);
 }
 
 .more-events {

@@ -210,15 +210,15 @@
 
 /* Severity -------------------------------------------------------------- */
 .ops-ok {
-    color: #10b981;
+    color: var(--palette-10b981);
 }
 
 .ops-warn {
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
 }
 
 .ops-page {
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .ops-nodata {
@@ -284,13 +284,13 @@
 }
 
 .ops-deploy-line {
-    stroke: #8b5cf6;
+    stroke: var(--palette-8b5cf6);
     stroke-width: 1;
     stroke-dasharray: 3 3;
 }
 
 .ops-deploy-label {
-    fill: #8b5cf6;
+    fill: var(--palette-8b5cf6);
     font-size: var(--text-2xs);
 }
 

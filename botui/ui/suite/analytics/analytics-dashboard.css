@@ -201,7 +201,7 @@
     margin-top: 0.5rem;
     padding: 0.5rem;
     background: rgba(34, 197, 94, 0.1);
-    border-left: 3px solid #22c55e;
+    border-left: 3px solid var(--palette-22c55e);
     border-radius: 4px;
     color: var(--text-secondary);
 }

@@ -15,7 +15,7 @@
 
             .insight-label {
                 font-size: var(--text-2xs);
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .insight-value {
@@ -34,7 +34,7 @@
             }
 
             .suggested-reply:hover {
-                background: var(--border-light, #475569);
+                background: var(--border-light, var(--palette-475569));
             }
 
             .suggested-reply-text {
@@ -51,12 +51,12 @@
 
             .suggestion-confidence {
                 font-size: var(--text-2xs);
-                color: var(--success, #10b981);
+                color: var(--success, var(--palette-10b981));
             }
 
             .suggestion-source {
                 font-size: var(--text-2xs);
-                color: var(--text-tertiary, #64748b);
+                color: var(--text-tertiary, var(--palette-64748b));
             }
 
             /* Customer Details */
@@ -68,7 +68,7 @@
                 font-size: var(--text-2xs);
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
-                color: var(--text-tertiary, #64748b);
+                color: var(--text-tertiary, var(--palette-64748b));
                 margin-bottom: 4px;
             }
 
@@ -78,7 +78,7 @@
             }
 
             .detail-value a {
-                color: var(--primary, #3b82f6);
+                color: var(--primary, var(--palette-3b82f6));
                 text-decoration: none;
             }
 
@@ -89,7 +89,7 @@
             /* Conversation History */
             .history-item {
                 padding: 12px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border-radius: 8px;
                 margin-bottom: 8px;
                 cursor: pointer;
@@ -97,7 +97,7 @@
             }
 
             .history-item:hover {
-                background: var(--border-light, #475569);
+                background: var(--border-light, var(--palette-475569));
             }
 
             .history-header {
@@ -115,7 +115,7 @@
                 font-size: var(--text-2xs);
                 padding: 2px 6px;
                 border-radius: 4px;
-                background: var(--success, #10b981);
+                background: var(--success, var(--palette-10b981));
                 color: white;
             }
 
@@ -136,17 +136,17 @@
 
             .sentiment-positive {
                 background: rgba(16, 185, 129, 0.2);
-                color: var(--success, #10b981);
+                color: var(--success, var(--palette-10b981));
             }
 
             .sentiment-neutral {
-                background: var(--border-light, #475569);
-                color: var(--text-secondary, #94a3b8);
+                background: var(--border-light, var(--palette-475569));
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .sentiment-negative {
                 background: rgba(239, 68, 68, 0.2);
-                color: var(--error, #ef4444);
+                color: var(--error, var(--palette-ef4444));
             }
 
             /* Tags */
@@ -159,9 +159,9 @@
             .tag {
                 font-size: var(--text-2xs);
                 padding: 4px 8px;
-                background: var(--border-light, #475569);
+                background: var(--border-light, var(--palette-475569));
                 border-radius: 4px;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             /* Transfer Modal */
@@ -183,8 +183,8 @@
             }
 
             .modal {
-                background: var(--surface, #1e293b);
-                border: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 16px;
                 width: 100%;
                 max-width: 400px;
@@ -194,7 +194,7 @@
 
             .modal-header {
                 padding: 20px;
-                border-bottom: 1px solid var(--border, #334155);
+                border-bottom: 1px solid var(--border, var(--palette-334155));
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -212,8 +212,8 @@
                 min-height: 44px;
                 border: none;
                 border-radius: 6px;
-                background: var(--surface-hover, #334155);
-                color: var(--text-secondary, #94a3b8);
+                background: var(--surface-hover, var(--palette-334155));
+                color: var(--text-secondary, var(--palette-94a3b8));
                 cursor: pointer;
                 display: flex;
                 align-items: center;

@@ -16,14 +16,14 @@ dialog.modal[open] {
     grid-template-columns: 260px 1fr;
     height: 100%;
     min-height: 0;
-    background: var(--bg, var(--bg-primary, #0a0a0f));
-    color: var(--text, var(--text-primary, #ffffff));
+    background: var(--bg, var(--bg-primary, var(--palette-0a0a0f)));
+    color: var(--text, var(--text-primary, var(--palette-ffffff)));
 }
 
 /* Sidebar */
 .admin-sidebar {
-    background: var(--surface, var(--bg-secondary, #12121a));
-    border-right: 1px solid var(--border, #2a2a3a);
+    background: var(--surface, var(--bg-secondary, var(--palette-12121a)));
+    border-right: 1px solid var(--border, var(--palette-2a2a3a));
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -151,19 +151,19 @@ dialog.modal[open] {
 
 .stat-icon.users {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 .stat-icon.groups {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--palette-10b981);
 }
 .stat-icon.bots {
     background: rgba(168, 85, 247, 0.1);
-    color: #a855f7;
+    color: var(--palette-a855f7);
 }
 .stat-icon.storage {
     background: rgba(249, 115, 22, 0.1);
-    color: #f97316;
+    color: var(--palette-f97316);
 }
 
 .stat-content {

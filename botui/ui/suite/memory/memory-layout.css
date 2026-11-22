@@ -39,7 +39,7 @@
 .mem-btn.primary:hover { filter: brightness(1.12); }
 .mem-btn.ghost { background: transparent; }
 .mem-btn.small { font-size: var(--text-2xs); padding: .28rem .55rem; }
-.mem-btn.danger { color: var(--err, #f87171); border-color: var(--err, #f87171); background: transparent; }
+.mem-btn.danger { color: var(--err, var(--palette-f87171)); border-color: var(--err, var(--palette-f87171)); background: transparent; }
 .mem-btn[disabled] { opacity: .5; cursor: not-allowed; }
 .hidden { display: none !important; }
 .mem-spacer { flex: 1; }
@@ -99,7 +99,7 @@
 .mem-chip:focus-visible { outline: 2px solid var(--accent2, #777); outline-offset: 1px; }
 
 .mem-state { font-size: .76rem; color: var(--muted); min-height: 1em; }
-.mem-state.error { color: var(--err, #f87171); }
+.mem-state.error { color: var(--err, var(--palette-f87171)); }
 
 .mem-grid {
   display: grid;
@@ -138,7 +138,7 @@
   padding: .1rem .25rem;
   line-height: 1;
 }
-.mem-pin-btn.pinned { color: var(--warn, #f59e0b); }
+.mem-pin-btn.pinned { color: var(--warn, var(--palette-f59e0b)); }
 .mem-content {
   font-size: .78rem;
   line-height: 1.4;
@@ -238,7 +238,7 @@
 }
 .mem-import-report ul { margin: .35rem 0 0; padding-left: 1.1rem; }
 .mem-import-report li { margin-bottom: .15rem; }
-.mem-report-error { color: var(--err, #f87171); }
+.mem-report-error { color: var(--err, var(--palette-f87171)); }
 
 .mem-modal-actions { display: flex; align-items: center; gap: .5rem; margin-top: .4rem; }
 
@@ -254,9 +254,9 @@
   --bg3: var(--bg-active, var(--surface));
   --accent2: var(--accent-hover, var(--accent));
   --accent-dim: color-mix(in srgb, var(--accent) 65%, transparent);
-  --err: #e5484d;
-  --ok: #30a46c;
-  --warn: #f5a524;
+  --err: var(--palette-e5484d);
+  --ok: var(--palette-30a46c);
+  --warn: var(--palette-f5a524);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

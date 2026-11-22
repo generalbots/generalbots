@@ -12,7 +12,7 @@
   font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--palette-94a3b8);
 }
 
 .autotask-items-list {
@@ -25,7 +25,7 @@
 
 .autotask-items-empty {
   font-size: var(--text-2xs);
-  color: #64748b;
+  color: var(--palette-64748b);
   padding: 6px 2px;
 }
 
@@ -46,17 +46,17 @@
   padding: 2px 7px;
   border-radius: 999px;
   background: rgba(100, 116, 139, 0.3);
-  color: #cbd5e1;
+  color: var(--palette-cbd5e1);
 }
 
-.autotask-item-status.st-completed { background: rgba(34, 197, 94, 0.22); color: #86efac; }
-.autotask-item-status.st-failed { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
-.autotask-item-status.st-running { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+.autotask-item-status.st-completed { background: rgba(34, 197, 94, 0.22); color: var(--palette-86efac); }
+.autotask-item-status.st-failed { background: rgba(239, 68, 68, 0.22); color: var(--palette-fca5a5); }
+.autotask-item-status.st-running { background: rgba(59, 130, 246, 0.25); color: var(--palette-93c5fd); }
 
 .autotask-item-title {
   flex: 1 1 auto;
   font-size: var(--text-2xs);
-  color: #e2e8f0;
+  color: var(--palette-e2e8f0);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -65,7 +65,7 @@
 .autotask-item-date {
   flex: 0 0 auto;
   font-size: var(--text-2xs);
-  color: #64748b;
+  color: var(--palette-64748b);
 }
 
 .autotask-item-edit {

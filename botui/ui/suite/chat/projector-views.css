@@ -33,7 +33,7 @@
         max-width: 1400px;
         height: 90%;
         max-height: 900px;
-        background: var(--bg, #1a1a1a);
+        background: var(--bg, var(--palette-1a1a1a));
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -55,7 +55,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 12px 20px;
-        background: var(--surface, #252525);
+        background: var(--surface, var(--palette-252525));
         border-bottom: 1px solid var(--border, #333);
     }
 
@@ -101,7 +101,7 @@
     }
 
     .projector-btn.close-btn:hover {
-        background: var(--error, #e74c3c);
+        background: var(--error, var(--palette-e74c3c));
         color: var(--text, #fff);
     }
 
@@ -133,7 +133,7 @@
         width: 40px;
         height: 40px;
         border: 3px solid var(--surface-hover, #333);
-        border-top-color: var(--accent, #667eea);
+        border-top-color: var(--accent, var(--palette-667eea));
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
@@ -161,7 +161,7 @@
     .audio-visualizer {
         width: 100%;
         height: 200px;
-        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        background: linear-gradient(180deg, var(--palette-1a1a2e) 0%, var(--palette-16213e) 100%);
         border-radius: 8px;
         margin-bottom: 20px;
     }
@@ -186,7 +186,7 @@
         width: 100%;
         height: 100%;
         overflow: auto;
-        background: var(--bg, #1e1e1e);
+        background: var(--bg, var(--palette-1e1e1e));
         padding: 20px;
     }
 
@@ -195,7 +195,7 @@
         font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
         font-size: var(--text-sm);
         line-height: 1.5;
-        color: var(--text, #d4d4d4);
+        color: var(--text, var(--palette-d4d4d4));
     }
 
     .projector-code.line-numbers pre {
@@ -260,13 +260,13 @@
     .projector-markdown h1,
     .projector-markdown h2,
     .projector-markdown h3 {
-        color: var(--text, #1a1a1a);
+        color: var(--text, var(--palette-1a1a1a));
         margin-top: 24px;
         margin-bottom: 12px;
     }
 
     .projector-markdown code {
-        background: var(--surface, #f0f0f0);
+        background: var(--surface, var(--palette-f0f0f0));
         padding: 2px 6px;
         border-radius: 4px;
         font-family: monospace;
@@ -281,7 +281,7 @@
     /* Controls */
     .projector-controls {
         padding: 12px 20px;
-        background: var(--surface, #252525);
+        background: var(--surface, var(--palette-252525));
         border-top: 1px solid var(--border, #333);
     }
 
@@ -318,7 +318,7 @@
     }
 
     .control-btn.active {
-        background: var(--accent, #667eea);
+        background: var(--accent, var(--palette-667eea));
     }
 
     .play-btn {
@@ -349,7 +349,7 @@
         -webkit-appearance: none;
         width: 14px;
         height: 14px;
-        background: var(--accent, #667eea);
+        background: var(--accent, var(--palette-667eea));
         border-radius: 50%;
         cursor: pointer;
     }
@@ -357,7 +357,7 @@
     .progress-bar::-moz-range-thumb {
         width: 14px;
         height: 14px;
-        background: var(--accent, #667eea);
+        background: var(--accent, var(--palette-667eea));
         border-radius: 50%;
         cursor: pointer;
         border: none;
@@ -426,7 +426,7 @@
         flex-direction: column;
         align-items: center;
         gap: 16px;
-        color: var(--error, #e74c3c);
+        color: var(--error, var(--palette-e74c3c));
     }
 
     .projector-error-icon {

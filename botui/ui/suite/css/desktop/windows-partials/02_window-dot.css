@@ -11,13 +11,13 @@
   transition: opacity 120ms var(--win-open-timing);
 }
 
-.window-dot-close          { background: #ff5f57; }
-.window-dot-close:hover    { background: #ff3b30; }
-.window-dot-close::after   { content: "✕"; color: #4a0000; font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
+.window-dot-close          { background: var(--palette-ff5f57); }
+.window-dot-close:hover    { background: var(--palette-ff3b30); }
+.window-dot-close::after   { content: "✕"; color: var(--palette-4a0000); font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
 
-.window-dot-minimize       { background: #febc2e; }
-.window-dot-minimize:hover { background: #f5a623; }
-.window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
+.window-dot-minimize       { background: var(--palette-febc2e); }
+.window-dot-minimize:hover { background: var(--palette-f5a623); }
+.window-dot-minimize::after{ content: "–"; color: var(--palette-6b4000); font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
 
 
 .window-header-glass:hover .window-dot::after,

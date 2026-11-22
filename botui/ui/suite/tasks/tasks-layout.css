@@ -8,15 +8,15 @@
 }
 
 .intent-result .result-success {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .intent-result .result-error {
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .intent-result .intent-success {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
     font-size: var(--text-sm);
     display: inline-flex;
     align-items: center;
@@ -28,7 +28,7 @@
 }
 
 .intent-result .intent-error {
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
     font-size: var(--text-sm);
     display: inline-flex;
     align-items: center;
@@ -51,14 +51,14 @@
 
 .intent-result .result-progress {
     height: 6px;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border-radius: 3px;
     overflow: hidden;
 }
 
 .intent-result .result-progress-bar {
     height: 100%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 3px;
     transition: width 0.3s ease;
 }
@@ -85,7 +85,7 @@
     min-width: 6px;
     max-width: 6px;
     flex: 0 0 6px;
-    background: var(--border, #2a2a2a);
+    background: var(--border, var(--palette-2a2a2a));
     cursor: col-resize;
     transition: background 0.2s;
     position: relative;
@@ -93,7 +93,7 @@
 }
 
 .tasks-splitter:hover {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
 }
 
 .tasks-splitter::after {
@@ -109,7 +109,7 @@
 }
 
 .tasks-splitter:hover::after {
-    background: var(--bg, #0a0a0a);
+    background: var(--bg, var(--palette-0a0a0a));
 }
 
 /* =============================================================================
@@ -126,7 +126,7 @@
     min-height: 0;
     flex: 0 0 280px;
     width: 280px;
-    background: var(--bg, #0a0a0a);
+    background: var(--bg, var(--palette-0a0a0a));
 }
 
 .tasks-list-scroll {
@@ -151,7 +151,7 @@
 .task-detail-panel,
 #task-detail-content {
     scrollbar-width: thin;
-    scrollbar-color: var(--primary, #c5f82a) var(--surface, #1a1a1a);
+    scrollbar-color: var(--primary, var(--palette-c5f82a)) var(--surface, var(--palette-1a1a1a));
 }
 
 /* Webkit scrollbar - uniform style */
@@ -168,7 +168,7 @@
 .taskmd-terminal-output::-webkit-scrollbar-track,
 .task-detail-panel::-webkit-scrollbar-track,
 #task-detail-content::-webkit-scrollbar-track {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
 }
 
 .tasks-list-scroll::-webkit-scrollbar-thumb,
@@ -176,9 +176,9 @@
 .taskmd-terminal-output::-webkit-scrollbar-thumb,
 .task-detail-panel::-webkit-scrollbar-thumb,
 #task-detail-content::-webkit-scrollbar-thumb {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 4px;
-    border: 2px solid var(--surface, #1a1a1a);
+    border: 2px solid var(--surface, var(--palette-1a1a1a));
 }
 
 .tasks-list-scroll::-webkit-scrollbar-thumb:hover,
@@ -186,7 +186,7 @@
 .taskmd-terminal-output::-webkit-scrollbar-thumb:hover,
 .task-detail-panel::-webkit-scrollbar-thumb:hover,
 #task-detail-content::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-hover, #d4ff4a);
+    background: var(--primary-hover, var(--palette-d4ff4a));
 }
 
 /* =============================================================================
@@ -194,8 +194,8 @@
    ============================================================================= */
 
 .task-card {
-    background: var(--surface-hover, #141414);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover, var(--palette-141414));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     padding: 16px 14px;
     padding-left: 18px;
@@ -219,7 +219,7 @@
 }
 
 .task-card.status-running::before {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

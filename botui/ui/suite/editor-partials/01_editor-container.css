@@ -16,17 +16,17 @@
 }
 
 .editor-container {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --accent-color: #3b82f6;
-    --accent-hover: #2563eb;
-    --border-color: #475569;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --error: #ef4444;
+    --bg-primary: var(--palette-0f172a);
+    --bg-secondary: var(--palette-1e293b);
+    --bg-tertiary: var(--palette-334155);
+    --text-primary: var(--palette-f1f5f9);
+    --text-secondary: var(--palette-94a3b8);
+    --accent-color: var(--palette-3b82f6);
+    --accent-hover: var(--palette-2563eb);
+    --border-color: var(--palette-475569);
+    --success: var(--palette-22c55e);
+    --warning: var(--palette-f59e0b);
+    --error: var(--palette-ef4444);
 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, sans-serif;
@@ -47,7 +47,7 @@ body:has(.editor-container) {
     height: 100%;
     margin: 0;
     overflow: hidden;
-    background: #0f172a;
+    background: var(--palette-0f172a);
 }
 
 /* The editor has no internal header: the WindowManager window chrome

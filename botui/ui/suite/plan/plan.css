@@ -51,7 +51,7 @@
   transition: all 0.15s;
 }
 .plan-view-tab:hover { color: var(--text-primary); }
-.plan-view-tab.active { background: var(--accent); color: #000000; }
+.plan-view-tab.active { background: var(--accent); color: var(--palette-000000); }
 .plan-toolbar-divider {
   width: 1px;
   height: 24px;
@@ -70,7 +70,7 @@
   color: var(--text-primary);
 }
 .plan-btn:hover { background: var(--border-color); }
-.plan-btn-primary { background: var(--accent); border-color: var(--accent); color: #000000; }
+.plan-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--palette-000000); }
 .plan-btn-primary:hover { background: var(--accent-hover); }
 .plan-btn-secondary { background: var(--bg-secondary); }
 
@@ -142,7 +142,7 @@
   width: 22px; height: 22px;
   border-radius: 50%;
   background: var(--accent);
-  color: #000000;
+  color: var(--palette-000000);
   font-size: var(--text-2xs);
   font-weight: 600;
 }
@@ -179,7 +179,7 @@
   color: var(--text-secondary);
 }
 .plan-gantt-day.weekend { background: var(--bg-primary); }
-.plan-gantt-day.today { background: var(--accent); color: #000000; font-weight: 600; }
+.plan-gantt-day.today { background: var(--accent); color: var(--palette-000000); font-weight: 600; }
 .plan-gantt-day-num { font-weight: 600; }
 .plan-gantt-day-name { font-size: var(--text-2xs); }
 .plan-gantt-today-line { position: absolute; width: 2px; background: var(--danger); z-index: 3; pointer-events: none; }
@@ -228,7 +228,7 @@
   border-radius: 10px;
   font-size: var(--text-2xs);
   font-weight: 500;
-  color: #ffffff;
+  color: var(--palette-ffffff);
 }
 .plan-list-progress { width: 80px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
 .plan-list-progress-fill { height: 100%; background: var(--success); }

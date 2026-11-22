@@ -66,8 +66,8 @@
 .agents-sidebar {
     width: 260px;
     min-width: 260px;
-    background: var(--surface, #f8f8f8);
-    border-left: 1px solid var(--border, #f0f1f2);
+    background: var(--surface, var(--palette-f8f8f8));
+    border-left: 1px solid var(--border, var(--palette-f0f1f2));
     overflow-y: auto;
     transition: width 0.25s, min-width 0.25s;
 }
@@ -80,7 +80,7 @@
 
 /* Section */
 .as-section {
-    border-bottom: 1px solid var(--border, #f0f1f2);
+    border-bottom: 1px solid var(--border, var(--palette-f0f1f2));
 }
 
 .as-section-header {
@@ -116,8 +116,8 @@
 }
 
 .as-collapse-btn:hover {
-    background: var(--surface-active, #e0e0e0);
-    color: var(--text, #3b3b3b);
+    background: var(--surface-active, var(--palette-e0e0e0));
+    color: var(--text, var(--palette-3b3b3b));
 }
 
 /* Status dot (chat header + canvas nodes) */
@@ -129,15 +129,15 @@
 }
 
 .as-status-dot.green {
-    background: var(--accent, #84d669);
+    background: var(--accent, var(--palette-84d669));
 }
 
 .as-status-dot.yellow {
-    background: var(--warning, #f59e0b);
+    background: var(--warning, var(--palette-f59e0b));
 }
 
 .as-status-dot.red {
-    background: var(--error, #ef4444);
+    background: var(--error, var(--palette-ef4444));
 }
 
 .as-status-dot.gray {
@@ -149,7 +149,7 @@
     width: calc(100% - 16px);
     margin: 8px 8px;
     padding: 8px;
-    border: 2px dashed var(--border, #e0e0e0);
+    border: 2px dashed var(--border, var(--palette-e0e0e0));
     border-radius: 8px;
     background: transparent;
     font-family: 'Fira Code', monospace;
@@ -161,8 +161,8 @@
 }
 
 .as-create-btn:hover {
-    border-color: var(--accent, #84d669);
-    color: var(--accent, #84d669);
+    border-color: var(--accent, var(--palette-84d669));
+    color: var(--accent, var(--palette-84d669));
     background: var(--accent-light, rgba(132, 214, 105, 0.05));
 }
 
@@ -204,12 +204,12 @@
 
 .as-workspace-actions .as-ws-delete:hover {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .as-workspace-actions .as-ws-info:hover {
     background: rgba(74, 108, 247, 0.15);
-    color: #4a6cf7;
+    color: var(--palette-4a6cf7);
 }
 
 .as-workspace-toggle {
@@ -224,7 +224,7 @@
     font-family: 'Fira Code', monospace;
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text, #3b3b3b);
+    color: var(--text, var(--palette-3b3b3b));
     cursor: pointer;
     transition: background 0.15s;
     text-align: left;

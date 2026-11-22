@@ -31,13 +31,13 @@ position: absolute;
 box-sizing: border-box;
 min-width: 24px;
 min-height: 20px;
-color: #0f172a;
+color: var(--palette-0f172a);
 user-select: none;
 }
 
 .vibe-design-element.rectangle {
 background: #fff;
-border: 2px solid #2563eb;
+border: 2px solid var(--palette-2563eb);
 box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
 }
 
@@ -47,10 +47,10 @@ font: 600 15px Inter, system-ui, sans-serif;
 white-space: pre-wrap;
 }
 
-.vibe-design-element.selected { outline: 2px solid #0ea5e9; outline-offset: 3px; }
+.vibe-design-element.selected { outline: 2px solid var(--palette-0ea5e9); outline-offset: 3px; }
 
 .vibe-design-connector {
-stroke: #2563eb;
+stroke: var(--palette-2563eb);
 stroke-width: 2;
 fill: none;
 marker-end: url(#vibeArrowhead);
@@ -236,7 +236,7 @@ z-index: var(--z-sticky);
     width: 90%;
     height: 90%;
     z-index: 80;
-    border: 1px solid var(--border, #d8dee9);
+    border: 1px solid var(--border, var(--palette-d8dee9));
     border-radius: 10px;
     overflow: hidden;
     background: #fff;
@@ -255,7 +255,7 @@ z-index: var(--z-sticky);
     border: 1px solid var(--border, #333);
     border-radius: 10px;
     overflow: hidden;
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
     flex-direction: column;
 }
@@ -280,7 +280,7 @@ z-index: var(--z-sticky);
     width: 520px;
     max-height: 80vh;
     overflow-y: auto;
-    background: var(--bg, #1a1a2e);
+    background: var(--bg, var(--palette-1a1a2e));
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     padding: 20px;

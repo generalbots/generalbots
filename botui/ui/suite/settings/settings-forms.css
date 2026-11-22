@@ -368,7 +368,7 @@
         border-radius: 6px;
         background: rgba(59, 130, 246, 0.07);
         border: 1px solid rgba(59, 130, 246, 0.2);
-        color: var(--text-secondary, #9ca3af);
+        color: var(--text-secondary, var(--palette-9ca3af));
         font-size: var(--text-2xs);
         line-height: 1.55;
     }
@@ -378,9 +378,9 @@
         align-items: center;
         gap: 10px;
         padding: 10px 12px;
-        border: 1px solid var(--border, #334155);
+        border: 1px solid var(--border, var(--palette-334155));
         border-radius: 8px;
-        background: var(--bg, #0f172a);
+        background: var(--bg, var(--palette-0f172a));
         min-height: 40px;
     }
 
@@ -388,7 +388,7 @@
         flex: 1;
         font-family: "Fira Code", monospace;
         font-size: var(--text-2xs);
-        color: var(--text, #e5e7eb);
+        color: var(--text, var(--palette-e5e7eb));
         overflow-wrap: anywhere;
     }
 
@@ -398,7 +398,7 @@
         border-radius: 999px;
         border: 1px solid rgba(245, 158, 11, 0.4);
         background: rgba(245, 158, 11, 0.1);
-        color: #fbbf24;
+        color: var(--palette-fbbf24);
         font-size: var(--text-2xs);
         font-weight: 600;
         letter-spacing: 0.03em;

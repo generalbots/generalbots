@@ -8,7 +8,7 @@
 }
 
 .control-btn-lg.btn-danger:hover {
-    background: #dc2626;
+    background: var(--palette-dc2626);
 }
 
 .control-btn-lg.muted {
@@ -258,7 +258,7 @@
     padding: 0.4rem 0.7rem;
     border-radius: 9999px;
     background: rgba(239, 68, 68, 0.18);
-    color: #f87171;
+    color: var(--palette-f87171);
     font-size: var(--text-2xs);
     font-weight: 600;
 }
@@ -271,7 +271,7 @@
     width: 0.55rem;
     height: 0.55rem;
     border-radius: 50%;
-    background: #ef4444;
+    background: var(--palette-ef4444);
     animation: gb-rec-pulse 1.2s infinite;
 }
 
@@ -299,7 +299,7 @@
     max-height: 70vh;
     display: flex;
     flex-direction: column;
-    background: var(--surface, #1e293b);
+    background: var(--surface, var(--palette-1e293b));
     border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
@@ -335,7 +335,7 @@
 .recordings-empty {
     padding: 1.5rem;
     text-align: center;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--palette-94a3b8));
     font-size: 0.85rem;
 }
 
@@ -363,7 +363,7 @@
 
 .recording-item-meta {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--palette-94a3b8));
 }
 
 .recording-item-actions {

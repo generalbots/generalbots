@@ -6,7 +6,7 @@
     align-self: center;
     padding: 4px 10px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+    background: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 10%, transparent);
     color: var(--text, #444);
     font-size: var(--text-2xs);
     max-width: 160px;
@@ -21,9 +21,9 @@
     height: 38px;
     margin-bottom: 2px;
     border-radius: 50%;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: var(--surface, #fff);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, var(--palette-2563eb)) 40%, transparent);
     transition:
         transform 0.15s ease,
         background 0.15s ease,
@@ -31,20 +31,20 @@
 }
 
 #sendBtn:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent, var(--palette-2563eb)) 45%, transparent);
 }
 
 #sendBtn:active {
     transform: translateY(0) scale(0.96);
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, #2563eb) 35%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, var(--palette-2563eb)) 35%, transparent);
 }
 
 #sendBtn:focus-visible,
 .gb-model-picker:focus-visible,
 .chat-tool-toggle.web-search-toggle:focus-visible {
-    outline: 2px solid var(--accent, #2563eb);
+    outline: 2px solid var(--accent, var(--palette-2563eb));
     outline-offset: 2px;
 }
 
@@ -93,9 +93,9 @@
 }
 .chat-tool-toggle.tts-toggle.active,
 .chat-tool-toggle.tts-toggle[aria-pressed="true"] {
-    color: var(--accent, #2563eb);
-    background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
-    border-color: color-mix(in srgb, var(--accent, #2563eb) 24%, transparent);
+    color: var(--accent, var(--palette-2563eb));
+    background: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 24%, transparent);
 }
 
 /* Base for all composer tool toggles — unified size/alignment (#2242). */
@@ -120,12 +120,12 @@
 }
 
 .chat-tool-toggle:hover {
-    background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
-    color: var(--accent, #2563eb);
+    background: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 10%, transparent);
+    color: var(--accent, var(--palette-2563eb));
 }
 
 .chat-tool-toggle:focus-visible {
-    outline: 2px solid var(--accent, #2563eb);
+    outline: 2px solid var(--accent, var(--palette-2563eb));
     outline-offset: 2px;
 }
 
@@ -147,11 +147,11 @@
   font-size: var(--text-2xs);
   font-weight: 600;
   line-height: 16px;
-  background: var(--accent, #3b82f6);
+  background: var(--accent, var(--palette-3b82f6));
   color: #fff;
   text-align: center;
   pointer-events: none;
-  box-shadow: 0 0 0 2px var(--surface, #1a1a24);
+  box-shadow: 0 0 0 2px var(--surface, var(--palette-1a1a24));
 }
 .chat-controls-panel {
   position: absolute;
@@ -159,7 +159,7 @@
   bottom: calc(100% + 8px);
   width: 320px;
   max-width: calc(100vw - 24px);
-  background: color-mix(in srgb, var(--surface, #1a1a24) 96%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--palette-1a1a24)) 96%, transparent);
   backdrop-filter: blur(12px);
   color: var(--text, #eee);
   border: 1px solid var(--border, #333);
@@ -191,7 +191,7 @@
 }
 .chat-controls-row input[type="checkbox"] {
   margin: 2px 0 0 0;
-  accent-color: var(--accent, #3b82f6);
+  accent-color: var(--accent, var(--palette-3b82f6));
 }
 .chat-controls-row > span {
   font-weight: 500;

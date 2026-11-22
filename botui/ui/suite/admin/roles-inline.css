@@ -2,7 +2,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--bg-primary, #f5f5f5);
+    background: var(--bg-primary, var(--palette-f5f5f5));
 }
 
 .page-header {
@@ -11,14 +11,14 @@
     align-items: center;
     padding: 1.5rem 2rem;
     background: white;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--palette-e0e0e0);
 }
 
 .header-left h1 {
     font-size: 1.5rem;
     font-weight: 600;
     margin: 0;
-    color: #1a1a1a;
+    color: var(--palette-1a1a1a);
 }
 
 .header-left .subtitle {
@@ -41,14 +41,14 @@
 .roles-sidebar {
     width: 320px;
     background: white;
-    border-right: 1px solid #e0e0e0;
+    border-right: 1px solid var(--palette-e0e0e0);
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-header {
     padding: 1rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--palette-e0e0e0);
 }
 
 .sidebar-header h3 {
@@ -67,7 +67,7 @@
 
 .search-box {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--palette-e0e0e0);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -102,12 +102,12 @@
 }
 
 .role-item:hover {
-    background: #f5f5f5;
+    background: var(--palette-f5f5f5);
 }
 
 .role-item.selected {
-    background: #e3f2fd;
-    border-left: 3px solid #1976d2;
+    background: var(--palette-e3f2fd);
+    border-left: 3px solid var(--palette-1976d2);
 }
 
 .role-item-icon {
@@ -118,13 +118,13 @@
     align-items: center;
     justify-content: center;
     margin-right: 0.75rem;
-    background: #e8f4fd;
-    color: #1976d2;
+    background: var(--palette-e8f4fd);
+    color: var(--palette-1976d2);
 }
 
 .role-item.system .role-item-icon {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--palette-e8f5e9);
+    color: var(--palette-2e7d32);
 }
 
 .role-item-info {
@@ -135,7 +135,7 @@
 .role-item-name {
     font-weight: 500;
     font-size: 0.9rem;
-    color: #1a1a1a;
+    color: var(--palette-1a1a1a);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

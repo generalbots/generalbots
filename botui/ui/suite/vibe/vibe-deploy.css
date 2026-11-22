@@ -187,7 +187,7 @@ cursor: pointer;
 }
 .vibe-np-dialog {
     width: 480px; max-width: 94%;
-    background: var(--surface, #151a21);
+    background: var(--surface, var(--palette-151a21));
     border: 1px solid var(--border, rgba(128,128,128,.3));
     border-radius: 12px;
     overflow: hidden;
@@ -232,13 +232,13 @@ cursor: pointer;
 .vibe-np-label {
     display: block; margin: 10px 0 4px;
     font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted, #9ca3af);
+    color: var(--muted, var(--palette-9ca3af));
 }
 .vibe-np-input {
     width: 100%; box-sizing: border-box;
-    background: var(--bg2, #0d1117);
+    background: var(--bg2, var(--palette-0d1117));
     border: 1px solid var(--border, rgba(128,128,128,.35));
-    color: var(--text, #e5e7eb);
+    color: var(--text, var(--palette-e5e7eb));
     border-radius: 6px; padding: 7px 10px; font-size: var(--text-xs);
 }
 .vibe-np-desc {
@@ -246,7 +246,7 @@ cursor: pointer;
 }
 .vibe-np-kinds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .vibe-np-kind {
-    background: var(--bg2, #0d1117);
+    background: var(--bg2, var(--palette-0d1117));
     border: 1px solid var(--border, rgba(128,128,128,.3));
     color: var(--text, inherit);
     border-radius: 10px; padding: 14px 10px; cursor: pointer;
@@ -257,11 +257,11 @@ cursor: pointer;
 .vibe-np-kind:hover { transform: translateY(-1px); }
 .vibe-np-kind.active,
 .vibe-np-opt.active {
-    border-color: var(--accent, #84d669);
-    box-shadow: 0 0 0 1px var(--accent, #84d669) inset;
+    border-color: var(--accent, var(--palette-84d669));
+    box-shadow: 0 0 0 1px var(--accent, var(--palette-84d669)) inset;
 }
 .vibe-np-kind-name { display: block; font-weight: 700; font-size: var(--text-xs); }
-.vibe-np-kind-sub { display: block; font-size: var(--text-2xs); color: var(--muted, #9ca3af); margin-top: 2px; }
+.vibe-np-kind-sub { display: block; font-size: var(--text-2xs); color: var(--muted, var(--palette-9ca3af)); margin-top: 2px; }
 .vibe-np-opts { display: flex; gap: 8px; flex-wrap: wrap; }
 .vibe-np-opt {
     border: 1px solid var(--border, rgba(128,128,128,.3));
@@ -270,13 +270,13 @@ cursor: pointer;
 .vibe-np-opt input { display: none; }
 .vibe-np-hooks {
     width: 100%; box-sizing: border-box; min-height: 70px; resize: vertical;
-    background: var(--bg2, #0d1117);
+    background: var(--bg2, var(--palette-0d1117));
     border: 1px solid var(--border, rgba(128,128,128,.35));
-    color: var(--text, #e5e7eb);
+    color: var(--text, var(--palette-e5e7eb));
     border-radius: 6px; padding: 7px 10px;
     font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: var(--text-2xs);
 }
-.vibe-np-err { color: #f85149; font-size: var(--text-2xs); margin-top: 8px; min-height: 0; }
+.vibe-np-err { color: var(--palette-f85149); font-size: var(--text-2xs); margin-top: 8px; min-height: 0; }
 .vibe-np-foot {
     display: flex; justify-content: flex-end; gap: 8px;
     padding: 12px 16px;
@@ -288,8 +288,8 @@ cursor: pointer;
     border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: var(--text-xs);
 }
 .vibe-np-create {
-    border: 1px solid var(--accent, #84d669);
-    background: var(--accent, #84d669); color: var(--bg, #0d1117);
+    border: 1px solid var(--accent, var(--palette-84d669));
+    background: var(--accent, var(--palette-84d669)); color: var(--bg, var(--palette-0d1117));
     border-radius: 6px; padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: var(--text-xs);
 }
 
@@ -308,7 +308,7 @@ cursor: pointer;
     margin-left: 6px;
 }
 #vibeGraphPanel .vibe-cap-title .vibe-cap-warn {
-    color: #f7b500;
+    color: var(--palette-f7b500);
     font-size: var(--text-2xs);
     text-transform: uppercase;
     margin-left: 6px;
@@ -327,7 +327,7 @@ cursor: pointer;
     border-radius: 4px;
     padding: 1px 6px;
     font-size: var(--text-2xs);
-    color: var(--accent, #84d669);
+    color: var(--accent, var(--palette-84d669));
 }
 
 @media (prefers-reduced-motion: reduce) {

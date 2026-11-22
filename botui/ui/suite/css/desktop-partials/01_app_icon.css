@@ -249,7 +249,7 @@
 .overflow-y-auto {
     overflow-y: auto;
 }
-.bg-\[\#fafdfa\] {
+.bg-\[\var(--palette-fafdfa)\] {
     background-color: var(--bg);
 }
 

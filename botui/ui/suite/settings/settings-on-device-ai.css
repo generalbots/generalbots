@@ -16,13 +16,13 @@
     font-size: var(--text-2xs);
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-muted, #8b93a7);
-    border-bottom: 1px solid var(--border, #262b36);
+    color: var(--text-muted, var(--palette-8b93a7));
+    border-bottom: 1px solid var(--border, var(--palette-262b36));
 }
 
 #on-device-ai-section .oda-table td {
     padding: 9px 10px;
-    border-bottom: 1px solid var(--border, #262b36);
+    border-bottom: 1px solid var(--border, var(--palette-262b36));
     vertical-align: middle;
 }
 
@@ -31,7 +31,7 @@
     font-size: var(--text-2xs);
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     background: rgba(127, 127, 127, 0.06);
 }
 
@@ -42,27 +42,27 @@
 #on-device-ai-section .oda-model small {
     display: block;
     font-weight: 400;
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
 }
 
 #on-device-ai-section .oda-muted {
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     font-size: var(--text-2xs);
 }
 
 #on-device-ai-section .oda-empty {
     text-align: center;
     padding: 18px;
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
 }
 
 #on-device-ai-section .oda-status-active {
-    color: var(--success, #4ade80);
+    color: var(--success, var(--palette-4ade80));
     font-weight: 600;
 }
 
 #on-device-ai-section .oda-warn {
-    color: var(--warning, #fbbf24);
+    color: var(--warning, var(--palette-fbbf24));
 }
 
 #on-device-ai-section .oda-progress {
@@ -76,7 +76,7 @@
 #on-device-ai-section .oda-progress span {
     display: block;
     height: 100%;
-    background: var(--primary, #5b8def);
+    background: var(--primary, var(--palette-5b8def));
 }
 
 #on-device-ai-section .oda-actions {
@@ -94,7 +94,7 @@
     flex-wrap: wrap;
     padding: 12px;
     margin: 10px 0;
-    border: 1px solid var(--border, #262b36);
+    border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 8px;
 }
 
@@ -103,7 +103,7 @@
     font-size: var(--text-2xs);
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-muted, #8b93a7);
+    color: var(--text-muted, var(--palette-8b93a7));
     margin-bottom: 2px;
 }
 

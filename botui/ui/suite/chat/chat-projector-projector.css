@@ -43,7 +43,7 @@
     width: 90%;
     max-width: 1200px;
     max-height: 90vh;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -66,7 +66,7 @@
     justify-content: space-between;
     padding: 16px 20px;
     background: var(--surface-hover, rgba(0, 0, 0, 0.2));
-    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
 .projector-title-section {
@@ -82,7 +82,7 @@
 .projector-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     max-width: 400px;
     white-space: nowrap;
     overflow: hidden;
@@ -98,9 +98,9 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -110,12 +110,12 @@
 
 .projector-btn:hover {
     background: var(--surface-active, rgba(255, 255, 255, 0.1));
-    border-color: var(--accent, #2563eb);
+    border-color: var(--accent, var(--palette-2563eb));
 }
 
 .projector-btn.close-btn:hover {
-    background: var(--error, #ef4444);
-    border-color: var(--error, #ef4444);
+    background: var(--error, var(--palette-ef4444));
+    border-color: var(--error, var(--palette-ef4444));
     color: white;
 }
 
@@ -127,7 +127,7 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: var(--bg, #0a0a0f);
+    background: var(--bg, var(--palette-0a0a0f));
 }
 
 /* Projector Loading */
@@ -146,8 +146,8 @@
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--border, var(--border-color, #2a2a2a));
-    border-top-color: var(--accent, #2563eb);
+    border: 3px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
+    border-top-color: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -174,7 +174,7 @@
 .audio-visualizer {
     width: 100%;
     height: 100px;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 8px;
     margin-bottom: 16px;
 }
@@ -197,9 +197,9 @@
     width: 100%;
     max-height: 70vh;
     overflow: auto;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 8px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
 .projector-code pre {
@@ -208,7 +208,7 @@
     font-family: "Fira Code", monospace;
     font-size: var(--text-xs);
     line-height: 1.6;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .projector-code.line-numbers pre {
@@ -223,7 +223,7 @@
     margin-right: 16px;
     text-align: right;
     color: var(--text-secondary, #888);
-    border-right: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-right: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     padding-right: 12px;
 }
 

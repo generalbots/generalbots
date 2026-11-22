@@ -1,0 +1,21 @@
+/* #2324 — high-contrast accessibility theme.
+ * Strong, WCAG-friendly pairs; no low-contrast surfaces or faint hairlines.
+ */
+html:root[data-theme="high-contrast"] {
+  --bg: #000000 !important;
+  --surface: #000000 !important;
+  --surface-hover: #1a1a1a !important;
+  --text: #ffffff !important;
+  --text-secondary: #ffffff !important;
+  --text-tertiary: #f2f2f2 !important;
+  --border: #ffffff !important;
+  --border-light: #ffffff !important;
+  --border-hover: #ffff00 !important;
+  --primary: #ffff00 !important;
+  --primary-hover: #ffff66 !important;
+  --primary-light: #333300 !important;
+  --accent: #ffff00 !important;
+  --danger: #ff6666 !important;
+  --success: #66ff99 !important;
+  --shadow: none !important;
+}

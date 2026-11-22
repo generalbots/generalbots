@@ -35,81 +35,81 @@
 
 /* Theme-specific preview colors */
 .theme-preview.dark {
-    background: #0f172a;
+    background: var(--palette-0f172a);
 }
 .theme-preview.dark .preview-sidebar {
-    background: #1e293b;
+    background: var(--palette-1e293b);
 }
 .theme-preview.dark .preview-header {
-    background: #334155;
+    background: var(--palette-334155);
 }
 .theme-preview.dark .preview-body {
-    background: #1e293b;
+    background: var(--palette-1e293b);
 }
 
 .theme-preview.light {
-    background: #f8fafc;
+    background: var(--palette-f8fafc);
 }
 .theme-preview.light .preview-sidebar {
-    background: #e2e8f0;
+    background: var(--palette-e2e8f0);
 }
 .theme-preview.light .preview-header {
-    background: #cbd5e1;
+    background: var(--palette-cbd5e1);
 }
 .theme-preview.light .preview-body {
-    background: #f1f5f9;
+    background: var(--palette-f1f5f9);
 }
 
 .theme-preview.blue {
-    background: #0c1929;
+    background: var(--palette-0c1929);
 }
 .theme-preview.blue .preview-sidebar {
-    background: #1a2f47;
+    background: var(--palette-1a2f47);
 }
 .theme-preview.blue .preview-header {
-    background: #2d4a6f;
+    background: var(--palette-2d4a6f);
 }
 .theme-preview.blue .preview-body {
-    background: #1a2f47;
+    background: var(--palette-1a2f47);
 }
 
 .theme-preview.purple {
-    background: #1a0a2e;
+    background: var(--palette-1a0a2e);
 }
 .theme-preview.purple .preview-sidebar {
-    background: #2d1b4e;
+    background: var(--palette-2d1b4e);
 }
 .theme-preview.purple .preview-header {
-    background: #4c2f7e;
+    background: var(--palette-4c2f7e);
 }
 .theme-preview.purple .preview-body {
-    background: #2d1b4e;
+    background: var(--palette-2d1b4e);
 }
 
 .theme-preview.green {
-    background: #0a1f15;
+    background: var(--palette-0a1f15);
 }
 .theme-preview.green .preview-sidebar {
-    background: #14332a;
+    background: var(--palette-14332a);
 }
 .theme-preview.green .preview-header {
-    background: #28604f;
+    background: var(--palette-28604f);
 }
 .theme-preview.green .preview-body {
-    background: #14332a;
+    background: var(--palette-14332a);
 }
 
 .theme-preview.orange {
-    background: #1a1008;
+    background: var(--palette-1a1008);
 }
 .theme-preview.orange .preview-sidebar {
-    background: #2d1c0f;
+    background: var(--palette-2d1c0f);
 }
 .theme-preview.orange .preview-header {
-    background: #5c3a1e;
+    background: var(--palette-5c3a1e);
 }
 .theme-preview.orange .preview-body {
-    background: #2d1c0f;
+    background: var(--palette-2d1c0f);
 }
 
 @media (prefers-reduced-motion: reduce) {

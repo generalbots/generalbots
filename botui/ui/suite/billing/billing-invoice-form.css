@@ -8,7 +8,7 @@
     justify-content: space-between;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .invoice-form-title {
@@ -33,7 +33,7 @@
 
 .form-close:hover {
     background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .form-section {
@@ -43,7 +43,7 @@
 .form-section-title {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     margin-bottom: 12px;
 }
 
@@ -71,9 +71,9 @@
 .form-textarea {
     padding: 10px 12px;
     background: var(--surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     font-size: var(--text-sm);
     transition: border-color 0.15s ease;
 }
@@ -82,11 +82,11 @@
 .form-select:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
 }
 
 .form-select option {
-    background: var(--bg-primary, #0a0a0a);
+    background: var(--bg-primary, var(--palette-0a0a0a));
 }
 
 /* Line Items */
@@ -112,7 +112,7 @@
     grid-template-columns: 3fr 1fr 1fr 1fr 40px;
     gap: 12px;
     padding: 12px;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-top: none;
     align-items: center;
 }
@@ -124,20 +124,20 @@
 .line-item input {
     padding: 8px;
     background: var(--surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     font-size: var(--text-xs);
 }
 
 .line-item input:focus {
     outline: none;
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
 }
 
 .line-item-total {
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .line-item-remove {
@@ -156,7 +156,7 @@
 
 .line-item-remove:hover {
     background: rgba(239, 68, 68, 0.15);
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 
 .add-line-item {
@@ -166,7 +166,7 @@
     margin-top: 12px;
     padding: 8px 12px;
     background: transparent;
-    border: 1px dashed var(--border, #2a2a2a);
+    border: 1px dashed var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text-secondary, #888);
     font-size: var(--text-xs);
@@ -175,8 +175,8 @@
 }
 
 .add-line-item:hover {
-    border-color: var(--accent, #d4f505);
-    color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
+    color: var(--accent, var(--palette-d4f505));
 }
 
 /* Invoice Totals */
@@ -187,7 +187,7 @@
     gap: 8px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .invoice-total-row {
@@ -211,13 +211,13 @@
 .invoice-total-row.grand-total {
     margin-top: 8px;
     padding-top: 12px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border, var(--palette-2a2a2a));
     font-size: var(--text-md);
     font-weight: 700;
 }
 
 .invoice-total-row.grand-total .value {
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--palette-d4f505));
 }
 
 /* Form Actions */
@@ -227,7 +227,7 @@
     gap: 12px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .form-btn {
@@ -241,8 +241,8 @@
 
 .form-btn.secondary {
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
-    color: var(--text, #f8fafc);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .form-btn.secondary:hover {
@@ -250,13 +250,13 @@
 }
 
 .form-btn.primary {
-    background: var(--accent, #d4f505);
-    border: 1px solid var(--accent, #d4f505);
+    background: var(--accent, var(--palette-d4f505));
+    border: 1px solid var(--accent, var(--palette-d4f505));
     color: #000;
 }
 
 .form-btn.primary:hover {
-    background: var(--accent-hover, #c4e505);
+    background: var(--accent-hover, var(--palette-c4e505));
 }
 
 /* Responsive */

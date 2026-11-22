@@ -976,3 +976,4 @@ weba-created = Site created:
 weba-published = Site published.
 weba-unpublished = Site unpublished.
 weba-error = Could not load sites: 
+theme-high-contrast = 高对比度

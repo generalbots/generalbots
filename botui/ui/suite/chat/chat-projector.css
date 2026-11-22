@@ -12,7 +12,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 8px;
 }
 
@@ -36,15 +36,15 @@
     max-height: 70vh;
     overflow: auto;
     padding: 24px;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 8px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
 .projector-markdown h1,
 .projector-markdown h2,
 .projector-markdown h3 {
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     margin-bottom: 16px;
 }
 
@@ -65,7 +65,7 @@
 .projector-controls {
     padding: 12px 20px;
     background: var(--surface-hover, rgba(0, 0, 0, 0.2));
-    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-top: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
 .media-controls,
@@ -88,9 +88,9 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -103,8 +103,8 @@
 }
 
 .control-btn.active {
-    background: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
 }
 
 .play-btn {
@@ -124,7 +124,7 @@
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: var(--border, var(--border-color, #2a2a2a));
+    background: var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 3px;
     cursor: pointer;
 }
@@ -133,7 +133,7 @@
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     cursor: pointer;
 }
@@ -141,7 +141,7 @@
 .progress-bar::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -160,7 +160,7 @@
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: var(--border, var(--border-color, #2a2a2a));
+    background: var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 3px;
     cursor: pointer;
 }
@@ -169,7 +169,7 @@
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     cursor: pointer;
 }
@@ -177,7 +177,7 @@
 .volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -187,9 +187,9 @@
 .theme-select {
     padding: 6px 12px;
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 6px;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     font-size: var(--text-2xs);
     cursor: pointer;
 }
@@ -206,9 +206,9 @@
     width: 60px;
     padding: 6px 8px;
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 6px;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     font-size: var(--text-2xs);
     text-align: center;
 }
@@ -220,7 +220,7 @@
     align-items: center;
     gap: 16px;
     padding: 40px;
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

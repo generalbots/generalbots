@@ -9,8 +9,8 @@
     align-items: stretch;
     gap: 4px;
     padding: 6px 10px 0;
-    background: var(--surface2, var(--surface, #1e1e2e));
-    border-bottom: 1px solid var(--border, var(--border-color, #2a2a3a));
+    background: var(--surface2, var(--surface, var(--palette-1e1e2e)));
+    border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a3a)));
     overflow-x: auto;
     scrollbar-width: thin;
 }
@@ -42,13 +42,13 @@
 
 .gb-tab:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .gb-tab.active {
-    background: var(--bg, var(--surface, #1a1a24));
-    border-color: var(--border, var(--border-color, #2a2a3a));
-    color: var(--text, #e5e5e5);
+    background: var(--bg, var(--surface, var(--palette-1a1a24)));
+    border-color: var(--border, var(--border-color, var(--palette-2a2a3a)));
+    color: var(--text, var(--palette-e5e5e5));
     /* #1319: the rounded border must continue into the chat area — overlap
        the strip's bottom border so the active tab body merges seamlessly
        with the conversation panel below (same --bg background). */
@@ -77,7 +77,7 @@
     width: 120px;
     font-size: var(--text-2xs);
     padding: 2px 4px;
-    border: 1px solid var(--accent, #2563eb);
+    border: 1px solid var(--accent, var(--palette-2563eb));
     border-radius: 4px;
     background: var(--bg, #fff);
     color: var(--text, #111);
@@ -88,7 +88,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--gb-accent, var(--accent, #16a34a));
+    background: var(--gb-accent, var(--accent, var(--palette-16a34a)));
     display: none;
     flex-shrink: 0;
 }
@@ -126,13 +126,13 @@
 
 .gb-tab-close:hover {
     opacity: 1;
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 
 .gb-tab-new {
     align-self: center;
     background: none;
-    border: 1px dashed var(--border, var(--border-color, #2a2a3a));
+    border: 1px dashed var(--border, var(--border-color, var(--palette-2a2a3a)));
     border-radius: 6px;
     color: var(--text-secondary, #888);
     cursor: pointer;
@@ -143,8 +143,8 @@
 }
 
 .gb-tab-new:hover {
-    color: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    color: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
 }
 
 /* ── Context menus / picker ── */
@@ -153,8 +153,8 @@
     position: fixed;
     z-index: var(--z-system);
     min-width: 150px;
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     display: flex;
@@ -166,7 +166,7 @@
     background: none;
     border: none;
     text-align: left;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     font-size: var(--text-xs);
     padding: 7px 10px;
     border-radius: 5px;
@@ -228,16 +228,16 @@
     max-width: 220px;
     padding: 3px 9px 3px 3px;
     border-radius: 999px;
-    border: 1px solid var(--border, var(--border-color, #2a2a3a));
-    background: var(--surface2, var(--surface, #1e1e2e));
-    color: var(--text, #e5e5e5);
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a3a)));
+    background: var(--surface2, var(--surface, var(--palette-1e1e2e)));
+    color: var(--text, var(--palette-e5e5e5));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .source-chip:hover {
-    border-color: var(--accent, #2563eb);
+    border-color: var(--accent, var(--palette-2563eb));
     transform: translateY(-1px);
 }
 
@@ -245,7 +245,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: #fff;
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -271,7 +271,7 @@
 }
 
 sup.gb-cite-ref {
-    color: var(--accent, #2563eb);
+    color: var(--accent, var(--palette-2563eb));
     cursor: pointer;
     font-weight: 600;
     margin: 0 1px;
@@ -286,15 +286,15 @@ sup.gb-cite-ref:hover {
 
 .gb-consent-card {
     margin-top: 10px;
-    border: 1px solid var(--warning, #f59e0b);
+    border: 1px solid var(--warning, var(--palette-f59e0b));
     border-radius: 10px;
-    background: var(--surface2, var(--surface, #1e1e2e));
+    background: var(--surface2, var(--surface, var(--palette-1e1e2e)));
     padding: 12px;
     font-size: var(--text-xs);
 }
 
 .gb-consent-card.resolved {
-    border-color: var(--border, var(--border-color, #2a2a3a));
+    border-color: var(--border, var(--border-color, var(--palette-2a2a3a)));
 }
 
 .gb-consent-head {
@@ -311,7 +311,7 @@ sup.gb-cite-ref:hover {
 
 .gb-consent-title {
     font-weight: 600;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .gb-consent-app {
@@ -333,9 +333,9 @@ sup.gb-cite-ref:hover {
 }
 
 .gb-consent-btn {
-    border: 1px solid var(--border, var(--border-color, #2a2a3a));
-    background: var(--surface, var(--card, #1a1a24));
-    color: var(--text, #e5e5e5);
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a3a)));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    color: var(--text, var(--palette-e5e5e5));
     border-radius: 7px;
     padding: 6px 12px;
     font-size: var(--text-2xs);
@@ -353,21 +353,21 @@ sup.gb-cite-ref:hover {
 }
 
 .gb-consent-btn.primary {
-    background: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
     color: #fff;
 }
 
 .gb-consent-btn.danger {
-    border-color: var(--error, #ef4444);
-    color: var(--error, #ef4444);
+    border-color: var(--error, var(--palette-ef4444));
+    color: var(--error, var(--palette-ef4444));
 }
 
 .gb-consent-outcome {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .gb-consent-outcome-time {

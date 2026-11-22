@@ -1,6 +1,6 @@
     .report-card {
-        background: var(--surface, var(--card, #1a1a24));
-        border: 1px solid var(--border, #2a2a2a);
+        background: var(--surface, var(--card, var(--palette-1a1a24)));
+        border: 1px solid var(--border, var(--palette-2a2a2a));
         border-radius: 12px;
         overflow: hidden;
     }
@@ -14,7 +14,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 16px;
-        border-bottom: 1px solid var(--border, #2a2a2a);
+        border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
     }
 
     .report-card-header h4 {
@@ -31,7 +31,7 @@
         padding: 4px 8px;
         border-radius: 4px;
         background: var(--accent-glow, rgba(59, 130, 246, 0.15));
-        color: var(--accent, #3b82f6);
+        color: var(--accent, var(--palette-3b82f6));
     }
 
     .report-card-body {

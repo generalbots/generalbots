@@ -10,8 +10,8 @@
     flex-direction: row;
     height: 100%;
     min-height: 0;
-    background: var(--background, var(--bg-primary, #0a0a0f));
-    color: var(--foreground, var(--text-primary, #ffffff));
+    background: var(--background, var(--bg-primary, var(--palette-0a0a0f)));
+    color: var(--foreground, var(--text-primary, var(--palette-ffffff)));
 }
 
 /* Sidebar */

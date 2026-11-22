@@ -4,8 +4,8 @@ html, body { height: 100%; }
 
 .docs-shared-body {
     margin: 0;
-    background: #0b1220;
-    color: #e2e8f0;
+    background: var(--palette-0b1220);
+    color: var(--palette-e2e8f0);
     font: 15px/1.7 Georgia, "Times New Roman", serif;
     display: flex;
     flex-direction: column;
@@ -16,8 +16,8 @@ html, body { height: 100%; }
     align-items: center;
     gap: 10px;
     padding: 10px 20px;
-    background: #0f172a;
-    border-bottom: 1px solid #334155;
+    background: var(--palette-0f172a);
+    border-bottom: 1px solid var(--palette-334155);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     position: sticky;
     top: 0;
@@ -28,7 +28,7 @@ html, body { height: 100%; }
     flex: 1;
     font-size: var(--text-sm);
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--palette-f8fafc);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -38,7 +38,7 @@ html, body { height: 100%; }
     border-radius: 999px;
     background: rgba(148, 163, 184, .18);
     border: 1px solid rgba(148, 163, 184, .55);
-    color: #cbd5f5;
+    color: var(--palette-cbd5f5);
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: .06em;
@@ -54,12 +54,12 @@ html, body { height: 100%; }
 .docs-shared-state {
     align-self: center;
     margin: 0;
-    color: #94a3b8;
+    color: var(--palette-94a3b8);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--text-sm);
 }
 
-.docs-shared-state-error { color: #f87171; }
+.docs-shared-state-error { color: var(--palette-f87171); }
 .docs-shared-pages {
     width: 100%;
     display: flex;
@@ -72,8 +72,8 @@ html, body { height: 100%; }
     min-height: 1000px;
     box-sizing: border-box;
     padding: 72px 80px;
-    background: #ffffff;
-    color: #111827;
+    background: var(--palette-ffffff);
+    color: var(--palette-111827);
     box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
     outline: none;
     cursor: default;
@@ -82,21 +82,21 @@ html, body { height: 100%; }
 .docs-shared-doc img { max-width: 100%; height: auto; }
 .docs-shared-doc table { border-collapse: collapse; max-width: 100%; }
 .docs-shared-doc td,
-.docs-shared-doc th { border: 1px solid #cbd5e1; padding: 6px 8px; }
+.docs-shared-doc th { border: 1px solid var(--palette-cbd5e1); padding: 6px 8px; }
 .docs-shared-doc pre {
-    background: #f1f5f9;
+    background: var(--palette-f1f5f9);
     padding: 10px 12px;
     border-radius: 6px;
     overflow-x: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: var(--text-xs);
 }
-.docs-shared-doc a { color: #1d4ed8; }
+.docs-shared-doc a { color: var(--palette-1d4ed8); }
 .docs-shared-footer {
     padding: 10px 20px;
-    border-top: 1px solid #334155;
-    background: #0f172a;
-    color: #94a3b8;
+    border-top: 1px solid var(--palette-334155);
+    background: var(--palette-0f172a);
+    color: var(--palette-94a3b8);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--text-2xs);
     text-align: center;

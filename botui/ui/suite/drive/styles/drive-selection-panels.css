@@ -2,7 +2,7 @@
 
 
 .btn-primary:hover {
-    background: var(--primary-hover, #2563eb);
+    background: var(--primary-hover, var(--palette-2563eb));
 }
 
 .btn-secondary {
@@ -11,8 +11,8 @@
     gap: 6px;
     padding: 8px 16px;
     background: transparent;
-    color: var(--text-secondary, #6b6b80);
-    border: 1px solid var(--border, #2a2a3a);
+    color: var(--text-secondary, var(--palette-6b6b80));
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 6px;
     font-size: var(--text-sm);
     cursor: pointer;
@@ -20,8 +20,8 @@
 }
 
 .btn-secondary:hover {
-    background: var(--surface-hover, #1a1a24);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover, var(--palette-1a1a24));
+    color: var(--text, var(--palette-ffffff));
 }
 
 /* KB Tags */
@@ -47,7 +47,7 @@
     height: 48px;
     border-radius: 50%;
     border: none;
-    background: #3b82f6;
+    background: var(--palette-3b82f6);
     color: #fff;
     cursor: pointer;
     display: flex;
@@ -68,8 +68,8 @@
     max-width: calc(100vw - 44px);
     height: 480px;
     max-height: calc(100vh - 120px);
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: var(--palette-1e293b);
+    border: 1px solid var(--palette-334155);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -89,17 +89,17 @@
     align-items: center;
     gap: 8px;
     padding: 12px 14px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--palette-334155);
 }
 .ai-panel-title {
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--palette-f8fafc);
     font-size: var(--text-sm);
 }
 .ai-file-context {
-    background: #0f172a;
-    color: #93c5fd;
-    border: 1px solid #334155;
+    background: var(--palette-0f172a);
+    color: var(--palette-93c5fd);
+    border: 1px solid var(--palette-334155);
     border-radius: 999px;
     padding: 2px 10px;
     font-size: var(--text-2xs);
@@ -112,13 +112,13 @@
     margin-left: auto;
     background: none;
     border: none;
-    color: #94a3b8;
+    color: var(--palette-94a3b8);
     font-size: var(--text-xl);
     cursor: pointer;
     line-height: 1;
 }
 .ai-panel-close:hover {
-    color: #f8fafc;
+    color: var(--palette-f8fafc);
 }
 .ai-messages {
     flex: 1;
@@ -140,46 +140,46 @@
 }
 .ai-msg-label {
     font-size: var(--text-2xs);
-    color: #64748b;
+    color: var(--palette-64748b);
     margin-bottom: 3px;
 }
 .ai-msg-body {
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--palette-0f172a);
+    border: 1px solid var(--palette-334155);
     border-radius: 10px;
     padding: 8px 12px;
-    color: #e2e8f0;
+    color: var(--palette-e2e8f0);
     font-size: var(--text-xs);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
 }
 .ai-msg-user .ai-msg-body {
-    background: #3b82f6;
-    border-color: #3b82f6;
+    background: var(--palette-3b82f6);
+    border-color: var(--palette-3b82f6);
     color: #fff;
 }
 .ai-input-row {
     display: flex;
     gap: 8px;
     padding: 10px 12px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--palette-334155);
 }
 .ai-input {
     flex: 1;
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--palette-0f172a);
+    border: 1px solid var(--palette-334155);
     border-radius: 8px;
-    color: #f8fafc;
+    color: var(--palette-f8fafc);
     padding: 9px 12px;
     font-size: var(--text-xs);
     outline: none;
 }
 .ai-input:focus {
-    border-color: #3b82f6;
+    border-color: var(--palette-3b82f6);
 }
 .ai-send-btn {
-    background: #3b82f6;
+    background: var(--palette-3b82f6);
     border: none;
     border-radius: 8px;
     color: #fff;
@@ -202,8 +202,8 @@
     z-index: var(--z-dropdown, 1000);
     width: 360px;
     max-width: calc(100vw - 44px);
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: var(--palette-1e293b);
+    border: 1px solid var(--palette-334155);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -223,7 +223,7 @@
     align-items: center;
     gap: 8px;
     padding: 12px 14px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--palette-334155);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

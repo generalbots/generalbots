@@ -29,8 +29,8 @@
 
 #vibeDenyBtn {
     background: transparent;
-    border: 1px solid #ef4444;
-    color: #ef4444;
+    border: 1px solid var(--palette-ef4444);
+    color: var(--palette-ef4444);
 }
 
 .vibe-rd-section {
@@ -144,18 +144,18 @@
 }
 
 .vibe-member-chip.working {
-    border-color: #f59e0b;
-    color: #b45309;
+    border-color: var(--palette-f59e0b);
+    color: var(--palette-b45309);
 }
 
 .vibe-member-chip.done {
     border-color: var(--accent);
-    color: #3d7a24;
+    color: var(--palette-3d7a24);
 }
 
 .vibe-member-chip.failed {
-    border-color: #ef4444;
-    color: #b91c1c;
+    border-color: var(--palette-ef4444);
+    color: var(--palette-b91c1c);
 }
 
 .vibe-todo-list {
@@ -183,7 +183,7 @@
 }
 
 .vibe-todo-item.active { border-color: var(--accent); color: var(--text); }
-.vibe-todo-item.done { color: #3d7a24; }
+.vibe-todo-item.done { color: var(--palette-3d7a24); }
 
 .vibe-rd-empty {
     font-size: var(--text-2xs);
@@ -211,7 +211,7 @@
 }
 
 .vibe-runner-log-ts {
-    color: #3d7a24;
+    color: var(--palette-3d7a24);
     margin-right: 4px;
 }
 
@@ -219,7 +219,7 @@
     display: inline-block;
     min-width: 44px;
     font-weight: 700;
-    color: var(--accent, #84d669);
+    color: var(--accent, var(--palette-84d669));
     margin-right: 4px;
 }
 

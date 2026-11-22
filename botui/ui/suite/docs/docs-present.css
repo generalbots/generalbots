@@ -1,5 +1,5 @@
 /* #1695 — presenting mode: read-only, chrome-free, full-screen document. */
-body.docs-presenting { background: #ffffff !important; }
+body.docs-presenting { background: var(--palette-ffffff) !important; }
 body.docs-presenting .docs-toolbar,
 body.docs-presenting .docs-sidebar,
 body.docs-presenting .docs-statusbar,
@@ -11,8 +11,8 @@ body.docs-presenting article {
     padding: 4vh 6vw !important;
     font-size: 1.25rem !important;
     line-height: 1.75 !important;
-    color: #111827 !important;
-    background: #ffffff !important;
+    color: var(--palette-111827) !important;
+    background: var(--palette-ffffff) !important;
     box-shadow: none !important;
     outline: none !important;
 }
@@ -20,7 +20,7 @@ body.docs-presenting article {
     position: fixed; right: 18px; bottom: 18px; z-index: var(--z-overlay);
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; border-radius: 999px;
-    background: rgba(17, 24, 39, .92); color: #f9fafb;
+    background: rgba(17, 24, 39, .92); color: var(--palette-f9fafb);
     font: 12px/1 ui-sans-serif, system-ui, sans-serif;
     box-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
@@ -38,7 +38,7 @@ body.docs-presenting article {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 999px;
     background: rgba(148, 163, 184, .18); border: 1px solid rgba(148, 163, 184, .5);
-    color: #cbd5f5; font: 600 10px/1.6 ui-sans-serif, system-ui, sans-serif;
+    color: var(--palette-cbd5f5); font: 600 10px/1.6 ui-sans-serif, system-ui, sans-serif;
     text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
 }
 .docs-readonly article,
@@ -51,5 +51,5 @@ body.docs-presenting article {
 .gb-share-active::after {
     content: ""; position: absolute; top: 4px; right: 4px;
     width: 6px; height: 6px; border-radius: 50%;
-    background: #34d399; box-shadow: 0 0 0 2px rgba(52, 211, 153, .25);
+    background: var(--palette-34d399); box-shadow: 0 0 0 2px rgba(52, 211, 153, .25);
 }

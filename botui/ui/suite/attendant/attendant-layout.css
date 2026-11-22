@@ -77,16 +77,16 @@
 }
 
 .status-dot.online {
-    background: #22c55e;
+    background: var(--palette-22c55e);
 }
 .status-dot.away {
-    background: #f59e0b;
+    background: var(--palette-f59e0b);
 }
 .status-dot.busy {
-    background: #ef4444;
+    background: var(--palette-ef4444);
 }
 .status-dot.offline {
-    background: #6b7280;
+    background: var(--palette-6b7280);
 }
 
 /* Responsive */
@@ -109,8 +109,8 @@
                 display: grid;
                 grid-template-columns: 320px 1fr 380px;
                 height: calc(100vh - 64px);
-                background: var(--bg, #0f172a);
-                color: var(--text, #f1f5f9);
+                background: var(--bg, var(--palette-0f172a));
+                color: var(--text, var(--palette-f1f5f9));
             }
 
             /* CRM Disabled State */
@@ -122,8 +122,8 @@
                 height: calc(100vh - 64px);
                 text-align: center;
                 padding: 40px;
-                background: var(--bg, #0f172a);
-                color: var(--text, #f1f5f9);
+                background: var(--bg, var(--palette-0f172a));
+                color: var(--text, var(--palette-f1f5f9));
             }
 
             .crm-disabled.active {
@@ -142,7 +142,7 @@
             }
 
             .crm-disabled p {
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 max-width: 500px;
                 line-height: 1.6;
                 margin-bottom: 24px;
@@ -150,7 +150,7 @@
 
             .crm-disabled code {
                 display: block;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 padding: 16px 24px;
                 border-radius: 8px;
                 font-family: "Monaco", "Menlo", monospace;
@@ -160,8 +160,8 @@
 
             /* Left Sidebar - Queue */
             .queue-sidebar {
-                background: var(--surface, #1e293b);
-                border-right: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-right: 1px solid var(--border, var(--palette-334155));
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
@@ -169,7 +169,7 @@
 
             .queue-header {
                 padding: 20px;
-                border-bottom: 1px solid var(--border, #334155);
+                border-bottom: 1px solid var(--border, var(--palette-334155));
             }
 
             .queue-title {
@@ -192,7 +192,7 @@
                 align-items: center;
                 gap: 12px;
                 padding: 12px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border-radius: 8px;
                 cursor: pointer;
                 position: relative;
@@ -202,21 +202,21 @@
                 width: 12px;
                 height: 12px;
                 border-radius: 50%;
-                background: var(--success, #10b981);
+                background: var(--success, var(--palette-10b981));
                 transition: background 0.3s;
             }
 
             .status-indicator.online {
-                background: var(--success, #10b981);
+                background: var(--success, var(--palette-10b981));
             }
             .status-indicator.busy {
-                background: var(--warning, #f59e0b);
+                background: var(--warning, var(--palette-f59e0b));
             }
             .status-indicator.away {
-                background: var(--text-tertiary, #64748b);
+                background: var(--text-tertiary, var(--palette-64748b));
             }
             .status-indicator.offline {
-                background: var(--error, #ef4444);
+                background: var(--error, var(--palette-ef4444));
             }
 
 @media (prefers-reduced-motion: reduce) {

@@ -166,17 +166,17 @@
 
 .status-badge.active {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--palette-10b981);
 }
 
 .status-badge.inactive {
     background: rgba(107, 114, 128, 0.1);
-    color: #6b7280;
+    color: var(--palette-6b7280);
 }
 
 .status-badge.suspended {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .status-dot {
@@ -197,17 +197,17 @@
 
 .role-badge.admin {
     background: rgba(168, 85, 247, 0.1);
-    color: #a855f7;
+    color: var(--palette-a855f7);
 }
 
 .role-badge.moderator {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .role-badge.user {
     background: rgba(107, 114, 128, 0.1);
-    color: #6b7280;
+    color: var(--palette-6b7280);
 }
 
 /* Action Buttons */
@@ -233,8 +233,8 @@
 
 .action-btn.danger:hover {
     background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    color: #ef4444;
+    border-color: var(--palette-ef4444);
+    color: var(--palette-ef4444);
 }
 
 /* Pagination */

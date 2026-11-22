@@ -2,7 +2,7 @@
 .lead-detail-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
 .lead-detail-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border, #ccc); margin-bottom: 12px; }
 .crm-tab-btn { background: none; border: none; padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; color: var(--text, #222); }
-.crm-tab-btn.active { border-bottom-color: var(--primary, #2563eb); color: var(--primary, #2563eb); }
+.crm-tab-btn.active { border-bottom-color: var(--primary, var(--palette-2563eb)); color: var(--primary, var(--palette-2563eb)); }
 .crm-dtab-view { padding: 8px 0; }
 .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-muted, #eee); }
 .detail-label { color: var(--text-secondary, #666); }
@@ -10,7 +10,7 @@
 .folder-view-path { font-family: "Fira Code", monospace; font-size: var(--text-2xs); color: var(--text-secondary, #555); word-break: break-all; }
 .folder-view-list ul.folder-view-items { list-style: none; margin: 0; padding: 0; }
 .folder-view-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 4px; }
-.folder-view-item:hover { background: var(--surface-hover, #f3f4f6); }
+.folder-view-item:hover { background: var(--surface-hover, var(--palette-f3f4f6)); }
 .folder-view-icon { width: 20px; text-align: center; }
 .folder-view-name { flex: 1; font-size: var(--text-xs); }
 .folder-view-size { font-size: var(--text-2xs); color: var(--text-secondary, #777); }
@@ -23,7 +23,7 @@
     gap: 8px;
     padding: 8px 10px;
     margin-top: 8px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 6px;
     background: var(--surface, #fff);
     flex-wrap: wrap;
@@ -31,30 +31,30 @@
 .crm-bulk-count { font-size: var(--text-2xs); color: var(--text-secondary, #666); min-width: 72px; }
 .crm-bulk-bar select {
     padding: 4px 8px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     background: var(--surface, #fff);
     color: var(--text-primary, #111);
 }
 .crm-bulk-result { font-size: var(--text-2xs); color: var(--text-secondary, #666); }
 .btn-danger {
-    background: #dc2626;
+    background: var(--palette-dc2626);
     color: #fff;
     border: none;
     border-radius: 4px;
     padding: 5px 12px;
     cursor: pointer;
 }
-.btn-danger:hover { background: #b91c1c; }
+.btn-danger:hover { background: var(--palette-b91c1c); }
 .btn-secondary {
     background: var(--surface, #fff);
     color: var(--text-primary, #111);
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     padding: 5px 12px;
     cursor: pointer;
 }
-.btn-secondary:hover { background: var(--surface-hover, #f3f4f6); }
+.btn-secondary:hover { background: var(--surface-hover, var(--palette-f3f4f6)); }
 
 .crm-audit-drawer {
     position: fixed;
@@ -64,7 +64,7 @@
     max-width: 90vw;
     height: 100%;
     background: var(--surface, #fff);
-    border-left: 1px solid var(--border-color, #e5e7eb);
+    border-left: 1px solid var(--border-color, var(--palette-e5e7eb));
     box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
     transition: right .25s ease;
     z-index: var(--z-modal-backdrop);
@@ -77,7 +77,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, var(--palette-e5e7eb));
     font-weight: 600;
 }
 .crm-audit-head button {
@@ -93,7 +93,7 @@
     display: flex;
     flex-direction: column;
     padding: 8px 0;
-    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    border-bottom: 1px solid var(--border-color, var(--palette-f0f0f0));
     gap: 2px;
 }
 .crm-audit-when { font-size: var(--text-2xs); color: var(--text-secondary, #888); }
@@ -108,7 +108,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, var(--palette-e5e7eb));
 }
 .crm-detail-head button {
     background: none;
@@ -130,7 +130,7 @@
 }
 .crm-detail-actions select {
     padding: 4px 8px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     background: var(--surface, #fff);
     color: var(--text-primary, #111);
@@ -140,17 +140,17 @@
 .pager-row td {
     padding: 10px 8px;
     text-align: center;
-    border-top: 1px solid var(--border-color, #e5e7eb);
+    border-top: 1px solid var(--border-color, var(--palette-e5e7eb));
 }
 .pager-btn {
     background: var(--surface, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     padding: 4px 12px;
     cursor: pointer;
     color: var(--text-primary, #111);
 }
-.pager-btn:hover { background: var(--surface-hover, #f3f4f6); }
+.pager-btn:hover { background: var(--surface-hover, var(--palette-f3f4f6)); }
 .pager-label { margin: 0 12px; font-size: var(--text-2xs); color: var(--text-secondary, #666); }
 
 /* ── #1455 — stage admin editor ─────────────────────────────────────── */
@@ -164,7 +164,7 @@
 
 .stage-admin-result {
     font-size: var(--text-2xs);
-    color: var(--gb-accent, #3b82f6);
+    color: var(--gb-accent, var(--palette-3b82f6));
     min-height: 14px;
 }
 

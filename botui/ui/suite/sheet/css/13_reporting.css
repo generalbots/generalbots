@@ -11,9 +11,9 @@
   max-height: 88vh;
   margin: auto;
   overflow: hidden;
-  background: var(--sheet-bg-elevated, #1e293b);
-  color: var(--sheet-fg, #f8fafc);
-  border: 1px solid var(--sheet-border, #334155);
+  background: var(--sheet-bg-elevated, var(--palette-1e293b));
+  color: var(--sheet-fg, var(--palette-f8fafc));
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 8px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
   font-size: var(--text-xs);
@@ -25,7 +25,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-rpt-header h2 {
@@ -37,7 +37,7 @@
 .ss-rpt-close {
   background: none;
   border: none;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xl);
   line-height: 1;
   cursor: pointer;
@@ -46,7 +46,7 @@
 
 .ss-rpt-close:hover,
 .ss-rpt-close:focus-visible {
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
 }
 
 .ss-rpt-local-note,
@@ -55,7 +55,7 @@
 .ss-rpt-sched-note {
   margin: 0;
   padding: 8px 16px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
   background: rgba(148, 163, 184, 0.08);
 }
@@ -65,34 +65,34 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 12px 0;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-rpt-tab {
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   padding: 8px 10px;
   cursor: pointer;
   font-size: var(--text-2xs);
 }
 
 .ss-rpt-tab[aria-selected="true"] {
-  color: var(--sheet-fg, #f8fafc);
-  border-bottom-color: #3b82f6;
+  color: var(--sheet-fg, var(--palette-f8fafc));
+  border-bottom-color: var(--palette-3b82f6);
 }
 
 .ss-rpt-status {
   margin: 0;
   padding: 6px 16px;
   min-height: 20px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
 }
 
 .ss-rpt-status-error {
-  color: #f87171;
+  color: var(--palette-f87171);
 }
 
 .ss-rpt-body {
@@ -103,7 +103,7 @@
 
 .ss-rpt-section {
   margin-bottom: 18px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 6px;
   padding: 10px 12px 14px;
 }
@@ -142,25 +142,25 @@
 
 .ss-rpt-input {
   padding: 6px 8px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
-  background: var(--sheet-bg, #0f172a);
-  color: var(--sheet-fg, #f8fafc);
+  background: var(--sheet-bg, var(--palette-0f172a));
+  color: var(--sheet-fg, var(--palette-f8fafc));
   font-size: var(--text-2xs);
   min-width: 130px;
 }
 
 .ss-rpt-checkbox {
-  accent-color: #3b82f6;
+  accent-color: var(--palette-3b82f6);
 }
 
 .ss-rpt-button,
 .ss-rpt-button-small,
 .ss-rpt-button-quiet {
   padding: 6px 12px;
-  border: 1px solid #3b82f6;
+  border: 1px solid var(--palette-3b82f6);
   border-radius: 4px;
-  background: #3b82f6;
+  background: var(--palette-3b82f6);
   color: #fff;
   cursor: pointer;
   font-size: var(--text-2xs);
@@ -173,8 +173,8 @@
 
 .ss-rpt-button-quiet {
   background: transparent;
-  border-color: var(--sheet-border, #334155);
-  color: var(--sheet-muted, #94a3b8);
+  border-color: var(--sheet-border, var(--palette-334155));
+  color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-rpt-list {
@@ -190,7 +190,7 @@
 .ss-rpt-empty,
 .ss-rpt-summary {
   padding: 6px 8px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   font-size: var(--text-2xs);
   overflow-wrap: anywhere;
@@ -198,7 +198,7 @@
 
 .ss-rpt-empty,
 .ss-rpt-summary {
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-rpt-item-label {
@@ -206,12 +206,12 @@
 }
 
 .ss-rpt-page {
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   padding: 18px 16px;
   margin: 12px auto;
   max-width: 620px;
-  background: var(--sheet-bg, #0f172a);
+  background: var(--sheet-bg, var(--palette-0f172a));
 }
 
 .ss-rpt-page-header,
@@ -219,15 +219,15 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
   padding-bottom: 4px;
 }
 
 .ss-rpt-page-footer {
   border-bottom: none;
-  border-top: 1px solid var(--sheet-border, #334155);
+  border-top: 1px solid var(--sheet-border, var(--palette-334155));
   padding: 4px 0 0;
 }
 
@@ -245,7 +245,7 @@
 
 .ss-rpt-page-titles {
   margin: 8px 0 2px;
-  color: #93c5fd;
+  color: var(--palette-93c5fd);
   font-size: var(--text-2xs);
 }
 
@@ -257,7 +257,7 @@
 }
 
 .ss-rpt-page-cell {
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   padding: 3px;
   font-size: var(--text-2xs);
   text-align: center;
@@ -265,16 +265,16 @@
 }
 
 .ss-rpt-page-cell-title {
-  border-color: #3b82f6;
-  color: #93c5fd;
+  border-color: var(--palette-3b82f6);
+  color: var(--palette-93c5fd);
 }
 
 .ss-rpt-page-break {
-  border-top: 2px dashed #64748b;
+  border-top: 2px dashed var(--palette-64748b);
   margin: 8px auto;
   max-width: 620px;
   padding-top: 4px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
   text-align: center;
 }
@@ -288,11 +288,11 @@
 }
 
 .ss-rpt-widget {
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   padding: 8px;
   overflow: hidden;
-  background: var(--sheet-bg, #0f172a);
+  background: var(--sheet-bg, var(--palette-0f172a));
 }
 
 .ss-rpt-widget-title {
@@ -304,7 +304,7 @@
 .ss-rpt-widget-kpi,
 .ss-rpt-widget-table {
   margin: 2px 0;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }

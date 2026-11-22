@@ -93,7 +93,7 @@ right: 24px;
 }
 
 .vibe-canvas-bg {
-background: var(--bg, #fdfdfd);
+background: var(--bg, var(--palette-fdfdfd));
 background-image: radial-gradient(var(--border) 1px, transparent 1px);
 background-size: 20px 20px;
 position: relative;
@@ -179,8 +179,8 @@ gap: 6px;
 min-height: 38px;
 padding: 6px 14px;
 background: #fff;
-border-bottom: 1px solid #d8dee9;
-color: #334155;
+border-bottom: 1px solid var(--palette-d8dee9);
+color: var(--palette-334155);
 position: relative;
 z-index: var(--z-sticky);
 }
@@ -193,9 +193,9 @@ display: none;
 }
 
 .vibe-canvas-toolbar button {
-border: 1px solid #cbd5e1;
+border: 1px solid var(--palette-cbd5e1);
 background: #fff;
-color: #334155;
+color: var(--palette-334155);
 border-radius: 5px;
 padding: 5px 9px;
 font: 600 11px "Fira Code", monospace;
@@ -204,22 +204,22 @@ cursor: pointer;
 
 .vibe-canvas-toolbar button:hover,
 .vibe-canvas-toolbar button.active {
-border-color: #2563eb;
-background: #eff6ff;
-color: #1d4ed8;
+border-color: var(--palette-2563eb);
+background: var(--palette-eff6ff);
+color: var(--palette-1d4ed8);
 }
 
 .vibe-toolbar-separator {
 width: 1px;
 height: 20px;
-background: #e2e8f0;
+background: var(--palette-e2e8f0);
 margin: 0 2px;
 }
 
 .vibe-canvas-save-state {
 margin-left: auto;
 font: 10px "Fira Code", monospace;
-color: #64748b;
+color: var(--palette-64748b);
 }
 
 @media (prefers-reduced-motion: reduce) {

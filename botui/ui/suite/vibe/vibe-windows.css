@@ -59,13 +59,13 @@
     display: none;
 }
 
-.vibe-transport-btn.run:hover { color: #22c55e; border-color: #22c55e; }
-.vibe-transport-btn.pause:hover { color: #eab308; border-color: #eab308; }
-.vibe-transport-btn.stop:hover { color: #ef4444; border-color: #ef4444; }
+.vibe-transport-btn.run:hover { color: var(--palette-22c55e); border-color: var(--palette-22c55e); }
+.vibe-transport-btn.pause:hover { color: var(--palette-eab308); border-color: var(--palette-eab308); }
+.vibe-transport-btn.stop:hover { color: var(--palette-ef4444); border-color: var(--palette-ef4444); }
 
 .vibe-transport-btn.active {
-    box-shadow: 0 0 0 2px var(--accent, #84d669);
-    border-color: var(--accent, #84d669);
+    box-shadow: 0 0 0 2px var(--accent, var(--palette-84d669));
+    border-color: var(--accent, var(--palette-84d669));
 }
 
 /* Ribbon run status (stays in the Vibe main window) */
@@ -77,11 +77,11 @@
     white-space: nowrap;
 }
 
-.vibe-ribbon-status.ok { color: var(--accent, #84d669); }
-.vibe-ribbon-status.running { color: #3b82f6; }
-.vibe-ribbon-status.paused { color: #eab308; }
-.vibe-ribbon-status.error { color: #ef4444; }
-.vibe-ribbon-status.stop { color: #ef4444; }
+.vibe-ribbon-status.ok { color: var(--accent, var(--palette-84d669)); }
+.vibe-ribbon-status.running { color: var(--palette-3b82f6); }
+.vibe-ribbon-status.paused { color: var(--palette-eab308); }
+.vibe-ribbon-status.error { color: var(--palette-ef4444); }
+.vibe-ribbon-status.stop { color: var(--palette-ef4444); }
 .vibe-ribbon-status.hint { color: var(--text-muted); font-weight: 600; }
 
 /* ---- Relocated panels: fill their tool window body ---- */
@@ -215,7 +215,7 @@
     height: 64px;
     border-radius: 50%;
     border: 4px solid rgba(132, 214, 105, 0.2);
-    border-top-color: var(--accent, #84d669);
+    border-top-color: var(--accent, var(--palette-84d669));
     animation: vibeExecSpin 0.9s linear infinite;
     box-shadow: 0 0 24px rgba(132, 214, 105, 0.35);
 }
@@ -225,7 +225,7 @@
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: var(--accent, #84d669);
+    color: var(--accent, var(--palette-84d669));
     animation: vibeExecPulse 1.6s ease-in-out infinite;
 }
 
@@ -247,7 +247,7 @@
    1. CONTRAST — the desktop theme defines --surface/--text but NOT
       --bg2/--muted/--bg/--surface-hover/--text-muted, and some themes ship
       --border as an HSL *triplet* ("43 17% 89%") which is not a raw color.
-      The panel CSS fallbacks were dark hexes (#0d1117, #14142a…), so on the
+      The panel CSS fallbacks were dark hexes (var(--palette-0d1117), var(--palette-14142a)…), so on the
       light theme inputs/kind-cards rendered near-black with dark text —
       unreadable (New Project, Members, dialogs). Fix: define the missing
       vars theme-aware (color-mix keeps them correct on dark themes too)
@@ -261,12 +261,12 @@
 .vibe-tool-relocated,
 .vibe-dialog,
 .vibe-rd {
-    --bg2: color-mix(in srgb, var(--text, #263630) 5%, var(--surface, #fcfbf8));
-    --bg: color-mix(in srgb, var(--text, #263630) 8%, var(--surface, #fcfbf8));
-    --surface-hover: color-mix(in srgb, var(--text, #263630) 4%, var(--surface, #fcfbf8));
-    --muted: color-mix(in srgb, var(--text, #263630) 52%, var(--surface, #fcfbf8));
-    --text-muted: color-mix(in srgb, var(--text, #263630) 52%, var(--surface, #fcfbf8));
-    --border: color-mix(in srgb, var(--text, #263630) 18%, var(--surface, #fcfbf8));
+    --bg2: color-mix(in srgb, var(--text, var(--palette-263630)) 5%, var(--surface, var(--palette-fcfbf8)));
+    --bg: color-mix(in srgb, var(--text, var(--palette-263630)) 8%, var(--surface, var(--palette-fcfbf8)));
+    --surface-hover: color-mix(in srgb, var(--text, var(--palette-263630)) 4%, var(--surface, var(--palette-fcfbf8)));
+    --muted: color-mix(in srgb, var(--text, var(--palette-263630)) 52%, var(--surface, var(--palette-fcfbf8)));
+    --text-muted: color-mix(in srgb, var(--text, var(--palette-263630)) 52%, var(--surface, var(--palette-fcfbf8)));
+    --border: color-mix(in srgb, var(--text, var(--palette-263630)) 18%, var(--surface, var(--palette-fcfbf8)));
 }
 
 /* Relocated modal panels: no second backdrop, no second z-order layer.

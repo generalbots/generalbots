@@ -205,18 +205,18 @@
 }
 
 .difficulty-badge.beginner {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--palette-dcfce7);
+    color: var(--palette-166534);
 }
 
 .difficulty-badge.intermediate {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--palette-fef3c7);
+    color: var(--palette-92400e);
 }
 
 .difficulty-badge.advanced {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--palette-fee2e2);
+    color: var(--palette-991b1b);
 }
 
 /* Certificates Preview */
@@ -348,8 +348,8 @@
 }
 
 .tab .badge.warning {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--palette-fef3c7);
+    color: var(--palette-92400e);
 }
 
 /* Search Box */
@@ -400,8 +400,8 @@
     gap: 16px;
     margin: 16px 24px;
     padding: 16px;
-    background: linear-gradient(135deg, #fef3c7, #fef9c3);
-    border: 1px solid #f59e0b;
+    background: linear-gradient(135deg, var(--palette-fef3c7), var(--palette-fef9c3));
+    border: 1px solid var(--palette-f59e0b);
     border-radius: 12px;
 }
 
@@ -415,19 +415,19 @@
 
 .alert-content strong {
     display: block;
-    color: #92400e;
+    color: var(--palette-92400e);
     margin-bottom: 4px;
 }
 
 .alert-content p {
     margin: 0;
     font-size: var(--text-sm);
-    color: #78350f;
+    color: var(--palette-78350f);
 }
 
 .btn-primary-sm {
     padding: 8px 16px;
-    background: #f59e0b;
+    background: var(--palette-f59e0b);
     color: white;
     border: none;
     border-radius: 6px;
@@ -438,7 +438,7 @@
 }
 
 .btn-primary-sm:hover {
-    background: #d97706;
+    background: var(--palette-d97706);
 }
 /* Tab Content */
 .tab-content {

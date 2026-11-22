@@ -21,22 +21,22 @@
     display: flex;
     align-items: center;
     padding: 6px 12px;
-    background: var(--sentient-bg-primary, #ffffff);
-    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    background: var(--sentient-bg-primary, var(--palette-ffffff));
+    border-bottom: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     gap: 12px;
     flex-shrink: 0;
 }
 .cell-address {
     min-width: 60px;
     padding: 4px 8px;
-    background: var(--sentient-bg-secondary, #f5f5f5);
-    border: 1px solid var(--sentient-border, #e0e0e0);
+    background: var(--sentient-bg-secondary, var(--palette-f5f5f5));
+    border: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     border-radius: var(--sentient-radius-sm, 4px);
     font-size: var(--text-xs);
     font-weight: 500;
     font-family: monospace;
     text-align: center;
-    color: var(--sentient-text-primary, #212121);
+    color: var(--sentient-text-primary, var(--palette-212121));
 }
 
 .formula-icon {
@@ -48,18 +48,18 @@
 .formula-input {
     flex: 1;
     padding: 6px 10px;
-    border: 1px solid var(--sentient-border, #e0e0e0);
+    border: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     border-radius: var(--sentient-radius-sm, 4px);
     font-size: var(--text-xs);
     font-family: monospace;
-    background: var(--sentient-bg-primary, #ffffff);
-    color: var(--sentient-text-primary, #212121);
+    background: var(--sentient-bg-primary, var(--palette-ffffff));
+    color: var(--sentient-text-primary, var(--palette-212121));
     transition: border-color 0.15s ease;
 }
 
 .formula-input:focus {
     outline: none;
-    border-color: var(--sentient-accent, #4285f4);
+    border-color: var(--sentient-accent, var(--palette-4285f4));
 }
 .formula-input::placeholder {
     color: var(--sentient-text-muted, #999);
@@ -73,11 +73,11 @@
 }
 
 .column-header.selected {
-    background: var(--sentient-accent, #4285f4);
+    background: var(--sentient-accent, var(--palette-4285f4));
     color: white;
 }
 .row-header.selected {
-    background: var(--sentient-accent, #4285f4);
+    background: var(--sentient-accent, var(--palette-4285f4));
     color: white;
 }
 
@@ -88,7 +88,7 @@
 }
 
 .ss-row-header.row-selected {
-    background: #3b82f6;
+    background: var(--palette-3b82f6);
     color: #fff;
 }
 /* Column header resize handle */
@@ -112,7 +112,7 @@
     cursor: row-resize;
 }
 .cell.selected {
-    outline: 2px solid var(--sentient-accent, #4285f4);
+    outline: 2px solid var(--sentient-accent, var(--palette-4285f4));
     outline-offset: -1px;
     z-index: 5;
 }
@@ -127,7 +127,7 @@
    ============================================================================= */
 .selection-box {
     position: absolute;
-    border: 2px solid var(--sentient-accent, #4285f4);
+    border: 2px solid var(--sentient-accent, var(--palette-4285f4));
     background: var(--sentient-accent-light, rgba(66, 133, 244, 0.1));
     pointer-events: none;
     z-index: 10;
@@ -161,8 +161,8 @@
     gap: 4px;
     align-items: center;
     padding: 6px 12px;
-    background: var(--sheet-tabbar-bg, var(--sheet-bg, #0f172a));
-    border-top: 1px solid var(--sheet-tabbar-border, var(--sheet-border, #334155));
+    background: var(--sheet-tabbar-bg, var(--sheet-bg, var(--palette-0f172a)));
+    border-top: 1px solid var(--sheet-tabbar-border, var(--sheet-border, var(--palette-334155)));
     flex-shrink: 0;
     overflow-x: auto;
     min-height: 36px;
@@ -173,7 +173,7 @@
 }
 
 .ss-tab-add {
-    background: #3b82f6;
+    background: var(--palette-3b82f6);
     color: white;
     border: none;
     width: 24px;
@@ -187,7 +187,7 @@
 }
 
 .ss-tab-add:hover {
-    background: #2563eb;
+    background: var(--palette-2563eb);
 }
 
 .ss-tab {
@@ -195,9 +195,9 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    background: var(--sheet-tab-bg, var(--sheet-bg, #0f172a));
-    color: var(--sheet-tab-fg, var(--sheet-muted, #94a3b8));
-    border: 1px solid var(--sheet-tab-border, var(--sheet-border, #334155));
+    background: var(--sheet-tab-bg, var(--sheet-bg, var(--palette-0f172a)));
+    color: var(--sheet-tab-fg, var(--sheet-muted, var(--palette-94a3b8)));
+    border: 1px solid var(--sheet-tab-border, var(--sheet-border, var(--palette-334155)));
     border-radius: 4px 4px 0 0;
     cursor: pointer;
     font-size: var(--text-2xs);
@@ -208,21 +208,21 @@
 }
 
 .ss-tab:hover {
-    background: var(--sheet-tab-hover, var(--sheet-bg-elevated, #1e293b));
-    color: var(--sheet-fg, #f8fafc);
+    background: var(--sheet-tab-hover, var(--sheet-bg-elevated, var(--palette-1e293b)));
+    color: var(--sheet-fg, var(--palette-f8fafc));
 }
 
 .ss-tab.ss-tab-active {
-    background: var(--sheet-tab-active-bg, var(--sheet-bg-elevated, #1e293b));
-    color: var(--sheet-fg, #f8fafc);
-    border-color: #3b82f6;
+    background: var(--sheet-tab-active-bg, var(--sheet-bg-elevated, var(--palette-1e293b)));
+    color: var(--sheet-fg, var(--palette-f8fafc));
+    border-color: var(--palette-3b82f6);
     font-weight: 600;
 }
 
 .ss-tab-del {
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--palette-64748b);
     cursor: pointer;
     font-size: var(--text-xs);
     line-height: 1;
@@ -231,7 +231,7 @@
 }
 
 .ss-tab-del:hover {
-    color: #f87171;
+    color: var(--palette-f87171);
     background: rgba(248, 113, 113, 0.15);
 }
 
@@ -244,7 +244,7 @@
 }
 
 .ss-fill-handle:hover {
-    background: #60a5fa;
+    background: var(--palette-60a5fa);
 }
 
 @media (prefers-reduced-motion: reduce) {

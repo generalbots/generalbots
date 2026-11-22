@@ -18,63 +18,63 @@
 
 .tab-badge-branchdrive {
     background: rgba(245, 158, 11, 0.12);
-    color: #d97706;
+    color: var(--palette-d97706);
 }
 
 .tab-badge-shared {
     background: rgba(16, 185, 129, 0.12);
-    color: #059669;
+    color: var(--palette-059669);
 }
 
 .tab-badge-public {
     background: rgba(168, 85, 247, 0.12);
-    color: #7c3aed;
+    color: var(--palette-7c3aed);
 }
 
 .tab-badge-myfiles {
     background: rgba(14, 165, 233, 0.12);
-    color: #0ea5e9;
+    color: var(--palette-0ea5e9);
 }
 
 .tab-badge-bots {
     background: rgba(99, 102, 241, 0.12);
-    color: #6366f1;
+    color: var(--palette-6366f1);
 }
 
 .tab-badge-root {
     background: rgba(239, 68, 68, 0.12);
-    color: #dc2626;
+    color: var(--palette-dc2626);
 }
 
 /* ── Tab accent color: active tab bottom border ───────────────── */
 .top-tab.active[data-tab="branchdrive"] {
-    color: #d97706;
-    border-bottom-color: #d97706;
+    color: var(--palette-d97706);
+    border-bottom-color: var(--palette-d97706);
 }
 
 .top-tab.active[data-tab="shared"] {
-    color: #059669;
-    border-bottom-color: #059669;
+    color: var(--palette-059669);
+    border-bottom-color: var(--palette-059669);
 }
 
 .top-tab.active[data-tab="public"] {
-    color: #7c3aed;
-    border-bottom-color: #7c3aed;
+    color: var(--palette-7c3aed);
+    border-bottom-color: var(--palette-7c3aed);
 }
 
 .top-tab.active[data-tab="myfiles"] {
-    color: #0ea5e9;
-    border-bottom-color: #0ea5e9;
+    color: var(--palette-0ea5e9);
+    border-bottom-color: var(--palette-0ea5e9);
 }
 
 .top-tab.active[data-tab="bots"] {
-    color: #6366f1;
-    border-bottom-color: #6366f1;
+    color: var(--palette-6366f1);
+    border-bottom-color: var(--palette-6366f1);
 }
 
 .top-tab.active[data-tab="root"] {
-    color: #dc2626;
-    border-bottom-color: #dc2626;
+    color: var(--palette-dc2626);
+    border-bottom-color: var(--palette-dc2626);
 }
 
 /* ── Shared table styles ─────────────────────────────────────── */
@@ -106,7 +106,7 @@
 
 .shares-table code {
     font-size: var(--text-2xs);
-    background: var(--surface, #f5f5f5);
+    background: var(--surface, var(--palette-f5f5f5));
     padding: 2px 6px;
     border-radius: 4px;
     color: var(--text-secondary, #666);
@@ -135,22 +135,22 @@
 
 .perm-badge.perm-read {
     background: rgba(14, 165, 233, 0.1);
-    color: #0ea5e9;
+    color: var(--palette-0ea5e9);
 }
 
 .perm-badge.perm-read_write,
 .perm-badge.perm-write {
     background: rgba(16, 185, 129, 0.1);
-    color: #059669;
+    color: var(--palette-059669);
 }
 
 .perm-badge.perm-admin {
     background: rgba(245, 158, 11, 0.1);
-    color: #d97706;
+    color: var(--palette-d97706);
 }
 
 .btn-primary-sm {
-    background: var(--primary, #6366f1);
+    background: var(--primary, var(--palette-6366f1));
     color: #fff;
     border: none;
     padding: 5px 12px;
@@ -187,7 +187,7 @@
 }
 
 .bot-config-card:hover {
-    border-color: #6366f1;
+    border-color: var(--palette-6366f1);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
 }
