@@ -24,7 +24,7 @@ const LAUNCH_WAIT_SECS: u64 = 60;
 const COLD_LAUNCH_WAIT_SECS: u64 = 900;
 const POLL_INTERVAL_SECS: u64 = 3;
 
-fn incus_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, String)> {
+pub(super) fn incus_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, String)> {
     // #2086 — there is no Incus daemon on Windows: the agent-VM path must fail
     // fast as a capability error instead of retrying `incus list` five times
     // (≈30 s) before every LLM call.

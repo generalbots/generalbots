@@ -17,6 +17,7 @@ pub mod claude;
 pub mod cli_models;
 mod cli_turn;
 pub mod codex;
+pub mod duplex;
 pub mod keys;
 pub mod models;
 pub mod plan_limit;
