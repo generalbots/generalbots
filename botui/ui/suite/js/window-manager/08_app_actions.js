@@ -20,9 +20,9 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
     });
   }
-  function toast(key, fallback, kind) {
+  function toastText(message, kind) {
     if (window.GBToasts && typeof window.GBToasts.show === "function") {
-      window.GBToasts.show(t(key, fallback), "", kind || "info");
+      window.GBToasts.show(message, "", kind || "info");
     }
   }
   function copy(value) {
@@ -70,7 +70,7 @@
       var opts = { resourceType: "app", resourceId: id, title: appTitle(id) };
       if (kind === "comments" && window.GBCollabComments) window.GBCollabComments.open(opts);
       else if (kind === "activity" && window.GBCollabActivity) window.GBCollabActivity.open(opts);
-      else toast("app-actions-unavailable", "Not available", "error");
+      else toastText(t("app-actions-unavailable", "Not available"), "error");
     });
   }
 
@@ -116,7 +116,7 @@
     if (frame && frame.contentWindow) {
       try { frame.contentWindow.location.reload(); } catch (e) { /* cross origin — event only */ }
     }
-    toast("app-actions-refreshed", "Refreshed", "success");
+    toastText(t("app-actions-refreshed", "Refreshed"), "success");
   }
 
   function diagnostics(id) {
@@ -166,7 +166,7 @@
     copyBtn.type = "button";
     copyBtn.textContent = t("integrations-copy-diagnostics", "Copy diagnostics");
     copyBtn.addEventListener("click", function () {
-      copy(data.text).then(function () { toast("app-actions-copied", "Copied", "success"); });
+      copy(data.text).then(function () { toastText(t("app-actions-copied", "Copied"), "success"); });
     });
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
@@ -189,11 +189,11 @@
     m.textContent = "";
     m.appendChild(menuItem("app-action-refresh", "Refresh", function () { refresh(id); }));
     m.appendChild(menuItem("app-copy-id", "Copy ID", function () {
-      copy(id).then(function () { toast("app-actions-copied", "Copied", "success"); });
+      copy(id).then(function () { toastText(t("app-actions-copied", "Copied"), "success"); });
     }));
     m.appendChild(menuItem("app-copy-link", "Copy link", function () {
       var url = location.origin + "/?app=" + encodeURIComponent(id);
-      copy(url).then(function () { toast("app-actions-copied", "Copied", "success"); });
+      copy(url).then(function () { toastText(t("app-actions-copied", "Copied"), "success"); });
     }));
     m.appendChild(menuItem("app-diagnose", "Diagnose", function () { openDiagnostics(id); }));
     m.appendChild(menuItem("app-comments", "Comments", function () { openCollab("comments", id); }));

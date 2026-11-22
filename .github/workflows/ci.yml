@@ -914,6 +914,8 @@ jobs:
       - name: Suite UI standards guards (#2335)
         run: |
           set -euo pipefail
+          python3 scripts/check_app_transport.py --self-test
+          python3 scripts/check_app_transport.py
           node botui/ui/suite/tests/webtest-ui-bootbudget.js
           node botui/ui/suite/tests/webtest-ui-aria.js
           node botui/ui/suite/tests/webtest-route-contract.js

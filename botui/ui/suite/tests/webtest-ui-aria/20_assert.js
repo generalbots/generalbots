@@ -16,9 +16,9 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 var EXPECTED = {
-  filesScanned: 1545,
+  filesScanned: 1546,
   htmlFiles: 212,
-  jsFiles: 1333,
+  jsFiles: 1334,
   vendorFiles: 290,
   topSegments: 92,
   ariaLiveMentions: 694,
@@ -31,7 +31,7 @@ var EXPECTED = {
   roleAlert: 106,
   roleLog: 12,
   roleStatusAlertFiles: 239,
-  dataI18nAttrs: 5737,
+  dataI18nAttrs: 5759,
   htmlWithI18n: 201,
   gbTCalls: 257, // +10: #2511 localized the translate modal's 10 raw labels via gbT
   jsWithGbt: 94,

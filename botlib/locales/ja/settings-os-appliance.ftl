@@ -178,3 +178,25 @@ XDG_RUNTIME_DIR: {runtime}
 {services}
 os-sandbox-probe = Check web process sandbox
 os-sandbox-result = Web process sandboxed: {state}
+os-opt-power-saver = 省電力
+os-opt-balanced = バランス
+os-opt-performance = パフォーマンス
+os-opt-automatic = 自動
+os-opt-normal = 標準
+os-opt-left = 左
+os-opt-right = 右
+os-opt-inverted = 反転
+os-opt-single = シングル
+os-opt-extend = 拡張
+os-opt-mirror = ミラー
+os-opt-default = 既定
+os-opt-speakers = スピーカー
+os-opt-usb-headset = USBヘッドセット
+os-opt-usb-headset-mic = USBヘッドセットのマイク
+os-opt-london = ロンドン
+os-opt-br-abnt2 = BR-ABNT2
+os-opt-german = ドイツ語
+os-opt-english-us = 英語 (米国)
+os-opt-stable = 安定版
+os-opt-beta = Beta
+drive-removable-eject-failed = デバイスを取り出せませんでした。

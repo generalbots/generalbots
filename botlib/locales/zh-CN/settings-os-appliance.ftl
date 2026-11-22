@@ -178,3 +178,25 @@ XDG_RUNTIME_DIR: {runtime}
 {services}
 os-sandbox-probe = Check web process sandbox
 os-sandbox-result = Web process sandboxed: {state}
+os-opt-power-saver = 节能
+os-opt-balanced = 平衡
+os-opt-performance = 性能
+os-opt-automatic = 自动
+os-opt-normal = 正常
+os-opt-left = 左
+os-opt-right = 右
+os-opt-inverted = 反转
+os-opt-single = 单一
+os-opt-extend = 扩展
+os-opt-mirror = 镜像
+os-opt-default = 默认
+os-opt-speakers = 扬声器
+os-opt-usb-headset = USB 耳机
+os-opt-usb-headset-mic = USB 耳机麦克风
+os-opt-london = 伦敦
+os-opt-br-abnt2 = BR-ABNT2
+os-opt-german = 德语
+os-opt-english-us = 英语（美国）
+os-opt-stable = 稳定
+os-opt-beta = Beta
+drive-removable-eject-failed = 无法弹出设备。

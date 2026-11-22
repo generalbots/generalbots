@@ -178,3 +178,25 @@ XDG_RUNTIME_DIR: {runtime}
 {services}
 os-sandbox-probe = Check web process sandbox
 os-sandbox-result = Web process sandboxed: {state}
+os-opt-power-saver = Power saver
+os-opt-balanced = Balanced
+os-opt-performance = Performance
+os-opt-automatic = Automatic
+os-opt-normal = Normal
+os-opt-left = Left
+os-opt-right = Right
+os-opt-inverted = Inverted
+os-opt-single = Single
+os-opt-extend = Extend
+os-opt-mirror = Mirror
+os-opt-default = Default
+os-opt-speakers = Speakers
+os-opt-usb-headset = USB headset
+os-opt-usb-headset-mic = USB headset mic
+os-opt-london = London
+os-opt-br-abnt2 = BR-ABNT2
+os-opt-german = German
+os-opt-english-us = English (US)
+os-opt-stable = Stable
+os-opt-beta = Beta
+drive-removable-eject-failed = Could not eject the device.

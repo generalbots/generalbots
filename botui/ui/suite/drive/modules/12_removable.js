@@ -20,7 +20,7 @@
     p.className = "drive-removable-panel";
     p.setAttribute("role", "region");
     p.setAttribute("aria-label", t("drive-removable-title", "Removable devices"));
-    p.innerHTML = '<h2 data-i18n="drive-removable-title">Removable devices</h2>' +
+    p.innerHTML = '<h2 data-i18n="drive-removable-title"></h2>' +
       '<div id="driveRemovableList" role="status" aria-live="polite"></div>';
     var host = document.getElementById("driveSidebar") || document.querySelector(".drive-sidebar") || document.body;
     host.appendChild(p);
