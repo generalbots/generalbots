@@ -58,6 +58,8 @@ pub fn configure_os_routes() -> Router<Arc<AppState>> {
         // the UI; suspend/restart/shutdown need root and go through the
         // image's fixed-action helper.
         .route("/api/system/power", post(power_action))
+        // #2466 — read-only OS appliance status behind the same gate.
+        .merge(crate::os_appliance::configure_appliance_routes())
 }
 
 #[derive(Serialize)]
@@ -86,7 +88,7 @@ pub struct RestartRequest {
     confirmation: String,
 }
 
-fn deny(message: &str) -> (StatusCode, Json<serde_json::Value>) {
+pub(crate) fn deny(message: &str) -> (StatusCode, Json<serde_json::Value>) {
     (
         StatusCode::FORBIDDEN,
         Json(serde_json::json!({ "error": message })),

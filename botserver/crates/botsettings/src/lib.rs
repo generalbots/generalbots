@@ -5,6 +5,7 @@ pub mod model_config;
 pub mod on_device_ai;
 pub mod ops;
 pub mod os;
+pub mod os_appliance;
 pub mod os_data;
 pub mod os_power;
 pub mod os_power_data;
