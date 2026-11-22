@@ -8,6 +8,7 @@
 //! is kept in memory only (it never needs to survive a restart).
 
 use crate::campaign::send::{send_one, SendContext};
+use crate::compliance::suppression::hydrate_suppressions;
 use crate::compliance::MarketingChannel;
 use crate::schema::{
     crm_contacts, marketing_campaign_events, marketing_campaigns, marketing_contacts,
@@ -91,6 +92,12 @@ impl CampaignWorker {
             .conn
             .get()
             .map_err(|e| format!("DB pool error: {e}"))?;
+
+        // #2536 — reload the durable do-not-contact list before any send in
+        // this pass. A restart must not resurrect a suppressed recipient.
+        if let Err(error) = hydrate_suppressions(&mut conn) {
+            log::error!("campaign worker could not hydrate suppressions: {error}");
+        }
 
         let active: Vec<ActiveCampaignRow> = marketing_campaigns::table
                 .filter(

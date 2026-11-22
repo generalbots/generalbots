@@ -9,6 +9,8 @@ use serde_json::{json, Map, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::compliance::suppression::hydrate_suppressions;
+use crate::compliance::ChannelError;
 use crate::schema::{marketing_campaign_events, marketing_campaigns, marketing_recipients};
 use crate::state::AppState;
 
@@ -119,6 +121,28 @@ pub(crate) fn merge_metrics(
         .execute(conn)?;
 
     Ok(())
+}
+
+/// #2536 — hydrate the durable do-not-contact list before a publish fan-out.
+pub(crate) fn hydrate_gate(conn: &mut diesel::PgConnection) {
+    if let Err(error) = hydrate_suppressions(conn) {
+        log::error!("publish could not hydrate suppressions: {error}");
+    }
+}
+
+/// #2536 — uniform handling for a channel with no provider: a typed error for
+/// the response plus an event row for the monitor. No send is attempted.
+pub(crate) fn channel_failure(
+    conn: &mut diesel::PgConnection,
+    branch_id: Uuid,
+    campaign_id: Uuid,
+    channel: &str,
+) -> Value {
+    let error = ChannelError::UnsupportedChannel {
+        channel: channel.to_string(),
+    };
+    record_skip_event(conn, branch_id, campaign_id, channel, None, error.code());
+    error.to_value()
 }
 
 /// Logs a failed recipient-state write instead of silently discarding it.

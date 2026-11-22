@@ -155,32 +155,21 @@ pub(super) async fn send_instagram_file(
     state: Arc<AppState>,
     user: &UserSession,
     recipient_id: &str,
-    _file_data: Vec<u8>,
+    file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let adapter = InstagramAdapter::new();
-
-let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
-
-let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
-
-        // TODO: implement send_media_message for InstagramAdapter
-            let _ = ((&adapter, recipient_id), &file_url);
-
-        if !caption.is_empty() {
-            adapter
-                .send_instagram_message(recipient_id, caption)
-                .await?;
-        }
-
-    tokio::spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
-        if let Some(s3) = &state.drive {
-            let _ = s3.delete_object("uploads", &file_key).await;
-        }
-    });
-
-    Ok(())
+    // #2536 — the previous body invented an `s3.amazonaws.com` URL and called
+    // a media method that does not exist on this crate's stub adapter, then
+    // returned Ok(()) — a fake success. Fail closed until a real adapter and a
+    // publicly reachable media URL are wired in at the botserver layer.
+    log::warn!(
+        "Instagram media send unavailable: user={} recipient={recipient_id} bytes={} caption={} drive={}",
+        user.id,
+        file_data.len(),
+        !caption.is_empty(),
+        state.drive.is_some()
+    );
+    Err("Instagram file sending is not available in this runtime: the media adapter is not configured".into())
 }
 pub(super) async fn send_teams_file(
     state: Arc<AppState>,

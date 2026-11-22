@@ -6,5 +6,5 @@ pub use botschema::{
     advisor_recommendations, campaign_metrics, crm_contacts, crm_leads, crm_opportunities,
     email_tracking, ip_reputation, ip_rotations, marketing_campaign_events, marketing_campaigns,
     marketing_contacts, marketing_email_opens, marketing_list_contacts, marketing_lists,
-    marketing_recipients, marketing_templates, org_ips, warmup_schedules,
+    marketing_recipients, marketing_suppressions, marketing_templates, org_ips, warmup_schedules,
 };

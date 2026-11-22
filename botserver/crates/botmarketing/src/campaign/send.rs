@@ -7,7 +7,7 @@ use crate::compliance::bounce::{
     classify_bounce, persist_attempt, retry_delay_millis, AttemptState, BounceClass,
     MAX_SEND_ATTEMPTS,
 };
-use crate::compliance::suppression::{SuppressionKey, SuppressionStore};
+use crate::compliance::suppression::{persist_suppression, SuppressionKey, SuppressionStore};
 use crate::compliance::{
     evaluate_send_gate, supports_recipient_send, MarketingChannel, SendGateDecision,
 };
@@ -181,8 +181,13 @@ pub async fn send_one(
 
     if terminal_hard && !ctx.address.is_empty() {
         let key = SuppressionKey::new(ctx.branch_id, ctx.channel, ctx.address);
-        if let Err(error) = SuppressionStore::global().add(key) {
+        if let Err(error) = SuppressionStore::global().add(key.clone()) {
             log::error!("bounce suppression failed: {}", error.reason());
+        }
+        if let Ok(mut conn) = state.conn.get() {
+            if let Err(error) = persist_suppression(&mut conn, &key, "hard_bounce") {
+                log::error!("bounce suppression not persisted: {error}");
+            }
         }
     }
     persist_attempt_for(state, ctx.recipient_id, &attempt);
