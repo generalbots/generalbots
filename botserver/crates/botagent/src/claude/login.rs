@@ -5,6 +5,7 @@ use axum::http::StatusCode;
 use crate::AgentService;
 
 use super::b64;
+use super::bridge::CLAUDE_CODE_VERSION;
 use super::internal;
 use super::paths::{CLAUDE_HOME, CLAUDE_USER, LOGIN_CODE, LOGIN_LOG, LOGIN_SCRIPT, LOGIN_STATUS};
 use super::pty::PTY_SCRIPT;
@@ -15,8 +16,9 @@ use super::status::{run_script, status, ClaudeStatus};
 /// Connect click can race it; installing here makes the clean-install flow
 /// deterministic instead of returning "claude CLI is not installed".
 async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    let probe = "command -v claude >/dev/null 2>&1 && id -u claude >/dev/null 2>&1 && echo READY || echo MISSING";
-    let (_, stdout, _) = run_script(state, vm_name, probe).await?;
+    let pinned = format!("claude --version 2>/dev/null | grep -q '^{CLAUDE_CODE_VERSION} '");
+    let probe = format!("{pinned} && id -u claude >/dev/null 2>&1 && echo READY || echo MISSING");
+    let (_, stdout, _) = run_script(state, vm_name, &probe).await?;
     if stdout.trim() == "READY" {
         return Ok(());
     }
@@ -24,7 +26,7 @@ async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
         "id -u {user} >/dev/null 2>&1 || useradd -m -s /bin/bash {user}; \
          mkdir -p {home}/.claude; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.claude; \
          command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm); \
-         command -v claude >/dev/null 2>&1 || timeout 420 npm install -g @anthropic-ai/claude-code >/tmp/claude-install.log 2>&1; \
+         {pinned} || timeout 420 npm install -g @anthropic-ai/claude-code@{CLAUDE_CODE_VERSION} >/tmp/claude-install.log 2>&1; \
          command -v claude >/dev/null 2>&1 && echo INSTALLED || {{ tail -20 /tmp/claude-install.log 2>/dev/null; exit 3; }}",
         user = CLAUDE_USER,
         home = CLAUDE_HOME

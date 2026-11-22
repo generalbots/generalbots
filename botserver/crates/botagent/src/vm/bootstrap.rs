@@ -130,7 +130,7 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   # credentials stay under /home/claude/.claude (0700). Installing it here
   # keeps the first "Connect Claude" click fast; a failed install is reported
   # by the provider, never silently treated as connected.
-  command -v claude >/dev/null 2>&1 || npm install -g @anthropic-ai/claude-code >/tmp/claude-install.log 2>&1 || true
+  claude --version 2>/dev/null | grep -q '^2.1.330 ' || npm install -g @anthropic-ai/claude-code@2.1.330 >/tmp/claude-install.log 2>&1 || true
 } >/tmp/agent-prepare.log 2>&1 || true
 "#;
 

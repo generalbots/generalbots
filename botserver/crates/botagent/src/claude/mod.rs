@@ -7,12 +7,12 @@
 //! `/home/claude/.claude/.credentials.json` or `claude auth status`.
 //!
 //! Every VM command goes through `vm::exec_in_vm`, which uses `SafeCommand`.
-//! User-supplied text (the authorization code and the prompt) is base64
-//! encoded before it reaches a shell.
+//! The authorization code is base64 encoded before it reaches a shell; a
+//! chat turn's prompt travels over the [`bridge`] session's stdin.
 
+pub mod bridge;
 mod login;
 mod paths;
-mod prompt;
 mod pty;
 mod status;
 
@@ -21,7 +21,6 @@ use base64::Engine;
 
 pub use login::{logout, start_login, submit_code};
 pub use paths::{CLAUDE_HOME, CLAUDE_USER, CREDENTIALS_PATH};
-pub use prompt::run_prompt;
 pub use status::{extract_oauth_url, status, ClaudeStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {
