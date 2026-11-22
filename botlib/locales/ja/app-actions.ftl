@@ -1,0 +1,11 @@
+app-actions = アプリ操作
+app-action-refresh = 更新
+app-copy-id = IDをコピー
+app-copy-link = リンクをコピー
+app-diagnose = 診断
+app-actions-refreshed = 更新しました
+app-actions-copied = コピーしました
+app-diagnostics-app = アプリ
+app-diagnostics-status = ステータス
+app-diagnostics-online = ネットワーク
+app-diagnostics-updated = 確認

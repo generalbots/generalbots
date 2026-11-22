@@ -1,0 +1,11 @@
+app-actions = 应用操作
+app-action-refresh = 刷新
+app-copy-id = 复制 ID
+app-copy-link = 复制链接
+app-diagnose = 诊断
+app-actions-refreshed = 已刷新
+app-actions-copied = 已复制
+app-diagnostics-app = 应用
+app-diagnostics-status = 状态
+app-diagnostics-online = 网络
+app-diagnostics-updated = 检查

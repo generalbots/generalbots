@@ -113,7 +113,7 @@ test("[STATIC][GAP] no content hashing on stylesheet refs (only ?v=N cache-busti
   equal(measure(DESKTOP).hashedCss, 0, "desktop hashed refs");
   equal(measure(CHAT).hashedCss, 0, "chat hashed refs");
   assert(all().total.versionedCss > 0, "expected version-query refs to be present");
-  assert(measure(DESKTOP).versionedCss === 28 && measure(CHAT).versionedCss === 21,
+  assert(measure(DESKTOP).versionedCss === 29 && measure(CHAT).versionedCss === 21,
     "entry-page version-query refs changed");
 });
 

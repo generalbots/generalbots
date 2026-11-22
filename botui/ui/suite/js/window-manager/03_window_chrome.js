@@ -105,6 +105,20 @@
     win.style.left = `${Math.max(b.margin, left)}px`;
   },
 
+  // #2341 — universal per-app sanity affordance. Every window exposes the
+  // same entry point for Refresh / Copy ID / Copy link / Diagnose. The menu
+  // and diagnostics panel are built on demand by 08_app_actions.js.
+  _sanityButton(id) {
+    const label = window.gbT ? window.gbT("app-actions", "App actions") : "App actions";
+    return `<button type="button" class="window-sanity-btn" data-app-id="${id}" ` +
+      `title="${label}" aria-label="${label}" data-i18n-title="app-actions" ` +
+      `data-i18n-aria-label="app-actions" aria-haspopup="menu" aria-expanded="false" ` +
+      `onclick="window.GBAppActions && window.GBAppActions.open('${id}', this)">` +
+      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">` +
+      `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.88 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.88.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"/></svg>` +
+      `</button>`;
+  },
+
   _glassHeader(id, title, opts) {
     // #2223 — Maximize removed; Fullscreen is the single "fill the screen" action.
     const fullscreen = opts && opts.noMaximize !== true
@@ -113,6 +127,7 @@
     return `<div class="window-header-glass">
       <div class="window-title">${title}</div>
       <div class="window-dot-controls">
+        ${this._sanityButton(id)}
         <div class="window-dot window-dot-minimize" role="button" tabindex="0" title="Minimize" data-i18n-title="window-minimize" aria-label="Minimize" data-i18n-aria-label="window-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
         ${fullscreen}
         <div class="window-dot window-dot-close" role="button" tabindex="0" title="Close" data-i18n-title="window-close" aria-label="Close" data-i18n-aria-label="window-close" onclick="window.WindowManager.close('${id}')"></div>
@@ -129,7 +144,7 @@
     const fullscreen = opts && opts.noMaximize !== true
       ? `<button class="btn-fullscreen hover:text-gray-600" title="Fullscreen" data-i18n-title="window-fullscreen" aria-label="Fullscreen" data-i18n-aria-label="window-fullscreen" aria-pressed="false" onclick="window.WindowManager.toggleFullscreen('${id}')"><svg class="icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><svg class="icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>`
       : "";
-    return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400"><button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>${fullscreen}<button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
+    return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400">${this._sanityButton(id)}<button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>${fullscreen}<button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
   },
 
   _legacyBody(id) {

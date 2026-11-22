@@ -1,0 +1,11 @@
+app-actions = App actions
+app-action-refresh = Refresh
+app-copy-id = Copy ID
+app-copy-link = Copy link
+app-diagnose = Diagnose
+app-actions-refreshed = Refreshed
+app-actions-copied = Copied
+app-diagnostics-app = App
+app-diagnostics-status = Status
+app-diagnostics-online = Network
+app-diagnostics-updated = Check

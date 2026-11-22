@@ -1,0 +1,114 @@
+/* #2341 — universal per-app actions (Refresh / Copy ID / Copy link /
+   Diagnose). Compact in the title bar, 44px touch targets on coarse pointers. */
+
+.window-sanity-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.window-sanity-btn:hover,
+.window-sanity-btn[aria-expanded="true"] {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.window-sanity-btn::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.gb-app-actions-menu {
+  position: fixed;
+  z-index: var(--z-blocker);
+  min-width: 200px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.gb-app-actions-menu[hidden] { display: none; }
+
+.gb-app-actions-item {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.gb-app-actions-item:hover,
+.gb-app-actions-item:focus-visible {
+  background: var(--surface-hover);
+}
+
+.gb-app-diagnostics {
+  position: fixed;
+  z-index: var(--z-blocker);
+  right: 16px;
+  bottom: 72px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+}
+.gb-app-diagnostics[hidden] { display: none; }
+.gb-app-diagnostics-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.gb-app-diagnostics-body {
+  margin: 0;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-muted);
+}
+.gb-app-diagnostics-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.gb-app-diagnostics-actions button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-hover);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .window-sanity-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .window-sanity-btn::before { inset: 0; }
+}

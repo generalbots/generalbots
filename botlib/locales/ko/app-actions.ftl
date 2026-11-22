@@ -1,0 +1,11 @@
+app-actions = 앱 작업
+app-action-refresh = 새로 고침
+app-copy-id = ID 복사
+app-copy-link = 링크 복사
+app-diagnose = 진단
+app-actions-refreshed = 새로 고침됨
+app-actions-copied = 복사됨
+app-diagnostics-app = 앱
+app-diagnostics-status = 상태
+app-diagnostics-online = 네트워크
+app-diagnostics-updated = 확인

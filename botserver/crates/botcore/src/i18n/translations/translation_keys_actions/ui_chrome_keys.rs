@@ -3,6 +3,18 @@
 pub(super) const KEYS: &[&str] = &[
     "app-name",
     "app-tagline",
+    // #2341 — universal per-app actions
+    "app-actions",
+    "app-action-refresh",
+    "app-copy-id",
+    "app-copy-link",
+    "app-diagnose",
+    "app-actions-refreshed",
+    "app-actions-copied",
+    "app-diagnostics-app",
+    "app-diagnostics-status",
+    "app-diagnostics-online",
+    "app-diagnostics-updated",
     "action-save",
     "action-cancel",
     "action-delete",
