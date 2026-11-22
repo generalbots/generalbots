@@ -227,15 +227,12 @@ struct PrimaryKeyRow {
 
 /// Every table/column the migrated database actually has, in `public`.
 pub fn read_live(conn: &mut PgConnection) -> Result<Tables, String> {
-    // botschema also declares readable views (weba_sites/pages/form_submissions
-    // from migration 6.9.1); Diesel selects them like tables, so the live
-    // comparison must see them too instead of reporting fatal drift.
     let rows: Vec<ColumnRow> = diesel::sql_query(
         "SELECT c.table_name, c.column_name, c.data_type, c.is_nullable \
          FROM information_schema.columns c \
          JOIN information_schema.tables t \
            ON t.table_schema = c.table_schema AND t.table_name = c.table_name \
-         WHERE c.table_schema = 'public' AND t.table_type IN ('BASE TABLE', 'VIEW')",
+         WHERE c.table_schema = 'public' AND t.table_type = 'BASE TABLE'",
     )
     .load(conn)
     .map_err(|e| format!("information_schema.columns: {e}"))?;
@@ -282,13 +279,20 @@ fn same_type(declared: &str, live: &str) -> bool {
 }
 
 /// Compares the `botschema` declaration with the live schema.
+/// Diesel can SELECT these reporting views exactly like tables (migration 6.9.1),
+/// but information_schema reports them as VIEWs, not BASE TABLEs.
+const READABLE_VIEWS: [&str; 3] = ["weba_sites", "weba_pages", "weba_form_submissions"];
+
 pub fn compare(expected: &Tables, live: &Tables) -> Drift {
     let mut drift = Drift::default();
     for (table, columns) in expected {
         let Some(actual) = live.get(table) else {
-            drift.fatal.push(format!(
-                "table `{table}` is declared in botschema but no migration creates it"
-            ));
+            let line = format!("table `{table}` is declared in botschema but no migration creates it");
+            if READABLE_VIEWS.contains(&table.as_str()) {
+                drift.additive.push(format!("{line} (readable view, not a base table)"));
+            } else {
+                drift.fatal.push(line);
+            }
             continue;
         };
         for (column, declared) in columns {
