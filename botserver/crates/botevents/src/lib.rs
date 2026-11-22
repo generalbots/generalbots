@@ -54,3 +54,6 @@ pub use office::{
     WebhookDispatcher, WebhookSecret, WebhookSubscription, DEFAULT_TOLERANCE_SECS,
     DELIVERY_HEADER, EVENT_HEADER, PAYLOAD_SCHEMA_VERSION, SIGNATURE_HEADER, verify,
 };
+pub use office::runtime::{
+    runtime, DeadLetterView, DemoTransport, OfficeEventStream, OfficeEventsRuntime, ReplayResult,
+};

@@ -17,8 +17,10 @@
 pub mod delivery;
 pub mod dispatcher;
 pub mod event;
+pub mod native;
 pub mod registry;
 pub mod retry;
+pub mod runtime;
 pub mod signing;
 pub mod subscription;
 pub mod taxonomy;
@@ -33,6 +35,9 @@ pub use dispatcher::{
 pub use event::{ContentAcl, DeliveryPayloadBuilder, DenyAllContent, DomainEvent, EventContent};
 pub use registry::{registry, registry_json, SchemaEntry};
 pub use retry::RetryPolicy;
+pub use runtime::{
+    runtime, DeadLetterView, DemoTransport, OfficeEventStream, OfficeEventsRuntime, ReplayResult,
+};
 pub use signing::{
     verify, Signature, DEFAULT_TOLERANCE_SECS, DELIVERY_HEADER, EVENT_HEADER, SIGNATURE_HEADER,
 };

@@ -66,8 +66,13 @@
     if (letters.length) return letters[0].idempotency_key;
     // After a replay the DLQ entry is gone, but the ledger keeps the key —
     // a second click must resolve to the same key to prove exactly-once.
-    var first = NS.delivery.ledger.keys().next();
-    return first.done ? "" : first.value;
+    if (NS.delivery.lastKey) return NS.delivery.lastKey;
+    var ledger = NS.delivery.ledger;
+    if (ledger && typeof ledger.keys === "function") {
+      var first = ledger.keys().next();
+      return first.done ? "" : first.value;
+    }
+    return "";
   }
 
   function bind() {
@@ -79,10 +84,15 @@
         message({ status: "not_found", key: key, count: 0 });
         return;
       }
-      var result = NS.delivery.replay(key);
-      message(result);
-      updateCount(key);
-      render();
+      // The live adapter calls the HTTP API (a promise); the offline fallback
+      // is synchronous. Promise.resolve normalises both paths.
+      Promise.resolve(NS.delivery.replay(key)).then(function (result) {
+        message(result);
+        updateCount(key);
+        render();
+      }).catch(function () {
+        message({ status: "not_found", key: key, count: 0 });
+      });
     });
   }
 

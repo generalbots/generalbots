@@ -8,21 +8,19 @@
 //! same key twice.
 
 use std::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::Utc;
 use serde_json::Value;
 
 use super::delivery::{
     DeadLetter, DeadLetterQueue, DeliveryAttempt, DeliveryLog, DeliveryReceipt, DeliveryRecord,
     DeliveryResult, DeliveryStatus, DeliveryTransport, IdempotencyLedger,
 };
-use super::event::{ContentAcl, DeliveryPayloadBuilder, DenyAllContent, DomainEvent};
+use super::event::{ContentAcl, DeliveryPayloadBuilder, DomainEvent};
 use super::retry::RetryPolicy;
 use super::signing::{self, Signature};
-use super::subscription::{NativeSubscription, WebhookSubscription};
+use super::subscription::WebhookSubscription;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DispatchReport {
@@ -114,9 +112,26 @@ impl WebhookDispatcher {
         &self.native
     }
 
-    /// Fans an event out to all matching subscriptions.
+    /// Successful receipts by idempotency key, used by the admin API to mark
+    /// a replay as idempotent (no second delivery was made).
+    #[must_use]
+    pub fn ledger(&self) -> &IdempotencyLedger {
+        &self.ledger
+    }
+
+    /// Fans an event out to all matching subscriptions, including native bots.
     #[must_use]
     pub fn publish(&self, event: &DomainEvent) -> DispatchReport {
+        let mut report = self.publish_webhooks(event);
+        report.native_enqueued = self.native().publish(event);
+        report
+    }
+
+    /// Delivers to webhook subscriptions only. The runtime adapter uses this
+    /// so it can mirror the envelopes of the native fan-out into its own
+    /// browser stream without delivering to native bots twice.
+    #[must_use]
+    pub fn publish_webhooks(&self, event: &DomainEvent) -> DispatchReport {
         let mut report = DispatchReport::default();
         for subscription in self.subscriptions() {
             if !subscription.matches(event) {
@@ -180,7 +195,6 @@ impl WebhookDispatcher {
                 }
             }
         }
-        report.native_enqueued = self.native.publish(event);
         report
     }
 
@@ -340,106 +354,7 @@ fn signed_headers(signature: &Signature, key: &str, event_id: &str) -> Vec<(Stri
     ]
 }
 
-/// Envelope handed to an in-platform automation. No HTTP is involved.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct NativeEnvelope {
-    pub id: String,
-    pub bot_id: String,
-    pub subscription_id: String,
-    pub event_id: String,
-    pub event_type: String,
-    pub app: String,
-    pub payload: Value,
-    pub enqueued_at: DateTime<Utc>,
-}
-
-/// Routes events to bot automations through an in-memory queue.
-#[derive(Debug, Default)]
-pub struct NativeDispatcher {
-    subscriptions: Mutex<Vec<NativeSubscription>>,
-    queue: Mutex<Vec<NativeEnvelope>>,
-    counter: AtomicU64,
-}
-
-impl NativeDispatcher {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            subscriptions: Mutex::new(Vec::new()),
-            queue: Mutex::new(Vec::new()),
-            counter: AtomicU64::new(1),
-        }
-    }
-
-    pub fn subscribe(&self, subscription: NativeSubscription) {
-        let mut subscriptions = self
-            .subscriptions
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        subscriptions.push(subscription);
-    }
-
-    #[must_use]
-    pub fn subscribers(&self) -> Vec<NativeSubscription> {
-        self.subscriptions
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-    }
-
-    /// Enqueues one envelope per matching subscriber; returns the count.
-    #[must_use]
-    pub fn publish(&self, event: &DomainEvent) -> usize {
-        let subscriptions = self.subscribers();
-        let mut queue = self.queue.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        let mut enqueued = 0;
-        for subscription in subscriptions {
-            if !subscription.matches(event) {
-                continue;
-            }
-            let payload = match DeliveryPayloadBuilder::new(false, &DenyAllContent).build(event) {
-                Ok(payload) => payload,
-                Err(_) => continue,
-            };
-            let sequence = self.counter.fetch_add(1, Ordering::SeqCst);
-            queue.push(NativeEnvelope {
-                id: format!("native-{sequence}"),
-                bot_id: subscription.bot_id.clone(),
-                subscription_id: subscription.id.clone(),
-                event_id: event.event_id.clone(),
-                event_type: event.event_type.as_str().to_string(),
-                app: event.app.clone(),
-                payload,
-                enqueued_at: Utc::now(),
-            });
-            enqueued += 1;
-        }
-        enqueued
-    }
-
-    #[must_use]
-    pub fn drain(&self, bot_id: &str) -> Vec<NativeEnvelope> {
-        let mut queue = self.queue.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        let mut delivered = Vec::new();
-        let mut index = 0;
-        while index < queue.len() {
-            if queue[index].bot_id == bot_id {
-                delivered.push(queue.remove(index));
-            } else {
-                index += 1;
-            }
-        }
-        delivered
-    }
-
-    #[must_use]
-    pub fn pending(&self) -> usize {
-        self.queue
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .len()
-    }
-}
+pub use super::native::{NativeDispatcher, NativeEnvelope};
 
 #[cfg(test)]
 #[path = "dispatcher_tests.rs"]
