@@ -2,6 +2,25 @@ use botsheet_core::engine::from_xlsx_formula;
 use botsheet_core::engine::value::CellValue;
 use std::collections::HashMap;
 
+/// #2530 — hard cap on the number of cells materialised per worksheet during
+/// import. Each cell allocates a heap `String` key plus a typed `CellData`;
+/// uncapped imports of dense large workbooks grew botserver RSS past the
+/// 1200 MB ceiling and timed out. Exceeding the cap fails closed with an
+/// actionable message instead of exhausting process memory.
+const MAX_IMPORT_CELLS_PER_SHEET: usize = 250_000;
+
+/// Fail closed once a worksheet reaches the materialisation cap (#2530).
+/// Pure helper so the boundary is unit-testable without building a huge workbook.
+fn ensure_within_cell_cap(retained: usize, sheet_name: &str) -> Result<(), String> {
+    if retained >= MAX_IMPORT_CELLS_PER_SHEET {
+        return Err(format!(
+            "worksheet '{sheet_name}' exceeds the {MAX_IMPORT_CELLS_PER_SHEET} cell import limit; \
+             split the workbook or export a smaller range"
+        ));
+    }
+    Ok(())
+}
+
 pub fn parse_xlsx_to_worksheets(
     bytes: &[u8],
     ext: &str,
@@ -38,6 +57,10 @@ pub fn parse_xlsx_to_worksheets(
                 // referenced mirrored cells and pivots summed the wrong columns
                 // (#2152).
                 for ((row, col), cell) in sheet.collection_to_hashmap() {
+                    // #2530 — fail closed before the per-cell allocations push
+                    // RSS past the admission ceiling. Count only cells that
+                    // would be retained (the empty/no-formula check below).
+                    ensure_within_cell_cap(data.len(), sheet.get_name())?;
                     let cell = cell.as_ref();
                     let value = cell.value().to_string();
                     let formula = if cell.formula().is_empty() {
@@ -260,6 +283,19 @@ mod orientation_tests {
             Some("10.5".to_string()),
             "B2 must stay at row 1 col 1"
         );
+    }
+
+    #[test]
+    fn import_cell_cap_fails_closed_at_the_boundary() {
+        use super::{ensure_within_cell_cap, MAX_IMPORT_CELLS_PER_SHEET};
+        // Just under the cap is admitted; at and above it are refused with an
+        // actionable message naming the sheet and the limit (#2530).
+        assert!(ensure_within_cell_cap(MAX_IMPORT_CELLS_PER_SHEET - 1, "Data").is_ok());
+        let at = ensure_within_cell_cap(MAX_IMPORT_CELLS_PER_SHEET, "Data").expect_err("at cap");
+        assert!(at.contains("Data"));
+        assert!(at.contains("250000"));
+        assert!(at.contains("split the workbook"));
+        assert!(ensure_within_cell_cap(MAX_IMPORT_CELLS_PER_SHEET + 1, "Data").is_err());
     }
 
     #[test]
