@@ -141,19 +141,42 @@ contract of each. Paths are relative to the repository root.
 | Sandbox preview store | `botserver/crates/botbasic_ai/src/keywords/code_sandbox/preview_store.rs:231` | hash → HTML plus boot generation for truthfulness | 1-hour TTL (`DEFAULT_TTL_MS` = 3_600_000 ms at `preview_store.rs:19`, passed at `sandbox/store.rs:92`), capacity 128 with oldest-entry eviction; generation bumped by `reconcile_on_boot` (`sandbox/store.rs:170`) | No — Drive holds the bytes; a prior-boot entry reports `interrupted_by_restart` | Volatile with reason codes `fresh`/`expired`/`interrupted_by_restart` from `/api/sandbox/status/:hash` (#2541) |
 | Computer-use actions | `botserver/src/core/computer_use/mod.rs:53` | pending action by id | `TTL_SECS`, pruned on read at `mod.rs:66` | No | Explicitly volatile with TTL |
 | Peer network table | `botserver/src/core/peer_network.rs:93` | node identity and registered peers | process lifetime; peers expire on `GB_PEER_HEARTBEAT_TTL_SECS` (90), mode persisted via `persist_mode` (`peer_network.rs:162`) | Partial (mode only) | Volatile with durable config |
+| Peer payload store | `botserver/src/core/peer_payloads.rs:189` (`PeerPayloadStore` map at `peer_payloads.rs:105`) | pending peer payloads by id; body is end-to-end encrypted and opaque to the relay | 300 s (`PeerPayloadStore::new(300)` at `peer_payloads.rs:192`), cap 1024 entries (`:127`), pruned on enqueue and `pending_for` (`:126`,`:147`) | No — in-process relay copy only, expires on TTL | Volatile with documented TTL (#2541) |
 | Vibe active runs | `botserver/crates/botvibe/src/api/tools.rs:129` | run status by id | boot rebuild from `vibe_runs`, capped at `BOOT_RUN_REBUILD_LIMIT` (500) at `tools.rs:105`; live `pending`/`running`/`awaiting_approval` rows reconciled to `failed` at boot (`botserver/crates/botvibe/src/run_store.rs:169`) | Yes — `vibe_runs` | Rebuild on boot and reconcile orphans (#2541) |
 | Hotsite apps and pages | `botserver/crates/botweba/src/weba_state.rs:13` | apps, pages, published sites, form submissions | mirrored on every mutation to `WebaStore` | Yes — snapshot store | Rebuild on boot |
 | Chat-history unlock grants | `botserver/src/main_module/routes/chat_history_lock.rs:38` | unlock token → session and user | `UNLOCK_TTL_SECS` (300), idle-expiring | No | Explicitly volatile with TTL |
+| ChatGPT OAuth pending states | `botserver/src/core/ai_accounts_chatgpt/mod.rs:39` | OAuth `state` → PKCE verifier, creation time and user id for an in-flight ChatGPT-plan connect | 900 s (15 min); pruned on insert (`mod.rs:129`) and on `pending_for` (`mod.rs:269`); loopback listener expires at 900 s (`mod.rs:195`); wired at `botserver/src/main_module/routes/ai_accounts/handlers.rs:65,121` | No — tokens go to Vault on success; the DB keeps only display metadata and the Vault path (`mod.rs:4-7`) | Volatile with documented TTL (#2541) |
 | Subscription LLM tokens | `botserver/src/main_module/routes/subscription_llm.rs:33` | token → user, provider, model, session | 10 minutes, pruned on issue | No | Explicitly volatile with TTL |
 | Declined connector hints | `botserver/src/core/bot/pipeline/connector_hints.rs:89` | user → declined provider | process lifetime | No | Explicitly volatile |
 | Agent turn flag | `botserver/src/core/bot/pipeline/agent_turn.rs:15` | session → agent-enabled for one turn | single turn, cleared by caller | No | Explicitly volatile |
 | Workspace step timers | `botserver/src/core/bot/pipeline/workspace_progress.rs:31` | step key → start instant | one turn | No | Explicitly volatile |
 | Native tool capture | `botserver/src/core/bot/pipeline/native_tools/mod.rs:31` | session → last tool message | one turn, removed on `take_capture` | No | Explicitly volatile |
-| Soon feature flags | `botserver/src/soon_features.rs` | former "coming soon" toggles | — | — | Retired: file retained but absent from the module tree (no consumer); no runtime flags remain (#2541) |
+| Drive-context listing cache | `botserver/src/core/bot/pipeline/drive_context.rs:43` | `bucket/prefix` → timestamped list of text files (object key, relative path) used as chat context | 60 s (`LIST_TTL` at `drive_context.rs:22`, checked at `:77`); wired at `botserver/src/core/bot/pipeline/exec/context.rs:221` | No — cache over the Drive listing; Drive is the source | Cache over Drive (#2541) |
+| Structured-tool answer memory | `botserver/src/core/bot/pipeline/surface_tools/mod.rs:33` | thread → field → answered value from `ask_user`/`propose_plan` | active thread; no TTL or eviction (`:28-38`); wired at `botserver/src/core/bot/pipeline/turn_context.rs:109` and `surface_tools/{ask_user.rs:65,plan.rs:83}` | No — the durable record is the persisted question turn (`mod.rs:28-29`) | Volatile thread memory (#2541) |
+| App install counters | `botserver/src/apps/mod.rs:33` (`AppInstallStats.counts` at `apps/mod.rs:30`) | app id → install count from `POST /api/apps/install` | process lifetime, no TTL; served at `/api/apps/install/stats` (`botserver/src/apps/install_handler.rs:29-37`) | No — the frontend overlays per-user `localStorage` (`apps/mod.rs:25-27`) | Volatile popularity ranking (#2541) |
+| Command usage stats | `botserver/src/apps/mod.rs:47` (`CommandUsageStats.entries` at `apps/mod.rs:44`) | command key → count, app and label; feeds the LLM "common commands" tail | process lifetime, no TTL; served at `/api/commands/stats` (`botserver/src/apps/command_stats_handler.rs:4`), ranked by `top_commands` (`botserver/src/apps/installs.rs:43`) | No | Volatile usage counters (#2541) |
+| Soon feature flags | `botserver/src/soon_features.rs:15` | `FeatureFlags` struct with 13 hard-coded defaults (e.g. `setup_wizard`, `huge_file_streaming`) | — | — | Retired: the file is not declared anywhere in the module tree (no `mod soon_features;` under `botserver/`), so it is never compiled and no runtime flag is wired (#2541) |
 
 Only the durable rows are authoritative for state that outlives a process.
 A restart may drop any volatile entry in the table above; the disposition
 column names the source that rebuilds it or the window after which it expires.
+
+The soon-feature row documents dead source, not behaviour:
+`botbook/src/02-architecture-packages/crates.md:64` still prints
+`pub mod soon_features;`, but no such declaration exists in the compiled module
+tree. Single-value `OnceLock`s were also checked and are not maps, so they are
+not rows here: the desktop-local install owner
+(`botserver/src/security/office_owner.rs:60`, cached from
+`conf/system/directory_config.json`), the content-free memory-admission snapshot
+(`botserver/src/main_module/health.rs:17`) and the Windows-only agent-backend
+probe (`botserver/src/core/bot/pipeline/chat_controls.rs:82`). The drive-compiler
+missing-log registry (`botserver/src/drive/drive_compiler.rs:97`) is a map but
+only suppresses duplicate warnings for one hour (`drive_compiler.rs:108`) and
+holds no user-visible state.
+
+This table is a source audit for #2541, not a runtime test. A restart UAT on a
+running server is still required to confirm each disposition (volatile loss,
+rebuild and expiry); no PASS is claimed here.
 
 
 ### Structure-Aware Knowledge Base — OFFLINE-ONLY
