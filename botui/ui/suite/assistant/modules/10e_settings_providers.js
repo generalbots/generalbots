@@ -188,6 +188,19 @@ function renderSetup(root, id) {
   /* A key for this provider is already in the vault: show it masked, and let
    * Test and Save use it without typing it again. */
   var stored = !!(same && c.has_key);
+  /* Also check /api/llm/accounts for a stored key on this provider. */
+  var acctKeyHint = "";
+  if (!stored && p) {
+    A.apiFetch("/api/llm/accounts").then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) {
+      var acct = ((d && d.accounts) || []).filter(function (a) { return a.id === p.id; })[0];
+      if (acct && acct.has_key) {
+        stored = true;
+        acctKeyHint = acct.key_hint || "";
+        var inp = el.querySelector("#gbProvKey");
+        if (inp && !inp.value) { inp.placeholder = g("keyStoredPh").replace("%k", acctKeyHint); }
+      }
+    }).catch(function () {});
+  }
   var models = p ? p.models.slice() : [];
   if (savedModel && models.indexOf(savedModel) < 0) { models.unshift(savedModel); }
   var opts = models.map(function (m) {

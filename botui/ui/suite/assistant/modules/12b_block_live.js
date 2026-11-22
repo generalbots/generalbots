@@ -25,6 +25,7 @@ var STEP_LABELS = {
     queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
     image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
     container_start: ["Ligou a Máquina Virtual", "Started the virtual machine", "Ligando a Máquina Virtual", "Starting the virtual machine"],
+    local_engine_start: ["Ligou o modelo local", "Started the local model", "Ligando o modelo local", "Starting the local model"],
     bootstrap: ["Preparou a Máquina Virtual", "Prepared the virtual machine", "Preparando a Máquina Virtual", "Preparing the virtual machine"],
     package_install: ["Instalou pacotes", "Installed packages", "Instalando pacotes", "Installing packages"],
     execute: ["Executou o programa", "Ran the program", "Executando o programa", "Running the program"],

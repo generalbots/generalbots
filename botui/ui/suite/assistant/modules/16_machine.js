@@ -14,7 +14,7 @@
 
     var T = {
         pt: {
-            loading: "Consultando", running: "Ligada", stopped: "Desligada", provisioning: "Preparando",
+            loading: "Verificando…", running: "Ligada", stopped: "Desligada", provisioning: "Preparando",
             error: "Atenção", full: "Disco cheio", unavailable: "Indisponível", restoring: "Restaurando", starting: "Iniciando",
             machine: "Máquina Virtual", failed: "Falha na operação", kicker: "// MÁQUINA VIRTUAL DE AGENTES",
             title: "Um computador só seu, onde os agentes trabalham.",
@@ -46,7 +46,7 @@
             cleanTemp: "Limpar temporários", erase: "Apagar a máquina virtual", stateLabel: "Estado"
         },
         en: {
-            loading: "Checking", running: "Running", stopped: "Off", provisioning: "Preparing",
+            loading: "Checking…", running: "Running", stopped: "Off", provisioning: "Preparing",
             error: "Needs attention", full: "Disk full", unavailable: "Unavailable", restoring: "Restoring", starting: "Starting",
             machine: "Virtual machine", failed: "Operation failed", kicker: "// AGENT VIRTUAL MACHINE",
             title: "A computer of your own, where agents work.",
@@ -167,7 +167,8 @@
     };
     async function refresh(detail) {
         var current = ++sequence;
-        var next = {status: "unavailable", snapshots: [], accounts: []};
+        var configLoaded = !!(A.productConfig);
+        var next = {status: configLoaded ? "unavailable" : "loading", snapshots: [], accounts: []};
         try {
             if (capabilities()) {
                 var vm = await request("/api/agent/sessions/current");

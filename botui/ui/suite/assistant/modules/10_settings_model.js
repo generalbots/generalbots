@@ -11,8 +11,7 @@ function fmtSpeed(bps){return bps?fmtBytes(bps)+"/s":"";}
 function fmtEta(s){if(!s&&s!==0)return"";if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m "+(s%60)+"s";return Math.floor(s/3600)+"h "+Math.floor((s%3600)/60)+"m";}
 var jobPollers = {};
 var T = {"pt-BR":{
-  now:"Agora",where:"Onde o assistente pensa",local:"Neste computador",
-  own:"Servidor ou chave própria",free:"Modelo gratuito",
+  now:"Agora",where:"Onde o assistente pensa",
   subLocal:"Nada sai deste computador",subOwn:"Servidor da sua organização ou chave de um provedor",
   subFree:"Hospedado fora deste computador",
   useFree:"Usar o modelo gratuito",useOwn:"Usar este servidor",inUse:"Em uso agora.",
@@ -58,8 +57,7 @@ var T = {"pt-BR":{
   serverDown:"O serviço do assistente não está respondendo. Tente de novo em alguns segundos; se continuar, feche o aplicativo e abra outra vez.",
   retry:"Tentar de novo"},
 en:{
-  now:"Now",where:"Where the assistant thinks",local:"On this computer",
-  own:"Own server or key",free:"Free model",
+  now:"Now",where:"Where the assistant thinks",
   subLocal:"Nothing leaves this computer",subOwn:"Your organization’s server or a provider key",
   subFree:"Hosted outside this computer",
   useFree:"Use the free model",useOwn:"Use this server",inUse:"In use now.",

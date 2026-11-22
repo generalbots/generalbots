@@ -48,10 +48,11 @@
     function engineInfo() {
         var value = A.selectedModel || A.defaultModel || "";
         var dest = A.destination || {};
-        if (value.startsWith("sub:")) { return tr("Assinatura", "Subscription"); }
-        if (value.startsWith("acct:")) { return tr("Chave API", "API key"); }
-        if (A.engineMode === "free") { return tr("Gratuito", "Free"); }
-        if (dest.scope === "machine") { return tr("Local", "Local"); }
+        if (value.startsWith("sub:")) { return A.engineName("acp", "short"); }
+        if (value.startsWith("acct:")) { return A.engineName("own_key", "short"); }
+        if (A.engineMode === "free") { return A.engineName("free", "short"); }
+        if (A.engineMode === "own_key") { return A.engineName("own_key", "short"); }
+        if (A.engineMode === "local" || dest.scope === "machine") { return A.engineName("local", "short"); }
         if (dest.scope === "network") { return tr("Rede", "Network"); }
         if (dest.scope === "external") { return tr("Externo", "External"); }
         return "";
@@ -230,7 +231,7 @@
         body.replaceChildren(head, label(tr("Limites", "Limits")), limits, label(tr("Uso recente · 30 dias", "Recent usage · 30 days")), report);
         var footer = drawer.querySelector(".gb-quota-foot");
         if (!footer) {
-            footer = makeButton("gb-quota-foot", tr("Ajustar limites na Oficina", "Adjust limits in Settings"), "gear", function () {
+            footer = makeButton("gb-quota-foot", tr("Ajustar limites em Configurações", "Adjust limits in Settings"), "gear", function () {
                 setDrawer(false);
                 A.switchView("settings");
                 setTimeout(function () {
@@ -238,7 +239,7 @@
                     if (tab) { tab.click(); }
                 }, 80);
             });
-            footer.appendChild(node("span", "", tr("Ajustar limites na Oficina", "Adjust limits in Settings")));
+            footer.appendChild(node("span", "", tr("Ajustar limites em Configurações", "Adjust limits in Settings")));
             drawer.appendChild(footer);
         }
         A.apiFetch("/api/user/usage/summary?days=30").then(function (response) {
@@ -252,14 +253,13 @@
     /* /api/user/usage/summary: { days, models:{…}, per_day, totals:{…},
        pricing_available, engines:[{engine,tokens,messages,cost,providers:[…]}] }.
        When engines is present and non-empty, group by engine type then provider. */
-    var ENGINE_NAMES = {
-        "pt-BR": { subscription: "Agente por assinatura", api_key: "Chave própria", local: "Este computador", free: "Gratuito", unknown: "Sem registro" },
-        en: { subscription: "Subscription agent", api_key: "Own key", local: "This computer", free: "Free", unknown: "Not recorded" }
-    };
-    function engineName(key) { var m = (A.locale || "").startsWith("pt") ? ENGINE_NAMES["pt-BR"] : ENGINE_NAMES.en; return m[key] || key; }
+    function usageEngineName(key) {
+        if (key === "unknown") { return tr("Sem registro", "Not recorded"); }
+        return A.engineNameByLimitKind(key, "group") || key;
+    }
     function providerName(p, engine) {
         if (p.label) { return p.label; }
-        if (engine === "local") { return tr("Este computador", "This computer"); }
+        if (engine === "local") { return A.engineName("local", "detail"); }
         return p.provider || tr("Desconhecido", "Unknown");
     }
 
@@ -286,7 +286,7 @@
         if (engines) {
             engines.forEach(function (eng) {
                 var heading = node("div", "gb-quota-group-head");
-                heading.append(node("span", "gb-quota-gutter"), node("strong", "gb-quota-group-title", engineName(eng.engine)), metrics(eng));
+                heading.append(node("span", "gb-quota-gutter"), node("strong", "gb-quota-group-title", usageEngineName(eng.engine)), metrics(eng));
                 rows.push(heading);
                 (eng.providers || []).forEach(function (prov) {
                     var singleModel = (prov.models || []).length === 1;

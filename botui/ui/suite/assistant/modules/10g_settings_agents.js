@@ -18,7 +18,7 @@ var AGENTS = [
 ];
 
 var L = { "pt-BR": {
-  title:"Agentes", tip:"O agente roda separado do resto do sistema, numa máquina virtual isolada neste computador. Sem ela, o modo agente fica desligado.",
+  title:"Agentes por assinatura", tip:"O agente roda separado do resto do sistema, numa máquina virtual isolada neste computador. Sem ela, o modo agente fica desligado.",
   space:"ESPAÇO ISOLADO", spaceOff:"INDISPONÍVEL",
   connect:"Conectar", disconnect:"Sair da conta", useNow:"Usar no chat", linked:"CONECTADO", connecting:"CONECTANDO…", off:"NÃO CONECTADO",
   preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
@@ -33,7 +33,7 @@ var L = { "pt-BR": {
   vmStartingMsg:"A máquina virtual está iniciando. O login continua em instantes.",
   vmUnavailableMsg:"A máquina virtual não está disponível agora. Tentaremos de novo em instantes." },
 en: {
-  title:"Agents", tip:"The agent runs apart from the rest of the system, in an isolated virtual machine on this computer. Without it, agent mode stays off.",
+  title:"Subscription agents", tip:"The agent runs apart from the rest of the system, in an isolated virtual machine on this computer. Without it, agent mode stays off.",
   space:"ISOLATED SPACE", spaceOff:"UNAVAILABLE",
   connect:"Connect", disconnect:"Sign out", useNow:"Use in chat", linked:"CONNECTED", connecting:"CONNECTING…", off:"NOT CONNECTED",
   preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
@@ -378,6 +378,13 @@ function refreshPickers() {
     .then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } });
 }
 
+/** Look up an agent's display metadata by provider id. */
+A._agentMeta = function (provider) {
+    for (var i = 0; i < AGENTS.length; i++) {
+        if (AGENTS[i].id === provider) { return AGENTS[i]; }
+    }
+    return null;
+};
 if (A._modelProviders) { A._modelProviders.renderAcp = renderAgents; }
 /* The chat's model menu lists the connected agents (05b_model_picker.js). */
 A.loadLinkedAgents = function () {

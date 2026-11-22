@@ -22,7 +22,7 @@ var INFO = {
   acp: [["Agente por assinatura", "Subscription agent"], ["Sua assinatura, num espaço isolado neste computador", "Your subscription, in an isolated space on this computer"], ["Vai ao provedor do agente", "Goes to the agent’s provider"], "out", 2, "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3"]
 };
 function L2(pair) { return pair[pt() ? 0 : 1]; }
-function modeLabel(mode) { return INFO[mode] ? L2(INFO[mode][0]) : mode; }
+function modeLabel(mode) { return A.engineName(mode, "detail") || mode; }
 function svg(d, size, w) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 1.7) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; }
 var I = { info: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 11v5M12 8h.01", help: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01",
   table: "M3 4h18v16H3zM3 10h18M9 4v16", check: "M20 6 9 17l-5-5", arrow: "M5 12h14M13 6l6 6-6 6", next: "m9 18 6-6-6-6", close: "M18 6 6 18M6 6l12 12",

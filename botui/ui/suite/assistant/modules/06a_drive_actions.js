@@ -321,25 +321,7 @@
             A.pendingFiles.push(file);
             /* Switch to chat and trigger chip rendering */
             A.switchView("chat");
-            if (typeof A.initComposer === "function") {
-                /* Re-render file chips in the composer */
-                var container = document.getElementById("gbFileChips");
-                if (container && typeof A.attachCard === "function") {
-                    container.innerHTML = "";
-                    for (var i = 0; i < A.pendingFiles.length; i++) {
-                        (function (idx) {
-                            var card = A.attachCard(A.pendingFiles[idx], {
-                                removable: true,
-                                onRemove: function () {
-                                    A.pendingFiles.splice(idx, 1);
-                                    useFileInChat._renderChips();
-                                }
-                            });
-                            container.appendChild(card);
-                        })(i);
-                    }
-                }
-            }
+            useFileInChat._renderChips();
             D.showToast(A.t("drive.attached", "Arquivo anexado à conversa"));
             /* Focus the input */
             var inp = document.getElementById("gbInputDock") || document.getElementById("gbInputEmpty");
@@ -349,21 +331,24 @@
         });
     }
     useFileInChat._renderChips = function () {
-        var container = document.getElementById("gbFileChips");
-        if (!container || typeof A.attachCard !== "function") return;
-        container.innerHTML = "";
-        for (var i = 0; i < A.pendingFiles.length; i++) {
-            (function (idx) {
-                var card = A.attachCard(A.pendingFiles[idx], {
-                    removable: true,
-                    onRemove: function () {
-                        A.pendingFiles.splice(idx, 1);
-                        useFileInChat._renderChips();
-                    }
-                });
-                container.appendChild(card);
-            })(i);
-        }
+        var ids = ["gbFileChips", "gbFileChipsEmpty"];
+        var targets = ids.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+        if (!targets.length || typeof A.attachCard !== "function") { return; }
+        targets.forEach(function (container) {
+            container.innerHTML = "";
+            for (var i = 0; i < A.pendingFiles.length; i++) {
+                (function (idx) {
+                    var card = A.attachCard(A.pendingFiles[idx], {
+                        removable: true,
+                        onRemove: function () {
+                            A.pendingFiles.splice(idx, 1);
+                            useFileInChat._renderChips();
+                        }
+                    });
+                    container.appendChild(card);
+                })(i);
+            }
+        });
     };
     D.useFileInChat = useFileInChat;
 

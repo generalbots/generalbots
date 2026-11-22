@@ -9,11 +9,11 @@
     var KIND = { acp: "subscription", own_key: "api_key", free: "free", local: "local" };
     var LOGO = { "claude-code": "anthropic", "codex-cli": "openai", "antigravity": "gemini" };
     var engines = [
-        ["acp", "Assinaturas", "Subscriptions", "Cota do plano, renova sozinha", "Plan quota, renews by itself", "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3"],
-        ["own_key", "Chaves API", "API keys", "Gasto em dólar, você define", "Spending in dollars, you decide",
+        ["acp", null, null, "Cota do plano, renova sozinha", "Plan quota, renews by itself", "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3"],
+        ["own_key", null, null, "Gasto em dólar, você define", "Spending in dollars, you decide",
             "M15.5 7.5 19 4M21 2l-2 2m-3.5 3.5 3 3L22 7l-3-3M11.4 11.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8z"],
-        ["free", "Modelo Gratuito", "Free model", "Limite diário do serviço", "Daily limit of the service", "M13 2 3 14h9l-1 8 10-12h-9z"],
-        ["local", "Modelos Locais", "Local models", "Capacidade deste computador", "Capacity of this computer",
+        ["free", null, null, "Limite diário do serviço", "Daily limit of the service", "M13 2 3 14h9l-1 8 10-12h-9z"],
+        ["local", null, null, "Capacidade deste computador", "Capacity of this computer",
             "M4 4h16v16H4zM9 9h6v6H9zM15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"]
     ];
     function tr(pt, en) { return (A.locale || "").startsWith("pt") ? pt : en; }
@@ -146,7 +146,7 @@
             engines.map(function (engine, index) {
                 return '<button type="button" data-limit="' + engine[0] + '"><span class="gb-lim-top"><span class="gb-lim-icon">' +
                     A.settingsIcon(engine[5], 15) + '</span><span class="gb-lim-no">0' + (index + 1) + '</span><span class="gb-lim-pct">—</span></span><span class="gb-lim-name"><strong>' +
-                    tr(engine[1], engine[2]) + '</strong><span>' + tr(engine[3], engine[4]) + '</span></span><span class="gb-lim-meter"><i></i></span></button>';
+                    A.engineName(engine[0], "group") + '</strong><span>' + tr(engine[3], engine[4]) + '</span></span><span class="gb-lim-meter"><i></i></span></button>';
             }).join("") + '</div><div class="gb-lim-detail-head"><span class="gb-sp-mark gb-lim-detail-k">' + tr("Detalhes", "Details") +
             '</span><strong id="gbLimitsName"></strong></div><div class="gb-lim-tray"><i class="gb-lim-gutter" aria-hidden="true"></i>' +
             '<div class="gb-lim-tray-in" id="gbLimitsDetail"></div></div></div>';
@@ -172,7 +172,7 @@
         function drawDetails() {
             var selection = engines.find(function (engine) { return engine[0] === selected; });
             cards.forEach(function (button) { button.setAttribute("aria-pressed", button.dataset.limit === selected); });
-            panel.querySelector("#gbLimitsName").textContent = tr(selection[1], selection[2]);
+            panel.querySelector("#gbLimitsName").textContent = A.engineName(selection[0], "group");
             var list = ofKind(selected).filter(function (e) { return selected !== "local" || (e.windows || []).length; });
             var blocks = list.map(engineBlock).join("");
             var html;
