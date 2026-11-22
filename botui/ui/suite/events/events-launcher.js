@@ -8,7 +8,7 @@
   "use strict";
   var APP = {
     id: "events",
-    title: "Events",
+    title: window.gbT ? window.gbT("events-title", "Events") : "Events",
     category: "system",
     color: "#0ea5e9",
     hxGet: "/suite/events/events.html",
