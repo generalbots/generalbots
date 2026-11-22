@@ -9,3 +9,6 @@ app-diagnostics-app = 앱
 app-diagnostics-status = 상태
 app-diagnostics-online = 네트워크
 app-diagnostics-updated = 확인
+app-comments = 댓글
+app-activity = 활동
+app-actions-unavailable = 사용할 수 없음

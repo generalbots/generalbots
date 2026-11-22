@@ -21,7 +21,6 @@
         '/suite/drive/modules/08_preview_render.js',
         '/suite/drive/modules/08_preview.js',
         '/suite/drive/modules/09_ai.js',
-        '/suite/drive/modules/10_comments.js',
         '/suite/drive/modules/11_external.js',
         '/suite/drive/modules/98_actions.js',
         '/suite/drive/modules/98_actions_clipboard.js',

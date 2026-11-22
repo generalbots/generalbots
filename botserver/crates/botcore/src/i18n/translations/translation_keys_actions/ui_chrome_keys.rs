@@ -18,6 +18,10 @@ pub(super) const KEYS: &[&str] = &[
     // #2450 — kiosk restart/recovery surface
     "shell-restarting-title",
     "shell-restarting-hint",
+    // #2336 — shared collab entry points
+    "app-comments",
+    "app-activity",
+    "app-actions-unavailable",
     "action-save",
     "action-cancel",
     "action-delete",

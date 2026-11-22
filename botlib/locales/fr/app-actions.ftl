@@ -9,3 +9,6 @@ app-diagnostics-app = Application
 app-diagnostics-status = État
 app-diagnostics-online = Réseau
 app-diagnostics-updated = Vérification
+app-comments = Commentaires
+app-activity = Activité
+app-actions-unavailable = Indisponible

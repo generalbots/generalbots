@@ -9,3 +9,6 @@ app-diagnostics-app = 应用
 app-diagnostics-status = 状态
 app-diagnostics-online = 网络
 app-diagnostics-updated = 检查
+app-comments = 评论
+app-activity = 活动
+app-actions-unavailable = 不可用

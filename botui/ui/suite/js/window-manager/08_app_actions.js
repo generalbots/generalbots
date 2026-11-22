@@ -35,6 +35,44 @@
   var menu = null;
   var panel = null;
   var currentId = null;
+  var collabLoading = null;
+
+  // #2336 — load the shared GBCollab scripts on first use so every app can
+  // expose the same comments/activity panels without per-app forks. Apps that
+  // already ship them are untouched (the globals are identical singletons).
+  function ensureCollab() {
+    if (window.GBCollabComments && window.GBCollabActivity) return Promise.resolve();
+    if (collabLoading) return collabLoading;
+    var files = [
+      "/suite/js/collab-a11y.js",
+      "/suite/js/collab-comments/01_helpers.js",
+      "/suite/js/collab-comments/02_data.js",
+      "/suite/js/collab-comments/99_panel.js",
+      "/suite/js/collab-activity.js"
+    ];
+    collabLoading = new Promise(function (resolve, reject) {
+      var i = 0;
+      function next() {
+        if (i >= files.length) { resolve(); return; }
+        var s = document.createElement("script");
+        s.src = files[i++];
+        s.onload = next;
+        s.onerror = next;
+        document.head.appendChild(s);
+      }
+      next();
+    });
+    return collabLoading;
+  }
+
+  function openCollab(kind, id) {
+    ensureCollab().then(function () {
+      var opts = { resourceType: "app", resourceId: id, title: appTitle(id) };
+      if (kind === "comments" && window.GBCollabComments) window.GBCollabComments.open(opts);
+      else if (kind === "activity" && window.GBCollabActivity) window.GBCollabActivity.open(opts);
+      else toast("app-actions-unavailable", "Not available", "error");
+    });
+  }
 
   function closeAll() {
     if (menu) { menu.hidden = true; menu = null; }
@@ -158,6 +196,8 @@
       copy(url).then(function () { toast("app-actions-copied", "Copied", "success"); });
     }));
     m.appendChild(menuItem("app-diagnose", "Diagnose", function () { openDiagnostics(id); }));
+    m.appendChild(menuItem("app-comments", "Comments", function () { openCollab("comments", id); }));
+    m.appendChild(menuItem("app-activity", "Activity", function () { openCollab("activity", id); }));
     m.hidden = false;
     if (anchor) {
       var r = anchor.getBoundingClientRect();
