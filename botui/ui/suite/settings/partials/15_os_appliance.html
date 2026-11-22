@@ -170,6 +170,32 @@
     <div class="card-header"><h2 data-i18n="os-session-title">User session</h2></div>
     <div id="osSessionStatus" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
   </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-data-backup">Snapshots &amp; backup</h2></div>
+    <p class="os-hint" data-i18n="os-data-protection-hint">No disk encryption, snapshot/backup, full-archive export or factory-reset backend is implemented in this build.</p>
+    <div id="os-data-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row">
+      <input id="osDataReason" type="text" autocomplete="off" data-i18n-aria-label="os-data-backup" />
+      <button type="button" id="osDataSnapshot" onclick="window.GBDataProtection && GBDataProtection.snapshot()" data-i18n="os-data-backup">Snapshots &amp; backup</button>
+    </div>
+    <div id="osDataSnapshotStatus" role="status" aria-live="polite"></div>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-data-export-status">Full-archive export</h2></div>
+    <div class="setting-row">
+      <button type="button" id="osDataExport" onclick="window.GBDataProtection && GBDataProtection.manifest()" data-i18n="os-data-export" data-i18n-title="os-data-export-title">Export my data</button>
+    </div>
+    <div id="osDataExportStatus" role="status" aria-live="polite"></div>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-data-reset-status">Reset this PC</h2></div>
+    <p class="os-hint" data-i18n="os-data-reset-title">Disabled: the wipe-and-wizard reset backend is not implemented in this build.</p>
+    <div class="setting-row">
+      <input id="osDataResetToken" type="text" autocomplete="off" data-i18n-aria-label="os-data-reset" />
+      <button type="button" id="osDataReset" disabled onclick="window.GBDataProtection && GBDataProtection.reset()" data-i18n="os-data-reset" data-i18n-title="os-data-reset-title">Reset this PC</button>
+    </div>
+    <div id="osDataResetStatus" role="status" aria-live="polite"></div>
+  </div>
 </section>
 
 <section id="os-users-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>

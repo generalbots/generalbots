@@ -13,6 +13,16 @@
     { id: "os-diagnostics", endpoints: ["/api/os/diagnostics"], body: "os-diagnostics-status-body" }
   ];
 
+  // #2470 — the data-protection surface lives inside the Storage & Reset card
+  // (no new navigation entry is needed). It is loaded whenever that page opens.
+  var DATA_PAGE = {
+    id: "os-data-protection",
+    endpoints: ["/api/os/data-protection"],
+    body: "os-data-status-body"
+  };
+  var resetToken = "";
+  var manifestScope = "full-archive";
+
   function t(key, fallback, params) {
     var v = fallback;
     if (typeof window._t === "function") {
@@ -75,6 +85,26 @@
     return '<div class="os-power-row"><span class="os-power-label">' + esc(label) + '</span><span class="os-power-value">' + esc(value) + '</span></div>';
   }
 
+  function syncResetButton() {
+    var button = byId("osDataReset");
+    var input = byId("osDataResetToken");
+    if (!button) return;
+    // Fail closed: without a token parsed from a live status response the
+    // reset control stays disabled, regardless of what is typed in the box.
+    button.disabled = !resetToken || !input || input.value !== resetToken;
+  }
+
+  function captureDataProtection(data) {
+    if (!data || typeof data !== "object") return;
+    if (data.reset && data.reset.confirmation_token) {
+      resetToken = String(data.reset.confirmation_token);
+    }
+    if (data.export && data.export.contract && data.export.contract.request) {
+      manifestScope = String(data.export.contract.request.scope || manifestScope);
+    }
+    syncResetButton();
+  }
+
   function tryEndpoints(endpoints, i, page) {
     var msgUnavailable = t("os-backend-unavailable", "OS backend endpoint unavailable in this build. This page is read-only.");
     if (i >= endpoints.length) {
@@ -87,6 +117,7 @@
         return r.json().catch(function () { return {}; });
       })
       .then(function (data) {
+        captureDataProtection(data);
         if (page.id === "os-power" && data && (typeof data.present === "boolean" || data.state || data.sources)) {
           setBodyHtml(page.body, renderPower(data));
           return;
@@ -115,6 +146,7 @@
     }
     if (!page) return;
     loadPage(page);
+    if (id === "os-storage-reset") loadPage(DATA_PAGE);
   }
 
   function onHash() {
@@ -139,14 +171,70 @@
       document.dispatchEvent(new CustomEvent("gb:critical-action-change", { detail: { action: select.value } }));
     });
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initCriticalAction);
-  } else {
-    initCriticalAction();
+  // #2470 — bounded, non-destructive data-protection actions. The server
+  // returns the human-readable descriptor/failure text; this file adds no
+  // UI copy of its own beyond existing i18n keys.
+  function postJson(path, payload) {
+    return fetch(path, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        return { ok: r.ok, data: data || {} };
+      });
+    }).catch(function () { return { ok: false, data: {} }; });
   }
 
+  function showStatus(id, data) {
+    var text = data && (data.message || data.error);
+    setBody(id, text ? String(text) : t("os-data-not-implemented", "Not implemented"));
+  }
+
+  function requestManifest() {
+    return postJson("/api/os/data-protection/export", { scope: manifestScope })
+      .then(function (result) { showStatus("osDataExportStatus", result.data); });
+  }
+
+  function requestSnapshot() {
+    var input = byId("osDataReason");
+    return postJson("/api/os/data-protection/snapshots", { reason: input ? input.value : "" })
+      .then(function (result) { showStatus("osDataSnapshotStatus", result.data); });
+  }
+
+  function requestReset() {
+    var input = byId("osDataResetToken");
+    if (!resetToken || !input || input.value !== resetToken) {
+      setBody("osDataResetStatus", t("os-data-not-implemented", "Not implemented"));
+      return Promise.resolve();
+    }
+    return postJson("/api/os/data-protection/reset", { confirmation: input.value })
+      .then(function (result) { showStatus("osDataResetStatus", result.data); });
+  }
+
+  function initDataProtection() {
+    var input = byId("osDataResetToken");
+    if (input) input.addEventListener("input", syncResetButton);
+    syncResetButton();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCriticalAction);
+    document.addEventListener("DOMContentLoaded", initDataProtection);
+  } else {
+    initCriticalAction();
+    initDataProtection();
+  }
+
+  window.GBDataProtection = {
+    manifest: requestManifest,
+    snapshot: requestSnapshot,
+    reset: requestReset
+  };
   window.loadOsAppliancePage = loadIfActive;
   document.addEventListener("DOMContentLoaded", onHash);
   window.addEventListener("hashchange", onHash);
   document.addEventListener("htmx:load", onHash);
+  document.addEventListener("htmx:load", initDataProtection);
 })(window);

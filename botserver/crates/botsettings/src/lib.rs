@@ -7,6 +7,7 @@ pub mod ops;
 pub mod os;
 pub mod os_appliance;
 pub mod os_data;
+pub mod os_data_protection;
 pub mod os_power;
 pub mod os_power_data;
 pub mod permission_inheritance;
@@ -42,6 +43,7 @@ use botcore::shared::state::AppState;
 
 pub fn configure_settings_routes() -> Router<Arc<AppState>> {
     Router::new()
+        .merge(os_data_protection::configure_data_protection_routes())
         .route("/api/ui/user/storage", get(settings_ui::get_storage_info))
         .route(
             "/api/ui/user/storage/connections",
