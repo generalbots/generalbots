@@ -83,6 +83,10 @@ botdocs = { workspace = true }
 botslides = { workspace = true }
 botsheet = { workspace = true }
 botsheet-core = { workspace = true }
+# #2541 — restart-UAT integration test drives the public Vibe run-store
+# helpers and the durable publish-ledger key through a real Redis client.
+botvibe = { workspace = true }
+redis = { workspace = true }
 
 [features]
 default = ["full"]
