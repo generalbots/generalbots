@@ -1,3 +1,4 @@
+pub mod api_error;
 pub mod antivirus;
 pub mod audit;
 pub mod command_guard;
