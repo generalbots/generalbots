@@ -34,6 +34,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/removable/eject", post(eject_removable))
         .route("/api/os/network/lan-exposure", get(lan_exposure_status).post(lan_exposure_set))
         .route("/api/os/display/controls", get(display_controls).post(display_control_set))
+        .route("/api/os/time", get(os_time_status).post(os_time_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -455,4 +456,47 @@ mod tests {
         assert!(redacted.contains("normal line stays"), "ordinary text was removed");
         assert!(redacted.matches("[REDACTED]").count() >= 4, "expected redaction markers");
     }
+}
+
+/// #2458 — time, timezone, keyboard layout and locale for the appliance.
+#[derive(serde::Deserialize)]
+struct OsTimeRequest {
+    setting: String,
+    value: String,
+}
+
+async fn os_time_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    Ok(Json(json!({
+        "status": "ok",
+        "timezone": probe("timedatectl", &["show", "-p", "Timezone", "--value"]),
+        "ntp": probe("timedatectl", &["show", "-p", "NTPService", "--value"]),
+        "synchronized": probe("timedatectl", &["show", "-p", "SystemClockSynchronized", "--value"]),
+        "keyboard_layout": probe("localectl", &["status"]),
+        "locale": probe("localectl", &["status"]),
+        "clock_24h": probe("gsettings", &["get", "org.gnome.desktop.interface", "clock-format"])
+    })))
+}
+
+async fn os_time_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<OsTimeRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let ok = match req.setting.as_str() {
+        "timezone" if req.value.chars().all(|c| c.is_ascii_alphanumeric() || "/-_+".contains(c)) =>
+            run_display_command("timedatectl", &["set-timezone", &req.value]).await,
+        "ntp" if req.value == "on" || req.value == "off" =>
+            run_display_command("timedatectl", &["set-ntp", &req.value]).await,
+        "keyboard_layout" if req.value.chars().all(|c| c.is_ascii_alphanumeric() || "-_".contains(c)) =>
+            run_display_command("localectl", &["set-keymap", &req.value]).await,
+        "clock_24h" if req.value == "24h" || req.value == "12h" =>
+            run_display_command("gsettings", &["set", "org.gnome.desktop.interface", "clock-format", &req.value]).await,
+        _ => false,
+    };
+    Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
 }

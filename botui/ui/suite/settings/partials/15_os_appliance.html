@@ -80,6 +80,13 @@
     <div class="card-header"><h2 data-i18n="os-keyboard-status">Input & region status</h2></div>
     <p class="os-hint" data-i18n="os-keyboard-readonly">Keyboard layout and region settings are read-only here until the OS input backend is available.</p>
     <div id="os-keyboard-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <p id="osClockWarning" role="status" aria-live="polite" hidden></p>
+    <div class="setting-row"><label for="osTimezone" data-i18n="os-time-timezone">Timezone</label><select id="osTimezone" onchange="window.GBTimeControls && GBTimeControls.set('timezone', this.value)"><option value="UTC">UTC</option><option value="America/Sao_Paulo">São Paulo</option><option value="Europe/London">London</option><option value="America/New_York">New York</option></select></div>
+    <div class="setting-row"><label for="osKeyboardLayout" data-i18n="os-time-keyboard">Keyboard layout</label><select id="osKeyboardLayout" onchange="window.GBTimeControls && GBTimeControls.set('keyboard_layout', this.value)"><option value="us">US</option><option value="br-abnt2">BR-ABNT2</option><option value="de">German</option></select></div>
+    <div class="setting-row"><label for="osLocale" data-i18n="os-time-locale">Locale / formats</label><select id="osLocale" onchange="window.GBTimeControls && GBTimeControls.set('locale', this.value)"><option value="en_US.UTF-8">English (US)</option><option value="pt_BR.UTF-8">Português (BR)</option></select></div>
+    <div class="setting-row"><label for="osClockFormat" data-i18n="os-time-format">Clock format</label><select id="osClockFormat" onchange="window.GBTimeControls && GBTimeControls.set('clock_24h', this.value)"><option value="24h">24-hour</option><option value="12h">12-hour</option></select></div>
+    <div class="setting-row"><label for="osNtp" data-i18n="os-time-ntp">Set clock automatically (NTP)</label><input type="checkbox" id="osNtp" onchange="window.GBTimeControls && GBTimeControls.set('ntp', this.checked ? 'on' : 'off')" /></div>
+    <p class="os-hint" data-i18n="os-time-typing-hint">Switch layout with Alt+Shift. Typing test: @ # ç ã</p>
   </div>
 </section>
 
