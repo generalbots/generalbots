@@ -437,3 +437,23 @@ chmod 0755 /media/gbdesk
 # applied by the compositor when a sensor exists. The suite toggle persists the
 # user preference in gb-display-settings and the compositor reads the sensor.
 systemctl enable iio-sensor-proxy.service || true
+
+# 12. #2443 — versioned A/B application slots with a symlink and rollback.
+install -d -m 0755 /var/lib/gbapp/a /var/lib/gbapp/b
+if [ ! -L /opt/general-bots ]; then
+    rm -rf /opt/general-bots
+    ln -s /var/lib/gbapp/a /opt/general-bots
+fi
+install -d -m 0755 /usr/local/libexec
+cat >/usr/local/libexec/gb-switch-slot <<'SWITCH'
+#!/bin/sh
+# Atomically switch the active slot; the old symlink is kept for rollback.
+set -eu
+slot="$1"
+case "$slot" in a|b) ;; *) echo "usage: gb-switch-slot a|b" >&2; exit 2 ;; esac
+target="/var/lib/gbapp/$slot"
+[ -d "$target" ] || { echo "missing slot $target" >&2; exit 1; }
+ln -sfn "$target" /opt/general-bots.new
+mv -T /opt/general-bots.new /opt/general-bots
+SWITCH
+chmod 0755 /usr/local/libexec/gb-switch-slot

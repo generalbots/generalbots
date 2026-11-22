@@ -40,6 +40,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/power-profile", get(os_power_profile).post(os_power_profile_set))
         .route("/api/os/sound/controls", get(os_sound_controls).post(os_sound_control_set))
         .route("/api/os/network/wifi", get(os_wifi_status).post(os_wifi_action))
+        .route("/api/os/update/status", get(os_update_status))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -668,4 +669,26 @@ async fn os_wifi_action(
         _ => false,
     };
     Ok(Json(json!({ "ok": ok, "action": req.action, "ssid": ssid })))
+}
+
+/// #2443 — A/B slot update status, channel and offline media detection.
+async fn os_update_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let active = std::fs::read_link("/opt/general-bots").ok()
+        .and_then(|p| p.to_str().map(|s| s.to_string()))
+        .unwrap_or_else(|| "unversioned".to_string());
+    let offline = std::path::Path::new("/media/gbdesk/gb-update.tar.zst").exists();
+    Ok(Json(json!({
+        "status": "ok",
+        "active_slot": active,
+        "slots": ["/var/lib/gbapp/a", "/var/lib/gbapp/b"],
+        "channel": std::env::var("GB_UPDATE_CHANNEL").unwrap_or_else(|_| "stable".to_string()),
+        "version": env!("CARGO_PKG_VERSION"),
+        "build_channel": std::env::var("GB_OS_CHANNEL").unwrap_or_else(|_| "stable".to_string()),
+        "offline_update_available": offline,
+        "rollback_supported": active.starts_with("/var/lib/gbapp/")
+    })))
 }

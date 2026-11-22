@@ -953,3 +953,7 @@ settings-placeholder-api-key-scopes = user, admin
 settings-placeholder-api-key-expiry = 90
 settings-placeholder-webhook-url = https://exemplo.com/hooks/gb
 settings-placeholder-webhook-events = user.created, order.completed
+os-update-channel = Channel
+os-update-size = Download size
+os-update-usb = Install from USB stick
+os-update-slot = Active slot: {slot} · channel: {channel} · rollback: {rollback}

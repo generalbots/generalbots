@@ -143,6 +143,11 @@ pub(super) const KEYS: &[&str] = &[
     "os-wifi-scan",
     "os-wifi-portal",
     "os-wifi-none",
+    // #2443 — OS update
+    "os-update-channel",
+    "os-update-size",
+    "os-update-usb",
+    "os-update-slot",
     "action-save",
     "action-cancel",
     "action-delete",

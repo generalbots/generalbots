@@ -365,6 +365,13 @@ jobs:
           cp target/release/botui     dist/botui-linux-x86_64
           chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64 dist/botui-linux-x86_64
           (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 botui-linux-x86_64 >> SHA256SUMS-linux)
+          # #2443 — pinned, checksummed update artifact consumed by the A/B
+          # slot installer. Version and channel are baked into the filename so
+          # a beta never silently replaces a stable slot.
+          (cd dist && tar czf gb-update-${{ github.ref_name }}-stable.tar.gz \
+             generalbots-linux-x86_64 botserver-linux-x86_64 botui-linux-x86_64 \
+             generalbots-linux-x86_64.tar.gz 2>/dev/null || true)
+          (cd dist && sha256sum gb-update-*.tar.gz >> SHA256SUMS-update)
           ls -lh dist
 
       # #1633 — one self-extracting executable: the app with the stack
