@@ -10,6 +10,7 @@ mod cloud_tenant;
 mod tenant_isolation;
 mod crm_tenant_fixtures;
 mod crm_tenant_isolation;
+mod products_isolation;
 mod flow_support;
 mod crm_flow;
 mod campaign_flow;
