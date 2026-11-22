@@ -19,18 +19,18 @@ var DESKTOP = "desktop.html";
 var CHAT = "partials/chat.html";
 var PROJECTOR = "chat/projector.html";
 
-test("[BASELINE-OBSERVE] 212 shipped suite HTML files scanned, tests/ excluded", function () {
+test("[BASELINE-OBSERVE] 214 shipped suite HTML files scanned, tests/ excluded", function () {
   var a = all();
-  equal(a.files.length, 212, "HTML file count");
+  equal(a.files.length, 214, "HTML file count");
   assert(a.files.every(function (rel) { return rel.indexOf("tests/") !== 0 && rel.indexOf("tests/") < 0; }),
     "tests/ leaked into the scan set");
 });
 
-test("[BASELINE-OBSERVE] desktop.html: 101 script tags, 100 src, 100 blocking, 1 inline, 0 defer/async", function () {
+test("[BASELINE-OBSERVE] desktop.html: 102 script tags, 101 src, 101 blocking, 1 inline, 0 defer/async", function () {
   var d = measure(DESKTOP);
-  equal(d.scripts, 101, "scripts");
-  equal(d.scriptSrc, 100, "scriptSrc");
-  equal(d.blockingScriptSrc, 100, "blockingScriptSrc");
+  equal(d.scripts, 102, "scripts");
+  equal(d.scriptSrc, 101, "scriptSrc");
+  equal(d.blockingScriptSrc, 101, "blockingScriptSrc");
   equal(d.inlineScript, 1, "inlineScript");
   equal(d.deferAsync, 0, "deferAsync");
 });
@@ -62,13 +62,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 3 style
   equal(p.stylesheet, 3, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1146 scripts, 1090 src, 1077 blocking, 56 inline, 503 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1156 scripts, 1100 src, 1087 blocking, 56 inline, 507 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1146, "scripts");
-  equal(t.scriptSrc, 1090, "scriptSrc");
-  equal(t.blockingScriptSrc, 1077, "blockingScriptSrc");
+  equal(t.scripts, 1156, "scripts");
+  equal(t.scriptSrc, 1100, "scriptSrc");
+  equal(t.blockingScriptSrc, 1087, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
-  equal(t.stylesheet, 503, "stylesheet");
+  equal(t.stylesheet, 507, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
@@ -85,14 +85,14 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 100/42 and 42/22", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 101/42 and 42/22", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
     "desktop counts unexpectedly match the 2025 issue snapshot exactly");
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
-  assert(d.blockingScriptSrc === 100 && d.stylesheet === 42 &&
+  assert(d.blockingScriptSrc === 101 && d.stylesheet === 42 &&
          c.blockingScriptSrc === 42 && c.stylesheet === 23,
     "current measured counts changed — update this observation deliberately");
 });

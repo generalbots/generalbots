@@ -2,6 +2,18 @@ use super::*;
 
 pub(crate) fn admin_routes() -> Vec<RoutePermission> {
     vec![
+        // #2468/#2481 — the OS appliance diagnostics and settings APIs are
+        // admin-only. Without these entries default-deny rejected every call
+        // before the handler ran, so the shipped diagnostics bundle was
+        // unreachable from the Settings UI.
+        RoutePermission::new("/api/os/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/os/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/os/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/os/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/users", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/users", "POST", "")
