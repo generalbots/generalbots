@@ -48,11 +48,30 @@ function assert(condition, msg) {
 }
 
 function readFile(relPath) {
-  return fs.readFileSync(path.join(SUITE_DIR, relPath), "utf8");
+  var full = path.join(SUITE_DIR, relPath);
+  if (fs.existsSync(full)) return fs.readFileSync(full, "utf8");
+  // #1731 split several chat files into ordered _a/_b modules; older cases
+  // still name the pre-split path. Concatenate the parts so they keep working.
+  var ext = path.extname(relPath);
+  var stem = relPath.slice(0, relPath.length - ext.length);
+  var parts = ["a", "b", "c"].map(function (suffix) {
+    return path.join(SUITE_DIR, stem + "_" + suffix + ext);
+  }).filter(function (p) { return fs.existsSync(p); });
+  if (parts.length) {
+    return parts.map(function (p) { return fs.readFileSync(p, "utf8"); }).join("\n");
+  }
+  return fs.readFileSync(full, "utf8");
 }
 
 function fileExists(relPath) {
-  return fs.existsSync(path.join(SUITE_DIR, relPath));
+  var full = path.join(SUITE_DIR, relPath);
+  if (fs.existsSync(full)) return true;
+  // #1731 split chat modules: accept the _a/_b parts as the same source.
+  var ext = path.extname(relPath);
+  var stem = relPath.slice(0, relPath.length - ext.length);
+  return ["a", "b", "c"].some(function (suffix) {
+    return fs.existsSync(path.join(SUITE_DIR, stem + "_" + suffix + ext));
+  });
 }
 
 var featureFiles = [
