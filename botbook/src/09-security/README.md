@@ -356,10 +356,11 @@ unchanged.
   configuration cannot be resolved, the database connection is refused (a
   fatal error) — a plaintext fallback would defeat the opt-in.
 - **Cache (Redis/Valkey)** — each candidate URL is rewritten from `redis://`
-  to `rediss://`; no plaintext fallback is kept. If the Redis TLS feature is
-  unavailable in the build, the connection fails and cache functions are
-  **disabled (fail closed)** rather than silently downgrading to plaintext. A
-  configuration resolution failure likewise disables the cache.
+  to `rediss://`; no plaintext fallback is kept. The workspace `redis` dependency
+  does not enable `tls-rustls`, so a `rediss://` URL cannot be opened: the client
+  fails and cache functions are **disabled (fail closed)** rather than silently
+  downgrading to plaintext. A configuration resolution failure likewise disables
+  the cache. No Redis TLS connection is established or verified in this build.
 - **Internal HTTP** — service base URLs are rewritten from `http://` to
   `https://` (scheme only; host, port and path are preserved). The client
   verifies the peer against the configured CA and presents this service's
