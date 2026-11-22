@@ -15,8 +15,8 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 2309
-discarded_result = 1356
+unwrap_or_default = 2305
+discarded_result = 1355
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -57,15 +57,15 @@ discarded_result = 3
 unwrap_or_default = 7
 discarded_result = 10
 
-[files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
-unwrap_or_default = 3
-discarded_result = 14
-
 [files."botserver/crates/botvibe/src/proxy_sites/caddy_lifecycle.rs"]
 discarded_result = 16
 
 [files."botserver/crates/botvibe/src/browser.rs"]
 unwrap_or_default = 15
+
+[files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
+unwrap_or_default = 3
+discarded_result = 12
 
 [files."botserver/src/main_module/routes/org_handlers/handle_get_organization.rs"]
 unwrap_or_default = 10
@@ -81,6 +81,10 @@ unwrap_or_default = 14
 [files."botserver/crates/botvibe/src/proxy_sites/caddy.rs"]
 unwrap_or_default = 3
 discarded_result = 11
+
+[files."botserver/src/core/bot/pipeline/llm/stream.rs"]
+unwrap_or_default = 2
+discarded_result = 12
 
 [files."botserver/src/main_module/wizard_provision.rs"]
 unwrap_or_default = 10
@@ -106,10 +110,6 @@ discarded_result = 10
 [files."botserver/src/core/bot/api_catalog/execute_command.rs"]
 unwrap_or_default = 11
 discarded_result = 1
-
-[files."botserver/src/core/bot/pipeline/llm/stream.rs"]
-unwrap_or_default = 2
-discarded_result = 10
 
 [files."botserver/crates/botattendance/src/llm_assist_commands.rs"]
 unwrap_or_default = 1
