@@ -40,15 +40,32 @@ function vmLabel(step) {
 /* Under the row: how it was allowed (or why it did not run), exit code,
    files, the full command when the label cut it, and the first output
    lines. Long text folds behind "ver mais". */
+/* Why an action ended as it did, from the server's reason code. */
+var VM_REASON = {
+    nothing_to_save: ["Nada para salvar", "Nothing to save"],
+    save_failed: ["Não foi possível salvar no Drive", "Could not save to Drive"],
+    partly_saved: ["Alguns arquivos não foram salvos", "Some files were not saved"],
+    drive_unavailable: ["Drive indisponível", "Drive unavailable"],
+    external_not_connected: ["Conta de armazenamento externo não conectada", "External storage account not connected"],
+    external_read_only: ["A conta externa só permite leitura", "The external account only allows reading"],
+    not_found: ["Arquivo não encontrado no Drive", "File not found in Drive"],
+    fetch_failed: ["Não foi possível trazer o arquivo do Drive", "Could not bring the file from Drive"],
+    too_large: ["Arquivo acima do limite de 100 MB", "File over the 100 MB limit"],
+    vm_off: ["Máquina Virtual desligada nesta conversa", "Virtual Machine is off in this conversation"],
+    workspace_unavailable: ["Máquina Virtual indisponível", "Virtual Machine unavailable"],
+    budget_exceeded: ["Tempo esgotado", "Time limit reached"],
+    background_started: ["Iniciado em segundo plano; o resultado será salvo nesta conversa", "Started in the background; the result will be saved in this conversation"]
+};
 function vmExtra(s) {
     if (s.key !== "vm_action") { return ""; }
     var facts = [];
     var pair;
+    var why = s.reason && VM_REASON[s.reason];
     if (s.denied) { pair = VM_DENIED[s.denied] || VM_DENIED.denied; facts.push(t(pair[0], pair[1])); }
     else if (s.waiting && s.state === "running") { facts.push(t("Aguardando sua permissão", "Waiting for your permission")); }
     else if (s.allowedBy) { pair = VM_ALLOWED[s.allowedBy] || VM_ALLOWED.once; facts.push(t(pair[0], pair[1])); }
     if (s.state !== "running" && !s.denied) {
-        facts.push(s.exit != null ? t("Código de saída ", "Exit code ") + s.exit : (s.state === "ok" ? t("Concluído", "Done") : t("Falhou", "Failed")));
+        facts.push(why ? t(why[0], why[1]) : s.exit != null ? t("Código de saída ", "Exit code ") + s.exit : (s.state === "ok" ? t("Concluído", "Done") : t("Falhou", "Failed")));
     }
     if (s.files && s.files.length) { facts.push(t("Arquivos: ", "Files: ") + s.files.join(", ")); }
     var text = String((s.action && s.action.text) || "");

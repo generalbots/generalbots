@@ -22,7 +22,7 @@ var esc = B.esc, t = B.t;
    plain answer also sends. Labels: done (pt, en), then running (pt, en). */
 var VM_PHASES = { infra: 1, tool: 1 };
 /* Steps that belong to the virtual machine (not: local_engine_start, generate). */
-var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, save: 1, publish: 1, vm_action: 1 };
+var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, repair: 1, save: 1, publish: 1, vm_action: 1 };
 var STEP_LABELS = {
     queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
     image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
@@ -31,6 +31,7 @@ var STEP_LABELS = {
     bootstrap: ["Preparou a Máquina Virtual", "Prepared the virtual machine", "Preparando a Máquina Virtual", "Preparing the virtual machine"],
     package_install: ["Instalou pacotes", "Installed packages", "Instalando pacotes", "Installing packages"],
     execute: ["Executou o programa", "Ran the program", "Executando o programa", "Running the program"],
+    repair: ["Corrigiu o programa", "Fixed the program", "Corrigindo o programa", "Fixing the program"],
     save: ["Guardou o resultado", "Saved the output", "Guardando o resultado", "Saving the output"],
     publish: ["Publicou no Drive", "Published to Drive", "Publicando no Drive", "Publishing to Drive"],
     generate: ["Gerou a resposta", "Wrote the answer", "Gerando a resposta", "Writing the answer"],
@@ -257,6 +258,7 @@ function onStep(frame) {
     if (data.denied) { step.denied = data.denied; if (A.reviveConsentCards) { A.reviveConsentCards(); } }
     if (Array.isArray(data.output)) { step.output = data.output; }
     if (Array.isArray(data.files)) { step.files = data.files; }
+    if (data.reason) { step.reason = data.reason; }
     if (data.exit_code != null) { step.exit = data.exit_code; }
     if (frame.type === "STEP_STARTED") {
         step.state = "running";

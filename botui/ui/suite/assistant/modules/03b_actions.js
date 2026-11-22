@@ -46,24 +46,51 @@
         if (!userEl) { return; }
         var userText = (userEl.dataset.originalContent || userEl.textContent || "").trim();
         if (!userText) { return; }
-        var idx = msgIndex(userEl);
-        while (userEl.nextElementSibling) { userEl.nextElementSibling.remove(); }
-        /* Clear the dedup state: a regenerated response often has the same
-           content and must not be silently dropped (#2562). */
-        A.lastCompletedContent = "";
-        A.lastCompletedTime = 0;
-        A.showThinking();
-        function resend() {
-            if (!A.sendMessage(userText)) {
-                A.hideThinking();
-                if (typeof A.renderErrorCode === "function") { A.renderErrorCode("model_unreachable"); }
+        A.guardResend(function () {
+            var idx = msgIndex(userEl);
+            while (userEl.nextElementSibling) { userEl.nextElementSibling.remove(); }
+            /* Clear the dedup state: a regenerated response often has the same
+               content and must not be silently dropped (#2562). */
+            A.lastCompletedContent = "";
+            A.lastCompletedTime = 0;
+            A.showThinking();
+            if (idx >= 0 && typeof A.truncateHistory === "function") {
+                A.truncateHistory(A.currentSessionId || A.sessionId || "", idx).then(resendOrFail.bind(null, userText));
+            } else {
+                resendOrFail(userText);
             }
+        });
+    };
+
+    function resendOrFail(text) {
+        if (!A.sendMessage(text)) {
+            A.hideThinking();
+            if (typeof A.renderErrorCode === "function") { A.renderErrorCode("model_unreachable"); }
         }
-        if (idx >= 0 && typeof A.truncateHistory === "function") {
-            A.truncateHistory(A.currentSessionId || A.sessionId || "", idx).then(resend);
-        } else {
-            resend();
-        }
+    }
+
+    /* Every re-send (Regenerate, Edit, Tentar novamente) passes the same
+       checks as the composer: a waiting Virtual Machine card asks first
+       (08d), an external destination never accepted asks first (05e). The
+       check runs before anything on screen changes, so "Voltar ao pedido"
+       leaves the conversation as it was. */
+    A.guardResend = function (go) {
+        if (typeof A.preSendGuard === "function") { A.preSendGuard(go); } else { go(); }
+    };
+
+    /* "Tentar novamente" on an error answer: send the last message again. */
+    A.retryLast = function (errorEl) {
+        var all = document.querySelectorAll("#gbMessages .gb-msg-user");
+        var last = all.length ? all[all.length - 1] : null;
+        var text = last ? (last.dataset.originalContent || "").trim() : "";
+        if (!text) { return; }
+        A.guardResend(function () {
+            errorEl.remove();
+            A.lastCompletedContent = "";
+            A.lastCompletedTime = 0;
+            A.showThinking();
+            resendOrFail(text);
+        });
     };
 
     /* ================================================================
@@ -211,6 +238,9 @@
         function save() {
             var edited = area.value.trim();
             if (!edited) { cancel(); return; }
+            A.guardResend(function () { resendEdited(edited); });
+        }
+        function resendEdited(edited) {
             /* #2562 — truncate from this user message onward, then send
                the edited text. This makes the reload match the screen. */
             var idx = msgIndex(msgEl);
@@ -228,14 +258,9 @@
             A.lastCompletedTime = 0;
             A.showThinking();
             if (idx >= 0 && typeof A.truncateHistory === "function") {
-                var sid = A.currentSessionId || A.sessionId || "";
-                A.truncateHistory(sid, idx).then(function () {
-                    if (typeof A.sendMessage === "function") {
-                        A.sendMessage(edited);
-                    }
-                });
-            } else if (typeof A.sendMessage === "function") {
-                A.sendMessage(edited);
+                A.truncateHistory(A.currentSessionId || A.sessionId || "", idx).then(resendOrFail.bind(null, edited));
+            } else {
+                resendOrFail(edited);
             }
         }
 

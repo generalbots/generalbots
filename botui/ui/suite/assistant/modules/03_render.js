@@ -200,21 +200,7 @@
         var retryBtn = document.createElement("button");
         retryBtn.className = "gb-btn-retry";
         retryBtn.textContent = A.t("assistant.retry", "Tentar novamente");
-        retryBtn.addEventListener("click", function () {
-            var all = msgs.querySelectorAll(".gb-msg-user");
-            var last = all.length ? all[all.length - 1] : null;
-            if (!last) { return; }
-            var text = (last.dataset.originalContent || "").trim();
-            if (!text) { return; }
-            el.remove();
-            A.lastCompletedContent = "";
-            A.lastCompletedTime = 0;
-            A.showThinking();
-            if (!A.sendMessage(text)) {
-                A.hideThinking();
-                A.renderErrorCode("model_unreachable");
-            }
-        });
+        retryBtn.addEventListener("click", function () { A.retryLast(el); });
         bar.appendChild(retryBtn);
         /* Settings link for auth/unreachable */
         if (code === "model_unreachable" || code === "model_auth") {
