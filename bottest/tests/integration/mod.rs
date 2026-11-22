@@ -17,6 +17,7 @@ mod tenant_tokens;
 mod data_integrity;
 mod verification;
 mod events_api;
+mod events_stream;
 mod restart_reconciliation;
 
 use bottest::prelude::*;
