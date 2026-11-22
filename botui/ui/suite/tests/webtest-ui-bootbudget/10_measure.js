@@ -62,13 +62,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1127 scripts, 1070 src, 1056 blocking, 56 inline, 378 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1127 scripts, 1070 src, 1057 blocking, 56 inline, 379 stylesheets, 13 defer/async", function () {
   var t = all().total;
   equal(t.scripts, 1126, "scripts");
   equal(t.scriptSrc, 1070, "scriptSrc");
   equal(t.blockingScriptSrc, 1057, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
-  equal(t.stylesheet, 378, "stylesheet");
+  equal(t.stylesheet, 379, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
@@ -85,7 +85,7 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 96/37 and 42/22", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 96/38 and 42/22", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
