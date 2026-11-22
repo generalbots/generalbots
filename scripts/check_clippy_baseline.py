@@ -67,10 +67,14 @@ BASELINE_VALUE_RE = re.compile(r"^(\s*(unwrap_used|expect_used|panic)\s*=\s*)\d+
 
 
 def normalize_rel(file_name: str, root: str = ROOT) -> str:
-    """Return a repo-relative, forward-slash path for a diagnostic file name."""
-    if os.path.isabs(file_name):
-        return os.path.relpath(file_name, root).replace(os.sep, "/")
-    return file_name.replace("\\", "/")
+    """Return a repo-relative, forward-slash path for a diagnostic file name.
+
+    Normalize './' and '..' segments before the scope check so a diagnostic
+    can never be silently dropped (fail-open) because of a path-format quirk
+    in the JSON emitted by cargo/clippy.
+    """
+    rel = os.path.relpath(file_name, root) if os.path.isabs(file_name) else file_name
+    return os.path.normpath(rel.replace("\\", "/")).replace(os.sep, "/")
 
 
 def is_scoped_production(rel: str) -> bool:
@@ -204,8 +208,10 @@ def synthetic(code: str, file_name: str) -> str:
 def self_test() -> int:
     """Prove parsing, scope filtering and shrink-only logic on synthetic input."""
     failures: list[str] = []
+    checks: list[str] = []
 
     def check(name: str, condition: bool) -> None:
+        checks.append(name)
         if condition:
             print(f"  ok: {name}")
         else:
@@ -233,6 +239,12 @@ def self_test() -> int:
         and not is_scoped_production("botserver/src/a_test.rs")
         and is_scoped_production("botserver/src/a.rs"),
     )
+    check(
+        "./ and ..-prefixed scoped paths are normalized into scope (no fail-open)",
+        is_scoped_production(normalize_rel("./botserver/src/a.rs"))
+        and is_scoped_production(normalize_rel("botserver/src/../src/a.rs"))
+        and not is_scoped_production(normalize_rel("../outside/elsewhere.rs")),
+    )
     check("equal counts are not growth", growth(expected.copy(), expected) == [])
     lowered = expected.copy()
     lowered["panic"] = 0
@@ -243,7 +255,7 @@ def self_test() -> int:
     if failures:
         print(f"check_clippy_baseline: self-test FAIL — {len(failures)} check(s)")
         return 1
-    print("check_clippy_baseline: self-test OK — 5 checks passed")
+    print(f"check_clippy_baseline: self-test OK — {len(checks)} checks passed")
     return 0
 
 
