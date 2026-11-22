@@ -23,15 +23,51 @@
     }
 
     var realSend = A.sendMessage;
+    var guardCleared = false;
+
+    /**
+     * Pre-flight consent check called by the composer BEFORE it clears the
+     * input and renders the user bubble. If consent is already stored or
+     * the destination is local, onApproved fires synchronously. Otherwise
+     * the confirm card appears and onApproved fires only on accept; on
+     * decline nothing happens and the composer keeps the person's text
+     * and attachments intact.
+     */
+    A.preSendGuard = function (onApproved) {
+        var model = A.selectedModel || A.defaultModel || "";
+        if (isLocal(model) || !A.externalTarget || !A.confirmExternal) {
+            guardCleared = true;
+            onApproved();
+            return;
+        }
+        var list = accepted();
+        A.externalTarget(model).then(function (target) {
+            if (!target || !target.host || list.indexOf(target.host) >= 0) {
+                guardCleared = true;
+                onApproved();
+                return;
+            }
+            var anchor = document.querySelector(".gb-composer-inner") ||
+                document.querySelector(".gb-composer-card");
+            A.confirmExternal(target, anchor, function () {
+                guardCleared = true;
+                onApproved();
+            });
+        });
+    };
 
     A.sendMessage = function (text, files, messageType) {
+        /* When preSendGuard already ran and approved, skip the duplicate
+           check and forward directly to the real send. */
+        if (guardCleared) {
+            guardCleared = false;
+            return realSend.call(A, text, files, messageType);
+        }
         var model = A.selectedModel || A.defaultModel || "";
         if (isLocal(model) || !A.externalTarget || !A.confirmExternal) {
             return realSend.call(A, text, files, messageType);
         }
         var list = accepted();
-        /* Fast path: resolve synchronously when possible. externalTarget
-           returns a Promise, but for sub: values it resolves immediately. */
         var sent = false;
         A.externalTarget(model).then(function (target) {
             if (!target || !target.host || list.indexOf(target.host) >= 0) {
@@ -39,7 +75,6 @@
                 if (!sent) { A.hideThinking(); }
                 return;
             }
-            /* Show confirm card; on accept, remember and send. */
             A.hideThinking();
             var anchor = document.querySelector(".gb-composer-inner") ||
                 document.querySelector(".gb-composer-card");
@@ -49,10 +84,6 @@
                 if (!sent) { A.hideThinking(); }
             });
         });
-        /* The caller (doSend in 05_composer.js) needs a truthy return to
-           keep the thinking indicator. If the target resolves asynchronously
-           (acct: fetches the account host), return true optimistically; the
-           confirm callback will show/hide thinking as needed. */
         return true;
     };
 })();

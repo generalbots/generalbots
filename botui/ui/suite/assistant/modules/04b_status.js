@@ -48,7 +48,7 @@
             var modelId = active.indexOf("/") > 4 ? active.slice(active.indexOf("/", 4) + 1) : "";
             var meta = A._agentMeta ? A._agentMeta(provider) : null;
             var agentName = meta ? meta.name : provider;
-            if (modelId) {
+            if (modelId && modelId !== "default") {
                 /* sub:<p>/<model>: "Agent name · model label" */
                 var sub = (A.subscriptions || []).filter(function (x) { return x.provider === provider; })[0];
                 var mObj = sub && (sub.models || []).filter(function (x) { return x.id === modelId; })[0];

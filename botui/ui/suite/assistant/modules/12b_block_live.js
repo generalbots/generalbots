@@ -21,6 +21,8 @@ var esc = B.esc, t = B.t;
 /* Phases that run in the Machine; "agent" is the model writing, which a
    plain answer also sends. Labels: done (pt, en), then running (pt, en). */
 var VM_PHASES = { infra: 1, tool: 1 };
+/* Steps that belong to the virtual machine (not: local_engine_start, generate). */
+var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, save: 1, publish: 1 };
 var STEP_LABELS = {
     queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
     image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
@@ -112,19 +114,15 @@ function stepLabel(step) {
 
 function runFor(runId) {
     var key = runId || "run";
-    if (!runs[key]) { runs[key] = { key: key, el: null, steps: [], ok: null, vm: false }; }
+    if (!runs[key]) { runs[key] = { key: key, el: null, steps: [], ok: null, vm: false, local: false }; }
     return runs[key];
 }
 
-function isLocalOnly(run) {
-    return run.steps.length > 0 && run.steps.every(function (s) { return s.key === "local_engine_start"; });
-}
-
 function runTitle(run, status) {
-    if (isLocalOnly(run)) {
+    if (run.local && !run.vm) {
         if (status === "running") { return t("Preparando o modelo local", "Preparing the local model"); }
         return status === "failed" ? t("Falhou ao preparar o modelo local", "Failed to prepare the local model")
-            : t("Modelo local pronto", "Local model ready");
+            : t("Preparou o modelo local", "Prepared the local model");
     }
     if (status === "running") { return t("Executando na Máquina Virtual", "Running on the virtual machine"); }
     return status === "failed" ? t("Falhou na Máquina Virtual", "Failed on the virtual machine")
@@ -132,7 +130,7 @@ function runTitle(run, status) {
 }
 
 function showRun(run) {
-    if (!run.vm) { return; }
+    if (!run.vm && !run.local) { return; }
     if (!run.el || !document.body.contains(run.el)) {
         run.el = B.block({ kind: "machine", icon: "terminal", title: runTitle(run, "running"),
             summary: "", status: "running", open: true });
@@ -185,7 +183,8 @@ function onStep(frame) {
         step = { id: id, key: data.step || "", name: data.name || "", detail: "", state: "running", ms: null };
         run.steps.push(step);
     }
-    if (VM_PHASES[data.phase]) { run.vm = true; }
+    if (VM_PHASES[data.phase] && VM_STEPS[data.step || ""]) { run.vm = true; }
+    if ((data.step || "") === "local_engine_start") { run.local = true; }
     if (frame.type === "STEP_STARTED") {
         step.state = "running";
         step.detail = data.detail || "";

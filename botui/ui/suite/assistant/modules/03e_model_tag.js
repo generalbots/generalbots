@@ -47,6 +47,20 @@ A.answerModel = function (content) {
 };
 
 function label(model) {
+    /* Subscription agents: show the agent's name for the default model,
+       "Agent · model" for a specific one. Independent of sub:<p> vs sub:<p>/default. */
+    if (/^sub:/.test(model)) {
+        var rest = model.slice(4), cut = rest.indexOf("/");
+        var provider = cut >= 0 ? rest.slice(0, cut) : rest;
+        var modelId = cut >= 0 ? rest.slice(cut + 1) : "";
+        var meta = A._agentMeta ? A._agentMeta(provider) : null;
+        var agentName = meta ? meta.name : provider;
+        if (!modelId || modelId === "default") { return agentName; }
+        var sub = (A.subscriptions || []).filter(function (x) { return x.provider === provider; })[0];
+        var mObj = sub && (sub.models || []).filter(function (x) { return x.id === modelId; })[0];
+        var mLabel = typeof A.agentModelLabel === "function" && mObj ? A.agentModelLabel(mObj) : modelId;
+        return agentName + " \xb7 " + mLabel;
+    }
     var name = typeof A.shortModelName === "function" ? A.shortModelName(model) : model;
     return String(name || "").replace(/\.gguf$/i, "");
 }

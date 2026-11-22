@@ -155,18 +155,26 @@
                 "Arquivo vazio: ") + empty.map(function (f) { return f.name; }).join(", "));
             return;
         }
-        A.renderUserMessage(text, files);
-        /* The wait shows at once: the server's first frame can take seconds
-           (reading an attachment, a web search) and the screen stood still. */
-        A.showThinking();
-        clearInputs();
-        if (files.length > 0) {
-            A.pendingFiles = [];
-            clearFileChips();
-            encodeAndSend(text, files, messageType);
-            return;
+        /* The guard checks whether the destination needs consent BEFORE we
+           clear the composer. On decline nothing happens: the person's text
+           and attachment chips stay exactly as they were. */
+        function proceed() {
+            A.renderUserMessage(text, files);
+            A.showThinking();
+            clearInputs();
+            if (files.length > 0) {
+                A.pendingFiles = [];
+                clearFileChips();
+                encodeAndSend(text, files, messageType);
+                return;
+            }
+            sendNow(text, null, messageType);
         }
-        sendNow(text, null, messageType);
+        if (typeof A.preSendGuard === "function") {
+            A.preSendGuard(proceed);
+        } else {
+            proceed();
+        }
     }
 
     /* A message that could not leave (connection closed) must not keep the
