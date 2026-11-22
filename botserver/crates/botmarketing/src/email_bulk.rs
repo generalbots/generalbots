@@ -7,6 +7,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::campaigns::CrmCampaign;
+use crate::compliance::suppression::hydrate_suppressions;
 use crate::compliance::{evaluate_send_gate, MarketingChannel};
 use crate::email::{send_campaign_email, EmailCampaignPayload};
 use crate::schema::{marketing_campaigns, marketing_contacts, marketing_recipients};
@@ -51,6 +52,11 @@ pub async fn send_bulk_campaign_emails(
 
     let (_, _, bot_id) = state.get_scope();
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+
+    // #2536 — hydrate the durable do-not-contact list before gating recipients.
+    if let Err(error) = hydrate_suppressions(&mut conn) {
+        log::error!("bulk email could not hydrate suppressions: {error}");
+    }
 
     let campaign: CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))

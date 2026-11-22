@@ -231,3 +231,161 @@ fn terminal_bounce_exhausts_budget_immediately() {
     assert!(state.is_exhausted());
     assert_eq!(state.bounce_class, Some(BounceClass::Hard));
 }
+
+#[test]
+fn unsubscribe_headers_are_rfc8058_one_click_pair() {
+    let url = "https://example.test/api/marketing/unsubscribe/abc.def";
+    let headers = unsubscribe_headers(url);
+    assert!(headers.contains(&format!("List-Unsubscribe: <{url}>")));
+    assert!(headers.contains("List-Unsubscribe-Post: List-Unsubscribe=One-Click"));
+    assert!(headers.contains("\r\n"));
+}
+
+#[test]
+fn unsubscribe_token_rejects_tampered_payload_and_empty_key() {
+    let key = "unit-test-signing-key";
+    let claims = UnsubscribeClaims {
+        branch_id: Uuid::new_v4(),
+        channel: MarketingChannel::Email,
+        address: unique_address("tamper"),
+    };
+    let token = match sign_claims_with_key(key, &claims) {
+        Some(token) => token,
+        None => {
+            log::warn!("test setup: signing key rejected valid claims");
+            return;
+        }
+    };
+    assert!(sign_claims_with_key("", &claims).is_none());
+
+    let (signature, payload) = token.split_once('.').unwrap_or(("", ""));
+    let tampered = format!("{signature}.{payload}ff");
+    assert_eq!(
+        verify_unsubscribe_token(key, &tampered).err(),
+        Some(UnsubscribeError::BadSignature)
+    );
+    assert_eq!(
+        verify_unsubscribe_token("", &token).err(),
+        Some(UnsubscribeError::SigningUnavailable)
+    );
+}
+
+#[test]
+fn suppression_key_normalizes_address_on_both_sides() {
+    let branch_id = Uuid::new_v4();
+    let store = SuppressionStore::default();
+    let address = unique_address("normalize");
+    let upper = address.to_ascii_uppercase();
+    assert!(store
+        .add(SuppressionKey::new(
+            branch_id,
+            MarketingChannel::Email,
+            &upper
+        ))
+        .is_ok());
+    assert!(store.is_suppressed(&SuppressionKey::new(
+        branch_id,
+        MarketingChannel::Email,
+        &format!("  {address}  ")
+    )));
+}
+
+#[test]
+fn consent_flag_is_channel_scoped() {
+    let metadata = json!({
+        "consent_email": true,
+        "consent_whatsapp": false,
+    });
+    assert_eq!(
+        channel_consent(None, Some(&metadata), MarketingChannel::Email),
+        ConsentState::OptedIn
+    );
+    assert_eq!(
+        channel_consent(None, Some(&metadata), MarketingChannel::Whatsapp),
+        ConsentState::OptedOut
+    );
+    assert_eq!(
+        channel_consent(None, Some(&metadata), MarketingChannel::Instagram),
+        ConsentState::Unknown
+    );
+}
+
+#[test]
+fn retry_delay_grows_exponentially_and_is_capped() {
+    assert_eq!(retry_delay_millis(0), 2_000);
+    assert_eq!(retry_delay_millis(1), 4_000);
+    assert_eq!(retry_delay_millis(2), 8_000);
+    assert_eq!(retry_delay_millis(u32::MAX), retry_delay_millis(6));
+}
+
+#[test]
+fn all_channels_failed_body_falls_back_when_no_errors_given() {
+    let body = all_channels_failed_body(&serde_json::Map::new());
+    let parsed: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or_else(|_| json!({}));
+    assert_eq!(parsed["success"], false);
+    assert_eq!(parsed["error"], "channel_error");
+}
+
+#[test]
+fn complaint_classification_takes_precedence_over_hard_bounce() {
+    assert_eq!(
+        classify_bounce("spam complaint 550 5.1.1 mailbox does not exist"),
+        BounceClass::Complaint
+    );
+}
+
+#[test]
+fn unsubscribe_base_url_uses_safe_configured_or_first_party_fallback() {
+    assert_eq!(
+        resolve_unsubscribe_base("https://example.test/", None),
+        "https://example.test"
+    );
+    assert_eq!(resolve_unsubscribe_base("", None), FIRST_PARTY_UNSUBSCRIBE_BASE);
+    assert_eq!(resolve_unsubscribe_base("stub", None), FIRST_PARTY_UNSUBSCRIBE_BASE);
+    assert_eq!(
+        resolve_unsubscribe_base("javascript:alert(1)", None),
+        FIRST_PARTY_UNSUBSCRIBE_BASE
+    );
+    assert_eq!(
+        resolve_unsubscribe_base("https://user:pass@example.test", None),
+        FIRST_PARTY_UNSUBSCRIBE_BASE
+    );
+    assert_eq!(
+        resolve_unsubscribe_base("", Some("https://self.test//")),
+        "https://self.test"
+    );
+}
+
+#[test]
+fn durable_suppression_row_maps_to_normalized_key() {
+    let branch_id = Uuid::new_v4();
+    let address = unique_address("durable");
+    let stored = format!("  {}  ", address.to_ascii_uppercase());
+    let key = suppression_key_from_record(branch_id, "EMAIL", &stored);
+    assert_eq!(
+        key,
+        Some(SuppressionKey::new(
+            branch_id,
+            MarketingChannel::Email,
+            &address
+        ))
+    );
+    assert_eq!(
+        suppression_key_from_record(branch_id, "carrier-pigeon", &address),
+        None
+    );
+}
+
+#[test]
+fn attempt_state_truncates_overlong_provider_error() {
+    let mut state = AttemptState::default();
+    state.record(&"x".repeat(2_048), BounceClass::Transient);
+    let stored = state.to_json();
+    let last = stored
+        .get("last_error")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("");
+    assert!(last.chars().count() <= 513);
+    assert!(last.ends_with('…'));
+}

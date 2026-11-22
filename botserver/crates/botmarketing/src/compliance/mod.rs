@@ -26,12 +26,14 @@ pub use channel_matrix::{
 };
 pub use consent::{channel_consent, ConsentState};
 pub use suppression::{
-   MarketingChannel, SuppressionError, SuppressionKey, SuppressionOutcome, SuppressionStore,
+    hydrate_suppressions, persist_suppression, suppression_key_from_record, MarketingChannel,
+    SuppressionError, SuppressionKey, SuppressionOutcome, SuppressionStore,
 };
 pub use unsubscribe::{
     build_unsubscribe_url, issue_unsubscribe_token, record_unsubscribe,
-    sign_claims_with_key, unsubscribe, unsubscribe_headers, verify_unsubscribe_token,
-    UnsubscribeClaims, UnsubscribeError, UnsubscribeResult,
+    resolve_unsubscribe_base, sign_claims_with_key, unsubscribe, unsubscribe_base_url,
+    unsubscribe_headers, verify_unsubscribe_token, UnsubscribeClaims, UnsubscribeError,
+    UnsubscribeResult, FIRST_PARTY_UNSUBSCRIBE_BASE,
 };
 
 use serde_json::Value;

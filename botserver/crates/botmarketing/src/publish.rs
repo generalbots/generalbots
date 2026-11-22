@@ -22,8 +22,8 @@ use crate::compliance::{
 };
 use crate::email::EmailCampaignPayload;
 use crate::publish_support::{
-    log_state_result, merge_metrics, plain_text, publish_instagram, record_skip_event,
-    set_recipient_state,
+    channel_failure, hydrate_gate, log_state_result, merge_metrics, plain_text, publish_instagram,
+    record_skip_event, set_recipient_state,
 };
 use crate::schema::{marketing_campaigns, marketing_contacts, marketing_recipients};
 use crate::state::AppState;
@@ -40,6 +40,9 @@ pub async fn publish_campaign(
     Json(req): Json<PublishRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+
+    // #2536 — the durable list is the gate source of truth after a restart.
+    hydrate_gate(&mut conn);
 
     let campaign: crate::campaigns::CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))
@@ -369,6 +372,16 @@ pub async fn publish_campaign(
                     None => {
                         skipped += 1;
                         if eligible {
+                            // Audience passed the gate but there is no image to
+                            // post: record the skip so it is auditable too.
+                            record_skip_event(
+                                &mut conn,
+                                campaign.branch_id,
+                                campaign_id,
+                                "instagram",
+                                None,
+                                "no_content",
+                            );
                             log::warn!(
                                 "instagram publish skipped: no generated image in metrics.images"
                             );
@@ -383,24 +396,21 @@ pub async fn publish_campaign(
             "sms" => {
                 // #2536 — no SMS provider is wired. Return a typed error rather
                 // than counting this as a successful delivery.
-                let error = ChannelError::UnsupportedChannel {
-                    channel: "sms".to_string(),
-                };
-                channel_errors.insert("sms".to_string(), error.to_value());
-                record_skip_event(
-                    &mut conn,
-                    campaign.branch_id,
-                    campaign_id,
-                    "sms",
-                    None,
-                    error.code(),
+                channel_errors.insert(
+                    "sms".to_string(),
+                    channel_failure(&mut conn, campaign.branch_id, campaign_id, "sms"),
                 );
                 skipped += 1;
                 log::warn!("sms publish rejected: no provider configured");
             }
             _ => {
+                // #2536 — an unrecognised channel is never a silent skip.
+                channel_errors.insert(
+                    channel.clone(),
+                    channel_failure(&mut conn, campaign.branch_id, campaign_id, channel),
+                );
                 skipped += 1;
-                log::warn!("channel {channel} has no provider — skipped");
+                log::warn!("publish rejected unsupported channel {channel}: no provider configured");
             }
         }
         totals.insert(

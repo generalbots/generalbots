@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::click_sign::{self, TrackingRecord};
 use crate::compliance::unsubscribe::UnsubscribeClaims;
-use crate::compliance::{build_unsubscribe_url, unsubscribe_headers, MarketingChannel};
+use crate::compliance::{
+    build_unsubscribe_url, unsubscribe_base_url, unsubscribe_headers, MarketingChannel,
+};
 use crate::schema::{email_tracking, marketing_campaigns, marketing_recipients};
 use crate::state::AppState;
 
@@ -184,32 +186,32 @@ pub async fn send_campaign_email(
     let body = body_html.unwrap_or_else(|| payload.body_text.unwrap_or_default());
 
     // #2536 — every marketing email carries a signed one-click unsubscribe
-    // header. The 5th `SendEmailFn` argument is the raw header block; when a
-    // signing key or base URL is unavailable we omit the header rather than
-    // emit a link that cannot be honoured.
-    let headers = if base_url.is_empty() || payload.to.trim().is_empty() {
-        log::warn!(
-            "marketing email sent without List-Unsubscribe headers: server-url or recipient missing"
-        );
-        None
-    } else {
-        // The token must carry the campaign's branch so the suppression key
-        // matches the gate used by the worker/publish send paths. Campaign-less
-        // API sends fall back to the default bot scope.
-        let branch_id = match payload.campaign_id {
-            Some(campaign_id) => marketing_campaigns::table
-                .filter(marketing_campaigns::id.eq(campaign_id))
-                .select(marketing_campaigns::branch_id)
-                .first::<Uuid>(&mut conn)
-                .unwrap_or(scope_branch_id),
-            None => scope_branch_id,
-        };
-        let claims = UnsubscribeClaims {
-            branch_id,
-            channel: MarketingChannel::Email,
-            address: payload.to.clone(),
-        };
-        build_unsubscribe_url(&base_url, &claims).map(|url| unsubscribe_headers(&url))
+    // header. A safe first-party base URL is used when `server-url` is absent;
+    // if no signing key is configured the send is refused rather than emitting
+    // an email whose unsubscribe link cannot be honoured.
+    let header_base = unsubscribe_base_url(&base_url);
+    // The token must carry the campaign's branch so the suppression key
+    // matches the gate used by the worker/publish send paths. Campaign-less
+    // API sends fall back to the default bot scope.
+    let branch_id = match payload.campaign_id {
+        Some(campaign_id) => marketing_campaigns::table
+            .filter(marketing_campaigns::id.eq(campaign_id))
+            .select(marketing_campaigns::branch_id)
+            .first::<Uuid>(&mut conn)
+            .unwrap_or(scope_branch_id),
+        None => scope_branch_id,
+    };
+    let claims = UnsubscribeClaims {
+        branch_id,
+        channel: MarketingChannel::Email,
+        address: payload.to.clone(),
+    };
+    let headers = match build_unsubscribe_url(&header_base, &claims) {
+        Some(url) => unsubscribe_headers(&url),
+        None => {
+            log::error!("marketing email refused: one-click unsubscribe link unavailable");
+            return Err("one-click unsubscribe link unavailable".to_string());
+        }
     };
 
     match (state.send_email)(
@@ -217,7 +219,7 @@ pub async fn send_campaign_email(
         &payload.subject,
         &body,
         bot_id,
-        headers.as_deref(),
+        Some(headers.as_str()),
     ) {
         Ok(msg_id) => {
             if let Err(error) =

@@ -223,6 +223,20 @@ diesel::table! {
 }
 
 
+// #2536 — durable do-not-contact list. `email` stores the normalized gate
+// address (email or phone), so the unique key mirrors the send gate's
+// `(branch_id, channel, address)` tuple.
+diesel::table! {
+    marketing_suppressions (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        email -> Text,
+        channel -> Text,
+        reason -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
 diesel::table! {
     marketing_templates (id) {
 

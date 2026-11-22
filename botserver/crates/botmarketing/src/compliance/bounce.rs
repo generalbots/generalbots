@@ -14,7 +14,9 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::suppression::{MarketingChannel, SuppressionKey, SuppressionStore};
+use super::suppression::{
+    persist_suppression, MarketingChannel, SuppressionKey, SuppressionStore,
+};
 use crate::schema::{marketing_contacts, marketing_recipients};
 use crate::state::AppState;
 
@@ -349,8 +351,13 @@ pub async fn record_bounce(
 
     let mut attempt = AttemptState::from_json(stored_response.as_ref());
     attempt.record(reason, class);
-    persist_attempt(&mut conn, recipient_id, &attempt)
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error))?;
+    if let Err(error) = persist_attempt(&mut conn, recipient_id, &attempt) {
+        // #2536 — the persisted error carries provider/DB detail; log it and
+        // return only a caller-safe envelope to the webhook sender.
+        let sanitized =
+            botsecurity_core::error_sanitizer::log_and_sanitize_str(&error, "bounce_persist_attempt", None);
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, sanitized.error));
+    }
 
     let mut suppressed = false;
     let status = match class {
@@ -360,12 +367,17 @@ pub async fn record_bounce(
     };
     if class.is_terminal() && !normalized_address.is_empty() {
         let key = SuppressionKey::new(branch_id, channel, &normalized_address);
-        match SuppressionStore::global().add(key) {
+        match SuppressionStore::global().add(key.clone()) {
             Ok(_) => {
                 suppressed = true;
                 mark_contact_suppressed(&mut conn, branch_id, &normalized_address);
             }
             Err(error) => log::error!("bounce suppression failed: {}", error.reason()),
+        }
+        // Durable record so a restart cannot retry a hard-bounced address.
+        match persist_suppression(&mut conn, &key, class.as_str()) {
+            Ok(_) => log::info!("bounce suppression persisted: class={}", class.as_str()),
+            Err(error) => log::error!("bounce suppression not persisted: {error}"),
         }
     }
 

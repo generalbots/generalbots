@@ -5,20 +5,23 @@
 //! [`SuppressionStore::global`] so a recipient who opts out through the public
 //! unsubscribe endpoint is blocked even from a send started by another task.
 //!
-//! PERSISTENCE GAP: this is an in-memory store. A `marketing_suppressions`
-//! table (branch-scoped, unique on `(branch_id, channel, address)`) still has
-//! to be added via a migration and exposed in `botschema` before suppression
-//! survives a process restart. To limit the gap, the unsubscribe and bounce
-//! handlers also persist durable opt-out signals in `marketing_contacts`
+//! Persistence (#2536): the authoritative record is the branch-scoped
+//! `marketing_suppressions` table (unique on `(branch_id, channel, email)`).
+//! [`persist_suppression`] writes to it and [`hydrate_suppressions`] reloads it
+//! into this process-wide fast gate, so an opt-out or a hard bounce survives a
+//! restart. The durable opt-out signals in `marketing_contacts`
 //! (`subscribed = false`) and `marketing_recipients` (`status =
-//! 'unsubscribed'`), which the send paths consult as well. A restart therefore
-//! keeps blocking those recipients, but hard-bounce-only entries that have no
-//! matching contact row are lost until the table exists.
+//! 'unsubscribed'`) are kept as a second line of defence.
 
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::{OnceLock, RwLock};
 use uuid::Uuid;
+
+use crate::schema::marketing_suppressions;
 
 /// Channel a marketing message travels on. Kept as a typed value so a channel
 /// string typo can never silently bypass the suppression key.
@@ -151,4 +154,72 @@ impl SuppressionStore {
             newly_added: guard.keys.insert(key),
         })
     }
+}
+
+/// Converts a durable row into a typed, normalized suppression key. Rows with
+/// an unknown channel are ignored rather than becoming a wildcard suppression.
+pub fn suppression_key_from_record(
+    branch_id: Uuid,
+    channel: &str,
+    address: &str,
+) -> Option<SuppressionKey> {
+    MarketingChannel::parse(channel)
+        .map(|channel| SuppressionKey::new(branch_id, channel, address))
+}
+
+/// Writes a suppression to the durable table. The unique index makes repeated
+/// opt-outs idempotent, which is what the one-click endpoint relies on.
+pub fn persist_suppression(
+    conn: &mut PgConnection,
+    key: &SuppressionKey,
+    reason: &str,
+) -> Result<SuppressionOutcome, String> {
+    diesel::insert_into(marketing_suppressions::table)
+        .values((
+            marketing_suppressions::id.eq(Uuid::new_v4()),
+            marketing_suppressions::branch_id.eq(key.branch_id),
+            marketing_suppressions::email.eq(key.address.as_str()),
+            marketing_suppressions::channel.eq(key.channel.as_str()),
+            marketing_suppressions::reason.eq(reason),
+            marketing_suppressions::created_at.eq(Utc::now()),
+        ))
+        .on_conflict_do_nothing()
+        .execute(conn)
+        .map(|rows| SuppressionOutcome {
+            newly_added: rows > 0,
+        })
+        .map_err(|error| format!("Suppression insert failed: {error}"))
+}
+
+/// Reloads durable suppressions into the in-process gate. Called at the start
+/// of each send pass so a restart cannot resurrect an opted-out recipient.
+pub fn hydrate_suppressions(conn: &mut PgConnection) -> Result<usize, String> {
+    let rows = marketing_suppressions::table
+        .select((
+            marketing_suppressions::branch_id,
+            marketing_suppressions::channel,
+            marketing_suppressions::email,
+        ))
+        .load::<(Uuid, String, String)>(conn)
+        .map_err(|error| format!("Suppression hydrate failed: {error}"))?;
+
+    let store = SuppressionStore::global();
+    let mut loaded = 0usize;
+    for (branch_id, channel, address) in rows {
+        let Some(key) = suppression_key_from_record(branch_id, &channel, &address) else {
+            log::warn!("ignoring suppression row with unknown channel {channel}");
+            continue;
+        };
+        match store.add(key) {
+            Ok(outcome) => {
+                if outcome.newly_added {
+                    loaded += 1;
+                }
+            }
+            Err(error) => {
+                log::warn!("suppression hydrate could not cache entry: {}", error.reason())
+            }
+        }
+    }
+    Ok(loaded)
 }

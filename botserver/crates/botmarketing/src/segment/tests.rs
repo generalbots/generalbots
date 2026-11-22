@@ -116,8 +116,8 @@ fn consent_false_excludes_recipient() {
         consent_flags(Some(&json!({ "consent": { "email": false } })));
     let mut subscribed = candidate("active", None, &[]);
     subscribed.marketing_subscribed = Some(false);
-    let mut bounced = candidate("bounced", None, &[]);
-    let mut allowed = candidate("active", None, &[]);
+    let bounced = candidate("bounced", None, &[]);
+    let allowed = candidate("active", None, &[]);
 
     let members = eligible_ids(
         &[opted_out, subscribed, bounced, allowed.clone()],

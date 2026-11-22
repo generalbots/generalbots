@@ -18,7 +18,9 @@ use sha2::Sha256;
 use std::sync::{Arc, OnceLock};
 use uuid::Uuid;
 
-use super::suppression::{MarketingChannel, SuppressionKey, SuppressionStore};
+use super::suppression::{
+    persist_suppression, MarketingChannel, SuppressionKey, SuppressionStore,
+};
 use crate::click_sign;
 use crate::schema::{marketing_contacts, marketing_recipients};
 use crate::state::AppState;
@@ -138,6 +140,55 @@ pub fn verify_unsubscribe_token(
     Ok(claims)
 }
 
+/// First-party fallback when the deployment has no `server-url` configured.
+/// It is a fixed constant, never a request `Host` or caller-supplied URL.
+pub const FIRST_PARTY_UNSUBSCRIBE_BASE: &str = "https://chat.pragmatismo.com.br";
+
+/// Rejects anything that is not an absolute http(s) URL without credentials.
+fn is_safe_base_url(raw: &str) -> bool {
+    if raw.is_empty() || raw == "stub" {
+        return false;
+    }
+    match url::Url::parse(raw) {
+        Ok(parsed) => {
+            matches!(parsed.scheme(), "http" | "https")
+                && parsed.host_str().is_some()
+                && parsed.username().is_empty()
+                && parsed.password().is_none()
+        }
+        Err(_) => false,
+    }
+}
+
+/// Resolves the base URL for first-party marketing links. `configured` comes
+/// from the deployment config; `env_self` is the operator-set self URL. Both
+/// are validated — an unsafe value is replaced by a fixed first-party URL.
+pub fn resolve_unsubscribe_base(configured: &str, env_self: Option<&str>) -> String {
+    let configured = configured.trim().trim_end_matches('/');
+    if is_safe_base_url(configured) {
+        return configured.to_string();
+    }
+    if let Some(env_base) = env_self {
+        let env_base = env_base.trim().trim_end_matches('/');
+        if is_safe_base_url(env_base) {
+            return env_base.to_string();
+        }
+    }
+    FIRST_PARTY_UNSUBSCRIBE_BASE.to_string()
+}
+
+/// Convenience wrapper reading the operator-configured self URL from the env.
+pub fn unsubscribe_base_url(configured: &str) -> String {
+    let env_self = match std::env::var("GB_SELF_URL") {
+        Ok(value) => value,
+        Err(error) => {
+            log::warn!("GB_SELF_URL unavailable, using first-party fallback: {error}");
+            String::new()
+        }
+    };
+    resolve_unsubscribe_base(configured, Some(env_self.as_str()))
+}
+
 /// Absolute URL placed in the `List-Unsubscribe` header.
 pub fn build_unsubscribe_url(base_url: &str, claims: &UnsubscribeClaims) -> Option<String> {
     let base = base_url.trim().trim_end_matches('/');
@@ -165,6 +216,14 @@ fn persist_opt_out(state: &Arc<AppState>, claims: &UnsubscribeClaims) {
         log::error!("unsubscribe: DB pool unavailable; opt-out kept in memory only");
         return;
     };
+    // Authoritative durable record: the in-memory store alone would forget
+    // this opt-out on restart. Unique index makes the write idempotent.
+    let key = SuppressionKey::new(claims.branch_id, claims.channel, &claims.address);
+    match persist_suppression(&mut conn, &key, "unsubscribed") {
+        Ok(_) => log::info!("unsubscribe persisted for {}", claims.channel.as_str()),
+        Err(error) => log::error!("unsubscribe could not persist suppression: {error}"),
+    }
+
     let now = Utc::now();
     if let Err(error) = diesel::update(
         marketing_contacts::table
