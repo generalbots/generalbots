@@ -89,7 +89,7 @@ pub async fn publish_resource(
         },
     );
     // #2541 — TTL/capacity-bounded preview cache with boot reconciliation.
-    preview_store::shared().insert(hash.clone(), html, 3_600_000, now_ms());
+    preview_store::shared().insert(hash.clone(), &html, 3_600_000, now_ms());
 
     if let Some(drive) = state.drive.as_ref() {
         let key = format!("_sandbox/ui/{hash}.html");
