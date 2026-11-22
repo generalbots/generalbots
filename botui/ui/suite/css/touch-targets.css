@@ -45,4 +45,13 @@
     background-clip: content-box;
     border-radius: 0;
   }
+
+  /* #2461 — comment flow controls created at runtime must keep a 44px floor. */
+  .docs-comment-chip,
+  .gbc-send,
+  .gbc-resolve-btn,
+  .gbc-reopen-btn,
+  .tb-overflow-item {
+    min-height: 44px;
+  }
 }

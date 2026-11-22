@@ -172,7 +172,10 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
     #[cfg(not(feature = "cache"))]
     let redis_client: Option<Arc<redis::Client>> = None;
 
-    let app_state = main_module::create_app_state(cfg, pool, &redis_client).await?;
+    // #2461 — use the config reloaded AFTER bootstrap/Vault are available.
+    // The bootstrap-time `cfg` has no Drive credentials, which made AppState
+    // fall back to NoopDrive and broke every Docs write.
+    let app_state = main_module::create_app_state(refreshed_cfg, pool, &redis_client).await?;
 
     // #1674 — model-authored UI is served from a separate origin. On desktop
     // this is loopback port 8081; cloud deployments set GB_SANDBOX_PORT and
