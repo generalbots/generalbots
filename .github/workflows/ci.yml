@@ -653,6 +653,34 @@ jobs:
           python3 scripts/check_upload_validation.py --self-test
           python3 scripts/check_upload_validation.py --check
 
+  # #2543 — the three error-handling lints stay `warn` in Cargo.toml because
+  # workspace lints cannot express a per-file baseline exclusion. This is the
+  # equivalent blocking gate: clippy emits JSON diagnostics, the script keeps
+  # only non-test files under botserver/src and botserver/crates, and fails when
+  # a count grows against botserver/clippy-baseline.toml [clippy]. botapp and
+  # botdevice are excluded (they need Tauri/webkit system libs and are out of
+  # the ratchet scope); plain clippy targets are lib + bin, so #[cfg(test)]
+  # modules are not compiled and cannot trip the gate.
+  clippy-baseline:
+    name: Clippy error-handling baseline (#2543)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: clippy-baseline
+      # The lints are advisory (`warn`) in [workspace.lints.clippy], so clippy
+      # exits 0 and the script — not rustc — decides pass/fail by comparing
+      # counts to the baseline. A genuine compile error still fails the step.
+      - name: Enforce the clippy diagnostic baseline
+        run: |
+          set -euo pipefail
+          cargo clippy --workspace --exclude botapp --exclude botdevice \
+            --message-format=json > /tmp/clippy-baseline.json 2>/tmp/clippy-baseline.err
+          python3 scripts/check_clippy_baseline.py /tmp/clippy-baseline.json
+
   reindex:
     name: Verify the committed BotBook
     needs: [changes]

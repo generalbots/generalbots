@@ -145,6 +145,21 @@ authors = ["General Bots"]
 [workspace.lints.rust]
 
 [workspace.lints.clippy]
+# #2543 — error-handling debt ratchet.
+#
+# These three stay at `warn` (advisory), NOT `deny`: Cargo's workspace lint
+# table cannot express a per-file / per-crate baseline exclusion, so promoting
+# them to `deny` here would stop the whole workspace from compiling on the
+# remaining debt (and on the thousands of `.unwrap()` calls in `#[cfg(test)]`
+# modules — clippy's workspace config has no `allow-unwrap-in-tests` switch).
+# The blocking, baseline-aware enforcement is `scripts/check_clippy_baseline.py`,
+# wired into ci.yml: it parses `cargo clippy --message-format=json`, keeps only
+# non-test diagnostics under `botserver/src` and `botserver/crates`, and fails
+# when a count grows against the `[clippy]` table in
+# `botserver/clippy-baseline.toml`. Removing an entry is the unit of progress.
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # WORKSPACE DEPENDENCIES - Single source of truth for all member crates
