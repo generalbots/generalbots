@@ -164,15 +164,9 @@ pub(super) static DOCS_AND_SHEET_CRUD: &[AppCommand] = &[
         None,
         false,
     ),
-    cmd(
-        "docs",
-        "docs.search",
-        "Search documents",
-        "Search documents by text.",
-        &[("query", "search text")],
-        Some("app://docs"),
-        false,
-    ),
+    // #2155 — docs.search lives in ALL_COMMANDS_CORE with the canonical
+    // `app://docs?id={id?}` deep link; declaring it here too made the joined
+    // command table ambiguous (duplicate command name in the unit gate).
     cmd(
         "docs",
         "docs.collaborators",
