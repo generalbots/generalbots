@@ -6,7 +6,7 @@
              Private bots redirect unauthenticated visitors before first paint
              of the desktop — never show an empty shell. -->
 <link rel="stylesheet" href="/suite/desktop-inline/01_auth_gate.css"> <!-- Global & theme foundation -->
-<link rel="stylesheet" href="/suite/css/app.css" /> <link rel="stylesheet" href="/suite/css/base.css" /> <link rel="stylesheet" href="/suite/css/touch-targets.css?v=1" />
+<link rel="stylesheet" href="/suite/css/app.css" /> <link rel="stylesheet" href="/suite/css/base.css" />
 <link rel="stylesheet" href="/suite/css/theme-sentient.css" /> <link rel="stylesheet" href="/suite/css/config-colors.css" />
 <link rel="stylesheet" href="/suite/css/app-identity.css?v=1" /> <!-- #1952 per-app identity hues -->
 <link rel="stylesheet" href="/suite/css/assistant-skin.css?v=1" /> <!-- assistant look carried to every app, theme-derived -->
@@ -67,6 +67,9 @@
              a short timeout as fallback). --> <div id="gbBootSplash" aria-hidden="true">
 <div class="gb-boot-spinner"></div> <div class="gb-boot-text">General Bots</div>
 </div> <link rel="stylesheet" href="/suite/desktop-inline/04_boot_splash.css">
+<!-- #2325/#2461 — coarse-pointer hit areas must come last so equal-specificity
+     component rules cannot override them. -->
+<link rel="stylesheet" href="/suite/css/touch-targets.css?v=2" />
 <script src="/suite/desktop-inline/03_boot_splash.js"></script> <!-- Minibar removed - login moved to taskbar -->
 <div class="build-container"> <!-- Sidebar (v16) — Claude/zo.computer style: app links + chat history -->
 <aside class="chat-sidebar" id="chatSidebar"> <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle sidebar" data-i18n-title="sidebar-toggle">

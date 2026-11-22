@@ -3,6 +3,13 @@
  * tablet every actionable chrome control gets a 44x44 CSS-pixel hit area.
  */
 @media (pointer: coarse) {
+  #gb-skip-nav,
+  #gbIntakeBtn,
+  #scrollToBottom,
+  #chat-app #sendBtn,
+  #startBtn,
+  .ss-tab-add,
+  .gb-skip-nav,
   .gb-feedback-btn,
   .gb-consent-btn,
   .chat-tool-toggle,
@@ -28,11 +35,14 @@
     inset: -15px;
   }
 
-  /* Thin transcript scroll markers stay visually 6px wide but gain a
-     horizontal hit area so a finger can grab them. */
-  .scrollbar-marker::before {
-    content: "";
-    position: absolute;
-    inset: -12px -19px;
+  /* Thin transcript scroll markers keep a 6x4 painted bar (background-clip
+     to the content box) while their hit area is a full 44x44 square. */
+  .scrollbar-markers .scrollbar-marker {
+    width: 44px;
+    height: 44px;
+    padding: 20px 19px;
+    box-sizing: border-box;
+    background-clip: content-box;
+    border-radius: 0;
   }
 }
