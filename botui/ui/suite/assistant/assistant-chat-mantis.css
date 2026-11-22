@@ -37,9 +37,33 @@
     gap: 1px; padding: 0; border: 1px solid var(--id-line); background: var(--id-line);
 }
 .gb-chat-view .gb-msg-toolbar-btn {
-    width: 28px; height: 26px; border-radius: 0; background: var(--id-surface-solid);
+    flex: none; justify-content: center; width: 28px; height: 26px; padding: 0;
+    border: 0; border-radius: 0; background: var(--id-surface-solid);
 }
 .gb-chat-view .gb-msg-toolbar-btn:hover { background: var(--id-fill); }
+.gb-chat-view .gb-msg-toolbar-btn .gb-toolbar-label {
+    position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden;
+}
+/* Answer actions: one row under the answer. The model tag stays visible;
+   Copy, Regenerate and the thumbs fade in on hover or keyboard focus
+   (always shown on the last answer) and keep their space, so nothing moves. */
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar {
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0;
+    margin-top: var(--id-space-2); border: 0; background: none; opacity: 1;
+}
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn {
+    color: var(--id-muted); border: 1px solid var(--id-line); opacity: 0;
+    transition: opacity var(--id-dur-fast) var(--id-ease), background var(--id-dur-fast) var(--id-ease);
+}
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn + .gb-msg-toolbar-btn { margin-left: -1px; }
+.gb-chat-view .gb-msg-assistant:is(:last-child, :hover, :focus-within) > .gb-msg-toolbar > .gb-msg-toolbar-btn { opacity: 1; }
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn:hover { color: var(--id-ink); }
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-feedback-btn.active { color: var(--id-accent-text); }
+.gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn:focus-visible { position: relative; z-index: 1; outline-offset: -2px; }
+.gb-chat-view .gb-msg-toolbar > .gb-model-tag { flex: none; margin: 0 8px 0 0; }
+@media (prefers-reduced-motion: reduce) {
+    .gb-chat-view .gb-msg-assistant > .gb-msg-toolbar > .gb-msg-toolbar-btn { transition: none; }
+}
 .gb-chat-view .gb-model-tag {
     border: 0; border-radius: 0; min-height: 26px; background: var(--id-surface-solid);
     font: 600 var(--id-text-xs)/1 var(--id-font-mono, monospace); padding: 0 9px;
@@ -244,17 +268,6 @@
 
 @media (prefers-reduced-motion: reduce) {
     .gb-conversation { scroll-behavior: auto; }
-}
-/* Response actions live below the answer, independent of pointer hover. */
-.gb-chat-view .gb-msg-toolbar {
-    position: relative; top: auto; right: auto; box-shadow: none; border-radius: 0;
-}
-.gb-chat-view .gb-msg-assistant .gb-msg-toolbar { opacity: 1; }
-.gb-chat-view .gb-msg-toolbar-btn {
-    flex: none; justify-content: center; padding: 0; border: 0;
-}
-.gb-chat-view .gb-msg-toolbar-btn .gb-toolbar-label {
-    position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden;
 }
 .gb-chat-view .gb-msg-error { display: flex; flex-wrap: wrap; width: auto; }
 .gb-msg-error .gb-error-card { margin: 0; }

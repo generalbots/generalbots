@@ -29,9 +29,6 @@
     outline: 2px solid var(--id-accent); outline-offset: 1px;
 }
 .gb-toolbar-label { font-weight: 500; }
-/* Regenerate belongs to the last answer only: on an older one it would
-   discard the turns that came after it. */
-.gb-msg-assistant:has(~ .gb-msg-user) .gb-regen-btn { display: none; }
 .gb-msg-retry { color: var(--id-accent-text); }
 
 /* ================================================================

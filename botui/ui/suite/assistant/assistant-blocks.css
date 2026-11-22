@@ -140,31 +140,6 @@
 .gb-block-stack .gb-block { position: relative; margin: 0; width: 100%; }
 .gb-block-stack .gb-block + .gb-block { margin-top: -1px; }
 
-/* == Hover actions toolbar == */
-.gb-msg-toolbar {
-    position: absolute; top: -4px; right: 0;
-    display: none; align-items: center; gap: 2px;
-    padding: 2px; background: var(--id-surface-solid);
-    border: 1px solid var(--id-line); border-radius: 6px;
-    box-shadow: var(--id-shadow-float); z-index: 5;
-}
-.gb-msg-assistant:hover .gb-msg-toolbar { display: flex; }
-.gb-msg-toolbar-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 24px; border: none; border-radius: 4px;
-    background: transparent; color: var(--id-text); cursor: pointer;
-    padding: 0; font-size: 0;
-}
-.gb-msg-toolbar-btn:hover { background: var(--id-fill); }
-.gb-msg-toolbar-btn[title]::after {
-    content: attr(title); font-size: 10px; position: absolute;
-    top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px;
-    padding: 2px 6px; background: var(--id-ink); color: var(--id-surface-solid);
-    border-radius: 4px; white-space: nowrap; pointer-events: none;
-    opacity: 0; transition: opacity .15s;
-}
-.gb-msg-toolbar-btn:hover[title]::after { opacity: 1; }
-
 /* == Attachment cards (composer + bubbles) == */
 .gb-attach-card {
     display: flex; align-items: center; gap: 8px;

@@ -81,13 +81,13 @@ A.attachModelTag = function (el, model) {
     var hdr = thinking.length ? thinking[thinking.length - 1] : null;
     var chip = hdr ? hdr.querySelector(".gb-block-chip") : null;
     if (chip) { hdr.insertBefore(tag, chip); return; }
-    /* No thinking card: a line of its own above the toolbar, which only
-       shows on hover. */
+    /* No thinking card: first in the action row, before the buttons. */
+    var tb = el.querySelector(".gb-msg-toolbar");
+    if (tb) { tb.prepend(tag); return; }
     var line = document.createElement("div");
     line.className = "gb-model-line";
     line.appendChild(tag);
-    var tb = el.querySelector(".gb-msg-toolbar");
-    if (tb) { el.insertBefore(line, tb); } else { el.appendChild(line); }
+    el.appendChild(line);
 };
 
 /** A live answer just finished: record and show the model it came from. */

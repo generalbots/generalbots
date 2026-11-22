@@ -76,6 +76,7 @@
         /* Copy */
         if (content) {
             var cp = document.createElement("button");
+            cp.type = "button";
             cp.className = "gb-msg-toolbar-btn";
             cp.title = t("Copiar", "Copy");
             cp.setAttribute("aria-label", t("Copiar", "Copy"));
@@ -97,19 +98,31 @@
 
         /* Regenerate */
         var regen = document.createElement("button");
+        regen.type = "button";
         regen.className = "gb-msg-toolbar-btn gb-regen-btn";
         regen.title = t("Regenerar", "Regenerate");
         regen.setAttribute("aria-label", t("Regenerar", "Regenerate"));
         regen.innerHTML = I("arrows-clockwise", 14) + '<span class="gb-toolbar-label">' +
             A.escapeHtml(t("Regenerar", "Regenerate")) + '</span>';
         regen.addEventListener("click", function () { A.regenerateFrom(el); });
+        /* On an older answer Regenerate also drops the turns after it, as
+           Edit does: the tooltip says so before the click. */
+        function regenTitle() {
+            var older = el.matches(":has(~ .gb-msg-user)");
+            var label = older ? A.t("assistant.regenerate-older", "Regenerate from here: the messages after it leave the conversation")
+                : t("Regenerar", "Regenerate");
+            regen.title = label;
+            regen.setAttribute("aria-label", label);
+        }
+        regen.addEventListener("pointerenter", regenTitle);
+        regen.addEventListener("focus", regenTitle);
         tb.appendChild(regen);
 
         el.appendChild(tb);
 
-        /* Feedback (thumbs up/down) */
+        /* Feedback (thumbs up/down) on the same row */
         if (typeof A.addFeedbackButtons === "function") {
-            A.addFeedbackButtons(el);
+            A.addFeedbackButtons(el, tb);
         }
     };
 

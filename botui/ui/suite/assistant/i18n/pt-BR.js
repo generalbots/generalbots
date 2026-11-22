@@ -212,5 +212,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "drive.folders": "Pastas",
     "drive.usage-hint": "Espaço ocupado pelos seus arquivos no Drive",
     "assistant.agent-locked-tip": "O agente selecionado roda na Máquina Virtual; escolha outro modelo para desligar",
-    "assistant.agent-backend-off": "Agentes por assinatura indisponíveis neste computador"
+    "assistant.agent-backend-off": "Agentes por assinatura indisponíveis neste computador",
+    "assistant.agent-locked-hint": "O {agent} roda na Máquina Virtual, por isso o Agente fica ligado enquanto ele estiver escolhido. Para desligar, escolha outro modelo.",
+    "assistant.regenerate-older": "Regenerar a partir daqui: as mensagens seguintes saem da conversa"
 };

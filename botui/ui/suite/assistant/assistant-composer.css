@@ -158,9 +158,29 @@
 .gb-agent-toggle.gb-agent-on:hover { background: var(--id-accent-hover); }
 .gb-agent-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
 .gb-agent-label { white-space: nowrap; }
+/* Held on by the chosen agent: reads as on, with a lock, never greyed. */
+.gb-agent-toggle .gb-agent-lock { display: none; width: 11px; height: 11px; color: var(--id-muted); }
+.gb-agent-toggle[aria-disabled="true"] .gb-agent-lock { display: block; }
+.gb-agent-toggle[aria-disabled="true"] { cursor: default; }
+.gb-agent-hint {
+    position: fixed; z-index: 70; width: max-content; max-width: 280px; padding: 9px 12px;
+    background: var(--id-surface-solid); color: var(--id-ink);
+    border: 1px solid var(--id-line); box-shadow: var(--id-shadow-float);
+    font: 400 var(--id-text-xs)/1.5 var(--id-font-sans); text-wrap: pretty;
+    animation: gb-agent-hint-in var(--id-dur-fast) var(--id-ease);
+}
+.gb-agent-hint::after {
+    content: ""; position: absolute; top: 100%; left: var(--gb-hint-arrow, 50%);
+    width: 8px; height: 8px; margin: -4px 0 0 -4px; transform: rotate(45deg);
+    background: var(--id-surface-solid);
+    border: solid var(--id-line); border-width: 0 1px 1px 0;
+}
+.gb-agent-hint--below::after { top: 0; border-width: 1px 0 0 1px; }
+@keyframes gb-agent-hint-in { from { opacity: 0; transform: translateY(4px); } }
 
 @media (prefers-reduced-motion: reduce) {
     .gb-agent-toggle { transition: none; }
+    .gb-agent-hint { animation: none; }
 }
 
 .gb-attach-btn { cursor: pointer; }

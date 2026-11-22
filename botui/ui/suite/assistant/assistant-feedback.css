@@ -1,20 +1,6 @@
 /* ---- Feedback thumbs ---- */
-.gb-feedback-wrap {
-    display: inline-flex; align-items: center; gap: 2px;
-    margin-left: 4px; vertical-align: middle;
-}
-.gb-feedback-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 24px; height: 24px; padding: 0; border: none;
-    background: transparent; color: var(--id-muted);
-    cursor: pointer; border-radius: var(--id-radius-sm);
-    transition: color var(--id-dur-fast) var(--id-ease),
-                background var(--id-dur-fast) var(--id-ease);
-}
-.gb-feedback-btn:hover { background: var(--id-fill); color: var(--id-text); }
-.gb-feedback-btn.active { color: var(--id-accent); }
 .gb-feedback-comment {
-    display: flex; gap: 4px; margin-top: 4px; padding: 4px 0;
+    display: flex; gap: 4px; max-width: 420px; margin-top: 6px; padding: 4px 0;
 }
 .gb-feedback-input {
     flex: 1; font-size: var(--id-text-sm); font-family: var(--id-font-sans);
@@ -54,7 +40,7 @@
     .gb-composer-card,
     .gb-status-bar,
     .gb-msg-toolbar,
-    .gb-feedback-wrap,
+    .gb-feedback-comment,
     .gb-suggestions,
     .gb-scroll-bottom,
     .gb-empty-state,
