@@ -1,5 +1,5 @@
-use super::citation::SourceRef;
 use super::chunk::{stable_id, AclMetadata, StructuredChunk};
+use super::citation::SourceRef;
 
 /// Chunk sizing for structure-aware extraction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,13 +160,10 @@ impl StructureAwareChunker {
         let address = source.address();
         let path = heading_path.join("|");
 
-        for (index, content) in Self::window_chunks(
-            &text,
-            self.options.max_chars,
-            self.options.overlap_chars,
-        )
-        .into_iter()
-        .enumerate()
+        for (index, content) in
+            Self::window_chunks(&text, self.options.max_chars, self.options.overlap_chars)
+                .into_iter()
+                .enumerate()
         {
             let index_text = index.to_string();
             let id = stable_id(&[
@@ -238,7 +235,9 @@ impl StructureAwareChunker {
             if end >= chars.len() {
                 break;
             }
-            start = end.saturating_sub(overlap).max(start + step.min(end - start));
+            start = end
+                .saturating_sub(overlap)
+                .max(start + step.min(end - start));
         }
         result
     }
@@ -302,73 +301,104 @@ impl StructureAwareChunker {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SourceKind;
     use super::*;
 
     fn acl() -> AclMetadata {
         AclMetadata::private("tenant-a")
     }
 
+    fn chunk_doc(doc: &str, file: &str, version: &str, text: &str) -> Vec<StructuredChunk> {
+        StructureAwareChunker::default().chunk_document(doc, "t", file, version, text, &acl())
+    }
+
+    fn chunk(text: &str) -> Vec<StructuredChunk> {
+        chunk_doc("d", "f", "1", text)
+    }
+
+    fn chunk_with(options: ChunkOptions, text: &str) -> Vec<StructuredChunk> {
+        StructureAwareChunker::new(options).chunk_document("d", "t", "f", "1", text, &acl())
+    }
+
     #[test]
     fn clause_chunk_carries_section_and_page() {
-        let text = [
-            "# Employment",
-            "## Termination",
-            "[[PAGE:12]]",
-            "7.3 Termination Notice",
-            "The termination notice period is ninety days.",
-        ]
-        .join("\n");
-        let chunks = StructureAwareChunker::default().chunk_document(
-            "contract", "tenant-a", "contract.docx", "3", &text, &acl(),
-        );
-        let clause = chunks
-            .iter()
-            .find(|chunk| chunk.source.locator == "7.3");
+        let text =
+            "# Employment\n## Termination\n[[PAGE:12]]\n7.3 Termination Notice\nThe notice period is ninety days.";
+        let chunks = chunk_doc("contract", "contract.docx", "3", &text);
+        let clause = chunks.iter().find(|c| c.source.locator == "7.3");
         assert!(clause.is_some());
-        if let Some(chunk) = clause {
-            assert_eq!(chunk.source.page, Some(12));
-            assert_eq!(chunk.source.kind, super::super::SourceKind::Clause);
-            assert!(chunk
-                .heading_path
-                .iter()
-                .any(|heading| heading.contains("Termination")));
-            assert_eq!(chunk.citation().file, "contract.docx");
-            assert_eq!(chunk.citation().version, "3");
+        if let Some(c) = clause {
+            assert_eq!(c.source.page, Some(12));
+            assert_eq!(c.source.kind, SourceKind::Clause);
+            assert!(c.heading_path.iter().any(|h| h.contains("Termination")));
+            assert_eq!(c.citation().file, "contract.docx");
+            assert_eq!(c.citation().version, "3");
         }
     }
 
     #[test]
-    fn slide_and_cell_markers_are_addressed() {
-        let text = [
-            "[[SLIDE:5]]",
-            "Quarterly revenue grew by twelve percent.",
-            "[[SHEET:Q1]]",
-            "[[CELL:B2]]",
-            "Revenue total for the quarter.",
-        ]
-        .join("\n");
-        let chunks = StructureAwareChunker::default().chunk_document(
-            "deck", "tenant-a", "deck.pptx", "1", &text, &acl(),
-        );
-        assert!(chunks.iter().any(|c| c.source.locator == "5"));
-        assert!(chunks.iter().any(|c| c.source.locator == "B2"));
+    fn inline_markers_address_page_slide_and_cell() {
+        let text =
+            "[[PAGE:4]]\nPage four body.\n[[SLIDE:5]]\nQuarterly revenue.\n[[CELL:B2]]\nCell total body.";
+        let chunks = chunk(text);
+        let find = |locator: &str| {
+            chunks
+                .iter()
+                .find(|c| c.source.locator == locator)
+                .map(|c| (&c.source.kind, c.source.page))
+        };
+        assert_eq!(find("4"), Some((&SourceKind::Page, Some(4))));
+        assert_eq!(find("5"), Some((&SourceKind::Slide, Some(4))));
+        assert_eq!(find("B2"), Some((&SourceKind::Cell, Some(4))));
+    }
+
+    #[test]
+    fn sheet_marker_creates_section_address() {
+        let chunks = chunk("[[SHEET:Q1]]\nSummary body for the quarter.");
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0].source.kind, SourceKind::Section);
+        assert_eq!(chunks[0].source.locator, "Q1");
+        assert_eq!(chunks[0].source.page, Some(1));
+    }
+
+    #[test]
+    fn form_feeds_advance_page_numbers() {
+        let chunks = chunk("Alpha body.\n# Part A\u{000c}Beta body.\n# Part B");
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0].source.page, Some(1));
+        assert_eq!(chunks[1].source.page, Some(2));
+        assert_eq!(chunks[0].content, "Alpha body.");
+        assert_eq!(chunks[1].content, "Beta body.");
+    }
+
+    #[test]
+    fn markdown_headings_build_hierarchical_path() {
+        let chunks = chunk("# Intro\n## Details\nBody under details.\n### Deep\nDeep body.");
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0].heading_path, ["Intro", "Details"]);
+        assert_eq!(chunks[1].heading_path, ["Intro", "Details", "Deep"]);
     }
 
     #[test]
     fn stable_ids_repeat_and_change_on_edit() {
-        let chunker = StructureAwareChunker::default();
         let text = "7.3 Notice\nThe notice period is ninety days from the effective date.";
-        let first = chunker.chunk_document("doc", "t", "f", "1", text, &acl());
-        let second = chunker.chunk_document("doc", "t", "f", "1", text, &acl());
+        let first = chunk(text);
+        let second = chunk(text);
         assert_eq!(first.len(), second.len());
         assert_eq!(first[0].id, second[0].id);
 
-        let edited = chunker.chunk_document(
-            "doc", "t", "f", "2",
-            "7.3 Notice\nThe notice period is thirty days from the effective date.",
-            &acl(),
-        );
+        let edited = chunk_doc("d", "f", "2", text);
         assert_ne!(first[0].id, edited[0].id);
+    }
+
+    #[test]
+    fn rechunking_same_text_is_deterministic() {
+        let text =
+            "# Guide\n7.3 Notice\nThe notice period is ninety days.\n[[SLIDE:2]]\nSlide body.";
+        let first = chunk(text);
+        let second = chunk(text);
+        assert!(!first.is_empty());
+        assert_eq!(first, second);
     }
 
     #[test]
@@ -377,10 +407,25 @@ mod tests {
             max_chars: 120,
             overlap_chars: 20,
         };
-        let chunker = StructureAwareChunker::new(options);
-        let text = "Section text repeats. ".repeat(40);
-        let chunks = chunker.chunk_document("doc", "t", "f", "1", &text, &acl());
+        let chunks = chunk_with(options, &"Section text repeats. ".repeat(40));
         assert!(chunks.len() > 1);
-        assert!(chunks.iter().all(|chunk| chunk.content.chars().count() <= 120));
+        assert!(chunks.iter().all(|c| c.content.chars().count() <= 120));
+    }
+
+    #[test]
+    fn windows_overlap_by_configured_amount() {
+        let options = ChunkOptions {
+            max_chars: 100,
+            overlap_chars: 20,
+        };
+        let chunks = chunk_with(options, &"word ".repeat(60));
+        assert!(chunks.len() >= 2);
+        for pair in chunks.windows(2) {
+            let prev: Vec<char> = pair[0].content.chars().collect();
+            let next: Vec<char> = pair[1].content.chars().collect();
+            let tail: String = prev[prev.len() - 20..].iter().collect();
+            let head: String = next[..20].iter().collect();
+            assert_eq!(tail, head);
+        }
     }
 }
