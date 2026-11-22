@@ -2,6 +2,9 @@
 
 pub const CODEX_USER: &str = "codex";
 pub const CODEX_HOME: &str = "/home/codex";
+/// The CLI version a new workspace installs (`@openai/codex@…`); any
+/// version runs chat turns only after passing the approval self-check.
+pub const CODEX_VERSION: &str = "0.171.0";
 /// Where `codex login` stores the ChatGPT sign-in (file credential store).
 pub const CREDENTIALS_PATH: &str = "/home/codex/.codex/auth.json";
 pub(super) const PROMPT_TXT: &str = "/tmp/gb-codex-prompt.txt";

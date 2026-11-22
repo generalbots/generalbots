@@ -6,13 +6,15 @@ use crate::AgentService;
 
 use super::b64;
 use super::internal;
-use super::paths::{CODEX_HOME, CODEX_USER, LOGIN_CODE, LOGIN_LOG, LOGIN_SCRIPT, LOGIN_STATUS};
+use super::paths::{CODEX_HOME, CODEX_USER, CODEX_VERSION, LOGIN_CODE, LOGIN_LOG, LOGIN_SCRIPT, LOGIN_STATUS};
 use super::pty::PTY_SCRIPT;
 use super::status::{run_script, status, CodexStatus};
 
 /// Guarantees the CLI and its `codex` identity exist before a login starts.
+/// A new install is the pinned version whose app server the bridge was
+/// proven against; `bubblewrap` is Codex's sandbox for workspace writes.
 async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    let probe = "command -v codex >/dev/null 2>&1 && id -u codex >/dev/null 2>&1 && echo READY || echo MISSING";
+    let probe = "command -v codex >/dev/null 2>&1 && id -u codex >/dev/null 2>&1 && command -v bwrap >/dev/null 2>&1 && echo READY || echo MISSING";
     let (_, stdout, _) = run_script(state, vm_name, probe).await?;
     if stdout.trim() == "READY" {
         return Ok(());
@@ -20,11 +22,12 @@ async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     let install = format!(
         "id -u {user} >/dev/null 2>&1 || useradd -m -s /bin/bash {user}; \
          mkdir -p {home}/.codex; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.codex; \
-         command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm); \
-         command -v codex >/dev/null 2>&1 || timeout 420 npm install -g @openai/codex >/tmp/codex-install.log 2>&1; \
+         command -v npm >/dev/null 2>&1 && command -v bwrap >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm bubblewrap); \
+         command -v codex >/dev/null 2>&1 || timeout 420 npm install -g @openai/codex@{version} >/tmp/codex-install.log 2>&1; \
          command -v codex >/dev/null 2>&1 && echo INSTALLED || {{ tail -20 /tmp/codex-install.log 2>/dev/null; exit 3; }}",
         user = CODEX_USER,
-        home = CODEX_HOME
+        home = CODEX_HOME,
+        version = CODEX_VERSION,
     );
     let (ok, stdout, stderr) = run_script(state, vm_name, &install).await?;
     if ok && stdout.contains("INSTALLED") {

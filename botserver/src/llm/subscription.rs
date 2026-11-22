@@ -12,51 +12,9 @@ use tokio::sync::mpsc;
 
 use botagent::AgentService;
 
+mod claude_bridge;
+mod codex_bridge;
 mod plan_limit;
-
-/// Runs prompts through the `claude` CLI inside the user's agent VM (#1652).
-pub struct ClaudeCodeProvider {
-    service: Arc<AgentService>,
-    vm_name: String,
-    model: String,
-}
-
-impl std::fmt::Debug for ClaudeCodeProvider {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ClaudeCodeProvider")
-            .field("vm_name", &self.vm_name)
-            .field("model", &self.model)
-            .finish_non_exhaustive()
-    }
-}
-
-impl ClaudeCodeProvider {
-    pub fn new(service: Arc<AgentService>, vm_name: String, model: String) -> Self {
-        Self { service, vm_name, model }
-    }
-}
-
-/// Runs prompts through the `codex` CLI inside the user's agent VM (#2574).
-pub struct CodexCliProvider {
-    service: Arc<AgentService>,
-    vm_name: String,
-    model: String,
-}
-
-impl std::fmt::Debug for CodexCliProvider {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CodexCliProvider")
-            .field("vm_name", &self.vm_name)
-            .field("model", &self.model)
-            .finish_non_exhaustive()
-    }
-}
-
-impl CodexCliProvider {
-    pub fn new(service: Arc<AgentService>, vm_name: String, model: String) -> Self {
-        Self { service, vm_name, model }
-    }
-}
 
 /// Runs prompts through the `antigravity` CLI inside the user's agent VM (#2576).
 pub struct AntigravityProvider {
@@ -98,66 +56,6 @@ async fn send_in_chunks(tx: &mpsc::Sender<String>, text: &str) {
     }
     if !buffer.is_empty() {
         let _ = tx.send(buffer).await;
-    }
-}
-
-#[async_trait]
-impl botlib::traits::LLMProvider for ClaudeCodeProvider {
-    async fn generate(
-        &self,
-        prompt: &str,
-        config: &Value,
-        model: &str,
-        _key: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let prompt = flatten_prompt(prompt, config);
-        let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
-        let result = botagent::claude::run_prompt(&self.service, &self.vm_name, &prompt, selected).await;
-        plan_limit::settle(result, &self.service, &self.vm_name, crate::core::ai_accounts::CLAUDE_CODE).await
-    }
-
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        config: &Value,
-        tx: mpsc::Sender<String>,
-        model: &str,
-        key: &str,
-        _tools: Option<&Vec<Value>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let text = self.generate(prompt, config, model, key).await?;
-        send_in_chunks(&tx, &text).await;
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl botlib::traits::LLMProvider for CodexCliProvider {
-    async fn generate(
-        &self,
-        prompt: &str,
-        config: &Value,
-        model: &str,
-        _key: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let prompt = flatten_prompt(prompt, config);
-        let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
-        let result = botagent::codex::run_prompt(&self.service, &self.vm_name, &prompt, selected).await;
-        plan_limit::settle(result, &self.service, &self.vm_name, crate::core::ai_accounts::CODEX_CLI).await
-    }
-
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        config: &Value,
-        tx: mpsc::Sender<String>,
-        model: &str,
-        key: &str,
-        _tools: Option<&Vec<Value>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let text = self.generate(prompt, config, model, key).await?;
-        send_in_chunks(&tx, &text).await;
-        Ok(())
     }
 }
 
@@ -290,10 +188,13 @@ pub async fn build(
             .ok_or_else(|| {
                 "Sign in to use your Claude Code subscription in the agent workspace.".to_string()
             })?;
-            Ok(Arc::new(ClaudeCodeProvider::new(
+            let turn = crate::core::bot::pipeline::vm_consent::BridgeIdentity::new(state.clone(), user_id, session_id, bot_uuid);
+            Ok(Arc::new(claude_bridge::ClaudeBridgeProvider::new(
                 service.clone(),
                 row.vm_name,
                 resolved.model.clone(),
+                turn,
+                session_id,
             )))
         }
         crate::core::ai_accounts::CODEX_CLI => {
@@ -305,7 +206,14 @@ pub async fn build(
             let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid)
                 .await
                 .ok_or_else(|| "Sign in to use your Codex subscription in the agent workspace.".to_string())?;
-            Ok(Arc::new(CodexCliProvider::new(service.clone(), row.vm_name, resolved.model.clone())))
+            let turn = crate::core::bot::pipeline::vm_consent::BridgeIdentity::new(state.clone(), user_id, session_id, bot_uuid);
+            Ok(Arc::new(codex_bridge::CodexBridgeProvider::new(
+                service.clone(),
+                row.vm_name,
+                resolved.model.clone(),
+                turn,
+                session_id,
+            )))
         }
         crate::core::ai_accounts::ANTIGRAVITY => {
             if !crate::core::bot::pipeline::agent_turn::is_enabled(session_id) {
