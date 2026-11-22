@@ -15,3 +15,4 @@ power-menu-confirm-restart = 이 컴퓨터를 다시 시작할까요?
 power-menu-confirm-shutdown = 이 컴퓨터를 종료할까요?
 power-menu-done = 요청이 접수되었습니다. 컴퓨터를 종료하는 중입니다.
 power-menu-failed = 전원 작업에 실패했습니다.
+power-menu-hold = 길게 눌러 확인

@@ -15,3 +15,4 @@ power-menu-confirm-restart = Redémarrer cet ordinateur ?
 power-menu-confirm-shutdown = Éteindre cet ordinateur ?
 power-menu-done = Demande acceptée. L'ordinateur s'éteint.
 power-menu-failed = L'action d'alimentation a échoué.
+power-menu-hold = Maintenir pour confirmer

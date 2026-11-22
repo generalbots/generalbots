@@ -18,3 +18,4 @@ power-menu-confirm-restart = Restart this computer?
 power-menu-confirm-shutdown = Shut down this computer?
 power-menu-done = Request accepted. The computer is shutting down now.
 power-menu-failed = The power action failed.
+power-menu-hold = Hold to confirm

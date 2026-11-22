@@ -117,7 +117,11 @@ const PowerMenu = (() => {
       restart: "Restart this computer?",
       shutdown: "Shut down this computer?"
     }[action] || "Continue?";
-    const ok = await ask(t(confirmKey, fallbackConfirm));
+    // #2444 — destructive host actions need a deliberate, held confirmation,
+    // not a single accidental click. The confirm is themed (no native dialog).
+    const ok = (action === "restart" || action === "shutdown")
+      ? await askHold(t(confirmKey, fallbackConfirm))
+      : await ask(t(confirmKey, fallbackConfirm));
     if (!ok) return;
 
     // Suspend/resume, lid-open and session-switch must never reveal an
@@ -167,6 +171,55 @@ const PowerMenu = (() => {
         t("power-menu-failed", "The power action failed.") + " " + (error && error.message ? error.message : "")
       );
     }
+  }
+
+  /** #2444 — press-and-hold confirmation for restart/shut down. Resolves true
+   *  only after the button is held for HOLD_MS; releasing early cancels. */
+  function askHold(message) {
+    return new Promise(function (resolve) {
+      var w = window.WindowManager;
+      if (!w || typeof w.openToolWindowBody !== "function") { resolve(false); return; }
+      var HOLD_MS = 1200;
+      var html =
+        '<div class="gb-confirm-floating">' +
+        "<p>" + String(message == null ? "" : message) + "</p>" +
+        '<button data-c-hold class="gb-power-hold" type="button">' +
+        '<span class="gb-power-hold-fill"></span>' +
+        '<span class="gb-power-hold-label">' + t("power-menu-hold", "Hold to confirm") + "</span>" +
+        "</button>" +
+        '<button data-c-no class="gb-confirm-btn">' + t("power-menu-cancel", "Cancel") + "</button>" +
+        "</div>";
+      var body = w.openToolWindowBody("gb-hold-confirm",
+        t("power-menu-title", "Power"), { htmlContent: html });
+      if (!body) { resolve(false); return; }
+      var done = false;
+      function finish(value) {
+        if (done) return;
+        done = true;
+        w.close("gb-hold-confirm");
+        resolve(value);
+      }
+      body.querySelector("[data-c-no]").addEventListener("click", function () { finish(false); });
+      var hold = body.querySelector("[data-c-hold]");
+      var fill = hold.querySelector(".gb-power-hold-fill");
+      var timer = null;
+      function stop() {
+        if (timer) { clearTimeout(timer); timer = null; }
+        hold.classList.remove("is-holding");
+        fill.style.width = "0%";
+      }
+      hold.addEventListener("pointerdown", function (e) {
+        if (e.button && e.button !== 0) return;
+        e.preventDefault();
+        hold.classList.add("is-holding");
+        fill.style.transition = "width " + HOLD_MS + "ms linear";
+        fill.style.width = "100%";
+        timer = setTimeout(function () { stop(); finish(true); }, HOLD_MS);
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(function (name) {
+        hold.addEventListener(name, function () { stop(); });
+      });
+    });
   }
 
   function ask(message) {

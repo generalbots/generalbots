@@ -360,6 +360,33 @@
 .gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 5px; background: var(--gb-surface, var(--surface)); color: inherit; cursor: pointer; font-size: 0.8rem; }
 .gb-confirm-btn.primary { background: var(--gb-accent, var(--primary)); border-color: var(--gb-accent, var(--primary)); color: #fff; }
 
+/* #2444 — press-and-hold confirmation for destructive power actions. */
+.gb-power-hold {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--gb-accent, var(--primary));
+  border-radius: 5px;
+  background: var(--gb-surface, var(--surface));
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+.gb-power-hold-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: var(--gb-accent, var(--primary));
+  opacity: 0.45;
+}
+.gb-power-hold-label { position: relative; z-index: 1; }
+
 /* Workspace tabs (#1168): browser-style persistent tab bar. */
 .gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, var(--surface)); border-bottom: 1px solid var(--gb-border, var(--border)); min-height: 34px; }
 .gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, var(--border)); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, var(--surface)); cursor: pointer; font-size: 0.78rem; max-width: 180px; }

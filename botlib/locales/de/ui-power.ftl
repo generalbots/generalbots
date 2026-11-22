@@ -15,3 +15,4 @@ power-menu-confirm-restart = Diesen Computer neu starten?
 power-menu-confirm-shutdown = Diesen Computer herunterfahren?
 power-menu-done = Anforderung angenommen. Der Computer wird heruntergefahren.
 power-menu-failed = Die Energieaktion ist fehlgeschlagen.
+power-menu-hold = Zum Bestätigen halten

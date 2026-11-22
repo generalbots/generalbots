@@ -15,3 +15,4 @@ power-menu-confirm-restart = このコンピューターを再起動しますか
 power-menu-confirm-shutdown = このコンピューターをシャットダウンしますか？
 power-menu-done = 要求を受け付けました。コンピューターをシャットダウンしています。
 power-menu-failed = 電源操作に失敗しました。
+power-menu-hold = 押し続けて確認

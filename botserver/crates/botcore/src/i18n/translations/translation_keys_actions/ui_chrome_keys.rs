@@ -22,6 +22,8 @@ pub(super) const KEYS: &[&str] = &[
     "app-comments",
     "app-activity",
     "app-actions-unavailable",
+    // #2444 — press-and-hold power confirmation
+    "power-menu-hold",
     "action-save",
     "action-cancel",
     "action-delete",

@@ -15,3 +15,4 @@ power-menu-confirm-restart = Reiniciar este computador?
 power-menu-confirm-shutdown = Desligar este computador?
 power-menu-done = Pedido aceito. O computador está sendo desligado.
 power-menu-failed = A ação de energia falhou.
+power-menu-hold = Segure para confirmar

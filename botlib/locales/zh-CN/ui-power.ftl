@@ -15,3 +15,4 @@ power-menu-confirm-restart = 重新启动此计算机？
 power-menu-confirm-shutdown = 关闭此计算机？
 power-menu-done = 请求已接受，计算机正在关机。
 power-menu-failed = 电源操作失败。
+power-menu-hold = 长按确认
