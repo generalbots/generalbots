@@ -2,6 +2,12 @@
 /* GB Toasts (#1158): transient toast notifications + a notification center
    tray. Any module can call window.GBToasts.show(title, message, kind). */
 
+// #2568 — idempotent load: desktop.html already loads this globally, and some
+// apps (e.g. mail.html) also include it. Re-declaring the top-level const throws
+// `Identifier 'GBToasts' has already been declared` and breaks the app's JS.
+if (typeof window !== "undefined" && window.GBToasts) {
+  // Already loaded — skip re-definition entirely.
+} else {
 const GBToasts = (() => {
   const STORAGE_KEY = "gb-notifications";
 
@@ -220,3 +226,4 @@ const GBToasts = (() => {
 })();
 
 window.GBToasts = GBToasts;
+}
