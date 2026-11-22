@@ -276,12 +276,6 @@ bang-important:botui/ui/suite/snapshot/snapshot.css 1
 bang-important:botui/ui/suite/social/social-composer.css 4
 bang-important:botui/ui/suite/social/social-layout-social.css 4
 bang-important:botui/ui/suite/social/social-layout.css 4
-bang-important:botui/ui/suite/tasks/progress-panel-scoped-status.css 4
-bang-important:botui/ui/suite/tasks/progress-panel-status.css 4
-bang-important:botui/ui/suite/tasks/taskmd-tree-tree.css 5
-bang-important:botui/ui/suite/tasks/tasks-detail-sections-status.css 4
-bang-important:botui/ui/suite/tasks/tasks-floating-progress-progress.css 4
-bang-important:botui/ui/suite/tasks/tasks-layout-pill.css 12
 bang-important:botui/ui/suite/tasks/tasks-panes-contract.css 2
 bang-important:botui/ui/suite/tasks/tasks-scoped-cards.css 4
 bang-important:botui/ui/suite/tasks/tasks-scoped-detail-detail.css 4
