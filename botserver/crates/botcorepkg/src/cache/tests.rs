@@ -1,9 +1,6 @@
 use super::*;
 use std::fs;
 
-use super::*;
-use std::fs;
-
 fn setup_cache_with_file(name: &str, data: &[u8]) -> (std::path::PathBuf, DownloadCache) {
     let base = std::env::temp_dir().join(format!("gb-cache-test-{}-{}", name, std::process::id()));
     let _ = fs::remove_dir_all(&base);
