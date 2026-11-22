@@ -355,6 +355,7 @@ fn signed_headers(signature: &Signature, key: &str, event_id: &str) -> Vec<(Stri
 }
 
 pub use super::native::{NativeDispatcher, NativeEnvelope};
+pub use super::subscription::NativeSubscription;
 
 #[cfg(test)]
 #[path = "dispatcher_tests.rs"]
