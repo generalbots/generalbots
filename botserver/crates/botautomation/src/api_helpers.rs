@@ -10,10 +10,10 @@ pub(super) fn is_terminal(status: &str) -> bool {
     )
 }
 
-struct SseTick {
-    spans: Vec<crate::models::AgentSpan>,
-    total_spans: i64,
-    run: Option<AgentRun>,
+pub(super) struct SseTick {
+    pub(super) spans: Vec<crate::models::AgentSpan>,
+    pub(super) total_spans: i64,
+    pub(super) run: Option<AgentRun>,
 }
 
 pub(super) fn poll_tick(state: &AutomationService, run_id: Uuid, emitted: usize) -> Option<SseTick> {
