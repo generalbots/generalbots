@@ -5,8 +5,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg-primary, #0a0a0a);
-    color: var(--text, #f8fafc);
+    background: var(--bg-primary, var(--palette-0a0a0a));
+    color: var(--text, var(--palette-f8fafc));
 }
 
 /* Header */
@@ -15,7 +15,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
     flex-shrink: 0;
 }
 
@@ -50,11 +50,11 @@
 
 .billing-tab:hover {
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .billing-tab.active {
-    background: var(--accent, #d4f505);
+    background: var(--accent, var(--palette-d4f505));
     color: #000;
 }
 
@@ -71,7 +71,7 @@
     gap: 8px;
     padding: 8px 12px;
     background: var(--surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     min-width: 280px;
 }
@@ -85,7 +85,7 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     font-size: var(--text-xs);
     outline: none;
 }
@@ -100,8 +100,8 @@
     right: 150px;
     width: 350px;
     max-height: 400px;
-    background: var(--surface, #1a1a1a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface, var(--palette-1a1a1a));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
     overflow-y: auto;
@@ -118,7 +118,7 @@
     display: flex;
     gap: 16px;
     padding: 24px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .billing-summary .summary-card {
@@ -128,7 +128,7 @@
     gap: 16px;
     padding: 16px 20px;
     background: var(--surface, rgba(255, 255, 255, 0.02));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 12px;
 }
 
@@ -144,22 +144,22 @@
 
 .summary-icon.pending {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .summary-icon.overdue {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .summary-icon.paid {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 
 .summary-icon.total {
     background: rgba(212, 245, 5, 0.15);
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--palette-d4f505));
 }
 
 .summary-info {
@@ -176,15 +176,15 @@
 .summary-value {
     font-size: var(--text-2xl);
     font-weight: 700;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .summary-value.paid {
-    color: var(--success, #22c55e);
+    color: var(--success, var(--palette-22c55e));
 }
 
 .summary-value.overdue {
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 
 /* Views */
@@ -205,7 +205,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .list-filters {
@@ -216,15 +216,15 @@
 .list-filters select {
     padding: 8px 12px;
     background: var(--surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     font-size: var(--text-xs);
     cursor: pointer;
 }
 
 .list-filters select option {
-    background: var(--bg-primary, #0a0a0a);
+    background: var(--bg-primary, var(--palette-0a0a0a));
 }
 
 .list-actions {
@@ -242,7 +242,7 @@
 .billing-table td {
     padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .billing-table th {
@@ -258,7 +258,7 @@
 
 .billing-table td {
     font-size: var(--text-xs);
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .billing-table tbody tr {
@@ -271,7 +271,7 @@
 
 /* Invoice Number Link */
 .invoice-number {
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--palette-d4f505));
     font-weight: 600;
     text-decoration: none;
 }
@@ -303,49 +303,49 @@
 
 .status-badge.draft {
     background: rgba(148, 163, 184, 0.15);
-    color: #94a3b8;
+    color: var(--palette-94a3b8);
 }
 
 .status-badge.sent {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .status-badge.paid {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 
 .status-badge.overdue {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .status-badge.cancelled {
     background: rgba(107, 114, 128, 0.15);
-    color: #6b7280;
+    color: var(--palette-6b7280);
 }
 
 .status-badge.accepted {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 
 .status-badge.rejected {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .status-badge.expired {
     background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
 }
 
 /* Action buttons */
 .action-btn {
     padding: 6px 12px;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
     color: var(--text-secondary, #888);
     font-size: var(--text-2xs);
@@ -354,8 +354,8 @@
 }
 
 .action-btn:hover {
-    border-color: var(--accent, #d4f505);
-    color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
+    color: var(--accent, var(--palette-d4f505));
 }
 
 .btn-primary {
@@ -363,7 +363,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: var(--accent, #d4f505);
+    background: var(--accent, var(--palette-d4f505));
     color: #000;
     border: none;
     border-radius: 6px;
@@ -374,7 +374,7 @@
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover, #c4e505);
+    background: var(--accent-hover, var(--palette-c4e505));
     transform: translateY(-1px);
 }
 
@@ -389,18 +389,18 @@
 }
 
 .row-actions .action-btn.danger:hover {
-    border-color: var(--error, #ef4444);
-    color: var(--error, #ef4444);
+    border-color: var(--error, var(--palette-ef4444));
+    color: var(--error, var(--palette-ef4444));
 }
 
 /* Due date styling */
 .due-date.overdue {
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
     font-weight: 500;
 }
 
 .due-date.soon {
-    color: var(--warning, #f59e0b);
+    color: var(--warning, var(--palette-f59e0b));
 }
 
 /* Modal */
@@ -433,8 +433,8 @@
     width: 100%;
     max-width: 700px;
     max-height: 90vh;
-    background: var(--bg-primary, #0a0a0a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--bg-primary, var(--palette-0a0a0a));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 12px;
     box-shadow: var(--shadow-xl);
     overflow-y: auto;

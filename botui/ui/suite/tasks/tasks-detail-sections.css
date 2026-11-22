@@ -7,18 +7,18 @@
     gap: 10px;
     padding: 14px 18px;
     background: var(--error-light, rgba(239, 68, 68, 0.15));
-    border: 2px solid var(--error, var(--error, #ef4444));
+    border: 2px solid var(--error, var(--error, var(--palette-ef4444)));
     border-radius: 10px;
     margin-bottom: 16px;
 }
 
 .error-icon {
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
     font-size: 1.1rem;
 }
 
 .error-text {
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
     font-size: 0.85rem;
 }
 
@@ -39,7 +39,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
 }
 
 .status-indicator.active {
@@ -56,7 +56,7 @@
     font-size: 0.85rem;
     margin-left: auto;
     padding: 4px 10px;
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover, var(--palette-1e1e1e));
     border-radius: 6px;
 }
 
@@ -67,15 +67,15 @@
 
 .progress-bar-rich {
     height: 10px;
-    background: var(--surface, #161616);
+    background: var(--surface, var(--palette-161616));
     border-radius: 6px;
     overflow: hidden;
-    border: 2px solid var(--border, #2a2a2a);
+    border: 2px solid var(--border, var(--palette-2a2a2a));
 }
 
 .progress-fill-rich {
     height: 100%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 4px;
     transition: width 0.3s ease;
     box-shadow: 0 0 8px rgba(197, 248, 42, 0.4);
@@ -121,15 +121,15 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--surface-hover, #1e1e1e);
-    border: 2px solid var(--border, #2a2a2a);
+    background: var(--surface-hover, var(--palette-1e1e1e));
+    border: 2px solid var(--border, var(--palette-2a2a2a));
     border-radius: 10px;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .log-group-header:hover {
-    background: var(--surface-active, #252525);
+    background: var(--surface-active, var(--palette-252525));
 }
 
 .log-group-name {
@@ -146,7 +146,7 @@
 
 .log-step-badge {
     padding: 4px 12px;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     color: var(--bg, #000);
     font-size: 0.75rem;
     font-weight: 700;
@@ -158,18 +158,18 @@
     font-size: 0.75rem;
     font-weight: 600;
     border-radius: 6px;
-    background: var(--surface-active, #252525);
+    background: var(--surface-active, var(--palette-252525));
     color: var(--text-secondary, #888);
 }
 
 .log-status-badge.completed {
     background: var(--success-light, rgba(34, 197, 94, 0.15));
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .log-group-items {
     padding: 12px 0 0 20px;
-    border-left: 3px solid var(--border, #2a2a2a);
+    border-left: 3px solid var(--border, var(--palette-2a2a2a));
     margin-left: 16px;
     margin-top: 10px;
 }
@@ -179,8 +179,8 @@
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface, var(--palette-161616));
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     margin-bottom: 8px;
 }
@@ -189,20 +189,20 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--border, #2a2a2a);
+    background: var(--border, var(--palette-2a2a2a));
 }
 
 .log-dot.completed {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .log-dot.running {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     animation: pulse-status-dot 1.5s ease-in-out infinite;
 }
 
 .log-dot.failed {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .log-dot.pending {
@@ -210,7 +210,7 @@
 }
 
 .log-dot.active {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     animation: pulse-status-dot 1.5s ease-in-out infinite;
 }
 

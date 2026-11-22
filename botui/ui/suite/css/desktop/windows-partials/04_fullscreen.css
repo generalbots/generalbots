@@ -4,8 +4,8 @@
 
 /* Fullscreen control dot: expand-to-corners, mirrored while active. The
    state class lives on the window element (08_fullscreen.js owns it). */
-.window-dot-fullscreen       { background: #0a84ff; }
-.window-dot-fullscreen:hover { background: #0066d6; }
+.window-dot-fullscreen       { background: var(--palette-0a84ff); }
+.window-dot-fullscreen:hover { background: var(--palette-0066d6); }
 .window-dot-fullscreen::after {
   content: "⤢";
   color: var(--text);

@@ -8,46 +8,46 @@
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .gb-model-dialog {
-  background: #0f172a; color: #f8fafc; border: 1px solid #334155;
+  background: var(--palette-0f172a); color: var(--palette-f8fafc); border: 1px solid var(--palette-334155);
   border-radius: 10px; width: min(920px, 96vw); max-height: 90vh;
   display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
 }
 .gb-model-dialog-title { margin: 0; padding: 14px 18px 6px; font-size: var(--text-md); }
-.gb-model-local-note { color: #94a3b8; font-size: var(--text-2xs); font-style: italic; margin: 0 18px 6px; }
+.gb-model-local-note { color: var(--palette-94a3b8); font-size: var(--text-2xs); font-style: italic; margin: 0 18px 6px; }
 .gb-model-dialog-body { padding: 6px 18px; overflow-y: auto; flex: 1; }
-.gb-model-status { padding: 8px 18px; color: #93c5fd; font-size: var(--text-2xs); min-height: 18px; }
-.gb-model-dialog-footer { padding: 8px 18px 14px; text-align: right; border-top: 1px solid #1e293b; }
+.gb-model-status { padding: 8px 18px; color: var(--palette-93c5fd); font-size: var(--text-2xs); min-height: 18px; }
+.gb-model-dialog-footer { padding: 8px 18px 14px; text-align: right; border-top: 1px solid var(--palette-1e293b); }
 
 .gb-model-btn {
-  background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+  background: var(--palette-1e293b); color: var(--palette-e2e8f0); border: 1px solid var(--palette-475569);
   border-radius: 5px; padding: 5px 10px; font-size: var(--text-2xs);
   cursor: pointer; margin: 2px 4px 2px 0;
 }
-.gb-model-btn:hover { background: #334155; }
+.gb-model-btn:hover { background: var(--palette-334155); }
 .gb-model-btn:focus-visible, .gb-model-paste-input:focus-visible {
-  outline: 2px solid #60a5fa; outline-offset: 1px;
+  outline: 2px solid var(--palette-60a5fa); outline-offset: 1px;
 }
 
-.gb-model-section { border-top: 1px solid #1e293b; padding: 8px 0; }
-.gb-model-section-title { font-size: var(--text-xs); color: #f1f5f9; margin: 2px 0 6px; }
+.gb-model-section { border-top: 1px solid var(--palette-1e293b); padding: 8px 0; }
+.gb-model-section-title { font-size: var(--text-xs); color: var(--palette-f1f5f9); margin: 2px 0 6px; }
 .gb-model-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 0; }
-.gb-model-label { color: #94a3b8; font-size: var(--text-2xs); min-width: 92px; }
-.gb-model-value { color: #e2e8f0; font-size: var(--text-2xs); }
-.gb-model-empty { color: #94a3b8; font-size: var(--text-2xs); }
-.gb-model-deferred { color: #fbbf24; font-size: var(--text-2xs); }
+.gb-model-label { color: var(--palette-94a3b8); font-size: var(--text-2xs); min-width: 92px; }
+.gb-model-value { color: var(--palette-e2e8f0); font-size: var(--text-2xs); }
+.gb-model-empty { color: var(--palette-94a3b8); font-size: var(--text-2xs); }
+.gb-model-deferred { color: var(--palette-fbbf24); font-size: var(--text-2xs); }
 
-.gb-model-block { border-left: 2px solid #334155; padding: 2px 8px; margin: 3px 0; }
-.gb-model-block-head { color: #93c5fd; font-size: var(--text-2xs); }
-.gb-model-span { color: #cbd5e1; font-size: var(--text-2xs); padding-left: 8px; }
-.gb-model-op { color: #cbd5e1; font-size: var(--text-2xs); padding: 1px 0; }
+.gb-model-block { border-left: 2px solid var(--palette-334155); padding: 2px 8px; margin: 3px 0; }
+.gb-model-block-head { color: var(--palette-93c5fd); font-size: var(--text-2xs); }
+.gb-model-span { color: var(--palette-cbd5e1); font-size: var(--text-2xs); padding-left: 8px; }
+.gb-model-op { color: var(--palette-cbd5e1); font-size: var(--text-2xs); padding: 1px 0; }
 
 .gb-model-pre {
-  background: #020617; color: #cbd5e1; border: 1px solid #1e293b;
+  background: var(--palette-020617); color: var(--palette-cbd5e1); border: 1px solid var(--palette-1e293b);
   border-radius: 5px; padding: 8px; max-height: 220px; overflow: auto;
   font-size: var(--text-2xs); white-space: pre-wrap; word-break: break-word;
 }
 .gb-model-paste-input {
   width: 100%; box-sizing: border-box; min-height: 60px; resize: vertical;
-  background: #020617; color: #f8fafc; border: 1px solid #475569;
+  background: var(--palette-020617); color: var(--palette-f8fafc); border: 1px solid var(--palette-475569);
   border-radius: 5px; padding: 8px; font: inherit; font-size: var(--text-2xs);
 }

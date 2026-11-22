@@ -11,7 +11,7 @@
     transition: color var(--id-dur-fast) var(--id-ease),
                 background var(--id-dur-fast) var(--id-ease);
 }
-.gb-feedback-btn:hover { background: var(--id-surface-alt, #f1f5f9); color: var(--id-text); }
+.gb-feedback-btn:hover { background: var(--id-surface-alt, var(--palette-f1f5f9)); color: var(--id-text); }
 .gb-feedback-btn.active { color: var(--id-accent); }
 .gb-feedback-comment {
     display: flex; gap: 4px; margin-top: 4px; padding: 4px 0;
@@ -43,7 +43,7 @@
     transition: color var(--id-dur-fast) var(--id-ease),
                 background var(--id-dur-fast) var(--id-ease);
 }
-.gb-export-btn:hover { background: var(--id-surface-alt, #f1f5f9); color: var(--id-text); }
+.gb-export-btn:hover { background: var(--id-surface-alt, var(--palette-f1f5f9)); color: var(--id-text); }
 
 /* ---- Print stylesheet ---- */
 @media print {
@@ -83,13 +83,13 @@
         border: none !important; box-shadow: none !important;
     }
     .gb-msg-user-bubble {
-        background: #f0f0f0 !important; color: black !important;
+        background: var(--palette-f0f0f0) !important; color: black !important;
         padding: 6pt 10pt; border-radius: 4pt;
     }
     .gb-msg-body { color: black !important; }
     .gb-msg-body pre, .gb-msg-body code {
         white-space: pre-wrap !important; word-break: break-word;
-        background: #f5f5f5 !important; color: black !important;
+        background: var(--palette-f5f5f5) !important; color: black !important;
         border: 1px solid #ddd; font-size: 10pt;
     }
     a { color: black !important; text-decoration: underline; }

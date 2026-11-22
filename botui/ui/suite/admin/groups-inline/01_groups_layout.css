@@ -138,7 +138,7 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary), #a855f7);
+    background: linear-gradient(135deg, var(--primary), var(--palette-a855f7));
     color: white;
     display: flex;
     align-items: center;
@@ -211,17 +211,17 @@
 
 .visibility-badge.public {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--palette-10b981);
 }
 
 .visibility-badge.private {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .visibility-badge.hidden {
     background: rgba(107, 114, 128, 0.1);
-    color: #6b7280;
+    color: var(--palette-6b7280);
 }
 
 .group-card-actions {

@@ -19,16 +19,16 @@
     flex-direction: row;
     height: 100%;
     min-height: 0;
-    background: var(--bg, var(--bg-primary, #0a0a0f));
-    color: var(--text, var(--text-primary, #ffffff));
+    background: var(--bg, var(--bg-primary, var(--palette-0a0a0f)));
+    color: var(--text, var(--text-primary, var(--palette-ffffff)));
 }
 
 /* Drive Sidebar */
 .drive-sidebar {
     width: 240px;
     min-width: 240px;
-    background: var(--surface, var(--bg-secondary, #12121a));
-    border-right: 1px solid var(--border, #2a2a3a);
+    background: var(--surface, var(--bg-secondary, var(--palette-12121a)));
+    border-right: 1px solid var(--border, var(--palette-2a2a3a));
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -150,7 +150,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--border, #2a2a3a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a3a));
     flex-shrink: 0;
 }
 
@@ -188,13 +188,13 @@
     gap: 6px;
     font-size: var(--text-sm);
     padding: 6px 12px;
-    background: var(--surface, #1e293b);
+    background: var(--surface, var(--palette-1e293b));
     border-radius: 6px;
     min-height: 32px;
 }
 
 .breadcrumb-item {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--palette-94a3b8));
     cursor: pointer;
     background: none;
     border: none;
@@ -206,18 +206,18 @@
 }
 
 .breadcrumb-item:hover {
-    background: var(--surface-hover, #334155);
-    color: var(--primary, #3b82f6);
+    background: var(--surface-hover, var(--palette-334155));
+    color: var(--primary, var(--palette-3b82f6));
 }
 
 .breadcrumb-sep {
-    color: var(--border, #475569);
+    color: var(--border, var(--palette-475569));
     font-size: var(--text-xs);
     user-select: none;
 }
 
 .breadcrumb-current {
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     font-weight: 600;
     font-size: var(--text-xs);
     padding: 2px 6px;

@@ -11,27 +11,27 @@
 
 .file-icon.folder {
     background: rgba(249, 115, 22, 0.1);
-    color: #f97316;
+    color: var(--palette-f97316);
 }
 
 .file-icon.document {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .file-icon.image {
     background: rgba(168, 85, 247, 0.1);
-    color: #a855f7;
+    color: var(--palette-a855f7);
 }
 
 .file-icon.video {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .file-icon.audio {
     background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 
 .file-meta {
@@ -175,20 +175,20 @@
 .search-box input {
     width: 100%;
     padding: 8px 12px 8px 40px;
-    border: 1px solid var(--border, #2a2a3a);
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 8px;
-    background: var(--surface, #12121a);
-    color: var(--text, #ffffff);
+    background: var(--surface, var(--palette-12121a));
+    color: var(--text, var(--palette-ffffff));
     font-size: var(--text-sm);
 }
 
 .search-box input:focus {
     outline: none;
-    border-color: var(--primary, #3b82f6);
+    border-color: var(--primary, var(--palette-3b82f6));
 }
 
 .search-box input::placeholder {
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
 }
 
 /* #1638 — keyboard hint for the always-visible Drive search box. */
@@ -201,11 +201,11 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b80);
-    border: 1px solid var(--border, #2a2a3a);
+    color: var(--text-secondary, var(--palette-6b6b80));
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 4px;
     padding: 1px 5px;
-    background: var(--surface-2, #1a1a24);
+    background: var(--surface-2, var(--palette-1a1a24));
     pointer-events: none;
 }
 
@@ -229,15 +229,15 @@
     flex-direction: column;
     align-items: center;
     padding: 40px 60px;
-    border: 3px dashed var(--primary, #3b82f6);
+    border: 3px dashed var(--primary, var(--palette-3b82f6));
     border-radius: 16px;
     background: rgba(59, 130, 246, 0.1);
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
 }
 
 .drop-zone svg {
     margin-bottom: 16px;
-    color: var(--primary, #3b82f6);
+    color: var(--primary, var(--palette-3b82f6));
 }
 
 .drop-zone p {

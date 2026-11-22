@@ -16,9 +16,9 @@
 }
 
 .modal-content {
-    background: var(--surface, #12121a);
+    background: var(--surface, var(--palette-12121a));
     border-radius: 12px;
-    border: 1px solid var(--border, #2a2a3a);
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     max-width: 100%;
     max-height: 100%;
@@ -37,8 +37,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border, #2a2a3a);
-    background: var(--bg-secondary, #0d0d12);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a3a));
+    background: var(--bg-secondary, var(--palette-0d0d12));
     border-radius: 12px 12px 0 0;
 }
 
@@ -55,11 +55,11 @@
 }
 
 .editor-filename {
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
 }
 
 .editor-status {
-    color: var(--warning, #f59e0b);
+    color: var(--warning, var(--palette-f59e0b));
     font-size: var(--text-2xs);
     margin-left: 8px;
 }
@@ -82,8 +82,8 @@
     height: 100%;
     padding: 16px;
     border: none;
-    background: var(--bg, #0a0a0f);
-    color: var(--text, #ffffff);
+    background: var(--bg, var(--palette-0a0a0f));
+    color: var(--text, var(--palette-ffffff));
     font-family: "JetBrains Mono", "Fira Code", "Monaco", "Consolas", monospace;
     font-size: var(--text-sm);
     line-height: 1.6;
@@ -101,11 +101,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    border-top: 1px solid var(--border, #2a2a3a);
-    background: var(--bg-secondary, #0d0d12);
+    border-top: 1px solid var(--border, var(--palette-2a2a3a));
+    background: var(--bg-secondary, var(--palette-0d0d12));
     border-radius: 0 0 12px 12px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
 }
 
 .editor-info {

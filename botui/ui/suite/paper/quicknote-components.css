@@ -197,7 +197,7 @@
 .result-item.task { border-left-color: var(--paper-primary); }
 .result-item.event { border-left-color: var(--paper-success); }
 .result-item.email { border-left-color: var(--paper-accent); }
-.result-item.file { border-left-color: #8b5cf6; }
+.result-item.file { border-left-color: var(--palette-8b5cf6); }
 
 .result-item-icon {
     width: 32px;

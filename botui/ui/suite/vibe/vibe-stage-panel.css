@@ -2,7 +2,7 @@
     display: none;
     padding: 16px 20px;
     border-bottom: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     max-height: 200px;
     overflow-y: auto;
 }
@@ -35,8 +35,8 @@
 
 .vibe-stage-row.done .idx {
     background: rgba(34, 197, 94, 0.15);
-    border-color: #22c55e;
-    color: #4ade80;
+    border-color: var(--palette-22c55e);
+    color: var(--palette-4ade80);
 }
 
 .vibe-stage-row.skipped .idx {
@@ -45,6 +45,6 @@
 
 .vibe-stage-row.failed .idx {
     background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-    color: #f87171;
+    border-color: var(--palette-ef4444);
+    color: var(--palette-f87171);
 }

@@ -141,7 +141,7 @@
 .run-row[data-phase="agent"] .run-row-name::before { content: "✦ "; }
 .run-row[data-phase="tool"] .run-row-name::before { content: "▸ "; }
 .run-row[data-phase="infra"] .run-row-status { color: var(--text-tertiary); }
-.run-row[data-phase="agent"] .run-row-status { color: #8250df; }
+.run-row[data-phase="agent"] .run-row-status { color: var(--palette-8250df); }
 
 .run-row.run-error .run-row-name { color: var(--error); }
 

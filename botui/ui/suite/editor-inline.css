@@ -5,8 +5,8 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 flex-direction: column;
                 height: 100%;
                 min-height: 0;
-                background: var(--bg, #0f172a);
-                color: var(--text, #f8fafc);
+                background: var(--bg, var(--palette-0f172a));
+                color: var(--text, var(--palette-f8fafc));
             }
 
             .editor-header {
@@ -14,8 +14,8 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 align-items: center;
                 justify-content: space-between;
                 padding: 12px 20px;
-                background: var(--surface, #1e293b);
-                border-bottom: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-bottom: 1px solid var(--border, var(--palette-334155));
             }
 
             .editor-title {
@@ -35,7 +35,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .editor-path {
                 font-size: var(--text-2xs);
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .editor-toolbar {
@@ -43,8 +43,8 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 align-items: center;
                 gap: 8px;
                 padding: 8px 20px;
-                background: var(--surface, #1e293b);
-                border-bottom: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-bottom: 1px solid var(--border, var(--palette-334155));
             }
 
             .toolbar-group {
@@ -52,7 +52,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 align-items: center;
                 gap: 4px;
                 padding-right: 12px;
-                border-right: 1px solid var(--border, #334155);
+                border-right: 1px solid var(--border, var(--palette-334155));
             }
 
             .toolbar-group:last-child {
@@ -70,31 +70,31 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 font-weight: 500;
                 cursor: pointer;
                 transition: all 0.2s;
-                background: var(--surface-hover, #334155);
-                color: var(--text, #f8fafc);
+                background: var(--surface-hover, var(--palette-334155));
+                color: var(--text, var(--palette-f8fafc));
             }
 
             .btn:hover {
-                background: var(--border-light, #475569);
+                background: var(--border-light, var(--palette-475569));
             }
 
             .btn-primary {
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 color: white;
             }
 
             .btn-primary:hover {
-                background: var(--primary-hover, #2563eb);
+                background: var(--primary-hover, var(--palette-2563eb));
             }
 
             .btn-magic {
-                background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+                background: linear-gradient(135deg, var(--palette-8b5cf6), var(--palette-3b82f6));
                 color: white;
                 border: none;
             }
 
             .btn-magic:hover {
-                background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                background: linear-gradient(135deg, var(--palette-3b82f6), var(--palette-8b5cf6));
                 transform: scale(1.02);
             }
 
@@ -104,8 +104,8 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 bottom: 60px;
                 width: 400px;
                 max-height: 500px;
-                background: var(--surface, #1e293b);
-                border: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 12px;
                 box-shadow: 0 8px 32px rgba(0,0,0,0.4);
                 z-index: var(--z-dropdown);
@@ -120,7 +120,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .magic-header {
                 padding: 16px;
-                border-bottom: 1px solid var(--border, #334155);
+                border-bottom: 1px solid var(--border, var(--palette-334155));
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -138,7 +138,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
             .magic-close {
                 background: none;
                 border: none;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 cursor: pointer;
                 font-size: var(--text-lg);
             }
@@ -152,11 +152,11 @@ html, body { height: 100%; margin: 0; padding: 0; }
             .magic-loading {
                 text-align: center;
                 padding: 40px;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .magic-result {
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border-radius: 8px;
                 padding: 12px;
                 margin-bottom: 12px;
@@ -202,8 +202,8 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .line-numbers {
                 width: 50px;
-                background: var(--surface, #1e293b);
-                border-right: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-right: 1px solid var(--border, var(--palette-334155));
                 padding: 16px 8px;
                 overflow: hidden;
                 text-align: right;
@@ -211,13 +211,13 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "DejaVu Sans Mono", "Ubuntu Mono", monospace;
                 font-size: var(--text-xs);
                 line-height: 1.6;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .text-editor {
                 flex: 1;
-                background: var(--bg, #0f172a);
-                color: var(--text, #f8fafc);
+                background: var(--bg, var(--palette-0f172a));
+                color: var(--text, var(--palette-f8fafc));
                 border: none;
                 padding: 16px;
                 font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "DejaVu Sans Mono", "Ubuntu Mono", monospace;
@@ -244,21 +244,21 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .csv-table th,
             .csv-table td {
-                border: 1px solid var(--border, #334155);
+                border: 1px solid var(--border, var(--palette-334155));
                 padding: 0;
                 min-width: 120px;
             }
 
             .csv-table th {
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 font-weight: 600;
             }
 
             .csv-table .row-num {
                 width: 40px;
                 min-width: 40px;
-                background: var(--surface, #1e293b);
-                color: var(--text-secondary, #94a3b8);
+                background: var(--surface, var(--palette-1e293b));
+                color: var(--text-secondary, var(--palette-94a3b8));
                 text-align: center;
                 padding: 8px 4px;
                 font-size: var(--text-2xs);
@@ -268,14 +268,14 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 width: 100%;
                 background: transparent;
                 border: none;
-                color: var(--text, #f8fafc);
+                color: var(--text, var(--palette-f8fafc));
                 padding: 8px 12px;
                 font-size: var(--text-xs);
                 outline: none;
             }
 
             .csv-input:focus {
-                background: var(--surface, #1e293b);
+                background: var(--surface, var(--palette-1e293b));
             }
 
             .status-bar {
@@ -283,10 +283,10 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 align-items: center;
                 justify-content: space-between;
                 padding: 6px 16px;
-                background: var(--surface, #1e293b);
-                border-top: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-top: 1px solid var(--border, var(--palette-334155));
                 font-size: var(--text-2xs);
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .status-left,
@@ -330,10 +330,10 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 bottom: 60px;
                 right: 20px;
                 padding: 12px 20px;
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                border-left: 4px solid var(--primary, #3b82f6);
+                border-left: 4px solid var(--primary, var(--palette-3b82f6));
                 opacity: 0;
                 transform: translateX(100%);
                 transition: all 0.3s ease;

@@ -40,7 +40,7 @@
   right: 0;
   top: calc(100% + 4px);
   min-width: 220px;
-  background: var(--gb-surface, #1e1f22);
+  background: var(--gb-surface, var(--palette-1e1f22));
   border: 1px solid var(--gb-border, rgba(255,255,255,0.12));
   border-radius: 8px;
   padding: 6px;
@@ -63,4 +63,4 @@
 .gb-chat-conversation-menu button:hover {
   background: rgba(255,255,255,0.06);
 }
-.gb-chat-conversation-menu button.danger { color: #ff6b6b; }
+.gb-chat-conversation-menu button.danger { color: var(--palette-ff6b6b); }

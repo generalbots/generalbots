@@ -159,7 +159,7 @@
 }
 
 .warning-icon {
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
     margin-bottom: 16px;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .form-group label .required {
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .form-group input,

@@ -192,6 +192,8 @@ pub(super) const KEYS: &[&str] = &[
     "weba-published",
     "weba-unpublished",
     "weba-error",
+    // #2324 — high-contrast theme
+    "theme-high-contrast",
     // #2338 — remaining chat/drive strings
     "chat-str-sign-in-at",
     "chat-str-preparing",

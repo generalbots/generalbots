@@ -35,7 +35,7 @@
 }
 
 .btn-accent:hover {
-    background: #059669;
+    background: var(--palette-059669);
 }
 
 .btn-danger {
@@ -44,7 +44,7 @@
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background: var(--palette-dc2626);
 }
 
 .btn-ghost {

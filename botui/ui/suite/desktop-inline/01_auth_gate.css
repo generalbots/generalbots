@@ -3,6 +3,6 @@
                 content: '';
                 position: fixed;
                 inset: 0;
-                background: var(--bg, #0b0b12);
+                background: var(--bg, var(--palette-0b0b12));
             }
         

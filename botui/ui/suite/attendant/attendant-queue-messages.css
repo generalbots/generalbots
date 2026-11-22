@@ -2,21 +2,21 @@
 
 
             .channel-whatsapp {
-                background: #25d366;
+                background: var(--palette-25d366);
                 color: white;
             }
             .channel-teams {
-                background: #6264a7;
+                background: var(--palette-6264a7);
                 color: white;
             }
             .channel-instagram {
                 background: linear-gradient(
                     45deg,
-                    #f09433,
-                    #e6683c,
-                    #dc2743,
-                    #cc2366,
-                    #bc1888
+                    var(--palette-f09433),
+                    var(--palette-e6683c),
+                    var(--palette-dc2743),
+                    var(--palette-cc2366),
+                    var(--palette-bc1888)
                 );
                 color: white;
             }
@@ -25,11 +25,11 @@
                 color: white;
             }
             .channel-telegram {
-                background: #0088cc;
+                background: var(--palette-0088cc);
                 color: white;
             }
             .channel-email {
-                background: #ea4335;
+                background: var(--palette-ea4335);
                 color: white;
             }
 
@@ -44,7 +44,7 @@
                 color: white;
             }
             .priority-urgent {
-                background: #dc2626;
+                background: var(--palette-dc2626);
                 color: white;
                 animation: pulse 1s infinite;
             }
@@ -55,11 +55,11 @@
 
             .waiting-time {
                 font-size: var(--text-2xs);
-                color: var(--text-tertiary, #64748b);
+                color: var(--text-tertiary, var(--palette-64748b));
             }
 
             .waiting-time.long {
-                color: var(--error, #ef4444);
+                color: var(--error, var(--palette-ef4444));
             }
 
             /* Empty Queue State */
@@ -70,7 +70,7 @@
                 justify-content: center;
                 padding: 40px 20px;
                 text-align: center;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
             }
 
             .empty-queue svg {
@@ -84,7 +84,7 @@
             .chat-area {
                 display: flex;
                 flex-direction: column;
-                background: var(--bg, #0f172a);
+                background: var(--bg, var(--palette-0f172a));
             }
 
             .no-conversation {
@@ -93,7 +93,7 @@
                 align-items: center;
                 justify-content: center;
                 height: 100%;
-                color: var(--text-secondary, #94a3b8);
+                color: var(--text-secondary, var(--palette-94a3b8));
                 text-align: center;
             }
 
@@ -106,8 +106,8 @@
 
             .chat-header {
                 padding: 16px 20px;
-                background: var(--surface, #1e293b);
-                border-bottom: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border-bottom: 1px solid var(--border, var(--palette-334155));
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -123,7 +123,7 @@
                 width: 48px;
                 height: 48px;
                 border-radius: 50%;
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -152,7 +152,7 @@
             .typing-indicator span {
                 width: 6px;
                 height: 6px;
-                background: var(--text-tertiary, #64748b);
+                background: var(--text-tertiary, var(--palette-64748b));
                 border-radius: 50%;
                 animation: typing 1s infinite;
             }
@@ -203,7 +203,7 @@
             }
 
             .action-btn.primary:hover {
-                background: #059669;
+                background: var(--palette-059669);
             }
 
             .action-btn.danger {
@@ -211,7 +211,7 @@
             }
 
             .action-btn.danger:hover {
-                background: #dc2626;
+                background: var(--palette-dc2626);
             }
 
             /* Chat Messages */
@@ -223,7 +223,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
-                background: var(--bg, #0f172a);
+                background: var(--bg, var(--palette-0f172a));
             }
 
             .message {

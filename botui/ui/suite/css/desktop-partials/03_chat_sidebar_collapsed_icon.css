@@ -180,10 +180,10 @@
     transition: all 0.15s;
 }
 
-.window-dot-close { background: #ff5f57; }
-.window-dot-close:hover { background: #ff3b30; }
-.window-dot-minimize { background: #febc2e; }
-.window-dot-minimize:hover { background: #f5a623; }
+.window-dot-close { background: var(--palette-ff5f57); }
+.window-dot-close:hover { background: var(--palette-ff3b30); }
+.window-dot-minimize { background: var(--palette-febc2e); }
+.window-dot-minimize:hover { background: var(--palette-f5a623); }
 
 .window-header-glass .window-title {
     flex: 1;

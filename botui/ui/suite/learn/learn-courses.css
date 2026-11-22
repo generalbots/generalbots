@@ -99,7 +99,7 @@
     top: 12px;
     left: 12px;
     padding: 4px 10px;
-    background: #dc2626;
+    background: var(--palette-dc2626);
     color: white;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -161,7 +161,7 @@
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), #10b981);
+    background: linear-gradient(90deg, var(--primary-color), var(--palette-10b981));
     border-radius: 3px;
     transition: width 0.3s ease;
 }
@@ -256,13 +256,13 @@
 }
 
 .mandatory-item.overdue {
-    border-color: #dc2626;
-    background: #fef2f2;
+    border-color: var(--palette-dc2626);
+    background: var(--palette-fef2f2);
 }
 
 .mandatory-item.urgent {
-    border-color: #f59e0b;
-    background: #fffbeb;
+    border-color: var(--palette-f59e0b);
+    background: var(--palette-fffbeb);
 }
 
 .mandatory-icon {
@@ -295,12 +295,12 @@
 }
 
 .mandatory-due.overdue {
-    color: #dc2626;
+    color: var(--palette-dc2626);
     font-weight: 600;
 }
 
 .mandatory-due.urgent {
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
     font-weight: 600;
 }
 

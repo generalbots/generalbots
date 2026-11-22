@@ -52,11 +52,11 @@
     }
 
     .sidebar-item:hover {
-        background: var(--surface-hover, #ffffff);
+        background: var(--surface-hover, var(--palette-ffffff));
     }
 
     .sidebar-item.active {
-        background: var(--surface-hover, #ffffff);
+        background: var(--surface-hover, var(--palette-ffffff));
         border-left: 3px solid var(--accent);
     }
 

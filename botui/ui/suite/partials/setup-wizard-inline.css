@@ -15,8 +15,8 @@
 .setup-wizard-modal {
   width: 520px;
   max-width: 90vw;
-  background: var(--surface, #1a1a24);
-  border: 1px solid var(--border, #2a2a2a);
+  background: var(--surface, var(--palette-1a1a24));
+  border: 1px solid var(--border, var(--palette-2a2a2a));
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -31,7 +31,7 @@
   font-size: var(--text-2xl);
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
 }
 
 .setup-wizard-header p {
@@ -46,7 +46,7 @@
 
 .setup-progress-bar {
   height: 4px;
-  background: var(--border, #2a2a2a);
+  background: var(--border, var(--palette-2a2a2a));
   border-radius: 2px;
   margin-bottom: 8px;
   overflow: hidden;
@@ -54,7 +54,7 @@
 
 .setup-progress-fill {
   height: 100%;
-  background: var(--primary, #84d669);
+  background: var(--primary, var(--palette-84d669));
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -71,7 +71,7 @@
 }
 
 .setup-step.active {
-  color: var(--primary, #84d669);
+  color: var(--primary, var(--palette-84d669));
   font-weight: 600;
 }
 
@@ -87,7 +87,7 @@
   font-size: var(--text-lg);
   font-weight: 600;
   margin: 0 0 8px;
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
 }
 
 .setup-step-content p {
@@ -108,19 +108,19 @@
   gap: 16px;
   padding: 16px;
   background: var(--surface-hover, rgba(255, 255, 255, 0.03));
-  border: 2px solid var(--border, #2a2a2a);
+  border: 2px solid var(--border, var(--palette-2a2a2a));
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .setup-option:hover {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
   background: rgba(132, 214, 105, 0.05);
 }
 
 .setup-option.selected {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
   background: rgba(132, 214, 105, 0.1);
 }
 
@@ -132,7 +132,7 @@
   justify-content: center;
   background: rgba(132, 214, 105, 0.1);
   border-radius: 12px;
-  color: var(--primary, #84d669);
+  color: var(--primary, var(--palette-84d669));
   flex-shrink: 0;
 }
 
@@ -144,7 +144,7 @@
   display: block;
   font-size: var(--text-md);
   font-weight: 600;
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
   margin-bottom: 4px;
 }
 
@@ -168,15 +168,15 @@
 .setup-form-group label {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
 }
 
 .setup-input {
   padding: 12px 16px;
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border, #2a2a2a);
+  border: 1px solid var(--border, var(--palette-2a2a2a));
   border-radius: 8px;
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
   font-size: var(--text-sm);
   font-family: inherit;
   outline: none;
@@ -184,7 +184,7 @@
 }
 
 .setup-input:focus {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
 }
 
 .setup-input::placeholder {
@@ -202,11 +202,11 @@ textarea.setup-input {
   gap: 12px;
   margin-top: 32px;
   padding-top: 16px;
-  border-top: 1px solid var(--border, #2a2a2a);
+  border-top: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .setup-drop-zone {
-  border: 2px dashed var(--border, #2a2a2a);
+  border: 2px dashed var(--border, var(--palette-2a2a2a));
   border-radius: 12px;
   padding: 32px;
   text-align: center;
@@ -216,29 +216,29 @@ textarea.setup-input {
 }
 .setup-drop-zone:hover,
 .setup-drop-zone.dragover {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
   background: rgba(132, 214, 105, 0.05);
 }
 .setup-drop-zone.dragover .setup-drop-icon svg {
-  stroke: var(--primary, #84d669);
+  stroke: var(--primary, var(--palette-84d669));
 }
 .setup-drop-icon { margin-bottom: 12px; }
 .setup-drop-icon svg { stroke: var(--text-secondary, #888); transition: stroke 0.2s; }
-.setup-drop-text { font-size: var(--text-sm); color: var(--text, #e5e5e5); margin: 0 0 4px; }
+.setup-drop-text { font-size: var(--text-sm); color: var(--text, var(--palette-e5e5e5)); margin: 0 0 4px; }
 .setup-drop-hint { font-size: var(--text-2xs); color: var(--text-secondary, #888); margin: 0 0 16px; }
 .setup-file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
 .setup-file-item {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 12px; background: var(--surface-hover, rgba(255,255,255,0.03));
-  border: 1px solid var(--border, #2a2a2a); border-radius: 6px;
-  font-size: var(--text-xs); color: var(--text, #e5e5e5);
+  border: 1px solid var(--border, var(--palette-2a2a2a)); border-radius: 6px;
+  font-size: var(--text-xs); color: var(--text, var(--palette-e5e5e5));
 }
 .setup-file-item .file-name { flex: 1; }
 .setup-file-item .file-size { font-size: var(--text-2xs); color: var(--text-secondary, #888); }
 .setup-file-item .file-status { font-size: var(--text-2xs); font-weight: 600; }
-.setup-file-item .file-status.uploaded { color: #22c55e; }
-.setup-file-item .file-status.uploading { color: #f59e0b; }
-.setup-file-item .file-status.error { color: #ef4444; }
+.setup-file-item .file-status.uploaded { color: var(--palette-22c55e); }
+.setup-file-item .file-status.uploading { color: var(--palette-f59e0b); }
+.setup-file-item .file-status.error { color: var(--palette-ef4444); }
 
 .setup-btn {
   padding: 10px 24px;
@@ -252,7 +252,7 @@ textarea.setup-input {
 }
 
 .setup-btn-primary {
-  background: var(--primary, #84d669);
+  background: var(--primary, var(--palette-84d669));
   color: #000;
 }
 
@@ -263,8 +263,8 @@ textarea.setup-input {
 
 .setup-btn-secondary {
   background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-  color: var(--text, #e5e5e5);
-  border: 1px solid var(--border, #2a2a2a);
+  color: var(--text, var(--palette-e5e5e5));
+  border: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .setup-btn-secondary:hover {
@@ -278,7 +278,7 @@ textarea.setup-input {
 }
 
 .setup-btn-text:hover {
-  color: var(--text, #e5e5e5);
+  color: var(--text, var(--palette-e5e5e5));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

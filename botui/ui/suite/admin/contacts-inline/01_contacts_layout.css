@@ -336,23 +336,23 @@
         }
 
         .contact-status.active {
-            background: #dcfce7;
-            color: #166534;
+            background: var(--palette-dcfce7);
+            color: var(--palette-166534);
         }
 
         .contact-status.lead {
-            background: #fef3c7;
-            color: #92400e;
+            background: var(--palette-fef3c7);
+            color: var(--palette-92400e);
         }
 
         .contact-status.customer {
-            background: #dbeafe;
-            color: #1e40af;
+            background: var(--palette-dbeafe);
+            color: var(--palette-1e40af);
         }
 
         .contact-status.prospect {
-            background: #f3e8ff;
-            color: #7c3aed;
+            background: var(--palette-f3e8ff);
+            color: var(--palette-7c3aed);
         }
 
         .contact-status.inactive {
@@ -390,7 +390,7 @@
         }
 
         .favorite-btn.active {
-            color: #f59e0b;
+            color: var(--palette-f59e0b);
         }
 
 @media (prefers-reduced-motion: reduce) {

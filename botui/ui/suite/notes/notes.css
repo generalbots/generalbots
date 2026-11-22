@@ -3,8 +3,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg, #f7f8fa);
-    color: var(--text, #1f2430);
+    background: var(--bg, var(--palette-f7f8fa));
+    color: var(--text, var(--palette-1f2430));
 }
 .gb-notes .notes-toolbar {
     display: flex;
@@ -49,7 +49,7 @@
     resize: none;
     font-size: var(--text-xs);
     line-height: 1.5;
-    color: #1f2430;
+    color: var(--palette-1f2430);
     min-height: 80px;
 }
 .gb-notes .note-card-footer {

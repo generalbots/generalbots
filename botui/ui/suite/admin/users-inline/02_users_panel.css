@@ -104,7 +104,7 @@
 }
 
 .warning-icon {
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
     margin-bottom: 16px;
 }
 
@@ -135,7 +135,7 @@
 }
 
 .form-group label .required {
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .form-group input,
@@ -229,7 +229,7 @@
 
 .btn-danger {
     padding: 10px 20px;
-    background: #ef4444;
+    background: var(--palette-ef4444);
     color: white;
     border: none;
     border-radius: 8px;
@@ -239,7 +239,7 @@
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background: var(--palette-dc2626);
 }
 
 @media (prefers-reduced-motion: reduce) {

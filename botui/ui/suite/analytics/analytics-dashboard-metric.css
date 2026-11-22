@@ -127,32 +127,32 @@
 
 .metric-icon.messages {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--palette-3b82f6);
 }
 
 .metric-icon.sessions {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--palette-22c55e);
 }
 
 .metric-icon.response {
     background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
 }
 
 .metric-icon.tokens {
     background: rgba(168, 85, 247, 0.15);
-    color: #a855f7;
+    color: var(--palette-a855f7);
 }
 
 .metric-icon.storage {
     background: rgba(6, 182, 212, 0.15);
-    color: #06b6d4;
+    color: var(--palette-06b6d4);
 }
 
 .metric-icon.errors {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .metric-content {

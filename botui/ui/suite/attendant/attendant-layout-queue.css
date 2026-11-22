@@ -4,8 +4,8 @@
     display: flex;
     height: 100%;
     min-height: 0;
-    background: var(--bg, var(--bg-primary, #0a0a0f));
-    color: var(--text, var(--text-primary, #ffffff));
+    background: var(--bg, var(--bg-primary, var(--palette-0a0a0f)));
+    color: var(--text, var(--text-primary, var(--palette-ffffff)));
 }
 
 /* Queue Panel */

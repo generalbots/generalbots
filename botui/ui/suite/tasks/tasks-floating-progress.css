@@ -3,8 +3,8 @@
 
 .floating-progress-log .log-entry {
     padding: 4px 0;
-    color: var(--text-secondary, #a1a1a1);
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    color: var(--text-secondary, var(--palette-a1a1a1));
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .floating-progress-log .log-entry:last-child {
@@ -12,12 +12,12 @@
 }
 
 .floating-progress-log .log-step {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
     font-weight: 600;
 }
 
 .floating-progress-log .log-details {
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     font-size: var(--text-2xs);
 }
 
@@ -29,17 +29,17 @@
     max-height: 120px;
     overflow-y: auto;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     padding: 8px;
     margin-top: 8px;
     font-family: monospace;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary, var(--palette-a1a1a1));
 }
 
 .floating-llm-terminal .llm-output {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
     white-space: pre-wrap;
     word-break: break-word;
     padding: 2px 0;
@@ -67,9 +67,9 @@
     gap: 8px;
     margin-bottom: 12px;
     padding: 12px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 8px;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .metric-row {
@@ -88,7 +88,7 @@
 }
 
 .metric-label {
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     font-weight: 500;
 }
 
@@ -99,39 +99,39 @@
 }
 
 .metric-value.phase-analyzing {
-    color: var(--warning, var(--warning, #f59e0b));
+    color: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .metric-value.phase-parsing {
-    color: var(--info, #3b82f6);
+    color: var(--info, var(--palette-3b82f6));
 }
 
 .metric-value.phase-database {
-    color: var(--accent, var(--info, #8b5cf6));
+    color: var(--accent, var(--info, var(--palette-8b5cf6)));
 }
 
 .metric-value.phase-writing {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .metric-value.phase-configuring {
-    color: var(--info, #3b82f6);
+    color: var(--info, var(--palette-3b82f6));
 }
 
 .metric-value.phase-tools {
-    color: var(--warning, var(--warning, #f59e0b));
+    color: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .metric-value.phase-schedulers {
-    color: var(--accent, var(--info, #8b5cf6));
+    color: var(--accent, var(--info, var(--palette-8b5cf6)));
 }
 
 .metric-value.phase-syncing {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .metric-value.phase-completed {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 /* =============================================================================
@@ -139,8 +139,8 @@
    ============================================================================= */
 
 .floating-progress-terminal {
-    background: #0d1117;
-    border: 1px solid #30363d;
+    background: var(--palette-0d1117);
+    border: 1px solid var(--palette-30363d);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -150,31 +150,31 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
+    background: var(--palette-161b22);
+    border-bottom: 1px solid var(--palette-30363d);
 }
 
 .terminal-title {
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 1px;
-    color: #8b949e;
+    color: var(--palette-8b949e);
     font-family: monospace;
 }
 
 .terminal-status {
     font-size: var(--text-2xs);
-    color: #6b6b6b;
+    color: var(--palette-6b6b6b);
     transition: color 0.3s ease;
 }
 
 .terminal-status.active {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
     animation: pulse 1s infinite;
 }
 
 .terminal-status.completed {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
     animation: none;
 }
 
@@ -189,7 +189,7 @@
 
 .terminal-content .log-entry {
     padding: 2px 0;
-    color: #c9d1d9;
+    color: var(--palette-c9d1d9);
     border-bottom: none;
     white-space: nowrap;
     overflow: hidden;
@@ -197,27 +197,27 @@
 }
 
 .terminal-content .log-time {
-    color: #484f58;
+    color: var(--palette-484f58);
     margin-right: 8px;
 }
 
 .terminal-content .log-step {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
     font-weight: 600;
     margin-right: 8px;
 }
 
 .terminal-content .log-current {
-    color: #58a6ff;
+    color: var(--palette-58a6ff);
 }
 
 .terminal-content .log-progress {
-    color: #8b949e;
+    color: var(--palette-8b949e);
     margin-left: 4px;
 }
 
 .terminal-content .log-bytes {
-    color: #7ee787;
+    color: var(--palette-7ee787);
     margin-left: 4px;
 }
 @media (prefers-reduced-motion: reduce) {

@@ -10,7 +10,7 @@
     align-items: center;
     gap: 12px;
     font-weight: 500;
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--palette-ffffff)));
 }
 
 .file-name {
@@ -32,8 +32,8 @@
     align-items: center;
     gap: 16px;
     padding: 12px 20px;
-    background: var(--surface, #12121a);
-    border: 1px solid var(--border, #2a2a3a);
+    background: var(--surface, var(--palette-12121a));
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     z-index: var(--z-sticky, 100);
@@ -42,7 +42,7 @@
 .selection-count {
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
 }
 
 .selection-actions {
@@ -62,19 +62,19 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .action-btn:hover {
     background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
 }
 
 .action-btn.danger:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .close-selection {
@@ -88,7 +88,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
     cursor: pointer;
     margin-left: 8px;
 }
@@ -105,14 +105,14 @@
     align-items: center;
     justify-content: center;
     padding: 60px 20px;
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
 }
 
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--border, #2a2a3a);
-    border-top-color: var(--primary, #3b82f6);
+    border: 3px solid var(--border, var(--palette-2a2a3a));
+    border-top-color: var(--primary, var(--palette-3b82f6));
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -132,7 +132,7 @@
     justify-content: center;
     padding: 60px 20px;
     text-align: center;
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
 }
 
 .empty-state svg {
@@ -143,7 +143,7 @@
 .empty-state h3 {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
     margin-bottom: 8px;
 }
 
@@ -156,7 +156,7 @@
     padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    background: var(--primary, #3b82f6);
+    background: var(--primary, var(--palette-3b82f6));
     color: white;
     font-size: var(--text-sm);
     cursor: pointer;
@@ -172,7 +172,7 @@
     height: 16px;
     margin-right: 8px;
     cursor: pointer;
-    accent-color: var(--primary, #3b82f6);
+    accent-color: var(--primary, var(--palette-3b82f6));
 }
 
 /* Button Icon Small */
@@ -187,7 +187,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-secondary, #6b6b80);
+    color: var(--text-secondary, var(--palette-6b6b80));
     cursor: pointer;
     font-size: var(--text-sm);
     transition: all 0.15s;
@@ -195,7 +195,7 @@
 
 .btn-icon-sm:hover {
     background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-    color: var(--text, #ffffff);
+    color: var(--text, var(--palette-ffffff));
 }
 
 /* Notification Animation */
@@ -218,7 +218,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: var(--primary, #3b82f6);
+    background: var(--primary, var(--palette-3b82f6));
     color: white;
     border: none;
     border-radius: 6px;

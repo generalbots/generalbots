@@ -47,11 +47,11 @@
             }
 
             .attendant-option:hover {
-                background: var(--surface-hover, #334155);
+                background: var(--surface-hover, var(--palette-334155));
             }
 
             .attendant-option.selected {
-                background: var(--primary, #3b82f6);
+                background: var(--primary, var(--palette-3b82f6));
             }
 
             .attendant-option .status-indicator {
@@ -61,7 +61,7 @@
 
             .modal-footer {
                 padding: 16px 20px;
-                border-top: 1px solid var(--border, #334155);
+                border-top: 1px solid var(--border, var(--palette-334155));
                 display: flex;
                 justify-content: flex-end;
                 gap: 8px;
@@ -80,8 +80,8 @@
 
             .toast {
                 padding: 12px 20px;
-                background: var(--surface, #1e293b);
-                border: 1px solid var(--border, #334155);
+                background: var(--surface, var(--palette-1e293b));
+                border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 8px;
                 display: flex;
                 align-items: center;
@@ -102,24 +102,24 @@
             }
 
             .toast.success {
-                border-left: 3px solid var(--success, #10b981);
+                border-left: 3px solid var(--success, var(--palette-10b981));
             }
             .toast.error {
-                border-left: 3px solid var(--error, #ef4444);
+                border-left: 3px solid var(--error, var(--palette-ef4444));
             }
             .toast.warning {
-                border-left: 3px solid var(--warning, #f59e0b);
+                border-left: 3px solid var(--warning, var(--palette-f59e0b));
             }
             .toast.info {
-                border-left: 3px solid var(--primary, #3b82f6);
+                border-left: 3px solid var(--primary, var(--palette-3b82f6));
             }
 
             /* Loading State */
             .loading-spinner {
                 width: 24px;
                 height: 24px;
-                border: 3px solid var(--surface-hover, #334155);
-                border-top-color: var(--primary, #3b82f6);
+                border: 3px solid var(--surface-hover, var(--palette-334155));
+                border-top-color: var(--primary, var(--palette-3b82f6));
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
             }

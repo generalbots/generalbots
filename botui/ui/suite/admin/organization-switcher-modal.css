@@ -16,8 +16,8 @@
 
         .modal-content {
             position: relative;
-            background: var(--surface-color, #1e1e2e);
-            border: 1px solid var(--border-color, #313244);
+            background: var(--surface-color, var(--palette-1e1e2e));
+            border: 1px solid var(--border-color, var(--palette-313244));
             border-radius: 16px;
             padding: 24px;
             width: 90%;
@@ -36,7 +36,7 @@
             margin: 0;
             font-size: var(--text-xl);
             font-weight: 600;
-            color: var(--text-primary, #cdd6f4);
+            color: var(--text-primary, var(--palette-cdd6f4));
         }
 
         .modal-close {
@@ -50,14 +50,14 @@
             background: transparent;
             border: none;
             border-radius: 6px;
-            color: var(--text-secondary, #a6adc8);
+            color: var(--text-secondary, var(--palette-a6adc8));
             font-size: var(--text-2xl);
             cursor: pointer;
             transition: background 0.15s ease;
         }
 
         .modal-close:hover {
-            background: var(--surface-hover, #313244);
+            background: var(--surface-hover, var(--palette-313244));
         }
 
         .form-group {
@@ -69,7 +69,7 @@
             margin-bottom: 8px;
             font-size: var(--text-xs);
             font-weight: 500;
-            color: var(--text-primary, #cdd6f4);
+            color: var(--text-primary, var(--palette-cdd6f4));
         }
 
         .form-group input,

@@ -57,13 +57,13 @@
         var(--primary-light, rgba(99, 102, 241, 0.1)) 0%,
         var(--surface-hover, rgba(99, 102, 241, 0.05)) 100%
     );
-    color: var(--primary, #6366f1);
+    color: var(--primary, var(--palette-6366f1));
 }
 
 .context-menu-item:hover svg {
     opacity: 1;
     transform: scale(1.1);
-    stroke: var(--primary, #6366f1);
+    stroke: var(--primary, var(--palette-6366f1));
 }
 
 .context-menu-item:active {
@@ -71,11 +71,11 @@
 }
 
 .context-menu-item.danger {
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 
 .context-menu-item.danger svg {
-    stroke: var(--error, #ef4444);
+    stroke: var(--error, var(--palette-ef4444));
 }
 
 .context-menu-item.danger:hover {
@@ -84,11 +84,11 @@
         rgba(239, 68, 68, 0.15) 0%,
         rgba(239, 68, 68, 0.05) 100%
     );
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
 }
 
 .context-menu-item.danger:hover svg {
-    stroke: var(--error, #ef4444);
+    stroke: var(--error, var(--palette-ef4444));
 }
 
 .context-menu-divider {

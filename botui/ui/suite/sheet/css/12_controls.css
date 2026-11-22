@@ -11,9 +11,9 @@
   max-height: 86vh;
   margin: auto;
   overflow: hidden;
-  background: var(--sheet-bg-elevated, #1e293b);
-  color: var(--sheet-fg, #f8fafc);
-  border: 1px solid var(--sheet-border, #334155);
+  background: var(--sheet-bg-elevated, var(--palette-1e293b));
+  color: var(--sheet-fg, var(--palette-f8fafc));
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 8px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
   font-size: var(--text-xs);
@@ -25,7 +25,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-ctrl-header h2 {
@@ -37,7 +37,7 @@
 .ss-ctrl-close {
   background: none;
   border: none;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xl);
   line-height: 1;
   cursor: pointer;
@@ -46,14 +46,14 @@
 
 .ss-ctrl-close:hover,
 .ss-ctrl-close:focus-visible {
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
 }
 
 .ss-ctrl-local-note,
 .ss-ctrl-scope-note {
   margin: 0;
   padding: 8px 16px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
   background: rgba(148, 163, 184, 0.08);
 }
@@ -63,34 +63,34 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 12px 0;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-ctrl-tab {
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   padding: 8px 10px;
   cursor: pointer;
   font-size: var(--text-2xs);
 }
 
 .ss-ctrl-tab[aria-selected="true"] {
-  color: var(--sheet-fg, #f8fafc);
-  border-bottom-color: #3b82f6;
+  color: var(--sheet-fg, var(--palette-f8fafc));
+  border-bottom-color: var(--palette-3b82f6);
 }
 
 .ss-ctrl-status {
   margin: 0;
   padding: 6px 16px;
   min-height: 20px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
 }
 
 .ss-ctrl-status-error {
-  color: #f87171;
+  color: var(--palette-f87171);
 }
 
 .ss-ctrl-body {
@@ -121,10 +121,10 @@
 
 .ss-ctrl-input {
   padding: 6px 8px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
-  background: var(--sheet-bg, #0f172a);
-  color: var(--sheet-fg, #f8fafc);
+  background: var(--sheet-bg, var(--palette-0f172a));
+  color: var(--sheet-fg, var(--palette-f8fafc));
   font-size: var(--text-2xs);
   min-width: 140px;
 }
@@ -132,9 +132,9 @@
 .ss-ctrl-button,
 .ss-ctrl-button-small {
   padding: 6px 12px;
-  border: 1px solid #3b82f6;
+  border: 1px solid var(--palette-3b82f6);
   border-radius: 4px;
-  background: #3b82f6;
+  background: var(--palette-3b82f6);
   color: #fff;
   cursor: pointer;
   font-size: var(--text-2xs);
@@ -154,7 +154,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   padding: 10px;
 }
@@ -178,21 +178,21 @@
 .ss-ctrl-list-item,
 .ss-ctrl-empty {
   padding: 6px 8px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }
 
 .ss-ctrl-empty {
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-ctrl-watermark {
   padding: 18px;
-  border: 1px dashed #64748b;
+  border: 1px dashed var(--palette-64748b);
   border-radius: 4px;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-xl);
   text-align: center;
   opacity: 0.7;
@@ -200,7 +200,7 @@
 
 .ss-ctrl-class-banner {
   padding: 4px 12px;
-  background: #7c3aed;
+  background: var(--palette-7c3aed);
   color: #fff;
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -208,7 +208,7 @@
 
 .ss-ctrl-class-banner[data-level="confidential"],
 .ss-ctrl-class-banner[data-level="restricted"] {
-  background: #b91c1c;
+  background: var(--palette-b91c1c);
 }
 
 .ss-ctrl-badge-approved,
@@ -219,12 +219,12 @@
 }
 
 .ss-ctrl-badge-approved {
-  background: #166534;
+  background: var(--palette-166534);
   color: #fff;
 }
 
 .ss-ctrl-badge-blocked {
-  background: #991b1b;
+  background: var(--palette-991b1b);
   color: #fff;
 }
 
@@ -236,7 +236,7 @@
 
 .ss-ctrl-table th,
 .ss-ctrl-table td {
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   padding: 5px 6px;
   text-align: left;
   overflow-wrap: anywhere;
@@ -244,18 +244,18 @@
 
 .ss-ctrl-snapshot-badge {
   padding: 8px 10px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
   font-family: monospace;
   font-size: var(--text-2xs);
 }
 
 .ss-ctrl-snapshot-badge[data-status="sheet-ctrl-snap-tampered"] {
-  border-color: #f87171;
-  color: #f87171;
+  border-color: var(--palette-f87171);
+  color: var(--palette-f87171);
 }
 
 .ss-ctrl-input-cell {
-  outline: 2px solid #22c55e;
+  outline: 2px solid var(--palette-22c55e);
   outline-offset: -2px;
 }

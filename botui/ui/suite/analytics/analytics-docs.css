@@ -90,7 +90,7 @@
 }
 
 .docs-status.gb-state-error {
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .docs-freshness {
@@ -100,7 +100,7 @@
 }
 
 .docs-freshness.docs-stale {
-    color: #f59e0b;
+    color: var(--palette-f59e0b);
     font-weight: 600;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .docs-message.gb-state-error {
-    color: #ef4444;
+    color: var(--palette-ef4444);
 }
 
 .docs-loading {

@@ -7,8 +7,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 12px;
-  background: var(--surface, #141623);
-  color: var(--text, #e5e5e5);
+  background: var(--surface, var(--palette-141623));
+  color: var(--text, var(--palette-e5e5e5));
   font-family: "Fira Code", "Fira Sans", monospace;
 }
 
@@ -40,7 +40,7 @@
 
 .gb-clock-tab.active {
   background: rgba(132, 214, 105, 0.14);
-  color: var(--primary, #84d669);
+  color: var(--primary, var(--palette-84d669));
   font-weight: 600;
 }
 
@@ -110,9 +110,9 @@
 }
 
 .gb-clock-btn.primary {
-  background: var(--primary, #84d669);
+  background: var(--primary, var(--palette-84d669));
   border-color: transparent;
-  color: #06120a;
+  color: var(--palette-06120a);
   font-weight: 700;
 }
 
@@ -120,7 +120,7 @@
 
 .gb-clock-btn.warn:hover {
   background: rgba(239, 68, 68, 0.16);
-  color: #f87171;
+  color: var(--palette-f87171);
 }
 
 .gb-clock-laps {
@@ -170,7 +170,7 @@
 }
 
 .gb-clock-timer-inputs input:focus {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
 }
 
 /* Hide number spinners for a cleaner timer input. */
@@ -193,7 +193,7 @@
   height: 100%;
   width: 100%;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--primary, #84d669), #22c55e);
+  background: linear-gradient(90deg, var(--primary, var(--palette-84d669)), var(--palette-22c55e));
   transition: width 200ms linear;
 }
 

@@ -11,14 +11,14 @@
     padding: 32px 24px;
     max-width: 460px;
     text-align: center;
-    color: var(--gb-text-muted, #64748b);
+    color: var(--gb-text-muted, var(--palette-64748b));
 }
 
 .gb-chat-empty-title {
     margin: 0;
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--gb-text, #0f172a);
+    color: var(--gb-text, var(--palette-0f172a));
 }
 
 .gb-chat-empty-hint {

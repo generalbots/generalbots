@@ -6,7 +6,7 @@
   gap: 4px;
   padding: 5px 10px;
   background: var(--surface, #fff);
-  border: 1px solid var(--border, var(--border-color, #d0d0d0));
+  border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
   border-radius: 16px;
   color: #333;
   font-size: var(--text-2xs);
@@ -21,7 +21,7 @@
 
 .suggestion-chip:hover,
 .suggestion-button:hover {
-  border-color: var(--accent, #2563eb);
+  border-color: var(--accent, var(--palette-2563eb));
   z-index: var(--z-sticky);
 }
 
@@ -30,9 +30,9 @@
 [data-theme="dark"] .suggestion-button,
 [data-theme="sentient"] .suggestion-chip,
 [data-theme="sentient"] .suggestion-button {
-    background: var(--surface, #1a1a24);
-    border-color: var(--border, #2a2a2a);
-    color: var(--text, #e5e5e5);
+    background: var(--surface, var(--palette-1a1a24));
+    border-color: var(--border, var(--palette-2a2a2a));
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 [data-theme="dark"] .suggestion-chip:hover,
@@ -47,7 +47,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -74,7 +74,7 @@ form.input-container {
     align-items: center;
     gap: 12px;
     background: transparent;
-    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
     border-radius: 24px;
     padding: 8px 16px;
     transition:
@@ -83,7 +83,7 @@ form.input-container {
 }
 
 .input-container:focus-within {
-    border-color: var(--accent, #2563eb);
+    border-color: var(--accent, var(--palette-2563eb));
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -91,7 +91,7 @@ form.input-container {
     flex: 1;
     background: none;
     border: none;
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     font-size: var(--text-sm);
     outline: none;
     padding: 4px 0;
@@ -128,9 +128,9 @@ form.input-container {
     height: 32px;
     padding: 0 10px;
     border-radius: 16px;
-    border: 1px solid var(--border, #d0d0d0);
+    border: 1px solid var(--border, var(--palette-d0d0d0));
     background: transparent;
-    color: var(--accent, #2563eb);
+    color: var(--accent, var(--palette-2563eb));
     font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
@@ -146,13 +146,13 @@ form.input-container {
 }
 
 .chat-tool-toggle.web-search-toggle:focus-visible {
-    outline: 2px solid var(--accent, #2563eb);
+    outline: 2px solid var(--accent, var(--palette-2563eb));
     outline-offset: 2px;
 }
 
 .chat-tool-toggle.web-search-toggle.is-off {
     color: var(--text-secondary, #888);
-    border-color: var(--border, #d0d0d0);
+    border-color: var(--border, var(--palette-d0d0d0));
     opacity: 0.75;
 }
 
@@ -168,7 +168,7 @@ form.input-container {
 }
 
 #sendBtn {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: white;
 }
 
@@ -183,7 +183,7 @@ form.input-container {
 }
 
 #sendBtn:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 #voiceBtn:active,
@@ -193,7 +193,7 @@ form.input-container {
 
 [data-theme="dark"] #sendBtn,
 [data-theme="sentient"] #sendBtn {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
 }
 
 [data-theme="dark"] #voiceBtn,
@@ -209,9 +209,9 @@ form.input-container {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
-    color: var(--text, #e5e5e5);
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
+    color: var(--text, var(--palette-e5e5e5));
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -229,8 +229,8 @@ form.input-container {
 }
 
 .scroll-to-bottom:hover {
-    background: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
     transform: translateY(-2px);
 }
 
@@ -264,7 +264,7 @@ textarea#messageInput {
 .gb-retry-btn {
     margin-top: 10px;
     padding: 6px 14px;
-    border: 1px solid var(--border, #d0d0d0);
+    border: 1px solid var(--border, var(--palette-d0d0d0));
     border-radius: 999px;
     background: var(--surface, #fff);
     color: var(--text, #222);
@@ -273,8 +273,8 @@ textarea#messageInput {
     cursor: pointer;
 }
 .gb-retry-btn:hover {
-    border-color: var(--accent, #2563eb);
-    color: var(--accent, #2563eb);
+    border-color: var(--accent, var(--palette-2563eb));
+    color: var(--accent, var(--palette-2563eb));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

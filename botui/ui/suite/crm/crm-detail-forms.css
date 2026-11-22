@@ -2,7 +2,7 @@
 
 
 .crm-form-btn.primary:hover {
-    background: var(--accent-hover, #c4e505);
+    background: var(--accent-hover, var(--palette-c4e505));
 }
 
 /* Responsive */
@@ -48,8 +48,8 @@
     top: 0;
     width: 400px;
     height: 100vh;
-    background: var(--surface, #1e293b);
-    border-left: 1px solid var(--border, #334155);
+    background: var(--surface, var(--palette-1e293b));
+    border-left: 1px solid var(--border, var(--palette-334155));
     padding: 24px;
     overflow-y: auto;
     transition: right 0.3s ease;
@@ -67,20 +67,20 @@
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--border, #334155);
+    border-bottom: 1px solid var(--border, var(--palette-334155));
 }
 
 .detail-header h3 {
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .detail-close {
     background: none;
     border: none;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--palette-94a3b8));
     font-size: var(--text-2xl);
     cursor: pointer;
     padding: 0;
@@ -88,7 +88,7 @@
 }
 
 .detail-close:hover {
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .detail-body {
@@ -105,14 +105,14 @@
 
 .detail-field label {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--palette-94a3b8));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .detail-field span {
     font-size: var(--text-sm);
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
 }
 
 .detail-actions {
@@ -120,11 +120,11 @@
     gap: 8px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--border, #334155);
+    border-top: 1px solid var(--border, var(--palette-334155));
 }
 
 .detail-error {
-    color: var(--error, #ef4444);
+    color: var(--error, var(--palette-ef4444));
     padding: 20px;
     text-align: center;
 }
@@ -138,7 +138,7 @@
 }
 
 .campaign-card {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     padding: 16px;
@@ -146,7 +146,7 @@
 }
 
 .campaign-card:hover {
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
     transform: translateY(-2px);
 }
 
@@ -160,7 +160,7 @@
 .campaign-card-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     margin: 0;
 }
 
@@ -173,10 +173,10 @@
     text-transform: uppercase;
 }
 
-.campaign-status.draft { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.campaign-status.scheduled { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-.campaign-status.running { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-.campaign-status.completed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+.campaign-status.draft { background: rgba(251, 191, 36, 0.15); color: var(--palette-fbbf24); }
+.campaign-status.scheduled { background: rgba(96, 165, 250, 0.15); color: var(--palette-60a5fa); }
+.campaign-status.running { background: rgba(52, 211, 153, 0.15); color: var(--palette-34d399); }
+.campaign-status.completed { background: rgba(156, 163, 175, 0.15); color: var(--palette-9ca3af); }
 
 .campaign-channels {
     display: flex;
@@ -210,7 +210,7 @@
 .campaign-metric-value {
     font-size: var(--text-lg);
     font-weight: 700;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--palette-d4f505));
 }
 
 .campaign-metric-label {

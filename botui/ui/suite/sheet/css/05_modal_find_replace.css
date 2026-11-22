@@ -1,7 +1,7 @@
 
 
 .chart-wrapper.selected {
-    border-color: var(--sentient-accent, #4285f4);
+    border-color: var(--sentient-accent, var(--palette-4285f4));
     box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
@@ -10,8 +10,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    background: var(--sentient-bg-secondary, #f5f5f5);
-    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    background: var(--sentient-bg-secondary, var(--palette-f5f5f5));
+    border-bottom: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     cursor: move;
 }
 
@@ -34,12 +34,12 @@
 }
 
 .chart-actions button:hover {
-    background: var(--sentient-bg-tertiary, #e0e0e0);
+    background: var(--sentient-bg-tertiary, var(--palette-e0e0e0));
 }
 
 .chart-bar {
     flex: 1;
-    background: var(--sentient-accent, #4285f4);
+    background: var(--sentient-accent, var(--palette-4285f4));
     border-radius: 4px 4px 0 0;
     min-width: 20px;
     max-width: 60px;
@@ -47,24 +47,24 @@
 }
 
 .chart-bar:nth-child(2) {
-    background: #34a853;
+    background: var(--palette-34a853);
 }
 
 .chart-bar:nth-child(3) {
-    background: #fbbc04;
+    background: var(--palette-fbbc04);
 }
 
 .chart-bar:nth-child(4) {
-    background: #ea4335;
+    background: var(--palette-ea4335);
 }
 
 .chart-bar:nth-child(5) {
-    background: #9c27b0;
+    background: var(--palette-9c27b0);
 }
 
 .chart-line {
     fill: none;
-    stroke: var(--sentient-accent, #4285f4);
+    stroke: var(--sentient-accent, var(--palette-4285f4));
     stroke-width: 2;
 }
 
@@ -73,7 +73,7 @@
     flex-wrap: wrap;
     gap: 8px;
     padding: 8px 16px;
-    border-top: 1px solid var(--sentient-border, #e0e0e0);
+    border-top: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     font-size: var(--text-2xs);
 }
 
@@ -90,7 +90,7 @@
 }
 
 .image-wrapper.selected {
-    border-color: var(--sentient-accent, #4285f4);
+    border-color: var(--sentient-accent, var(--palette-4285f4));
     box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
@@ -104,14 +104,14 @@
     align-items: center;
     gap: 8px;
     font-size: var(--text-xs);
-    color: var(--sentient-text-primary, #212121);
+    color: var(--sentient-text-primary, var(--palette-212121));
     cursor: pointer;
 }
 
 .checkbox-label input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: var(--sentient-accent, #4285f4);
+    accent-color: var(--sentient-accent, var(--palette-4285f4));
 }
 
 @media (prefers-reduced-motion: reduce) {

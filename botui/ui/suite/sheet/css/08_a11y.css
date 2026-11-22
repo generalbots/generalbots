@@ -21,15 +21,15 @@
 
 /* A visible, non-colour-only focus indicator for every interactive control. */
 .sheet-app :is(button, input, select, textarea, a[href], [tabindex], [role="gridcell"]):focus-visible {
-    outline: 3px solid var(--sheet-focus, #fbbf24);
+    outline: 3px solid var(--sheet-focus, var(--palette-fbbf24));
     outline-offset: 2px;
-    box-shadow: 0 0 0 1px var(--sheet-bg, #0f172a);
+    box-shadow: 0 0 0 1px var(--sheet-bg, var(--palette-0f172a));
     z-index: 30;
 }
 
 .sheet-app .vg-cell:focus,
 .sheet-app .vg-cell:focus-visible {
-    outline: 3px solid var(--sheet-focus, #fbbf24);
+    outline: 3px solid var(--sheet-focus, var(--palette-fbbf24));
     outline-offset: -2px;
     z-index: 31;
 }
@@ -103,9 +103,9 @@
     width: min(420px, calc(100% - 24px));
     max-height: 70%;
     overflow: auto;
-    background: var(--sheet-bg-elevated, #1e293b);
-    color: var(--sheet-fg, #f8fafc);
-    border: 1px solid var(--sheet-border, #334155);
+    background: var(--sheet-bg-elevated, var(--palette-1e293b));
+    color: var(--sheet-fg, var(--palette-f8fafc));
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
     padding: 12px 14px;
@@ -123,7 +123,7 @@
 }
 .sheet-a11y-panel-close {
     background: transparent;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
     color: inherit;
     font-size: var(--text-md);
@@ -133,7 +133,7 @@
 }
 .sheet-a11y-panel-summary {
     margin: 8px 0;
-    color: var(--sheet-muted, #94a3b8);
+    color: var(--sheet-muted, var(--palette-94a3b8));
 }
 .sheet-a11y-panel-list {
     list-style: none;
@@ -147,7 +147,7 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-left-width: 4px;
     border-radius: 4px;
     padding: 6px 8px;

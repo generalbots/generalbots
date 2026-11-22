@@ -1,17 +1,17 @@
 @import "vdi-extras.css";
 
 :root {
-    --vdi-primary: #3b82f6;
-    --vdi-primary-hover: #2563eb;
-    --vdi-accent: #10b981;
-    --vdi-danger: #ef4444;
-    --vdi-warning: #f59e0b;
-    --vdi-bg: #0f172a;
-    --vdi-bg-card: #1e293b;
-    --vdi-bg-hover: #334155;
-    --vdi-text: #f1f5f9;
-    --vdi-text-muted: #94a3b8;
-    --vdi-border: #334155;
+    --vdi-primary: var(--palette-3b82f6);
+    --vdi-primary-hover: var(--palette-2563eb);
+    --vdi-accent: var(--palette-10b981);
+    --vdi-danger: var(--palette-ef4444);
+    --vdi-warning: var(--palette-f59e0b);
+    --vdi-bg: var(--palette-0f172a);
+    --vdi-bg-card: var(--palette-1e293b);
+    --vdi-bg-hover: var(--palette-334155);
+    --vdi-text: var(--palette-f1f5f9);
+    --vdi-text-muted: var(--palette-94a3b8);
+    --vdi-border: var(--palette-334155);
     --vdi-radius: 8px;
 }
 

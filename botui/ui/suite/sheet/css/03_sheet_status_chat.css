@@ -1,10 +1,10 @@
 
 
 .sheet-tab.active {
-    background: var(--sentient-bg-primary, #ffffff);
-    color: var(--sentient-text-primary, #212121);
-    border-color: var(--sentient-border, #e0e0e0);
-    border-bottom-color: var(--sentient-bg-primary, #ffffff);
+    background: var(--sentient-bg-primary, var(--palette-ffffff));
+    color: var(--sentient-text-primary, var(--palette-212121));
+    border-color: var(--sentient-border, var(--palette-e0e0e0));
+    border-bottom-color: var(--sentient-bg-primary, var(--palette-ffffff));
     margin-bottom: -1px;
     font-weight: 500;
 }
@@ -28,7 +28,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    border-bottom: 1px solid var(--sentient-border, var(--palette-e0e0e0));
 }
 
 .chat-messages {
@@ -63,14 +63,14 @@
 }
 
 .chat-message.user .message-bubble {
-    background: var(--sentient-accent, #4285f4);
+    background: var(--sentient-accent, var(--palette-4285f4));
     color: white;
     border-bottom-right-radius: 4px;
 }
 
 .chat-message.assistant .message-bubble {
-    background: var(--sentient-bg-secondary, #f5f5f5);
-    color: var(--sentient-text-primary, #212121);
+    background: var(--sentient-bg-secondary, var(--palette-f5f5f5));
+    color: var(--sentient-text-primary, var(--palette-212121));
     border-bottom-left-radius: 4px;
 }
 
@@ -96,23 +96,23 @@
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--sentient-border, #e0e0e0);
+    border-top: 1px solid var(--sentient-border, var(--palette-e0e0e0));
 }
 
 .chat-input {
     flex: 1;
     padding: 10px 14px;
-    border: 1px solid var(--sentient-border, #e0e0e0);
+    border: 1px solid var(--sentient-border, var(--palette-e0e0e0));
     border-radius: 20px;
     font-size: var(--text-xs);
-    background: var(--sentient-bg-primary, #ffffff);
-    color: var(--sentient-text-primary, #212121);
+    background: var(--sentient-bg-primary, var(--palette-ffffff));
+    color: var(--sentient-text-primary, var(--palette-212121));
     transition: border-color 0.15s ease;
 }
 
 .chat-input:focus {
     outline: none;
-    border-color: var(--sentient-accent, #4285f4);
+    border-color: var(--sentient-accent, var(--palette-4285f4));
 }
 
 .chat-input::placeholder {

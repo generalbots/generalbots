@@ -98,7 +98,7 @@
 .gbc-send:focus-visible,
 .gbc-filter-btn:focus-visible,
 .gbc-input:focus-visible {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid var(--palette-60a5fa);
   outline-offset: 2px;
 }
 @keyframes gb-cursor-blink {

@@ -80,13 +80,13 @@
 }
 
 .health-status.healthy {
-    background: #10b981;
+    background: var(--palette-10b981);
 }
 .health-status.warning {
-    background: #f59e0b;
+    background: var(--palette-f59e0b);
 }
 .health-status.error {
-    background: #ef4444;
+    background: var(--palette-ef4444);
 }
 
 .health-value {
@@ -223,13 +223,13 @@
     margin-top: 12px;
 }
 .gb-admin-metric-card {
-    border: 1px solid var(--gb-border, #d7dbe2);
+    border: 1px solid var(--gb-border, var(--palette-d7dbe2));
     border-radius: 8px;
     padding: 10px 12px;
 }
-.gb-admin-metric-label { font-size: var(--text-2xs); color: var(--gb-text-muted, #57606a); }
+.gb-admin-metric-label { font-size: var(--text-2xs); color: var(--gb-text-muted, var(--palette-57606a)); }
 .gb-admin-metric-value { font-size: var(--text-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
-.gb-admin-metric-hint { font-size: var(--text-2xs); color: var(--gb-text-muted, #57606a); }
+.gb-admin-metric-hint { font-size: var(--text-2xs); color: var(--gb-text-muted, var(--palette-57606a)); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

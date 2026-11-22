@@ -5,7 +5,7 @@
     height: 100%;
     padding: 18px;
     gap: 14px;
-    background: linear-gradient(160deg, color-mix(in oklab, var(--primary) 65%, var(--info)) 0%, color-mix(in oklab, var(--primary) 85%, #0b3d91) 100%);
+    background: linear-gradient(160deg, color-mix(in oklab, var(--primary) 65%, var(--info)) 0%, color-mix(in oklab, var(--primary) 85%, var(--palette-0b3d91)) 100%);
     color: #fff;
     overflow-y: auto;
 }
@@ -84,4 +84,4 @@
     cursor: pointer;
 }
 .gb-weather .weather-retry:hover { background: rgba(255, 255, 255, 0.12); }
-.gb-weather .weather-reason { color: #ffd166; }
+.gb-weather .weather-reason { color: var(--palette-ffd166); }

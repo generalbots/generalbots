@@ -16,38 +16,38 @@
 
 :root[data-theme="default"] #chat-app,
 :root[data-theme="default"] .chat-sidebar {
-    --gb-bg: #FFF8F2;
-    --gb-surface: #FFFFFF;
-    --gb-surface-muted: #F3F4F6;
-    --gb-text: #2C2C2C;
-    --gb-muted: #5F6673;
-    --gb-border: #E5E7EB;
-    --gb-border-soft: #F3F4F6;
-    --gb-border-strong: #D1D5DB;
-    --gb-accent: #F28C28;
+    --gb-bg: var(--palette-fff8f2);
+    --gb-surface: var(--palette-ffffff);
+    --gb-surface-muted: var(--palette-f3f4f6);
+    --gb-text: var(--palette-2c2c2c);
+    --gb-muted: var(--palette-5f6673);
+    --gb-border: var(--palette-e5e7eb);
+    --gb-border-soft: var(--palette-f3f4f6);
+    --gb-border-strong: var(--palette-d1d5db);
+    --gb-accent: var(--palette-f28c28);
     --gb-accent-soft: rgb(242 140 40 / .1);
     --gb-shadow-bubble: 0 1px 2px rgb(0 0 0 / .05);
     --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .04),
         0 4px 6px -4px rgb(0 0 0 / .04);
-    --gb-focus-ring: 0 0 0 2px #B45309;
+    --gb-focus-ring: 0 0 0 2px var(--palette-b45309);
 }
 
 :root[data-theme="default"][data-color-scheme="dark"] #chat-app,
 :root[data-theme="default"][data-color-scheme="dark"] .chat-sidebar {
-    --gb-bg: #221F1B;
-    --gb-surface: #262633;
-    --gb-surface-muted: #2A2A36;
-    --gb-text: #E4E4EA;
-    --gb-muted: #808898;
+    --gb-bg: var(--palette-221f1b);
+    --gb-surface: var(--palette-262633);
+    --gb-surface-muted: var(--palette-2a2a36);
+    --gb-text: var(--palette-e4e4ea);
+    --gb-muted: var(--palette-808898);
     --gb-border: rgb(255 255 255 / .1);
     --gb-border-soft: rgb(255 255 255 / .06);
     --gb-border-strong: rgb(255 255 255 / .18);
-    --gb-accent: #F28C28;
+    --gb-accent: var(--palette-f28c28);
     --gb-accent-soft: rgb(242 140 40 / .16);
     --gb-shadow-bubble: 0 1px 3px rgb(0 0 0 / .3);
     --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .3),
         0 4px 6px -4px rgb(0 0 0 / .2);
-    --gb-focus-ring: 0 0 0 2px #FDB96A;
+    --gb-focus-ring: 0 0 0 2px var(--palette-fdb96a);
 }
 
 /* == Centred conversation column ==================================== */
@@ -111,14 +111,14 @@
 }
 
 :root[data-theme="default"] #chat-app .bot-message a {
-    color: #B45309 !important;
+    color: var(--palette-b45309) !important;
     text-decoration: underline;
     text-underline-offset: 2px;
     text-decoration-color: rgb(180 83 9 / .4);
 }
 
 :root[data-theme="default"][data-color-scheme="dark"] #chat-app .bot-message a {
-    color: #FDB96A !important;
+    color: var(--palette-fdb96a) !important;
     text-decoration-color: rgb(253 185 106 / .4);
 }
 
@@ -213,7 +213,7 @@
 :root[data-theme="default"] #chat-app .tts-speak-btn:hover,
 :root[data-theme="default"] #chat-app .copy-msg-btn:hover,
 :root[data-theme="default"] #chat-app .copy-msg-btn.copied {
-    color: #B45309;
+    color: var(--palette-b45309);
     border-color: rgb(242 140 40 / .45);
 }
 
@@ -232,11 +232,11 @@
 :root[data-theme="default"] #chat-app .suggestion-chip:hover {
     background: var(--gb-accent-soft);
     border-color: var(--gb-accent);
-    color: #B45309;
+    color: var(--palette-b45309);
 }
 
 :root[data-theme="default"][data-color-scheme="dark"] #chat-app .suggestion-chip:hover {
-    color: #FDB96A;
+    color: var(--palette-fdb96a);
 }
 
 /* == Composer ======================================================= */
@@ -270,12 +270,12 @@
 }
 
 :root[data-theme="default"] #chat-app #messageInput::placeholder {
-    color: #9CA3AF;
+    color: var(--palette-9ca3af);
 }
 
 :root[data-theme="default"] #chat-app #sendBtn {
     background: var(--gb-accent);
-    color: #FFFFFF;
+    color: var(--palette-ffffff);
     box-shadow: 0 1px 2px rgb(0 0 0 / .08);
 }
 

@@ -12,9 +12,9 @@
   max-height: 86vh;
   margin: auto;
   overflow: hidden;
-  background: var(--sheet-bg-elevated, #1e293b);
-  color: var(--sheet-fg, #f8fafc);
-  border: 1px solid var(--sheet-border, #334155);
+  background: var(--sheet-bg-elevated, var(--palette-1e293b));
+  color: var(--sheet-fg, var(--palette-f8fafc));
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 8px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
   font-size: var(--text-xs);
@@ -26,7 +26,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-structured-header h2 {
@@ -38,7 +38,7 @@
 .ss-structured-close {
   background: none;
   border: none;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xl);
   line-height: 1;
   cursor: pointer;
@@ -47,7 +47,7 @@
 
 .ss-structured-close:hover,
 .ss-structured-close:focus-visible {
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
 }
 
 .ss-structured-body {
@@ -65,26 +65,26 @@
   gap: 8px;
   flex-wrap: wrap;
   padding: 10px 16px;
-  border-top: 1px solid var(--sheet-border, #334155);
+  border-top: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-structured-status {
   flex: 1 1 auto;
   min-width: 160px;
-  color: #86efac;
+  color: var(--palette-86efac);
   font-size: var(--text-2xs);
 }
 
 .ss-structured-status-error {
-  color: #fca5a5;
+  color: var(--palette-fca5a5);
 }
 
 .ss-structured-local-note {
   margin: 0;
   padding: 8px 10px;
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--palette-f59e0b);
   background: rgba(245, 158, 11, 0.08);
-  color: var(--sheet-muted, #cbd5e1);
+  color: var(--sheet-muted, var(--palette-cbd5e1));
   font-size: var(--text-2xs);
 }
 
@@ -98,37 +98,37 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
   font-size: var(--text-2xs);
 }
 
 .ss-structured-input {
   padding: 7px 8px;
-  background: var(--sheet-bg, #0f172a);
-  border: 1px solid var(--sheet-border, #334155);
+  background: var(--sheet-bg, var(--palette-0f172a));
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
   font: inherit;
 }
 
 .ss-structured-input:focus-visible,
 .ss-structured-btn:focus-visible {
-  outline: 2px solid #38bdf8;
+  outline: 2px solid var(--palette-38bdf8);
   outline-offset: 1px;
 }
 
 .ss-structured-btn {
   padding: 7px 10px;
-  background: var(--sheet-bg, #0f172a);
-  border: 1px solid var(--sheet-border, #334155);
+  background: var(--sheet-bg, var(--palette-0f172a));
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
-  color: var(--sheet-fg, #f8fafc);
+  color: var(--sheet-fg, var(--palette-f8fafc));
   cursor: pointer;
   font-size: var(--text-2xs);
 }
 
 .ss-structured-btn:hover:not(:disabled) {
-  border-color: #38bdf8;
+  border-color: var(--palette-38bdf8);
 }
 
 .ss-structured-btn:disabled {
@@ -137,15 +137,15 @@
 }
 
 .ss-structured-primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background: var(--palette-2563eb);
+  border-color: var(--palette-2563eb);
+  color: var(--palette-ffffff);
   font-weight: 600;
 }
 
 .ss-structured-danger {
-  border-color: #7f1d1d;
-  color: #fca5a5;
+  border-color: var(--palette-7f1d1d);
+  color: var(--palette-fca5a5);
 }
 
 .ss-structured-actions {
@@ -156,10 +156,10 @@
 .ss-structured-preview {
   min-height: 34px;
   padding: 4px 6px;
-  border: 1px dashed var(--sheet-border, #334155);
+  border: 1px dashed var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
-  background: var(--sheet-bg, #0f172a);
-  color: var(--sheet-muted, #cbd5e1);
+  background: var(--sheet-bg, var(--palette-0f172a));
+  color: var(--sheet-muted, var(--palette-cbd5e1));
   font-size: var(--text-2xs);
 }
 
@@ -180,7 +180,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
 }
 
@@ -191,7 +191,7 @@
 
 .ss-structured-empty {
   margin: 0;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-style: italic;
   font-size: var(--text-2xs);
 }
@@ -210,21 +210,21 @@
 
 .ss-structured-chip[aria-pressed="true"],
 .ss-structured-slicer-values .ss-structured-btn[aria-pressed="true"] {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background: var(--palette-2563eb);
+  border-color: var(--palette-2563eb);
+  color: var(--palette-ffffff);
 }
 
 .ss-structured-slicer-count {
   margin: 0;
-  color: var(--sheet-muted, #cbd5e1);
+  color: var(--sheet-muted, var(--palette-cbd5e1));
   font-size: var(--text-2xs);
 }
 
 .ss-structured-table-host {
   max-height: 34vh;
   overflow: auto;
-  border: 1px solid var(--sheet-border, #334155);
+  border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 4px;
 }
 
@@ -237,7 +237,7 @@
 .ss-structured-grid th,
 .ss-structured-grid td {
   padding: 5px 8px;
-  border-bottom: 1px solid var(--sheet-border, #334155);
+  border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
   text-align: left;
   white-space: nowrap;
 }
@@ -245,24 +245,24 @@
 .ss-structured-grid thead th {
   position: sticky;
   top: 0;
-  background: var(--sheet-bg-elevated, #1e293b);
-  color: var(--sheet-muted, #cbd5e1);
+  background: var(--sheet-bg-elevated, var(--palette-1e293b));
+  color: var(--sheet-muted, var(--palette-cbd5e1));
   font-weight: 600;
 }
 
 .ss-structured-iterations td:last-child {
-  color: #86efac;
+  color: var(--palette-86efac);
 }
 
 .ss-structured-goalseek-engine {
   margin: 0;
-  color: var(--sheet-muted, #94a3b8);
+  color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
 }
 
 .ss-structured-goalseek-result {
   margin: 0;
-  color: #7dd3fc;
+  color: var(--palette-7dd3fc);
   font-weight: 600;
   font-size: var(--text-xs);
 }

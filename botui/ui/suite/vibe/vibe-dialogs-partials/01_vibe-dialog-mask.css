@@ -26,7 +26,7 @@
     max-width: 1120px;
     height: 86%;
     max-height: 780px;
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     border: 1px solid var(--border, #333);
     border-radius: 12px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
@@ -40,7 +40,7 @@
     justify-content: space-between;
     padding: 10px 16px;
     border-bottom: 1px solid var(--border, #333);
-    background: var(--surface-hover, #1c1c33);
+    background: var(--surface-hover, var(--palette-1c1c33));
     flex-shrink: 0;
 }
 
@@ -58,8 +58,8 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--accent, #4a6cf7);
-    box-shadow: 0 0 6px var(--accent, #4a6cf7);
+    background: var(--accent, var(--palette-4a6cf7));
+    box-shadow: 0 0 6px var(--accent, var(--palette-4a6cf7));
 }
 
 .vibe-dialog-actions {
@@ -93,7 +93,7 @@
     width: 260px;
     flex-shrink: 0;
     border-right: 1px solid var(--border, #333);
-    background: var(--bg, #12121f);
+    background: var(--bg, var(--palette-12121f));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -104,7 +104,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: var(--bg, #0e0e1a);
+    background: var(--bg, var(--palette-0e0e1a));
 }
 
 .vibe-dialog-toolbar {
@@ -113,13 +113,13 @@
     gap: 8px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     flex-shrink: 0;
 }
 
 .vibe-btn {
     border: 1px solid var(--border, #444);
-    background: var(--surface, #1a1a2e);
+    background: var(--surface, var(--palette-1a1a2e));
     color: var(--text, #eee);
     font-family: "Fira Code", monospace;
     font-size: var(--text-2xs);
@@ -161,22 +161,22 @@
 }
 
 .vibe-code-tree-folder {
-    color: #eab308;
+    color: var(--palette-eab308);
     filter: drop-shadow(0 0 2px rgba(234, 179, 8, 0.4));
 }
 
 .vibe-code-tree-file {
-    color: #9aa4b2;
+    color: var(--palette-9aa4b2);
 }
 
 .vibe-btn:hover {
-    border-color: var(--accent, #4a6cf7);
-    color: var(--accent, #4a6cf7);
+    border-color: var(--accent, var(--palette-4a6cf7));
+    color: var(--accent, var(--palette-4a6cf7));
 }
 
 .vibe-btn.primary {
-    background: var(--accent, #4a6cf7);
-    border-color: var(--accent, #4a6cf7);
+    background: var(--accent, var(--palette-4a6cf7));
+    border-color: var(--accent, var(--palette-4a6cf7));
     color: #fff;
     font-weight: 600;
 }
@@ -187,17 +187,17 @@
 }
 
 .vibe-btn.danger {
-    border-color: #f55555;
-    color: #f88888;
+    border-color: var(--palette-f55555);
+    color: var(--palette-f88888);
 }
 
 .vibe-btn.danger:hover {
     background: rgba(245, 85, 85, 0.1);
-    color: #ff9a9a;
+    color: var(--palette-ff9a9a);
 }
 
 .vibe-input, .vibe-select, .vibe-textarea {
-    background: var(--bg, #12121f);
+    background: var(--bg, var(--palette-12121f));
     color: var(--text, #eee);
     border: 1px solid var(--border, #333);
     border-radius: 5px;
@@ -208,7 +208,7 @@
 }
 
 .vibe-input:focus, .vibe-select:focus, .vibe-textarea:focus {
-    border-color: var(--accent, #4a6cf7);
+    border-color: var(--accent, var(--palette-4a6cf7));
 }
 
 .vibe-list {
@@ -219,8 +219,8 @@
 }
 
 .vibe-card {
-    background: var(--surface, #14142a);
-    border: 1px solid var(--border, #2a2a4a);
+    background: var(--surface, var(--palette-14142a));
+    border: 1px solid var(--border, var(--palette-2a2a4a));
     border-radius: 8px;
     overflow: hidden;
 }
@@ -239,10 +239,10 @@
 }
 
 .vibe-list-item:hover {
-    background: var(--surface-hover, #1c1c33);
+    background: var(--surface-hover, var(--palette-1c1c33));
 }
 
 .vibe-list-item.active {
     background: rgba(74, 108, 247, 0.12);
-    border-left-color: var(--accent, #4a6cf7);
+    border-left-color: var(--accent, var(--palette-4a6cf7));
 }

@@ -322,7 +322,7 @@
     display: grid;
     gap: 0.3rem;
     font-size: 0.8rem;
-    color: var(--integrations-text-muted, #64748b);
+    color: var(--integrations-text-muted, var(--palette-64748b));
 }
 
 .integrations-run-field input,

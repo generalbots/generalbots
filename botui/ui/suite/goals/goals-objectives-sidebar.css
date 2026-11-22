@@ -190,7 +190,7 @@
 }
 
 .stat-value.at-risk {
-    color: var(--color-warning, #f59e0b);
+    color: var(--color-warning, var(--palette-f59e0b));
 }
 
 .stat-label {

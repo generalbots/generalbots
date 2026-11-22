@@ -4,25 +4,25 @@
  */
 
 :root {
-    --bg-primary: #1e1e2e;
-    --bg-secondary: #181825;
-    --bg-tertiary: #313244;
-    --text-primary: #cdd6f4;
-    --text-secondary: #a6adc8;
-    --accent-blue: #89b4fa;
-    --accent-green: #a6e3a1;
-    --accent-yellow: #f9e2af;
-    --accent-red: #f38ba8;
-    --accent-purple: #cba6f7;
-    --accent-teal: #94e2d5;
-    --border-color: #45475a;
-    --node-talk: #89b4fa;
-    --node-hear: #a6e3a1;
-    --node-set: #f9e2af;
-    --node-if: #cba6f7;
-    --node-for: #f38ba8;
-    --node-call: #94e2d5;
-    --node-send: #fab387;
+    --bg-primary: var(--palette-1e1e2e);
+    --bg-secondary: var(--palette-181825);
+    --bg-tertiary: var(--palette-313244);
+    --text-primary: var(--palette-cdd6f4);
+    --text-secondary: var(--palette-a6adc8);
+    --accent-blue: var(--palette-89b4fa);
+    --accent-green: var(--palette-a6e3a1);
+    --accent-yellow: var(--palette-f9e2af);
+    --accent-red: var(--palette-f38ba8);
+    --accent-purple: var(--palette-cba6f7);
+    --accent-teal: var(--palette-94e2d5);
+    --border-color: var(--palette-45475a);
+    --node-talk: var(--palette-89b4fa);
+    --node-hear: var(--palette-a6e3a1);
+    --node-set: var(--palette-f9e2af);
+    --node-if: var(--palette-cba6f7);
+    --node-for: var(--palette-f38ba8);
+    --node-call: var(--palette-94e2d5);
+    --node-send: var(--palette-fab387);
     --grid-size: 20px;
 }
 
@@ -103,7 +103,7 @@ body {
 }
 
 .toolbar-btn.primary:hover {
-    background: #7aa8f0;
+    background: var(--palette-7aa8f0);
 }
 
 .toolbar-btn svg {
@@ -182,9 +182,9 @@ body {
 .toolbox-icon.for { background: var(--node-for); }
 .toolbox-icon.call { background: var(--node-call); }
 .toolbox-icon.send { background: var(--node-send); }
-.toolbox-icon.get { background: #74c7ec; }
-.toolbox-icon.wait { background: #f5c2e7; }
-.toolbox-icon.switch { background: #b4befe; }
+.toolbox-icon.get { background: var(--palette-74c7ec); }
+.toolbox-icon.wait { background: var(--palette-f5c2e7); }
+.toolbox-icon.switch { background: var(--palette-b4befe); }
 
 .toolbox-info {
     flex: 1;
@@ -278,9 +278,9 @@ body {
 .node-header.for { background: var(--node-for); color: var(--bg-primary); }
 .node-header.call { background: var(--node-call); color: var(--bg-primary); }
 .node-header.send { background: var(--node-send); color: var(--bg-primary); }
-.node-header.get { background: #74c7ec; color: var(--bg-primary); }
-.node-header.wait { background: #f5c2e7; color: var(--bg-primary); }
-.node-header.switch { background: #b4befe; color: var(--bg-primary); }
+.node-header.get { background: var(--palette-74c7ec); color: var(--bg-primary); }
+.node-header.wait { background: var(--palette-f5c2e7); color: var(--bg-primary); }
+.node-header.switch { background: var(--palette-b4befe); color: var(--bg-primary); }
 
 .node-header svg {
     width: 14px;

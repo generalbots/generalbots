@@ -33,7 +33,7 @@
 }
 
 .integrations-run-history-list [aria-current="true"] {
-    outline: 2px solid var(--integrations-accent, #2563eb);
+    outline: 2px solid var(--integrations-accent, var(--palette-2563eb));
     outline-offset: 1px;
 }
 

@@ -82,10 +82,10 @@
   align-items: center;
   gap: 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface, #1a1a24) 72%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--palette-1a1a24)) 72%, transparent);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   font-size: var(--text-xs);
-  color: var(--text-secondary, #9aa0aa);
+  color: var(--text-secondary, var(--palette-9aa0aa));
 }
 /* Replaces the 6px red bar with a small status dot */
 #chat-app .gb-state::before {
@@ -94,11 +94,11 @@
   border-radius: 50%;
 }
 #chat-app .gb-state-loading::before {
-  background: var(--accent, #7c5cff);
+  background: var(--accent, var(--palette-7c5cff));
   animation: mnd-pulse 1.2s ease-in-out infinite;
 }
 #chat-app .gb-state-error::before {
-  background: var(--mnd-warn, #f59e0b);
+  background: var(--mnd-warn, var(--palette-f59e0b));
 }
 /* The error card sits inside the flow while the perpetual reconnect works;
  * keep it short-lived visually by fading it after a few seconds. */
@@ -120,15 +120,15 @@
   margin: 2px 0;
   /* Files are content, not actions: a neutral card keeps the conversation
      calm and lets the accent stay on the controls that do something. */
-  border: 1px solid var(--gb-border, #e4e4e7);
+  border: 1px solid var(--gb-border, var(--palette-e4e4e7));
   border-radius: 11px;
-  background: var(--gb-surface-muted, #fafafa);
+  background: var(--gb-surface-muted, var(--palette-fafafa));
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   font-size: var(--text-2xs);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 #chat-app .gb-attachment:hover {
-  border-color: var(--gb-border-strong, #d4d4d8);
+  border-color: var(--gb-border-strong, var(--palette-d4d4d8));
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
 }
 #chat-app .gb-attachment-icon {
@@ -139,9 +139,9 @@
   height: 26px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: var(--gb-surface, #f4f4f5);
-  border: 1px solid var(--gb-border, #e4e4e7);
-  color: #52525b;
+  background: var(--gb-surface, var(--palette-f4f4f5));
+  border: 1px solid var(--gb-border, var(--palette-e4e4e7));
+  color: var(--palette-52525b);
   font-size: var(--text-xs);
   line-height: 1;
 }
@@ -154,19 +154,19 @@
   font-weight: 500;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: var(--text-2xs);
-  color: var(--gb-text, #18181b);
+  color: var(--gb-text, var(--palette-18181b));
   text-decoration: none;
 }
 #chat-app .gb-attachment-name:hover {
   text-decoration: underline;
-  color: var(--accent, #a78bfa);
+  color: var(--accent, var(--palette-a78bfa));
 }
 #chat-app .gb-attachment-btn {
   padding: 3px 9px;
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: var(--text-secondary, #9aa0aa);
+  color: var(--text-secondary, var(--palette-9aa0aa));
   font-size: var(--text-2xs);
   font-weight: 500;
   cursor: pointer;
@@ -181,11 +181,11 @@
   opacity: 1;
 }
 #chat-app .gb-attachment-btn:hover {
-  background: color-mix(in srgb, var(--accent, #7c5cff) 18%, transparent);
+  background: color-mix(in srgb, var(--accent, var(--palette-7c5cff)) 18%, transparent);
   color: var(--text, #fff);
 }
 #chat-app .gb-attachment-btn.gb-attachment-download {
-  color: var(--accent, #a78bfa);
+  color: var(--accent, var(--palette-a78bfa));
 }
 
 /* #1831 — latest chip, content-type badges, per-attachment order label and
@@ -198,9 +198,9 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  background: var(--gb-surface, #f4f4f5);
-  border: 1px solid var(--gb-border, #e4e4e7);
-  color: var(--text-secondary, #71717a);
+  background: var(--gb-surface, var(--palette-f4f4f5));
+  border: 1px solid var(--gb-border, var(--palette-e4e4e7));
+  color: var(--text-secondary, var(--palette-71717a));
   font-size: var(--text-2xs);
   font-weight: 600;
   line-height: 1;
@@ -211,8 +211,8 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent, #7c5cff) 12%, transparent);
-  color: var(--accent, #7c5cff);
+  background: color-mix(in srgb, var(--accent, var(--palette-7c5cff)) 12%, transparent);
+  color: var(--accent, var(--palette-7c5cff));
   font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -224,7 +224,7 @@
   flex-basis: 100%;
   font-style: italic;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #71717a);
+  color: var(--text-secondary, var(--palette-71717a));
   margin-top: 2px;
 }
 #chat-app .gb-latest-chip,
@@ -233,8 +233,8 @@
   align-items: center;
   padding: 1px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, #4f46e5 10%, var(--gb-surface, #fff));
-  color: #4f46e5;
+  background: color-mix(in srgb, var(--palette-4f46e5) 10%, var(--gb-surface, #fff));
+  color: var(--palette-4f46e5);
   font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -265,15 +265,15 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary, #9aa0aa);
+  color: var(--text-secondary, var(--palette-9aa0aa));
 }
 #chat-app .gb-console-head::before {
   content: "";
   width: 8px;
   height: 8px;
   border-radius: 3px;
-  background: var(--success, #34d399);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success, #34d399) 22%, transparent);
+  background: var(--success, var(--palette-34d399));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success, var(--palette-34d399)) 22%, transparent);
 }
 #chat-app .gb-console pre {
   margin: 0;
@@ -284,7 +284,7 @@
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: var(--text-2xs);
   line-height: 1.55;
-  color: var(--text, #d5d8e0);
+  color: var(--text, var(--palette-d5d8e0));
   white-space: pre-wrap;
   word-break: break-word;
   scrollbar-width: thin;
@@ -303,9 +303,9 @@
 /* #1694 — per-agent progress for parallel fan-out. */
 .gb-subagents {
     margin: 10px 0;
-    border: 1px solid var(--gb-border-soft, #e5e7eb);
+    border: 1px solid var(--gb-border-soft, var(--palette-e5e7eb));
     border-radius: 10px;
-    background: var(--gb-surface-muted, #f7f8fa);
+    background: var(--gb-surface-muted, var(--palette-f7f8fa));
     font-size: var(--text-2xs);
     overflow: hidden;
 }
@@ -314,31 +314,31 @@
     justify-content: space-between;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--gb-border-soft, #e5e7eb);
+    border-bottom: 1px solid var(--gb-border-soft, var(--palette-e5e7eb));
     font-weight: 600;
 }
-.gb-subagents-count { color: var(--gb-muted, #6b7280); font-weight: 500; }
+.gb-subagents-count { color: var(--gb-muted, var(--palette-6b7280)); font-weight: 500; }
 .gb-subagent-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     padding: 7px 12px;
-    border-bottom: 1px solid var(--gb-border-soft, #e5e7eb);
+    border-bottom: 1px solid var(--gb-border-soft, var(--palette-e5e7eb));
 }
 .gb-subagent-row:last-child { border-bottom: 0; }
 .gb-subagent-dot {
     width: 8px; height: 8px; border-radius: 50%;
-    background: #9ca3af; flex: 0 0 8px;
+    background: var(--palette-9ca3af); flex: 0 0 8px;
 }
-.gb-subagent-dot.is-running { background: #f59e0b; }
-.gb-subagent-dot.is-succeeded { background: #16a34a; }
-.gb-subagent-dot.is-failed { background: #dc2626; }
+.gb-subagent-dot.is-running { background: var(--palette-f59e0b); }
+.gb-subagent-dot.is-succeeded { background: var(--palette-16a34a); }
+.gb-subagent-dot.is-failed { background: var(--palette-dc2626); }
 .gb-subagent-name { font-weight: 600; }
-.gb-subagent-state { color: var(--gb-muted, #6b7280); }
+.gb-subagent-state { color: var(--gb-muted, var(--palette-6b7280)); }
 .gb-subagent-excerpt {
     flex: 1 0 100%;
-    color: var(--gb-muted, #6b7280);
+    color: var(--gb-muted, var(--palette-6b7280));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

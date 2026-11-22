@@ -7,7 +7,7 @@
 }
 
 #ledger-section .ledger-tab {
-    border: 1px solid var(--border, #d9e0ea);
+    border: 1px solid var(--border, var(--palette-d9e0ea));
     background: transparent;
     color: inherit;
     border-radius: 999px;
@@ -18,8 +18,8 @@
 }
 
 #ledger-section .ledger-tab.active {
-    background: var(--accent, #2563eb);
-    border-color: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
+    border-color: var(--accent, var(--palette-2563eb));
     color: #fff;
 }
 
@@ -38,7 +38,7 @@
     text-align: left;
     vertical-align: top;
     padding: 6px 10px;
-    border-bottom: 1px solid var(--border, #e5e7eb);
+    border-bottom: 1px solid var(--border, var(--palette-e5e7eb));
     white-space: nowrap;
 }
 
@@ -52,7 +52,7 @@
 }
 
 #ledger-section .ledger-empty {
-    color: var(--muted, #6b7280);
+    color: var(--muted, var(--palette-6b7280));
     font-size: var(--text-xs);
     padding: 14px 2px;
 }
@@ -70,12 +70,12 @@
     flex-direction: column;
     gap: 4px;
     font-size: var(--text-2xs);
-    color: var(--muted, #6b7280);
+    color: var(--muted, var(--palette-6b7280));
 }
 
 #ledger-section .ledger-budget-toolbar input {
     padding: 6px 8px;
-    border: 1px solid var(--border, #d9e0ea);
+    border: 1px solid var(--border, var(--palette-d9e0ea));
     border-radius: 6px;
     background: transparent;
     color: inherit;
@@ -88,5 +88,5 @@
 }
 
 #ledger-section .ledger-budget-summary .is-over {
-    color: #b91c1c;
+    color: var(--palette-b91c1c);
 }

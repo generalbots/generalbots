@@ -276,7 +276,7 @@
 
 .db-num {
   font-family: "Fira Code", "JetBrains Mono", monospace;
-  color: #7dd3fc;
+  color: var(--palette-7dd3fc);
   font-variant-numeric: tabular-nums;
 }
 
@@ -318,7 +318,7 @@
 
 .db-json {
   font-family: "Fira Code", "JetBrains Mono", monospace;
-  color: #c4b5fd;
+  color: var(--palette-c4b5fd);
   font-size: var(--text-2xs);
 }
 
@@ -344,12 +344,12 @@
 
 /* #2324: data-type badge colours are a fixed categorical code (legend-like
    data, not themeable chrome). Semantic types already use role tokens. */
-.db-type-uuid    { background: #8b5cf6; }
+.db-type-uuid    { background: var(--palette-8b5cf6); }
 .db-type-number  { background: var(--primary); }
 .db-type-decimal { background: var(--info); }
 .db-type-bool    { background: var(--success); }
 .db-type-datetime{ background: var(--warning); }
-.db-type-date    { background: #ec4899; }
+.db-type-date    { background: var(--palette-ec4899); }
 .db-type-json    { background: var(--surface-hover); }
 .db-type-text    { background: var(--success); }
 .db-type-any     { background: var(--surface-hover); }
@@ -373,8 +373,8 @@
   font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: #38bdf8;
-  background: color-mix(in srgb, #38bdf8 14%, transparent);
+  color: var(--palette-38bdf8);
+  background: color-mix(in srgb, var(--palette-38bdf8) 14%, transparent);
   flex-shrink: 0;
 }
 

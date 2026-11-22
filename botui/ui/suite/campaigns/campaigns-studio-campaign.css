@@ -6,7 +6,7 @@
 }
 
 .campaign-card {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     padding: 16px;
@@ -14,7 +14,7 @@
 }
 
 .campaign-card:hover {
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--palette-d4f505));
     transform: translateY(-2px);
 }
 
@@ -28,7 +28,7 @@
 .campaign-card-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     margin: 0;
 }
 
@@ -44,22 +44,22 @@
 
 .campaign-status.draft {
     background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
+    color: var(--palette-fbbf24);
 }
 
 .campaign-status.scheduled {
     background: rgba(96, 165, 250, 0.15);
-    color: #60a5fa;
+    color: var(--palette-60a5fa);
 }
 
 .campaign-status.running {
     background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
+    color: var(--palette-34d399);
 }
 
 .campaign-status.completed {
     background: rgba(156, 163, 175, 0.15);
-    color: #9ca3af;
+    color: var(--palette-9ca3af);
 }
 
 .campaign-channels {
@@ -96,7 +96,7 @@
 .campaign-metric-value {
     font-size: var(--text-lg);
     font-weight: 700;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--palette-d4f505));
 }
 
 .campaign-metric-label {
@@ -128,14 +128,14 @@
 
 .campaign-action-btn:hover {
     background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-    color: var(--text, #f8fafc);
+    color: var(--text, var(--palette-f8fafc));
     border-color: var(--text-secondary, #888);
 }
 
 .campaign-action-btn.primary {
-    background: var(--accent, #d4f505);
-    color: var(--bg, #0a0a0a);
-    border-color: var(--accent, #d4f505);
+    background: var(--accent, var(--palette-d4f505));
+    color: var(--bg, var(--palette-0a0a0a));
+    border-color: var(--accent, var(--palette-d4f505));
 }
 
 .campaign-action-btn.primary:hover {
@@ -168,14 +168,14 @@
     flex-wrap: wrap;
     gap: 4px;
     padding: 6px 8px;
-    background: var(--surface-2, #111827);
+    background: var(--surface-2, var(--palette-111827));
     border-bottom: 1px solid var(--border, #333);
 }
 
 .studio-tool-btn {
     border: 1px solid transparent;
     background: transparent;
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--palette-e2e8f0));
     border-radius: 4px;
     min-width: 28px;
     padding: 4px 8px;
@@ -184,8 +184,8 @@
 }
 
 .studio-tool-btn:hover {
-    border-color: var(--accent, #3b82f6);
-    background: var(--surface-active, #1e293b);
+    border-color: var(--accent, var(--palette-3b82f6));
+    background: var(--surface-active, var(--palette-1e293b));
 }
 
 .studio-tool-sep {
@@ -202,9 +202,9 @@
 }
 
 .studio-var-btn {
-    border: 1px dashed var(--accent, #3b82f6);
+    border: 1px dashed var(--accent, var(--palette-3b82f6));
     background: transparent;
-    color: var(--accent, #3b82f6);
+    color: var(--accent, var(--palette-3b82f6));
     border-radius: 4px;
     padding: 2px 6px;
     font-size: var(--text-2xs);
@@ -213,7 +213,7 @@
 }
 
 .studio-var-btn:hover {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, var(--palette-3b82f6));
     color: #fff;
 }
 
@@ -221,7 +221,7 @@
     background: rgba(59, 130, 246, 0.15);
     border-radius: 3px;
     padding: 0 3px;
-    color: var(--accent, #3b82f6);
+    color: var(--accent, var(--palette-3b82f6));
 }
 
 @media (prefers-reduced-motion: reduce) {

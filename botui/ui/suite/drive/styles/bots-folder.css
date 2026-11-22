@@ -134,7 +134,7 @@
     width: 56px;
     height: 56px;
     border-radius: 14px;
-    background: linear-gradient(135deg, var(--primary, #6366f1), #4f46e5);
+    background: linear-gradient(135deg, var(--primary, var(--palette-6366f1)), var(--palette-4f46e5));
     display: flex;
     align-items: center;
     justify-content: center;

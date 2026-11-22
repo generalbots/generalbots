@@ -35,7 +35,7 @@
 }
 
 .ai-send-btn:hover {
-    background: #d4ff4a;
+    background: var(--palette-d4ff4a);
 }
 
 /* =============================================================================
@@ -141,7 +141,7 @@
 }
 
 .app-btn-primary:hover {
-    background: #d4ff4a;
+    background: var(--palette-d4ff4a);
 }
 
 .app-btn-secondary {

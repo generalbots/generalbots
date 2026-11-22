@@ -23,12 +23,12 @@
 }
 
 .task-detail-panel::-webkit-scrollbar-thumb {
-    background: var(--border, #2a2a2a);
+    background: var(--border, var(--palette-2a2a2a));
     border-radius: 3px;
 }
 
 .task-detail-panel::-webkit-scrollbar-thumb:hover {
-    background: var(--border-light, #3a3a3a);
+    background: var(--border-light, var(--palette-3a3a3a));
 }
 
 /* Main Container - NO scroll here, only progress-content scrolls */
@@ -38,8 +38,8 @@
     height: 100%;
     max-height: 100%;
     min-height: 0;
-    background: var(--bg, #0a0a0a);
-    color: var(--text-secondary, #e0e0e0);
+    background: var(--bg, var(--palette-0a0a0a));
+    color: var(--text-secondary, var(--palette-e0e0e0));
     font-family: var(
         --sentient-font-family,
         "Inter",
@@ -53,7 +53,7 @@
 /* Header - visible and prominent */
 .taskmd-header {
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
     flex-shrink: 0;
     background: var(--surface, #111);
     display: flex;
@@ -107,19 +107,19 @@
 }
 
 .taskmd-status-badge.status-running {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     color: var(--bg, #000);
 }
 
 .taskmd-status-badge.status-completed,
 .taskmd-status-badge.status-complete {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
     color: var(--text, #fff);
 }
 
 .taskmd-status-badge.status-error,
 .taskmd-status-badge.status-failed {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
     color: var(--text, #fff);
 }
 
@@ -130,7 +130,7 @@
 
 /* Section Container */
 .taskmd-section {
-    border-bottom: 1px solid var(--border, #1a1a1a);
+    border-bottom: 1px solid var(--border, var(--palette-1a1a1a));
     flex-shrink: 0;
 }
 
@@ -160,7 +160,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden !important;
-    border-top: 1px solid var(--border, #1a1a1a);
+    border-top: 1px solid var(--border, var(--palette-1a1a1a));
 }
 
 .taskmd-section-header {
@@ -170,7 +170,7 @@
     letter-spacing: 1.5px;
     color: var(--text-tertiary, #666);
     text-transform: uppercase;
-    background: var(--bg-secondary, #0d0d0d);
+    background: var(--bg-secondary, var(--palette-0d0d0d));
     flex-shrink: 0;
 }
 
@@ -205,7 +205,7 @@
 .status-text {
     flex: 1;
     font-size: var(--text-sm);
-    color: var(--text-secondary, #e0e0e0);
+    color: var(--text-secondary, var(--palette-e0e0e0));
 }
 
 .status-time {
@@ -220,7 +220,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
 
@@ -232,7 +232,7 @@
 }
 
 .status-gear:hover {
-    color: var(--accent, #c5f82a);
+    color: var(--accent, var(--palette-c5f82a));
 }
 
 .status-dot {
@@ -241,13 +241,13 @@
     border-radius: 50%;
     margin-right: 12px;
     flex-shrink: 0;
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.5));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
 
 .status-dot.active {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.5));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
@@ -260,7 +260,7 @@
 
 .status-badge {
     padding: 4px 12px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover, var(--palette-1a1a1a));
     border-radius: 4px;
     font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
@@ -269,14 +269,14 @@
 
 /* PROGRESS LOG Section - THE ONLY SCROLLABLE AREA in detail panel */
 .taskmd-progress-content {
-    background: var(--bg, #0a0a0a);
+    background: var(--bg, var(--palette-0a0a0a));
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: scroll !important;
     overflow-x: hidden !important;
     scroll-behavior: smooth;
     scrollbar-width: thin;
-    scrollbar-color: var(--primary, #c5f82a) var(--surface, #1a1a1a);
+    scrollbar-color: var(--primary, var(--palette-c5f82a)) var(--surface, var(--palette-1a1a1a));
 }
 
 .taskmd-progress-content::-webkit-scrollbar {
@@ -284,17 +284,17 @@
 }
 
 .taskmd-progress-content::-webkit-scrollbar-track {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
 }
 
 .taskmd-progress-content::-webkit-scrollbar-thumb {
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 4px;
-    border: 2px solid var(--surface, #1a1a1a);
+    border: 2px solid var(--surface, var(--palette-1a1a1a));
 }
 
 .taskmd-progress-content::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-hover, #d4ff4a);
+    background: var(--primary-hover, var(--palette-d4ff4a));
 }
 
 .taskmd-tree {
@@ -315,7 +315,7 @@
 
 /* Tree Section (Level 0) - Main sections like "Database & Models" */
 .tree-section {
-    border: 1px solid var(--border, #1a1a1a);
+    border: 1px solid var(--border, var(--palette-1a1a1a));
     background: var(--surface, #111);
     border-radius: 8px;
     margin: 8px 16px;
@@ -344,8 +344,8 @@
 
 .tree-level-1 {
     padding-left: 40px;
-    background: var(--bg-secondary, #0d0d0d);
-    border-top: 1px solid var(--border, #1a1a1a);
+    background: var(--bg-secondary, var(--palette-0d0d0d));
+    border-top: 1px solid var(--border, var(--palette-1a1a1a));
 }
 
 .tree-level-1 .tree-name {
@@ -354,13 +354,13 @@
 }
 
 .tree-level-1 .tree-step-badge {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     font-size: var(--text-2xs);
     padding: 3px 10px;
 }
 
 .tree-level-1.pending .tree-step-badge {
-    background: var(--surface-active, #2a2a2a);
+    background: var(--surface-active, var(--palette-2a2a2a));
     color: var(--text-tertiary, #666);
 }
 
@@ -368,13 +368,13 @@
     flex: 1;
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #e0e0e0);
+    color: var(--text, var(--palette-e0e0e0));
 }
 
 .tree-step-badge {
     padding: 4px 12px;
-    background: var(--accent, #c5f82a);
-    color: var(--bg, #0a0a0a);
+    background: var(--accent, var(--palette-c5f82a));
+    color: var(--bg, var(--palette-0a0a0a));
     border-radius: 4px;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -394,8 +394,8 @@
 
 .tree-section.running .tree-step-badge,
 .tree-child.running .tree-step-badge {
-    background: var(--accent, #c5f82a);
-    color: var(--bg, #0a0a0a);
+    background: var(--accent, var(--palette-c5f82a));
+    color: var(--bg, var(--palette-0a0a0a));
 }
 
 .tree-status {
@@ -416,11 +416,11 @@
 }
 
 .tree-section-dot.completed {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
 }
 
 .tree-section-dot.running {
-    background: var(--accent, #c5f82a);
+    background: var(--accent, var(--palette-c5f82a));
     box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.6));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
@@ -430,7 +430,7 @@
 }
 
 .tree-section-dot.failed {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .tree-status.completed {
@@ -438,11 +438,11 @@
 }
 
 .tree-status.running {
-    color: var(--accent, #c5f82a);
+    color: var(--accent, var(--palette-c5f82a));
 }
 
 .tree-status.failed {
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 /* Tree Children - visible when expanded (default state) */

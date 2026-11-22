@@ -55,7 +55,7 @@
 }
 
 .lesson-item.completed {
-    border-color: #10b981;
+    border-color: var(--palette-10b981);
 }
 
 .lesson-number {
@@ -72,7 +72,7 @@
 }
 
 .lesson-item.completed .lesson-number {
-    background: #10b981;
+    background: var(--palette-10b981);
     color: white;
 }
 
@@ -211,13 +211,13 @@
 }
 
 .quiz-option.correct {
-    border-color: #10b981;
-    background: #dcfce7;
+    border-color: var(--palette-10b981);
+    background: var(--palette-dcfce7);
 }
 
 .quiz-option.incorrect {
-    border-color: #dc2626;
-    background: #fee2e2;
+    border-color: var(--palette-dc2626);
+    background: var(--palette-fee2e2);
 }
 
 .option-letter {
@@ -278,14 +278,14 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color), #10b981);
+    background: linear-gradient(135deg, var(--primary-color), var(--palette-10b981));
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .score-circle.failed {
-    background: linear-gradient(135deg, #f59e0b, #dc2626);
+    background: linear-gradient(135deg, var(--palette-f59e0b), var(--palette-dc2626));
 }
 
 .score-value {
@@ -323,7 +323,7 @@
 
 .result-certificate {
     padding: 16px;
-    background: linear-gradient(135deg, #fef3c7, #fef9c3);
+    background: linear-gradient(135deg, var(--palette-fef3c7), var(--palette-fef9c3));
     border-radius: 12px;
     margin-top: 24px;
 }
@@ -331,7 +331,7 @@
 .result-certificate p {
     font-size: var(--text-md);
     font-weight: 600;
-    color: #92400e;
+    color: var(--palette-92400e);
     margin: 0 0 12px 0;
 }
 

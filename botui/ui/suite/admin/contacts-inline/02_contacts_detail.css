@@ -295,27 +295,27 @@
         }
 
         .activity-icon.email {
-            border-color: #3b82f6;
+            border-color: var(--palette-3b82f6);
         }
 
         .activity-icon.email svg {
-            color: #3b82f6;
+            color: var(--palette-3b82f6);
         }
 
         .activity-icon.meeting {
-            border-color: #10b981;
+            border-color: var(--palette-10b981);
         }
 
         .activity-icon.meeting svg {
-            color: #10b981;
+            color: var(--palette-10b981);
         }
 
         .activity-icon.call {
-            border-color: #f59e0b;
+            border-color: var(--palette-f59e0b);
         }
 
         .activity-icon.call svg {
-            color: #f59e0b;
+            color: var(--palette-f59e0b);
         }
 
         .activity-title {

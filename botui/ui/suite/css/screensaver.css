@@ -1,11 +1,11 @@
 /* GB Screensaver (#1151) */
 #gb-screensaver {
   --gbss-accent: var(--accent, var(--primary));
-  --gbss-cyan: #5ad8ff;
+  --gbss-cyan: var(--palette-5ad8ff);
   position: fixed;
   inset: 0;
   z-index: var(--z-blocker);
-  background: #02040b;
+  background: var(--palette-02040b);
   cursor: none;
   overflow: hidden;
 }

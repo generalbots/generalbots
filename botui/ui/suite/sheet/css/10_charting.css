@@ -18,9 +18,9 @@
     right: 6px;
     padding: 1px 5px;
     border-radius: 3px;
-    border: 1px solid #E69F00;
+    border: 1px solid var(--palette-e69f00);
     background: rgba(15, 23, 42, 0.88);
-    color: #F0E442;
+    color: var(--palette-f0e442);
     font: 9px system-ui, sans-serif;
     pointer-events: none;
 }
@@ -31,10 +31,10 @@
     bottom: 3px;
     max-width: calc(100% - 20px);
     padding: 1px 4px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 3px;
     background: rgba(15, 23, 42, 0.92);
-    color: var(--sheet-fg, #f8fafc);
+    color: var(--sheet-fg, var(--palette-f8fafc));
     font: 9px system-ui, sans-serif;
     cursor: pointer;
 }
@@ -44,7 +44,7 @@
 .ss-charting-dialog button:focus-visible,
 .ss-charting-dialog input:focus-visible,
 .ss-charting-dialog select:focus-visible {
-    outline: 2px solid #56B4E9;
+    outline: 2px solid var(--palette-56b4e9);
     outline-offset: 1px;
 }
 
@@ -56,8 +56,8 @@
     max-height: calc(100% - 52px);
     overflow: auto;
     border-collapse: collapse;
-    background: var(--sheet-bg-elevated, #1e293b);
-    color: var(--sheet-fg, #f8fafc);
+    background: var(--sheet-bg-elevated, var(--palette-1e293b));
+    color: var(--sheet-fg, var(--palette-f8fafc));
     font: 9px system-ui, sans-serif;
     z-index: 2;
 }
@@ -65,13 +65,13 @@
 .ss-charting-table caption {
     padding: 2px;
     text-align: left;
-    color: var(--sheet-muted, #94a3b8);
+    color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-charting-table th,
 .ss-charting-table td {
     padding: 2px 5px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     text-align: right;
 }
 
@@ -89,10 +89,10 @@
     max-height: 84vh;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 8px;
-    background: var(--sheet-bg-elevated, #1e293b);
-    color: var(--sheet-fg, #f8fafc);
+    background: var(--sheet-bg-elevated, var(--palette-1e293b));
+    color: var(--sheet-fg, var(--palette-f8fafc));
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
     font: 13px system-ui, sans-serif;
 }
@@ -103,12 +103,12 @@
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    border-bottom: 1px solid var(--sheet-border, #334155);
+    border-bottom: 1px solid var(--sheet-border, var(--palette-334155));
 }
 
 .ss-charting-footer {
     border-bottom: none;
-    border-top: 1px solid var(--sheet-border, #334155);
+    border-top: 1px solid var(--sheet-border, var(--palette-334155));
     justify-content: flex-end;
 }
 
@@ -134,16 +134,16 @@
 
 .ss-charting-type-btn {
     padding: 5px 7px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
     background: transparent;
-    color: var(--sheet-fg, #f8fafc);
+    color: var(--sheet-fg, var(--palette-f8fafc));
     text-align: left;
     cursor: pointer;
 }
 
 .ss-charting-type-btn[aria-checked="true"] {
-    border-color: #56B4E9;
+    border-color: var(--palette-56b4e9);
     background: rgba(86, 180, 233, 0.18);
 }
 
@@ -156,7 +156,7 @@
 .ss-charting-field {
     display: block;
     font-size: var(--text-2xs);
-    color: var(--sheet-muted, #94a3b8);
+    color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-charting-field > span {
@@ -168,10 +168,10 @@
 .ss-charting-field select {
     box-sizing: border-box;
     padding: 4px 6px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
-    background: var(--sheet-bg, #0f172a);
-    color: var(--sheet-fg, #f8fafc);
+    background: var(--sheet-bg, var(--palette-0f172a));
+    color: var(--sheet-fg, var(--palette-f8fafc));
     font: 12px system-ui, sans-serif;
 }
 
@@ -186,19 +186,19 @@
 }
 
 .ss-charting-analysis {
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
     font-size: var(--text-2xs)
 }
 
 .ss-charting-analysis legend {
     padding: 0 4px;
-    color: #F0E442;
+    color: var(--palette-f0e442);
 }
 
 .ss-charting-preview {
     min-height: 190px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
     overflow: hidden;
 }
@@ -213,30 +213,30 @@
     display: block;
     margin-bottom: 4px;
     font-size: var(--text-2xs);
-    color: var(--sheet-muted, #94a3b8);
+    color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-charting-status {
     flex: 1;
     font-size: var(--text-2xs);
-    color: var(--sheet-muted, #94a3b8);
+    color: var(--sheet-muted, var(--palette-94a3b8));
 }
 
 .ss-charting-close,
 .ss-charting-cancel,
 .ss-charting-apply {
     padding: 5px 12px;
-    border: 1px solid var(--sheet-border, #334155);
+    border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 4px;
     background: transparent;
-    color: var(--sheet-fg, #f8fafc);
+    color: var(--sheet-fg, var(--palette-f8fafc));
     cursor: pointer;
 }
 
 .ss-charting-apply {
-    border-color: #009E73;
-    background: #009E73;
-    color: #FFFFFF;
+    border-color: var(--palette-009e73);
+    background: var(--palette-009e73);
+    color: var(--palette-ffffff);
 }
 
 @media (max-width: 720px) {

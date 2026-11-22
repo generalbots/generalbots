@@ -5,9 +5,9 @@
    ============================================================ */
 
 :root {
-  --mnd-ok: #2f9e44;
-  --mnd-warn: #e8930c;
-  --mnd-err: #d64545;
+  --mnd-ok: var(--palette-2f9e44);
+  --mnd-warn: var(--palette-e8930c);
+  --mnd-err: var(--palette-d64545);
   --mnd-info: var(--primary);
   --mnd-radius: 10px;
   --mnd-focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary, var(--accent, var(--primary)));

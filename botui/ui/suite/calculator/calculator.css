@@ -10,8 +10,8 @@
   display: flex;
   height: 100%;
   min-height: 380px;
-  background: var(--surface, #141623);
-  color: var(--text, #e5e5e5);
+  background: var(--surface, var(--palette-141623));
+  color: var(--text, var(--palette-e5e5e5));
   font-family: "Fira Code", "Fira Sans", monospace;
 }
 
@@ -58,7 +58,7 @@
 
 .gb-calc-tab.active {
   background: rgba(132, 214, 105, 0.14);
-  color: var(--primary, #84d669);
+  color: var(--primary, var(--palette-84d669));
   font-weight: 600;
 }
 
@@ -79,8 +79,8 @@
 }
 
 .gb-calc-tool.active {
-  color: var(--primary, #84d669);
-  border-color: var(--primary, #84d669);
+  color: var(--primary, var(--palette-84d669));
+  border-color: var(--primary, var(--palette-84d669));
 }
 
 /* Screen */
@@ -101,7 +101,7 @@
   font-family: inherit;
   font-size: var(--text-2xl);
   text-align: right;
-  caret-color: var(--primary, #84d669);
+  caret-color: var(--primary, var(--palette-84d669));
 }
 
 .gb-calc-preview {
@@ -149,14 +149,14 @@
   transform: scale(0.97);
 }
 
-.gb-calc-key.op { color: var(--primary, #84d669); }
+.gb-calc-key.op { color: var(--primary, var(--palette-84d669)); }
 .gb-calc-key.fn { font-size: var(--text-xs); }
-.gb-calc-key.warn:hover { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+.gb-calc-key.warn:hover { background: rgba(239, 68, 68, 0.16); color: var(--palette-f87171); }
 
 .gb-calc-key.equals {
-  background: var(--primary, #84d669);
+  background: var(--primary, var(--palette-84d669));
   border-color: transparent;
-  color: #06120a;
+  color: var(--palette-06120a);
   font-weight: 700;
 }
 
@@ -193,7 +193,7 @@
 
 .gb-calc-input:focus,
 .gb-calc-select:focus {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary, var(--palette-84d669));
 }
 
 .gb-calc-conv-result {

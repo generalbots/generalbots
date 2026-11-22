@@ -6,7 +6,7 @@
     margin-top: 2px;
     font-size: var(--text-2xs);
     line-height: 1;
-    color: var(--text-secondary, #9aa0aa);
+    color: var(--text-secondary, var(--palette-9aa0aa));
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -29,7 +29,7 @@
     overflow-wrap: break-word;
 }
 .user-message {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: white;
     border-bottom-right-radius: 4px;
 }
@@ -46,7 +46,7 @@
     right: 0;
     bottom: 0;
     height: 2.5em;
-    background: linear-gradient(transparent, var(--accent, #2563eb));
+    background: linear-gradient(transparent, var(--accent, var(--palette-2563eb)));
     pointer-events: none;
 }
 .gb-message-toggle {
@@ -66,10 +66,10 @@
     color: #fff;
 }
 .bot-message {
-    background: var(--surface, var(--card, #1a1a24));
-    color: var(--text, #e5e5e5);
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    color: var(--text, var(--palette-e5e5e5));
     border-bottom-left-radius: 4px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     white-space: pre-wrap;
 }
 .bot-message,
@@ -83,7 +83,7 @@
 .bot-message h2,
 .bot-message h3,
 .bot-message h4 {
-    color: var(--text, #e5e5e5) !important;
+    color: var(--text, var(--palette-e5e5e5)) !important;
 }
 .bot-message p {
     margin: 0;
@@ -117,7 +117,7 @@
     height: auto;
     margin: 0.5em 0;
     border-radius: 8px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 /* A capture that could not be loaded degrades to text + link (45_bot_images.js). */
 .gb-image-fallback {
@@ -127,8 +127,8 @@
 }
 /* Thinking Section - collapsible reasoning block */
 .thinking-section {
-    background: var(--surface2, #1e1e2e);
-    border: 1px solid var(--border, #2a2a3a);
+    background: var(--surface2, var(--palette-1e1e2e));
+    border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 8px;
     margin-bottom: 12px;
     padding: 0;
@@ -172,7 +172,7 @@
     line-height: 1.6;
     white-space: pre-wrap;
     font-style: italic;
-    border-top: 1px solid var(--border, #2a2a3a);
+    border-top: 1px solid var(--border, var(--palette-2a2a3a));
     margin-top: 0;
     padding-top: 8px;
     max-height: 300px;
@@ -183,8 +183,8 @@
    painting a full-width white strip over the dock. */
 #chat-app footer {
     padding: 12px 20px;
-    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
-    background: var(--surface, #f5f5f5);
+    border-top: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
+    background: var(--surface, var(--palette-f5f5f5));
     position: relative;
 }
 /* Chat footer content layout - suggestions left, switchers right */
@@ -202,8 +202,8 @@
     left: 0;
     right: 0;
     max-height: 300px;
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 12px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
     margin-bottom: 8px;
@@ -217,7 +217,7 @@
 }
 .mention-header {
     padding: 10px 14px;
-    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888);
@@ -228,7 +228,7 @@
     overflow-y: auto;
     max-height: 250px;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent, #2563eb) transparent;
+    scrollbar-color: var(--accent, var(--palette-2563eb)) transparent;
 }
 .mention-results::-webkit-scrollbar {
     width: 6px;

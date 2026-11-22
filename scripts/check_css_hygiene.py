@@ -45,7 +45,7 @@ BANG = re.compile(r"!important\b")
 
 # Files where colour literals are the definition, not a component violation.
 TOKEN_PATH_PARTS = ("css/base/", "public/themes/")
-TOKEN_FILE_NAMES = {"identity-tokens.css", "config-colors.css"}
+TOKEN_FILE_NAMES = {"identity-tokens.css", "config-colors.css", "palette-tokens.css", "high-contrast.css"}
 BANG_ROOTS = (Path("botui/ui/suite/vibe"), Path("botui/ui/suite/settings"))
 
 

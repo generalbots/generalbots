@@ -3,25 +3,25 @@
     flex-direction: column;
     gap: 24px;
     padding: 20px;
-    background: var(--bg-primary, #0a0a0f);
-    color: var(--text-primary, #e0e0e0);
+    background: var(--bg-primary, var(--palette-0a0a0f));
+    color: var(--text-primary, var(--palette-e0e0e0));
     font-family:
         "Inter",
         -apple-system,
         BlinkMacSystemFont,
         sans-serif;
     border-radius: 12px;
-    border: 1px solid var(--border-color, #1a1a24);
+    border: 1px solid var(--border-color, var(--palette-1a1a24));
     height: 100%;
     min-height: 0;
     overflow: hidden;
 }
 
 .status-section {
-    background: var(--bg-secondary, #111118);
+    background: var(--bg-secondary, var(--palette-111118));
     border-radius: 8px;
     padding: 16px 20px;
-    border: 1px solid var(--border-color, #1a1a24);
+    border: 1px solid var(--border-color, var(--palette-1a1a24));
     flex-shrink: 0;
     min-height: 120px;
 }
@@ -53,7 +53,7 @@
 .status-title {
     font-size: var(--text-md);
     font-weight: 500;
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-primary, var(--palette-e0e0e0));
 }
 
 .status-time {
@@ -70,7 +70,7 @@
 
 .runtime-value,
 .estimated-value {
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-primary, var(--palette-e0e0e0));
 }
 
 .status-indicator {
@@ -81,8 +81,8 @@
 }
 
 .status-indicator.active {
-    background: var(--accent-yellow, #d4e94c);
-    box-shadow: 0 0 8px var(--accent-yellow, #d4e94c);
+    background: var(--accent-yellow, var(--palette-d4e94c));
+    box-shadow: 0 0 8px var(--accent-yellow, var(--palette-d4e94c));
 }
 
 .status-current-action {
@@ -101,12 +101,12 @@
 }
 
 .action-dot.active {
-    background: var(--accent-yellow, #d4e94c);
+    background: var(--accent-yellow, var(--palette-d4e94c));
 }
 
 .action-text {
     font-size: var(--text-sm);
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-primary, var(--palette-e0e0e0));
     flex: 1;
 }
 
@@ -125,7 +125,7 @@
 }
 
 .settings-icon:hover {
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-primary, var(--palette-e0e0e0));
 }
 
 .status-decision-point {
@@ -157,16 +157,16 @@
 .decision-badge {
     font-size: var(--text-2xs);
     padding: 4px 10px;
-    background: var(--bg-tertiary, #1a1a24);
+    background: var(--bg-tertiary, var(--palette-1a1a24));
     border-radius: 4px;
     color: var(--text-muted, #888);
     margin-left: auto;
 }
 
 .progress-log-section {
-    background: var(--bg-secondary, #111118);
+    background: var(--bg-secondary, var(--palette-111118));
     border-radius: 8px;
-    border: 1px solid var(--border-color, #1a1a24);
+    border: 1px solid var(--border-color, var(--palette-1a1a24));
     overflow: hidden;
     flex: 1;
     min-height: 0;
@@ -176,7 +176,7 @@
 
 .progress-log-header {
     padding: 14px 20px;
-    border-bottom: 1px solid var(--border-color, #1a1a24);
+    border-bottom: 1px solid var(--border-color, var(--palette-1a1a24));
     flex-shrink: 0;
 }
 
@@ -197,7 +197,7 @@
 }
 
 .log-section {
-    border-bottom: 1px solid var(--border-color, #1a1a24);
+    border-bottom: 1px solid var(--border-color, var(--palette-1a1a24));
     min-height: 48px;
 }
 
@@ -216,7 +216,7 @@
 }
 
 .log-section-header:hover {
-    background: var(--bg-hover, #151520);
+    background: var(--bg-hover, var(--palette-151520));
 }
 
 .section-indicator {

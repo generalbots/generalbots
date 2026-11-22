@@ -141,7 +141,7 @@ input:checked + .mcp-slider:before { transform: translateX(20px); }
     color: var(--text-muted);
     padding: 20px 0;
 }
-.mcp-error { color: #f59e0b; }
+.mcp-error { color: var(--palette-f59e0b); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

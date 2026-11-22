@@ -135,7 +135,7 @@
 }
 
 .topbar-btn-primary:hover {
-    background: #d4ff4a;
+    background: var(--palette-d4ff4a);
     box-shadow: 0 0 20px var(--sentient-accent-glow);
 }
 
@@ -307,7 +307,7 @@
 }
 
 .ai-message-action:hover {
-    background: #d4ff4a;
+    background: var(--palette-d4ff4a);
 }
 
 .ai-typing-indicator {

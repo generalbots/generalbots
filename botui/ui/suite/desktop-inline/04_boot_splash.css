@@ -2,8 +2,8 @@
                 position: fixed; inset: 0; z-index: var(--z-top);
                 display: flex; flex-direction: column; gap: 14px;
                 align-items: center; justify-content: center;
-                background: var(--bg, #0f1117);
-                color: var(--text, #e5e5e5);
+                background: var(--bg, var(--palette-0f1117));
+                color: var(--text, var(--palette-e5e5e5));
                 font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
                 transition: opacity 320ms ease;
             }
@@ -11,7 +11,7 @@
             .gb-boot-spinner {
                 width: 34px; height: 34px; border-radius: 50%;
                 border: 3px solid rgba(132, 214, 105, 0.25);
-                border-top-color: var(--primary, #84d669);
+                border-top-color: var(--primary, var(--palette-84d669));
             }
             .gb-boot-text { font-size: var(--text-xs); letter-spacing: 0.08em; opacity: 0.75; }
         

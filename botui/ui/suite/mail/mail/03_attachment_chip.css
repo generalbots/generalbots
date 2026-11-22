@@ -55,7 +55,7 @@
 }
 
 .flag-icon {
-    color: var(--warning, #f59e0b);
+    color: var(--warning, var(--palette-f59e0b));
     font-size: 0.9rem;
     margin-left: 0.25rem;
 }
@@ -184,9 +184,9 @@
     list-style: none;
     cursor: pointer;
     padding: 4px 10px;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
+    background: var(--palette-1e293b);
+    color: var(--palette-f8fafc);
+    border: 1px solid var(--palette-334155);
     border-radius: 4px;
     font-size: 0.875rem;
 }
@@ -198,8 +198,8 @@
     top: 100%;
     left: 0;
     margin-top: 4px;
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--palette-0f172a);
+    border: 1px solid var(--palette-334155);
     border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     z-index: var(--z-sticky);
@@ -212,22 +212,22 @@
     text-align: left;
     padding: 8px 12px;
     background: transparent;
-    color: #f8fafc;
+    color: var(--palette-f8fafc);
     border: none;
     font-size: 0.875rem;
     cursor: pointer;
 }
 
 .snooze-presets button:hover {
-    background: #1e293b;
+    background: var(--palette-1e293b);
 }
 
 .mail-action-btn {
     display: inline-block;
     padding: 4px 10px;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
+    background: var(--palette-1e293b);
+    color: var(--palette-f8fafc);
+    border: 1px solid var(--palette-334155);
     border-radius: 4px;
     font-size: 0.875rem;
     cursor: pointer;
@@ -236,7 +236,7 @@
 .smart-reply-chips {
     margin-top: 16px;
     padding-top: 12px;
-    border-top: 1px solid #334155;
+    border-top: 1px solid var(--palette-334155);
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -245,7 +245,7 @@
 
 .smart-reply-label {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--palette-94a3b8);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     width: 100%;
@@ -253,9 +253,9 @@
 }
 
 .smart-reply-chip {
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #3b82f6;
+    background: var(--palette-1e293b);
+    color: var(--palette-f8fafc);
+    border: 1px solid var(--palette-3b82f6);
     border-radius: 16px;
     padding: 6px 14px;
     font-size: 0.8125rem;
@@ -264,8 +264,8 @@
 }
 
 .smart-reply-chip:hover {
-    background: #3b82f6;
-    color: #ffffff;
+    background: var(--palette-3b82f6);
+    color: var(--palette-ffffff);
 }
 
 .nudges-banner {
@@ -273,9 +273,9 @@
 }
 
 .nudge-item {
-    background: #7c2d12;
-    color: #fef3c7;
-    border: 1px solid #b45309;
+    background: var(--palette-7c2d12);
+    color: var(--palette-fef3c7);
+    border: 1px solid var(--palette-b45309);
     border-radius: 4px;
     padding: 8px 12px;
     margin-bottom: 4px;
@@ -287,8 +287,8 @@
 
 .nudge-item button {
     background: transparent;
-    color: #fef3c7;
-    border: 1px solid #fef3c7;
+    color: var(--palette-fef3c7);
+    border: 1px solid var(--palette-fef3c7);
     border-radius: 3px;
     padding: 2px 8px;
     font-size: 0.75rem;
@@ -326,14 +326,14 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     border-radius: 999px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, var(--palette-3b82f6));
     color: #fff;
 }
 
 /* The mailbox could not be reached on the last sync pass, so an empty inbox is
    a failure rather than an absence of mail. The full reason is in the title. */
 #accounts-list .account-item .badge-error {
-    background: #dc2626;
+    background: var(--palette-dc2626);
     cursor: help;
 }
 
@@ -348,7 +348,7 @@
 .account-form .oauth-hint {
     margin: 0 0 8px;
     font-size: var(--text-2xs);
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, var(--palette-94a3b8));
 }
 
 .account-form .oauth-buttons {

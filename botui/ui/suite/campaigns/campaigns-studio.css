@@ -32,14 +32,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    background: var(--surface-2, #111827);
+    background: var(--surface-2, var(--palette-111827));
     border-bottom: 1px solid var(--border, #333);
 }
 
 .studio-preview-title {
     font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--palette-e2e8f0));
 }
 
 .studio-device-btn {
@@ -52,14 +52,14 @@
     padding: 18px;
     background:
         radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0) 0 0 / 18px 18px,
-        var(--surface-3, #0f172a);
+        var(--surface-3, var(--palette-0f172a));
     display: flex;
     align-items: flex-start;
 }
 
 .studio-device {
     background: #fff;
-    color: #1e293b;
+    color: var(--palette-1e293b);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     overflow: hidden;
@@ -69,13 +69,13 @@
 }
 
 /* WhatsApp */
-.studio-device-whatsapp { background: #0b141a; max-width: 375px; }
+.studio-device-whatsapp { background: var(--palette-0b141a); max-width: 375px; }
 .wa-header {
-    background: #202c33; color: #e9edef;
+    background: var(--palette-202c33); color: var(--palette-e9edef);
     padding: 8px 12px; font-size: var(--text-xs); font-weight: 600;
 }
 .wa-bubble {
-    background: #005c4b; color: #e9edef;
+    background: var(--palette-005c4b); color: var(--palette-e9edef);
     border-radius: 8px 8px 8px 2px;
     margin: 14px 10px; padding: 8px 12px;
     max-width: 85%;
@@ -90,38 +90,38 @@
 .studio-device-facebook { background: #fff; }
 .ig-head {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; border-bottom: 1px solid #f0f0f0;
+    padding: 8px 10px; border-bottom: 1px solid var(--palette-f0f0f0);
 }
 .ig-avatar {
     width: 26px; height: 26px; border-radius: 50%;
-    background: linear-gradient(135deg, #feda75, #fa7e1e, #d62976, #962fbf);
+    background: linear-gradient(135deg, var(--palette-feda75), var(--palette-fa7e1e), var(--palette-d62976), var(--palette-962fbf));
 }
-.ig-user { font-size: var(--text-2xs); font-weight: 600; color: #262626; }
+.ig-user { font-size: var(--text-2xs); font-weight: 600; color: var(--palette-262626); }
 .ig-image {
     height: 190px; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    background: linear-gradient(160deg, #f6f8fc, #e9edf5);
-    color: #94a3b8; font-size: var(--text-2xl); gap: 6px;
+    background: linear-gradient(160deg, var(--palette-f6f8fc), var(--palette-e9edf5));
+    color: var(--palette-94a3b8); font-size: var(--text-2xl); gap: 6px;
 }
-.ig-image small { font-size: var(--text-2xs); color: #94a3b8; }
-.ig-caption { padding: 10px; font-size: var(--text-2xs); color: #262626; line-height: 1.5; }
+.ig-image small { font-size: var(--text-2xs); color: var(--palette-94a3b8); }
+.ig-caption { padding: 10px; font-size: var(--text-2xs); color: var(--palette-262626); line-height: 1.5; }
 .ig-caption .ig-user { margin-right: 4px; }
 
 /* SMS */
 .studio-device-sms { background: #fff; padding: 12px; }
 .sms-preview { display: flex; flex-direction: column; gap: 8px; }
 .sms-bubble {
-    background: #e5e7eb; color: #1f2937;
+    background: var(--palette-e5e7eb); color: var(--palette-1f2937);
     border-radius: 10px; padding: 10px 12px; font-size: var(--text-xs); line-height: 1.5;
 }
 .sms-counter {
-    font-size: var(--text-2xs); color: #6b7280; text-align: right;
+    font-size: var(--text-2xs); color: var(--palette-6b7280); text-align: right;
 }
-.sms-counter.studio-sms-warn { color: #d97706; }
-.sms-counter.studio-sms-over { color: #dc2626; font-weight: 600; }
+.sms-counter.studio-sms-warn { color: var(--palette-d97706); }
+.sms-counter.studio-sms-over { color: var(--palette-dc2626); font-weight: 600; }
 
 /* Email address strip */
-.studio-email-address { border-top: 1px solid #cbd5e1; }
+.studio-email-address { border-top: 1px solid var(--palette-cbd5e1); }
 
 /* ============ Unified monitor ============ */
 .studio-monitor-toolbar {
@@ -151,13 +151,13 @@
 }
 
 .studio-chip:hover {
-    border-color: var(--accent, #3b82f6);
-    color: var(--text, #e2e8f0);
+    border-color: var(--accent, var(--palette-3b82f6));
+    color: var(--text, var(--palette-e2e8f0));
 }
 
 .studio-chip.active {
-    background: var(--accent, #3b82f6);
-    border-color: var(--accent, #3b82f6);
+    background: var(--accent, var(--palette-3b82f6));
+    border-color: var(--accent, var(--palette-3b82f6));
     color: #fff;
 }
 
@@ -176,7 +176,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: var(--text-xs);
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     overflow: hidden;
@@ -185,7 +185,7 @@
 .studio-monitor-table th {
     text-align: left;
     padding: 10px 14px;
-    background: var(--surface-2, #111827);
+    background: var(--surface-2, var(--palette-111827));
     color: var(--text-secondary, #888);
     font-size: var(--text-2xs);
     text-transform: uppercase;
@@ -196,11 +196,11 @@
 .studio-monitor-table td {
     padding: 10px 14px;
     border-bottom: 1px solid var(--border, #222);
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--palette-e2e8f0));
 }
 
 .studio-monitor-table tbody tr:hover {
-    background: var(--surface-active, #1e293b);
+    background: var(--surface-active, var(--palette-1e293b));
 }
 
 .studio-m-name { font-weight: 600; }
@@ -208,12 +208,12 @@
 
 /* AI dialog */
 .studio-ai-tool-btn {
-    border: 1px solid #8b5cf6;
-    color: #c4b5fd;
+    border: 1px solid var(--palette-8b5cf6);
+    color: var(--palette-c4b5fd);
     font-weight: 600;
 }
 .studio-ai-tool-btn:hover {
-    background: #8b5cf6;
+    background: var(--palette-8b5cf6);
     color: #fff;
 }
 .studio-ai-channel-hint {

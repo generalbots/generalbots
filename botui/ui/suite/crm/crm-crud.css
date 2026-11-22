@@ -7,7 +7,7 @@
     top: calc(100% + 4px);
     min-width: 160px;
     background: var(--surface, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 6px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, .14);
     display: flex;
@@ -25,25 +25,25 @@
     font-size: var(--text-xs);
     color: var(--text-primary, #111);
 }
-.crm-new-dropdown button:hover { background: var(--surface-hover, #f3f4f6); }
+.crm-new-dropdown button:hover { background: var(--surface-hover, var(--palette-f3f4f6)); }
 
 .grid-search {
     padding: 4px 8px;
     min-width: 180px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     background: var(--surface, #fff);
     color: var(--text-primary, #111);
 }
 
 th.sortable { cursor: pointer; user-select: none; }
-th.sortable:hover { color: var(--primary, #2563eb); }
+th.sortable:hover { color: var(--primary, var(--palette-2563eb)); }
 th.sortable[data-dir]::after { content: " ▾"; font-size: var(--text-2xs); opacity: .7; }
 th.sortable[data-dir="desc"]::after { content: " ▴"; }
 
 .row-action {
     background: none;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-color, var(--palette-e5e7eb));
     border-radius: 4px;
     padding: 2px 6px;
     margin-right: 4px;
@@ -51,8 +51,8 @@ th.sortable[data-dir="desc"]::after { content: " ▴"; }
     cursor: pointer;
     color: var(--text-primary, #111);
 }
-.row-action:hover { background: var(--surface-hover, #f3f4f6); }
-.row-action.danger { color: #dc2626; border-color: rgba(220, 38, 38, .4); }
+.row-action:hover { background: var(--surface-hover, var(--palette-f3f4f6)); }
+.row-action.danger { color: var(--palette-dc2626); border-color: rgba(220, 38, 38, .4); }
 .campaign-card-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .campaign-locked { font-size: var(--text-2xs); color: var(--text-secondary, #888); align-self: center; }
 
@@ -70,7 +70,7 @@ th.sortable[data-dir="desc"]::after { content: " ▴"; }
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, var(--palette-e5e7eb));
 }
 .record-detail-head strong { flex: 1; font-size: var(--text-md); }
 .record-detail-close {

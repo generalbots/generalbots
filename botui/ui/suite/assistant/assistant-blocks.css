@@ -283,16 +283,16 @@
 /* Document preview (PDF/DOCX via server endpoint) */
 .gb-attach-panel-doc-meta {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px; background: var(--id-fill, #f8fafc);
+    padding: 10px 12px; background: var(--id-fill, var(--palette-f8fafc));
     border-radius: var(--id-radius, 6px); margin-bottom: 8px;
     flex-wrap: wrap;
 }
-.gb-attach-panel-doc-icon { flex-shrink: 0; color: var(--id-muted, #64748b); }
+.gb-attach-panel-doc-icon { flex-shrink: 0; color: var(--id-muted, var(--palette-64748b)); }
 .gb-attach-panel-doc-name { font-weight: 600; font-size: var(--id-text-sm); color: var(--id-ink); }
 .gb-attach-panel-doc-type { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-attach-panel-doc-size { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-attach-panel-doc-frame {
-    flex: 1; width: 100%; min-height: 300px; border: 1px solid var(--id-border, #e2e8f0);
+    flex: 1; width: 100%; min-height: 300px; border: 1px solid var(--id-border, var(--palette-e2e8f0));
     border-radius: var(--id-radius, 6px); background: #fff;
 }
 .gb-attach-panel-actions {
@@ -300,12 +300,12 @@
 }
 .gb-attach-panel-download {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border: 1px solid var(--id-border, #e2e8f0);
+    padding: 6px 14px; border: 1px solid var(--id-border, var(--palette-e2e8f0));
     border-radius: var(--id-radius, 6px); background: var(--id-surface, #fff);
     font: inherit; font-size: 0.8125rem; cursor: pointer;
-    color: var(--id-ink, #0f172a); transition: background 0.15s;
+    color: var(--id-ink, var(--palette-0f172a)); transition: background 0.15s;
 }
-.gb-attach-panel-download:hover { background: var(--id-fill, #f1f5f9); }
+.gb-attach-panel-download:hover { background: var(--id-fill, var(--palette-f1f5f9)); }
 
 /* == Lightbox == */
 .gb-lightbox {

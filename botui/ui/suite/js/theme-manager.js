@@ -44,6 +44,7 @@ const ThemeManager = (() => {
     { id: "sonoma", name: "🍏 Sonoma", file: "sonoma.css", category: "fluent" },
     { id: "nord", name: "🧊 Nord", file: "nord.css", category: "fluent" },
     { id: "carbon", name: "🖤 Carbon", file: "carbon.css", category: "fluent" },
+    { id: "high-contrast", name: gbT("theme-high-contrast", "High contrast"), file: "high-contrast.css", category: "accessibility" },
     { id: "paper", name: "📄 Paper", file: "paper.css", category: "fluent" },
     { id: "light", name: "☀️ Light", file: "light.css" },
     { id: "minimal-organico", name: "🌿 Minimal Organic", file: "minimal-organico.css", category: "v15" },

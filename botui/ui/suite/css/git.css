@@ -112,10 +112,10 @@
     color: #fff;
 }
 
-.git-badge-modified { background: #eab308; }
+.git-badge-modified { background: var(--palette-eab308); }
 .git-badge-added { background: var(--success); }
 .git-badge-deleted { background: var(--error); }
-.git-badge-untracked { background: #a855f7; }
+.git-badge-untracked { background: var(--palette-a855f7); }
 
 .botcoder-git-branches {
     border-top: 1px solid var(--border);

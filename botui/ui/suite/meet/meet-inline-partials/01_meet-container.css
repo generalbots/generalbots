@@ -180,12 +180,12 @@
 
     .connection-status.connected {
         background: rgba(46, 125, 50, 0.3);
-        color: #81c784;
+        color: var(--palette-81c784);
     }
 
     .connection-status.disconnected {
         background: rgba(198, 40, 40, 0.3);
-        color: #ef9a9a;
+        color: var(--palette-ef9a9a);
     }
 
     .room-controls-top {

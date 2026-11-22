@@ -40,8 +40,8 @@
             justify-content: center;
             border: 1px solid var(--border, rgba(0,0,0,0.15));
             border-radius: 12px;
-            background: var(--surface, #ffffff);
-            color: var(--text, #111111);
+            background: var(--surface, var(--palette-ffffff));
+            color: var(--text, var(--palette-111111));
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
             cursor: pointer;
         }

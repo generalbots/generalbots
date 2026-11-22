@@ -5,8 +5,8 @@
     height: 100%;
     padding: 20px;
     overflow-y: auto;
-    background: var(--bg, #f7f8fa);
-    color: var(--text, #1f2430);
+    background: var(--bg, var(--palette-f7f8fa));
+    color: var(--text, var(--palette-1f2430));
 }
 .gb-concierge .concierge-hero { text-align: center; padding: 18px 0 8px; }
 .gb-concierge .concierge-orb {
@@ -37,7 +37,7 @@
     font-size: var(--text-sm);
     outline: none;
     background: var(--surface);
-    color: var(--text, #1f2430);
+    color: var(--text, var(--palette-1f2430));
 }
 .gb-concierge .concierge-input-row input:focus { border-color: var(--primary); }
 .gb-concierge .concierge-input-row button {

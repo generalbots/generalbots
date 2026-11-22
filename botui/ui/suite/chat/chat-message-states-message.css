@@ -49,11 +49,11 @@
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 16px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     max-width: none;
-    color: var(--text-secondary, #9aa0aa);
+    color: var(--text-secondary, var(--palette-9aa0aa));
     font-size: var(--text-xs);
 }
 
@@ -62,8 +62,8 @@
     width: 13px;
     height: 13px;
     flex: 0 0 auto;
-    border: 2px solid color-mix(in srgb, var(--accent, #2563eb) 28%, transparent);
-    border-top-color: var(--accent, #2563eb);
+    border: 2px solid color-mix(in srgb, var(--accent, var(--palette-2563eb)) 28%, transparent);
+    border-top-color: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     animation: thinkingSpin 0.8s linear infinite;
 }
@@ -90,7 +90,7 @@
 .thinking-dot {
     width: 8px;
     height: 8px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 50%;
     animation: bounce 1.4s infinite ease-in-out;
 }
@@ -127,7 +127,7 @@
     left: 0;
     right: 0;
     padding: 8px 16px;
-    background: var(--warning, #f59e0b);
+    background: var(--warning, var(--palette-f59e0b));
     color: #000;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -149,7 +149,7 @@
 }
 
 .connection-status.connected {
-    background: var(--success, #22c55e);
+    background: var(--success, var(--palette-22c55e));
 }
 
 .connection-status.connected .connection-status-dot {
@@ -157,7 +157,7 @@
 }
 
 .connection-status.disconnected {
-    background: var(--error, #ef4444);
+    background: var(--error, var(--palette-ef4444));
     color: white;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .connection-status.connecting {
-    background: var(--warning, #f59e0b);
+    background: var(--warning, var(--palette-f59e0b));
 }
 
 /* Light theme message styles */
@@ -186,8 +186,8 @@
     width: 12px;
     height: 12px;
     background: inherit;
-    border-left: 1px solid var(--border, var(--border-color, #2a2a2a));
-    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-left: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
+    border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     transform: rotate(45deg);
     border-radius: 0 0 0 4px;
 }
@@ -201,7 +201,7 @@
 }
 
 .message.user:hover .message-content {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 /* Messages container for light theme */
@@ -215,7 +215,7 @@
     top: 8px;
     right: 8px;
     padding: 4px 12px;
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     color: white;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -233,7 +233,7 @@
 }
 
 .new-message-indicator:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 /* Typing Indicator */
@@ -242,9 +242,9 @@
     align-items: center;
     gap: 4px;
     padding: 8px 12px;
-    background: var(--surface, var(--card, #1a1a24));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 12px;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
 .typing-indicator span {
@@ -302,9 +302,9 @@
   gap: 4px;
   width: 24px;
   height: 8px;
-  background-image: radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px),
-                    radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px),
-                    radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px);
+  background-image: radial-gradient(circle, var(--accent, var(--palette-2563eb)) 2px, transparent 2px),
+                    radial-gradient(circle, var(--accent, var(--palette-2563eb)) 2px, transparent 2px),
+                    radial-gradient(circle, var(--accent, var(--palette-2563eb)) 2px, transparent 2px);
   background-size: 8px 8px;
   background-position: 0 50%, 50% 50%, 100% 50%;
   background-repeat: no-repeat;

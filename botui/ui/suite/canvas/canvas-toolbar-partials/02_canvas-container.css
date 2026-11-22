@@ -3,7 +3,7 @@
         flex: 1;
         position: relative;
         overflow: hidden;
-        background: #f0f0f0;
+        background: var(--palette-f0f0f0);
         cursor: crosshair;
     }
 

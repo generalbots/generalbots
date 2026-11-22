@@ -2,8 +2,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--color-bg-primary, #0a0a0a);
-    color: var(--color-text-primary, #e5e5e5);
+    background: var(--color-bg-primary, var(--palette-0a0a0a));
+    color: var(--color-text-primary, var(--palette-e5e5e5));
 }
 
 .dashboards-header {
@@ -11,7 +11,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--color-border, #2a2a2a);
+    border-bottom: 1px solid var(--color-border, var(--palette-2a2a2a));
     background: var(--color-bg-secondary, #111);
 }
 
@@ -28,7 +28,7 @@
 }
 
 .dashboards-header .header-icon {
-    color: var(--color-accent, #d4f505);
+    color: var(--color-accent, var(--palette-d4f505));
 }
 
 .dashboards-header .header-actions {
@@ -42,8 +42,8 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: var(--color-bg-tertiary, #1a1a1a);
-    border: 1px solid var(--color-border, #2a2a2a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
+    border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 8px;
 }
 
@@ -62,8 +62,8 @@
 
 .dashboards-header .filter-select {
     padding: 8px 12px;
-    background: var(--color-bg-tertiary, #1a1a1a);
-    border: 1px solid var(--color-border, #2a2a2a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
+    border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 8px;
     color: inherit;
     font-size: var(--text-sm);
@@ -75,7 +75,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: var(--color-accent, #d4f505);
+    background: var(--color-accent, var(--palette-d4f505));
     color: #000;
     border: none;
     border-radius: 8px;
@@ -98,7 +98,7 @@
 .dashboards-sidebar {
     width: 260px;
     padding: 16px;
-    border-right: 1px solid var(--color-border, #2a2a2a);
+    border-right: 1px solid var(--color-border, var(--palette-2a2a2a));
     background: var(--color-bg-secondary, #111);
     overflow-y: auto;
     flex-shrink: 0;
@@ -130,7 +130,7 @@
     gap: 10px;
     padding: 10px 12px;
     border-radius: 8px;
-    color: var(--color-text-primary, #e5e5e5);
+    color: var(--color-text-primary, var(--palette-e5e5e5));
     text-decoration: none;
     font-size: var(--text-sm);
     cursor: pointer;
@@ -139,13 +139,13 @@
 
 .dashboard-nav a:hover,
 .dashboard-nav-item:hover {
-    background: var(--color-bg-tertiary, #1a1a1a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
 }
 
 .dashboard-nav a.active,
 .dashboard-nav-item.active {
     background: var(--color-accent-dim, rgba(212, 245, 5, 0.1));
-    color: var(--color-accent, #d4f505);
+    color: var(--color-accent, var(--palette-d4f505));
 }
 
 .data-sources-list {
@@ -159,7 +159,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: var(--color-bg-tertiary, #1a1a1a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
     border-radius: 6px;
     font-size: var(--text-xs);
 }
@@ -171,15 +171,15 @@
 }
 
 .data-source-item .status.active {
-    background: #10b981;
+    background: var(--palette-10b981);
 }
 
 .data-source-item .status.error {
-    background: #ef4444;
+    background: var(--palette-ef4444);
 }
 
 .data-source-item .status.inactive {
-    background: #6b7280;
+    background: var(--palette-6b7280);
 }
 
 .btn-link {
@@ -189,7 +189,7 @@
     padding: 8px 0;
     background: none;
     border: none;
-    color: var(--color-accent, #d4f505);
+    color: var(--color-accent, var(--palette-d4f505));
     font-size: var(--text-xs);
     cursor: pointer;
 }
@@ -215,7 +215,7 @@
 
 .dashboard-card {
     background: var(--color-bg-secondary, #111);
-    border: 1px solid var(--color-border, #2a2a2a);
+    border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
@@ -227,7 +227,7 @@
 .dashboard-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    border-color: var(--color-accent, #d4f505);
+    border-color: var(--color-accent, var(--palette-d4f505));
 }
 
 .dashboard-card-header {
@@ -262,7 +262,7 @@
 
 .dashboard-card-actions button {
     padding: 6px;
-    background: var(--color-bg-tertiary, #1a1a1a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
     border: none;
     border-radius: 6px;
     color: var(--color-text-secondary, #999);
@@ -270,7 +270,7 @@
 }
 
 .dashboard-card-actions button:hover {
-    color: var(--color-text-primary, #e5e5e5);
+    color: var(--color-text-primary, var(--palette-e5e5e5));
 }
 
 .dashboard-card-preview {
@@ -279,7 +279,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-tertiary, #1a1a1a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
 }
 
 .dashboard-card-preview .preview-widgets {
@@ -300,7 +300,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-top: 1px solid var(--color-border, #2a2a2a);
+    border-top: 1px solid var(--color-border, var(--palette-2a2a2a));
 }
 
 .dashboard-card-tags {
@@ -310,7 +310,7 @@
 
 .tag {
     padding: 4px 8px;
-    background: var(--color-bg-tertiary, #1a1a1a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
     border-radius: 4px;
     font-size: var(--text-2xs);
     color: var(--color-text-secondary, #999);
@@ -325,7 +325,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: var(--color-bg-primary, #0a0a0a);
+    background: var(--color-bg-primary, var(--palette-0a0a0a));
 }
 
 .viewer-toolbar {
@@ -334,7 +334,7 @@
     gap: 16px;
     padding: 12px 20px;
     background: var(--color-bg-secondary, #111);
-    border-bottom: 1px solid var(--color-border, #2a2a2a);
+    border-bottom: 1px solid var(--color-border, var(--palette-2a2a2a));
 }
 
 .viewer-toolbar h3 {
@@ -355,8 +355,8 @@
 }
 
 .viewer-toolbar .btn-icon:hover {
-    background: var(--color-bg-tertiary, #1a1a1a);
-    color: var(--color-text-primary, #e5e5e5);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
+    color: var(--color-text-primary, var(--palette-e5e5e5));
 }
 
 .viewer-toolbar .back-btn {
@@ -371,8 +371,8 @@
 
 .date-range-select {
     padding: 8px 12px;
-    background: var(--color-bg-tertiary, #1a1a1a);
-    border: 1px solid var(--color-border, #2a2a2a);
+    background: var(--color-bg-tertiary, var(--palette-1a1a1a));
+    border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: inherit;
     font-size: var(--text-xs);

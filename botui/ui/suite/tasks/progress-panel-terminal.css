@@ -1,8 +1,8 @@
 
 .terminal-section {
-    background: var(--bg-terminal, #0a0a0f);
+    background: var(--bg-terminal, var(--palette-0a0a0f));
     border-radius: 8px;
-    border: 1px solid var(--border-color, #1a1a24);
+    border: 1px solid var(--border-color, var(--palette-1a1a24));
     overflow: hidden;
     flex-shrink: 0;
     min-height: 150px;
@@ -16,8 +16,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    border-bottom: 1px solid var(--border-color, #1a1a24);
-    background: var(--bg-secondary, #111118);
+    border-bottom: 1px solid var(--border-color, var(--palette-1a1a24));
+    background: var(--bg-secondary, var(--palette-111118));
     flex-shrink: 0;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .terminal-stats strong {
-    color: var(--text-primary, #e0e0e0);
+    color: var(--text-primary, var(--palette-e0e0e0));
     font-weight: 500;
 }
 
@@ -55,32 +55,32 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    background: var(--bg-terminal, #0a0a0f);
+    background: var(--bg-terminal, var(--palette-0a0a0f));
 }
 
 .terminal-line {
-    color: var(--text-terminal, #8b8b8b);
+    color: var(--text-terminal, var(--palette-8b8b8b));
     padding: 2px 0;
 }
 
 .terminal-line.info {
-    color: var(--text-terminal, #8b8b8b);
+    color: var(--text-terminal, var(--palette-8b8b8b));
 }
 
 .terminal-line.success {
-    color: var(--accent-green, #4ce97a);
+    color: var(--accent-green, var(--palette-4ce97a));
 }
 
 .terminal-line.error {
-    color: var(--accent-red, #e94c4c);
+    color: var(--accent-red, var(--palette-e94c4c));
 }
 
 .terminal-line.warning {
-    color: var(--accent-yellow, #d4e94c);
+    color: var(--accent-yellow, var(--palette-d4e94c));
 }
 
 .terminal-line.progress {
-    color: var(--accent-blue, #4c9ee9);
+    color: var(--accent-blue, var(--palette-4c9ee9));
 }
 
 .progress-log-content::-webkit-scrollbar,
@@ -90,12 +90,12 @@
 
 .progress-log-content::-webkit-scrollbar-track,
 .terminal-content::-webkit-scrollbar-track {
-    background: var(--bg-tertiary, #0d0d14);
+    background: var(--bg-tertiary, var(--palette-0d0d14));
 }
 
 .progress-log-content::-webkit-scrollbar-thumb,
 .terminal-content::-webkit-scrollbar-thumb {
-    background: var(--border-color, #1a1a24);
+    background: var(--border-color, var(--palette-1a1a24));
     border-radius: 3px;
 }
 

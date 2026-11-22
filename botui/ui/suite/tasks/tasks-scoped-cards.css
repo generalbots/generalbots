@@ -1,18 +1,18 @@
 
 .task-card.status-awaiting::before {
-    background: var(--warning, var(--warning, #f59e0b));
+    background: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .task-card.status-paused::before {
-    background: var(--info, var(--info, #8b5cf6));
+    background: var(--info, var(--info, var(--palette-8b5cf6)));
 }
 
 .task-card.status-complete::before {
-    background: var(--success, var(--success, #22c55e));
+    background: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .task-card.status-error::before {
-    background: var(--error, var(--error, #ef4444));
+    background: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .task-card.status-pending::before {
@@ -20,13 +20,13 @@
 }
 
 .task-card:hover {
-    border-color: var(--border-hover, #3a3a3a);
-    background: var(--surface, #1f1f1f);
+    border-color: var(--border-hover, var(--palette-3a3a3a));
+    background: var(--surface, var(--palette-1f1f1f));
 }
 
 .task-card.selected {
-    border-color: var(--primary, #c5f82a);
-    box-shadow: 0 0 0 1px var(--primary, #c5f82a);
+    border-color: var(--primary, var(--palette-c5f82a));
+    box-shadow: 0 0 0 1px var(--primary, var(--palette-c5f82a));
 }
 
 .task-card-header {
@@ -57,7 +57,7 @@
     border-radius: 4px;
     text-transform: uppercase;
     white-space: nowrap;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     color: var(--text-secondary, #888);
     letter-spacing: 0.02em;
     flex-shrink: 0;
@@ -65,27 +65,27 @@
 
 .task-card-status.status-running {
     background: rgba(197, 248, 42, 0.15);
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .task-card-status.status-complete {
     background: var(--success-light, rgba(34, 197, 94, 0.15));
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .task-card-status.status-error {
     background: var(--error-light, rgba(239, 68, 68, 0.15));
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .task-card-status.status-awaiting {
     background: var(--warning-light, rgba(245, 158, 11, 0.15));
-    color: var(--warning, var(--warning, #f59e0b));
+    color: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .task-card-status.status-paused {
     background: var(--info-light, rgba(139, 92, 246, 0.15));
-    color: var(--info, var(--info, #8b5cf6));
+    color: var(--info, var(--info, var(--palette-8b5cf6)));
 }
 
 .task-card-body {
@@ -103,17 +103,17 @@
 .priority-badge.priority-high,
 .priority-badge.priority-urgent {
     background: var(--error-light, rgba(239, 68, 68, 0.15));
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .priority-badge.priority-medium {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     color: var(--text-secondary, #888);
 }
 
 .priority-badge.priority-low {
     background: var(--success-light, rgba(34, 197, 94, 0.15));
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .task-card-footer {
@@ -122,7 +122,7 @@
     gap: 6px;
     padding-top: 8px;
     margin-top: 8px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .task-card-actions {
@@ -134,16 +134,16 @@
 
 .task-card-subtask {
     margin-left: 28px;
-    border-left: 2px solid var(--border, #2a2a2a);
+    border-left: 2px solid var(--border, var(--palette-2a2a2a));
     padding-left: 8px;
 }
 
 .task-card.overdue {
-    border-left: 3px solid var(--danger, #ef4444);
+    border-left: 3px solid var(--danger, var(--palette-ef4444));
 }
 
 .task-card.due-soon {
-    border-left: 3px solid var(--warning, #f59e0b);
+    border-left: 3px solid var(--warning, var(--palette-f59e0b));
 }
 
 .task-due-badge {
@@ -155,20 +155,20 @@
 
 .task-due-badge.overdue {
     color: #fff;
-    background: var(--danger, #ef4444);
+    background: var(--danger, var(--palette-ef4444));
 }
 
 .task-due-badge.due-soon {
-    color: #1f2937;
-    background: var(--warning, #f59e0b);
+    color: var(--palette-1f2937);
+    background: var(--warning, var(--palette-f59e0b));
 }
 
 .stat-overdue b {
-    color: var(--danger, #ef4444);
+    color: var(--danger, var(--palette-ef4444));
 }
 
 .stat-due-soon b {
-    color: var(--warning, #f59e0b);
+    color: var(--warning, var(--palette-f59e0b));
 }
 
 .task-action-btn {
@@ -192,7 +192,7 @@
 
 .progress-bar {
     height: 4px;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border-radius: 2px;
     overflow: hidden;
     margin-bottom: 6px;
@@ -201,14 +201,14 @@
 
 .progress-fill {
     height: 100%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 2px;
     transition: width 0.3s ease;
     box-shadow: none;
 }
 
 .task-card.awaiting .progress-fill {
-    background: var(--warning, var(--warning, #f59e0b));
+    background: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .progress-info {
@@ -220,13 +220,13 @@
 .progress-steps {
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary, var(--palette-a1a1a1));
 }
 
 .progress-percent {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
     background: transparent;
     padding: 0;
     border-radius: 0;
@@ -234,7 +234,7 @@
 }
 
 .task-card.awaiting .progress-percent {
-    color: var(--warning, var(--warning, #f59e0b));
+    color: var(--warning, var(--warning, var(--palette-f59e0b)));
     background: transparent;
 }
 
@@ -249,7 +249,7 @@
 .status-label {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -260,24 +260,24 @@
 }
 
 .status-value.status-active {
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .status-value.status-awaiting {
-    color: var(--warning, var(--warning, #f59e0b));
+    color: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
 .status-value.status-paused {
-    color: var(--info, var(--info, #8b5cf6));
+    color: var(--info, var(--info, var(--palette-8b5cf6)));
 }
 
 .status-value.status-complete {
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 /* Task Card Detail */
 .task-card-detail {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border-radius: 6px;
     padding: 12px;
     margin-bottom: 12px;
@@ -292,13 +292,13 @@
 
 .detail-sub {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     margin-bottom: 8px;
 }
 
 .detail-time {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     text-align: right;
 }
 
@@ -311,7 +311,7 @@
     display: block;
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary, var(--palette-6b6b6b));
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 8px;
@@ -325,15 +325,15 @@
 
 .integrity-badge {
     padding: 6px 12px;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border-radius: 20px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary, var(--palette-a1a1a1));
 }
 
 .integrity-badge.health {
     background: var(--primary-light, rgba(197, 248, 42, 0.15));
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .integrity-badge .health-value {
@@ -351,7 +351,7 @@
     gap: 16px;
     margin-bottom: 20px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .task-detail-title {
@@ -376,19 +376,19 @@
 .task-status.task-status-running,
 .task-status.task-status-pending {
     background: rgba(197, 248, 42, 0.15);
-    color: var(--primary, #c5f82a);
+    color: var(--primary, var(--palette-c5f82a));
 }
 
 .task-status.task-status-completed,
 .task-status.task-status-done {
     background: var(--success-light, rgba(34, 197, 94, 0.15));
-    color: var(--success, var(--success, #22c55e));
+    color: var(--success, var(--success, var(--palette-22c55e)));
 }
 
 .task-status.task-status-error,
 .task-status.task-status-failed {
     background: var(--error-light, rgba(239, 68, 68, 0.15));
-    color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, var(--palette-ef4444)));
 }
 
 .task-detail-meta {
@@ -420,7 +420,7 @@
 .task-detail-progress {
     margin-bottom: 20px;
     padding: 16px;
-    background: var(--surface, #1a1a1a);
+    background: var(--surface, var(--palette-1a1a1a));
     border-radius: 8px;
 }
 
@@ -433,14 +433,14 @@
 
 .task-detail-progress .progress-bar-container {
     height: 8px;
-    background: var(--bg, #0a0a0a);
+    background: var(--bg, var(--palette-0a0a0a));
     border-radius: 4px;
     overflow: hidden;
 }
 
 .task-detail-progress .progress-bar-fill {
     height: 100%;
-    background: var(--primary, #c5f82a);
+    background: var(--primary, var(--palette-c5f82a));
     border-radius: 4px;
     transition: width 0.3s ease;
 }

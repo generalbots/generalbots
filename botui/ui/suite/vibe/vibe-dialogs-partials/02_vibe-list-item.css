@@ -19,7 +19,7 @@
 .vibe-table th {
     position: sticky;
     top: 0;
-    background: var(--surface-hover, #1c1c33);
+    background: var(--surface-hover, var(--palette-1c1c33));
     color: var(--text, #eee);
     text-align: left;
     padding: 7px 10px;
@@ -60,22 +60,22 @@
 
 .vibe-status.ok {
     background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    color: var(--palette-4ade80);
 }
 
 .vibe-status.err {
     background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: var(--palette-f87171);
 }
 
 .vibe-status.warn {
     background: rgba(234, 179, 8, 0.15);
-    color: #facc15;
+    color: var(--palette-facc15);
 }
 
 .vibe-status.info {
     background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    color: var(--palette-60a5fa);
 }
 
 /* SQL editor */
@@ -84,7 +84,7 @@
     gap: 8px;
     padding: 8px 12px;
     border-top: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     align-items: center;
 }
 
@@ -122,15 +122,15 @@
     padding: 12px;
 }
 
-.vibe-diff line, .vibe-diff .add { color: #4ade80; }
-.vibe-diff .del { color: #f87171; }
-.vibe-diff .ctx { color: #94a3b8; }
+.vibe-diff line, .vibe-diff .add { color: var(--palette-4ade80); }
+.vibe-diff .del { color: var(--palette-f87171); }
+.vibe-diff .ctx { color: var(--palette-94a3b8); }
 
 /* Terminal */
 .vibe-term-wrap {
     flex: 1;
     min-height: 0;
-    background: #0b0e17;
+    background: var(--palette-0b0e17);
     padding: 10px 0 10px 14px;
     overflow: hidden;
 }
@@ -144,7 +144,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    background: #0e1116;
+    background: var(--palette-0e1116);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,7 +163,7 @@
 
 /* #1395 — editor status-bar errors are distinct and sticky until next action */
 .vibe-code-status-error {
-    color: #ff6b6b;
+    color: var(--palette-ff6b6b);
     font-weight: 600;
 }
 
@@ -175,7 +175,7 @@
     font-size: var(--text-2xs);
     color: var(--text-muted, #888);
     border-top: 1px solid var(--border, #333);
-    background: var(--surface, #14142a);
+    background: var(--surface, var(--palette-14142a));
     flex-shrink: 0;
 }
 
@@ -192,12 +192,12 @@
 }
 
 .vibe-code-file:hover {
-    background: var(--surface-hover, #1c1c33);
+    background: var(--surface-hover, var(--palette-1c1c33));
 }
 
 .vibe-code-file.active {
     background: rgba(74, 108, 247, 0.12);
-    color: var(--accent, #4a6cf7);
+    color: var(--accent, var(--palette-4a6cf7));
 }
 
 .vibe-code-file .vibe-arrow {
@@ -237,7 +237,7 @@
     resize: none;
     font-size: var(--text-2xs);
     line-height: 1.6;
-    background: #0d1117;
+    background: var(--palette-0d1117);
     padding: 14px;
     tab-size: 4;
 }

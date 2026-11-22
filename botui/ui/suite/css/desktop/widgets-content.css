@@ -56,7 +56,7 @@
 
 .gb-widget-calendar-cell.today {
   background: var(--primary, var(--accent, var(--primary)));
-  color: #06120a;
+  color: var(--palette-06120a);
   font-weight: 700;
 }
 
@@ -154,7 +154,7 @@
 
 .gb-wcalc-key[data-key="="] {
   background: var(--primary);
-  color: #06120a;
+  color: var(--palette-06120a);
   font-weight: 700;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .gb-wbatt-fill.charging {
-  background: linear-gradient(90deg, var(--success), #84d669);
+  background: linear-gradient(90deg, var(--success), var(--palette-84d669));
 }
 
 .gb-wbatt-pct {

@@ -83,7 +83,7 @@
     }
 
     .control-btn-lg.btn-danger:hover {
-        background: #dc2626;
+        background: var(--palette-dc2626);
     }
 
     .control-btn-lg.muted {

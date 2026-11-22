@@ -13,7 +13,7 @@
   text-underline-offset: 2px;
 }
 .auto-link-btn:hover { color: var(--text); }
-.auto-link-btn.danger { color: var(--err, #f87171); }
+.auto-link-btn.danger { color: var(--err, var(--palette-f87171)); }
 
 .auto-steps { display: flex; flex-direction: column; gap: .3rem; }
 .auto-step {
@@ -37,20 +37,20 @@
   line-height: 1;
 }
 .auto-step.done .auto-step-mark {
-  background: var(--ok, #34d399);
-  border-color: var(--ok, #34d399);
-  color: #052e1c;
+  background: var(--ok, var(--palette-34d399));
+  border-color: var(--ok, var(--palette-34d399));
+  color: var(--palette-052e1c);
 }
 .auto-step.done .auto-step-mark::after { content: "✓"; font-weight: 900; }
 .auto-step.running .auto-step-mark {
-  border-color: var(--info, #60a5fa);
+  border-color: var(--info, var(--palette-60a5fa));
   border-top-color: transparent;
   animation: auto-spin 1s linear infinite;
 }
 .auto-step.failed .auto-step-mark {
-  background: var(--err, #f87171);
-  border-color: var(--err, #f87171);
-  color: #3b0606;
+  background: var(--err, var(--palette-f87171));
+  border-color: var(--err, var(--palette-f87171));
+  color: var(--palette-3b0606);
 }
 .auto-step.failed .auto-step-mark::after { content: "!"; font-weight: 900; }
 .auto-step-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -129,7 +129,7 @@
   color: var(--accent2, #777);
   min-height: 1em;
 }
-.auto-cron-preview.invalid { color: var(--err, #f87171); }
+.auto-cron-preview.invalid { color: var(--err, var(--palette-f87171)); }
 
 .auto-chip-row { display: flex; gap: .45rem; }
 .auto-chip-toggle { position: relative; cursor: pointer; }
@@ -181,9 +181,9 @@
   --bg3: var(--bg-active, var(--surface));
   --accent2: var(--accent-hover, var(--accent));
   --accent-dim: color-mix(in srgb, var(--accent) 65%, transparent);
-  --err: #e5484d;
-  --ok: #30a46c;
-  --warn: #f5a524;
+  --err: var(--palette-e5484d);
+  --ok: var(--palette-30a46c);
+  --warn: var(--palette-f5a524);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

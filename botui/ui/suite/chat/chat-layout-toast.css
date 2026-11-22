@@ -13,8 +13,8 @@
     align-items: center;
     gap: 12px;
     padding: 14px 18px;
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     min-width: 300px;
@@ -34,19 +34,19 @@
 }
 
 .toast-success {
-    border-left: 4px solid var(--accent, #2563eb);
+    border-left: 4px solid var(--accent, var(--palette-2563eb));
 }
 
 .toast-error {
-    border-left: 4px solid var(--error, #ef4444);
+    border-left: 4px solid var(--error, var(--palette-ef4444));
 }
 
 .toast-warning {
-    border-left: 4px solid var(--warning, #f59e0b);
+    border-left: 4px solid var(--warning, var(--palette-f59e0b));
 }
 
 .toast-info {
-    border-left: 4px solid var(--info, #06b6d4);
+    border-left: 4px solid var(--info, var(--palette-06b6d4));
 }
 
 .toast-icon {
@@ -57,7 +57,7 @@
 .toast-message {
     flex: 1;
     font-size: var(--text-sm);
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .toast-close {
@@ -72,7 +72,7 @@
 }
 
 .toast-close:hover {
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
 }
 
 .toast-fade-out {
@@ -102,7 +102,7 @@
     margin: 0 auto;
     padding: 0;
     box-sizing: border-box;
-    background: var(--bg, #ffffff);
+    background: var(--bg, var(--palette-ffffff));
     border-radius: 8px;
     overflow: hidden;
 }
@@ -151,7 +151,7 @@
     flex-direction: column !important;
     gap: 16px;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent, #2563eb) var(--surface, #1a1a24);
+    scrollbar-color: var(--accent, var(--palette-2563eb)) var(--surface, var(--palette-1a1a24));
     /* #2163 — a live tail must not animate: smooth scrolling made every
      * streamed chunk travel, which reads as the chat jumping on send. */
     scroll-behavior: auto;
@@ -170,12 +170,12 @@
 }
 
 #messages::-webkit-scrollbar-thumb {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
     border-radius: 3px;
 }
 
 #messages::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover, #1d4ed8);
+    background: var(--accent-hover, var(--palette-1d4ed8));
 }
 
 /* Scrollbar Markers */
@@ -212,11 +212,11 @@
 }
 
 .scrollbar-marker.user-marker {
-    background: var(--accent, #2563eb);
+    background: var(--accent, var(--palette-2563eb));
 }
 
 .scrollbar-marker.bot-marker {
-    background: var(--success, #22c55e);
+    background: var(--success, var(--palette-22c55e));
 }
 
 .scrollbar-marker-tooltip {
@@ -224,12 +224,12 @@
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    background: var(--surface, var(--card, #1a1a24));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, var(--card, var(--palette-1a1a24)));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 6px;
     padding: 6px 10px;
     font-size: var(--text-2xs);
-    color: var(--text, #e5e5e5);
+    color: var(--text, var(--palette-e5e5e5));
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;

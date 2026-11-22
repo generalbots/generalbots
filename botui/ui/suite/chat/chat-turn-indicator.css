@@ -14,42 +14,42 @@
     padding: 2px 10px;
     font-size: var(--text-2xs);
     font-family: inherit;
-    color: var(--text-secondary, #9aa0aa);
+    color: var(--text-secondary, var(--palette-9aa0aa));
     background: transparent;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 10px;
     cursor: pointer;
 }
 
 .thinking-stop:hover,
 .thinking-retry:hover {
-    color: var(--text, #e6e6e6);
-    border-color: var(--accent, #2563eb);
+    color: var(--text, var(--palette-e6e6e6));
+    border-color: var(--accent, var(--palette-2563eb));
 }
 
 .thinking-indicator.thinking-slow .thinking-label {
-    color: var(--warning, #d08a2c);
+    color: var(--warning, var(--palette-d08a2c));
 }
 
 /* Shown once a turn has been silent long enough to look frozen. */
 .thinking-hint {
     margin-left: 4px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #9aa0aa);
+    color: var(--text-secondary, var(--palette-9aa0aa));
 }
 
 .thinking-indicator.thinking-error {
-    border-color: var(--danger, #d9534f);
+    border-color: var(--danger, var(--palette-d9534f));
 }
 
 .thinking-indicator.thinking-error .thinking-label {
-    color: var(--danger, #d9534f);
+    color: var(--danger, var(--palette-d9534f));
     font-style: normal;
 }
 
 .thinking-indicator.thinking-done .thinking-spinner {
     animation: none;
-    border-top-color: var(--accent, #2563eb);
+    border-top-color: var(--accent, var(--palette-2563eb));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

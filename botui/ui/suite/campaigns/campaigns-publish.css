@@ -5,19 +5,19 @@
     margin-bottom: 12px;
 }
 .studio-ai-status {
-    color: #8b5cf6;
+    color: var(--palette-8b5cf6);
     font-size: var(--text-xs);
     margin-bottom: 12px;
 }
 
 /* Media strip */
 .studio-img-tool-btn {
-    border: 1px solid #22c55e;
-    color: #86efac;
+    border: 1px solid var(--palette-22c55e);
+    color: var(--palette-86efac);
     font-weight: 600;
 }
 .studio-img-tool-btn:hover {
-    background: #22c55e;
+    background: var(--palette-22c55e);
     color: #fff;
 }
 .studio-media-strip {
@@ -36,7 +36,7 @@
     border: 1px solid var(--border, #333);
     border-radius: 8px;
     overflow: hidden;
-    background: var(--surface-2, #111827);
+    background: var(--surface-2, var(--palette-111827));
 }
 .studio-media-item img {
     width: 100%;
@@ -63,8 +63,8 @@
     gap: 8px;
     font-size: var(--text-xs);
     cursor: pointer;
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--palette-e2e8f0));
 }
 .studio-check input {
-    accent-color: var(--accent, #3b82f6);
+    accent-color: var(--accent, var(--palette-3b82f6));
 }

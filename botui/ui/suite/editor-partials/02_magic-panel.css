@@ -62,7 +62,7 @@
 .magic-result pre {
     margin-top: 8px;
     padding: 10px;
-    background: #0b1220;
+    background: var(--palette-0b1220);
     border-radius: 6px;
     overflow-x: auto;
     font-family: Consolas, monospace;
