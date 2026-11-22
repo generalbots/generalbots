@@ -70,3 +70,123 @@ pub(crate) fn status_payload() -> Value {
         }
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Top-level verdict and the backup shape must stay honest: the panel shows
+    /// "not implemented", there is no scheduler and no snapshot has ever run.
+    #[test]
+    fn status_reports_not_implemented_with_no_schedule_or_snapshot() {
+        let p = status_payload();
+        assert_eq!(p["status"], "not_implemented");
+        assert_eq!(p["backup"]["schedule"], "none");
+        assert!(p["backup"]["last_snapshot"].is_null());
+    }
+
+    /// No capability flag may claim real LUKS/TPM encryption or a working
+    /// backup/restore backend, and no historical "we seal the volume" text may
+    /// creep back into the notes.
+    #[test]
+    fn status_makes_no_luks_tpm_or_backup_claims() {
+        let p = status_payload();
+
+        assert_eq!(p["encryption"]["implemented"], false);
+        assert_eq!(p["encryption"]["luks_mapping"], false);
+        assert_eq!(p["encryption"]["tpm_sealed"], false);
+        assert_eq!(p["encryption"]["recovery_key_export"], false);
+
+        assert_eq!(p["backup"]["implemented"], false);
+        assert_eq!(p["backup"]["enabled"], false);
+        assert_eq!(p["backup"]["restore_available"], false);
+
+        let rendered = p.to_string().to_ascii_lowercase();
+        assert!(!rendered.contains("\"enabled\":true"));
+        for false_claim in [
+            "tpm 2.0 sealing of the root volume is performed",
+            "luks mapping is active",
+            "backups are enabled",
+            "automated backup is running",
+        ] {
+            assert!(
+                !rendered.contains(false_claim),
+                "status claimed an unshipped capability: {false_claim}"
+            );
+        }
+    }
+
+    /// The UI reads the typed confirmation token and the named adapter straight
+    /// from status; both must be present and non-empty.
+    #[test]
+    fn status_publishes_confirmation_token_and_named_adapter() {
+        let p = status_payload();
+
+        assert_eq!(p["reset"]["confirmation_token"], RESET_CONFIRMATION_TOKEN);
+        assert!(p["reset"]["confirmation_token"]
+            .as_str()
+            .is_some_and(|token| !token.is_empty()));
+
+        assert_eq!(p["backup"]["descriptor_adapter"], "drive-archive");
+        assert!(p["backup"]["descriptor_adapter"]
+            .as_str()
+            .is_some_and(|name| !name.is_empty()));
+    }
+
+    /// Recursively collect every string value so path/secret guards inspect the
+    /// whole payload, not just the top level.
+    fn collect_strings(value: &Value, out: &mut Vec<String>) {
+        match value {
+            Value::String(s) => out.push(s.clone()),
+            Value::Array(items) => {
+                for item in items {
+                    collect_strings(item, out);
+                }
+            }
+            Value::Object(map) => {
+                for item in map.values() {
+                    collect_strings(item, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Status is static and must never leak credential markers, endpoint hints
+    /// or host filesystem paths. The only absolute strings allowed are the
+    /// declared data root and this module's own contract paths.
+    #[test]
+    fn status_has_no_secret_markers_or_unexpected_paths() {
+        let p = status_payload();
+        let rendered = p.to_string().to_ascii_lowercase();
+        for marker in [
+            "sk_live",
+            "api_key",
+            "password=",
+            "secret=",
+            "bearer ",
+            "private_key",
+            "-----begin",
+            "http://",
+            "https://",
+            "s3://",
+            "minio",
+        ] {
+            assert!(
+                !rendered.contains(marker),
+                "status payload leaked secret/endpoint marker: {marker}"
+            );
+        }
+
+        let mut strings = Vec::new();
+        collect_strings(&p, &mut strings);
+        for value in strings {
+            if value.starts_with('/') {
+                assert!(
+                    value == DATA_ROOT || value.starts_with("/api/os/data-protection"),
+                    "status payload leaked a host path: {value}"
+                );
+            }
+        }
+    }
+}
