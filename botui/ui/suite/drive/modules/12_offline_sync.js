@@ -167,7 +167,7 @@
     if (dot) dot.style.background = indicatorColor(syncState.state);
     var button = document.getElementById("gbSyncStatusBtn");
     if (button) {
-      button.title = "Offline sync: " + syncState.state +
+      button.title = gbT("drive-str-offline-sync", "Offline sync: ") + syncState.state +
         (syncState.folder ? " (" + syncState.folder + ")" : "") +
         (syncState.lastSync ? " · last " + gbFormatDateTime(new Date(syncState.lastSync)) : "");
     }

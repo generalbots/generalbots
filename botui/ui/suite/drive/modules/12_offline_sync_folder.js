@@ -274,7 +274,7 @@
         showSyncSettings();
       } else if (action === "sync") {
         button.disabled = true;
-        button.textContent = "Syncing…";
+        button.textContent = gbT("drive-syncing", "Syncing…");
         await syncNow();
         modal.remove();
         showSyncSettings();

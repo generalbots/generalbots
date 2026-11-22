@@ -228,7 +228,7 @@ function renderDriveCodeBlock(body, code, options) {
 function drivePreviewCopy(text, button) {
   function done() {
     var previous = button.textContent;
-    button.textContent = "Copied";
+    button.textContent = gbT("drive-copied", "Copied");
     setTimeout(function () { button.textContent = previous; }, 1500);
   }
   try {

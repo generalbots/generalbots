@@ -43,7 +43,7 @@ function aiSetContextLabel(path) {
     const label = document.getElementById("ai-file-context");
     if (!label) return;
     if (path) {
-        label.textContent = "Context: " + path;
+        label.textContent = gbT("drive-str-context", "Context: ") + path;
         label.style.display = "inline-flex";
     } else {
         label.style.display = "none";
@@ -75,7 +75,7 @@ async function aiSend() {
         aiAddMessage("bot", "Error: " + err.message);
     } finally {
         aiBusy = false;
-        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "Send"; }
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = gbT("drive-send", "Send"); }
         if (aiInput) aiInput.focus();
     }
 }
@@ -106,7 +106,7 @@ function buildAIPanel() {
     const toggle = document.createElement("button");
     toggle.id = "ai-toggle-btn";
     toggle.className = "ai-toggle-btn";
-    toggle.title = "Drive AI Assistant";
+    toggle.title = gbT("drive-drive-ai-assistant", "Drive AI Assistant");
     toggle.innerHTML =
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1-4-4 4 4 0 0 1 4-4 4 4 0 0 1 4-4z"></path>' +

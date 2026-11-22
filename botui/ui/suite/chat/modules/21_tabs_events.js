@@ -216,7 +216,7 @@
     closeMenus();
     var picker = document.createElement("div");
     picker.className = "gb-context-menu gb-tab-picker";
-    picker.innerHTML = '<div class="gb-tab-picker-title">Open conversation in new tab</div>' +
+    picker.innerHTML = '<div class="gb-tab-picker-title" data-i18n="chat-str-open-conversation-in-new-tab"></div>' +
       '<div class="gb-tab-picker-body"><div class="gb-tab-picker-empty">Loading…</div></div>';
     document.body.appendChild(picker);
     var anchor = clickEvent && clickEvent.target.getBoundingClientRect
@@ -275,7 +275,7 @@
       closeMenus();
       var menu = document.createElement("div");
       menu.className = "gb-context-menu";
-      menu.innerHTML = '<button type="button" data-act="open">Open in new tab</button>' +
+      menu.innerHTML = '<button type="button" data-act="open" data-i18n="chat-str-open-in-new-tab"></button>' +
         '<button type="button" data-act="delete" class="gb-menu-danger">Delete conversation</button>';
       document.body.appendChild(menu);
       positionMenu(menu, e.clientX, e.clientY);

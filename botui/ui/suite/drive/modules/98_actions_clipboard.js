@@ -100,7 +100,7 @@ async function emptyTrash() {
     var ok = await new Promise(function (resolve) {
         if (window.GBModal && typeof window.GBModal.confirm === "function") {
             try {
-                window.GBModal.confirm("Permanently delete all items in trash? This cannot be undone.", "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                window.GBModal.confirm(gbT("drive-permanently-delete-all-items-in-trash-this-canno", "Permanently delete all items in trash? This cannot be undone."), "Confirm", function () { resolve(true); }, function () { resolve(false); });
                 return;
             } catch (e) { /* fall through */ }
         }

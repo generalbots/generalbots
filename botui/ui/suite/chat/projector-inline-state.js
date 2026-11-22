@@ -208,7 +208,7 @@
         });
 
         img.addEventListener('error', () => {
-            showError('Failed to load image');
+            showError(gbT("chat-failed-to-load-image", "Failed to load image"));
         });
 
         clearContent(container);
@@ -289,7 +289,7 @@
                 }
             })
             .catch(() => {
-                code.textContent = 'Failed to load code';
+                code.textContent = gbT("chat-failed-to-load-code", "Failed to load code");
             });
 
         pre.appendChild(code);
@@ -317,7 +317,7 @@
                 wrapper.innerHTML = parseMarkdown(text);
             })
             .catch(() => {
-                wrapper.innerHTML = '<p>Failed to load markdown</p>';
+                wrapper.innerHTML = '<p data-i18n="chat-str-failed-to-load-markdown"></p>';
             });
 
         clearContent(container);

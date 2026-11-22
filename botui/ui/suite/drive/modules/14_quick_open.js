@@ -27,7 +27,7 @@
         overlay.className = "gb-quickopen";
         overlay.setAttribute("role", "dialog");
         overlay.setAttribute("aria-modal", "true");
-        overlay.setAttribute("aria-label", "Recent files");
+        overlay.setAttribute("aria-label", gbT("drive-recent-files", "Recent files"));
         overlay.hidden = true;
         overlay.innerHTML =
             '<div class="gb-quickopen-panel">' +
@@ -86,7 +86,7 @@
 
     async function load() {
         loading = true;
-        list.innerHTML = '<p class="gb-quickopen-empty">Loading recent files…</p>';
+        list.innerHTML = '<p class="gb-quickopen-empty" data-i18n="drive-state-loading-recent-files"></p>';
         if (status) status.textContent = "";
         try {
             entries = window.fetchRecentEntries ? await window.fetchRecentEntries() : [];

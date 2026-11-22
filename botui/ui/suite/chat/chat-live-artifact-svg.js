@@ -310,7 +310,7 @@ window.GBLiveSvg = window.GBLiveSvg || (function () {
       if (tree.children[i].name === "svg") { svgNode = tree.children[i]; break; }
     }
     if (!svgNode) {
-      state.badge.textContent = "preparing…";
+      state.badge.textContent = gbT("chat-preparing", "preparing…");
       return;
     }
     if (!state.root) {

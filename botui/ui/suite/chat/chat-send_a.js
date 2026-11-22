@@ -356,7 +356,7 @@ function sendMessage(messageContent, extra) {
   if (files.length && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
     var activeChip = document.getElementById("fileChip");
     if (activeChip) {
-      activeChip.textContent = "⏳ Preparing " + fileNames + "…";
+      activeChip.textContent = gbT("chat-str-preparing", "⏳ Preparing ") + fileNames + "…";
       activeChip.style.display = "inline-flex";
     }
     readAttachments(files).then(function (attachments) {
@@ -364,7 +364,7 @@ function sendMessage(messageContent, extra) {
       payload.file = attachments[0];
       finalSend();
     }).catch(function (error) {
-      if (activeChip) activeChip.textContent = "⚠ Could not read " + error.message;
+      if (activeChip) activeChip.textContent = gbT("chat-str-could-not-read", "⚠ Could not read ") + error.message;
       notify((typeof gbT === "function") ? gbT("chat-attachment-read-failed", "Could not read an attachment. Attach it again.") : "Could not read an attachment. Attach it again.", "error");
     });
   } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {

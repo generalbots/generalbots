@@ -85,12 +85,12 @@
         if (state === "handed_back") {
             entry.takeoverBar.hidden = true;
             entry.takeoverBar.setAttribute("data-mode", "");
-            if (entry.takeover) { entry.takeover.textContent = "Take over"; }
+            if (entry.takeover) { entry.takeover.textContent = gbT("chat-take-over", "Take over"); }
             return;
         }
         entry.takeoverBar.hidden = false;
         entry.takeoverBar.setAttribute("data-mode", "active");
-        if (entry.takeover) { entry.takeover.textContent = "You control"; }
+        if (entry.takeover) { entry.takeover.textContent = gbT("chat-you-control", "You control"); }
         var hint = entry.takeoverBar.querySelector(".run-takeover-hint");
         if (hint) {
             hint.textContent = (surface === "browser" ? "You control the browser. " : "You control the terminal. ") +
@@ -135,7 +135,7 @@
         var card = document.createElement("section");
         card.className = "run-card running";
         card.setAttribute("data-run-id", runId);
-        card.setAttribute("aria-label", "Run progress");
+        card.setAttribute("aria-label", gbT("chat-run-progress", "Run progress"));
 
         var head = document.createElement("header");
         head.className = "run-card-head";
@@ -161,7 +161,7 @@
         var stop = document.createElement("button");
         stop.type = "button";
         stop.className = "run-stop";
-        stop.textContent = "Stop";
+        stop.textContent = gbT("chat-stop-button", "Stop");
 
         // #1677 — takeover: while the run holds a terminal or browser
         // session the user can take it over from the agent without
@@ -169,7 +169,7 @@
         var takeover = document.createElement("button");
         takeover.type = "button";
         takeover.className = "run-toggle";
-        takeover.textContent = "Take over";
+        takeover.textContent = gbT("chat-take-over", "Take over");
         takeover.hidden = true;
 
         head.appendChild(dot);
@@ -186,7 +186,7 @@
         summary.className = "run-summary";
         summary.setAttribute("role", "status");
         summary.setAttribute("aria-live", "polite");
-        summary.textContent = "Starting…";
+        summary.textContent = gbT("chat-starting", "Starting…");
 
         // #1677 — takeover controls, shown when the user takes over a live
         // terminal or browser session from the run.
@@ -196,7 +196,7 @@
 
         var takeoverHint = document.createElement("span");
         takeoverHint.className = "run-takeover-hint";
-        takeoverHint.textContent = "You control the session. Hand input back when done — ESC interrupts the run.";
+        takeoverHint.textContent = gbT("chat-you-control-the-session-hand-input-back-when-don", "You control the session. Hand input back when done — ESC interrupts the run.");
         takeoverBar.appendChild(takeoverHint);
 
         // The two live surfaces a takeover can attach to. The Terminal app
@@ -205,7 +205,7 @@
         var openTerminal = document.createElement("button");
         openTerminal.type = "button";
         openTerminal.className = "run-toggle";
-        openTerminal.textContent = "Terminal window";
+        openTerminal.textContent = gbT("chat-terminal-window", "Terminal window");
         openTerminal.addEventListener("click", function () {
             if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
                 window.WindowManager.openDeepLink("terminal", {});
@@ -218,7 +218,7 @@
         var openBrowser = document.createElement("button");
         openBrowser.type = "button";
         openBrowser.className = "run-toggle";
-        openBrowser.textContent = "Browser panel";
+        openBrowser.textContent = gbT("chat-browser-panel", "Browser panel");
         openBrowser.addEventListener("click", function () {
             if (window.GBBrowserUse) window.GBBrowserUse.show();
         });
@@ -227,7 +227,7 @@
         var handBack = document.createElement("button");
         handBack.type = "button";
         handBack.className = "run-toggle";
-        handBack.textContent = "Hand back";
+        handBack.textContent = gbT("chat-hand-back", "Hand back");
         handBack.addEventListener("click", function () {
             applyTakeover(runId, "handed_back", "terminal");
             reportTakeover(runId, "handed_back", "terminal");
@@ -306,7 +306,7 @@
                 }));
             }
             stop.disabled = true;
-            stop.textContent = "Stopping…";
+            stop.textContent = gbT("chat-stopping", "Stopping…");
         });
 
         S.runs[runId] = entry;

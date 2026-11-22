@@ -319,7 +319,7 @@ window.ChatSwitchBot = function (botName) {
     if (ChatState.historyLoadingMore) return;
     ChatState.historyLoadingMore = true;
     var btn = document.getElementById("gbShowMoreMessages");
-    if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+    if (btn) { btn.disabled = true; btn.textContent = gbT("chat-loading", "Loading…"); }
     var pane = document.getElementById("messages");
     var prevHeight = pane ? pane.scrollHeight : 0;
     var prevTop = pane ? pane.scrollTop : 0;

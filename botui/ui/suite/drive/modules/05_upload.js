@@ -124,7 +124,7 @@ async function uploadPlan(plan) {
     var progressEl = showUploadProgress(total);
 
     var label = document.getElementById("gb-upload-label");
-    if (label && plan.dirs.length) label.textContent = "Creating folders...";
+    if (label && plan.dirs.length) label.textContent = gbT("drive-creating-folders", "Creating folders...");
     var dirFailures = (plan.errors || []).slice();
     dirFailures = dirFailures.concat(await createPlanDirectories(plan, basePath, bucket));
 

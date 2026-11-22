@@ -317,7 +317,7 @@ function showEntityCard(type, name, targetEl) {
   card.querySelector(".entity-card-type").style.background = entityType.color;
   card.querySelector(".entity-card-title").textContent = entityType.icon + " " + name;
   card.querySelector(".entity-card-status").textContent = "";
-  card.querySelector(".entity-card-details").textContent = "Loading...";
+  card.querySelector(".entity-card-details").textContent = gbT("chat-loading", "Loading...");
   card.dataset.entityType = type;
   card.dataset.entityName = name;
 

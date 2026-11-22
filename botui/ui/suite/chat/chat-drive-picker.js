@@ -89,7 +89,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
     var root = document.createElement("button");
     root.type = "button";
     root.className = "gb-drive-picker-crumb-btn";
-    root.textContent = "Drive";
+    root.textContent = gbT("chat-drive", "Drive");
     root.addEventListener("click", function () { load(""); });
     crumbEl.appendChild(root);
     var parts = String(path || "").split("/").filter(Boolean);
@@ -130,7 +130,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
     if (!item.is_dir) {
       var attach = document.createElement("span");
       attach.className = "gb-drive-picker-attach";
-      attach.textContent = "Attach";
+      attach.textContent = gbT("chat-attach-label", "Attach");
       el.appendChild(attach);
     }
     el.addEventListener("click", function () {
@@ -214,8 +214,8 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
     button.type = "button";
     button.id = "driveAttachBtn";
     button.className = "file-btn";
-    button.title = "Attach from Drive";
-    button.setAttribute("aria-label", "Attach from Drive");
+    button.title = gbT("chat-attach-from-drive", "Attach from Drive");
+    button.setAttribute("aria-label", gbT("chat-attach-from-drive", "Attach from Drive"));
     button.innerHTML =
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
       '<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +

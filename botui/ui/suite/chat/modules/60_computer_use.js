@@ -241,11 +241,11 @@
           card.querySelectorAll(".gb-consent-btn").forEach(function (b) { b.disabled = true; });
           card.classList.add("resolved");
           if (decision === "allow") {
-            card.innerHTML = '<div class="gb-consent-outcome"><span>✅</span> <span>Allowed — executing...</span></div>';
+            card.innerHTML = '<div class="gb-consent-outcome"><span>✅</span> <span data-i18n="chat-str-allowed-executing"></span></div>';
             executeAction(action);
             if (window.GBSandbox) GBSandbox.removePending(consentReq.request_id);
           } else {
-            card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span>Denied by user</span></div>';
+            card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span data-i18n="chat-str-denied-by-user"></span></div>';
             sendResultToChat(action.action_id || consentReq.request_id, { status: "denied" });
             if (window.GBSandbox) GBSandbox.removePending(consentReq.request_id);
           }

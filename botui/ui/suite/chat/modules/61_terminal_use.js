@@ -50,12 +50,12 @@
     if (!cmd) return;
 
     if (!isSafe(cmd)) {
-      cardEl.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span>Command blocked — destructive pattern detected</span></div>';
+      cardEl.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span data-i18n="chat-str-command-blocked-destructive-pattern-detected"></span></div>';
       sendTerminalResult(action.action_id, { status: "blocked", error: "Command matches a blocked destructive pattern" });
       return;
     }
 
-    cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span>Recording approval...</span></div>';
+    cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span data-i18n="chat-str-recording-approval"></span></div>';
 
     // #1645 — the approval is a server-side consent record bound to the action
     // id; `approved=true` in the body alone is refused.
@@ -70,7 +70,7 @@
       return;
     }
 
-    cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span>Running...</span></div>';
+    cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span data-i18n="chat-str-running"></span></div>';
 
     postJson("/api/terminal/exec", {
       command: cmd,
@@ -105,7 +105,7 @@
         var takeoverBtn = document.createElement("button");
         takeoverBtn.type = "button";
         takeoverBtn.className = "gb-consent-btn primary";
-        takeoverBtn.textContent = "Take over in terminal";
+        takeoverBtn.textContent = gbT("chat-take-over-in-terminal", "Take over in terminal");
         takeoverBtn.addEventListener("click", function () {
             if (window.RunTimeline && typeof window.RunTimeline.reportTakeoverState === "function") {
                 window.RunTimeline.reportTakeoverState("taken_over", "terminal");
@@ -204,7 +204,7 @@
         if (window.GBSandbox) GBSandbox.removePending(reqId);
       } else {
         card.classList.add("resolved");
-        card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span>Denied by user</span></div>';
+        card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span data-i18n="chat-str-denied-by-user"></span></div>';
         sendTerminalResult(reqId, { status: "denied" });
         if (window.GBSandbox) GBSandbox.removePending(reqId);
       }
@@ -257,7 +257,7 @@
     var button = document.createElement("button");
     button.id = "gbTerminalAuditBtn";
     button.className = "tray-btn";
-    button.title = "Terminal audit trail";
+    button.title = gbT("chat-terminal-audit-trail", "Terminal audit trail");
     button.textContent = "⌨";
     button.addEventListener("click", openTerminalAudit);
     host.appendChild(button);
@@ -293,7 +293,7 @@
       var entries = payload.entries || [];
       var body = panel.querySelector("#gbTerminalAuditBody");
       if (!entries.length) {
-        body.innerHTML = '<p style="color:#94a3b8;">No terminal command has been requested yet.</p>';
+        body.innerHTML = '<p style="color:#94a3b8;" data-i18n="chat-str-no-terminal-command-has-been-requested-yet"></p>';
         return;
       }
       body.innerHTML = '<table style="width:100%;border-collapse:collapse;">' +
@@ -307,7 +307,7 @@
             '</tr>';
         }).join("") + "</tbody></table>";
     } catch (err) {
-      panel.querySelector("#gbTerminalAuditBody").textContent = "Audit unavailable: " + err.message;
+      panel.querySelector("#gbTerminalAuditBody").textContent = gbT("chat-str-audit-unavailable", "Audit unavailable: ") + err.message;
     }
   }
 

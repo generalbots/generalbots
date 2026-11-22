@@ -89,14 +89,14 @@
           // The last tab cannot close; unbind it fully instead so neither the
           // strip nor the persisted store keeps pointing at the deleted row.
           t.sessionId = null;
-          t.title = "Chat";
+          t.title = gbT("chat-chat", "Chat");
           t.kind = "chat";
           t.fresh = Date.now();
           try { delete GBTabs.unread[t.id]; } catch (err) { /* no badge */ }
           var rec = window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[t.id];
           if (rec) {
             rec.sessionId = null;
-            rec.title = "Chat";
+            rec.title = gbT("chat-chat", "Chat");
             rec.scrollback = [];
             rec.needsHistoryReplay = false;
             var recMsgs = rec.pane && rec.pane.querySelector(".chat-pane-messages");
