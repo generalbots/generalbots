@@ -195,14 +195,24 @@
     // Catalogue miss (e.g. backend down before i18n loads): t() returns the
     // bare key, so substitute params into the authored fallback ourselves —
     // otherwise literal {param} tokens leak into the DOM (#2503,#2548).
-    let out = String(fallback);
-    if (params && typeof params === "object") {
-      Object.keys(params).forEach((param) => {
-        out = out.replace(new RegExp(`\\{\\s*\\$?${param}\\s*\\}`, "g"), params[param]);
-        out = out.replace(new RegExp(`\\{\\s*${param}\\s*\\}`, "g"), params[param]);
-      });
-    }
-    return out;
+    // A missing null/undefined fallback must never render the literal words
+    // "null"/"undefined"; other non-string fallbacks stringify as before.
+    if (fallback === null || fallback === undefined) return fallback;
+    if (!params || typeof params !== "object") return String(fallback);
+    // One pass with a function replacer:
+    //  - {p} and { $p } share one pattern and any param name is accepted;
+    //  - a function replacement never interprets $&, $', $$ inside a value
+    //    (real callers pass e.g. { amount: '$' + total.toFixed(2) });
+    //  - inserted text is not re-scanned, so a value like "{q}" cannot be
+    //    substituted again by a later param (no double substitution);
+    //  - params with no matching key are left literal.
+    return String(fallback).replace(
+      /\{\s*\$?([^{}]+?)\s*\}/g,
+      (token, name) =>
+        Object.prototype.hasOwnProperty.call(params, name)
+          ? String(params[name])
+          : token,
+    );
   }
 
 
