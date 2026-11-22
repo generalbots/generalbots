@@ -649,7 +649,13 @@ async fn os_wifi_action(
     }
     let ok = match req.action.as_str() {
         "join" => {
-            let pwd = req.password.clone().unwrap_or_default();
+            let pwd = match req.password.clone() {
+                Some(value) => value,
+                None => {
+                    log::warn!("OS appliance: password change request without a password");
+                    String::new()
+                }
+            };
             let hidden = req.hidden.unwrap_or(false);
             if !pwd.is_empty() && (pwd.len() < 8 || pwd.len() > 63) {
                 return Ok(Json(json!({ "ok": false, "error": "invalid_passphrase" })));
@@ -751,8 +757,20 @@ async fn os_session_status(
 ) -> ApiResult {
     gated(user, headers)?;
     let unit = probe("systemctl", &["--user", "is-system-running"]);
-    let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_default();
-    let bus = std::env::var("DBUS_SESSION_BUS_ADDRESS").unwrap_or_default();
+    let runtime = match std::env::var("XDG_RUNTIME_DIR") {
+        Ok(value) => value,
+        Err(error) => {
+            log::warn!("XDG_RUNTIME_DIR unavailable: {error}");
+            String::new()
+        }
+    };
+    let bus = match std::env::var("DBUS_SESSION_BUS_ADDRESS") {
+        Ok(value) => value,
+        Err(error) => {
+            log::warn!("DBUS_SESSION_BUS_ADDRESS unavailable: {error}");
+            String::new()
+        }
+    };
     let services = ["pipewire.socket", "wireplumber.service", "xdg-desktop-portal.service"]
         .iter().map(|name| {
             let active = probe("systemctl", &["--user", "is-active", name]);
