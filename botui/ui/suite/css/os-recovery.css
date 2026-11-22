@@ -79,3 +79,21 @@ body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-la
 .gb-osk[hidden] { display: none; }
 .gb-osk-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
 .gb-osk button { min-width: 44px; min-height: 44px; font-size: 15px; }
+
+/* #2467 — OS first-run wizard. */
+.gb-first-run {
+  position: fixed; inset: 0; z-index: var(--z-blocker);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text);
+}
+.gb-first-run[hidden] { display: none; }
+.fr-card { width: min(720px, 92vw); max-height: 90vh; overflow: auto; padding: 28px; border: 1px solid var(--border); border-radius: 12px; }
+.fr-card h1 { font-size: 22px; margin: 0 0 18px; }
+.fr-steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.fr-step { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; }
+.fr-step.active { background: var(--accent); color: var(--surface); }
+.fr-body label { display: block; margin-bottom: 12px; }
+.fr-body input, .fr-body select { display: block; margin-top: 4px; min-height: 44px; }
+.fr-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+.fr-actions button { min-height: 44px; padding: 0 18px; }
+.fr-component { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
