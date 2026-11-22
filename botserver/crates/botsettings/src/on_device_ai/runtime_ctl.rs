@@ -13,8 +13,14 @@ use std::time::Duration;
 
 use super::runtime_stop;
 
+/// Serialises calls to [`ensure_inner`] so that concurrent callers (boot start,
+/// recovery path, Settings switch) cannot launch two engines on the same port.
+static ENSURE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// Maximum time to wait for the runtime to become healthy after a start.
-const HEALTH_TIMEOUT: Duration = Duration::from_secs(120);
+/// A cold disk-cache load of a large model (5+ GB) can take over two minutes,
+/// so this must be generous enough to survive that without killing a live load.
+const HEALTH_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Poll interval while waiting for health.
 const HEALTH_POLL: Duration = Duration::from_secs(2);
@@ -202,6 +208,7 @@ pub async fn ensure_or_restore(desired: &DesiredRuntime) -> EnsureOutcome {
 }
 
 async fn ensure_inner(desired: &DesiredRuntime, restore_previous: bool) -> EnsureOutcome {
+    let _serial = ENSURE_LOCK.lock().await;
     let current = wait_for_initial_probe().await;
 
     if current.reachable && model_matches(&current.loaded_model, &desired.model_file) {

@@ -15,6 +15,8 @@ mod stream;
 mod stream_errors;
 mod stream_tools;
 mod svg_contract;
+#[cfg(feature = "gbgov")]
+mod local_recovery;
 
 pub use stream::stream_llm_response;
 

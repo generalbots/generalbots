@@ -175,6 +175,10 @@ async fn stream_llm_response_inner(
                             continue;
                         }
                         super::stream_errors::send_classified_error(sink, identity, code).await;
+                        #[cfg(feature = "gbgov")]
+                        if matches!(code, super::error_classify::LlmErrorCode::ModelUnreachable) {
+                            super::local_recovery::maybe_recover(state);
+                        }
                         return Ok(());
                     }
                     AttemptOutcome::Completed {
