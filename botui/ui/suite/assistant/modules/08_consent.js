@@ -7,8 +7,9 @@
  * bot-response frame (message_type 2) or embeds a base64 marker
  * "GB-CONSENT-REQUEST:<base64>" in the answer text.
  *
- * Decisions POST /api/consent/resolve and, on grant, send a continuation
- * message to resume the turn.
+ * Decisions POST /api/consent/resolve. A blocking request (Virtual Machine
+ * action) wakes the waiting tool call; any other grant sends a
+ * continuation message to resume the turn.
  */
 
 (function () {
@@ -65,6 +66,9 @@
 
     /* ---- Build the card DOM ---- */
     function buildCard(req) {
+        if (req.detail && req.detail.vm && A.buildVmConsentCard) {
+            return A.buildVmConsentCard(req, resolve, activeThread());
+        }
         var card = document.createElement("div");
         card.className = "gb-consent-card";
         card.dataset.requestId = req.request_id;
@@ -105,35 +109,58 @@
 
     /* ---- Resolve ---- */
     function resolve(card, requestId, decision) {
+        var hadFocus = card.contains(document.activeElement);
         var buttons = card.querySelectorAll(".gb-consent-btn");
         for (var i = 0; i < buttons.length; i++) { buttons[i].disabled = true; }
 
         A.apiFetch("/api/consent/resolve", {
             method: "POST",
-            body: JSON.stringify({ request_id: requestId, decision: decision })
+            body: JSON.stringify({ request_id: requestId, decision: decision, thread_id: card.dataset.threadId || undefined })
         }).then(function (r) {
-            return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+            return r.json().catch(function () { return null; }).then(function (body) { return { ok: r.ok, status: r.status, body: body }; });
         }).then(function (res) {
+            // The server refuses a decision that does not belong to this
+            // conversation: the card stays open for a valid answer.
+            if (res.status === 403 || (res.body && res.body.error === "forbidden")) {
+                refuseHere(card);
+                return;
+            }
             if (!res.ok || (res.body && res.body.error)) {
                 // #2561 — expired or unknown request: show a clear message
                 // and release the composer so the conversation is not stuck.
-                swapExpired(card, res.body && res.body.error);
+                swapExpired(card);
                 retireCard(card, "failed");
                 return;
             }
             swapOutcome(card, decision, true);
             retireCard(card, "done");
-            resumeAfterGrant(decision, card.dataset.threadId);
+            // A blocking request wakes the waiting tool call on the server.
+            if (card.dataset.blocking === "1") {
+                if (A.onVmConsentDecision) { A.onVmConsentDecision(decision, hadFocus); }
+            } else {
+                resumeAfterGrant(decision, card.dataset.threadId);
+            }
         }).catch(function () {
             card.querySelectorAll(".gb-consent-btn").forEach(function (button) { button.disabled = false; });
             A.announce(A.t("assistant.consent-failed", "Could not record decision"));
         });
     }
 
-    function swapExpired(card, code) {
-        var label = code === "expired"
-            ? A.t("assistant.consent-expired", "Este pedido expirou")
-            : A.t("assistant.consent-expired", "Este pedido expirou");
+    function refuseHere(card) {
+        card.querySelectorAll(".gb-consent-btn").forEach(function (button) { button.disabled = false; });
+        var line = card.querySelector(".gb-consent-refused");
+        if (!line) {
+            line = document.createElement("p");
+            line.className = "gb-consent-note gb-consent-warn gb-consent-refused";
+            line.setAttribute("role", "alert");
+            card.appendChild(line);
+        }
+        line.textContent = A.t("assistant.consent-forbidden", "Esta decisão não pôde ser registrada aqui.");
+    }
+
+    /* Expired or unknown (the turn that asked is gone): the card closes. */
+    function swapExpired(card) {
+        var label = A.t("assistant.consent-expired", "Este pedido expirou.");
         card.classList.add("gb-consent-resolved");
         card.innerHTML =
             '<div class="gb-consent-outcome">' +
@@ -146,11 +173,12 @@
 
     function swapOutcome(card, decision, ok) {
         var granted = decision !== "deny";
-        var outcomeText = ok
+        var vmText = ok && card.dataset.blocking === "1" && A.vmOutcomeText ? A.vmOutcomeText(decision) : null;
+        var outcomeText = vmText || (ok
             ? (granted
                 ? A.t("assistant.consent-granted", "Allowed")
                 : A.t("assistant.consent-denied", "Denied"))
-            : A.t("assistant.consent-failed", "Could not record decision");
+            : A.t("assistant.consent-failed", "Could not record decision"));
         card.classList.add("gb-consent-resolved");
         card.innerHTML =
             '<div class="gb-consent-outcome">' +
@@ -201,6 +229,10 @@
         return buildCard(req);
     };
 
+    /* Every pending card the shell knows, of every conversation. A card is
+       shown only in its own conversation: a Virtual Machine request inside
+       the answer that waits for it (a slot in the steps), any other request
+       in the dock above the composer. */
     var cards = new Map();
     var settled = new Set();
 
@@ -208,16 +240,37 @@
         return String(A.currentSessionId || A.sessionId || "");
     }
 
+    function conversationShown() {
+        var conv = document.getElementById("gbConversation");
+        return !!conv && conv.style.display !== "none";
+    }
+
+    function slotFor(card) {
+        var msgs = document.getElementById("gbMessages");
+        if (!msgs || !conversationShown()) { return null; }
+        var slot = msgs.querySelector('.gb-consent-slot[data-request-id="' + CSS.escape(card.dataset.requestId) + '"]');
+        return slot || (A.consentSlot ? A.consentSlot(card.dataset.requestId) : null);
+    }
+
     A.syncPermissionDock = function () {
+        var thread = activeThread();
+        var docked = [];
+        cards.forEach(function (card) {
+            var here = card.dataset.threadId === thread;
+            if (card.dataset.blocking !== "1") { if (here) { docked.push(card); } return; }
+            var slot = here ? slotFor(card) : null;
+            if (!slot) { if (card.parentNode) { card.remove(); } return; }
+            if (card.parentNode !== slot) {
+                slot.appendChild(card);
+                if (A.onConsentCardShown) { A.onConsentCardShown(card); }
+            }
+        });
         var dock = document.getElementById("gbPermissionDock");
         if (!dock) { return; }
-        var visible = Array.from(cards.values()).filter(function (card) {
-            return card.dataset.threadId === activeThread();
-        });
-        if (visible.length !== dock.children.length || visible.some(function (card, i) { return dock.children[i] !== card; })) {
-            dock.replaceChildren.apply(dock, visible);
+        if (docked.length !== dock.children.length || docked.some(function (card, i) { return dock.children[i] !== card; })) {
+            dock.replaceChildren.apply(dock, docked);
         }
-        dock.hidden = visible.length === 0;
+        dock.hidden = docked.length === 0;
     };
 
     A.queueConsentCard = function (card) {
@@ -225,38 +278,81 @@
         if (cards.has(id) || settled.has(id)) { return; }
         cards.set(id, card);
         A.syncPermissionDock();
+        if (A.onConsentPendingChanged) { A.onConsentPendingChanged(); }
     };
 
-    A.removeConsentCard = function (id) {
-        id = String(id);
+    function drop(id) {
+        var card = cards.get(id);
         settled.add(id);
         cards.delete(id);
+        if (card) {
+            var slot = card.parentNode;
+            card.remove();
+            if (slot && slot.classList && slot.classList.contains("gb-consent-slot")) { slot.remove(); }
+        }
         A.syncPermissionDock();
+        if (A.onConsentPendingChanged) { A.onConsentPendingChanged(); }
+    }
+
+    /* The server closes the card when the request is decided. A card the
+       person just answered keeps its outcome line for a moment first. */
+    A.removeConsentCard = function (id) {
+        id = String(id);
+        var card = cards.get(id);
+        if (card && card.dataset.retiring === "1") { return; }
+        drop(id);
+    };
+
+    /* Conversations with a card still waiting for an answer. */
+    A.pendingConsentThreads = function () {
+        var threads = {};
+        cards.forEach(function (card) {
+            if (!card.classList.contains("gb-consent-resolved")) { threads[card.dataset.threadId] = true; }
+        });
+        return threads;
+    };
+
+    A.openConsentCard = function () {
+        var thread = activeThread();
+        var open = null;
+        cards.forEach(function (card) {
+            if (!open && card.dataset.threadId === thread && card.isConnected && !card.classList.contains("gb-consent-resolved")) { open = card; }
+        });
+        return open;
     };
 
     function retireCard(card, status) {
         var id = card.dataset.requestId;
         settled.add(id);
+        card.dataset.retiring = "1";
         if (A.setPermissionActivityStatus) { A.setPermissionActivityStatus(id, status); }
-        setTimeout(function () { A.removeConsentCard(id); }, 2500);
+        if (A.onConsentPendingChanged) { A.onConsentPendingChanged(); }
+        setTimeout(function () { drop(id); }, 2500);
     }
 
-    /* Restored requests are matched to their recorded conversation. Older
-       unscoped requests are surfaced with their original request id. */
+    /* Reads every pending request. With an id, only that one is added; a
+       full read also forgets cards the server no longer holds (decided or
+       expired elsewhere). Unscoped older requests join the open
+       conversation. Returns a promise. */
     A.reviveConsentCards = function (requestId) {
-        if (A.compiledFeatures.indexOf("consent") === -1) { return; }
-        var thread = activeThread();
-        A.apiFetch("/api/consent/pending").then(function (r) {
+        if (A.compiledFeatures.indexOf("consent") === -1) { return Promise.resolve(); }
+        return A.apiFetch("/api/consent/pending").then(function (r) {
             return r.ok ? r.json() : null;
         }).then(function (d) {
-            if (!d || activeThread() !== thread) { return; }
+            if (!d) { return; }
             var items = Array.isArray(d) ? d : (d.items || d.requests || d.pending || []);
+            var live = {};
             items.forEach(function (request) {
-                if (request && request.request_id && (!requestId || request.request_id === requestId) &&
-                    (!request.thread_id || request.thread_id === thread)) {
-                    A.queueConsentCard(buildCard(request));
-                }
+                if (!request || !request.request_id) { return; }
+                live[request.request_id] = true;
+                if (!requestId || request.request_id === requestId) { A.queueConsentCard(buildCard(request)); }
             });
+            if (!requestId) {
+                Array.from(cards.keys()).forEach(function (id) {
+                    if (!live[id] && cards.get(id).dataset.retiring !== "1") { drop(id); }
+                });
+            }
+            A.syncPermissionDock();
         }).catch(function () { /* best-effort */ });
     };
 })();

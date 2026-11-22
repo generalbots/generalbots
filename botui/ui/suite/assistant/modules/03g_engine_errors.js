@@ -125,6 +125,11 @@
         agent_limit_reached: {
             build: agentLimitBody,
             actions: ["pick_model", "limits_view"], noRetry: true, limits: true
+        },
+        agent_unsafe_version: {
+            pt: "Esta versão do {label} ({version}) não pediu permissão antes de agir no teste de segurança e foi bloqueada. Escolha outro modelo enquanto isso.",
+            en: "This version of {label} ({version}) did not ask for permission before acting in the safety check, so it is blocked. Choose another model meanwhile.",
+            actions: ["pick_model"], noRetry: true
         }
     };
 

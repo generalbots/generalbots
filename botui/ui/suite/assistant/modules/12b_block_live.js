@@ -22,7 +22,7 @@ var esc = B.esc, t = B.t;
    plain answer also sends. Labels: done (pt, en), then running (pt, en). */
 var VM_PHASES = { infra: 1, tool: 1 };
 /* Steps that belong to the virtual machine (not: local_engine_start, generate). */
-var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, save: 1, publish: 1 };
+var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, save: 1, publish: 1, vm_action: 1 };
 var STEP_LABELS = {
     queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
     image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
@@ -33,8 +33,14 @@ var STEP_LABELS = {
     execute: ["Executou o programa", "Ran the program", "Executando o programa", "Running the program"],
     save: ["Guardou o resultado", "Saved the output", "Guardando o resultado", "Saving the output"],
     publish: ["Publicou no Drive", "Published to Drive", "Publicando no Drive", "Publishing to Drive"],
-    generate: ["Gerou a resposta", "Wrote the answer", "Gerando a resposta", "Writing the answer"]
+    generate: ["Gerou a resposta", "Wrote the answer", "Gerando a resposta", "Writing the answer"],
+    vm_action: ["Ação na Máquina Virtual", "Virtual Machine action", "Ação na Máquina Virtual", "Virtual Machine action"]
 };
+/* A step id the shell does not know: a neutral line, never the server's
+   own (English) name or detail. */
+var OTHER_STEP = ["Concluiu uma etapa", "Finished a step", "Executando uma etapa", "Running a step"];
+/* Agent actions (vm_consent): labels and details in 12d_block_vm.js. */
+function vm() { return A._vmStep; }
 var runs = {};
 
 /* The activity stack of the current turn (after the last user message). */
@@ -70,12 +76,29 @@ function place(el) {
     if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }
 }
 
+/* Where a Virtual Machine permission card goes: in the answer that waits
+   for it, right after its steps (08_consent.js mounts the card). */
+A.consentSlot = function (requestId) {
+    var msgs = document.getElementById("gbMessages");
+    /* Not while the conversation is being drawn: the history comes first. */
+    if (!msgs || !msgs.children.length || msgs.getAttribute("aria-busy") === "true") { return null; }
+    var record = msgs.querySelector('.gb-block[data-permission-id="' + CSS.escape(requestId) + '"]');
+    if (record) { record.style.display = "none"; }
+    var slot = document.createElement("div");
+    slot.className = "gb-consent-slot";
+    slot.dataset.requestId = requestId;
+    place(slot);
+    return slot.isConnected ? slot : null;
+};
+
 /* ---- gb.activity ---- */
 function onActivity(payload) {
     var permission = payload.summary || {};
     if (payload.kind === "permission" && permission.request_id && A.queueConsentCard) {
         if (payload.status === "needs_input") { A.reviveConsentCards(permission.request_id); }
         else if (payload.status === "completed" || payload.status === "failed") { A.removeConsentCard(permission.request_id); }
+        /* A Virtual Machine action: the card and its step row tell it all. */
+        if (vm().verbs[permission.action]) { return; }
     }
     var ev = { id: payload.id, kind: payload.kind, status: payload.status,
         summary: payload.summary || {}, data: payload.summary || {} };
@@ -107,9 +130,18 @@ function onActivity(payload) {
    Steps are tracked per run without drawing anything; the card appears only
    once a step really runs in the virtual machine (infra/tool phase or vm_exec). */
 function stepLabel(step) {
-    var l = STEP_LABELS[step.key];
-    if (!l) { return step.name || step.key || t("Etapa", "Step"); }
+    if (step.key === "vm_action" && step.action) { return vm().label(step); }
+    /* A stage the program itself names (vm_trace markers): its own words. */
+    if (step.key.indexOf("trace:") === 0 && step.name) { return t("Etapa do programa: ", "Program step: ") + step.name; }
+    var l = STEP_LABELS[step.key] || OTHER_STEP;
     return step.state === "running" ? t(l[2], l[3]) : t(l[0], l[1]);
+}
+
+/* The run header's second line: the shell's label; package names are
+   the only server detail shown (they are data, not words). */
+function stepSummary(step) {
+    var label = stepLabel(step);
+    return step.key === "package_install" && step.detail ? label + ": " + step.detail : label;
 }
 
 function runFor(runId) {
@@ -124,6 +156,8 @@ function runTitle(run, status) {
         return status === "failed" ? t("Falhou ao preparar o modelo local", "Failed to prepare the local model")
             : t("Preparou o modelo local", "Prepared the local model");
     }
+    if (status === "needs-you") { return t("Aguardando sua permissão", "Waiting for your permission"); }
+    if (status === "denied") { return t("Nada foi executado na Máquina Virtual", "Nothing ran on the virtual machine"); }
     if (status === "running") { return t("Executando na Máquina Virtual", "Running on the virtual machine"); }
     return status === "failed" ? t("Falhou na Máquina Virtual", "Failed on the virtual machine")
         : t("Executou na Máquina Virtual", "Ran on the virtual machine");
@@ -135,7 +169,21 @@ function showRun(run) {
         run.el = B.block({ kind: "machine", icon: "terminal", title: runTitle(run, "running"),
             summary: "", status: "running", open: true });
         run.el.dataset.runId = run.key;
-        place(run.el);
+        run.el.addEventListener("click", function (e) {
+            var more = e.target.closest(".gb-run-more");
+            if (!more) { return; }
+            var step = run.steps.filter(function (s) { return s.id === more.getAttribute("data-step-id"); })[0];
+            if (!step) { return; }
+            step.open = !step.open;
+            paintRun(run);
+            var again = run.el.querySelector('.gb-run-more[data-step-id="' + CSS.escape(step.id) + '"]');
+            if (again) { again.focus(); }
+        });
+        /* A card that waits (also one restored after a reload) keeps its
+           run in the same answer, right above it. */
+        var slots = document.querySelectorAll("#gbMessages .gb-consent-slot");
+        var slot = slots.length ? slots[slots.length - 1] : null;
+        if (slot && slot.parentNode) { slot.parentNode.insertBefore(run.el, slot); } else { place(run.el); }
     }
     paintRun(run);
 }
@@ -143,11 +191,16 @@ function showRun(run) {
 function paintRun(run) {
     var done = run.steps.filter(function (s) { return s.state !== "running"; }).length;
     var failed = run.steps.some(function (s) { return s.state === "failed"; }) || run.ok === false;
-    var current = run.steps.filter(function (s) { return s.state === "running"; })[0];
+    var current = run.steps.filter(function (s) { return s.waiting && s.state === "running"; })[0] ||
+        run.steps.filter(function (s) { return s.state === "running"; })[0];
     var status = failed ? "failed" : (!current && run.ok !== null ? "done" : "running");
+    var waiting = run.steps.some(function (s) { return s.waiting && s.state === "running"; });
+    var denied = failed && run.steps.some(function (s) { return s.denied; }) &&
+        run.steps.every(function (s) { return s.state !== "failed" || s.denied; });
+    if (waiting) { status = "needs-you"; }
     var el = run.el;
-    el.querySelector(".gb-block-title").textContent = runTitle(run, status);
-    el.querySelector(".gb-block-summary").textContent = current ? (current.detail || stepLabel(current)) : "";
+    el.querySelector(".gb-block-title").textContent = runTitle(run, denied ? "denied" : status);
+    el.querySelector(".gb-block-summary").textContent = current ? stepSummary(current) : "";
     var count = el.querySelector(".gb-block-count");
     if (!count) {
         count = document.createElement("span");
@@ -156,7 +209,18 @@ function paintRun(run) {
     }
     count.textContent = done + " " + t("de", "of") + " " + run.steps.length;
     B.updateStatus(el, status);
-    if (status !== "running" && el.dataset.userToggled !== "1") {
+    if (denied) {
+        var last = run.steps.filter(function (s) { return s.denied; }).pop();
+        var chip = vm().chip[last.denied] || vm().chip.denied;
+        el.querySelector(".gb-block-chip").textContent = t(chip[0], chip[1]);
+    }
+    /* A run with an agent action stays open: what ran, and how, stays in view. */
+    var acted = run.steps.some(function (s) { return s.key === "vm_action"; });
+    if (acted && el.dataset.userToggled !== "1" && !el.classList.contains("open")) {
+        el.classList.add("open");
+        el.querySelector(".gb-block-header").setAttribute("aria-expanded", "true");
+    }
+    if (status !== "running" && el.dataset.userToggled !== "1" && !acted) {
         el.classList.remove("open");
         el.querySelector(".gb-block-header").setAttribute("aria-expanded", "false");
     }
@@ -165,7 +229,7 @@ function paintRun(run) {
         var mark = s.state === "ok" ? "✓" : (s.state === "failed" ? "✕" : "");
         return '<div class="gb-run-step gb-run-step--' + s.state + '"><span class="gb-run-mark" aria-hidden="true">' + mark + '</span>' +
             '<span class="gb-run-label">' + esc(stepLabel(s)) + '</span>' +
-            '<span class="gb-run-time">' + (s.ms != null ? esc(Math.max(1, Math.round(s.ms / 1000)) + " s") : "") + '</span></div>';
+            '<span class="gb-run-time">' + (s.ms != null ? esc(Math.max(1, Math.round(s.ms / 1000)) + " s") : "") + '</span></div>' + vm().extra(s);
     }).join("") +
         '<div class="gb-run-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="' +
         esc(t("Progresso", "Progress")) + '"><span style="width:' + pct + '%"></span></div></div>';
@@ -185,6 +249,15 @@ function onStep(frame) {
     }
     if (VM_PHASES[data.phase] && VM_STEPS[data.step || ""]) { run.vm = true; }
     if ((data.step || "") === "local_engine_start") { run.local = true; }
+    if (data.action) { step.action = data.action; }
+    if (data.allowed_by) { step.allowedBy = data.allowed_by; }
+    if (data.waiting != null) { step.waiting = !!data.waiting; }
+    /* Withdrawn by the server (turn stopped or a new turn): the card is
+       gone from the pending list, a full read closes it. */
+    if (data.denied) { step.denied = data.denied; if (A.reviveConsentCards) { A.reviveConsentCards(); } }
+    if (Array.isArray(data.output)) { step.output = data.output; }
+    if (Array.isArray(data.files)) { step.files = data.files; }
+    if (data.exit_code != null) { step.exit = data.exit_code; }
     if (frame.type === "STEP_STARTED") {
         step.state = "running";
         step.detail = data.detail || "";
