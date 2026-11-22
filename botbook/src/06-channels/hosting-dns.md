@@ -286,7 +286,7 @@ Stalwart is automatically configured during bootstrap:
 | SMTP | ✅ Enabled |
 | JMAP | ✅ Enabled |
 | Spam filtering | ✅ SpamAssassin |
-| Virus scanning | ✅ ClamAV |
+| Virus scanning | Not active — no scanner wired to mail or uploads (#2598) |
 | DKIM signing | ✅ Auto-configured |
 
 ### Email Configuration

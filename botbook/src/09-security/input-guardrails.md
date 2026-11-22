@@ -22,8 +22,8 @@ Authority: `botserver/crates/botsecurity-core/src/` (`validation/`, `dlp/`,
 | URL validation helper | `validation/validate_url_ssrf.rs` | **No** | no caller outside the crate |
 | DLP scanning and redaction | `dlp/` | **No** | no caller outside the crate |
 | Prompt-injection detection | `prompt_security/` | **No** | no caller outside the crate |
-| File magic-byte validation | `file_validation.rs` | **No** | no caller outside the crate |
-| Antivirus (ClamAV / Defender) | `antivirus/` | **No** | not referenced from `botserver/src` |
+| File magic-byte validation | `botsecurity-core/src/upload_policy.rs:19-26` | **Yes** | wired into Docs/Sheets/Slides imports (#2522) |
+| Antivirus (ClamAV / Defender) | `antivirus/` | **No** | not referenced from `botserver/src`; no scanner registered on the upload gate (#2597) |
 | Certificate pinning | `botsecurity-crypto/src/cert_pinning/` | **No** | `create_pinned_client` has no callers |
 
 ## SSRF
@@ -167,7 +167,7 @@ store.
 | Is outbound HTTP from BASIC filtered against private networks? | Yes, by a prefix blocklist with the gaps listed above |
 | Is inbound prompt text scanned for injection? | No |
 | Is outbound model output scanned for secrets? | No |
-| Are uploaded bytes checked against their extension? | No |
+| Are uploaded bytes checked against their extension? | Yes — `upload_policy.rs` enforces declared MIME + magic bytes on Office imports (#2522) |
 | Is TLS pinned for outbound calls? | No |
 | Are SQL identifiers and shell commands constrained? | Yes, via `sql_guard` and `SafeCommand` |
 
@@ -176,5 +176,4 @@ store.
 - [Browser Policy and Budgets](./browser-policy.md) — the browsing control plane.
 - [Security Features](./security-features.md) — the enforced surface.
 - [System Limits & Rate Limiting](./system-limits.md) — request limits.
-- [Security Protection Tools](./protection-tools.md) — the ClamAV/NocoDB
-  protection endpoints, which are separate from the unused `antivirus` module.
+- [Security Protection Tools](./protection-tools.md) — the protection tool endpoints, which are separate from the unused `antivirus` module. No NocoDB integration exists.

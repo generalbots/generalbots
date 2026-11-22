@@ -14,7 +14,7 @@ The Security Protection module provides comprehensive host-level security throug
                               │
                               ▼ HTMX/API calls
 ┌─────────────────────────────────────────────────────────────┐
-│                    botserver (port 9000)                     │
+│                    botserver (port 8080)                     │
 │              /api/security/protection/*                      │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -176,14 +176,17 @@ Access the Security Protection panel:
    - Available actions
 
 **Available Actions:**
-- **Run Scan** - Execute the tool's scan
-- **Start/Stop** - Manage services (Suricata, ClamAV)
-- **Update** - Update signatures/databases
+- **Run Scan** - Execute the tool's scan. Note: for ClamAV this currently runs
+  the Lynis scan (`protection/manager/initialize.rs:238`), not a ClamAV scan;
+  no upload path performs a ClamAV scan today.
+- **Start/Stop** - Manage services (Suricata; ClamAV daemon is not provisioned)
+- **Update** - Update signatures/databases (for ClamAV this runs `freshclam`,
+  `protection/manager/update_definitions.rs:14-18`)
 - **View Report** - See latest scan results
 
 ### Via API
 
-All endpoints are under `/api/security/protection/`
+Most endpoints are under `/api/security/protection/`; `/api/security/fix` and `/api/security/fix/status` are siblings mounted by the same router (`configure_protection_routes.rs:11-12`).
 
 **Get Status of All Tools:**
 ```http
@@ -282,16 +285,13 @@ Network Intrusion Detection/Prevention System (IDS/IPS).
 
 ### ClamAV
 
-Open-source antivirus engine.
-
-**Features:**
-- Virus signature scanning
-- Malware detection
-- Automatic signature updates
-
-**Service Management:**
-- `clamav-daemon` - Background scanning service
-- `freshclam` - Signature updates
+Open-source antivirus engine. **Current state: not wired to uploads.** No
+caller registers a malware scanner with the upload gate, so a real ClamAV scan
+never runs on an import; the upload gate fails closed when no scanner is
+configured (see #2597, #2598). The protection tool named "ClamAV" runs the
+Lynis scan (`initialize.rs:238`) and only its `freshclam` signature-update path
+is real. `clamav-daemon` is not provisioned in `3rdparty.toml` or the offline
+installers (see #2603).
 
 ### LMD (Linux Malware Detect)
 
