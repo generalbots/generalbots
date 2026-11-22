@@ -77,6 +77,23 @@
     } catch (error) {
       return function () {};
     }
+    var streamFailed = false;
+    var intentionalClose = false;
+    var fallback = "An unexpected error occurred. Please try again.";
+    function reportStreamFailure() {
+      // onerror and onclose usually both fire for a rejected handshake; report
+      // once and never for a deliberate shutdown from the unsubscribe below.
+      if (streamFailed || intentionalClose) return;
+      streamFailed = true;
+      var app = document.getElementById("events-app");
+      if (app) app.dataset.source = "stream-error";
+      var status = document.getElementById("events-automation-status");
+      if (status) {
+        status.textContent = typeof window.gbT === "function"
+          ? window.gbT("error-unexpected", fallback)
+          : fallback;
+      }
+    }
     socket.onmessage = function (message) {
       var envelope;
       try {
@@ -86,7 +103,15 @@
       }
       if (envelope && envelope.event_type) onEnvelope(envelope);
     };
+    socket.onerror = function () {
+      // Privacy: never echo the error event or a payload — generic status only.
+      reportStreamFailure();
+    };
+    socket.onclose = function () {
+      reportStreamFailure();
+    };
     return function () {
+      intentionalClose = true;
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.close();
       }
