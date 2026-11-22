@@ -209,7 +209,7 @@
 
     function addSwitchEntries(menu, dest) {
         if (dest.scope === "machine" || dest.scope === "network") {
-            menuEntry(menu, tr("Modelo gratuito", "Free model"),
+            menuEntry(menu, A.engineName("free", "group"),
                 tr("hospedado fora deste computador", "hosted outside this computer"),
                 function () { switchTo({ mode: "free" }); });
         }
@@ -240,7 +240,7 @@
             var top = menu.querySelector(".gb-model-menu-current");
             if (top) { top.remove(); }
         }
-        addGroup(menu, { id: "local", name: tr("Modelos locais", "Local models"), icon: CHIP }, items, function (id) {
+        addGroup(menu, { id: "local", name: A.engineName("local", "group"), icon: CHIP }, items, function (id) {
             if (id) { switchTo({ local: id }); } else { selectModel(A.defaultModel); }
         });
     }
@@ -253,23 +253,24 @@
         selectModel(value);
     }
     function addAgentGroup(menu) {
+        var backendOff = !!(A.productConfig && A.productConfig.agent_backend_unavailable);
         /* /api/chat/models lists each linked agent with its switched-on models;
            an older server only says which agents are linked. */
         if (!Array.isArray(A.subscriptions)) {
             var agents = A.linkedAgents || [];
             if (!agents.length) { return; }
-            addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions"), logo: "" },
-                agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }), pickAgent);
+            addGroup(menu, { id: "agents", name: A.engineName("acp", "group"), logo: "" },
+                agents.map(function (x) { return { model: x.name, value: "sub:" + x.id, disabled: backendOff }; }), pickAgent);
             return;
         }
         var subs = A.subscriptions.filter(function (x) { return x.linked !== false; });
         if (!subs.length) { return; }
         var chosen = /^sub:/.test(A.selectedModel || "");
-        var group = addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions") }, [], pickAgent, chosen, subs.length);
+        var group = addGroup(menu, { id: "agents", name: A.engineName("acp", "group") }, [], pickAgent, chosen, subs.length);
         subs.forEach(function (x) {
             var acc = { id: x.provider, name: x.label || x.provider, logo: AGENT_LOGO[x.provider] || x.provider };
-            var models = (x.models || []).map(function (m) { return { model: A.agentModelLabel(m), value: "sub:" + x.provider + "/" + m.id }; });
-            if (!models.length) { models = [{ model: tr("Padrão do agente", "Agent default"), value: "sub:" + x.provider }]; }
+            var models = (x.models || []).map(function (m) { return { model: A.agentModelLabel(m), value: "sub:" + x.provider + "/" + m.id, disabled: backendOff }; });
+            if (!models.length) { models = [{ model: tr("Padrão do agente", "Agent default"), value: "sub:" + x.provider, disabled: backendOff }]; }
             addGroup(group, acc, models, pickAgent);
         });
     }
@@ -280,7 +281,7 @@
     function addAccountGroups(menu) {
         var accounts = (A.accounts || []).filter(function (acc) { return (acc.models || []).length; });
         if (!accounts.length) { return; }
-        var group = addGroup(menu, { id: "accounts", name: tr("Chaves API", "API keys") }, [], selectModel,
+        var group = addGroup(menu, { id: "accounts", name: A.engineName("own_key", "group") }, [], selectModel,
             accounts.some(function (acc) { return acc.models.some(function (m) { return m.value === A.selectedModel; }); }),
             accounts.length);
         accounts.forEach(function (acc) { addGroup(group, acc, acc.models, selectModel); });
@@ -308,11 +309,18 @@
         });
         var list = document.createElement("div");
         list.className = "gb-model-group-list";
+        var backendReason = A.productConfig && A.productConfig.agent_backend_unavailable;
         models.forEach(function (m) {
             var item = document.createElement("button");
             item.className = "gb-model-menu-item" + (isActive(m) ? " active" : "");
             item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
-            item.addEventListener("click", function () { onPick(m.value); });
+            if (m.disabled) {
+                item.disabled = true;
+                item.title = backendReason || A.t("assistant.agent-backend-off", "Subscription agents unavailable on this computer");
+                item.classList.add("gb-model-menu-disabled");
+            } else {
+                item.addEventListener("click", function () { onPick(m.value); });
+            }
             list.appendChild(item);
         });
         group.appendChild(head);
@@ -400,6 +408,7 @@
     function applyModel(model) {
         A.selectedModel = model;
         try { localStorage.setItem("gb-model-preference", model); } catch (e) { /* */ }
+        if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
         A.renderModelPickers();
         A.renderStatus();
         closeModelMenu();

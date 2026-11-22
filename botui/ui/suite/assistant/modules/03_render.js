@@ -422,18 +422,19 @@
                 return;
             }
             if (fc || fr) {
-                /* #2562 — classified error from the server: show the
-                   right error card instead of rendering as a normal message. */
+                /* Classified engine error or model error card. */
                 if (isError && data.error_code) {
-                    A.renderErrorCode(data.error_code, fc);
+                    if (!A.renderEngineError || !A.renderEngineError(data.error_code, data.error_params)) {
+                    A.renderErrorCode(data.error_code, fc); }
                 } else {
                     A.renderAssistantMessage(fc, fr, {
-                        citations: data.citations, model: data.model,
+                        citations: data.citations, model: data.llm_model || data.model,
                         retryable: !!(data.retryable || isError), isError: isError
                     });
                 }
             } else if (isError) {
-                A.renderErrorCode(data.error_code || "model_error", data.content || "");
+                if (!A.renderEngineError || !A.renderEngineError(data.error_code, data.error_params)) {
+                A.renderErrorCode(data.error_code || "model_error", data.content || ""); }
             }
             if (data.suggestions && data.suggestions.length) {
                 A.suggestions = data.suggestions;

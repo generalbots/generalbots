@@ -83,6 +83,8 @@ A.tagAnswer = function (el, content, model) {
     var now = A.turnModelNow();
     var reported = model && model !== A.staleModel ? model : "";
     var used = /^(sub|acct):/.test(now) ? now : (reported || now);
+    /* If the frame carried the actual model name (llm_model), prefer it. */
+    if (reported && !/^(sub|acct):/.test(reported)) { used = reported; }
     A.rememberAnswerModel(content, used);
     A.attachModelTag(el, used);
 };

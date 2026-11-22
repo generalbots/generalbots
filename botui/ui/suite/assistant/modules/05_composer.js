@@ -206,8 +206,10 @@
         });
     }
     function clearFileChips() {
-        var c = document.getElementById("gbFileChips");
-        if (c) { c.innerHTML = ""; }
+        ["gbFileChips", "gbFileChipsEmpty"].forEach(function (id) {
+            var c = document.getElementById(id);
+            if (c) { c.innerHTML = ""; }
+        });
     }
 
     function autoGrow(el) {
@@ -267,42 +269,42 @@
     }
 
     function renderFileChips() {
-        var container = document.getElementById("gbFileChips");
-        if (!container) { return; }
-        container.innerHTML = "";
-        for (var i = 0; i < A.pendingFiles.length; i++) {
-            if (typeof A.attachCard === "function") {
-                (function (idx) {
-                    var card = A.attachCard(A.pendingFiles[idx], {
-                        removable: true,
-                        onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
-                    });
-                    /* Keyboard: Delete/Backspace removes this chip */
-                    card.setAttribute("tabindex", "0");
-                    card.addEventListener("keydown", function (e) {
-                        if (e.key === "Delete" || e.key === "Backspace") {
-                            e.preventDefault();
-                            A.pendingFiles.splice(idx, 1);
-                            renderFileChips();
-                            /* Move focus to the next chip or the input. */
-                            var next = container.querySelector(".gb-attach-card");
-                            if (next) { next.focus(); }
-                            else {
-                                var inp = document.getElementById("gbInputDock") ||
-                                          document.getElementById("gbInputEmpty");
-                                if (inp) { inp.focus(); }
+        var containers = [document.getElementById("gbFileChips"), document.getElementById("gbFileChipsEmpty")].filter(Boolean);
+        containers.forEach(function (c) { c.innerHTML = ""; });
+        if (!containers.length) { return; }
+        containers.forEach(function (container) {
+            for (var i = 0; i < A.pendingFiles.length; i++) {
+                if (typeof A.attachCard === "function") {
+                    (function (idx) {
+                        var card = A.attachCard(A.pendingFiles[idx], {
+                            removable: true,
+                            onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
+                        });
+                        card.setAttribute("tabindex", "0");
+                        card.addEventListener("keydown", function (e) {
+                            if (e.key === "Delete" || e.key === "Backspace") {
+                                e.preventDefault();
+                                A.pendingFiles.splice(idx, 1);
+                                renderFileChips();
+                                var next = container.querySelector(".gb-attach-card");
+                                if (next) { next.focus(); }
+                                else {
+                                    var inp = document.getElementById("gbInputDock") ||
+                                              document.getElementById("gbInputEmpty");
+                                    if (inp) { inp.focus(); }
+                                }
                             }
-                        }
-                    });
-                    container.appendChild(card);
-                })(i);
-            } else {
-                var chip = document.createElement("span");
-                chip.className = "gb-file-chip";
-                chip.textContent = A.pendingFiles[i].name;
-                container.appendChild(chip);
+                        });
+                        container.appendChild(card);
+                    })(i);
+                } else {
+                    var chip = document.createElement("span");
+                    chip.className = "gb-file-chip";
+                    chip.textContent = A.pendingFiles[i].name;
+                    container.appendChild(chip);
+                }
             }
-        }
+        });
     }
 
     /* ---- Bind events ---- */

@@ -49,7 +49,13 @@ function accept(host) {
 A.externalTarget = function (value) {
     var v = String(value || "");
     var name = A.shortModelName ? A.shortModelName(v) : v;
-    if (/^sub:/.test(v)) { return Promise.resolve({ name: name, host: name }); }
+    if (/^sub:/.test(v)) {
+        var provider = v.slice(4).split("/")[0];
+        var agentMeta = A._agentMeta ? A._agentMeta(provider) : null;
+        var agentName = agentMeta ? agentMeta.name : name;
+        var agentHost = agentMeta ? (agentMeta.name + ", " + agentMeta.co) : name;
+        return Promise.resolve({ name: agentName, host: agentHost });
+    }
     var acct = /^acct:([^/]+)\//.exec(v);
     if (!acct) { return Promise.resolve(null); }
     return A.apiFetch("/api/llm/accounts").then(function (r) { return r.ok ? r.json() : {}; }).then(function (data) {

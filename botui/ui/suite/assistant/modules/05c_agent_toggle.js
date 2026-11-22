@@ -76,11 +76,22 @@
         return btn;
     }
 
+    /** Is the selected model a subscription agent? */
+    function impliedByModel() {
+        return /^sub:/.test(A.selectedModel || "");
+    }
+
     function syncUI(btn, enabled) {
         if (!btn) { return; }
-        btn.setAttribute("aria-pressed", enabled ? "true" : "false");
-        btn.classList.toggle("gb-agent-on", enabled);
-        btn.title = enabled
+        var locked = impliedByModel();
+        var on = locked || enabled;
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+        btn.classList.toggle("gb-agent-on", on);
+        btn.classList.toggle("gb-agent-locked", locked);
+        btn.disabled = locked;
+        btn.title = locked
+            ? A.t("assistant.agent-locked-tip", "The selected agent runs in the Virtual Machine; choose another model to turn it off")
+            : on
             ? A.t("assistant.agent-on-tip", "Agente ativado: o assistente pode executar comandos no computador")
             : A.t("assistant.agent-off-tip", "Agente desativado: o assistente responde apenas com texto");
     }
@@ -102,15 +113,17 @@
         /* When the backend is not available, show the reason on click
            instead of toggling. */
         function handleClick() {
+            if (impliedByModel()) { return; }
             if (!backendAvailable()) {
                 A.announce(A.t("assistant.agent-unavailable",
                     "Agent mode is not available on this computer."));
                 return;
             }
-            A.agentEnabled = !A.agentEnabled;
-            writeStored(A.agentEnabled);
-            syncUI(dockBtn, A.agentEnabled);
-            syncUI(emptyBtn, A.agentEnabled);
+            var stored = !readStored();
+            writeStored(stored);
+            A.agentEnabled = stored;
+            syncUI(dockBtn, stored);
+            syncUI(emptyBtn, stored);
         }
 
         if (dockBtn) {
@@ -130,12 +143,14 @@
     };
 
     /* Called when switching conversations so the toggle reflects the
-       stored state for the new conversation. */
+       stored state for the new conversation. Also called after model
+       selection changes so the implied-on rule is re-evaluated. */
     A.syncAgentToggle = function () {
-        A.agentEnabled = readStored();
+        var stored = readStored();
+        A.agentEnabled = impliedByModel() || stored;
         var btn = document.querySelector("#gbComposerDock .gb-agent-toggle");
-        syncUI(btn, A.agentEnabled);
+        syncUI(btn, stored);
         var emptyBtn = document.querySelector("#gbComposerCardEmpty .gb-agent-toggle");
-        syncUI(emptyBtn, A.agentEnabled);
+        syncUI(emptyBtn, stored);
     };
 })();
