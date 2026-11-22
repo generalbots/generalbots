@@ -192,6 +192,15 @@ pub(super) const KEYS: &[&str] = &[
     "weba-published",
     "weba-unpublished",
     "weba-error",
+    // #2338 — chat/drive notification strings
+    "chat-notify-attached-from-drive",
+    "chat-notify-attachment-too-large-50-mb-per-file-limit",
+    "chat-notify-failed-to-connect-to-chat-server",
+    "chat-notify-failed-to-switch-to-bot",
+    "chat-notify-file-too-large-max-25-mb",
+    "chat-notify-keep-at-least-one-conversation-open",
+    "chat-notify-pinned-tabs-cannot-be-closed",
+    "chat-notify-ui-notifications-initialized",
     // #2338 — localized option labels and removable-drive status
     "Power saver",
     "Balanced",

@@ -24,7 +24,7 @@
     }
     var tooBig = list.find(function (file) { return file.size > MAX_FILE_SIZE; });
     if (tooBig) {
-      notify("File too large (max 25 MB): " + tooBig.name, "warning");
+      notify(gbT("chat-notify-file-too-large-max-25-mb", "File too large (max 25 MB): ") + tooBig.name, "warning");
       fileInput.value = "";
       return;
     }
@@ -170,7 +170,7 @@ window.ChatSwitchBot = function (botName) {
       }));
     })
     .catch(function () {
-      notify("Failed to switch to bot " + botName, "warning");
+      notify(gbT("chat-notify-failed-to-switch-to-bot", "Failed to switch to bot ") + botName, "warning");
     });
 };
 

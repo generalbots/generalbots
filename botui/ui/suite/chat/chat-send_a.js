@@ -106,7 +106,7 @@ function sendMessage(messageContent, extra) {
   if (tooBig.length) {
     var names = tooBig.map(function (file) { return file.name; }).join(", ");
     if (typeof notify === "function") {
-      notify("Attachment too large (50 MB per file limit): " + names, "error");
+      notify(gbT("chat-notify-attachment-too-large-50-mb-per-file-limit", "Attachment too large (50 MB per file limit): ") + names, "error");
     }
     if (fileInput) fileInput.value = "";
     return;

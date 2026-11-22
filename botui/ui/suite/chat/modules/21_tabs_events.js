@@ -32,11 +32,11 @@
     }
     if (!tab) return;
     if (tab.pinned) {
-      if (typeof notify === "function") notify("Pinned tabs cannot be closed", "info");
+      if (typeof notify === "function") notify(gbT("chat-notify-pinned-tabs-cannot-be-closed", "Pinned tabs cannot be closed"), "info");
       return;
     }
     if (tabs.length <= 1) {
-      if (typeof notify === "function") notify("Keep at least one conversation open", "info");
+      if (typeof notify === "function") notify(gbT("chat-notify-keep-at-least-one-conversation-open", "Keep at least one conversation open"), "info");
       return;
     }
     GBTabs.closeTab(id);

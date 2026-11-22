@@ -234,7 +234,7 @@ function proceedWithChatInit() {
       });
     })
     .catch(function () {
-      notify("Failed to connect to chat server", "error");
+      notify(gbT("chat-notify-failed-to-connect-to-chat-server", "Failed to connect to chat server"), "error");
       setTimeout(proceedWithChatInit, 3000);
     });
 }
