@@ -187,6 +187,9 @@ crm-placeholder-website = https://
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = 搜索联系人...
 
+# Chat header / app chrome (#2542)
+crm-lost-reason-title = 这笔交易为何流失？
+
 # -----------------------------------------------------------------------------
 # #2328 — loading / empty / error state copy
 # -----------------------------------------------------------------------------
