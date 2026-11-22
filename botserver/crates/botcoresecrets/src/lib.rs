@@ -1,25 +1,26 @@
+pub mod env_defaults;
 pub mod hooks;
 pub mod manager;
+pub mod mtls;
 pub mod paths;
 pub mod peer;
 pub mod service_configs;
 pub mod sync;
 pub mod tenant;
-pub mod env_defaults;
 pub mod vault_addr;
 
+pub use env_defaults::init_secrets_manager;
 pub use manager::SecretsManager;
 pub use paths::SecretPaths;
-pub use service_configs::ServiceConfigResult;
-pub use tenant::{alm_config, app_runtime, internal_api_token, TenantSecrets};
-pub use env_defaults::init_secrets_manager;
-pub use vault_addr::{local_vault_addr, pick_vault_addr, vault_addr_from_env};
 pub use peer::peer_secret_sync;
+pub use service_configs::ServiceConfigResult;
 pub use sync::{csrf_secret_sync, secret_sync};
+pub use tenant::{alm_config, app_runtime, internal_api_token, TenantSecrets};
+pub use vault_addr::{local_vault_addr, pick_vault_addr, vault_addr_from_env};
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::env;
-use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BootstrapConfig {

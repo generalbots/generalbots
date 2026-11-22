@@ -1,5 +1,7 @@
 //! cache - extracted from bootstrap.rs
 
+use botcoresecrets::mtls::runtime::secure_cache_url;
+use botcoresecrets::mtls::status::init as mtls_init;
 use log::{info, warn};
 use std::sync::Arc;
 
@@ -56,6 +58,21 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         }
     } else if env_url.is_none() {
         urls.push("redis://localhost:6379".to_string());
+    }
+
+    // #2590 — with the mTLS opt-in active every candidate must be a `rediss`
+    // URL; no plaintext fallback is kept. If the redis TLS feature is not
+    // compiled in, the client fails closed instead of downgrading.
+    match mtls_init() {
+        Ok(config) => {
+            for url in &mut urls {
+                *url = secure_cache_url(url.as_str(), config);
+            }
+        }
+        Err(error) => {
+            warn!("[mtls] configuration unavailable for cache transport: {error}");
+            return None;
+        }
     }
 
     for u in &urls {

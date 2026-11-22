@@ -11,6 +11,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use botcore::shared::state::AppState;
+use botcoresecrets::mtls::status::{current_status, is_enabled as mtls_is_enabled};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityOverview {
@@ -154,7 +155,7 @@ async fn get_security_overview(
 ) -> Result<Json<SecurityOverview>, SecurityError> {
     let overview = SecurityOverview {
         tls_enabled: true,
-        mtls_enabled: false,
+        mtls_enabled: mtls_is_enabled(),
         rate_limiting_enabled: true,
         cors_configured: true,
         api_keys_count: 5,
@@ -438,4 +439,12 @@ pub fn configure_security_admin_routes() -> Router<Arc<AppState>> {
             "/api/settings/security/password-policy",
             get(get_password_policy).put(update_password_policy),
         )
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn overview_mtls_flag_matches_resolved_status() {
+        assert_eq!(mtls_is_enabled(), current_status().enabled);
+    }
 }

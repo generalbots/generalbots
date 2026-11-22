@@ -1,7 +1,53 @@
 use super::*;
+use botcoresecrets::mtls::runtime::{secure_database_url, secure_http_url, ClientTlsPaths};
+use botcoresecrets::mtls::status::init as mtls_init;
+
+/// Resolve the database URL with the mTLS transport applied. A configuration
+/// failure is fatal here: falling back to plaintext would defeat the opt-in.
+fn database_url_with_mtls() -> Result<String, anyhow::Error> {
+    let url = get_database_url_sync()?;
+    match mtls_init() {
+        Ok(config) => Ok(secure_database_url(&url, config)),
+        Err(error) => Err(anyhow::anyhow!(
+            "mTLS configuration unavailable for database transport: {error}"
+        )),
+    }
+}
+
+/// Build an HTTP client that verifies the peer against the configured CA and
+/// presents this service's client certificate. Errors name the missing item
+/// without printing paths or certificate/key material.
+fn client_with_tls_paths(
+    paths: &ClientTlsPaths,
+    timeout: Duration,
+) -> Result<Client, anyhow::Error> {
+    let mut builder = Client::builder()
+        .timeout(timeout)
+        .connect_timeout(Duration::from_secs(5));
+    if paths.has_ca() {
+        let ca_pem = std::fs::read(&paths.ca_cert)
+            .map_err(|e| anyhow::anyhow!("could not read mTLS CA path: {e}"))?;
+        let ca = Certificate::from_pem(&ca_pem)
+            .map_err(|e| anyhow::anyhow!("could not parse mTLS CA: {e}"))?;
+        builder = builder.add_root_certificate(ca);
+    }
+    if paths.has_identity() {
+        let mut identity_pem = std::fs::read(&paths.client_cert)
+            .map_err(|e| anyhow::anyhow!("could not read mTLS client cert path: {e}"))?;
+        let key_pem = std::fs::read(&paths.client_key)
+            .map_err(|e| anyhow::anyhow!("could not read mTLS client key path: {e}"))?;
+        identity_pem.extend_from_slice(&key_pem);
+        let identity = reqwest::Identity::from_pem(&identity_pem)
+            .map_err(|e| anyhow::anyhow!("could not parse mTLS client identity: {e}"))?;
+        builder = builder.identity(identity);
+    }
+    builder
+        .build()
+        .map_err(|e| anyhow::anyhow!("could not build mTLS client: {e}"))
+}
 
 pub fn create_conn() -> Result<DbPool, anyhow::Error> {
-    let database_url = get_database_url_sync()?;
+    let database_url = database_url_with_mtls()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
         .max_size(50)
@@ -13,7 +59,7 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
         .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
 pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
-    let database_url = get_database_url_sync()?;
+    let database_url = database_url_with_mtls()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
         .max_size(50)
@@ -52,10 +98,12 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
         "".to_string(),
     )
 }
-pub fn run_migrations(_conn: &mut diesel::PgConnection) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn run_migrations(
+    _conn: &mut diesel::PgConnection,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Migrations handled by botserver, not botcore
     Ok(())
-  }
+}
 pub fn sanitize_path_component(component: &str) -> String {
     component
         .chars()
@@ -128,8 +176,39 @@ pub fn ca_cert_path() -> String {
 /// # Returns
 /// A reqwest::Client configured for TLS verification
 pub fn create_tls_client(timeout_secs: Option<u64>) -> Client {
-    create_tls_client_with_ca(&ca_cert_path(), timeout_secs)
+    let config = match mtls_init() {
+        Ok(config) => config,
+        Err(error) => {
+            warn!("[mtls] configuration unavailable for HTTP client: {error}");
+            return create_tls_client_with_ca(&ca_cert_path(), timeout_secs);
+        }
+    };
+    let paths = match ClientTlsPaths::from_config(config) {
+        Some(paths) => paths,
+        None => return create_tls_client_with_ca(&ca_cert_path(), timeout_secs),
+    };
+    let timeout = Duration::from_secs(timeout_secs.unwrap_or(30));
+    match client_with_tls_paths(&paths, timeout) {
+        Ok(client) => client,
+        Err(error) => {
+            warn!("[mtls] client certificate setup failed: {error}; using CA verification only");
+            create_tls_client_with_ca(&paths.ca_cert, timeout_secs)
+        }
+    }
 }
+/// Rewrite an internal HTTP service URL to HTTPS when mTLS is active.
+/// Plaintext installs keep the original URL.
+#[must_use]
+pub fn internal_service_url(base: &str) -> String {
+    match mtls_init() {
+        Ok(config) => secure_http_url(base, config),
+        Err(error) => {
+            warn!("[mtls] configuration unavailable for service URL: {error}");
+            base.to_string()
+        }
+    }
+}
+
 /// Creates an HTTP client with a custom CA certificate path.
 ///
 /// **Behavior:**
@@ -252,5 +331,26 @@ pub(super) fn estimate_chars_per_token(model: &str) -> usize {
         3 // Llama/Mistral models: ~3 chars per token
     } else {
         4 // GPT/Claude/BERT models and default: ~4 chars per token
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_tls_material_fails_closed_without_leaking_paths() {
+        let paths = ClientTlsPaths {
+            ca_cert: "/no/such/ca.pem".to_string(),
+            client_cert: "/no/such/client.pem".to_string(),
+            client_key: "/no/such/client.key".to_string(),
+        };
+        let result = client_with_tls_paths(&paths, Duration::from_secs(1));
+        assert!(result.is_err(), "missing CA must not build a client");
+        if let Err(error) = result {
+            let message = error.to_string();
+            assert!(message.contains("could not read mTLS CA path"));
+            assert!(!message.contains("no/such"), "path leaked: {message}");
+        }
     }
 }
