@@ -42,6 +42,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/network/wifi", get(os_wifi_status).post(os_wifi_action))
         .route("/api/os/update/status", get(os_update_status))
         .route("/api/os/peripherals", get(os_peripherals_status).post(os_peripherals_set))
+        .route("/api/os/session", get(os_session_status))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -737,4 +738,28 @@ async fn os_peripherals_set(
         _ => false,
     };
     Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
+}
+
+/// #2449 — real user-manager session status for the kiosk.
+async fn os_session_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let unit = probe("systemctl", &["--user", "is-system-running"]);
+    let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_default();
+    let bus = std::env::var("DBUS_SESSION_BUS_ADDRESS").unwrap_or_default();
+    let services = ["pipewire.socket", "wireplumber.service", "xdg-desktop-portal.service"]
+        .iter().map(|name| {
+            let active = probe("systemctl", &["--user", "is-active", name]);
+            json!({ "unit": name, "active": active })
+        }).collect::<Vec<_>>();
+    Ok(Json(json!({
+        "status": "ok",
+        "user_manager": unit,
+        "xdg_runtime_dir": runtime,
+        "session_bus": redact(&bus),
+        "user_services": services,
+        "expected_runtime": "/run/user/<uid>".to_string()
+    })))
 }
