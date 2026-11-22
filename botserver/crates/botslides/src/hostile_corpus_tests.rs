@@ -1,9 +1,10 @@
 //! #2522 — Slides-specific malicious-file corpus.
 //!
-//! Mirrors `botdocs/src/hostile_corpus_tests.rs` with PPTX part names: five
+//! Mirrors `botdocs/src/hostile_corpus_tests.rs` with PPTX part names: eight
 //! crafted decks (VBA part, XLM macro sheet, encrypted package, SSRF
-//! relationship, XML entity bomb) that must fail closed at the Slides import
-//! boundary. The policy under test is the one the unified
+//! relationship, XML entity bomb, oversized embedded-media ratio, external
+//! `file://` relationship, deeply nested container) that must fail closed at
+//! the Slides import boundary. The policy under test is the one the unified
 //! `GB_ALLOW_UNSCANNED_IMPORT` switch produces when it is not opted out, so
 //! this file is also CI evidence that the switch defaults to fail-closed.
 //!
@@ -62,6 +63,28 @@ fn slides_cases() -> Vec<SlidesCase> {
         "ppt/slides/slide1.xml",
         b"<!DOCTYPE d [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><d>&xxe;</d>".to_vec(),
     )]);
+    // A highly compressible media payload: 512 KiB of zeros deflates to a few
+    // hundred bytes, so uncompressed/compressed blows past the default cap of
+    // 100 without relying on the separate uncompressed-size gate. The `.png`
+    // name keeps this case on the ratio guard instead of the macro guard,
+    // which treats any `ppt/*.bin` part as executable.
+    let media_ratio = zip_with(&[
+        ("ppt/presentation.xml", b"<p:presentation/>".to_vec()),
+        ("ppt/media/image1.png", vec![0u8; 512 * 1024]),
+    ]);
+    // An external relationship whose Target uses the `file://` scheme. The
+    // SSRF-strict validator refuses the scheme before any parser resolves it,
+    // so no local path is ever read.
+    let file_url_rel = zip_with(&[(
+        "ppt/slides/_rels/slide1.xml.rels",
+        b"<Relationships><Relationship Target=\"file:///etc/passwd\"/></Relationships>".to_vec(),
+    )]);
+    // Deep nesting: three container layers, each ending in a container
+    // extension so the gate sees a nested package and refuses it in pass 2
+    // rather than recursing into it.
+    let deep_inner = zip_with(&[("ppt/slides/slide3.xml", b"<p:sld/>".to_vec())]);
+    let deep_middle = zip_with(&[("ppt/media/middle.pptx", deep_inner)]);
+    let deep_nested = zip_with(&[("ppt/media/outer.pptx", deep_middle)]);
 
     vec![
         SlidesCase {
@@ -94,6 +117,24 @@ fn slides_cases() -> Vec<SlidesCase> {
             bytes: xxe,
             expected: ExpectedRefusal::ArchiveUnsafe,
         },
+        SlidesCase {
+            name: "ppt-media-ratio",
+            filename: "oversized-media.pptx",
+            bytes: media_ratio,
+            expected: ExpectedRefusal::CompressionRatio,
+        },
+        SlidesCase {
+            name: "ppt-file-url-relationship",
+            filename: "file-url-rel.pptx",
+            bytes: file_url_rel,
+            expected: ExpectedRefusal::Relationship,
+        },
+        SlidesCase {
+            name: "ppt-deep-nesting",
+            filename: "deep-nested.pptx",
+            bytes: deep_nested,
+            expected: ExpectedRefusal::Nested,
+        },
     ]
 }
 
@@ -107,7 +148,8 @@ fn fail_closed_policy() -> upload_policy::HostileFilePolicy {
 fn slides_hostile_corpus_every_case_fails_closed() {
     let policy = fail_closed_policy();
     for case in slides_cases() {
-        let result = upload_policy::inspect_hostile_upload_with(&case.bytes, case.filename, &policy);
+        let result =
+            upload_policy::inspect_hostile_upload_with(&case.bytes, case.filename, &policy);
         assert!(result.is_err(), "corpus case {} must be refused", case.name);
         if let Err(error) = result {
             assert!(
@@ -174,4 +216,62 @@ fn the_unified_scanner_switch_keeps_the_corpus_fail_closed_by_default() {
             );
         }
     }
+}
+
+/// The three added PPTX cases must refuse with a sanitized 400 and must not
+/// echo any part name, the offending URL or the computed ratio into the body.
+/// The generic corpus tests above cover the status/code; this one pins the
+/// "no internals leaked" half of the contract for the newly added cases.
+#[test]
+fn slides_extended_corpus_rejects_sanitized_without_leaking_internals() {
+    let policy = fail_closed_policy();
+    let added = [
+        "ppt-media-ratio",
+        "ppt-file-url-relationship",
+        "ppt-deep-nesting",
+    ];
+    let mut checked = 0usize;
+    for case in slides_cases() {
+        if !added.contains(&case.name) {
+            continue;
+        }
+        checked += 1;
+        let result = audit_hostile_upload(
+            &case.bytes,
+            case.filename,
+            &axum::http::HeaderMap::new(),
+            "slides-extended-corpus",
+            &policy,
+        );
+        assert!(result.is_err(), "case {} must be refused", case.name);
+        if let Err((status, axum::Json(body))) = result {
+            assert_eq!(
+                status,
+                axum::http::StatusCode::BAD_REQUEST,
+                "case {} must be a 400",
+                case.name
+            );
+            assert_eq!(
+                body["code"], "error-file-archive-unsafe",
+                "case {} must use the stable sanitized code",
+                case.name
+            );
+            let rendered = body.to_string();
+            for internal in [
+                "presentation.xml",
+                "image1.png",
+                "slide1.xml.rels",
+                "outer.pptx",
+                "middle.pptx",
+                "file:///etc/passwd",
+            ] {
+                assert!(
+                    !rendered.contains(internal),
+                    "case {} leaked internal detail {internal:?}: {rendered}",
+                    case.name
+                );
+            }
+        }
+    }
+    assert_eq!(checked, added.len(), "every added case must be exercised");
 }
