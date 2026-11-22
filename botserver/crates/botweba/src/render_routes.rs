@@ -29,8 +29,19 @@ pub(super) async fn preview_app(
 pub(super) async fn render_app(
     State(state): State<Arc<WebaState>>,
     Path(slug): Path<String>,
+    Query(query): Query<HashMap<String, String>>,
 ) -> Result<Response, axum::http::StatusCode> {
     let (app, content) = published_page(&state, &slug, None).await?;
+    if let Some(campaign_id) = query.get("utm_campaign") {
+        state.record_click(crate::persistence::CampaignClick {
+            app_id: app.id,
+            slug: slug.clone(),
+            campaign_id: campaign_id.clone(),
+            path: "/".to_string(),
+            clicked_at: chrono::Utc::now(),
+        })
+        .await;
+    }
     Ok(document_response(
         render_html(&app, &content),
         "public, max-age=60",
@@ -39,9 +50,20 @@ pub(super) async fn render_app(
 pub(super) async fn render_page(
     State(state): State<Arc<WebaState>>,
     Path((slug, path)): Path<(String, String)>,
+    Query(query): Query<HashMap<String, String>>,
 ) -> Result<Response, axum::http::StatusCode> {
     let normalized_path = format!("/{}", path.trim_start_matches('/'));
     let (app, content) = published_page(&state, &slug, Some(&normalized_path)).await?;
+    if let Some(campaign_id) = query.get("utm_campaign") {
+        state.record_click(crate::persistence::CampaignClick {
+            app_id: app.id,
+            slug: slug.clone(),
+            campaign_id: campaign_id.clone(),
+            path: normalized_path.clone(),
+            clicked_at: chrono::Utc::now(),
+        })
+        .await;
+    }
     Ok(document_response(
         render_html(&app, &content),
         "public, max-age=60",

@@ -9,6 +9,24 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+fn default_domain_state() -> String { "none".to_string() }
+
+impl Default for WebAppConfig {
+    fn default() -> Self {
+        Self {
+            theme: String::new(),
+            layout: String::new(),
+            auth_required: false,
+            custom_domain: None,
+            domain_state: default_domain_state(),
+            campaign_link: None,
+            meta_tags: HashMap::new(),
+            scripts: Vec::new(),
+            styles: Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebApp {
     pub id: Uuid,
@@ -41,12 +59,18 @@ pub enum WebAppStatus {
     Archived,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebAppConfig {
     pub theme: String,
     pub layout: String,
     pub auth_required: bool,
     pub custom_domain: Option<String>,
+    /// #2538 — domain verification state: pending | active | none.
+    #[serde(default = "default_domain_state")]
+    pub domain_state: String,
+    /// #2538 — campaign link attribution for a published site.
+    #[serde(default)]
+    pub campaign_link: Option<String>,
     pub meta_tags: HashMap<String, String>,
     pub scripts: Vec<String>,
     pub styles: Vec<String>,

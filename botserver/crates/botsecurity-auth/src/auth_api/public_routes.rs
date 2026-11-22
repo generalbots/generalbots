@@ -72,6 +72,12 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.read("/api/cloud/plans/:plan_id");
     routes.read("/api/cloud/offers");
     routes.read("/api/cloud/llm-providers");
+    // #2538 — published site pages and their public form endpoint. Only the
+    // immutable published snapshot is rendered; drafts stay authenticated.
+    routes.read("/render/:slug/*");
+    routes.read("/render/:slug");
+    routes.form(Method::POST, "/forms/:slug/submit");
+    routes.form(Method::POST, "/forms/:slug/submit-form");
     routes.read("/api/catalog/products");
     routes.read("/api/catalog/products/:sku");
     routes.read("/api/catalog/plans");
@@ -244,6 +250,10 @@ impl RouteList {
 
     fn credential(&mut self, method: Method, pattern: &str) {
         self.push(PublicRoute::credential_entry(method, pattern));
+    }
+
+    fn form(&mut self, method: Method, pattern: &str) {
+        self.push(PublicRoute::public_form(method, pattern));
     }
 
     fn webhook(&mut self, method: Method, pattern: &str) {

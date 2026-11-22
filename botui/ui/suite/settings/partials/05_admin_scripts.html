@@ -176,6 +176,40 @@
         </section>
 
         <!-- Versions Section -->
+        <!-- #2538 — site builder: create, publish and manage published sites. -->
+        <section id="weba-section" class="settings-section">
+          <div class="section-header">
+            <h1 data-i18n="weba-title">Site Builder</h1>
+            <p class="subtitle" data-i18n="weba-subtitle">Publish pages with forms to the CRM</p>
+          </div>
+          <div class="setting-card">
+            <div class="setting-row">
+              <label for="webaSiteName" data-i18n="weba-site-name">Site name</label>
+              <input id="webaSiteName" type="text" autocomplete="off" />
+            </div>
+            <div class="setting-row">
+              <label for="webaSlug" data-i18n="weba-slug">Slug</label>
+              <input id="webaSlug" type="text" autocomplete="off" />
+            </div>
+            <div class="form-actions">
+              <button type="button" onclick="window.GBWebaBuilder && GBWebaBuilder.create()" data-i18n="weba-create">Create site</button>
+              <button type="button" onclick="window.GBWebaBuilder && GBWebaBuilder.refresh()" data-i18n="weba-refresh">Refresh</button>
+            </div>
+            <div id="webaSites" role="status" aria-live="polite"></div>
+            <div class="setting-row">
+              <label for="webaDomain" data-i18n="weba-domain">Custom domain</label>
+              <input id="webaDomain" type="text" autocomplete="off" />
+              <button type="button" onclick="window.GBWebaBuilder && GBWebaBuilder.setDomain()" data-i18n="weba-domain-save">Set domain</button>
+            </div>
+            <div class="setting-row">
+              <label for="webaCampaign" data-i18n="weba-campaign">Campaign link</label>
+              <input id="webaCampaign" type="text" autocomplete="off" />
+              <button type="button" onclick="window.GBWebaBuilder && GBWebaBuilder.setCampaign()" data-i18n="weba-campaign-save">Create link</button>
+            </div>
+            <p id="webaStatus" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+
         <section id="versions-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="system-versions-title">System Versions</h1>

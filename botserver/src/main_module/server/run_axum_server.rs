@@ -167,6 +167,11 @@ pub async fn run_axum_server(
             "/webhook/telegram*".into(),
             "/api/instagram/webhook".into(),
             "/api/msteams/messages".into(),
+            // #2538 — published-site forms are anonymous by design; the
+            // handler enforces a honeypot, per-e-mail rate limit and field
+            // validation instead of a session cookie. The slug addresses one
+            // published site, never a tenant namespace.
+            "/forms/*".into(),
             // CalDAV clients (Thunderbird, Apple Calendar, DAVx5) authenticate
             // with HTTP Basic and their write verbs — PROPFIND, REPORT, PUT,
             // DELETE — are not in the exempt method list, so a CSRF check

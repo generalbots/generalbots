@@ -45,6 +45,17 @@ pub struct FormSubmission {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// A click on a campaign link to a published page (#2538). `campaign_id` is
+/// the id used by the marketing campaign the link was generated from.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CampaignClick {
+    pub app_id: Uuid,
+    pub slug: String,
+    pub campaign_id: String,
+    pub path: String,
+    pub clicked_at: chrono::DateTime<chrono::Utc>,
+}
+
 /// Everything the builder owns, serialised as one unit per branch.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WebaSnapshot {
@@ -52,6 +63,8 @@ pub struct WebaSnapshot {
     pub pages: Vec<WebAppPage>,
     pub published: Vec<PublishedSite>,
     pub submissions: Vec<FormSubmission>,
+    #[serde(default)]
+    pub clicks: Vec<CampaignClick>,
     pub publish_counter: i64,
 }
 
