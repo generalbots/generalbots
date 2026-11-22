@@ -905,6 +905,17 @@ jobs:
           python3 scripts/check_boot_budget.py --self-test
           python3 scripts/check_boot_budget.py
 
+      # #2335 — the suite UI characterization guards are blocking, not
+      # advisory: a new hardcoded literal, i18n/aria regression or route
+      # explosion fails this job on any PR touching the suite.
+      - name: Suite UI standards guards (#2335)
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-ui-bootbudget.js
+          node botui/ui/suite/tests/webtest-ui-aria.js
+          node botui/ui/suite/tests/webtest-route-contract.js
+          node botui/ui/suite/tests/webtest-ui-mobile-office.js
+
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
       # is a documented manual/nightly run:
