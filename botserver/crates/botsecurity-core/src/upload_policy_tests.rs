@@ -2,7 +2,7 @@
 //! sanitization, size caps and archive inspection.
 
 use super::*;
-use axum::http::{HeaderValue, StatusCode};
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::Json;
 use std::io::Cursor;
 

@@ -347,7 +347,7 @@ diesel_migrations = "2.2"
 r2d2 = "0.8"
 
 # ─── CACHING ───
-redis = { version = "0.27", default-features = false, features = ["tokio-comp", "tls-rustls"] }
+redis = { version = "0.27", default-features = false }
 
 # ─── SECURITY / CRYPTO ───
 jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
