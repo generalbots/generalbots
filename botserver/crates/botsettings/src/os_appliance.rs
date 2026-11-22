@@ -155,3 +155,52 @@ async fn diagnostics(
         )
     })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use botsecurity::auth::Role;
+    use uuid::Uuid;
+
+    fn admin() -> Option<Extension<AuthenticatedUser>> {
+        let mut user = AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string());
+        user.roles.push(Role::Admin);
+        Some(Extension(user))
+    }
+
+    fn loopback_headers() -> HeaderMap {
+        let mut h = HeaderMap::new();
+        h.insert("host", "localhost:8080".parse().unwrap());
+        h
+    }
+
+    #[tokio::test]
+    async fn appliance_endpoints_are_gated_and_return_honest_status() {
+        {
+            let mut config = botcore::product::PRODUCT_CONFIG.write().unwrap();
+            config.shell_mode = true;
+        }
+        let cases = [
+            network(admin(), loopback_headers()).await,
+            display(admin(), loopback_headers()).await,
+            sound(admin(), loopback_headers()).await,
+            input(admin(), loopback_headers()).await,
+            storage(admin(), loopback_headers()).await,
+            users(admin(), loopback_headers()).await,
+            diagnostics(admin(), loopback_headers()).await,
+        ];
+        for result in cases {
+            let json = result.expect("gated appliance endpoint must succeed for loopback admin");
+            assert!(json.get("status").is_some(), "missing status in {:?}", json);
+            assert!(json.get("message").is_some(), "missing message in {:?}", json);
+        }
+        // Non-loopback requests are refused by the shared os.rs gate.
+        let mut remote = HeaderMap::new();
+        remote.insert("host", "example.com".parse().unwrap());
+        assert!(network(admin(), remote).await.is_err());
+        {
+            let mut config = botcore::product::PRODUCT_CONFIG.write().unwrap();
+            config.shell_mode = false;
+        }
+    }
+}
