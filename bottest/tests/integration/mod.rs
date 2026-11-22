@@ -16,6 +16,7 @@ mod campaign_flow;
 mod tenant_tokens;
 mod data_integrity;
 mod verification;
+mod events_api;
 mod restart_reconciliation;
 
 use bottest::prelude::*;
