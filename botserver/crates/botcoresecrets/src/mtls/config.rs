@@ -55,8 +55,8 @@ impl TransportMode {
     #[must_use]
     pub fn parse(value: &str) -> Self {
         match value.trim().to_ascii_lowercase().as_str() {
-            "mtls" | "mutual" | "mutual_tls" | "mutual-tls" | "required" | "secure"
-            | "true" | "1" => Self::MutualTls,
+            "mtls" | "mutual" | "mutual_tls" | "mutual-tls" | "required" | "secure" | "true"
+            | "1" => Self::MutualTls,
             _ => Self::Plaintext,
         }
     }
@@ -96,8 +96,11 @@ impl RolloutStage {
     pub fn parse(value: &str) -> Self {
         match value.trim().to_ascii_lowercase().as_str() {
             "server-tls" | "server_tls" | "server" | "1" => Self::ServerTls,
-            "client-cert" | "client-cert-verification" | "client_cert_verification"
-            | "mutual" | "2" => Self::ClientCertVerification,
+            "client-cert"
+            | "client-cert-verification"
+            | "client_cert_verification"
+            | "mutual"
+            | "2" => Self::ClientCertVerification,
             "plaintext-disabled" | "plaintext_disabled" | "no-plaintext" | "3" => {
                 Self::PlaintextDisabled
             }
@@ -288,5 +291,128 @@ impl MtlsConfig {
             mode: self.mode,
             stage: self.stage,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn map(entries: &[(&str, &str)]) -> BTreeMap<String, String> {
+        entries
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect()
+    }
+
+    fn modes(values: &[&str], expected: TransportMode) {
+        for value in values {
+            assert_eq!(TransportMode::parse(value), expected, "mode: {value}");
+        }
+    }
+
+    fn stages(values: &[&str], expected: RolloutStage) {
+        for value in values {
+            assert_eq!(RolloutStage::parse(value), expected, "stage: {value}");
+        }
+    }
+
+    fn select_ca(vault: &BTreeMap<String, String>, env: &BTreeMap<String, String>) -> String {
+        select(vault, env, FIELD_CA_CERT, ENV_CA_CERT, "/default.pem")
+    }
+
+    #[test]
+    fn mode_grammar_accepts_all_documented_aliases() {
+        let mt = TransportMode::MutualTls;
+        modes(
+            &["mtls", "mutual", "mutual_tls", "mutual-tls", "required"],
+            mt,
+        );
+        modes(&["secure", "true", "1"], mt);
+        assert_eq!(TransportMode::MutualTls.as_str(), "mtls");
+        assert_eq!(TransportMode::Plaintext.as_str(), "plaintext");
+    }
+
+    #[test]
+    fn stage_grammar_accepts_all_documented_aliases() {
+        let st = RolloutStage::ServerTls;
+        let cc = RolloutStage::ClientCertVerification;
+        let pd = RolloutStage::PlaintextDisabled;
+        stages(&["server-tls", "server_tls", "server", "1"], st);
+        stages(&["SERVER_TLS", " server "], st);
+        stages(&["client-cert", "client-cert-verification"], cc);
+        stages(
+            &["CLIENT_CERT_VERIFICATION", "client_cert_verification"],
+            cc,
+        );
+        stages(&["mutual", "2"], cc);
+        stages(&["plaintext-disabled", "plaintext_disabled"], pd);
+        stages(&["no-plaintext", "3"], pd);
+        assert_eq!(RolloutStage::CertProvisioning.as_str(), "cert-provisioning");
+    }
+
+    #[test]
+    fn typos_fail_closed_to_plaintext_and_stage_zero() {
+        let pt = TransportMode::Plaintext;
+        let zero = RolloutStage::CertProvisioning;
+        modes(
+            &[
+                "",
+                "   ",
+                "mtl",
+                "tls",
+                "yes",
+                "mtls!",
+                "0",
+                "2x",
+                " plaintext ",
+            ],
+            pt,
+        );
+        stages(
+            &[
+                "",
+                "nonsense",
+                "0",
+                "4",
+                "server-tls-extra",
+                "client",
+                "server1",
+            ],
+            zero,
+        );
+    }
+
+    #[test]
+    fn select_precedence_env_over_vault_over_default() {
+        let empty = map(&[]);
+        let vault = map(&[(FIELD_CA_CERT, "/vault/ca.pem")]);
+        let env = map(&[(ENV_CA_CERT, "/env/ca.pem")]);
+        assert_eq!(select_ca(&empty, &empty), "/default.pem");
+        assert_eq!(select_ca(&vault, &empty), "/vault/ca.pem");
+        assert_eq!(select_ca(&vault, &env), "/env/ca.pem");
+    }
+
+    #[test]
+    fn blank_values_are_treated_as_unset() {
+        let empty = map(&[]);
+        let blank_env = map(&[(ENV_CA_CERT, "   ")]);
+        let vault = map(&[(FIELD_CA_CERT, "/vault/ca.pem")]);
+        let blank_vault = map(&[(FIELD_CA_CERT, "\t")]);
+        assert_eq!(select_ca(&vault, &blank_env), "/vault/ca.pem");
+        assert_eq!(select_ca(&blank_vault, &empty), "/default.pem");
+        assert_eq!(select_ca(&blank_vault, &blank_env), "/default.pem");
+    }
+
+    #[test]
+    fn from_sources_applies_precedence_then_fails_closed() {
+        let vault = map(&[(FIELD_MODE, "mtls"), (FIELD_STAGE, "server-tls")]);
+        let typo_env = map(&[(ENV_MODE, "mtlss")]);
+        let config = MtlsConfig::from_sources(&vault, &typo_env);
+        assert_eq!(config.mode, TransportMode::Plaintext);
+        assert_eq!(config.stage, RolloutStage::ServerTls);
+        let blank_env = map(&[(ENV_MODE, "  ")]);
+        let config = MtlsConfig::from_sources(&vault, &blank_env);
+        assert_eq!(config.mode, TransportMode::MutualTls);
     }
 }
