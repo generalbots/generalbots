@@ -227,12 +227,15 @@ struct PrimaryKeyRow {
 
 /// Every table/column the migrated database actually has, in `public`.
 pub fn read_live(conn: &mut PgConnection) -> Result<Tables, String> {
+    // botschema also declares readable views (weba_sites/pages/form_submissions
+    // from migration 6.9.1); Diesel selects them like tables, so the live
+    // comparison must see them too instead of reporting fatal drift.
     let rows: Vec<ColumnRow> = diesel::sql_query(
         "SELECT c.table_name, c.column_name, c.data_type, c.is_nullable \
          FROM information_schema.columns c \
          JOIN information_schema.tables t \
            ON t.table_schema = c.table_schema AND t.table_name = c.table_name \
-         WHERE c.table_schema = 'public' AND t.table_type = 'BASE TABLE'",
+         WHERE c.table_schema = 'public' AND t.table_type IN ('BASE TABLE', 'VIEW')",
     )
     .load(conn)
     .map_err(|e| format!("information_schema.columns: {e}"))?;
