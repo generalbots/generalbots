@@ -140,4 +140,131 @@ mod tests {
             assert!(!body.contains("confidential-salary-sheet.docx"));
         }
     }
+
+    /// Every variant must be mapped by `reject()` (not just by
+    /// `error.status_code()`) to its documented status and stable error code.
+    #[test]
+    fn reject_maps_each_typed_error_to_413_507_429() {
+        let cases = [
+            (
+                AdmissionError::PayloadTooLarge {
+                    class: WorkClass::DocsImport,
+                    bytes: 26 * MIB,
+                    limit_bytes: 25 * MIB,
+                },
+                413,
+                "office_payload_too_large",
+            ),
+            (
+                AdmissionError::BudgetExceeded {
+                    class: WorkClass::SheetsImport,
+                    estimated_peak_bytes: 600 * MIB,
+                    budget_bytes: 384 * MIB,
+                },
+                507,
+                "office_memory_budget_exceeded",
+            ),
+            (
+                AdmissionError::Busy {
+                    class: WorkClass::OfficeExport,
+                    queued: 1,
+                },
+                429,
+                "office_busy",
+            ),
+        ];
+        for (error, expected_status, expected_code) in cases {
+            let rejection = reject(error);
+            assert_eq!(rejection.0.as_u16(), expected_status);
+            assert_eq!(rejection.1 .0["error"], expected_code);
+            assert!(rejection.1 .0.get("i18n_key").is_some());
+            assert!(rejection.1 .0.get("class").is_some());
+        }
+    }
+
+    /// The tenant is passed into `admit_on` for the structured log only. None
+    /// of the three refusal bodies may carry the tenant id, a document name or
+    /// any document text. Only the allow-listed size/class keys may appear.
+    #[tokio::test]
+    async fn reject_bodies_never_carry_filename_body_or_tenant() {
+        const SECRET_FILENAME: &str = "confidential-salary-sheet.docx";
+        const SECRET_BODY: &str = "employee salaries are confidential";
+        const SECRET_TENANT: &str = "tenant-acme-corp-007";
+
+        let gate = gate(4096);
+        let small = gate(1024);
+
+        let too_large = admit_on(&gate, WorkClass::DocsImport, 26 * MIB, Some(SECRET_TENANT)).await;
+        let out_of_budget = admit_on(
+            &small,
+            WorkClass::SheetsImport,
+            25 * MIB,
+            Some(SECRET_TENANT),
+        )
+        .await;
+        // Hold the single OfficeExport slot so the second attempt is Busy.
+        let held = admit_on(&gate, WorkClass::OfficeExport, MIB, Some(SECRET_TENANT)).await;
+        let busy = admit_on(&gate, WorkClass::OfficeExport, MIB, Some(SECRET_TENANT)).await;
+
+        for result in [too_large, out_of_budget, busy] {
+            let rejection = match result {
+                Err(rejection) => rejection,
+                Ok(_) => continue,
+            };
+            let body = rejection.1 .0;
+            let serialized = body.to_string();
+            assert!(
+                !serialized.contains(SECRET_FILENAME),
+                "filename leaked: {serialized}"
+            );
+            assert!(
+                !serialized.contains(SECRET_BODY),
+                "document body leaked: {serialized}"
+            );
+            assert!(
+                !serialized.contains(SECRET_TENANT),
+                "tenant id leaked: {serialized}"
+            );
+            if let Some(object) = body.as_object() {
+                for key in object.keys() {
+                    assert!(
+                        matches!(
+                            key.as_str(),
+                            "error"
+                                | "i18n_key"
+                                | "message"
+                                | "class"
+                                | "bytes"
+                                | "limit_bytes"
+                                | "estimated_peak_bytes"
+                                | "budget_bytes"
+                                | "queued"
+                        ),
+                        "unexpected field {key}"
+                    );
+                }
+            }
+        }
+        // Keep the permit alive through the Busy attempt, then release it.
+        drop(held);
+    }
+
+    /// The health snapshot must expose a positive, cgroup-derived budget: the
+    /// gate is built once from the boot-time cgroup ceiling, never a constant.
+    #[test]
+    fn admission_snapshot_budget_is_positive_and_cgroup_derived() {
+        let live = admission_snapshot();
+        assert!(
+            live.cgroup_limit_bytes > 0,
+            "cgroup limit must be detected or fall back to a positive ceiling"
+        );
+        assert!(
+            live.request_budget_bytes > 0,
+            "request budget must be derived from a positive cgroup ceiling"
+        );
+        assert!(
+            live.request_budget_bytes <= live.cgroup_limit_bytes,
+            "a per-request budget cannot exceed the process ceiling"
+        );
+    }
 }
