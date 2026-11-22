@@ -46,23 +46,82 @@ pub fn malware_scanner_required() -> bool {
 mod tests {
     use super::*;
 
+    /// The fail-closed guarantee lives in the `None` arm of the pure resolver:
+    /// an absent variable requires a scanner. Feeding `None` directly proves
+    /// it without mutating the process environment (which would be racy with
+    /// other tests and is `unsafe` on the 2024 edition).
     #[test]
-    fn an_unset_or_unrecognised_value_keeps_the_fail_closed_default() {
-        assert!(malware_scanner_required_from(None));
-        for value in ["", "0", "off", "false", "no", "random", " 0 "] {
+    fn absent_variable_is_fail_closed_without_touching_process_env() {
+        assert!(
+            malware_scanner_required_from(None),
+            "an absent {UNCHECKED_IMPORT_OPT_OUT_ENV} must keep the scanner requirement"
+        );
+    }
+
+    /// Every accepted spelling of the opt-out, across casing and surrounding
+    /// whitespace, must lower the requirement. `trim()` is Unicode-aware and
+    /// `to_ascii_lowercase()` is case-insensitive, so all of these opt out.
+    #[test]
+    fn explicit_opt_out_values_are_case_and_whitespace_insensitive() {
+        for value in [
+            "1",
+            " 1 ",
+            "true",
+            "TRUE",
+            "True",
+            "tRuE",
+            " true ",
+            "\ttrue\n",
+            "yes",
+            "YES",
+            "Yes",
+            " yes ",
+            "  yes\t",
+            "on",
+            "ON",
+            "On",
+            " on ",
+            "\ton\r\n",
+            "\u{2003}YES\u{2003}",
+        ] {
             assert!(
-                malware_scanner_required_from(Some(value)),
-                "{value} must keep the scanner requirement"
+                !malware_scanner_required_from(Some(value)),
+                "{value:?} is an explicit opt-out and must lower the requirement"
             );
         }
     }
 
+    /// Empty/whitespace-only values and every unrecognised spelling keep the
+    /// fail-closed default. Near-misses guard against a too-permissive parser.
     #[test]
-    fn only_explicit_opt_out_values_lower_the_requirement() {
-        for value in ["1", "true", "TRUE", " yes ", "On"] {
+    fn empty_and_unknown_values_keep_the_fail_closed_default() {
+        for value in [
+            "",
+            " ",
+            "   ",
+            "\t",
+            "\n",
+            "0",
+            " 0 ",
+            "2",
+            "01",
+            "false",
+            "FALSE",
+            "no",
+            "NO",
+            "off",
+            "OFF",
+            "y",
+            "n",
+            "enabled",
+            "random",
+            "yesplease",
+            "onoff",
+            "true-ish",
+        ] {
             assert!(
-                !malware_scanner_required_from(Some(value)),
-                "{value} must opt out"
+                malware_scanner_required_from(Some(value)),
+                "{value:?} is not a recognised opt-out and must keep the scanner requirement"
             );
         }
     }
