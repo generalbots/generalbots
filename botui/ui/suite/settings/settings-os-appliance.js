@@ -7,6 +7,7 @@
     { id: "os-display", endpoints: ["/api/os/display"], body: "os-display-status-body" },
     { id: "os-sound", endpoints: ["/api/os/sound"], body: "os-sound-status-body" },
     { id: "os-keyboard", endpoints: ["/api/os/input"], body: "os-keyboard-status-body" },
+    { id: "os-peripherals", endpoints: ["/api/os/peripherals"], body: "os-peripherals-section" },
     { id: "os-storage-reset", endpoints: ["/api/os/storage"], body: "os-storage-reset-status-body" },
     { id: "os-users", endpoints: ["/api/os/users"], body: "os-users-status-body" },
     { id: "os-diagnostics", endpoints: ["/api/os/diagnostics"], body: "os-diagnostics-status-body" }

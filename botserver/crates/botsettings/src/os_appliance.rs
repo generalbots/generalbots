@@ -41,6 +41,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/sound/controls", get(os_sound_controls).post(os_sound_control_set))
         .route("/api/os/network/wifi", get(os_wifi_status).post(os_wifi_action))
         .route("/api/os/update/status", get(os_update_status))
+        .route("/api/os/peripherals", get(os_peripherals_status).post(os_peripherals_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -691,4 +692,49 @@ async fn os_update_status(
         "offline_update_available": offline,
         "rollback_supported": active.starts_with("/var/lib/gbapp/")
     })))
+}
+
+/// #2462 — touchpad, Bluetooth and printers for the kiosk.
+async fn os_peripherals_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    Ok(Json(json!({
+        "status": "ok",
+        "touchpad": {
+            "tap_to_click": probe("gsettings", &["get", "org.gnome.desktop.peripherals.touchpad", "tap-to-click"]),
+            "natural_scroll": probe("gsettings", &["get", "org.gnome.desktop.peripherals.touchpad", "natural-scroll"]),
+            "speed": probe("gsettings", &["get", "org.gnome.desktop.peripherals.touchpad", "speed"]),
+            "disable_while_typing": probe("gsettings", &["get", "org.gnome.desktop.peripherals.touchpad", "disable-while-typing"])
+        },
+        "bluetooth": probe("bluetoothctl", &["show"]),
+        "devices": probe("bluetoothctl", &["devices"]),
+        "printers": probe("lpstat", &["-p"]),
+        "discovery": probe("avahi-browse", &["-at", "-t", "_ipp._tcp"])
+    })))
+}
+
+#[derive(serde::Deserialize)]
+struct PeripheralRequest { setting: String, value: String }
+
+async fn os_peripherals_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<PeripheralRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let ok = match req.setting.as_str() {
+        "tap_to_click" | "natural_scroll" | "disable_while_typing"
+            if req.value == "true" || req.value == "false" => {
+            let key = req.setting.replace('_', "-");
+            run_display_command("gsettings", &["set", "org.gnome.desktop.peripherals.touchpad", &key, &req.value]).await
+        }
+        "speed" if req.value.parse::<f64>().map(|v| (0.0..=1.0).contains(&v)).unwrap_or(false) =>
+            run_display_command("gsettings", &["set", "org.gnome.desktop.peripherals.touchpad", "speed", &req.value]).await,
+        "bluetooth" if req.value == "on" || req.value == "off" =>
+            run_display_command("rfkill", &[if req.value == "on" { "unblock" } else { "block" }, "bluetooth"]).await,
+        _ => false,
+    };
+    Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
 }

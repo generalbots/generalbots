@@ -128,6 +128,32 @@
   </div>
 </section>
 
+<section id="os-peripherals-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-periph-title">Peripherals</h1>
+    <p class="subtitle" data-i18n="os-periph-subtitle">Touchpad, Bluetooth and printers</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-periph-touchpad">Touchpad</h2></div>
+    <div class="setting-row"><label for="osTapToClick" data-i18n="os-periph-tap">Tap to click</label><input type="checkbox" id="osTapToClick" onchange="window.GBPeripherals && GBPeripherals.set('tap_to_click', this.checked)" /></div>
+    <div class="setting-row"><label for="osNaturalScroll" data-i18n="os-periph-natural">Natural scroll</label><input type="checkbox" id="osNaturalScroll" onchange="window.GBPeripherals && GBPeripherals.set('natural_scroll', this.checked)" /></div>
+    <div class="setting-row"><label for="osPointerSpeed" data-i18n="os-periph-speed">Pointer speed</label><input type="range" id="osPointerSpeed" min="0" max="100" value="50" onchange="window.GBPeripherals && GBPeripherals.set('speed', this.value/100)" /></div>
+    <div class="setting-row"><label for="osDisableWhileTyping" data-i18n="os-periph-dwt">Disable while typing</label><input type="checkbox" id="osDisableWhileTyping" onchange="window.GBPeripherals && GBPeripherals.set('disable_while_typing', this.checked)" /></div>
+    <div id="osTouchpadPreview" role="img" aria-label="Touchpad preview"></div>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-periph-bluetooth">Bluetooth</h2></div>
+    <div class="setting-row"><label for="osBluetoothOn" data-i18n="os-periph-bt-on">Bluetooth</label><input type="checkbox" id="osBluetoothOn" onchange="window.GBPeripherals && GBPeripherals.set('bluetooth', this.checked ? 'on' : 'off')" /></div>
+    <div id="osBtDevices" role="status" aria-live="polite"></div>
+    <div class="setting-row"><button type="button" onclick="window.GBPeripherals && GBPeripherals.scan()" data-i18n="os-periph-scan">Scan devices</button></div>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-periph-printers">Printers</h2></div>
+    <div id="osPrinters" role="status" aria-live="polite"></div>
+    <p class="os-hint" data-i18n="os-periph-pdf-fallback">No printer configured — printing falls back to PDF in Paper, Docs and Sheet.</p>
+  </div>
+</section>
+
 <section id="os-storage-reset-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
   <div class="section-header">
     <h1 data-i18n="os-storage-reset-title">Storage & Reset</h1>

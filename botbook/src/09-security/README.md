@@ -151,3 +151,20 @@ nmap -Pn -p 8080 <laptop-hostname>    # expect: open
 Never hardcode addresses in documentation or scripts — resolve the laptop by
 hostname. A failed "closed" assertion means the bind policy or nftables rule
 regressed and must be fixed before release.
+
+### Keyboard / Fn map (#2462)
+
+The Settings → Keyboard & Region page owns layout switching (Alt+Shift) and
+the Settings → Peripherals page owns touchpad, Bluetooth and printers. Common
+laptop Fn combinations are handled by the compositor / power daemon in the
+image; the shell mirrors them with these DOM events so the UI updates without
+a native helper:
+
+| Key | Effect in the shell |
+|---|---|
+| Fn + Brightness up/down | `gb:display-change` → Display slider |
+| Fn + Volume up/down / mute | `gb:sound-key` → Sound slider/mute |
+| Fn + Airplane mode | `rfkill` Bluetooth via Peripheral API |
+| Fn + Media keys | standard MPRIS; no suite shortcut |
+
+No shortcut opens a terminal or bypasses the lock screen.
