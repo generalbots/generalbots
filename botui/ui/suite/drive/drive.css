@@ -9,3 +9,13 @@
 @import url("/suite/drive/styles/drive-preview.css");
 @import url("/suite/drive/styles/sync.css");
 @import url("/suite/drive/styles/quick-open.css");
+
+/* #2460 — removable media panel. */
+.drive-removable-panel { padding: 12px; border-top: 1px solid var(--border); }
+.drive-removable-panel h2 { font-size: 14px; margin: 0 0 10px; }
+.drive-removable-device {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.drive-removable-device small { opacity: 0.7; font-size: 11px; }
+.drive-removable-device button { min-height: 44px; padding: 0 12px; }

@@ -410,3 +410,23 @@ table inet gb_filter {
 }
 EOF
 chmod 0755 /etc/nftables.conf
+
+# 10. #2460 — removable media automount for the kiosk user. udisks2 mounts
+#     USB sticks, SD cards and external SSDs under /media/gbdesk/<label>,
+#     read/write for exFAT/FAT32/ext4 and read-only for NTFS.
+install -d -m 0755 /etc/udev/rules.d
+cat >/etc/udev/rules.d/60-gb-removable-automount.rules <<'UDEVRULES'
+# Automount removable block devices for the kiosk session.
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_DRIVE_FLASH}=="1", ENV{UDISKS_AUTO}="1", ENV{UDISKS_AUTOMOUNT_HINT}="always"
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{UDISKS_AUTO}="1", ENV{UDISKS_AUTOMOUNT_HINT}="always"
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="sdio", ENV{UDISKS_AUTO}="1", ENV{UDISKS_AUTOMOUNT_HINT}="always"
+UDEVRULES
+install -d -m 0755 /etc/udisks2
+cat >/etc/udisks2/udisks2.conf <<'UDISKSCONF'
+[udisks2]
+modules=
+[mounts]
+automount=true
+UDISKSCONF
+install -d -m 0755 /media/gbdesk
+chmod 0755 /media/gbdesk

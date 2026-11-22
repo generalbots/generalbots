@@ -22,6 +22,7 @@
         '/suite/drive/modules/08_preview.js',
         '/suite/drive/modules/09_ai.js',
         '/suite/drive/modules/11_external.js',
+        '/suite/drive/modules/12_removable.js',
         '/suite/drive/modules/98_actions.js',
         '/suite/drive/modules/98_actions_clipboard.js',
         '/suite/drive/modules/98_actions_versions.js',

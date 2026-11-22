@@ -9,7 +9,7 @@ use axum::{
     extract::Extension,
     http::{HeaderMap, StatusCode},
     response::Json,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use botcore::shared::state::AppState;
@@ -30,6 +30,8 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/users", get(users))
         .route("/api/os/diagnostics", get(diagnostics))
         .route("/api/os/diagnostics/bundle", get(diagnostics_bundle))
+        .route("/api/os/removable", get(removable_devices))
+        .route("/api/os/removable/eject", post(eject_removable))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -157,6 +159,52 @@ async fn diagnostics(
     })))
 }
 
+/// #2460 — removable devices mounted for the kiosk user.
+async fn removable_devices(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let mounts = probe("lsblk", &["-J", "-o", "NAME,LABEL,FSTYPE,SIZE,MOUNTPOINT,TRAN"]);
+    let devices: Value = mounts
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(|| json!({ "blockdevices": [] }));
+    Ok(Json(json!({ "status": "ok", "devices": devices, "mount_root": "/media/gbdesk" })))
+}
+
+#[derive(serde::Deserialize)]
+struct EjectRequest {
+    device: String,
+}
+
+/// #2460 — safe eject through udisks2, never a raw path from the request.
+async fn eject_removable(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<EjectRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    // Only simple /dev/sdX1-style names are accepted: no paths, no traversal.
+    let name = req.device.trim().to_string();
+    let valid = name.starts_with("/dev/sd") || name.starts_with("/dev/nvme")
+        || name.starts_with("/dev/mmcblk");
+    if !valid || name.contains("..") {
+        return Err(deny("invalid_device"));
+    }
+    let dev_name = name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let cmd = SafeCommand::new("udisksctl").map_err(|_| ())?;
+        let cmd = cmd.arg("unmount").map_err(|_| ())?;
+        let cmd = cmd.arg("-b").map_err(|_| ())?;
+        let cmd = cmd.arg(&dev_name).map_err(|_| ())?;
+        cmd.execute().map_err(|_| ())
+    }).await;
+    match result {
+        Ok(Ok(out)) if out.status.success() => Ok(Json(json!({ "ok": true, "device": name }))),
+        _ => Ok(Json(json!({ "ok": false, "error": "in_use_or_failed", "device": name }))),
+    }
+}
+
 /// Redact common secret shapes before a diagnostics bundle leaves the host.
 /// Deliberately conservative: it is better to over-redact than to leak.
 fn redact(text: &str) -> String {
@@ -204,6 +252,9 @@ async fn diagnostics_bundle(
         "kernel": redact(&read_kernel()),
         "uptime_seconds": read_uptime(),
         "disks": read_disks(),
+        "block_devices": probe("lsblk", &["-J", "-o", "NAME,LABEL,FSTYPE,SIZE,MOUNTPOINT,TRAN"])
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_else(|| json!({ "blockdevices": [] })),
         "botserver_log_tail": redact(&log),
         "note": "Secrets (tokens, passwords, keys, bearer headers) are redacted."
     });

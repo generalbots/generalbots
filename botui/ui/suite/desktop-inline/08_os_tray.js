@@ -6,6 +6,7 @@
     { id: "trayNetworkStatus", key: "network", labelKey: "taskbar-network", defaultLabel: "Network", statusKey: "taskbar-network-wired", defaultStatus: "Wired only", priority: "high" },
     { id: "trayVolume", key: "volume", labelKey: "taskbar-volume", defaultLabel: "Volume", statusKey: "taskbar-volume-unknown", defaultStatus: "Volume unavailable", priority: "med" },
     { id: "trayBrightness", key: "brightness", labelKey: "taskbar-brightness", defaultLabel: "Brightness", statusKey: "taskbar-brightness-unknown", defaultStatus: "Brightness unavailable", priority: "low" },
+    { id: "trayStorage", key: "storage", labelKey: "taskbar-storage", defaultLabel: "Removable devices", statusKey: "taskbar-storage-none", defaultStatus: "No removable devices", priority: "low" },
     { id: "trayUpdate", key: "update", labelKey: "taskbar-updates", defaultLabel: "Updates", statusKey: "taskbar-updates-unknown", defaultStatus: "Update status unavailable", priority: "med" },
     { id: "trayPower", key: "power", labelKey: "taskbar-power", defaultLabel: "Power", statusKey: "taskbar-power-unknown", defaultStatus: "Power controls unavailable", priority: "low" }
   ];
@@ -203,6 +204,15 @@
           action.hidden = false;
           action.onclick = function () { closePopover(); window.PowerMenu.open(); };
         }
+      } else if (ind.key === "storage") {
+        action.textContent = t("taskbar-eject-removable", "Eject removable device");
+        action.hidden = false;
+        action.onclick = function () {
+          closePopover();
+          var dev = powerState.removable && powerState.removable[0];
+          if (window.DriveRemovable && dev) window.DriveRemovable.eject(dev.name || dev.label);
+          else if (window.openDeepLink) window.openDeepLink("drive", {});
+        };
       } else if (ind.key === "update" && window.GBUpdate && typeof window.GBUpdate.checkNow === "function") {
         action.textContent = t("taskbar-check-updates", "Check now");
         action.hidden = false;
@@ -314,6 +324,13 @@
             powerState.lastFetchOk = true;
             updateBatteryUi();
             maybeNotifyThresholds(data);
+            fetch("/api/os/removable", { headers: { Accept: "application/json" }, credentials: "same-origin" })
+              .then(function (r) { return r.ok ? r.json() : {}; })
+              .then(function (d) {
+                powerState.removable = (d.devices && d.devices.blockdevices) || [];
+                rebuildOverflow();
+              })
+              .catch(function () { /* removable list is optional */ });
             rebuildOverflow();
             // refresh open popover if showing battery/power
             var pop = byId("osTrayPopover");
