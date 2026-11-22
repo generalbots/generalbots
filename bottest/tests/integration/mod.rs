@@ -19,6 +19,7 @@ mod verification;
 mod events_api;
 mod events_stream;
 mod restart_reconciliation;
+mod dialogue_corpus;
 
 use bottest::prelude::*;
 
