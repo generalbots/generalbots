@@ -16,3 +16,5 @@ power-menu-confirm-shutdown = このコンピューターをシャットダウ�
 power-menu-done = 要求を受け付けました。コンピューターをシャットダウンしています。
 power-menu-failed = 電源操作に失敗しました。
 power-menu-hold = 押し続けて確認
+os-capture-active = Screen capture in progress
+os-capture-share = Share screen

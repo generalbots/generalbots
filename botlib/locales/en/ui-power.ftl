@@ -19,3 +19,5 @@ power-menu-confirm-shutdown = Shut down this computer?
 power-menu-done = Request accepted. The computer is shutting down now.
 power-menu-failed = The power action failed.
 power-menu-hold = Hold to confirm
+os-capture-active = Screen capture in progress
+os-capture-share = Share screen

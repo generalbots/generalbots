@@ -16,3 +16,5 @@ power-menu-confirm-shutdown = Éteindre cet ordinateur ?
 power-menu-done = Demande acceptée. L'ordinateur s'éteint.
 power-menu-failed = L'action d'alimentation a échoué.
 power-menu-hold = Maintenir pour confirmer
+os-capture-active = Screen capture in progress
+os-capture-share = Share screen

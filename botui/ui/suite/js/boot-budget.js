@@ -75,6 +75,7 @@
       // #2450 — branded restart/recovery surface for kiosk webview restarts.
       "/suite/js/restarting-screen.js?v=1",
       "/suite/js/os-recovery.js?v=4",
+      "/suite/js/screen-capture-guard.js?v=1",
       "/suite/js/network-security.js?v=2",
       "/suite/js/a11y-controls.js?v=2",
       "/suite/js/os-first-run.js?v=3",
