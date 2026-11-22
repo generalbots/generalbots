@@ -56,12 +56,7 @@ async fn test_concurrent_requests_handled() {
         .map(|_| {
             let client = client.clone();
             let base_url = base_url.clone();
-            tokio::spawn(async move {
-                client
-                    .get(format!("{}/health", base_url))
-                    .send()
-                    .await
-            })
+            tokio::spawn(async move { client.get(format!("{}/health", base_url)).send().await })
         })
         .collect();
 
@@ -91,10 +86,7 @@ async fn test_response_time_acceptable() {
 
     let start = Instant::now();
 
-    let response = client
-        .get(format!("{}/health", base_url))
-        .send()
-        .await;
+    let response = client.get(format!("{}/health", base_url)).send().await;
 
     let elapsed = start.elapsed();
 
@@ -125,10 +117,7 @@ async fn test_sustained_load() {
     let total_requests = 30;
 
     for _ in 0..total_requests {
-        let response = client
-            .get(format!("{}/health", base_url))
-            .send()
-            .await;
+        let response = client.get(format!("{}/health", base_url)).send().await;
 
         if let Ok(resp) = response {
             if resp.status().is_success() {
@@ -156,19 +145,13 @@ async fn test_cache_improves_performance() {
     let client = test_client();
 
     let start1 = Instant::now();
-    let _ = client
-        .get(format!("{}/version", base_url))
-        .send()
-        .await;
+    let _ = client.get(format!("{}/version", base_url)).send().await;
     let first_request = start1.elapsed();
 
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     let start2 = Instant::now();
-    let _ = client
-        .get(format!("{}/version", base_url))
-        .send()
-        .await;
+    let _ = client.get(format!("{}/version", base_url)).send().await;
     let second_request = start2.elapsed();
 
     if second_request < first_request {
@@ -190,10 +173,7 @@ async fn test_memory_stability() {
     let client = test_client();
 
     for _ in 0..20 {
-        let _ = client
-            .get(format!("{}/health", base_url))
-            .send()
-            .await;
+        let _ = client.get(format!("{}/health", base_url)).send().await;
     }
 
     eprintln!("Note: Memory profiling requires external monitoring");

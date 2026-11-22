@@ -32,12 +32,18 @@ fn run(program: &str, args: &[&str]) -> Result<(), String> {
 /// Runs one SQL file through `psql` against `url`.
 pub fn psql_file(url: &str, path: &Path) -> Result<(), String> {
     let sql = path.to_string_lossy().to_string();
-    run("psql", &[url, "-v", "ON_ERROR_STOP=1", "-q", "-f", sql.as_str()])
+    run(
+        "psql",
+        &[url, "-v", "ON_ERROR_STOP=1", "-q", "-f", sql.as_str()],
+    )
 }
 
 /// Runs one SQL statement through `psql` against `url`.
 pub fn psql_command(url: &str, statement: &str) -> Result<(), String> {
-    run("psql", &[url, "-v", "ON_ERROR_STOP=1", "-q", "-c", statement])
+    run(
+        "psql",
+        &[url, "-v", "ON_ERROR_STOP=1", "-q", "-c", statement],
+    )
 }
 
 /// Swaps the database name in a connection URL, keeping credentials and params.
@@ -49,7 +55,10 @@ pub fn scratch_url(base: &str, name: &str) -> Result<String, String> {
     let cut = without_query
         .rfind('/')
         .ok_or_else(|| format!("cannot find the database name in {base}"))?;
-    let mut url = format!("{}/{name}", without_query.get(..cut).unwrap_or(without_query));
+    let mut url = format!(
+        "{}/{name}",
+        without_query.get(..cut).unwrap_or(without_query)
+    );
     if let Some(query) = query {
         url.push('?');
         url.push_str(query);
@@ -76,7 +85,10 @@ pub fn create_database(url: &str, name: &str) -> Result<(), String> {
 
 /// Drops the scratch database, terminating any leftover connection.
 pub fn drop_database(url: &str, name: &str) -> Result<(), String> {
-    psql_command(url, &format!("DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)"))
+    psql_command(
+        url,
+        &format!("DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)"),
+    )
 }
 
 /// `pg_restore` of a custom-format dump into an already created database.

@@ -15,11 +15,9 @@
 //! without a database stay green — the SQL-shape guards live in the crates
 //! (`bottickets::scope_tests`, `botpeople::scope_tests`).
 
-use reqwest::StatusCode;
-use super::crm_tenant_fixtures::{
-    create_person, create_ticket, scoped_to, two_tenants,
-};
+use super::crm_tenant_fixtures::{create_person, create_ticket, scoped_to, two_tenants};
 use super::tenant_isolation::{get_test_server, test_client};
+use reqwest::StatusCode;
 
 #[tokio::test]
 async fn test_ticket_by_id_is_branch_scoped() {
@@ -320,10 +318,7 @@ async fn test_crm_lists_only_return_the_callers_branch() {
             .send()
             .await
             .expect("list request failed");
-        assert!(
-            resp.status().is_success(),
-            "{endpoint} must stay available"
-        );
+        assert!(resp.status().is_success(), "{endpoint} must stay available");
         let body: serde_json::Value = resp.json().await.expect("list JSON");
         let leaked = body
             .as_array()

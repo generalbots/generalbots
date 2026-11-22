@@ -124,7 +124,10 @@ async fn test_crm_flow_contact_lead_convert_close_won() {
         Some(row) => row,
         None => return,
     };
-    assert_eq!(contact.status, "active", "new CRM contacts must start active");
+    assert_eq!(
+        contact.status, "active",
+        "new CRM contacts must start active"
+    );
     assert_eq!(contact.branch_id, tenant.branch_id);
     assert_eq!(contact.email.as_deref(), Some(email.as_str()));
 
@@ -165,7 +168,11 @@ async fn test_crm_flow_contact_lead_convert_close_won() {
     assert_eq!(lead.stage, "new", "a captured lead starts in the new stage");
     assert_eq!(lead.lead_id, None, "a lead does not back another lead");
     assert_eq!(lead.branch_id, tenant.branch_id);
-    assert_eq!(lead.contact_id, Some(contact_id), "lead must link the contact");
+    assert_eq!(
+        lead.contact_id,
+        Some(contact_id),
+        "lead must link the contact"
+    );
 
     // 3. Convert — creates a qualification opportunity and closes the lead.
     let (status, body) = match request_json(
@@ -209,7 +216,10 @@ async fn test_crm_flow_contact_lead_convert_close_won() {
     let (status, body) = match request_json(
         &client,
         Method::POST,
-        format!("{}/api/crm/opportunities/{opportunity_id}/close", env.base_url),
+        format!(
+            "{}/api/crm/opportunities/{opportunity_id}/close",
+            env.base_url
+        ),
         &token,
         Some(&payload),
     )
@@ -233,5 +243,9 @@ async fn test_crm_flow_contact_lead_convert_close_won() {
     };
     assert_eq!(won.stage, "won");
     assert!(won.won, "crm_deals.won must be true after close_won");
-    assert_eq!(won.lead_id, Some(lead_id), "close must not lose the lead link");
+    assert_eq!(
+        won.lead_id,
+        Some(lead_id),
+        "close must not lose the lead link"
+    );
 }

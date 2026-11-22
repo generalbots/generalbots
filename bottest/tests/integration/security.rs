@@ -105,10 +105,7 @@ async fn test_session_timeout() {
                     .await;
 
                 if let Ok(resp) = protected_response {
-                    assert!(
-                        resp.status() == 401,
-                        "Expired token should be rejected"
-                    );
+                    assert!(resp.status() == 401, "Expired token should be rejected");
                 }
             }
         }
@@ -157,7 +154,10 @@ async fn test_sql_injection_blocked() {
     let client = test_client();
 
     let response = client
-        .get(format!("{}/api/users?filter='; DROP TABLE users; --", base_url))
+        .get(format!(
+            "{}/api/users?filter='; DROP TABLE users; --",
+            base_url
+        ))
         .send()
         .await;
 
@@ -252,17 +252,14 @@ async fn test_security_headers_present() {
     let (_ctx, base_url) = server.unwrap();
     let client = test_client();
 
-    let response = client
-        .get(format!("{}/health", base_url))
-        .send()
-        .await;
+    let response = client.get(format!("{}/health", base_url)).send().await;
 
     match response {
         Ok(resp) => {
             let headers = resp.headers();
             let has_strict_transport = headers.contains_key("strict-transport-security");
             let has_x_content_type = headers.contains_key("x-content-type-options");
-            
+
             if !has_strict_transport || !has_x_content_type {
                 eprintln!("Note: Security headers may not be fully configured");
             }

@@ -115,7 +115,10 @@ async fn test_gdpr_data_deletion_endpoint() {
 
                 if let Ok(resp) = delete_response {
                     assert!(
-                        resp.status() == 200 || resp.status() == 204 || resp.status() == 404 || resp.status() == 401,
+                        resp.status() == 200
+                            || resp.status() == 204
+                            || resp.status() == 404
+                            || resp.status() == 401,
                         "GDPR deletion endpoint should exist and respond"
                     );
                 }
@@ -263,10 +266,7 @@ async fn test_session_isolation() {
                         let id2 = user2.get("id");
 
                         if let (Some(i1), Some(i2)) = (id1, id2) {
-                            assert_ne!(
-                                i1, i2,
-                                "Different users should have different IDs"
-                            );
+                            assert_ne!(i1, i2, "Different users should have different IDs");
                         }
                     }
                 }

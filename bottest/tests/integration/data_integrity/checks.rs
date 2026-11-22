@@ -256,6 +256,10 @@ fn manifest_scopes_cover_every_org_branch_and_bot() {
             .map(|o| o.branch_ids.len())
             .sum::<usize>(),
         manifest.orgs.iter().map(|o| o.bot_ids.len()).sum::<usize>(),
-        manifest.orgs.iter().map(|o| o.user_ids.len()).sum::<usize>()
+        manifest
+            .orgs
+            .iter()
+            .map(|o| o.user_ids.len())
+            .sum::<usize>()
     );
 }

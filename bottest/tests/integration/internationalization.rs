@@ -84,7 +84,10 @@ async fn test_locale_parameter_support() {
 
     for locale in locales {
         let response = client
-            .get(format!("{}/suite/auth/login.html?locale={}", base_url, locale))
+            .get(format!(
+                "{}/suite/auth/login.html?locale={}",
+                base_url, locale
+            ))
             .send()
             .await;
 
@@ -111,19 +114,16 @@ async fn test_content_language_header() {
     let (_ctx, base_url) = server.unwrap();
     let client = test_client();
 
-    let response = client
-        .get(format!("{}/health", base_url))
-        .send()
-        .await;
+    let response = client.get(format!("{}/health", base_url)).send().await;
 
     match response {
         Ok(resp) => {
-            let has_content_lang = resp
-                .headers()
-                .contains_key("content-language");
-            
+            let has_content_lang = resp.headers().contains_key("content-language");
+
             if !has_content_lang {
-                eprintln!("Note: Content-Language header not set - i18n may not be fully configured");
+                eprintln!(
+                    "Note: Content-Language header not set - i18n may not be fully configured"
+                );
             }
         }
         Err(_) => {
@@ -152,7 +152,7 @@ async fn test_utf8_encoding() {
                 .get("content-type")
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("");
-            
+
             assert!(
                 content_type.contains("charset=utf-8") || content_type.contains("UTF-8"),
                 "Response should specify UTF-8 encoding for i18n support"
@@ -193,7 +193,7 @@ async fn test_multilingual_error_messages() {
             Ok(resp) => {
                 if resp.status() == 400 || resp.status() == 401 || resp.status() == 422 {
                     let body = resp.text().await.unwrap_or_default().to_lowercase();
-                    
+
                     assert!(
                         body.contains(expected_word),
                         "Error response for {} should contain '{}'",
@@ -227,7 +227,7 @@ async fn test_date_format_localization() {
         Ok(resp) => {
             if resp.status() == 200 {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
                     if let Some(created_at) = json.get("created_at") {
                         assert!(
@@ -252,16 +252,13 @@ async fn test_number_format_localization() {
     let (_ctx, base_url) = server.unwrap();
     let client = test_client();
 
-    let response = client
-        .get(format!("{}/api/stats", base_url))
-        .send()
-        .await;
+    let response = client.get(format!("{}/api/stats", base_url)).send().await;
 
     match response {
         Ok(resp) => {
             if resp.status() == 200 {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 assert!(
                     body.contains("0") || body.contains("1"),
                     "Stats should return numeric data"
@@ -295,16 +292,13 @@ async fn test_rtl_language_support() {
             Ok(resp) => {
                 if resp.status().is_success() {
                     let body = resp.text().await.unwrap_or_default();
-                    
-                    let has_dir_attr = body.contains("dir=\"rtl\"") 
+
+                    let has_dir_attr = body.contains("dir=\"rtl\"")
                         || body.contains("dir='rtl'")
                         || body.contains("direction: rtl");
-                    
+
                     if !has_dir_attr {
-                        eprintln!(
-                            "Note: RTL support for {} may not be implemented",
-                            lang
-                        );
+                        eprintln!("Note: RTL support for {} may not be implemented", lang);
                     }
                 }
             }

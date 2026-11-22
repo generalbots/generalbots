@@ -50,10 +50,9 @@ pub fn applied_versions(conn: &mut PgConnection) -> Result<Vec<String>, String> 
         #[diesel(sql_type = Text)]
         version: String,
     }
-    let rows: Vec<VersionRow> =
-        diesel::sql_query("SELECT version FROM __diesel_schema_migrations")
-            .load(conn)
-            .map_err(|e| format!("__diesel_schema_migrations: {e}"))?;
+    let rows: Vec<VersionRow> = diesel::sql_query("SELECT version FROM __diesel_schema_migrations")
+        .load(conn)
+        .map_err(|e| format!("__diesel_schema_migrations: {e}"))?;
     let mut versions: Vec<String> = rows.into_iter().map(|row| row.version).collect();
     versions.sort();
     Ok(versions)

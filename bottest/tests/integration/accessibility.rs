@@ -91,15 +91,12 @@ async fn test_form_labels_present() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 let has_label = body.contains("<label") || body.contains("aria-label");
                 let has_input = body.contains("<input");
-                
+
                 if has_input {
-                    assert!(
-                        has_label,
-                        "Form inputs should have associated labels"
-                    );
+                    assert!(has_label, "Form inputs should have associated labels");
                 }
             }
         }
@@ -126,15 +123,12 @@ async fn test_button_has_text() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 let has_buttons = body.contains("<button");
-                
+
                 if has_buttons {
                     let has_button_text = body.contains("</button>");
-                    assert!(
-                        has_button_text,
-                        "Buttons should have accessible text"
-                    );
+                    assert!(has_button_text, "Buttons should have accessible text");
                 }
             }
         }
@@ -161,9 +155,9 @@ async fn test_images_have_alt_text() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 let has_images = body.contains("<img");
-                
+
                 if has_images {
                     let has_alt = body.contains("alt=");
                     assert!(
@@ -196,14 +190,14 @@ async fn test_headings_have_proper_order() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 let h1_count = body.matches("<h1").count();
                 let h2_count = body.matches("<h2").count();
-                
+
                 if h1_count > 1 {
                     eprintln!("Note: Multiple h1 elements found - consider using single h1");
                 }
-                
+
                 if h2_count > 0 && h1_count == 0 {
                     eprintln!("Note: Page has h2 but no h1 - heading structure may be suboptimal");
                 }
@@ -232,13 +226,17 @@ async fn test_color_contrast() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 assert!(
-                    body.contains("color:") || body.contains("background") || body.contains("class="),
+                    body.contains("color:")
+                        || body.contains("background")
+                        || body.contains("class="),
                     "Page should have color styling for visual accessibility"
                 );
-                
-                eprintln!("Note: Color contrast testing requires visual analysis or automated tools");
+
+                eprintln!(
+                    "Note: Color contrast testing requires visual analysis or automated tools"
+                );
             }
         }
         Err(_) => {
@@ -264,9 +262,9 @@ async fn test_keyboard_navigation() {
         Ok(resp) => {
             if resp.status().is_success() {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 let has_focusable = body.contains("tabindex=") || body.contains("href=");
-                
+
                 assert!(
                     has_focusable,
                     "Page should have keyboard-navigable elements"
@@ -300,7 +298,7 @@ async fn test_error_messages_accessible() {
         Ok(resp) => {
             if resp.status() == 400 || resp.status() == 422 {
                 let body = resp.text().await.unwrap_or_default();
-                
+
                 assert!(
                     !body.is_empty(),
                     "Error responses should provide accessible error messages"

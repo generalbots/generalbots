@@ -59,7 +59,12 @@ async fn get_json(base: &str, token: &str, path: &str) -> serde_json::Value {
     body
 }
 
-async fn post_json(base: &str, token: &str, path: &str, body: serde_json::Value) -> serde_json::Value {
+async fn post_json(
+    base: &str,
+    token: &str,
+    path: &str,
+    body: serde_json::Value,
+) -> serde_json::Value {
     let url = format!("{base}{path}");
     let resp = client()
         .post(&url)
@@ -96,7 +101,10 @@ async fn verify_ai_os_wave_endpoints() {
     )
     .await;
     assert_eq!(planned["success"], true, "planner execute should succeed");
-    assert_eq!(planned["run"]["status"], "complete", "planner run should complete");
+    assert_eq!(
+        planned["run"]["status"], "complete",
+        "planner run should complete"
+    );
     let run_id = planned["run"]["run_id"].as_str().unwrap_or_default();
     assert!(!run_id.is_empty(), "planner should return a run_id");
 
@@ -119,7 +127,11 @@ async fn verify_ai_os_wave_endpoints() {
             .send()
             .await
             .expect("public share GET failed");
-        assert_eq!(anonymous.status(), reqwest::StatusCode::OK, "public share URL should be reachable without auth");
+        assert_eq!(
+            anonymous.status(),
+            reqwest::StatusCode::OK,
+            "public share URL should be reachable without auth"
+        );
     }
 
     // #1172 agent API (register + exec + usage)
@@ -146,7 +158,10 @@ async fn verify_ai_os_wave_endpoints() {
     let chips = get_json(&base, &token, "/api/vibe/browser-memory?domain=example.com").await;
     assert_eq!(chips["success"], true, "chips should succeed");
     assert!(
-        chips["chips"].as_array().map(|a| !a.is_empty()).unwrap_or(false),
+        chips["chips"]
+            .as_array()
+            .map(|a| !a.is_empty())
+            .unwrap_or(false),
         "chips should contain the remembered fact"
     );
 
@@ -178,7 +193,10 @@ async fn verify_ai_os_wave_endpoints() {
 
     // #1185 proactivity cards
     let triggers = get_json(&base, &token, "/api/vibe/proactivity/triggers").await;
-    assert_eq!(triggers["success"], true, "proactivity triggers should list");
+    assert_eq!(
+        triggers["success"], true,
+        "proactivity triggers should list"
+    );
 
     println!("✓ AI-OS wave endpoints verified against {base}");
 }
@@ -209,7 +227,13 @@ async fn verify_desktop_browser_evidence() {
     }
 
     // Open the calculator app through the launcher-less deep link.
-    if let Ok(bundle) = capture(&browser, &format!("{base}/suite/calculator/calculator.html"), "verification-calculator", 3000).await
+    if let Ok(bundle) = capture(
+        &browser,
+        &format!("{base}/suite/calculator/calculator.html"),
+        "verification-calculator",
+        3000,
+    )
+    .await
     {
         let _ = report("calculator app", &bundle);
     }

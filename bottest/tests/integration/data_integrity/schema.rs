@@ -198,8 +198,7 @@ pub fn read_botschema(dir: &Path) -> Result<Tables, String> {
     files.sort();
     let mut tables = Tables::new();
     for path in files {
-        let text =
-            fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         parse_file(&text, &mut tables);
     }
     Ok(tables)
@@ -287,9 +286,12 @@ pub fn compare(expected: &Tables, live: &Tables) -> Drift {
     let mut drift = Drift::default();
     for (table, columns) in expected {
         let Some(actual) = live.get(table) else {
-            let line = format!("table `{table}` is declared in botschema but no migration creates it");
+            let line =
+                format!("table `{table}` is declared in botschema but no migration creates it");
             if READABLE_VIEWS.contains(&table.as_str()) {
-                drift.additive.push(format!("{line} (readable view, not a base table)"));
+                drift
+                    .additive
+                    .push(format!("{line} (readable view, not a base table)"));
             } else {
                 drift.fatal.push(line);
             }

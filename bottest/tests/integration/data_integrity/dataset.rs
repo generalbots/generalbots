@@ -67,8 +67,7 @@ pub struct RowCount {
 /// Reads `integrity_manifest.json` from the dataset directory.
 pub fn load(dir: &Path) -> Result<Manifest, String> {
     let path = dir.join("integrity_manifest.json");
-    let text =
-        std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 

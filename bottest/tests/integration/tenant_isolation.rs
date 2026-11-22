@@ -9,11 +9,11 @@
 //! the same style as `cloud_tenant.rs`. Seeding failures skip the test
 //! instead of failing the suite so runs without a database stay green.
 
+use crate::tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
 use bottest::prelude::*;
 use diesel::prelude::*;
 use reqwest::Client;
 use std::time::Duration;
-use crate::tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
 use uuid::Uuid;
 
 pub(super) fn test_client() -> Client {
@@ -144,10 +144,7 @@ pub(super) fn seed_tenant(name: &str) -> Option<SeededTenant> {
     .execute(&mut conn)
     .ok()?;
 
-    Some(SeededTenant {
-        slug,
-        branch_id,
-    })
+    Some(SeededTenant { slug, branch_id })
 }
 
 /// Resolves the seeded admin user's id (needed to attach RBAC groups).
@@ -203,7 +200,7 @@ async fn test_drive_list_buckets_only_shows_own_tenant() {
     let server = get_test_server().await;
     skip_if_no_server!(server);
 
-    let tenant_a = seed_tenant("isola").or_else(|| seed_tenant("isola")) ;
+    let tenant_a = seed_tenant("isola").or_else(|| seed_tenant("isola"));
     let tenant_b = seed_tenant("isolb").or_else(|| seed_tenant("isolb"));
     let (Some(a), Some(b)) = (tenant_a, tenant_b) else {
         eprintln!("Skipping: tenant seeding unavailable (no DATABASE_URL/tables)");
@@ -245,7 +242,9 @@ async fn test_drive_list_buckets_only_shows_own_tenant() {
         "bucket discovery leaked tenant B ({b:?}) to tenant A: {names:?}"
     );
     assert!(
-        !names.iter().any(|n| n.ends_with(".gborg") && !n.contains(&a.slug)),
+        !names
+            .iter()
+            .any(|n| n.ends_with(".gborg") && !n.contains(&a.slug)),
         "bucket discovery listed a foreign .gborg workspace: {names:?}"
     );
 }
@@ -395,7 +394,8 @@ async fn test_org_admin_is_not_platform_admin() {
         .expect("search request failed");
 
     assert!(
-        resp.status() == reqwest::StatusCode::FORBIDDEN || resp.status() == reqwest::StatusCode::NOT_FOUND,
+        resp.status() == reqwest::StatusCode::FORBIDDEN
+            || resp.status() == reqwest::StatusCode::NOT_FOUND,
         "org admin must not search foreign buckets (got {})",
         resp.status()
     );
@@ -442,8 +442,19 @@ async fn test_forged_token_cannot_read_a_tenant_branch() {
 fn test_cache_keys_do_not_leak_between_orgs_with_same_bot_name() {
     let bot = Uuid::from_u128(7);
     let session = Uuid::from_u128(8);
-    let key = |org: Uuid, kind: &str| botlib::key_utils::scoped_key(Some(org), &[kind, &bot.to_string(), &session.to_string()]);
-    assert_ne!(key(Uuid::from_u128(1), "suggestions"), key(Uuid::from_u128(2), "suggestions"));
-    assert_ne!(key(Uuid::from_u128(1), "context"), key(Uuid::from_u128(2), "context"));
-    assert_eq!(botlib::key_utils::scoped_key(None, &["suggestions"]), botlib::key_utils::legacy_key(&["suggestions"]));
+    let key = |org: Uuid, kind: &str| {
+        botlib::key_utils::scoped_key(Some(org), &[kind, &bot.to_string(), &session.to_string()])
+    };
+    assert_ne!(
+        key(Uuid::from_u128(1), "suggestions"),
+        key(Uuid::from_u128(2), "suggestions")
+    );
+    assert_ne!(
+        key(Uuid::from_u128(1), "context"),
+        key(Uuid::from_u128(2), "context")
+    );
+    assert_eq!(
+        botlib::key_utils::scoped_key(None, &["suggestions"]),
+        botlib::key_utils::legacy_key(&["suggestions"])
+    );
 }

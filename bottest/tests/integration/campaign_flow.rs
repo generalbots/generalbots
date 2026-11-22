@@ -51,14 +51,16 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
     let tag = Uuid::new_v4().simple();
     let keep_email = format!("keep-{tag}@campflow.test");
     let drop_email = format!("drop-{tag}@campflow.test");
-    let keep_id = match create_crm_contact(&client, &env.base_url, &token, "Keep", &keep_email).await {
-        Some(id) => id,
-        None => return,
-    };
-    let drop_id = match create_crm_contact(&client, &env.base_url, &token, "Drop", &drop_email).await {
-        Some(id) => id,
-        None => return,
-    };
+    let keep_id =
+        match create_crm_contact(&client, &env.base_url, &token, "Keep", &keep_email).await {
+            Some(id) => id,
+            None => return,
+        };
+    let drop_id =
+        match create_crm_contact(&client, &env.base_url, &token, "Drop", &drop_email).await {
+            Some(id) => id,
+            None => return,
+        };
 
     // 1. List — create and read back through the public list handlers. The
     // segment targets only the two contacts seeded by this test.
@@ -123,7 +125,15 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
     // 2. Segment preview — no membership rows are written and both contacts
     // are eligible before any opt-out.
     let preview_url = format!("{}/api/crm/lists/{list_id}/preview", env.base_url);
-    let (status, body) = match request_json(&client, Method::POST, preview_url.clone(), &token, Some(&json!({}))).await {
+    let (status, body) = match request_json(
+        &client,
+        Method::POST,
+        preview_url.clone(),
+        &token,
+        Some(&json!({})),
+    )
+    .await
+    {
         Some(result) => result,
         None => return,
     };
@@ -135,7 +145,10 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         Some(counts) => counts,
         None => return,
     };
-    assert_eq!(baseline_matched, 2, "both seeded contacts must be previewed");
+    assert_eq!(
+        baseline_matched, 2,
+        "both seeded contacts must be previewed"
+    );
 
     // 3. Publish — the unknown channel is a no-op provider, but the campaign
     // state and recipient rows are written by the production code path.
@@ -188,7 +201,10 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         eprintln!("Skipping campaign flow: publish returned {status}");
         return;
     }
-    let published = body.as_ref().and_then(|value| value["success"].as_bool()).unwrap_or(false);
+    let published = body
+        .as_ref()
+        .and_then(|value| value["success"].as_bool())
+        .unwrap_or(false);
     assert!(published, "publish must report success");
     assert_eq!(
         recipient_count(&mut conn, campaign_id),
@@ -199,7 +215,10 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         Some(row) => row,
         None => return,
     };
-    assert_eq!(completed.status, "completed", "metrics merge finalizes the campaign");
+    assert_eq!(
+        completed.status, "completed",
+        "metrics merge finalizes the campaign"
+    );
 
     // 4. Suppression — a CRM status opt-out is applied at send time, not
     // filtered only from stale list membership.
@@ -225,17 +244,29 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         Some("suppressed"),
         "the CRM status must be persisted"
     );
-    let (status, body) = match request_json(&client, Method::POST, preview_url.clone(), &token, Some(&json!({}))).await {
+    let (status, body) = match request_json(
+        &client,
+        Method::POST,
+        preview_url.clone(),
+        &token,
+        Some(&json!({})),
+    )
+    .await
+    {
         Some(result) => result,
         None => return,
     };
-    assert!(status.is_success(), "preview must stay available after opt-out");
+    assert!(
+        status.is_success(),
+        "preview must stay available after opt-out"
+    );
     let (_, suppressed_after) = match preview_counts(&body) {
         Some(counts) => counts,
         None => return,
     };
     assert_eq!(
-        suppressed_after, baseline_suppressed + 1,
+        suppressed_after,
+        baseline_suppressed + 1,
         "the suppressed contact must be counted, never sampled"
     );
 
@@ -252,7 +283,10 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         Some(result) => result,
         None => return,
     };
-    assert!(status.is_success(), "republish must still find the subscribed contact");
+    assert!(
+        status.is_success(),
+        "republish must still find the subscribed contact"
+    );
     assert_eq!(
         recipient_count_for_email(&mut conn, campaign_id, &drop_email),
         Some(0),
@@ -290,10 +324,11 @@ async fn test_campaign_flow_list_preview_publish_suppression_unsubscribe() {
         crm_contact_status(&mut conn, keep_id).as_deref(),
         Some("unsubscribed")
     );
-    let (status, body) = match request_json(&client, Method::POST, preview_url, &token, Some(&json!({}))).await {
-        Some(result) => result,
-        None => return,
-    };
+    let (status, body) =
+        match request_json(&client, Method::POST, preview_url, &token, Some(&json!({}))).await {
+            Some(result) => result,
+            None => return,
+        };
     assert!(status.is_success());
     let (_, suppressed_all) = match preview_counts(&body) {
         Some(counts) => counts,

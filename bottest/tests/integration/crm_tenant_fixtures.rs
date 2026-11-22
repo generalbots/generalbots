@@ -5,9 +5,9 @@
 //! check which branch the server stored it under. Seeding is skipped — not
 //! failed — when the database or the CRM endpoints are unavailable.
 
-use reqwest::Client;
 use super::tenant_isolation::{org_id_of, seed_tenant, SeededTenant};
 use crate::tenant_tokens::mint_admin_jwt;
+use reqwest::Client;
 use uuid::Uuid;
 
 /// A bearer token for the seeded admin of `tenant`.

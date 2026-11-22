@@ -99,10 +99,7 @@ pub(super) async fn request_json(
 }
 
 pub(super) fn json_id(body: &Option<Value>) -> Option<String> {
-    body.as_ref()?
-        .get("id")?
-        .as_str()
-        .map(str::to_string)
+    body.as_ref()?.get("id")?.as_str().map(str::to_string)
 }
 
 /// Creates one CRM contact through the public handler and returns its id.
@@ -274,13 +271,11 @@ pub(super) struct CountRow {
 }
 
 pub(super) fn recipient_count(conn: &mut PgConnection, campaign_id: Uuid) -> Option<i64> {
-    diesel::sql_query(
-        "SELECT COUNT(*) AS count FROM marketing_recipients WHERE campaign_id = $1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(campaign_id)
-    .get_result::<CountRow>(conn)
-    .ok()
-    .map(|row| row.count)
+    diesel::sql_query("SELECT COUNT(*) AS count FROM marketing_recipients WHERE campaign_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(campaign_id)
+        .get_result::<CountRow>(conn)
+        .ok()
+        .map(|row| row.count)
 }
 
 pub(super) fn recipient_count_for_email(
