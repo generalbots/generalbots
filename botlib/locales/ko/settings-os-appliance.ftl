@@ -178,3 +178,25 @@ XDG_RUNTIME_DIR: {runtime}
 {services}
 os-sandbox-probe = Check web process sandbox
 os-sandbox-result = Web process sandboxed: {state}
+os-opt-power-saver = 절전
+os-opt-balanced = 균형
+os-opt-performance = 성능
+os-opt-automatic = 자동
+os-opt-normal = 보통
+os-opt-left = 왼쪽
+os-opt-right = 오른쪽
+os-opt-inverted = 반전
+os-opt-single = 단일
+os-opt-extend = 확장
+os-opt-mirror = 미러
+os-opt-default = 기본
+os-opt-speakers = 스피커
+os-opt-usb-headset = USB 헤드셋
+os-opt-usb-headset-mic = USB 헤드셋 마이크
+os-opt-london = 런던
+os-opt-br-abnt2 = BR-ABNT2
+os-opt-german = 독일어
+os-opt-english-us = 영어 (미국)
+os-opt-stable = 안정
+os-opt-beta = Beta
+drive-removable-eject-failed = 장치를 꺼낼 수 없습니다.

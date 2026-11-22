@@ -169,7 +169,7 @@
                 <p id="updates-status" class="setting-desc" role="status" data-i18n="settings-updates-not-checked-yet">Not checked yet.</p>
                 <!-- #2443 — A/B slot, channel, size/notes and offline media. -->
                 <div id="osUpdateDetails" role="status" aria-live="polite"></div>
-                <div class="setting-row"><label for="osUpdateChannel" data-i18n="os-update-channel">Channel</label><select id="osUpdateChannel" onchange="window.GBOSUpdate && GBOSUpdate.setChannel(this.value)"><option value="stable">Stable</option><option value="beta">Beta</option></select></div>
+                <div class="setting-row"><label for="osUpdateChannel" data-i18n="os-update-channel">Channel</label><select id="osUpdateChannel" onchange="window.GBOSUpdate && GBOSUpdate.setChannel(this.value)"><option value="stable" data-i18n="os-opt-stable">Stable</option><option value="beta" data-i18n="os-opt-beta">Beta</option></select></div>
                 <div class="setting-row"><span data-i18n="os-update-size">Download size</span><span id="osUpdateSize">—</span></div>
                 <div class="form-actions"><button type="button" id="osUpdateUsb" onclick="window.GBOSUpdate && GBOSUpdate.installOffline()" data-i18n="os-update-usb">Install from USB stick</button></div>
             </div>
