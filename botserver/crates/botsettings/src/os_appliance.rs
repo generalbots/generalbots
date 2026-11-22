@@ -39,6 +39,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/firmware", get(os_firmware_status).post(os_firmware_action))
         .route("/api/os/power-profile", get(os_power_profile).post(os_power_profile_set))
         .route("/api/os/sound/controls", get(os_sound_controls).post(os_sound_control_set))
+        .route("/api/os/network/wifi", get(os_wifi_status).post(os_wifi_action))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -609,4 +610,62 @@ async fn os_sound_control_set(
         _ => false,
     };
     Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
+}
+
+/// #2453 — Wi-Fi scan/join and wired network status via NetworkManager.
+async fn os_wifi_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    Ok(Json(json!({
+        "status": "ok",
+        "wifi_device": probe("nmcli", &["-t", "-f", "DEVICE,TYPE,STATE", "device", "status"]),
+        "networks": probe("nmcli", &["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list"]),
+        "connection": probe("nmcli", &["-t", "-f", "NAME,TYPE,AUTOCONNECT", "connection", "show"]),
+        "ip_dns": probe("nmcli", &["-t", "-f", "IP4-ADDRESS,IP4-GATEWAY,IP4-DNS", "device", "show", "ifname", "wlan0"])
+    })))
+}
+
+#[derive(serde::Deserialize)]
+struct WifiActionRequest { action: String, ssid: String, password: Option<String>, hidden: Option<bool>, priority: Option<i32> }
+
+async fn os_wifi_action(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<WifiActionRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let ssid = req.ssid.clone();
+    if !ssid.chars().all(|c| c.is_ascii_alphanumeric() || " -_.@#".contains(c)) || ssid.len() > 32 {
+        return Ok(Json(json!({ "ok": false, "error": "invalid_ssid" })));
+    }
+    let ok = match req.action.as_str() {
+        "join" => {
+            let pwd = req.password.clone().unwrap_or_default();
+            let hidden = req.hidden.unwrap_or(false);
+            if !pwd.is_empty() && (pwd.len() < 8 || pwd.len() > 63) {
+                return Ok(Json(json!({ "ok": false, "error": "invalid_passphrase" })));
+            }
+            let mut args = vec!["device".to_string(), "wifi".to_string(), "connect".to_string(), ssid.clone()];
+            if !pwd.is_empty() { args.push("password".to_string()); args.push(pwd); }
+            if hidden { args.push("hidden".to_string()); args.push("yes".to_string()); }
+            let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+            run_display_command("nmcli", &refs).await
+        }
+        "forget" => {
+            let a = vec!["connection".to_string(), "delete".to_string(), ssid.clone()];
+            let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+            run_display_command("nmcli", &refs).await
+        }
+        "priority" => {
+            let p = req.priority.unwrap_or(0).to_string();
+            let a = vec!["connection".to_string(), "modify".to_string(), ssid.clone(),
+                "connection.autoconnect-priority".to_string(), p];
+            let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+            run_display_command("nmcli", &refs).await
+        }
+        _ => false,
+    };
+    Ok(Json(json!({ "ok": ok, "action": req.action, "ssid": ssid })))
 }

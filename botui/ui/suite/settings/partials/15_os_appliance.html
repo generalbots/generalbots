@@ -15,6 +15,21 @@
       <span id="osLanExposureWarning" role="status" aria-live="polite" hidden></span>
     </div>
     <p class="os-hint" data-i18n="os-net-lan-hint">Off by default. When enabled, other devices on this network can reach the suite for 15 minutes, then access is closed automatically.</p>
+    <div class="setting-card">
+      <div class="card-header"><h2 data-i18n="os-wifi-networks">Wi-Fi networks</h2></div>
+      <div id="osWifiNetworks" role="status" aria-live="polite"></div>
+      <div class="setting-row"><label for="osWifiSsid" data-i18n="os-wifi-ssid">Network name (SSID)</label><input id="osWifiSsid" type="text" autocomplete="off" /></div>
+      <div class="setting-row"><label for="osWifiPassword" data-i18n="os-wifi-password">Password</label><input id="osWifiPassword" type="password" autocomplete="off" /></div>
+      <div class="setting-row"><label><input type="checkbox" id="osWifiHidden" /> <span data-i18n="os-wifi-hidden">Hidden network</span></label></div>
+      <div class="setting-row">
+        <button type="button" onclick="window.GBWifiControls && GBWifiControls.join()" data-i18n="os-wifi-join">Join network</button>
+        <button type="button" onclick="window.GBWifiControls && GBWifiControls.scan()" data-i18n="os-wifi-scan">Scan</button>
+      </div>
+      <div id="osWifiCaptive" role="status" aria-live="polite" hidden>
+        <button type="button" onclick="window.GBWifiControls && GBWifiControls.openPortal()" data-i18n="os-wifi-portal">Open sign-in page</button>
+      </div>
+      <div id="osWifiDetails" role="status" aria-live="polite"></div>
+    </div>
   </div>
 </section>
 
