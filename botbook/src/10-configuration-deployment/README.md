@@ -151,11 +151,46 @@ the recommended one-command-at-a-time order without running anything; `report`
 aggregates the results into a verdict.
 
 This is a **live** harness and the evidence source for the full-install,
-service-health, login and regression items of #2582. It never reports PASS from
-an offline or development session: every live step first requires
-`UAT_TARGET_HOST=1`, an `incus` CLI and a `botserver` binary under test,
+service-health, login and regression items of #2582. Its live steps and `report`
+never report PASS from an offline or development session: every live step first
+requires `UAT_TARGET_HOST=1`, an `incus` CLI and a `botserver` binary under test,
 otherwise it records `UNVERIFIED` and exits 3. Containers are handled only by
-`incus`.
+`incus`. The separate `--self-test` mode (below) can print `verdict: PASS`, but
+only from synthetic stub rows and never as a live-host result.
+
+### Offline self-test (`--self-test`)
+
+`scripts/uat_install.sh --self-test` (alias `selftest`) checks the verdict logic
+without a host. It deliberately prints `verdict: PASS` from a full set of stub
+rows, but that PASS is explicitly synthetic proof that the verdict logic behaved
+as asserted on those rows — **not** a result from a real target host.
+
+The self-test never contacts a live target: it clears `UAT_TARGET_HOST`,
+`UAT_BOTSERVER`, `UAT_LOGIN_USER`, `UAT_LOGIN_PASSWORD` and `UAT_SOURCE_ROOT`,
+never invokes `incus` or `botserver`, and writes only to a throwaway results
+directory under `/tmp/opencode` (`UAT_SELFTEST_DIR`, default
+`/tmp/opencode/uat-install-selftest`, mode `0700`; a directory outside
+`/tmp/opencode` is refused with exit 2). It builds the stub `results.tsv` from
+the required ids parsed directly out of `step_99_report.sh`, so the stub cannot
+drift from the verdict it is meant to satisfy.
+
+It runs **14 assertions** (14 `ok` lines on success), all of which must hold —
+14/14 — for exit 0:
+
+| # | Assertion | Expected exit |
+|---|---|---|
+| 1–3 | A live step run offline records `UNVERIFIED` (not PASS), prints `UNVERIFIED` and exits 3 | 3 |
+| 4–5 | `report` with no evidence prints `UNVERIFIED: no results recorded` and exits 3 | 3 |
+| 6–8 | `report` with one injected `FAIL` row prints `verdict: FAIL`, names the failed step (`health:vault`) and exits 1 | 1 |
+| 9–10 | `report` with full stub evidence prints `verdict: PASS` and exits 0 | 0 |
+| 11–12 | `report` with one required row missing (`status:vault`) prints `verdict: UNVERIFIED`, names it and exits 3 | 3 |
+| 13–14 | A non-PASS row (`health:cache` set to `UNVERIFIED`) is not evidence and keeps verdict `UNVERIFIED`, exiting 3 | 3 |
+
+Exit codes for `--self-test`: 0 = all 14 assertions held on stub evidence,
+1 = at least one assertion failed, 2 = precondition failure (the results
+directory is outside `/tmp/opencode` or could not be created). The final banner
+restates that `SELF-TEST OK` is not a real host PASS and that no live target was
+contacted.
 
 ### Preconditions
 
@@ -194,6 +229,7 @@ scripts/uat_install.sh step 22                    # Incus-only host regression
 scripts/uat_install.sh step 23                    # devtools absence
 scripts/uat_install.sh step 24                    # table_editor absence
 scripts/uat_install.sh report                     # aggregate recorded evidence
+scripts/uat_install.sh --self-test                # offline verdict-logic self-test (14 assertions)
 ```
 
 Steps use loopback URLs (`http://localhost`) and never hardcode an address or a
@@ -239,6 +275,12 @@ A `FAIL` takes precedence over missing evidence. A static source inspection is
 not a substitute for a live step: step 22 combines its source assertion with a
 live Incus check and cannot pass offline.
 
+`--self-test` reuses exit codes 0 and 1 for its own result: 0 means all 14
+assertions held on stub evidence, 1 means at least one assertion failed, and 2
+means its own precondition failed (the results directory is outside
+`/tmp/opencode` or could not be created). Its `verdict: PASS` is synthetic — the
+verdict logic behaved correctly on stub rows — and is never a live-host result.
+
 ### Live-evidence requirements
 
 These items are established only by running the steps on the target host; a
@@ -247,7 +289,8 @@ start and health; login page and authenticated API access; `remote_desktop`
 registered and running with no `remote_terminal` key; generic
 `timeseries` paths with no `influxdb` directories in the installed container;
 Incus-only host preparation; and the absence of `devtools` and `table_editor`
-from the live CLI and container lists.
+from the live CLI and container lists. The `--self-test` mode establishes none
+of these: it uses synthetic stub rows and no live target is contacted.
 
 ## See Also
 
