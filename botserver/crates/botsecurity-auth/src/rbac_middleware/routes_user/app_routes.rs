@@ -60,6 +60,16 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/consent/**", "POST", ""),
         RoutePermission::new("/api/consent/**", "DELETE", ""),
         RoutePermission::new("/api/ui/consent/**", "GET", ""),
+        // #2501 — approvals workflow (botconsent/src/approvals/api.rs): the
+        // router is mounted behind auth, but its prefix was absent from the
+        // default-deny catalogue, so every dashboard/list/decide/sign call
+        // returned 403 "No matching route permission found" before reaching
+        // the handler. GET reads the queue; mutations use POST/PUT/DELETE.
+        // Keep allow_anonymous=false: approvals are per-user, never public.
+        RoutePermission::new("/api/approvals/**", "GET", ""),
+        RoutePermission::new("/api/approvals/**", "POST", ""),
+        RoutePermission::new("/api/approvals/**", "PUT", ""),
+        RoutePermission::new("/api/approvals/**", "DELETE", ""),
         // Conversation autotasks (#1613): per-user cron/systemd jobs owned by
         // the caller's conversation. Missing from the catalogue, so every
         // GET/POST answered 403 and the chat indicator was permanently dark.
@@ -251,4 +261,72 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/events/**", "POST", ""),
 
     ]
+}
+
+#[cfg(test)]
+mod approvals_tests {
+    use super::super::*;
+
+    /// #2501 — the approvals prefix must carry every verb in the authenticated
+    /// catalogue with anonymous access disabled; otherwise default-deny 403s
+    /// the botconsent approvals router before its handler runs.
+    #[test]
+    fn approvals_prefix_is_in_authenticated_catalogue_with_all_verbs() {
+        let routes = super::routes();
+        for method in ["GET", "POST", "PUT", "DELETE"] {
+            assert!(
+                routes.iter().any(|r| {
+                    r.path_pattern == "/api/approvals/**"
+                        && r.method == method
+                        && !r.allow_anonymous
+                }),
+                "/api/approvals/** {method} must be in the authenticated catalogue with anonymous disabled"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn approvals_routes_admit_authenticated_and_deny_anonymous() {
+        let manager = RbacManager::with_defaults();
+        manager
+            .register_routes(build_default_route_permissions())
+            .await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "approver@example.com".to_string())
+            .with_role(Role::User);
+        let anonymous = AuthenticatedUser::anonymous();
+
+        // Covers all 12 route/method pairs mounted by botconsent's approvals
+        // api.rs router, plus the catalogue-only PUT/DELETE verbs.
+        let cases = [
+            ("GET", "/api/approvals"),
+            ("POST", "/api/approvals"),
+            ("POST", "/api/approvals/sla-sweep"),
+            ("GET", "/api/approvals/a1"),
+            ("POST", "/api/approvals/a1/route"),
+            ("POST", "/api/approvals/a1/delegate"),
+            ("POST", "/api/approvals/a1/decide"),
+            ("POST", "/api/approvals/a1/sign"),
+            ("POST", "/api/approvals/a1/update-content"),
+            ("POST", "/api/approvals/a1/check-sla"),
+            ("POST", "/api/approvals/a1/publish"),
+            ("GET", "/api/approvals/a1/verify"),
+            ("PUT", "/api/approvals/a1/decide"),
+            ("DELETE", "/api/approvals/a1"),
+        ];
+
+        for (method, path) in cases {
+            let allowed = manager.check_route_access(path, method, &user).await;
+            assert!(
+                allowed.is_allowed(),
+                "{method} {path} must be allowed for an authenticated user: {}",
+                allowed.reason
+            );
+            let denied = manager.check_route_access(path, method, &anonymous).await;
+            assert!(
+                !denied.is_allowed(),
+                "{method} {path} must be denied for an anonymous caller: {}",
+                denied.reason
+            );
+        }
+    }
 }
