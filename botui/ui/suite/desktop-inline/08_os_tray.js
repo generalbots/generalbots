@@ -172,6 +172,31 @@
     if (settings) {
       settings.onclick = function () { closePopover(); openSettings(btn.getAttribute("data-settings-target") || "os"); };
     }
+    // #2465 — the primary click also offers a real quick action where the
+    // image has one (power controls, update check). Others keep the settings
+    // link as the one-click action; the secondary click opens settings too.
+    var action = byId("osTrayPopoverAction");
+    if (action) {
+      action.hidden = true;
+      action.onclick = null;
+      if (ind.key === "power" || ind.key === "battery") {
+        if (window.PowerMenu && typeof window.PowerMenu.open === "function") {
+          action.textContent = t("taskbar-power-controls", "Power controls");
+          action.hidden = false;
+          action.onclick = function () { closePopover(); window.PowerMenu.open(); };
+        }
+      } else if (ind.key === "update" && window.GBUpdate && typeof window.GBUpdate.checkNow === "function") {
+        action.textContent = t("taskbar-check-updates", "Check now");
+        action.hidden = false;
+        action.onclick = function () { closePopover(); window.GBUpdate.checkNow(); };
+      } else {
+        // No OS-level toggle exists for network/volume/brightness on this
+        // image; the one-click action is the matching settings section.
+        action.textContent = t("taskbar-open-settings", "Open settings");
+        action.hidden = false;
+        action.onclick = function () { closePopover(); openSettings(btn.getAttribute("data-settings-target") || "os"); };
+      }
+    }
     pop.hidden = false;
     btn.setAttribute("aria-expanded", "true");
     var closeBtn = byId("osTrayPopoverClose");

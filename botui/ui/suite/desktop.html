@@ -34,7 +34,7 @@
 <script src="/suite/js/theme-scheme.js?v=1"></script> <script src="/suite/js/theme-manager.js?v=2"></script>
 <script src="/suite/js/chat-pattern.js?v=1"></script> <!-- chat background choice, shared with Settings --> <script src="/suite/js/command-palette.js?v=2"></script>
 <script src="/suite/js/sidebar-convos.js?v=6"></script> <script src="/suite/js/sidebar-convos-lock.js?v=4"></script>
-<script src="/suite/js/auto-update.js?v=4"></script> <script src="/suite/js/auto-update-settings.js?v=1"></script> <script src="/suite/js/whats-new.js?v=1"></script> <script src="/suite/js/data-export.js?v=1"></script>
+<script src="/suite/js/auto-update.js?v=4"></script> <script src="/suite/js/auto-update-settings.js?v=1"></script> <script src="/suite/js/power-menu.js?v=1"></script> <script src="/suite/js/whats-new.js?v=1"></script> <script src="/suite/js/data-export.js?v=1"></script>
 <script src="/suite/js/usage-stats.js?v=1"></script> <script src="/suite/js/privacy-controls.js?v=1"></script>
 <script src="/suite/js/accessibility.js?v=1"></script> <script src="/suite/js/launcher-apps-prefs.js?v=1"></script> <script src="/suite/js/sidebar-apps.js?v=4"></script> <script src="/suite/js/launcher-apps-manage.js?v=1"></script>
 <script src="/suite/js/sidebar_a_core.js?v=19"></script> <script src="/suite/js/sidebar_b_events.js?v=19"></script> <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
@@ -160,6 +160,7 @@
   </div>
   <p class="os-tray-popover-status" id="osTrayPopoverStatus" role="status" aria-live="polite"></p>
   <div class="os-tray-popover-actions">
+    <button type="button" class="btn-secondary btn-sm" id="osTrayPopoverAction" hidden></button>
     <button type="button" class="btn-secondary btn-sm" id="osTrayPopoverSettings" data-i18n="taskbar-open-settings">Open settings</button>
   </div>
 </div>
