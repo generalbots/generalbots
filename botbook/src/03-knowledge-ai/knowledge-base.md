@@ -38,6 +38,47 @@ bot.gbkb/
 └── support/       → USE KB "support"
 ```
 
+## Tenant Isolation
+
+Knowledge-base rows are tenant-scoped. `knowledge_sources` carries an owner
+`bot_id`; each `knowledge_chunks` row reaches its tenant through
+`knowledge_chunks.source_id → knowledge_sources.id`. The KB HTTP handlers
+resolve that owner bot from the caller, never from a global default.
+
+Authority for this section (paths relative to the repository root):
+`botserver/crates/botsecurity-core/src/tenant.rs`,
+`botserver/crates/botsources/src/handlers/kb_handlers/resolve_bot_id.rs`,
+`.../handle_query_knowledge_base.rs` and `.../handle_get_stats.rs`.
+
+### Resolution contract
+
+| Rule | Behaviour | Source |
+|------|-----------|--------|
+| Tenant from verified claims only | The caller's branch is read from the `branch_id` claim of a server-minted, HS256-signed JWT in the `Authorization` header (Bearer or Basic transport). A missing, unsigned, tampered, wrong-key, non-HS256 or expired token yields no claims. | `tenant.rs:65-90` |
+| Owner bot from that branch | `resolve_bot_id_for_branch` selects `WHERE branch_id = $1 AND is_default_for_branch = TRUE`, then authorizes the bot against the caller branch; a bot owned by a different branch is denied. | `resolve_bot_id.rs:14-71` |
+| Client branch headers ignored | No client-supplied branch header or query parameter is consulted; the only header used for tenant scope is `Authorization`. | `resolve_bot_id.rs:43`, `tenant.rs:70-84` |
+| Fail closed | When the branch cannot be resolved, handlers deny the request and return no KB rows. No global default bot is substituted. | `resolve_bot_id.rs:36-38`, `handle_query_knowledge_base.rs:24-34` |
+
+### Scope of the guarantee
+
+| Path | Tenant predicate / behaviour on denial | Source |
+|------|----------------------------------------|--------|
+| Upload document | New `knowledge_sources` row is stamped with the resolved `bot_id`; unresolved branch refuses the upload before insert. | `resolve_bot_id.rs:184-215` |
+| List sources | `WHERE bot_id = $1`; unresolved branch returns an empty "Tenant scope unavailable" fragment. | `resolve_bot_id.rs:297-321` |
+| Query KB | Chunks are joined to their source with `ks.bot_id = $3`; unresolved branch returns an empty result set and a warning. | `handle_query_knowledge_base.rs:26-85` |
+| Get stats | All counts use `WHERE bot_id = $1`; unresolved branch returns zero counts. | `handle_get_stats.rs:8-70` |
+
+A legacy global default-bot resolver still exists in `resolve_bot_id.rs:73-96`
+for callers outside this module, but its own contract marks it "MUST NOT be used
+for new KB reads or writes". The get/delete/reindex-by-id handlers in
+`handle_query_knowledge_base.rs` address rows by `id` and are outside the
+claim-scoped paths listed above.
+
+> **Verification status.** This contract is traced to source at commit
+> `a7a34f054` (issue #1387). It is not a recorded test PASS: live UAT against a
+> running deployment is still required to confirm cross-tenant reads are denied
+> end to end.
+
 ## Configuration
 
 Retrieval strategy is one per-bot setting:
