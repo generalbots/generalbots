@@ -1,7 +1,7 @@
 # CSS hygiene budget (#2323, #2324) — shrink-only.
 # Format: <rule>:<relative-path> <count>. Delete a line when its count hits zero.
 # raw-hex = 6-digit colour literal outside token-definition files.
-# bang-important = !important in vibe/** and settings/** CSS.
+# bang-important = !important in any component CSS (token files exempt).
 
 bang-important:botui/ui/suite/about/about-inline.css 4
 bang-important:botui/ui/suite/admin/admin-layout-partials/01_dialog.css 3
