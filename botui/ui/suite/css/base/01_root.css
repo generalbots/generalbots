@@ -1,3 +1,6 @@
+/* #2323 — shell cascade layer order. Rules remain unlayered for now; the
+   declaration establishes the order that the incremental hotspot sweeps use. */
+@layer reset, tokens, base, components, app, overrides;
 @import url("/suite/css/base/01_root-themes.css");
 
 
