@@ -115,6 +115,26 @@ folded back into `app-capabilities.js`; the epic is closed with a final table.
   a gate result. It may point at defects to fix before the run; it never
   closes a case.
 
+### Evidence standard used to close issues (browser UAT loop)
+
+Several issues were closed this session against the following standard. It is
+recorded so a closing comment can be audited later; it does **not** mean the two
+gates above are complete — neither #2178 nor #2031 is claimed done here.
+
+- **Per-criterion table** in the closing comment — one row per acceptance
+  criterion (`Criterion | Observed evidence | Verdict`), each row naming the
+  artifact that proves it. "Looks correct" is not evidence.
+- **Real API output** — the verbatim response body from a `curl` against the
+  running stack (for example `http://localhost:8080/...`) or a captured
+  network response, quoted rather than paraphrased.
+- **Screenshot paths under `/tmp/opencode/`** — `/tmp/opencode/uat<issue>_case<k>.png`,
+  one per case, referenced from the matching row. Never in the repository.
+- **Simulation must be labelled.** A response produced by stubbing — a `fetch`
+  override, an injected catalog, seeded or mocked API data — is a simulation.
+  Label it as such in both the row and the comment; it is **not** a live PASS.
+  A missing or injected artifact is FAIL or BLOCKED, not an exemption, and chat
+  text or a green offline scan alone never justifies a PASS.
+
 See [End-to-End Testing](./12-ecosystem-reference/e2e-testing.md) for the
 automated tests, which are a separate surface from these manual gates.
 
