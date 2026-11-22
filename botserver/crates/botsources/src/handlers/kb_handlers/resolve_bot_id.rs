@@ -1,10 +1,80 @@
 use super::*;
+use botsecurity_core::tenant::branch_from_claims;
 use botsecurity_core::upload_policy::{self, UploadClass};
 
-/// Resolve the default bot id for the current deployment. `knowledge_sources`
-/// and `knowledge_chunks` scope by `bot_id`, so every read must filter by it to
-/// enforce data isolation between branches/tenants.
-pub(super) fn resolve_bot_id(pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> Uuid {
+type KbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+
+/// A bot id paired with the tenant branch that owns it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct BotScope {
+    pub(super) id: Uuid,
+    pub(super) branch_id: Uuid,
+}
+
+/// Authorizes a resolved bot against the caller's tenant. A bot may only be
+/// used when the caller branch is known and matches the bot's owner; an
+/// unresolved branch is always denied so no KB row can cross tenants.
+pub(super) fn authorize_bot_for_branch(
+    scope: BotScope,
+    caller_branch: Option<Uuid>,
+) -> Option<Uuid> {
+    match caller_branch {
+        Some(branch) if branch == scope.branch_id => Some(scope.id),
+        _ => None,
+    }
+}
+
+/// Resolves the bot whose knowledge base the caller is allowed to access.
+///
+/// `knowledge_sources` and `knowledge_chunks` are keyed by `bot_id`. Selecting
+/// the single global default bot (`is_default_for_branch = TRUE ORDER BY
+/// created_at ASC LIMIT 1`) let one branch read another branch's knowledge,
+/// because every bot is flagged as the default of its own branch. The tenant
+/// is taken exclusively from the verified server-minted JWT `branch_id` claim,
+/// never from a client-supplied header or parameter.
+///
+/// Returns `None` when the branch cannot be resolved (no or invalid token) or
+/// when that branch has no default bot. Callers MUST deny the request on
+/// `None` and must never substitute a global bot.
+pub(super) fn resolve_bot_id_for_branch(
+    pool: &KbPool,
+    headers: &axum::http::HeaderMap,
+) -> Option<Uuid> {
+    let caller_branch = branch_from_claims(headers)?;
+    let mut conn = pool.get().ok()?;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BotScopeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: Uuid,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT id, branch_id FROM bots \
+         WHERE branch_id = $1 AND is_default_for_branch = TRUE \
+         ORDER BY created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(caller_branch)
+    .get_result::<BotScopeRow>(&mut conn)
+    .ok()?;
+
+    authorize_bot_for_branch(
+        BotScope {
+            id: row.id,
+            branch_id: row.branch_id,
+        },
+        Some(caller_branch),
+    )
+}
+
+/// Legacy global default-bot resolver. Retained only for callers outside this
+/// module that have not yet been migrated to pass the request `HeaderMap`; it
+/// has no tenant context and MUST NOT be used for new KB reads or writes. Use
+/// `resolve_bot_id_for_branch` for tenant-scoped access.
+pub(super) fn resolve_bot_id(pool: &KbPool) -> Uuid {
     let Ok(mut conn) = pool.get() else {
         return Uuid::nil();
     };
@@ -111,7 +181,15 @@ pub async fn handle_upload_document(
     let content_hash_clone = content_hash.clone();
     let collection_clone = collection.clone();
     let chunks_clone = chunks.clone();
-    let bot_id = resolve_bot_id(&conn);
+    let Some(bot_id) = resolve_bot_id_for_branch(&conn, &headers) else {
+        return Json(UploadResponse {
+            success: false,
+            source_id: None,
+            message: "Tenant branch could not be resolved; upload refused".to_string(),
+            chunks_created: None,
+        })
+        .into_response();
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -207,6 +285,7 @@ pub async fn handle_upload_document(
 }
 pub async fn handle_list_sources(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Query(params): Query<ListSourcesQuery>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
@@ -215,7 +294,12 @@ pub async fn handle_list_sources(
     let page = params.page.unwrap_or(1).max(1);
     let per_page = params.per_page.unwrap_or(20).min(100);
     let offset = (page - 1) * per_page;
-    let bot_id = resolve_bot_id(&conn);
+    let Some(bot_id) = resolve_bot_id_for_branch(&conn, &headers) else {
+        return Html(
+            "<div class=\"sources-list\"><div class=\"empty-state\"><p>Tenant scope unavailable</p></div></div>"
+                .to_string(),
+        );
+    };
 
     let sources = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
