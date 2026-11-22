@@ -63,7 +63,7 @@ pub async fn admit(
 mod tests {
     use super::*;
 
-    fn gate(limit_mib: u64) -> MemoryAdmission {
+    fn make_gate(limit_mib: u64) -> MemoryAdmission {
         let ceiling = CgroupMemory {
             limit_bytes: limit_mib * MIB,
             current_bytes: None,
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn over_upload_cap_maps_to_413() {
-        let big_gate = gate(4096);
+        let big_gate = make_gate(4096);
         let result = gate.try_admit(WorkClass::DocsImport, 26 * MIB);
         assert!(result.is_err(), "26 MiB must exceed the 25 MiB Docs cap");
         if let Err(error) = result {
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn small_ceiling_maps_peak_estimate_to_507() {
-        let gate = gate(1024);
+        let gate = make_gate(1024);
         let result = gate.try_admit(WorkClass::SheetsImport, 25 * MIB);
         assert!(result.is_err(), "600 MiB peak must exceed a 384 MiB budget");
         if let Err(error) = result {
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn busy_class_maps_to_429_with_retry_hint() {
-        let big_gate = gate(4096);
+        let big_gate = make_gate(4096);
         let first = gate.try_admit(WorkClass::OfficeExport, MIB);
         assert!(first.is_ok());
         if let Ok(permit) = first {
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn snapshot_exposes_ceiling_and_queue_state() {
-        let big_gate = gate(4096);
+        let big_gate = make_gate(4096);
         let snapshot = gate.snapshot();
         assert_eq!(snapshot.cgroup_limit_bytes, 4096 * MIB);
         assert_eq!(snapshot.request_budget_bytes, 1536 * MIB);
@@ -124,7 +124,7 @@ mod tests {
 
     #[tokio::test]
     async fn async_admission_maps_errors_and_holds_a_permit() {
-        let big_gate = gate(4096);
+        let big_gate = make_gate(4096);
         let admitted = admit_on(&big_gate, WorkClass::DocsImport, 4 * MIB, Some("tenant-1")).await;
         assert!(admitted.is_ok());
         if let Ok(permit) = admitted {
@@ -191,8 +191,8 @@ mod tests {
         const SECRET_BODY: &str = "employee salaries are confidential";
         const SECRET_TENANT: &str = "tenant-acme-corp-007";
 
-        let big_gate = gate(4096);
-        let small_gate = gate(1024);
+        let big_gate = make_gate(4096);
+        let small_gate = make_gate(1024);
 
         let too_large = admit_on(&big_gate, WorkClass::DocsImport, 26 * MIB, Some(SECRET_TENANT)).await;
         let out_of_budget = admit_on(

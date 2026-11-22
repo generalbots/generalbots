@@ -68,7 +68,7 @@ mod tests {
     use super::*;
     use botsheet_core::types::Worksheet;
 
-    fn gate(limit_mib: u64) -> MemoryAdmission {
+    fn make_gate(limit_mib: u64) -> MemoryAdmission {
         let ceiling = CgroupMemory {
             limit_bytes: limit_mib * MIB,
             current_bytes: None,
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn over_upload_cap_maps_to_413() {
-        let gate = gate(4096);
+        let gate = make_gate(4096);
         let result = gate.try_admit(WorkClass::SheetsImport, 26 * MIB);
         assert!(result.is_err());
         if let Err(error) = result {
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn small_ceiling_maps_peak_estimate_to_507() {
-        let gate = gate(1024);
+        let gate = make_gate(1024);
         let result = gate.try_admit(WorkClass::SheetsImport, 25 * MIB);
         assert!(result.is_err());
         if let Err(error) = result {
@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn snapshot_exposes_ceiling_and_queue_state() {
-        let gate = gate(4096);
+        let gate = make_gate(4096);
         let snapshot = gate.snapshot();
         assert_eq!(snapshot.cgroup_limit_bytes, 4096 * MIB);
         assert_eq!(snapshot.request_budget_bytes, 1536 * MIB);
@@ -142,7 +142,7 @@ mod tests {
 
     #[tokio::test]
     async fn async_admission_maps_errors_without_leaking_content() {
-        let gate = gate(4096);
+        let gate = make_gate(4096);
         let admitted = admit_on(&gate, WorkClass::OfficeExport, 4 * MIB, Some("tenant-1")).await;
         assert!(admitted.is_ok());
         if let Ok(permit) = admitted {
@@ -205,7 +205,7 @@ mod tests {
     /// `reject` maps to 429, and dropping the permit must release the slot.
     #[test]
     fn busy_export_maps_to_429_and_recovers_on_drop() {
-        let gate = gate(4096);
+        let gate = make_gate(4096);
         let held = gate.try_admit(WorkClass::OfficeExport, MIB);
         assert!(held.is_ok(), "first export must be admitted");
         if let Ok(permit) = held {
@@ -249,7 +249,7 @@ mod tests {
         const SECRET_TENANT: &str = "tenant-acme-corp-007";
         const SECRET_CELL: &str = "employee-salary-cell-value";
 
-        let gate = gate(4096);
+        let gate = make_gate(4096);
         let _ = gate.try_admit_for(WorkClass::SheetsImport, 4 * MIB, Some(SECRET_TENANT));
         let serialized = serde_json::to_value(&gate.snapshot()).expect("snapshot serializes");
         let text = serialized.to_string();
@@ -287,8 +287,8 @@ mod tests {
         const SECRET_BODY: &str = "employee salaries are confidential";
         const SECRET_TENANT: &str = "tenant-acme-corp-007";
 
-        let gate = gate(4096);
-        let small = gate(1024);
+        let gate = make_gate(4096);
+        let small = make_gate(1024);
         let too_large = admit_on(
             &gate,
             WorkClass::SheetsImport,
