@@ -19,13 +19,55 @@ use axum::{
 use botcore::shared::state::AppState;
 
 use super::csp::UiCsp;
+use super::preview_status;
 use super::sign::verify_resource;
-use super::store::{preview_status, read_resource};
+use super::store::read_resource;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/sandbox/ui/:hash", get(serve_resource))
         .route("/api/sandbox/config", get(config))
+        .route("/api/sandbox/status/:hash", get(resource_status))
+}
+
+/// #2541 — a resource id is the sha256 of its bytes: always 64 hex digits.
+fn valid_hash(hash: &str) -> bool {
+    hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// #2541 — the reason code travels in the response header *and* the JSON body
+/// so the Vibe UI (which cannot read an iframe's headers) sees the same value.
+fn preview_status_header(code: &str) -> HeaderValue {
+    HeaderValue::from_str(code).unwrap_or_else(|_| HeaderValue::from_static("unknown"))
+}
+
+/// #2541 — machine-readable status body. A missing entry is reported as
+/// `unknown`, never silently omitted; `live` is true only for a fresh preview.
+fn status_body(reason: Option<&str>, hash: &str) -> serde_json::Value {
+    let code = reason.unwrap_or("unknown");
+    serde_json::json!({
+        "hash": hash,
+        "status": code,
+        "reason": code,
+        "live": reason == Some("fresh"),
+    })
+}
+
+/// #2541 — JSON counterpart of `/sandbox/ui/{hash}`. The HTML route can only
+/// carry the reason in a header; the UI reads this endpoint to render an
+/// honest `expired` / `interrupted_by_restart` chip.
+async fn resource_status(Path(hash): Path<String>) -> Response {
+    if !valid_hash(&hash) {
+        return (StatusCode::BAD_REQUEST, "invalid resource id").into_response();
+    }
+    let reason = preview_status(&hash);
+    let body = status_body(reason.as_deref(), &hash);
+    let code = reason.as_deref().unwrap_or("unknown");
+    let mut response = axum::Json(body).into_response();
+    response
+        .headers_mut()
+        .insert("x-gb-preview-status", preview_status_header(code));
+    response
 }
 
 async fn serve_resource(
@@ -33,7 +75,7 @@ async fn serve_resource(
     Path(hash): Path<String>,
     Query(query): Query<HashMap<String, String>>,
 ) -> Response {
-    if hash.len() != 64 || !hash.chars().all(|c| c.is_ascii_hexdigit()) {
+    if !valid_hash(&hash) {
         return (StatusCode::BAD_REQUEST, "invalid resource id").into_response();
     }
     let Some(token) = query.get("t") else {
@@ -55,11 +97,9 @@ async fn serve_resource(
     };
     let mut response = resource_response(&resource.html, &resource.csp);
     if let Some(status) = preview_status(&hash) {
-        response.headers_mut().insert(
-            "x-gb-preview-status",
-            axum::http::HeaderValue::from_str(&status)
-                .unwrap_or_else(|_| axum::http::HeaderValue::from_static("unknown")),
-        );
+        response
+            .headers_mut()
+            .insert("x-gb-preview-status", preview_status_header(&status));
     }
     response
 }
@@ -187,7 +227,9 @@ pub fn spawn_listener(state: Arc<AppState>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{app_origin, sandbox_origin};
+    use axum::http::HeaderValue;
+
+    use super::{app_origin, preview_status_header, sandbox_origin, status_body, valid_hash};
 
     #[test]
     fn desktop_defaults_to_loopback_sandbox_origin() {
@@ -195,5 +237,44 @@ mod tests {
             assert!(sandbox_origin().contains("127.0.0.1:8081"));
         }
         assert!(!app_origin().is_empty());
+    }
+
+    #[test]
+    fn resource_id_is_a_sha256_hex_digest() {
+        assert!(valid_hash(&"a".repeat(64)));
+        assert!(valid_hash(
+            &"ABCDEF0123".repeat(7).chars().take(64).collect::<String>()
+        ));
+        assert!(!valid_hash("short"));
+        assert!(!valid_hash(&format!("{}z", "a".repeat(63))));
+        assert!(!valid_hash(&"a".repeat(65)));
+    }
+
+    #[test]
+    fn status_body_exposes_the_reason_code_to_the_ui() {
+        let expired = status_body(Some("expired"), "abc");
+        assert_eq!(expired["status"].as_str(), Some("expired"));
+        assert_eq!(expired["reason"].as_str(), Some("expired"));
+        assert_eq!(expired["live"].as_bool(), Some(false));
+        assert_eq!(expired["hash"].as_str(), Some("abc"));
+
+        let fresh = status_body(Some("fresh"), "abc");
+        assert_eq!(fresh["live"].as_bool(), Some(true));
+
+        let restarted = status_body(Some("interrupted_by_restart"), "abc");
+        assert_eq!(restarted["reason"].as_str(), Some("interrupted_by_restart"));
+        assert_eq!(restarted["live"].as_bool(), Some(false));
+    }
+
+    #[test]
+    fn a_missing_entry_is_reported_not_silently_dropped() {
+        let body = status_body(None, "abc");
+        assert_eq!(body["status"].as_str(), Some("unknown"));
+        assert_eq!(body["reason"].as_str(), Some("unknown"));
+        assert_eq!(body["live"].as_bool(), Some(false));
+        assert_eq!(
+            preview_status_header("interrupted_by_restart"),
+            HeaderValue::from_static("interrupted_by_restart")
+        );
     }
 }

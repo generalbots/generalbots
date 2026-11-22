@@ -12,4 +12,4 @@ pub mod store;
 
 pub use csp::UiCsp;
 pub use sign::{sign_resource, verify_resource};
-pub use store::{publish_resource, read_resource};
+pub use store::{preview_status, publish_resource, read_resource};
