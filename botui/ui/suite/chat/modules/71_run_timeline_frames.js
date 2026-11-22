@@ -145,7 +145,7 @@
             var toolName = (frame.data && frame.data.name) || callId;
             // Say what the VM is doing while it runs, instead of a static
             // "Answering" until the tool returns (#1693).
-            entry.summary.textContent = "Running " + toolName + "…";
+            entry.summary.textContent = gbT("chat-str-running", "Running ") + toolName + "…";
             row(entry, "tool:" + callId, toolName, "running");
             return;
         }
@@ -185,11 +185,11 @@
                 // is doing during a long run instead of a static "Answering".
                 var progressTool = payload.tool || "tool";
                 if (payload.phase === "start") {
-                    entry.summary.textContent = "Running " + progressTool + "…";
+                    entry.summary.textContent = gbT("chat-str-running", "Running ") + progressTool + "…";
                     row(entry, "progress:" + progressTool, progressTool +
                         (payload.detail ? " · " + payload.detail : ""), "running");
                 } else {
-                    entry.summary.textContent = "Answering…";
+                    entry.summary.textContent = gbT("chat-answering", "Answering…");
                     row(entry, "progress:" + progressTool, progressTool + " finished",
                         payload.ok === false ? "error" : "ok");
                 }
@@ -197,7 +197,7 @@
                 row(entry, "question:" + (payload.question_id || "q"), "Waiting for your answer", "waiting");
                 entry.card.classList.add("waiting");
                 entry.waiting = true;
-                entry.summary.textContent = "Waiting for input";
+                entry.summary.textContent = gbT("chat-waiting-for-input", "Waiting for input");
             } else if (name === "gb.surface") {
                 row(entry, "surface:" + (payload.surface_id || "s"), "Showing a result", "ok");
             } else if (name === "gb.plan") {

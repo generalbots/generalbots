@@ -61,7 +61,7 @@ function polishOutputBlocks(el) {
     card.className = "gb-console";
     var head = document.createElement("summary");
     head.className = "gb-console-head";
-    head.textContent = "workspace run";
+    head.textContent = gbT("chat-workspace-run", "workspace run");
     var pre = document.createElement("pre");
     pre.textContent = text;
     card.appendChild(head);
@@ -141,7 +141,7 @@ function mergeWorkspaceOutput(el) {
   }
   var summary = card.querySelector("summary");
   if (summary) {
-    summary.textContent = "workspace run · " + log.textContent.split("\n").length + " lines";
+    summary.textContent = gbT("chat-str-workspace-run", "workspace run · ") + log.textContent.split("\n").length + " lines";
   }
   message.remove();
   // The `[name](vmfile:...)` links live inside the tool log we just moved into

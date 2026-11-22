@@ -159,12 +159,12 @@ async function loadExistingShareLink(path) {
         var existing = await apiRequest("/share-links?path=" + encodeURIComponent(path) + "&bucket=" + encodeURIComponent(getEffectiveBucket()) + "&scope=" + currentScope);
         var live = (existing || []).find(function (l) { return !l.revoked && !isExpired(l.expires_at); });
         if (!live) {
-            if (status) status.textContent = "No live link yet. Choose an expiry and create one.";
+            if (status) status.textContent = gbT("drive-no-live-link-yet-choose-an-expiry-and-create-one", "No live link yet. Choose an expiry and create one.");
             return;
         }
         showShareLink(live);
     } catch (e) {
-        if (status) status.textContent = "Choose an expiry and create a link.";
+        if (status) status.textContent = gbT("drive-choose-an-expiry-and-create-a-link", "Choose an expiry and create a link.");
     }
 }
 
@@ -201,11 +201,11 @@ function showShareLink(result) {
     row.dataset.token = result.token || "";
     if (status) {
         if (!result.expires_at) {
-            status.textContent = "Anyone with this link can download the file until it is revoked (no expiry). " + reach;
+            status.textContent = gbT("drive-str-anyone-with-this-link-can-download-the-file-un", "Anyone with this link can download the file until it is revoked (no expiry). ") + reach;
         } else if (isExpired(result.expires_at)) {
-            status.textContent = "This link expired on " + gbFormatDateTime(new Date(result.expires_at)) + ".";
+            status.textContent = gbT("drive-str-this-link-expired-on", "This link expired on ") + gbFormatDateTime(new Date(result.expires_at)) + ".";
         } else {
-            status.textContent = "Anyone with this link can download the file until " +
+            status.textContent = gbT("drive-str-anyone-with-this-link-can-download-the-file-un", "Anyone with this link can download the file until ") +
                 gbFormatDateTime(new Date(result.expires_at)) + ". Revoke it at any time. " + reach;
         }
     }
@@ -215,7 +215,7 @@ function showShareLink(result) {
 
 async function createShareLinkNow(path) {
     var status = document.getElementById("share-status");
-    if (status) status.textContent = "Creating secure link...";
+    if (status) status.textContent = gbT("drive-creating-secure-link", "Creating secure link...");
     try {
         var payload = { bucket: getEffectiveBucket(), path: path, scope: currentScope };
         var expires = shareExpiryIso();
@@ -226,7 +226,7 @@ async function createShareLinkNow(path) {
         });
         showShareLink(result);
     } catch (err) {
-        if (status) status.textContent = "Failed to create link: " + err.message;
+        if (status) status.textContent = gbT("drive-str-failed-to-create-link", "Failed to create link: ") + err.message;
     }
 }
 
@@ -241,17 +241,17 @@ function bindShareRecipientSearch(path) {
         var query = input.value.trim();
         results.innerHTML = "";
         if (query.length < 2) {
-            if (status) status.textContent = "Type at least two characters to find an account.";
+            if (status) status.textContent = gbT("drive-type-at-least-two-characters-to-find-an-account", "Type at least two characters to find an account.");
             return;
         }
         timer = setTimeout(async function () {
             try {
                 var people = await apiRequest("/share/recipients?query=" + encodeURIComponent(query));
                 if (!people || !people.length) {
-                    if (status) status.textContent = "No account matches that email or username.";
+                    if (status) status.textContent = gbT("drive-no-account-matches-that-email-or-username", "No account matches that email or username.");
                     return;
                 }
-                if (status) status.textContent = "Choose an account to share with:";
+                if (status) status.textContent = gbT("drive-choose-an-account-to-share-with", "Choose an account to share with:");
                 results.innerHTML = people.map(function (person) {
                     return '<button type="button" class="btn-primary" data-recipient="' + escapeHtml(person.id) +
                         '" data-email="' + escapeHtml(person.email) +
@@ -264,7 +264,7 @@ function bindShareRecipientSearch(path) {
                     });
                 });
             } catch (err) {
-                if (status) status.textContent = "Could not search accounts: " + err.message;
+                if (status) status.textContent = gbT("drive-str-could-not-search-accounts", "Could not search accounts: ") + err.message;
             }
         }, 300);
     });
@@ -286,10 +286,10 @@ async function shareWithRecipient(path, recipientId, email) {
                 scope: currentScope,
             }),
         });
-        if (status) status.textContent = "Shared with " + (email || "the selected account") + ". It now appears in their Shared tab.";
+        if (status) status.textContent = gbT("drive-str-shared-with", "Shared with ") + (email || "the selected account") + ". It now appears in their Shared tab.";
         showNotification("Shared with " + (email || "the selected account"), "success");
     } catch (err) {
-        if (status) status.textContent = "Share failed: " + err.message;
+        if (status) status.textContent = gbT("drive-str-share-failed", "Share failed: ") + err.message;
     }
 }
 
@@ -312,11 +312,11 @@ async function loadShareEmailSenders() {
         var sendBtn = document.getElementById("share-email-send");
         var toInput = document.getElementById("share-email-to");
         if (!options.length) {
-            select.innerHTML = '<option value="">No email sender configured</option>';
+            select.innerHTML = '<option value="" data-i18n="drive-state-no-email-sender-configured"></option>';
             select.disabled = true;
             if (sendBtn) sendBtn.disabled = true;
             if (toInput) toInput.disabled = true;
-            if (status) status.textContent = "Connect Gmail/Outlook in Integrations or configure the server mailbox.";
+            if (status) status.textContent = gbT("drive-connect-gmail-outlook-in-integrations-or-configu", "Connect Gmail/Outlook in Integrations or configure the server mailbox.");
         } else {
             select.disabled = false;
             if (sendBtn) sendBtn.disabled = false;
@@ -324,7 +324,7 @@ async function loadShareEmailSenders() {
             select.innerHTML = options.join("");
         }
     } catch (error) {
-        select.innerHTML = '<option value="">Sender lookup failed</option>';
+        select.innerHTML = '<option value="" data-i18n="drive-state-sender-lookup-failed"></option>';
         select.disabled = true;
         if (status) status.textContent = error.message || "Could not load email senders.";
     }

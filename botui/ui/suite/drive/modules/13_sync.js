@@ -93,7 +93,7 @@
     var host = el("drive-sync-jobs");
     if (!host) return;
     if (!jobs.length) {
-      host.innerHTML = '<p class="drive-sync-empty">No sync jobs yet. Add one below to mirror a folder.</p>';
+      host.innerHTML = '<p class="drive-sync-empty" data-i18n="drive-state-no-sync-jobs-yet-add-one-below-to-mirror-a-f"></p>';
       return;
     }
     host.innerHTML = jobs

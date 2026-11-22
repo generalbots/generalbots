@@ -30,7 +30,7 @@
     switchers.style.cssText = "display:none;";
     var switchersLabel = document.createElement("div");
     switchersLabel.className = "switchers-label";
-    switchersLabel.textContent = "Format:";
+    switchersLabel.textContent = gbT("chat-format-label", "Format:");
     var switcherChips = document.createElement("div");
     switcherChips.className = "switchers-chips";
     switchers.appendChild(switchersLabel);

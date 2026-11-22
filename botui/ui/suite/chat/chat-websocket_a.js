@@ -167,7 +167,7 @@ function showAuthRequired(botName) {
   }
   var login = window.GB_LOGIN_URL || "/login";
   if (statusEl) {
-    statusEl.title = "Sign in at " + login;
+    statusEl.title = gbT("chat-str-sign-in-at", "Sign in at ") + login;
   }
   var privateMsg = (typeof gbT === "function") ? gbT("chat-bot-private-signin", "This bot is private — sign in to continue") : "This bot is private — sign in to continue";
   if (window.GBAppLifecycle) {

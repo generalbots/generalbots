@@ -195,7 +195,7 @@ function gbRefreshScrollbarMarkers() {
         marker.className = "scrollbar-marker user-marker";
         marker.style.top = top + "px";
         var label = (typeof gbMarkerLabel === "function") ? gbMarkerLabel(it.el) : "Message";
-        marker.setAttribute("aria-label", "Jump to message: " + label);
+        marker.setAttribute("aria-label", gbT("chat-str-jump-to-message", "Jump to message: ") + label);
         marker.title = label;
         var tooltip = document.createElement("span");
         tooltip.className = "scrollbar-marker-tooltip";
@@ -238,7 +238,7 @@ function gbRefreshScrollbarMarkers() {
     marker.className = "scrollbar-marker user-marker";
     marker.style.top = top + "px";
     var label = gbMarkerLabel(message);
-    marker.setAttribute("aria-label", "Jump to message: " + label);
+    marker.setAttribute("aria-label", gbT("chat-str-jump-to-message", "Jump to message: ") + label);
     marker.title = label;
     var tooltip = document.createElement("span");
     tooltip.className = "scrollbar-marker-tooltip";

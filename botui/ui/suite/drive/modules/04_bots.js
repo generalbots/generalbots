@@ -4,7 +4,7 @@
 async function loadBotConfigs() {
     if (!currentGborgBranch || !currentGborgBucket) {
         const el = document.getElementById("drive-content") || document.getElementById("file-grid");
-        if (el) el.innerHTML = '<div class="empty-state"><h3>No branch context</h3><p>Select a branch first to view bot configs.</p></div>';
+        if (el) el.innerHTML = '<div class="empty-state"><h3 data-i18n="drive-state-no-branch-context"></h3><p>Select a branch first to view bot configs.</p></div>';
         return;
     }
     var prefix = currentGborgBranch + ".gbai/";
@@ -12,7 +12,7 @@ async function loadBotConfigs() {
 
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading bots...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p data-i18n="drive-state-loading-bots"></p></div>';
 
     try {
         const params = new URLSearchParams();
@@ -30,7 +30,7 @@ async function loadBotConfigs() {
         }).sort(function(a, b) { return a.name.localeCompare(b.name); });
 
         if (botFolders.length === 0 && otherFolders.length === 0) {
-            content.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg><h3>No bots configured</h3><p>No .gbot folders found in ' + escapeHtml(prefix) + '.</p></div>';
+            content.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg><h3 data-i18n="drive-state-no-bots-configured"></h3><p>No .gbot folders found in ' + escapeHtml(prefix) + '.</p></div>';
             return;
         }
 
@@ -53,7 +53,7 @@ async function loadBotConfigs() {
 
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Failed to load bots</h3><p>' + escapeHtml(err.message) + '</p></div>';
+        content.innerHTML = '<div class="empty-state"><h3 data-i18n="drive-state-failed-to-load-bots"></h3><p>' + escapeHtml(err.message) + '</p></div>';
     }
 }
 

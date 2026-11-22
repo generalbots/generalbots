@@ -125,7 +125,7 @@
             var details = document.createElement("details");
             details.className = "surface-fallback-details";
             var summary = document.createElement("summary");
-            summary.textContent = "Text version";
+            summary.textContent = gbT("chat-text-version", "Text version");
             details.appendChild(summary);
             details.appendChild(element("pre", "surface-fallback", surface.fallback));
             wrapper.appendChild(details);

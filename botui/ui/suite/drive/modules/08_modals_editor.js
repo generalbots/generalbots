@@ -8,7 +8,7 @@ async function revokeShareLink(token, path) {
     var ok = await new Promise(function (resolve) {
         if (window.GBModal && typeof window.GBModal.confirm === "function") {
             try {
-                window.GBModal.confirm("Revoke this link? Anyone holding it will lose access immediately.", "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                window.GBModal.confirm(gbT("drive-revoke-this-link-anyone-holding-it-will-lose-acc", "Revoke this link? Anyone holding it will lose access immediately."), "Confirm", function () { resolve(true); }, function () { resolve(false); });
                 return;
             } catch (e) { /* fall through */ }
         }
@@ -33,7 +33,7 @@ async function revokeShareLink(token, path) {
         var createBtn = document.getElementById("share-create-btn");
         if (createBtn) createBtn.style.display = "inline-block";
         var status = document.getElementById("share-status");
-        if (status) status.textContent = "Link revoked. Create a new one if you still need to share.";
+        if (status) status.textContent = gbT("drive-link-revoked-create-a-new-one-if-you-still-need-suffix", "Link revoked. Create a new one if you still need to share.");
         showNotification("Link revoked", "success");
     } catch (error) {
         showNotification("Revoke failed: " + (error.message || "unknown error"), "error");
@@ -106,7 +106,7 @@ async function saveEditorContent() {
     const path = textarea.dataset.path;
     const content = textarea.value;
     const statusEl = document.getElementById("editor-status");
-    statusEl.textContent = "Saving...";
+    statusEl.textContent = gbT("drive-saving", "Saving...");
     try {
         await apiRequest("/write", {
             method: "POST",
@@ -128,7 +128,7 @@ function closeEditor() {
     var doClose = function () { if (modal) modal.remove(); };
     if (statusEl && statusEl.textContent.indexOf("Modified") !== -1) {
         if (window.GBModal && typeof window.GBModal.confirm === "function") {
-            window.GBModal.confirm("You have unsaved changes. Close anyway?", "Confirm", doClose, function () {});
+            window.GBModal.confirm(gbT("drive-you-have-unsaved-changes-close-anyway", "You have unsaved changes. Close anyway?"), "Confirm", doClose, function () {});
             return;
         }
         return;
@@ -166,10 +166,10 @@ async function confirmNewBot() {
     if (!name) { showNotification("Enter a bot name", "error"); return; }
     var btn = document.getElementById("confirm-new-bot-btn");
     btn.disabled = true;
-    btn.textContent = "Creating...";
+    btn.textContent = gbT("drive-creating", "Creating...");
     await createNewBot(name);
     btn.disabled = false;
-    btn.textContent = "Create Bot";
+    btn.textContent = gbT("drive-create-bot", "Create Bot");
 }
 
 async function sendShareEmail(path) {
@@ -179,11 +179,11 @@ async function sendShareEmail(path) {
     var status = document.getElementById("share-email-status");
     var button = document.getElementById("share-email-send");
     if (!to || !to.value.trim()) {
-        if (status) status.textContent = "Type at least one recipient email.";
+        if (status) status.textContent = gbT("drive-type-at-least-one-recipient-email", "Type at least one recipient email.");
         return;
     }
     if (button) button.disabled = true;
-    if (status) status.textContent = "Sending…";
+    if (status) status.textContent = gbT("drive-sending", "Sending…");
     try {
         var payload = await apiRequest("/share/email", {
             method: "POST",
@@ -199,7 +199,7 @@ async function sendShareEmail(path) {
             }),
         });
         if (status) {
-            status.textContent = "Sent to " + (payload.recipients || []).join(", ") +
+            status.textContent = gbT("drive-str-sent-to", "Sent to ") + (payload.recipients || []).join(", ") +
                 (payload.failed ? " (" + payload.failed + " failed)" : "") + ".";
         }
         if (window.GBToasts) GBToasts.show("Email sent", "The share link was emailed.", "success");

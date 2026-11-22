@@ -23,7 +23,7 @@ function renderFiles(files) {
     if (viewMode === "grid") {
         content.innerHTML = '<div class="file-grid">' + sorted.map(function(f) { return renderFileCard(f); }).join("") + '</div>';
     } else {
-        content.innerHTML = '<div class="file-list"><div class="file-list-header"><div class="file-col file-name-col">Name</div><div class="file-col file-modified-col">Modified</div><div class="file-col file-size-col">Size</div><div class="file-col file-actions-col"></div></div>' + sorted.map(function(f) { return renderFileRow(f); }).join("") + '</div>';
+        content.innerHTML = '<div class="file-list"><div class="file-list-header"><div class="file-col file-name-col" data-i18n="drive-state-name"></div><div class="file-col file-modified-col">Modified</div><div class="file-col file-size-col">Size</div><div class="file-col file-actions-col"></div></div>' + sorted.map(function(f) { return renderFileRow(f); }).join("") + '</div>';
     }
     bindFileEvents();
     updateSelectionBar();
@@ -189,7 +189,7 @@ function renderSharedList(rows) {
     const el = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!el) return;
     if (!rows || rows.length === 0) {
-        el.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><h3>No shared folders yet</h3><p>Files shared with you by your team will appear here.</p></div>';
+        el.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><h3 data-i18n="drive-state-no-shared-folders-yet"></h3><p>Files shared with you by your team will appear here.</p></div>';
         return;
     }
     var html = '<table class="shares-table"><thead><tr><th>Name</th><th>Owner</th><th>Path</th><th>Permissions</th><th>Actions</th></tr></thead><tbody>';

@@ -77,7 +77,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
   var open = document.createElement("button");
   open.type = "button";
   open.className = "gb-attachment-inline-btn";
-  open.textContent = "Open in window";
+  open.textContent = gbT("chat-open-in-window", "Open in window");
   open.addEventListener("click", function () {
     vmShowPreviewUrl(url, path);
   });
@@ -86,7 +86,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
   var close = document.createElement("button");
   close.type = "button";
   close.className = "gb-attachment-inline-btn";
-  close.setAttribute("aria-label", "Close preview");
+  close.setAttribute("aria-label", gbT("chat-close-preview-label", "Close preview"));
   close.setAttribute("data-i18n-aria-label", "chat-staged-close");
   close.textContent = "×";
   close.addEventListener("click", function () {
@@ -116,7 +116,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
     body.appendChild(audio);
     var hint = document.createElement("div");
     hint.className = "gb-attachment-inline-note";
-    hint.textContent = "Click play to listen inline. Download if playback fails.";
+    hint.textContent = gbT("chat-click-play-to-listen-inline-download-if-playback", "Click play to listen inline. Download if playback fails.");
     body.appendChild(hint);
     vmFetchBlobUrl(url, box).then(function (blobUrl) {
       if (box.isConnected) audio.src = blobUrl;
@@ -157,7 +157,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
       var openWindow = document.createElement("button");
       openWindow.type = "button";
       openWindow.className = "gb-attachment-btn";
-      openWindow.textContent = "Open window preview";
+      openWindow.textContent = gbT("chat-open-window-preview", "Open window preview");
       openWindow.addEventListener("click", function () {
         vmShowPreviewUrl(url, path);
       });
@@ -180,7 +180,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
   } else if (kind === "text") {
     var pre = document.createElement("pre");
     pre.className = "gb-attachment-inline-text";
-    pre.textContent = "Loading…";
+    pre.textContent = gbT("chat-loading", "Loading…");
     body.appendChild(pre);
     vmAuthFetch(url)
       .then(function (res) {
@@ -191,7 +191,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
         if (box.isConnected) pre.textContent = text.slice(0, 200000);
       })
       .catch(function () {
-        if (box.isConnected) pre.textContent = "Could not load the file preview.";
+        if (box.isConnected) pre.textContent = gbT("chat-could-not-load-the-file-preview", "Could not load the file preview.");
       });
   } else {
     var other = document.createElement("div");
@@ -201,7 +201,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
     var openOther = document.createElement("button");
     openOther.type = "button";
     openOther.className = "gb-attachment-btn";
-    openOther.textContent = "Open window preview";
+    openOther.textContent = gbT("chat-open-window-preview", "Open window preview");
     openOther.addEventListener("click", function () {
       vmShowPreviewUrl(url, path);
     });

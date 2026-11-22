@@ -100,14 +100,14 @@
             });
             if (missing.length) {
                 error.hidden = false;
-                error.textContent = "Please fill in: " + missing.join(", ");
+                error.textContent = gbT("chat-str-please-fill-in", "Please fill in: ") + missing.join(", ");
                 var firstInvalid = form.querySelector('[aria-invalid="true"]');
                 if (firstInvalid) firstInvalid.focus();
                 return;
             }
             error.hidden = true;
             submit.disabled = true;
-            submit.textContent = "Sending…";
+            submit.textContent = gbT("chat-sending", "Sending…");
             var detail = {
                 surface_id: context.surfaceId,
                 action: component.submit_action || "submit",
@@ -119,7 +119,7 @@
             // invites a second submit of the same answer. Mark it answered.
             window.setTimeout(function () {
                 if (!form.isConnected) return;
-                submit.textContent = "Sent";
+                submit.textContent = gbT("chat-sent", "Sent");
                 submit.classList.add("surface-submit-sent");
                 form.querySelectorAll("input, textarea, select").forEach(function (field) {
                     field.disabled = true;

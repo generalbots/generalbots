@@ -112,7 +112,7 @@
                 entry.log.dataset.truncated = "1";
                 var note = document.createElement("span");
                 note.className = "run-log-truncated";
-                note.textContent = "Output truncated. Download the full log from the run menu.";
+                note.textContent = gbT("chat-output-truncated-download-the-full-log-from-the-suffix", "Output truncated. Download the full log from the run menu.");
                 fragment.appendChild(note);
             }
             entry.log.appendChild(fragment);

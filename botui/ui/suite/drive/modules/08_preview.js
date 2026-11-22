@@ -54,7 +54,7 @@ function openDrivePreviewShell(options) {
   overlay.className = "gb-preview-overlay";
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "Preview of " + title);
+  overlay.setAttribute("aria-label", gbT("drive-str-preview-of", "Preview of ") + title);
   overlay.addEventListener("click", function (event) {
     if (event.target === overlay) closeDrivePreview();
   });
@@ -90,7 +90,7 @@ function openDrivePreviewShell(options) {
   }
   var closeButton = drivePreviewElement("button", "gb-preview-close", "\u00D7");
   closeButton.type = "button";
-  closeButton.setAttribute("aria-label", "Close preview");
+  closeButton.setAttribute("aria-label", gbT("drive-close-preview", "Close preview"));
   closeButton.setAttribute("data-i18n-aria-label", "chat-staged-close");
   closeButton.addEventListener("click", closeDrivePreview);
   actions.appendChild(closeButton);
@@ -155,7 +155,7 @@ function showDriveImagePreview(body, blob) {
 function showDrivePdfPreview(body, blob) {
   var url = drivePreviewMediaUrl(blob);
   var frame = drivePreviewElement("iframe", "gb-preview-frame");
-  frame.title = "PDF preview";
+  frame.title = gbT("drive-pdf-preview", "PDF preview");
   frame.src = url;
   body.appendChild(frame);
   var bar = drivePreviewNoticeBar(["Embedded PDF viewing depends on the browser."], [

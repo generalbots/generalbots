@@ -166,7 +166,7 @@ function vmBindAttachment(card) {
   var saveBtn = card.querySelector(".gb-attachment-save");
   if (saveBtn) {
     // #2047 — "Save" is a target menu (internal Drive + external drives).
-    saveBtn.title = "Save to General Bots Drive or a connected external drive";
+    saveBtn.title = gbT("chat-save-to-general-bots-drive-or-a-connected-extern", "Save to General Bots Drive or a connected external drive");
     saveBtn.addEventListener("click", function (e) {
       e.preventDefault();
       resolve()

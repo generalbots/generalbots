@@ -37,13 +37,13 @@
         title.textContent = safeTitle(payload.title);
         var status = document.createElement("span");
         status.className = "gb-app-status";
-        status.textContent = "Loading…";
+        status.textContent = gbT("chat-loading", "Loading…");
         status.setAttribute("role", "status");
 
         var reload = document.createElement("button");
         reload.type = "button";
         reload.className = "gb-app-btn";
-        reload.textContent = "Reload";
+        reload.textContent = gbT("chat-reload", "Reload");
         var expand = document.createElement("button");
         expand.type = "button";
         expand.className = "gb-app-btn";
@@ -51,7 +51,7 @@
         var stop = document.createElement("button");
         stop.type = "button";
         stop.className = "gb-app-btn";
-        stop.textContent = "Stop";
+        stop.textContent = gbT("chat-stop-button", "Stop");
 
         head.appendChild(title);
         head.appendChild(status);
@@ -65,7 +65,7 @@
         var poster = document.createElement("button");
         poster.type = "button";
         poster.className = "gb-app-poster";
-        poster.textContent = "App paused to save resources. Click to resume.";
+        poster.textContent = gbT("chat-app-paused-to-save-resources-click-to-resume", "App paused to save resources. Click to resume.");
         poster.hidden = true;
 
         card.appendChild(head);
@@ -163,12 +163,12 @@
                 source = URL.createObjectURL(new Blob([bytes], { type: "text/html" }));
                 host.blobUrl = source;
             } catch (e) {
-                host.status.textContent = "App payload is invalid";
+                host.status.textContent = gbT("chat-app-payload-is-invalid", "App payload is invalid");
                 return;
             }
         }
         if (!source) {
-            host.status.textContent = "App has no resource";
+            host.status.textContent = gbT("chat-app-has-no-resource", "App has no resource");
             return;
         }
         var frame = document.createElement("iframe");
@@ -195,13 +195,13 @@
             });
         }
         frame.addEventListener("load", function () {
-            host.status.textContent = "Starting…";
+            host.status.textContent = gbT("chat-starting", "Starting…");
             sendInitialize(host);
             // Most generated apps do not implement the JSON-RPC handshake;
             // "Starting…" must not be the permanent label of a working app.
             setTimeout(function () {
                 if (host.status.textContent === "Starting…") {
-                    host.status.textContent = "Running";
+                    host.status.textContent = gbT("chat-running", "Running");
                 }
             }, 1200);
         });
@@ -222,7 +222,7 @@
         var index = live.indexOf(host);
         if (index >= 0) live.splice(index, 1);
         host.poster.hidden = false;
-        host.status.textContent = "Paused";
+        host.status.textContent = gbT("chat-paused", "Paused");
     }
 
     function enforceLiveCap() {
@@ -245,7 +245,7 @@
         try {
             host.frame.contentWindow.postMessage(message, "*");
         } catch (e) {
-            host.status.textContent = "Bridge unavailable";
+            host.status.textContent = gbT("chat-bridge-unavailable", "Bridge unavailable");
         }
     }
 
@@ -292,12 +292,12 @@
         }
         if (method === "tools/call") {
             var name = params.name || "";
-            host.status.textContent = "Waiting for approval…";
+            host.status.textContent = gbT("chat-waiting-for-approval", "Waiting for approval…");
             var confirmed = (window.GBModal||{confirm:confirm}).confirm(
                 "The app wants to run '" + name + "'. This will be sent to the assistant and requires your consent."
             );
             if (!confirmed) {
-                host.status.textContent = "Tool call denied";
+                host.status.textContent = gbT("chat-tool-call-denied", "Tool call denied");
                 return true;
             }
             if (typeof window.ChatSend === "object" && window.ChatSend.sendStructured) {
@@ -307,7 +307,7 @@
                     values: { tool: name, arguments: JSON.stringify(params.arguments || {}) },
                 });
             }
-            host.status.textContent = "Sent to the assistant";
+            host.status.textContent = gbT("chat-sent-to-the-assistant", "Sent to the assistant");
             return true;
         }
         return false;
@@ -379,7 +379,7 @@
         host.card.querySelector(".gb-app-btn:nth-of-type(3)").addEventListener("click", function () {
             host.stopped = true;
             unloadFrame(host);
-            host.status.textContent = "Stopped";
+            host.status.textContent = gbT("chat-stopped", "Stopped");
             host.poster.hidden = true;
         });
         host.poster.addEventListener("click", function () {

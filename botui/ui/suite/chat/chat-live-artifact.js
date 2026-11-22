@@ -228,7 +228,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
       frame.className = "gb-live-artifact-frame";
       frame.setAttribute("referrerpolicy", "no-referrer");
       frame.setAttribute("loading", "lazy");
-      frame.setAttribute("title", "Live generated preview");
+      frame.setAttribute("title", gbT("chat-live-generated-preview", "Live generated preview"));
       frame.setAttribute("sandbox", "allow-scripts allow-forms");
       state.body.appendChild(frame);
       state.frame = frame;
@@ -336,7 +336,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     head.className = "gb-live-artifact-head";
     var label = document.createElement("span");
     label.className = "gb-live-artifact-title";
-    label.textContent = "Live preview";
+    label.textContent = gbT("chat-live-preview", "Live preview");
     head.appendChild(label);
     var badge = document.createElement("span");
     badge.className = "gb-live-artifact-badge";
@@ -344,7 +344,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     var send = document.createElement("button");
     send.type = "button";
     send.className = "gb-attachment-inline-btn gb-live-artifact-send";
-    send.textContent = "Open in Canvas";
+    send.textContent = gbT("chat-open-in-canvas", "Open in Canvas");
     send.addEventListener("click", function () {
       var state = box.__gbLiveSvg;
       var svg = state && state.root ? state.root.outerHTML : "";

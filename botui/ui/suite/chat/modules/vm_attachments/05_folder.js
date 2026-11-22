@@ -304,7 +304,7 @@ function vmGroupAttachments(anchor) {
   var saveAll = folder.querySelector(".gb-folder-save");
   if (saveAll && !saveAll.dataset.bound) {
     saveAll.dataset.bound = "1";
-    saveAll.title = "Save the folder to General Bots Drive or an external drive";
+    saveAll.title = gbT("chat-save-the-folder-to-general-bots-drive-or-an-exte", "Save the folder to General Bots Drive or an external drive");
     saveAll.addEventListener("click", function () {
       var cardConversation = vmConversationIdFromCards(folder);
       (cardConversation ? Promise.resolve(cardConversation) : vmCurrentConversationId())
@@ -343,7 +343,7 @@ function vmGroupAttachments(anchor) {
       // An older reply keeps its whole listing behind a control; expanding it
       // also reveals that turn's historical files.
       grid.style.display = "none";
-      toggle.textContent = "Show older output";
+      toggle.textContent = gbT("chat-show-older-output", "Show older output");
       toggle.dataset.collapsed = "1";
       toggle.addEventListener("click", function () {
         var open = toggle.dataset.collapsed === "1";

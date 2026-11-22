@@ -87,7 +87,7 @@ function toggleUserAttachmentPreview(chip, name) {
 
   var expandLabel = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
   var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
-  var closePreviewLabel = (typeof gbT === "function") ? gbT("chat-close-preview", "Close preview") : "Close preview";
+  var closePreviewLabel = (typeof gbT === "function") ? gbT("chat-close-preview-label", "Close preview") : "Close preview";
   var expand = document.createElement("button");
   expand.type = "button";
   expand.className = "gb-attachment-inline-btn";
@@ -124,7 +124,7 @@ function toggleUserAttachmentPreview(chip, name) {
   var body = document.createElement("div");
   body.className = "gb-attachment-inline-body";
   var frame = document.createElement("iframe");
-  frame.title = "Preview of " + name;
+  frame.title = gbT("chat-str-preview-of", "Preview of ") + name;
   // Chrome refuses to run its PDF viewer inside a sandboxed frame; the
   // server already sends application/pdf + nosniff, so a PDF is safe.
   if (!/\.pdf$/i.test(name)) frame.setAttribute("sandbox", "");

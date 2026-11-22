@@ -63,7 +63,7 @@
         : tier.tradeoff || "";
       option.disabled = isAlt && (tier.configured === false || singleModel);
       if (isAlt && singleModel) {
-        option.title = "Same model as Auto — no separate tier model is configured.";
+        option.title = gbT("chat-same-model-as-auto-no-separate-tier-model-is-con", "Same model as Auto — no separate tier model is configured.");
       }
       if (option.disabled && option.selected) select.value = "auto";
     });

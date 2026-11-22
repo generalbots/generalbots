@@ -43,7 +43,7 @@ function renderExternalConnections() {
     var content = extContent();
     if (!content) return;
     if (!externalConnections.length) {
-        content.innerHTML = '<div class="empty-state"><h3>No external drive configured</h3></div>';
+        content.innerHTML = '<div class="empty-state"><h3 data-i18n="drive-state-no-external-drive-configured"></h3></div>';
         return;
     }
     var cards = externalConnections.map(function (p) {
@@ -145,26 +145,26 @@ async function loadExternalTab() {
         await browseExternalProvider(externalProvider);
         return;
     }
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading external drives...</p></div>';
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p data-i18n="drive-state-loading-external-drives"></p></div>';
     try {
         var payload = await extApiRequest("/connections");
         externalConnections = (payload && payload.providers) || [];
         renderExternalConnections();
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Could not load external drives</h3><p>' + extEscape(err.message) + "</p></div>";
+        content.innerHTML = '<div class="empty-state"><h3 data-i18n="drive-state-could-not-load-external-drives"></h3><p>' + extEscape(err.message) + "</p></div>";
     }
 }
 
 async function browseExternalProvider(providerId) {
     var content = extContent();
-    if (content) content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading files...</p></div>';
+    if (content) content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p data-i18n="drive-state-loading-files"></p></div>';
     var known = externalConnections.find(function (p) { return p.provider === providerId; }) || { provider: providerId };
     try {
         var payload = await extApiRequest("/files?provider=" + encodeURIComponent(providerId));
         renderExternalFiles(known, payload);
     } catch (err) {
         if (content) {
-            content.innerHTML = '<div class="empty-state"><h3>Could not load files</h3><p>' + extEscape(err.message) + "</p></div>";
+            content.innerHTML = '<div class="empty-state"><h3 data-i18n="drive-state-could-not-load-files"></h3><p>' + extEscape(err.message) + "</p></div>";
         }
     }
 }
@@ -245,7 +245,7 @@ async function disconnectExternalProvider(providerId) {
     var ok = await new Promise(function (resolve) {
         if (window.GBModal && typeof window.GBModal.confirm === "function") {
             try {
-                window.GBModal.confirm("Disconnect " + providerId + "? The mirrored listing and tokens are deleted." + shared, "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                window.GBModal.confirm(gbT("drive-str-disconnect", "Disconnect ") + providerId + "? The mirrored listing and tokens are deleted." + shared, "Confirm", function () { resolve(true); }, function () { resolve(false); });
                 return;
             } catch (e) { /* fall through */ }
         }
