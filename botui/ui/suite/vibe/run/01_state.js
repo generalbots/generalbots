@@ -82,20 +82,40 @@
     // "failed" chip is truthful about the state but hides WHY; these helpers
     // translate the reason into existing catalogue keys (no new i18n keys).
     var VIBE_RESTART_MARKER = "interrupted by server restart";
+    // #2541 — the sandbox API emits these canonical codes in the JSON
+    // `status`/`reason` fields and the `x-gb-preview-status` header. Accept
+    // both spellings so a stale preview never falls through to a dormant chip.
+    var VIBE_RESTART_CODE = "interrupted_by_restart";
+    var VIBE_EXPIRED_CODE = "expired";
 
     function vibeT(key, fallback) {
         return window.gbT ? window.gbT(key, fallback) : fallback;
     }
 
     // Returns "interrupted_by_restart" | "expired" | null for a run/preview.
+    // All candidate fields are concatenated: a run may carry a generic `error`
+    // alongside the real `reason`, and reading only the first field used to
+    // hide the code the backend now exposes.
     function vibeStaleReason(record) {
         if (!record) return null;
-        var raw = String(record.error || record.status || record.reason || "");
-        if (raw.toLowerCase().indexOf(VIBE_RESTART_MARKER) !== -1) {
-            return "interrupted_by_restart";
+        var raw = [record.error, record.status, record.reason, record.preview_status]
+            .filter(function (value) { return value != null && String(value) !== ""; })
+            .join(" ")
+            .toLowerCase();
+        if (raw.indexOf(VIBE_RESTART_MARKER) !== -1 ||
+            raw.indexOf(VIBE_RESTART_CODE) !== -1 ||
+            /interrupted[\s_-]*by[\s_-]*restart/.test(raw)) {
+            return VIBE_RESTART_CODE;
         }
-        if (/\bexpired\b/i.test(raw)) return "expired";
+        if (/\bexpired\b/.test(raw)) return VIBE_EXPIRED_CODE;
         return null;
+    }
+
+    // #2541 — extract the resource hash from a signed sandbox URL so its JSON
+    // status endpoint can be queried. Returns null for deployed/other URLs.
+    function sandboxStatusPath(url) {
+        var match = String(url || "").match(/\/sandbox\/ui\/([0-9a-fA-F]{64})/);
+        return match ? "/api/sandbox/status/" + match[1] : null;
     }
 
     // Localized, human-readable version of a stale reason. Returns null when

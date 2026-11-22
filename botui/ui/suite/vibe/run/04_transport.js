@@ -112,6 +112,21 @@
             .catch(function () { return null; });
     }
 
+    // #2541 — a sandbox resource can only carry its reason in the response
+    // header of an iframe document, which the popup cannot read. Query the
+    // JSON status endpoint before declaring such a preview live.
+    function probeSandboxStatus(url) {
+        var path = sandboxStatusPath(url);
+        if (!path) return Promise.resolve(null);
+        return api(path).then(function (data) {
+            return vibeStaleReason(data);
+        }).catch(function (error) {
+            // Best-effort: a reachable preview URL is still worth opening.
+            window.gbLogError ? gbLogError(error, "probeSandboxStatus") : console.error("probeSandboxStatus", error);
+            return null;
+        });
+    }
+
     // Handle of the popup tab currently showing the live project preview.
     // Stop must close it back (pressing ■ tears down what ▶ launched).
     var previewWindowRef = null;
@@ -156,6 +171,11 @@
                     var stale = vibeStaleLabel(vibeStaleReason(payload || data));
                     throw new Error(stale || "No live preview is available yet. Deploy the project first.");
                 }
+                return url;
+            });
+        }).then(function (url) {
+            return probeSandboxStatus(url).then(function (reason) {
+                if (reason) throw new Error(vibeStaleLabel(reason));
                 return url;
             });
         }).then(function (url) {

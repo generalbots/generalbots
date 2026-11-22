@@ -30,6 +30,32 @@
         overlay.classList.toggle("hidden", !active);
     }
 
+    // #2541 — announced once per run so a stale preview never spams the log.
+    var announcedStalePreview = {};
+
+    // A sandbox preview is an iframe document: the browser cannot read its
+    // `x-gb-preview-status` header, so confirm the real reason through the JSON
+    // status endpoint and render it with the same localized label as the run.
+    function syncRunPreviewStatus(run) {
+        if (!run || ["completed", "failed", "cancelled"].indexOf(String(run.state)) === -1) return;
+        var path = sandboxStatusPath(run.preview_url || run.url);
+        if (!path) return;
+        var key = String(run.run_id || state.runId || path);
+        if (announcedStalePreview[key]) return;
+        announcedStalePreview[key] = 1;
+        api(path).then(function (data) {
+            var reason = vibeStaleReason(data);
+            if (!reason) return;
+            var label = vibeStaleLabel(reason);
+            setText("vibeRunOutcome", "\u26A0 " + label);
+            uiMsg("\u26A0 " + label);
+        }).catch(function (error) {
+            // Best-effort probe — the run card still shows the truthful failed
+            // state when the status endpoint is unreachable.
+            window.gbLogError ? gbLogError(error, "syncRunPreviewStatus") : console.error("syncRunPreviewStatus", error);
+        });
+    }
+
     function pollRun() {
         api("/api/vibe/run/" + state.runId).then(function (data) {
             if (!data || !data.run_id) return;
@@ -37,6 +63,7 @@
             state.run = data;
             renderRunCard();
             syncExecOverlay();
+            syncRunPreviewStatus(data);
             if (changed) {
                 // Keep the RUNS list truthful: the dock polls the focused run,
                 // but the list only refreshed on runFocus/start — so a run that

@@ -16,15 +16,33 @@
     }
 
     // #2541 — reuse existing catalogue keys for a truthful preview status.
+    // The sandbox API reports `expired` / `interrupted_by_restart` as machine
+    // codes; boot reconciliation stamps the spaced form on runs. Accept both.
     function staleStatusText(reason) {
-        var raw = String(reason || "");
-        if (raw.toLowerCase().indexOf("interrupted by server restart") !== -1) {
+        var raw = String(reason || "").toLowerCase();
+        if (raw.indexOf("interrupted by server restart") !== -1 ||
+            raw.indexOf("interrupted_by_restart") !== -1 ||
+            /interrupted[\s_-]*by[\s_-]*restart/.test(raw)) {
             return t("chat-status-stopped", "Stopped") + " \u2014 " + t("cli-restart-done", "BotServer restarted");
         }
-        if (/\bexpired\b/i.test(raw)) {
+        if (/\bexpired\b/.test(raw)) {
             return t("monitoring-alerts-expired", "Expired");
         }
         return null;
+    }
+
+    // #2541 — an iframe hides its `x-gb-preview-status` header, so a sandbox
+    // preview is confirmed through the JSON status endpoint instead.
+    function sandboxPreviewStatus(url) {
+        var path = sandboxStatusPath(url);
+        if (!path) return Promise.resolve(null);
+        return D.api(path).then(function (data) {
+            return (data && (data.reason || data.status)) || null;
+        }).catch(function (error) {
+            // Best-effort: a reachable preview URL is still returned.
+            window.gbLogError ? gbLogError(error, "sandboxPreviewStatus") : console.error("sandboxPreviewStatus", error);
+            return null;
+        });
     }
 
     var D = window.VibeDialogs;
@@ -187,13 +205,21 @@
                     throw new Error(data.error || t("vibe-browser-no-preview", "No preview is available"));
                 }
                 var payload = data && data.data ? data.data : data;
+                var stale = staleStatusText(
+                    (payload && (payload.reason || payload.status)) || data.reason || data.status
+                );
+                if (stale) throw new Error(stale);
                 var preview = payload && payload.preview_url;
                 if (!preview || !/^https?:\/\//i.test(preview)) {
                     throw new Error(state.isNodeApp
                         ? t("vibe-browser-run-first", "Run the project first — the Node app serves from its VM once it starts")
                         : t("vibe-browser-publish-first", "Publish the project to create its app URL"));
                 }
-                return preview;
+                return sandboxPreviewStatus(preview).then(function (reason) {
+                    var staleReason = staleStatusText(reason);
+                    if (staleReason) throw new Error(staleReason);
+                    return preview;
+                });
             }).then(function (preview) {
                 state.url = preview;
                 var input = document.getElementById("vibeBrowserUrl");
