@@ -55,7 +55,7 @@ measured fidelity score, and no PASS is claimed for the items marked
 | Structural plus visual (rasterised page diff) round-trip scoring with a per-feature score | Not implemented | — |
 | Feature-coverage matrix generated from the harness ("supported / degraded / dropped") | Not implemented — the four rules above are hand-written, not harness output | — |
 | Fidelity dashboard on every PR and nightly with thresholds and a diff gallery | Not implemented | — |
-| 24-hour importer fuzz run with zero crashes, OOMs or timeouts and resource caps | Not implemented — the deep run is a nightly job with no 24-hour target | `fuzz/Cargo.toml` |
+| 24-hour importer fuzz run with zero crashes, OOMs or timeouts and resource caps | Not implemented — the deep run is a nightly job with no 24-hour target | `fuzz/README.md` |
 | Cross-browser smoke matrix (Chrome, Firefox, Edge, Safari) for open/edit/save/export | Not implemented | — |
 
 The fixtures and fuzz seeds above are small regression artifacts, not the
