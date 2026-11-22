@@ -87,16 +87,16 @@ function stubFacts() {
 var FACTS = stubFacts();
 var GAPS = declaredGaps();
 
-test("[BASELINE-OBSERVE] 13 textual 501 tokens in 12 files; zero todo!/unimplemented!", function () {
-  equal(FACTS.occurrences.length, 13, "StatusCode::NOT_IMPLEMENTED occurrences");
-  equal(Object.keys(FACTS.files).length, 12, "files with a 501 token");
+test("[BASELINE-OBSERVE] 14 textual 501 tokens in 13 files; zero todo!/unimplemented!", function () {
+  equal(FACTS.occurrences.length, 14, "StatusCode::NOT_IMPLEMENTED occurrences");
+  equal(Object.keys(FACTS.files).length, 13, "files with a 501 token");
   equal(FACTS.todo.length, 0, "todo!/unimplemented! occurrences");
   observe("501 tokens / files / todo!/unimplemented!",
     FACTS.occurrences.length + " / " + Object.keys(FACTS.files).length + " / " + FACTS.todo.length);
 });
 
-test("[BASELINE-OBSERVE] 12 Rust functions contain a 501 return (2 are helpers, not routes)", function () {
-  equal(FACTS.functions.length, 12, "function blocks with a 501 token");
+test("[BASELINE-OBSERVE] 13 Rust functions contain a 501 return (2 are helpers, not routes)", function () {
+  equal(FACTS.functions.length, 13, "function blocks with a 501 token");
   var names = FACTS.functions.map(function (f) { return f.name; }).sort();
   assert(names.indexOf("verify_2fa") >= 0, "verify_2fa handler missing");
   assert(names.indexOf("create_whiteboard") >= 0, "create_whiteboard handler missing");
