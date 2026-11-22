@@ -5,6 +5,7 @@ use crate::export::{
     export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
     export_to_pdf_data, export_to_pdf_data_with,
 };
+use crate::handlers::admission::{admit, sheet_payload_bytes};
 use crate::state::{save_sheet_to_drive, SheetState};
 use crate::storage::import::import_spreadsheet_bytes;
 use crate::types::ExportRequest;
@@ -15,6 +16,7 @@ use axum::{
     Json,
 };
 use base64::Engine;
+use botcore::WorkClass;
 use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use std::sync::Arc;
@@ -52,6 +54,14 @@ pub async fn handle_export_sheet(
             )
         })?;
     let sheet = session.sheet.read().await.clone();
+    // #2530 — bound the peak heap of the export that follows; RAII releases it.
+    let permit = admit(
+        WorkClass::OfficeExport,
+        sheet_payload_bytes(&sheet),
+        Some(&user_id),
+    )
+    .await?;
+    log::debug!("sheet export admitted: class={}", permit.class().as_str());
 
     match req.format.as_str() {
         "csv" => {
@@ -157,6 +167,17 @@ pub async fn handle_print_preview(
             )
         })?;
     let sheet = session.sheet.read().await.clone();
+    // #2530 — the print preview renders a full PDF; gate it like any export.
+    let permit = admit(
+        WorkClass::OfficeExport,
+        sheet_payload_bytes(&sheet),
+        Some(&user_id),
+    )
+    .await?;
+    log::debug!(
+        "sheet print preview admitted: class={}",
+        permit.class().as_str()
+    );
     let landscape = req
         .orientation
         .as_deref()
@@ -316,6 +337,11 @@ pub async fn handle_import_sheet(
         })?;
         (bytes, filename, content_type)
     };
+
+    // #2530 — admit before macro stripping, validation and the parser; the
+    // permit is held through the whole import and released by RAII.
+    let permit = admit(WorkClass::SheetsImport, bytes.len() as u64, Some(&user_id)).await?;
+    log::debug!("sheet import admitted: class={}", permit.class().as_str());
 
     // #2522 — strip executable parts before the shared gate so a
     // macro-enabled workbook imports with macros removed. A machine-readable

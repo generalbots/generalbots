@@ -39,5 +39,7 @@ hmac = { workspace = true }
 default = ["xlsx"]
 xlsx = ["dep:umya-spreadsheet", "dep:rust_xlsxwriter", "dep:calamine", "dep:zip"]
 
+botcore = { workspace = true }
+
 [lints]
 workspace = true

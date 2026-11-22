@@ -37,5 +37,7 @@ zip = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }
 
+botcore = { workspace = true }
+
 [lints]
 workspace = true

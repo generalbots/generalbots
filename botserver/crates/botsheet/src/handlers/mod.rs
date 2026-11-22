@@ -1,3 +1,4 @@
+pub mod admission;
 pub mod advanced;
 pub mod advanced_ranges;
 pub mod ai;

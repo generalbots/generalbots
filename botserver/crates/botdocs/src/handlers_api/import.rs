@@ -1,4 +1,5 @@
 use crate::auth::DocUser;
+use crate::handlers_api::admission::admit;
 use crate::state::DocState;
 use crate::storage::convert_docx_to_html;
 use crate::storage::{create_new_document, load_document_from_drive, save_document};
@@ -9,6 +10,7 @@ use crate::types::{
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
 use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
+use botcore::WorkClass;
 use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
@@ -127,6 +129,12 @@ pub async fn handle_import_document(
         )
     })?;
 
+    // #2530 — admit before any converter runs. The permit is held for the
+    // whole parse/convert/save below and released by RAII on every exit.
+    let tenant = user.id().to_string();
+    let permit = admit(WorkClass::DocsImport, bytes.len() as u64, Some(&tenant)).await?;
+    log::debug!("docs import admitted: class={}", permit.class().as_str());
+
     // #2522 — strip executable parts *before* the shared gate so a
     // macro-enabled document imports with the macros removed. The original
     // bytes are never modified, and the notice is returned to the caller.
@@ -233,7 +241,7 @@ pub async fn handle_import_document(
         .unwrap_or(&filename)
         .to_string();
 
-    let user_id = user.id().to_string();
+    let user_id = tenant;
     let mut doc = create_new_document(&user_id);
     doc.title = title;
     doc.content = content;

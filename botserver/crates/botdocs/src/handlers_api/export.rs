@@ -1,5 +1,6 @@
 use crate::auth::DocUser;
 use crate::export_isolation::{html_export_headers, render_html_export, text_export_headers};
+use crate::handlers_api::admission::admit;
 use crate::re_cache::cached_re;
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
@@ -15,6 +16,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use botcore::WorkClass;
 use docx_rs::{AlignmentType, Docx, Paragraph, Run, RunFonts, Table, TableCell, TableRow};
 use std::sync::Arc;
 
@@ -24,6 +26,18 @@ pub async fn handle_export_pdf(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    // #2530 — hold the export gate across the renderer; RAII releases it.
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!(
+        "docs pdf export admitted: class={}",
+        permit.class().as_str()
+    );
     let pdf_bytes = html_to_pdf(&doc.content);
 
     Ok((
@@ -38,6 +52,18 @@ pub async fn handle_export_docx(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    // #2530 — hold the export gate across the package rebuild; RAII releases it.
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!(
+        "docs docx export admitted: class={}",
+        permit.class().as_str()
+    );
     // #2042 — export honours the preserved package, like save does. Rebuilding
     // from HTML drops styles, headers/footers, tables and images.
     let user_id = user.id().to_string();
@@ -85,6 +111,18 @@ pub async fn handle_export_odt(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    // #2530 — hold the export gate across the ODT builder; RAII releases it.
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!(
+        "docs odt export admitted: class={}",
+        permit.class().as_str()
+    );
     let odt_bytes = html_to_odt_zip(&doc.title, &doc.content)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}))))?;
 
@@ -311,6 +349,15 @@ pub async fn handle_export_md(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    // #2530 — same gate for every export format, not just the heavy ones.
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!("docs md export admitted: class={}", permit.class().as_str());
     let markdown = html_to_markdown(&doc.content);
 
     // A download, not a page: `attachment` keeps the browser from rendering it
@@ -332,6 +379,17 @@ pub async fn handle_export_html(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!(
+        "docs html export admitted: class={}",
+        permit.class().as_str()
+    );
 
     Ok((
         html_export_headers(&doc.title),
@@ -345,6 +403,17 @@ pub async fn handle_export_txt(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &user, &query).await?;
+    let tenant = user.id().to_string();
+    let permit = admit(
+        WorkClass::OfficeExport,
+        doc.content.len() as u64,
+        Some(&tenant),
+    )
+    .await?;
+    log::debug!(
+        "docs txt export admitted: class={}",
+        permit.class().as_str()
+    );
     let plain_text = strip_html(&doc.content);
 
     Ok((
