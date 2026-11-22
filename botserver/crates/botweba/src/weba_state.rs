@@ -1,7 +1,8 @@
 use super::*;
 use crate::forms::normalize_email;
 use crate::persistence::{
-    DbStore, FileStore, FormSubmission, MemoryStore, PublishedSite, WebaSnapshot, WebaStore,
+    CampaignClick, DbStore, FileStore, FormSubmission, MemoryStore, PublishedSite, WebaSnapshot,
+    WebaStore,
 };
 use std::path::PathBuf;
 
@@ -14,6 +15,7 @@ pub struct WebaState {
     pub(crate) pages: RwLock<HashMap<Uuid, WebAppPage>>,
     pub(crate) published: RwLock<HashMap<Uuid, PublishedSite>>,
     pub(crate) submissions: RwLock<Vec<FormSubmission>>,
+    pub(crate) clicks: RwLock<Vec<CampaignClick>>,
     pub(crate) publish_counter: std::sync::atomic::AtomicI64,
     pub(crate) rate_limiter: crate::forms::RateLimiter,
     pub(crate) branch_id: Uuid,
@@ -63,6 +65,7 @@ impl WebaState {
             pages: RwLock::new(pages),
             published: RwLock::new(published),
             submissions: RwLock::new(snapshot.submissions),
+            clicks: RwLock::new(snapshot.clicks),
             publish_counter: std::sync::atomic::AtomicI64::new(counter),
             rate_limiter: crate::forms::RateLimiter::new(5, 1.0 / 60.0),
             branch_id,
@@ -112,6 +115,8 @@ impl WebaState {
         }
         let mut submissions = self.submissions.write().await;
         *submissions = snapshot.submissions;
+        let mut clicks = self.clicks.write().await;
+        *clicks = snapshot.clicks;
         self.publish_counter.store(
             snapshot.publish_counter,
             std::sync::atomic::Ordering::SeqCst,
@@ -124,14 +129,23 @@ impl WebaState {
             let pages = self.pages.read().await;
             let published = self.published.read().await;
             let submissions = self.submissions.read().await;
+            let clicks = self.clicks.read().await;
             WebaSnapshot {
                 apps: apps.values().cloned().collect(),
                 pages: pages.values().cloned().collect(),
                 published: published.values().cloned().collect(),
                 submissions: submissions.clone(),
+                clicks: clicks.clone(),
                 publish_counter: self.publish_counter.load(std::sync::atomic::Ordering::SeqCst),
             }
         }
+    }
+
+    /// Records a campaign click on a published page. `persist` is called after
+    /// the guard is dropped: it takes read locks on the same collection.
+    pub async fn record_click(&self, click: CampaignClick) {
+        self.clicks.write().await.push(click);
+        self.persist().await;
     }
 
     /// Writes the whole branch state as one atomic snapshot.

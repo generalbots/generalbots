@@ -140,6 +140,16 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/collab/**", "DELETE", ""),
         RoutePermission::new("/api/activity", "GET", ""),
         RoutePermission::new("/api/activity", "POST", ""),
+        // #2538 — site builder (WebA) routes. `/render/**` and `/forms/**` are
+        // public-facing; the builder routes are authenticated.
+        RoutePermission::new("/apps", "GET", ""),
+        RoutePermission::new("/apps", "POST", ""),
+        RoutePermission::new("/apps/**", "GET", ""),
+        RoutePermission::new("/apps/**", "POST", ""),
+        RoutePermission::new("/apps/**", "PUT", ""),
+        RoutePermission::new("/apps/**", "DELETE", ""),
+        RoutePermission::new("/render/**", "GET", "").with_anonymous(true),
+        RoutePermission::new("/forms/**", "POST", "").with_anonymous(true),
         // Browser-action ledger (#1702): the read endpoint behind the
         // Settings → Ledger → Browser tab.
         RoutePermission::new("/api/browser/**", "GET", ""),

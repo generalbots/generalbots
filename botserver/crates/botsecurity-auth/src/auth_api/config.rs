@@ -38,6 +38,11 @@ pub enum PublicAccess {
     /// signup, refresh, logout, bootstrap and 2FA. These are the only write
     /// endpoints allowed without a signature, because no session exists yet.
     CredentialEntry,
+    /// A published-site form: anonymous by design, with abuse controls inside
+    /// the handler (honeypot, per-e-mail rate limit, field validation) rather
+    /// than a session. The slug addresses one published site, never a tenant
+    /// namespace.
+    PublicForm,
     /// Inbound call from an external provider or a browser redirect. The
     /// handler verifies a signature, a shared secret or a signed state value
     /// before acting (`VerifiedWebhook` is a promise the route keeps).
@@ -63,7 +68,10 @@ impl PublicAccess {
         match self {
             Self::AnonymousRead | Self::Capability => is_read_method(method),
             Self::Asset => method == Method::GET || method == Method::HEAD,
-            Self::CredentialEntry | Self::VerifiedWebhook | Self::AlwaysAuthenticated => true,
+            Self::CredentialEntry
+            | Self::PublicForm
+            | Self::VerifiedWebhook
+            | Self::AlwaysAuthenticated => true,
         }
     }
 
@@ -73,6 +81,7 @@ impl PublicAccess {
             Self::Asset => "static asset",
             Self::Capability => "capability token",
             Self::CredentialEntry => "credential entry",
+            Self::PublicForm => "published site form",
             Self::VerifiedWebhook => "verified webhook",
             Self::AlwaysAuthenticated => "always authenticated",
         }
@@ -147,6 +156,14 @@ impl PublicRoute {
         pattern: impl Into<String>,
     ) -> Result<Self, AuthConfigError> {
         Self::new(method, pattern, PublicAccess::CredentialEntry)
+    }
+
+    /// A public form endpoint whose handler applies its own anti-abuse rules.
+    pub fn public_form(
+        method: Method,
+        pattern: impl Into<String>,
+    ) -> Result<Self, AuthConfigError> {
+        Self::new(method, pattern, PublicAccess::PublicForm)
     }
 
     /// A provider call or browser callback whose handler verifies a signature,
