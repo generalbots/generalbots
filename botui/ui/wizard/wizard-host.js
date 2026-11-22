@@ -26,22 +26,71 @@
     return !!(result && result.platform === "windows" && !result.agent_ready && result.desktop_ready && !skipAgentic());
   }
 
-  // A Windows host whose only gap is the skipped agent (Chat/Drive-only mode)
-  // is good enough: it must not ask for "Continue anyway" (#1961).
-  function skippedAgentOnlyGap(result) {
-    return !!(result && skipAgentic() && result.desktop_ready && result.media_ready);
+  // The desktop edition reads text in images with the system's own engine and
+  // offers no barcode reading, so the generic media tools are not required.
+  function mediaRequired() {
+    var app = window.GBWizardApp;
+    return !(app && app.state && app.state.context && app.state.context.desktop_local);
   }
 
-  function badgeState(result) {
-    if (!result) { return { text: t("host.unknown"), kind: "" }; }
-    if (windowsAgentBlocked(result)) { return { text: t("host.status-agent-blocked"), kind: "err" }; }
-    if (result.status === "ready" || (skipAgentic() && result.desktop_ready && result.media_ready)) {
-      return { text: t("host.status-ready"), kind: "ok" };
+  function mediaOk(result) {
+    return !!result && (result.media_ready || !mediaRequired());
+  }
+
+  // A host whose only gaps are the skipped agent (Chat/Drive-only mode, #1961)
+  // or media tools this edition does not use is ready: no "Continue anyway".
+  function skippedAgentOnlyGap(result) {
+    return !!(result && result.desktop_ready && mediaOk(result) &&
+      (result.agent_ready || skipAgentic()));
+  }
+
+  function hostReady(result) {
+    return !!result && (result.status === "ready" || skippedAgentOnlyGap(result));
+  }
+
+  /* One sentence for the summary row: running, ready, or the problem. */
+  function summaryState(state) {
+    var host = state.host;
+    var result = host.result;
+    if (host.checking) { return { text: t("host.checking"), kind: "run" }; }
+    if (state.provisioning.ready || hostReady(result)) { return { text: t("host.summary-ready"), kind: "ok" }; }
+    if (!host.checked) { return { text: t("host.checking"), kind: "run" }; }
+    if (!result) { return { text: t("host.summary-no-check"), kind: "warn" }; }
+    if (result.status === "desktop-blocked") {
+      return { text: t("host.summary-blocked", { items: missingItems(result, "desktop").join(", ") || "—" }), kind: "err" };
     }
-    if (result.status === "ready") { return { text: t("host.status-ready"), kind: "ok" }; }
-    if (result.status === "limited") { return { text: t("host.status-limited"), kind: "warn" }; }
-    if (result.status === "desktop-blocked") { return { text: t("host.status-blocked"), kind: "err" }; }
-    return { text: t("host.status-unavailable"), kind: "" };
+    if (windowsAgentBlocked(result)) { return { text: t("host.summary-agent"), kind: "err" }; }
+    if (result.status === "limited") {
+      var gaps = missingItems(result, "media").concat(missingItems(result, "agent"));
+      return { text: t("host.summary-limited", { items: gaps.join(", ") || "—" }), kind: "warn" };
+    }
+    return { text: t("host.summary-no-check"), kind: "warn" };
+  }
+
+  function renderSummary(state) {
+    var line = document.getElementById("hostSummaryLine");
+    var text = document.getElementById("hostSummaryText");
+    var icon = document.getElementById("hostSummaryIcon");
+    var details = document.getElementById("hostReadiness");
+    if (!line || !text) { return; }
+    var info = summaryState(state);
+    text.textContent = info.text;
+    line.setAttribute("data-kind", info.kind);
+    if (icon) {
+      icon.innerHTML = info.kind === "run" ? '<span class="install-spinner"></span>' :
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"' +
+        ' stroke-linecap="round" stroke-linejoin="round"><path d="' +
+        (info.kind === "ok" ? "M20 6 9 17l-5-5" : "M12 8v5M12 16.5v.5M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z") +
+        '"/></svg>';
+    }
+    if (details) {
+      var limited = !!state.host.result && state.host.result.status === "limited";
+      if (info.kind === "err" || (info.kind === "warn" && limited)) {
+        details.setAttribute("open", "");
+      } else if (info.kind === "ok") {
+        details.removeAttribute("open");
+      }
+    }
   }
 
   function missingItems(result, feature) {
@@ -59,11 +108,9 @@
     if (windowsAgentBlocked(result)) { return true; }
     // Media-only / other optional gaps: allow explicit continue.
     if (result.status === "limited" && !state.host.acknowledged) {
-      // When agent is the only Windows blocker it is handled above; any
-      // remaining limited state (e.g. media) still needs acknowledgement —
-      // unless the only gap left is the agent the user chose to skip.
-      if (skippedAgentOnlyGap(result)) { return false; }
-      return true;
+      // Any remaining optional gap needs acknowledgement, unless it is only
+      // the skipped agent or media tools this edition does not use.
+      return !skippedAgentOnlyGap(result);
     }
     return false;
   }
@@ -87,7 +134,6 @@
   }
 
   function render(state) {
-    var badge = document.getElementById("hostBadge");
     var rows = document.getElementById("hostRows");
     var note = document.getElementById("hostNote");
     var recheck = document.getElementById("hostRecheckBtn");
@@ -97,19 +143,16 @@
     var agentToggle = document.getElementById("hostAgentToggle");
     var host = state.host;
     var result = host.result;
-    var badgeInfo = badgeState(result);
     var agentBlocked = windowsAgentBlocked(result);
     var withToggle = showAgentToggle(state);
-    if (badge) {
-      badge.textContent = host.checking ? t("host.checking") : badgeInfo.text;
-      badge.className = "badge " + badgeInfo.kind;
-    }
+    renderSummary(state);
     if (rows) {
       if (!result) { rows.innerHTML = ""; }
       else {
-        rows.innerHTML = [["host.desktop", "desktop", result.desktop_ready],
-          ["host.agent", "agent", skipAgentic() ? true : result.agent_ready],
-          ["host.media", "media", result.media_ready]].map(function (row) {
+        var checks = [["host.desktop", "desktop", result.desktop_ready],
+          ["host.agent", "agent", skipAgentic() ? true : result.agent_ready]];
+        if (mediaRequired()) { checks.push(["host.media", "media", result.media_ready]); }
+        rows.innerHTML = checks.map(function (row) {
           var missing = missingItems(result, row[1]);
           var ready = row[2];
           var text = ready
@@ -135,16 +178,12 @@
           kind = "err";
         } else if (skipAgentic() && !result.agent_ready) {
           message = t("host.agent-skip-note");
-          if (result.status === "limited" && !state.host.acknowledged && !result.media_ready) {
-            message += " " + (result.message || "");
-          }
-          kind = "warn";
+          kind = "";
+        } else if (hostReady(result)) {
+          message = "";
         } else {
-          message = result.message || "";
-          if (result.remediation && result.status !== "ready") {
-            message += (message ? " " : "") + t("host.remediation") + ": " + result.remediation;
-          }
-          kind = result.status === "desktop-blocked" ? "err" : (result.status === "limited" ? "warn" : "ok");
+          message = result.remediation ? t("host.remediation") + ": " + result.remediation : "";
+          kind = result.status === "desktop-blocked" ? "err" : "warn";
         }
       }
       note.textContent = message;
@@ -167,7 +206,7 @@
       // must not bypass Windows WSL2 agent requirements (#1937), and a
       // Chat/Drive-only install whose only gap is the skipped agent is already
       // startable (#1961).
-      var showContinue = result && result.status === "limited" && result.desktop_ready &&
+      var showContinue = !!result && result.status === "limited" && result.desktop_ready &&
         !state.host.acknowledged && !state.provisioning.running && !state.provisioning.ready &&
         !agentBlocked && !skippedAgentOnlyGap(result);
       proceed.hidden = !showContinue;

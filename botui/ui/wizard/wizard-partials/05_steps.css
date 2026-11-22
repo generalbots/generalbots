@@ -1,0 +1,130 @@
+/*
+ * Step content on the app's terms: a white page with white, hairline cards
+ * (as in Settings), body text at the app's body size, the welcome copy as
+ * plain body text, the service switches and the host summary row.
+ * Imported last, so these rules settle the earlier partials.
+ */
+
+/* == White page ========================================================== */
+html, body, .wizard { background: var(--id-surface-solid); }
+.card,
+.install-host-body,
+.field input[type="text"],
+.field input[type="password"],
+.field input[type="email"],
+.field select,
+pre.log { background: var(--id-surface-solid); }
+.card, .install-host-body { box-shadow: none; }
+
+/* == Text no smaller than the app's body size ============================ */
+.note,
+.field .hint,
+.field > label,
+.field-label,
+.rail-step-name,
+.install-status,
+.install-toggle-details,
+.summary-row,
+table.datamap,
+.foot-label,
+.pane-lang label,
+.pane-lang select,
+.modal-field,
+.btn-sm { font-size: var(--id-text-base); }
+.install-step-item .install-step-dur,
+.install-step-item .install-step-check,
+.install-col-output .log-count { font-size: var(--id-text-base); }
+pre.log { font-size: 12.5px; }
+
+/* == Step 1: the welcome copy reads like the app's body text ============ */
+.welcome-text { max-width: 62ch; margin: 0 0 var(--id-space-5); }
+.welcome-text p {
+  margin: 0;
+  font-family: var(--id-font);
+  font-size: var(--id-text-md);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--id-text);
+}
+.welcome-text p + p { margin-top: var(--id-space-2); }
+.welcome-text .welcome-lead { font-size: var(--id-text-lg); color: var(--id-ink); }
+.welcome-fields { gap: var(--id-space-4); }
+.welcome-fields .accent-picker { margin-top: var(--id-space-1); }
+
+/* == Step 4: one switch per service (the app's switch) =================== */
+.service-card .card-head { align-items: center; }
+.service-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--id-space-3);
+  cursor: pointer;
+}
+.service-switch .card-title { font-size: var(--id-text-md); }
+.service-scope {
+  margin: 6px 0 0;
+  font-size: var(--id-text-base);
+  color: var(--id-text);
+}
+.service-body { margin-top: var(--id-space-3); }
+.service-card.off .card-title,
+.service-card.off .service-scope { color: var(--id-muted); }
+.wiz-tg {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 32px;
+  height: 16px;
+  margin: 0;
+  padding: 2px;
+  border: var(--id-stroke) solid var(--id-line);
+  border-radius: 0;
+  background: var(--id-fill);
+  cursor: pointer;
+}
+.wiz-tg::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: var(--id-muted);
+  transition: transform .2s cubic-bezier(.22, 1, .36, 1);
+}
+.wiz-tg:checked { background: var(--id-accent); border-color: var(--id-accent); }
+.wiz-tg:checked::after { background: var(--id-on-accent); transform: translateX(16px); }
+.wiz-tg:focus-visible { outline: none; box-shadow: var(--id-focus); }
+@media (prefers-reduced-motion: reduce) {
+  .wiz-tg::after { transition: none; }
+}
+
+/* == Step 7: the host summary row, at the app's section-heading size ===== */
+.install-host-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: var(--id-stroke) solid var(--id-line);
+  border-radius: var(--id-radius-panel);
+  background: var(--id-surface-solid);
+  font-size: var(--id-text-md);
+  font-weight: 600;
+  letter-spacing: -.2px;
+  color: var(--id-ink);
+}
+.install-host-summary::before { display: none; }
+.install-host-summary::after {
+  content: "\25B6";
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--id-muted);
+  transition: transform var(--id-dur-fast);
+}
+.install-host-details[open] > .install-host-summary::after { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) {
+  .install-host-summary::after { transition: none; }
+}
+.install-host-ico { display: inline-flex; width: 16px; justify-content: center; flex: none; }
+.install-host-summary[data-kind="ok"] { color: var(--id-success-text); }
+.install-host-summary[data-kind="warn"] { color: var(--id-warn-text); }
+.install-host-summary[data-kind="err"] { color: var(--id-danger-text); }

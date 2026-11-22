@@ -78,6 +78,34 @@
     return null;
   }
 
+  /* Setup always starts on the free engine: the other three need the running
+     app (machine scan, provider lists, key tests, agent sign-in) and are set
+     in Settings > Modelo afterwards. */
+  function freeModel() {
+    var free = FREE_PROVIDERS[0];
+    return { mode: "free", provider: free.id, endpoint: free.endpoint, model: free.model, api_key: "", tested: false };
+  }
+
+  /* A service is on when its switch is on; drafts saved before the switch
+     existed count as on when they already carry a client ID. */
+  function serviceEnabled(saved) {
+    if (!saved) { return false; }
+    return typeof saved.enabled === "boolean" ? saved.enabled : !!saved.client_id;
+  }
+
+  /* What the provisioning and finish requests carry: only switched-on
+     services that have a client ID, in the ServiceClient shape. */
+  function sentServices(services) {
+    var out = {};
+    Object.keys(services || {}).forEach(function (id) {
+      var s = services[id];
+      if (serviceEnabled(s) && s.client_id) {
+        out[id] = { client_id: s.client_id, client_secret: s.client_secret || "" };
+      }
+    });
+    return out;
+  }
+
   var state = {
     step: 1,
     totalSteps: STEPS.length,
@@ -86,21 +114,14 @@
     draft: {
       display_name: "",
       admin: { email: "admin@localhost", password: "", user_id: "" },
-      // Default to the keyless free tier (Kilo). It needs no download, answers
-      // immediately, and keeps the first install small; the bundled local model
-      // stays available as an explicit choice.
-      model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: FREE_MODEL_ID, api_key: "", tested: false },
+      model: freeModel(),
       workspace: { path: "", size: "standard" },
       services: {},
       network: { mode: "p2p" },
       appearance: { accent: "" },
       // Windows agent mode requires WSL2; Chat/Drive-only users can skip all
       // agent-related setup. Persisted so re-runs remember the choice (#1937).
-      skip_all_agentic_work: false,
-      // True when the person chose "Agente por assinatura" and wants to connect
-      // a subscription agent after setup. model.mode holds the fallback engine
-      // (free or local) that answers until the agent is connected.
-      want_agents: false
+      skip_all_agentic_work: false
     },
     provisioning: {
       running: false,
@@ -187,6 +208,9 @@
     MODELS: MODELS,
     FREE_PROVIDERS: FREE_PROVIDERS,
     freeProviderById: freeProviderById,
+    freeModel: freeModel,
+    serviceEnabled: serviceEnabled,
+    sentServices: sentServices,
     state: state,
     clone: clone,
     providerById: providerById,

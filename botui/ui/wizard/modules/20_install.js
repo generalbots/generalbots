@@ -115,23 +115,6 @@
 
   function renderHostCheck() {
     window.GBWizardHost.render(state);
-    collapseHostIfReady();
-  }
-
-  function collapseHostIfReady() {
-    var details = document.getElementById("hostReadiness");
-    var summary = document.getElementById("hostSummaryText");
-    if (!details || !summary) { return; }
-    var result = state.host.result;
-    var allReady = result && result.status === "ready";
-    var skippedOk = result && result.desktop_ready && result.media_ready &&
-      draft.skip_all_agentic_work;
-    if (state.host.checked && (allReady || skippedOk)) {
-      summary.textContent = result.message || t("host.status-ready");
-      details.removeAttribute("open");
-    } else if (state.host.checked && result) {
-      details.setAttribute("open", "");
-    }
   }
 
   function checkHost(autoStart) {
@@ -156,7 +139,7 @@
   function renderComponents() {
     var list = document.getElementById("componentList");
     if (!list) { return; }
-    list.innerHTML = (state.context.components || []).map(componentTemplate).join("");
+    list.innerHTML = plannedComponents().map(componentTemplate).join("");
     (state.provisioning.components || []).forEach(updateComponent);
     updateInstallProgress();
     renderLog();
@@ -282,6 +265,7 @@
     var start = document.getElementById("startSetupBtn");
     if (start) { start.textContent = t("install.complete"); start.disabled = true; }
     updateInstallProgress();
+    renderHostCheck();
     renderFooter();
     if (state.step === 7) { goTo(8); }
   }
@@ -317,7 +301,7 @@
     pollStatus();
     B.provision({
       model: draft.model, workspace: draft.workspace,
-      services: draft.services, display_name: draft.display_name,
+      services: App.W.sentServices(draft.services), display_name: draft.display_name,
       skip_all_agentic_work: draft.skip_all_agentic_work === true
     }).then(function () { handleDone(); }).catch(function (e) {
       state.provisioning.running = false;

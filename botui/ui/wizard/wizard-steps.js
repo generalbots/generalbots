@@ -20,12 +20,11 @@
     var accentHtml = window.GBWizardApp && window.GBWizardApp.accentPickerHtml ? window.GBWizardApp.accentPickerHtml(draft, esc, t) : "";
     return '' +
       '<p class="welcome-greeting">' + esc(t("welcome.greeting")) + "</p>" +
-      '<p class="lead">' + esc(t("welcome.lead")) + "</p>" +
-      '<div class="card">' +
-        '<p class="note">' + esc(t("welcome.note1")) + "</p>" +
-        '<p class="note">' + esc(t("welcome.note2")) + "</p>" +
+      '<div class="welcome-text">' +
+        '<p class="welcome-lead">' + esc(t("welcome.lead")) + "</p>" +
+        "<p>" + esc(t("welcome.note1")) + " " + esc(t("welcome.note2")) + "</p>" +
       "</div>" +
-      '<div class="field-grid" style="margin-top:16px">' +
+      '<div class="field-grid welcome-fields">' +
         '<div class="field"><label for="displayName">' + esc(t("welcome.name-label")) + "</label>" +
           '<input type="text" id="displayName" value="' + esc(draft.display_name) + '" placeholder="' + esc(t("welcome.name-placeholder")) + '" /></div>' +
         accentHtml +
@@ -59,15 +58,23 @@
 
   function renderServiceCard(provider, draft, ctx) {
     var saved = draft.services[provider.id] || {};
-    var state = saved.connected ? t("services.connected") : (saved.client_id ? t("services.attention") : t("services.not-connected"));
-    var kind = saved.connected ? "ok" : (saved.client_id ? "warn" : "");
+    var on = W.serviceEnabled(saved);
+    var state = !on ? t("services.off") : (saved.connected ? t("services.connected") : (saved.client_id ? t("services.attention") : t("services.not-connected")));
+    var kind = !on ? "" : (saved.connected ? "ok" : (saved.client_id ? "warn" : ""));
     var redirect = (ctx.redirect_uri || provider.redirectTemplate).replace("{provider}", provider.id);
+    var toggleId = "serviceToggle-" + provider.id;
     return '' +
-      '<div class="card" data-service="' + provider.id + '">' +
-        '<div class="card-head"><span class="card-title">' + esc(provider.name) + "</span>" +
+      '<div class="card service-card' + (on ? "" : " off") + '" data-service="' + provider.id + '">' +
+        '<div class="card-head">' +
+          '<label class="service-switch" for="' + toggleId + '">' +
+            '<input type="checkbox" class="wiz-tg" id="' + toggleId + '" data-service-toggle="' + provider.id + '"' +
+              (on ? " checked" : "") + ' aria-controls="serviceBody-' + provider.id + '" />' +
+            '<span class="card-title">' + esc(provider.name) + "</span>" +
+          "</label>" +
           statusBadge(state, kind) + "</div>" +
-        '<p class="note" style="margin:8px 0">' + esc(t(provider.stepsKey)) + "</p>" +
-        '<p class="note" style="margin:0 0 8px">' + esc(t(provider.scopeNoteKey)) + "</p>" +
+        '<p class="service-scope">' + esc(t(provider.scopeNoteKey)) + "</p>" +
+        '<div class="service-body" id="serviceBody-' + provider.id + '"' + (on ? "" : " hidden") + ">" +
+        '<p class="note" style="margin:0 0 10px">' + esc(t(provider.stepsKey)) + "</p>" +
         '<div class="field" style="margin-bottom:10px">' +
           '<label>' + esc(t("services.redirect")) + "</label>" +
           '<div class="inline-row">' +
@@ -86,7 +93,13 @@
             '<span class="hint">' + esc(t("services.secret-hint")) + "</span></div>" +
         "</div>" +
         '<p class="note" data-service-note="' + provider.id + '"></p>' +
+        "</div>" +
       "</div>";
+  }
+
+  function connectedServiceNames(draft) {
+    var sent = W.sentServices(draft.services);
+    return W.PROVIDERS.filter(function (p) { return !!sent[p.id]; }).map(function (p) { return p.name; });
   }
 
   function renderServices(draft, ctx) {
@@ -105,10 +118,7 @@
       var host = W.endpointHost(model.endpoint || W.defaultModelEndpoint(model.provider)) || t("nav.unknown");
       prompts = t("privacy.sent-to", { host: host }) + (W.isLoopback(model.endpoint) ? t("privacy.on-this-machine") : "");
     }
-    var connected = W.PROVIDERS.filter(function (p) {
-      var s = draft.services[p.id];
-      return s && s.client_id;
-    }).map(function (p) { return p.name; });
+    var connected = connectedServiceNames(draft);
     return [
       [t("privacy.conversations"), t("privacy.conversations-dest", { path: draft.workspace.path || ctx.workspace_path }), t("privacy.always")],
       [t("privacy.keys"), t("privacy.keys-dest", { path: ctx.stack_path }), t("privacy.when-saved")],
@@ -164,9 +174,9 @@
     return '' +
       '<p class="lead" style="margin-bottom:14px">' + esc(t("install.desc")) + "</p>" +
       '<details class="install-host-details" id="hostReadiness" aria-live="polite">' +
-        '<summary class="install-host-summary" id="hostSummaryLine">' +
+        '<summary class="install-host-summary" id="hostSummaryLine" data-kind="run">' +
+          '<span class="install-host-ico" id="hostSummaryIcon" aria-hidden="true"></span>' +
           '<span id="hostSummaryText">' + esc(t("host.checking")) + "</span>" +
-          '<span class="badge" id="hostBadge" style="margin-left:8px">' + esc(t("host.checking")) + "</span>" +
         "</summary>" +
         '<div class="install-host-body">' +
           '<div id="hostRows" style="margin-top:8px"></div>' +
@@ -218,38 +228,24 @@
       "</div>";
   }
 
-  function renderFinishAccount(draft) {
-    /* Subscription agents are connected AFTER setup, in the app. The wizard
-       only shows a reminder when the person chose "Agente por assinatura". */
-    if (!draft.want_agents) { return ""; }
-    return '' +
-      '<div class="card" id="finishAgentReminder" style="margin-top:16px">' +
-        '<div class="card-head"><span class="card-title">' +
-          esc(t("finish.agent-reminder-title")) + "</span></div>" +
-        '<p class="note" style="margin:8px 0">' + esc(t("finish.agent-reminder-text")) + "</p>" +
+  /* The AI media check lists barcode and OCR tools from the generic stack. In
+     the desktop edition OCR runs on the system's own engine and barcode
+     reading is not offered, so the block is left out there. */
+  function renderMediaCard(ctx) {
+    if (ctx && ctx.desktop_local) { return ""; }
+    return '<div class="card" id="mediaCapabilitiesCard" style="margin-top:16px">' +
+        '<div class="card-head"><span class="card-title">' + esc(t("finish.media-title")) + "</span>" +
+          '<span class="badge" id="mediaCapabilitiesBadge">' + esc(t("finish.media-checking")) + "</span></div>" +
+        '<div id="mediaCapabilitiesRows" style="margin-top:8px"></div>' +
+        '<p class="note" id="mediaCapabilitiesNote" role="status" style="margin:8px 0 0"></p>' +
       "</div>";
   }
 
   function renderFinish(draft, ctx) {
-    var modelLabel;
-    if (draft.want_agents) {
-      var fb = draft.model.mode === "local" ? t("finish.model-local") : t("finish.model-free-fb");
-      modelLabel = t("finish.model-acp", { fallback: fb });
-    } else if (draft.model.mode === "local") {
-      modelLabel = t("finish.model-local");
-    } else if (draft.model.mode === "free") {
-      modelLabel = t("finish.model-free-fb");
-    } else {
-      modelLabel = (draft.model.mode === "own-key" ? t("finish.model-own") : t("finish.model-hosted")) +
-        (W.endpointHost(draft.model.endpoint) || draft.model.provider);
-    }
-    var connected = W.PROVIDERS.filter(function (p) {
-      var s = draft.services[p.id];
-      return s && s.client_id;
-    }).map(function (p) { return p.name; });
+    var modelLabel = t("finish.model-free-fb");
+    var connected = connectedServiceNames(draft);
     var notConnected = W.PROVIDERS.filter(function (p) {
-      var s = draft.services[p.id];
-      return !s || !s.client_id;
+      return connected.indexOf(p.name) === -1;
     }).map(function (p) { return p.name; });
     return '' +
       '<p class="lead">' + esc(t("finish.lead")) + "</p>" +
@@ -270,7 +266,6 @@
             '<span class="hint">' + esc(t("finish.password-hint")) + "</span></div>" +
         "</div>" +
       "</div>" +
-      renderFinishAccount(draft) +
       '<div class="summary" style="margin-top:16px">' +
         '<div class="summary-row"><span>' + esc(t("finish.workspace")) + "</span><span>" + esc(draft.workspace.path || ctx.workspace_path) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.model")) + "</span><span>" + esc(modelLabel) + "</span></div>" +
@@ -278,12 +273,7 @@
         '<div class="summary-row"><span>' + esc(t("finish.not-connected")) + "</span><span>" + esc(notConnected.length ? notConnected.join(", ") : t("finish.none")) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.crash")) + "</span><span>" + esc(t("finish.off")) + "</span></div>" +
       "</div>" +
-      '<div class="card" id="mediaCapabilitiesCard" style="margin-top:16px">' +
-        '<div class="card-head"><span class="card-title">' + esc(t("finish.media-title")) + "</span>" +
-          '<span class="badge" id="mediaCapabilitiesBadge">' + esc(t("finish.media-checking")) + "</span></div>" +
-        '<div id="mediaCapabilitiesRows" style="margin-top:8px"></div>' +
-        '<p class="note" id="mediaCapabilitiesNote" role="status" style="margin:8px 0 0"></p>' +
-      "</div>" +
+      renderMediaCard(ctx) +
       '<p class="note" style="margin-top:16px">' + esc(t("finish.change-later")) + "</p>" +
       '<div id="finishStatus" class="note" role="status" style="margin-top:12px"></div>';
   }
@@ -308,24 +298,6 @@
   }
 
   function validate(step, draft) {
-    if (step === 2) {
-      if (draft.model.mode === "local") { return { ok: true }; }
-      if (draft.model.mode === "free") {
-        var free = W.freeProviderById(draft.model.provider);
-        if (free && free.needsKey && !draft.model.api_key) {
-          return { ok: false, reason: t("model.key-hint-llm7") };
-        }
-        return { ok: true };
-      }
-      if (draft.model.mode === "own-key") {
-        if (!draft.model.endpoint) { return { ok: false, reason: t("model.endpoint") + " — " + t("workspace.choose") }; }
-        if (!draft.model.model) { return { ok: false, reason: t("model.name") }; }
-        if (!draft.model.api_key) { return { ok: false, reason: t("model.key") }; }
-        if (!draft.model.tested) { return { ok: false, reason: t("model.test") }; }
-        return { ok: true };
-      }
-      return { ok: true };
-    }
     if (step === 3) {
       if (!draft.workspace.path) { return { ok: false, reason: t("workspace.choose") }; }
       if (draft.workspace.blocked) { return { ok: false, reason: draft.workspace.block_reason || t("workspace.not-writable") }; }
@@ -339,7 +311,6 @@
     heading: heading,
     validate: validate,
     dataMapRows: dataMapRows,
-    engineDetail: function (draft) { return window.GBWizardEngine.engineDetail(draft); },
     esc: esc
   };
 })();

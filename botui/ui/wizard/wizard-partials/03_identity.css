@@ -43,31 +43,6 @@
   border-color: var(--id-ink);
   box-shadow: 0 0 0 2px var(--id-surface-solid), 0 0 0 4px var(--id-ink);
 }
-.accent-custom-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--id-space-2);
-  margin-left: var(--id-space-2);
-}
-.accent-custom-input {
-  width: 36px;
-  height: 36px;
-  border: var(--id-stroke) solid var(--id-line);
-  border-radius: var(--id-radius-control);
-  padding: 2px;
-  cursor: pointer;
-  background: var(--id-surface);
-}
-.accent-custom-input::-webkit-color-swatch-wrapper { padding: 0; }
-.accent-custom-input::-webkit-color-swatch {
-  border: none;
-  border-radius: calc(var(--id-radius-control) - 3px);
-}
-.accent-custom-label {
-  font-size: var(--id-text-sm);
-  color: var(--id-muted);
-}
-
 /* == Welcome greeting =================================================== */
 
 .welcome-greeting {
@@ -89,36 +64,51 @@
 }
 .radio-label input { accent-color: var(--id-accent); }
 
-/* == Engine cards (matches the app's gb-of-mode pattern) ================ */
+/* == Engine overview (the app's Settings > Modelo card anatomy) ========= */
 
+.wiz-engine-lead { max-width: 90ch; }
 .wiz-engine-section {
   display: flex;
   flex-direction: column;
 }
-
+.wiz-engine-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--id-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--id-space-2);
+}
 .wiz-engine-label {
   font-family: var(--id-font-mono);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .06em;
   color: var(--id-ink);
-  margin-bottom: var(--id-space-2);
+}
+.wiz-engine-hint {
+  font-size: 12.5px;
+  color: var(--id-muted);
 }
 
-/* Four cards in one row at the real window width (1040 px, content ~770 px).
-   2x2 at the 900x560 minimum. No empty cells may show through. */
-.wiz-engine-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--id-line);
+/* One white card with hairline borders; the four engines share its grid
+   lines. 2 x 2 at the real window width (content ~740 px) and at the
+   900 x 560 minimum, one row of four only when there is room for it. */
+.wiz-engine-card {
+  background: var(--id-surface-solid);
   border: var(--id-stroke) solid var(--id-line);
-  border-bottom: 0;
-  border-radius: var(--id-radius-panel) var(--id-radius-panel) 0 0;
+  border-radius: var(--id-radius-panel);
   overflow: hidden;
 }
-@media (max-width: 900px) {
-  .wiz-engine-grid { grid-template-columns: repeat(2, 1fr); }
+.wiz-engine-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--id-line);
+  border-bottom: var(--id-stroke) solid var(--id-line);
+}
+@media (min-width: 1240px) {
+  .wiz-engine-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .wiz-engine {
@@ -126,24 +116,13 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
-  padding: 12px 10px 10px;
-  background: var(--id-paper);
-  cursor: pointer;
-  min-height: 110px;
-  border: 0;
-  border-radius: 0;
-  text-align: left;
-  font: inherit;
-  color: var(--id-ink);
-  margin: 0;
-  transition: background-color var(--id-dur-fast);
-}
-.wiz-engine:hover,
-.wiz-engine.selected {
+  gap: 12px;
+  padding: 16px 14px 14px;
+  min-height: 140px;
   background: var(--id-surface-solid);
+  color: var(--id-ink);
 }
-.wiz-engine.selected::before {
+.wiz-engine.start::before {
   content: "";
   position: absolute;
   left: 0;
@@ -151,11 +130,6 @@
   top: 0;
   height: 1px;
   background: var(--id-accent);
-}
-.wiz-engine:focus-visible {
-  outline: none;
-  box-shadow: var(--id-focus);
-  z-index: 1;
 }
 
 .wiz-engine-top {
@@ -175,9 +149,7 @@
   color: var(--id-text);
   flex: none;
 }
-.wiz-engine.selected .wiz-engine-ico {
-  color: var(--id-accent-text);
-}
+.wiz-engine.start .wiz-engine-ico { color: var(--id-accent-text); }
 .wiz-engine-num {
   font: 600 10.5px/normal var(--id-font-mono);
   color: var(--id-muted);
@@ -203,9 +175,9 @@
   letter-spacing: -.2px;
 }
 .wiz-engine-txt span {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--id-muted);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 .wiz-engine-foot {
   margin-top: auto;
@@ -217,8 +189,8 @@
 .wiz-engine-dest {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 500;
 }
 .wiz-engine-sq {
@@ -232,8 +204,8 @@
 .wiz-engine-dest[data-tone="mid"] { color: var(--id-warn-text); }
 .wiz-engine-dest[data-tone="out"] { color: var(--id-danger-text); }
 
-/* Privacy meter segments */
-.wiz-segs { display: flex; gap: 3px; flex: none; }
+/* Privacy meter: five segments, the app's small size */
+.wiz-segs { display: flex; gap: 2px; flex: none; }
 .wiz-segs i {
   display: block;
   width: 8px;
@@ -244,21 +216,21 @@
 .wiz-segs[data-tone="mid"] i.on { background: var(--id-warn-text); }
 .wiz-segs[data-tone="out"] i.on { background: var(--id-danger-text); }
 
-/* == Detail panel under cards =========================================== */
-
+/* Details strip for the engine in use at the start */
 .wiz-engine-dhead {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  border: var(--id-stroke) solid var(--id-line);
-  border-top: 0;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 50px;
   padding: 8px 16px;
-  background: var(--id-surface-solid);
+  border-bottom: var(--id-stroke) solid var(--id-line);
 }
 .wiz-engine-dhead > div {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 .wiz-engine-k {
   font-family: var(--id-font-mono);
@@ -271,79 +243,22 @@
   font-weight: 600;
   font-size: 15px;
 }
-
+.wiz-engine-now {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 11px/normal var(--id-font-mono);
+  color: var(--id-success-text);
+  white-space: nowrap;
+}
 .wiz-engine-dbody {
-  border: var(--id-stroke) solid var(--id-line);
-  border-top: 0;
-  border-radius: 0 0 var(--id-radius-panel) var(--id-radius-panel);
-  background: var(--id-paper);
-  padding: 14px 16px 16px;
+  padding: 12px 16px 14px;
 }
-
-.wiz-detail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 620px;
-}
-.wiz-detail-text {
+.wiz-engine-dbody p {
   margin: 0;
-  font-size: var(--id-text-sm);
-  color: var(--id-text);
+  max-width: 68ch;
+  font-size: var(--id-text-base);
   line-height: 1.55;
+  color: var(--id-text);
 }
-.wiz-detail-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.wiz-detail-label {
-  font-size: var(--id-text-sm);
-  font-weight: 600;
-  color: var(--id-ink);
-}
-
-/* Advanced disclosure for free model */
-.wiz-advanced {
-  margin-top: 4px;
-}
-.wiz-advanced > summary {
-  cursor: pointer;
-  font-size: var(--id-text-sm);
-  font-weight: 600;
-  color: var(--id-muted);
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.wiz-advanced > summary::-webkit-details-marker { display: none; }
-.wiz-advanced > summary::before {
-  content: "\25B6";
-  font-size: 8px;
-  transition: transform var(--id-dur-fast);
-}
-@media (prefers-reduced-motion: reduce) {
-  .wiz-advanced > summary::before { transition: none; }
-}
-.wiz-advanced[open] > summary::before {
-  transform: rotate(90deg);
-}
-
-/* ACP fallback engine choice */
-.wiz-fallback-choices {
-  display: flex;
-  gap: var(--id-space-3);
-  flex-wrap: wrap;
-}
-.wiz-fallback-choice {
-  display: flex;
-  align-items: center;
-  gap: var(--id-space-2);
-  font-size: var(--id-text-sm);
-  font-weight: 500;
-  cursor: pointer;
-}
-.wiz-fallback-choice input {
-  accent-color: var(--id-accent);
-}
+.wiz-engine-dbody p + p { margin-top: 6px; }

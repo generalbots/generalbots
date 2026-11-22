@@ -69,7 +69,7 @@
       display_name: draft.display_name,
       model: draft.model,
       workspace: draft.workspace,
-      services: draft.services,
+      services: App.W.sentServices(draft.services),
       admin: draft.admin,
       network: draft.network,
       appearance: draft.appearance

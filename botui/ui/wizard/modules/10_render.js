@@ -77,48 +77,6 @@
       if (App.bindAccentPicker) { App.bindAccentPicker(); }
     }
 
-    if (state.step === 2) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-engine]'), function (card) {
-        card.addEventListener("click", function () {
-          var engine = card.getAttribute("data-engine");
-          if (engine === "acp") {
-            draft.want_agents = true;
-            draft.skip_all_agentic_work = false;
-            if (draft.model.mode !== "local" && draft.model.mode !== "free") {
-              draft.model.mode = "free";
-              draft.model.provider = "kilo";
-              draft.model.endpoint = W.defaultModelEndpoint("kilo");
-              draft.model.model = W.defaultModelName("kilo");
-              draft.model.api_key = "";
-            }
-          } else {
-            draft.want_agents = false;
-            draft.model.mode = engine;
-            if (engine === "free") {
-              draft.model.provider = "kilo";
-              draft.model.endpoint = W.defaultModelEndpoint("kilo");
-              draft.model.model = W.defaultModelName("kilo");
-              draft.model.api_key = "";
-              draft.model.tested = false;
-            } else if (engine === "own-key") {
-              if (!W.defaultModelEndpoint(draft.model.provider)) {
-                draft.model.provider = "openai";
-              }
-              draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
-              draft.model.model = W.defaultModelName(draft.model.provider);
-              draft.model.tested = false;
-            } else if (engine === "local") {
-              draft.model.tested = true;
-            }
-          }
-          persistDraft();
-          render();
-        });
-      });
-      bindModelDetail();
-      bindAcpFallback();
-    }
-
     if (state.step === 3) {
       var path = document.getElementById("workspacePath");
       var size = document.getElementById("workspaceSize");
@@ -145,98 +103,6 @@
     if (state.step === 8) { bindFinish(); }
   }
 
-  function bindAcpFallback() {
-    Array.prototype.forEach.call(document.querySelectorAll('input[name="acpFallback"]'), function (radio) {
-      radio.addEventListener("change", function () {
-        draft.model.mode = radio.value;
-        if (radio.value === "free") {
-          draft.model.provider = "kilo";
-          draft.model.endpoint = W.defaultModelEndpoint("kilo");
-          draft.model.model = W.defaultModelName("kilo");
-          draft.model.api_key = "";
-        }
-        draft.model.tested = radio.value === "local";
-        persistDraft();
-        renderFooter();
-      });
-    });
-  }
-
-  function bindModelDetail() {
-    var provider = document.getElementById("modelProvider");
-    var endpoint = document.getElementById("modelEndpoint");
-    var modelName = document.getElementById("modelName");
-    var key = document.getElementById("modelKey");
-    var test = document.getElementById("testModelBtn");
-    if (provider) {
-      provider.addEventListener("change", function () {
-        draft.model.provider = provider.value;
-        if (draft.model.mode === "free") {
-          draft.model.endpoint = W.defaultModelEndpoint(provider.value);
-          draft.model.model = W.defaultModelName(provider.value);
-          draft.model.tested = false;
-          document.getElementById("modelDetail").innerHTML = S.modelDetail(draft);
-          bindModelDetail();
-          renderFooter();
-          persistDraft();
-          return;
-        }
-        if (provider.value !== "custom") {
-          endpoint.value = W.defaultModelEndpoint(provider.value);
-          modelName.value = W.defaultModelName(provider.value);
-        }
-        draft.model.endpoint = endpoint.value;
-        draft.model.model = modelName.value;
-        draft.model.tested = false;
-        document.getElementById("modelTestStatus").textContent = t("model.untested");
-        renderFooter();
-      });
-    }
-    if (endpoint) { endpoint.addEventListener("input", function () { draft.model.endpoint = endpoint.value.trim(); draft.model.tested = false; renderFooter(); }); }
-    if (modelName) { modelName.addEventListener("input", function () { draft.model.model = modelName.value.trim(); draft.model.tested = false; renderFooter(); }); }
-    if (key) { key.addEventListener("input", function () { draft.model.api_key = key.value; draft.model.tested = false; renderFooter(); }); }
-    var toggleKey = document.getElementById("toggleKeyBtn");
-    if (toggleKey && key) {
-      toggleKey.addEventListener("click", function () {
-        var reveal = key.type === "password";
-        key.type = reveal ? "text" : "password";
-        toggleKey.setAttribute("aria-pressed", reveal ? "true" : "false");
-        toggleKey.textContent = t(reveal ? "model.hide-key" : "model.show-key");
-      });
-    }
-    if (test) {
-      test.addEventListener("click", function () {
-        var status = document.getElementById("modelTestStatus");
-        status.textContent = t("model.testing");
-        status.className = "note";
-        test.disabled = true;
-        draft.model.endpoint = endpoint ? endpoint.value.trim() : "";
-        draft.model.model = modelName ? modelName.value.trim() : "";
-        draft.model.api_key = key ? key.value : "";
-        B.testModel({
-          mode: draft.model.mode,
-          provider: draft.model.provider,
-          endpoint: draft.model.endpoint,
-          model: draft.model.model,
-          api_key: draft.model.api_key
-        }).then(function (result) {
-          draft.model.tested = !!result.ok;
-          status.textContent = result.message;
-          status.className = "note " + (result.ok ? "ok" : "err");
-          say(result.message);
-        }).catch(function (e) {
-          draft.model.tested = false;
-          status.textContent = String(e && e.message ? e.message : e);
-          status.className = "note err";
-        }).then(function () {
-          test.disabled = false;
-          renderFooter();
-          persistDraft();
-        });
-      });
-    }
-  }
-
   function checkWorkspace() {
     var status = document.getElementById("workspaceStatus");
     var free = document.getElementById("workspaceFree");
@@ -246,8 +112,8 @@
     status.textContent = t("workspace.checking");
     B.checkWorkspace(path).then(function (result) {
       draft.workspace.blocked = !result.writable;
-      draft.workspace.block_reason = result.reason || "";
-      status.textContent = result.writable ? t("workspace.writable") : (result.reason || t("workspace.not-writable"));
+      draft.workspace.block_reason = result.writable ? "" : t("workspace.not-writable");
+      status.textContent = result.writable ? t("workspace.writable") : t("workspace.not-writable");
       status.className = "hint " + (result.writable ? "ok" : "err");
       if (free) { free.textContent = t("workspace.free", { size: W.formatBytes(result.free_bytes) }); }
       renderFooter();
@@ -258,7 +124,28 @@
     });
   }
 
+  function setServiceEnabled(id, on) {
+    draft.services[id] = draft.services[id] || {};
+    draft.services[id].enabled = on;
+    var card = document.querySelector('[data-service="' + id + '"]');
+    var body = document.getElementById("serviceBody-" + id);
+    var badge = card ? card.querySelector(".badge") : null;
+    var saved = draft.services[id];
+    if (card) { card.classList.toggle("off", !on); }
+    if (body) { body.hidden = !on; }
+    if (badge) {
+      badge.textContent = !on ? t("services.off") : (saved.client_id ? t("services.attention") : t("services.not-connected"));
+      badge.className = "badge " + (on && saved.client_id ? "warn" : "");
+    }
+    persistDraft();
+  }
+
   function bindServices() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-service-toggle]"), function (toggle) {
+      toggle.addEventListener("change", function () {
+        setServiceEnabled(toggle.getAttribute("data-service-toggle"), toggle.checked);
+      });
+    });
     Array.prototype.forEach.call(document.querySelectorAll("[data-service-id]"), function (input) {
       input.addEventListener("input", function () {
         var id = input.getAttribute("data-service-id");
@@ -307,10 +194,9 @@
   App.syncChrome = syncChrome;
   App.render = render;
   App.bindStep = bindStep;
-  App.bindModelDetail = bindModelDetail;
   App.checkWorkspace = checkWorkspace;
-  App.bindAcpFallback = bindAcpFallback;
   App.bindServices = bindServices;
+  App.setServiceEnabled = setServiceEnabled;
   App.bindPrivacy = bindPrivacy;
   App.bindNetwork = bindNetwork;
 })();
