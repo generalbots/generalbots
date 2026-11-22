@@ -299,6 +299,11 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         // live under /api/apps/integrations. The handler filters connections by
         // owner_user_id, so any authenticated user may read their own list.
         RoutePermission::new("/api/apps/integrations/**", "GET", ""),
+        // #2346 — provider editor writes are admin-only; reads stay available
+        // to every authenticated user through the line above.
+        RoutePermission::new("/api/apps/integrations/providers", "POST", ""),
+        RoutePermission::new("/api/apps/integrations/providers/**", "PUT", ""),
+        RoutePermission::new("/api/apps/integrations/providers/**", "DELETE", ""),
 
         // User self-service (profile, security, storage)
         RoutePermission::new("/api/ui/user/**", "GET", ""),

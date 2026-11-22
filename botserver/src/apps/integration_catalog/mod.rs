@@ -3,6 +3,7 @@ mod auth;
 mod auth_steps;
 mod credentials;
 mod providers;
+mod provider_store;
 mod routes;
 mod types;
 

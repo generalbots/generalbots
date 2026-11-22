@@ -358,3 +358,18 @@ async fn peer_control_routes_are_admin_only() {
         );
     }
 }
+
+
+#[tokio::test]
+async fn test_provider_editor_routes_are_admin_only() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes.clone()).await;
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+        .with_role(Role::Admin);
+    assert_eq!(routes.len(), routes.len());
+    assert!(routes.iter().any(|r| r.method == "POST" && r.path_pattern == "/api/apps/integrations/providers"));
+    assert!(manager.check_route_access("/api/apps/integrations/providers", "POST", &admin).await.is_allowed());
+    assert!(manager.check_route_access("/api/apps/integrations/providers/x", "PUT", &admin).await.is_allowed());
+    assert!(manager.check_route_access("/api/apps/integrations/providers/x", "DELETE", &admin).await.is_allowed());
+}
