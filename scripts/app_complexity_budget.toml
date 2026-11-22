@@ -11,75 +11,72 @@
 [defaults]
 routes = 153
 js_modules = 115
-loc = 28052
+loc = 28453
 
 [apps."about"]
 routes = 0
 js_modules = 2
-loc = 759
+loc = 760
 
 [apps."analytics"]
 routes = 33
 js_modules = 11
-loc = 4208
+loc = 4210
 
 [apps."attendant"]
 routes = 17
 js_modules = 7
-loc = 3549
+loc = 3550
 
 [apps."automations"]
 routes = 9
 js_modules = 2
-loc = 1143
+loc = 1144
 
 [apps."banking"]
 routes = 9
 js_modules = 5
-loc = 966
+loc = 967
 
 [apps."billing"]
 routes = 27
 js_modules = 1
-loc = 1801
+loc = 1802
 
 [apps."browser"]
 routes = 17
 js_modules = 3
-loc = 1100
+loc = 1101
 
 [apps."calculator"]
 routes = 0
 js_modules = 4
-loc = 909
+loc = 910
 
 [apps."calendar"]
 routes = 7
 js_modules = 4
-loc = 3532
+loc = 3533
 
 [apps."campaigns"]
 routes = 2
 js_modules = 1
-loc = 1094
+loc = 1092
 
 [apps."canvas"]
-routes = 15
+routes = 14
 js_modules = 10
-loc = 3377
+loc = 3378
 
 [apps."chat"]
-# +1 module / +368: #gbgov UX port — model tags, provider groups, lazy KaTeX.
-# +1 module / +460: #2516 mobile media intake sheet + viewport/keyboard bridge
-# (four 52px rows, voice consent, deferred optional modules) — browser-UATed.
 routes = 30
 js_modules = 92
-loc = 28256
+loc = 28453
 
 [apps."clock"]
 routes = 0
 js_modules = 1
-loc = 682
+loc = 683
 
 [apps."clock-widget"]
 routes = 0
@@ -89,170 +86,167 @@ loc = 0
 [apps."compliance"]
 routes = 30
 js_modules = 1
-loc = 920
+loc = 921
 
 [apps."concierge"]
 routes = 0
 js_modules = 1
-loc = 237
+loc = 238
 
 [apps."crm"]
-routes = 51
-js_modules = 6
-loc = 3434
+routes = 54
+js_modules = 7
+loc = 3559
 
 [apps."database"]
 routes = 11
 js_modules = 6
-loc = 1456
+loc = 1457
 
 [apps."designer"]
 routes = 0
 js_modules = 21
-loc = 5793
+loc = 5794
 
 [apps."desktop"]
 routes = 4
 js_modules = 62
-loc = 28052
+loc = 28073
 
 [apps."docs"]
-# +89: #2484 local-first language tools — privacy gate, per-doc dictionary,
-# localized panels (10 keys x 8 locales), 21/21 harness assertions.
 routes = 0
-js_modules = 105
-loc = 19043
+js_modules = 106
+loc = 19228
 
 [apps."drive"]
-# +12: #2510 localized the share-intake page (data-i18n + gbT catalogs).
 routes = 26
 js_modules = 34
-loc = 10767
+loc = 10584
 
 [apps."editor"]
 routes = 1
 js_modules = 5
-loc = 1327
+loc = 1328
 
 [apps."fraud"]
 routes = 8
 js_modules = 1
-loc = 962
+loc = 963
 
 [apps."goals"]
 routes = 11
 js_modules = 7
-loc = 1975
+loc = 1976
 
 [apps."handoff"]
 routes = 5
 js_modules = 5
-loc = 803
+loc = 804
 
 [apps."hr"]
 routes = 4
 js_modules = 6
-loc = 1309
+loc = 1310
 
 [apps."integrations"]
 routes = 7
 js_modules = 23
-loc = 7034
+loc = 7053
 
 [apps."jukebox"]
 routes = 6
 js_modules = 1
-loc = 603
+loc = 604
 
 [apps."kyc"]
 routes = 5
 js_modules = 1
-loc = 418
+loc = 419
 
 [apps."learn"]
 routes = 12
 js_modules = 1
-loc = 1645
+loc = 1646
 
 [apps."lists"]
 routes = 0
 js_modules = 10
-loc = 2137
+loc = 2138
 
 [apps."mail"]
 routes = 36
 js_modules = 6
-loc = 4393
+loc = 4395
 
 [apps."meet"]
 routes = 13
 js_modules = 10
-loc = 2594
+loc = 2596
 
 [apps."memory"]
 routes = 0
 js_modules = 2
-loc = 720
+loc = 721
 
 [apps."minutes"]
 routes = 1
 js_modules = 2
-loc = 366
+loc = 367
 
 [apps."monitoring"]
 routes = 0
 js_modules = 7
-loc = 8294
+loc = 8304
 
 [apps."notepad"]
 routes = 0
 js_modules = 2
-loc = 180
+loc = 181
 
 [apps."notes"]
 routes = 0
 js_modules = 2
-loc = 425
+loc = 426
 
 [apps."o365"]
 routes = 10
 js_modules = 1
-loc = 478
+loc = 479
 
 [apps."paper"]
 routes = 0
 js_modules = 6
-loc = 4102
+loc = 4104
 
 [apps."people"]
 routes = 1
 js_modules = 4
-loc = 1955
+loc = 1956
 
 [apps."photos"]
 routes = 0
 js_modules = 2
-loc = 903
+loc = 905
 
 [apps."plan"]
 routes = 0
 js_modules = 4
-loc = 1035
+loc = 1036
 
 [apps."player"]
 routes = 0
 js_modules = 3
-loc = 1983
+loc = 1984
 
 [apps."plugins"]
 routes = 0
 js_modules = 0
-loc = 173
+loc = 174
 
 [apps."pos"]
 routes = 0
 js_modules = 1
-loc = 351
+loc = 352
 
 [apps."preview"]
 routes = 0
@@ -262,118 +256,109 @@ loc = 0
 [apps."products"]
 routes = 19
 js_modules = 0
-loc = 1631
+loc = 1632
 
 [apps."project"]
 routes = 0
 js_modules = 4
-loc = 2380
+loc = 2381
 
 [apps."recycle"]
 routes = 0
 js_modules = 1
-loc = 249
+loc = 250
 
 [apps."research"]
 routes = 0
 js_modules = 2
-loc = 2622
+loc = 2623
 
 [apps."retail"]
 routes = 0
 js_modules = 1
-loc = 560
+loc = 561
 
 [apps."settings"]
-# +2 modules / +759: #gbgov UX port — provider picker + per-key model switches.
 routes = 52
-js_modules = 32
-loc = 13071
+js_modules = 33
+loc = 13153
 
 [apps."sheet"]
-# +29: #2493 a11y correctness — active-cell ARIA, Ctrl+End data extent,
-# Shift+Home/End/Page range extension (8/8 harness assertions).
-# +29: #2515 phone grid hit-test — collapse the wrapped 2-row toolbar to one
-# scrollable row, move the format row into the #2290 overflow sheet, and add a
-# 55/55 mobile-office harness (BEFORE cell hit=BODY/grid 0px → AFTER vg-cell/209px).
-# +4: #2491 updateWatch() now calls UI.refreshGraph() before rendering, so a
-# live grid edit is reflected without a manual refresh (78/78 harness).
 routes = 0
 js_modules = 115
-loc = 27709
+loc = 27745
 
 [apps."slides"]
-# +34: #2433 inline alt-text fields per a11y row + focus CSS (localized).
 routes = 0
-js_modules = 93
-loc = 21132
+js_modules = 94
+loc = 21292
 
 [apps."social"]
 routes = 6
 js_modules = 1
-loc = 1315
+loc = 1316
 
 [apps."store"]
 routes = 35
 js_modules = 1
-loc = 412
+loc = 413
 
 [apps."tasks"]
 routes = 0
 js_modules = 25
-loc = 17236
+loc = 11512
 
 [apps."tax"]
 routes = 5
 js_modules = 1
-loc = 927
+loc = 928
 
 [apps."templates"]
 routes = 1
 js_modules = 1
-loc = 524
+loc = 525
 
 [apps."terminal"]
 routes = 0
 js_modules = 2
-loc = 688
+loc = 689
 
 [apps."tickets"]
 routes = 5
 js_modules = 1
-loc = 1735
+loc = 1736
 
 [apps."timeclock"]
 routes = 19
 js_modules = 1
-loc = 367
+loc = 368
 
 [apps."timer"]
 routes = 0
 js_modules = 1
-loc = 364
+loc = 365
 
 [apps."vibe"]
 routes = 31
 js_modules = 64
-loc = 14410
+loc = 14592
 
 [apps."video"]
 routes = 34
 js_modules = 1
-loc = 668
+loc = 669
 
 [apps."vision"]
 routes = 2
 js_modules = 1
-loc = 536
+loc = 537
 
 [apps."weather"]
 routes = 0
 js_modules = 2
-loc = 619
+loc = 620
 
 [apps."workspace"]
 routes = 7
 js_modules = 1
-loc = 575
+loc = 576
