@@ -55,3 +55,63 @@
     min-height: 44px;
   }
 }
+
+/* #2325 — compact-mode 44px floor for controls that were still below the
+   touch target minimum on phone/tablet (nav rows, toolbar icons, selects,
+   filter pills, search fields and the chat composer). The mouse-driven desktop
+   layout is untouched: this rule only applies to coarse pointers in compact
+   shell mode. Visual glyphs keep their size; the hit area grows. */
+@media (pointer: coarse) {
+  button,
+  select,
+  textarea,
+  input:not([type="hidden"]),
+  a.nav-item,
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  button:not(.window-dot),
+  [role="button"] {
+    min-width: 44px;
+  }
+}
+
+/* #2325 — on a 390px composer six 44px tool buttons left #messageInput only
+   8px wide. Keep every tool reachable but let the field own its own row. */
+@media (pointer: coarse) {
+  html[data-shell-mode="compact"] form.input-container {
+    flex-wrap: wrap;
+  }
+
+  html[data-shell-mode="compact"] #messageInput {
+    flex: 1 1 100%;
+    min-width: 44px;
+    order: -1;
+  }
+
+  a.info-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* #chat-app #messageInput sets flex:1 (two IDs), so the compact override must
+   out-rank it to give the field a full row. */
+@media (pointer: coarse) {
+  html[data-shell-mode="compact"] #chat-app #messageInput {
+    flex: 1 1 100%;
+    min-width: 44px;
+    min-height: 44px;
+    order: -1;
+  }
+}
+
+/* The composer's own ID rule sets a 38px min-height; keep the 44px floor on
+   every touch device, including tablet mode. */
+@media (pointer: coarse) {
+  #chat-app #messageInput {
+    min-height: 44px;
+  }
+}
