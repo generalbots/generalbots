@@ -39,7 +39,7 @@ h1{text-align:center;font-size:28px;margin-bottom:8px;color:#f8fafc}.s{text-alig
 video{display:block}.ts{text-align:center;color:#475569;font-size:11px;margin-top:20px}
 </style></head><body>
 <h1>GB7 + BBSIA — Video Evidence Gallery</h1>
-<div class="s"><span class="p">${passN} passed</span> &middot; <span class="f">${failN} failed</span> &middot; ${results.length} total &middot; ${new Date().toLocaleString()}</div>
+<div class="s"><span class="p">${passN} passed</span> &middot; <span class="f">${failN} failed</span> &middot; ${results.length} total &middot; ${new Date().toISOString()}</div>
 <div class="g">${cards}</div>
 <div class="ts">Generated ${new Date().toISOString()}</div></body></html>`;
 }
