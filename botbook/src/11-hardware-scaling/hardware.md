@@ -40,6 +40,49 @@ cache directory it reads (`BOTSERVER_INSTALLERS_PATH`, default
 | glibc-based Linux (deb/rpm/AppImage) | the desktop bundles target glibc; musl is not built |
 | `libwebkit2gtk-4.1-0`, `libpq5`, OpenSSL 3 | desktop app runtime dependencies |
 
+## Graphics support in the support bundle (#2481)
+
+Settings → System → Diagnostics produces a support bundle. Its `graphics`
+object carries raw probe strings; `graphics_support` is a pure classification
+of those same strings (`graphics_support_status()` in
+`botserver/crates/botsettings/src/os_appliance.rs`). Generating the bundle
+does not contact a GPU, run `vainfo` on a target laptop or measure a frame
+rate — it classifies text that was already collected.
+
+| Field | Values | Meaning |
+|---|---|---|
+| `graphics.gpu`, `graphics.vaapi`, `graphics.glx` | string or `null` | redacted `lspci`, `vainfo` and `glxinfo -B` text; `null` means the tool is absent or returned nothing |
+| `graphics_support.compositing` | `hardware`, `software`, `unknown` | hardware when the GLX renderer names no software rasterizer, software when it names llvmpipe/softpipe/swrast, unknown when no GLX text was collected |
+| `graphics_support.software_rendering` | boolean | true when a software rasterizer marker appears in the GLX text |
+| `graphics_support.gpu_detected` | boolean | true when the GPU probe lists a VGA, Display or 3D controller |
+| `graphics_support.vaapi.available` | boolean | true when at least one VA-API profile with a decode or encode entrypoint was parsed |
+| `graphics_support.vaapi.decode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names paired with `VAEntrypointVLD` |
+| `graphics_support.vaapi.encode_profiles` | array of strings | sorted, de-duplicated `VAProfile*` names paired with an encode entrypoint |
+| `graphics_support.note` | string | states that compositing throughput and decode speed are not measured offline |
+
+### Reading a `software` result
+
+`compositing = "software"` with `software_rendering = true` is the expected
+result inside QEMU or on a host without a DRM driver: Mesa falls back to the
+llvmpipe software rasterizer. That is not evidence of a broken image.
+Conversely `compositing = "hardware"` only means the renderer string did not
+name a software rasterizer; it is not a frame-rate measurement.
+
+### Image manifest gate
+
+`scripts/check_graphics_support.py` parses the `Packages=` block of
+`desktop/os/mkosi.conf` and fails when the Mesa userspace, VA-API runtime, an
+Intel VA driver, AMD/misc firmware or the graphics diagnostics helpers are
+absent. It validates the manifest only; it does not boot the image.
+
+### What still needs hardware
+
+These acceptance steps cannot be satisfied by a text classifier or a
+package-list check, and no offline pass reports them as verified: VA-API
+decode profiles on the target laptop, the 1080p H.264 CPU threshold, the
+WebKit hardware-compositing path, the idle battery-drain comparison, and the
+actual image build, boot and runtime validation.
+
 ## See also
 
 - [Local LLM with llama.cpp](./local-llm.md)

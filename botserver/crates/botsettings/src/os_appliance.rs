@@ -333,6 +333,57 @@ async fn eject_removable(
     }
 }
 
+/// #2481 — classify graphics support from already-collected diagnostics text.
+/// Pure: no I/O and no host probe, so the support bundle and the unit tests run
+/// the same code. `gpu`, `vaapi` and `glx` are the redacted probe strings from
+/// the bundle. llvmpipe/softpipe/swrast mean software compositing, not a GPU.
+fn graphics_support_status(gpu: Option<&str>, vaapi: Option<&str>, glx: Option<&str>) -> Value {
+    let software_markers = ["llvmpipe", "softpipe", "swrast", "software rasterizer"];
+    let lower_glx = glx.unwrap_or("").to_ascii_lowercase();
+    let software = software_markers.iter().any(|marker| lower_glx.contains(marker));
+    let compositing = if glx.map_or(true, str::is_empty) {
+        "unknown"
+    } else if software {
+        "software"
+    } else {
+        "hardware"
+    };
+
+    let mut decode: Vec<String> = Vec::new();
+    let mut encode: Vec<String> = Vec::new();
+    for line in vaapi.unwrap_or("").lines() {
+        let Some((profile, entrypoint)) = line.split_once(':') else { continue };
+        let profile = profile.trim();
+        if !profile.starts_with("VAProfile") {
+            continue;
+        }
+        let entry = entrypoint.trim().to_ascii_uppercase();
+        if entry.contains("VLD") {
+            decode.push(profile.to_string());
+        } else if entry.contains("ENC") {
+            encode.push(profile.to_string());
+        }
+    }
+    decode.sort();
+    decode.dedup();
+    encode.sort();
+    encode.dedup();
+
+    json!({
+        "compositing": compositing,
+        "software_rendering": software,
+        "gpu_detected": gpu.map_or(false, |text| text.lines().any(|line| {
+            line.contains("VGA") || line.contains("Display") || line.contains("3D")
+        })),
+        "vaapi": {
+            "available": !decode.is_empty() || !encode.is_empty(),
+            "decode_profiles": decode,
+            "encode_profiles": encode
+        },
+        "note": "Classification of probe text only; compositing throughput and decode speed are not measured offline."
+    })
+}
+
 /// Redact common secret shapes before a diagnostics bundle leaves the host.
 /// Deliberately conservative: it is better to over-redact than to leak.
 fn redact(text: &str) -> String {
@@ -373,6 +424,14 @@ async fn diagnostics_bundle(
 ) -> ApiResult {
     gated(user, headers)?;
     let log = read_log_tail();
+    // #2481 — collect the three probe strings once: raw text for support and a
+    // pure classification of that same text for the graphics_support fields.
+    let gpu = probe("lspci", &["-nn"]).map(|s| redact(&s.lines()
+        .filter(|l| l.contains("VGA") || l.contains("Display") || l.contains("3D"))
+        .take(8).collect::<Vec<_>>().join("\n")));
+    let vaapi = probe("vainfo", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n")));
+    let glx = probe("glxinfo", &["-B"]).map(|s| redact(&s.lines().take(12).collect::<Vec<_>>().join("\n")));
+    let graphics_support = graphics_support_status(gpu.as_deref(), vaapi.as_deref(), glx.as_deref());
     let bundle = json!({
         "generated_at": chrono::Utc::now().to_rfc3339(),
         "os": redact(&format!("{} · {} · {}", read_hostname(), read_os(), read_kernel())),
@@ -383,7 +442,7 @@ async fn diagnostics_bundle(
         "block_devices": probe("lsblk", &["-J", "-o", "NAME,LABEL,FSTYPE,SIZE,MOUNTPOINT,TRAN"])
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_else(|| json!({ "blockdevices": [] })),
-        // #2481 — GPU/VA-API strings for support reports (no hardware probe here).
+        // #2481 — GPU/VA-API strings for support reports, plus a pure classifier.
         // #2464 — thermal + battery telemetry for support reports.
         "thermal": probe("sensors", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n"))),
         "battery": json!(read_power_status()),
@@ -393,12 +452,11 @@ async fn diagnostics_bundle(
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false),
         "graphics": json!({
-            "gpu": probe("lspci", &["-nn"]).map(|s| redact(&s.lines()
-                .filter(|l| l.contains("VGA") || l.contains("Display") || l.contains("3D"))
-                .take(8).collect::<Vec<_>>().join("\n"))),
-            "vaapi": probe("vainfo", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n"))),
-            "glx": probe("glxinfo", &["-B"]).map(|s| redact(&s.lines().take(12).collect::<Vec<_>>().join("\n")))
+            "gpu": gpu,
+            "vaapi": vaapi,
+            "glx": glx
         }),
+        "graphics_support": graphics_support,
         "botserver_log_tail": redact(&log),
         "note": "Secrets (tokens, passwords, keys, bearer headers) are redacted."
     });
@@ -471,6 +529,59 @@ mod tests {
         assert!(!redacted.contains("eyJhbGciOiJIUzI1NiJ9"), "JWT leaked: {redacted}");
         assert!(redacted.contains("normal line stays"), "ordinary text was removed");
         assert!(redacted.matches("[REDACTED]").count() >= 4, "expected redaction markers");
+    }
+
+    #[test]
+    fn graphics_support_classifies_compositing() {
+        let sw = graphics_support_status(None, None, Some(
+            "OpenGL renderer string: llvmpipe (LLVM 17.0, 256 bits)"));
+        assert_eq!(sw["compositing"].as_str(), Some("software"));
+        assert_eq!(sw["software_rendering"].as_bool(), Some(true));
+
+        let hw = graphics_support_status(None, None, Some(
+            "OpenGL renderer string: Mesa Intel(R) UHD Graphics 620 (KBL GT2)"));
+        assert_eq!(hw["compositing"].as_str(), Some("hardware"));
+        assert_eq!(hw["software_rendering"].as_bool(), Some(false));
+
+        let unknown = graphics_support_status(None, None, None);
+        assert_eq!(unknown["compositing"].as_str(), Some("unknown"));
+        let empty = graphics_support_status(None, None, Some(""));
+        assert_eq!(empty["compositing"].as_str(), Some("unknown"));
+    }
+
+    #[test]
+    fn graphics_support_parses_vaapi_profiles() {
+        let vainfo = "vainfo: Supported profile and entrypoints\n\
+            VAProfileH264Main : VAEntrypointVLD\n\
+            VAProfileH264High : VAEntrypointEncSlice\n\
+            VAProfileH264Main : VAEntrypointVLD\n\
+            VAProfileNone : VAEntrypointVideoProc";
+        let status = graphics_support_status(
+            Some("00:02.0 VGA compatible controller"), Some(vainfo), None);
+        assert_eq!(status["vaapi"]["available"].as_bool(), Some(true));
+        assert_eq!(status["gpu_detected"].as_bool(), Some(true));
+
+        let decode = status["vaapi"]["decode_profiles"].as_array();
+        assert!(decode.is_some(), "decode_profiles must be an array");
+        if let Some(profiles) = decode {
+            assert_eq!(profiles.len(), 1, "profiles must be de-duplicated");
+            assert_eq!(profiles[0].as_str(), Some("VAProfileH264Main"));
+        }
+        let encode = status["vaapi"]["encode_profiles"].as_array();
+        assert!(encode.is_some(), "encode_profiles must be an array");
+        if let Some(profiles) = encode {
+            assert_eq!(profiles.len(), 1);
+            assert_eq!(profiles[0].as_str(), Some("VAProfileH264High"));
+        }
+    }
+
+    #[test]
+    fn graphics_support_handles_missing_probes() {
+        let status = graphics_support_status(None, None, None);
+        assert_eq!(status["vaapi"]["available"].as_bool(), Some(false));
+        assert_eq!(status["gpu_detected"].as_bool(), Some(false));
+        assert!(status["vaapi"]["decode_profiles"].as_array()
+            .map_or(false, Vec::is_empty));
     }
 }
 
