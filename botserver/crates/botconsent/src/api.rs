@@ -131,7 +131,7 @@ fn opaque_session_user_id(pool: &crate::DbPool, token: &str) -> Option<Uuid> {
         })
 }
 
-fn require_consent_user(
+pub(crate) fn require_consent_user(
     headers: &HeaderMap,
     pool: &crate::DbPool,
 ) -> Result<Uuid, (StatusCode, String)> {
@@ -156,6 +156,8 @@ pub fn configure_routes() -> Router<Arc<ConsentService>> {
         .route("/api/consent/resolve", post(resolve_consent))
         .route("/api/consent/pending", get(pending_requests))
         .route("/api/ui/consent/table", get(permissions_table))
+        // Issue #2501 — approvals/e-signature share the consent service state.
+        .merge(crate::approvals::api::router())
 }
 
 /// `GET /api/consent/permissions`

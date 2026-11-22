@@ -8,6 +8,7 @@
 //! stored "always" grants once the monthly cycle ends.
 
 pub mod api;
+pub mod approvals;
 pub mod cards;
 pub mod enforce;
 pub mod models;
@@ -21,6 +22,10 @@ pub use enforce::{
     authorize, authorize_with_context, resolve, take_approved_match, take_pending_approved,
     ConsentContext,
     ConsentDecision, ConsentService, PendingRequest, ResolvedOutcome,
+};
+pub use approvals::{
+    content_hash, ApprovalRecord, ApprovalStatus, ApprovalStep, ApprovalStore, DecisionKind,
+    Delegation, PublishedArtifact, SignedDecision, SlaEvent, SlaEventKind, StepKind, StepMode,
 };
 pub use models::{AppPermissionRow, ConsentScope, Decision, GrantBody, ResolveBody};
 

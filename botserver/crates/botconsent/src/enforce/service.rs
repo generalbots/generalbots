@@ -57,6 +57,9 @@ pub enum ResolvedOutcome {
 
 pub struct ConsentService {
     pub pool: DbPool,
+    /// Typed approval workflow store (#2501). Shares the service lifetime so
+    /// the approval routes mounted with the consent router see the same data.
+    pub approvals: std::sync::Arc<crate::approvals::ApprovalStore>,
     pub(crate) pending: tokio::sync::Mutex<PendingMap>,
     pub(crate) approved_once: tokio::sync::Mutex<PendingMap>,
     sweeper_started: Arc<AtomicBool>,
@@ -66,6 +69,7 @@ impl ConsentService {
     pub fn new(pool: DbPool) -> Self {
         Self {
             pool,
+            approvals: std::sync::Arc::new(crate::approvals::ApprovalStore::new()),
             pending: tokio::sync::Mutex::new(HashMap::new()),
             approved_once: tokio::sync::Mutex::new(HashMap::new()),
             sweeper_started: Arc::new(AtomicBool::new(false)),
