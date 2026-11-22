@@ -23,6 +23,7 @@
 //! separate surfaces and are not implemented by this handler.
 
 use serde_json::json;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager};
 use webkit2gtk::glib::prelude::Cast;
 use webkit2gtk::{
@@ -66,6 +67,36 @@ const MEDIA_ORIGINS_ENV: &str = "GB_MEDIA_ORIGINS";
 /// Structured, local-only event carrying each media grant to the shell UI.
 /// It contains no UI text: rendering and localisation belong to the consumer.
 const MEDIA_GRANT_EVENT: &str = "gb-media-grant";
+
+/// #2504 — Settings → Privacy can revoke a device at OS level: while the
+/// flag is set the permission handler denies every matching request from
+/// every origin, regardless of the allowlist. Atomic because permission
+/// requests and the settings command run on different threads.
+static AUDIO_REVOKED: AtomicBool = AtomicBool::new(false);
+static VIDEO_REVOKED: AtomicBool = AtomicBool::new(false);
+
+fn revoked(audio: bool, video: bool) -> bool {
+    (audio && AUDIO_REVOKED.load(Ordering::Relaxed))
+        || (video && VIDEO_REVOKED.load(Ordering::Relaxed))
+}
+
+/// Sets the OS-level permission for a device kind. `kind` is `audio` or
+/// `video`; `enabled = false` denies all future requests for that device.
+pub fn set_device_permission(kind: &str, enabled: bool) -> Result<(), String> {
+    let flag = match kind {
+        "audio" => &AUDIO_REVOKED,
+        "video" => &VIDEO_REVOKED,
+        other => return Err(format!("unknown media device: {other}")),
+    };
+    flag.store(!enabled, Ordering::Relaxed);
+    log::info!("{PLUGIN_NAME}: device {kind} enabled={enabled}");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_media_permission(kind: String, enabled: bool) -> Result<(), String> {
+    set_device_permission(&kind, enabled)
+}
 
 /// The outcome of a user-media request, computed without touching WebKit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -308,12 +339,22 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
                             );
                         }
                         MediaDecision::Grant => {
-                            media.allow();
-                            let safe_origin = redacted(origin);
-                            log::info!(
-                                "{PLUGIN_NAME}: AUDIT media-grant origin={safe_origin} audio={audio} video={video}"
-                            );
-                            publish_grant(&app, &safe_origin, audio, video);
+                            // #2504 — a Settings → Privacy revoke wins over
+                            // the allowlist: no origin gets the device.
+                            if revoked(audio, video) {
+                                media.deny();
+                                log::warn!(
+                                    "{PLUGIN_NAME}: AUDIT media-deny origin={} reason=revoked audio={audio} video={video}",
+                                    redacted(origin)
+                                );
+                            } else {
+                                media.allow();
+                                let safe_origin = redacted(origin);
+                                log::info!(
+                                    "{PLUGIN_NAME}: AUDIT media-grant origin={safe_origin} audio={audio} video={video}"
+                                );
+                                publish_grant(&app, &safe_origin, audio, video);
+                            }
                         }
                     }
                     true

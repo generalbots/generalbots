@@ -250,6 +250,33 @@
                 </div>
             </div>
 
+            <!-- #2504 — OS-level media permission revocation. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2 data-i18n="settings-media-permissions">Device permissions</h2>
+                    <p data-i18n="settings-media-permissions-desc">Turning a device off denies every request, even from first-party pages.</p>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title" data-i18n="settings-media-microphone">Microphone</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="mediaPermissionAudio" checked data-media-device="audio">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title" data-i18n="settings-media-camera">Camera</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="mediaPermissionVideo" checked data-media-device="video">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="setting-desc" id="mediaPermissionStatus" role="status" aria-live="polite"></p>
+            </div>
+
             <!-- Data Export -->
             <div class="setting-card">
                 <div class="card-header">

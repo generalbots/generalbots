@@ -3,8 +3,8 @@
 //! the pure decision function extracted from the permission callback.
 
 use super::{
-    decide, origin_allowed, origin_of, redacted, split_authority, BUNDLED_ORIGINS, DEV_ORIGIN,
-    MediaDecision,
+    decide, origin_allowed, origin_of, redacted, revoked, set_device_permission, split_authority,
+    BUNDLED_ORIGINS, DEV_ORIGIN, MediaDecision,
 };
 
 #[test]
@@ -184,4 +184,19 @@ fn test_ip_literals_are_masked_in_logs() {
         redacted("https://mail.example.com"),
         "https://mail.example.com"
     );
+}
+
+
+#[test]
+fn test_settings_revoke_overrides_the_allowlist() {
+    set_device_permission("audio", false).unwrap();
+    assert!(revoked(true, false));
+    assert!(!revoked(false, true));
+    set_device_permission("video", false).unwrap();
+    assert!(revoked(false, true));
+    // Restore the shipped default so other tests stay independent.
+    set_device_permission("audio", true).unwrap();
+    set_device_permission("video", true).unwrap();
+    assert!(!revoked(true, true));
+    assert!(set_device_permission("screen", false).is_err());
 }
