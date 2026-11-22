@@ -388,6 +388,10 @@ async fn diagnostics_bundle(
         "thermal": probe("sensors", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n"))),
         "battery": json!(read_power_status()),
         "power_profile": probe("powerprofilesctl", &["get"]),
+        // #2500 — WebKit bwrap sandbox status in the support report.
+        "web_process_sandboxed": std::env::var("WEBKIT_FORCE_SANDBOX")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false),
         "graphics": json!({
             "gpu": probe("lspci", &["-nn"]).map(|s| redact(&s.lines()
                 .filter(|l| l.contains("VGA") || l.contains("Display") || l.contains("3D"))
