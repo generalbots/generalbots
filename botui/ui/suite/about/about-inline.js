@@ -1,4 +1,6 @@
-CSSLoader.loadMultiple(['about.css']);
+// #2568 — full suite path: this fragment is HTMX-injected into / (desktop
+// shell), so CSSLoader's relative base would resolve /about.css → 404.
+CSSLoader.loadMultiple(['/suite/about/about.css']);
 
 async function loadAboutData() {
     const t = (key, fallback) => (window.gbT ? window.gbT(key, fallback) : fallback);

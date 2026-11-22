@@ -17,7 +17,7 @@
     --drive-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
     --drive-shadow-md:
         0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-    --drive-accent: hsl(var(--primary, 30 89% 55%));
+    --drive-accent: var(--primary, hsl(30 89% 55%));
     --drive-accent-soft: color-mix(in srgb, var(--drive-accent) 10%, transparent);
     --drive-accent-softer: color-mix(in srgb, var(--drive-accent) 6%, transparent);
     --drive-accent-ink: color-mix(in srgb, var(--drive-accent) 72%, var(--text));
