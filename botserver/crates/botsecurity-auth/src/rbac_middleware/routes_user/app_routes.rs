@@ -34,6 +34,7 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/files/**", "DELETE", ""),
         RoutePermission::new("/api/ai-accounts/**", "GET", ""),
         RoutePermission::new("/api/ai-accounts/**", "POST", ""),
+        RoutePermission::new("/api/ai-accounts/**", "PUT", ""),
         // Sandbox configuration for the chat client (#1674)
         RoutePermission::new("/api/sandbox/config", "GET", ""),
         // Tool manifests for the native surface tools (#1678)

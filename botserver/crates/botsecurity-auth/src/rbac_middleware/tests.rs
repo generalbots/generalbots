@@ -358,3 +358,21 @@ async fn peer_control_routes_are_admin_only() {
         );
     }
 }
+
+/// Regression: PUT /api/ai-accounts/<id>/models was rejected by default-deny
+/// because only GET and POST were registered for /api/ai-accounts/**.
+#[tokio::test]
+async fn ai_accounts_put_allowed_for_authenticated_user() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes).await;
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string());
+
+    assert!(
+        manager
+            .check_route_access("/api/ai-accounts/claude-code/models", "PUT", &user)
+            .await
+            .is_allowed(),
+        "PUT /api/ai-accounts/claude-code/models must be allowed"
+    );
+}
