@@ -13,10 +13,13 @@ mod markdown;
 pub(crate) mod message_meta;
 mod stream;
 mod stream_errors;
+pub(crate) mod refusal;
 mod stream_tools;
 mod svg_contract;
 #[cfg(feature = "gbgov")]
 mod local_recovery;
+#[cfg(feature = "gbgov")]
+mod free_model_fallback;
 
 pub use stream::stream_llm_response;
 
