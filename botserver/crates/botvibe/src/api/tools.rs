@@ -98,6 +98,27 @@ pub struct ListToolsResponse {
     pub tools: Vec<ToolDescriptor>,
 }
 
+/// #2541 — bounded rebuild of the live run map from the durable store at
+/// boot. The Postgres `vibe_runs` table is the source of truth; this map is a
+/// latency cache. Bounded so a long-lived install cannot hydrate an
+/// unbounded number of rows into memory.
+pub(crate) const BOOT_RUN_REBUILD_LIMIT: i64 = 500;
+
+/// Rebuilds the in-memory run map from the persisted snapshot. Live entries
+/// win over persisted ones for the same id (they carry fresher in-flight
+/// state). Pure so the rebuild contract is unit-testable without a DB (#2541).
+pub(crate) fn rebuild_run_map(
+    persisted: Vec<VibeRun>,
+    live: HashMap<Uuid, VibeRun>,
+) -> HashMap<Uuid, VibeRun> {
+    let mut rebuilt = HashMap::with_capacity(persisted.len() + live.len());
+    for run in persisted {
+        rebuilt.insert(run.run_id, run);
+    }
+    rebuilt.extend(live);
+    rebuilt
+}
+
 pub(crate) struct VibeApiInner {
     pub(crate) state: Arc<dyn VibeState>,
     pub(crate) prompt_manager: Arc<VibePromptManager>,
@@ -145,6 +166,12 @@ pub fn router(deps: VibeApiDeps) -> axum::Router {
         project_registry,
         project_rbac,
     } = deps;
+    // #2541 — rebuild run status from the durable store at boot instead of
+    // starting with an empty map. Boot reconciliation (recover_orphaned_runs)
+    // has already folded stale live rows into `failed`, so the hydrated map
+    // reports a truthful terminal state rather than a silent "not found".
+    let runs_store = crate::run_store::VibeRunStore::new(pool.clone());
+    let boot_runs = rebuild_run_map(runs_store.list_runs(BOOT_RUN_REBUILD_LIMIT), HashMap::new());
     let api = Arc::new(VibeApiInner {
         state,
         prompt_manager,
@@ -152,8 +179,8 @@ pub fn router(deps: VibeApiDeps) -> axum::Router {
         telemetry,
         permissions: security.permissions,
         skills: security.skills,
-        runs: Arc::new(RwLock::new(HashMap::new())),
-        runs_store: crate::run_store::VibeRunStore::new(pool),
+        runs: Arc::new(RwLock::new(boot_runs)),
+        runs_store,
         project_registry,
         project_rbac,
         project_locks: Arc::new(crate::project_locks::ProjectLockRegistry::new()),

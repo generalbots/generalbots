@@ -51,3 +51,63 @@ use super::run::derive_project_name;
         );
     }
 
+    /// #2541 — boot rebuild restores persisted runs and keeps the fresher
+    /// in-memory copy when a run id is present in both sources.
+    #[test]
+    fn rebuild_run_map_restores_persisted_and_prefers_live() {
+        use crate::types::VibeRunConfig;
+
+        let persisted = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "persisted".to_string(),
+            VibeRunConfig::default(),
+        );
+        let other = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "other".to_string(),
+            VibeRunConfig::default(),
+        );
+        let shared_id = persisted.run_id;
+        let mut live = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "live".to_string(),
+            VibeRunConfig::default(),
+        );
+        live.run_id = shared_id;
+        live.transition(VibeRunState::Running);
+
+        let rebuilt = rebuild_run_map(
+            vec![persisted, other.clone()],
+            HashMap::from([(shared_id, live)]),
+        );
+
+        assert_eq!(rebuilt.len(), 2);
+        assert_eq!(rebuilt.get(&shared_id).map(|r| r.intent.as_str()), Some("live"));
+        assert!(rebuilt.get(&other.run_id).is_some());
+    }
+
+    /// #2541 — with no live runs the rebuilt map is exactly the persisted
+    /// snapshot (the boot case: the in-memory map starts empty on restart).
+    #[test]
+    fn rebuild_run_map_from_empty_live_is_persisted_snapshot() {
+        use crate::types::VibeRunConfig;
+
+        let persisted = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "persisted".to_string(),
+            VibeRunConfig::default(),
+        );
+        let id = persisted.run_id;
+        let rebuilt = rebuild_run_map(vec![persisted], HashMap::new());
+        assert_eq!(rebuilt.len(), 1);
+        assert_eq!(rebuilt.get(&id).map(|r| r.intent.as_str()), Some("persisted"));
+    }
+
