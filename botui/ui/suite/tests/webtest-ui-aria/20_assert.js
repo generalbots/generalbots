@@ -33,12 +33,12 @@ var EXPECTED = {
   roleStatusAlertFiles: 244,
   dataI18nAttrs: 5845,
   htmlWithI18n: 203,
-  gbTCalls: 377, // +10: #2511 localized the translate modal's 10 raw labels via gbT
-  jsWithGbt: 121,
-  dynamicWrites: 4235,
+  gbTCalls: 378, // +10: #2511 localized the translate modal's 10 raw labels via gbT
+  jsWithGbt: 122,
+  dynamicWrites: 4236,
   writesInRegionFiles: 1211,
-  writesOutsideRegionFiles: 3024,
-  filesWithWritesNoRegion: 605,
+  writesOutsideRegionFiles: 3025,
+  filesWithWritesNoRegion: 606,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
