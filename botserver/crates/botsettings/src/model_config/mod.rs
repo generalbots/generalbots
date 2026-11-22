@@ -1,20 +1,7 @@
 //! Settings > Model — read, switch and test the LLM configuration (#2561).
 //!
-//! The wizard picks the initial model mode; this module lets the administrator
-//! change it afterwards without re-running the wizard.  Every write goes
-//! through the same Vault path (`secret/gbo/llm`) that the provisioner and the
-//! on-device AI page use, and `ConfigManager::get_config` reads Vault live, so
-//! the next conversation turn picks up the change with no restart.
-//!
-//! # Security
-//!
-//! - Admin-only (same gate as the on-device AI page).
-//! - The API key is accepted on write and stored in Vault; it is NEVER echoed
-//!   back on read — the response says whether one is stored, not what it is.
-//! - `test` sends one tiny request with a short timeout and reports reachability
-//!   and latency; the prompt is a fixed benign string, not user-controlled.
-//! - No endpoint is contacted at start-up or as a side-effect of `GET /config`:
-//!   outbound connections happen only on explicit `POST .../test`.
+//! Admin-only. The API key is stored in Vault; never echoed on read.
+//! `test` sends one tiny fixed-prompt request with a short timeout.
 
 use axum::{
     extract::{Extension, State},
@@ -85,11 +72,11 @@ fn is_loopback(url: &str) -> bool {
 }
 
 /// The keyless free-tier endpoint shipped in the wizard defaults.
-const FREE_ENDPOINT: &str = "https://api.kilo.ai/api/gateway/chat/completions";
-const FREE_MODEL: &str = "dots-studio/dots-3-note-preview:free";
-pub(crate) const FREE_PROVIDER: &str = "kilo";
+pub const FREE_ENDPOINT: &str = "https://api.kilo.ai/api/gateway/chat/completions";
+pub const FREE_MODEL: &str = "inclusionai/ling-3.2-flash:free";
+pub const FREE_PROVIDER: &str = "kilo";
 
-fn is_free_endpoint(url: &str) -> bool {
+pub fn is_free_endpoint(url: &str) -> bool {
     url.trim()
         .to_ascii_lowercase()
         .starts_with("https://api.kilo.ai/")
@@ -142,6 +129,7 @@ async fn handle_get_config(
     let runtime_probe = super::on_device_ai::runtime_ctl::probe().await;
 
     let inconsistent = write_sets::is_inconsistent(&url, &model);
+    let has_account_key = accounts::has_key_for(&url, if provider.is_empty() { None } else { Some(&provider) }).await;
 
     let mut resp = json!({
         "mode": mode.as_str(),
@@ -150,6 +138,7 @@ async fn handle_get_config(
         "endpoint_scope": scope.as_str(),
         "model": model,
         "has_key": !key.trim().is_empty(),
+        "has_account_key": has_account_key,
         "key_hint": write_sets::key_hint(&key),
         "local_runtime": {
             "installed": runtime.installed,
@@ -248,10 +237,15 @@ async fn handle_put_config(
             if reqwest::Url::parse(&endpoint).is_err() {
                 return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
             }
+            // Reuse a saved account key when the person did not type one.
+            let key = accounts::resolve_own_key_fallback(
+                req.api_key.as_deref(), &endpoint,
+                req.provider.as_deref(), &secrets, CENTRAL_LLM_PATH,
+            ).await;
             write_sets::Target::OwnKey {
                 endpoint,
                 model,
-                key: req.api_key.clone(),
+                key,
                 provider: req.provider.clone(),
             }
         }

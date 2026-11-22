@@ -161,13 +161,23 @@ pub async fn process_message_internal(
     // stored session value so the toggle is the single source of truth.
     // Resolved BEFORE `start.bas` and TOOL_EXEC so no path (script, tool chip,
     // workspace route) can reach the VM while the switch is off.
-    let agent_enabled = super::chat_controls::resolve_agent_enabled(
+    let mut agent_enabled = super::chat_controls::resolve_agent_enabled(
         state,
         session_id,
         user_id,
         parsed.get("agent_enabled").and_then(|v| v.as_bool()),
     )
     .await;
+    // An explicit subscription choice (`sub:claude-code`, …) in the model
+    // menu means the agent is ON for this turn regardless of the per-
+    // conversation switch — do not persist it; just override the resolved
+    // value so the workspace starts.
+    #[cfg(feature = "agent-vm")]
+    if !agent_enabled {
+        agent_enabled = super::chat_controls::subscription_implies_agent(
+            &model_preference,
+        );
+    }
     // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
     // path in this turn (native tools, provider resolution, workspace bridges).
     let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);

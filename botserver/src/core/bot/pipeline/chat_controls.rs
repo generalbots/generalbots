@@ -115,6 +115,27 @@ pub async fn resolve_agent_enabled(
         .unwrap_or(DEFAULT_AGENT_ENABLED)
 }
 
+/// When the turn's `model_preference` explicitly names a subscription
+/// provider (`sub:claude-code`, …), the agent is implicitly ON for this
+/// turn even when the per-conversation switch is off — the person
+/// deliberately chose it in the model menu.
+///
+/// Returns `true` only when both conditions hold:
+/// 1. The preference is a subscription choice.
+/// 2. The backend is available on this platform.
+#[cfg(feature = "agent-vm")]
+pub fn subscription_implies_agent(model_preference: &str) -> bool {
+    use crate::core::ai_accounts::models::parse_choice;
+    if parse_choice(model_preference).is_none() {
+        return false;
+    }
+    #[cfg(windows)]
+    if !agent_backend_available() {
+        return false;
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,5 +145,25 @@ mod tests {
         let user = Uuid::nil();
         let session = Uuid::nil();
         assert_eq!(controls_key(user, session), "chat_controls:00000000-0000-0000-0000-000000000000:00000000-0000-0000-0000-000000000000");
+    }
+
+    #[cfg(feature = "agent-vm")]
+    mod subscription_override {
+        use super::super::subscription_implies_agent;
+
+        #[test]
+        fn explicit_sub_choice_overrides_payload_false() {
+            assert!(subscription_implies_agent("sub:claude-code"));
+            assert!(subscription_implies_agent("sub:codex-cli/gpt-6.2-sol"));
+            assert!(subscription_implies_agent("sub:antigravity"));
+        }
+
+        #[test]
+        fn non_subscription_preference_does_not_override() {
+            assert!(!subscription_implies_agent("auto"));
+            assert!(!subscription_implies_agent("fast"));
+            assert!(!subscription_implies_agent("acct:openai/gpt-4o"));
+            assert!(!subscription_implies_agent(""));
+        }
     }
 }

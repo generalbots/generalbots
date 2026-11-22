@@ -70,6 +70,66 @@ async fn save(accounts: &[Account]) -> Result<(), (StatusCode, Json<Value>)> {
     })
 }
 
+/// Pure selection: given accounts, return the key of the first whose host
+/// or id matches.  Testable without Vault.
+fn select_key(accounts: &[Account], endpoint_url: &str, provider_id: Option<&str>) -> Option<String> {
+    let target_host = host(endpoint_url);
+    for acct in accounts {
+        if acct.key.trim().is_empty() {
+            continue;
+        }
+        if !target_host.is_empty() && host(&acct.url) == target_host {
+            return Some(acct.key.clone());
+        }
+        if let Some(pid) = provider_id {
+            if acct.id == pid {
+                return Some(acct.key.clone());
+            }
+        }
+    }
+    None
+}
+
+/// Returns the API key of a saved account whose chat address matches
+/// `endpoint_host`, or whose id is `provider_id`.
+pub async fn key_for_host_or_provider(
+    endpoint_url: &str,
+    provider_id: Option<&str>,
+) -> Option<String> {
+    select_key(&load().await, endpoint_url, provider_id)
+}
+
+/// Whether any saved account has a non-empty key for the given provider id
+/// or for a chat address with the same host.
+pub async fn has_key_for(endpoint_url: &str, provider_id: Option<&str>) -> bool {
+    key_for_host_or_provider(endpoint_url, provider_id).await.is_some()
+}
+
+/// Resolves the API key for an `own_key` mode switch.  Typed key wins;
+/// same-host preserves existing; otherwise falls back to a saved account.
+pub async fn resolve_own_key_fallback(
+    typed_key: Option<&str>,
+    endpoint: &str,
+    provider_id: Option<&str>,
+    secrets: &botcoresecrets::SecretsManager,
+    central_path: &str,
+) -> Option<String> {
+    if typed_key.is_some_and(|k| !k.trim().is_empty()) {
+        return typed_key.map(|k| k.trim().to_string());
+    }
+    let old_url = secrets
+        .get_secret(central_path)
+        .await
+        .unwrap_or_default()
+        .get("url")
+        .cloned()
+        .unwrap_or_default();
+    if super::write_sets::same_host(&old_url, endpoint) {
+        return None; // write_sets::compute preserves the existing key
+    }
+    key_for_host_or_provider(endpoint, provider_id).await
+}
+
 /// `acct:<provider>/<model>` → provider id and model (the model may itself
 /// contain `/` and `:`).
 pub fn parse_preference(pref: &str) -> Option<(&str, &str)> {
@@ -88,6 +148,16 @@ pub async fn resolve_choice(pref: &str) -> Option<Choice> {
         return None;
     }
     Some(Choice { url: account.url, key: account.key, model: model.to_string() })
+}
+
+/// The display name of a stored account, or the provider id as fallback.
+pub async fn account_label(provider_id: &str) -> String {
+    load()
+        .await
+        .into_iter()
+        .find(|a| a.id == provider_id)
+        .map(|a| if a.name.is_empty() { a.id } else { a.name })
+        .unwrap_or_else(|| provider_id.to_string())
 }
 
 /// Accounts and their switched-on models, for the chat's model menu.
@@ -355,5 +425,26 @@ mod tests {
         assert_eq!(model_ids(openai), ["new", "mid", "old"]);
         let anthropic = r#"{"data":[{"id":"claude-3","created_at":"2024-03-04T00:00:00Z"},{"id":"claude-5","created_at":"2026-05-01T00:00:00Z"}]}"#;
         assert_eq!(model_ids(anthropic), ["claude-5", "claude-3"]);
+    }
+
+    fn acct(id: &str, url: &str, key: &str) -> Account {
+        Account { id: id.into(), name: id.into(), url: url.into(), key: key.into(), enabled: vec![] }
+    }
+
+    #[test]
+    fn select_key_by_host_and_provider() {
+        let list = vec![
+            acct("anthropic", "https://api.anthropic.com/v1/messages", "sk-ant"),
+            acct("openai", "https://api.openai.com/v1/chat/completions", "sk-oai"),
+        ];
+        // Host match
+        assert_eq!(super::select_key(&list, "https://api.anthropic.com/v1/chat/completions", None), Some("sk-ant".into()));
+        // No host match, falls through to provider id match
+        assert_eq!(super::select_key(&list, "https://other.example.com/v1/chat", Some("openai")), Some("sk-oai".into()));
+        // No match at all
+        assert_eq!(super::select_key(&list, "https://other.example.com/v1/chat", None), None);
+        // Empty key is skipped
+        let empty = vec![acct("x", "https://api.anthropic.com/v1/chat/completions", "  ")];
+        assert_eq!(super::select_key(&empty, "https://api.anthropic.com/v1/chat/completions", None), None);
     }
 }
