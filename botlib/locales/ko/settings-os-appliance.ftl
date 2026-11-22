@@ -79,3 +79,6 @@ drive-removable-ejected = 장치를 안전하게 꺼냈습니다
 drive-removable-in-use = 장치가 사용 중입니다
 drive-removable-unavailable = 장치 정보를 가져올 수 없습니다: 
 drive-removable-picker-missing = 폴더 업로드로 가져오기
+os-net-allow-lan = 내 네트워크의 다른 장치 허용
+os-net-lan-hint = 기본값 꺼짐. 켜면 15분 동안만 액세스할 수 있습니다.
+os-net-lan-active = 다른 장치가 {n}분간 액세스 가능

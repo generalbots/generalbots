@@ -79,3 +79,6 @@ drive-removable-ejected = 设备已安全弹出
 drive-removable-in-use = 设备正在使用中
 drive-removable-unavailable = 无法获取设备信息: 
 drive-removable-picker-missing = 请使用上传文件夹导入
+os-net-allow-lan = 允许网络中的其他设备访问
+os-net-lan-hint = 默认关闭。开启后其他设备可访问15分钟，随后自动关闭。
+os-net-lan-active = 其他设备可访问 {n} 分钟

@@ -56,6 +56,10 @@ pub(super) const KEYS: &[&str] = &[
     "drive-removable-in-use",
     "drive-removable-unavailable",
     "drive-removable-picker-missing",
+    // #2477 — opt-in LAN exposure
+    "os-net-allow-lan",
+    "os-net-lan-hint",
+    "os-net-lan-active",
     "action-save",
     "action-cancel",
     "action-delete",

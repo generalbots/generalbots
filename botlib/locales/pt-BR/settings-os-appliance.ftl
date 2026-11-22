@@ -79,3 +79,6 @@ drive-removable-ejected = Dispositivo ejetado com segurança.
 drive-removable-in-use = O dispositivo está em uso. Feche seus arquivos e tente novamente.
 drive-removable-unavailable = Dispositivos removíveis indisponíveis: 
 drive-removable-picker-missing = Use Enviar pasta para importar.
+os-net-allow-lan = Permitir outros dispositivos na minha rede
+os-net-lan-hint = Desativado por padrão. Quando ativado, outros dispositivos podem acessar o suite por 15 minutos e o acesso é fechado automaticamente.
+os-net-lan-active = Outros dispositivos podem acessar por {n} min

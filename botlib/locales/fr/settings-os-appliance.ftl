@@ -79,3 +79,6 @@ drive-removable-ejected = Périphérique éjecté en toute sécurité.
 drive-removable-in-use = Le périphérique est utilisé.
 drive-removable-unavailable = Périphériques indisponibles : 
 drive-removable-picker-missing = Utilisez Envoyer un dossier.
+os-net-allow-lan = Autoriser d'autres appareils sur mon réseau
+os-net-lan-hint = Désactivé par défaut. Permet l'accès pendant 15 minutes puis se referme.
+os-net-lan-active = D'autres appareils peuvent accéder {n} min

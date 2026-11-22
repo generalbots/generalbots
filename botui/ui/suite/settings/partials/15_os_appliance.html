@@ -9,6 +9,12 @@
     <div class="card-header"><h2 data-i18n="os-net-status">Network status</h2></div>
     <p class="os-hint" data-i18n="os-net-readonly">Network configuration is managed by the host appliance. This page shows status when the OS backend is available.</p>
     <div id="os-net-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row">
+      <label for="osLanExposure" data-i18n="os-net-allow-lan">Allow other devices on my network</label>
+      <input type="checkbox" id="osLanExposure" aria-label="Allow other devices on my network" onchange="window.GBNetworkSecurity && GBNetworkSecurity.setLanExposure(this.checked)" />
+      <span id="osLanExposureWarning" role="status" aria-live="polite" hidden></span>
+    </div>
+    <p class="os-hint" data-i18n="os-net-lan-hint">Off by default. When enabled, other devices on this network can reach the suite for 15 minutes, then access is closed automatically.</p>
   </div>
 </section>
 

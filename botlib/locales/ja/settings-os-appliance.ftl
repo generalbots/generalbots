@@ -79,3 +79,6 @@ drive-removable-ejected = デバイスを安全に取り出しました
 drive-removable-in-use = デバイスが使用中の可能性があります
 drive-removable-unavailable = デバイス情報を取得できません: 
 drive-removable-picker-missing = フォルダーをアップロードしてインポート
+os-net-allow-lan = 同じネットワークの他のデバイスを許可
+os-net-lan-hint = 既定ではオフ。有効にすると15分間のみアクセスできます。
+os-net-lan-active = 他のデバイスが{n}分間アクセス可能

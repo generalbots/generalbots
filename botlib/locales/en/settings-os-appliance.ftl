@@ -79,3 +79,6 @@ drive-removable-ejected = Device safely ejected.
 drive-removable-in-use = Device is in use. Close its files and try again.
 drive-removable-unavailable = Removable devices unavailable: 
 drive-removable-picker-missing = Use Upload folder to import this device.
+os-net-allow-lan = Allow other devices on my network
+os-net-lan-hint = Off by default. When enabled, other devices on this network can reach the suite for 15 minutes, then access is closed automatically.
+os-net-lan-active = Other devices can reach this suite for {n} min

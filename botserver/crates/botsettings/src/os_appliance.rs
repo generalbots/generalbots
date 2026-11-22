@@ -15,7 +15,7 @@ use axum::{
 use botcore::shared::state::AppState;
 use botsecurity::{auth::AuthenticatedUser, command_guard::SafeCommand};
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::os::{authorize, deny};
 use crate::os_data::{read_disks, read_hostname, read_kernel, read_os, read_uptime};
@@ -32,6 +32,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/diagnostics/bundle", get(diagnostics_bundle))
         .route("/api/os/removable", get(removable_devices))
         .route("/api/os/removable/eject", post(eject_removable))
+        .route("/api/os/network/lan-exposure", get(lan_exposure_status).post(lan_exposure_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -157,6 +158,67 @@ async fn diagnostics(
             read_hostname(), read_os(), read_kernel(), read_uptime()
         )
     })))
+}
+
+/// #2477 — opt-in LAN exposure. Off by default, time-boxed, and enforced by
+/// nftables `gb_lan_allowed` plus the loopback bind policy in listen_impl.rs.
+static LAN_EXPOSURE: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+const LAN_EXPOSURE_SECS: u64 = 900;
+
+async fn nft_lan(enabled: bool) -> bool {
+    let action = if enabled { "add" } else { "delete" };
+    let script = format!(
+        "{} element inet gb_filter gb_lan_allowed {{ 0.0.0.0/0 }}",
+        action
+    );
+    let result = tokio::task::spawn_blocking(move || {
+        let cmd = match SafeCommand::new("nft") { Ok(c) => c, Err(_) => return false };
+        let cmd = match cmd.arg("-c").and_then(|c| c.arg(&script)) { Ok(c) => c, Err(_) => return false };
+        match cmd.execute() { Ok(o) => o.status.success(), Err(_) => false }
+    }).await;
+    result.unwrap_or(false)
+}
+
+async fn lan_exposure_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let guard = LAN_EXPOSURE.lock().unwrap_or_else(|e| e.into_inner());
+    let remaining = (*guard).map(|start| {
+        LAN_EXPOSURE_SECS.saturating_sub(start.elapsed().as_secs())
+    });
+    Ok(Json(json!({
+        "enabled": remaining.is_some(),
+        "remaining_seconds": remaining.unwrap_or(0),
+        "timeout_seconds": LAN_EXPOSURE_SECS
+    })))
+}
+
+#[derive(serde::Deserialize)]
+struct LanExposureRequest {
+    enabled: bool,
+}
+
+async fn lan_exposure_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<LanExposureRequest>,
+) -> ApiResult {
+    gated(user, headers.clone())?;
+    if req.enabled {
+        if nft_lan(true).await {
+            let mut guard = LAN_EXPOSURE.lock().unwrap_or_else(|e| e.into_inner());
+            *guard = Some(std::time::Instant::now());
+        } else {
+            return Ok(Json(json!({ "ok": false, "error": "nft_unavailable" })));
+        }
+    } else {
+        nft_lan(false).await;
+        let mut guard = LAN_EXPOSURE.lock().unwrap_or_else(|e| e.into_inner());
+        *guard = None;
+    }
+    lan_exposure_status(None, headers).await
 }
 
 /// #2460 — removable devices mounted for the kiosk user.

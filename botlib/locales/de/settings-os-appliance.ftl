@@ -79,3 +79,6 @@ drive-removable-ejected = Medium sicher ausgeworfen.
 drive-removable-in-use = Medium wird verwendet.
 drive-removable-unavailable = Wechselmedien nicht verfügbar: 
 drive-removable-picker-missing = Ordner hochladen verwenden.
+os-net-allow-lan = Andere Geräte in meinem Netzwerk erlauben
+os-net-lan-hint = Standardmäßig aus. Erlaubt Zugriff für 15 Minuten.
+os-net-lan-active = Andere Geräte können {n} Min zugreifen

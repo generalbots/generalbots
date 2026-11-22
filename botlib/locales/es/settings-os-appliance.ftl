@@ -79,3 +79,6 @@ drive-removable-ejected = Dispositivo expulsado de forma segura.
 drive-removable-in-use = El dispositivo está en uso.
 drive-removable-unavailable = Dispositivos no disponibles: 
 drive-removable-picker-missing = Use Subir carpeta para importar.
+os-net-allow-lan = Permitir otros dispositivos en mi red
+os-net-lan-hint = Desactivado por defecto. Al activarlo, otros dispositivos pueden acceder durante 15 minutos.
+os-net-lan-active = Otros dispositivos pueden acceder {n} min
