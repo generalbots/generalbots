@@ -6,14 +6,24 @@ impl AntivirusManager {
             .context("Failed to create quarantine directory")?;
         std::fs::create_dir_all(&config.log_dir).context("Failed to create log directory")?;
 
+        // Report only what is actually installed and recorded (#2601). The
+        // upload gate's registered scanner is the source of truth; the legacy
+        // `real_time_protection` config flag alone is not protection.
+        let scanner_installed = crate::upload_hostile::malware_scanner_installed();
+        let records = crate::upload_hostile::malware::list_quarantine_records().unwrap_or_default();
+        let last_scan = records
+            .first()
+            .and_then(|entry| entry.quarantined_at.as_deref())
+            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+            .map(|value| value.with_timezone(&chrono::Utc));
         let protection_status = ProtectionStatus {
-            real_time_protection: config.real_time_protection,
+            real_time_protection: config.real_time_protection && scanner_installed,
             windows_defender_enabled: Self::check_windows_defender_status(),
-            general_bots_protection: true,
-            last_scan: None,
+            general_bots_protection: scanner_installed,
+            last_scan,
             last_definition_update: None,
-            threats_blocked_today: 0,
-            quarantined_items: 0,
+            threats_blocked_today: records.iter().filter(|entry| entry.verdict == "infected").count() as u32,
+            quarantined_items: records.len() as u32,
         };
 
         Ok(Self {

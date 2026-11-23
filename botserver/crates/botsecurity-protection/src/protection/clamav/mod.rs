@@ -1,59 +1,83 @@
-//! Real ClamAV scan behind the Protection API (#2599).
+//! Real ClamAV scan behind the Protection API (#2599, #2601).
 //!
-//! The old dispatch sent `ProtectionTool::ClamAV` to `lynis::run_scan()`, which
-//! produced a Lynis audit under a ClamAV label. This module runs `clamscan`
-//! through [`SafeCommand`] on the hostile-file quarantine root (or an explicit
-//! local target) and reports only what the engine actually found.
+//! Every scan goes through the single shared byte primitive in
+//! `botsecurity-core` (`antivirus::byte_scan::scan_bytes`). The old dispatch
+//! sent `ProtectionTool::ClamAV` to `lynis::run_scan()`, which produced a Lynis
+//! audit under a ClamAV label; this module reports only real engine verdicts.
 
 use anyhow::{Context, Result};
 use tracing::info;
 
-use botsecurity_core::command_guard::SafeCommand;
+use botsecurity_core::antivirus::byte_scan::{self, ByteScanVerdict};
+use botsecurity_core::upload_hostile::malware;
 
 use super::manager::{Finding, FindingSeverity, ScanResultStatus};
 
-/// Optional local scan target. When unset, the hostile-file quarantine root is
-/// used so the endpoint never silently claims to have scanned the whole host.
+/// Optional single-file scan target. When unset, every payload in the canonical
+/// hostile-file quarantine is re-scanned, so the endpoint never claims to have
+/// scanned the whole host.
 const TARGET_ENV: &str = "GB_CLAMAV_SCAN_TARGET";
 
-/// Run a real ClamAV scan and return findings in the Protection API format.
+/// Run a real ClamAV scan through the shared primitive and return findings in
+/// the Protection API format.
 pub async fn run_scan() -> Result<(ScanResultStatus, Vec<Finding>, String)> {
-    let (target, allowed) = match std::env::var(TARGET_ENV) {
-        Ok(value) if !value.trim().is_empty() => {
+    let single_target = std::env::var(TARGET_ENV).ok().filter(|value| !value.trim().is_empty());
+    let mut findings = Vec::new();
+    let mut scanned = 0usize;
+    let mut raw_output = String::new();
+
+    let targets: Vec<(String, std::path::PathBuf)> = match single_target {
+        Some(value) => {
             let path = std::path::PathBuf::from(value.trim());
-            let allowed = path
-                .parent()
-                .map(std::path::Path::to_path_buf)
-                .unwrap_or_else(|| path.clone());
-            (path, allowed)
+            vec![(path.to_string_lossy().into_owned(), path)]
         }
-        _ => (botsecurity_core::upload_hostile::malware::quarantine_root(), None),
+        None => malware::list_quarantine_records()
+            .context("listing hostile-file quarantine")?
+            .into_iter()
+            .filter(|record| !record.quarantine_path.is_empty())
+            .map(|record| (record.original_path, std::path::PathBuf::from(record.quarantine_path)))
+            .collect(),
     };
 
-    if !target.exists() {
-        std::fs::create_dir_all(&target).context("ClamAV scan target directory")?;
+    info!("Running ClamAV scan over {} quarantined payload(s)", targets.len());
+    for (name, path) in targets {
+        let data = match std::fs::read(&path) {
+            Ok(data) => data,
+            Err(error) => {
+                log::warn!("ClamAV target unreadable {}: {error}", path.display());
+                continue;
+            }
+        };
+        scanned += 1;
+        let verdict = byte_scan::scan_bytes(&data);
+        let signature = match verdict {
+            ByteScanVerdict::Clean { .. } => {
+                raw_output.push_str(&format!("{name}: clean\n"));
+                continue;
+            }
+            ByteScanVerdict::Infected { signature, .. } => signature,
+            ByteScanVerdict::Failed { detail } => {
+                raw_output.push_str(&format!("{name}: scan failed: {detail}\n"));
+                continue;
+            }
+        };
+        raw_output.push_str(&format!("{name}: {signature} FOUND\n"));
+        findings.push(Finding {
+            id: format!("clamav-{}-{}", scanned, findings.len()),
+            severity: FindingSeverity::High,
+            category: "malware".to_string(),
+            title: signature.clone(),
+            description: format!("ClamAV detected {signature}"),
+            file_path: Some(path.to_string_lossy().into_owned()),
+            remediation: Some("Keep the payload quarantined and update ClamAV signatures".to_string()),
+        });
     }
 
-    info!("Running ClamAV scan on {}", target.display());
-    let mut command = SafeCommand::new("clamscan")?
-        .arg("--infected")?
-        .arg("--no-summary")?;
-    if let Some(allowed) = allowed {
-        command = command.allow_path(allowed);
-    }
-    let command = command.path_arg(&target)?;
-    let output = command.execute().context("clamscan execution failed")?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let raw_output = format!("{stdout}\n{stderr}");
-    let findings = parse_clamav_output(&stdout);
     let status = if findings.is_empty() {
         ScanResultStatus::Clean
     } else {
         ScanResultStatus::Infected
     };
-
     Ok((status, findings, raw_output))
 }
 
@@ -79,9 +103,7 @@ pub fn parse_clamav_output(output: &str) -> Vec<Finding> {
             title: signature.to_string(),
             description: format!("ClamAV detected {signature}"),
             file_path: Some(path.trim().to_string()),
-            remediation: Some(
-                "Quarantine or remove the file, then update ClamAV signatures".to_string(),
-            ),
+            remediation: Some("Keep the payload quarantined and update ClamAV signatures".to_string()),
         });
     }
     findings
