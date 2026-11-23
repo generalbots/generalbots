@@ -112,6 +112,11 @@ pub fn set_malware_scanner(scanner: Box<MalwareScanner>) -> bool {
     MALWARE_SCANNER.set(scanner).is_ok()
 }
 
+/// True when a production scanner has been registered with [`set_malware_scanner`].
+pub fn malware_scanner_installed() -> bool {
+    MALWARE_SCANNER.get().is_some()
+}
+
 /// Runs the configured scanner, or reports `NotConfigured` when none exists.
 pub fn scan_for_malware(data: &[u8], filename: &str) -> MalwareScanDecision {
     match MALWARE_SCANNER.get() {
