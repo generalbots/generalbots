@@ -1,38 +1,78 @@
 const API_BASE = '/api/cloud';
 
-// Resolve the post-auth destination. A relative `redirect` (e.g. "/drive")
-// must be resolved against the referring suite page, NOT the login host —
-// otherwise after login we land back on the login page with ?token= and
-// never consume it (infinite login loop).
-function resolveRedirect() {
-  // `redirect` is used by the server-side suite gate; `return_to` by the
-  // desktop shell (auth-guard.js). Both must return the caller to their
-  // original page after login.
-  const raw = (new URLSearchParams(window.location.search)).get('redirect')
-    || (new URLSearchParams(window.location.search)).get('return_to');
-  if (!raw) return null;
+// ── #2809 — post-auth destination guard ──────────────────────────────────────
+// The login host mints the bearer token and hands it to the cloud/suite host.
+// `redirect` / `return_to` are attacker-controllable, so they are resolved and
+// checked against a strict allowlist BEFORE any navigation happens. A foreign
+// destination must never receive the freshly minted token.
 
-  // #1324 — never return to an auth page. A `redirect` pointing at /login or
-  // /signup makes every hop nest another ?redirect= until the URL explodes
-  // ("can't be reached"). Fall back to the default destination instead.
-  function isAuthTarget(value) {
-    try {
-      const path = new URL(value, window.location.origin).pathname;
-      return /\/(login|signup)\/?$/.test(path);
-    } catch (_) {
-      return /\/(login|signup)(\?|$)/.test(value);
+function isAuthTarget(u) {
+  return /\/(login|signup)\/?$/.test(u.pathname);
+}
+
+// Returns true only for http(s) URLs on the login origin or the configured
+// cloud origin. No credentials, no other schemes, no foreign hosts.
+function isAllowedOrigin(u, origin, baseUrlOverride) {
+  if (!u || (u.protocol !== 'http:' && u.protocol !== 'https:')) return false;
+  if (u.username || u.password) return false;
+  var allowed = [origin];
+  try {
+    var configured = baseUrlOverride;
+    if (!configured && window.CLOUD_CONFIG) configured = window.CLOUD_CONFIG.baseUrl;
+    if (configured) allowed.push(new URL(configured, origin).origin);
+  } catch (_) { /* malformed config: keep the login origin only */ }
+  return allowed.indexOf(u.origin) !== -1;
+}
+
+// Pure validator — safe to call with hostile input, and usable from the
+// self-test at the bottom of this file. Returns a URL object or null.
+// `originOverride` / `baseUrlOverride` exist only for the self-test so the
+// assertions do not depend on the host the page happens to be served from.
+function validateRedirect(raw, originOverride, baseUrlOverride) {
+  if (!raw || typeof raw !== 'string') return null;
+  // Protocol-relative ("//host") is a foreign host by construction — reject
+  // before the URL parser can resolve it against a different authority.
+  if (/^\s*\/\//.test(raw)) return null;
+  var origin = originOverride || window.location.origin;
+  var u;
+  try { u = new URL(raw, origin); } catch (_) { return null; }
+  if (!isAllowedOrigin(u, origin, baseUrlOverride)) return null;
+  // #1324 — never bounce back to an auth page (nesting ?redirect= forever).
+  if (isAuthTarget(u)) return null;
+  return u;
+}
+
+// Fallback destination: the cloud origin when configured, otherwise login.
+function defaultDestination(path) {
+  var origin = window.location.origin;
+  var base = origin;
+  try {
+    if (window.CLOUD_CONFIG && window.CLOUD_CONFIG.baseUrl) {
+      base = new URL(window.CLOUD_CONFIG.baseUrl, origin).origin;
     }
-  }
-  if (isAuthTarget(raw)) return null;
+  } catch (_) { /* keep login origin */ }
+  var u;
+  try { u = new URL(path || '/dashboard', base); } catch (_) { u = new URL('/', origin); }
+  return isAllowedOrigin(u, origin) ? u : new URL('/', origin);
+}
 
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (raw.startsWith('/') && document.referrer) {
-    try {
-      const resolved = new URL(raw, document.referrer).href;
-      return isAuthTarget(resolved) ? null : resolved;
-    } catch (_) { return null; }
-  }
-  return null;
+// `redirect` is used by the server-side suite gate; `return_to` by the
+// desktop shell (auth-guard.js). Both go through the same allowlist.
+function resolveRedirect(fallbackPath) {
+  var params = new URLSearchParams(window.location.search);
+  var raw = params.get('redirect') || params.get('return_to');
+  return validateRedirect(raw) || defaultDestination(fallbackPath);
+}
+
+// Build the final URL with URL.searchParams.set() instead of string
+// concatenation: an injected '?' / '#' / extra token param in `redirect`
+// cannot override the identity we just authenticated.
+function buildAuthDestination(dest, identity) {
+  var target = isAllowedOrigin(dest, window.location.origin) ? dest : defaultDestination('/dashboard');
+  target.searchParams.set('token', identity.token || '');
+  target.searchParams.set('email', identity.email || '');
+  target.searchParams.set('name', identity.name || '');
+  return target.href;
 }
 
 // ── Login ──
@@ -145,10 +185,13 @@ async function handleLogin(e) {
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
     notifyParentSuccess(token, data.email || email, data.name || '');
-    var dest = resolveRedirect() || (CLOUD_CONFIG.baseUrl + '/dashboard');
+    var dest = buildAuthDestination(
+      resolveRedirect('/dashboard'),
+      { token: token, email: data.email || email, name: data.name || '' }
+    );
     succeeded = true;
     announce(liveEl, progress);
-    window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
+    window.location.href = dest;
   } catch (err) {
     showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
@@ -228,10 +271,13 @@ async function handleSignup(e) {
     localStorage.setItem('management_plan', data.plan || 'free');
     notifyParentSuccess(token, emailOut, data.account?.name || name);
     // Private Server: redirect to Store VPS calculator instead of Dashboard
-    var dest = resolveRedirect() || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
+    var dest = buildAuthDestination(
+      resolveRedirect(plan === 'private-cloud' ? '/store' : '/dashboard'),
+      { token: token, email: emailOut, name: data.account?.name || name }
+    );
     succeeded = true;
     announce(liveEl, progress);
-    window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(emailOut) + '&name=' + encodeURIComponent(data.account?.name || name);
+    window.location.href = dest;
   } catch (err) {
     showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
@@ -246,7 +292,7 @@ async function handleSignup(e) {
 async function doSignup(e) { return handleSignup(e); }
 
 // ── Plan selector visual highlight + private server toggle ──
-document.addEventListener('DOMContentLoaded', function() {
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', function() {
   // Use ?plan= query param to pre-select a plan
   var params = new URLSearchParams(window.location.search);
   var presetPlan = params.get('plan');
@@ -291,4 +337,42 @@ function doLogout() {
   localStorage.removeItem('management_name');
   sessionStorage.setItem('gb-signed-out', 'true');
   window.location.href = '/';
+}
+
+// ── #2809 self-test ───────────────────────────────────────────────────────────
+// Browser console: __gbCloudAuthSelfTest(). Node: tests/cloud_auth_redirect.test.js.
+// Pure: overrides remove any dependency on the host serving the page.
+function runRedirectSelfTest() {
+  var origin = 'https://login.example';
+  var cloud = 'https://cloud.example';
+  var cases = [
+    ['https://evil.example/dashboard?token=STOLEN', null],
+    ['//evil.example/dashboard', null],
+    ['https://login.example@evil.example/dashboard', null],
+    ['javascript:alert(1)', null],
+    [cloud + '/dashboard', cloud + '/dashboard'],
+    ['/drive', origin + '/drive'],
+    [origin + '/login', null]
+  ];
+  var results = cases.map(function(c) {
+    var u = validateRedirect(c[0], origin, cloud);
+    var actual = u ? u.href : null;
+    return { input: c[0], expected: c[1], actual: actual, pass: actual === c[1] };
+  });
+  // A token param smuggled into `redirect` must be overwritten by searchParams.set.
+  var injected = validateRedirect('/dashboard?token=INJECTED', origin, cloud);
+  injected.searchParams.set('token', 'REAL');
+  results.push({
+    input: 'searchParams.set over injected token',
+    expected: origin + '/dashboard?token=REAL',
+    actual: injected.href,
+    pass: injected.href === origin + '/dashboard?token=REAL'
+  });
+  var failed = results.filter(function(r) { return !r.pass; }).length;
+  return { passed: results.length - failed, failed: failed, results: results };
+}
+
+if (typeof window !== 'undefined') window.__gbCloudAuthSelfTest = runRedirectSelfTest;
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { validateRedirect: validateRedirect, runRedirectSelfTest: runRedirectSelfTest };
 }
