@@ -1,17 +1,86 @@
 use super::*;
 
-pub(super) fn bot_scope_clause(bot_id: &Option<uuid::Uuid>) -> String {
-    match bot_id {
-        Some(id) => format!(" AND bot_id = '{}'", id),
-        None => String::new(),
+/// A research bot paired with the tenant branch that owns it, resolved from
+/// the caller's verified claims rather than from a process-global default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResearchScope {
+    pub bot_id: uuid::Uuid,
+    pub branch_id: uuid::Uuid,
+}
+
+/// Pure authorization of a resolved bot against the caller's verified branch.
+/// A bot may only be used when the caller branch is known and matches the
+/// bot's owner; an unverifiable or mismatched caller is always denied so no
+/// knowledge-base row can cross tenants.
+pub fn authorize_scope(
+    scope: ResearchScope,
+    caller_branch: Option<uuid::Uuid>,
+) -> Option<ResearchScope> {
+    match caller_branch {
+        Some(branch) if branch == scope.branch_id => Some(scope),
+        _ => None,
     }
 }
+
+/// Resolves the caller's research scope exclusively from verified JWT claims.
+///
+/// The bot is selected by the signed `branch_id` claim, never by the
+/// process-global `is_default_for_branch` lookup: every branch has a default
+/// bot, so a global lookup let one tenant read another tenant's knowledge
+/// base. Returns `None` when the token is missing/invalid or when that branch
+/// has no default bot; callers MUST deny the request on `None`.
+pub fn resolve_research_scope(
+    pool: &DbPool,
+    headers: &axum::http::HeaderMap,
+) -> Option<ResearchScope> {
+    let caller_branch = botsecurity_core::tenant::branch_from_claims(headers)?;
+    let mut conn = pool.get().ok()?;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct ScopeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: uuid::Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: uuid::Uuid,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT id, branch_id FROM bots \
+         WHERE branch_id = $1 AND is_default_for_branch = TRUE \
+         ORDER BY created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(caller_branch)
+    .get_result::<ScopeRow>(&mut conn)
+    .ok()?;
+
+    authorize_scope(
+        ResearchScope {
+            bot_id: row.id,
+            branch_id: row.branch_id,
+        },
+        Some(caller_branch),
+    )
+}
+
+/// Builds the SQL fragment that constrains a KB query to the caller's tenant.
+/// `scope` is `None` only when the caller's tenant could not be verified, in
+/// which case the fragment denies every row. An empty fragment would expose
+/// the whole knowledge base and is never returned. The bot id is a validated
+/// `Uuid`, so its display form cannot inject SQL.
+pub fn bot_scope_clause(scope: &Option<ResearchScope>) -> String {
+    match scope {
+        Some(s) => format!(" AND bot_id = '{}'", s.bot_id),
+        None => " AND 1 = 0".to_string(),
+    }
+}
+
 pub async fn handle_source_counts<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
     let (all, web) = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -45,10 +114,10 @@ pub async fn handle_source_counts<S: ResearchState>(
 }
 pub async fn handle_list_collections<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
     let collections = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -112,11 +181,15 @@ pub async fn handle_list_collections<S: ResearchState>(
 }
 pub async fn handle_create_collection<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<NewCollectionRequest>,
 ) -> impl IntoResponse {
+    let Some(scope) = state.resolve_scope(&headers) else {
+        return Html(String::new());
+    };
+    let bot_id = scope.bot_id;
     let conn = state.db_pool().clone();
     let id = uuid::Uuid::new_v4();
-    let bot_id = state.bot_id();
     let name = payload.name.clone();
     let description = payload.description.unwrap_or_default();
     let qdrant_collection = format!("kb_{}", name.to_lowercase().replace(' ', "_"));
@@ -139,7 +212,7 @@ pub async fn handle_create_collection<S: ResearchState>(
             "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count) VALUES ($1, $2, $3, $4, $5, 0)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&id_clone)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(bot_id)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(Some(bot_id))
         .bind::<diesel::sql_types::Text, _>(&name)
         .bind::<diesel::sql_types::Text, _>(&folder_for_closure)
         .bind::<diesel::sql_types::Text, _>(&qdrant_collection)
@@ -166,9 +239,11 @@ pub async fn handle_create_collection<S: ResearchState>(
 }
 pub async fn handle_get_collection<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
     let documents = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -184,9 +259,10 @@ pub async fn handle_get_collection<S: ResearchState>(
             Err(_) => return Vec::new(),
         };
 
-        diesel::sql_query(
-            "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE collection_name = $1 ORDER BY file_path ASC LIMIT 50",
-        )
+        diesel::sql_query(format!(
+            "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE collection_name = $1{} ORDER BY file_path ASC LIMIT 50",
+            scope
+        ))
         .bind::<diesel::sql_types::Text, _>(&collection_id)
         .load::<KbDocumentRow>(&mut db_conn)
         .unwrap_or_default()
@@ -219,4 +295,67 @@ pub async fn handle_get_collection<S: ResearchState>(
     html.push_str("</div>");
 
     Html(html)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BOT_A: &str = "11111111-1111-4111-8111-111111111111";
+    const BOT_B: &str = "22222222-2222-4222-8222-222222222222";
+    const BRANCH_A: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const BRANCH_B: &str = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+    fn scope(bot: &str, branch: &str) -> ResearchScope {
+        ResearchScope {
+            bot_id: uuid::Uuid::parse_str(bot).unwrap(),
+            branch_id: uuid::Uuid::parse_str(branch).unwrap(),
+        }
+    }
+
+    #[test]
+    fn verified_matching_branch_is_authorized() {
+        let owner = scope(BOT_A, BRANCH_A);
+        let caller = uuid::Uuid::parse_str(BRANCH_A).unwrap();
+        assert_eq!(authorize_scope(owner, Some(caller)), Some(owner));
+    }
+
+    #[test]
+    fn mismatched_branch_is_denied() {
+        let owner = scope(BOT_A, BRANCH_A);
+        let other = uuid::Uuid::parse_str(BRANCH_B).unwrap();
+        assert_eq!(authorize_scope(owner, Some(other)), None);
+    }
+
+    #[test]
+    fn unverified_caller_is_denied() {
+        let owner = scope(BOT_A, BRANCH_A);
+        assert_eq!(authorize_scope(owner, None), None);
+    }
+
+    #[test]
+    fn unverified_caller_never_yields_an_unscoped_filter() {
+        let filter = bot_scope_clause(&None);
+        assert!(!filter.is_empty(), "an empty filter exposes every tenant");
+        assert!(
+            filter.contains("1 = 0"),
+            "denied filter must match no rows: {filter}"
+        );
+        assert!(!filter.contains("bot_id"), "no bot id to scope by: {filter}");
+    }
+
+    #[test]
+    fn verified_scope_filters_by_its_resolved_bot() {
+        let owner = scope(BOT_B, BRANCH_B);
+        let filter = bot_scope_clause(&Some(owner));
+        assert_eq!(filter, format!(" AND bot_id = '{BOT_B}'"));
+    }
+
+    #[test]
+    fn cross_tenant_bot_cannot_be_used_to_build_a_filter() {
+        let owner = scope(BOT_A, BRANCH_A);
+        let other_branch = uuid::Uuid::parse_str(BRANCH_B).unwrap();
+        let denied = authorize_scope(owner, Some(other_branch));
+        assert_eq!(bot_scope_clause(&denied), " AND 1 = 0");
+    }
 }

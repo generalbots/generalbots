@@ -8,8 +8,10 @@
 //! `POST /api/browser/tasks/:id/finish` for the external execution driver,
 //! `GET/PUT /api/browser/policy` (admin-only).
 
+use crate::caller::{resolve_principal, resolve_principal_sse, resolve_user_id};
 use crate::jwt::{bearer_token, verified_claims};
 use crate::models::ProgressDoc;
+use crate::ownership::{ownership_matches, TaskPrincipal};
 use crate::policy::{PolicyConfig, TASK_KIND_CHECKOUT, TASK_KIND_DEFAULT};
 use crate::tasks::{self, StepResult, TaskError};
 use axum::{
@@ -55,42 +57,10 @@ fn unauthorized() -> SafeErrorResponse {
     SafeErrorResponse::unauthorized()
 }
 
-/// Identity of a **verified** Bearer token (#2112); unverifiable tokens yield
-/// no claims, so the request is refused before any policy decision is taken.
-fn verified_user_id(token: &str) -> Result<Uuid, SafeErrorResponse> {
-    let claims = verified_claims(token).ok_or_else(unauthorized)?;
-    Uuid::parse_str(&claims.sub)
-        .map_err(|_| SafeErrorResponse::new("unauthorized", "Invalid token subject"))
-}
-
-fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, SafeErrorResponse> {
-    let token = bearer_token(headers).ok_or_else(unauthorized)?;
-    verified_user_id(token)
-}
-
 /// #2882 — derives task scope only from verified claims. `branch_id` is the
 /// signed per-bot workspace (`bot_id`); `org_id` is the signed `.gborg` tenant.
 fn resolve_task_scope(claims: &VerifiedJwt) -> (Option<Uuid>, Option<Uuid>) {
     (claims.org_id, claims.branch_id)
-}
-
-/// SSE transport: EventSource cannot set headers, so the suite passes the
-/// Bearer token as `?token=`. Header wins when both are present; a header
-/// token that fails verification never falls back to the query parameter.
-fn resolve_user_id_sse(
-    headers: &HeaderMap,
-    token_param: &str,
-) -> Result<Uuid, SafeErrorResponse> {
-    let header_token = match bearer_token(headers) {
-        Some(token) => token,
-        None => "",
-    };
-    let token = if header_token.is_empty() {
-        token_param.trim()
-    } else {
-        header_token
-    };
-    verified_user_id(token)
 }
 
 /// Verified email claim of the caller, used by the admin policy gate.
@@ -179,8 +149,8 @@ pub async fn list_tasks_handler(
     headers: HeaderMap,
     Query(q): Query<ListQuery>,
 ) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
-    let user_id = resolve_user_id(&headers)?;
-    let items = tasks::list_user_tasks(svc.pool(), user_id, q.limit.unwrap_or(50))
+    let principal = resolve_principal(&headers)?;
+    let items = tasks::list_scoped_tasks(svc.pool(), &principal, q.limit.unwrap_or(50))
         .map_err(|e| api_error("list tasks", &e))?;
     Ok(Json(serde_json::json!({ "items": items })))
 }
@@ -189,10 +159,12 @@ async fn control(
     svc: SharedService,
     headers: HeaderMap,
     task_id: Uuid,
-    f: fn(&tasks::DbPool, Uuid) -> Result<crate::models::BrowserTask, TaskError>,
+    f: fn(&tasks::DbPool, Uuid, &TaskPrincipal) -> Result<crate::models::BrowserTask, TaskError>,
 ) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
-    resolve_user_id(&headers)?;
-    let t = f(svc.pool(), task_id).map_err(|e| api_error("task control", &e))?;
+    let principal = resolve_principal(&headers)?;
+    // `f` loads through `load_owned_task`: foreign and unknown ids both become
+    // 404 before any state change is attempted (#2877).
+    let t = f(svc.pool(), task_id, &principal).map_err(|e| api_error("task control", &e))?;
     Ok(Json(serde_json::json!({ "status": t.status })))
 }
 
@@ -233,10 +205,11 @@ pub async fn advance_handler(
     Path(id): Path<Uuid>,
     Json(body): Json<AdvanceBody>,
 ) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
-    resolve_user_id(&headers)?;
+    let principal = resolve_principal(&headers)?;
     let (_, recorded) = tasks::advance_task(
         svc.pool(),
         id,
+        principal,
         StepResult {
             action: body.action,
             url: body.url,
@@ -264,8 +237,8 @@ pub async fn finish_handler(
     Path(id): Path<Uuid>,
     Json(body): Json<FinishBody>,
 ) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
-    resolve_user_id(&headers)?;
-    let t = tasks::finish_task(svc.pool(), id, body.result, body.citations)
+    let principal = resolve_principal(&headers)?;
+    let t = tasks::finish_task(svc.pool(), id, &principal, body.result, body.citations)
         .map_err(|e| api_error("finish", &e))?;
     Ok(Json(serde_json::json!({ "status": t.status })))
 }
@@ -275,7 +248,12 @@ struct SseTick {
     new_steps: Vec<serde_json::Value>,
 }
 
-fn poll_tick(svc: &SharedService, task_id: Uuid, emitted: usize) -> Option<SseTick> {
+fn poll_tick(
+    svc: &SharedService,
+    task_id: Uuid,
+    emitted: usize,
+    caller: &TaskPrincipal,
+) -> Option<SseTick> {
     use crate::schema::browser_tasks::dsl as bt;
 
     let mut conn = svc.pool().get().ok()?;
@@ -284,6 +262,11 @@ fn poll_tick(svc: &SharedService, task_id: Uuid, emitted: usize) -> Option<SseTi
         .first::<crate::models::BrowserTask>(&mut conn)
         .optional()
         .ok()??;
+    // #2877 — re-assert ownership on every poll so the stream never emits a
+    // task that the caller is not allowed to see.
+    if !ownership_matches(&TaskPrincipal::of_task(&task), caller) {
+        return None;
+    }
     let progress = ProgressDoc::parse(task.progress.as_ref());
     let new_steps = progress.steps.iter().skip(emitted).filter_map(|s| serde_json::to_value(s).ok()).collect();
     Some(SseTick { task, new_steps })
@@ -303,11 +286,15 @@ pub async fn task_events(
         Some(token) => token.as_str(),
         None => "",
     };
-    resolve_user_id_sse(&headers, token_param)?;
+    let principal = resolve_principal_sse(&headers, token_param)?;
+    // #2877 — authorize the id before opening the stream: a foreign or unknown
+    // task yields 404, never an event feed.
+    tasks::load_owned_task(svc.pool(), task_id, &principal)
+        .map_err(|e| api_error("task events", &e))?;
     let stream = async_stream::stream! {
         let mut emitted: usize = 0;
         for _ in 0..SSE_MAX_TICKS {
-            if let Some(tick) = poll_tick(&svc, task_id, emitted) {
+            if let Some(tick) = poll_tick(&svc, task_id, emitted, &principal) {
                 for step in tick.new_steps {
                     emitted += 1;
                     yield Ok(Event::default().event("step").data(step.to_string()));

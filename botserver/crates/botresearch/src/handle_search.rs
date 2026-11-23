@@ -16,10 +16,12 @@ pub async fn handle_search<S: ResearchState>(
 
     let conn = state.db_pool().clone();
     let collection = payload.collection;
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let resolved_scope = state.resolve_scope(&headers);
+    let scope = bot_scope_clause(&resolved_scope);
     let query_c = query.clone();
-    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
+    let branch_id = resolved_scope
+        .map(|tenant| tenant.branch_id)
+        .unwrap_or_else(uuid::Uuid::nil);
 
     let results = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {

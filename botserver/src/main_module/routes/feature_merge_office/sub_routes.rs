@@ -217,36 +217,11 @@ pub(super) async fn merge_office_sub_routes(
             fn llm_provider(&self) -> Option<Arc<dyn botlib::traits::LLMProvider>> {
                 self.llm.clone()
             }
-            fn bot_id(&self) -> Option<uuid::Uuid> {
-                self.resolve_bot_id()
-            }
         }
 
-        impl ResearchAppState {
-            fn resolve_bot_id(&self) -> Option<uuid::Uuid> {
-                use diesel::prelude::*;
-                let mut conn = match self.pool.get() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        log::error!("Research bot_id DB connection error: {e}");
-                        return None;
-                    }
-                };
-                #[derive(diesel::QueryableByName)]
-                #[diesel(check_for_backend(diesel::pg::Pg))]
-                struct BotIdRow {
-                    #[diesel(sql_type = diesel::sql_types::Uuid)]
-                    id: uuid::Uuid,
-                }
-                diesel::sql_query(
-                    "SELECT id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
-                )
-                .get_result::<BotIdRow>(&mut conn)
-                .ok()
-                .map(|r| r.id)
-            }
-        }
-
+        // #2880 — scope comes from the caller's verified JWT branch claim via
+        // `ResearchState::resolve_scope`; there is intentionally no
+        // process-global default-bot resolver here.
         let research_state = Arc::new(ResearchAppState {
             pool: app_state.conn.clone(),
             llm: app_state.llm_provider.clone(),

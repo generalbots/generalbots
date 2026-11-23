@@ -2,9 +2,9 @@ use super::*;
 
 pub async fn handle_prompts<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
     let conn = state.db_pool().clone();
     let topics: Vec<String> = tokio::task::spawn_blocking(move || {

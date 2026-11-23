@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn handle_export_citations<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     let query = params.get("q").cloned().unwrap_or_default();
@@ -14,8 +15,7 @@ pub async fn handle_export_citations<S: ResearchState>(
     }
 
     let conn = state.db_pool().clone();
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
     let search_pattern = format!("%{}%", query.to_lowercase());
 
     let docs = tokio::task::spawn_blocking(move || {
@@ -83,12 +83,12 @@ fn render_citations_html(docs: &[KbDocumentRow]) -> String {
 }
 pub async fn handle_sources<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<SearchQuery>,
 ) -> impl IntoResponse {
     let category = params.q.unwrap_or_default();
     let conn = state.db_pool().clone();
-    let bot_id = state.bot_id();
-    let scope = bot_scope_clause(&bot_id);
+    let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
     let sources: Vec<String> = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -125,9 +125,13 @@ pub async fn handle_sources<S: ResearchState>(
 }
 pub async fn handle_collections_save<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let bot_id = state.bot_id().unwrap_or_else(uuid::Uuid::nil);
+    let Some(scope) = state.resolve_scope(&headers) else {
+        return Json(serde_json::json!({ "ok": false, "error": "tenant_scope_unavailable" }));
+    };
+    let bot_id = scope.bot_id;
     let pool = state.db_pool().clone();
     let collection_id = payload
         .get("collection_id")
@@ -180,9 +184,13 @@ pub async fn handle_collections_save<S: ResearchState>(
 }
 pub async fn handle_share<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let bot_id = state.bot_id().unwrap_or_else(uuid::Uuid::nil);
+    let Some(scope) = state.resolve_scope(&headers) else {
+        return Json(serde_json::json!({ "ok": false, "error": "tenant_scope_unavailable" }));
+    };
+    let bot_id = scope.bot_id;
     let pool = state.db_pool().clone();
     let title = payload
         .get("title")

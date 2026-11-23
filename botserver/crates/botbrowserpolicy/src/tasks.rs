@@ -8,6 +8,7 @@
 use crate::budget::{BudgetExceeded, BudgetTracker};
 use crate::memory::{self, MemoryError};
 use crate::models::{BrowserTask, NewBrowserTask, ProgressDoc, ProgressStep};
+use crate::ownership::{ownership_matches, TaskPrincipal};
 use crate::policy::{self, PolicyConfig};
 use chrono::Utc;
 use diesel::prelude::*;
@@ -77,6 +78,23 @@ fn load_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskError> {
         .optional()
         .map_err(|e| TaskError::Db(e.to_string()))?
         .ok_or(TaskError::NotFound)
+}
+
+/// Loads `task_id` and verifies it belongs to `caller` (#2877). Both an
+/// unknown id and a task owned by somebody else map to `NotFound`, so an
+/// endpoint cannot be used to probe which task ids exist. Ownership columns
+/// are immutable after creation, so this check stays valid for the lifetime
+/// of the operation that follows it.
+pub fn load_owned_task(
+    pool: &DbPool,
+    task_id: Uuid,
+    caller: &TaskPrincipal,
+) -> Result<BrowserTask, TaskError> {
+    let task = load_task(pool, task_id)?;
+    if !ownership_matches(&TaskPrincipal::of_task(&task), caller) {
+        return Err(TaskError::NotFound);
+    }
+    Ok(task)
 }
 
 fn set_status(
@@ -164,32 +182,48 @@ pub fn create_task(pool: &DbPool, request: NewTaskRequest<'_>) -> Result<Browser
         .map_err(|e| TaskError::Db(e.to_string()))
 }
 
-pub fn start_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskError> {
-    let t = load_task(pool, task_id)?;
+pub fn start_task(
+    pool: &DbPool,
+    task_id: Uuid,
+    caller: &TaskPrincipal,
+) -> Result<BrowserTask, TaskError> {
+    let t = load_owned_task(pool, task_id, caller)?;
     if t.status != STATUS_QUEUED && t.status != STATUS_PAUSED {
         return Err(TaskError::InvalidState(format!("cannot start from '{}'", t.status)));
     }
     set_status(pool, task_id, STATUS_RUNNING, t.started_at.is_none())
 }
 
-pub fn pause_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskError> {
-    let t = load_task(pool, task_id)?;
+pub fn pause_task(
+    pool: &DbPool,
+    task_id: Uuid,
+    caller: &TaskPrincipal,
+) -> Result<BrowserTask, TaskError> {
+    let t = load_owned_task(pool, task_id, caller)?;
     if t.status != STATUS_RUNNING {
         return Err(TaskError::InvalidState("only running tasks can be paused".to_string()));
     }
     set_status(pool, task_id, STATUS_PAUSED, false)
 }
 
-pub fn resume_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskError> {
-    let t = load_task(pool, task_id)?;
+pub fn resume_task(
+    pool: &DbPool,
+    task_id: Uuid,
+    caller: &TaskPrincipal,
+) -> Result<BrowserTask, TaskError> {
+    let t = load_owned_task(pool, task_id, caller)?;
     if t.status != STATUS_PAUSED {
         return Err(TaskError::InvalidState("only paused tasks can be resumed".to_string()));
     }
     set_status(pool, task_id, STATUS_RUNNING, false)
 }
 
-pub fn cancel_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskError> {
-    let t = load_task(pool, task_id)?;
+pub fn cancel_task(
+    pool: &DbPool,
+    task_id: Uuid,
+    caller: &TaskPrincipal,
+) -> Result<BrowserTask, TaskError> {
+    let t = load_owned_task(pool, task_id, caller)?;
     if terminal(&t.status) {
         return Err(TaskError::InvalidState("task already terminal".to_string()));
     }
@@ -199,12 +233,13 @@ pub fn cancel_task(pool: &DbPool, task_id: Uuid) -> Result<BrowserTask, TaskErro
 pub fn finish_task(
     pool: &DbPool,
     task_id: Uuid,
+    caller: &TaskPrincipal,
     result: serde_json::Value,
     citations: Option<serde_json::Value>,
 ) -> Result<BrowserTask, TaskError> {
     use crate::schema::browser_tasks::dsl as bt;
 
-    let t = load_task(pool, task_id)?;
+    let t = load_owned_task(pool, task_id, caller)?;
     if terminal(&t.status) {
         return Err(TaskError::InvalidState("task already terminal".to_string()));
     }
@@ -258,10 +293,11 @@ fn persist_progress(
 pub async fn advance_task(
     pool: &DbPool,
     task_id: Uuid,
+    caller: TaskPrincipal,
     step: StepResult,
 ) -> Result<(BrowserTask, ProgressStep), TaskError> {
     let pool = pool.clone();
-    tokio::task::spawn_blocking(move || record_step(&pool, task_id, step))
+    tokio::task::spawn_blocking(move || record_step(&pool, task_id, &caller, step))
         .await
         .map_err(|e| TaskError::Db(format!("driver step join failure: {e}")))?
 }
@@ -276,9 +312,10 @@ pub async fn advance_task(
 fn record_step(
     pool: &DbPool,
     task_id: Uuid,
+    caller: &TaskPrincipal,
     step: StepResult,
 ) -> Result<(BrowserTask, ProgressStep), TaskError> {
-    let t = load_task(pool, task_id)?;
+    let t = load_owned_task(pool, task_id, caller)?;
     if t.status != STATUS_RUNNING {
         return Err(TaskError::InvalidState(format!(
             "task not running (status '{}')",
@@ -332,7 +369,7 @@ fn record_step(
         }
     }
 
-    let updated = load_task(pool, task_id)?;
+    let updated = load_owned_task(pool, task_id, caller)?;
     Ok((updated, recorded))
 }
 
@@ -343,17 +380,30 @@ fn kind_of(plan: Option<&serde_json::Value>) -> &'static str {
     }
 }
 
-/// Lists recent tasks of a user, newest first.
-pub fn list_user_tasks(
+/// Lists recent tasks of a verified caller, newest first (#2877). The SQL
+/// filters mirror [`ownership_matches`]: a present scope component matches
+/// only the same value, and an absent one matches only NULL, so a caller can
+/// never list tasks from another user or workspace.
+pub fn list_scoped_tasks(
     pool: &DbPool,
-    user_id: Uuid,
+    caller: &TaskPrincipal,
     limit: i64,
 ) -> Result<Vec<BrowserTask>, TaskError> {
     use crate::schema::browser_tasks::dsl as bt;
 
     let mut conn = pool.get().map_err(|e| TaskError::Db(e.to_string()))?;
-    bt::browser_tasks
-        .filter(bt::user_id.eq(user_id))
+    let mut query = bt::browser_tasks
+        .filter(bt::user_id.eq(caller.user_id))
+        .into_boxed();
+    query = match caller.org_id {
+        Some(org) => query.filter(bt::org_id.eq(org)),
+        None => query.filter(bt::org_id.is_null()),
+    };
+    query = match caller.bot_id {
+        Some(bot) => query.filter(bt::bot_id.eq(bot)),
+        None => query.filter(bt::bot_id.is_null()),
+    };
+    query
         .order(bt::created_at.desc())
         .limit(limit.clamp(1, 200))
         .load::<BrowserTask>(&mut conn)

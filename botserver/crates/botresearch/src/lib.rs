@@ -5,6 +5,7 @@ pub mod web_search;
 
 use axum::{
     extract::{Path, State},
+    http::HeaderMap,
     response::{Html, IntoResponse},
     routing::{get, post},
     Form, Json, Router,
@@ -32,7 +33,15 @@ pub const ROUTE_RESEARCH_SHARE: &str = "/api/ui/research/share";
 pub trait ResearchState: Send + Sync + std::fmt::Debug + 'static {
     fn db_pool(&self) -> &DbPool;
     fn llm_provider(&self) -> Option<Arc<dyn LLMProvider>>;
-    fn bot_id(&self) -> Option<uuid::Uuid>;
+
+    /// Resolves the caller's research scope from the verified JWT branch
+    /// claim. Every KB/search handler MUST use this instead of a
+    /// process-global bot id (issue #2880). `None` means the tenant could not
+    /// be verified, in which case the request must be denied, not run
+    /// unscoped.
+    fn resolve_scope(&self, headers: &HeaderMap) -> Option<ResearchScope> {
+        resolve_research_scope(self.db_pool(), headers)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -6,6 +6,7 @@
 //! fallback to decoded-but-unverified claims.
 
 use super::*;
+use crate::caller::{resolve_principal_sse, resolve_user_id};
 use crate::jwt::test_support::{
     an_hour_ago, b64, claims, hs256, in_an_hour, process_secret, valid_token, OTHER_SECRET,
 };
@@ -23,6 +24,12 @@ fn headers_with(token: &str) -> HeaderMap {
 
 fn uuid_of(raw: &str) -> Uuid {
     Uuid::parse_str(raw).unwrap_or_default()
+}
+
+/// Test adapter for the pre-#2877 SSE identity helper: the production path now
+/// resolves a full principal, so tests unwrap its verified user id here.
+fn resolve_user_id_sse(headers: &HeaderMap, token_param: &str) -> Result<Uuid, SafeErrorResponse> {
+    resolve_principal_sse(headers, token_param).map(|principal| principal.user_id)
 }
 
 /// A forged `alg:none` token naming `sub` — the pre-#2112 bypass.
