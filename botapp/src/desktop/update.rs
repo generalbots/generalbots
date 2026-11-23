@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 
 const RELEASES_API: &str = "https://api.github.com/repos/generalbots/generalbots/releases/latest";
 const RELEASES_PAGE: &str = "https://github.com/generalbots/generalbots/releases";
-const RELEASE_URL_PREFIX: &str = "https://github.com/generalbots/generalbots/releases";
 
 /// User agent for the release check, carrying the real build version (#2103).
 fn user_agent() -> String {
@@ -201,14 +200,21 @@ fn select_asset<'a>(assets: &'a [GitHubAsset], platform: &str) -> Option<&'a Git
     })
 }
 
+/// #2696 — a `starts_with` check is bypassable with `@evil.example` (userinfo)
+/// and sibling-suffix hosts (`...releases.evil.example`). Parse the URL and
+/// pin scheme, host, userinfo and path prefix instead.
 fn release_url_or_page(candidate: &str) -> String {
     let candidate = candidate.trim();
-    if candidate.starts_with(RELEASE_URL_PREFIX)
-        && !candidate
-            .chars()
-            .any(|character| character.is_control() || character.is_whitespace())
-    {
-        candidate.to_string()
+    let Ok(url) = reqwest::Url::parse(candidate) else {
+        return RELEASES_PAGE.to_string();
+    };
+    let allowed = url.scheme() == "https"
+        && url.host_str() == Some("github.com")
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.path().starts_with("/generalbots/generalbots/releases/");
+    if allowed {
+        url.to_string()
     } else {
         RELEASES_PAGE.to_string()
     }
@@ -377,10 +383,17 @@ mod tests {
             release_url_or_page("https://github.com/generalbots/generalbots/releases/tag/v6.8.0"),
             "https://github.com/generalbots/generalbots/releases/tag/v6.8.0"
         );
-        assert_eq!(
-            release_url_or_page("https://example.com/evil"),
-            "https://github.com/generalbots/generalbots/releases"
-        );
+        let fallback = "https://github.com/generalbots/generalbots/releases";
+        for hostile in [
+            "https://example.com/evil",
+            "https://github.com/generalbots/generalbots/releases@evil.example/x",
+            "https://github.com/generalbots/generalbots/releases.evil.example/x",
+            "http://github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "https://user@github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "https://github.com.evil.example/generalbots/generalbots/releases/tag/v6.8.0",
+        ] {
+            assert_eq!(release_url_or_page(hostile), fallback, "bypass: {hostile}");
+        }
     }
 
     #[test]

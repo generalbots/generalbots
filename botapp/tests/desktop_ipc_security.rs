@@ -100,3 +100,70 @@ fn capability_origins_are_scoped_to_shell_and_sidecar() {
     assert!(!raw.contains("http://**"), "broad HTTP plugin permission remains");
     assert!(!raw.contains("https://**"), "broad HTTP plugin permission remains");
 }
+
+/// #2688/#2698 — privilege separation. The sidecar origin (main window) gets
+/// an explicit minimal permission list; every privileged command stays on the
+/// local-only wizard capability. A script running on the sidecar must not be
+/// able to invoke `wizard_reset_stack`, `delete_path`, `configure_remote`,
+/// geolocation or notifications through IPC.
+#[test]
+fn remote_origin_capability_is_least_privilege() {
+    let local = config_json("capabilities/default.json");
+    assert_eq!(local["local"].as_bool(), Some(true));
+    assert!(local["remote"].is_null(), "local wizard capability must have no remote origins");
+    let windows = local["windows"].as_array().expect("wizard windows list");
+    assert!(windows.iter().all(|w| w.as_str() != Some("main")));
+    let local_perms = local["permissions"].as_array().expect("wizard permissions");
+    assert!(local_perms.iter().any(|p| p.as_str() == Some("default")));
+
+    let remote = config_json("capabilities/main.json");
+    let windows = remote["windows"].as_array().expect("main windows list");
+    assert_eq!(windows.len(), 1);
+    assert_eq!(windows[0].as_str(), Some("main"));
+    let urls = remote["remote"]["urls"].as_array().expect("main remote origins");
+    let urls: Vec<&str> = urls.iter().filter_map(|entry| entry.as_str()).collect();
+    assert!(urls.contains(&"http://127.0.0.1:8080"));
+    assert!(urls.contains(&"http://localhost:8080"));
+
+    let permissions = remote["permissions"].as_array().expect("main permissions");
+    let permissions: Vec<&str> = permissions.iter().filter_map(|p| p.as_str()).collect();
+    assert!(!permissions.contains(&"default"), "remote origin got the full command set");
+    let raw = read_config("capabilities/main.json").to_ascii_lowercase();
+    for forbidden in [
+        "allow-wizard-",
+        "allow-delete-path",
+        "allow-create-folder",
+        "allow-set-sync-folder",
+        "allow-configure-remote",
+        "allow-request-destructive-confirmation",
+        "geolocation:",
+        "notification:",
+    ] {
+        assert!(!raw.contains(forbidden), "remote origin got privileged permission: {forbidden}");
+    }
+
+    // Applies to every shipped capability, not only the two named above.
+    for file in std::fs::read_dir(Path::new(MANIFEST).join("capabilities"))
+        .expect("capabilities directory")
+        .flatten()
+    {
+        let path = file.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        let Ok(cap) = serde_json::from_str::<serde_json::Value>(
+            &std::fs::read_to_string(&path).unwrap_or_default(),
+        ) else {
+            continue;
+        };
+        let has_remote = cap["remote"]["urls"]
+            .as_array()
+            .is_some_and(|urls| !urls.is_empty());
+        if !has_remote {
+            continue;
+        }
+        let source = std::fs::read_to_string(&path).unwrap_or_default().to_ascii_lowercase();
+        assert!(!source.contains("\"default\""), "remote capability has full ACL: {path:?}");
+        assert!(!source.contains("allow-wizard-"), "remote capability has wizard IPC: {path:?}");
+    }
+}

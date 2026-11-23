@@ -1,0 +1,26 @@
+<link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+<link rel="stylesheet" href="/suite/settings/settings-protection.css?v=1" />
+
+<section id="protection-section" class="settings-section" data-gb-app="settings">
+  <div class="section-header">
+    <h1 data-i18n="protection-title">Protection</h1>
+    <p class="subtitle" data-i18n="protection-subtitle">Host security tools reported by the server — never a hardcoded "enabled" state.</p>
+  </div>
+
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="protection-scanner-status">Scanner status</h2></div>
+    <p id="protection-warning" class="protection-warning" role="status" aria-live="polite" hidden></p>
+    <div id="protection-tools" class="protection-tools" role="status" aria-live="polite" data-i18n="protection-loading">Loading scanner status…</div>
+  </div>
+
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="protection-quarantine">Quarantine</h2></div>
+    <label for="protection-tool" data-i18n="protection-tool">Tool</label>
+    <select id="protection-tool">
+      <option value="clamav" data-i18n="protection-clamav">ClamAV</option>
+      <option value="lmd" data-i18n="protection-lmd">LMD</option>
+    </select>
+    <button type="button" id="protection-list" onclick="window.GBProtection && GBProtection.loadQuarantine()"><span data-i18n="protection-list">List quarantined files</span></button>
+    <div id="protection-quarantine-list" role="status" aria-live="polite"></div>
+  </div>
+</section>

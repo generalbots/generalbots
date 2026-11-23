@@ -1,6 +1,7 @@
 //! Split from `suite.rs` — 258 lines.
 
 use super::*;
+use crate::ui_server::js_escape::html_attr;
 
 /// Page names served as standalone auth pages (not bot workspaces). Only
 /// names with a real hosted page belong here: `forgot-password` and
@@ -26,6 +27,14 @@ pub async fn serve_suite_impl(
     bot_name: Option<String>,
     _headers: axum::http::HeaderMap,
 ) -> Response {
+    // #2701: the value is reflected into a `<base href>` and an inline script.
+    // Reject anything outside the bot-name allowlist before building HTML.
+    if let Some(ref name) = bot_name {
+        if !is_valid_bot_name(name) {
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+    }
+
     // Access control is handled by the botserver at WebSocket level. The UI
     // always renders and lets the botserver enforce auth; the auth-page check
     // below only decides base-href/script injection, not access control.
@@ -77,14 +86,16 @@ pub async fn serve_suite_impl(
                 } else {
                     "/".to_string()
                 };
-                let base_tag = format!(r#"<base href="{}">"#, base_href);
+                let base_tag = format!(r#"<base href="{}">"#, html_attr(&base_href));
                 html.insert_str(head_end, &base_tag);
 
                 if !auth_page {
                     let login_url = std::env::var("LOGIN_URL")
                         .unwrap_or_else(|_| "http://localhost:5000".to_string());
-                    let login_script =
-                        format!(r#"<script>window.GB_LOGIN_URL = "{}";</script>"#, login_url);
+                    let login_script = format!(
+                        r#"<script>window.GB_LOGIN_URL = "{}";</script>"#,
+                        js_string(&login_url)
+                    );
                     html.insert_str(head_end + base_tag.len(), &login_script);
 
                     if let Some(name) = bot_name {
@@ -95,7 +106,7 @@ pub async fn serve_suite_impl(
                         );
                         let bot_script = format!(
                             r#"<script>window.__INITIAL_BOT_NAME__ = "{}";</script>"#,
-                            name
+                            js_string(name)
                         );
                         html.insert_str(ins_offset, &bot_script);
                         info!("serve_suite: Successfully injected base tag and bot_name script");
@@ -302,5 +313,23 @@ mod tests {
     fn bot_names_are_not_auth_pages() {
         assert!(!is_auth_page(Some("default")));
         assert!(!is_auth_page(None));
+    }
+
+    #[test]
+    fn reflected_bot_names_are_restricted_to_safe_characters() {
+        for hostile in [
+            "x\";alert(1);//",
+            "<img src=x onerror=alert(1)>",
+            "../.env",
+            ".hidden",
+            "a..b",
+            "bot name",
+            "</script><script>alert(1)</script>",
+        ] {
+            assert!(!is_valid_bot_name(hostile), "must reject: {hostile}");
+        }
+        for valid in ["default", "my-bot", "bot_2", "demo.v1", "login"] {
+            assert!(is_valid_bot_name(valid), "must accept: {valid}");
+        }
     }
 }

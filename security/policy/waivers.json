@@ -1,0 +1,11 @@
+{
+  "waivers": [
+    {
+      "package": "example-only",
+      "advisory": "CVE-2026-0000",
+      "approver": "security-owner",
+      "expires": "2026-12-31",
+      "reason": "Example waiver: remove before production use"
+    }
+  ]
+}

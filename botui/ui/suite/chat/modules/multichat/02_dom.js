@@ -74,20 +74,24 @@
         // exactly like the primary addMessage path (messages/50_message_b.js).
         // Without this, an <img onerror> or <script> in a bot reply executes in
         // the suite origin where a live bearer token is stored.
-        var parsed = marked.parse(displayContent || "");
-        if (window.GBSanitize && typeof window.GBSanitize.html === "function") {
-          parsed = window.GBSanitize.html(parsed);
+        // #2707: fail closed. Without GBSanitize, unsanitized markdown must
+        // never reach innerHTML — render it as plain text instead (same rule
+        // as the minimal client's #2628 fix).
+        if (!window.GBSanitize || typeof window.GBSanitize.html !== "function") {
+          inner.textContent = displayContent;
+        } else {
+          var parsed = window.GBSanitize.html(marked.parse(displayContent || ""));
+          // Replayed messages must render vmfile links as attachment cards too;
+          // the stock addMessage path does this conversion, appendToContainer
+          // (used by history replay and parallel tabs) did not.
+          if (typeof renderVmFileLinks === "function") {
+            parsed = renderVmFileLinks(parsed);
+          }
+          if (typeof renderDeepLinks === "function") {
+            parsed = renderDeepLinks(parsed);
+          }
+          inner.innerHTML = parsed;
         }
-        // Replayed messages must render vmfile links as attachment cards too;
-        // the stock addMessage path does this conversion, appendToContainer
-        // (used by history replay and parallel tabs) did not.
-        if (typeof renderVmFileLinks === "function") {
-          parsed = renderVmFileLinks(parsed);
-        }
-        if (typeof renderDeepLinks === "function") {
-          parsed = renderDeepLinks(parsed);
-        }
-        inner.innerHTML = parsed;
       } catch (e) {
         inner.textContent = displayContent;
       }

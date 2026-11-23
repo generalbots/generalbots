@@ -58,6 +58,24 @@ sha256_arm64 = "14c8c9616cfce4636add161304353244e8de383b2e2752c0e9dad01d4c27c12c
 sha256_win = "c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157"
 
 
+# ClamAV 1.5.5 (#2603) — pinned to the upstream release whose SHA-256 digests
+# come from the release's GitHub API `digest` fields. This patch release fixes
+# CVE-2026-76422, -76411, -76415, -76414, -76416, -76417, -76421, -76430,
+# -76516 and -76515. Debian packages carry `clamscan` + signatures updater;
+# place the archive in the offline installer cache for desktop-local installs.
+[components.clamav]
+name = "ClamAV Antivirus Engine"
+url = "https://github.com/Cisco-Talos/clamav/releases/download/clamav-1.5.5/clamav-1.5.5.linux.x86_64.deb"
+url_arm64 = "https://github.com/Cisco-Talos/clamav/releases/download/clamav-1.5.5/clamav-1.5.5.linux.aarch64.deb"
+url_win = "https://github.com/Cisco-Talos/clamav/releases/download/clamav-1.5.5/clamav-1.5.5.win.x64.zip"
+filename = "clamav-1.5.5.linux.x86_64.deb"
+filename_arm64 = "clamav-1.5.5.linux.aarch64.deb"
+filename_win = "clamav-1.5.5.win.x64.zip"
+sha256 = "fff17fb1f8917d1ea1308c9736dabe376077458aba000a5dadcce7193a8c538c"
+sha256_arm64 = "3df976260dd631936f945c7b92e32bf530f43dab05a8a469b3a8cbb5d83b6100"
+sha256_win = "90169f5e551010bfbd0208b50d9b2fa8988ef396cccbd46b0cc8cae03e22a4a4"
+
+
 [components.tables]
 name = "PostgreSQL Database"
 url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"

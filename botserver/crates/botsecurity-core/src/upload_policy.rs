@@ -37,7 +37,8 @@ use crate::file_validation::{blocked_extensions, detect_mime_type};
 pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
 pub use crate::upload_hostile::{
     inspect_hostile_upload, inspect_hostile_upload_named, inspect_hostile_upload_with,
-    malware_decision, scan_for_malware, set_malware_scanner, validate_relationship_target,
+    malware_decision, malware_scanner_installed, register_default_malware_scanner,
+    scan_for_malware, set_malware_scanner, validate_relationship_target,
     HostileFilePolicy, HostileFileReport, MalwareScanDecision, MalwareScanner,
     DEFAULT_MAX_COMPRESSED_BYTES,
     DEFAULT_MAX_COMPRESSION_RATIO, DEFAULT_MAX_ENTRIES, DEFAULT_MAX_UNCOMPRESSED_BYTES,
@@ -359,6 +360,15 @@ pub fn validate_upload_with_policy(
         // that need the report (scanner decision, observed ratios) can call
         // `inspect_hostile_upload_named` themselves with the same defaults.
         crate::upload_hostile::inspect_hostile_upload_with(data, &filename, policy)?;
+    } else if crate::upload_hostile::malware_scanner_installed() {
+        // #2598 — the structural gate is zip-only, but malware is not. Every
+        // non-container payload (Drive binary/transfer/external, PDF, images,
+        // media) goes through the same scanner and the same durable audit
+        // record when one is registered. Bounded above by `limits.max_bytes`.
+        // When no scanner is registered the existing fail-closed zip rule still
+        // applies; this branch does not silently claim a clean verdict.
+        let decision = scan_for_malware(data, &filename);
+        malware_decision(&decision, policy.require_malware_scanner)?;
     }
 
     Ok(ValidatedUpload {

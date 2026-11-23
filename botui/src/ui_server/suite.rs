@@ -11,7 +11,20 @@ use crate::shared::AppState;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
 use crate::ui_server::constants::get_ui_root;
+use crate::ui_server::js_escape::js_string;
 use crate::ui_server::suite_ops::remove_section;
+
+/// Bot names are safe-to-embed identifiers: letters, digits, `-`, `_` and `.`,
+/// never a leading dot (hidden files) and never `..` (traversal). This mirrors
+/// the backend allowlist in `botserver/src/core/bot/ws/handler.rs`.
+pub fn is_valid_bot_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with('.')
+        && !name.contains("..")
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.')
+}
 
 #[derive(Deserialize)]
 pub struct SuiteQueryParams {

@@ -318,3 +318,43 @@ with that lens in mind. The rules of engagement:
   verification is the CI release build.
 - Provider-side rotations require operator access and cannot run from CI; the
   quarterly review tracks them.
+
+
+---
+
+## Coordinated Disclosure (RFC 9116)
+
+The canonical, machine-readable contact record is
+[`.well-known/security.txt`](security/.well-known/security.txt) on
+`generalbots.org`. The authoritative bulletin is `/security/`; the GitHub forum
+is for discussion only and never publishes an advisory first.
+
+### Scope
+
+- **In scope:** this repository (botserver, botui, botapp, botlib and the
+  `botserver/crates` workspace), the released Linux/Windows/macOS installers,
+  and the first-boot provisioning flow.
+- **Out of scope:** customer tenants and their data, third-party SaaS
+  providers, physical/social engineering, and findings that require destructive
+  payloads against production.
+
+### Timeline
+
+| Stage | Target |
+|---|---|
+| Acknowledgement | ≤ 3 business days |
+| Triage and severity assignment | ≤ 10 business days |
+| Fix and advisory draft | Before the embargo ends |
+| Public disclosure | 90 days after acknowledgement, unless an extension is agreed in writing with the reporter |
+
+Extensions are granted for fixes that need coordinated deployment across
+government estates; record the new date in the advisory timeline. Reporters are
+credited in the advisory and in the hall of fame. There is no paid reporting
+programme: recognition is the only incentive.
+
+### Bulletin feed
+
+Structured advisories are published as CSAF 2.0 under `security/csaf/`, with a
+`changes.csv` index, and mirrored as OSV under `security/osv/`. The editorial
+rules and template live in `security/ADVISORY-TEMPLATE.md` and
+`security/EDITORIAL-CHECKLIST.md`.

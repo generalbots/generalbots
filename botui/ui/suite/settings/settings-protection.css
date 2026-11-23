@@ -1,0 +1,9 @@
+/* #2604 — Protection panel: status is data-driven, warnings are visible. */
+.protection-tools { display: grid; gap: .75rem; margin-top: .75rem; }
+.protection-card { border: 1px solid #767676; border-radius: 6px; padding: .75rem; }
+.protection-card h3 { margin: 0 0 .35rem; }
+.protection-state { font-weight: 600; }
+.protection-state--off { color: #8a2b00; }
+.protection-state--on { color: #14532d; }
+.protection-warning { background: #fff3cd; border-left: 5px solid #8a5a00; padding: .75rem; font-weight: 600; }
+.protection-tools button, .setting-card button { margin: .35rem .25rem .35rem 0; }

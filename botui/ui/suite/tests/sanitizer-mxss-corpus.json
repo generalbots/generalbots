@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "description": "mXSS bypass corpus for GBSanitize (#2743). Each payload is model-authored HTML; after sanitizing and re-parsing, none of expect_absent may be present in the DOM. Execute in the browser via CDP on /suite/chat.",
+  "cases": [
+    {
+      "id": "script-tag",
+      "payload": "<script>window.__PWNED=1</script>ok",
+      "expect_absent": ["<script", "__PWNED"]
+    },
+    {
+      "id": "svg-namespace-confusion",
+      "payload": "<svg><g><title><style><img src=x onerror=alert(1)>",
+      "expect_absent": ["<svg", "onerror", "<style"]
+    },
+    {
+      "id": "math-annotation-xml",
+      "payload": "<math><annotation-xml encoding='text/html'><svg onload=alert(1)></annotation-xml></math>",
+      "expect_absent": ["<math", "<svg", "onload"]
+    },
+    {
+      "id": "foreignobject-mutation",
+      "payload": "<svg><foreignObject><p title='</style><img src=x onerror=alert(1)>'>x</p></foreignObject></svg>",
+      "expect_absent": ["foreignObject", "onerror"]
+    },
+    {
+      "id": "noscript-mutation",
+      "payload": "<noscript><p title='</noscript><img src=x onerror=alert(1)>'>x</p></noscript>",
+      "expect_absent": ["<noscript", "onerror"]
+    },
+    {
+      "id": "attribute-mutation",
+      "payload": "<p title='<svg/onload=alert(1)>'>x</p>",
+      "expect_absent": ["onload", "<svg"]
+    },
+    {
+      "id": "javascript-control-chars",
+      "payload": "<a href='java\tscript:alert(1)'>x</a>",
+      "expect_absent": ["javascript:"]
+    },
+    {
+      "id": "data-text-html",
+      "payload": "<a href='data:text/html,<script>alert(1)</script>'>x</a>",
+      "expect_absent": ["data:text/html"]
+    },
+    {
+      "id": "style-url-exfiltration",
+      "payload": "<p style='background:url(https://evil.example/x)'>x</p>",
+      "expect_absent": ["url("]
+    },
+    {
+      "id": "xmlns-namespace",
+      "payload": "<div xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></div>",
+      "expect_absent": ["xmlns", "<script"]
+    }
+  ]
+}

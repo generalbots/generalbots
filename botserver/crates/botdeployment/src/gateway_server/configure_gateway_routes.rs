@@ -29,6 +29,22 @@ pub(super) fn validate_deploy_key(headers: &HeaderMap, state: &GatewayState) -> 
         Err(StatusCode::UNAUTHORIZED)
     }
 }
+/// Only `file://` artifacts inside the configured sites root may be pushed
+/// into a container (#2613). Canonicalisation defeats `..`/symlink escapes.
+pub(super) fn allowed_local_artifact(sites_root: &str, artifact_url: &str) -> Option<std::path::PathBuf> {
+    let raw = artifact_url.strip_prefix("file://")?;
+    if raw.is_empty() || raw.contains('\0') || raw.contains("..") {
+        return None;
+    }
+    let root = std::path::Path::new(sites_root).canonicalize().ok()?;
+    let candidate = std::path::Path::new(raw).canonicalize().ok()?;
+    if candidate.starts_with(&root) && candidate.is_file() {
+        Some(candidate)
+    } else {
+        None
+    }
+}
+
 /// #1297 — org/app identifiers flow from HTTP bodies straight into
 /// `incus` argv. Restrict them to a safe charset so no shell/control
 /// characters or option-looking tokens can reach the command line.
@@ -49,12 +65,48 @@ pub(super) fn container_name_from_parts(org: &str, app_name: &str) -> Result<Str
     let app_name = sanitize_identifier_part(app_name)?;
     Ok(format!("{org}-{app_name}"))
 }
+/// Strict validation for a per-deployment PostgreSQL URL (#2652). The value
+/// is later base64-encoded into a root shell script, so no metacharacter or
+/// heredoc terminator may survive this boundary.
+pub(super) fn validate_database_url(url: Option<&str>) -> Result<(), StatusCode> {
+    let Some(url) = url else {
+        return Ok(());
+    };
+    if url.len() > 512
+        || (!url.starts_with("postgres://") && !url.starts_with("postgresql://"))
+        || url.contains("UNIT")
+        || url.chars().any(|c| {
+            !(c.is_ascii_alphanumeric() || matches!(c, ':' | '/' | '@' | '?' | '=' | '.' | '_' | '+' | '~' | '%' | '-'))
+        })
+    {
+        log::warn!("Rejected invalid database_url in deploy request");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod database_url_tests {
+    use super::validate_database_url;
+
+    #[test]
+    fn rejects_heredoc_and_shell_injection() {
+        assert!(validate_database_url(Some("postgresql://u:p@db.example:5432/app")).is_ok());
+        assert!(validate_database_url(None).is_ok());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app\nUNIT\nid")).is_err());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app$HOME")).is_err());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app;id")).is_err());
+        assert!(validate_database_url(Some("mysql://db/app")).is_err());
+    }
+}
+
 pub async fn gateway_deploy(
     State((state, registry)): State<(Arc<GatewayState>, Arc<ContainerRegistry>)>,
     headers: HeaderMap,
     Json(request): Json<DeployGatewayRequest>,
 ) -> Result<Json<DeployGatewayResponse>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
+    validate_database_url(request.database_url.as_deref())?;
 
     log::info!(
         "Gateway deploy: {}/{} type={:?} env={}",
@@ -229,23 +281,15 @@ pub async fn gateway_status(
         }))
     }
 }
+/// Key rotation is not implemented. The old handler returned `success: true`
+/// while leaving `state.deploy_keys` untouched (#2613); report the truth.
 pub async fn gateway_rotate_key(
     State((state, _registry)): State<(Arc<GatewayState>, Arc<ContainerRegistry>)>,
     headers: HeaderMap,
-    Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
-
-    let new_key = body.get("new_key").and_then(|v| v.as_str()).unwrap_or_default();
-    if new_key.is_empty() {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    log::info!("Deploy key rotation requested");
-    Ok(Json(serde_json::json!({
-        "success": true,
-        "message": "Key rotation requires server restart to take effect"
-    })))
+    log::warn!("Deploy key rotation rejected: not implemented");
+    Err(StatusCode::NOT_IMPLEMENTED)
 }
 pub(super) async fn deploy_to_incus(
     state: &GatewayState,
@@ -264,9 +308,11 @@ pub(super) async fn deploy_to_incus(
     }
 
     if !request.artifact_url.is_empty() && request.artifact_url.starts_with("file://") {
-        let artifact_path = request.artifact_url.strip_prefix("file://").unwrap_or_default();
+        let artifact_path = allowed_local_artifact(&state.sites_root, &request.artifact_url)
+            .ok_or_else(|| "artifact_path must resolve inside the configured sites root".to_string())?;
         let _ = run_incus_command(state, &[
-            "file", "push", artifact_path,
+            "file", "push",
+            artifact_path.to_string_lossy().as_ref(),
             &format!("{container_name}/opt/app/"),
             "--recursive",
         ]).await;
@@ -295,4 +341,38 @@ pub(super) async fn deploy_to_incus(
     };
     let app_name = request.app_name.clone();
     Ok(format!("https://{app_name}{env_suffix}.{domain}/"))
+}
+
+#[cfg(test)]
+mod artifact_boundary_tests {
+    use super::allowed_local_artifact;
+    use std::fs;
+
+    #[test]
+    fn only_files_inside_sites_root_are_allowed() {
+        let root = std::env::temp_dir().join(format!("gb-gateway-artifact-{}", std::process::id()));
+        let nested = root.join("sites");
+        fs::create_dir_all(&nested).expect("create sites dir");
+        let inside = nested.join("app.zip");
+        fs::write(&inside, b"payload").expect("write artifact");
+        let outside = std::env::temp_dir().join(format!("gb-gateway-outside-{}", std::process::id()));
+        fs::write(&outside, b"secret").expect("write outside artifact");
+
+        let root_text = root.to_string_lossy().to_string();
+        let allowed = allowed_local_artifact(&root_text, &format!("file://{}", inside.display()));
+        assert_eq!(allowed.as_deref(), Some(inside.as_path()));
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", outside.display())).is_none());
+        assert!(allowed_local_artifact(&root_text, "file:///etc/passwd").is_none());
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}/../outside", nested.display())).is_none());
+        // A directory is not a pushable artifact.
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", nested.display())).is_none());
+        // A symlink pointing outside the root must resolve to its target and be refused.
+        let link = nested.join("escape.link");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, &link).expect("create symlink");
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", link.display())).is_none());
+
+        fs::remove_dir_all(&root).ok();
+        fs::remove_file(outside).ok();
+    }
 }

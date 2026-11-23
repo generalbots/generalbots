@@ -28,6 +28,43 @@ pub struct OptionalWsQuery {
     task_id: Option<String>,
 }
 
+/// Remove credential values from a query string before it is written to a log.
+/// Callers pass the live JWT as `token=` / `access_token=`; the raw query is
+/// still forwarded to the backend unchanged (#2703).
+fn redact_query(query: &str) -> String {
+    query
+        .split('&')
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let (key, value) = part.split_once('=').unwrap_or((part, ""));
+            if key.eq_ignore_ascii_case("token") || key.eq_ignore_ascii_case("access_token") {
+                if value.is_empty() {
+                    key.to_string()
+                } else {
+                    format!("{key}=<redacted>")
+                }
+            } else {
+                part.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+#[cfg(test)]
+mod redaction_tests {
+    use super::redact_query;
+
+    #[test]
+    fn tokens_are_redacted_but_other_parameters_survive() {
+        let redacted = redact_query("session_id=abc&token=SENTINEL&bot_name=demo");
+        assert!(!redacted.contains("SENTINEL"));
+        assert!(redacted.contains("session_id=abc"));
+        assert!(redacted.contains("bot_name=demo"));
+        assert!(redacted.contains("token=<redacted>"));
+    }
+}
+
 /// Generic WebSocket proxy for backend API WS endpoints (/api/terminal/ws,
 /// /api/browser/.../ws, etc.). reqwest-based proxy_api cannot tunnel WS
 /// upgrades, so API WS routes must be extened here with a real proxy that
@@ -48,16 +85,17 @@ async fn handle_api_ws_proxy(
     path: String,
     query: String,
 ) {
-    let backend_url = format!(
-        "{}{path}{query}",
-        state
-            .client
-            .base_url()
-            .replace("https://", "wss://")
-            .replace("http://", "ws://"),
-    );
+    let backend_base = state
+        .client
+        .base_url()
+        .replace("https://", "wss://")
+        .replace("http://", "ws://");
+    let backend_url = format!("{backend_base}{path}{query}");
 
-    info!("Proxying API WebSocket to: {backend_url}");
+    info!(
+        "Proxying API WebSocket to: {backend_base}{path}?{}",
+        redact_query(query.trim_start_matches('?'))
+    );
 
     let backend_socket = if backend_url.starts_with("wss://") {
         let mut tls_builder = native_tls::TlsConnector::builder();

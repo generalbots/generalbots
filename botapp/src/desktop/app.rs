@@ -129,6 +129,7 @@ pub fn run() {
         crate::desktop::wizard::wizard_cancel_provision,
         crate::desktop::wizard::wizard_provision_status,
         crate::desktop::wizard::wizard_reset_stack,
+        crate::desktop::wizard::request_reset_stack_confirmation,
         crate::desktop::wizard::wizard_open_folder,
         crate::desktop::wizard::wizard_open_url,
         crate::desktop::wizard::wizard_save_admin,

@@ -98,13 +98,7 @@ pub(super) async fn run_components(
     state: &WizardState,
     request: &ProvisionRequest,
 ) -> Result<(), String> {
-    let binary = Sidecar::botserver_path();
-    if !binary.exists() {
-        return Err(format!(
-            "The assistant binary is missing at {}. Reinstall the desktop app.",
-            binary.display()
-        ));
-    }
+    let binary = Sidecar::botserver_path()?;
 
     let resource_dir = app.path().resource_dir().ok();
     let installers = installers_path(resource_dir.as_deref());

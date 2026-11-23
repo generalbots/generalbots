@@ -85,6 +85,17 @@ impl VmLifecycle {
             ));
         }
 
+        // #2648 — a container name is derived from project name + env only.
+        // Before touching an existing Incus instance, prove that the row that
+        // owns this name belongs to the requesting project AND branch.
+        if let Some(owner) = self.lookup_by_container_name(&container)? {
+            if owner.project_id != project_id || owner.branch_id != branch_id {
+                return Err(format!(
+                    "container '{container}' is owned by another project/branch; refusing cross-tenant adoption"
+                ));
+            }
+        }
+
         if let Some(existing) = self.lookup_opt(&project_id, &env)? {
             if self.linux_available() {
                 if !self.linux_exists(&existing.container_name)? {

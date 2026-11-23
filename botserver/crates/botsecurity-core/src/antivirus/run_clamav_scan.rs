@@ -1,99 +1,39 @@
+use std::fs;
+
 use super::*;
 
 impl AntivirusManager {
+    /// Filesystem-path entry point that delegates to the single shared byte
+    /// scanner (#2601). No second ClamAV invocation path is kept here.
     pub(super) fn run_clamav_scan(path: &str, config: &AntivirusConfig) -> Result<(u64, Vec<Threat>)> {
-        let clamscan = config
-            .clamav_path
-            .clone()
-            .map(|p| p.join("clamscan"))
-            .unwrap_or_else(|| {
-                if cfg!(target_os = "windows") {
-                    PathBuf::from("C:\\Program Files\\ClamAV\\clamscan.exe")
-                } else {
-                    PathBuf::from("/usr/bin/clamscan")
-                }
-            });
+        let file = Path::new(path);
+        let metadata = fs::metadata(file).context("ClamAV scan target metadata")?;
+        let configured_limit = config.max_file_size_mb.saturating_mul(1024 * 1024);
+        if metadata.len() > configured_limit {
+            return Err(anyhow::anyhow!("file exceeds configured antivirus size limit"));
+        }
+        let data = fs::read(file).context("ClamAV scan target read")?;
 
-        if !clamscan.exists() {
-            let output = SafeCommand::new("which")
-                .and_then(|cmd| cmd.arg("clamscan"))
-                .and_then(|cmd| cmd.execute())
-                .unwrap_or_else(|_| {
-                    SafeCommand::new("where")
-                        .and_then(|cmd| cmd.arg("clamscan"))
-                        .and_then(|cmd| cmd.execute())
-                        .unwrap_or_else(|_| std::process::Output {
-                            status: std::process::ExitStatus::default(),
-                            stdout: vec![],
-                            stderr: vec![],
-                        })
-                });
-
-            if output.stdout.is_empty() {
-                return Err(anyhow::anyhow!(
-                    "ClamAV not found. Please install ClamAV first."
-                ));
+        match super::byte_scan::scan_bytes(&data) {
+            super::byte_scan::ByteScanVerdict::Clean { .. } => Ok((1, Vec::new())),
+            super::byte_scan::ByteScanVerdict::Infected { signature, .. } => {
+                let threat = Threat {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    name: signature.clone(),
+                    threat_type: Self::classify_threat(&signature),
+                    severity: Self::assess_severity(&signature),
+                    status: ThreatStatus::Detected,
+                    file_path: Some(path.to_string()),
+                    detected_at: chrono::Utc::now(),
+                    description: Some(format!("Detected by ClamAV: {signature}")),
+                    action_taken: None,
+                };
+                Ok((1, vec![threat]))
+            }
+            super::byte_scan::ByteScanVerdict::Failed { detail } => {
+                Err(anyhow::anyhow!("ClamAV scan failed: {detail}"))
             }
         }
-
-        let mut safe_cmd = SafeCommand::new("clamscan")
-            .map_err(|e| anyhow::anyhow!("Failed to create safe command: {}", e))?;
-
-        safe_cmd = safe_cmd
-            .arg("-r")
-            .and_then(|cmd| cmd.arg("--infected"))
-            .and_then(|cmd| cmd.arg("--no-summary"))
-            .map_err(|e| anyhow::anyhow!("Failed to add arguments: {}", e))?;
-
-        if config.scan_archives {
-            safe_cmd = safe_cmd
-                .arg("--scan-archive=yes")
-                .map_err(|e| anyhow::anyhow!("Failed to add archive arg: {}", e))?;
-        }
-
-        for excluded in &config.excluded_paths {
-            let exclude_arg = format!("--exclude-dir={}", excluded.display());
-            safe_cmd = safe_cmd
-                .arg(&exclude_arg)
-                .map_err(|e| anyhow::anyhow!("Failed to add exclude arg: {}", e))?;
-        }
-
-        safe_cmd = safe_cmd
-            .arg(path)
-            .map_err(|e| anyhow::anyhow!("Failed to add path arg: {}", e))?;
-
-        let output = safe_cmd
-            .execute()
-            .map_err(|e| anyhow::anyhow!("Failed to run ClamAV scan: {}", e))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let mut threats = Vec::new();
-        let mut files_scanned: u64 = 0;
-
-        for line in stdout.lines() {
-            if line.contains("FOUND") {
-                let parts: Vec<&str> = line.split(':').collect();
-                if parts.len() >= 2 {
-                    let file_path = parts[0].trim();
-                    let threat_name = parts[1].trim().replace(" FOUND", "");
-
-                    threats.push(Threat {
-                        id: uuid::Uuid::new_v4().to_string(),
-                        name: threat_name.clone(),
-                        threat_type: Self::classify_threat(&threat_name),
-                        severity: Self::assess_severity(&threat_name),
-                        status: ThreatStatus::Detected,
-                        file_path: Some(file_path.to_string()),
-                        detected_at: chrono::Utc::now(),
-                        description: Some(format!("Detected by ClamAV: {}", threat_name)),
-                        action_taken: None,
-                    });
-                }
-            }
-            files_scanned += 1;
-        }
-
-        Ok((files_scanned, threats))
     }
 
     pub(super) fn classify_threat(name: &str) -> String {

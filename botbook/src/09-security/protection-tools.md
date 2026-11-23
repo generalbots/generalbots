@@ -1,6 +1,6 @@
 # Security Protection Tools 🟡 BETA
 
-The Security Protection module provides comprehensive host-level security through integration with industry-standard Linux security tools. This module allows administrators to manage security audits, rootkit detection, intrusion detection, and malware scanning through the General Bots UI.
+The Security Protection module provides comprehensive host-level security through integration with industry-standard Linux security tools. This module allows administrators to manage security audits, rootkit detection and intrusion detection through the General Bots UI. No malware scanner is wired to the upload path (see the ClamAV section below).
 
 ## Overview
 
@@ -179,7 +179,7 @@ Access the Security Protection panel:
 - **Run Scan** - Execute the tool's scan. Note: for ClamAV this currently runs
   the Lynis scan (`protection/manager/initialize.rs:238`), not a ClamAV scan;
   no upload path performs a ClamAV scan today.
-- **Start/Stop** - Manage services (Suricata; ClamAV daemon is not provisioned)
+- **Start/Stop** - Manage services (Suricata)
 - **Update** - Update signatures/databases (for ClamAV this runs `freshclam`,
   `protection/manager/update_definitions.rs:14-18`)
 - **View Report** - See latest scan results

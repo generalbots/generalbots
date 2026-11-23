@@ -1,0 +1,8 @@
+{
+  "name": "GBSanitize",
+  "version": "2.0.0",
+  "file": "chat-sanitize.js",
+  "sha256": "ef4f7ed9e892ca9af605373bd5f6863c65f6831fe5a997eb5d7a4e68902dd3ca",
+  "policy": "vendored in-tree, no CDN; update the SHA-256 when the sanitizer changes",
+  "issue": "#2743"
+}

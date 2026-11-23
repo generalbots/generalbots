@@ -281,6 +281,7 @@ mod tests {
 }
 
 mod antivirus_config;
+pub mod byte_scan;
 mod check_windows_defender_status;
 mod run_clamav_scan;
 mod update_definitions;

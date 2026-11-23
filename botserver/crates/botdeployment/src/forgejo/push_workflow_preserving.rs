@@ -2,6 +2,41 @@ use super::*;
 use botlib::security::redact::redact_alm_secret;
 use botlib::security::SafeCommand;
 
+/// Strict single-line allowlist for values interpolated into generated
+/// workflow YAML (#2649). Newlines, quotes and shell/YAML metacharacters must
+/// never reach a file that runs with deploy secrets.
+fn validate_workflow_field(name: &str, value: &str) -> Result<(), DeploymentError> {
+    if value.is_empty() || value.len() > 128 {
+        return Err(DeploymentError::ConfigurationError(format!(
+            "workflow field {name} must be 1-128 characters"
+        )));
+    }
+    if value.chars().any(|c| {
+        !(c.is_ascii_alphanumeric() || matches!(c, '_' | ' ' | '.' | '/' | ':' | '-'))
+    }) {
+        return Err(DeploymentError::ConfigurationError(format!(
+            "workflow field {name} contains a forbidden character"
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod workflow_injection_tests {
+    use super::validate_workflow_field;
+
+    #[test]
+    fn rejects_multiline_and_shell_metacharacters() {
+        assert!(validate_workflow_field("build_command", "npm run build").is_ok());
+        assert!(validate_workflow_field("output_directory", "./dist/app").is_ok());
+        assert!(validate_workflow_field("build_command", "npm run build\n  - run: curl evil").is_err());
+        assert!(validate_workflow_field("build_command", "npm; curl evil").is_err());
+        assert!(validate_workflow_field("framework", "$(id)").is_err());
+        assert!(validate_workflow_field("node_version", "'20'").is_err());
+        assert!(validate_workflow_field("output_directory", "").is_err());
+    }
+}
+
 impl ForgejoClient {
     pub(crate) async fn push_workflow_preserving(
         &self,
@@ -138,7 +173,7 @@ impl ForgejoClient {
         }
     }
 
-    pub(super) fn generate_app_workflow(&self, project_type: &ProjectType, _deploy_target: &DeployTarget, environment: &DeploymentEnvironment) -> String {
+    pub(super) fn generate_app_workflow(&self, project_type: &ProjectType, _deploy_target: &DeployTarget, environment: &DeploymentEnvironment) -> Result<String, DeploymentError> {
         let env_name = environment.to_string();
         let (framework, node_version, build_command, output_dir) = match project_type {
             ProjectType::App { framework, node_version, build_command, output_directory } => (
@@ -150,7 +185,12 @@ impl ForgejoClient {
             _ => ("htmx".to_string(), "20".to_string(), "npm run build".to_string(), "dist".to_string()),
         };
 
-        format!(r#"name: Deploy {framework} App
+        validate_workflow_field("framework", &framework)?;
+        validate_workflow_field("node_version", &node_version)?;
+        validate_workflow_field("build_command", &build_command)?;
+        validate_workflow_field("output_directory", &output_dir)?;
+
+        Ok(format!(r#"name: Deploy {framework} App
 
 on:
   push:
@@ -193,7 +233,7 @@ jobs:
         env:
           DEPLOY_GATEWAY_URL: ${{{{ secrets.DEPLOY_GATEWAY_URL }}}}
           DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
-"#)
+"#))
     }
 
     pub(super) fn generate_site_workflow(&self, environment: &DeploymentEnvironment) -> String {

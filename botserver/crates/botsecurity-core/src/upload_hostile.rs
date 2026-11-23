@@ -30,12 +30,14 @@ use std::sync::OnceLock;
 use crate::upload_error::UploadError;
 use crate::validation::validate_url_ssrf_strict;
 
+pub mod clamav_scanner;
 pub mod corpus;
 pub mod macro_strip;
 pub mod malware;
 pub mod opt_out;
 pub mod password;
 
+pub use clamav_scanner::register_default_malware_scanner;
 pub use opt_out::{
     malware_scanner_required, malware_scanner_required_from, UNCHECKED_IMPORT_OPT_OUT_ENV,
 };
@@ -108,6 +110,11 @@ static MALWARE_SCANNER: OnceLock<Box<MalwareScanner>> = OnceLock::new();
 /// in this crate).
 pub fn set_malware_scanner(scanner: Box<MalwareScanner>) -> bool {
     MALWARE_SCANNER.set(scanner).is_ok()
+}
+
+/// True when a production scanner has been registered with [`set_malware_scanner`].
+pub fn malware_scanner_installed() -> bool {
+    MALWARE_SCANNER.get().is_some()
 }
 
 /// Runs the configured scanner, or reports `NotConfigured` when none exists.

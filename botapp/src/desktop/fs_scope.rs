@@ -26,6 +26,7 @@ use std::path::{Component, Path, PathBuf};
 /// admin credential file is a login factor.
 const PROTECTED_NAMES: &[&str] = &[
     ".env",
+    "desktop-session.json",
     "vault-unseal-keys",
     "admin-credentials.json",
     "init.json",

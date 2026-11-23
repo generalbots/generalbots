@@ -15,97 +15,23 @@ General Bots uses a modular architecture where each component runs in isolated I
 
 ## Encryption at Rest
 
-All data stored by General Bots is encrypted at rest using AES-256-GCM.
+General Bots does **not** provide platform-wide encryption at rest. There is no
+PostgreSQL TDE, no MinIO SSE/KMS registration, no Valkey RDB encryption and no
+LUKS/TPM provisioning in the shipped image; the device build states this
+explicitly in [Backup API](../08-rest-api-tools/backup-api.md) and
+[Appliance](../13-ai-os/appliance.md).
 
-### Database Encryption
+Field-level encryption is implemented by `botsecurity_crypto::encryption::encrypt_field`
+and has exactly three production call sites:
 
-PostgreSQL uses Transparent Data Encryption (TDE):
+- `botattendance/src/routes.rs:170` — attendance content,
+- `botdrive/src/external/crypto.rs:26` — external Drive content,
+- `botcoresession/src/session_manager/with_key.rs:278` — session content.
 
-```csv
-# config.csv
-encryption-at-rest,true
-encryption-algorithm,aes-256-gcm
-encryption-key-source,vault
-```
-
-Enable in PostgreSQL:
-
-```sql
--- Enable pgcrypto extension
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
--- Encrypted columns use pgp_sym_encrypt
-ALTER TABLE bot_memories 
-ADD COLUMN value_encrypted bytea;
-
-UPDATE bot_memories 
-SET value_encrypted = pgp_sym_encrypt(value, current_setting('app.encryption_key'));
-```
-
-### File Storage Encryption
-
-MinIO server-side encryption is enabled using SSE-S3 for automatic encryption or SSE-C for customer-managed keys:
-
-```bash
-# Enable SSE-S3 encryption
-mc encrypt set sse-s3 local/gbo-bucket
-
-# Or use customer-managed keys (SSE-C)
-mc encrypt set sse-c local/gbo-bucket
-```
-
-Configuration:
-
-```csv
-# config.csv
-drive-encryption,true
-drive-encryption-type,sse-s3
-drive-encryption-key,vault:gbo/encryption/drive_key
-```
-
-### Redis Encryption
-
-Redis with TLS and encrypted RDB provides secure caching:
-
-```conf
-# redis.conf
-tls-port 6379
-port 0
-tls-cert-file /opt/gbo/conf/certificates/redis/server.crt
-tls-key-file /opt/gbo/conf/certificates/redis/server.key
-tls-ca-cert-file /opt/gbo/conf/certificates/ca.crt
-
-# Enable RDB encryption (Valkey 8.1+)
-rdb-save-incremental-fsync yes
-```
-
-### Vector Database Encryption
-
-Qdrant with encrypted storage uses TLS for transport and filesystem-level encryption for data at rest:
-
-```yaml
-# qdrant/config.yaml
-storage:
-  storage_path: /opt/gbo/data/qdrant
-  on_disk_payload: true
-  
-service:
-  enable_tls: true
-  
-# Disk encryption handled at filesystem level
-```
-
-### Filesystem-Level Encryption
-
-For comprehensive encryption, use LUKS on the data partition:
-
-```bash
-# Create encrypted partition for /opt/gbo/data
-cryptsetup luksFormat /dev/sdb1
-cryptsetup open /dev/sdb1 gbo-data
-mkfs.ext4 /dev/mapper/gbo-data
-mount /dev/mapper/gbo-data /opt/gbo/data
-```
+Keys are derived from the master encryption key in `botcoresession`. The
+`config.csv` keys `encryption-at-rest`, `encryption-algorithm`,
+`encryption-key-source` and `drive-encryption*` shown in earlier revisions had
+no reader in the code and were removed from this page.
 
 ## Media Processing: LiveKit
 

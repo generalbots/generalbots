@@ -10,22 +10,39 @@
 
 use std::time::Duration;
 
+use base64::Engine;
 use botlib::security::SafeCommand;
 
 use super::gateway_server::GatewayState;
 
 /// Bootstrap script executed inside the container via `incus exec bash -c`.
 ///
-/// #1386 — `{DB_ENV_LINE}` is substituted with `Environment=DATABASE_URL=...`
-/// when the deploy carries a per-environment database URL (empty otherwise);
-/// the `{DB_ENV_LINE}` token is never a filesystem path, so the plain replace
-/// is injection-safe (the URL itself is identifier-safe by construction in
-/// `project_db::project_database_name`).
+/// #1386/#2652 — the caller-supplied URL is never written verbatim into the
+/// heredoc. It is base64-encoded (a strict `[A-Za-z0-9+/=]` alphabet) and
+/// decoded by the shell while the unit file is created, so a newline or heredoc
+/// terminator in the request cannot add commands to the root shell script.
 fn bootstrap_script(database_url: Option<&str>) -> String {
     let db_env_line = database_url
-        .map(|url| format!("Environment=DATABASE_URL={url}"))
+        .map(|url| {
+            let encoded = base64::engine::general_purpose::STANDARD.encode(url.as_bytes());
+            format!("Environment=DATABASE_URL=$(printf '%s' '{encoded}' | base64 -d)")
+        })
         .unwrap_or_default();
     BOOTSTRAP_SCRIPT.replace("{DB_ENV_LINE}", &db_env_line)
+}
+
+#[cfg(test)]
+mod db_env_tests {
+    use super::bootstrap_script;
+
+    #[test]
+    fn url_never_appears_verbatim_in_generated_script() {
+        let url = "postgresql://gb:secret@db.example:5432/app";
+        let script = bootstrap_script(Some(url));
+        assert!(!script.contains(url), "raw URL must not reach the shell script");
+        assert!(script.contains("base64 -d"));
+        assert!(!bootstrap_script(None).contains("{DB_ENV_LINE}"));
+    }
 }
 
 const BOOTSTRAP_SCRIPT: &str = r#"set -e

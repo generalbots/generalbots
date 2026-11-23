@@ -1,6 +1,7 @@
 pub mod assets;
 pub mod cloud;
 pub mod constants;
+pub mod js_escape;
 pub mod login;
 pub mod proxy;
 pub mod safe_path;
@@ -235,7 +236,12 @@ pub fn configure_router() -> Router {
 
     router = add_static_routes(router, &suite_path);
 
-    harden(router.fallback(get(index)).with_state(state))
+    harden(
+        router
+            .fallback(get(index))
+            .with_state(state)
+            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+    )
 }
 
 pub fn configure_cloud_router() -> Router {
@@ -261,7 +267,8 @@ pub fn configure_cloud_router() -> Router {
             // All root-level paths resolve to cloud pages
             // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
             .fallback(get(serve_cloud_fallback))
-            .with_state(state),
+            .with_state(state)
+            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
     )
 }
 
@@ -279,7 +286,8 @@ pub fn configure_login_router() -> Router {
             .nest("/api", create_api_router())
             .nest("/ws", create_ws_router())
             .fallback(get(serve_login_index))
-            .with_state(state),
+            .with_state(state)
+            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
     )
 }
 

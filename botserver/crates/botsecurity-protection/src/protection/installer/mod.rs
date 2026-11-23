@@ -14,7 +14,7 @@ pub(crate) use botsecurity_core::command_guard::SafeCommand;
 const SUDOERS_FILE: &str = "/etc/sudoers.d/gb-protection";
 
 #[cfg(not(windows))]
-const SUDOERS_CONTENT: &str = r#"# General Bots Security Protection Tools
+pub(crate) const SUDOERS_CONTENT: &str = r#"# General Bots Security Protection Tools
 # This file is managed by botserver install protection
 # DO NOT EDIT MANUALLY
 
@@ -166,8 +166,9 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn test_sudoers_content_no_wildcards() {
-        // Ensure no dangerous wildcards in sudoers
+        // Every sudoers constant must be free of wildcard arguments (#2609).
         assert!(!SUDOERS_CONTENT.contains(" ALL=(ALL) ALL"));
+        assert!(!SUDOERS_CONTENT.contains('*'), "protection sudoers has a wildcard");
     }
 
     #[cfg(not(windows))]

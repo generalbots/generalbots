@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<title>General Bots security advisories</title>
+<id>https://generalbots.org/security/</id>
+<updated>2026-11-23T00:00:00Z</updated>
+<entry><title>EXAMPLE ONLY — placeholder advisory</title>
+<id>tag:generalbots.org,2026:GB-SA-2026-0001</id>
+<updated>2026-11-23T00:00:00Z</updated>
+<link href="https://generalbots.org/security/advisories/GB-SA-2026-0001.html"/>
+<summary>This record exists so consumers can validate the feed; it describes no real issue.</summary></entry>
+</feed>

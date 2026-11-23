@@ -1,22 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for the desktop app and setup wizard. local=true covers tauri://localhost / https://tauri.localhost (and http://localhost:3000 in debug); remote.urls lists only the exact sidecar origins the appliance navigates to — no wildcard localhost ports (#2497).",
+  "description": "Local-only capability for the setup wizard and splash windows. The privileged `default` command set (wizard, Drive, sync, tray and destructive path commands) must never be granted to the sidecar origin: the main WebView has its own minimal capability in main.json (#2688). No remote origin is listed here — the wizard runs on tauri://localhost / https://tauri.localhost.",
   "platforms": ["macOS", "windows", "linux"],
   "local": true,
-  "windows": ["main", "wizard", "splash"],
-  "remote": {
-    "urls": [
-      "http://localhost:8080",
-      "http://127.0.0.1:8080"
-    ]
-  },
+  "windows": ["wizard", "splash"],
   "permissions": [
     "core:default",
     "core:window:allow-set-fullscreen",
     "dialog:default",
-    "notification:default",
-    "geolocation:default",
     "default"
   ]
 }
