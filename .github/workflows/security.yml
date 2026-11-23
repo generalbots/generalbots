@@ -39,9 +39,9 @@ env:
 jobs:
   supply-chain:
     name: cargo-deny (advisories, bans, licenses, sources)
-    # The whole repository is mirrored to a Forgejo remote that runs the same
-    # tree; only the GitHub runner has the release assets and the Security tab.
-    if: ${{ github.server_url == 'https://github.com' }}
+    # #2744 — audit jobs run on every host that executes this workflow,
+    # including the Forgejo/ALM mirror. Only GitHub-only artefacts (SARIF
+    # upload, Security tab) are guarded behind `github.server_url`.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -91,7 +91,6 @@ jobs:
 
   osv:
     name: OSV scan (Cargo.lock)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -123,7 +122,7 @@ jobs:
             || true
           test -s /tmp/osv.sarif
       - name: Upload SARIF
-        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ github.server_url == 'https://github.com' && always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         with:
           sarif_file: /tmp/osv.sarif
@@ -146,7 +145,6 @@ jobs:
 
   secrets:
     name: Secret scan (full history)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -178,7 +176,7 @@ jobs:
             --report-path /tmp/gitleaks.sarif \
             --log-opts="--all"
       - name: Upload SARIF
-        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ github.server_url == 'https://github.com' && always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         with:
           sarif_file: /tmp/gitleaks.sarif
@@ -186,7 +184,6 @@ jobs:
 
   python:
     name: Python dependencies (botmodels)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -215,7 +212,6 @@ jobs:
 
   sbom:
     name: SBOM (SPDX)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -246,7 +242,6 @@ jobs:
 
   workflow-lint:
     name: Workflow pinning and syntax
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -269,6 +264,8 @@ jobs:
           python3 scripts/check_pip_audit_coverage.py
       - name: Every `uses:` must be a commit SHA
         run: python3 scripts/check_workflow_pinning.py
+      - name: Security audits are not GitHub-only (#2744)
+        run: python3 scripts/check_security_workflow_host_neutral.py
       - name: Component checksums are pinned
         # #2001 — every downloadable runtime binary must carry a SHA-256 in
         # 3rdparty.toml, or be acknowledged with a reason in

@@ -22,7 +22,10 @@ If an ALM-runnable workflow is ever needed in this repository, put the real
 `.yaml` files next to this README — they will be picked up by the `gbo` runner.
 The `malware-clamav` job in `.github/workflows/ci.yml` (#2602) deliberately has
 no `github.server_url` guard, so it can be copied verbatim into such a workflow
-and will run the real ClamAV upload gate there too.
+and will run the real ClamAV upload gate there too. Likewise, all six audit
+jobs in `.github/workflows/security.yml` (#2744) are host-neutral; only SARIF
+uploads to GitHub's Security tab remain GitHub-only. The guard
+`scripts/check_security_workflow_host_neutral.py` enforces this.
 
 ## Why `ubuntu-latest` is not mapped to the `gbo` runner
 
