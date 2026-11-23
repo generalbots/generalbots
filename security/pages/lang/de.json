@@ -71,6 +71,7 @@
   "report-heading": "Schwachstelle melden",
   "report-link": "Vertraulichen Bericht per E-Mail an das Sicherheitsteam senden (security@generalbots.org)",
   "report-policy": "Richtlinie für koordinierte Offenlegung und Kontaktwege lesen (security.txt)",
+  "report-policy-md": "Die Richtlinie für koordinierte Offenlegung im Repository lesen (SECURITY.md)",
   "site-name": "General Bots",
   "skip-to-content": "Zum Hauptinhalt springen",
   "status-col-details": "Details",

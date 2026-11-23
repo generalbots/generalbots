@@ -31,8 +31,20 @@ impl Default for ErrorSanitizer {
                 "/root/".to_string(),
                 "/etc/".to_string(),
                 "/var/".to_string(),
+                "/opt/".to_string(),
+                "/usr/".to_string(),
+                "/mnt/".to_string(),
+                "/srv/".to_string(),
+                "/Users/".to_string(),
                 "c:\\".to_string(),
                 "d:\\".to_string(),
+                // Provider credentials in raw errors (#2753).
+                "bearer ".to_string(),
+                "authorization:".to_string(),
+                "access_token".to_string(),
+                "refresh_token".to_string(),
+                "pwd=".to_string(),
+                "uid=".to_string(),
             ],
         }
     }
@@ -128,6 +140,7 @@ impl ErrorSanitizer {
         result = redact_file_paths(&result);
         result = redact_ip_addresses(&result);
         result = redact_connection_strings(&result);
+        result = redact_credentials(&result);
 
         result
     }
@@ -145,6 +158,14 @@ impl ErrorSanitizer {
         }
 
         if looks_like_connection_string(message) {
+            return true;
+        }
+
+        if looks_like_internal_path(message) {
+            return true;
+        }
+
+        if looks_like_credential(message) {
             return true;
         }
 
@@ -249,19 +270,31 @@ const FILE_PATH_PATTERNS: &[&str] = &[
     r"/root/[a-zA-Z0-9_\-/]+",
     r"/var/[a-zA-Z0-9_\-/]+",
     r"/etc/[a-zA-Z0-9_\-/]+",
+    r"/opt/[a-zA-Z0-9_\-/]+",
+    r"/usr/[a-zA-Z0-9_\-/]+",
+    r"/mnt/[a-zA-Z0-9_\-/]+",
+    r"/srv/[a-zA-Z0-9_\-/]+",
+    r"/Users/[a-zA-Z0-9_\-/]+",
 ];
 
 const IP_ADDRESS_PATTERN: &str = r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b";
 
+// Kept in sync with CONNECTION_SCHEMES in looks_like_connection_string.rs.
 const CONNECTION_STRING_PATTERNS: &[&str] = &[
-    r"postgres://[^\s]+",
-    r"postgresql://[^\s]+",
-    r"mysql://[^\s]+",
-    r"mongodb://[^\s]+",
-    r"mongodb\+srv://[^\s]+",
-    r"redis://[^\s]+",
-    r"amqp://[^\s]+",
-    r"jdbc:[^\s]+",
+    r"(?i)(postgres|postgresql|mysql|mariadb|mongodb\+srv|mongodb|redis|rediss|valkey|amqps?|kafka(\+ssl)?|ldaps?|ftps?|sftp|smb|https?)://[^\s]+",
+    r"(?i)jdbc:[^\s]+",
+    // Keyword DSNs (ODBC/ADO.NET/libpq) have no scheme; redact the whole
+    // `Key=Value;...` chain once a host/server key is present (#2753).
+    r"(?i)\b(server|data source|addr|host)\s*=[^;]+;(?:[^;]+;){1,}",
+];
+
+// Bearer tokens, auth headers and inline credentials returned by providers
+// (`Graph 401: Bearer eyJ...`) are as sensitive as a DB password (#2753).
+const CREDENTIAL_PATTERNS: &[&str] = &[
+    r"(?i)\bbearer\s+[^\s,;]+",
+    r"(?i)\bauthorization\s*:\s*[^\s,;]+",
+    r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\s*[=:]\s*[^\s,;]+",
+    r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+",
 ];
 
 /// Compiles `patterns` into `cache` on first use. A pattern that fails to
@@ -313,10 +346,17 @@ fn connection_string_res() -> &'static [regex::Regex] {
     compiled_patterns(&CACHE, CONNECTION_STRING_PATTERNS)
 }
 
+fn credential_res() -> &'static [regex::Regex] {
+    static CACHE: OnceLock<Vec<regex::Regex>> = OnceLock::new();
+    compiled_patterns(&CACHE, CREDENTIAL_PATTERNS)
+}
+
 pub(super) fn redact_stack_traces(text: &str) -> String {
     let mut result = text.to_string();
     for re in stack_trace_res() {
-        result = re.replace_all(&result, "[STACK_TRACE_REDACTED]").to_string();
+        result = re
+            .replace_all(&result, "[STACK_TRACE_REDACTED]")
+            .to_string();
     }
     result
 }
@@ -336,7 +376,17 @@ pub(super) fn redact_ip_addresses(text: &str) -> String {
 pub(super) fn redact_connection_strings(text: &str) -> String {
     let mut result = text.to_string();
     for re in connection_string_res() {
-        result = re.replace_all(&result, "[CONNECTION_STRING_REDACTED]").to_string();
+        result = re
+            .replace_all(&result, "[CONNECTION_STRING_REDACTED]")
+            .to_string();
+    }
+    result
+}
+
+pub(super) fn redact_credentials(text: &str) -> String {
+    let mut result = text.to_string();
+    for re in credential_res() {
+        result = re.replace_all(&result, "[CREDENTIAL_REDACTED]").to_string();
     }
     result
 }

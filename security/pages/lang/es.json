@@ -71,6 +71,7 @@
   "report-heading": "Informar de una vulnerabilidad",
   "report-link": "Enviar un informe confidencial por correo al equipo de seguridad (security@generalbots.org)",
   "report-policy": "Leer la política de divulgación coordinada y los canales de contacto (security.txt)",
+  "report-policy-md": "Leer la política de divulgación coordinada en el repositorio (SECURITY.md)",
   "site-name": "General Bots",
   "skip-to-content": "Ir al contenido principal",
   "status-col-details": "Detalles",

@@ -71,6 +71,7 @@
   "report-heading": "Report a vulnerability",
   "report-link": "Send a confidential report by email to the security team (security@generalbots.org)",
   "report-policy": "Read the coordinated disclosure policy and contact channels (security.txt)",
+  "report-policy-md": "Read the coordinated disclosure policy in the repository (SECURITY.md)",
   "site-name": "General Bots",
   "skip-to-content": "Skip to main content",
   "status-col-details": "Details",

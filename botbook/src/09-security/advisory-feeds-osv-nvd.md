@@ -6,7 +6,8 @@ never drift:
 
 | Surface | Location | Source |
 |---------|----------|--------|
-| Human bulletin + CSAF 2.0 | `/security/advisories/<ID>` | canonical advisory record |
+| Human bulletin | `/security/advisories/<ID>` | canonical advisory record |
+| CSAF 2.0 documents | `/security/csaf/provider-metadata.json`, `/security/csaf/<year>/<GBSA-ID>.json`, `/security/csaf/changes.csv` | canonical advisory record |
 | OSV records | `/security/osv/index.json`, `/security/osv/<GBSA-ID>.json` | canonical advisory record |
 | OpenVEX statements | `/security/vex/index.json`, `/security/vex/<GBVEX-ID>.json` | `security/vex/statements.json` |
 
@@ -18,6 +19,9 @@ in `security/advisories/` (see `CHECKLIST.md`); VEX claims are authored in
 ## Generate and validate (offline)
 
 ```bash
+python3 scripts/security/csaf_sync.py generate      # (re)write security/csaf
+python3 scripts/security/csaf_sync.py check         # parity, no invented CVE/secrets
+python3 scripts/security/csaf_sync.py --self-test   # fail-closed tests in a temp dir
 python3 scripts/security/osv_sync.py generate       # (re)write security/osv + security/vex
 python3 scripts/security/osv_sync.py check          # parity, VEX example, sync procedure
 python3 scripts/security/osv_sync.py --self-test    # fail-closed tests in a temp dir
@@ -33,6 +37,32 @@ is replaced. `check` is the gate and fails CI when:
   the canonical advisory,
 - a VEX statement is missing, has an invalid `not_affected` justification,
   lacks a precise product version range, or is stale after a revision.
+
+## CSAF 2.0 feed
+
+`csaf_sync.py` renders the static CSAF 2.0 feed from the canonical advisory
+record. `provider-metadata.json` is schema-shaped with the well-known canonical
+URL, the publisher identity, the `csaf_provider` role and a `directory_url`
+pointer to the versioned documents; the static site must alias that file at
+`/.well-known/csaf/provider-metadata.json`.
+
+- `tracking.id` is the canonical `GBSA-YYYY-NNNN` ID and is repeated in
+  `vulnerabilities[].ids`. No `cve` field is emitted: the CSAF `cve` property is
+  only filled when a CNA has assigned one to the canonical record. Placeholder
+  CVEs are rejected by the gate.
+- Affected products and version ranges come from `affected_versions`; the
+  recommended fixed version is a separate product in `product_status`.
+- CVSS v3.1 populates the standard `cvss_v3` object; CSAF 2.0 predates CVSS
+  v4.0, so a v4.0 vector is published as a `cvss_v4_0` extension and repeated
+  verbatim in a note. An `exploit_status` threat decodes the CVSS base metrics
+  rather than inventing an exploitation claim.
+- `changes.csv` lists every advisory with a stable ID and its release timestamp;
+  `check` fails if it drifts from the generated documents.
+
+Running `validate_csaf.py` invokes the same offline gate: it regenerates every
+artifact in memory and fails on a missing, stale or hand-edited file, an
+invented CVE, or secret-like content. Full OASIS schema validation is a CI
+concern; these gates use only the Python standard library and no network.
 
 ## OSV record mapping
 
@@ -101,10 +131,10 @@ file or an NVD/OSV record directly:
 
 1. Add a new `revision_history` row and a new `updated` date in the canonical
    advisory (or bump `revision` in `security/vex/statements.json`).
-2. Re-run `osv_sync.py generate` and commit the regenerated OSV/VEX files with
-   the source change.
-3. Run `osv_sync.py check`; it fails if any ID, CVSS vector, version range or
-   `modified` date is out of sync.
+2. Re-run `csaf_sync.py generate` and `osv_sync.py generate` and commit the
+   regenerated CSAF/OSV/VEX files with the source change.
+3. Run `csaf_sync.py check` and `osv_sync.py check`; they fail if any ID, CVSS
+   vector, version range, release date or `modified` date is out of sync.
 4. Rebuild the bulletin mirror (`scripts/bulletin_mirror.py`) so the new tree
    digest seals the revised feed.
 5. Re-submit the updated record to OSV.dev and send the CNA a revised CVE JSON

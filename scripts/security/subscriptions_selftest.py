@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 
+import csaf_sync
 import gen_feeds
 import sub_crypto
 import sub_digest
@@ -12,6 +13,7 @@ import sub_subscribers
 import sub_webhook
 
 CHECKS = (
+    ("CSAF feed", csaf_sync.self_test),
     ("canonical feeds", gen_feeds.self_test),
     ("signing and replay", sub_crypto.self_test),
     ("subscriber privacy", sub_subscribers.self_test),

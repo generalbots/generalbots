@@ -71,6 +71,7 @@
   "report-heading": "취약점 신고",
   "report-link": "보안 팀에 이메일로 기밀 신고 보내기 (security@generalbots.org)",
   "report-policy": "조율된 공개 정책 및 연락처 읽기 (security.txt)",
+  "report-policy-md": "저장소의 조율된 공개 정책 읽기 (SECURITY.md)",
   "site-name": "General Bots",
   "skip-to-content": "본문으로 건너뛰기",
   "status-col-details": "세부 정보",

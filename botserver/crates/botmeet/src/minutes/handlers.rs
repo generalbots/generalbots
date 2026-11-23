@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 use botsecurity::auth::AuthenticatedUser;
+use botsecurity_core::error_sanitizer::log_and_sanitize_tuple;
 
 use crate::minutes::generator::MinutesGenerator;
 use crate::minutes::signature::SignatureService;
@@ -24,12 +25,13 @@ pub struct PaginationParams {
     pub offset: Option<i64>,
 }
 
+/// #2753 — log the cause server-side, hand the caller only the generic body.
+fn internal_error(e: impl std::fmt::Display, context: &str) -> (StatusCode, String) {
+    log_and_sanitize_tuple(&e, context, StatusCode::INTERNAL_SERVER_ERROR)
+}
+
 fn db_error(e: impl std::fmt::Display) -> (StatusCode, String) {
-    log::error!("Meeting minutes database error: {e}");
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Database error: {e}"),
-    )
+    internal_error(e, "botmeet::minutes::db")
 }
 
 pub async fn handle_create_recording(
@@ -64,13 +66,8 @@ pub async fn handle_create_recording(
             .map_err(|e| format!("Failed to save recording: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|e| internal_error(e, "botmeet::minutes::create"))?;
 
     info!("Created recording {}", recording.id);
     Ok(Json(recording))
@@ -89,13 +86,8 @@ pub async fn handle_get_recording(
             .map_err(|e| format!("Failed to load recording: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     Ok(Json(rec))
 }
@@ -116,12 +108,7 @@ pub async fn handle_list_recordings(
             .map_err(|e| format!("Failed to list recordings: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     Ok(Json(recs))
@@ -141,13 +128,8 @@ pub async fn handle_transcribe_recording(
             .map_err(|e| format!("Failed to load recording: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     // Mark transcribing before the (possibly long) STT call
     let pool = state.conn.clone();
@@ -160,12 +142,7 @@ pub async fn handle_transcribe_recording(
             .map_err(|e| format!("Failed to update recording status: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     let api_base = std::env::var("BOTMODELS_HOST").unwrap_or_default();
@@ -182,12 +159,7 @@ pub async fn handle_transcribe_recording(
         )
         .await
     }
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Transcription failed: {e}"),
-        )
-    })?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::transcribe"))?;
 
     let mut transcription = transcription;
     transcription.recording_id = recording.id;
@@ -209,12 +181,7 @@ pub async fn handle_transcribe_recording(
             .map_err(|e| format!("Failed to update recording status: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     info!("Transcribed recording {}", recording.id);
@@ -239,13 +206,8 @@ pub async fn handle_generate_minutes(
         Ok::<_, String>((t, title))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     let llm_url = std::env::var("LLM_URL").unwrap_or_default();
     let llm_key = std::env::var("LLM_KEY").unwrap_or_default();
@@ -272,12 +234,7 @@ pub async fn handle_generate_minutes(
         },
     )
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Minute generation failed: {e}"),
-        )
-    })?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::generate"))?;
 
     minute.bot_id = Uuid::nil();
     minute.recording_id = Some(recording_id);
@@ -295,12 +252,7 @@ pub async fn handle_generate_minutes(
             .map_err(|e| format!("Failed to update recording status: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     info!(
@@ -322,13 +274,8 @@ pub async fn handle_get_minutes(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     Ok(Json(minute))
 }
@@ -349,12 +296,7 @@ pub async fn handle_list_minutes(
             .map_err(|e| format!("Failed to list minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     Ok(Json(minutes))
@@ -376,12 +318,7 @@ pub async fn handle_update_minutes(
             .map_err(|e| format!("Failed to reload minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     Ok(Json(updated))
@@ -402,12 +339,7 @@ pub async fn handle_finalize_minutes(
             .map_err(|e| format!("Failed to reload minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     info!("Finalized minutes {}", minute.id);
@@ -431,13 +363,8 @@ pub async fn handle_export_pdf(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     Err((
         StatusCode::NOT_IMPLEMENTED,
@@ -458,12 +385,7 @@ pub async fn handle_get_signatures(
             .map_err(|e| format!("Failed to load signatures: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     Ok(Json(sigs))
@@ -489,13 +411,8 @@ pub async fn handle_sign_minutes(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
-    .map_err(|e| (StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
 
     let signature =
         SignatureService::sign_minute(&minute, user.user_id, req.signature_id, req.ip_address)
@@ -528,12 +445,7 @@ pub async fn handle_sign_minutes(
         Ok::<_, String>((sig, status))
     })
     .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Task failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
     .map_err(db_error)?;
 
     let (signature, status) = result;

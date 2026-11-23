@@ -71,6 +71,7 @@
   "report-heading": "报告漏洞",
   "report-link": "通过电子邮件向安全团队发送保密报告（security@generalbots.org）",
   "report-policy": "阅读协调披露政策和联系方式（security.txt）",
+  "report-policy-md": "阅读仓库中的协调披露政策（SECURITY.md）",
   "site-name": "General Bots",
   "skip-to-content": "跳到主要内容",
   "status-col-details": "详情",

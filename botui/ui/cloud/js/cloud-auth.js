@@ -1,5 +1,22 @@
 const API_BASE = '/api/cloud';
 
+// #2812 — hand the token over in the URL fragment with a one-time, expiring
+// state cookie. A query string is recorded by proxies, logs and Referers.
+function gbHandoff(dest, token, email, name) {
+  var state = (typeof crypto !== 'undefined' && crypto.getRandomValues)
+    ? Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(12)), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('')
+    : String(Date.now()) + '-' + String(Math.random()).slice(2);
+  var ts = Date.now(), h = location.hostname;
+  var d = h === 'localhost' || h === '127.0.0.1' ? '' : (h.split('.').length > 2 ? '.' + h.split('.').slice(1).join('.') : '');
+  document.cookie = 'gb_sso_state=' + encodeURIComponent(state) + '.' + ts + '; Path=/; SameSite=Lax; Max-Age=60' + (d ? '; Domain=' + d : '') + (location.protocol === 'https:' ? '; Secure' : '');
+  var u = new URL(dest, location.origin), p = new URLSearchParams();
+  u.search = ''; u.hash = '';
+  p.set('gb_token', token || ''); p.set('email', email || ''); p.set('name', name || '');
+  p.set('gb_state', state); p.set('gb_ts', String(ts));
+  u.hash = p.toString();
+  return u.href;
+}
+
 // ── Login ──
 async function handleLogin(e) {
   e.preventDefault();
@@ -28,7 +45,7 @@ async function handleLogin(e) {
     localStorage.setItem('management_token', data.token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    window.location.href = CLOUD_CONFIG.baseUrl + '/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
+    window.location.href = gbHandoff(CLOUD_CONFIG.baseUrl + '/dashboard', data.token, data.email || email, data.name || '');
   } catch (err) {
     errEl.textContent = gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message;
     errEl.style.display = 'block';
@@ -81,10 +98,7 @@ async function handleSignup(e) {
     localStorage.setItem('management_plan', data.plan || 'free');
     // Private Server: redirect to Store VPS calculator instead of Dashboard
     const dest = plan === 'private-cloud' ? '/store' : '/dashboard';
-    window.location.href = CLOUD_CONFIG.baseUrl + dest
-      + '?token=' + encodeURIComponent(token)
-      + '&email=' + encodeURIComponent(emailOut)
-      + '&name=' + encodeURIComponent(data.account?.name || name);
+    window.location.href = gbHandoff(CLOUD_CONFIG.baseUrl + dest, token, emailOut, data.account?.name || name);
   } catch (err) {
     errEl.textContent = gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message;
     errEl.style.display = 'block';

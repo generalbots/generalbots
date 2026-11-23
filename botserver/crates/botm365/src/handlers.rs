@@ -6,8 +6,19 @@ use uuid::Uuid;
 use diesel::RunQueryDsl;
 use diesel::OptionalExtension;
 
+use botsecurity_core::error_sanitizer::log_and_sanitize_tuple;
+
 use crate::db;
 use crate::storage;
+
+/// #2753 — log the cause server-side, hand the caller only the generic body.
+fn internal_error(e: impl std::fmt::Display, context: &str) -> (StatusCode, String) {
+    log_and_sanitize_tuple(&e, context, StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+fn bad_gateway(e: impl std::fmt::Display, context: &str) -> (StatusCode, String) {
+    log_and_sanitize_tuple(&e, context, StatusCode::BAD_GATEWAY)
+}
 
 /// Resolves the caller's tenant branch from the server-minted JWT claims
 /// (issue #734). Falls back to the global nil branch for anonymous/system
@@ -59,7 +70,7 @@ pub async fn list_sharepoint(headers: HeaderMap) -> Result<Json<Vec<SharePointIt
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -87,7 +98,7 @@ pub async fn list_calendar(headers: HeaderMap) -> Result<Json<Vec<CalendarEvent>
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -123,7 +134,7 @@ pub async fn list_onedrive(headers: HeaderMap) -> Result<Json<Vec<OneDriveFile>>
     let pool = db::pool()?;
     let mut conn = pool
         .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+        .map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     let rows = botdrive::external::files::list_files(
         &mut conn,
         branch,
@@ -131,7 +142,7 @@ pub async fn list_onedrive(headers: HeaderMap) -> Result<Json<Vec<OneDriveFile>>
         None,
         500,
     )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    .map_err(|e| internal_error(e, "botm365::handlers::provider"))?;
     Ok(Json(
         rows.into_iter()
             .map(|r| OneDriveFile {
@@ -152,7 +163,7 @@ pub async fn get_settings(headers: HeaderMap) -> Result<Json<Option<M365Settings
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Text)] tenant_id: String,
@@ -189,7 +200,7 @@ pub async fn list_teams(headers: HeaderMap) -> Result<Json<Vec<M365Team>>, (Stat
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -222,35 +233,35 @@ use axum::response::Response;
 /// same tenant-scoped mirror as the listing.
 pub async fn download_file(headers: HeaderMap, Path(id): Path<String>) -> Result<Response<Body>, (StatusCode, String)> {
     let branch = resolve_branch(&headers);
-    let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid file id '{id}': {e}")))?;
+    let parsed = Uuid::parse_str(&id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid file id".to_string()))?;
     let provider = botdrive::external::Provider::OneDrive;
     let pool = db::pool()?;
     let (row, connection) = {
         let mut conn = pool
             .get()
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+            .map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
         let row = botdrive::external::files::get_file_by_id(&mut conn, branch, provider, parsed)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+            .map_err(|e| internal_error(e, "botm365::handlers::provider"))?
             .ok_or((StatusCode::NOT_FOUND, format!("File {id} not found")))?;
         let connection = botdrive::external::db::get_connection(&mut conn, branch, provider)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+            .map_err(|e| internal_error(e, "botm365::handlers::provider"))?
             .ok_or((StatusCode::CONFLICT, "OneDrive is not connected".to_string()))?;
         (row, connection)
     };
 
     let http = botdrive::external::engine::http_client()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        .map_err(|e| internal_error(e, "botm365::handlers::provider"))?;
     let token = botdrive::external::engine::connection_access_token(&http, pool, branch, &connection)
         .await
         .map_err(|e| match e {
             botdrive::external::SyncError::Auth(_) => {
                 (StatusCode::UNAUTHORIZED, "reconnect OneDrive".to_string())
             }
-            other => (StatusCode::BAD_GATEWAY, other.to_string()),
+            other => bad_gateway(other, "botm365::handlers::token"),
         })?;
     let bytes = botdrive::external::onedrive::download(&http, &token, &row.remote_id)
         .await
-        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))?;
+        .map_err(|e| bad_gateway(e, "botm365::handlers::download"))?;
 
     let safe_name = row.name.replace(['/', '\\', '"', '\n', '\r'], "_");
     let cd = format!("attachment; filename=\"{}\"", safe_name);
@@ -262,7 +273,7 @@ pub async fn download_file(headers: HeaderMap, Path(id): Path<String>) -> Result
         )
         .header(header::CONTENT_DISPOSITION, HeaderValue::from_str(&cd).unwrap_or_else(|_| HeaderValue::from_static("attachment")))
         .body(Body::from(bytes))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Response error: {e}")))
+        .map_err(|e| internal_error(e, "botm365::handlers::response"))
 }
 
 /// Start a real OneDrive consent flow.
@@ -311,7 +322,7 @@ pub async fn disconnect_account(headers: HeaderMap) -> Result<Json<serde_json::V
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     diesel::sql_query("UPDATE oauth_microsoft_settings SET connected_at = NULL, updated_at = NOW() WHERE branch_id = $1")
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .execute(&mut conn)
@@ -350,7 +361,7 @@ pub async fn update_sync_settings(headers: HeaderMap, Json(req): Json<serde_json
     storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| internal_error(e, "botm365::handlers::pool"))?;
     let sync_type = req.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let frequency = req.get("frequency").and_then(|v| v.as_i64()).unwrap_or(15);
     let col = if sync_type == "calendar" { "sync_calendar_min" } else { "sync_onedrive_min" };

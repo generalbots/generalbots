@@ -71,6 +71,7 @@
   "report-heading": "脆弱性を報告する",
   "report-link": "セキュリティチームに電子メールで機密報告を送信する（security@generalbots.org）",
   "report-policy": "調整済み開示方針と連絡先を読む（security.txt）",
+  "report-policy-md": "リポジトリの調整済み開示方針を読む（SECURITY.md）",
   "site-name": "General Bots",
   "skip-to-content": "メインコンテンツへ移動",
   "status-col-details": "詳細",

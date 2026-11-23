@@ -2,6 +2,31 @@ use crate::manager::SecretsManager;
 use anyhow::Result;
 use std::collections::HashMap;
 
+/// True for fields that carry a secret and therefore must never have a
+/// non-empty value in the built-in fallback defaults (#2764). Kept free of
+/// I/O so the rule can be unit-tested without Vault or an environment.
+fn is_secret_field(key: &str) -> bool {
+    let key = key.to_ascii_lowercase();
+    key.contains("password")
+        || key.contains("secret")
+        || key.contains("token")
+        || key.contains("key")
+}
+
+/// Fail closed: blank any non-empty built-in secret default. A guessable
+/// literal here would be shipped to every installation and could work in
+/// production; an empty value forces callers to supply a real Vault/env secret.
+fn fail_closed_secret_defaults(secrets: &mut HashMap<String, String>) {
+    for (key, value) in secrets.iter_mut() {
+        if is_secret_field(key) && !value.is_empty() {
+            log::warn!(
+                "Refusing non-empty built-in default for secret field '{key}'; using empty value"
+            );
+            value.clear();
+        }
+    }
+}
+
 pub fn init_secrets_manager() -> Result<SecretsManager> {
     SecretsManager::from_env()
 }
@@ -21,7 +46,10 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
             secrets.insert("port".into(), "5432".into());
             secrets.insert("database".into(), "botserver".into());
             secrets.insert("username".into(), "gbuser".into());
-            secrets.insert("password".into(), "changeme".into());
+            // #2764 — never ship a usable fallback password. With Vault
+            // unavailable, an empty value makes the DB connection fail closed
+            // instead of authenticating with a guessable, shared credential.
+            secrets.insert("password".into(), String::new());
         }
         "directory" | "gbo/directory" | "system/directory" => {
             secrets.insert("url".into(), String::new());
@@ -134,5 +162,97 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         }
     }
 
+    fail_closed_secret_defaults(&mut secrets);
     Ok(secrets)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{fail_closed_secret_defaults, get_from_env, is_secret_field};
+    use std::collections::HashMap;
+
+    const SECRET_PATHS: &[&str] = &[
+        "tables",
+        "directory",
+        "drive",
+        "cache",
+        "email",
+        "llm",
+        "encryption",
+        "meet",
+        "vectordb",
+        "observability",
+        "alm",
+        "security",
+        "cloud",
+        "app",
+        "jwt",
+        "models",
+        "peer",
+        "vdi",
+    ];
+
+    #[test]
+    fn missing_vault_tables_secret_returns_empty_password() {
+        let secrets = get_from_env("tables").unwrap_or_default();
+        assert_eq!(secrets.get("password").map(String::as_str), Some(""));
+        assert_eq!(secrets.get("username").map(String::as_str), Some("gbuser"));
+    }
+
+    #[test]
+    fn is_secret_field_matches_only_secret_bearing_keys() {
+        for key in [
+            "password",
+            "password_hash",
+            "client_secret",
+            "api_key",
+            "accesskey",
+            "token",
+            "signing-key",
+            "smtp_password",
+            "master_key",
+        ] {
+            assert!(is_secret_field(key), "expected secret field: {key}");
+        }
+        for key in [
+            "host",
+            "port",
+            "database",
+            "username",
+            "model",
+            "url",
+            "environment",
+            "require_auth",
+            "project_id",
+            "default_org",
+        ] {
+            assert!(!is_secret_field(key), "expected non-secret field: {key}");
+        }
+    }
+
+    #[test]
+    fn every_builtin_secret_default_is_empty() {
+        for path in SECRET_PATHS {
+            let secrets = get_from_env(path).unwrap_or_default();
+            for (key, value) in &secrets {
+                assert!(
+                    !is_secret_field(key) || value.is_empty(),
+                    "{path}: non-empty built-in default for secret field '{key}'"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn fail_closed_helper_blanks_injected_secret_defaults() {
+        let mut secrets = HashMap::from([
+            ("password".to_string(), "hunter2".to_string()),
+            ("api_key".to_string(), "leaked".to_string()),
+            ("host".to_string(), "localhost".to_string()),
+        ]);
+        fail_closed_secret_defaults(&mut secrets);
+        assert_eq!(secrets.get("password").map(String::as_str), Some(""));
+        assert_eq!(secrets.get("api_key").map(String::as_str), Some(""));
+        assert_eq!(secrets.get("host").map(String::as_str), Some("localhost"));
+    }
 }

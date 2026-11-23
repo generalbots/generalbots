@@ -1,5 +1,5 @@
 use crate::component::{ComponentConfig, InstallResult};
-use crate::db_utils::{get_database_url_sync, parse_database_url};
+use crate::db_utils::{get_database_url_sync, parse_database_url, ZITADEL_PASSWORD_PLACEHOLDER};
 use crate::OsType;
 use anyhow::Result;
 use botlib::security::SafeCommand;
@@ -268,19 +268,36 @@ pub fn create_container_service(
             String::new()
         }
     };
+    // #2763 — resolve the Zitadel role password for both the service command
+    // and its environment. A Vault error is fatal; no fixed fallback.
+    let zitadel_password = if exec_cmd.contains(ZITADEL_PASSWORD_PLACEHOLDER)
+        || env_vars
+            .values()
+            .any(|value| value.contains(ZITADEL_PASSWORD_PLACEHOLDER))
+    {
+        crate::db_utils::zitadel_db_password().map_err(|error| {
+            anyhow::anyhow!(
+                "Cannot resolve Zitadel DB password for container service '{component}' (Vault failure is fatal): {error}"
+            )
+        })?
+    } else {
+        String::new()
+    };
     let rendered_cmd = exec_cmd
         .replace("{{DB_PASSWORD}}", &db_password)
         .replace("{{BIN_PATH}}", "/opt/gbo/bin")
         .replace("{{DATA_PATH}}", "/opt/gbo/data")
         .replace("{{CONF_PATH}}", "/opt/gbo/conf")
-        .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
+        .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
+        .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
     let mut env_section = String::new();
     for (key, value) in env_vars {
         let rendered_value = value
             .replace("{{DATA_PATH}}", "/opt/gbo/data")
             .replace("{{BIN_PATH}}", "/opt/gbo/bin")
             .replace("{{CONF_PATH}}", "/opt/gbo/conf")
-            .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
+            .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
+            .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
         let _ = writeln!(env_section, "Environment={key}={rendered_value}");
     }
     let service_content = format!(

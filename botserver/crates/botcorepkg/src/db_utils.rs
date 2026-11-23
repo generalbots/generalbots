@@ -1,5 +1,7 @@
 use anyhow::Result;
 use botcoresecrets::SecretsManager;
+use std::collections::HashMap;
+use std::time::Duration;
 
 pub fn get_database_url_sync() -> Result<String> {
     let manager = SecretsManager::get_clone()?;
@@ -45,4 +47,143 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
         5432,
         "".to_string(),
     )
+}
+
+/// Placeholder used by the directory installer for the `zitadel` PostgreSQL
+/// role password. Every rendering path must substitute it before a shell or
+/// SQL command is run; no literal password is allowed in the registry.
+pub const ZITADEL_PASSWORD_PLACEHOLDER: &str = "{{ZITADEL_PASSWORD}}";
+
+const DIRECTORY_SECRET_PATH: &str = "secret/gbo/directory";
+const ZITADEL_PASSWORD_KEY: &str = "password";
+const ZITADEL_PASSWORD_ENV: &str = "ZITADEL_DB_PASSWORD";
+
+/// Pure strength gate for the Zitadel DB role password (#2763).
+///
+/// `generate_random_string(32)` yields 32 alphanumeric characters (~190 bits
+/// of entropy). Restricting the alphabet to ASCII alphanumerics also keeps the
+/// value safe to interpolate into both shell commands and SQL string literals
+/// (no quotes, backslashes or `$`). The deny-list records that the legacy
+/// fixed value is never acceptable, including for operator overrides.
+pub fn is_strong_zitadel_password(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    value.len() >= 16
+        && bytes.iter().all(|byte| byte.is_ascii_alphanumeric())
+        && !bytes.iter().all(|byte| *byte == bytes[0])
+        && !matches!(
+            value.to_ascii_lowercase().as_str(),
+            "zitadel" | "changeme" | "password" | "admin" | "secret"
+        )
+}
+
+/// Strict Vault read, for callers that must fail closed (#2763).
+fn get_secret_strict_sync(path: &str) -> Result<HashMap<String, String>> {
+    let manager = SecretsManager::get_clone()?;
+    let secret_path = path.to_string();
+    let worker_path = secret_path.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = match runtime {
+            Ok(runtime) => runtime.block_on(manager.get_secret_strict(&worker_path)),
+            Err(error) => Err(anyhow::anyhow!("Failed to create runtime: {error}")),
+        };
+        if tx.send(result).is_err() {
+            log::warn!("Vault read worker for '{worker_path}' outlived its caller");
+        }
+    });
+    rx.recv_timeout(Duration::from_secs(10))
+        .map_err(|error| anyhow::anyhow!("Vault read for '{secret_path}' did not finish: {error}"))?
+}
+
+/// Strict Vault write, for callers that must fail closed (#2763).
+fn put_secret_sync(path: &str, data: HashMap<String, String>) -> Result<()> {
+    let manager = SecretsManager::get_clone()?;
+    let secret_path = path.to_string();
+    let worker_path = secret_path.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = match runtime {
+            Ok(runtime) => runtime.block_on(manager.put_secret(&worker_path, data)),
+            Err(error) => Err(anyhow::anyhow!("Failed to create runtime: {error}")),
+        };
+        if tx.send(result).is_err() {
+            log::warn!("Vault write worker for '{worker_path}' outlived its caller");
+        }
+    });
+    rx.recv_timeout(Duration::from_secs(10))
+        .map_err(|error| anyhow::anyhow!("Vault write for '{secret_path}' did not finish: {error}"))?
+}
+
+/// Resolve the password for the `zitadel` PostgreSQL role.
+///
+/// Precedence: an explicit operator override, then the value seeded into
+/// `secret/gbo/directory`. When the seeded value is missing or weak a fresh
+/// random password is generated and persisted back to Vault, so two fresh
+/// installs never share a credential and an upgrade repairs an old secret.
+/// Any Vault failure is propagated — never fall back to a fixed literal or an
+/// empty value.
+pub fn zitadel_db_password() -> Result<String> {
+    if let Ok(override_value) = std::env::var(ZITADEL_PASSWORD_ENV) {
+        if !override_value.is_empty() {
+            if is_strong_zitadel_password(&override_value) {
+                return Ok(override_value);
+            }
+            return Err(anyhow::anyhow!(
+                "{ZITADEL_PASSWORD_ENV} must be at least 16 ASCII alphanumeric characters and must not be a known weak value"
+            ));
+        }
+    }
+
+    let mut secret = get_secret_strict_sync(DIRECTORY_SECRET_PATH)?;
+    if let Some(existing) = secret.get(ZITADEL_PASSWORD_KEY) {
+        if is_strong_zitadel_password(existing) {
+            return Ok(existing.clone());
+        }
+    }
+
+    let generated = crate::generate_random_string(32);
+    secret.insert(ZITADEL_PASSWORD_KEY.to_string(), generated.clone());
+    put_secret_sync(DIRECTORY_SECRET_PATH, secret)?;
+    Ok(generated)
+}
+
+#[cfg(test)]
+mod zitadel_password_tests {
+    use super::*;
+
+    #[test]
+    fn two_installs_generate_distinct_strong_passwords() {
+        let first = crate::generate_random_string(32);
+        let second = crate::generate_random_string(32);
+        assert_ne!(first, second, "two installs must not share a DB password");
+        assert!(is_strong_zitadel_password(&first));
+        assert!(is_strong_zitadel_password(&second));
+        assert_ne!(first, "zitadel");
+        assert_ne!(second, "zitadel");
+    }
+
+    #[test]
+    fn weak_or_unsafe_passwords_are_rejected() {
+        let weak = [
+            String::new(),
+            "zitadel".to_string(),
+            "short".to_string(),
+            "123456789012345".to_string(),
+            "has spaces here".to_string(),
+            "quote'and$meta".to_string(),
+            "a".repeat(20),
+        ];
+        for candidate in &weak {
+            assert!(
+                !is_strong_zitadel_password(candidate),
+                "weak value accepted: {candidate}"
+            );
+        }
+    }
 }

@@ -77,6 +77,22 @@ pub fn run_commands_with_password(
             }
         }
     };
+    // #2763 — the Zitadel role password must be resolved from Vault (or an
+    // explicit operator override) before any SQL/shell command is rendered.
+    // A Vault error is fatal: never fall back to a fixed or empty password.
+    let zitadel_password = if commands
+        .iter()
+        .any(|cmd| cmd.contains(ZITADEL_PASSWORD_PLACEHOLDER))
+    {
+        zitadel_db_password().map_err(|error| {
+            anyhow::anyhow!(
+                "Cannot resolve Zitadel DB password for '{}' (Vault failure is fatal): {error}",
+                component
+            )
+        })?
+    } else {
+        String::new()
+    };
     for cmd in commands {
         let rendered_cmd = cmd
             .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -85,7 +101,8 @@ pub fn run_commands_with_password(
             .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
             .replace("{{STACK_PATH}}", &base_path.to_string_lossy())
             .replace("{{DATA_PATH_FWD}}", &data_path.to_string_lossy().replace('\\', "/"))
-            .replace("{{DB_PASSWORD}}", &db_password);
+            .replace("{{DB_PASSWORD}}", &db_password)
+            .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
         if target == "local" {
             trace!("Executing command: {}", rendered_cmd);
             #[cfg(target_os = "windows")]
@@ -127,7 +144,8 @@ pub fn run_commands_with_password(
                 // registry marked the command as best-effort (`|| true`).
                 let stderr = String::from_utf8_lossy(&cmd_result.stderr);
                 let stderr: String = stderr.trim().chars().take(600).collect();
-                let display_cmd = redact_secret(&rendered_cmd, &db_password);
+                let display_cmd =
+                    redact_secret(&redact_secret(&rendered_cmd, &db_password), &zitadel_password);
                 eprintln!(
                     "installer: command failed for component '{}' (exit {:?})\n  command: {}\n  stderr: {}",
                     component,

@@ -16,6 +16,8 @@ General Bots implements a comprehensive security model designed for enterprise d
 The authoritative advisory channel is the [security bulletin](https://generalbots.org/security/),
 not the community forum. For the public track record and recognition:
 
+- [RFC 9116 security.txt](https://generalbots.org/.well-known/security.txt) — canonical machine-readable reporting contact; `Preferred-Languages: pt-BR, en`.
+- [SECURITY.md](https://generalbots.org/SECURITY.md) — scope, acknowledgement in ≤ 3 business days, triage in ≤ 10, 90-day embargo and supported versions.
 - [Status and incident history](https://generalbots.org/security/status.html) — resolved advisories with dates, severity and affected versions.
 - [Hall of fame](https://generalbots.org/security/hall-of-fame.html) — opt-in credit for reporters; no bug bounty, reward budget 0.
 

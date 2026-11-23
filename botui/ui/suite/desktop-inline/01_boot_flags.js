@@ -18,21 +18,69 @@
                     ? window.__GB_SERVER_ORIGIN__ + "/suite/login.html"
                     : "/suite/login.html";
             }
+            // #2812 — one-time, expiring state for the suite SSO hop. The
+            // value lives in sessionStorage on this origin, never in a URL;
+            // a replayed hop cannot recreate a consumed state.
+            window.GB_SSO_STATE = (function () {
+                var KEY = "gb_sso_state";
+                function create() {
+                    var state = (window.crypto && crypto.getRandomValues)
+                        ? Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(12)), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("")
+                        : String(Date.now()) + "-" + String(Math.random()).slice(2);
+                    var ts = Date.now();
+                    try { sessionStorage.setItem(KEY, state + "." + ts); } catch (e) {}
+                    return { state: state, ts: ts };
+                }
+                function consume(state, ts) {
+                    var raw = null;
+                    try { raw = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) {}
+                    if (!raw || !state || !/^\d{10,15}$/.test(String(ts))) return false;
+                    var t = Number(ts), now = Date.now();
+                    if (now - t > 60000 || t - now > 5000) return false;
+                    var p = raw.split(".");
+                    return p.length === 2 && p[0] === state && p[1] === String(ts);
+                }
+                function fromUrl() {
+                    var q = new URLSearchParams(window.location.search);
+                    var f = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+                    return { state: f.get("gb_state") || q.get("gb_state") || q.get("state"),
+                             ts: f.get("gb_ts") || q.get("gb_ts") || q.get("ts") };
+                }
+                return { create: create, consume: consume, fromUrl: fromUrl };
+            })();
+            // A returning SSO hop must present an unused state; the token the
+            // handoff page stored is discarded when it does not (#2812).
+            try {
+                var __rp = new URLSearchParams(window.location.search);
+                if (__rp.has("state") || __rp.has("gb_state")) {
+                    var __rs = window.GB_SSO_STATE.fromUrl();
+                    if (!window.GB_SSO_STATE.consume(__rs.state, __rs.ts)) {
+                        localStorage.removeItem("gb-access-token");
+                        sessionStorage.removeItem("gb-access-token");
+                    }
+                    var __ru = new URL(window.location.href);
+                    ["state", "ts", "gb_state", "gb_ts"].forEach(function (k) { __rp.delete(k); });
+                    __ru.search = __rp.toString();
+                    window.history.replaceState({}, "", __ru.pathname + __ru.search + __ru.hash);
+                }
+            } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
             // Consume a suite session token BEFORE any other script loads.
             // security-bootstrap.js snapshots the token into memory when it
             // initialises; a capture at the end of <body> would arrive after
             // that snapshot and every isAuthenticated() call would still say
             // "anonymous". Cloud JWTs (3 segments) keep using the SSO hop.
             try {
+                var __frag = new URLSearchParams(window.location.hash.replace(/^#/, ""));
                 var __tokParams = new URLSearchParams(window.location.search);
-                var __tok = __tokParams.get("token");
-                if (__tok && __tok.split(".").length !== 3) {
+                var __tok = __frag.get("gb_token") || __frag.get("token") || __tokParams.get("token");
+                var __st = window.GB_SSO_STATE.fromUrl();
+                if (__tok && __tok.split(".").length !== 3 &&
+                    (!__st.state || window.GB_SSO_STATE.consume(__st.state, __st.ts))) {
                     localStorage.setItem("gb-access-token", __tok);
                     var __u = new URL(window.location.href);
-                    __u.searchParams.delete("token");
-                    __u.searchParams.delete("email");
-                    __u.searchParams.delete("name");
-                    window.history.replaceState({}, "", __u.pathname + __u.search + __u.hash);
+                    ["token", "email", "name", "gb_token", "gb_state", "gb_ts"].forEach(function (k) { __u.searchParams.delete(k); });
+                    __u.hash = "";
+                    window.history.replaceState({}, "", __u.pathname + __u.search);
                 }
             } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
             // #1894 — the desktop hides the WebView default context menu so it

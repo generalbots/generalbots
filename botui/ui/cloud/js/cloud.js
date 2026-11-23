@@ -7,18 +7,31 @@ const CLOUD_CONFIG = {
   docsUrl: 'https://docs.generalbots.org',
 };
 
-// Accept auth token from URL params (cross-domain redirect from login server)
-(function() {
-  var p = new URLSearchParams(window.location.search);
-  var tok = p.get('token');
+// #2812 — one-time fragment handoff; a bearer token never enters a query
+// string. The state cookie is cleared on first read, so a replayed URL fails.
+var GB_SSO_KEY = 'gb_sso_state';
+function gbConsumeSso(state, ts) {
+  var raw = null, h = location.hostname;
+  try { document.cookie.split(';').forEach(function (c) { c = c.trim(); if (c.indexOf(GB_SSO_KEY + '=') === 0) raw = c.slice(GB_SSO_KEY.length + 1); }); } catch (_) {}
+  var d = h === 'localhost' || h === '127.0.0.1' ? '' : (h.split('.').length > 2 ? '.' + h.split('.').slice(1).join('.') : '');
+  document.cookie = GB_SSO_KEY + '=; Path=/; SameSite=Lax; Max-Age=-1' + (d ? '; Domain=' + d : '') + (location.protocol === 'https:' ? '; Secure' : '');
+  if (!raw || !state || !/^\d{10,15}$/.test(String(ts))) return false;
+  var t = Number(ts), now = Date.now();
+  if (now - t > 60000 || t - now > 5000) return false;
+  try { var p = decodeURIComponent(raw).split('.'); return p.length === 2 && p[0] === state && p[1] === String(ts); } catch (_) { return false; }
+}
+(function () {
+  var u = new URL(window.location.href), f = new URLSearchParams(u.hash.replace(/^#/, ''));
+  var tok = f.get('gb_token'), changed = false;
+  if (tok && (!f.get('gb_state') || !gbConsumeSso(f.get('gb_state'), f.get('gb_ts')))) tok = '';
   if (tok) {
-    localStorage.setItem('management_token', tok);
-    localStorage.setItem('management_email', p.get('email') || '');
-    localStorage.setItem('management_name', p.get('name') || '');
-    var u = new URL(window.location.href);
-    u.search = '';
-    window.history.replaceState({}, '', u);
+    try { localStorage.setItem('management_token', tok); localStorage.setItem('management_email', f.get('email') || ''); localStorage.setItem('management_name', f.get('name') || ''); } catch (_) {}
+    changed = true;
   }
+  // Legacy ?token= links are scrubbed but never trusted for authentication.
+  ['token', 'email', 'name', 'gb_token', 'gb_state', 'gb_ts'].forEach(function (k) { if (u.searchParams.has(k)) { u.searchParams.delete(k); changed = true; } });
+  if (u.hash) { u.hash = ''; changed = true; }
+  if (changed) window.history.replaceState({}, '', u.pathname + u.search);
 })();
 
 const SVG = {

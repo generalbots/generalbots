@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 
 const RELEASES_API: &str = "https://api.github.com/repos/generalbots/generalbots/releases/latest";
 const RELEASES_PAGE: &str = "https://github.com/generalbots/generalbots/releases";
+const RELEASE_HOST: &str = "github.com";
+const RELEASE_PATH_PREFIX: &str = "/generalbots/generalbots/releases/";
 
 /// User agent for the release check, carrying the real build version (#2103).
 fn user_agent() -> String {
@@ -200,23 +202,34 @@ fn select_asset<'a>(assets: &'a [GitHubAsset], platform: &str) -> Option<&'a Git
     })
 }
 
-/// #2696 — a `starts_with` check is bypassable with `@evil.example` (userinfo)
-/// and sibling-suffix hosts (`...releases.evil.example`). Parse the URL and
-/// pin scheme, host, userinfo and path prefix instead.
+/// #2696 — pin scheme, exact host, userinfo and path structurally. A textual
+/// `starts_with` accepted `@evil.example` (userinfo), sibling-suffix hosts and
+/// `httpsX` sibling schemes; encoded/backslash path tricks are rejected too.
+fn is_allowed_release_url(url: &reqwest::Url) -> bool {
+    if url.scheme() != "https" || url.host_str() != Some(RELEASE_HOST) {
+        return false;
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return false;
+    }
+    let path = url.path();
+    if !path.starts_with(RELEASE_PATH_PREFIX) {
+        return false;
+    }
+    let lowered = path.to_ascii_lowercase();
+    !lowered.contains("..")
+        && !lowered.contains("%2f")
+        && !lowered.contains("%5c")
+        && !path.contains('\\')
+        && !path.chars().any(char::is_control)
+}
+
+/// Fail closed: anything that is not an exact project release URL becomes the
+/// canonical releases page, which is always safe to open.
 fn release_url_or_page(candidate: &str) -> String {
-    let candidate = candidate.trim();
-    let Ok(url) = reqwest::Url::parse(candidate) else {
-        return RELEASES_PAGE.to_string();
-    };
-    let allowed = url.scheme() == "https"
-        && url.host_str() == Some("github.com")
-        && url.username().is_empty()
-        && url.password().is_none()
-        && url.path().starts_with("/generalbots/generalbots/releases/");
-    if allowed {
-        url.to_string()
-    } else {
-        RELEASES_PAGE.to_string()
+    match reqwest::Url::parse(candidate.trim()) {
+        Ok(url) if is_allowed_release_url(&url) => url.to_string(),
+        _ => RELEASES_PAGE.to_string(),
     }
 }
 
@@ -379,20 +392,31 @@ mod tests {
 
     #[test]
     fn release_urls_are_restricted_to_the_project_releases() {
+        let page = "https://github.com/generalbots/generalbots/releases";
+        let tag = "https://github.com/generalbots/generalbots/releases/tag/v6.8.0";
+        assert_eq!(release_url_or_page(tag), tag);
         assert_eq!(
-            release_url_or_page("https://github.com/generalbots/generalbots/releases/tag/v6.8.0"),
-            "https://github.com/generalbots/generalbots/releases/tag/v6.8.0"
+            release_url_or_page("https://GITHUB.COM/generalbots/generalbots/releases/tag/v6.8.0"),
+            tag
         );
-        let fallback = "https://github.com/generalbots/generalbots/releases";
         for hostile in [
             "https://example.com/evil",
             "https://github.com/generalbots/generalbots/releases@evil.example/x",
             "https://github.com/generalbots/generalbots/releases.evil.example/x",
             "http://github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "httpsX://github.com/generalbots/generalbots/releases/tag/v6.8.0",
             "https://user@github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "https://user:pass@github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "https://github.com@evil.example/generalbots/generalbots/releases/tag/v6.8.0",
             "https://github.com.evil.example/generalbots/generalbots/releases/tag/v6.8.0",
+            "https://github.com./generalbots/generalbots/releases/tag/v6.8.0",
+            "https://github.com/generalbots/generalbots/releases/..%2f..%2fevil",
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "//github.com/generalbots/generalbots/releases/tag/v6.8.0",
+            "  ",
         ] {
-            assert_eq!(release_url_or_page(hostile), fallback, "bypass: {hostile}");
+            assert_eq!(release_url_or_page(hostile), page, "bypass: {hostile}");
         }
     }
 

@@ -4,17 +4,19 @@
                 if (urlParams.get('fullscreen') === 'true') {
                     document.body.classList.add('fullscreen');
                 }
-                var cloudToken = urlParams.get('token');
+                var fragParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+                var cloudToken = fragParams.get('gb_token') || fragParams.get('token') || urlParams.get('token');
                 if (cloudToken) {
                     var u = new URL(window.location.href);
-                    u.searchParams.delete('token');
-                    u.searchParams.delete('email');
-                    u.searchParams.delete('name');
-                    // Only cloud JWTs go through the SSO hop. A suite session
-                    // token (`gb_...`) is already valid for /api and is stored
-                    // locally; sending it to suite-sso fails with 400 because
-                    // that endpoint verifies a JWT signature.
+                    ['token', 'email', 'name', 'gb_token', 'gb_state', 'gb_ts'].forEach(function (k) { u.searchParams.delete(k); });
+                    u.hash = '';
+                    // suite-sso is a GET endpoint whose contract still takes
+                    // the token in its query (#2812 needs a POST/cookie hop to
+                    // remove that last exposure). Pair it with a one-time state
+                    // that 01_boot_flags.js verifies and consumes on return.
                     if (cloudToken.split('.').length === 3) {
+                        var st = window.GB_SSO_STATE ? window.GB_SSO_STATE.create() : null;
+                        if (st) { u.searchParams.set('state', st.state); u.searchParams.set('ts', String(st.ts)); }
                         window.location.replace('/api/auth/suite-sso?token=' + encodeURIComponent(cloudToken) + '&redirect=' + encodeURIComponent(u.pathname + u.search));
                         return;
                     }

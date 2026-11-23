@@ -34,7 +34,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 ).to_string(),
             ],
             post_install_cmds_linux: vec![
-                "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE ROLE zitadel WITH LOGIN PASSWORD 'zitadel'\" 2>&1 | grep -v 'already exists' || true".to_string(),
+                "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE ROLE zitadel WITH LOGIN PASSWORD '{{ZITADEL_PASSWORD}}'\" 2>&1 | grep -v 'already exists' || true".to_string(),
                 "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel WITH OWNER zitadel\" 2>&1 | grep -v 'already exists' || true".to_string(),
                 "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel\" 2>&1 || true".to_string(),
                 concat!(
@@ -43,7 +43,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                     "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
                     "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
                     "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
+                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD={{ZITADEL_PASSWORD}} ",
                     "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
                     "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
                     "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
@@ -96,7 +96,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
             ],
             post_install_cmds_windows: vec![
                 "if exist {{BIN_PATH}}\\zitadel (ren {{BIN_PATH}}\\zitadel zitadel.exe)".to_string(),
-                "set \"PGPASSWORD={{DB_PASSWORD}}\" && set \"PGCONNECT_TIMEOUT=5\" && set \"PGOPTIONS=-c statement_timeout=30000\" && \"{{STACK_PATH}}\\bin\\tables\\bin\\psql.exe\" -w -v ON_ERROR_STOP=1 -h localhost -p 5432 -U gbuser -d postgres -c \"DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'zitadel') THEN CREATE ROLE zitadel WITH LOGIN PASSWORD 'zitadel'; END IF; END $$;\"".to_string(),
+                "set \"PGPASSWORD={{DB_PASSWORD}}\" && set \"PGCONNECT_TIMEOUT=5\" && set \"PGOPTIONS=-c statement_timeout=30000\" && \"{{STACK_PATH}}\\bin\\tables\\bin\\psql.exe\" -w -v ON_ERROR_STOP=1 -h localhost -p 5432 -U gbuser -d postgres -c \"DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'zitadel') THEN CREATE ROLE zitadel WITH LOGIN PASSWORD '{{ZITADEL_PASSWORD}}'; END IF; END $$;\"".to_string(),
                 "set \"PGPASSWORD={{DB_PASSWORD}}\" && set \"PGCONNECT_TIMEOUT=5\" && set \"PGOPTIONS=-c statement_timeout=30000\" && \"{{STACK_PATH}}\\bin\\tables\\bin\\psql.exe\" -w -v ON_ERROR_STOP=1 -h localhost -p 5432 -U gbuser -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname = 'zitadel'\" | findstr /R \"^1$\" >NUL || (set \"PGPASSWORD={{DB_PASSWORD}}\" && set \"PGCONNECT_TIMEOUT=5\" && set \"PGOPTIONS=-c statement_timeout=30000\" && \"{{STACK_PATH}}\\bin\\tables\\bin\\psql.exe\" -w -v ON_ERROR_STOP=1 -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel WITH OWNER zitadel\")".to_string(),
                 "set \"PGPASSWORD={{DB_PASSWORD}}\" && set \"PGCONNECT_TIMEOUT=5\" && set \"PGOPTIONS=-c statement_timeout=30000\" && \"{{STACK_PATH}}\\bin\\tables\\bin\\psql.exe\" -w -v ON_ERROR_STOP=1 -h localhost -p 5432 -U gbuser -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel\"".to_string(),
             ],
@@ -110,7 +110,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 ("ZITADEL_DATABASE_POSTGRES_PORT".to_string(), "5432".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_DATABASE".to_string(), "zitadel".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_USER_USERNAME".to_string(), "zitadel".to_string()),
-                ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "zitadel".to_string()),
+                ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "{{ZITADEL_PASSWORD}}".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE".to_string(), "disable".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME".to_string(), "gbuser".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD".to_string(), "$DB_PASSWORD".to_string()),
@@ -129,7 +129,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
                 "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
                 "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
-                "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
+                "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD={{ZITADEL_PASSWORD}} ",
                 "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
                 "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
                 "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
@@ -277,4 +277,42 @@ pub fn register_meeting(components: &mut HashMap<String, ComponentConfig>) {
             container: None,
         },
     );
+}
+
+#[cfg(test)]
+mod zitadel_password_tests {
+    use super::*;
+
+    #[test]
+    fn directory_installer_never_embeds_a_fixed_db_password() {
+        let mut components = HashMap::new();
+        register_directory(&mut components);
+        assert!(components.contains_key("directory"));
+        let Some(directory) = components.get("directory") else {
+            return;
+        };
+        let mut commands = Vec::new();
+        commands.extend(directory.pre_install_cmds_linux.iter());
+        commands.extend(directory.post_install_cmds_linux.iter());
+        commands.extend(directory.pre_install_cmds_windows.iter());
+        commands.extend(directory.post_install_cmds_windows.iter());
+        commands.extend(directory.env_vars.values());
+        commands.push(&directory.exec_cmd);
+        commands.extend(directory.exec_cmd_windows.iter());
+        for command in commands {
+            assert!(
+                !command.contains("PASSWORD 'zitadel'")
+                    && !command.contains("USER_PASSWORD=zitadel"),
+                "fixed DB password leaked into installer command: {command}"
+            );
+        }
+        assert!(
+            directory.post_install_cmds_linux[0].contains("{{ZITADEL_PASSWORD}}"),
+            "Linux role creation must use the resolved random password"
+        );
+        assert!(
+            directory.post_install_cmds_windows[0].contains("{{ZITADEL_PASSWORD}}"),
+            "Windows role creation must use the resolved random password"
+        );
+    }
 }

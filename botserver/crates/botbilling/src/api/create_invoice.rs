@@ -1,12 +1,16 @@
 use super::*;
+use botsecurity_core::error_sanitizer::log_and_sanitize_tuple;
+
+/// #2753 — log the cause server-side, hand the caller only the generic body.
+fn internal_error(e: impl std::fmt::Display, context: &str) -> (StatusCode, String) {
+    log_and_sanitize_tuple(&e, context, StatusCode::INTERNAL_SERVER_ERROR)
+}
 
 pub async fn create_invoice(
     State(state): State<Arc<BillingApiState>>,
     Json(req): Json<CreateInvoiceRequest>,
 ) -> Result<Json<BillingInvoice>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let (org_id, bot_id) = scope_for_branch(&mut conn, branch_id);
@@ -75,7 +79,7 @@ pub async fn create_invoice(
     diesel::insert_into(billing_invoices::table)
         .values(&invoice)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::create_invoice::insert"))?;
 
     for (idx, item) in items.iter().enumerate() {
         let item_amount = item.quantity * item.unit_price;
@@ -99,7 +103,7 @@ pub async fn create_invoice(
         diesel::insert_into(billing_invoice_items::table)
             .values(&inv_item)
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert item error: {e}")))?;
+            .map_err(|e| internal_error(e, "botbilling::create_invoice::item"))?;
     }
 
     Ok(Json(invoice))
@@ -108,9 +112,7 @@ pub async fn list_invoices(
     State(state): State<Arc<BillingApiState>>,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<BillingInvoice>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
@@ -144,7 +146,7 @@ pub async fn list_invoices(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::invoices::query"))?;
 
     Ok(Json(invoices))
 }
@@ -152,9 +154,7 @@ pub async fn get_invoice(
     State(state): State<Arc<BillingApiState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<InvoiceWithItems>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     // #2667 — scope every by-id lookup to the caller's verified branch.
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
@@ -169,7 +169,7 @@ pub async fn get_invoice(
         .filter(billing_invoice_items::invoice_id.eq(id))
         .order(billing_invoice_items::sort_order.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::invoices::query"))?;
 
     Ok(Json(InvoiceWithItems { invoice, items }))
 }
@@ -178,9 +178,7 @@ pub async fn update_invoice(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateInvoiceRequest>,
 ) -> Result<Json<BillingInvoice>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     // #2667 — scope every by-id lookup to the caller's verified branch.
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
@@ -190,27 +188,27 @@ pub async fn update_invoice(
     diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
         .set(billing_invoices::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
 
     if let Some(customer_name) = req.customer_name {
         diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::customer_name.eq(customer_name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
     }
 
     if let Some(customer_email) = req.customer_email {
         diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::customer_email.eq(customer_email))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
     }
 
     if let Some(notes) = req.notes {
         diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::notes.eq(notes))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
     }
 
     let invoice: BillingInvoice = billing_invoices::table
@@ -225,9 +223,7 @@ pub async fn send_invoice(
     State(state): State<Arc<BillingApiState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<BillingInvoice>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     // #2667 — scope every by-id lookup to the caller's verified branch.
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
@@ -241,7 +237,7 @@ pub async fn send_invoice(
             billing_invoices::updated_at.eq(now),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
 
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
@@ -255,9 +251,7 @@ pub async fn void_invoice(
     State(state): State<Arc<BillingApiState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<BillingInvoice>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     // #2667 — scope every by-id lookup to the caller's verified branch.
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
@@ -271,7 +265,7 @@ pub async fn void_invoice(
             billing_invoices::updated_at.eq(now),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::invoices::update"))?;
 
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
@@ -285,9 +279,7 @@ pub async fn delete_invoice(
     State(state): State<Arc<BillingApiState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.pool.get().map_err(|e| internal_error(e, "botbilling::api::pool"))?;
 
     // #2667 — delete must be branch-scoped like the other by-id handlers.
     let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
@@ -297,7 +289,7 @@ pub async fn delete_invoice(
             .filter(billing_invoices::branch_id.eq(branch_id)),
     )
     .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .map_err(|e| internal_error(e, "botbilling::delete_invoice"))?;
 
     Ok(StatusCode::NO_CONTENT)
 }

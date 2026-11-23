@@ -1,5 +1,12 @@
 const API_BASE = '/api/cloud';
 
+// #2812 — one-time, expiring handoff loaded before this script. Tokens travel
+// in the URL fragment (never sent to a server), never in a query string.
+var SSO = (typeof window !== 'undefined' && window.GB_SSO_HANDOFF) || null;
+if (!SSO && typeof module !== 'undefined' && module.exports) {
+  SSO = require('./sso-handoff.js');
+}
+
 // ── #2809 — post-auth destination guard ──────────────────────────────────────
 // The login host mints the bearer token and hands it to the cloud/suite host.
 // `redirect` / `return_to` are attacker-controllable, so they are resolved and
@@ -43,8 +50,8 @@ function validateRedirect(raw, originOverride, baseUrlOverride) {
 }
 
 // Fallback destination: the cloud origin when configured, otherwise login.
-function defaultDestination(path) {
-  var origin = window.location.origin;
+function defaultDestination(path, originOverride) {
+  var origin = originOverride || window.location.origin;
   var base = origin;
   try {
     if (window.CLOUD_CONFIG && window.CLOUD_CONFIG.baseUrl) {
@@ -64,22 +71,30 @@ function resolveRedirect(fallbackPath) {
   return validateRedirect(raw) || defaultDestination(fallbackPath);
 }
 
-// Build the final URL with URL.searchParams.set() instead of string
-// concatenation: an injected '?' / '#' / extra token param in `redirect`
-// cannot override the identity we just authenticated.
-function buildAuthDestination(dest, identity) {
-  var target = isAllowedOrigin(dest, window.location.origin) ? dest : defaultDestination('/dashboard');
-  target.searchParams.set('token', identity.token || '');
-  target.searchParams.set('email', identity.email || '');
-  target.searchParams.set('name', identity.name || '');
-  return target.href;
+// #2812 — the bearer token travels in the URL fragment, which browsers never
+// send to a server, and is paired with a one-time, expiring state cookie. The
+// query is cleared, so a token injected into `redirect` cannot survive.
+function buildAuthDestination(dest, identity, handoff, originOverride) {
+  var origin = originOverride || window.location.origin;
+  var target = isAllowedOrigin(dest, origin) ? dest : defaultDestination('/dashboard', origin);
+  var state = handoff || SSO.create({ _host: window.location.hostname,
+    _secure: window.location.protocol === 'https:' });
+  return SSO.destination(target, identity, state, origin);
 }
 
 // ── Login ──
 // When the login/signup form is embedded in another page (iframe, e.g. the
 // cloud store), notify the parent frame so it can close the modal and finish
 // the flow without a full-page redirect inside the iframe.
-function notifyParentSuccess(token, email, name) {
+// The parent frame only ever lives on the configured cloud origin. A wildcard
+// target would leak the freshly minted token to any frame in the page (#2812).
+function cloudTargetOrigin() {
+  var configured = (window.CLOUD_CONFIG && window.CLOUD_CONFIG.baseUrl) ||
+    window.GB_CLOUD_URL || window.location.origin;
+  return SSO.trustedOrigin(configured, window.location.origin) || window.location.origin;
+}
+
+function notifyParentSuccess(token, email, name, handoff) {
   try {
     if (window.self !== window.top) {
       window.parent.postMessage({
@@ -87,7 +102,9 @@ function notifyParentSuccess(token, email, name) {
         token: token,
         email: email || '',
         name: name || '',
-      }, '*');
+        state: handoff ? handoff.state : '',
+        ts: handoff ? handoff.ts : 0,
+      }, cloudTargetOrigin());
     }
   } catch (_) { /* parent may be cross-origin and unreachable */ }
 }
@@ -180,18 +197,26 @@ async function handleLogin(e) {
       return;
     }
     // Persist session
+    var handoff = SSO.create({ _host: window.location.hostname,
+      _secure: window.location.protocol === 'https:' });
     localStorage.setItem('management_token', token);
     localStorage.setItem('gb-access-token', token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    notifyParentSuccess(token, data.email || email, data.name || '');
-    var dest = buildAuthDestination(
-      resolveRedirect('/dashboard'),
-      { token: token, email: data.email || email, name: data.name || '' }
-    );
+    var embedded = window.self !== window.top;
+    notifyParentSuccess(token, data.email || email, data.name || '', handoff);
+    // The embedded iframe must not also navigate: that would race the parent
+    // for the single-use state cookie. The parent owns the handoff there.
+    if (!embedded) {
+      var dest = buildAuthDestination(
+        resolveRedirect('/dashboard'),
+        { token: token, email: data.email || email, name: data.name || '' },
+        handoff
+      );
+      announce(liveEl, progress);
+      window.location.href = dest;
+    }
     succeeded = true;
-    announce(liveEl, progress);
-    window.location.href = dest;
   } catch (err) {
     showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
@@ -262,6 +287,8 @@ async function handleSignup(e) {
     //                    bucket, subscription_id, plan, trial_days, token }
     const token = data.token;
     const emailOut = data.account?.email || email;
+    var handoff = SSO.create({ _host: window.location.hostname,
+      _secure: window.location.protocol === 'https:' });
     localStorage.setItem('management_token', token);
     localStorage.setItem('management_email', emailOut);
     localStorage.setItem('management_name',  data.account?.name || name);
@@ -269,15 +296,20 @@ async function handleSignup(e) {
     localStorage.setItem('management_bot_id', data.bot_id || '');
     localStorage.setItem('management_bot_name', botName);
     localStorage.setItem('management_plan', data.plan || 'free');
-    notifyParentSuccess(token, emailOut, data.account?.name || name);
-    // Private Server: redirect to Store VPS calculator instead of Dashboard
-    var dest = buildAuthDestination(
-      resolveRedirect(plan === 'private-cloud' ? '/store' : '/dashboard'),
-      { token: token, email: emailOut, name: data.account?.name || name }
-    );
+    var embedded = window.self !== window.top;
+    notifyParentSuccess(token, emailOut, data.account?.name || name, handoff);
+    // Private Server: redirect to Store VPS calculator instead of Dashboard.
+    // An embedded iframe leaves navigation to the trusted parent (#2812).
+    if (!embedded) {
+      var dest = buildAuthDestination(
+        resolveRedirect(plan === 'private-cloud' ? '/store' : '/dashboard'),
+        { token: token, email: emailOut, name: data.account?.name || name },
+        handoff
+      );
+      announce(liveEl, progress);
+      window.location.href = dest;
+    }
     succeeded = true;
-    announce(liveEl, progress);
-    window.location.href = dest;
   } catch (err) {
     showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
@@ -359,20 +391,37 @@ function runRedirectSelfTest() {
     var actual = u ? u.href : null;
     return { input: c[0], expected: c[1], actual: actual, pass: actual === c[1] };
   });
-  // A token param smuggled into `redirect` must be overwritten by searchParams.set.
+  // #2812 — a token smuggled into `redirect`'s query must be dropped; the
+  // real token belongs in the fragment, paired with one-time state.
   var injected = validateRedirect('/dashboard?token=INJECTED', origin, cloud);
-  injected.searchParams.set('token', 'REAL');
+  var built = new URL(buildAuthDestination(injected,
+    { token: 'REAL', email: 'e@x', name: 'n' },
+    { state: 's', ts: 1700000000000 }, origin));
   results.push({
-    input: 'searchParams.set over injected token',
-    expected: origin + '/dashboard?token=REAL',
-    actual: injected.href,
-    pass: injected.href === origin + '/dashboard?token=REAL'
+    input: 'token never in query; fragment handoff only',
+    expected: 'query empty + fragment gb_token=REAL + gb_state=s',
+    actual: JSON.stringify({ search: built.search, hash: built.hash }),
+    pass: built.search === '' && built.hash.indexOf('gb_token=REAL') !== -1 &&
+      built.hash.indexOf('gb_state=s') !== -1 && built.hash.indexOf('INJECTED') === -1
+  });
+  // Fold in the dedicated one-time/hostile-input suite.
+  var handoff = SSO.selfTest();
+  handoff.results.forEach(function (r) {
+    results.push({ input: r.input, expected: true, actual: r.pass, pass: r.pass });
   });
   var failed = results.filter(function(r) { return !r.pass; }).length;
   return { passed: results.length - failed, failed: failed, results: results };
 }
 
-if (typeof window !== 'undefined') window.__gbCloudAuthSelfTest = runRedirectSelfTest;
+if (typeof window !== 'undefined') {
+  window.__gbCloudAuthSelfTest = runRedirectSelfTest;
+  window.__gbSsoSelfTest = SSO.selfTest;
+}
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { validateRedirect: validateRedirect, runRedirectSelfTest: runRedirectSelfTest };
+  module.exports = {
+    validateRedirect: validateRedirect,
+    runRedirectSelfTest: runRedirectSelfTest,
+    buildAuthDestination: buildAuthDestination,
+    cloudTargetOrigin: cloudTargetOrigin
+  };
 }
