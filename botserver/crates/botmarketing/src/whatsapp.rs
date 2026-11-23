@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::Utc;
@@ -10,6 +10,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::campaigns::CrmCampaign;
+use crate::compliance::{evaluate_send_gate, hydrate_suppressions, MarketingChannel};
+use crate::email::direct_gate_inputs;
 use crate::schema::{marketing_campaigns, marketing_recipients};
 use crate::state::AppState;
 
@@ -168,7 +170,7 @@ pub async fn send_bulk_whatsapp_messages(
         .to_string();
 
     for (contact_id, phone, name) in contacts {
-        let personalized_body = body.replace("{{name}}", &name);
+        let personalized_body = crate::email_bulk::render_plain(&body, &name, "");
 
         let payload = WhatsAppCampaignPayload {
             to: phone,
@@ -290,6 +292,22 @@ pub async fn handle_webhook_event(
     Ok(())
 }
 
+/// Resolves the caller's tenant from verified JWT claims (#2890, #2891). The
+/// default bot scope is only a fallback when a claim is absent; the bot id is
+/// never nil because provider configuration is keyed by a real bot row.
+pub(crate) fn direct_send_scope(state: &AppState, headers: &HeaderMap) -> (Uuid, Uuid, Uuid) {
+    let (default_org, default_branch, bot_id) = state.get_scope();
+    let caller_branch = crate::scope::branch_from_jwt_pool(headers, &state.conn);
+    let caller_org = botsecurity_core::verified_jwt::bearer_token(headers)
+        .and_then(|token| botsecurity_core::verified_jwt::verify_saas_jwt(token).ok())
+        .and_then(|claims| claims.org_id);
+    (
+        caller_org.filter(|id| !id.is_nil()).unwrap_or(default_org),
+        caller_branch.filter(|id| !id.is_nil()).unwrap_or(default_branch),
+        bot_id,
+    )
+}
+
 #[derive(Debug, Deserialize)]
 pub struct SendWhatsAppRequest {
     pub to: String,
@@ -300,9 +318,36 @@ pub struct SendWhatsAppRequest {
 
 pub async fn send_whatsapp_api(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<SendWhatsAppRequest>,
 ) -> Result<Json<WhatsAppSendResult>, (StatusCode, String)> {
-    let bot_id = Uuid::nil();
+    let (_, branch_id, bot_id) = direct_send_scope(&state, &headers);
+    if branch_id.is_nil() {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "no tenant scope".to_string()));
+    }
+
+    // #2891 — the one-off API must pass the same consent/suppression gate as
+    // bulk/publish/worker before the provider sees the number.
+    let mut conn = state.conn.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    if let Err(error) = hydrate_suppressions(&mut conn) {
+        log::error!("direct whatsapp could not hydrate suppressions: {error}");
+    }
+    let (status, subscribed, metadata) =
+        direct_gate_inputs(&mut conn, branch_id, MarketingChannel::Whatsapp, &req.to)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let decision = evaluate_send_gate(
+        branch_id,
+        MarketingChannel::Whatsapp,
+        &req.to,
+        status.as_deref(),
+        subscribed,
+        metadata.as_ref(),
+    );
+    if !decision.is_allowed() {
+        log::info!("direct whatsapp refused for {}: {}", req.to, decision.status());
+        return Err((StatusCode::FORBIDDEN, format!("recipient refused: {}", decision.status())));
+    }
+    drop(conn);
 
     let payload = WhatsAppCampaignPayload {
         to: req.to,
@@ -316,5 +361,74 @@ pub async fn send_whatsapp_api(
     match send_whatsapp_message(&state, bot_id, payload).await {
         Ok(result) => Ok(Json(result)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
+    }
+}
+
+#[cfg(test)]
+mod direct_send_gate_tests {
+    use super::*;
+    use crate::compliance::{SendGateDecision, SuppressionKey, SuppressionStore};
+
+    /// The shared gate is pure with respect to the HTTP layer: a suppressed
+    /// address must be refused even when its consent record says opted-in.
+    #[test]
+    fn suppressed_address_is_refused_even_with_opt_in() {
+        let branch = Uuid::new_v4();
+        let address = format!("optedin-{}@example.invalid", Uuid::new_v4());
+        SuppressionStore::global()
+            .add(SuppressionKey::new(branch, MarketingChannel::Email, &address))
+            .expect("test suppression store available");
+
+        let decision = evaluate_send_gate(
+            branch,
+            MarketingChannel::Email,
+            &address,
+            None,
+            Some(true),
+            None,
+        );
+        assert_eq!(decision, SendGateDecision::Suppressed);
+        assert!(!decision.is_allowed());
+    }
+
+    #[test]
+    fn unsubscribed_status_and_opted_out_contact_are_refused() {
+        let branch = Uuid::new_v4();
+        let address = format!("unsubscribed-{}@example.invalid", Uuid::new_v4());
+        let status = evaluate_send_gate(
+            branch,
+            MarketingChannel::Email,
+            &address,
+            Some("unsubscribed"),
+            Some(true),
+            None,
+        );
+        assert_eq!(status, SendGateDecision::Suppressed);
+
+        let opted_out = evaluate_send_gate(
+            branch,
+            MarketingChannel::Email,
+            &format!("optout-{address}"),
+            None,
+            Some(false),
+            None,
+        );
+        assert_eq!(opted_out, SendGateDecision::NoConsent);
+    }
+
+    #[test]
+    fn consented_unsuppressed_address_is_allowed() {
+        let branch = Uuid::new_v4();
+        let address = format!("allowed-{}@example.invalid", Uuid::new_v4());
+        let decision = evaluate_send_gate(
+            branch,
+            MarketingChannel::Whatsapp,
+            &address,
+            Some("sent"),
+            Some(true),
+            None,
+        );
+        assert_eq!(decision, SendGateDecision::Allow);
+        assert!(decision.is_allowed());
     }
 }

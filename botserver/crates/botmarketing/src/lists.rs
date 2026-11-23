@@ -1,10 +1,11 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use diesel::{OptionalExtension, PgConnection};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -101,6 +102,39 @@ fn catch_all_segment() -> Segment {
     }
 }
 
+/// Resolves the caller's verified branch for a by-id request (#2887).
+///
+/// The server-minted JWT claim wins; the only fallback is the server-side
+/// default scope. A client-supplied org/branch is never consulted.
+fn caller_branch(state: &AppState, headers: &HeaderMap, conn: &mut PgConnection) -> Uuid {
+    let (_, default_branch_id, _) = state.get_scope();
+    crate::scope::branch_from_jwt(headers, conn).unwrap_or(default_branch_id)
+}
+
+/// Pure form of the #2887 scoping rule: a row is visible to a caller only
+/// when the row's `branch_id` matches the caller's verified branch. Every
+/// by-id Diesel query carries the equivalent `.filter(branch_id.eq(branch))`;
+/// this predicate also re-checks the loaded row as defence in depth and makes
+/// the two-tenant behaviour unit-testable without a database.
+fn in_branch_scope(row_branch_id: Uuid, caller_branch_id: Uuid) -> bool {
+    row_branch_id == caller_branch_id
+}
+
+/// Loads a list by id only when it belongs to `branch_id`. A foreign or
+/// unknown id yields `None`, which the handlers turn into `404`.
+fn load_scoped_list(
+    conn: &mut PgConnection,
+    id: Uuid,
+    branch_id: Uuid,
+) -> Result<Option<MarketingList>, diesel::result::Error> {
+    let row = marketing_lists::table
+        .filter(marketing_lists::id.eq(id))
+        .filter(marketing_lists::branch_id.eq(branch_id))
+        .first::<MarketingList>(conn)
+        .optional()?;
+    Ok(row.filter(|list| in_branch_scope(list.branch_id, branch_id)))
+}
+
 pub async fn list_lists(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<MarketingList>>, ApiError> {
@@ -118,14 +152,15 @@ pub async fn list_lists(
 
 pub async fn get_list(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MarketingList>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "get_list_pool"))?;
+    let branch_id = caller_branch(&state, &headers, &mut conn);
 
-    let list: MarketingList = marketing_lists::table
-        .filter(marketing_lists::id.eq(id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
+    let list = load_scoped_list(&mut conn, id, branch_id)
+        .map_err(|e| internal_error(&e, "get_list_query"))?
+        .ok_or((StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
     Ok(Json(list))
 }
@@ -179,23 +214,37 @@ pub async fn create_list(
 
 pub async fn update_list(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateListRequest>,
 ) -> Result<Json<MarketingList>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "update_list_pool"))?;
+    let branch_id = caller_branch(&state, &headers, &mut conn);
+    // Reject a foreign id before touching any row (#2887).
+    load_scoped_list(&mut conn, id, branch_id)
+        .map_err(|e| internal_error(&e, "update_list_scope"))?
+        .ok_or((StatusCode::NOT_FOUND, "List not found".to_string()))?;
     let now = Utc::now();
 
     if let Some(name) = req.name {
-        diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set(marketing_lists::name.eq(name))
-            .execute(&mut conn)
-            .map_err(|e| internal_error(&e, "update_list_name"))?;
+        diesel::update(
+            marketing_lists::table
+                .filter(marketing_lists::id.eq(id))
+                .filter(marketing_lists::branch_id.eq(branch_id)),
+        )
+        .set(marketing_lists::name.eq(name))
+        .execute(&mut conn)
+        .map_err(|e| internal_error(&e, "update_list_name"))?;
     }
     if let Some(list_type) = req.list_type {
-        diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set(marketing_lists::list_type.eq(list_type))
-            .execute(&mut conn)
-            .map_err(|e| internal_error(&e, "update_list_type"))?;
+        diesel::update(
+            marketing_lists::table
+                .filter(marketing_lists::id.eq(id))
+                .filter(marketing_lists::branch_id.eq(branch_id)),
+        )
+        .set(marketing_lists::list_type.eq(list_type))
+        .execute(&mut conn)
+        .map_err(|e| internal_error(&e, "update_list_type"))?;
     }
 
     let segment = match req.segment {
@@ -212,38 +261,59 @@ pub async fn update_list(
         segment::parse_segment(&segment).map_err(|e| validation_error(&e))?;
         let criteria = serde_json::to_value(&segment)
             .map_err(|e| internal_error(&e, "update_list_segment"))?;
-        diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set((
-                marketing_lists::criteria.eq(Some(criteria)),
-                marketing_lists::is_dynamic.eq(Some(true)),
-            ))
-            .execute(&mut conn)
-            .map_err(|e| internal_error(&e, "update_list_criteria"))?;
+        diesel::update(
+            marketing_lists::table
+                .filter(marketing_lists::id.eq(id))
+                .filter(marketing_lists::branch_id.eq(branch_id)),
+        )
+        .set((
+            marketing_lists::criteria.eq(Some(criteria)),
+            marketing_lists::is_dynamic.eq(Some(true)),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| internal_error(&e, "update_list_criteria"))?;
     }
     if let Some(query_text) = req.query_text {
-        diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set(marketing_lists::query_text.eq(Some(query_text)))
-            .execute(&mut conn)
-            .map_err(|e| internal_error(&e, "update_list_query_text"))?;
+        diesel::update(
+            marketing_lists::table
+                .filter(marketing_lists::id.eq(id))
+                .filter(marketing_lists::branch_id.eq(branch_id)),
+        )
+        .set(marketing_lists::query_text.eq(Some(query_text)))
+        .execute(&mut conn)
+        .map_err(|e| internal_error(&e, "update_list_query_text"))?;
     }
 
-    diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-        .set(marketing_lists::updated_at.eq(now))
-        .execute(&mut conn)
-        .map_err(|e| internal_error(&e, "update_list_timestamp"))?;
+    diesel::update(
+        marketing_lists::table
+            .filter(marketing_lists::id.eq(id))
+            .filter(marketing_lists::branch_id.eq(branch_id)),
+    )
+    .set(marketing_lists::updated_at.eq(now))
+    .execute(&mut conn)
+    .map_err(|e| internal_error(&e, "update_list_timestamp"))?;
 
-    get_list(State(state), Path(id)).await
+    get_list(State(state), headers, Path(id)).await
 }
 
 pub async fn delete_list(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "delete_list_pool"))?;
+    let branch_id = caller_branch(&state, &headers, &mut conn);
 
-    diesel::delete(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-        .execute(&mut conn)
-        .map_err(|e| internal_error(&e, "delete_list_delete"))?;
+    let deleted = diesel::delete(
+        marketing_lists::table
+            .filter(marketing_lists::id.eq(id))
+            .filter(marketing_lists::branch_id.eq(branch_id)),
+    )
+    .execute(&mut conn)
+    .map_err(|e| internal_error(&e, "delete_list_delete"))?;
+    if deleted == 0 {
+        return Err((StatusCode::NOT_FOUND, "List not found".to_string()));
+    }
 
     Ok(Json(json!({ "status": "deleted" })))
 }
@@ -252,15 +322,15 @@ pub async fn delete_list(
 /// eligible set and records the refresh snapshot in `criteria.meta`.
 pub async fn refresh_marketing_list(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "refresh_pool"))?;
-    let (_, branch_id, _) = state.get_scope();
+    let branch_id = caller_branch(&state, &headers, &mut conn);
 
-    let list: MarketingList = marketing_lists::table
-        .filter(marketing_lists::id.eq(id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
+    let list = load_scoped_list(&mut conn, id, branch_id)
+        .map_err(|e| internal_error(&e, "refresh_query"))?
+        .ok_or((StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
     let resolved = segment::segment_from_list(&list).map_err(|e| segment_error(&e))?;
     // Drift is measured against the snapshot stored at the last refresh,
@@ -288,16 +358,16 @@ pub async fn refresh_marketing_list(
 /// optional body can preview an unsaved segment from the editor.
 pub async fn preview_list(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     body: Option<Json<PreviewListRequest>>,
 ) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "preview_pool"))?;
-    let (_, branch_id, _) = state.get_scope();
+    let branch_id = caller_branch(&state, &headers, &mut conn);
 
-    let list: MarketingList = marketing_lists::table
-        .filter(marketing_lists::id.eq(id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
+    let list = load_scoped_list(&mut conn, id, branch_id)
+        .map_err(|e| internal_error(&e, "preview_query"))?
+        .ok_or((StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
     let resolved = match body.and_then(|Json(request)| request.segment) {
         Some(segment) => segment,
@@ -339,4 +409,33 @@ pub async fn segment_preview(
         "suppressed": preview.suppressed,
         "matches": preview.matches,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::in_branch_scope;
+    use uuid::Uuid;
+
+    #[test]
+    fn scoped_predicate_accepts_own_branch() {
+        let branch = Uuid::new_v4();
+        assert!(in_branch_scope(branch, branch));
+    }
+
+    #[test]
+    fn scoped_predicate_rejects_foreign_branch() {
+        let tenant_a = Uuid::new_v4();
+        let tenant_b = Uuid::new_v4();
+        assert_ne!(tenant_a, tenant_b);
+        assert!(!in_branch_scope(tenant_b, tenant_a));
+        assert!(!in_branch_scope(tenant_a, tenant_b));
+    }
+
+    #[test]
+    fn scoped_predicate_never_matches_a_different_tenant_even_when_one_is_nil() {
+        let real = Uuid::new_v4();
+        assert!(!in_branch_scope(real, Uuid::nil()));
+        assert!(!in_branch_scope(Uuid::nil(), real));
+        assert!(in_branch_scope(Uuid::nil(), Uuid::nil()));
+    }
 }

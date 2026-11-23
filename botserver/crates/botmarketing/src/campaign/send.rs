@@ -125,10 +125,9 @@ pub async fn send_one(
         return Ok(unsupported_outcome(ctx.channel));
     }
 
-    let personalized = ctx
-        .body
-        .replace("{{name}}", ctx.name)
-        .replace("{{email}}", ctx.address);
+    // #2889 — single-pass escaped rendering; raw chained `.replace()` let a
+    // contact name inject markup and expand a second placeholder.
+    let personalized = crate::email_bulk::render_personalized(&ctx.body, ctx.name, ctx.address);
     let mut attempt = AttemptState::from_json(ctx.response);
     let mut last_error: Option<String> = None;
     let mut terminal_hard = false;

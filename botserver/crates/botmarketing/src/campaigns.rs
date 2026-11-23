@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::email_bulk::{plain_param, render_personalized, render_plain};
 use crate::schema::{marketing_campaigns, marketing_contacts, marketing_recipients, marketing_templates};
 use crate::state::AppState;
 
@@ -361,8 +362,9 @@ pub async fn send_campaign(
 
     for (contact_id, email, name) in contacts {
         if is_whatsapp {
-            let message = body_html.clone().unwrap_or_default();
-            match (state.send_whatsapp)(bot_id, &email, &message, Some(&name), None) {
+            let message = render_plain(body_html.as_deref().unwrap_or(""), &name, &email);
+            let safe_name = plain_param(&name);
+            match (state.send_whatsapp)(bot_id, &email, &message, Some(safe_name.as_str()), None) {
                 Ok(_) => {
                     set_recipient_status(&mut conn, campaign_id, contact_id, "sent", None).ok();
                     sent += 1;
@@ -373,9 +375,8 @@ pub async fn send_campaign(
                 }
             }
         } else {
-            let personalized_body = body_html.as_ref().map(|html| {
-                html.replace("{{name}}", &name).replace("{{email}}", &email)
-            });
+            let personalized_body =
+                body_html.as_ref().map(|html| render_personalized(html, &name, &email));
             let payload = crate::email::EmailCampaignPayload {
                 to: email.clone(),
                 subject: subject.clone(),

@@ -21,6 +21,7 @@ use crate::compliance::{
     MarketingChannel,
 };
 use crate::email::EmailCampaignPayload;
+use crate::email_bulk::render_personalized;
 use crate::publish_support::{
     channel_failure, hydrate_gate, log_state_result, merge_metrics, plain_text, publish_instagram,
     record_skip_event, set_recipient_state,
@@ -183,9 +184,8 @@ pub async fn publish_campaign(
                         }
                         continue;
                     }
-                    let personalized = body_html
-                        .replace("{{name}}", name.as_deref().unwrap_or(""))
-                        .replace("{{email}}", email);
+                    let personalized =
+                        render_personalized(&body_html, name.as_deref().unwrap_or(""), email);
                     let result = crate::email::send_campaign_email(
                         &state,
                         bot_id,

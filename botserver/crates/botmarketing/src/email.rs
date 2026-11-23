@@ -1,21 +1,26 @@
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
+use diesel::{prelude::*, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::click_sign::{self, TrackingRecord};
-use crate::compliance::unsubscribe::UnsubscribeClaims;
 use crate::compliance::{
-    build_unsubscribe_url, unsubscribe_base_url, unsubscribe_headers, MarketingChannel,
+    build_unsubscribe_url, evaluate_send_gate, hydrate_suppressions, unsubscribe_base_url,
+    unsubscribe_headers, MarketingChannel, UnsubscribeClaims,
 };
-use crate::schema::{email_tracking, marketing_campaigns, marketing_recipients};
+use crate::schema::{
+    crm_contacts, email_tracking, marketing_campaigns, marketing_contacts, marketing_recipients,
+};
+use crate::segment::SUPPRESSED_STATUSES;
 use crate::state::AppState;
+use crate::whatsapp::direct_send_scope;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailCampaignPayload {
@@ -132,10 +137,74 @@ fn tracked_destination(
     click_sign::build_click_url(base_url, record, &destination, expires_at, key)
 }
 
+/// Loads the persisted gate inputs for a one-off address. A contact without a
+/// consent record fails closed, exactly as the bulk/publish paths do (#2891).
+pub(crate) fn direct_gate_inputs(
+    conn: &mut diesel::PgConnection,
+    branch_id: Uuid,
+    channel: MarketingChannel,
+    address: &str,
+) -> Result<(Option<String>, Option<bool>, Option<Value>), String> {
+    let normalized = address.trim().to_ascii_lowercase();
+    let addr = normalized.as_str();
+    let contact = marketing_contacts::table
+        .filter(marketing_contacts::branch_id.eq(branch_id))
+        .filter(marketing_contacts::email.eq(addr).or(marketing_contacts::phone.eq(addr)))
+        .select((marketing_contacts::id, marketing_contacts::subscribed, marketing_contacts::metadata))
+        .first::<(Uuid, Option<bool>, Option<Value>)>(conn)
+        .optional()
+        .map_err(|e| format!("Consent query: {e}"))?;
+
+    let recipient_status = match contact {
+        Some((contact_id, _, _)) => marketing_recipients::table
+            .filter(marketing_recipients::branch_id.eq(branch_id))
+            .filter(marketing_recipients::contact_id.eq(contact_id))
+            .select(marketing_recipients::status)
+            .order(marketing_recipients::created_at.desc())
+            .first::<Option<String>>(conn)
+            .optional()
+            .map_err(|e| format!("Recipient status query: {e}"))?
+            .flatten(),
+        None => None,
+    };
+
+    // A CRM opt-out suppresses delivery even when a stale contact row says
+    // opted in (#2536, #2885).
+    let crm_opted_out = crm_contacts::table
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .filter(crm_contacts::status.eq_any(SUPPRESSED_STATUSES.to_vec()))
+        .select((crm_contacts::email, crm_contacts::phone))
+        .load::<(Option<String>, Option<String>)>(conn)
+        .map_err(|e| format!("CRM suppression query: {e}"))?
+        .iter()
+        .any(|(email, phone)| {
+            [email.as_deref(), phone.as_deref()]
+                .into_iter()
+                .flatten()
+                .any(|v| v.trim().eq_ignore_ascii_case(&normalized))
+        });
+
+    let (subscribed, metadata) = contact.map(|(_, s, m)| (s, m)).unwrap_or((None, None));
+    let subscribed = if crm_opted_out { Some(false) } else { subscribed };
+    Ok((recipient_status, subscribed, metadata))
+}
+
 pub async fn send_campaign_email(
     state: &Arc<AppState>,
     bot_id: Uuid,
     payload: EmailCampaignPayload,
+) -> Result<EmailSendResult, String> {
+    send_campaign_email_scoped(state, bot_id, payload, None).await
+}
+
+/// Same send path, but lets a verified caller branch scope the unsubscribe
+/// claim. Direct sends have no campaign row from which to derive that branch,
+/// so their claim must otherwise match the gate branch (#2891).
+async fn send_campaign_email_scoped(
+    state: &Arc<AppState>,
+    bot_id: Uuid,
+    payload: EmailCampaignPayload,
+    caller_branch: Option<Uuid>,
 ) -> Result<EmailSendResult, String> {
     let open_token = Uuid::new_v4();
     let tracking_id = Uuid::new_v4();
@@ -190,17 +259,17 @@ pub async fn send_campaign_email(
     // if no signing key is configured the send is refused rather than emitting
     // an email whose unsubscribe link cannot be honoured.
     let header_base = unsubscribe_base_url(&base_url);
-    // The token must carry the campaign's branch so the suppression key
-    // matches the gate used by the worker/publish send paths. Campaign-less
-    // API sends fall back to the default bot scope.
-    let branch_id = match payload.campaign_id {
+    // The token must carry the gate branch so an unsubscribe feeds back into
+    // the same suppression key. Direct sends supply the verified caller scope;
+    // campaign sends derive it from their campaign row.
+    let branch_id = caller_branch.unwrap_or(match payload.campaign_id {
         Some(campaign_id) => marketing_campaigns::table
             .filter(marketing_campaigns::id.eq(campaign_id))
             .select(marketing_campaigns::branch_id)
             .first::<Uuid>(&mut conn)
             .unwrap_or(scope_branch_id),
         None => scope_branch_id,
-    };
+    });
     let claims = UnsubscribeClaims {
         branch_id,
         channel: MarketingChannel::Email,
@@ -332,9 +401,30 @@ pub struct SendEmailRequest {
 
 pub async fn send_email_api(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<SendEmailRequest>,
 ) -> Result<Json<EmailSendResult>, (StatusCode, String)> {
-    let bot_id = Uuid::nil();
+    let (_, branch_id, bot_id) = direct_send_scope(&state, &headers);
+    if branch_id.is_nil() {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "no tenant scope".to_string()));
+    }
+
+    // #2891 — the one-off API must pass the same consent/suppression gate as
+    // bulk/publish/worker before the provider sees the address.
+    let mut conn = state.conn.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    if let Err(error) = hydrate_suppressions(&mut conn) {
+        log::error!("direct email could not hydrate suppressions: {error}");
+    }
+    let (status, subscribed, metadata) =
+        direct_gate_inputs(&mut conn, branch_id, MarketingChannel::Email, &req.to)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let decision = evaluate_send_gate(branch_id, MarketingChannel::Email, &req.to,
+        status.as_deref(), subscribed, metadata.as_ref());
+    if !decision.is_allowed() {
+        log::info!("direct email refused for {}: {}", req.to, decision.status());
+        return Err((StatusCode::FORBIDDEN, format!("recipient refused: {}", decision.status())));
+    }
+    drop(conn);
 
     let payload = EmailCampaignPayload {
         to: req.to,
@@ -345,7 +435,7 @@ pub async fn send_email_api(
         recipient_id: None,
     };
 
-    match send_campaign_email(&state, bot_id, payload).await {
+    match send_campaign_email_scoped(&state, bot_id, payload, Some(branch_id)).await {
         Ok(result) => Ok(Json(result)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     }
