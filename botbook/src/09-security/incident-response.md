@@ -123,7 +123,7 @@ python3 scripts/validate_advisory.py security/advisories/
 ## Hall of fame: opt-in and removal
 
 The [hall of fame](https://generalbots.org/security/hall-of-fame.html) is
-backed by `security/pages/hall-of-fame.json`. An entry is created only after
+backed by `security/pages/security/hall-of-fame.json`. An entry is created only after
 the reporter explicitly opts in to being named, using a chosen handle. Entries
 with `opt_in: false` must never be rendered, and no e-mail address is stored in
 the public registry. Any reporter may request removal through
@@ -159,7 +159,7 @@ of browser UAT.
 
 | Criterion | Evidence |
 |-----------|----------|
-| Status page lists resolved advisories with dates, severity, affected versions | `security/pages/status.html` table, generated from `security/incidents/index.json` |
+| Status page lists resolved advisories with dates, severity, affected versions | `security/pages/security/status.html` table, generated from `security/incidents/index.json` |
 | No exploit detail before embargo ends | `security/incidents/README.md` publication rules; `embargo`/`example` checks in `scripts/check_security_status_pages.py` |
 | Hall of fame requires explicit opt-in and a removal process | `hall-of-fame.json` `entry_schema.opt_in`, page opt-in/removal sections, this chapter |
 | Owners and escalation contacts named as roles | Roles table and CTIR Gov / CERT.br escalation table above |

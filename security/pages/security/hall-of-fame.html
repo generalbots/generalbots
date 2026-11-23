@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  Public trust page (#2721): status/history and reporter hall of fame.
+  Same IA contract as the bulletin pages (#2716): PT-BR-first inline
+  fallback, every string a data-i18n key in all eight lang/*.json catalogues.
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="hof-document-title">Hall of fame | General Bots</title>
+  <link rel="stylesheet" href="security.css">
+  <script src="../i18n.js" data-i18n-loader defer></script>
+</head>
+<body>
+  <a href="#main" data-i18n="skip-to-content" class="skip-link">Ir para o conteúdo principal</a>
+
+  <header class="site-header">
+    <p data-i18n="site-name" class="site-name">General Bots</p>
+    <nav class="language-switcher" aria-label="Idioma" data-i18n-aria-label="language-label">
+      <a href="?lang=pt-BR" hreflang="pt-BR" lang="pt-BR" data-locale="pt-BR" data-i18n="locale-name-pt-br" aria-current="true">Português (Brasil)</a>
+      <a href="?lang=en" hreflang="en" lang="en" data-locale="en" data-i18n="locale-name-en">English</a>
+      <a href="?lang=es" hreflang="es" lang="es" data-locale="es" data-i18n="locale-name-es">Español</a>
+      <a href="?lang=fr" hreflang="fr" lang="fr" data-locale="fr" data-i18n="locale-name-fr">Français</a>
+      <a href="?lang=de" hreflang="de" lang="de" data-locale="de" data-i18n="locale-name-de">Deutsch</a>
+      <a href="?lang=ja" hreflang="ja" lang="ja" data-locale="ja" data-i18n="locale-name-ja">日本語</a>
+      <a href="?lang=ko" hreflang="ko" lang="ko" data-locale="ko" data-i18n="locale-name-ko">한국어</a>
+      <a href="?lang=zh-CN" hreflang="zh-CN" lang="zh-CN" data-locale="zh-CN" data-i18n="locale-name-zh-cn">中文（简体）</a>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <p class="authoritative" data-authoritative-locale="pt-BR">
+      <span data-i18n="authoritative-badge" class="badge" lang="pt-BR">PT-BR</span>
+      <span data-i18n="authoritative-note">Versão autoritativa: português (Brasil). Em caso de divergência entre traduções, esta versão prevalece.</span>
+    </p>
+
+    <h1 data-i18n="hof-title">Hall of fame</h1>
+
+    <nav class="on-this-page" aria-labelledby="on-this-page-heading">
+      <h2 data-i18n="on-this-page" class="visually-hidden" id="on-this-page-heading">Nesta página</h2>
+      <ul>
+        <li><a href="status.html" data-i18n="status-nav-title">Status e histórico</a></li>
+        <li><a href="#credits" data-i18n="hof-nav-title">Hall of fame</a></li>
+        <li><a href="./" data-i18n="nav-advisories">Avisos publicados</a></li>
+        <li><a href="#report" data-i18n="nav-report">Como relatar uma vulnerabilidade</a></li>
+      </ul>
+    </nav>
+
+    <p class="lead"><span data-i18n="hof-lead">Pessoas que escolheram ser creditadas por reportar uma vulnerabilidade. A participação é opt-in: nada é publicado sem consentimento explícito e registrado.</span></p>
+    <p class="callout"><span data-i18n="hof-no-rewards">Não há programa de recompensas. Orçamento de recompensas = 0. Reconhecimento público é o único incentivo.</span></p>
+
+    <section id="credits" aria-labelledby="credits-heading">
+      <h2 data-i18n="hof-list-title" id="credits-heading">Créditos publicados</h2>
+      <table>
+        <caption><span data-i18n="hof-table-caption">Apenas handles escolhidos pelo próprio reportante; nunca e-mails ou dados privados.</span></caption>
+        <thead><tr>
+          <th scope="col"><span data-i18n="hof-col-handle">Handle</span></th>
+          <th scope="col"><span data-i18n="hof-col-advisory">Aviso</span></th>
+          <th scope="col"><span data-i18n="hof-col-date">Data</span></th>
+          <th scope="col"><span data-i18n="hof-col-role">Papel</span></th>
+        </tr></thead>
+        <tbody>
+          <tr><td colspan="4"><span data-i18n="hof-empty">Nenhum crédito publicado no momento.</span></td></tr>
+        </tbody>
+      </table>
+      <p class="note"><span data-i18n="hof-registry-note">Fonte do registro:</span> <a href="hall-of-fame.json" data-i18n="hof-registry-link">hall-of-fame.json</a></p>
+      <details>
+        <summary><span data-i18n="hof-optin-title">Como ser creditado (opt-in)</span></summary>
+        <p><span data-i18n="hof-optin-text">Ao reportar, informe à equipe de segurança o handle público que deseja exibir e confirme por escrito que concorda em ser nomeado. O crédito aparece apenas no aviso e nesta página. Nunca publicamos e-mail, telefone, IP ou dado não autorizado. Você pode retirar o consentimento a qualquer momento.</span></p>
+      </details>
+      <details>
+        <summary><span data-i18n="hof-removal-title">Como solicitar a remoção</span></summary>
+        <p><span data-i18n="hof-removal-text">Informe o handle ou o ID do aviso. Confirmação em até 3 dias úteis; o crédito sai do site em até 5 dias úteis e é omitido da próxima publicação assinada do espelho. Pacotes imutáveis já publicados não podem ser editados; a equipe aplica o caminho de retirada do runbook de resposta a incidentes. Nenhuma explicação é exigida.</span> <a href="mailto:security@generalbots.org" data-i18n="hof-contact-link">security@generalbots.org</a></p>
+      </details>
+      <details>
+        <summary><span data-i18n="hof-privacy-title">Privacidade e dados do reportante</span></summary>
+        <p><span data-i18n="hof-privacy-text">O tratamento segue a política de dados do reportante (#2722): finalidade restrita a reconhecimento, consentimento registrado, retenção mínima e direito de acesso e apagamento. Este registro nunca contém e-mails, IPs internos, tokens ou credenciais.</span></p>
+      </details>
+    </section>
+    <section id="report">
+      <h2 data-i18n="report-heading" id="report-heading">Relatar uma vulnerabilidade</h2>
+      <p><a href="mailto:security@generalbots.org" data-i18n="report-link">Enviar relatório confidencial por email para a equipe de segurança (security@generalbots.org)</a></p>
+      <p><a href="/.well-known/security.txt" data-i18n="report-policy">Ler a política de divulgação coordenada e os canais de contato (security.txt)</a></p>
+    </section>
+
+    <footer>
+      <p><span data-i18n="footer-note">General Bots — Boletim de segurança. Não há programa de recompensas; o reconhecimento público é a única forma de agradecimento.</span></p>
+    </footer>
+  </main>
+</body>
+</html>
