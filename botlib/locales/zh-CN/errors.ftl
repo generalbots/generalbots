@@ -211,6 +211,7 @@ error-attendance-webhook-not-found = Webhook not found.
 error-autotask-fields-required = Title, schedule and command are required.
 error-autotask-intent-required = Describe what the task should do.
 error-autotask-kind-invalid = The kind must be 'cron' or 'systemd'.
+error-autotask-schedule-invalid = The schedule must be a valid five-field cron expression.
 error-autotask-not-found = Autotask not found.
 error-collab-comment-body-required = A comment body is required.
 error-collab-comment-not-found = The comment was not found.

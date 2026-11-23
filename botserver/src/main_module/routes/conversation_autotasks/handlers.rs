@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::store::{conversation_bot, load_all_rows, load_rows};
-use super::types::{next_run_for, respond, AutotaskRow, CreateAutotaskRequest, NewAutotask};
+use super::types::{respond, validate_schedule, AutotaskRow, CreateAutotaskRequest, NewAutotask};
 use super::{
     api_error, api_error_db, resolve_user, workspace, ApiError, STATUS_FAILED,
     STATUS_ORPHANED,
@@ -75,11 +75,22 @@ pub async fn create(
     let user_id = resolve_user(&headers)?;
     let locale = botcore::i18n::locale_from_headers(&headers);
     let title = body.title.trim();
-    let schedule = body.schedule.trim();
     let command = body.command.trim();
-    if title.is_empty() || schedule.is_empty() || command.is_empty() {
+    if title.is_empty() || body.schedule.trim().is_empty() || command.is_empty() {
         return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-autotask-fields-required"));
     }
+    // #2824: `schedule` is interpolated into a root crontab shell snippet, so
+    // only a strictly validated, normalized five-field cron expression may
+    // travel past this point. Raw user input never reaches the workspace.
+    let validated = validate_schedule(body.schedule.trim()).ok_or_else(|| {
+        api_error(
+            &locale,
+            StatusCode::BAD_REQUEST,
+            "error-autotask-schedule-invalid",
+        )
+    })?;
+    let schedule = validated.normalized.as_str();
+    let next_run_at = validated.next_run_at;
     let kind = body.kind.as_deref().unwrap_or("cron").to_ascii_lowercase();
     if kind != "cron" && kind != "systemd" {
         return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-autotask-kind-invalid"));
@@ -100,7 +111,7 @@ pub async fn create(
         command,
         unit_name: None,
         status: STATUS_PENDING,
-        next_run_at: next_run_for(schedule),
+        next_run_at,
     };
     let row = diesel::insert_into(table::table)
         .values(&new_row)

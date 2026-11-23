@@ -293,6 +293,7 @@ error-group-budget-amount-invalid = The amount must be zero or positive.
 error-group-budget-caps-invalid = The caps must be zero or positive (zero means no limit).
 error-autotask-fields-required = Title, schedule and command are required.
 error-autotask-kind-invalid = The kind must be 'cron' or 'systemd'.
+error-autotask-schedule-invalid = The schedule must be a valid five-field cron expression.
 error-conversation-not-found = The conversation was not found.
 error-conversation-session-invalid = The conversation session is invalid.
 error-subagent-invalid-tasks = The sub-agent tasks are invalid.

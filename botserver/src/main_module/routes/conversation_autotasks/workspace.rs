@@ -39,6 +39,13 @@ pub(super) async fn install(
     command: &str,
     unit: &str,
 ) -> Result<String, String> {
+    // #2824: defense in depth. The HTTP handler validates and normalizes the
+    // schedule before calling this function, but this is the last boundary
+    // before the string is interpolated into a root shell snippet — never
+    // embed an unvalidated value here.
+    if !super::types::is_safe_cron_text(schedule) {
+        return Err("invalid cron schedule".to_string());
+    }
     let root = conversation_root(conversation_id);
     let encoded = BASE64.encode(command.as_bytes());
     let script = format!(
