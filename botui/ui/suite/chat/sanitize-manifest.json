@@ -1,0 +1,23 @@
+{
+  "name": "GBSanitize",
+  "version": "2.0.0",
+  "source": "chat-sanitize.js",
+  "sha256": "36c44ee6211f580a8420ce45530ae4a1c904e7f78d3c1fe9ea426be60db27f3b",
+  "policy": "allowlist",
+  "namespaces": ["http://www.w3.org/1999/xhtml", "http://www.w3.org/1998/Math/MathML"],
+  "maxPasses": 3,
+  "corpus": {
+    "count": 16,
+    "categories": [
+      "element",
+      "event-handler",
+      "uri",
+      "namespace",
+      "nested-foreign",
+      "attribute-mutation",
+      "style",
+      "dom-clobbering"
+    ]
+  },
+  "verification": "node botui/ui/suite/tests/webtest-sanitize-xss.js"
+}

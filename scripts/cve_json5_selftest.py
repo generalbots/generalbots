@@ -152,13 +152,13 @@ def run() -> int:
         ))
         no_evidence = [{key: value for key, value in ASSIGNMENT.items()
                         if key != "evidence"}]
-        invalid_registry, _ = fixture_dir(tmp / "registry", assignments=no_evidence)
+        _, invalid_registry = fixture_dir(tmp / "registry", assignments=no_evidence)
         checks.append(expect(
             "registry without evidence", "mandatory",
             lambda: load_registry(invalid_registry),
         ))
         duplicate = [ASSIGNMENT, copy.deepcopy(ASSIGNMENT)]
-        dup_registry, _ = fixture_dir(tmp / "dup", assignments=duplicate)
+        _, dup_registry = fixture_dir(tmp / "dup", assignments=duplicate)
         checks.append(expect(
             "duplicate CVE assignment", "duplicate",
             lambda: load_registry(dup_registry),

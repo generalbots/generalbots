@@ -1,0 +1,53 @@
+# Pinned integrity manifest for vendored JavaScript assets (#2742).
+#
+# These bundles are copied into this directory and served locally by botui;
+# they never came through a registry integrity check at install time. This
+# file is their provenance record and tamper seal. `scripts/check_component_checksums.py
+# --js-manifest <this file>` re-hashes every checked-in asset below and refuses
+# any *.min.js in this tree that is not listed — so a modified bundle or a
+# newly dropped one can no longer ship unnoticed.
+#
+# `url` is upstream provenance ONLY. It is written into no HTML/JS and no asset
+# is fetched at runtime: every file is loaded from this local directory.
+#
+# Format: one [assets.<key>] table per file.
+#   path    = path relative to this vendor directory
+#   version = version read from the bundle's own banner
+#   url     = HTTPS upstream release/source page (provenance, not a CDN link)
+#   sha256  = SHA-256 of the checked-in file bytes
+
+[assets.htmx]
+path = "htmx.min.js"
+version = "1.9.10"
+url = "https://github.com/bigskysoftware/htmx/releases/tag/v1.9.10"
+sha256 = "b3bdcf5c741897a53648b1207fff0469a0d61901429ba1f6e88f98ebd84e669e"
+
+[assets.marked]
+path = "marked.min.js"
+version = "15.0.12"
+url = "https://github.com/markedjs/marked/releases/tag/v15.0.12"
+sha256 = "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+
+[assets.livekit_client]
+path = "livekit-client.umd.min.js"
+version = "2.16.0"
+url = "https://github.com/livekit/client-sdk-js/releases/tag/v2.16.0"
+sha256 = "89963c901fddd5a4d421aac1f21d7a050bb5ff6d81291d6c5e64249c09533c9a"
+
+[assets.chart_js]
+path = "chart.umd.min.js"
+version = "4.4.7"
+url = "https://github.com/chartjs/Chart.js/releases/tag/v4.4.7"
+sha256 = "206b6e8bb00fc7bba2c7ee80ca41db3e9e05ba7be0aa35abeba9cfd5357f5d0e"
+
+[assets.katex]
+path = "katex/katex.min.js"
+version = "0.19.1"
+url = "https://github.com/KaTeX/KaTeX/releases/tag/v0.19.1"
+sha256 = "fa140498b8cfc8302cbe5e7cb1bdbc1f952bc38b3fa258ede09e73edbf9a74bc"
+
+[assets.tailwindcss]
+path = "tailwindcss.js"
+version = "3.4.17"
+url = "https://github.com/tailwindlabs/tailwindcss/releases/tag/v3.4.17"
+sha256 = "176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15"

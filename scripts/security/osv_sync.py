@@ -139,7 +139,7 @@ def check(osv_dir: Path, vex_dir: Path, bundle: dict, source: dict, doc: Path) -
     return errors
 
 
-def emit_submission(osv_dir: Path, out: Path, bundle: dict, base: str) -> list[str]:
+def emit_submission(osv_dir: Path, out: Path, base: str) -> list[str]:
     """Write the exact payload a human or CI job submits; never performs network I/O."""
     index = _read_json(osv_dir / "index.json")
     queue = {
@@ -189,7 +189,7 @@ def self_test() -> int:
             _write(vex_dir, vex_file.name, tampered)
             if not check(osv_dir, vex_dir, bundle, source, doc):
                 raise SyncError("invalid VEX justification was not detected")
-            out = emit_submission(osv_dir, root / "queue", bundle, base)
+            out = emit_submission(osv_dir, root / "queue", base)
             if not _read_json(Path(out[0]))["records"]:
                 raise SyncError("submission payload has no records")
     except (SyncError, SourceError, OSError, ValueError, KeyError) as error:
@@ -231,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.out is None:
             parser.error("emit-submission requires --out")
-        written = emit_submission(args.osv_dir, args.out, bundle, args.base)
+        written = emit_submission(args.osv_dir, args.out, args.base)
         print(f"wrote {written[0]}")
         return 0
     except (SyncError, SourceError, OSError, ValueError, KeyError) as error:

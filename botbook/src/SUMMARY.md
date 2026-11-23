@@ -647,6 +647,7 @@
    - [Incident Response and Publication Authority](./09-security/incident-response.md)
    - [Signed Offline Advisory Bundle (air-gapped deployments)](./09-security/offline-advisory-bundle.md)
    - [Forum vs. Authoritative Advisory Channel](./09-security/forum-advisory-boundary.md)
+   - [CVE Issuance Strategy — Decision Record](./09-security/cve-issuance-strategy.md)
    - [OSV, VEX and NVD advisory sync](./09-security/advisory-feeds-osv-nvd.md)
    - [Advisory Subscriptions (Feeds, Digest, Webhooks)](./09-security/advisory-subscriptions.md)
    - [Signed Releases, SBOM and SLSA Provenance](./09-security/signed-releases-provenance.md)
