@@ -322,6 +322,67 @@ pub async fn public_link_download(
     Ok((headers, data).into_response())
 }
 
+/// #2799 — links resolve bytes by `(bucket, key)` alone, so every write or
+/// removal of that key must revoke its links. Pure predicate (unit-tested
+/// offline): a folder mutation also invalidates links to its descendants.
+/// Component matching avoids SQL `LIKE` wildcards in object names.
+pub(super) fn mutation_invalidates_link(
+    link_bucket: &str,
+    link_key: &str,
+    op_bucket: &str,
+    op_key: &str,
+) -> bool {
+    if link_bucket != op_bucket {
+        return false;
+    }
+    let op_root = op_key.trim_end_matches('/');
+    link_key == op_root
+        || link_key
+            .strip_prefix(op_root)
+            .is_some_and(|rest| rest.starts_with('/'))
+}
+
+/// Revoke links bound to `key` before the object changes: a DB failure aborts
+/// the mutation instead of leaving a live link over different bytes. The read
+/// and all revocations share one transaction (partial failure rolls back).
+pub(super) fn revoke_links_for_key(
+    state: &Arc<AppState>,
+    bucket: &str,
+    key: &str,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    let outcome: Result<Vec<PublicLinkRow>, diesel::result::Error> = conn.transaction(|tx| {
+        let rows = diesel::sql_query(
+            "SELECT bucket, key, path, share_token, created_at, expires_at, revoked \
+             FROM drive_public_links WHERE bucket = $1 AND revoked = FALSE",
+        )
+        .bind::<Text, _>(bucket)
+        .load::<PublicLinkRow>(tx)?;
+        for row in &rows {
+            if mutation_invalidates_link(&row.bucket, &row.key, bucket, key) {
+                diesel::sql_query(
+                    "UPDATE drive_public_links SET revoked = TRUE WHERE share_token = $1",
+                )
+                .bind::<Text, _>(&row.share_token)
+                .execute(tx)?;
+            }
+        }
+        Ok(rows)
+    });
+    outcome.map_err(|e| {
+        botlog::safe_error!("public link revoke failed for {bucket}/{key}: {e}");
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to revoke public links for changed object",
+        )
+    })?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -353,5 +414,32 @@ mod tests {
         assert_eq!(disposition, "inline; filename=\"img onload=xX: y.png\"");
         assert_eq!(disposition.matches('"').count(), 2);
         assert!(axum::http::HeaderValue::from_str(&disposition).is_ok());
+    }
+
+    #[test]
+    fn mutation_revokes_exact_key_and_subtree_only_in_same_bucket() {
+        assert!(mutation_invalidates_link("b", "docs/a.txt", "b", "docs/a.txt"));
+        assert!(mutation_invalidates_link("b", "docs/a.txt", "b", "docs/"));
+        assert!(mutation_invalidates_link("b", "docs/sub/a.txt", "b", "docs"));
+        assert!(!mutation_invalidates_link("b", "docs/a.txt", "other", "docs/a.txt"));
+        assert!(!mutation_invalidates_link("b", "docs/a.txt", "b", "docs/b.txt"));
+        assert!(!mutation_invalidates_link("b", "docs2/a.txt", "b", "docs"));
+        assert!(!mutation_invalidates_link("b", "docs/a.txt", "b", "doc"));
+    }
+
+    #[test]
+    fn overwriting_a_key_revokes_its_link_but_not_a_sibling_or_other_bucket() {
+        let key = "users/u1/report.pdf";
+        let links = [
+            ("bucket", key),
+            ("bucket", "users/u1/other.pdf"),
+            ("other-bucket", key),
+        ];
+        let revoked: Vec<&str> = links
+            .iter()
+            .filter(|(bucket, link_key)| mutation_invalidates_link(bucket, link_key, "bucket", key))
+            .map(|(_, link_key)| *link_key)
+            .collect();
+        assert_eq!(revoked, vec![key]);
     }
 }

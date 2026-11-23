@@ -128,6 +128,9 @@ pub async fn delete_file(
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
+    // #2799 — revoke before the delete: a DB failure leaves the object intact
+    // instead of leaving a live link whose key no longer holds this content.
+    revoke_links_for_key(&state, &bucket, &key)?;
     drive.delete_object(&bucket, &key).await.map_err(|e| {
         err(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -169,6 +172,9 @@ pub async fn create_folder(
         )
     };
 
+    // #2799 — a folder marker is still a write to `key`; a link minted earlier
+    // for that key must not serve the new (empty) object.
+    revoke_links_for_key(&state, &bucket, &key)?;
     drive
         .put_object(&bucket, &key, vec![], None)
         .await
@@ -265,13 +271,12 @@ pub async fn copy_file(
                         &format!("Folder copy read failed: {e}"),
                     )
                 })?;
+            let destination = format!("{dest_prefix}{relative}");
+            // #2799 — each copied child overwrites its destination key, so any
+            // link bound to that key must be revoked before the write.
+            revoke_links_for_key(&state, &dest_bucket, &destination)?;
             drive
-                .put_object(
-                    &dest_bucket,
-                    &format!("{dest_prefix}{relative}"),
-                    data,
-                    None,
-                )
+                .put_object(&dest_bucket, &destination, data, None)
                 .await
                 .map_err(|e| {
                     err(
@@ -294,6 +299,9 @@ pub async fn copy_file(
             )
         })?;
 
+    // #2799 — the destination now holds different bytes under the same key;
+    // its public links must not survive the overwrite.
+    revoke_links_for_key(&state, &dest_bucket, &to_key)?;
     drive
         .put_object(&dest_bucket, &to_key, data, None)
         .await

@@ -96,6 +96,9 @@ pub async fn trash_file(
                     &format!("Trash move failed: {e}"),
                 )
             })?;
+        // #2799 — moving the object out of `key` changes what that key serves
+        // on restore; revoke its links while the object is still present.
+        revoke_links_for_key(&state, &bucket, &key)?;
         let _ = drive.delete_object(&bucket, &key).await;
         diesel::sql_query(
             "INSERT INTO drive_trash (user_id, bucket, path, original_path, is_dir, size) \
@@ -131,6 +134,7 @@ pub async fn trash_file(
         if child.ends_with('/') {
             // Directory markers carry no content but keep the empty folder
             // visible after the files are gone.
+            revoke_links_for_key(&state, &bucket, &child)?;
             let _ = drive.delete_object(&bucket, &child).await;
             continue;
         }
@@ -144,6 +148,7 @@ pub async fn trash_file(
         total += data.len() as i64;
         let dest = format!("{trash_base}/{relative_child}");
         if drive.put_object(&bucket, &dest, data, None).await.is_ok() {
+            revoke_links_for_key(&state, &bucket, &child)?;
             let _ = drive.delete_object(&bucket, &child).await;
         }
     }
@@ -233,6 +238,9 @@ pub async fn restore_trash(
             let Ok(data) = drive.get_object(&row.bucket, &child).await else {
                 continue;
             };
+            // #2799 — restore writes the saved bytes back to `destination`;
+            // links minted for that key must not serve them afterwards.
+            revoke_links_for_key(&state, &row.bucket, &destination)?;
             // #1640 — restoring over a live file must not destroy it silently.
             snapshot_before_write(drive, &row.bucket, &destination, &scope, &uid).await;
             drive
@@ -244,10 +252,14 @@ pub async fn restore_trash(
                         &format!("Restore failed: {e}"),
                     )
                 })?;
+            revoke_links_for_key(&state, &row.bucket, &child)?;
             let _ = drive.delete_object(&row.bucket, &child).await;
             restored += 1;
         }
     } else if let Ok(data) = drive.get_object(&row.bucket, &row.path).await {
+        // #2799 — the restored bytes land on `original_path`; a pre-existing
+        // link to that key would otherwise keep resolving to the new content.
+        revoke_links_for_key(&state, &row.bucket, &row.original_path)?;
         snapshot_before_write(drive, &row.bucket, &row.original_path, &scope, &uid).await;
         drive
             .put_object(&row.bucket, &row.original_path, data, None)
@@ -258,6 +270,7 @@ pub async fn restore_trash(
                     &format!("Restore failed: {e}"),
                 )
             })?;
+        revoke_links_for_key(&state, &row.bucket, &row.path)?;
         let _ = drive.delete_object(&row.bucket, &row.path).await;
         restored = 1;
     }
@@ -322,10 +335,16 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
             let prefix = format!("{}/", row.path.trim_end_matches('/'));
             if let Ok(keys) = drive.list_objects(&row.bucket, Some(&prefix)).await {
                 for key in keys {
+                    revoke_links_for_key(state, &row.bucket, &key).map_err(|_| {
+                        "Failed to revoke public links for expired trashed object".to_string()
+                    })?;
                     let _ = drive.delete_object(&row.bucket, &key).await;
                 }
             }
         } else {
+            revoke_links_for_key(state, &row.bucket, &row.path).map_err(|_| {
+                "Failed to revoke public links for expired trashed object".to_string()
+            })?;
             let _ = drive.delete_object(&row.bucket, &row.path).await;
         }
         let deleted = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1")
@@ -388,10 +407,12 @@ pub async fn empty_trash(
                 let prefix = format!("{}/", row.path.trim_end_matches('/'));
                 if let Ok(keys) = drive.list_objects(&row.bucket, Some(&prefix)).await {
                     for key in keys {
+                        revoke_links_for_key(&state, &row.bucket, &key)?;
                         let _ = drive.delete_object(&row.bucket, &key).await;
                     }
                 }
             }
+            revoke_links_for_key(&state, &row.bucket, &row.path)?;
             let _ = drive.delete_object(&row.bucket, &row.path).await;
         }
 

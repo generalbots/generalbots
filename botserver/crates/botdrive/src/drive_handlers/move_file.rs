@@ -81,13 +81,12 @@ pub async fn move_file(
                         &format!("Folder move read failed: {e}"),
                     )
                 })?;
+            let destination = format!("{dest_prefix}{relative}");
+            // #2799 — a move writes each child to a new key, which may already
+            // have a live public link pointing at it.
+            revoke_links_for_key(&state, &dest_bucket, &destination)?;
             drive
-                .put_object(
-                    &dest_bucket,
-                    &format!("{dest_prefix}{relative}"),
-                    data,
-                    None,
-                )
+                .put_object(&dest_bucket, &destination, data, None)
                 .await
                 .map_err(|e| {
                     err(
@@ -97,6 +96,8 @@ pub async fn move_file(
                 })?;
         }
         for object in &objects {
+            // #2799 — links bound to a moved-away source key must not survive.
+            revoke_links_for_key(&state, &src_bucket, &object.key)?;
             if let Err(error) = drive.delete_object(&src_bucket, &object.key).await {
                 warn!("Move: failed to delete source {}: {error}", object.key);
             }
@@ -110,6 +111,9 @@ pub async fn move_file(
         .await
         .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source not found: {e}")))?;
 
+    // #2799 — revoke both ends of the rename: the destination is overwritten
+    // and the source is removed, so neither key may keep a live link.
+    revoke_links_for_key(&state, &dest_bucket, &to_key)?;
     drive
         .put_object(&dest_bucket, &to_key, data, None)
         .await
@@ -120,6 +124,7 @@ pub async fn move_file(
             )
         })?;
 
+    revoke_links_for_key(&state, &src_bucket, &from_key)?;
     let _ = drive
         .delete_object(&src_bucket, &from_key)
         .await
