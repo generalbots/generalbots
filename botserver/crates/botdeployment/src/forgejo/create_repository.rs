@@ -272,7 +272,7 @@ impl ForgejoClient {
     ) -> Result<(), DeploymentError> {
         let workflow = match deploy_target {
             DeployTarget::None => return Ok(()),
-            DeployTarget::IncusContainer => self.generate_app_workflow(project_type, deploy_target, environment),
+            DeployTarget::IncusContainer => self.generate_app_workflow(project_type, deploy_target, environment)?,
             DeployTarget::CaddyStatic => self.generate_site_workflow(environment),
         };
 
