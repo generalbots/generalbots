@@ -11,6 +11,23 @@ const CONFIGURED: &str = "configured-secret-0123456789abcdefghijklmnop";
 const FROM_ENV_SAAS: &str = "saas-env-secret-0123456789abcdefghijklmnop";
 const FROM_ENV_JWT: &str = "jwt-env-secret-0123456789abcdefghijklmnop";
 
+/// #2615 — posture must default to production; only an explicit development
+/// marker lowers the guard. This is a pure helper so the test never mutates
+/// process globals (tests run in parallel).
+#[test]
+fn posture_defaults_to_production() {
+    assert!(is_production_env_value(None));
+    assert!(is_production_env_value(Some("")));
+    assert!(is_production_env_value(Some("production")));
+    assert!(is_production_env_value(Some("PROD")));
+    assert!(is_production_env_value(Some("staging")));
+
+    assert!(!is_production_env_value(Some("development")));
+    assert!(!is_production_env_value(Some("DEV")));
+    assert!(!is_production_env_value(Some(" local ")));
+    assert!(!is_production_env_value(Some("test")));
+}
+
 const RELEASE: JwtSecretPolicy = JwtSecretPolicy {
     debug_build: false,
     allow_dev_fallback: false,

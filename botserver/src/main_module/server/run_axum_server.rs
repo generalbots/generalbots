@@ -113,9 +113,15 @@ pub async fn run_axum_server(
     // `botsecurity_core::headers::HSTS_ENV`).
     let security_headers_config = SecurityHeadersConfig::from_env();
 
-    let is_production = std::env::var("BOTSERVER_ENV")
-        .map(|v| v == "production" || v == "prod")
-        .unwrap_or(false);
+    // #2615 — production is the default posture; only an explicit development
+    // mode may lower the guard. Never infer "production" from a positive marker.
+    let is_production = botsecurity_core::jwt_secret::is_production_env();
+    info!(
+        "Security posture: {} (BOTSERVER_ENV={})",
+        if is_production { "production" } else { "development" },
+        std::env::var(botsecurity_core::jwt_secret::ENVIRONMENT_ENV)
+            .unwrap_or_else(|_| "<unset>".to_string())
+    );
     let panic_config = if is_production {
         PanicHandlerConfig::production()
     } else {
@@ -211,6 +217,7 @@ pub async fn run_axum_server(
                 return Err(std::io::Error::other(format!("CSRF init failed: {error}")));
             }
         };
+        info!("CSRF secret source: {}", resolved.source().as_str());
         if resolved.source() == CsrfSecretSource::Ephemeral {
             log::warn!(
                 "CSRF_SECRET is not configured; signing tokens with an ephemeral \

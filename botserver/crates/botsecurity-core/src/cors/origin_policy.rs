@@ -53,8 +53,9 @@ pub fn any_origin_override_requested() -> bool {
 
 /// True when the documented development override is enabled.
 ///
-/// Production (`BOTSERVER_ENV=production`) never honours it: a misconfigured
-/// deployment fails closed instead of opening the API to every website.
+/// Production (the default; only `BOTSERVER_ENV=development` opts out, #2615)
+/// never honours it: a misconfigured deployment fails closed instead of
+/// opening the API to every website.
 pub fn allow_any_origin_override() -> bool {
     if crate::jwt_secret::is_production_env() {
         return false;
