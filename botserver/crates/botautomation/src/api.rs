@@ -39,13 +39,12 @@ pub struct ListRunsQuery {
     pub status: Option<String>,
 }
 
-/// Owner identity from the server-minted JWT `sub` claim; callers reaching
-/// this handler without a UUID subject (middleware-enforced upstream) are
-/// attributed to the nil sentinel rather than rejected.
+/// Owner identity from the verified JWT. Uses the same stable subject
+/// derivation as the ownership guard, so a row created by a caller is actually
+/// manageable by that caller later (#2823). An unverifiable token yields the
+/// nil sentinel, which the ownership predicate never treats as an owner.
 fn resolve_owner(headers: &HeaderMap) -> Uuid {
-    tenant::user_id_from_claims(headers)
-        .and_then(|sub| Uuid::parse_str(&sub).ok())
-        .unwrap_or_else(Uuid::nil)
+    owner_from_headers(headers)
 }
 
 fn db_err(context: &str, e: impl std::fmt::Display) -> (StatusCode, String) {
@@ -159,12 +158,9 @@ pub async fn update_schedule(
     Path(schedule_id): Path<Uuid>,
     Json(body): Json<ScheduleUpdateBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let schedule = load_schedule(&state, schedule_id)?;
-    if let Some(org) = tenant::org_from_claims(&headers) {
-        if schedule.org_id.is_some_and(|o| o != org) {
-            return Err((StatusCode::FORBIDDEN, "Not authorized".to_string()));
-        }
-    }
+    // Resolve org/branch/owner from verified claims only; a missing or null
+    // org claim and a foreign owner are refused with 404 before any mutation.
+    assert_owned_schedule(&state, &headers, "", schedule_id)?;
     let mut conn = state.pool().get().map_err(|e| db_err("update schedule", e))?;
     use agent_schedules::dsl as d;
 
@@ -337,6 +333,9 @@ pub async fn run_events(
     if !sse_authorized(&headers, token_param) {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }
+    // Ownership is checked against the run's parent schedule BEFORE the stream
+    // is opened: a foreign or unknown run must not emit a single span (#2823).
+    assert_owned_run(&state, &headers, token_param, run_id)?;
     let stream = async_stream::stream! {
         let mut emitted: usize = 0;
         for _ in 0..SSE_MAX_TICKS {

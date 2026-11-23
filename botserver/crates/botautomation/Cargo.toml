@@ -20,7 +20,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time", "rt", "rt-multi-thread", "macros"] }
 tracing = { workspace = true }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [lints]
 workspace = true
