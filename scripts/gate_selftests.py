@@ -213,6 +213,14 @@ def component_checksums(tmp: Path) -> Case:
         "plaintext-url", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
     )
+    # #2708 — an unpinned [models] entry is just as dangerous as an unpinned
+    # component: model files are downloaded and fed to the inference engine.
+    model = tmp / "3rdparty-model.toml"
+    model.write_text('[models.llm]\nversion = "1"\nurl = "https://example.invalid/m.gguf"\nsha256 = ""\n', encoding="utf-8")
+    case.expect(
+        "unhashed-model", VIOLATION,
+        _gate("check_component_checksums.py", ["--toml", str(model), "--allowlist", str(empty)]),
+    )
     return case
 
 

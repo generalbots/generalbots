@@ -93,7 +93,12 @@ def main() -> int:
         print(f"error: {args.toml} not found")
         return 1
     with args.toml.open("rb") as handle:
-        components = tomllib.load(handle).get("components", {})
+        document = tomllib.load(handle)
+    # #2708 — [models] entries are downloaded and executed too; they must be
+    # covered by the same checksum and HTTPS policy as [components].
+    components = dict(document.get("components", {}))
+    for name, entry in (document.get("models") or {}).items():
+        components[f"model:{name}"] = entry
 
     insecure = insecure_urls(components)
     if insecure:
