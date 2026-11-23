@@ -43,6 +43,10 @@ pub async fn record_payment(
     if let Some(invoice_id) = req.invoice_id {
         let invoice: BillingInvoice = billing_invoices::table
             .filter(billing_invoices::id.eq(invoice_id))
+            .filter(billing_invoices::branch_id.eq(get_bot_context(
+                &state.pool,
+                &state.get_default_bot,
+            )))
             .first(&mut conn)
             .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
@@ -113,8 +117,12 @@ pub async fn get_payment(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // #2667 — scope the by-id read to the caller's verified branch.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+
     let payment: BillingPayment = billing_payments::table
         .filter(billing_payments::id.eq(id))
+        .filter(billing_payments::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Payment not found".to_string()))?;
 

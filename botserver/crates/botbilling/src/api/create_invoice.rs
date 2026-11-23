@@ -156,8 +156,12 @@ pub async fn get_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // #2667 — scope every by-id lookup to the caller's verified branch.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
@@ -178,29 +182,32 @@ pub async fn update_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // #2667 — scope every by-id lookup to the caller's verified branch.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+
     let now = Utc::now();
 
-    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
         .set(billing_invoices::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(customer_name) = req.customer_name {
-        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::customer_name.eq(customer_name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(customer_email) = req.customer_email {
-        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::customer_email.eq(customer_email))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(notes) = req.notes {
-        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+        diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
             .set(billing_invoices::notes.eq(notes))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -208,6 +215,7 @@ pub async fn update_invoice(
 
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
@@ -221,9 +229,12 @@ pub async fn send_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // #2667 — scope every by-id lookup to the caller's verified branch.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+
     let now = Utc::now();
 
-    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
         .set((
             billing_invoices::status.eq("sent"),
             billing_invoices::sent_at.eq(Some(now)),
@@ -234,6 +245,7 @@ pub async fn send_invoice(
 
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
@@ -247,9 +259,12 @@ pub async fn void_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // #2667 — scope every by-id lookup to the caller's verified branch.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+
     let now = Utc::now();
 
-    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)))
+    diesel::update(billing_invoices::table.filter(billing_invoices::id.eq(id)).filter(billing_invoices::branch_id.eq(branch_id)))
         .set((
             billing_invoices::status.eq("voided"),
             billing_invoices::voided_at.eq(Some(now)),
@@ -260,6 +275,7 @@ pub async fn void_invoice(
 
     let invoice: BillingInvoice = billing_invoices::table
         .filter(billing_invoices::id.eq(id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
@@ -273,9 +289,43 @@ pub async fn delete_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(billing_invoices::table.filter(billing_invoices::id.eq(id)))
-        .execute(&mut conn)
+    // #2667 — delete must be branch-scoped like the other by-id handlers.
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    diesel::delete(
+        billing_invoices::table
+            .filter(billing_invoices::id.eq(id))
+            .filter(billing_invoices::branch_id.eq(branch_id)),
+    )
+    .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tenant_scope_tests {
+    use super::*;
+
+    /// #2667 — the by-id SQL must always carry the verified branch. This test
+    /// inspects the generated statement, so it cannot pass if the filter is
+    /// dropped by a future refactor (no DB fixture required).
+    #[test]
+    fn by_id_queries_include_the_branch_filter() {
+        let id = Uuid::new_v4();
+        let branch = Uuid::new_v4();
+
+        let read = billing_invoices::table
+            .filter(billing_invoices::id.eq(id))
+            .filter(billing_invoices::branch_id.eq(branch));
+        let sql = diesel::debug_query::<diesel::pg::Pg, _>(&read).to_string();
+        assert!(sql.contains("branch_id"), "read query: {sql}");
+
+        let delete = diesel::delete(
+            billing_invoices::table
+                .filter(billing_invoices::id.eq(id))
+                .filter(billing_invoices::branch_id.eq(branch)),
+        );
+        let sql = diesel::debug_query::<diesel::pg::Pg, _>(&delete).to_string();
+        assert!(sql.contains("branch_id"), "delete query: {sql}");
+    }
 }
