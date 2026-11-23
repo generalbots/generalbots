@@ -14,7 +14,7 @@ const PASS_THROUGH_BYTES: usize = 3 * 1024 * 1024;
 
 /// The bytes and media type to send for an image, or `None` when the image
 /// cannot be decoded (the turn then falls back to the recognised text).
-pub(super) fn prepare(data: &[u8], media_type: &str) -> Option<(Vec<u8>, &'static str)> {
+pub(crate) fn prepare(data: &[u8], media_type: &str) -> Option<(Vec<u8>, &'static str)> {
     let format = match media_type {
         "image/png" => ImageFormat::Png,
         "image/jpeg" => ImageFormat::Jpeg,

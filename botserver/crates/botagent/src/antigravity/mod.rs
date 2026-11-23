@@ -2,7 +2,10 @@
 //!
 //! Mirrors the Claude flow: CLI/login helper runs inside the agent VM,
 //! auth URL is surfaced to the UI, user pastes code back, credentials stay in VM.
+//! Chat turns run over ACP ([`acp::run_acp_turn`]); print mode
+//! ([`run_prompt`]) answers only when the CLI does not speak ACP.
 
+pub mod acp;
 mod login;
 mod paths;
 mod prompt;

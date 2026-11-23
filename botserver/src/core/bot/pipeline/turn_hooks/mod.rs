@@ -13,7 +13,7 @@ mod computer_action;
 mod informational;
 mod media;
 mod text_recognition;
-mod vision_image;
+pub(crate) mod vision_image;
 
 pub(super) use attachments::ingest_attachment;
 pub(super) use computer_action::propose_computer_action;
