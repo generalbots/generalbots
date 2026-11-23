@@ -57,35 +57,35 @@ impl Fail2banManager {
             .await
             .context("failed to install fail2ban in proxy container")?;
 
-        // Write caddy filter
-        std::fs::write("/tmp/gb-caddy-filter.conf", CADDY_FILTER)
-            .context("failed to write caddy filter to /tmp")?;
+        // Write caddy filter through private staging (#2790)
+        let filter = super::private_staging::StagedConfig::create("gb-caddy-filter.conf", CADDY_FILTER.as_bytes())
+            .context("failed to stage caddy filter privately")?;
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg("/tmp/gb-caddy-filter.conf")?
+            .arg(filter.as_path().to_string_lossy().as_ref())?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/filter.d/caddy.conf"))?
             .execute()
             .context("incus file push caddy filter failed")?;
 
         // Disable default sshd jail (no sshd in proxy)
-        std::fs::write("/tmp/gb-proxy-defaults.conf", PROXY_DEFAULTS_DEBIAN)
-            .context("failed to write proxy defaults to /tmp")?;
+        let defaults = super::private_staging::StagedConfig::create("gb-proxy-defaults.conf", PROXY_DEFAULTS_DEBIAN.as_bytes())
+            .context("failed to stage proxy defaults privately")?;
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg("/tmp/gb-proxy-defaults.conf")?
+            .arg(defaults.as_path().to_string_lossy().as_ref())?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.d/defaults-debian.conf"))?
             .execute()
             .context("incus file push proxy defaults failed")?;
 
         // Write proxy jail.local
-        std::fs::write("/tmp/gb-proxy-jail.local", PROXY_JAIL_LOCAL)
-            .context("failed to write proxy jail.local to /tmp")?;
+        let jail = super::private_staging::StagedConfig::create("gb-proxy-jail.local", PROXY_JAIL_LOCAL.as_bytes())
+            .context("failed to stage proxy jail.local privately")?;
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg("/tmp/gb-proxy-jail.local")?
+            .arg(jail.as_path().to_string_lossy().as_ref())?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.local"))?
             .execute()
             .context("incus file push proxy jail.local failed")?;

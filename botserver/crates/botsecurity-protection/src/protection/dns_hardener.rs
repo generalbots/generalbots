@@ -86,13 +86,13 @@ impl DnsHardener {
     }
 
     async fn write_config(content: &str) -> Result<()> {
-        let host_tmp = "/tmp/gb-corefile";
-        std::fs::write(host_tmp, content).context("failed to write Corefile to /tmp")?;
+        let staged = super::private_staging::StagedConfig::create("gb-corefile", content.as_bytes())
+            .context("failed to stage Corefile privately")?;
 
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg(host_tmp)?
+            .arg(staged.as_path().to_string_lossy().as_ref())?
             .arg(format!("{DNS_CONTAINER}{COREFILE_PATH}"))?
             .execute()
             .context("incus file push Corefile failed")?;

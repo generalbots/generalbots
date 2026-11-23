@@ -117,14 +117,14 @@ impl CaddyHardener {
     async fn write_config(content: &str) -> Result<()> {
         // Write to /tmp inside container then move to final path
         let tmp = "/tmp/gb-caddy-config";
-        std::fs::write("/tmp/gb-caddy-host", content)
-            .context("failed to write caddy config to host /tmp")?;
+        let staged = super::private_staging::StagedConfig::create("gb-caddy-host", content.as_bytes())
+            .context("failed to stage caddy config privately")?;
 
         // Push file into container
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg("/tmp/gb-caddy-host")?
+            .arg(staged.as_path().to_string_lossy().as_ref())?
             .arg(format!("{CADDY_CONTAINER}{tmp}"))?
             .execute()
             .context("incus file push failed")?;
