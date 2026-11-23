@@ -837,3 +837,32 @@ workspace-state-empty-favorites-title = Aucun favori pour le moment
 workspace-state-empty-favorites-desc = Marquez une page comme favorite pour la garder en haut de la barre latérale.
 workspace-state-empty-pages-title = Aucune page pour le moment
 workspace-state-empty-pages-desc = Les pages sont les notes et documents de cet espace. Créez la première.
+
+# -----------------------------------------------------------------------------
+# #2604 — Protection panel (status comes from /api/security/protection)
+# -----------------------------------------------------------------------------
+protection-title = Protection
+protection-subtitle = Host security tools reported by the server — never a hardcoded "enabled" state.
+protection-scanner-status = Scanner status
+protection-loading = Loading scanner status…
+protection-unknown = unknown
+protection-days-old = {days} days old
+protection-unknown-tool = unknown tool
+protection-active = Active
+protection-not-scanning = NOT SCANNING — no scanner is active
+protection-version = Version
+protection-signature-age = Signature age
+protection-last-scan = Last scan
+protection-never = never
+protection-run-scan = Run scan
+protection-opt-out = Uploads are NOT scanned: unscanned imports are allowed.
+protection-no-scanner = No scanner is registered.
+protection-quarantine = Quarantine
+protection-tool = Tool
+protection-list = List quarantined files
+protection-quarantine-empty = No quarantined files.
+protection-restore = Restore
+protection-action-failed = The action failed.
+protection-load-error = Scanner status is unavailable.
+protection-clamav = ClamAV
+protection-lmd = LMD

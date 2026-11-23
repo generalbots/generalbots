@@ -837,3 +837,32 @@ workspace-state-empty-favorites-title = Ainda não há favoritos
 workspace-state-empty-favorites-desc = Marque uma página como favorita para mantê-la no topo da barra lateral.
 workspace-state-empty-pages-title = Ainda não há páginas
 workspace-state-empty-pages-desc = As páginas são as notas e documentos deste espaço. Crie a primeira.
+
+# -----------------------------------------------------------------------------
+# #2604 — Protection panel (status comes from /api/security/protection)
+# -----------------------------------------------------------------------------
+protection-title = Proteção
+protection-subtitle = Ferramentas de segurança reportadas pelo servidor — nunca um estado "ativado" fixo.
+protection-scanner-status = Estado do verificador
+protection-loading = Carregando estado do verificador…
+protection-unknown = desconhecido
+protection-days-old = {days} dias
+protection-unknown-tool = ferramenta desconhecida
+protection-active = Ativo
+protection-not-scanning = SEM VERIFICAÇÃO — nenhum verificador ativo
+protection-version = Versão
+protection-signature-age = Idade das assinaturas
+protection-last-scan = Última verificação
+protection-never = nunca
+protection-run-scan = Executar verificação
+protection-opt-out = Envios NÃO são verificados: importações sem verificação estão permitidas.
+protection-no-scanner = Nenhum verificador registrado.
+protection-quarantine = Quarentena
+protection-tool = Ferramenta
+protection-list = Listar arquivos em quarentena
+protection-quarantine-empty = Nenhum arquivo em quarentena.
+protection-restore = Restaurar
+protection-action-failed = A ação falhou.
+protection-load-error = O estado do verificador não está disponível.
+protection-clamav = ClamAV
+protection-lmd = LMD

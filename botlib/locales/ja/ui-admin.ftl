@@ -837,3 +837,32 @@ workspace-state-empty-favorites-title = まだお気に入りがありません
 workspace-state-empty-favorites-desc = ページをお気に入りにすると、サイドバーの上部に固定されます。
 workspace-state-empty-pages-title = まだページがありません
 workspace-state-empty-pages-desc = ページはこのワークスペースのメモと文書です。最初のページを作成しましょう。
+
+# -----------------------------------------------------------------------------
+# #2604 — Protection panel (status comes from /api/security/protection)
+# -----------------------------------------------------------------------------
+protection-title = Protection
+protection-subtitle = Host security tools reported by the server — never a hardcoded "enabled" state.
+protection-scanner-status = Scanner status
+protection-loading = Loading scanner status…
+protection-unknown = unknown
+protection-days-old = {days} days old
+protection-unknown-tool = unknown tool
+protection-active = Active
+protection-not-scanning = NOT SCANNING — no scanner is active
+protection-version = Version
+protection-signature-age = Signature age
+protection-last-scan = Last scan
+protection-never = never
+protection-run-scan = Run scan
+protection-opt-out = Uploads are NOT scanned: unscanned imports are allowed.
+protection-no-scanner = No scanner is registered.
+protection-quarantine = Quarantine
+protection-tool = Tool
+protection-list = List quarantined files
+protection-quarantine-empty = No quarantined files.
+protection-restore = Restore
+protection-action-failed = The action failed.
+protection-load-error = Scanner status is unavailable.
+protection-clamav = ClamAV
+protection-lmd = LMD
