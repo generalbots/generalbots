@@ -19,11 +19,22 @@ pub struct InventoryState {
     pub pool: DbPool,
 }
 
-/// Resolves the caller's tenant branch from the server-minted JWT claims
-/// (issue #734). Falls back to the global nil branch for anonymous/system
-/// callers; every query is still bounded by the resolved branch.
-fn resolve_branch(headers: &HeaderMap) -> Uuid {
-    botsecurity_core::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+/// Resolves the caller's tenant branch from the verified JWT claims (#2875).
+///
+/// A missing (or nil) branch claim is refused with 401 instead of silently
+/// degrading to the global nil branch: every inventory read and write must be
+/// bound to a verified tenant. Nil is reserved for explicit desktop-local or
+/// system callers — it is never inferred from an absent claim.
+fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, StatusCode> {
+    require_branch(botsecurity_core::tenant::branch_from_claims(headers))
+}
+
+/// Pure branch resolver (#2875): only a verified, non-nil claim is accepted.
+fn require_branch(claim: Option<Uuid>) -> Result<Uuid, StatusCode> {
+    match claim {
+        Some(branch) if branch != Uuid::nil() => Ok(branch),
+        _ => Err(StatusCode::UNAUTHORIZED),
+    }
 }
 
 pub fn configure_inventory_routes() -> Router<Arc<InventoryState>> {
@@ -39,7 +50,7 @@ async fn list_items(
     State(state): State<Arc<InventoryState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<InventoryItem>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let items = diesel::sql_query(
         "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
@@ -60,7 +71,7 @@ async fn create_item(
     headers: HeaderMap,
     Json(payload): Json<CreateItemRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
     let qty = payload.quantity.unwrap_or_default();
@@ -94,7 +105,7 @@ async fn get_item(
     headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<InventoryItem>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
@@ -112,7 +123,7 @@ async fn list_movements(
     State(state): State<Arc<InventoryState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<InventoryMovement>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT id, branch_id, item_id, movement_type, quantity, reference_type, \
@@ -144,7 +155,7 @@ async fn create_movement(
     headers: HeaderMap,
     Json(payload): Json<CreateMovementRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
 
@@ -168,7 +179,7 @@ async fn list_pos(
     State(state): State<Arc<InventoryState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<PurchaseOrder>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
@@ -200,7 +211,7 @@ async fn create_po(
     headers: HeaderMap,
     Json(payload): Json<CreatePoRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let po_id = Uuid::new_v4();
     let po_number = format!("PO-{}", chrono::Utc::now().format("%Y%m%d-%06x"));
@@ -252,7 +263,7 @@ async fn get_po(
     headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<PurchaseOrder>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
@@ -359,6 +370,27 @@ struct MovementDbRow {
     created_by: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[cfg(test)]
+mod branch_resolver_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_verified_non_nil_claim() {
+        let branch = Uuid::new_v4();
+        assert_eq!(require_branch(Some(branch)), Ok(branch));
+    }
+
+    #[test]
+    fn refuses_missing_claim_with_401() {
+        assert_eq!(require_branch(None), Err(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn refuses_nil_claim_with_401() {
+        assert_eq!(require_branch(Some(Uuid::nil())), Err(StatusCode::UNAUTHORIZED));
+    }
 }
 
 #[derive(diesel::QueryableByName)]

@@ -1,7 +1,7 @@
 use super::*;
 
 pub async fn stats(headers: HeaderMap) -> Result<Json<BankingStats>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]

@@ -8,7 +8,7 @@ pub async fn pix_receive(
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".to_string()));
     }
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
@@ -36,7 +36,7 @@ pub async fn pix_receive(
     })
 }
 pub async fn export_pix_history(headers: HeaderMap) -> Result<(HeaderMap, String), (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]

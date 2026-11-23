@@ -20,7 +20,7 @@ pub async fn list_accounts(headers: HeaderMap) -> Result<Json<Vec<BankAccount>>,
             "SELECT id, bank, agency, account_number, account_type, balance, currency, last_sync, status
              FROM banking_accounts WHERE branch_id = $1 ORDER BY bank ASC LIMIT 500",
         )
-        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers))
+        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers)?)
         .load(&mut conn)
         .map_err(db::map_diesel_err)?;
         ok(rows.into_iter().map(|r| BankAccount {
@@ -38,7 +38,7 @@ pub async fn create_account(
         return Err((StatusCode::BAD_REQUEST, "bank name is required".to_string()));
     }
     let balance = req.balance.parse::<Decimal>().unwrap_or_default();
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
@@ -68,7 +68,7 @@ pub async fn sync_account(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
@@ -82,7 +82,7 @@ pub async fn sync_account(
     ok(serde_json::json!({ "success": true, "account_id": id, "last_sync": now }))
 }
 pub async fn sync_all_accounts(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();

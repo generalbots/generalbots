@@ -29,7 +29,7 @@ pub async fn list_pix(headers: HeaderMap) -> Result<Json<Vec<PixTransfer>>, (Sta
             "SELECT id, direction, key_type, key_value, counterparty, amount, description, status, end_to_end_id, created_at
              FROM banking_pix_transfers WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
         )
-        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers))
+        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers)?)
         .load(&mut conn)
         .map_err(db::map_diesel_err)?;
         ok(rows.into_iter().map(|r| PixTransfer {
@@ -50,7 +50,7 @@ pub async fn pix_transfer(
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".to_string()));
     }
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();

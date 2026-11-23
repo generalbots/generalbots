@@ -10,7 +10,7 @@ pub(super) fn default_settings() -> BankingSettings {
     }
 }
 pub async fn get_settings(headers: HeaderMap) -> Result<Json<BankingSettings>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -53,7 +53,7 @@ pub async fn save_settings(
     if let Some(v) = req.notify_on_unmatched { current.notify_on_unmatched = v; }
     if let Some(v) = req.webhook { current.webhook = v; }
 
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let auto = current.auto_approve_under.parse::<Decimal>().unwrap_or_default();
@@ -88,7 +88,7 @@ pub async fn save_settings(
     ok(current)
 }
 pub async fn reset_settings(headers: HeaderMap) -> Result<Json<BankingSettings>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let def = default_settings();

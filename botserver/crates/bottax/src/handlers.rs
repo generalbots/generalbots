@@ -9,17 +9,30 @@ use crate::db;
 use crate::models::{CTe, NFe, NFSe, NewCTe, NewNFe, NewNFSe, Sped, TaxCalculationRequest};
 use crate::storage::{ensure_schema_sync, load_rates_from_billing, parse_decimal};
 
-/// Resolves the caller's tenant branch from the server-minted JWT claims
-/// (issue #734). Falls back to the global nil branch so anonymous/system
-/// callers keep working, but every query is still constrained by the resolved
-/// branch — a tenant can never see another tenant's rows.
-fn resolve_branch(headers: &HeaderMap) -> Uuid {
-    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+/// Resolves the caller's tenant branch from the verified JWT claims (#2875).
+///
+/// A missing (or nil) branch claim is refused with 401 instead of silently
+/// degrading to the global nil branch: every fiscal document and tax
+/// calculation must be bound to a verified tenant. Nil is reserved for
+/// explicit desktop-local or system callers — never inferred from an absent claim.
+fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
+    require_branch(botcore::shared::tenant::branch_from_claims(headers))
+}
+
+/// Pure branch resolver (#2875): only a verified, non-nil claim is accepted.
+fn require_branch(claim: Option<Uuid>) -> Result<Uuid, (StatusCode, String)> {
+    match claim {
+        Some(branch) if branch != Uuid::nil() => Ok(branch),
+        _ => Err((
+            StatusCode::UNAUTHORIZED,
+            "missing tenant claims: sign in again".to_string(),
+        )),
+    }
 }
 
 pub async fn list_nfe(headers: HeaderMap) -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -68,7 +81,7 @@ pub async fn create_nfe(headers: HeaderMap, Json(req): Json<NewNFe>) -> Result<J
     ensure_schema_sync()?;
     require_cnpj("emitter", &req.emitter_cnpj)?;
     require_cnpj("recipient", &req.recipient_cnpj)?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
@@ -99,7 +112,7 @@ pub async fn authorize_nfe(headers: HeaderMap, Path(id): Path<String>) -> Result
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
@@ -123,7 +136,7 @@ pub async fn authorize_nfe(headers: HeaderMap, Path(id): Path<String>) -> Result
 
 pub async fn list_nfse(headers: HeaderMap) -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -152,7 +165,7 @@ pub async fn list_nfse(headers: HeaderMap) -> Result<Json<Vec<NFSe>>, (StatusCod
 pub async fn create_nfse(headers: HeaderMap, Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (StatusCode, String)> {
     ensure_schema_sync()?;
     require_cnpj("provider", &req.provider_cnpj)?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
@@ -179,7 +192,7 @@ pub async fn create_nfse(headers: HeaderMap, Json(req): Json<NewNFSe>) -> Result
 
 pub async fn list_cte(headers: HeaderMap) -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -210,7 +223,7 @@ pub async fn create_cte(headers: HeaderMap, Json(req): Json<NewCTe>) -> Result<J
     ensure_schema_sync()?;
     require_cnpj("sender", &req.sender_cnpj)?;
     require_cnpj("recipient", &req.recipient_cnpj)?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
@@ -238,7 +251,7 @@ pub async fn create_cte(headers: HeaderMap, Json(req): Json<NewCTe>) -> Result<J
 
 pub async fn list_sped(headers: HeaderMap) -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -268,7 +281,7 @@ pub async fn calculate_tax(
     Json(req): Json<TaxCalculationRequest>,
 ) -> Result<Json<crate::calculator::TaxBreakdown>, (StatusCode, String)> {
     let service_value = parse_decimal(&req.service_value)?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
 
@@ -328,7 +341,7 @@ pub fn persist_calculation(
 pub async fn list_calculations(
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -380,7 +393,31 @@ pub async fn list_calculations(
 
 #[cfg(test)]
 mod tests {
-    use super::require_cnpj;
+    use super::{require_branch, require_cnpj};
+    use axum::http::StatusCode;
+    use uuid::Uuid;
+
+    #[test]
+    fn branch_resolver_accepts_verified_non_nil_claim() {
+        let branch = Uuid::new_v4();
+        assert_eq!(require_branch(Some(branch)), Ok(branch));
+    }
+
+    #[test]
+    fn branch_resolver_refuses_missing_claim_with_401() {
+        assert_eq!(
+            require_branch(None).err().map(|(status, _)| status),
+            Some(StatusCode::UNAUTHORIZED)
+        );
+    }
+
+    #[test]
+    fn branch_resolver_refuses_nil_claim_with_401() {
+        assert_eq!(
+            require_branch(Some(Uuid::nil())).err().map(|(status, _)| status),
+            Some(StatusCode::UNAUTHORIZED)
+        );
+    }
 
     #[test]
     fn valid_cnpj_passes_the_check_digit_test() {

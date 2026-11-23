@@ -19,11 +19,22 @@ pub struct GlState {
     pub pool: DbPool,
 }
 
-/// Resolves the caller's tenant branch from the server-minted JWT claims
-/// (issue #734). Falls back to the global nil branch for anonymous/system
-/// callers; every query is still bounded by the resolved branch.
-fn resolve_branch(headers: &HeaderMap) -> Uuid {
-    botsecurity_core::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+/// Resolves the caller's tenant branch from the verified JWT claims (#2875).
+///
+/// A missing (or nil) branch claim is refused with 401 instead of silently
+/// degrading to the global nil branch: every financial read and write must be
+/// bound to a verified tenant. Nil is reserved for explicit desktop-local or
+/// system callers — it is never inferred from an absent claim.
+fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, StatusCode> {
+    require_branch(botsecurity_core::tenant::branch_from_claims(headers))
+}
+
+/// Pure branch resolver (#2875): only a verified, non-nil claim is accepted.
+fn require_branch(claim: Option<Uuid>) -> Result<Uuid, StatusCode> {
+    match claim {
+        Some(branch) if branch != Uuid::nil() => Ok(branch),
+        _ => Err(StatusCode::UNAUTHORIZED),
+    }
 }
 
 pub fn configure_gl_routes() -> Router<Arc<GlState>> {
@@ -40,7 +51,7 @@ async fn list_accounts(
     State(state): State<Arc<GlState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<GlAccount>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let accounts = diesel::sql_query(
         "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
@@ -69,7 +80,7 @@ async fn create_account(
     headers: HeaderMap,
     Json(payload): Json<CreateAccountRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
 
@@ -94,7 +105,7 @@ async fn get_account(
     headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<GlAccount>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
@@ -122,7 +133,7 @@ async fn list_entries(
     State(state): State<Arc<GlState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<GlJournalEntry>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entries = diesel::sql_query(
         "SELECT id, branch_id, entry_date, description, reference_type, reference_id, \
@@ -154,7 +165,7 @@ async fn create_entry(
     headers: HeaderMap,
     Json(payload): Json<CreateJournalEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entry_id = Uuid::new_v4();
 
@@ -197,7 +208,7 @@ async fn trial_balance(
     State(state): State<Arc<GlState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<TrialBalanceRow>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, a.account_type, \
@@ -231,7 +242,7 @@ async fn income_statement(
     State(state): State<Arc<GlState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<IncomeStatementRow>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, \
@@ -261,7 +272,7 @@ async fn balance_sheet(
     State(state): State<Arc<GlState>>,
     headers: HeaderMap,
 ) -> Result<Json<Vec<BalanceSheetRow>>, StatusCode> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, a.account_type, \
@@ -373,4 +384,25 @@ struct BalanceSheetDbRow {
     account_type: String,
     #[diesel(sql_type = diesel::sql_types::Numeric)]
     balance: rust_decimal::Decimal,
+}
+
+#[cfg(test)]
+mod branch_resolver_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_verified_non_nil_claim() {
+        let branch = Uuid::new_v4();
+        assert_eq!(require_branch(Some(branch)), Ok(branch));
+    }
+
+    #[test]
+    fn refuses_missing_claim_with_401() {
+        assert_eq!(require_branch(None), Err(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn refuses_nil_claim_with_401() {
+        assert_eq!(require_branch(Some(Uuid::nil())), Err(StatusCode::UNAUTHORIZED));
+    }
 }

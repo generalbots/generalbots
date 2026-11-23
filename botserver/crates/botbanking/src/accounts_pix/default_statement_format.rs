@@ -5,7 +5,7 @@ pub async fn download_statement(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<(HeaderMap, String), (StatusCode, String)> {
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -61,7 +61,7 @@ pub async fn list_statements(headers: HeaderMap) -> Result<Json<Vec<Statement>>,
             "SELECT id, period, account_label, opening, closing, generated_at, format
              FROM banking_statements WHERE branch_id = $1 ORDER BY generated_at DESC LIMIT 500",
         )
-        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers))
+        .bind::<diesel::sql_types::Uuid, _>(resolve_branch(&headers)?)
         .load(&mut conn)
         .map_err(db::map_diesel_err)?;
         ok(rows.into_iter().map(|r| Statement {
@@ -78,7 +78,7 @@ pub async fn create_statement(
     if req.period.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "period is required".to_string()));
     }
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     // Resolve account label and current balance for opening/closing snapshot.
