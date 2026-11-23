@@ -50,6 +50,9 @@
             <div class="context-progress-bar" id="contextProgressBar" style="width: 0%"></div>
         </div>
     </div>
+    <!-- #2628 — shared sanitizer for model/WS-authored HTML; must load before
+         the message renderers that hand content to innerHTML. -->
+    <script src="/suite/chat/chat-sanitize.js"></script>
     <script src="js/app/01_state_auth.js"></script>
     <script src="js/app/02_messages.js"></script>
     <script src="js/app/03_send_voice.js"></script>

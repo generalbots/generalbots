@@ -100,7 +100,7 @@
         function showWarning(m) {
             const w = document.createElement("div");
             w.className = "warning-message";
-            w.innerHTML = `⚠️ ${m}`;
+            w.innerHTML = `⚠️ ${safeHtml(m)}`;
             messagesDiv.appendChild(w);
             if (!isUserScrolling) {
                 scrollToBottom();
@@ -158,13 +158,13 @@
                 updateContextUsage(contextUsage + 0.05);
             } else if (role === "assistant") {
                 const isHtml = content.trim().startsWith('<');
-                const rendered = streaming ? "" : (isHtml ? content : marked.parse(content));
+                const rendered = streaming ? "" : safeHtml(isHtml ? content : marked.parse(content));
                 m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content markdown-content" id="${msgId || ""}">${rendered}</div></div>`;
                 updateContextUsage(contextUsage + 0.03);
             } else if (role === "voice") {
-                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar">🎤</div><div class="assistant-message-content">${content}</div></div>`;
+                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar">🎤</div><div class="assistant-message-content">${safeHtml(content)}</div></div>`;
             } else {
-                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content">${content}</div></div>`;
+                m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content">${safeHtml(content)}</div></div>`;
             }
             messagesDiv.appendChild(m);
             if (!isUserScrolling) {
@@ -176,7 +176,7 @@
             const m = document.getElementById(streamingMessageId);
             if (m) {
                 const isHtmlStream = c.trim().startsWith('<');
-                m.innerHTML = isHtmlStream ? c : marked.parse(c);
+                m.innerHTML = safeHtml(isHtmlStream ? c : marked.parse(c));
                 if (!isUserScrolling) {
                     scrollToBottom();
                 }
@@ -187,7 +187,7 @@
             const m = document.getElementById(streamingMessageId);
             if (m) {
                 const isHtmlFinal = currentStreamingContent.trim().startsWith('<');
-                m.innerHTML = isHtmlFinal ? currentStreamingContent : marked.parse(currentStreamingContent);
+                m.innerHTML = safeHtml(isHtmlFinal ? currentStreamingContent : marked.parse(currentStreamingContent));
                 m.removeAttribute("id");
                 if (!isUserScrolling) {
                     scrollToBottom();
@@ -199,6 +199,18 @@
             const d = document.createElement("div");
             d.textContent = t;
             return d.innerHTML;
+        }
+
+        // #2628 — every bot/WS string handed to innerHTML is untrusted. Run it
+        // through the shared GBSanitize (same engine as the suite chat) before
+        // it reaches the DOM. Fall back to text escaping if the sanitizer did
+        // not load, so no raw markup can ever be injected.
+        function safeHtml(s) {
+            const raw = s == null ? "" : String(s);
+            if (window.GBSanitize && typeof window.GBSanitize.html === "function") {
+                return window.GBSanitize.html(raw);
+            }
+            return escapeHtml(raw);
         }
 
         function clearSuggestions() {
