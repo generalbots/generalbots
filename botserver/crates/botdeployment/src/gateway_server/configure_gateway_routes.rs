@@ -415,3 +415,9 @@ mod artifact_boundary_tests {
         fs::remove_file(outside).ok();
     }
 }
+
+// #2915 — acceptance tests for the loopback-by-default gateway auth boundary
+// (unauthenticated requests are 401; key rotation is truthfully 501).
+#[cfg(test)]
+#[path = "gateway_auth_acceptance_tests.rs"]
+mod gateway_auth_acceptance_tests;

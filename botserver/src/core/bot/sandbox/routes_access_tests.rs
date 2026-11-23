@@ -21,7 +21,10 @@ fn only_signed_resource_routes_are_public() {
         classify_sandbox_route(RESOURCE_ROUTE),
         SandboxRouteAccess::Public
     );
-    assert_eq!(classify_sandbox_route(HASH_PATH), SandboxRouteAccess::Public);
+    assert_eq!(
+        classify_sandbox_route(HASH_PATH),
+        SandboxRouteAccess::Public
+    );
     for path in [CONFIG_ROUTE, STATUS_ROUTE, REVOKE_ROUTE] {
         assert_eq!(
             classify_sandbox_route(path),
@@ -47,4 +50,59 @@ fn management_routes_are_absent_from_the_public_listener() {
             "{path} leaked onto the unauthenticated listener"
         );
     }
+}
+
+/// #2760 — HTTP-level proof of the listener boundary. The router is built
+/// from the very table `public_router()` iterates, so a management path that
+/// ever leaks into that table fails this test with a 200 instead of a 404.
+/// A stub handler keeps the test independent of `AppState`; the assertion is
+/// about which paths are routable, not about resource contents.
+#[tokio::test]
+async fn public_listener_refuses_management_requests_but_routes_resources() {
+    use axum::{body::Body, http::Request, http::StatusCode, routing::get, Router};
+    use tower::ServiceExt;
+
+    let mut app = Router::new();
+    for path in PUBLIC_ROUTES {
+        app = app.route(path, get(|| async { "ok" }));
+    }
+
+    let hash = &HASH_PATH[super::RESOURCE_ROUTE_PREFIX.len()..];
+    for (method, path) in [
+        ("GET", CONFIG_ROUTE.to_string()),
+        ("GET", STATUS_ROUTE.replace(":hash", hash)),
+        ("POST", REVOKE_ROUTE.replace(":hash", hash)),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(path.as_str())
+                    .body(Body::empty())
+                    .expect("test request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(
+            response.status(),
+            StatusCode::NOT_FOUND,
+            "{method} {path} must be refused on the sandbox listener"
+        );
+    }
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(HASH_PATH)
+                .body(Body::empty())
+                .expect("test request"),
+        )
+        .await
+        .expect("response");
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "the signed-resource path must stay routable on the sandbox listener"
+    );
 }

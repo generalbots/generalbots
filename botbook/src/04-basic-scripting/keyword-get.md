@@ -69,6 +69,19 @@ TALK CONTENT
 - Validates paths to prevent directory traversal or unsafe access.  
 - Runs in a separate thread to avoid blocking the main engine.
 
+### Path validation is shared by both BASIC forms
+
+GET has two BASIC spellings: the `get_file(path)` function form (emitted when
+multi-word keywords are converted to function calls) and the `GET $expr$`
+custom-syntax form. Both call the same `is_safe_path` predicate in
+`botbasic_data/src/keywords/get/execute_get_from.rs` before dispatching to
+HTTP fetching or bucket retrieval, so a source accepted or rejected by one form
+is treated the same way by the other. The screen rejects control characters,
+backslashes, percent-encoded traversal, `..`, a leading `/`, drive-letter
+prefixes and unsafe URL hosts (the latter through `validate_url_ssrf_strict`).
+It is defence in depth over the SSRF URL validation already applied by the
+downstream fetch policy.
+
 ---
 
 ## Related Keywords

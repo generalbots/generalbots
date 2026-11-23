@@ -233,13 +233,16 @@ instead of being accepted unscanned. This applies both to the central
 `validate_upload` gate and to the explicit import-boundary audits in Docs,
 Sheets and Slides; all three use the same default policy.
 
-#2606 removed the temporary escape hatches: `GB_ALLOW_UNSCANNED_IMPORT` and the
-Slides-only `GB_ALLOW_UNSCANNED_SLIDES_IMPORT` alias are no longer read, and no
-configuration path can lower the scanner requirement. A registered scanner is
-the only way an Office package can be imported. Register one with
-`set_malware_scanner`; until then, imports fail closed rather than being treated
-as clean. The decision is recorded on the import report as `NotConfigured`,
-`Clean`, `Infected` or `Failed` — never fabricated as `Clean` by the gate itself.
+#2606 removed the temporary escape hatches: no environment variable or
+configuration path can lower the scanner requirement or skip a scan. At boot
+botserver installs the real ClamAV byte scanner once, before any route can
+accept an upload, and refuses to start if registration fails
+(`run_axum_server_malware_scanner.rs::install_scanner_at_boot`). Every Office
+import therefore runs through a registered scanner; with none installed the
+gate fails closed with the typed `MalwareScannerMissing` error rather than
+treating the package as clean. The verdict is recorded on the import report as
+`NotConfigured`, `Clean`, `Infected` or `Failed` — never fabricated as `Clean`
+by the gate itself.
 
 ## Data-protection honesty on the OS appliance (#2470)
 
