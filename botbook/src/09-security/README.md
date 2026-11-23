@@ -11,6 +11,17 @@ General Bots implements a comprehensive security model designed for enterprise d
 - **Knowledge Base Security**: Folder-level permissions with Qdrant vector search integration
 - **SOC 2 Type II Compliance**: Enterprise-grade security controls and audit logging
 
+## Security bulletin program
+
+The authoritative advisory channel is the [security bulletin](https://generalbots.org/security/),
+not the community forum. For the public track record and recognition:
+
+- [Status and incident history](https://generalbots.org/security/status.html) — resolved advisories with dates, severity and affected versions.
+- [Hall of fame](https://generalbots.org/security/hall-of-fame.html) — opt-in credit for reporters; no bug bounty, reward budget 0.
+
+Process, roles, approval authority and escalation to CTIR Gov / CERT.br are in
+[Incident Response and Publication Authority](./incident-response.md).
+
 ## Security Layers
 
 ```

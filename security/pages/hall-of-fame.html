@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="doc-title">Hall of fame — General Bots</title>
+  <meta name="description" content="Opt-in recognition for security reporters. No bug bounty; reward budget is 0. Credit can be withdrawn at any time.">
+  <style>
+    :root { color-scheme: light; --ink: #151515; --muted: #4a4a4a; --line: #c7c7c7; --link: #0b4f9c; --bg: #ffffff; --panel: #f4f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0 auto; max-width: 68rem; padding: 0 1.25rem 3rem; background: var(--bg); color: var(--ink);
+           font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--link); text-decoration: underline; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
+    .skip { position: absolute; left: -9999px; top: 0; background: #fff; padding: .5rem 1rem; z-index: 10; }
+    .skip:focus { left: 0; }
+    header { border-bottom: 2px solid var(--line); padding: 1rem 0; }
+    .brand { font-weight: 700; font-size: 1.1rem; }
+    nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: .75rem 0 0; padding: 0; }
+    .tools { margin-top: .75rem; display: flex; gap: .75rem; align-items: center; }
+    button { font: inherit; padding: .3rem .7rem; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+    button[aria-pressed="true"] { background: #0b4f9c; color: #fff; border-color: #0b4f9c; }
+    main { padding-top: 1.25rem; }
+    h1 { font-size: 2rem; line-height: 1.2; }
+    h2 { font-size: 1.35rem; margin-top: 2rem; }
+    .lead { color: var(--muted); max-width: 52rem; }
+    .note { font-size: .875rem; color: var(--muted); }
+    .callout { border-left: 4px solid #0b4f9c; background: var(--panel); padding: .85rem 1rem; margin: 1.5rem 0; }
+    table { border-collapse: collapse; width: 100%; }
+    caption { text-align: left; font-weight: 600; padding-bottom: .5rem; }
+    th, td { border: 1px solid var(--line); padding: .55rem .65rem; text-align: left; }
+    thead th { background: var(--panel); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    details { border: 1px solid var(--line); border-radius: .4rem; padding: .6rem .9rem; margin: 1rem 0; }
+    summary { cursor: pointer; font-weight: 600; }
+    footer { border-top: 2px solid var(--line); margin-top: 2.5rem; padding-top: 1rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#conteudo" data-i18n="skip">Pular para o conteúdo</a>
+  <header>
+    <div class="brand" data-i18n="brand">General Bots — boletim de segurança</div>
+    <nav aria-label="Navegação do boletim">
+      <ul>
+        <li><a href="/security/" data-i18n="nav-advisories">Avisos</a></li>
+        <li><a href="status.html" data-i18n="nav-status">Status e histórico</a></li>
+        <li><a href="hall-of-fame.html" aria-current="page" data-i18n="nav-hall">Hall of fame</a></li>
+        <li><a href="/.well-known/security.txt" data-i18n="nav-report">Como reportar</a></li>
+      </ul>
+    </nav>
+    <div class="tools" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="pt-BR" aria-pressed="true" data-i18n="lang-pt">Português (autoritativo)</button>
+      <button type="button" data-lang="en" aria-pressed="false" data-i18n="lang-en">English</button>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <h1 data-i18n="h1">Hall of fame</h1>
+    <p class="lead" data-i18n="lead">Pessoas que escolheram ser creditadas publicamente por reportar uma vulnerabilidade. A participação é opt-in: nada é publicado sem consentimento explícito e registrado.</p>
+    <p class="note" data-i18n="authoritative">Português (pt-BR) é a versão autoritativa. Em caso de divergência, ela prevalece.</p>
+
+    <div class="callout">
+      <strong data-i18n="notice-title">Sem recompensas.</strong>
+      <span data-i18n="notice-body">Não há programa de recompensas. Orçamento de recompensas = 0. Reconhecimento público é o único incentivo.</span>
+    </div>
+
+    <h2 data-i18n="list-title">Créditos publicados</h2>
+    <table>
+      <caption data-i18n="table-caption">Apenas handles escolhidos pelo próprio reportante; nunca e-mails ou dados privados.</caption>
+      <thead>
+        <tr>
+          <th scope="col" data-i18n="col-handle">Handle</th>
+          <th scope="col" data-i18n="col-advisory">Aviso</th>
+          <th scope="col" data-i18n="col-date">Data</th>
+          <th scope="col" data-i18n="col-role">Papel</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" data-i18n="empty">Nenhum crédito publicado no momento. Entries are added only after explicit opt-in.</td></tr>
+      </tbody>
+    </table>
+    <p class="note"><span data-i18n="registry-note-prefix">Fonte:</span> <a href="hall-of-fame.json">hall-of-fame.json</a><span data-i18n="registry-note">. Nenhuma entrada com <code>opt_in: false</code> pode ser publicada.</span></p>
+
+    <details>
+      <summary data-i18n="optin-title">Como ser creditado (opt-in)</summary>
+      <p data-i18n="optin-body">Ao reportar, informe à equipe de segurança o handle público que deseja ver exibido e confirme por escrito que concorda em ser nomeado. O crédito aparece apenas no aviso e nesta página, com o handle escolhido. Nunca publicamos endereço de e-mail, telefone, IP ou qualquer dado que não tenha sido explicitamente autorizado. Você pode retirar o consentimento a qualquer momento, sem precisar justificar.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="removal-title">Como solicitar a remoção</summary>
+      <p><span data-i18n="removal-body">Envie a solicitação para</span> <a href="mailto:security@generalbots.org">security@generalbots.org</a> <span data-i18n="removal-body-2">informando o handle ou o ID do aviso. Confirmação em até 3 dias úteis; o crédito é retirado do site em até 5 dias úteis e omitido da próxima publicação assinada do espelho. Pacotes imutáveis já publicados não podem ser editados; a equipe aplica o caminho de retirada descrito no runbook de resposta a incidentes. Nenhuma explicação é exigida.</span></p>
+    </details>
+
+    <details>
+      <summary data-i18n="privacy-title">Privacidade e dados do reportante</summary>
+      <p data-i18n="privacy-body">O tratamento segue a política de dados do reportante (#2722): finalidade restrita a reconhecimento, consentimento registrado, retenção mínima e direito de acesso e apagamento. Esta página e o registro JSON não contêm e-mails de reportantes, IPs internos, tokens ou credenciais.</p>
+    </details>
+  </main>
+
+  <footer>
+    <p data-i18n="footer-title">Boletim de segurança General Bots</p>
+    <nav aria-label="Links do rodapé">
+      <ul>
+        <li><a href="/security/" data-i18n="nav-advisories">Avisos</a></li>
+        <li><a href="status.html" data-i18n="nav-status">Status e histórico</a></li>
+        <li><a href="hall-of-fame.html" data-i18n="nav-hall">Hall of fame</a></li>
+        <li><a href="/.well-known/security.txt" data-i18n="nav-report">Como reportar</a></li>
+      </ul>
+    </nav>
+  </footer>
+
+  <script type="application/json" id="gb-i18n">
+  {
+    "pt-BR": {
+      "doc-title": "Hall of fame — General Bots",
+      "skip": "Pular para o conteúdo",
+      "brand": "General Bots — boletim de segurança",
+      "nav-advisories": "Avisos",
+      "nav-status": "Status e histórico",
+      "nav-hall": "Hall of fame",
+      "nav-report": "Como reportar",
+      "lang-pt": "Português (autoritativo)",
+      "lang-en": "English",
+      "h1": "Hall of fame",
+      "lead": "Pessoas que escolheram ser creditadas publicamente por reportar uma vulnerabilidade. A participação é opt-in: nada é publicado sem consentimento explícito e registrado.",
+      "authoritative": "Português (pt-BR) é a versão autoritativa. Em caso de divergência, ela prevalece.",
+      "notice-title": "Sem recompensas.",
+      "notice-body": "Não há programa de recompensas. Orçamento de recompensas = 0. Reconhecimento público é o único incentivo.",
+      "list-title": "Créditos publicados",
+      "table-caption": "Apenas handles escolhidos pelo próprio reportante; nunca e-mails ou dados privados.",
+      "col-handle": "Handle",
+      "col-advisory": "Aviso",
+      "col-date": "Data",
+      "col-role": "Papel",
+      "empty": "Nenhum crédito publicado no momento.",
+      "registry-note-prefix": "Fonte:",
+      "registry-note": ". Nenhuma entrada com opt_in: false pode ser publicada.",
+      "optin-title": "Como ser creditado (opt-in)",
+      "optin-body": "Ao reportar, informe à equipe de segurança o handle público que deseja ver exibido e confirme por escrito que concorda em ser nomeado. O crédito aparece apenas no aviso e nesta página, com o handle escolhido. Nunca publicamos endereço de e-mail, telefone, IP ou qualquer dado que não tenha sido explicitamente autorizado. Você pode retirar o consentimento a qualquer momento, sem precisar justificar.",
+      "removal-title": "Como solicitar a remoção",
+      "removal-body": "Envie a solicitação para",
+      "removal-body-2": "informando o handle ou o ID do aviso. Confirmação em até 3 dias úteis; o crédito é retirado do site em até 5 dias úteis e omitido da próxima publicação assinada do espelho. Pacotes imutáveis já publicados não podem ser editados; a equipe aplica o caminho de retirada descrito no runbook de resposta a incidentes. Nenhuma explicação é exigida.",
+      "privacy-title": "Privacidade e dados do reportante",
+      "privacy-body": "O tratamento segue a política de dados do reportante (#2722): finalidade restrita a reconhecimento, consentimento registrado, retenção mínima e direito de acesso e apagamento. Esta página e o registro JSON não contêm e-mails de reportantes, IPs internos, tokens ou credenciais.",
+      "footer-title": "Boletim de segurança General Bots"
+    },
+    "en": {
+      "doc-title": "Hall of fame — General Bots",
+      "skip": "Skip to content",
+      "brand": "General Bots — security bulletin",
+      "nav-advisories": "Advisories",
+      "nav-status": "Status & history",
+      "nav-hall": "Hall of fame",
+      "nav-report": "How to report",
+      "lang-pt": "Português (authoritative)",
+      "lang-en": "English",
+      "h1": "Hall of fame",
+      "lead": "People who chose to be publicly credited for reporting a vulnerability. Inclusion is opt-in: nothing is published without explicit, recorded consent.",
+      "authoritative": "Portuguese (pt-BR) is the authoritative version. If translations differ, it prevails.",
+      "notice-title": "No rewards.",
+      "notice-body": "There is no bug bounty program. Reward budget is 0. Public recognition is the only incentive.",
+      "list-title": "Published credits",
+      "table-caption": "Only handles chosen by the reporter; never emails or private data.",
+      "col-handle": "Handle",
+      "col-advisory": "Advisory",
+      "col-date": "Date",
+      "col-role": "Role",
+      "empty": "No credits published at this time.",
+      "registry-note-prefix": "Source:",
+      "registry-note": ". No entry with opt_in: false may be published.",
+      "optin-title": "How to be credited (opt-in)",
+      "optin-body": "When reporting, tell the security team the public handle you want shown and confirm in writing that you agree to be named. Credit appears only in the advisory and on this page, using the chosen handle. We never publish an email address, phone number, IP address or any data that was not explicitly authorised. You may withdraw consent at any time without giving a reason.",
+      "removal-title": "How to request removal",
+      "removal-body": "Send the request to",
+      "removal-body-2": "stating the handle or advisory ID. Acknowledgement within 3 business days; the credit is removed from the site within 5 business days and omitted from the next signed mirror publication. Previously published content-addressed bundles cannot be edited; the team applies the retirement path in the incident-response runbook. No explanation is required.",
+      "privacy-title": "Privacy and reporter data",
+      "privacy-body": "Processing follows the reporter-data policy (#2722): purpose limited to recognition, recorded consent, minimum retention and rights of access and erasure. This page and the JSON registry never contain reporter emails, internal IPs, tokens or credentials.",
+      "footer-title": "General Bots security bulletin"
+    }
+  }
+  </script>
+  <script>
+    "use strict";
+    (function () {
+      var catalogs;
+      try {
+        catalogs = JSON.parse(document.getElementById("gb-i18n").textContent);
+      } catch (error) {
+        return;
+      }
+      function apply(lang) {
+        var catalog = catalogs[lang];
+        if (!catalog) { return; }
+        document.documentElement.lang = lang;
+        var nodes = document.querySelectorAll("[data-i18n]");
+        for (var i = 0; i < nodes.length; i += 1) {
+          var key = nodes[i].getAttribute("data-i18n");
+          if (Object.prototype.hasOwnProperty.call(catalog, key)) {
+            nodes[i].textContent = catalog[key];
+          }
+        }
+        var buttons = document.querySelectorAll("button[data-lang]");
+        for (var j = 0; j < buttons.length; j += 1) {
+          buttons[j].setAttribute("aria-pressed", String(buttons[j].getAttribute("data-lang") === lang));
+        }
+        try { window.localStorage.setItem("gb-security-lang", lang); } catch (error) { /* storage disabled */ }
+      }
+      var buttons = document.querySelectorAll("button[data-lang]");
+      for (var i = 0; i < buttons.length; i += 1) {
+        buttons[i].addEventListener("click", function () { apply(this.getAttribute("data-lang")); });
+      }
+      var saved = "pt-BR";
+      try { saved = window.localStorage.getItem("gb-security-lang") || "pt-BR"; } catch (error) { /* storage disabled */ }
+      if (saved === "en") { apply("en"); }
+    })();
+  </script>
+</body>
+</html>

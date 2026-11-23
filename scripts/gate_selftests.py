@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -185,6 +186,15 @@ def osv_allowlist(tmp: Path) -> Case:
         "unknown", VIOLATION,
         _gate("check_osv_allowlist.py", ["--report", str(report), "--allowlist", str(other)]),
     )
+    # #2742 — the npm baseline starts empty (--allow-empty) but a synthetic
+    # advisory must still fail it: the gate is blocking, not decorative.
+    empty = tmp / "npm-baseline.txt"
+    empty.write_text("# baseline: no known npm advisories\n", encoding="utf-8")
+    no_findings = tmp / "osv-npm-empty.json"
+    no_findings.write_text(json.dumps({"results": []}), encoding="utf-8")
+    baseline = ["--allowlist", str(empty), "--allow-empty"]
+    case.expect("npm-baseline-clean", CLEAN, _gate("check_osv_allowlist.py", ["--report", str(no_findings), *baseline]))
+    case.expect("npm-new-advisory", VIOLATION, _gate("check_osv_allowlist.py", ["--report", str(report), *baseline]))
     return case
 
 
@@ -213,6 +223,26 @@ def component_checksums(tmp: Path) -> Case:
         "plaintext-url", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
     )
+    # #2742 — vendored JS integrity: a clean tree passes, a tampered file and
+    # a new unlisted bundle both fail the manifest gate.
+    vendor = tmp / "vendor"
+    vendor.mkdir()
+    asset = vendor / "marked.min.js"
+    asset.write_text("v15.0.12", encoding="utf-8")
+    digest = hashlib.sha256(asset.read_bytes()).hexdigest()
+    js_manifest = tmp / "vendored-js.toml"
+    js_manifest.write_text(
+        '[assets.marked]\npath = "marked.min.js"\nversion = "15.0.12"\n'
+        f'url = "https://example.invalid/marked"\nsha256 = "{digest}"\n',
+        encoding="utf-8",
+    )
+    js_args = ["--js-manifest", str(js_manifest), "--vendor-dir", str(vendor)]
+    case.expect("js-clean", CLEAN, _gate("check_component_checksums.py", js_args))
+    asset.write_text("tampered", encoding="utf-8")
+    case.expect("js-tampered", VIOLATION, _gate("check_component_checksums.py", js_args))
+    asset.write_text("v15.0.12", encoding="utf-8")
+    (vendor / "new.min.js").write_text("x", encoding="utf-8")
+    case.expect("js-untracked", VIOLATION, _gate("check_component_checksums.py", js_args))
     return case
 
 

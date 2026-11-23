@@ -1,0 +1,57 @@
+{
+  "affected": [
+    {
+      "database_specific": {
+        "product": "botui",
+        "severity": "critical"
+      },
+      "package": {
+        "ecosystem": "GeneralBots",
+        "name": "botui"
+      },
+      "ranges": [
+        {
+          "database_specific": {
+            "authored_range": ">= 3.1.0, < 3.1.4"
+          },
+          "events": [
+            {
+              "introduced": "3.1.0"
+            },
+            {
+              "fixed": "3.1.4"
+            }
+          ],
+          "type": "SEMVER"
+        }
+      ],
+      "versions": []
+    }
+  ],
+  "database_specific": {
+    "canonical": "https://generalbots.org/security/advisories/GBSA-2026-0003",
+    "cwe": [
+      "CWE-22"
+    ],
+    "remediation": "3.1.4",
+    "source": "General Bots Security Bulletin"
+  },
+  "details": "Example record for the botui product. Clearly marked as an example, not a real vulnerability.",
+  "id": "GBSA-2026-0003",
+  "modified": "2026-11-22T00:00:00Z",
+  "published": "2026-11-22T00:00:00Z",
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://generalbots.org/security/advisories/GBSA-2026-0003"
+    }
+  ],
+  "schema_version": "1.4.0",
+  "severity": [
+    {
+      "score": "CVSS:4.0/AV:L/AC:L/AT:N/PR:N/UI:A/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N",
+      "type": "CVSS_V4"
+    }
+  ],
+  "summary": "Example: desktop bundle path traversal on import"
+}

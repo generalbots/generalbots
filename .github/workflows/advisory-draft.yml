@@ -1,0 +1,115 @@
+name: Dependency advisory drafts
+
+# #2725 — turn the daily dependency scan into advisory *drafts*, not announcements.
+#
+# The blocking gates live in security.yml (cargo-deny / OSV / pip-audit). This
+# job runs after them, on a schedule only, and produces two artifacts:
+#   1. a Markdown report of every finding and every skip (waiver, dedup, age);
+#   2. one DRAFT issue per new finding, from scripts/advisory_draft_template.md,
+#      with package, version range, CVE/CWE and source links prefilled.
+#
+# NOTHING IS PUBLISHED HERE. A draft is a triage stub for the two-person review
+# gate (#2724); publication to CSAF/OSV (#2714/#2718) is a separate manual step.
+# Dedup against published advisories and already-open drafts prevents spam on
+# every run. Waivers carry an approver + expiry and are audited in the report.
+
+on:
+  schedule:
+    # 05:17 UTC — after the 04:41 UTC security.yml scan has refreshed the DBs.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: advisory-draft-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  draft-advisories:
+    name: Draft advisories from scheduled scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install osv-scanner 2.7.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/google/osv-scanner/releases/download/v2.7.0/osv-scanner_linux_amd64"
+          curl -fsSL --retry 3 -o /tmp/osv-scanner "$url"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+
+      - name: Install cargo-deny 0.20.2 (checksum verified)
+        run: |
+          set -euo pipefail
+          version=0.20.2
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${version}/cargo-deny-${version}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/cargo-deny.tar.gz "$url"
+          tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
+          echo "b329e25933d01c36dd7c47d84ea5716694f9b7caf53a5003d45674703a8ed54a  /tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" | sha256sum -c -
+          sudo install -m 0755 "/tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+
+      - name: Scan all dependency lines into JSON reports
+        # The scans are informational here: security.yml is the blocking gate.
+        # We keep every finding (no --ignore-vuln / allowlist filter) because
+        # waivers and dedup are applied by the drafter and shown in the report.
+        # `|| true` keeps a newly published advisory from hiding the report.
+        run: |
+          set -euo pipefail
+          osv-scanner scan source --lockfile Cargo.lock --format json --output-file /tmp/osv-rust.json || true
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --format json --output-file /tmp/osv-npm.json || true
+          python3 -m venv /tmp/audit-venv
+          /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
+          # Whole requirements file: >= / ~= / unpinned lines resolve to what
+          # pip would actually install (#2675), so no dependency line escapes.
+          /tmp/audit-venv/bin/pip-audit \
+            --requirement botmodels/requirements.txt \
+            --format json --output /tmp/pip-audit.json \
+            --progress-spinner off || true
+          cargo-deny --all-features --format json check advisories > /tmp/deny.json || true
+          test -s /tmp/osv-rust.json
+          test -s /tmp/osv-npm.json
+          test -s /tmp/pip-audit.json
+          test -s /tmp/deny.json
+
+      - name: Generate report and draft advisory issues
+        # Offline fixture test first; then the real run. Drafts go to humans,
+        # never to a publisher. `--create-issues` only opens issues labelled
+        # `advisory-draft` and records them in the state file for dedup.
+        env:
+          ADVISORY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 scripts/draft_advisories.py --self-test
+          python3 scripts/draft_advisories.py \
+            --osv-report /tmp/osv-rust.json \
+            --osv-report /tmp/osv-npm.json \
+            --pip-audit-report /tmp/pip-audit.json \
+            --deny-report /tmp/deny.json \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --report /tmp/advisory-draft-report.md \
+            --drafts-dir /tmp/advisory-drafts \
+            --state /tmp/advisory_drafts_state.json \
+            --create-issues \
+            --api-url https://api.github.com \
+            --repo "${{ github.repository }}"
+
+      - name: Upload report and drafts as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: advisory-draft-report
+          path: |
+            /tmp/advisory-draft-report.md
+            /tmp/advisory-drafts/*.md
+          retention-days: 90

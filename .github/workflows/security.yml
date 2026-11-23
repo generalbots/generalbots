@@ -10,7 +10,7 @@ name: Security
 #
 # What each job protects:
 #   supply-chain   Rust advisories / yanked crates / licenses / sources (deny.toml)
-#   osv            OSV enrichment for Cargo.lock, published as SARIF
+#   osv            OSV enrichment for Cargo.lock + botui npm lockfiles, published as SARIF
 #   secrets        committed credentials across the whole history (.gitleaks.toml)
 #   python         botmodels Python pins (pip-audit)
 #   sbom           SPDX inventory of the shipped tree, kept as an artifact
@@ -39,9 +39,10 @@ env:
 jobs:
   supply-chain:
     name: cargo-deny (advisories, bans, licenses, sources)
-    # The whole repository is mirrored to a Forgejo remote that runs the same
-    # tree; only the GitHub runner has the release assets and the Security tab.
-    if: ${{ github.server_url == 'https://github.com' }}
+    # Supply-chain audits run on BOTH CI hosts (#2744): the tool binaries are
+    # downloaded at pinned versions and verified against checked-in SHA-256s,
+    # so they are host-independent. Only the SARIF / Security-tab upload steps
+    # below stay GitHub-only; the blocking audit must never be skipped.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -91,7 +92,6 @@ jobs:
 
   osv:
     name: OSV scan (Cargo.lock)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -122,8 +122,10 @@ jobs:
             --output-file /tmp/osv.sarif \
             || true
           test -s /tmp/osv.sarif
+      # GitHub-only: the Security tab does not exist on the ALM/Forgejo mirror.
+      # The scan steps above are the gate and run on both hosts (#2744).
       - name: Upload SARIF
-        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         with:
           sarif_file: /tmp/osv.sarif
@@ -143,10 +145,49 @@ jobs:
         # informational SARIF upload. Update scripts/osv_allowlist.txt only
         # together with a written reachability argument in SECURITY.md.
         run: python3 scripts/check_osv_allowlist.py --report /tmp/osv.json --allowlist scripts/osv_allowlist.txt
+      - name: Scan npm lockfiles (SARIF)
+        # #2742 — botui's two checked-in npm lockfiles were invisible to every
+        # gate. Publish their findings to the Security tab; the blocking check
+        # below uses the JSON report so advisory IDs (not CVE aliases) match.
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --format sarif \
+            --output-file /tmp/osv-npm.sarif \
+            || true
+          test -s /tmp/osv-npm.sarif
+      # GitHub-only Security-tab upload (#2744); the JSON gate below runs on
+      # both hosts.
+      - name: Upload npm SARIF
+        if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          sarif_file: /tmp/osv-npm.sarif
+          category: osv-scanner-npm
+      - name: Scan npm lockfiles as JSON (allowlist gate input)
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --format json \
+            --output-file /tmp/osv-npm.json \
+            || true
+          test -s /tmp/osv-npm.json
+      - name: Fail on npm advisories outside the baseline
+        # --allow-empty accepts the documented empty baseline only; an advisory
+        # reported from either lockfile is new and blocks CI until triaged in
+        # scripts/osv_allowlist_npm.txt with a dated reachability argument.
+        run: |
+          python3 scripts/check_osv_allowlist.py \
+            --report /tmp/osv-npm.json \
+            --allowlist scripts/osv_allowlist_npm.txt \
+            --allow-empty
 
   secrets:
     name: Secret scan (full history)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -177,8 +218,10 @@ jobs:
             --report-format sarif \
             --report-path /tmp/gitleaks.sarif \
             --log-opts="--all"
+      # GitHub-only: the Security tab does not exist on the ALM/Forgejo mirror.
+      # The gitleaks scan above is the gate and runs on both hosts (#2744).
       - name: Upload SARIF
-        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        if: ${{ always() && github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         with:
           sarif_file: /tmp/gitleaks.sarif
@@ -186,7 +229,6 @@ jobs:
 
   python:
     name: Python dependencies (botmodels)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -215,7 +257,6 @@ jobs:
 
   sbom:
     name: SBOM (SPDX)
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -246,7 +287,6 @@ jobs:
 
   workflow-lint:
     name: Workflow pinning and syntax
-    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -275,6 +315,11 @@ jobs:
         # scripts/component_checksums_allowlist.txt. The installer verifies the
         # hash and refuses unhashed assets under GB_REQUIRE_CHECKSUMS=1.
         run: python3 scripts/check_component_checksums.py
+      - name: Vendored JavaScript assets are hash-pinned (#2742)
+        # Copied .min.js bundles are served locally and never went through a
+        # registry integrity check. The manifest pins version + source URL +
+        # SHA-256; the gate fails on a changed file or an unlisted new bundle.
+        run: python3 scripts/check_component_checksums.py --js-manifest botui/ui/suite/js/vendor/vendored-js.toml
       - name: Every bundled component has a license entry
         # #2480 — the appliance image distributes third-party binaries, several
         # of them AGPL or BUSL. LICENSES-desktop.md must name every component in
@@ -286,13 +331,19 @@ jobs:
         # that writes a downloaded file without a `sha256sum -c` against a
         # literal digest or the release's SHA256SUMS asset.
         run: python3 scripts/check_workflow_downloads.py
+      - name: Supply-chain audits are not skipped on non-GitHub CI (#2744)
+        # Fails if an audit job is gated on github.server_url, if a SARIF upload
+        # loses its GitHub-only guard, or if the Forgejo mirror drifts from the
+        # audit set enforced here.
+        run: python3 scripts/check_supply_chain_gates.py
 
   headers:
     name: Public origin headers (advisory)
     # Deliberately advisory: #1720 owns shipping the six IMP-09 headers. Until
     # that lands this job reports the gap instead of blocking every PR, and it
     # only runs on the schedule so a customer-facing hiccup never fails a push.
-    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    # Not a supply-chain gate: no server_url restriction (#2744).
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: true

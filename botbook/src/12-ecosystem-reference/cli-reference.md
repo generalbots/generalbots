@@ -845,3 +845,115 @@ grep -r "authentication failed" /opt/gbo/logs/
 # 5. Review Vault audit logs
 vault audit list
 ```
+
+---
+
+## Advisory API and `gb audit` 🟢 STABLE (#2723)
+
+Operators can answer "is **my** installation affected?" without reading prose.
+The advisory API is public, read-only, rate limited and cached. It returns the
+same canonical advisory records that feed the CSAF and OSV documents — there is
+no second source of truth. No query parameter, IP or caller header is written
+to the API logs, and the standard IMP-09 security headers are applied to every
+response by the server's outermost layer.
+
+### HTTP API (English)
+
+```bash
+# All advisories
+curl -s http://localhost:8080/api/advisories
+
+# Filter by product, component, severity and publication date
+curl -s 'http://localhost:8080/api/advisories?product=botserver&component=botui&severity=high&from=2026-01-01'
+
+# Which advisories affect BotServer 2.3.0?
+curl -s 'http://localhost:8080/api/advisories?product=botserver&version=2.3.0'
+
+# One bulletin
+curl -s http://localhost:8080/api/advisories/GBSA-2026-0001
+```
+
+Filters: `product`, `component`, `version`, `severity` (`critical`, `high`,
+`medium`, `low`, `info`), `from` and `to` (`YYYY-MM-DD`). `version` means "only
+advisories that affect this version". The list response is
+`{"schema":..., "count":..., "advisories":[...]}`.
+
+### API de avisos (português)
+
+```bash
+# Todos os avisos
+curl -s http://localhost:8080/api/advisories
+
+# Quais avisos afetam o BotServer 2.3.0?
+curl -s 'http://localhost:8080/api/advisories?product=botserver&version=2.3.0'
+
+# Um boletim específico
+curl -s http://localhost:8080/api/advisories/GBSA-2026-0001
+```
+
+Filtros: `product`, `component`, `version`, `severity`, `from` e `to`.
+`version` retorna apenas os avisos que afetam aquela versão. A resposta não
+contém dados pessoais.
+
+### CLI (English)
+
+`gb` is the documented name of the botserver CLI. `audit` works online or from
+a local bundle (air-gapped estates).
+
+```bash
+# Online check against the configured API
+gb audit botserver 2.3.0
+
+# Machine-readable output
+gb audit botserver 2.3.0 --json
+
+# Offline check using the signed bundle copied from #2720
+gb audit botserver 2.3.0 --offline /mnt/advisories/advisories.json
+
+# Point at another mirror
+gb audit botserver 2.3.0 --api https://advisories.example.org/api/advisories
+```
+
+Exit codes: **0** = not affected, **1** = affected (advisory IDs and the
+recommended upgrade are printed), **2** = usage error. Example script:
+
+```bash
+#!/bin/sh
+gb audit botserver 2.3.0 --json > /tmp/gb-audit.json || {
+  echo "FAILED: this version is affected"; exit 1;
+}
+echo "OK: no advisory affects this version"
+```
+
+### CLI (português)
+
+```bash
+# Verificação online
+gb audit botserver 2.3.0
+
+# Verificação offline com o pacote assinado
+gb audit botserver 2.3.0 --offline /mnt/avisos/advisories.json
+
+# Saída legível por máquina
+gb audit botserver 2.3.0 --json --lang pt-BR
+```
+
+Códigos de saída: **0** = não afetado, **1** = afetado, **2** = erro de uso.
+
+### Configuration
+
+| Variable | Purpose |
+|----------|---------|
+| `GB_ADVISORY_API` | Base URL used by `gb audit` (default `http://localhost:8080/api/advisories`) |
+| `GB_ADVISORY_BUNDLE` | Path to a mirrored canonical bundle used by the API instead of the compiled-in sample |
+| `LANG` | `pt-BR` selects Portuguese CLI output; any other value uses English |
+
+### Source of truth
+
+The authored advisories live as Markdown with YAML front matter under
+`security/advisories/` (see `TEMPLATE.md` and `CHECKLIST.md`). The publication
+pipeline renders them once into the canonical bundle consumed here and into the
+CSAF/OSV feed documents — the API and `gb audit` never re-author advisory data.
+The compiled-in bundle contains only clearly marked example records so a fresh
+installation can validate the schema end to end. In production, point
+`GB_ADVISORY_BUNDLE` at the current rendered, signed bundle from issue #2720.

@@ -34,7 +34,7 @@ from pathlib import Path
 DEFAULT_ALLOWLIST = Path("scripts/osv_allowlist.txt")
 
 
-def load_allowlist(path: Path) -> set[str]:
+def load_allowlist(path: Path, allow_empty: bool = False) -> set[str]:
     allowed: set[str] = set()
     for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.split("#", 1)[0].strip()
@@ -44,7 +44,10 @@ def load_allowlist(path: Path) -> set[str]:
         if not advisory:
             continue
         allowed.add(advisory)
-    if not allowed:
+    if not allowed and not allow_empty:
+        # The npm gate (#2742) starts from a documented empty baseline: with
+        # --allow-empty that is valid, but any advisory reported afterwards is
+        # new and still fails below. Without the flag the Rust gate is strict.
         raise ValueError(f"{path} contains no advisory IDs")
     return allowed
 
@@ -84,6 +87,11 @@ def main() -> int:
         help=f"allowlist file (default: {DEFAULT_ALLOWLIST})",
     )
     parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
+    parser.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="permit an empty allowlist (npm baseline #2742); new advisories still fail",
+    )
     args = parser.parse_args()
 
     if args.self_test:
@@ -96,7 +104,7 @@ def main() -> int:
         return 2
 
     try:
-        allowed = load_allowlist(args.allowlist)
+        allowed = load_allowlist(args.allowlist, args.allow_empty)
     except (OSError, ValueError) as error:
         print(f"error: cannot read allowlist {args.allowlist}: {error}")
         return 2

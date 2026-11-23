@@ -143,7 +143,8 @@ test("ISSUE #2354: model output is sanitized before any bubble innerHTML", funct
   assert(sanitize.indexOf("javascript|vbscript|livescript") !== -1 ||
     sanitize.indexOf("javascript") !== -1, "javascript: URLs not blocked");
 
-  var message = readFile("chat/messages/50_message_a_helpers.js");
+  // #2743 — the completed-message sink lives in the _b split, not _a_helpers.
+  var message = readFile("chat/messages/50_message_b.js");
   assert(message.indexOf("parsed = GBSanitize.html(parsed)") !== -1,
     "completed-message path is unsanitized");
   var stream = readFile("chat/messages/70_stream.js");
@@ -158,9 +159,11 @@ test("ISSUE #2354: model output is sanitized before any bubble innerHTML", funct
   // Load order: the sanitizer must exist before its consumers.
   var chat = readFile("partials/chat.html");
   assert(chat.indexOf("chat/chat-sanitize.js") !== -1, "sanitizer not loaded");
-  assert(chat.indexOf("chat/chat-sanitize.js") < chat.indexOf("chat/chat-artifacts.js"),
-    "sanitizer must load before chat-artifacts.js");
-  assert(chat.indexOf("chat/chat-sanitize.js") < chat.indexOf("messages/50_message.js"),
+  // #2743 — chat-artifacts.js is boot-budget deferred, not in chat.html, so it
+  // always loads after the synchronous sanitizer script.
+  assert(readFile("js/boot-budget.js").indexOf("chat/chat-artifacts.js") !== -1,
+    "chat-artifacts.js must be deferred after the sanitizer");
+  assert(chat.indexOf("chat/chat-sanitize.js") < chat.indexOf("messages/50_message_b.js"),
     "sanitizer must load before the message renderer");
 });
 

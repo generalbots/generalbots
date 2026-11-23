@@ -1,0 +1,10 @@
+# Published advisory IDs — deduplication input for the dependency drafter (#2725).
+#
+# The scheduled scan must not open a second triage issue for a finding that is
+# already a published advisory. Add an ID here ONLY after the advisory has
+# been published through the CSAF/OSV process (see #2714/#2718) and has passed
+# the two-person review gate (#2724). This is the local mirror of the website's
+# security/advisories.json index; keep them in sync when publishing.
+#
+# Format: one advisory ID per line; everything after '#' is a comment.
+# Initially empty: no dependency advisory has been published yet.

@@ -456,6 +456,15 @@ jobs:
           python3 scripts/check_jwt_hardening.py --check
           python3 scripts/check_jwt_hardening.py --self-test
 
+      # #2759 — no build may accept the hardcoded admin@localhost / "dev"
+      # credential via BOTSERVER_DEV_MODE. Admin credential resolution must
+      # verify a salted digest from admin-credentials.json only.
+      - name: Dev-login backdoor guard (#2759)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_dev_login_backdoor.py --check
+          python3 scripts/check_dev_login_backdoor.py --self-test
+
       # #2131 — every server-side fetch of a caller-supplied URL must go
       # through botsecurity_core::validation::fetch_user_url. The gate lists
       # each fetch site, fails on an unguarded variable URL and treats the
@@ -955,6 +964,7 @@ jobs:
           python3 scripts/check_app_transport.py
           python3 scripts/check_suite_js_size.py
           node botui/ui/suite/tests/webtest-ui-bootbudget.js
+          node botui/ui/suite/tests/webtest-sanitize-xss.js
           node botui/ui/suite/tests/webtest-ui-aria.js
           node botui/ui/suite/tests/webtest-route-contract.js
           node botui/ui/suite/tests/webtest-ui-mobile-office.js

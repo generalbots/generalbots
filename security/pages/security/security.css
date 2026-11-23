@@ -1,0 +1,275 @@
+/*
+ * Security bulletin styles (#2716).
+ * WCAG 2.1 AA targets: every text/background pair >= 4.5:1, focus and
+ * non-text indicators >= 3:1. scripts/check_security_pages.py recomputes
+ * the ratios from the custom properties below, so keep the pairs listed in
+ * CHECKED_PAIRS there in sync with this file.
+ */
+
+:root {
+  color-scheme: light;
+
+  --gb-bg: #ffffff;
+  --gb-surface: #f5f7fa;
+  --gb-text: #1a1a1a;
+  --gb-muted: #41474d;
+  --gb-link: #0b4f9e;
+  --gb-link-hover: #08376c;
+  --gb-focus: #a43600;
+  --gb-accent-bg: #fff3e0;
+  --gb-accent-text: #4a2b00;
+  --gb-border: #5a636b;
+
+  --gb-width: 72rem;
+  --gb-gap: 1rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--gb-bg);
+  color: var(--gb-text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -5rem;
+  z-index: 10;
+  padding: 0.65rem 1rem;
+  background: var(--gb-bg);
+  color: var(--gb-link);
+  border: 2px solid var(--gb-focus);
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0.5rem;
+}
+
+a {
+  color: var(--gb-link);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--gb-link-hover);
+}
+
+:focus {
+  outline: 3px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+.site-header,
+main,
+footer {
+  max-width: var(--gb-width);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-gap);
+  align-items: baseline;
+  justify-content: space-between;
+  padding-block: 1rem;
+  border-bottom: 2px solid var(--gb-border);
+}
+
+.site-name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.language-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+
+.language-switcher a {
+  padding: 0.15rem 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.language-switcher a[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 3px solid var(--gb-focus);
+}
+
+main {
+  padding-block: 1.5rem 3rem;
+}
+
+main:focus {
+  outline: none;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  color: var(--gb-text);
+}
+
+h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  margin-top: 0;
+}
+
+h2 {
+  font-size: clamp(1.375rem, 3vw, 1.75rem);
+  margin-top: 2.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--gb-border);
+}
+
+h3 {
+  font-size: 1.125rem;
+  margin-top: 1.5rem;
+}
+
+p {
+  max-width: 70ch;
+}
+
+.lead {
+  font-size: 1.125rem;
+}
+
+.authoritative {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: baseline;
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--gb-accent-bg);
+  color: var(--gb-accent-text);
+  border-left: 4px solid var(--gb-accent-text);
+}
+
+.authoritative p {
+  margin: 0;
+}
+
+.badge {
+  flex: none;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--gb-accent-text);
+  border-radius: 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.on-this-page ul,
+.advisory-list {
+  padding-left: 1.5rem;
+}
+
+.on-this-page li,
+.advisory-list li {
+  margin-bottom: 0.5rem;
+}
+
+.advisory-list a {
+  font-weight: 700;
+}
+
+.meta {
+  margin: 0.15rem 0 0;
+  color: var(--gb-muted);
+  font-size: 0.9375rem;
+}
+
+details {
+  max-width: 70ch;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 0.25rem;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.25rem;
+}
+
+summary::marker {
+  color: var(--gb-focus);
+}
+
+details p {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.breadcrumb {
+  margin-bottom: 1.25rem;
+  font-size: 0.9375rem;
+}
+
+footer {
+  padding-block: 1rem 2rem;
+  border-top: 2px solid var(--gb-border);
+}
+
+footer p {
+  margin: 0;
+  color: var(--gb-muted);
+}
+
+@media (max-width: 40rem) {
+  .site-header {
+    display: block;
+  }
+
+  .language-switcher {
+    margin-top: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

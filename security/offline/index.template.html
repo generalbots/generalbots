@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>General Bots — Advisories (offline bundle)</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0 auto; padding: 1.5rem; max-width: 52rem;
+         font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+         color: #1b1b1b; background: #fff; }
+  h1 { font-size: 1.6rem; border-bottom: 3px solid #0b5fff; padding-bottom: .4rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; }
+  p, li { max-width: 48rem; }
+  code { background: #f2f2f2; padding: .1rem .3rem; border-radius: 3px; }
+  ul { padding-left: 1.4rem; }
+  a { color: #0b5fff; }
+  .meta { background: #f7f9fc; border-left: 4px solid #0b5fff; padding: .8rem 1rem; }
+  .note { border: 1px solid #c9d4e3; padding: .8rem 1rem; border-radius: 4px; }
+  footer { margin-top: 3rem; border-top: 1px solid #ddd; padding-top: 1rem;
+           font-size: .875rem; color: #555; }
+</style>
+</head>
+<body>
+<main>
+  <h1>General Bots — Security Advisories / Avisos de segurança</h1>
+  <p>Este é um pacote offline imutável. Todos os arquivos são locais: não há
+  fontes remotas, CDNs, scripts ou links externos. Abra os arquivos JSON ao lado
+  para ler os avisos completos.</p>
+  <p>This is an immutable offline bundle. Every file is local: there are no
+  remote fonts, CDNs, scripts or external links. Open the adjacent JSON files
+  to read the full advisories.</p>
+
+  <section class="meta" aria-label="Bundle metadata">
+    <p><strong>Publication date / Data de publicação:</strong> {{PUBLICATION_DATE}}</p>
+    <p><strong>Source commit / Commit de origem:</strong> <code>{{SOURCE_COMMIT}}</code></p>
+    <p><strong>Advisories / Avisos:</strong> {{ADVISORY_COUNT}}</p>
+  </section>
+
+  <h2>Advisories / Avisos</h2>
+  <ul>
+{{ADVISORY_ROWS}}
+  </ul>
+
+  <h2>Verify before trusting / Verifique antes de confiar</h2>
+  <p class="note">Leia <a href="VERIFYING.md">VERIFYING.md</a> e
+  <a href="README.md">README.md</a> neste pacote antes de usar as informações.
+  Verifique o SHA-256 e a assinatura detacada com os arquivos publicados ao
+  lado do arquivo. / Read the verification instructions included in this bundle
+  before relying on it; verify the SHA-256 checksum and the detached signature
+  with the files published next to the archive.</p>
+</main>
+<footer>General Bots — offline advisory bundle (v1)</footer>
+</body>
+</html>

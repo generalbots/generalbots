@@ -1,0 +1,79 @@
+# Independent vantage point for the immutable bulletin mirror (#2726).
+#
+# The GitHub workflow `.github/workflows/bulletin-mirror.yml` builds, signs and
+# publishes the tree. This ALM/Forgejo copy does not publish: it re-runs the
+# integrity self-test and probes both surfaces from a second CI host, so a
+# failure of the primary hosting provider cannot hide an advisory outage or a
+# mirror drift. It uses no secrets and only the read-only token.
+#
+# Same repository variables as the GitHub workflow:
+#   BULLETIN_SURFACE_A, BULLETIN_SURFACE_B, BULLETIN_REVISION,
+#   BULLETIN_TREE_DIGEST, BULLETIN_STATUS_URL.
+
+name: Bulletin Mirror (independent verification)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 5 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bulletin-mirror-alm-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Bulletin integrity and uptime from ALM runner
+    runs-on: gbo
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrity self-test
+        run: python3 scripts/bulletin_mirror.py --self-test
+      - name: Configure published revision and surfaces
+        id: config
+        env:
+          SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+          SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+          REVISION: ${{ vars.BULLETIN_REVISION }}
+          TREE: ${{ vars.BULLETIN_TREE_DIGEST }}
+        run: |
+          if [[ -z "${SURFACE_A:-}" || -z "${SURFACE_B:-}" || -z "${REVISION:-}" || -z "${TREE:-}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Mirror variables not configured yet (#2726); skipping drift check"
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "prefix=${TREE:0:16}" >> "$GITHUB_OUTPUT"
+      - name: Verify two surfaces serve one immutable revision
+        if: ${{ steps.config.outputs.configured == 'true' }}
+        env:
+          SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+          SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+          REVISION: ${{ steps.config.outputs.revision }}
+          PREFIX: ${{ steps.config.outputs.prefix }}
+        run: |
+          set -euo pipefail
+          url_a="${SURFACE_A/<PREFIX>/$PREFIX}"
+          url_b="${SURFACE_B/<PREFIX>/$PREFIX}"
+          python3 scripts/bulletin_mirror.py check-mirrors \
+            --url "$url_a" --url "$url_b" --expected-revision "$REVISION"
+      - name: Uptime probe from the ALM host
+        env:
+          STATUS_URL: ${{ vars.BULLETIN_STATUS_URL }}
+        run: |
+          set -uo pipefail
+          if [[ -z "${STATUS_URL:-}" ]]; then
+            echo "BULLETIN_STATUS_URL not configured; skipping uptime probe"
+            exit 0
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$STATUS_URL" || true)
+          echo "ALM probe $STATUS_URL -> HTTP $code"
+          if [[ "$code" != "200" ]]; then
+            echo "bulletin status page unreachable from ALM runner (HTTP $code)"
+            exit 1
+          fi
