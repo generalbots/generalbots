@@ -30,12 +30,14 @@ use std::sync::OnceLock;
 use crate::upload_error::UploadError;
 use crate::validation::validate_url_ssrf_strict;
 
+pub mod clamav_scanner;
 pub mod corpus;
 pub mod macro_strip;
 pub mod malware;
 pub mod opt_out;
 pub mod password;
 
+pub use clamav_scanner::register_default_malware_scanner;
 pub use opt_out::{
     malware_scanner_required, malware_scanner_required_from, UNCHECKED_IMPORT_OPT_OUT_ENV,
 };

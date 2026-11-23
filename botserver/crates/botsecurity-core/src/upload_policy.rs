@@ -37,7 +37,8 @@ use crate::file_validation::{blocked_extensions, detect_mime_type};
 pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
 pub use crate::upload_hostile::{
     inspect_hostile_upload, inspect_hostile_upload_named, inspect_hostile_upload_with,
-    malware_decision, scan_for_malware, set_malware_scanner, validate_relationship_target,
+    malware_decision, register_default_malware_scanner, scan_for_malware, set_malware_scanner,
+    validate_relationship_target,
     HostileFilePolicy, HostileFileReport, MalwareScanDecision, MalwareScanner,
     DEFAULT_MAX_COMPRESSED_BYTES,
     DEFAULT_MAX_COMPRESSION_RATIO, DEFAULT_MAX_ENTRIES, DEFAULT_MAX_UNCOMPRESSED_BYTES,
