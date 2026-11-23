@@ -228,6 +228,26 @@ pub struct RunProjectQuery {
     pub port: Option<u16>,
 }
 
+/// Pure port guard shared by Run and the preview endpoint (#2651).
+pub(crate) fn is_valid_dev_port(port: u16) -> bool {
+    (DEV_VM_PORT_MIN..DEV_VM_PORT_MAX).contains(&port)
+}
+
+#[cfg(test)]
+mod dev_port_tests {
+    use super::is_valid_dev_port;
+
+    #[test]
+    fn only_allocated_dev_ports_are_accepted() {
+        assert!(is_valid_dev_port(31000));
+        assert!(is_valid_dev_port(31999));
+        assert!(!is_valid_dev_port(32000));
+        assert!(!is_valid_dev_port(80));
+        assert!(!is_valid_dev_port(22));
+        assert!(!is_valid_dev_port(0));
+    }
+}
+
 pub(crate) async fn run_project_app(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(rbac): Extension<ProjectRbac>,
@@ -238,6 +258,14 @@ pub(crate) async fn run_project_app(
 ) -> (StatusCode, Json<serde_json::Value>) {
     if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Viewer) {
         return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    // #2651 — a project viewer must not be able to bind an arbitrary host
+    // port (including privileged ones) through the Incus proxy device.
+    if let Some(port) = query.port {
+        if !is_valid_dev_port(port) {
+            log::warn!("Vibe Run rejected out-of-range host port {port}");
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": "invalid dev-vm port" })));
+        }
     }
     let project = match registry.get(project_id) {
         Ok(Some(p)) => p,
