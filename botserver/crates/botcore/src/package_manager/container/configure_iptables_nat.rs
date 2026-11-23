@@ -23,15 +23,49 @@ mod unpinned_checksum_tests {
     }
 }
 
+/// Valid Linux interface names: letters, digits, `-`, `_`, `.`, at most 15
+/// chars. Pure so the guard is testable without touching a host.
+fn is_valid_interface(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 15
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
+
+#[cfg(test)]
+mod interface_guard_tests {
+    use super::is_valid_interface;
+
+    #[test]
+    fn accepts_real_names_and_rejects_injection() {
+        assert!(is_valid_interface("eth0"));
+        assert!(is_valid_interface("enp3s0"));
+        assert!(is_valid_interface("br-abc.1"));
+        assert!(!is_valid_interface(""));
+        assert!(!is_valid_interface("eth0;drop"));
+        assert!(!is_valid_interface("all"));
+    }
+}
+
 impl ContainerOperations for PackageManager {
     async fn configure_iptables_nat(&self, container: &str) -> Result<()> {
         let settings = self.get_container_settings(container)?;
 
-        // Set route_localnet if not already set
+        // #2617 — never create an unscoped DNAT rule. An explicit external
+        // interface is required; without it the host keeps its existing rules.
+        let iface = std::env::var("GB_EXTERNAL_IFACE").unwrap_or_default();
+        if !is_valid_interface(&iface) {
+            return Err(anyhow::anyhow!(
+                "GB_EXTERNAL_IFACE must be a valid interface name; refusing to create unscoped DNAT rules"
+            ));
+        }
+
+        // Scope route_localnet to that interface, not net.ipv4.conf.all.
         let _ = SafeCommand::new("sudo")
             .and_then(|c| c.arg("sysctl"))
             .and_then(|c| c.arg("-w"))
-            .and_then(|c| c.arg("net.ipv4.conf.all.route_localnet=1"))
+            .and_then(|c| c.arg(format!("net.ipv4.conf.{iface}.route_localnet=1")))
             .and_then(|cmd| cmd.execute());
 
         for rule in &settings.nat_rules {
@@ -50,6 +84,8 @@ impl ContainerOperations for PackageManager {
                 .and_then(|c| c.arg("nat"))
                 .and_then(|c| c.arg("-A"))
                 .and_then(|c| c.arg("PREROUTING"))
+                .and_then(|c| c.arg("-i"))
+                .and_then(|c| c.arg(iface.as_str()))
                 .and_then(|c| c.arg("-p"))
                 .and_then(|c| c.arg(protocol_ref))
                 .and_then(|c| c.arg("--dport"))
