@@ -140,19 +140,19 @@ impl PackageManager {
             }
         };
 
-        // The component id and the archive are not always the same entry: the
-        // "llm" component downloads the platform-specific build (Vulkan on a
-        // host with /usr/share/vulkan, the CPU zip otherwise), so the checksum
-        // must be resolved from the URL in use, never from the component id.
-        // Looking it up by id made every Vulkan host fail with
-        // "Checksum verification failed for 'llm'".
-        let expected = cache.checksum_for_url(url)
-            .or_else(|| cache.get_component(component).map(|info| info.effective_sha256().to_string()))
-            .unwrap_or_default();
-        // #2001 — hash the file that is actually unpacked (bundled installers
-        // use stable names such as `minio`, not the upstream release basename),
-        // and apply the shared policy: mismatch is fatal, a missing checksum
-        // warns or aborts under GB_REQUIRE_CHECKSUMS.
+        // The component id and the archive differ: "llm" downloads a
+        // platform-specific build (Vulkan where available, CPU zip otherwise),
+        // so the checksum must follow the URL in use, not the component id.
+        // Using the id broke Vulkan hosts with "Checksum verification failed for 'llm'".
+        let pin = cache.checksum_for_url(url).or_else(|| {
+            cache
+                .get_component(component)
+                .map(|info| info.effective_sha256().to_string())
+        });
+        let expected = botcorepkg::checksum::pin_or_empty(pin);
+        // #2001 — hash the file actually unpacked (bundled installers use stable
+        // names such as `minio`) and apply the shared policy: mismatches are fatal,
+        // a missing pin warns or aborts under GB_REQUIRE_CHECKSUMS.
         botcorepkg::checksum::verify_download(&source_file, &expected, component)?;
 
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;

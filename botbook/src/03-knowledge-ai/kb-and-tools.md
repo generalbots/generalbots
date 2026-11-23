@@ -233,7 +233,7 @@ CLEAR TOOLS
 
 ### KB Security
 
-Knowledge base security involves multiple layers of protection. Access control ensures that knowledge bases require proper authorization before loading. Files are encrypted at rest to protect sensitive information. All KB access is logged for audit purposes. Per-session KB separation ensures that one user's loaded knowledge bases cannot leak to another session.
+Knowledge base security involves multiple layers of protection. Access control ensures that knowledge bases require proper authorization before loading. KB files are not encrypted at rest by the platform; operators requiring that control must provide it at the storage layer. All KB access is logged for audit purposes. Per-session KB separation ensures that one user's loaded knowledge bases cannot leak to another session.
 
 ### Tool Security
 

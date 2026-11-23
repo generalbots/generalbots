@@ -1,6 +1,7 @@
 #[cfg(not(windows))]
 pub(crate) use anyhow::Context;
 pub(crate) use anyhow::Result;
+pub(crate) use botsecurity_core::command_guard::SafeCommand;
 #[cfg(not(windows))]
 pub(crate) use std::fs;
 #[cfg(unix)]
@@ -8,7 +9,6 @@ pub(crate) use std::os::unix::fs::PermissionsExt;
 #[cfg(not(windows))]
 pub(crate) use std::path::Path;
 pub(crate) use tracing::{info, warn};
-pub(crate) use botsecurity_core::command_guard::SafeCommand;
 
 #[cfg(not(windows))]
 const SUDOERS_FILE: &str = "/etc/sudoers.d/gb-protection";
@@ -106,7 +106,6 @@ pub struct VerifyResult {
     pub tools: Vec<ToolVerification>,
 }
 
-
 pub struct ToolVerification {
     pub name: String,
     pub installed: bool,
@@ -168,7 +167,10 @@ mod tests {
     fn test_sudoers_content_no_wildcards() {
         // Every sudoers constant must be free of wildcard arguments (#2609).
         assert!(!SUDOERS_CONTENT.contains(" ALL=(ALL) ALL"));
-        assert!(!SUDOERS_CONTENT.contains('*'), "protection sudoers has a wildcard");
+        assert!(
+            !SUDOERS_CONTENT.contains('*'),
+            "protection sudoers has a wildcard"
+        );
     }
 
     #[cfg(not(windows))]
@@ -189,7 +191,7 @@ mod tests {
 
 mod check_admin;
 mod install_lmd;
-mod protection_installer;
 mod print;
+mod protection_installer;
 mod uninstall_result;
 mod verify_result;

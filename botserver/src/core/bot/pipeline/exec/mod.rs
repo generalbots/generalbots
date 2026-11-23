@@ -80,32 +80,13 @@ pub async fn process_message_internal(
         .unwrap_or("")
         .to_string();
     // #2624 — redact secrets before they reach the prompt, history or tools.
-    user_text = botsecurity_core::dlp::redact_text(
-        &user_text,
-        botsecurity_core::dlp::ScanDirection::Inbound,
-        Some(user_id),
-    )
-    .await;
+    user_text = context::redact_inbound(&user_text, user_id).await;
     // #2625 — typed prompt-injection signal with telemetry. The detector is a
     // signal, not a boundary; only threat metadata is logged, never the payload.
     let (injection, sanitized) = botsecurity_core::prompt_security::scan_inbound(&user_text);
     if injection.blocked {
-        let frame = serde_json::json!({
-            "bot_id": bot_uuid.to_string(),
-            "user_id": user_id.to_string(),
-            "session_id": session_id.to_string(),
-            "channel": "web",
-            "content": "Your message was blocked by a security policy. Please rephrase it.",
-            "message_type": 2,
-            "is_complete": true,
-            "is_error": true,
-            "status": "blocked",
-            "security_signal": format!("{:?}", injection.threat_level),
-            "suggestions": [],
-            "context_length": 0,
-            "context_max_length": 0,
-        });
-        let _ = sink.send_raw_json(&frame).await;
+        let session = session_id.to_string();
+        context::emit_injection_blocked(sink, bot_uuid, user_id, &session, &injection.threat_level).await;
         return Ok(());
     }
     user_text = sanitized;
@@ -121,32 +102,8 @@ pub async fn process_message_internal(
         .and_then(|v| v.as_str())
         .unwrap_or("auto")
         .to_string();
-    let active_switchers: Vec<String> = parsed
-        .get("active_switchers")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                .collect()
-        })
-        .unwrap_or_default();
-    // Project context is supplied by the chat mention picker as
-    // {project_id, project_name}. It is kept separate from entity mentions so
-    // an ordinary `@calculator` reference can target Vibe without changing
-    // the existing CRM/integration mention contract.
-    let project_context = parsed.get("project_context").cloned().or_else(|| {
-        parsed.get("mentions").and_then(|value| {
-            value.as_array()?.iter().find_map(|mention| {
-                if mention.get("kind").and_then(|v| v.as_str()) != Some("project") {
-                    return None;
-                }
-                Some(serde_json::json!({
-                    "project_id": mention.get("project_id").or_else(|| mention.get("id")),
-                    "project_name": mention.get("label").or_else(|| mention.get("name")),
-                }))
-            })
-        })
-    });
+    // Switchers + project context come from the composer mention picker.
+    let (active_switchers, project_context) = context::parse_switchers_and_project(&parsed);
     // @-mentions selected in the composer (#939 phase D); resolved against
     // the connection control plane only when the integrations feature is
     // compiled in, exactly like the `integrations.invoke` command arm.

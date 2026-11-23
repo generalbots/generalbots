@@ -176,10 +176,13 @@ Access the Security Protection panel:
    - Available actions
 
 **Available Actions:**
-- **Run Scan** - Execute the tool's scan. Note: for ClamAV this currently runs
-  the Lynis scan (`protection/manager/initialize.rs:238`), not a ClamAV scan;
-  no upload path performs a ClamAV scan today.
-- **Start/Stop** - Manage services (Suricata)
+- **Run Scan** - Execute the tool's scan. For ClamAV this runs a real `clamscan`
+  byte scan over the hostile-file quarantine, or the single file named by
+  `GB_CLAMAV_SCAN_TARGET` (`protection/manager/initialize.rs:238`,
+  `protection/clamav/mod.rs:23-82`). The upload gate has no scanner registered,
+  so imports that require one still fail closed (see the ClamAV section below).
+- **Start/Stop** - Manage services (Suricata, and ClamAV via `clamav-daemon`;
+  `protection/manager/binary_name.rs:43-48`)
 - **Update** - Update signatures/databases (for ClamAV this runs `freshclam`,
   `protection/manager/update_definitions.rs:14-18`)
 - **View Report** - See latest scan results
@@ -285,13 +288,17 @@ Network Intrusion Detection/Prevention System (IDS/IPS).
 
 ### ClamAV
 
-Open-source antivirus engine. **Current state: not wired to uploads.** No
-caller registers a malware scanner with the upload gate, so a real ClamAV scan
-never runs on an import; the upload gate fails closed when no scanner is
-configured (see #2597, #2598). The protection tool named "ClamAV" runs the
-Lynis scan (`initialize.rs:238`) and only its `freshclam` signature-update path
-is real. `clamav-daemon` is not provisioned in `3rdparty.toml` or the offline
-installers (see #2603).
+Open-source antivirus engine. `install protection` installs the `clamav` and
+`clamav-daemon` apt packages (`installer/mod.rs:63-70`) and grants sudoers
+entries for `clamav-daemon` and `freshclam` (`installer/mod.rs:45-52`). ClamAV
+1.5.5 is pinned in `3rdparty.toml` (`[components.clamav]`) for the offline
+installer cache (#2603). Its behaviour is split across three paths:
+
+| Path | Behaviour | Authority |
+|------|-----------|-----------|
+| Upload gate | No scanner registered at boot; imports requiring a malware scan fail closed with `MalwareScannerMissing` | `register_default_malware_scanner` has no caller (#2597, #2598) |
+| Protection Run Scan | Real `clamscan` byte scan over the hostile-file quarantine, or the single file in `GB_CLAMAV_SCAN_TARGET` | `manager/initialize.rs:238`, `protection/clamav/mod.rs:23-82`, `antivirus/byte_scan.rs:37` |
+| Definition update | `sudo freshclam` | `manager/update_definitions.rs:14-18` |
 
 ### LMD (Linux Malware Detect)
 

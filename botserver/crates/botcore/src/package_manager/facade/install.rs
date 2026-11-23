@@ -85,8 +85,20 @@ impl PackageManager {
                     .join("data")
                     .join(&component.name)
                     .join(&filename);
+                // #2708 — data files include the GGUF models that llama-server
+                // loads. Verify them with the same policy as component archives:
+                // the pin follows the URL into `[models]` of 3rdparty.toml, and
+                // a mismatch (or a missing pin under GB_REQUIRE_CHECKSUMS) is
+                // fatal before the file is copied into data/llm.
+                let expected = botcorepkg::checksum::pin_or_empty(
+                    cache
+                        .as_ref()
+                        .and_then(|c| c.checksum_for_url(url))
+                        .or_else(|| botcorepkg::installer::checksum_for_url(url)),
+                );
 
                 if output_path.exists() {
+                    botcorepkg::checksum::verify_download(&output_path, &expected, &filename)?;
                     info!("Data file already exists: {}", output_path.display());
                     continue;
                 }
@@ -98,6 +110,7 @@ impl PackageManager {
                 if let Some(ref c) = cache {
                     if let Some(cached_path) = c.get_cached_path(&filename) {
                         info!("Using cached data file: {}", cached_path.display());
+                        botcorepkg::checksum::verify_download(&cached_path, &expected, &filename)?;
                         std::fs::copy(&cached_path, &output_path)?;
                         continue;
                     }
@@ -120,6 +133,7 @@ impl PackageManager {
                 info!("Downloading data file: {}", url);
                 println!("Downloading {}", url);
                 utils::download_file(url, download_target.to_str().unwrap_or_default()).await?;
+                botcorepkg::checksum::verify_download(&download_target, &expected, &filename)?;
 
                 if cache.is_some() && download_target != output_path {
                     std::fs::copy(&download_target, &output_path)?;

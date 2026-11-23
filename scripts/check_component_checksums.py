@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Fail when a bundled runtime component has no pinned SHA-256 (#2001).
+"""Fail when a bundled runtime component or model has no pinned SHA-256 (#2001, #2708).
 
 `botserver/3rdparty.toml` is the provenance record for every binary the
 installer downloads or unpacks: version + URL + SHA-256. The installer now
 enforces the hash (and refuses an unhashed asset under
 `GB_REQUIRE_CHECKSUMS=1`), so an entry without a hash is an unverified binary
-in the shipping payload.
+in the shipping payload. #2708 extends the same rule to `[models.*]`: those
+GGUF files are fetched into data/llm and loaded by llama-server, so an empty
+pin there is an unverified model. Model gaps are not allowlisted — they fail
+the gate unconditionally.
 
-The gate is a ratchet: the gaps that exist today are listed, with a reason, in
-`scripts/component_checksums_allowlist.txt`. A new component without a hash
-fails CI; removing a hash from a component that had one fails CI too. Closing a
-gap means adding the hash and deleting the line.
+The component gate is a ratchet: the gaps that exist today are listed, with a
+reason, in `scripts/component_checksums_allowlist.txt`. A new component without
+a hash fails CI; removing a hash from a component that had one fails CI too.
+Closing a gap means adding the hash and deleting the line.
 
 For vendored JavaScript (#2742), pass --js-manifest: every pinned asset is
 re-hashed against the file on disk, and any unlisted *.min.js in the vendor
@@ -52,7 +55,9 @@ def load_allowlist(path: Path) -> dict[str, str]:
 
 
 def gaps(components: dict) -> list[tuple[str, str]]:
-    """(component, what-is-missing) for every unhashed asset that can install."""
+    """(name, what-is-missing) for every unhashed asset that can install.
+
+    Works for both `[components.*]` and `[models.*]` (#2708)."""
     found: list[tuple[str, str]] = []
     for name, entry in sorted(components.items()):
         if not str(entry.get("sha256", "")).strip():
@@ -65,7 +70,7 @@ def gaps(components: dict) -> list[tuple[str, str]]:
 
 
 def insecure_urls(components: dict) -> list[tuple[str, str]]:
-    """(component, url-field) for any download URL that is not HTTPS (#2611).
+    """(name, url-field) for any download URL that is not HTTPS (#2611, #2708).
 
     A plaintext URL lets an on-path attacker replace the archive before any
     checksum is computed, so the hash (when one exists) is no longer a
@@ -179,23 +184,42 @@ def main() -> int:
         print(f"error: {args.toml} not found")
         return 1
     with args.toml.open("rb") as handle:
-        components = tomllib.load(handle).get("components", {})
+        document = tomllib.load(handle)
+    components = document.get("components", {})
+    models = document.get("models", {})
 
-    insecure = insecure_urls(components)
+    # #2708 — a model URL is as much a supply-chain entry point as a component
+    # URL: llama-server loads the downloaded GGUF. Check both tables.
+    insecure = insecure_urls(components) + insecure_urls(models)
     if insecure:
         for name, field in insecure:
             print(
-                f"error: component '{name}' uses a plaintext {field} in {args.toml}; "
+                f"error: asset '{name}' uses a plaintext {field} in {args.toml}; "
                 "every download URL must start with https:// (#2611)"
             )
         print(f"\n{len(insecure)} insecure download URL(s)")
         return 1
 
     found = gaps(components)
+    model_gaps = gaps(models)
     if args.list:
         for name, variant in found:
             print(f"{name}\t{variant}")
+        for name, variant in model_gaps:
+            print(f"model:{name}\t{variant}")
         return 0
+
+    # Models are deliberately outside the ratchet allowlist: an empty model
+    # hash must fail the gate even when a reason is written for a component.
+    if model_gaps:
+        for name, variant in model_gaps:
+            print(
+                f"error: model '{name}' has no SHA-256 for {variant}; "
+                "add the hash to botserver/3rdparty.toml — unverified GGUF files "
+                "must never reach llama-server (#2708)"
+            )
+        print(f"\n{len(model_gaps)} unhashed model(s)")
+        return 1
 
     allowed = load_allowlist(args.allowlist)
     unacknowledged = [
@@ -222,7 +246,7 @@ def main() -> int:
 
     print(
         f"ok: {len(found)} acknowledged checksum gap(s) across "
-        f"{len(components)} components"
+        f"{len(components)} components and {len(models)} models"
     )
     return 0
 

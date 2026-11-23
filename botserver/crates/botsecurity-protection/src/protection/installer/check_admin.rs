@@ -217,8 +217,6 @@ impl ProtectionInstaller {
 
     #[cfg(not(windows))]
     pub(super) fn create_sudoers(&self) -> Result<()> {
-        
-
         let content = SUDOERS_CONTENT.replace("{user}", &self.user);
 
         info!("Creating sudoers file at {SUDOERS_FILE}");

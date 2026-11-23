@@ -25,6 +25,21 @@ pub(crate) fn safe_incus_admin(args: &[&str]) -> Option<std::process::Output> {
     safe_incus(&all)
 }
 
+/// Pure policy verdict for the container download path (#2710).
+///
+/// `checksum_for_url` yields `None` both for an unknown URL and for an empty
+/// pin. Collapsing that to `""` made an unverified download look verified.
+/// Keeping the verdict pure makes it unit-testable without reading
+/// `3rdparty.toml` or touching the process environment.
+fn required_pin(url: &str, pin: Option<String>) -> Result<String> {
+    match pin {
+        Some(hash) if !hash.trim().is_empty() => Ok(hash),
+        _ => Err(anyhow::anyhow!(
+            "No pinned sha256 for '{url}' in 3rdparty.toml — refusing an unverified container install"
+        )),
+    }
+}
+
 pub fn install_container(
     tenant: &str,
     component: &ComponentConfig,
@@ -97,11 +112,7 @@ pub fn install_container(
         // #2710 — propagate a missing pinned digest instead of silently
         // installing unverified (the runtime path in
         // botcore/package_manager/install_binary.rs already does this).
-        let expected = crate::installer::checksum_for_url(url).ok_or_else(|| {
-            anyhow::anyhow!(
-                "No pinned sha256 for '{url}' in 3rdparty.toml — refusing an unverified container install"
-            )
-        })?;
+        let expected = required_pin(url, crate::installer::checksum_for_url(url))?;
         crate::facade_download::download_in_container(
             &container_name,
             url,
@@ -315,4 +326,28 @@ pub fn setup_port_forwarding(container: &str, ports: &[u16]) -> Result<()> {
         trace!("Port forwarding configured: {} -> container {}", port, container);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod required_pin_tests {
+    use super::required_pin;
+
+    #[test]
+    fn accepts_a_pinned_digest() {
+        let hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        let resolved = required_pin("https://example.invalid/bin", Some(hash.to_string()))
+            .expect("a pinned digest must be accepted");
+        assert_eq!(resolved, hash);
+    }
+
+    #[test]
+    fn rejects_missing_and_blank_pins() {
+        for pin in [None, Some(String::new()), Some("   ".to_string())] {
+            let error = required_pin("https://example.invalid/bin", pin)
+                .expect_err("an unpinned container download must fail closed");
+            let message = error.to_string();
+            assert!(message.contains("https://example.invalid/bin"));
+            assert!(message.contains("refusing an unverified container install"));
+        }
+    }
 }

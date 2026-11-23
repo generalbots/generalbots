@@ -223,6 +223,18 @@ def component_checksums(tmp: Path) -> Case:
         "plaintext-url", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
     )
+    # #2708 — models are part of the gate: empty hash fails, pin passes,
+    # plaintext URL fails. Fixtures stay in tmp; the repo is untouched.
+    gate = "check_component_checksums.py"
+    m = tmp / "3rdparty-model.toml"
+    m.write_text('[models.demo]\nurl = "https://example.invalid/m.gguf"\nsha256 = ""\n', encoding="utf-8")
+    case.expect("empty-model-hash", VIOLATION, _gate(gate, ["--toml", str(m), "--allowlist", str(acknowledged)]))
+    p = tmp / "pinned.toml"
+    p.write_text(m.read_text(encoding="utf-8").replace('sha256 = ""', f'sha256 = "{SHA}"'), encoding="utf-8")
+    case.expect("pinned-model-hash", CLEAN, _gate(gate, ["--toml", str(p), "--allowlist", str(empty)]))
+    q = tmp / "plain-model.toml"
+    q.write_text(p.read_text(encoding="utf-8").replace("https://", "http://"), encoding="utf-8")
+    case.expect("plaintext-model-url", VIOLATION, _gate(gate, ["--toml", str(q), "--allowlist", str(empty)]))
     # #2742 — vendored JS integrity: a clean tree passes, a tampered file and
     # a new unlisted bundle both fail the manifest gate.
     vendor = tmp / "vendor"

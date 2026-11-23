@@ -1,7 +1,7 @@
 use super::*;
 
-/// Fail-closed verdict for an unpinned container binary (#2610). Pure so the
-/// GB_REQUIRE_CHECKSUMS policy is testable without mutating the environment.
+/// Fail-closed verdict for an unpinned container binary (#2610, #2709). Pure
+/// so the GB_REQUIRE_CHECKSUMS policy is testable without mutating the env.
 fn unpinned_checksum_error(url: &str, strict: bool) -> Option<String> {
     if strict {
         Some(format!(
@@ -20,6 +20,21 @@ mod unpinned_checksum_tests {
     fn unpinned_is_fatal_in_strict_mode() {
         assert!(unpinned_checksum_error("https://example.invalid/bin", true).is_some());
         assert!(unpinned_checksum_error("https://example.invalid/bin", false).is_none());
+    }
+
+    #[test]
+    fn refusal_names_the_url_and_the_policy() {
+        let message = unpinned_checksum_error("https://example.invalid/pinned.bin", true)
+            .expect("strict mode must refuse an unpinned binary");
+        assert!(message.contains("https://example.invalid/pinned.bin"));
+        assert!(message.contains("GB_REQUIRE_CHECKSUMS"));
+    }
+
+    #[test]
+    fn lenient_mode_only_warns_for_any_unpinned_url() {
+        for url in ["https://example.invalid/bin", "", "not-a-url"] {
+            assert!(unpinned_checksum_error(url, false).is_none(), "{url}");
+        }
     }
 }
 
@@ -396,5 +411,39 @@ mod ssh_verification_tests {
         let mut bad = Vec::new();
         walk(&root, &mut bad);
         assert!(bad.is_empty(), "host-key verification disabled in: {bad:?}");
+    }
+}
+
+#[cfg(test)]
+mod staged_push_guard_tests {
+    const SOURCE: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/package_manager/container/configure_iptables_nat.rs"
+    );
+    /// #2709 — verification of the staged bytes must reject a mismatched pin.
+    #[test]
+    fn mismatched_pin_refuses_the_staged_binary() {
+        let error = botcorepkg::checksum::verify_with_policy(
+            std::path::Path::new(SOURCE),
+            &"0".repeat(64),
+            "container-binary",
+            true,
+        )
+        .expect_err("a mismatched pin must refuse the staged binary");
+        assert!(error.to_string().contains("checksum mismatch"));
+    }
+
+    /// #2709 — the privileged push must resolve the pin and verify first.
+    #[test]
+    fn download_and_push_verifies_before_privileged_push() {
+        let text = std::fs::read_to_string(SOURCE).expect("read container source");
+        let start = text.find("async fn download_and_push_binary").expect("download helper");
+        let end = text.find("async fn provision_certs_to_container").expect("next helper");
+        let body = &text[start..end];
+        assert!(body.contains("checksum_for_url(url)"), "component pin must be resolved");
+        assert!(body.contains("unpinned_checksum_error"), "unpinned downloads must fail closed");
+        let verify = body.find("verify_download").expect("verify_download call");
+        let push = body.find("arg(\"push\")").expect("incus file push call");
+        assert!(verify < push, "checksum must be verified before the privileged push");
     }
 }

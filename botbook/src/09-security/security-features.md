@@ -17,7 +17,7 @@ The desktop feature provides the Tauri desktop UI with a sandboxed runtime and c
 
 ### Enterprise Security Features
 
-Enterprise-ready security features include built-in encryption for data at rest via the aes-gcm library, comprehensive audit logging capabilities, role-based access control implemented through the Directory Service, multi-factor authentication available via the Directory Service, and SAML/OIDC single sign-on support also through the Directory Service.
+Enterprise-ready security features include field-level encryption of selected sensitive values via `encrypt_field` (attendance content, external Drive content and session content), comprehensive audit logging capabilities, role-based access control implemented through the Directory Service, multi-factor authentication available via the Directory Service, and SAML/OIDC single sign-on support also through the Directory Service.
 
 
 ## Authentication and Authorization

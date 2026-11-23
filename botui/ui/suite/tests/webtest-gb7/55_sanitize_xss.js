@@ -110,7 +110,10 @@ test("SANITIZE #2743: every innerHTML sink uses the shared sanitizer", function 
   const sinks = {
     "chat/messages/50_message_b.js": "parsed = GBSanitize.html(parsed)",
     "chat/messages/70_stream.js": "parsed = GBSanitize.html(parsed)",
-    "chat/modules/multichat/02_dom.js": "GBSanitize.html(parsed)",
+    // #2707 — the multichat sink sanitizes inline and fails closed to
+    // textContent when GBSanitize is absent; it no longer keeps a bare
+    // `GBSanitize.html(parsed)` variable to assign.
+    "chat/modules/multichat/02_dom.js": "window.GBSanitize.html(marked.parse(",
     "chat/chat-artifacts.js": "GBSanitize.html(html)",
     "chat/projector-inline-state.js": "GBSanitize.html(parsed)",
   };
