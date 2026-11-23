@@ -3,6 +3,7 @@ pub mod cloud;
 pub mod constants;
 pub mod login;
 pub mod proxy;
+pub mod safe_path;
 pub mod security_headers;
 pub mod suite;
 pub mod suite_ops;

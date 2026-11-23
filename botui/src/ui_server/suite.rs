@@ -715,6 +715,13 @@ pub async fn index(
             path.to_string()
         };
 
+        // #2904 — reject traversal before any filesystem lookup. `fs_path` is
+        // derived from the raw URI path and may carry `..`, absolute prefixes,
+        // NUL bytes or percent-encoded traversal a proxy failed to normalize.
+        if !crate::ui_server::safe_path::is_safe_relative_path(&fs_path) {
+            warn!("index: Rejected unsafe static path: {}", path);
+            return StatusCode::BAD_REQUEST.into_response();
+        }
         let full_path = get_ui_root().join(&fs_path);
 
         info!(
@@ -737,8 +744,23 @@ pub async fn index(
 
         #[cfg(not(feature = "embed-ui"))]
         {
-            if let Ok(bytes) = tokio::fs::read(&full_path).await {
-                let mime = mime_guess::from_path(&full_path).first_or_octet_stream();
+            // #2904 — canonicalize and verify containment before serving.
+            // `canonicalize` collapses `..` and resolves symlinks, so a link
+            // inside the UI root that points outside is rejected here.
+            let safe_full_path =
+                match crate::ui_server::safe_path::resolve_static_path(&get_ui_root(), &full_path) {
+                    Some(path) => path,
+                    None => {
+                        warn!(
+                            "index: Static path outside UI root or missing: {} -> {:?}",
+                            path, full_path
+                        );
+                        return StatusCode::NOT_FOUND.into_response();
+                    }
+                };
+
+            if let Ok(bytes) = tokio::fs::read(&safe_full_path).await {
+                let mime = mime_guess::from_path(&safe_full_path).first_or_octet_stream();
                 let content_type = if mime.as_ref() == "text/html" {
                     "text/html; charset=utf-8"
                 } else {
@@ -747,8 +769,8 @@ pub async fn index(
                 return (StatusCode::OK, [("content-type", content_type)], bytes).into_response();
             }
             // Directory index: serve index.html for directories
-            if full_path.is_dir() {
-                let index_path = full_path.join("index.html");
+            if safe_full_path.is_dir() {
+                let index_path = safe_full_path.join("index.html");
                 if let Ok(bytes) = tokio::fs::read(&index_path).await {
                     return (
                         StatusCode::OK,

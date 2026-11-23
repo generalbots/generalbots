@@ -24,6 +24,40 @@ fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
     })
 }
 
+/// Maps the verified JWT subject to the KYC audit actor (#2873).
+///
+/// The request body is deliberately NOT an input: a caller must not be able to
+/// attribute a compliance decision to a reviewer who never acted. An absent or
+/// blank claim degrades to `system`, never to a client-supplied value.
+fn audit_actor_from_claim(claim: Option<String>) -> String {
+    claim
+        .map(|subject| subject.trim().to_string())
+        .filter(|subject| !subject.is_empty())
+        .unwrap_or_else(|| "system".to_string())
+}
+
+/// Builds the append-only audit event for a KYC state transition. Both the
+/// actor and the timestamp come from the server, never from the client body.
+fn build_state_change_audit(
+    actor: &str,
+    branch: Uuid,
+    case_id: Uuid,
+    from: &str,
+    to: &str,
+    at: chrono::DateTime<Utc>,
+) -> botbiometry::audit::BiometricAuditEvent {
+    botbiometry::audit::BiometricAuditEvent {
+        id: Uuid::new_v4(),
+        tenant_id: branch.to_string(),
+        actor_id: actor.to_string(),
+        action: botbiometry::audit::AuditAction::KycStateChanged,
+        payload_json: format!(
+            "{{\"verification_id\":\"{case_id}\",\"from\":\"{from}\",\"to\":\"{to}\"}}"
+        ),
+        at,
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Verification {
     pub id: Uuid,
@@ -58,10 +92,13 @@ pub struct Certificate {
     pub status: String,
 }
 
-#[derive(Debug, Deserialize)]
+/// KYC state-change request wire type (#2873).
+///
+/// `reviewed_by` was removed on purpose: the audit actor is the verified JWT
+/// subject, never a caller-supplied field echoed back in the response.
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UpdateVerification {
     pub status: String,
-    pub reviewed_by: Option<Uuid>,
     pub documents: Option<Vec<String>>,
 }
 
@@ -133,11 +170,15 @@ pub async fn update_verification(
     if let Err(error) = crate::lifecycle::check_transition(&current, state) {
         return Err((StatusCode::CONFLICT, format!("KYC case {id} is {error}")));
     }
+    // Server clock drives every timestamp in this handler (completion and audit).
+    let now = Utc::now();
     let completed_at = if state.is_terminal() {
-        Some(Utc::now())
+        Some(now)
     } else {
         None
     };
+    // Bind the audit actor to the authenticated principal, not to the PUT body.
+    let actor = audit_actor_from_claim(botcore::shared::tenant::user_id_from_claims(&headers));
     let n = diesel::sql_query(
         "UPDATE identity_kyc_workflows SET status = $1, completed_at = COALESCE($2, completed_at) WHERE id = $3 AND branch_id = $4",
     )
@@ -148,21 +189,17 @@ pub async fn update_verification(
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     if n == 0 { return Err((StatusCode::NOT_FOUND, format!("Verification {id} not found"))); }
-    // Structured biometric audit trail for the state change.
-    let event = botbiometry::audit::BiometricAuditEvent {
-        id: Uuid::new_v4(),
-        tenant_id: branch.to_string(),
-        actor_id: req
-            .reviewed_by
-            .map(|reviewer| reviewer.to_string())
-            .unwrap_or_else(|| "system".to_string()),
-        action: botbiometry::audit::AuditAction::KycStateChanged,
-        payload_json: format!(
-            "{{\"verification_id\":\"{parsed}\",\"from\":\"{current}\",\"to\":\"{}\"}}",
-            state.as_status()
-        ),
-        at: Utc::now(),
-    };
+    // Structured biometric audit trail for the state change. The actor is the
+    // verified principal and the timestamp is the server clock — neither can be
+    // forged by the request body (#2873).
+    let event = build_state_change_audit(
+        &actor,
+        branch,
+        parsed,
+        &current,
+        state.as_status(),
+        now,
+    );
     log::info!(
         "biometric audit: action={:?} id={} tenant={} actor={} payload={}",
         event.action,
@@ -173,8 +210,8 @@ pub async fn update_verification(
     );
     Ok(Json(Verification {
         id: parsed, user_id: Uuid::nil(), kind: "identity".to_string(), status: state.as_status().to_string(),
-        documents: req.documents.unwrap_or_default(), reviewed_by: req.reviewed_by,
-        created_at: Utc::now(), completed_at,
+        documents: req.documents.unwrap_or_default(), reviewed_by: None,
+        created_at: now, completed_at,
     }))
 }
 
@@ -274,4 +311,46 @@ pub async fn list_certificates(headers: HeaderMap) -> Result<Json<Vec<Certificat
         id: r.id, subject: r.subject, issuer: r.issuer, serial: r.serial,
         valid_from: r.valid_from, valid_until: r.valid_until, status: r.status,
     }).collect()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn forged_body_reviewer_is_ignored_and_never_audited() {
+        // An attacker attempts to attribute the approval to an arbitrary UUID.
+        let forged = Uuid::new_v4().to_string();
+        let body = json!({
+            "status": "approved",
+            "reviewed_by": forged,
+            "documents": []
+        });
+        let req: UpdateVerification =
+            serde_json::from_value(body).expect("unknown fields are ignored by serde");
+        // Reviewer is no longer part of the wire contract, so the forged value
+        // cannot be echoed back to the caller either.
+        let echoed = serde_json::to_string(&req).expect("serialize request");
+        assert!(!echoed.contains(&forged), "forged reviewer echoed: {echoed}");
+
+        // The audit actor is derived from the verified claim, not the body.
+        let verified_subject = "verified-user-123";
+        let actor = audit_actor_from_claim(Some(verified_subject.to_string()));
+        assert_eq!(actor, verified_subject, "actor must be the authenticated user");
+        assert_ne!(actor, forged, "forged body actor must never be the audit actor");
+
+        let branch = Uuid::new_v4();
+        let case_id = Uuid::new_v4();
+        let at = Utc::now();
+        let event = build_state_change_audit(&actor, branch, case_id, "pending", "approved", at);
+        assert_eq!(event.actor_id, verified_subject);
+        assert_ne!(event.actor_id, forged);
+        assert_eq!(event.at, at, "audit timestamp must come from the server clock");
+
+        // No (or a blank) verified claim degrades to `system`, never to a value
+        // supplied by the caller.
+        assert_eq!(audit_actor_from_claim(None), "system");
+        assert_eq!(audit_actor_from_claim(Some("  ".to_string())), "system");
+    }
 }
