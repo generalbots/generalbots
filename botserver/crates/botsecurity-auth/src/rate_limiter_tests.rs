@@ -111,3 +111,34 @@ fn test_parse_trusted_proxies_ignores_invalid_entries() {
     assert!(parsed.contains(&"::1".parse::<IpAddr>().expect("valid ipv6")));
     assert_eq!(parsed.len(), 2);
 }
+
+// #2810 — auth/signup quota bucket classification.
+use super::*;
+
+#[test]
+fn auth_routes_are_classified_outside_the_general_bucket() {
+    // #2810 — auth paths must not fall back to the global 100 req/s quota.
+    let auth = |path: &str| {
+        let bucket = rate_limit_bucket(&Method::POST, path);
+        assert!(bucket == RateLimitBucket::Auth, "{path}");
+    };
+    auth("/api/auth/login");
+    auth("/api/auth/refresh");
+    auth("/api/cloud/auth/login");
+    auth("/api/cloud/auth/refresh");
+    let signup = rate_limit_bucket(&Method::POST, "/api/cloud/auth/signup");
+    assert!(signup == RateLimitBucket::Signup);
+}
+
+#[test]
+fn rapid_signup_attempts_from_one_ip_are_throttled() {
+    let limiter = CombinedRateLimiter::with_defaults();
+    let mut rejected = 0;
+    for _ in 0..12 {
+        if !limiter.check_signup_limit("198.51.100.200") {
+            rejected += 1;
+        }
+    }
+    assert!(rejected > 0, "rapid signups from one IP must be throttled");
+    assert!(limiter.check_signup_limit("198.51.100.201"));
+}
