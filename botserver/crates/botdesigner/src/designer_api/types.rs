@@ -78,6 +78,53 @@ pub fn resolve_designer_drive_key(
     DesignerDriveKey::Tenant(requested_path.to_string())
 }
 
+/// #2831 — strict Designer slug, mirroring `valid_app_id` in
+/// `main_module/ui_plan/sanitize_value.rs`: non-empty, bounded and composed
+/// only of alphanumerics, `-` or `_`. Applied to every caller/LLM supplied
+/// *directory* component (app name) and to the server-derived org/bot slugs.
+pub fn is_safe_slug(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_'))
+}
+
+/// #2831 — a single safe file component. Like [`is_safe_slug`] but also allows
+/// a `.` separator for extensions (`index.html`, `styles.css`). Path
+/// separators, `..`, NUL/control characters and absolute paths are rejected by
+/// construction because they cannot pass the character allow-list.
+pub fn is_safe_file_name(value: &str) -> bool {
+    if value.is_empty()
+        || value.len() > 128
+        || value == "."
+        || value == ".."
+        || value.contains("..")
+        || value.starts_with('/')
+        || value.starts_with('\\')
+    {
+        return false;
+    }
+    value
+        .chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
+
+/// #2831 — validates a Drive key produced for a Designer write. Requires the
+/// server-derived `<bot>.gbapp/` prefix and confines every remaining segment
+/// to the same safe-component rule, so an LLM-influenced file name can never
+/// retarget the object outside the resolved tenant's `.gbapp` prefix.
+pub fn is_confined_drive_key(key: &str, bot_slug: &str) -> bool {
+    if !is_safe_slug(bot_slug) || key.contains('\0') || key.contains('\\') {
+        return false;
+    }
+    let prefix = format!("{bot_slug}.gbapp/");
+    match key.strip_prefix(&prefix) {
+        Some(rest) => !rest.is_empty() && rest.split('/').all(is_safe_file_name),
+        None => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,6 +187,63 @@ mod tests {
             resolve_designer_drive_key(tenant_a(), "default.gbai", "a-dialog-uuid"),
             DesignerDriveKey::DialogId
         );
+    }
+
+    #[test]
+    fn designer_slug_accepts_valid_values() {
+        for value in [
+            "default",
+            "my-app",
+            "app_2",
+            "00000000-0000-0000-0000-000000000000",
+        ] {
+            assert!(is_safe_slug(value), "slug must be accepted: {value}");
+        }
+    }
+
+    #[test]
+    fn designer_slug_rejects_traversal_absolute_and_nul() {
+        for value in [
+            "", "   ", "../etc", "a/b", "a\\b", "/etc", "C:\\x", "app\0x", "a.b", "..",
+        ] {
+            assert!(!is_safe_slug(value), "slug must be rejected: {value:?}");
+        }
+        assert!(!is_safe_slug(&"x".repeat(65)));
+    }
+
+    #[test]
+    fn designer_file_name_accepts_simple_basenames() {
+        for value in ["index.html", "styles.css", "app.min.js", "tool", "data-1_v2.bas"] {
+            assert!(is_safe_file_name(value), "file must be accepted: {value}");
+        }
+    }
+
+    #[test]
+    fn designer_file_name_rejects_traversal_absolute_and_nul() {
+        for value in [
+            "", "..", ".", "../x", "a/../b", "/etc/passwd", "etc\\passwd", "a\0b", "a\u{1}b",
+        ] {
+            assert!(!is_safe_file_name(value), "file must be rejected: {value:?}");
+        }
+    }
+
+    #[test]
+    fn confined_drive_key_accepts_valid_and_rejects_traversal() {
+        assert!(is_confined_drive_key("default.gbapp/my-app/index.html", "default"));
+        for key in [
+            "default.gbapp/../outside.bas",
+            "default.gbapp//outside.bas",
+            "default.gbapp\\outside.bas",
+            "/etc/passwd",
+            "other.gbapp/index.html",
+            "default.gbapp/a/../b",
+            "default.gbapp/x\0y",
+        ] {
+            assert!(
+                !is_confined_drive_key(key, "default"),
+                "drive key must be rejected: {key:?}"
+            );
+        }
     }
 }
 

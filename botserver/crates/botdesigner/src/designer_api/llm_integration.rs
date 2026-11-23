@@ -1,3 +1,4 @@
+use super::path_guard::confined_write_path;
 use super::types::*;
 use crate::DesignerState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -119,6 +120,21 @@ pub async fn handle_designer_modify(
     State(state): State<Arc<DesignerState>>,
     Json(request): Json<DesignerModifyRequest>,
 ) -> impl IntoResponse {
+    // #2831 — app_name is caller-controlled; reject anything that is not a
+    // single safe slug before it can reach a local path or a Drive key.
+    if !is_safe_slug(&request.app_name) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(DesignerModifyResponse {
+                success: false,
+                message: "Invalid app name".to_string(),
+                changes: Vec::new(),
+                suggestions: Vec::new(),
+                error: Some("app_name must be a simple slug".to_string()),
+            }),
+        );
+    }
+
     let app = &request.app_name;
     let msg_preview = botlib::text::truncate_at_char_boundary(&request.message, 100);
     log::info!("Designer modify request for app '{app}': {msg_preview}");
@@ -346,6 +362,12 @@ async fn parse_and_apply_changes(
     if let Some(changes) = parsed.changes {
         for change in changes {
             if let Some(ref code) = change.code {
+                // #2831 — `file` comes from the LLM response; never let it
+                // address anything but a single safe file component.
+                if !is_safe_file_name(&change.file) {
+                    log::warn!("Rejected unsafe designer file name: {:?}", change.file);
+                    continue;
+                }
                 match apply_file_change(state, &request.app_name, &change.file, code).await {
                     Ok(()) => {
                         applied_changes.push(DesignerChange {
@@ -386,27 +408,33 @@ pub async fn apply_file_change(
     file_name: &str,
     content: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // #2831 — bucket and stack/site path are server-owned; app_name and
+    // file_name are untrusted and are confined before any I/O happens.
     let bucket_name = state.bucket_name.clone();
     let sanitized_name = bucket_name.trim_end_matches(".gbai").to_string();
-
     let site_path = state
         .site_path
         .clone()
         .unwrap_or_else(|| format!("{}/sites", (state.get_stack_path)()));
+    let org_id = botcore::shared::utils::current_org_id().to_string();
 
-    let local_path = format!("{site_path}/{org_id}.gborg/{sanitized_name}.gbai/{sanitized_name}.gbapp/{app_name}/{file_name}", org_id = botcore::shared::utils::current_org_id());
-    if let Some(parent) = std::path::Path::new(&local_path).parent() {
+    let target =
+        confined_write_path(&site_path, &org_id, &sanitized_name, app_name, file_name)?;
+    if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&local_path, content)?;
-    log::info!("Designer updated local file: {local_path}");
+    std::fs::write(&target, content)?;
+    log::info!("Designer updated local file: {}", target.display());
 
-    let file_path = format!("{}.gbapp/{}/{}", sanitized_name, app_name, file_name);
+    let file_path = format!("{sanitized_name}.gbapp/{app_name}/{file_name}");
+    if !is_confined_drive_key(&file_path, &sanitized_name) {
+        return Err("computed drive key is not tenant-confined".into());
+    }
     let content_type = (state.get_content_type)(file_name);
 
     match (state.write_to_drive)(&bucket_name, &file_path, content.as_bytes(), content_type) {
         Ok(()) => {
-            log::info!("Designer synced to drive: {}/{}/{}", bucket_name, sanitized_name, file_path);
+            log::info!("Designer synced to drive: {bucket_name}/{file_path}");
         }
         Err(e) => {
             log::warn!("Designer drive sync failed (local write succeeded): {e}");

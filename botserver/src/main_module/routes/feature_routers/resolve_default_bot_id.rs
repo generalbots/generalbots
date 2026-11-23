@@ -211,6 +211,10 @@ pub(crate) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
             load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> {
                 Err("not available".to_string())
             }),
+            // #2831 — `apply_file_change` validates and canonically confines
+            // every path component before this closure is reached. Keep
+            // `bucket` server-owned and never pass a client-supplied path or
+            // bot id here when this stub becomes a real Drive writer.
             write_to_drive: Arc::new(
                 |_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> {
                     Err("not available".to_string())

@@ -1,5 +1,6 @@
 pub mod handlers;
 pub mod llm_integration;
+pub mod path_guard;
 pub mod types;
 pub mod utils;
 pub mod validators;
