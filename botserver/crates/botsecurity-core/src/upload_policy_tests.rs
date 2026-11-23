@@ -173,13 +173,31 @@ fn a_docx_container_is_accepted_and_must_be_a_real_zip() {
     let declared =
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-    let upload = validate_upload(UploadClass::DocumentImport, "report.docx", declared, &bytes)
-        .expect("a real DOCX must be accepted");
+    // The container check is what this test covers; keep it independent of the
+    // fail-closed malware requirement (no scanner is registered in unit tests).
+    let policy = HostileFilePolicy {
+        require_malware_scanner: false,
+        ..HostileFilePolicy::default()
+    };
+    let upload = validate_upload_with_policy(
+        UploadClass::DocumentImport,
+        "report.docx",
+        declared,
+        &bytes,
+        &policy,
+    )
+    .expect("a real DOCX must be accepted");
     assert_eq!(upload.extension, "docx");
 
     // Same extension and declared type, but the bytes are not a zip at all.
-    let error = validate_upload(UploadClass::DocumentImport, "report.docx", declared, PDF)
-        .expect_err("a DOCX that is not a zip must be refused");
+    let error = validate_upload_with_policy(
+        UploadClass::DocumentImport,
+        "report.docx",
+        declared,
+        PDF,
+        &policy,
+    )
+    .expect_err("a DOCX that is not a zip must be refused");
     assert!(matches!(error, UploadError::TypeMismatch { .. }));
 }
 
