@@ -170,3 +170,22 @@
 .gb-lim-key > .gb-lim-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .gb-lim-logo svg { width: 15px; height: 15px; }
 .gb-lim-inf { font: 600 14px var(--id-font-mono); color: var(--id-success-text); padding-right: 6px; }
+/* Limites: refresh control, shared with the usage drawer */
+.gb-lim-refresh-slot { margin-left: auto; }
+.gb-lim-refresh { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.gb-lim-refresh-at { font: 600 10.5px var(--id-font-mono); color: var(--id-muted); letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+.gb-lim-refresh-btn { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--id-line); border-radius: 6px; background: var(--id-surface-solid); color: var(--id-ink); font: 500 12.5px var(--id-font); cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); transition: background .15s, border-color .15s; }
+.gb-lim-refresh-btn:hover:not(:disabled) { background: var(--id-fill); border-color: color-mix(in srgb, var(--id-ink) 22%, transparent); }
+.gb-lim-refresh-btn:focus-visible { outline: 2px solid var(--id-ink); outline-offset: 2px; }
+.gb-lim-refresh-btn:disabled { cursor: progress; color: var(--id-muted); }
+.gb-lim-refresh.is-loading .gb-lim-refresh-ic { animation: gb-lim-spin .9s linear infinite; }
+@keyframes gb-lim-spin { to { transform: rotate(360deg); } }
+.gb-quota-label .gb-lim-refresh { margin-left: auto; text-transform: none; letter-spacing: 0; }
+.gb-quota-label .gb-lim-refresh-btn { height: 24px; padding: 0 8px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) {
+    .gb-lim-refresh.is-loading .gb-lim-refresh-ic { animation: none; opacity: .5; }
+    .gb-lim-refresh-btn { transition: none; }
+}
+@media (max-width: 640px) {
+    .gb-lim-refresh-at { display: none; }
+}

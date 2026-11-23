@@ -146,7 +146,7 @@
         opener = button;
         setDrawer(true);
         drawer.querySelector("button").focus();
-        renderDrawer();
+        renderDrawer(true);
     }
 
     function ensureDrawer() {
@@ -188,20 +188,22 @@
             box.replaceChildren(node("p", "gb-quota-note", tr("Não há cota nem custo. O limite é a memória deste computador.", "No quota and no cost. The limit is this computer's memory.")));
             return;
         }
+        var refreshNote = A.limitRefreshNote ? A.limitRefreshNote(engine) : "";
         if (!bars.length) {
-            box.replaceChildren(node("p", "gb-quota-note", tr("Este motor não informa limites nem renovação. Confira com o provedor.", "This engine does not report limits or reset times. Check with the provider.")));
+            box.replaceChildren(node("p", "gb-quota-note", (A.limitSilentText && A.limitSilentText(engine)) ||
+                tr("Este motor não informa limites nem renovação. Confira com o provedor.", "This engine does not report limits or reset times. Check with the provider.")));
             return;
         }
         var rows = bars.map(function (b) {
             var row = node("div", "gb-quota-lim");
             var main = node("div", "gb-quota-lim-in");
             var top = node("div", "gb-quota-lim-top");
-            var pct = node("b", "", b.pct + "%");
+            var pct = node("b", "", b.pct === null ? "" : b.pct + "%");
             pct.style.color = b.color;
             top.append(node("span", "", b.label), pct);
             var track = node("div", "gb-quota-track");
             var fill = node("i");
-            fill.style.width = b.pct + "%";
+            fill.style.width = (b.pct || 0) + "%";
             fill.style.background = b.color;
             track.appendChild(fill);
             var foot = node("div", "gb-quota-lim-foot");
@@ -210,12 +212,13 @@
             row.append(node("span", "gb-quota-gutter"), main);
             return row;
         });
-        var seen = A.limitSeen(engine);
+        var seen = [A.limitSeen(engine), A.limitHowText ? A.limitHowText(engine).toUpperCase() : ""].filter(Boolean).join(" · ");
         if (seen) { rows.push(node("p", "gb-quota-note gb-quota-seen", seen)); }
+        if (refreshNote) { rows.unshift(node("p", "gb-quota-note", refreshNote)); }
         box.replaceChildren.apply(box, rows);
     }
 
-    function renderDrawer() {
+    function renderDrawer(opening) {
         var body = drawer.querySelector(".gb-quota-body");
         var model = A.selectedModel || A.defaultModel || "";
         var head = node("div", "gb-quota-head");
@@ -224,12 +227,16 @@
         head.append(kindRow, node("p", "gb-quota-model", A.shortModelName(model) || tr("Sem modelo ativo", "No active model")));
         var limits = node("div", "gb-quota-section");
         fillLimits(limits, model);
-        if (A.llmLimits) {
-            A.llmLimits().then(function () { if (limits.isConnected) { fillLimits(limits, model); } paintUsageLine(); });
+        var limitsLabel = label(tr("Limites", "Limits"));
+        function repaint() { if (limits.isConnected) { fillLimits(limits, model); } paintUsageLine(); }
+        if (A.limitsRefreshControl) {
+            var refresher = A.limitsRefreshControl(repaint);
+            limitsLabel.appendChild(refresher);
+            A.llmLimits(Boolean(opening)).then(function () { refresher.sync(); repaint(); });
         }
         var report = node("div", "gb-quota-report");
         report.appendChild(node("p", "gb-quota-note", tr("Carregando…", "Loading…")));
-        body.replaceChildren(head, label(tr("Limites", "Limits")), limits, label(tr("Uso recente · 30 dias", "Recent usage · 30 days")), report);
+        body.replaceChildren(head, limitsLabel, limits, label(tr("Uso recente · 30 dias", "Recent usage · 30 days")), report);
         var footer = drawer.querySelector(".gb-quota-foot");
         if (!footer) {
             footer = makeButton("gb-quota-foot", tr("Ajustar limites em Configurações", "Adjust limits in Settings"), "gear", function () {

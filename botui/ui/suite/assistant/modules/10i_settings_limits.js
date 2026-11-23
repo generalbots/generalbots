@@ -26,17 +26,23 @@
         return response.json();
     }
 
-    /* ---- /api/llm/limits, read at most once a minute ---- */
-    var cache = null, asked = 0, pending = null;
-    A.llmLimits = function (fresh) {
-        if (pending) { return pending; }
+    /* ---- /api/llm/limits: cached a minute; `fresh` skips the cache and
+       `refresh` asks the server to re-read engines that allow it ---- */
+    var cache = null, asked = 0, pending = null, pendingRefresh = false;
+    A.llmLimits = function (fresh, refresh) {
+        if (pending && (pendingRefresh || !refresh)) { return pending; }
         if (cache && !fresh && Date.now() - asked < 60000) { return Promise.resolve(cache); }
         asked = Date.now();
-        pending = Promise.all([read("/api/llm/limits"), read("/api/llm/config").catch(function () { return null; })])
-            .then(function (got) { cache = { engines: (got[0] && got[0].engines) || [], config: got[1] }; return cache; })
-            .catch(function () { cache = cache || { engines: [], config: null }; return cache; })
-            .then(function (value) { pending = null; return value; });
-        return pending;
+        pendingRefresh = Boolean(refresh);
+        var call = Promise.all([read(refresh ? "/api/llm/limits?refresh=1" : "/api/llm/limits"), read("/api/llm/config").catch(function () { return null; })])
+            .then(function (got) { cache = { engines: (got[0] && got[0].engines) || [], config: got[1], at: Date.now() }; return cache; })
+            .catch(function () {
+                cache = cache || { engines: [], config: null, at: 0 };
+                return { engines: cache.engines, config: cache.config, at: cache.at, failed: true };
+            })
+            .then(function (value) { if (pending === call) { pending = null; } return value; });
+        pending = call;
+        return call;
     };
     A.cachedLimits = function () { return cache; };
 
@@ -58,7 +64,8 @@
     };
     var NAMES = { "5h": ["Janela de 5 horas", "5-hour window"], weekly: ["Limite semanal", "Weekly limit"], requests: ["Pedidos", "Requests"],
         tokens: ["Tokens", "Tokens"], input_tokens: ["Tokens de entrada", "Input tokens"], output_tokens: ["Tokens de saída", "Output tokens"],
-        daily: ["Limite diário", "Daily limit"] };
+        daily: ["Limite diário", "Daily limit"], weekly_opus: ["Limite semanal · Opus", "Weekly limit · Opus"],
+        weekly_sonnet: ["Limite semanal · Sonnet", "Weekly limit · Sonnet"], plan: ["Cota do plano", "Plan quota"] };
     A.limitWindowName = function (name) { var n = NAMES[name]; return n ? tr(n[0], n[1]) : String(name || ""); };
     function hhmm(d) { return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
     function resetText(iso) {
@@ -79,15 +86,20 @@
         if (lim) { return tr("LIMITE ", "LIMIT ") + counts(w.limit); }
         return "";
     }
-    /** One bar per window that reports a share: [{label, pct, color, value, reset}]. */
+    /** One bar per window that reports a share or a status: [{label, pct, color, value, reset}];
+        `pct` is null for a window that only says its status. */
     A.limitBars = function (engine) {
         return ((engine && engine.windows) || []).map(function (w) {
-            var p = pctOf(w);
-            return p === null ? null : { label: A.limitWindowName(w.name), pct: p, color: tone(p), value: valueText(w), reset: resetText(w.resets_at) };
+            var p = pctOf(w), said = A.limitStatusText ? A.limitStatusText(w.status) : "";
+            if (p === null && !said) { return null; }
+            var value = [said, valueText(w)].filter(Boolean).join(" · ");
+            var color = p !== null ? tone(p) : w.status === "allowed_warning" ? "var(--id-warn-text)" : "var(--id-ink)";
+            return { label: A.limitWindowName(w.name), pct: p, color: color, value: value.toUpperCase(), reset: resetText(w.resets_at) };
         }).filter(Boolean);
     };
     A.limitSeen = function (engine) {
-        var src = { "codex-session": tr("SESSÃO DO AGENTE", "AGENT SESSION"), "response-headers": tr("RESPOSTA DO PROVEDOR", "PROVIDER RESPONSE") }[engine && engine.source] || "";
+        var src = { "codex-session": tr("SESSÃO DO AGENTE", "AGENT SESSION"), "codex-service": tr("LIDO DO SERVIÇO", "READ FROM THE SERVICE"),
+            "agent-turn": tr("ÚLTIMA RESPOSTA DO AGENTE", "AGENT'S LAST ANSWER"), "response-headers": tr("RESPOSTA DO PROVEDOR", "PROVIDER RESPONSE") }[engine && engine.source] || "";
         var d = engine && engine.observed_at ? new Date(engine.observed_at) : null;
         var at = d && !isNaN(d.getTime()) ? tr("VISTO ", "SEEN ") + (d.toDateString() === new Date().toDateString() ? tr("ÀS ", "AT ") + hhmm(d)
             : d.toLocaleDateString(A.locale, { day: "2-digit", month: "2-digit" }) + " " + hhmm(d)) : "";
@@ -116,9 +128,9 @@
             '</strong>' + (summary ? '<span class="gb-lim-sum">' + esc(summary) + '</span>' : '') + '</div>' + body + '</section>';
     }
     function bar(label, pct, value, reset, color) {
-        var c = color || tone(pct);
+        var c = color || tone(pct), shown = pct === null ? "" : pct + "%";
         return '<div class="gb-lim-bar"><i aria-hidden="true"></i><div><div class="gb-lim-bar-top"><span>' + esc(label) +
-            '</span><b style="color:' + c + '">' + pct + '%</b></div><div class="gb-lim-track"><i style="width:' + pct + '%;background:' + c +
+            '</span><b style="color:' + c + '">' + shown + '</b></div><div class="gb-lim-track"><i style="width:' + (pct || 0) + '%;background:' + c +
             '"></i></div><div class="gb-lim-bar-foot"><span>' + esc(value) + '</span><span>' + esc(reset) + '</span></div></div></div>';
     }
     function shortDevice(name) {
@@ -132,10 +144,13 @@
             : '<span class="gb-lim-ini">' + esc(String(e.label || e.provider || "?").slice(0, 2).toUpperCase()) + '</span>';
         var bars = A.limitBars(e);
         var right = e.unlimited ? '<b class="gb-lim-inf">∞</b>' : '';
+        var caption = [A.limitSeen(e) || (bars.length || e.unlimited ? "" : tr("NÃO INFORMADO", "NOT REPORTED")), A.limitHowText(e).toUpperCase()]
+            .filter(Boolean).join(" · ");
+        var refreshNote = A.limitRefreshNote(e);
         return '<div class="gb-lim-eng"><div class="gb-lim-key">' + mark + '<span class="gb-lim-who"><b>' + esc(e.label || e.provider) + '</b><small>' +
-            esc(A.limitSeen(e) || (bars.length || e.unlimited ? "" : tr("SEM DADOS DE USO", "NO USAGE DATA"))) + '</small></span>' + right + '</div>' +
-            (bars.length ? bars.map(function (b) { return bar(b.label, b.pct, b.value, b.reset); }).join("")
-                : e.unlimited ? "" : note(tr("Este motor ainda não informou limites.", "This engine has not reported limits yet."))) + '</div>';
+            esc(caption) + '</small></span>' + right + '</div>' + (refreshNote ? note(refreshNote) : "") +
+            (bars.length ? bars.map(function (b) { return bar(b.label, b.pct, b.value, b.reset, b.color); }).join("")
+                : e.unlimited ? "" : note(A.limitSilentText(e) || tr("Este motor ainda não informou limites.", "This engine has not reported limits yet."))) + '</div>';
     }
 
     A.renderLimits = async function (panel) {
@@ -148,7 +163,7 @@
                     A.settingsIcon(engine[5], 15) + '</span><span class="gb-lim-no">0' + (index + 1) + '</span><span class="gb-lim-pct">—</span></span><span class="gb-lim-name"><strong>' +
                     A.engineName(engine[0], "group") + '</strong><span>' + tr(engine[3], engine[4]) + '</span></span><span class="gb-lim-meter"><i></i></span></button>';
             }).join("") + '</div><div class="gb-lim-detail-head"><span class="gb-sp-mark gb-lim-detail-k">' + tr("Detalhes", "Details") +
-            '</span><strong id="gbLimitsName"></strong></div><div class="gb-lim-tray"><i class="gb-lim-gutter" aria-hidden="true"></i>' +
+            '</span><strong id="gbLimitsName"></strong><span class="gb-lim-refresh-slot"></span></div><div class="gb-lim-tray"><i class="gb-lim-gutter" aria-hidden="true"></i>' +
             '<div class="gb-lim-tray-in" id="gbLimitsDetail"></div></div></div>';
         var details = panel.querySelector("#gbLimitsDetail");
         var cards = panel.querySelectorAll("[data-limit]");
@@ -208,6 +223,11 @@
         cards.forEach(function (button) {
             button.onclick = function () { selected = button.dataset.limit; drawDetails(); };
         });
+        var refresher = A.limitsRefreshControl(function (data) {
+            reported = data.engines;
+            if (panel.isConnected) { drawCards(); drawDetails(); }
+        });
+        panel.querySelector(".gb-lim-refresh-slot").appendChild(refresher);
         drawCards();
         drawDetails();
 
@@ -223,6 +243,7 @@
             }),
             A.llmLimits(true).then(function (data) {
                 reported = data.engines;
+                refresher.sync();
                 if (panel.isConnected) { drawCards(); drawDetails(); }
             })
         ]);
