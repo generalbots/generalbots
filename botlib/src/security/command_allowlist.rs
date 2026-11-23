@@ -102,8 +102,7 @@ pub static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| 
 #[cfg(windows)]
 pub static WINDOWS_ONLY_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
-        "pg_ctl",
-        "initdb",
+        "pg_ctl", "initdb",
         // These had `.exe` entries before normalisation; they are not in the
         // cross-platform allowlist because the corresponding commands on Linux
         // reach the binary via the stack path (pkill pattern), not via

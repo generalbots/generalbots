@@ -33,8 +33,7 @@ fn error_with_code_keeps_the_code() {
 
 #[test]
 fn map_transforms_the_data_and_preserves_the_envelope() {
-    let response = ApiResponse::success_with_message(1_i32, "created")
-        .map(|n| n + 1);
+    let response = ApiResponse::success_with_message(1_i32, "created").map(|n| n + 1);
     assert!(response.is_success());
     assert_eq!(response.data, Some(2));
     assert_eq!(response.message.as_deref(), Some("created"));

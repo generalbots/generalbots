@@ -55,7 +55,10 @@ pub fn git_auth_env(token: &str) -> Vec<(String, String)> {
     let credential = base64_encode(format!("x-access-token:{token}").as_bytes());
     vec![
         ("GIT_CONFIG_COUNT".to_string(), "1".to_string()),
-        ("GIT_CONFIG_KEY_0".to_string(), "http.extraHeader".to_string()),
+        (
+            "GIT_CONFIG_KEY_0".to_string(),
+            "http.extraHeader".to_string(),
+        ),
         (
             "GIT_CONFIG_VALUE_0".to_string(),
             format!("AUTHORIZATION: basic {credential}"),

@@ -1,3 +1,7 @@
+pub mod approval;
+#[cfg(test)]
+#[path = "approval_tests.rs"]
+mod approval_tests;
 pub mod auth;
 pub mod collaboration;
 pub mod export_isolation;

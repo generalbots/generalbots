@@ -193,9 +193,7 @@ pub fn has_message(message_id: &str) -> bool {
 
 /// Message ids authored in the English (fallback) locale bundle.
 pub fn message_ids() -> Vec<String> {
-    bundle()
-        .map(I18nBundle::message_ids)
-        .unwrap_or_default()
+    bundle().map(I18nBundle::message_ids).unwrap_or_default()
 }
 
 pub fn is_initialized() -> bool {
@@ -251,7 +249,10 @@ mod tests {
     fn accept_language_orders_by_quality() {
         let parsed = parse_accept_language("en;q=0.5, pt-BR;q=0.9, es;q=0.7");
         let tags: Vec<String> = parsed.iter().map(Locale::to_string).collect();
-        assert_eq!(tags, vec!["pt-BR".to_string(), "es".to_string(), "en".to_string()]);
+        assert_eq!(
+            tags,
+            vec!["pt-BR".to_string(), "es".to_string(), "en".to_string()]
+        );
     }
 
     /// A malformed header degrades to the default locale instead of erroring.

@@ -297,12 +297,11 @@ mod file_tests {
     use std::io::Write;
 
     fn temp_product(name: &str, content: &str) -> String {
-        let path = std::env::temp_dir().join(format!(
-            "gb-branding-{}-{name}.product",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("gb-branding-{}-{name}.product", std::process::id()));
         let mut file = std::fs::File::create(&path).expect("create temp product file");
-        file.write_all(content.as_bytes()).expect("write product file");
+        file.write_all(content.as_bytes())
+            .expect("write product file");
         path.to_string_lossy().into_owned()
     }
 
@@ -327,7 +326,10 @@ mod file_tests {
         assert_eq!(config.name, "Acme Bots");
         assert_eq!(config.short_name, "AC");
         assert_eq!(config.primary_color.as_deref(), Some("#123456"));
-        assert!(config.is_white_label, "a product file is a white-label config");
+        assert!(
+            config.is_white_label,
+            "a product file is a white-label config"
+        );
         let _ = std::fs::remove_file(&path);
     }
 

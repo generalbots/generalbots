@@ -29,7 +29,15 @@ fn test_safe_command_disallowed() {
 #[test]
 fn dangerous_binaries_stay_out_of_the_allowlist() {
     for binary in [
-        "nc", "netcat", "wget", "dd", "mkfs", "rm", "openssl", "createdb", "systemctl",
+        "nc",
+        "netcat",
+        "wget",
+        "dd",
+        "mkfs",
+        "rm",
+        "openssl",
+        "createdb",
+        "systemctl",
     ] {
         assert!(
             SafeCommand::new(binary).is_err(),
@@ -177,7 +185,13 @@ fn taskkill_is_in_allowlist() {
 /// They must NOT be in the cross-platform allowlist.
 #[test]
 fn component_image_names_are_not_commands() {
-    for name in ["qdrant", "caddy", "coredns", "livekit-server", "stalwart-mail"] {
+    for name in [
+        "qdrant",
+        "caddy",
+        "coredns",
+        "livekit-server",
+        "stalwart-mail",
+    ] {
         assert!(
             SafeCommand::new(name).is_err(),
             "{name} should not be in the allowlist (it is a taskkill argument)"
@@ -198,7 +212,12 @@ fn zitadel_bare_rejected_on_linux() {
 /// the original fix missed.
 #[test]
 fn shell_script_arg_rejects_the_adversarial_metacharacter_corpus() {
-    let bash = || SafeCommand::new("bash").expect("bash is allowlisted").arg("-c").expect("arg");
+    let bash = || {
+        SafeCommand::new("bash")
+            .expect("bash is allowlisted")
+            .arg("-c")
+            .expect("arg")
+    };
     for hostile in [
         "echo a; rm -rf /",
         "echo a | sh",
@@ -240,9 +259,30 @@ fn shell_script_arg_rejects_the_adversarial_metacharacter_corpus() {
 #[test]
 fn hostile_arguments_are_refused_by_safe_command() {
     let corpus = [
-        "a;b", "a|b", "a&b", "a$b", "a`b", "a>b", "a<b", "a\nb", "a\rb",
-        "a\0b", "a(b", "a)b", "a{b", "a}b", "a*b", "a?b", "a[b", "a]b",
-        "a~b", "a!b", "a#b", "a'b", "a\"b", "../../etc/passwd",
+        "a;b",
+        "a|b",
+        "a&b",
+        "a$b",
+        "a`b",
+        "a>b",
+        "a<b",
+        "a\nb",
+        "a\rb",
+        "a\0b",
+        "a(b",
+        "a)b",
+        "a{b",
+        "a}b",
+        "a*b",
+        "a?b",
+        "a[b",
+        "a]b",
+        "a~b",
+        "a!b",
+        "a#b",
+        "a'b",
+        "a\"b",
+        "../../etc/passwd",
     ];
     for hostile in corpus {
         assert!(
@@ -264,7 +304,12 @@ fn hostile_arguments_are_refused_by_safe_command() {
             "SafeCommand::env must refuse {hostile:?}"
         );
     }
-    for safe in ["report.pdf", "My Document 2026.docx", "/tmp/out.png", "a-b_c.d"] {
+    for safe in [
+        "report.pdf",
+        "My Document 2026.docx",
+        "/tmp/out.png",
+        "a-b_c.d",
+    ] {
         assert!(
             SafeCommand::new("pdftotext")
                 .and_then(|c| c.arg(safe))

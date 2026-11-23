@@ -12,16 +12,11 @@ use std::sync::LazyLock;
 pub(crate) static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
     HashSet::from([
         // Command separators, pipelines and job control.
-        ';', '&', '|',
-        // Parameter, command and arithmetic expansion.
-        '$', '`',
-        // Redirection and here-documents.
-        '<', '>',
-        // Grouping, globbing, brace expansion, tilde and history expansion.
-        '(', ')', '{', '}', '*', '?', '[', ']', '~', '!',
-        // Quoting and comments.
-        '\'', '"', '#',
-        // Line/record separators (also caught by `char::is_control`).
+        ';', '&', '|', // Parameter, command and arithmetic expansion.
+        '$', '`', // Redirection and here-documents.
+        '<', '>', // Grouping, globbing, brace expansion, tilde and history expansion.
+        '(', ')', '{', '}', '*', '?', '[', ']', '~', '!', // Quoting and comments.
+        '\'', '"', '#', // Line/record separators (also caught by `char::is_control`).
         '\n', '\r', '\0',
     ])
 });
@@ -243,9 +238,9 @@ mod tests {
     #[test]
     fn hostile_metacharacter_corpus_is_rejected() {
         let corpus = [
-            "a;b", "a&b", "a|b", "a$b", "a`b", "a<b", "a>b", "a(b", "a)b",
-            "a{b", "a}b", "a*b", "a?b", "a[b", "a]b", "a~b", "a!b", "a#b",
-            "a'b", "a\"b", "a\nb", "a\rb", "a\0b", "a\tb", "a\u{1b}b",
+            "a;b", "a&b", "a|b", "a$b", "a`b", "a<b", "a>b", "a(b", "a)b", "a{b", "a}b", "a*b",
+            "a?b", "a[b", "a]b", "a~b", "a!b", "a#b", "a'b", "a\"b", "a\nb", "a\rb", "a\0b",
+            "a\tb", "a\u{1b}b",
         ];
         for hostile in corpus {
             assert!(

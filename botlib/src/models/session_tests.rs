@@ -30,7 +30,9 @@ fn an_expiry_in_the_past_is_expired() {
 
     assert!(session.is_expired());
     assert!(!session.is_active());
-    assert!(session.remaining_time().is_some_and(|d| d.num_seconds() < 0));
+    assert!(session
+        .remaining_time()
+        .is_some_and(|d| d.num_seconds() < 0));
 }
 
 #[test]
@@ -72,7 +74,10 @@ fn a_user_session_round_trips_through_json() {
     let encoded = serde_json::to_string(&session).expect("serializable");
     let decoded: UserSession = serde_json::from_str(&encoded).expect("deserializable");
 
-    assert!(decoded.locked, "#1682: the locked flag must survive a round-trip");
+    assert!(
+        decoded.locked,
+        "#1682: the locked flag must survive a round-trip"
+    );
     assert_eq!(decoded.context_data, session.context_data);
     assert_eq!(decoded.id, session.id);
 }

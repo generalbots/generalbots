@@ -83,9 +83,7 @@ fn current_step_and_state_are_independent() {
     // `Option` fields may be absent on the wire: the derived deserializer maps
     // a missing key to `None`, which is what an older row looks like.
     let mut json = serde_json::to_value(&base).expect("serializable");
-    json.as_object_mut()
-        .expect("object")
-        .remove("current_step");
+    json.as_object_mut().expect("object").remove("current_step");
     let decoded: WorkflowExecution = serde_json::from_value(json).expect("deserializable");
     assert!(decoded.current_step.is_none());
     assert_eq!(decoded.state_json, Some(serde_json::json!({"seen": true})));

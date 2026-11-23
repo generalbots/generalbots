@@ -1,7 +1,7 @@
-pub use super::command_validation::CommandGuardError;
 use super::command_allowlist::ALLOWED_COMMANDS;
 #[cfg(windows)]
 use super::command_allowlist::WINDOWS_ONLY_COMMANDS;
+pub use super::command_validation::CommandGuardError;
 use super::command_validation::{
     find_forbidden_script_char, normalise_command_name, validate_argument, validate_path,
 };
@@ -172,7 +172,9 @@ impl SafeCommand {
         // #2621 — NUL truncates argv at the OS boundary even for trusted
         // script strings; reject it unconditionally.
         if script.contains('\0') {
-            return Err(CommandGuardError::InvalidArgument("NUL byte in script".to_string()));
+            return Err(CommandGuardError::InvalidArgument(
+                "NUL byte in script".to_string(),
+            ));
         }
         let limit = if trusted { 16384 } else { 8192 };
         if script.len() > limit {
