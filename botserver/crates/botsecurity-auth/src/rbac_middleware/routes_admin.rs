@@ -196,8 +196,12 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/reports/**", "POST", ""),
 
         // Setup / System / Governance / Ops
+        // #2747 — `POST /api/setup/configure` creates the initial bot row, so
+        // it must not be writable by any authenticated non-admin. Without the
+        // roles, manager.rs lets every session through (role list is empty).
         RoutePermission::new("/api/setup/**", "GET", ""),
-        RoutePermission::new("/api/setup/**", "POST", ""),
+        RoutePermission::new("/api/setup/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/system/**", "GET", ""),
         RoutePermission::new("/api/system/**", "POST", ""),
         RoutePermission::new("/api/governance/**", "GET", ""),

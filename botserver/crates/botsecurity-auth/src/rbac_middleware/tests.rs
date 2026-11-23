@@ -373,3 +373,43 @@ async fn test_provider_editor_routes_are_admin_only() {
     assert!(manager.check_route_access("/api/apps/integrations/providers/x", "PUT", &admin).await.is_allowed());
     assert!(manager.check_route_access("/api/apps/integrations/providers/x", "DELETE", &admin).await.is_allowed());
 }
+
+/// #2747 — `POST /api/setup/configure` writes the initial bot row. It must be
+/// admin-only, while the read-only status endpoint stays usable by any user.
+#[tokio::test]
+async fn setup_configure_route_is_admin_only() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes).await;
+
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string())
+        .with_role(Role::User);
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+        .with_role(Role::Admin);
+    let super_admin = AuthenticatedUser::new(Uuid::new_v4(), "root@example.com".to_string())
+        .with_role(Role::SuperAdmin);
+
+    assert!(
+        !manager
+            .check_route_access("/api/setup/configure", "POST", &user)
+            .await
+            .is_allowed(),
+        "POST /api/setup/configure must be denied for a non-admin"
+    );
+    for admin_user in [&admin, &super_admin] {
+        assert!(
+            manager
+                .check_route_access("/api/setup/configure", "POST", admin_user)
+                .await
+                .is_allowed(),
+            "POST /api/setup/configure must be allowed for an admin"
+        );
+    }
+    assert!(
+        manager
+            .check_route_access("/api/setup/status", "GET", &user)
+            .await
+            .is_allowed(),
+        "GET /api/setup/status must stay readable by a non-admin"
+    );
+}
