@@ -254,6 +254,7 @@ async fn codex_engine(vm: Option<&(&'static Arc<botagent::AgentService>, String)
             Ok(Some(limits)) => {
                 codex_json(&mut entry, &limits, "codex-service");
                 entry["refreshed"] = json!(true);
+                remember_live(vm_name, limits);
                 return entry;
             }
             Ok(None) => log::info!("llm limits: codex service sent no plan windows"),
@@ -261,14 +262,41 @@ async fn codex_engine(vm: Option<&(&'static Arc<botagent::AgentService>, String)
         }
         entry["refresh_failed"] = json!(true);
     }
-    match botagent::codex::limits(service, vm_name).await {
-        Ok(Some(limits)) => codex_json(&mut entry, &limits, "codex-session"),
-        Ok(None) => {}
+    let logged = match botagent::codex::limits(service, vm_name).await {
+        Ok(found) => found,
         Err((code, message)) => {
             log::warn!("llm limits: codex session logs unreadable ({}): {message}", code.as_u16());
+            None
         }
+    };
+    // A live read newer than the session logs stays the answer until a
+    // later turn writes newer logs: opening the page must not show older
+    // numbers than the last "Atualizar".
+    match (last_live(vm_name), logged) {
+        (Some(live), Some(logged)) if live.observed_at > logged.observed_at => {
+            codex_json(&mut entry, &live, "codex-service");
+        }
+        (Some(live), None) => codex_json(&mut entry, &live, "codex-service"),
+        (_, Some(logged)) => codex_json(&mut entry, &logged, "codex-session"),
+        (None, None) => {}
     }
     entry
+}
+
+fn live_reads() -> &'static std::sync::Mutex<HashMap<String, botagent::codex::CodexLimits>> {
+    static READS: std::sync::OnceLock<std::sync::Mutex<HashMap<String, botagent::codex::CodexLimits>>> =
+        std::sync::OnceLock::new();
+    READS.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+}
+
+fn remember_live(vm_name: &str, limits: botagent::codex::CodexLimits) {
+    if let Ok(mut reads) = live_reads().lock() {
+        reads.insert(vm_name.to_string(), limits);
+    }
+}
+
+fn last_live(vm_name: &str) -> Option<botagent::codex::CodexLimits> {
+    live_reads().lock().ok().and_then(|reads| reads.get(vm_name).cloned())
 }
 
 #[cfg(not(feature = "agent-vm"))]
