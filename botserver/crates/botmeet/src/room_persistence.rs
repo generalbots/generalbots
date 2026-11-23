@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{Bool, Float8, Int4, Int8, Nullable, Text, Timestamptz};
+use diesel::sql_types::{Bool, Float8, Int4, Int8, Nullable, Text, Timestamptz, Uuid as DieselUuid};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -52,6 +52,27 @@ pub struct DashboardQuery {
     pub status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+/// Tenant boundary for meeting dashboard reads/writes (#2737). A meeting
+/// belongs to exactly one owning organization; every dashboard query MUST be
+/// scoped through this value so one tenant can never read another's meetings
+/// or stats. It is derived from the *verified* caller identity, never from
+/// client input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MeetingScope {
+    pub org_id: Uuid,
+}
+
+impl MeetingScope {
+    /// Build a scope from the caller's verified organization claim. When the
+    /// request is unauthenticated (or the token carries no org), callers are
+    /// confined to the nil-org legacy bucket — never to "all organizations".
+    pub fn from_org(org_id: Option<Uuid>) -> Self {
+        Self {
+            org_id: org_id.unwrap_or_else(Uuid::nil),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -115,9 +136,11 @@ struct MeetingRow {
 pub async fn schedule_meeting(
     state: &AppState,
     request: ScheduleMeetingRequest,
+    scope: MeetingScope,
 ) -> Result<PersistentRoom, String> {
     let room_id = Uuid::new_v4();
     let now = Utc::now();
+    let org_id = scope.org_id;
     let created_by_uuid = request
         .created_by
         .and_then(|s| Uuid::parse_str(&s).ok())
@@ -143,7 +166,7 @@ pub async fn schedule_meeting(
             "INSERT INTO meeting_rooms (id, organization_id, title, description, created_by, created_at, scheduled_at, duration_minutes, status, is_recording, is_transcribing, settings, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)"
         )
         .bind::<diesel::sql_types::Uuid, _>(room_id)
-        .bind::<diesel::sql_types::Uuid, _>(Uuid::nil())
+        .bind::<DieselUuid, _>(org_id)
         .bind::<Text, _>(&title)
         .bind::<Nullable<Text>, _>(&description)
         .bind::<diesel::sql_types::Uuid, _>(created_by_uuid)
@@ -160,7 +183,7 @@ pub async fn schedule_meeting(
 
         Ok(PersistentRoom {
             id: room_id,
-            organization_id: Uuid::nil(),
+            organization_id: org_id,
             title,
             description,
             created_by: created_by_uuid,
@@ -180,7 +203,10 @@ pub async fn schedule_meeting(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-pub async fn get_dashboard_stats(state: &AppState) -> Result<DashboardStats, String> {
+pub async fn get_dashboard_stats(
+    state: &AppState,
+    scope: MeetingScope,
+) -> Result<DashboardStats, String> {
     let pool = state.conn.clone();
 
     tokio::task::spawn_blocking(move || {
@@ -188,35 +214,55 @@ pub async fn get_dashboard_stats(state: &AppState) -> Result<DashboardStats, Str
             .get()
             .map_err(|e| format!("Failed to get DB connection: {e}"))?;
 
-        let total: i64 = sql_query("SELECT COUNT(*)::bigint AS count FROM meeting_rooms")
-            .get_result::<CountRow>(&mut conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let org = scope.org_id;
 
-        let live: i64 = sql_query("SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'live'")
-            .get_result::<CountRow>(&mut conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let total: i64 = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE organization_id = $1",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
 
-        let scheduled: i64 = sql_query("SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'scheduled'")
-            .get_result::<CountRow>(&mut conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let live: i64 = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'live' AND organization_id = $1",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
 
-        let completed: i64 = sql_query("SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'ended'")
-            .get_result::<CountRow>(&mut conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let scheduled: i64 = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'scheduled' AND organization_id = $1",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
 
-        let participants: i64 = sql_query("SELECT COUNT(*)::bigint AS count FROM meeting_participants WHERE left_at IS NULL")
-            .get_result::<CountRow>(&mut conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let completed: i64 = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_rooms WHERE status = 'ended' AND organization_id = $1",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
 
-        let recording_hours: f64 = sql_query("SELECT COALESCE(SUM(duration_seconds)::float8 / 3600.0, 0.0) AS count FROM meeting_recordings WHERE status IN ('ready', 'recording')")
-            .get_result::<HoursRow>(&mut conn)
-            .map(|r| r.count.unwrap_or(0.0))
-            .unwrap_or(0.0);
+        let participants: i64 = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_participants WHERE left_at IS NULL AND room_id IN (SELECT id FROM meeting_rooms WHERE organization_id = $1)",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
+
+        let recording_hours: f64 = sql_query(
+            "SELECT COALESCE(SUM(duration_seconds)::float8 / 3600.0, 0.0) AS count FROM meeting_recordings WHERE status IN ('ready', 'recording') AND room_id IN (SELECT id FROM meeting_rooms WHERE organization_id = $1)",
+        )
+        .bind::<DieselUuid, _>(org)
+        .get_result::<HoursRow>(&mut conn)
+        .map(|r| r.count.unwrap_or(0.0))
+        .unwrap_or(0.0);
 
         Ok(DashboardStats {
             total_meetings: total,
@@ -234,10 +280,12 @@ pub async fn get_dashboard_stats(state: &AppState) -> Result<DashboardStats, Str
 pub async fn list_meetings(
     state: &AppState,
     query: DashboardQuery,
+    scope: MeetingScope,
 ) -> Result<Vec<MeetingListItem>, String> {
     let pool = state.conn.clone();
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
+    let org = scope.org_id;
 
     tokio::task::spawn_blocking(move || {
         let mut conn = pool
@@ -245,8 +293,9 @@ pub async fn list_meetings(
             .map_err(|e| format!("Failed to get DB connection: {e}"))?;
 
         let rows: Vec<MeetingRow> = sql_query(
-            "SELECT id, title, description, status, scheduled_at, duration_minutes, created_at, ended_at, is_recording FROM meeting_rooms ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT id, title, description, status, scheduled_at, duration_minutes, created_at, ended_at, is_recording FROM meeting_rooms WHERE organization_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         )
+        .bind::<DieselUuid, _>(org)
         .bind::<Int8, _>(limit)
         .bind::<Int8, _>(offset)
         .get_results(&mut conn)
@@ -272,4 +321,23 @@ pub async fn list_meetings(
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scope_uses_the_callers_verified_org() {
+        let org = Uuid::new_v4();
+        let scope = MeetingScope::from_org(Some(org));
+        assert_eq!(scope.org_id, org);
+    }
+
+    #[test]
+    fn scope_confines_anonymous_callers_to_the_nil_org() {
+        let scope = MeetingScope::from_org(None);
+        assert_eq!(scope.org_id, Uuid::nil());
+        assert_ne!(scope.org_id, Uuid::new_v4());
+    }
 }

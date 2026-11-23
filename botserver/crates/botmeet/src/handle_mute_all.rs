@@ -1,4 +1,5 @@
 use super::*;
+use axum::http::HeaderMap;
 
 pub async fn handle_mute_all(
     Form(payload): Form<MuteAllRequest>,
@@ -126,9 +127,16 @@ pub async fn turn_credentials() -> impl IntoResponse {
 }
 pub async fn schedule_meeting_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(request): Json<ScheduleMeetingRequest>,
 ) -> impl IntoResponse {
-    match room_persistence::schedule_meeting(&state, request).await {
+    match room_persistence::schedule_meeting(
+        &state,
+        request,
+        crate::dashboard::caller_scope(&headers),
+    )
+    .await
+    {
         Ok(room) => {
             info!("Scheduled meeting: {} ({})", room.title, room.id);
             (StatusCode::OK, Json(serde_json::json!(room)))
@@ -144,8 +152,14 @@ pub async fn schedule_meeting_handler(
 }
 pub async fn dashboard_stats(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
-    match room_persistence::get_dashboard_stats(&state).await {
+    match room_persistence::get_dashboard_stats(
+        &state,
+        crate::dashboard::caller_scope(&headers),
+    )
+    .await
+    {
         Ok(stats) => (StatusCode::OK, Json(serde_json::json!(stats))),
         Err(e) => {
             error!("Failed to get dashboard stats: {e}");
@@ -158,6 +172,7 @@ pub async fn dashboard_stats(
 }
 pub async fn list_meetings_htmx(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> Html<String> {
     let query = room_persistence::DashboardQuery {
         status: None,
@@ -165,7 +180,13 @@ pub async fn list_meetings_htmx(
         offset: Some(0),
     };
 
-    match room_persistence::list_meetings(&state, query).await {
+    match room_persistence::list_meetings(
+        &state,
+        query,
+        crate::dashboard::caller_scope(&headers),
+    )
+    .await
+    {
         Ok(meetings) => {
             if meetings.is_empty() {
                 return Html(
@@ -180,14 +201,16 @@ pub async fn list_meetings_htmx(
                     "scheduled" => "status-scheduled",
                     _ => "status-ended",
                 };
+                let title = crate::dashboard::escape_html(&m.title);
+                let status = crate::dashboard::escape_html(&m.status);
                 html.push_str(&format!(
                     r#"<div class="meeting-card {status_class}" data-id="{id}">
                         <h4>{title}</h4>
                         <p>Status: {status} | Participants: {participants}</p>
                     </div>"#,
                     id = m.id,
-                    title = m.title,
-                    status = m.status,
+                    title = title,
+                    status = status,
                     participants = m.participant_count,
                 ));
             }
