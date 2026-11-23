@@ -83,7 +83,8 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 }
                 content.innerHTML = d.posts.map(function(p) {
                     var authorName = p.author ? (p.author.name || p.author.display_name || 'User') : (p.author_name || 'User');
-                    return '<div class="social-post"><div class="post-header"><strong>' + authorName + '</strong></div><div class="post-body">' + (p.content || '') + '</div></div>';
+                    // #2836 — escape all API-derived values at the sink (as showAnnouncements already does).
+                    return '<div class="social-post"><div class="post-header"><strong>' + escapeHtml(authorName) + '</strong></div><div class="post-body">' + escapeHtml(p.content || '') + '</div></div>';
                 }).join('');
             }).catch(function(){ content.innerHTML = '<div class="empty-feed"><p>Could not load feed.</p></div>'; });
         };
@@ -97,7 +98,8 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                     return;
                 }
                 content.innerHTML = d.map(function(c) {
-                    return '<div class="social-post"><div class="post-header"><strong>' + (c.name || 'Community') + '</strong></div><div class="post-body">' + (c.description || '') + '</div></div>';
+                    // #2836 — escape community name/description at the sink.
+                    return '<div class="social-post"><div class="post-header"><strong>' + escapeHtml(c.name || 'Community') + '</strong></div><div class="post-body">' + escapeHtml(c.description || '') + '</div></div>';
                 }).join('');
             }).catch(function(){ content.innerHTML = '<div class="empty-feed"><p>Could not load communities.</p></div>'; });
         };
@@ -133,6 +135,18 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+
+        // #2836 — self-test: an <img onerror> payload must be rendered as inert
+        // text, never as markup. Invoke from DevTools: window.__socialXssSelfTest().
+        // Returns true only when escapeHtml() fully neutralizes the payload.
+        window.__socialXssSelfTest = function () {
+            var payload = '<img src=x onerror="alert(1)">';
+            var escaped = escapeHtml(payload);
+            if (escaped.indexOf('<') !== -1 || escaped.indexOf('>') !== -1) return false;
+            var probe = document.createElement('div');
+            probe.innerHTML = escaped;
+            return probe.querySelector('img') === null && probe.textContent === payload;
+        };
 
         function populateSidebars() {
             loadMyCommunities();
