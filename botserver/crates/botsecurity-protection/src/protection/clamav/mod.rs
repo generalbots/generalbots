@@ -5,7 +5,7 @@
 //! sent `ProtectionTool::ClamAV` to `lynis::run_scan()`, which produced a Lynis
 //! audit under a ClamAV label; this module reports only real engine verdicts.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use tracing::info;
 
 use botsecurity_core::antivirus::byte_scan::{self, ByteScanVerdict};
@@ -32,7 +32,7 @@ pub async fn run_scan() -> Result<(ScanResultStatus, Vec<Finding>, String)> {
             vec![(path.to_string_lossy().into_owned(), path)]
         }
         None => malware::list_quarantine_records()
-            .context("listing hostile-file quarantine")?
+            .map_err(|e| anyhow::anyhow!("listing hostile-file quarantine: {e}"))?
             .into_iter()
             .filter(|record| !record.quarantine_path.is_empty())
             .map(|record| (record.original_path, std::path::PathBuf::from(record.quarantine_path)))
