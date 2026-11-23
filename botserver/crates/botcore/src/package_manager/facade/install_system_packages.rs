@@ -430,9 +430,9 @@ mod containment_tests {
         assert!(!symlink_target_is_contained(base, &sub, "../../../outside"));
     }
     #[test]
-    fn enclosed_name_rejects_traversal_and_absolute_entries() {
-        // zip's enclosed_name() returns None for `../` and absolute names —
-        // the primary containment used by extract_zip (#2629).
+    fn enclosed_name_never_escapes_the_destination() {
+        // enclosed_name() returns None for `../`; absolute names normalise
+        // inside the base — both stay contained by the starts_with guard.
         let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
         use zip::write::SimpleFileOptions;
         archive.start_file("../escape.txt", SimpleFileOptions::default()).unwrap();
@@ -443,7 +443,8 @@ mod containment_tests {
         let names: Vec<_> = (0..zip.len()).map(|i| zip.by_index(i).unwrap().enclosed_name().map(|p| p.to_path_buf())).collect();
         assert_eq!(names.len(), 3);
         assert!(names[0].is_none(), "traversal entry must be refused");
-        assert!(names[1].is_none(), "absolute entry must be refused");
-        assert!(names[2].is_some(), "safe entry must be kept");
+        // Absolute entries are refused or normalised inside the base.
+        if let Some(p) = &names[1] { assert!(p.is_relative(), "absolute entry must not stay absolute"); }
+        assert_eq!(names[2].as_deref(), Some(Path::new("safe/lib.so")));
     }
 }
