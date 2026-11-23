@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 use botcore::shared::utils::{get_work_path, DbPool};
+use botlib::security::redact::redact_url_userinfo;
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -137,13 +138,25 @@ fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
     let checkout = match ensure_checkout_with_heal(pool, project, &org) {
         Ok(c) => c,
         Err(e) => {
-            log::warn!("[git_monitor] checkout {}/{}: {e}", org, project.repo_slug);
+            // #2860: a clone/checkout error may echo a legacy token-bearing
+            // remote URL — strip it before the warning reaches the log.
+            log::warn!(
+                "[git_monitor] checkout {}/{}: {}",
+                org,
+                project.repo_slug,
+                redact_url_userinfo(&e)
+            );
             return;
         }
     };
     // Fetch and compare without touching the working tree on no-op ticks.
     if let Err(e) = run_git(&checkout, &["fetch", "origin", "main"]) {
-        log::debug!("[git_monitor] fetch {}/{}: {e}", org, project.repo_slug);
+        log::debug!(
+            "[git_monitor] fetch {}/{}: {}",
+            org,
+            project.repo_slug,
+            redact_url_userinfo(&e)
+        );
         return;
     }
     let local = run_git(&checkout, &["rev-parse", "HEAD"]).unwrap_or_default();
@@ -156,7 +169,12 @@ fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
         return; // already in sync
     }
     if let Err(e) = run_git(&checkout, &["reset", "--hard", "origin/main"]) {
-        log::warn!("[git_monitor] reset {}/{}: {e}", org, project.repo_slug);
+        log::warn!(
+            "[git_monitor] reset {}/{}: {}",
+            org,
+            project.repo_slug,
+            redact_url_userinfo(&e)
+        );
         return;
     }
     log::info!(

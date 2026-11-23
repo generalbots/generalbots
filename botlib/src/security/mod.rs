@@ -2,6 +2,8 @@ pub mod command_allowlist;
 pub mod command_guard;
 pub mod command_utils;
 pub mod command_validation;
+pub mod git_auth;
+pub mod redact;
 mod utils;
 
 pub use command_guard::SafeCommand;

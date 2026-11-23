@@ -31,6 +31,17 @@ pub(crate) fn run_git(cwd: &Path, args: &[&str]) -> Result<String, String> {
     for a in args {
         cmd = cmd.trusted_arg(a)?;
     }
+    // #2861: authenticate every git operation through a short-lived
+    // `http.extraHeader` in the child's environment. The token is never an
+    // argv element and never written into the checkout's `.git/config`, so a
+    // local `ps` or any later process cannot recover it. `run_git` is the
+    // single entry point for clone/fetch/push in this monitor, so applying it
+    // here covers every remote operation.
+    let (_, alm_token, _) = botcoresecrets::alm_config();
+    if !alm_token.is_empty() {
+        cmd = botlib::security::git_auth::apply_git_auth(cmd, &alm_token)
+            .map_err(|e| e.to_string())?;
+    }
     let out = cmd.execute().map_err(|e| e.to_string())?;
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
@@ -48,15 +59,19 @@ pub(crate) fn alm_repo(name: &str) -> String {
     botvibe::vm_lifecycle::VmLifecycle::alm_repo(name)
 }
 
-/// Authenticated clone URL against the INTERNAL ALM base (same source
-/// `git_mode.rs` uses so clones work inside the container).
-pub(crate) fn authenticated_clone_url(org: &str, repo: &str) -> Option<String> {
+/// Token-free clone URL against the INTERNAL ALM base (same source
+/// `git_mode.rs` uses so clones work inside the container). #2861: the ALM
+/// token is supplied to `git` via `run_git`'s ephemeral auth environment,
+/// never embedded in the URL that becomes an argv element / `.git/config`
+/// remote.
+pub(crate) fn clone_url(org: &str, repo: &str) -> Option<String> {
     let (alm_base, alm_token, _) = botcoresecrets::alm_config();
     if alm_base.is_empty() || alm_token.is_empty() {
         return None;
     }
-    let base = alm_base.trim_end_matches('/');
-    Some(format!("{base}/{org}/{repo}.git").replace("://", &format!("://{}@", alm_token)))
+    Some(botlib::security::git_auth::plain_clone_url(
+        &alm_base, org, repo,
+    ))
 }
 
 pub(crate) fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
@@ -83,7 +98,7 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
     if cwd.join(".git").exists() {
         return Ok(cwd);
     }
-    let url = match authenticated_clone_url(org, &project.repo_slug) {
+    let url = match clone_url(org, &project.repo_slug) {
         Some(u) => u,
         None => return Err("ALM config missing (secret/gbo/alm) — git monitor idle".to_string()),
     };
@@ -345,13 +360,36 @@ pub(crate) fn materialize_checkout(
 mod tests {
     use super::*;
 
+    /// #2861: the clone URL that reaches git argv must never carry the ALM
+    /// token, and the auth environment values must not carry it verbatim
+    /// either (only the encoded `x-access-token` credential may).
     #[test]
-    fn authenticated_url_embeds_token_once() {
-        // Pure string test — no Vault call: the helper is exercised through
-        // integration; here we verify the format contract of the replace.
-        let base = "http://alm:4747";
-        let url = format!("{base}/org/repo.git").replace("://", "://tok@");
-        assert_eq!(url, "http://tok@alm:4747/org/repo.git");
+    fn clone_argv_never_contains_the_token() {
+        const TOKEN: &str = "alm-token-do-not-leak-0123456789";
+        let url = botlib::security::git_auth::plain_clone_url("http://alm:4747", "org", "repo");
+        // The argv `run_git` builds for the clone, including the `-C` prefix.
+        let argv = [
+            "git",
+            "-C",
+            "/work",
+            "clone",
+            "--quiet",
+            &url,
+            "/work/.clone-repo",
+        ];
+        for arg in argv {
+            assert!(!arg.contains(TOKEN), "token leaked in argv element {arg}");
+        }
+        assert!(botlib::security::git_auth::git_auth_env(TOKEN)
+            .iter()
+            .all(|(_, value)| !value.contains(TOKEN)));
+    }
+
+    #[test]
+    fn clone_url_has_no_embedded_credentials() {
+        let url = botlib::security::git_auth::plain_clone_url("http://alm:4747", "org", "repo");
+        assert_eq!(url, "http://alm:4747/org/repo.git");
+        assert!(!url.contains('@'), "URL embeds credentials: {url}");
     }
 
     #[test]

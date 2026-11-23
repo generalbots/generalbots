@@ -239,6 +239,30 @@ impl SafeCommand {
         Ok(self)
     }
 
+    /// Pass an environment variable whose value was produced by trusted code
+    /// (e.g. a base64-encoded credential for an ephemeral `http.extraHeader`).
+    ///
+    /// Unlike [`Self::env`], the value is not run through `validate_argument`:
+    /// base64 legitimately contains `//` (and `+`/`=`), which that validation
+    /// rejects as a "dangerous pattern". The key is still validated, and the
+    /// value is bounded and checked for NUL so it cannot corrupt the child's
+    /// environment.
+    pub fn trusted_env(mut self, key: &str, value: &str) -> Result<Self, CommandGuardError> {
+        validate_argument(key)?;
+        if value.contains('\0') {
+            return Err(CommandGuardError::InvalidArgument(
+                "NUL byte in environment value".to_string(),
+            ));
+        }
+        if value.len() > 8192 {
+            return Err(CommandGuardError::InvalidArgument(
+                "Environment value too long".to_string(),
+            ));
+        }
+        self.envs.insert(key.to_string(), value.to_string());
+        Ok(self)
+    }
+
     pub fn stdout(mut self, stdout: std::process::Stdio) -> Self {
         self.stdout = Some(stdout);
         self
