@@ -9,6 +9,8 @@ use log::info;
 use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
+use crate::ui_server::js_escape::js_string;
+use crate::ui_server::safe_path::{is_safe_relative_path, resolve_static_path};
 
 fn get_login_url() -> String {
     std::env::var("LOGIN_URL").unwrap_or_else(|_| "http://localhost:5000".to_string())
@@ -73,11 +75,24 @@ fn get_html_injection_script() -> String {
     let platform_domain = get_platform_domain();
     format!(
         r#"<script>window.GB_LOGIN_URL = "{}";window.GB_CHAT_URL = "{}";window.GB_PLATFORM_DOMAIN = "{}";</script>"#,
-        login_url, chat_url, platform_domain
+        js_string(&login_url),
+        js_string(&chat_url),
+        js_string(&platform_domain)
     )
 }
 
 async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
+    let ui_root = get_ui_root();
+    // #2700: wildcard captures are attacker-controlled. Reject traversal
+    // before either the embedded or the filesystem read path uses the path.
+    let relative = file_path
+        .strip_prefix(&ui_root)
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_default();
+    if !is_safe_relative_path(&relative) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
     let injection = get_html_injection_script();
     let banner = get_preview_banner_html();
 
@@ -85,6 +100,9 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
     {
         let cloud_root = get_ui_root().join("cloud");
         let relative = file_path.strip_prefix(&cloud_root).unwrap_or(&file_path);
+        if !is_safe_relative_path(&relative.to_string_lossy().replace('\\', "/")) {
+            return StatusCode::NOT_FOUND.into_response();
+        }
         let asset_path = format!("cloud/{}", relative.display()).replace('\\', "/");
         if let Some(content) = Assets::get(&asset_path) {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
@@ -101,7 +119,12 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
 
     #[cfg(not(feature = "embed-ui"))]
     {
-        match tokio::fs::read(&file_path).await {
+        // Canonicalize so a symlink inside the UI tree cannot point at `.env`
+        // or any other file outside the served root.
+        let Some(safe_path) = resolve_static_path(&ui_root, &file_path) else {
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        match tokio::fs::read(&safe_path).await {
             Ok(bytes) => {
                 let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
                 let data = if mime.as_ref() == "text/html" {
@@ -134,6 +157,9 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
 async fn resolve_and_serve_cloud(path: &str) -> Response {
     let cloud_root = get_ui_root().join("cloud");
     let normalized = path.strip_prefix('/').unwrap_or(path);
+    if !is_safe_relative_path(normalized) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     let file_path = if normalized.contains('.') {
         cloud_root.join(normalized)
     } else if normalized.is_empty() || normalized.ends_with('/') {
@@ -174,4 +200,31 @@ pub async fn serve_cloud_fallback(original_uri: OriginalUri) -> Response {
         return Redirect::to(&format!("{suite_url}/")).into_response();
     }
     resolve_and_serve_cloud(path).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloud_wildcards_reject_traversal_before_join() {
+        // Axum decodes `%2e%2e%2f` into `../` before the handler sees it; the
+        // same guard also catches double-encoded forms from front proxies.
+        for path in [
+            "../.env",
+            "js/../../../.env",
+            "%2e%2e%2f.env",
+            "%252e%252e%2f.env",
+            "/etc/passwd",
+            "js\\..\\..\\.env",
+        ] {
+            assert!(
+                !is_safe_relative_path(path),
+                "must reject: {path}"
+            );
+        }
+        for path in ["store.html", "js/cloud.js", "css/site.css", "plans"] {
+            assert!(is_safe_relative_path(path), "must accept: {path}");
+        }
+    }
 }

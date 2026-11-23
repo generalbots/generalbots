@@ -10,6 +10,12 @@ use serde::Deserialize;
 
 use crate::shared::AppState;
 
+/// Upper bound for a proxied request body (32 MiB). The reverse proxy is the
+/// front door for anonymous `/webhook/*` deliveries; `usize::MAX` let a
+/// chunked, unbounded POST allocate arbitrary memory before forwarding.
+/// Larger payloads are rejected with 413 and never buffered.
+pub const MAX_PROXY_BODY_BYTES: usize = 32 * 1024 * 1024;
+
 fn extract_app_context(headers: &HeaderMap, path: &str) -> Option<String> {
     if let Some(referer) = headers.get("referer") {
         if let Ok(referer_str) = referer.to_str() {
@@ -56,7 +62,9 @@ pub async fn proxy_api(
     let app_context = extract_app_context(&headers, path);
 
     let target_url = format!("{}{path}{query}", state.client.base_url());
-    debug!("Proxying {method} {path} to {target_url} (app: {app_context:?})");
+    // Never log the full target URL: clients pass live bearer tokens in the
+    // query string and proxy logs must not become credential stores (#2703).
+    debug!("Proxying {method} {path} (app: {app_context:?})");
 
     let client = crate::ui_server::tls_policy::backend_http_client(state.client.base_url());
     let mut proxy_req = client.request(method.clone(), &target_url);
@@ -80,9 +88,13 @@ pub async fn proxy_api(
         proxy_req = proxy_req.header("X-App-Context", app);
     }
 
-    let body_bytes = match axum::body::to_bytes(req.into_body(), usize::MAX).await {
+    let body_bytes = match axum::body::to_bytes(req.into_body(), MAX_PROXY_BODY_BYTES).await {
         Ok(bytes) => bytes,
         Err(e) => {
+            if e.is_body_too_large() {
+                warn!("Rejected oversized proxy body on {path} (> {MAX_PROXY_BODY_BYTES} bytes)");
+                return build_error_response(StatusCode::PAYLOAD_TOO_LARGE, "Request body too large");
+            }
             error!("Failed to read request body: {e}");
             return build_error_response(
                 StatusCode::INTERNAL_SERVER_ERROR,

@@ -6,16 +6,42 @@ use axum::{
 use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
+use crate::ui_server::js_escape::js_string;
+use crate::ui_server::safe_path::{is_safe_relative_path, resolve_static_path};
 
 fn get_cloud_url() -> String {
     std::env::var("CLOUD_URL").unwrap_or_else(|_| "http://localhost:4000".to_string())
 }
 
+/// Auth pages and the injected config script must never be cached by an
+/// intermediary (#2705); cloud pages already use `no-store`.
+fn login_response(mime: &str, data: Vec<u8>) -> Response {
+    (
+        [
+            (axum::http::header::CONTENT_TYPE, mime.to_string()),
+            (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
+        ],
+        data,
+    )
+        .into_response()
+}
+
 async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
     let injection = format!(
         r#"<script>window.GB_CLOUD_URL = "{}";</script>"#,
-        get_cloud_url()
+        js_string(&get_cloud_url())
     );
+
+    let ui_root = get_ui_root();
+    // #2700: every wildcard capture is attacker-controlled. Reject `..`,
+    // encoded traversal and absolute paths before the path is used at all.
+    let relative = file_path
+        .strip_prefix(&ui_root)
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_default();
+    if !is_safe_relative_path(&relative) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
 
     // Login pages reference shared cloud assets (e.g. /js/cloud-auth.js from
     // cloud/js/) — the login UI has no copy of them. Fall back to the cloud
@@ -23,19 +49,15 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
     // otherwise the 404 HTML body reaches the browser as the script response
     // and strict MIME checking blocks it ("MIME type ('text/html') is not
     // executable").
-    let cloud_fallback = {
-        let ui_root = get_ui_root();
-        file_path
-            .strip_prefix(&ui_root)
-            .ok()
-            .and_then(|rel| rel.to_str())
-            .and_then(|rel| rel.strip_prefix("login/"))
-            .map(|rel| ui_root.join("cloud").join(rel))
-    };
+    let cloud_fallback = file_path
+        .strip_prefix(&ui_root)
+        .ok()
+        .and_then(|rel| rel.to_str())
+        .and_then(|rel| rel.strip_prefix("login/"))
+        .map(|rel| ui_root.join("cloud").join(rel));
 
     #[cfg(feature = "embed-ui")]
     {
-        let ui_root = get_ui_root();
         let relative = file_path.strip_prefix(&ui_root).unwrap_or(&file_path);
         let asset_path = relative.display().to_string().replace('\\', "/");
         let embedded = Assets::get(&asset_path).or_else(|| {
@@ -49,38 +71,39 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
         if let Some(content) = embedded {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
             let data = if mime.as_ref() == "text/html" {
-                inject_script_into_html(&content.data, &injection).into()
+                inject_script_into_html(&content.data, &injection)
             } else {
-                content.data
+                content.data.to_vec()
             };
-            return ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response();
+            return login_response(mime.as_ref(), data);
         }
         return StatusCode::NOT_FOUND.into_response();
     }
 
     #[cfg(not(feature = "embed-ui"))]
     {
-        match tokio::fs::read(&file_path).await {
-            Ok(bytes) => {
-                let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
+        // Canonicalize both candidates: a symlink inside the UI tree must not
+        // be able to expose files outside it, including the repository `.env`.
+        if let Some(safe_path) = resolve_static_path(&ui_root, &file_path) {
+            if let Ok(bytes) = tokio::fs::read(&safe_path).await {
+                let mime = mime_guess::from_path(&safe_path).first_or_octet_stream();
                 let data = if mime.as_ref() == "text/html" {
                     inject_script_into_html(&bytes, &injection)
                 } else {
                     bytes
                 };
-                ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response()
+                return login_response(mime.as_ref(), data);
             }
-            Err(_) => match cloud_fallback {
-                Some(fallback_path) => match tokio::fs::read(&fallback_path).await {
-                    Ok(bytes) => {
-                        let mime = mime_guess::from_path(&fallback_path).first_or_octet_stream();
-                        ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], bytes).into_response()
-                    }
-                    Err(_) => StatusCode::NOT_FOUND.into_response(),
-                },
-                None => StatusCode::NOT_FOUND.into_response(),
-            },
         }
+        if let Some(fallback) = cloud_fallback {
+            if let Some(safe_fallback) = resolve_static_path(&ui_root, &fallback) {
+                if let Ok(bytes) = tokio::fs::read(&safe_fallback).await {
+                    let mime = mime_guess::from_path(&safe_fallback).first_or_octet_stream();
+                    return login_response(mime.as_ref(), bytes);
+                }
+            }
+        }
+        StatusCode::NOT_FOUND.into_response()
     }
 }
 
@@ -108,6 +131,9 @@ pub async fn serve_login_signup() -> Response {
 }
 
 pub async fn serve_login_js(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
+    if !is_safe_relative_path(&path) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     let login_root = get_ui_root().join("login");
     serve_login_file(login_root.join("js").join(path.as_str())).await
 }
@@ -115,6 +141,9 @@ pub async fn serve_login_js(axum::extract::Path(path): axum::extract::Path<Strin
 pub async fn serve_login_images(
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> Response {
+    if !is_safe_relative_path(&path) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     let login_root = get_ui_root().join("login");
     serve_login_file(login_root.join("images").join(path.as_str())).await
 }
@@ -125,6 +154,38 @@ pub async fn serve_login_images(
 /// this route the request fell through to the index fallback and the browser
 /// refused the HTML body as a script (strict MIME checking).
 pub async fn serve_login_cloud(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
+    if !is_safe_relative_path(&path) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     let cloud_root = get_ui_root().join("cloud");
     serve_login_file(cloud_root.join(path.as_str())).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn login_wildcards_reject_traversal() {
+        for path in [
+            "..%2f.env",
+            "%2e%2e%2f.env",
+            "js/../../../.env",
+            "..\\..\\.env",
+            "/etc/passwd",
+        ] {
+            assert!(!is_safe_relative_path(path), "must reject: {path}");
+        }
+        assert!(is_safe_relative_path("js/cloud-auth.js"));
+    }
+
+    #[test]
+    fn auth_responses_are_never_stored() {
+        use axum::http::header::CACHE_CONTROL;
+        let response = login_response("text/html", b"page".to_vec());
+        assert_eq!(
+            response.headers().get(CACHE_CONTROL).and_then(|v| v.to_str().ok()),
+            Some("no-store")
+        );
+    }
 }
