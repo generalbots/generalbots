@@ -137,20 +137,20 @@ pub fn push_all_certs_ssh(base_path: &std::path::Path, ssh_host: &str) -> Result
 
             // SCP to host
             safe_sh(&format!(
-                "scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 {} {}:{}",
+                "scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 {} {}:{}",
                 fpath.display(), ssh_host, remote_tmp.display()
             ))?;
 
             // mkdir + incus file push on host
             let target_dir = format!("/opt/gbo/conf/system/certificates/{}", name);
             safe_sh(&format!(
-                "ssh {} -o StrictHostKeyChecking=no 'sudo incus exec {} -- mkdir -p {} && sudo incus file push {} {}:{}/{}'",
+                "ssh {} -o StrictHostKeyChecking=accept-new 'sudo incus exec {} -- mkdir -p {} && sudo incus file push {} {}:{}/{}'",
                 ssh_host, container, target_dir, remote_tmp.display(), container, target_dir, fname
             ))?;
 
             // Cleanup temp
             safe_sh(&format!(
-                "ssh {} -o StrictHostKeyChecking=no 'sudo rm -f {}'",
+                "ssh {} -o StrictHostKeyChecking=accept-new 'sudo rm -f {}'",
                 ssh_host, remote_tmp.display()
             ))?;
         }

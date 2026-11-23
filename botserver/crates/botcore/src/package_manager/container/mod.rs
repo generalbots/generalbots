@@ -85,12 +85,6 @@ pub trait ContainerOperations {
         container: &str,
     ) -> impl std::future::Future<Output = Result<()>> + Send;
 
-    /// Provision TLS certificates to a container via SSH to remote host
-    fn provision_certs_to_container_ssh(
-        &self,
-        container: &str,
-        ssh_host: &str,
-    ) -> impl std::future::Future<Output = Result<()>> + Send;
 }
 
 /// Service file templates for various containers
