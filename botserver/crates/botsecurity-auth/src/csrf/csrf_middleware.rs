@@ -13,6 +13,94 @@ fn origin_or_referer_host(value: &str) -> Option<String> {
     parsed.host_str().map(ToString::to_string)
 }
 
+fn has_bearer_auth(request: &Request<Body>) -> bool {
+    request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("Bearer "))
+}
+
+fn path_matches(pattern: &str, path: &str) -> bool {
+    match pattern.strip_suffix('*') {
+        Some(prefix) => path.starts_with(prefix),
+        None => pattern == path,
+    }
+}
+
+/// Host and explicit port of an authority (`example.com:5000`, `[::1]:5000`).
+fn authority_parts(authority: &str) -> Option<(String, Option<u16>)> {
+    let parsed = url::Url::parse(&format!("http://{authority}")).ok()?;
+    Some((parsed.host_str()?.to_ascii_lowercase(), parsed.port()))
+}
+
+/// The host the browser believes it is talking to. The botui reverse proxy
+/// drops `Host` and forwards the original in `x-forwarded-host` (see
+/// `botui/src/ui_server/proxy.rs`), so prefer that header when present.
+fn expected_host(request: &Request<Body>) -> Option<(String, Option<u16>)> {
+    if let Some(forwarded) = request
+        .headers()
+        .get("x-forwarded-host")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(str::trim)
+    {
+        if let Some(parts) = authority_parts(forwarded) {
+            return Some(parts);
+        }
+    }
+    request
+        .headers()
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .and_then(authority_parts)
+}
+
+fn origin_matches(expected: &(String, Option<u16>), value: &str) -> bool {
+    let parsed = match url::Url::parse(value) {
+        Ok(parsed) => parsed,
+        Err(_) => return false,
+    };
+    let host = match parsed.host_str() {
+        Some(host) => host.to_ascii_lowercase(),
+        None => return false,
+    };
+    if host != expected.0 {
+        return false;
+    }
+    match (parsed.port(), expected.1) {
+        (Some(from), Some(to)) => from == to,
+        // A proxy may add or drop a port. When only one side declares one, the
+        // host match is the meaningful same-origin signal.
+        _ => true,
+    }
+}
+
+/// #2815 — same-origin check for the auth POSTs that are exempt from the
+/// double-submit token. Browsers send `Origin` on every POST; `Referer` is the
+/// fallback for older clients. Both absent means "not proven", so fail closed.
+fn is_same_origin(request: &Request<Body>) -> bool {
+    let expected = match expected_host(request) {
+        Some(expected) => expected,
+        None => return false,
+    };
+    if let Some(origin) = request
+        .headers()
+        .get(header::ORIGIN)
+        .and_then(|v| v.to_str().ok())
+    {
+        return origin_matches(&expected, origin);
+    }
+    if let Some(referer) = request
+        .headers()
+        .get(header::REFERER)
+        .and_then(|v| v.to_str().ok())
+    {
+        return origin_matches(&expected, referer);
+    }
+    false
+}
+
 fn loopback_origin_ok(request: &Request<Body>) -> Result<bool, ()> {
     if let Some(origin) = request
         .headers()
@@ -64,6 +152,29 @@ pub async fn csrf_middleware(
         return next.run(request).await;
     }
 
+    // #2815 — the login/signup POSTs cannot carry a double-submit token (the
+    // forms post JSON), so they are exempted from the token check. Enforce
+    // same-origin Origin/Referer validation on them instead, before the
+    // blanket exemption applies, so a foreign site cannot drive a session-
+    // fixation login/signup. Bearer/API callers stay exempt.
+    if config
+        .origin_check_paths
+        .iter()
+        .any(|pattern| path_matches(pattern, &path))
+        && !has_bearer_auth(&request)
+        && !is_same_origin(&request)
+    {
+        warn!("CSRF blocked cross-origin {} {} (#2815)", method, path);
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "csrf_validation_failed",
+                "message": "Cross-origin requests are not allowed for this endpoint"
+            })),
+        )
+            .into_response();
+    }
+
     if csrf_manager.is_exempt_path(&path) {
         return next.run(request).await;
     }
@@ -94,12 +205,7 @@ pub async fn csrf_middleware(
     }
 
     // Skip CSRF for API requests using Bearer token auth (stateless)
-    let is_bearer = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| v.starts_with("Bearer "));
-    if is_bearer {
+    if has_bearer_auth(&request) {
         return next.run(request).await;
     }
 
@@ -160,4 +266,60 @@ pub async fn csrf_middleware(
     }
 
     next.run(request).await
+}
+
+#[cfg(test)]
+mod origin_tests {
+    use super::*;
+
+    fn request(host: &str, forwarded: Option<&str>, origin: Option<&str>, referer: Option<&str>) -> Request<Body> {
+        let mut builder = Request::builder().method("POST").uri("/api/cloud/auth/login");
+        builder = builder.header(header::HOST, host);
+        if let Some(value) = forwarded {
+            builder = builder.header("x-forwarded-host", value);
+        }
+        if let Some(value) = origin {
+            builder = builder.header(header::ORIGIN, value);
+        }
+        if let Some(value) = referer {
+            builder = builder.header(header::REFERER, value);
+        }
+        builder.body(Body::empty()).expect("test request is valid")
+    }
+
+    #[test]
+    fn accepts_a_same_origin_header() {
+        let req = request("login.pragmatismo.com.br", None, Some("https://login.pragmatismo.com.br"), None);
+        assert!(is_same_origin(&req));
+    }
+
+    #[test]
+    fn accepts_the_forwarded_host_and_a_referer_fallback() {
+        // botui drops Host and forwards the original in x-forwarded-host.
+        let req = request("localhost:8080", Some("localhost:5000"), Some("http://localhost:5000"), None);
+        assert!(is_same_origin(&req));
+
+        let req = request("localhost:8080", Some("localhost:5000"), None, Some("http://localhost:5000/signup"));
+        assert!(is_same_origin(&req));
+    }
+
+    #[test]
+    fn rejects_a_foreign_origin_even_with_a_matching_forwarded_host() {
+        let req = request("login.pragmatismo.com.br", None, Some("https://evil.example"), None);
+        assert!(!is_same_origin(&req));
+    }
+
+    #[test]
+    fn rejects_a_request_without_origin_or_referer() {
+        let req = request("login.pragmatismo.com.br", None, None, None);
+        assert!(!is_same_origin(&req));
+    }
+
+    #[test]
+    fn origin_check_paths_support_exact_and_wildcard_matching() {
+        let paths = vec!["/api/cloud/auth/login".to_string(), "/api/cloud/auth/*".to_string()];
+        assert!(paths.iter().any(|p| path_matches(p, "/api/cloud/auth/login")));
+        assert!(paths.iter().any(|p| path_matches(p, "/api/cloud/auth/signup")));
+        assert!(!paths.iter().any(|p| path_matches(p, "/api/cloud/profile")));
+    }
 }

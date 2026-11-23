@@ -95,3 +95,81 @@ async fn a_missing_shell_reports_500_instead_of_panicking() {
 
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
+
+/// #2815 — the two anonymous auth POSTs are CSRF-exempt because the JS forms
+/// post JSON (no double-submit token). The middleware must still reject a
+/// cross-site POST by validating Origin/Referer before the exemption applies.
+mod csrf_origin_tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::routing::post;
+    use tower::ServiceExt;
+
+    fn manager() -> Arc<CsrfManager> {
+        let mut config = CsrfConfig::default();
+        config.exempt_paths = vec!["/api/cloud/auth*".to_string()];
+        config.origin_check_paths = vec![
+            "/api/cloud/auth/login".to_string(),
+            "/api/cloud/auth/signup".to_string(),
+        ];
+        Arc::new(
+            CsrfManager::new(config, b"this-is-a-very-long-secret-key-for-testing-csrf")
+                .expect("test manager"),
+        )
+    }
+
+    fn app() -> axum::Router {
+        let manager = manager();
+        axum::Router::new()
+            .route("/api/cloud/auth/login", post(|| async { "ok" }))
+            .route("/api/cloud/auth/signup", post(|| async { "ok" }))
+            .layer(axum::middleware::from_fn(move |req, next| {
+                let manager = manager.clone();
+                async move { csrf_middleware(manager, req, next).await }
+            }))
+    }
+
+    fn post_request(path: &str, origin: &str) -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri(path)
+            .header("host", "login.pragmatismo.com.br")
+            .header("origin", origin)
+            .header("content-type", "application/json")
+            .body(Body::from("{}"))
+            .expect("test request")
+    }
+
+    #[tokio::test]
+    async fn a_foreign_origin_is_forbidden_on_login_and_signup() {
+        for path in ["/api/cloud/auth/login", "/api/cloud/auth/signup"] {
+            let response = app()
+                .oneshot(post_request(path, "https://evil.example"))
+                .await
+                .expect("response");
+            assert_eq!(
+                response.status(),
+                StatusCode::FORBIDDEN,
+                "{path} must reject a foreign Origin"
+            );
+            let body = json_body(response).await;
+            assert_eq!(body["error"], "csrf_validation_failed");
+        }
+    }
+
+    #[tokio::test]
+    async fn a_same_origin_post_passes_the_auth_exemption() {
+        for path in ["/api/cloud/auth/login", "/api/cloud/auth/signup"] {
+            let response = app()
+                .oneshot(post_request(path, "https://login.pragmatismo.com.br"))
+                .await
+                .expect("response");
+            assert_eq!(
+                response.status(),
+                StatusCode::OK,
+                "{path} must accept its own origin"
+            );
+        }
+    }
+}

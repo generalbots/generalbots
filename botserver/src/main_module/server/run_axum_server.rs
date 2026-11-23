@@ -149,6 +149,10 @@ pub async fn run_axum_server(
             "/api/peer/heartbeat".into(),
             "/api/peer/home-site".into(),
             "/api/peer/payloads".into(),
+            // #2815 — login/signup stay exempt from the double-submit token
+            // (the JS forms post JSON), but the middleware now requires a
+            // same-origin Origin/Referer on these two paths before honouring
+            // the exemption. Bearer/other API paths keep the exemption.
             "/api/cloud/auth*".into(),
             "/api/sheet*".into(),
             "/suite/sheet*".into(),
@@ -180,6 +184,12 @@ pub async fn run_axum_server(
             // (#1335).
             "/caldav*".into(),
             "/.well-known/caldav".into(),
+        ],
+        // #2815: enforce same-origin Origin/Referer on the two anonymous auth
+        // POSTs instead of leaving them wholly unprotected by the exemption.
+        origin_check_paths: vec![
+            "/api/cloud/auth/login".into(),
+            "/api/cloud/auth/signup".into(),
         ],
         ..Default::default()
     };

@@ -28,6 +28,14 @@ pub struct CsrfConfig {
     pub exempt_paths: Vec<String>,
     pub exempt_methods: Vec<String>,
     pub double_submit_cookie: bool,
+    /// State-changing requests to these paths are admitted only when their
+    /// `Origin` (or `Referer`) matches the request host (#2815). These paths
+    /// are typically also in `exempt_paths` because a browser form cannot
+    /// carry the double-submit token; this check takes precedence over that
+    /// exemption so a foreign site cannot perform a login/signup CSRF.
+    /// Bearer-authenticated requests stay exempt.
+    #[serde(default)]
+    pub origin_check_paths: Vec<String>,
     /// Single-user desktop mode (`no_security=true`): enforce loopback
     /// Origin/Referer checks as the primary CSRF control so cross-site pages
     /// cannot drive the local API, while allowing trusted loopback origins to
