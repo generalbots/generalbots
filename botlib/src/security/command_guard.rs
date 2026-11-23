@@ -106,7 +106,13 @@ impl SafeCommand {
                 "Script too long".to_string(),
             ));
         }
-        let forbidden_patterns = ["$(", "`", ".."];
+        // #2621 — the untrusted shell path must reject the full metacharacter
+        // set, not just command substitution and traversal. A caller-supplied
+        // argument that reaches `sh -c` with any of these can change the
+        // command structure or inject a new line of shell script.
+        let forbidden_patterns = [
+            "$(", "`", "..", ";", "|", ">", "<", "\n", "\r", "$",
+        ];
         for pattern in forbidden_patterns {
             if script.contains(pattern) {
                 return Err(CommandGuardError::ShellInjectionAttempt(format!(
@@ -160,6 +166,11 @@ impl SafeCommand {
                 "Empty script".to_string(),
             ));
         }
+        // #2621 — NUL truncates argv at the OS boundary even for trusted
+        // script strings; reject it unconditionally.
+        if script.contains('\0') {
+            return Err(CommandGuardError::InvalidArgument("NUL byte in script".to_string()));
+        }
         let limit = if trusted { 16384 } else { 8192 };
         if script.len() > limit {
             return Err(CommandGuardError::InvalidArgument(
@@ -167,7 +178,17 @@ impl SafeCommand {
             ));
         }
         if !trusted {
-            let forbidden_patterns = ["$(", "`", ".."];
+            // #2621 — the untrusted shell path must reject the full
+            // metacharacter set, not just command substitution and traversal.
+            // A caller-supplied argument that reaches `sh -c` with any of these
+            // can change command structure or inject a new shell line.
+            // `&&` is deliberately not in this set: shipped installer scripts
+            // (e.g. `cd <dir> && ./install.sh`) use it and are already
+            // constructed server-side. Pipe/redirect/separator/substitution
+            // and control characters are never needed by those scripts.
+            let forbidden_patterns = [
+                "$(", "`", "..", ";", "|", ">", "<", "\n", "\r", "$",
+            ];
             for pattern in forbidden_patterns {
                 if script.contains(pattern) {
                     return Err(CommandGuardError::ShellInjectionAttempt(format!(

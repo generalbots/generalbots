@@ -70,8 +70,6 @@ pub static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| 
         "suricata",
         "suricata-update",
         "maldet",
-        "sudo",
-        "visudo",
         "id",
         "netsh",
         "llama-server",
