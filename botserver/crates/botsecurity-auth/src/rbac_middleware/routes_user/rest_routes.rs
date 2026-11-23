@@ -10,7 +10,22 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/goals/**", "PUT", ""),
         RoutePermission::new("/api/goals/**", "DELETE", ""),
 
-        // Settings (user's own settings)
+        // Settings (user's own settings). #2775 — the
+        // /api/settings/security/* handlers (botsettings::security_admin) are
+        // admin-shaped: TLS, rate-limit, CORS, MFA, password policy, API keys
+        // and session revocation. The broad /api/settings/** entries below
+        // also match that prefix, and manager.rs returns on the first match,
+        // so the admin-gated rules must come FIRST or any authenticated user
+        // slips through to the stubs. Keep the remaining settings self-service
+        // scope unchanged.
+        RoutePermission::new("/api/settings/security/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/settings/security/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/settings/security/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/settings/security/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/settings/**", "GET", ""),
         RoutePermission::new("/api/settings/**", "POST", ""),
         RoutePermission::new("/api/settings/**", "PUT", ""),
@@ -90,12 +105,43 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/crm/templates/**", "DELETE", ""),
 
         // Billing / Products
+        // #2671 — reads stay available to every authenticated tenant user;
+        // invoice/payment/product state changes are admin-only. These entries
+        // must carry the roles HERE (not in admin_routes): the route table is
+        // matched in registration order and returns on the first hit.
         RoutePermission::new("/api/billing/**", "GET", ""),
-        RoutePermission::new("/api/billing/**", "POST", ""),
+        RoutePermission::new("/api/billing/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/billing/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/billing/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/products/**", "GET", ""),
-        RoutePermission::new("/api/products/**", "POST", ""),
-        RoutePermission::new("/api/products/**", "PUT", ""),
-        RoutePermission::new("/api/products/**", "DELETE", ""),
+        RoutePermission::new("/api/products/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/products/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/products/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        // #2671 — cloud store checkout, vouchers and organization writes.
+        RoutePermission::new("/api/cloud/store/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/vouchers/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/vouchers/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/vouchers/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/organizations/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/organizations/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/cloud/organizations/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/billing/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ui/billing/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // Tickets
         RoutePermission::new("/api/tickets/**", "GET", ""),

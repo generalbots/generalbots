@@ -31,9 +31,13 @@ mod routes_user;
 mod types;
 
 #[cfg(test)]
+mod admin_shaped_routes_tests;
+#[cfg(test)]
 mod cache_invalidation_tests;
 #[cfg(test)]
 mod ops_routes_tests;
+#[cfg(test)]
+mod routes_billing_tests;
 #[cfg(test)]
 mod tests;
 

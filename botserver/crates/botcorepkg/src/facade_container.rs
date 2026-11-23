@@ -94,7 +94,14 @@ pub fn install_container(
     if let Some(url) = &component.download_url {
         // #2001 — the pinned digest travels with the URL, so the container
         // installer can verify the asset it just fetched.
-        let expected = crate::installer::checksum_for_url(url).unwrap_or_default();
+        // #2710 — propagate a missing pinned digest instead of silently
+        // installing unverified (the runtime path in
+        // botcore/package_manager/install_binary.rs already does this).
+        let expected = crate::installer::checksum_for_url(url).ok_or_else(|| {
+            anyhow::anyhow!(
+                "No pinned sha256 for '{url}' in 3rdparty.toml — refusing an unverified container install"
+            )
+        })?;
         crate::facade_download::download_in_container(
             &container_name,
             url,
@@ -269,10 +276,16 @@ pub fn create_container_service(
         "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
         component, env_section, rendered_cmd
     );
-    let service_file = format!("/tmp/{}.service", component);
-    std::fs::write(&service_file, &service_content)?;
+    // #2789 — stage the unit atomically in a private, unpredictable directory
+    // instead of writing to the predictable, world-writable /tmp path. The
+    // staged bytes are verified against the generated template by
+    // `StagedFile::create`, and `Drop` removes the directory on every path.
+    let unit_name = format!("{component}.service");
+    let staged = crate::safe_staging::StagedFile::create(&unit_name, service_content.as_bytes())
+        .map_err(|e| anyhow::anyhow!("Failed to stage service template: {e}"))?;
+    let staged_path = staged.as_path().to_string_lossy().to_string();
     let dest = format!("{container}/etc/systemd/system/{component}.service");
-    let output = safe_incus(&["file", "push", &service_file, &dest])
+    let output = safe_incus(&["file", "push", staged_path.as_str(), &dest])
         .ok_or_else(|| anyhow::anyhow!("Failed to execute incus file push command"))?;
     if !output.status.success() {
         warn!("Failed to push service file to container");
@@ -281,7 +294,6 @@ pub fn create_container_service(
     exec(container, "systemctl daemon-reload")?;
     exec(container, &format!("systemctl enable {}", component))?;
     exec(container, &format!("systemctl start {}", component))?;
-    std::fs::remove_file(&service_file)?;
     trace!("Created and started service in container {}: {}", container, component);
     Ok(())
 }

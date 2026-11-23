@@ -129,12 +129,96 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
     result
 }
 
+/// #2704 — cross-site WebSocket handshake guard.
+///
+/// A browser always sends `Origin` on a WebSocket handshake. Accept it when it
+/// is in the configured CORS allowlist, when it is loopback (desktop edition),
+/// or when it is same-origin with the `Host` header. A missing `Origin` (a
+/// non-browser client) stays allowed — there is no cross-origin page to block.
+fn origin_allowed(origin: Option<&str>, host: Option<&str>, configured: &[String]) -> bool {
+    let Some(origin) = origin else {
+        return true;
+    };
+    if origin.is_empty() {
+        return true;
+    }
+    if configured.iter().any(|allowed| allowed == origin) {
+        return true;
+    }
+    let Some(origin_host) = origin_host(origin) else {
+        return false;
+    };
+    if is_loopback_host(&origin_host) {
+        return true;
+    }
+    match host.and_then(header_host) {
+        Some(host) => host.eq_ignore_ascii_case(&origin_host),
+        None => false,
+    }
+}
+
+/// Extracts the host from an `Origin` value (`scheme://host[:port]`).
+fn origin_host(origin: &str) -> Option<String> {
+    let without_scheme = origin
+        .strip_prefix("https://")
+        .or_else(|| origin.strip_prefix("http://"))?;
+    let authority = without_scheme.split('/').next()?;
+    if authority.is_empty() || authority.contains('@') || authority.contains("..") {
+        return None;
+    }
+    let host = if authority.starts_with('[') {
+        authority.split(']').next()?.trim_start_matches('[')
+    } else {
+        authority.split(':').next()?
+    };
+    if host.is_empty() {
+        None
+    } else {
+        Some(host.to_string())
+    }
+}
+
+/// Host part of a `Host` header, tolerating an IPv6 literal in brackets.
+fn header_host(host: &str) -> Option<&str> {
+    let trimmed = host.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed.starts_with('[') {
+        trimmed.split(']').next().map(|h| h.trim_start_matches('['))
+    } else {
+        trimmed.split(':').next()
+    }
+}
+
+fn is_loopback_host(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host == "0.0.0.0"
+}
+
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
     Query(params): Query<WsQuery>,
     headers: axum::http::HeaderMap,
 ) -> axum::response::Response {
+    let origin = headers
+        .get(axum::http::header::ORIGIN)
+        .and_then(|value| value.to_str().ok());
+    let host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|value| value.to_str().ok());
+    let configured_origins = botsecurity::cors::get_cors_allowed_origins();
+    if !origin_allowed(origin, host, &configured_origins) {
+        botlog::safe_warn!(
+            "WS: rejected cross-origin handshake (origin {:?}, host {:?})",
+            origin,
+            host
+        );
+        return (axum::http::StatusCode::FORBIDDEN, "Forbidden origin").into_response();
+    }
     let session_id = params
         .session_id
         .and_then(|s| Uuid::parse_str(&s).ok())
@@ -313,4 +397,70 @@ pub async fn websocket_handler_with_bot(
     }
 
     websocket_handler(ws, State(state), Query(params), headers).await
+}
+
+#[cfg(test)]
+mod origin_tests {
+    use super::origin_allowed;
+
+    #[test]
+    fn hostile_origin_is_rejected() {
+        assert!(!origin_allowed(
+            Some("https://evil.example"),
+            Some("chat.example.com"),
+            &[]
+        ));
+    }
+
+    #[test]
+    fn same_origin_is_allowed() {
+        assert!(origin_allowed(
+            Some("https://chat.example.com"),
+            Some("chat.example.com"),
+            &[]
+        ));
+    }
+
+    #[test]
+    fn loopback_desktop_origin_is_allowed() {
+        assert!(origin_allowed(
+            Some("http://localhost:3000"),
+            Some("localhost:8080"),
+            &[]
+        ));
+        assert!(origin_allowed(
+            Some("http://127.0.0.1:3000"),
+            Some("127.0.0.1:8080"),
+            &[]
+        ));
+    }
+
+    #[test]
+    fn configured_origin_is_allowed() {
+        let configured = vec!["https://suite.example.org".to_string()];
+        assert!(origin_allowed(
+            Some("https://suite.example.org"),
+            Some("api.example.org"),
+            &configured
+        ));
+    }
+
+    #[test]
+    fn missing_origin_is_allowed() {
+        assert!(origin_allowed(None, Some("chat.example.com"), &[]));
+    }
+
+    #[test]
+    fn malformed_origin_is_rejected() {
+        assert!(!origin_allowed(
+            Some("javascript:alert(1)"),
+            Some("chat.example.com"),
+            &[]
+        ));
+        assert!(!origin_allowed(
+            Some("https://user@evil.example"),
+            Some("chat.example.com"),
+            &[]
+        ));
+    }
 }

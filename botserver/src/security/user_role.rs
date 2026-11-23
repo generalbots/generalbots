@@ -113,8 +113,11 @@ pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: 
     let mut conn = match pool.get() {
         Ok(c) => c,
         Err(e) => {
-            debug!("is_admin_only_endpoint: DB pool error: {e}");
-            return false;
+            // #2632 — fail CLOSED. `true` means "admin-only", so a database
+            // outage denies non-admins instead of silently disabling the
+            // admin-only gate for the command catalog and every caller.
+            log::error!("is_admin_only_endpoint: DB pool error, denying: {e}");
+            return true;
         }
     };
     let patterns: Vec<String> = match diesel::sql_query(
@@ -126,8 +129,9 @@ pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: 
     {
         Ok(rows) => rows.into_iter().map(|r| r.path_pattern).collect(),
         Err(e) => {
-            debug!("is_admin_only_endpoint: query error: {e}");
-            return false;
+            // #2632 — a query failure must not widen access.
+            log::error!("is_admin_only_endpoint: query error, denying: {e}");
+            return true;
         }
     };
     for pattern in &patterns {
