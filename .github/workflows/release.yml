@@ -2147,6 +2147,61 @@ jobs:
           grep -qE "  generalbots-${VERSION}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
           (cd dist && sha256sum -c SHA256SUMS-linux --ignore-missing)
 
+      - name: Generate CycloneDX SBOM (#2717)
+        # syft is already pinned and checksum-verified in security.yml; reuse
+        # that exact digest here so no unverified tool runs in the release job.
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/syft.tar.gz "$url"
+          echo "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e  /tmp/syft" | sha256sum -c -
+          tar -xzf /tmp/syft.tar.gz -C /tmp syft
+          /tmp/syft dir:dist -o cyclonedx-json=dist/sbom.cyclonedx.json
+          test -s dist/sbom.cyclonedx.json
+
+      - name: Emit provenance and verify the checksum chain (#2717)
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          manifest = json.loads((dist / "MANIFEST.json").read_text(encoding="utf-8"))
+          provenance = {
+              "schema": "https://slsa.dev/provenance/v1",
+              "buildDefinition": {
+                  "buildType": "https://github.com/generalbots/generalbots/.github/workflows/release.yml@refs/tags/" + manifest["release"],
+                  "externalParameters": {
+                      "repository": manifest["repository"],
+                      "ref": manifest["ref"],
+                      "commit": manifest["commit"],
+                      "workflow": os.environ["GITHUB_WORKFLOW"],
+                      "run_id": manifest["run_id"],
+                      "run_attempt": manifest["run_attempt"],
+                  },
+              },
+              "runDetails": {
+                  "builder": {"id": os.environ["GITHUB_SERVER_URL"] + "/" + manifest["repository"] + "/actions/runs/" + manifest["run_id"]},
+                  "metadata": {"invocationId": manifest["run_id"]},
+              },
+              "subject": [
+                  {"name": name, "digest": {"sha256": meta["sha256"]}}
+                  for name, meta in sorted(manifest["assets"].items())
+              ],
+          }
+          (dist / "provenance.json").write_text(
+              json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print(f"provenance lists {len(provenance['subject'])} subjects at {manifest['commit']}")
+          PY
+          (cd dist && sha256sum sbom.cyclonedx.json provenance.json >> SHA256SUMS)
+          # Fail closed before publishing if any listed asset drifted.
+          (cd dist && sha256sum -c SHA256SUMS --ignore-missing)
+
       - name: Publish the product release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
@@ -2196,6 +2251,10 @@ jobs:
             `MANIFEST.json` lists every asset with its SHA-256 and size;
             `SHA256SUMS` verifies the whole release in one command. The
             per-platform `SHA256SUMS-*` files are kept as well.
+            `sbom.cyclonedx.json` is the CycloneDX inventory and
+            `provenance.json` records the exact source commit, workflow and run
+            that produced these assets. Verify with
+            `curl -sLO <asset> && curl -sLO https://github.com/generalbots/generalbots/releases/download/${{ needs.release.outputs.version }}/SHA256SUMS && sha256sum -c SHA256SUMS --ignore-missing`.
 
             Stable link (always the newest release):
 
