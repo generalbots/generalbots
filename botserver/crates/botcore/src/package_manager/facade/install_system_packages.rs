@@ -1,5 +1,38 @@
 use super::*;
 
+/// #2629 — true when a relative symlink target resolves inside `base`.
+/// Absolute targets and any `..` that escapes the entry's directory are
+/// rejected; llama.cpp's in-tree `.so` chains (e.g. `libggml.so.0`,
+/// `../lib/libggml.so`) remain allowed when they stay within the base.
+fn symlink_target_is_contained(base: &std::path::Path, entry_dir: &std::path::Path, link: &str) -> bool {
+    use std::path::Component;
+    let link = std::path::Path::new(link);
+    if link.is_absolute() {
+        return false;
+    }
+    let mut parts: Vec<std::ffi::OsString> = Vec::new();
+    if let Ok(rel) = entry_dir.strip_prefix(base) {
+        for c in rel.components() {
+            if let Component::Normal(s) = c {
+                parts.push(s.to_os_string());
+            }
+        }
+    }
+    for c in link.components() {
+        match c {
+            Component::Normal(s) => parts.push(s.to_os_string()),
+            Component::ParentDir => {
+                if parts.pop().is_none() {
+                    return false;
+                }
+            }
+            Component::CurDir => {}
+            Component::RootDir | Component::Prefix(_) => return false,
+        }
+    }
+    true
+}
+
 impl PackageManager {
     pub fn install_system_packages(&self, component: &ComponentConfig) -> Result<()> {
         let packages = match self.os_type {
@@ -264,6 +297,13 @@ impl PackageManager {
         for i in 0..archive.len() {
             let mut entry = archive.by_index(i)
                 .with_context(|| format!("Failed to read entry {i} from zip"))?;
+            // #2629 — enclosed_name() rejects absolute paths and `..`
+            // traversal. Defence in depth even though the archive is
+            // SHA-256 verified before extraction.
+            let Some(enclosed) = entry.enclosed_name() else {
+                warn!("skipping zip entry with unsafe path at index {i}");
+                continue;
+            };
             let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
 
             // Skip unnecessary directories to speed up extraction
@@ -272,7 +312,11 @@ impl PackageManager {
                 continue;
             }
 
-            let target = bin_path.join(&name);
+            let target = bin_path.join(&enclosed);
+            if !target.starts_with(bin_path) {
+                warn!("skipping zip entry escaping destination: {name}");
+                continue;
+            }
             trace!("extracting[{}]: {}", i, name);
             // Unix symlinks are stored as regular entries whose content is the
             // link target. Writing them as files leaves a 20-byte "library"
@@ -292,15 +336,21 @@ impl PackageManager {
                     if let Err(e) = std::io::Read::read_to_string(&mut entry, &mut link_target) {
                         warn!("could not read symlink entry {}: {e}", name);
                     }
-                    let _ = std::fs::remove_file(&target);
-                    if let Err(e) =
-                        std::os::unix::fs::symlink(link_target.trim(), &target)
-                    {
-                        warn!(
-                            "could not create symlink {} -> {}: {e}",
-                            target.display(),
-                            link_target.trim()
-                        );
+                    // #2629 — a symlink is only written when its target also
+                    // resolves inside the destination directory.
+                    let link = link_target.trim();
+                    let entry_dir = target.parent().unwrap_or(bin_path);
+                    if !symlink_target_is_contained(bin_path, entry_dir, link) {
+                        warn!("skipping symlink escaping destination: {name} -> {link}");
+                    } else {
+                        let _ = std::fs::remove_file(&target);
+                        if let Err(e) = std::os::unix::fs::symlink(link, &target) {
+                            warn!(
+                                "could not create symlink {} -> {}: {e}",
+                                target.display(),
+                                link
+                            );
+                        }
                     }
                 }
                 #[cfg(not(unix))]
@@ -355,5 +405,45 @@ impl PackageManager {
             let _ = std::fs::remove_file(temp_file);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod containment_tests {
+    use super::symlink_target_is_contained;
+    use std::path::Path;
+
+    #[test]
+    fn symlink_targets_staying_in_base_are_allowed() {
+        let base = Path::new("/opt/gbo/bin");
+        assert!(symlink_target_is_contained(base, base, "libggml.so.0"));
+        let sub = base.join("lib");
+        assert!(symlink_target_is_contained(base, &sub, "libggml.so"));
+        assert!(symlink_target_is_contained(base, &sub, "../lib/libggml.so.0"));
+    }
+    #[test]
+    fn symlink_targets_escaping_base_are_refused() {
+        let base = Path::new("/opt/gbo/bin");
+        assert!(!symlink_target_is_contained(base, base, "/etc/passwd"));
+        assert!(!symlink_target_is_contained(base, base, "../../etc/passwd"));
+        let sub = base.join("a/b");
+        assert!(!symlink_target_is_contained(base, &sub, "../../../outside"));
+    }
+    #[test]
+    fn enclosed_name_rejects_traversal_and_absolute_entries() {
+        // zip's enclosed_name() returns None for `../` and absolute names —
+        // the primary containment used by extract_zip (#2629).
+        let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        use zip::write::SimpleFileOptions;
+        archive.start_file("../escape.txt", SimpleFileOptions::default()).unwrap();
+        archive.start_file("/absolute.txt", SimpleFileOptions::default()).unwrap();
+        archive.start_file("safe/lib.so", SimpleFileOptions::default()).unwrap();
+        let bytes = archive.finish().unwrap().into_inner();
+        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
+        let names: Vec<_> = (0..zip.len()).map(|i| zip.by_index(i).unwrap().enclosed_name().map(|p| p.to_path_buf())).collect();
+        assert_eq!(names.len(), 3);
+        assert!(names[0].is_none(), "traversal entry must be refused");
+        assert!(names[1].is_none(), "absolute entry must be refused");
+        assert!(names[2].is_some(), "safe entry must be kept");
     }
 }
