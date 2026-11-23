@@ -204,17 +204,29 @@ pub(super) async fn accept_invitation(
 ) -> Result<Json<AcceptInvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new(state.conn.clone());
 
-    // Resolve the accepting user from the verified bearer identity only
-    // (#2122). Never a random UUID — the org binding must point at the real
-    // user or the accept is meaningless.
-    let user_id = verified_user_id(&headers).or(req.user_id).unwrap_or(Uuid::nil());
-
-    if user_id == Uuid::nil() {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "Authentication required to accept an invitation"})),
-        ));
-    }
+    // #2849 — the accepting user is the verified bearer identity only. The
+    // client-supplied `user_id` is never authoritative: it is rejected when it
+    // disagrees with the verified claim, and a missing/forged claim is fatal
+    // even if the body tries to supply a value. No random-UUID fallback.
+    let user_id = match resolve_accepting_user_id(verified_user_id(&headers), req.user_id) {
+        Ok(id) => id,
+        Err(AcceptIdentityError::Unauthenticated) => {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": "Authentication required to accept an invitation"
+                })),
+            ));
+        }
+        Err(AcceptIdentityError::IdentityMismatch) => {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "user_id does not match the verified caller identity"
+                })),
+            ));
+        }
+    };
 
     match service.accept_invitation(&req.token, user_id).await {
         Ok(response) => Ok(Json(response)),
@@ -241,6 +253,33 @@ pub(super) async fn decline_invitation(
     }
 }
 
+/// Why the accepting-user identity could not be resolved (#2849).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AcceptIdentityError {
+    /// No verifiable bearer identity. Never substituted with a body `user_id`.
+    Unauthenticated,
+    /// The body `user_id` disagrees with the verified caller identity.
+    IdentityMismatch,
+}
+
+/// Resolve the user accepting an invitation from the verified bearer identity.
+///
+/// This is the pure decision behind [`accept_invitation`]. The client-supplied
+/// `user_id` is informational at best: it is accepted only when it equals the
+/// verified identity and rejected on any mismatch. A missing verified identity
+/// is always an error, even when the body supplies a value — there is no path
+/// from an untrusted field to an authenticated user (#2849).
+fn resolve_accepting_user_id(
+    verified: Option<Uuid>,
+    supplied: Option<Uuid>,
+) -> Result<Uuid, AcceptIdentityError> {
+    let verified = verified.ok_or(AcceptIdentityError::Unauthenticated)?;
+    match supplied {
+        Some(supplied) if supplied != verified => Err(AcceptIdentityError::IdentityMismatch),
+        _ => Ok(verified),
+    }
+}
+
 /// Resolves the caller's stable user UUID from the verified bearer JWT `sub`
 /// claim, mapped exactly like the RBAC layer. The caller-supplied
 /// `X-User-ID` header is never an identity (#2122).
@@ -249,4 +288,49 @@ fn verified_user_id(headers: &axum::http::HeaderMap) -> Option<Uuid> {
         Ok(u) => u,
         Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes()),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_verified_identity_without_body_id() {
+        let verified = Uuid::new_v4();
+        assert_eq!(
+            resolve_accepting_user_id(Some(verified), None),
+            Ok(verified)
+        );
+    }
+
+    #[test]
+    fn accepts_body_id_that_matches_verified_identity() {
+        let verified = Uuid::new_v4();
+        assert_eq!(
+            resolve_accepting_user_id(Some(verified), Some(verified)),
+            Ok(verified)
+        );
+    }
+
+    #[test]
+    fn rejects_forged_body_id() {
+        let verified = Uuid::new_v4();
+        let forged = Uuid::new_v4();
+        assert_eq!(
+            resolve_accepting_user_id(Some(verified), Some(forged)),
+            Err(AcceptIdentityError::IdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_missing_claim_even_when_body_supplies_id() {
+        assert_eq!(
+            resolve_accepting_user_id(None, Some(Uuid::new_v4())),
+            Err(AcceptIdentityError::Unauthenticated)
+        );
+        assert_eq!(
+            resolve_accepting_user_id(None, None),
+            Err(AcceptIdentityError::Unauthenticated)
+        );
+    }
 }
