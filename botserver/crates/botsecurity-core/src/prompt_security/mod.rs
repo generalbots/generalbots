@@ -6,6 +6,9 @@ pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::RwLock;
 pub(crate) use tracing::{info, warn};
 
+mod shared;
+pub use shared::{scan_inbound, scan_outbound, signal_count, InboundDecision};
+
 const MAX_INPUT_LENGTH: usize = 100_000;
 const MAX_OUTPUT_LENGTH: usize = 500_000;
 

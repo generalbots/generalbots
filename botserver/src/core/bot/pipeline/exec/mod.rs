@@ -86,6 +86,29 @@ pub async fn process_message_internal(
         Some(user_id),
     )
     .await;
+    // #2625 — typed prompt-injection signal with telemetry. The detector is a
+    // signal, not a boundary; only threat metadata is logged, never the payload.
+    let (injection, sanitized) = botsecurity_core::prompt_security::scan_inbound(&user_text);
+    if injection.blocked {
+        let frame = serde_json::json!({
+            "bot_id": bot_uuid.to_string(),
+            "user_id": user_id.to_string(),
+            "session_id": session_id.to_string(),
+            "channel": "web",
+            "content": "Your message was blocked by a security policy. Please rephrase it.",
+            "message_type": 2,
+            "is_complete": true,
+            "is_error": true,
+            "status": "blocked",
+            "security_signal": format!("{:?}", injection.threat_level),
+            "suggestions": [],
+            "context_length": 0,
+            "context_max_length": 0,
+        });
+        let _ = sink.send_raw_json(&frame).await;
+        return Ok(());
+    }
+    user_text = sanitized;
     let mut msg_type = parsed
         .get("message_type")
         .and_then(|v| v.as_i64())

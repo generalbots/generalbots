@@ -5,12 +5,14 @@ use super::LlmTurn;
 /// #2624 — one redaction point for every bot-authored frame. Applied to final
 /// answers and to streamed chunks so a secret is never rendered in the browser.
 async fn dlp_outbound(turn: &LlmTurn<'_>, content: String) -> String {
-    botsecurity_core::dlp::redact_text(
+    let content = botsecurity_core::dlp::redact_text(
         &content,
         botsecurity_core::dlp::ScanDirection::Outbound,
         Some(turn.user_id),
     )
-    .await
+    .await;
+    // #2625 — same shared detector validates model output for leaks.
+    botsecurity_core::prompt_security::scan_outbound(&content)
 }
 
 /// Error frame used when the turn cannot start.

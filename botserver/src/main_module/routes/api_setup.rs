@@ -391,5 +391,9 @@ pub fn add_base_api_routes(mut api_router: Router<Arc<AppState>>) -> Router<Arc<
         "/api/admin/dlp/violations",
         get(super::dlp_admin::handle_dlp_violations),
     );
+    api_router = api_router.route(
+        "/api/admin/prompt-security/signals",
+        get(super::dlp_admin::handle_prompt_security_signals),
+    );
     api_router
 }
