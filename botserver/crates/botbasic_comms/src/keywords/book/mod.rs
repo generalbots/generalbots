@@ -1,6 +1,6 @@
-pub(crate) use botcore::shared::schema::calendar_events;
-pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
+pub(crate) use botbasic_types::UserSession;
+pub(crate) use botcore::shared::schema::calendar_events;
 pub(crate) use chrono::{DateTime, Duration, Utc};
 pub(crate) use log::info;
 pub(crate) use rhai::{Dynamic, Engine};
@@ -46,7 +46,7 @@ pub struct RecurrenceRule {
 /// Tenant scope written alongside every calendar row. The three identifiers
 /// are `NOT NULL` in the database and none of them has a default, so a write
 /// that omits any of them is rejected by PostgreSQL.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct EventScope {
     org_id: Uuid,
     bot_id: Uuid,
@@ -59,6 +59,56 @@ use uuid::Uuid;
 #[cfg(test)]
 mod booking_persistence_tests {
     use super::*;
+
+    /// Builds a session bound to a real branch in the test database so the
+    /// branch FK on `calendars`/`calendar_events` is satisfied. This only picks
+    /// a fixture workspace — the resolver still derives the scope exclusively
+    /// from the session's verified claims.
+    fn session_for_scope(conn: &mut diesel::PgConnection) -> Option<UserSession> {
+        #[derive(diesel::QueryableByName)]
+        struct ScopeRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            bot_id: Uuid,
+        }
+        let row = diesel::sql_query(
+            "SELECT b.id AS branch_id, b.org_id, \
+             COALESCE((SELECT id FROM bots WHERE branch_id = b.id \
+                       ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1), \
+                      '00000000-0000-0000-0000-000000000000') AS bot_id \
+             FROM branches b ORDER BY b.created_at ASC LIMIT 1",
+        )
+        .get_result::<ScopeRow>(conn)
+        .optional()
+        .ok()
+        .flatten()?;
+        let now = Utc::now();
+        Some(UserSession {
+            id: Uuid::new_v4(),
+            user_id: "fixture".to_string(),
+            bot_id: row.bot_id,
+            title: String::new(),
+            answer_mode: 0,
+            context_data: serde_json::json!({}),
+            current_tool: None,
+            message_count: 0,
+            total_tokens: 0,
+            created_at: now,
+            updated_at: now,
+            last_activity: now,
+            tenant_id: None,
+            active_email_account_id: None,
+            branch_id: row.branch_id,
+            session_id: None,
+            data: Some(serde_json::json!({ "org_id": row.org_id.to_string() })),
+            expires_at: None,
+            locked: false,
+            lock_pin_hash: None,
+        })
+    }
 
     /// `BOOK` and `BOOK MEETING` report a confirmed booking and an identifier,
     /// so a booking that was never stored produced a false confirmation and the
@@ -74,14 +124,20 @@ mod booking_persistence_tests {
         let Ok(database_url) = std::env::var("DATABASE_URL") else {
             return;
         };
-        let Ok(pool) = diesel::r2d2::Pool::builder().max_size(2).build(
-            diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(database_url),
-        ) else {
+        let Ok(pool) = diesel::r2d2::Pool::builder()
+            .max_size(2)
+            .build(diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(database_url))
+        else {
             log::warn!("Skipping the booking conflict round trip: DATABASE_URL is unreachable");
             return;
         };
 
-        let engine = CalendarEngine::new(pool);
+        let engine = CalendarEngine::new(pool.clone());
+        let mut setup_conn = pool
+            .get()
+            .expect("the pool must hand out a connection for the fixture");
+        let session =
+            session_for_scope(&mut setup_conn).expect("a branch fixture must exist for the test");
         // A decade ahead keeps the fixture out of every real schedule.
         let start = Utc::now() + Duration::days(3650);
         let end = start + Duration::hours(1);
@@ -103,7 +159,7 @@ mod booking_persistence_tests {
         };
 
         let stored = engine
-            .create_event(booking)
+            .create_event(booking, &session)
             .expect("a booking must be persisted, not echoed back");
 
         let conflicts = engine
@@ -125,8 +181,8 @@ mod booking_persistence_tests {
     }
 }
 
-mod create_event;
 mod book_keyword;
+mod create_event;
 mod execute_book_meeting;
 mod resolve_event_scope;
 

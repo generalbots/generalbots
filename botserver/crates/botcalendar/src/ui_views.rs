@@ -2,8 +2,29 @@ use super::*;
 use botschema::calendar_events;
 use crate::conflicts::html_escape;
 
-pub async fn ui_today_events_count(State(state): State<Arc<DbPool>>) -> Html<String> {
+/// Pure tenant-ownership predicate for the calendar HTMX fragment reads (issue
+/// #2898). The unfiltered fragments used to list every tenant's calendars and
+/// events. Every fragment query is now constrained by the `org_id`/`bot_id`
+/// resolved from the caller's signed headers — never by a client-supplied id —
+/// and this DB-free predicate applies the same rule to rows that carry their
+/// scope columns in the projection, as a defense-in-depth guard before
+/// rendering. Keeping it pure lets the two-tenant isolation rule be tested
+/// offline, without a running server.
+pub fn fragment_row_in_scope(
+    row_org_id: Uuid,
+    row_bot_id: Uuid,
+    caller_org_id: Uuid,
+    caller_bot_id: Uuid,
+) -> bool {
+    row_org_id == caller_org_id && row_bot_id == caller_bot_id
+}
+
+pub async fn ui_today_events_count(
+    headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -13,6 +34,8 @@ pub async fn ui_today_events_count(State(state): State<Arc<DbPool>>) -> Html<Str
         let today_end = today.and_hms_opt(23, 59, 59)?;
 
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .filter(calendar_events::start_time.ge(today_start))
             .filter(calendar_events::start_time.le(today_end))
             .count()
@@ -359,4 +382,42 @@ pub fn configure_calendar_ui_routes() -> Router<Arc<DbPool>> {
         .route("/api/ui/calendar/day", get(ui_day_events))
         .route("/api/ui/calendar/new-event", get(ui_new_event_form))
         .route("/api/ui/calendar/new-calendar", get(ui_new_calendar_form))
+}
+
+#[cfg(test)]
+mod fragment_scope_tests {
+    use super::*;
+
+    #[test]
+    fn a_rows_own_scope_is_visible() {
+        let (org, bot) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        assert!(fragment_row_in_scope(org, bot, org, bot));
+    }
+
+    #[test]
+    fn two_tenants_cannot_see_each_others_rows() {
+        let (alice_org, alice_bot) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        let (bob_org, bob_bot) = (Uuid::from_u128(3), Uuid::from_u128(4));
+        assert!(!fragment_row_in_scope(alice_org, alice_bot, bob_org, bob_bot));
+        assert!(!fragment_row_in_scope(bob_org, bob_bot, alice_org, alice_bot));
+        assert!(fragment_row_in_scope(alice_org, alice_bot, alice_org, alice_bot));
+    }
+
+    #[test]
+    fn a_foreign_org_is_rejected_even_when_the_bot_matches() {
+        let (org, bot, foreign) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(9));
+        assert!(!fragment_row_in_scope(foreign, bot, org, bot));
+    }
+
+    #[test]
+    fn a_foreign_bot_is_rejected_even_when_the_org_matches() {
+        let (org, bot, foreign) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(9));
+        assert!(!fragment_row_in_scope(org, foreign, org, bot));
+    }
+
+    #[test]
+    fn a_nil_caller_scope_never_matches_a_real_tenant_row() {
+        let (org, bot) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        assert!(!fragment_row_in_scope(org, bot, Uuid::nil(), Uuid::nil()));
+    }
 }

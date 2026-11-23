@@ -227,14 +227,65 @@ pub(crate) async fn caldav_event(
     }
 }
 
+/// #2893 — pure check for an existing event: it must already belong to the
+/// caller's tenant and live in the calendar named by the path.
+fn existing_event_is_writable(existing: &CalendarEventRecord, scope: &CalendarScope, calendar_id: Uuid) -> bool {
+    calendar_in_scope(existing.org_id, existing.bot_id, existing.branch_id, scope)
+        && existing.calendar_id == calendar_id
+}
+
+async fn ensure_event_writable(
+    state: &Arc<DbPool>,
+    scope: &CalendarScope,
+    event_id: Uuid,
+    calendar_id: Uuid,
+) -> Result<(), StatusCode> {
+    let pool = state.clone();
+    let target = *scope;
+    let existing = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        calendar_events::table
+            .find(event_id)
+            .first::<CalendarEventRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)??;
+
+    match existing {
+        None => Ok(()), // a genuinely new event id is allowed
+        Some(record) if existing_event_is_writable(&record, &target, calendar_id) => Ok(()),
+        Some(_) => Err(StatusCode::NOT_FOUND), // hide existence of a foreign event
+    }
+}
+
 pub(crate) async fn caldav_put_event(
     State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path((calendar_id_str, event_id_str)): Path<(String, String)>,
     body: String,
 ) -> impl IntoResponse {
     let pool = state.clone();
-    let calendar_id = Uuid::parse_str(&calendar_id_str).unwrap_or_else(|_| Uuid::nil());
-    let event_id = Uuid::parse_str(&event_id_str).unwrap_or_else(|_| Uuid::new_v4());
+    // #2893 — reject malformed ids; never fabricate a fresh/nil id from the
+    // path (that used to turn a bad URL into a write to an arbitrary row).
+    let calendar_id = match Uuid::parse_str(&calendar_id_str) {
+        Ok(id) => id,
+        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+    };
+    let event_id = match Uuid::parse_str(&event_id_str) {
+        Ok(id) => id,
+        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+    };
+
+    let scope = write_scope_from_headers(&state, &headers);
+    // The target calendar must belong to the caller before any upsert.
+    if let Err(code) = ensure_calendar_in_scope(&state, &scope, calendar_id).await {
+        return code.into_response();
+    }
+    // An existing event may never be re-scoped by a client-supplied id.
+    if let Err(code) = ensure_event_writable(&state, &scope, event_id, calendar_id).await {
+        return code.into_response();
+    }
 
     let parsed_events = import_from_ical(&body, "caldav-client", calendar_id);
     if parsed_events.is_empty() {
@@ -242,7 +293,6 @@ pub(crate) async fn caldav_put_event(
     }
 
     let event = parsed_events[0].clone();
-    let scope = write_scope_from_headers(&state, &headers);
     let (org_id, bot_id) = (scope.org_id, scope.bot_id);
     let owner_id = Uuid::nil();
     let now = Utc::now();
@@ -297,5 +347,58 @@ pub(crate) async fn caldav_put_event(
                 .into_response()
         }
         _ => StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    }
+}
+
+#[cfg(test)]
+mod caldav_ownership_tests {
+    use super::existing_event_is_writable;
+    use crate::scope::CalendarScope;
+    use uuid::Uuid;
+
+    fn record(org: Uuid, bot: Uuid, branch: Uuid, calendar: Uuid) -> crate::models::CalendarEventRecord {
+        crate::models::CalendarEventRecord {
+            id: Uuid::new_v4(),
+            org_id: org,
+            bot_id: bot,
+            branch_id: branch,
+            calendar_id: calendar,
+            owner_id: Uuid::nil(),
+            title: "t".into(),
+            description: None,
+            location: None,
+            start_time: chrono::Utc::now(),
+            end_time: chrono::Utc::now(),
+            all_day: false,
+            recurrence_rule: None,
+            recurrence_id: None,
+            color: None,
+            status: "confirmed".into(),
+            visibility: "default".into(),
+            busy_status: "busy".into(),
+            reminders: serde_json::json!([]),
+            attendees: serde_json::json!([]),
+            conference_data: None,
+            metadata: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[test]
+    fn foreign_event_and_reparenting_are_refused() {
+        let scope = CalendarScope { org_id: Uuid::new_v4(), bot_id: Uuid::new_v4(), branch_id: Uuid::new_v4() };
+        let calendar = Uuid::new_v4();
+        let own = record(scope.org_id, scope.bot_id, scope.branch_id, calendar);
+        assert!(existing_event_is_writable(&own, &scope, calendar));
+        // Same event moved to another calendar id must be refused.
+        assert!(!existing_event_is_writable(&own, &scope, Uuid::new_v4()));
+        // Foreign org/bot/branch variants must all be refused.
+        let mut foreign = record(scope.org_id, scope.bot_id, scope.branch_id, calendar);
+        foreign.org_id = Uuid::new_v4();
+        assert!(!existing_event_is_writable(&foreign, &scope, calendar));
+        let mut foreign = record(scope.org_id, scope.bot_id, scope.branch_id, calendar);
+        foreign.bot_id = Uuid::new_v4();
+        assert!(!existing_event_is_writable(&foreign, &scope, calendar));
     }
 }

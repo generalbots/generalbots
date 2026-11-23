@@ -68,7 +68,7 @@ pub(super) fn execute_book_meeting(
     };
 
     let created_event = calendar_engine
-        .create_event(event)
+        .create_event(event, user)
         .map_err(|e| format!("Failed to create meeting: {}", e))?;
 
     for attendee in &attendees {

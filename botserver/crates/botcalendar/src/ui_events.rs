@@ -242,22 +242,30 @@ pub async fn ui_event_detail(
     }
 }
 
-pub async fn ui_calendars_sidebar(State(state): State<Arc<DbPool>>) -> Html<String> {
+pub async fn ui_calendars_sidebar(
+    headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
 
         calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
             .order(calendars::is_primary.desc())
             .select((
                 calendars::id,
+                calendars::org_id,
+                calendars::bot_id,
                 calendars::name,
                 calendars::color,
                 calendars::is_visible,
                 calendars::is_primary,
             ))
-            .load::<(Uuid, String, Option<String>, bool, bool)>(&mut conn)
+            .load::<(Uuid, Uuid, Uuid, String, Option<String>, bool, bool)>(&mut conn)
             .ok()
     })
     .await
@@ -268,7 +276,10 @@ pub async fn ui_calendars_sidebar(State(state): State<Arc<DbPool>>) -> Html<Stri
         Some(cals) if !cals.is_empty() => {
             let items: String = cals
                 .iter()
-                .map(|(id, name, color, visible, primary)| {
+                .filter(|(_, row_org, row_bot, ..)| {
+                    fragment_row_in_scope(*row_org, *row_bot, org_id, bot_id)
+                })
+                .map(|(id, _, _, name, color, visible, primary)| {
                     let cal_color = color.clone().unwrap_or_else(|| "#3b82f6".to_string());
                     let checked = if *visible { "checked" } else { "" };
                     let primary_badge = if *primary {
@@ -318,8 +329,12 @@ hx-swap="none" />
     }
 }
 
-pub async fn ui_upcoming_events(State(state): State<Arc<DbPool>>) -> Html<String> {
+pub async fn ui_upcoming_events(
+    headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -328,17 +343,21 @@ pub async fn ui_upcoming_events(State(state): State<Arc<DbPool>>) -> Html<String
         let end = now + Duration::days(7);
 
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .filter(calendar_events::start_time.ge(now))
             .filter(calendar_events::start_time.le(end))
             .order(calendar_events::start_time.asc())
             .limit(5)
             .select((
                 calendar_events::id,
+                calendar_events::org_id,
+                calendar_events::bot_id,
                 calendar_events::title,
                 calendar_events::start_time,
                 calendar_events::color,
             ))
-            .load::<(Uuid, String, DateTime<Utc>, Option<String>)>(&mut conn)
+            .load::<(Uuid, Uuid, Uuid, String, DateTime<Utc>, Option<String>)>(&mut conn)
             .ok()
     })
     .await
@@ -349,7 +368,10 @@ pub async fn ui_upcoming_events(State(state): State<Arc<DbPool>>) -> Html<String
         Some(events) if !events.is_empty() => {
             let items: String = events
                 .iter()
-                .map(|(id, title, start, color)| {
+                .filter(|(_, row_org, row_bot, ..)| {
+                    fragment_row_in_scope(*row_org, *row_bot, org_id, bot_id)
+                })
+                .map(|(id, _, _, title, start, color)| {
                     let event_color = color.clone().unwrap_or_else(|| "#3b82f6".to_string());
                     let time_str = start.format("%b %d, %H:%M").to_string();
 
@@ -381,13 +403,19 @@ pub async fn ui_upcoming_events(State(state): State<Arc<DbPool>>) -> Html<String
     }
 }
 
-pub async fn ui_events_count(State(state): State<Arc<DbPool>>) -> Html<String> {
+pub async fn ui_events_count(
+    headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
 
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()

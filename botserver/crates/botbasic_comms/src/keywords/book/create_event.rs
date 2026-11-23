@@ -21,19 +21,23 @@ impl CalendarEngine {
     ///
     /// `calendars` and `calendar_events` carry three scope columns that are all
     /// `NOT NULL` without defaults (`org_id`, `bot_id`, `branch_id`), so the
-    /// write resolves the branch scope first and provisions a default calendar
-    /// when the scope has none. Callers previously received `Ok(event)` here,
-    /// which made `BOOK` report a confirmed booking that was never stored.
+    /// write resolves the caller's verified scope first and provisions a
+    /// default calendar inside that scope when it has none. #2895 — the scope
+    /// comes from the caller's session, never from the oldest branch in the
+    /// installation; a foreign tenant can no longer receive the booking.
+    /// Callers previously received `Ok(event)` here, which made `BOOK` report a
+    /// confirmed booking that was never stored.
     pub fn create_event(
         &self,
         event: CalendarEvent,
+        user: &UserSession,
     ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
         let mut conn = self
             .db
             .get()
             .map_err(|e| format!("Database pool unavailable: {e}"))?;
 
-        let scope = resolve_event_scope(&mut conn)?;
+        let scope = resolve_event_scope(&mut conn, user)?;
         let calendar_id = ensure_default_calendar(&mut conn, &scope)?;
         let owner_id = Uuid::parse_str(&event.organizer).unwrap_or(Uuid::nil());
         let reminders = match event.reminder_minutes {

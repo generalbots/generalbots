@@ -19,6 +19,10 @@ pub struct SaveEventRequest {
     pub all_day: Option<String>,
     pub location: Option<String>,
     pub description: Option<String>,
+    /// #2895 — optional target calendar. When present it must resolve to a
+    /// calendar inside the caller's verified org/bot/branch before an event may
+    /// reference it; otherwise the workspace's scoped default calendar is used.
+    pub calendar_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -240,7 +240,7 @@ pub(super) fn execute_book(
     };
 
     let created_event = calendar_engine
-        .create_event(event)
+        .create_event(event, user)
         .map_err(|e| format!("Failed to create appointment: {}", e))?;
 
     log_booking(state, user, &created_event.id.to_string(), title)?;
