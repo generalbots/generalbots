@@ -43,20 +43,23 @@ MinIO Drive
 
 ## Rhai BASIC Integration
 
-Once a plugin manifest is registered, its functions become callable from BASIC scripts. The runtime:
+Once a signed plugin manifest is registered, its functions become callable from BASIC scripts. The runtime:
 
-1. Resolves the function name against registered plugin manifests
-2. Fetches the API key from Vault via `botcoresecrets`
+1. Resolves the function name against the installed plugin registry
+2. Resolves auth fields from Vault at `auth_vault_path` via `botcoresecrets`
 3. Injects authorization headers
-4. Executes the HTTP request via `reqwest`
+4. Executes the HTTPS request via `reqwest` with redirects disabled
 5. Returns the response to the BASIC script
 
 ## Security
 
-- API keys are fetched from Vault at runtime, never stored in manifests
-- Permissions are granular per-plugin per-session
-- Rate limiting via `governor` crate per-plugin
-- Network errors return `PluginError`, never panic
+The registry is initialized empty at boot. A manifest must pass every gate before `PLUGIN_CALL` can reach it.
+
+- Manifests require an HMAC-SHA256 signature over their canonical JSON. The key is a server-side secret configured through `GB_PLUGIN_SIGNING_KEY`; an unset key rejects every manifest.
+- `base_url` must use HTTPS and its host must appear in `GB_PLUGIN_ALLOWED_HOSTS`.
+- Credentials are resolved at call time from Vault at `auth_vault_path` (fields `key`, `token`, `username`, `password`); no manifest field holds a secret value.
+- `PLUGIN_CALL` additionally requires the `plugin:call` permission, a `bot_id` matching the calling session, and a manifest path contained in the work directory (`GB_WORK_PATH` / `WORK_PATH`).
+- Network errors return `PluginError`, never panic.
 
 ## Configuration
 

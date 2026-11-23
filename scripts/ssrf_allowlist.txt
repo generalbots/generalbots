@@ -15,7 +15,6 @@ botserver/crates/botbasic_ai/src/keywords/mcp_client/validate_stdio_command.rs #
 botserver/crates/botbasic_ai/src/keywords/mcp_client/with_config.rs # MCP server endpoint configured per bot; may legitimately be a local process
 botserver/crates/botbasic_data/src/keywords/kb_statistics.rs # Qdrant URL from the KB configuration
 botserver/crates/botbasic_data/src/keywords/think_kb/get_accessible_kb_collections.rs # Qdrant URL from the KB configuration
-botserver/crates/botbasic_system/src/keywords/plugin_call.rs # plugin manifest endpoint from the installed plugin registry
 botserver/crates/botbilling/src/stripe_integration/attach_payment_method.rs # Stripe API endpoint (constant host); the secret key comes from Vault
 botserver/crates/botbilling/src/stripe_integration/create_customer.rs # Stripe API endpoint (constant host); the secret key comes from Vault
 botserver/crates/botchannels/src/discord/send_dm.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL

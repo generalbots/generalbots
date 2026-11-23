@@ -298,7 +298,14 @@ pub async fn create_app_state(
         }
     }
 
-    botcorepkg::plugin::init_global_registry();
+    // #2833: the registry starts empty and is fail-closed. An operator must
+    // configure both the signing key and the host allowlist before a signed
+    // manifest can be registered and reached from PLUGIN_CALL.
+    let plugin_policy = botcorepkg::plugin::PluginSecurityPolicy::from_env();
+    if plugin_policy.signing_key_hex.is_none() || plugin_policy.allowed_hosts.is_empty() {
+        warn!("Plugin registry is fail-closed: set GB_PLUGIN_SIGNING_KEY and GB_PLUGIN_ALLOWED_HOSTS to enable signed plugins");
+    }
+    botcorepkg::plugin::init_global_registry_with_policy(plugin_policy);
 
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]

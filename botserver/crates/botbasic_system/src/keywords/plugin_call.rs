@@ -1,91 +1,138 @@
-use botbasic_types::BasicRuntime;
-use botbasic_types::UserSession;
+//! `PLUGIN_CALL` / `PLUGIN_LIST` (#2833).
+//!
+//! A call is only attempted for a manifest that is installed in the global
+//! registry, signed, host-allowlisted, scoped to the calling bot, contained in
+//! the work directory and granted `plugin:call`. Credentials are resolved from
+//! Vault by `botcorepkg`, never read from the manifest.
+
+use botbasic_types::{BasicRuntime, UserSession};
 use botcorepkg::plugin;
+use botsecurity::validation::validate_url_ssrf_strict;
 use rhai::Engine;
 use std::sync::Arc;
+use std::time::Duration;
+
+const REQUEST_TIMEOUT_SECONDS: u64 = 15;
+
+fn error_text(message: &str) -> String {
+    format!("PluginError: {message}")
+}
 
 pub fn register_plugin_keywords(
     _state: Arc<dyn BasicRuntime>,
-    _user: UserSession,
+    user: UserSession,
     engine: &mut Engine,
 ) {
-    engine.register_fn("plugin_call", |name: &str, fn_name: &str| -> String {
+    let call_user = user.clone();
+    engine.register_fn("plugin_call", move |name: &str, fn_name: &str| -> String {
         let registry = match plugin::global_registry() {
-            Some(r) => r,
-            None => return "PluginError: plugin registry not initialized".to_string(),
+            Some(registry) => registry,
+            None => return error_text("plugin registry not initialized"),
         };
-        call_plugin_fn(registry, name, fn_name)
+        call_plugin_fn(registry, &call_user, name, fn_name)
     });
 
     engine.register_fn("plugin_list", || -> Vec<String> {
         let registry = match plugin::global_registry() {
-            Some(r) => r,
-            None => return vec![],
+            Some(registry) => registry,
+            None => return Vec::new(),
         };
-        let rt = tokio::runtime::Runtime::new().ok();
-        match rt {
-            Some(runtime) => runtime.block_on(async {
-                let manifests = registry.list().await;
-                manifests.into_iter().map(|m| m.name).collect()
-            }),
-            None => vec![],
-        }
+        let runtime = match tokio::runtime::Runtime::new() {
+            Ok(runtime) => runtime,
+            Err(_) => return Vec::new(),
+        };
+        runtime.block_on(async {
+            registry
+                .list()
+                .await
+                .into_iter()
+                .map(|manifest| manifest.name)
+                .collect()
+        })
     });
 }
 
-fn call_plugin_fn(registry: &plugin::SharedPluginRegistry, name: &str, fn_name: &str) -> String {
-    let rt = tokio::runtime::Runtime::new().ok();
-    let runtime = match rt {
-        Some(r) => r,
-        None => return "PluginError: failed to create runtime".to_string(),
+fn call_plugin_fn(
+    registry: &plugin::SharedPluginRegistry,
+    user: &UserSession,
+    name: &str,
+    fn_name: &str,
+) -> String {
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(runtime) => runtime,
+        Err(_) => return error_text("failed to create runtime"),
     };
+    let bot_id = user.bot_id.to_string();
 
     runtime.block_on(async {
-        let manifest = match registry.get(name).await {
-            Some(m) => m,
-            None => return format!("PluginError: plugin '{}' not found", name),
+        // Every gate lives in `authorize`: signature, bot scope, work-dir
+        // containment, permission and host allowlist.
+        let manifest = match registry.authorize(name, &bot_id).await {
+            Ok(manifest) => manifest,
+            Err(e) => {
+                log::warn!("[plugin_call] denied plugin '{name}': {e}");
+                return error_text("plugin is not authorized");
+            }
+        };
+        let request = match manifest.build_request(fn_name).await {
+            Ok(request) => request,
+            Err(e) => {
+                log::warn!("[plugin_call] cannot build request for '{name}': {e}");
+                return error_text("plugin request could not be built");
+            }
         };
 
-        let request = match manifest.build_request(fn_name) {
-            Ok(r) => r,
-            Err(e) => return format!("PluginError: {}", e),
+        // #2131 / #2833: the URL comes from a signed, allowlisted manifest, but
+        // re-check it before the fetch. Redirects are disabled below so a
+        // redirect cannot turn an allowed endpoint into an internal one.
+        if let Err(e) = validate_url_ssrf_strict(&request.url) {
+            log::warn!("[plugin_call] blocked endpoint for plugin '{name}': {e}");
+            return error_text("plugin endpoint rejected by the outbound request policy");
+        }
+
+        let client = match reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECONDS))
+            .build()
+        {
+            Ok(client) => client,
+            Err(_) => return error_text("failed to build HTTP client"),
         };
 
-        let client = reqwest::Client::new();
-        let req_builder = match request.method.to_uppercase().as_str() {
+        let mut builder = match request.method.to_uppercase().as_str() {
             "GET" => client.get(&request.url),
             "POST" => client.post(&request.url),
             "PUT" => client.put(&request.url),
             "PATCH" => client.patch(&request.url),
             "DELETE" => client.delete(&request.url),
-            _ => return format!("PluginError: unsupported method {}", request.method),
+            other => return error_text(&format!("unsupported method {other}")),
         };
 
-        let req_builder = req_builder.headers({
-            let mut h = reqwest::header::HeaderMap::new();
-            for (key, val) in &request.headers {
-                if let (Ok(k), Ok(v)) = (
-                    reqwest::header::HeaderName::from_bytes(key.as_bytes()),
-                    reqwest::header::HeaderValue::from_str(val),
-                ) {
-                    h.insert(k, v);
-                }
+        for (key, value) in &request.headers {
+            match (
+                reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                reqwest::header::HeaderValue::from_str(value),
+            ) {
+                (Ok(name), Ok(value)) => builder = builder.header(name, value),
+                _ => return error_text("invalid plugin header"),
             }
-            h
-        });
+        }
+        if let Some(body) = &request.body {
+            builder = builder.json(body);
+        }
 
-        let req_builder = if let Some(body) = &request.body {
-            req_builder.json(body)
-        } else {
-            req_builder
-        };
-
-        match req_builder.send().await {
-            Ok(resp) => match resp.text().await {
+        match builder.send().await {
+            Ok(response) => match response.text().await {
                 Ok(text) => text,
-                Err(e) => format!("PluginError: failed to read response: {}", e),
+                Err(e) => {
+                    log::error!("[plugin_call] response read failed for '{name}': {e}");
+                    error_text("failed to read response")
+                }
             },
-            Err(e) => format!("PluginError: request failed: {}", e),
+            Err(e) => {
+                log::error!("[plugin_call] request failed for '{name}': {e}");
+                error_text("request failed")
+            }
         }
     })
 }
