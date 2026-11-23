@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS cloud_voucher_redemptions_voucher_contact_uniq;
