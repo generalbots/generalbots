@@ -2,6 +2,66 @@
 
 use super::*;
 
+#[cfg(unix)]
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+/// #2654 — a file in a fresh 0700 directory, opened with `create_new` + 0600.
+/// The path cannot be pre-created or symlinked by another local user, and Drop
+/// removes the whole directory on every exit path.
+struct PrivateTemp {
+    path: std::path::PathBuf,
+    dir: std::path::PathBuf,
+}
+
+impl PrivateTemp {
+    fn create(name: &str, content: &[u8]) -> Result<Self, String> {
+        let dir = std::env::temp_dir().join(format!("gb-vibe-stage-{name}-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&dir).map_err(|e| format!("create staging dir: {e}"))?;
+        #[cfg(unix)]
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))
+            .map_err(|e| format!("chmod staging dir: {e}"))?;
+        let path = dir.join(name);
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        use std::io::Write;
+        let mut file = options.open(&path).map_err(|e| format!("create staging file: {e}"))?;
+        file.write_all(content).map_err(|e| format!("write staging file: {e}"))?;
+        file.flush().map_err(|e| format!("flush staging file: {e}"))?;
+        drop(file);
+        Ok(Self { path, dir })
+    }
+}
+
+impl Drop for PrivateTemp {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+#[cfg(test)]
+mod private_temp_tests {
+    use super::PrivateTemp;
+
+    #[test]
+    fn staging_is_private_and_unique() {
+        let first = PrivateTemp::create("site.env", b"DATABASE_URL=secret").expect("stage first");
+        let second = PrivateTemp::create("site.env", b"DATABASE_URL=secret").expect("stage second");
+        assert_ne!(first.path, second.path);
+        assert_eq!(std::fs::read(&first.path).expect("read"), b"DATABASE_URL=secret");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn staged_file_is_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let staged = PrivateTemp::create("site.env", b"secret").expect("stage");
+        let mode = std::fs::metadata(&staged.path).expect("metadata").permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
+}
+
 /// Install (or refresh) the per-site python systemd service inside the
 /// proxy: venv + dependency install + unit + start. Idempotent. The unit
 /// name and payload dir come from the (slug, env) target so prod and dev
@@ -57,8 +117,7 @@ pub(crate) fn ensure_python_service_for(
     let env_file = format!("/etc/gb-vibe/{unit_name}.env");
     if let Some(url) = database_url {
         let env_content = format!("DATABASE_URL={url}\n");
-        let env_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.env"));
-        std::fs::write(&env_tmp, env_content).map_err(|e| format!("write env file: {e}"))?;
+        let env_tmp = PrivateTemp::create(&format!("{unit_name}.env"), env_content.as_bytes())?;
         let _ = proxy_exec(
             &["mkdir".to_string(), "-p".to_string(), "/etc/gb-vibe".to_string()],
             15,
@@ -72,23 +131,23 @@ pub(crate) fn ensure_python_service_for(
             &[
                 "file".to_string(),
                 "push".to_string(),
-                env_tmp.to_string_lossy().to_string(),
+                env_tmp.path.to_string_lossy().to_string(),
                 format!("proxy{env_file}"),
             ],
             Path::new("."),
             30,
         )
         .map_err(|e| format!("incus file push env file: {e}"))?;
-        let _ = std::fs::remove_file(&env_tmp);
         if pushed_env.exit_code != Some(0) {
             return Err(format!("env file push failed: {}", pushed_env.stderr.trim()));
         }
+        // The proxy-side EnvironmentFile must not be readable by other users.
+        must_run("chmod EnvironmentFile", &["chmod".to_string(), "600".to_string(), env_file.clone()], 15)?;
     }
     let unit = format!(
         "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nEnvironmentFile=-{env_file}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
     );
-    let unit_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.service"));
-    std::fs::write(&unit_tmp, unit).map_err(|e| format!("write unit: {e}"))?;
+    let unit_tmp = PrivateTemp::create(&format!("{unit_name}.service"), unit.as_bytes())?;
     let unit_target = format!("proxy/etc/systemd/system/gb-vibe-{unit_name}.service");
     // Pre-delete the unit: `incus file push` cannot overwrite a file owned
     // by another uid (EACCES) — seen when a previous botserver ran as a
@@ -102,7 +161,7 @@ pub(crate) fn ensure_python_service_for(
         &[
             "file".to_string(),
             "push".to_string(),
-            unit_tmp.to_string_lossy().to_string(),
+            unit_tmp.path.to_string_lossy().to_string(),
             // no-colon form — see stage_payload.
             unit_target,
         ],
@@ -110,7 +169,6 @@ pub(crate) fn ensure_python_service_for(
         30,
     )
     .map_err(|e| format!("incus file push unit: {e}"))?;
-    let _ = std::fs::remove_file(&unit_tmp);
     if pushed.exit_code != Some(0) {
         return Err(format!("unit push failed: {}", pushed.stderr.trim()));
     }
