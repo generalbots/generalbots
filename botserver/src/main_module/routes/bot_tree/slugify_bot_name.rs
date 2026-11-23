@@ -97,7 +97,7 @@ pub(super) fn pool_conn(
 }
 /// Resolves the authenticated caller from the request extensions. The auth
 /// middleware inserts `AuthenticatedUser` for every authenticated request.
-fn requesting_user(req: &axum::extract::Request) -> Option<Uuid> {
+pub(super) fn requesting_user(req: &axum::extract::Request) -> Option<Uuid> {
     req.extensions()
         .get::<crate::security::auth_api::types::AuthenticatedUser>()
         .filter(|user| user.is_authenticated())
@@ -107,7 +107,10 @@ fn requesting_user(req: &axum::extract::Request) -> Option<Uuid> {
 /// Platform admins (explicit superadmin, or a member of the reserved root org
 /// `default`) may see every bot. Everyone else is confined to the bots of the
 /// organizations they belong to (plus public bots).
-fn caller_is_platform_admin(req: &axum::extract::Request, state: &Arc<AppState>) -> bool {
+pub(super) fn caller_is_platform_admin(
+    req: &axum::extract::Request,
+    state: &Arc<AppState>,
+) -> bool {
     let Some(user) = req
         .extensions()
         .get::<crate::security::auth_api::types::AuthenticatedUser>()

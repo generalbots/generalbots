@@ -1,12 +1,47 @@
+use super::slugify_bot_name::{caller_is_platform_admin, requesting_user};
 use super::*;
 
+/// Pure tenant-scope predicate for `GET /api/bots/{bot_id}/config` (#2795).
+///
+/// Mirrors the sibling handlers (`handle_bots_list` / `handle_bots_tree`): a
+/// bot is readable when the caller is a platform admin, the bot is public, or
+/// the bot's org is one of the caller's verified organizations. Kept pure so
+/// cross-tenant isolation can be unit tested without a database.
+fn bot_config_in_scope(
+    is_public: bool,
+    bot_org_id: Uuid,
+    caller_org_ids: &[Uuid],
+    is_platform_admin: bool,
+) -> bool {
+    is_platform_admin || is_public || caller_org_ids.contains(&bot_org_id)
+}
+
 /// GET /api/bots/{bot_id}/config — bot settings as JSON for the config form.
+///
+/// #2795 — the caller-supplied `bot_id` is never trusted for scope: the bot is
+/// resolved and checked against the caller's verified tenant membership before
+/// any configuration (LLM model/url/temperature) is returned. Foreign and
+/// unknown ids are indistinguishable 404s.
 pub async fn handle_bot_config_get(
     State(state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
-    headers: axum::http::HeaderMap,
+    req: axum::extract::Request,
 ) -> impl IntoResponse {
-    let locale = botcore::i18n::locale_from_headers(&headers);
+    let locale = botcore::i18n::locale_from_headers(req.headers());
+
+    // Scope is derived from verified identity (RBAC-injected user), never from
+    // a client-supplied name/id or any query/body field.
+    let Some(user_id) = requesting_user(&req) else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-auth-token-missing",
+            )),
+        )
+            .into_response();
+    };
+
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => return e.into_response(),
@@ -23,10 +58,15 @@ pub async fn handle_bot_config_get(
         llm_provider: String,
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
         enabled_tabs_json: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        is_public: bool,
     }
 
     let bot: Option<BotRow> = diesel::sql_query(
-        "SELECT name, description, llm_provider, enabled_tabs_json FROM bots WHERE id = $1 LIMIT 1",
+        "SELECT name, description, llm_provider, enabled_tabs_json, org_id, is_public \
+         FROM bots WHERE id = $1 LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .get_result::<BotRow>(&mut conn)
@@ -39,6 +79,53 @@ pub async fn handle_bot_config_get(
         )
             .into_response();
     };
+
+    // Resolve the caller's tenant scope from verified identity. Platform
+    // admins and public bots skip the membership lookup; everyone else is
+    // confined to orgs they actually belong to (same rule as the list/tree).
+    let is_platform_admin = caller_is_platform_admin(&req, &state);
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct OrgRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+    let caller_org_ids: Vec<Uuid> = if is_platform_admin || bot.is_public {
+        Vec::new()
+    } else {
+        match diesel::sql_query("SELECT org_id FROM user_organizations WHERE user_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .load::<OrgRow>(&mut conn)
+        {
+            Ok(rows) => rows.into_iter().map(|r| r.org_id).collect(),
+            Err(e) => {
+                // Fail closed: never grant scope when membership cannot be
+                // resolved. Sanitize the DB error before it reaches the client.
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(crate::security::error_sanitizer::log_and_sanitize_json(
+                        &e,
+                        "bot config scope resolution",
+                        None,
+                    )),
+                )
+                    .into_response();
+            }
+        }
+    };
+
+    if !bot_config_in_scope(
+        bot.is_public,
+        bot.org_id,
+        &caller_org_ids,
+        is_platform_admin,
+    ) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(botcore::i18n::error_body(&locale, "error-bot-not-found")),
+        )
+            .into_response();
+    }
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -126,7 +213,10 @@ pub async fn handle_bot_config_put(
     if name.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(botcore::i18n::error_body(&locale, "error-bot-name-required")),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-bot-name-required",
+            )),
         )
             .into_response();
     }
@@ -217,7 +307,10 @@ pub async fn handle_bot_create(
     if name.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(botcore::i18n::error_body(&locale, "error-bot-name-required")),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-bot-name-required",
+            )),
         )
             .into_response();
     }
@@ -315,4 +408,38 @@ pub fn configure_bot_tree_routes() -> Router<Arc<AppState>> {
             axum::routing::put(handle_bot_config_put),
         )
         .route("/api/bots", axum::routing::post(handle_bot_create))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn org(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+
+    #[test]
+    fn scope_grants_platform_admin_and_public_bots() {
+        let foreign = org(99);
+        // A platform admin may read any bot, even a foreign private one.
+        assert!(bot_config_in_scope(false, foreign, &[], true));
+        // A public bot is readable by authenticated non-admins.
+        assert!(bot_config_in_scope(true, foreign, &[], false));
+    }
+
+    #[test]
+    fn two_tenant_isolation() {
+        let tenant_a = org(1);
+        let tenant_b = org(2);
+        let caller_a_orgs = [tenant_a];
+
+        // Caller A may read its own tenant's private bot.
+        assert!(bot_config_in_scope(false, tenant_a, &caller_a_orgs, false));
+        // Caller A may NOT read tenant B's private bot — must be a 404.
+        assert!(!bot_config_in_scope(false, tenant_b, &caller_a_orgs, false));
+        // A public bot of tenant B is visible to caller A.
+        assert!(bot_config_in_scope(true, tenant_b, &caller_a_orgs, false));
+        // A caller with no orgs cannot read any private bot.
+        assert!(!bot_config_in_scope(false, tenant_a, &[], false));
+    }
 }
