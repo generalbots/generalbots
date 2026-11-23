@@ -11,6 +11,10 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
+mod chat_models_auth;
+
+use chat_models_auth::{bot_visible_to_caller, chat_models_not_found, root_org_member};
+
 #[derive(Debug, Deserialize)]
 pub struct ChatModelsQuery {
     /// Bot name from the page the picker belongs to; the tier keys are per bot.
@@ -248,28 +252,75 @@ pub fn configure_chat_routes() -> Router<Arc<AppState>> {
 /// #1637 — reports the model behind each picker tier so the UI can label the
 /// options honestly ("Fast · gpt-4o-mini" or "Fast · uses the default model")
 /// instead of promising a trade-off the bot has not configured.
+///
+/// #2796 — the `bot` query param is now treated as an untrusted selector: it is
+/// resolved to a real bot row and authorized against the caller's org set
+/// before any per-bot LLM configuration is read. Foreign/unknown names yield
+/// 404 instead of leaking another tenant's model and LLM destination.
 pub async fn handle_chat_models(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ChatModelsQuery>,
-) -> Json<serde_json::Value> {
-    use botcore::shared::schema::bots;
+    req: axum::extract::Request,
+) -> axum::response::Response {
+    use botcore::shared::schema::{bots, user_organizations};
     use diesel::prelude::*;
 
-    let requested = query.bot.unwrap_or_default();
-    let bot_uuid = if requested.trim().is_empty() {
+    let requested = query.bot.unwrap_or_default().trim().to_string();
+
+    let bot_uuid = if requested.is_empty() {
+        // No selector: the global default bot, which carries no org boundary.
         Uuid::nil()
     } else {
-        match state.conn.get() {
-            Ok(mut conn) => bots::table
-                .filter(bots::name.eq(requested.trim()))
-                .select(bots::id)
-                .first::<Uuid>(&mut conn)
-                .unwrap_or(Uuid::nil()),
+        let mut conn = match state.conn.get() {
+            Ok(conn) => conn,
             Err(e) => {
                 log::warn!("chat models: database unavailable: {e}");
-                Uuid::nil()
+                return StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
+        };
+
+        // #1289 — accept a slug as well as the display name.
+        let record = bots::table
+            .filter(
+                bots::name
+                    .eq(requested.as_str())
+                    .or(bots::slug.eq(requested.as_str())),
+            )
+            .select((bots::id, bots::is_public, bots::org_id))
+            .first::<(Uuid, bool, Uuid)>(&mut conn)
+            .optional();
+
+        let (bot_id, is_public, org_id) = match record {
+            Ok(Some(row)) => row,
+            Ok(None) => return chat_models_not_found(),
+            Err(e) => {
+                log::warn!("chat models: bot lookup failed: {e}");
+                return chat_models_not_found();
+            }
+        };
+
+        let user = req
+            .extensions()
+            .get::<crate::security::auth_api::types::AuthenticatedUser>();
+        let is_platform_admin = user.is_some_and(|u| u.is_super_admin())
+            || user
+                .and_then(|u| u.email.as_deref())
+                .filter(|email| !email.is_empty())
+                .is_some_and(|email| root_org_member(&mut conn, email));
+
+        let caller_org_ids: Vec<Uuid> = match user {
+            Some(u) if u.is_authenticated() => user_organizations::table
+                .filter(user_organizations::user_id.eq(u.user_id))
+                .select(user_organizations::org_id)
+                .load::<Uuid>(&mut conn)
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+
+        if !bot_visible_to_caller(is_platform_admin, is_public, Some(org_id), &caller_org_ids) {
+            return chat_models_not_found();
         }
+        bot_id
     };
 
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
@@ -336,4 +387,5 @@ pub async fn handle_chat_models(
             tier("quality", "Quality", "best, slower"),
         ],
     }))
+    .into_response()
 }
