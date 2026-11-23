@@ -14,13 +14,14 @@
 
 use axum::http::HeaderMap;
 use botsecurity::botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt, VerifiedJwt};
+use botsecurity::rbac_middleware::is_admin_group_name;
 use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::DbPool;
 
-/// Group name fragment that marks an administrator, the same rule
-/// `resolve_user_role` applies for the rest of the API.
+/// Exact administrator role claim name, the same name `resolve_user_role`
+/// and the shared `#2633` resolver recognise.
 const ADMIN_ROLE: &str = "admin";
 
 /// Verified claims of the request token.
@@ -91,9 +92,9 @@ fn rbac_says_admin(pool: &DbPool, claims: &VerifiedJwt) -> bool {
     }
 
     // Same rule as `resolve_user_role`/`is_admin_user`: an active group whose
-    // name contains "admin". The user row is matched by the stable UUID first
-    // and by email second, because cloud `sub` claims are numeric Zitadel ids
-    // and older rows were created under a different id derivation.
+    // name is an exact administrator name (#2633). The user row is matched by
+    // the stable UUID first and by email second, because cloud `sub` claims are
+    // numeric Zitadel ids and older rows were created under a different id derivation.
     let groups: Vec<GroupName> = diesel::sql_query(
         "SELECT g.name FROM rbac_groups g \
          JOIN rbac_user_groups ug ON ug.group_id = g.id \
@@ -111,9 +112,7 @@ fn rbac_says_admin(pool: &DbPool, claims: &VerifiedJwt) -> bool {
         Vec::new()
     });
 
-    groups
-        .iter()
-        .any(|group| group.name.to_lowercase().contains(ADMIN_ROLE))
+    groups.iter().any(|group| is_admin_group_name(&group.name))
 }
 
 /// Maps a verified `sub` to the stable user UUID the RBAC tables use, the same

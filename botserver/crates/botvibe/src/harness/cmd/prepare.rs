@@ -69,6 +69,26 @@ pub(super) fn prepare_command(
     Ok(command)
 }
 
+/// Same as [`prepare_command`] but with additional environment pairs for the
+/// child. #2861: git authentication is supplied this way (ephemeral
+/// `GIT_CONFIG_*` env) instead of through argv or `.git/config`. Arguments are
+/// still validated by `prepare_command`; only the env pairs are added here.
+pub(super) fn prepare_command_with_env(
+    program: &str,
+    args: &[String],
+    cwd: &std::path::Path,
+    envs: &[(String, String)],
+) -> Result<std::process::Command, GuardError> {
+    let mut command = prepare_command(program, args, cwd)?;
+    for (key, value) in envs {
+        if key.contains('\0') || value.contains('\0') {
+            return Err(GuardError::InvalidArgument("NUL in environment".into()));
+        }
+        command.env(key, value);
+    }
+    Ok(command)
+}
+
 /// The executable the harness may spawn (#1534).
 ///
 /// The returned string always comes from `ALLOWED_COMMANDS`, a fixed set of

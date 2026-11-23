@@ -1,5 +1,6 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use botcore::shared::state::AppState;
+use botsecurity::rbac_middleware::is_admin_group_name;
 use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -57,11 +58,7 @@ pub async fn anonymous_auth_handler(
         }
     };
 
-    let role = if is_authenticated
-        && auth_roles
-            .iter()
-            .any(|r| r.to_lowercase().contains("admin"))
-    {
+    let role = if is_authenticated && auth_roles.iter().any(|r| is_admin_group_name(r)) {
         crate::security::user_role::ROLE_ADMIN.to_string()
     } else {
         crate::security::user_role::resolve_user_role(&state.conn, user_uuid)
@@ -303,11 +300,12 @@ pub(crate) fn cloud_jwt_session_user(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    // #2631 — this resolver is a synchronous fn pointer and cannot await the
-    // Redis blacklist. Use the local mirror written at logout so a revoked
-    // token is not resurrected as an authenticated /api/auth/me identity.
+    // #2631/#2830 — this resolver is a synchronous fn pointer and cannot await
+    // the Redis blacklist, but the local mirror alone only covers logouts
+    // handled by this instance. `is_revoked_sync` also reads the shared store
+    // so a revocation on another instance is honoured here as well.
     if let Some(jti) = payload.get("jti").and_then(|v| v.as_str()) {
-        if crate::security::botsecurity_auth::jwt::revocation::is_locally_revoked(jti) {
+        if crate::security::botsecurity_auth::jwt::revocation::is_revoked_sync(jti) {
             return None;
         }
     }
@@ -378,9 +376,11 @@ fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
     if sub.is_empty() {
         return (String::new(), Vec::new(), false);
     }
-    // #2631 — do not resolve a just-logged-out JWT into a chat identity.
+    // #2631/#2830 — do not resolve a just-logged-out JWT into a chat identity.
+    // `is_revoked_sync` covers both this instance's local mirror and the shared
+    // blacklist written by any other instance.
     if let Some(jti) = payload.get("jti").and_then(|v| v.as_str()) {
-        if crate::security::botsecurity_auth::jwt::revocation::is_locally_revoked(jti) {
+        if crate::security::botsecurity_auth::jwt::revocation::is_revoked_sync(jti) {
             return (String::new(), Vec::new(), false);
         }
     }

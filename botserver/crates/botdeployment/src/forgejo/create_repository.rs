@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::redact::redact_alm_secret;
 use botlib::security::SafeCommand;
 
 impl ForgejoClient {
@@ -198,28 +199,41 @@ impl ForgejoClient {
         }
 
         let auth_url = self.add_token_to_url(repo_url);
-        log::info!("git push url: {auth_url}");
+        // #2860: the URL embeds the ALM token — never log it verbatim.
+        log::info!("{}", push_url_log_message(&auth_url, &self.token));
         // Use git CLI entirely (init + add + commit + push) instead of
         // mixing git2 (which has ref-creation and HTTP auth issues) with
         // CLI. The proven flow: init → add → commit → push.
-        let git = |args: &[&str]| -> Result<String, DeploymentError> {
+        let git = |args: &[&str], auth_token: Option<&str>| -> Result<String, DeploymentError> {
             let label = args.first().copied().unwrap_or("git");
+            // #2860: git may echo the token-bearing URL (passed as an argv
+            // element on push) in its stderr or in a guard error. Strip the
+            // secret before the error can be logged by a caller.
+            let sanitize = |msg: String| {
+                DeploymentError::GitError(redact_alm_secret(&msg, &self.token))
+            };
             let mut command = SafeCommand::new("git")
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?
                 .allow_path(temp_dir.clone());
             for arg in args {
                 command = command
                     .trusted_arg(arg)
-                    .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+                    .map_err(|e| sanitize(format!("git {label}: {e}")))?;
+            }
+            // #2861: authenticate over HTTP via an ephemeral `http.extraHeader`
+            // in the git child's environment — never via the URL in argv.
+            if let Some(token) = auth_token {
+                command = botlib::security::git_auth::apply_git_auth(command, token)
+                    .map_err(|e| sanitize(format!("git auth: {e}")))?;
             }
             let output = command
                 .working_dir(&temp_dir)
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?
                 .execute()
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?;
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(DeploymentError::GitError(format!(
+                return Err(sanitize(format!(
                     "git {} failed: {}",
                     label,
                     stderr.trim().lines().last().unwrap_or("unknown")
@@ -228,8 +242,8 @@ impl ForgejoClient {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         };
 
-        git(&["init", "-q"])?;
-        git(&["add", "-A"])?;
+        git(&["init", "-q"], None)?;
+        git(&["add", "-A"], None)?;
         // `git commit -m <text>` would run the user-written app description
         // through SafeCommand's argument validation, which rejects shell
         // metacharacters and ".."; a description containing "&" or "..." would
@@ -239,10 +253,12 @@ impl ForgejoClient {
             .map_err(|e| DeploymentError::GitError(format!("commit message: {e}")))?;
         let message_arg = message_path.to_string_lossy().to_string();
         git(&["-c", "user.name=GB Deployer", "-c", "user.email=deployer@generalbots.com",
-             "commit", "-F", &message_arg])?;
+             "commit", "-F", &message_arg], None)?;
         std::fs::remove_file(&message_path).ok();
-        let commit_hash = git(&["rev-parse", "HEAD"])?;
-        git(&["push", "--force", &auth_url, &format!("HEAD:{branch}")])?;
+        let commit_hash = git(&["rev-parse", "HEAD"], None)?;
+        // #2861: `repo_url` is token-free; the token is supplied only through
+        // the child environment by the `git` closure above.
+        git(&["push", "--force", repo_url, &format!("HEAD:{branch}")], Some(&self.token))?;
 
         Ok(commit_hash)
     }
@@ -280,5 +296,55 @@ impl ForgejoClient {
         self.push_workflow_preserving(repo_url, &workflow_app).await?;
 
         Ok(())
+    }
+}
+
+/// Build the `git push url` log line with the ALM token removed (#2860).
+/// A pure function so a test can assert the exact string that reaches the log
+/// never contains the raw token or any prefix of it.
+fn push_url_log_message(auth_url: &str, token: &str) -> String {
+    format!("git push url: {}", redact_alm_secret(auth_url, token))
+}
+
+#[cfg(test)]
+mod redaction_tests {
+    use super::push_url_log_message;
+
+    #[test]
+    fn push_url_log_never_contains_token_or_prefix() {
+        const TOKEN: &str = "gb2860SENTINELtoken9f3a7b1c";
+        let auth_url = format!("https://{TOKEN}@alm.internal/org/repo.git");
+        let logged = push_url_log_message(&auth_url, TOKEN);
+        assert_eq!(logged, "git push url: https://***@alm.internal/org/repo.git");
+        assert!(!logged.contains(TOKEN));
+        for n in 8..=TOKEN.len() {
+            assert!(!logged.contains(&TOKEN[..n]), "prefix of len {n} leaked");
+        }
+    }
+}
+
+#[cfg(test)]
+mod argv_token_tests {
+    use super::*;
+
+    const TOKEN: &str = "gb2861SENTINELtoken9f3a7b1c";
+
+    /// #2861: the URL passed to `git push` is token-free, and the credential
+    /// travels only in the short-lived child environment. No argv element and
+    /// no `.git/config` line may contain the raw ALM token.
+    #[test]
+    fn push_argv_and_persisted_config_are_token_free() {
+        let client = ForgejoClient::new("http://alm.internal:4747".into(), TOKEN.into());
+        let repo_url = "http://alm.internal:4747/org/repo.git";
+        // This is the argv `push_app` builds for the force-push.
+        let argv = ["git", "push", "--force", repo_url, "HEAD:main"];
+        for arg in argv {
+            assert!(!arg.contains(TOKEN), "token leaked in argv element {arg}");
+        }
+        // What git would persist if this URL were used as a remote.
+        let config = format!("[remote \"origin\"]\n\turl = {repo_url}\n");
+        assert!(!config.contains(TOKEN), "token persisted in .git/config");
+        let env = botlib::security::git_auth::git_auth_env(&client.token);
+        assert!(env.iter().all(|(_, value)| !value.contains(TOKEN)));
     }
 }

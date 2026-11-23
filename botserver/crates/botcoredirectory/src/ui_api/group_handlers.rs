@@ -4,6 +4,7 @@
 //! parent module's imports (`Json`, `State`, diesel traits) and its
 //! `get_conn` helper through `super::*`.
 use super::*;
+use botsecurity::rbac_middleware::invalidate_rbac_cache;
 
 pub(super) async fn update_group_json(
     State(state): State<Arc<DirectoryApiState>>,
@@ -42,6 +43,17 @@ pub(super) async fn update_group_json(
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
+    // #2852 — the group name and is_active flag feed role resolution. Any
+    // change here can alter every member's route permissions, so flush the
+    // cached decisions instead of leaving stale allows for up to the TTL.
+    if payload.name.is_some()
+        || payload.display_name.is_some()
+        || payload.description.is_some()
+        || payload.is_active.is_some()
+    {
+        invalidate_rbac_cache();
+    }
+
     get_group_json(&mut conn, group_id)
 }
 
@@ -56,6 +68,9 @@ pub(super) async fn delete_group_json(
         .bind::<diesel::sql_types::Uuid, _>(group_id)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+
+    // #2852 — deleting a group removes roles from all of its former members.
+    invalidate_rbac_cache();
 
     Ok(Json(serde_json::json!({ "ok": true, "deleted": group_id })))
 }
@@ -134,6 +149,10 @@ pub(super) async fn add_group_member_json(
     .execute(&mut conn)
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
 
+    // #2852 — the new membership must grant roles immediately; a cached deny
+    // would otherwise keep the user locked out until the TTL expires.
+    invalidate_rbac_cache();
+
     Ok(Json(serde_json::json!({ "ok": true, "group_id": group_id, "user_id": user_id })))
 }
 
@@ -159,6 +178,9 @@ pub(super) async fn remove_group_member_json(
         .bind::<diesel::sql_types::Uuid, _>(group_id)
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+
+    // #2852 — a revoked admin must lose cached route allows immediately.
+    invalidate_rbac_cache();
 
     Ok(Json(serde_json::json!({ "ok": true })))
 }

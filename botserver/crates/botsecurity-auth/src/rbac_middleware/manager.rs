@@ -43,7 +43,7 @@ impl RbacManager {
         if self.config.enable_permission_cache {
             let cache = self.permission_cache.read().await;
             if let Some(entry) = cache.get(&cache_key) {
-                if !entry.is_expired() {
+                if !entry.is_stale() {
                     return entry.value.clone().with_cache_hit();
                 }
             }
@@ -152,7 +152,7 @@ impl RbacManager {
         if self.config.enable_permission_cache {
             let cache = self.permission_cache.read().await;
             if let Some(entry) = cache.get(&cache_key) {
-                if !entry.is_expired() {
+                if !entry.is_stale() {
                     return entry.value.clone().with_cache_hit();
                 }
             }
@@ -221,8 +221,14 @@ impl RbacManager {
     pub async fn set_user_groups(&self, user_id: Uuid, groups: Vec<String>) {
         let mut user_groups = self.user_groups.write().await;
         user_groups.insert(user_id, groups);
+        drop(user_groups);
 
-        self.invalidate_cache_prefix("resource:").await;
+        // #2852 — group membership drives route role checks as well as
+        // resource ACLs. Clear every cache key for this user (route:,
+        // resource:, user_perm:), then bump the process-wide generation so
+        // other RbacManager instances see the change too.
+        self.invalidate_user_cache(user_id).await;
+        invalidate_rbac_cache();
     }
 
     pub async fn add_user_to_group(&self, user_id: Uuid, group: &str) {
@@ -231,8 +237,10 @@ impl RbacManager {
             .entry(user_id)
             .or_default()
             .push(group.to_string());
+        drop(user_groups);
 
-        self.invalidate_cache_prefix("resource:").await;
+        self.invalidate_user_cache(user_id).await;
+        invalidate_rbac_cache();
     }
 
     pub async fn remove_user_from_group(&self, user_id: Uuid, group: &str) {
@@ -240,8 +248,10 @@ impl RbacManager {
         if let Some(groups) = user_groups.get_mut(&user_id) {
             groups.retain(|g| g != group);
         }
+        drop(user_groups);
 
-        self.invalidate_cache_prefix("resource:").await;
+        self.invalidate_user_cache(user_id).await;
+        invalidate_rbac_cache();
     }
 
     pub async fn get_user_groups(&self, user_id: Uuid) -> Vec<String> {
@@ -259,6 +269,8 @@ impl RbacManager {
     pub async fn clear_cache(&self) {
         let mut cache = self.permission_cache.write().await;
         cache.clear();
+        // Propagate to any other manager instance in this process (#2852).
+        invalidate_rbac_cache();
     }
 
     async fn cache_result(&self, key: &str, result: &AccessDecisionResult) {
@@ -284,7 +296,7 @@ impl RbacManager {
         if self.config.enable_permission_cache {
             let cache = self.permission_cache.read().await;
             if let Some(entry) = cache.get(&cache_key) {
-                if !entry.is_expired() {
+                if !entry.is_stale() {
                     return entry.value.is_allowed();
                 }
             }

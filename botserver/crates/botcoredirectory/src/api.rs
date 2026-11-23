@@ -18,22 +18,26 @@ pub struct DirectoryApiState {
     pub base_url: String,
 }
 
+// SECURITY (#2850): these are the *wire* types for POST /api/directory/users/provision.
+// Privilege-bearing fields (`is_admin` and per-bot `role`) are deliberately absent.
+// `deny_unknown_fields` turns a forged field into a 422 instead of silently
+// escalating the caller: admin status is never accepted from the request body.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CreateUserRequest {
     pub username: String,
     pub email: String,
     pub first_name: String,
     pub last_name: String,
     pub organization: String,
-    pub is_admin: bool,
     pub bots: Vec<BotAccessRequest>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BotAccessRequest {
     pub bot_id: String,
     pub bot_name: String,
-    pub role: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -71,34 +75,39 @@ pub fn configure_user_routes() -> Router<Arc<DirectoryApiState>> {
         .merge(crate::ui_api::configure_directory_api_routes())
 }
 
+/// Builds the internal provisioning account from a validated wire request.
+///
+/// SECURITY (#2850): privilege is NEVER copied from the client. Every
+/// provisioned account starts as a non-admin with plain `User` access to its
+/// bots; elevation must go through a verified, admin-gated server-side path
+/// (RBAC group/role assignment or the dedicated admin-promotion endpoints).
+fn build_provisioning_account(request: &CreateUserRequest) -> UserAccount {
+    let mut account = UserAccount {
+        username: request.username.clone(),
+        email: request.email.clone(),
+        first_name: request.first_name.clone(),
+        last_name: request.last_name.clone(),
+        organization: request.organization.clone(),
+        bots: Vec::new(),
+    };
+
+    for bot_req in &request.bots {
+        account.bots.push(BotAccess {
+            bot_id: bot_req.bot_id.clone(),
+            bot_name: bot_req.bot_name.clone(),
+            role: UserRole::User,
+            home_path: format!("/home/{}", request.username),
+        });
+    }
+
+    account
+}
+
 pub async fn provision_user_handler(
     State(state): State<Arc<DirectoryApiState>>,
     Json(request): Json<CreateUserRequest>,
 ) -> impl IntoResponse {
-    let mut account = UserAccount {
-        username: request.username.clone(),
-        email: request.email,
-        first_name: request.first_name,
-        last_name: request.last_name,
-        organization: request.organization,
-        is_admin: request.is_admin,
-        bots: Vec::new(),
-    };
-
-    for bot_req in request.bots {
-        let role = match bot_req.role.to_lowercase().as_str() {
-            "admin" => UserRole::Admin,
-            "readonly" | "read_only" => UserRole::ReadOnly,
-            _ => UserRole::User,
-        };
-
-        account.bots.push(BotAccess {
-            bot_id: bot_req.bot_id,
-            bot_name: bot_req.bot_name.clone(),
-            role,
-            home_path: format!("/home/{}", request.username),
-        });
-    }
+    let account = build_provisioning_account(&request);
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), None, state.base_url.clone());
 
@@ -268,4 +277,52 @@ mod schema {
   // Canonical definition lives in `botschema` (#1497); the local copy had a
   // ghost `is_admin` and omitted the account columns.
   pub use botschema::users;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn valid_payload() -> serde_json::Value {
+        serde_json::json!({
+            "username": "jdoe",
+            "email": "jdoe@example.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "organization": "org",
+            "bots": [{ "bot_id": "bot-1", "bot_name": "default" }]
+        })
+    }
+
+    #[test]
+    fn forged_is_admin_true_is_rejected() {
+        let mut payload = valid_payload();
+        payload["is_admin"] = serde_json::json!(true);
+        assert!(
+            serde_json::from_value::<CreateUserRequest>(payload).is_err(),
+            "a client-supplied is_admin must not deserialize into the provisioning request"
+        );
+    }
+
+    #[test]
+    fn forged_bot_role_admin_is_rejected() {
+        let mut payload = valid_payload();
+        payload["bots"][0]["role"] = serde_json::json!("admin");
+        assert!(
+            serde_json::from_value::<CreateUserRequest>(payload).is_err(),
+            "a client-supplied per-bot role must not deserialize into the provisioning request"
+        );
+    }
+
+    #[test]
+    fn valid_request_grants_no_elevated_bot_role() {
+        let request: CreateUserRequest =
+            serde_json::from_value(valid_payload()).expect("valid provisioning payload");
+        let account = build_provisioning_account(&request);
+        assert!(
+            account.bots.iter()
+                .all(|access| access.role == UserRole::User),
+            "provisioning must never grant an elevated bot role"
+        );
+    }
 }

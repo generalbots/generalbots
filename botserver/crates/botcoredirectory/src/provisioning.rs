@@ -8,6 +8,11 @@ pub use botlib::db_pool::DbPool;
 #[cfg(feature = "drive")]
 pub struct S3ClientStub;
 
+// SECURITY (#2850): no `is_admin` field exists on the provisioning account.
+// Provisioning can only ever create ordinary users; admin status is granted
+// later by a verified server-side path (RBAC group/role assignment or the
+// dedicated admin-promotion endpoints), never through this struct or the
+// provisioning wire request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserAccount {
     pub username: String,
@@ -15,7 +20,6 @@ pub struct UserAccount {
     pub first_name: String,
     pub last_name: String,
     pub organization: String,
-    pub is_admin: bool,
     pub bots: Vec<BotAccess>,
 }
 
@@ -27,7 +31,7 @@ pub struct BotAccess {
     pub home_path: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UserRole {
     Admin,
     User,
@@ -120,13 +124,16 @@ impl UserProvisioningService {
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
 
+        // SECURITY (#2850): provisioning always writes `is_admin = false`.
+        // There is no caller-controlled value here — the column is set from a
+        // literal, so even a future wire-field regression cannot mint an admin.
         diesel::insert_into(users::table)
             .values((
                 users::id.eq(user_id),
                 users::username.eq(&account.username),
                 users::email.eq(&account.email),
                 users::password_hash.eq(&password_hash),
-                users::is_admin.eq(account.is_admin),
+                users::is_admin.eq(false),
                 users::created_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;

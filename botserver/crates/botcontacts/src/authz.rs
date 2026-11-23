@@ -4,7 +4,7 @@
 //! for reading and for capturing records but not for destroying them: any
 //! signed-in user could delete another rep's deal. The rule applied here:
 //!
-//! * an **admin** (group containing "admin", or `users.is_admin`) may act on
+//! * an **admin** (exact admin group name, or `users.is_admin`) may act on
 //!   any record of the branch;
 //! * a **plain user** may act only on records they own (`owner_id` set to
 //!   their user id) or on **unowned** records (`owner_id IS NULL`) — the
@@ -16,6 +16,7 @@
 //! influence the decision.
 
 use axum::http::{HeaderMap, StatusCode};
+use botsecurity_auth::rbac_middleware::is_admin_group_name;
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -56,7 +57,7 @@ fn is_group_admin(conn: &mut diesel::PgConnection, user_id: Uuid) -> bool {
     .load::<GroupRow>(conn)
     .unwrap_or_default()
     .iter()
-    .any(|g| g.name.to_lowercase().contains("admin"))
+    .any(|g| is_admin_group_name(&g.name))
 }
 
 /// `Ok(())` when the caller may modify `record_owner`; `403` otherwise.

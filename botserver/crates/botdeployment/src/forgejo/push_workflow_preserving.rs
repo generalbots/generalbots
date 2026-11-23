@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::redact::redact_alm_secret;
 use botlib::security::SafeCommand;
 
 impl ForgejoClient {
@@ -16,24 +17,29 @@ impl ForgejoClient {
             .map_err(|e| DeploymentError::GitError(format!("Failed to create temp dir: {}", e)))?;
 
         let auth_url = self.add_token_to_url(repo_url);
+        // #2860: git errors may echo the token-bearing URL passed as an argv
+        // element; strip the secret before the error can be logged upstream.
+        let sanitize = |msg: String| {
+            DeploymentError::GitError(redact_alm_secret(&msg, &self.token))
+        };
         let git = |args: &[&str]| -> Result<String, DeploymentError> {
             let label = args.first().copied().unwrap_or("git");
             let mut command = SafeCommand::new("git")
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?
                 .allow_path(temp_dir.clone());
             for arg in args {
                 command = command
                     .trusted_arg(arg)
-                    .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+                    .map_err(|e| sanitize(format!("git {label}: {e}")))?;
             }
             let output = command
                 .working_dir(&temp_dir)
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?
                 .execute()
-                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+                .map_err(|e| sanitize(format!("git {label}: {e}")))?;
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(DeploymentError::GitError(format!(
+                return Err(sanitize(format!(
                     "git {} failed: {}",
                     label,
                     stderr.trim().lines().last().unwrap_or("unknown")
@@ -55,10 +61,10 @@ impl ForgejoClient {
             .and_then(|c| c.trusted_arg(&clone_target))
             .and_then(|c| c.working_dir(parent_dir))
             .and_then(|c| c.execute())
-            .map_err(|e| DeploymentError::GitError(format!("git clone: {e}")))?;
+            .map_err(|e| sanitize(format!("git clone: {e}")))?;
         if !clone_output.status.success() {
             let stderr = String::from_utf8_lossy(&clone_output.stderr);
-            return Err(DeploymentError::GitError(format!(
+            return Err(sanitize(format!(
                 "git clone failed: {}",
                 stderr.trim().lines().last().unwrap_or("unknown")
             )));

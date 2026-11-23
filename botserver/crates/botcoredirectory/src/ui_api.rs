@@ -40,13 +40,17 @@ pub fn configure_directory_api_routes() -> Router<Arc<DirectoryApiState>> {
         .route("/api/directory/groups/:group_id/invites/send", post(send_group_invite_json))
 }
 
+// SECURITY (#2850): `role` was removed from the wire type — it used to map
+// `role == "admin"` directly onto `is_admin = true`. A forged role is now
+// rejected at deserialization; privilege changes belong to verified,
+// admin-gated server-side paths, never to this generic profile-update payload.
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct UserUpdateRequest {
     pub username: Option<String>,
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub role: Option<String>,
     pub is_active: Option<bool>,
 }
 
@@ -116,14 +120,6 @@ async fn update_user_json(
                 None => return Err((StatusCode::NOT_FOUND, "User not found".to_string())),
             }
         }
-    }
-
-    if let Some(is_admin) = payload.role.as_deref().map(|r| r == "admin") {
-        diesel::sql_query("UPDATE users SET is_admin = $1, updated_at = NOW() WHERE id = $2")
-            .bind::<diesel::sql_types::Bool, _>(is_admin)
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(is_active) = payload.is_active {
@@ -251,4 +247,36 @@ async fn list_organizations_json(
         })).collect::<Vec<_>>(),
         "total": total,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn forged_role_admin_is_rejected_by_update_payload() {
+        let payload = serde_json::json!({ "role": "admin" });
+        assert!(
+            serde_json::from_value::<UserUpdateRequest>(payload).is_err(),
+            "role must not be accepted by the generic user-update endpoint"
+        );
+    }
+
+    #[test]
+    fn forged_is_admin_is_rejected_by_update_payload() {
+        let payload = serde_json::json!({ "is_admin": true });
+        assert!(
+            serde_json::from_value::<UserUpdateRequest>(payload).is_err(),
+            "is_admin must not be accepted by the generic user-update endpoint"
+        );
+    }
+
+    #[test]
+    fn ordinary_profile_fields_still_deserialize() {
+        let payload = serde_json::json!({ "username": "jdoe", "is_active": true });
+        let parsed: UserUpdateRequest =
+            serde_json::from_value(payload).expect("valid profile update payload");
+        assert_eq!(parsed.username.as_deref(), Some("jdoe"));
+        assert_eq!(parsed.is_active, Some(true));
+    }
 }

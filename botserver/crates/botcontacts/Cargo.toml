@@ -15,6 +15,7 @@ tasks = []
 bigdecimal = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botschema = { workspace = true, features = ["people", "calendar"] }
+botsecurity-auth = { workspace = true }
 botsecurity-core = { workspace = true }
 csv = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }

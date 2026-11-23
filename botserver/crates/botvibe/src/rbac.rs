@@ -1,3 +1,4 @@
+use botsecurity_auth::rbac_middleware::is_admin_group_name;
 use diesel::prelude::*;
 use std::fmt;
 use uuid::Uuid;
@@ -316,10 +317,8 @@ impl ProjectRbac {
     pub fn org_role(&self, user_id: Uuid) -> Result<String, String> {
         let mut conn = self.conn()?;
         let groups = self.user_group_names(&mut conn, user_id)?;
-        for name in &groups {
-            if name.to_lowercase().contains("admin") {
-                return Ok("admin".to_string());
-            }
+        if groups.iter().any(|name| is_admin_group_name(name)) {
+            return Ok("admin".to_string());
         }
         Ok("user".to_string())
     }

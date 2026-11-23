@@ -1,4 +1,32 @@
 use super::*;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Process-wide RBAC cache generation (#2852).
+///
+/// Group membership and role changes are frequently written straight to
+/// `rbac_user_groups` / `rbac_groups` with raw SQL (directory, SCIM and group
+/// handlers) instead of going through `RbacManager`. Those callers have no
+/// manager handle, but they can still make every cached allow/deny decision
+/// stale by bumping this counter. Every `RbacManager` checks it on cache read,
+/// so a revoked admin loses cached route allows immediately rather than
+/// waiting out the TTL.
+static RBAC_CACHE_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Current value of the process-wide RBAC cache generation.
+pub(crate) fn rbac_cache_generation() -> u64 {
+    RBAC_CACHE_GENERATION.load(Ordering::SeqCst)
+}
+
+/// Invalidate all cached RBAC allow/deny decisions in this process.
+///
+/// Call this after any `rbac_user_groups` / `rbac_groups` mutation performed
+/// outside `RbacManager` (e.g. the directory group handlers that write
+/// membership with raw Diesel SQL). Callers that *do* own a manager should
+/// prefer `RbacManager::invalidate_user_cache` for a targeted invalidation;
+/// this is the explicit path for callers that only have the database handle.
+pub fn invalidate_rbac_cache() {
+    RBAC_CACHE_GENERATION.fetch_add(1, Ordering::SeqCst);
+}
 
 /// Match a wildcard pattern (e.g. `bot:*` matches `bot:create:messages`)
 /// against a value string. Supports `*` and `**` as wildcards.
@@ -341,6 +369,9 @@ pub(crate) struct CacheEntry<T> {
     // Visited from `manager.rs` (#1370 split).
     pub(crate) value: T,
     pub(crate) expires_at: DateTime<Utc>,
+    /// Generation stamped at insert time. A mismatch means a membership/role
+    /// mutation happened while this entry was cached (#2852).
+    generation: u64,
 }
 
 impl<T: Clone> CacheEntry<T> {
@@ -348,11 +379,18 @@ impl<T: Clone> CacheEntry<T> {
         Self {
             value,
             expires_at: Utc::now() + chrono::Duration::seconds(ttl_seconds as i64),
+            generation: rbac_cache_generation(),
         }
     }
 
     pub(crate) fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
+    }
+
+    /// True when the entry has exceeded its TTL or a group/role mutation has
+    /// bumped the process-wide generation since it was cached.
+    pub(crate) fn is_stale(&self) -> bool {
+        self.is_expired() || self.generation != rbac_cache_generation()
     }
 }
 

@@ -8,7 +8,29 @@ pub fn run(
     cwd: &std::path::Path,
     timeout_secs: u64,
 ) -> Result<RunOutput, GuardError> {
-    let mut command = prepare_command(program, args, cwd)?;
+    let command = prepare_command(program, args, cwd)?;
+    run_prepared(command, timeout_secs)
+}
+
+/// Variant of [`run`] that passes extra environment pairs to the child.
+/// #2861: used for git network operations so the ALM token lives only in the
+/// short-lived child environment (`http.extraHeader`), never in argv or in
+/// the workspace's `.git/config`.
+pub fn run_with_env(
+    program: &str,
+    args: &[String],
+    cwd: &std::path::Path,
+    timeout_secs: u64,
+    envs: &[(String, String)],
+) -> Result<RunOutput, GuardError> {
+    let command = prepare_command_with_env(program, args, cwd, envs)?;
+    run_prepared(command, timeout_secs)
+}
+
+fn run_prepared(
+    mut command: std::process::Command,
+    timeout_secs: u64,
+) -> Result<RunOutput, GuardError> {
     command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

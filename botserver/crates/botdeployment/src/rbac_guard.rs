@@ -1,3 +1,4 @@
+use botsecurity_auth::rbac_middleware::is_admin_group_name;
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -105,7 +106,19 @@ pub fn is_org_admin(pool: &DbPool, user_id: Uuid) -> Result<bool, String> {
     }
     let mut conn = conn(pool)?;
     let groups = user_group_names(&mut conn, user_id)?;
-    Ok(groups.iter().any(|n| n.to_lowercase().contains("admin")))
+    Ok(groups_grant_admin(&groups))
+}
+
+/// Exact admin-group predicate used by the org-admin gate (#2633).
+///
+/// A substring test grants admin to near misses such as `notadmin` or
+/// `admintrainee`; the shared resolver matches only canonical names.
+fn groups_grant_admin<'a, S: AsRef<str> + ?Sized + 'a>(
+    groups: impl IntoIterator<Item = &'a S>,
+) -> bool {
+    groups
+        .into_iter()
+        .any(|name| is_admin_group_name(name.as_ref()))
 }
 
 pub fn require_deploy_role(
@@ -133,4 +146,48 @@ pub fn require_deploy_role(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod admin_group_name_tests {
+    use super::groups_grant_admin;
+
+    #[test]
+    fn canonical_admin_names_grant_admin() {
+        for name in [
+            "admin",
+            "Admin",
+            "ADMIN",
+            "administrator",
+            "SuperAdmin",
+            "super_admin",
+            "super-admin",
+            "super",
+        ] {
+            assert!(groups_grant_admin([name]), "'{name}' must grant admin");
+        }
+    }
+
+    #[test]
+    fn near_miss_names_do_not_grant_admin() {
+        for name in [
+            "notadmin",
+            "not-admin",
+            "admintrainee",
+            "admins-in-training",
+            "admin-readonly",
+            "subadmin",
+            "admin2",
+            "administrators",
+            "superuser",
+        ] {
+            assert!(!groups_grant_admin([name]), "'{name}' must NOT grant admin");
+        }
+    }
+
+    #[test]
+    fn admin_is_not_diluted_by_other_groups() {
+        assert!(!groups_grant_admin(["user", "notadmin", "viewer"]));
+        assert!(groups_grant_admin(["user", "Admin", "viewer"]));
+    }
 }

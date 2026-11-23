@@ -5,8 +5,9 @@
 //! instead of only the local workspace. Project creation first creates the
 //! repo in Forgejo (`{org}/{repo}` derived from branch id + project name,
 //! exactly like the deployment router), then initializes the workspace as a
-//! git checkout with the token-embedded `origin` remote, then commits the
-//! seeded workspace and pushes `main`.
+//! git checkout with a token-free `origin` remote (#2861), then commits the
+//! seeded workspace and pushes `main`. Network operations authenticate with
+//! an ephemeral `http.extraHeader` injected via the child's environment.
 //! Deploy then snapshots the current release into a `release/deploy-<ts>`
 //! branch (per-deploy rollback point) before committing the new state, and
 //! the workspace stays in sync with Forgejo — the VM runs the pushed copy.
@@ -15,8 +16,10 @@
 //! `botcoresecrets::alm_config()`, the same single source the deployment
 //! router uses — no per-bot LLM config is involved.
 
-use crate::harness::cmd::run;
+use crate::harness::cmd::{run, run_with_env};
 use crate::harness::ensure_workspace;
+use botlib::security::git_auth::{git_auth_env, plain_clone_url};
+use botlib::security::redact::{redact_alm_secret, redact_url_userinfo};
 use crate::projects::Project;
 use crate::vm_lifecycle::VmLifecycle;
 use log::{info, warn};
@@ -24,6 +27,14 @@ use std::path::Path;
 
 const GIT_USER_NAME: &str = "Vibe Agent";
 const GIT_USER_EMAIL: &str = "vibe@gbo.local";
+
+/// Build the `origin already set` log line with any embedded credential
+/// removed (#2860). Workspaces created before the token-free-remote change
+/// can still carry `scheme://token@host/...` in `.git/config`; `git remote
+/// get-url origin` returns that value, so it must never be logged verbatim.
+fn origin_log_message(url: &str) -> String {
+    format!("origin already set ({})", redact_url_userinfo(url))
+}
 
 /// Configure the workspace as a Forgejo-backed checkout for a git-mode
 /// project: create the repo, init the workspace with `origin` and push the
@@ -51,7 +62,9 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
         _ => None,
     };
     if let Some(url) = remote {
-        info!("Vibe git-mode {}: origin already set ({url})", project.name);
+        // #2860: the stored remote may still embed the ALM token in a legacy
+        // workspace — redact before logging.
+        info!("Vibe git-mode {}: {}", project.name, origin_log_message(&url));
         return Ok(());
     }
 
@@ -86,14 +99,21 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
         .and_then(|rest| rest.split_once('/').map(|x| x.1))
         .unwrap_or(&fallback_path)
         .trim_start_matches('/');
+    // #2861: the remote URL is token-free. Authentication is injected as an
+    // ephemeral `http.extraHeader` into each git child below; the token is
+    // never an argv element and never persisted in `.git/config`.
     let internal_url = format!("{}/{path}", alm_base.trim_end_matches('/'));
-    let auth_url = add_token_to_url(&internal_url, &alm_token);
+    let auth_env = git_auth_env(&alm_token);
 
     // 2. Init the workspace checkout on `main`.
     if !cwd.join(".git").exists() {
         git(&cwd, &["init", "-b", "main"], "init")?;
     }
-    git(&cwd, &["remote", "add", "origin", &auth_url], "remote add origin")?;
+    git(
+        &cwd,
+        &["remote", "add", "origin", &internal_url],
+        "remote add origin",
+    )?;
 
     // 3. Commit the seeded state and push `main`. Nothing to commit on
     // re-runs is fine (no-op success).
@@ -112,23 +132,27 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
         Err(e) if e.contains("nothing to commit") => {}
         Err(e) => return Err(e),
     }
-    match run("git", &["push".to_string(), "-u".to_string(), "origin".to_string(), "main".to_string()], &cwd, 120) {
+    match run_with_env("git", &["push".to_string(), "-u".to_string(), "origin".to_string(), "main".to_string()], &cwd, 120, &auth_env) {
         Ok(out) if out.exit_code == Some(0) => {}
         Ok(out) => {
-            let msg = format!(
-                "git-mode push {org}/{repo} failed: {}",
-                out.stderr.trim()
+            // #2860: git stderr can echo a legacy token-bearing remote URL.
+            let msg = redact_alm_secret(
+                &format!("git-mode push {org}/{repo} failed: {}", out.stderr.trim()),
+                &alm_token,
             );
             warn!("Vibe git-mode {}: {msg}", project.name);
             // A repo that was just created and force-pushed over may need
             // --force when the remote's auto-init README conflicts.
-            match run("git", &["push".to_string(), "--force".to_string(), "-u".to_string(), "origin".to_string(), "main".to_string()], &cwd, 120) {
+            match run_with_env("git", &["push".to_string(), "--force".to_string(), "-u".to_string(), "origin".to_string(), "main".to_string()], &cwd, 120, &auth_env) {
                 Ok(force) if force.exit_code == Some(0) => {}
-                Ok(force) => return Err(format!("git-mode push failed: {}", force.stderr.trim())),
-                Err(e) => return Err(e.to_string()),
+                Ok(force) => return Err(redact_alm_secret(
+                    &format!("git-mode push failed: {}", force.stderr.trim()),
+                    &alm_token,
+                )),
+                Err(e) => return Err(redact_alm_secret(&e.to_string(), &alm_token)),
             }
         }
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(redact_alm_secret(&e.to_string(), &alm_token)),
     }
     info!("Vibe git-mode {}: pushed main to {org}/{repo}", project.name);
     Ok(())
@@ -191,11 +215,11 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
     match run("git", &owned, parent, 180) {
         Ok(out) if out.exit_code == Some(0) => {}
         Ok(out) => {
-            return Err(format!(
+            return Err(redact_url_userinfo(&format!(
                 "git clone {} failed: {}",
                 clone_url,
                 out.stderr.trim()
-            ))
+            )))
         }
         Err(e) => return Err(format!("git clone: {e}")),
     }
@@ -219,13 +243,18 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
         Ok(out) => warn!(
             "Vibe github-mode {}: reset origin failed: {}",
             project.name,
-            out.stderr.trim()
+            redact_url_userinfo(out.stderr.trim())
         ),
-        Err(e) => warn!("Vibe github-mode {}: reset origin: {e}", project.name),
+        Err(e) => warn!(
+            "Vibe github-mode {}: reset origin: {}",
+            project.name,
+            redact_url_userinfo(&e.to_string())
+        ),
     }
     info!(
         "Vibe github-mode {}: cloned {} into workspace",
-        project.name, clone_url
+        project.name,
+        redact_url_userinfo(&clone_url)
     );
     if project.source_control == "import" {
         import_into_internal(project, &cwd).await?;
@@ -259,8 +288,9 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
     {
         return Err(format!("import create Forgejo repo {org}/{repo}: {e}"));
     }
-    let internal_url = format!("{}/{org}/{repo}.git", alm_base.trim_end_matches('/'));
-    let auth_url = add_token_to_url(&internal_url, &alm_token);
+    // #2861: token-free origin + ephemeral auth env on the pushes below.
+    let internal_url = plain_clone_url(&alm_base, &org, &repo);
+    let auth_env = git_auth_env(&alm_token);
     // The external remote is replaced on purpose: after the import the
     // internal repository is the source of truth.
     let _ = run(
@@ -275,10 +305,10 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
     );
     git(
         cwd,
-        &["remote", "add", "origin", &auth_url],
+        &["remote", "add", "origin", &internal_url],
         "remote add origin (import)",
     )?;
-    let push = run(
+    let push = run_with_env(
         "git",
         &[
             "push".to_string(),
@@ -288,15 +318,16 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
         ],
         cwd,
         600,
+        &auth_env,
     )
-    .map_err(|e| format!("import push --all: {e}"))?;
+    .map_err(|e| redact_alm_secret(&format!("import push --all: {e}"), &alm_token))?;
     if push.exit_code != Some(0) {
-        return Err(format!(
-            "import push --all {org}/{repo}: {}",
-            push.stderr.trim()
+        return Err(redact_alm_secret(
+            &format!("import push --all {org}/{repo}: {}", push.stderr.trim()),
+            &alm_token,
         ));
     }
-    if let Ok(tags) = run(
+    if let Ok(tags) = run_with_env(
         "git",
         &[
             "push".to_string(),
@@ -306,12 +337,13 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
         ],
         cwd,
         120,
+        &auth_env,
     ) {
         if tags.exit_code != Some(0) {
             warn!(
                 "Vibe import {}: push --tags failed: {}",
                 project.name,
-                tags.stderr.trim()
+                redact_alm_secret(tags.stderr.trim(), &alm_token)
             );
         }
     }
@@ -363,14 +395,9 @@ pub fn snapshot_deploy_branch(project: &Project) -> Result<Option<String>, Strin
     }
 }
 
-/// Rewrite a clone URL to embed the token (`token@host`) like the deployment
-/// router does, so `git push` authenticates over http(s) without prompting.
-fn add_token_to_url(url: &str, token: &str) -> String {
-    match url.split_once("://") {
-        Some((scheme, rest)) => format!("{scheme}://{token}@{rest}"),
-        None => url.to_string(),
-    }
-}
+#[cfg(test)]
+#[path = "git_mode_tests.rs"]
+mod tests;
 
 /// Run a git command in the workspace, returning stdout on success or a
 /// formatted error on failure.
@@ -380,8 +407,30 @@ fn git(cwd: &Path, args: &[&str], what: &str) -> Result<String, String> {
         Ok(out) if out.exit_code == Some(0) => Ok(out.stdout.trim().to_string()),
         Ok(out) => {
             let combined = format!("{} {}", out.stdout, out.stderr);
-            Err(format!("git {what} failed: {}", combined.trim()))
+            // #2860: git output can echo a token-bearing URL passed as an
+            // argument (remote add) or read from a legacy .git/config.
+            Err(redact_url_userinfo(&format!(
+                "git {what} failed: {}",
+                combined.trim()
+            )))
         }
-        Err(e) => Err(format!("git {what}: {e}")),
+        Err(e) => Err(redact_url_userinfo(&format!("git {what}: {e}"))),
+    }
+}
+
+#[cfg(test)]
+mod redaction_tests {
+    use super::origin_log_message;
+
+    #[test]
+    fn origin_log_never_contains_token_or_prefix() {
+        const TOKEN: &str = "gb2860SENTINELtoken9f3a7b1c";
+        let legacy_origin = format!("http://{TOKEN}@alm.internal/branch/repo.git");
+        let logged = origin_log_message(&legacy_origin);
+        assert_eq!(logged, "origin already set (http://***@alm.internal/branch/repo.git)");
+        assert!(!logged.contains(TOKEN));
+        for n in 8..=TOKEN.len() {
+            assert!(!logged.contains(&TOKEN[..n]), "prefix of len {n} leaked");
+        }
     }
 }

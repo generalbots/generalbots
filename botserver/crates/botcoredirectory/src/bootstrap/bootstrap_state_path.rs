@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity::rbac_middleware::is_admin_group_name;
 
 pub(super) fn bootstrap_state_path() -> std::path::PathBuf {
     let stack = get_stack_path();
@@ -56,11 +57,9 @@ pub async fn check_and_bootstrap_admin(client: &ZitadelClient) -> Result<Option<
                         .get("roles")
                         .and_then(|r| r.as_array())
                         .map(|roles| {
-                            roles.iter().any(|r| {
-                                r.as_str()
-                                    .map(|s| s.to_lowercase().contains("admin"))
-                                    .unwrap_or(false)
-                            })
+                            roles
+                                .iter()
+                                .any(|r| r.as_str().map(is_admin_group_name).unwrap_or(false))
                         })
                         .unwrap_or(false);
 
