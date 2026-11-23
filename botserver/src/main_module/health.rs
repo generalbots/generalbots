@@ -354,22 +354,9 @@ pub async fn health_check(
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    // #2103 — one build metadata source for every endpoint.
-    let build_date = botcore::product::build_info::build_date();
-    let commit = botcore::product::build_info::commit();
-
-    (
-        code,
-        Json(serde_json::json!({
-            "status": status,
-            "service": "botserver",
-            "version": botcore::product::build_info::version(),
-            "build_date": build_date,
-            "commit": commit,
-            "database": db_ok,
-            "admission": admission_snapshot()
-        })),
-    )
+    // #2757 — `/api/health` is public; return only liveness, never build
+    // metadata or admission telemetry.
+    (code, Json(liveness_payload(status, Some(db_ok))))
 }
 
 #[derive(serde::Deserialize)]
@@ -377,26 +364,31 @@ pub(crate) struct HealthQuery {
     deep: Option<u8>,
 }
 
-/// GET /health is a fast liveness stub; `?deep=1` opts into the same probes as
-/// /ready for callers that cannot use a separate path.
+/// Public liveness payload. Never include build metadata, commit hashes or
+/// admission/cgroup telemetry here (or on `/api/health`): both endpoints are
+/// anonymous, and that data fingerprints an unconfigured install (#2757).
+/// Deep dependency probes stay on the authenticated `/ready` route only.
+fn liveness_payload(status: &str, database: Option<bool>) -> serde_json::Value {
+    let mut body = serde_json::json!({
+        "status": status,
+        "service": "botserver",
+        "version": botcore::product::build_info::version(),
+    });
+    if let Some(ok) = database {
+        body["database"] = serde_json::json!(ok);
+    }
+    body
+}
+
+/// GET /health is a fast, anonymous liveness stub. `?deep=1` is ignored on
+/// this public route — use the authenticated `/ready` for dependency probes.
 pub async fn health_check_simple(
-    State(state): State<Arc<AppState>>,
     Query(query): Query<HealthQuery>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     if query.deep == Some(1) {
-        return readiness_response(&state).await;
+        log::debug!("deep probe requested on public /health; use authenticated /ready");
     }
-    let commit = botcore::product::build_info::commit();
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "status": "ok",
-            "service": "botserver",
-            "version": botcore::product::build_info::version(),
-            "commit": commit,
-            "admission": admission_snapshot()
-        })),
-    )
+    (StatusCode::OK, Json(liveness_payload("ok", None)))
 }
 
 #[derive(serde::Deserialize)]
@@ -439,4 +431,19 @@ pub async fn receive_client_errors(
             "count": payload.errors.len()
         })),
     )
+}
+
+#[cfg(test)]
+mod public_health_tests {
+    use super::liveness_payload;
+
+    #[test]
+    fn public_liveness_has_no_build_or_admission_telemetry() {
+        let body = liveness_payload("ok", Some(true));
+        for key in ["commit", "build_date", "admission", "failing", "dependencies"] {
+            assert!(body.get(key).is_none(), "public health leaked '{key}'");
+        }
+        assert_eq!(body["status"], "ok");
+        assert_eq!(body["database"], true);
+    }
 }

@@ -43,11 +43,27 @@ pub fn resolve_effective_bot_id(pool: &DbPool, bot_id: Uuid) -> Uuid {
         .unwrap_or(bot_id)
 }
 
+/// #2782 — cap members at conversation creation. Without this, one request
+/// holds a DB connection while issuing one INSERT per participant (tens of
+/// thousands of UUIDs fit in axum's JSON body limit).
+pub const MAX_PARTICIPANTS_PER_CONVERSATION: usize = 1000;
+
+/// Pure guard so the limit is unit-testable without a database.
+pub fn participants_within_limit(count: usize) -> bool {
+    count <= MAX_PARTICIPANTS_PER_CONVERSATION
+}
+
 pub async fn create_conversation(
     pool: &DbPool,
     bot_id: Uuid,
     req: &CreateConversationRequest,
 ) -> Result<ConversationResponse> {
+    if !participants_within_limit(req.participants.len()) {
+        return Err(anyhow::anyhow!(
+            "too many participants: {} (max {MAX_PARTICIPANTS_PER_CONVERSATION})",
+            req.participants.len()
+        ));
+    }
     let bot_id = resolve_effective_bot_id(pool, bot_id);
     let now = Utc::now();
     let conversation_id = Uuid::new_v4();
@@ -173,4 +189,18 @@ pub async fn get_conversation_members(pool: &DbPool, conversation_id: Uuid) -> R
             is_typing: false,
         })
         .collect())
+}
+
+#[cfg(test)]
+mod participant_limit_tests {
+    use super::{participants_within_limit, MAX_PARTICIPANTS_PER_CONVERSATION};
+
+    #[test]
+    fn oversized_participant_list_is_refused() {
+        assert!(participants_within_limit(MAX_PARTICIPANTS_PER_CONVERSATION));
+        assert!(!participants_within_limit(
+            MAX_PARTICIPANTS_PER_CONVERSATION + 1
+        ));
+        assert!(!participants_within_limit(58_000));
+    }
 }

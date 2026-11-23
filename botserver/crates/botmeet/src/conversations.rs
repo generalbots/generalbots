@@ -38,6 +38,13 @@ pub async fn create_conversation(
     if user.user_id != Uuid::nil() && !req.participants.contains(&user.user_id) {
         req.participants.push(user.user_id);
     }
+    // #2782 — refuse oversized participant lists with 400 before any insert.
+    if !conversation_store::participants_within_limit(req.participants.len()) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "too many participants" })),
+        ));
+    }
     match conversation_store::create_conversation(&pool, bot_id, &req).await {
         Ok(c) => Ok(Json(c)),
         Err(e) => Err(db_err(e)),
