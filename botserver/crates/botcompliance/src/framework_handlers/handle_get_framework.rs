@@ -150,15 +150,16 @@ pub async fn handle_create_control(
 /// `PUT /api/compliance/controls/:control_id`
 pub async fn handle_update_control(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(control_id): Path<Uuid>,
     Json(req): Json<UpdateControlRequest>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        let mut control: DbComplianceControl = compliance_controls::table
-            .find(control_id)
+        let mut control: DbComplianceControl = super::scope::scoped_control(control_id, branch_id)
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Control not found".to_string()))?;
 
@@ -179,10 +180,13 @@ pub async fn handle_update_control(
         }
         control.updated_at = now;
 
-        diesel::update(compliance_controls::table.find(control_id))
+        let updated = diesel::update(super::scope::scoped_control(control_id, branch_id))
             .set(&control)
             .execute(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        if updated == 0 {
+            return Err(ComplianceError::NotFound("Control not found".to_string()));
+        }
 
         audit(
             &mut conn,
@@ -258,15 +262,16 @@ pub async fn handle_attach_evidence(
 /// `POST /api/compliance/evidence/:evidence_id/approve`
 pub async fn handle_approve_evidence(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(evidence_id): Path<Uuid>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        let mut ev: DbComplianceControlEvidence = compliance_control_evidence::table
-            .find(evidence_id)
+        let mut ev: DbComplianceControlEvidence = super::scope::scoped_evidence(evidence_id, branch_id)
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Evidence not found".to_string()))?;
 
@@ -280,10 +285,13 @@ pub async fn handle_approve_evidence(
         ev.approved_at = Some(now);
         ev.updated_at = now;
 
-        diesel::update(compliance_control_evidence::table.find(evidence_id))
+        let updated = diesel::update(super::scope::scoped_evidence(evidence_id, branch_id))
             .set(&ev)
             .execute(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        if updated == 0 {
+            return Err(ComplianceError::NotFound("Evidence not found".to_string()));
+        }
 
         audit(
             &mut conn,

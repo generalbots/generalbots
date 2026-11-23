@@ -295,8 +295,8 @@ pub struct UpdateIssueRequest {
 #[derive(Debug, Deserialize)]
 pub struct CreateAuditLogRequest {
     pub event_type: AuditEventType,
-    pub user_id: Option<Uuid>,
-    pub actor_id: Option<Uuid>,
+    // #2749: the actor is bound from the AuthenticatedUser by the handler;
+    // client-supplied `user_id`/`actor_id` fields would allow event forgery.
     pub resource_type: String,
     pub target_type: String,
     pub resource_id: String,

@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use botcore::shared::state::AppState;
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt, VerifiedJwt};
 use diesel::prelude::*;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -17,95 +18,32 @@ use uuid::Uuid;
 const DEFAULT_SEARCH_LIMIT: i64 = 25;
 const MAX_SEARCH_LIMIT: i64 = 100;
 
-fn bearer_token(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")
-        .map(|t| t.trim().to_string())
-        .filter(|t| !t.is_empty())
-}
-
-/// Local base64url decoder (standard and URL alphabets, padded or not).
-fn b64url_decode(input: &str) -> Option<Vec<u8>> {
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    let mut out = Vec::new();
-    for ch in input.bytes() {
-        let value = match ch {
-            b'A'..=b'Z' => (ch - b'A') as u32,
-            b'a'..=b'z' => (ch - b'a' + 26) as u32,
-            b'0'..=b'9' => (ch - b'0' + 52) as u32,
-            b'+' | b'-' => 62,
-            b'/' | b'_' => 63,
-            b'=' => break,
-            _ => return None,
-        };
-        acc = (acc << 6) | value;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push(((acc >> bits) & 0xFF) as u8);
-        }
+/// Authenticated admin principal, or an HTTP error (#2748).
+///
+/// No claim is read until [`verify_saas_jwt`] has checked the HS256 signature
+/// (constant-time HMAC), `exp`/`nbf` and the subject. A token whose payload was
+/// written by the caller — `alg:none`, tampered, foreign-key or expired — never
+/// reaches `roles`, `sub` or `org_id`, so it cannot grant admin or name another
+/// user's tenant. Roles are taken from the signed claims only; when the token
+/// carries no role the caller is a plain user, never an admin.
+fn verified_admin(headers: &HeaderMap) -> Result<VerifiedJwt, (StatusCode, String)> {
+    let token = bearer_token(headers)
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Bearer token required".to_string()))?;
+    let claims = verify_saas_jwt(token).map_err(|reason| {
+        tracing::warn!(target: "botconnectors", reason = %reason, "connector admin token rejected");
+        (StatusCode::UNAUTHORIZED, "Valid JWT required".to_string())
+    })?;
+    if !claims.roles.iter().any(|role| role.eq_ignore_ascii_case("admin")) {
+        return Err((StatusCode::FORBIDDEN, "Administrator access required".to_string()));
     }
-    Some(out)
+    Ok(claims)
 }
 
-fn jwt_claims(headers: &HeaderMap) -> Option<Value> {
-    let token = bearer_token(headers)?;
-    let payload = token.split('.').nth(1)?;
-    let decoded = b64url_decode(payload)?;
-    serde_json::from_slice(&decoded).ok()
-}
-
-fn claims_role_is_admin(claims: &Value) -> bool {
-    if claims
-        .get("role")
-        .and_then(Value::as_str)
-        .map(|r| r.eq_ignore_ascii_case("admin"))
-        .unwrap_or(false)
-    {
-        return true;
-    }
-    claims
-        .get("roles")
-        .and_then(Value::as_array)
-        .map(|roles| {
-            roles.iter().any(|r| {
-                r.as_str().map(|s| s.eq_ignore_ascii_case("admin")).unwrap_or(false)
-            })
-        })
-        .unwrap_or(false)
-}
-
-fn jwt_is_admin(headers: &HeaderMap) -> bool {
-    jwt_claims(headers).map(|c| claims_role_is_admin(&c)).unwrap_or(false)
-}
-
-fn require_admin(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
-    if jwt_is_admin(headers) {
-        Ok(())
-    } else {
-        Err((StatusCode::FORBIDDEN, "Administrator access required".to_string()))
-    }
-}
-
-fn jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
-    let claims = jwt_claims(headers)?;
-    for key in ["user_id", "sub"] {
-        if let Some(raw) = claims.get(key).and_then(Value::as_str) {
-            if let Ok(id) = Uuid::parse_str(raw) {
-                return Some(id);
-            }
-        }
-    }
-    None
-}
-
-fn jwt_org_id(headers: &HeaderMap) -> Option<Uuid> {
-    let claims = jwt_claims(headers)?;
-    claims.get("org_id").and_then(Value::as_str).and_then(|raw| Uuid::parse_str(raw).ok())
+/// Caller identity from the verified principal. Suite subjects are the stable
+/// UUID derived at login, matching the `user_id` used by the ACL table.
+fn verified_user_id(claims: &VerifiedJwt) -> Result<Uuid, (StatusCode, String)> {
+    Uuid::parse_str(&claims.sub)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token subject".to_string()))
 }
 
 fn sha256_hex(input: &str) -> String {
@@ -128,7 +66,7 @@ async fn list_connections(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_admin(&headers)?;
+    verified_admin(&headers)?;
     let mut conn = db_conn(&state)?;
     use schema::connector_connections::dsl::*;
 
@@ -158,14 +96,15 @@ async fn create_connection(
     headers: HeaderMap,
     Json(body): Json<ConnectBody>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_admin(&headers)?;
+    let admin = verified_admin(&headers)?;
     if registry::connector_for_kind(body.kind.trim()).is_none() {
         return Err((
             StatusCode::BAD_REQUEST,
             format!("Unsupported connector kind; available: {:?}", registry::registered_kinds()),
         ));
     }
-    let org = jwt_org_id(&headers).ok_or_else(|| {
+    // Tenant scope comes from the verified token, never from the request body.
+    let org = admin.org_id.ok_or_else(|| {
         (StatusCode::BAD_REQUEST, "Organization claim required".to_string())
     })?;
     if body.credentials.as_object().is_none() {
@@ -205,7 +144,7 @@ async fn sync_connection_route(
     headers: HeaderMap,
     Path(connection_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_admin(&headers)?;
+    verified_admin(&headers)?;
     let outcome = sync::sync_connection(&state, connection_id).await?;
     Ok(Json(serde_json::to_value(outcome)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Outcome encode failed".to_string()))?))
@@ -216,7 +155,7 @@ async fn delete_connection(
     headers: HeaderMap,
     Path(connection_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_admin(&headers)?;
+    verified_admin(&headers)?;
     let mut conn = db_conn(&state)?;
 
     let purged = diesel::sql_query("DELETE FROM indexed_items WHERE connection_id = $1")
@@ -265,9 +204,8 @@ async fn search_connectors(
     headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_admin(&headers)?;
-    let user_id = jwt_user_id(&headers)
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Valid JWT required".to_string()))?;
+    let admin = verified_admin(&headers)?;
+    let user_id = verified_user_id(&admin)?;
 
     let q = params.get("q").map(|s| s.trim().to_string()).unwrap_or_default();
     if q.is_empty() {
@@ -313,82 +251,118 @@ pub fn configure() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use hmac::{Hmac, Mac};
 
-    fn header_with_payload(payload: &str) -> HeaderMap {
-        fn b64url_encode(bytes: &[u8]) -> String {
-            const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-            let mut out = String::new();
-            let mut acc: u32 = 0;
-            let mut bits: u32 = 0;
-            for byte in bytes {
-                acc = (acc << 8) | *byte as u32;
-                bits += 8;
-                while bits >= 6 {
-                    bits -= 6;
-                    out.push(ALPHABET[((acc >> bits) & 0x3F) as usize] as char);
-                }
-            }
-            if bits > 0 {
-                out.push(ALPHABET[((acc << (6 - bits)) & 0x3F) as usize] as char);
-            }
-            out
-        }
-        let token =
-            format!("eyJhbGciOiJIUzI1NiJ9.{}.c2ln", b64url_encode(payload.as_bytes()));
+    const HS256_HEADER: &str = r#"{"alg":"HS256","typ":"JWT"}"#;
+    const NONE_HEADER: &str = r#"{"alg":"none","typ":"JWT"}"#;
+    const FOREIGN_SECRET: &str = "a-key-the-server-never-issued-0000000000000000";
+
+    fn b64(bytes: &[u8]) -> String {
+        URL_SAFE_NO_PAD.encode(bytes)
+    }
+
+    fn sign(signing_input: &str, secret: &str) -> String {
+        let mut mac = match Hmac::<Sha256>::new_from_slice(secret.as_bytes()) {
+            Ok(mac) => mac,
+            Err(_) => return String::new(),
+        };
+        mac.update(signing_input.as_bytes());
+        b64(&mac.finalize().into_bytes())
+    }
+
+    fn token(header: &str, payload: &str, secret: &str) -> String {
+        let signing_input = format!("{}.{}", b64(header.as_bytes()), b64(payload.as_bytes()));
+        format!("{signing_input}.{}", sign(&signing_input, secret))
+    }
+
+    fn server_secret() -> String {
+        botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+            .expect("saas jwt secret resolves in tests")
+    }
+
+    fn header_with_token(token: &str) -> HeaderMap {
         let mut headers = HeaderMap::new();
+        let value = format!("Bearer {token}");
         headers.insert(
             "authorization",
-            axum::http::HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
+            axum::http::HeaderValue::from_str(&value).expect("token is a valid header value"),
         );
         headers
     }
 
-    #[test]
-    fn decodes_padded_and_unpadded_b64url() {
-        assert_eq!(b64url_decode("aGVsbG8=").unwrap(), b"hello");
-        assert_eq!(b64url_decode("aGVsbG8").unwrap(), b"hello");
-        assert_eq!(b64url_decode("").unwrap(), b"");
-        assert!(b64url_decode("*").is_none());
+    fn claims_payload(role: &str) -> String {
+        format!(
+            r#"{{"sub":"00000000-0000-0000-0000-000000000001","org_id":"00000000-0000-0000-0000-000000000002","roles":["{role}"],"exp":{}}}"#,
+            chrono::Utc::now().timestamp() + 3600
+        )
     }
 
     #[test]
-    fn admin_gate_accepts_role_and_rejects_other() {
-        let admin = header_with_payload(r#"{"role":"admin","user_id":"00000000-0000-0000-0000-000000000001"}"#);
-        assert!(jwt_is_admin(&admin));
-        assert_eq!(require_admin(&admin), Ok(()));
-        let user = header_with_payload(r#"{"role":"user"}"#);
-        assert!(!jwt_is_admin(&user));
-        assert!(require_admin(&user).is_err());
-        assert!(!jwt_is_admin(&HeaderMap::new()));
-    }
-
-    fn jwt_groups(headers: &HeaderMap) -> Vec<String> {
-        jwt_claims(headers)
-            .and_then(|claims| {
-                claims
-                    .get("groups")
-                    .and_then(|groups| groups.as_array())
-                    .map(|groups| {
-                        groups
-                            .iter()
-                            .filter_map(|g| g.as_str().map(str::to_string))
-                            .collect()
-                    })
-            })
-            .unwrap_or_default()
-    }
-
-    #[test]
-    fn extracts_groups_and_org_from_claims() {
-        let headers = header_with_payload(
-            r#"{"role":"admin","org_id":"00000000-0000-0000-0000-000000000002","groups":["sales","legal"]}"#,
+    fn signed_admin_token_grants_admin_and_exposes_verified_claims() {
+        let token = token(HS256_HEADER, &claims_payload("admin"), &server_secret());
+        let headers = header_with_token(&token);
+        let claims = verified_admin(&headers).expect("genuine admin token is accepted");
+        assert!(claims.roles.iter().any(|role| role.eq_ignore_ascii_case("admin")));
+        assert_eq!(
+            claims.org_id,
+            Some(Uuid::parse_str("00000000-0000-0000-0000-000000000002").expect("valid uuid"))
         );
         assert_eq!(
-            jwt_org_id(&headers),
-            Some(Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap())
+            verified_user_id(&claims).expect("uuid subject"),
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid uuid")
         );
-        assert_eq!(jwt_groups(&headers), vec!["sales".to_string(), "legal".to_string()]);
-        assert_eq!(jwt_user_id(&HeaderMap::new()), None);
+    }
+
+    #[test]
+    fn unsigned_admin_payload_is_rejected() {
+        // The pre-fix decoder accepted exactly this shape: any payload, with a
+        // placeholder signature and no real signature at all.
+        let token = format!(
+            "{}.{}.c2ln",
+            b64(NONE_HEADER.as_bytes()),
+            b64(claims_payload("admin").as_bytes())
+        );
+        let headers = header_with_token(&token);
+        let error = verified_admin(&headers).expect_err("alg:none admin token is refused");
+        assert_eq!(error.0, StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn foreign_signed_admin_payload_is_rejected() {
+        let token = token(HS256_HEADER, &claims_payload("admin"), FOREIGN_SECRET);
+        let headers = header_with_token(&token);
+        let error = verified_admin(&headers).expect_err("foreign-key admin token is refused");
+        assert_eq!(error.0, StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn tampered_admin_payload_is_rejected() {
+        let payload = claims_payload("admin");
+        let signing_input =
+            format!("{}.{}", b64(HS256_HEADER.as_bytes()), b64(payload.as_bytes()));
+        let signature = sign(&signing_input, &server_secret());
+        // Caller rewrites the signed payload but keeps the old signature.
+        let tampered = payload.replace(r#""roles":["admin"]"#, r#""roles":["user"]"#);
+        assert_ne!(tampered, payload);
+        let token = format!("{}.{}.{signature}", b64(HS256_HEADER.as_bytes()), b64(tampered.as_bytes()));
+        let headers = header_with_token(&token);
+        let error = verified_admin(&headers).expect_err("tampered payload is refused");
+        assert_eq!(error.0, StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn signed_non_admin_token_cannot_gain_admin() {
+        let token = token(HS256_HEADER, &claims_payload("user"), &server_secret());
+        let headers = header_with_token(&token);
+        let error = verified_admin(&headers).expect_err("verified non-admin is refused");
+        assert_eq!(error.0, StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn missing_token_is_rejected() {
+        let error = verified_admin(&HeaderMap::new()).expect_err("missing token is refused");
+        assert_eq!(error.0, StatusCode::UNAUTHORIZED);
     }
 
     #[test]

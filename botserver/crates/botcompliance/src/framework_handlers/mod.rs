@@ -68,6 +68,7 @@ pub struct ListFrameworksQuery {
 mod audit;
 mod handle_get_framework;
 mod handle_delete_evidence;
+mod scope;
 
 pub use audit::*;
 pub use handle_get_framework::*;

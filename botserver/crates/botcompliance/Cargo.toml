@@ -11,6 +11,7 @@ botlog = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botschema = { workspace = true, features = ["compliance"] }
 botsecurity-core = { workspace = true }
+botsecurity-auth = { workspace = true }
 anyhow = { workspace = true }
 bigdecimal = { workspace = true }
 axum = { workspace = true }

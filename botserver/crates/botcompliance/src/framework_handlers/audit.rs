@@ -172,15 +172,18 @@ pub async fn handle_create_framework(
 /// `PUT /api/compliance/frameworks/:framework_id`
 pub async fn handle_update_framework(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(framework_id): Path<Uuid>,
     Json(req): Json<UpdateFrameworkRequest>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        let mut fw: DbComplianceFramework = compliance_frameworks::table
-            .find(framework_id)
+        // Load and rewrite only a framework owned by the caller's branch.
+        // The tenant comes from the verified claims, never from the request.
+        let mut fw: DbComplianceFramework = super::scope::scoped_framework(framework_id, branch_id)
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Framework not found".to_string()))?;
 
@@ -201,10 +204,13 @@ pub async fn handle_update_framework(
         }
         fw.updated_at = now;
 
-        diesel::update(compliance_frameworks::table.find(framework_id))
+        let updated = diesel::update(super::scope::scoped_framework(framework_id, branch_id))
             .set(&fw)
             .execute(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        if updated == 0 {
+            return Err(ComplianceError::NotFound("Framework not found".to_string()));
+        }
 
         audit(
             &mut conn,
@@ -234,13 +240,18 @@ pub async fn handle_archive_framework(
         let now = Utc::now();
         let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        diesel::update(compliance_frameworks::table.find(framework_id))
+        // The resolved branch must be part of the UPDATE target itself —
+        // computing it only for the audit row leaves a cross-tenant hole.
+        let updated = diesel::update(super::scope::scoped_framework(framework_id, branch_id))
             .set((
                 compliance_frameworks::status.eq("archived"),
                 compliance_frameworks::updated_at.eq(now),
             ))
             .execute(&mut conn)
-            .map_err(|_| ComplianceError::NotFound("Framework not found".to_string()))?;
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        if updated == 0 {
+            return Err(ComplianceError::NotFound("Framework not found".to_string()));
+        }
 
         audit(
             &mut conn,

@@ -1,5 +1,26 @@
 use super::*;
 
+/// Whether the caller is trusted to append to the compliance audit trail.
+///
+/// Audit events are compliance evidence, so only platform administrators and
+/// internal (service/bot) principals may create them. The public compliance
+/// route table intentionally allows every logged-in user through the RBAC
+/// layer (see `routes_admin.rs`), which is why this check lives here. An
+/// anonymous or ordinary `Role::User` principal always fails closed.
+fn may_create_audit_log(user: &AuthenticatedUser) -> bool {
+    user.is_admin() || user.is_super_admin() || user.is_service() || user.is_bot()
+}
+
+/// Actor stored on a newly created audit event.
+///
+/// Always derived from the authenticated principal — never from the
+/// client-supplied `user_id`/`actor_id` body fields. Those fields were removed
+/// from `CreateAuditLogRequest` (#2749) because a forged actor is the whole
+/// point of the attack this guards against.
+fn audit_actor_id(user: &AuthenticatedUser) -> Uuid {
+    user.user_id
+}
+
 pub async fn handle_list_audit_logs(
     State(pool): State<Arc<crate::DbPool>>,
     headers: HeaderMap,
@@ -56,8 +77,22 @@ pub async fn handle_list_audit_logs(
 pub async fn handle_create_audit_log(
     State(pool): State<Arc<crate::DbPool>>,
     headers: HeaderMap,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateAuditLogRequest>,
 ) -> Result<Json<AuditLogEntry>, ComplianceError> {
+    // #2749: a logged-in user must not be able to forge compliance evidence.
+    // The RBAC route table leaves POST /api/compliance/** open to every
+    // authenticated user, so authorization for this mutating endpoint is
+    // enforced here against the authenticated principal.
+    if !may_create_audit_log(&user) {
+        return Err(ComplianceError::Forbidden(
+            "Only administrators and internal services may create audit events".to_string(),
+        ));
+    }
+
+    // Bind the actor from the authenticated principal and the timestamp from
+    // the server clock. Neither is taken from the request body.
+    let actor_id = audit_actor_id(&user);
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool
             .get()
@@ -73,7 +108,7 @@ pub async fn handle_create_audit_log(
             bot_id: Uuid::nil(),
             branch_id,
             event_type: req.event_type.to_string(),
-            user_id: req.actor_id.or(req.user_id),
+            user_id: Some(actor_id),
             resource_type: req.target_type,
             resource_id: req.resource_id,
             action: req.action,
@@ -246,4 +281,46 @@ pub async fn handle_run_check_by_id(
     .map_err(|e| ComplianceError::Internal(e.to_string()))??;
 
     Ok(Json(result))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use botsecurity_auth::Role;
+
+    #[test]
+    fn administrators_and_internal_principals_may_append_audit_events() {
+        let admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
+        let super_admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "root".to_string()).with_role(Role::SuperAdmin);
+        let service = AuthenticatedUser::service("internal");
+        let bot = AuthenticatedUser::bot_user(Uuid::new_v4(), "worker");
+
+        assert!(may_create_audit_log(&admin));
+        assert!(may_create_audit_log(&super_admin));
+        assert!(may_create_audit_log(&service));
+        assert!(may_create_audit_log(&bot));
+    }
+
+    #[test]
+    fn ordinary_and_anonymous_users_cannot_append_audit_events() {
+        let regular = AuthenticatedUser::new(Uuid::new_v4(), "alice".to_string());
+        let moderator =
+            AuthenticatedUser::new(Uuid::new_v4(), "mod".to_string()).with_role(Role::Moderator);
+        let anonymous = AuthenticatedUser::anonymous();
+
+        assert!(!may_create_audit_log(&regular));
+        assert!(!may_create_audit_log(&moderator));
+        assert!(!may_create_audit_log(&anonymous));
+    }
+
+    #[test]
+    fn actor_is_always_the_authenticated_principal_id() {
+        let user_id = Uuid::new_v4();
+        let user = AuthenticatedUser::new(user_id, "admin".to_string()).with_role(Role::Admin);
+
+        assert_eq!(audit_actor_id(&user), user_id);
+        assert_eq!(audit_actor_id(&AuthenticatedUser::anonymous()), Uuid::nil());
+    }
 }

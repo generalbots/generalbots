@@ -10,9 +10,15 @@ pub async fn handle_delete_evidence(
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        diesel::delete(compliance_control_evidence::table.find(evidence_id))
+        // Address the row by id AND the caller's branch. A UUID owned by
+        // another tenant matches no row, so the delete affects zero rows and
+        // is reported as not found instead of removing foreign evidence.
+        let deleted = diesel::delete(super::scope::scoped_evidence(evidence_id, branch_id))
             .execute(&mut conn)
-            .map_err(|_| ComplianceError::NotFound("Evidence not found".to_string()))?;
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        if deleted == 0 {
+            return Err(ComplianceError::NotFound("Evidence not found".to_string()));
+        }
 
         audit(
             &mut conn,

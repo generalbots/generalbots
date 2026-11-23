@@ -1,4 +1,4 @@
-pub(crate) use axum::{ extract::{Path, Query, State}, http::HeaderMap, Json, };
+pub(crate) use axum::{ extract::{Extension, Path, Query, State}, http::HeaderMap, Json, };
 pub(crate) use chrono::Utc;
 pub(crate) use diesel::prelude::*;
 pub(crate) use std::sync::Arc;
@@ -7,6 +7,7 @@ pub(crate) use crate::schema::{ compliance_audit_log, compliance_checks, complia
 pub(crate) use crate::storage::{ db_audit_to_entry, db_check_to_result, db_issue_to_result, db_risk_assessment_to_json, DbAuditLog, DbComplianceCheck, DbComplianceIssue, DbRiskAssessment, DbTrainingRecord, };
 pub(crate) use crate::types::{ AuditLogEntry, ComplianceCheckResult, ComplianceFramework, ComplianceIssueResult, ComplianceReport, CreateAuditLogRequest, CreateIssueRequest, CreateTrainingRequest, ListAuditLogsQuery, ListChecksQuery, ListIssuesQuery, RunCheckRequest, TrainingRecord, TrainingType, UpdateIssueRequest, };
 pub(crate) use crate::ComplianceError;
+pub(crate) use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 
 mod handle_list_checks;
