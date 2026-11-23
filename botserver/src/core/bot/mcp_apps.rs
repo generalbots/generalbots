@@ -13,12 +13,19 @@
 //! (a GET returns a small discovery document). Consent/pinning stays where it
 //! already is: resources are immutable by hash, and the chat consent ledger
 //! governs mounting them.
+//!
+//! #2661 — resource retrieval is an authenticated, org-scoped operation. The
+//! resource tenant is `state.bucket_name`: the very bucket `publish_resource`
+//! writes to and the only bucket a read may resolve against. A caller-supplied
+//! `?bucket=` is never used to locate a resource — it is rejected when it
+//! disagrees with the server's tenant (403). Reads additionally require the
+//! short-lived sandbox signature (`?t=`) that `/sandbox/ui/{hash}` requires.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::post,
@@ -26,6 +33,9 @@ use axum::{
 };
 use botcore::shared::state::AppState;
 use serde_json::{json, Value};
+
+use crate::core::bot::sandbox::verify_resource;
+use crate::security::auth::AuthenticatedUser;
 
 const URI_PREFIX: &str = "ui://generated/";
 
@@ -54,8 +64,102 @@ pub fn hash_from_uri(uri: &str) -> Option<&str> {
     }
 }
 
+/// #2661 — why an MCP resource request was refused. Every variant maps to a
+/// fail-closed HTTP status: unknown/missing credentials are 401, an explicit
+/// cross-tenant bucket override is 403.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResourceAccessError {
+    Unauthenticated,
+    TenantMismatch,
+    MissingToken,
+    InvalidToken,
+}
+
+impl ResourceAccessError {
+    fn status_code(self) -> StatusCode {
+        match self {
+            Self::TenantMismatch => StatusCode::FORBIDDEN,
+            Self::Unauthenticated | Self::MissingToken | Self::InvalidToken => {
+                StatusCode::UNAUTHORIZED
+            }
+        }
+    }
+
+    fn message(self) -> &'static str {
+        match self {
+            Self::Unauthenticated => "authentication required",
+            Self::TenantMismatch => "bucket does not belong to the caller's organization",
+            Self::MissingToken => "missing resource token",
+            Self::InvalidToken => "invalid or expired resource token",
+        }
+    }
+}
+
+/// #2661 — pure tenant gate shared by `resources/list` and `resources/read`.
+/// The resource's tenant is the bucket this server is configured for. A caller
+/// may cross it only with an authenticated principal; a `?bucket=` override is
+/// tolerated only when it names that exact tenant, otherwise the request is
+/// refused (403) instead of silently reading a different tenant's bucket.
+fn authorize_tenant(
+    authenticated: bool,
+    requested_bucket: Option<&str>,
+    resource_bucket: &str,
+) -> Result<(), ResourceAccessError> {
+    if !authenticated {
+        return Err(ResourceAccessError::Unauthenticated);
+    }
+    if requested_bucket.is_some_and(|requested| requested != resource_bucket) {
+        return Err(ResourceAccessError::TenantMismatch);
+    }
+    Ok(())
+}
+
+/// #2661 — pure read authorization predicate. On top of the tenant gate, a
+/// read must carry a valid `sandbox::verify_resource` signature for the exact
+/// hash being read. The signature is conversation-scoped, so a token minted
+/// for one resource cannot be replayed to read another.
+fn authorize_resource_read(
+    authenticated: bool,
+    requested_bucket: Option<&str>,
+    resource_bucket: &str,
+    hash: &str,
+    token: Option<&str>,
+) -> Result<(), ResourceAccessError> {
+    authorize_tenant(authenticated, requested_bucket, resource_bucket)?;
+    let token = token.ok_or(ResourceAccessError::MissingToken)?;
+    if verify_resource(hash, token).is_err() {
+        return Err(ResourceAccessError::InvalidToken);
+    }
+    Ok(())
+}
+
+fn access_error_response(id: &Value, error: ResourceAccessError) -> Response {
+    (
+        error.status_code(),
+        Json(json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": { "code": -32001, "message": error.message() },
+        })),
+    )
+        .into_response()
+}
+
+fn invalid_params_response(id: &Value) -> Response {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": { "code": -32602, "message": "params.uri must be a ui://generated resource" },
+        })),
+    )
+        .into_response()
+}
+
 async fn rpc(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     Query(params): Query<HashMap<String, String>>,
     Json(request): Json<Value>,
 ) -> Response {
@@ -65,10 +169,16 @@ async fn rpc(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let bucket = params
-        .get("bucket")
-        .cloned()
-        .unwrap_or_else(|| state.bucket_name.clone());
+    // #2661 — fail closed: a missing/incomplete principal is never treated as
+    // authenticated. The auth middleware installs `AuthenticatedUser` for the
+    // authenticated `/api/mcp/**` catalogue; `Option` guards a misconfiguration.
+    let authenticated = user
+        .as_ref()
+        .is_some_and(|Extension(principal)| principal.is_authenticated());
+    // #2661 — the query values are untrusted selectors only. They are passed
+    // to the predicates above for rejection; they never choose a bucket.
+    let requested_bucket = params.get("bucket").map(String::as_str);
+    let token = params.get("t").map(String::as_str);
 
     let result = match method.as_str() {
         "initialize" => Ok(json!({
@@ -81,8 +191,33 @@ async fn rpc(
         })),
         "notifications/initialized" | "ping" => Ok(json!({})),
         "tools/list" => Ok(json!({ "tools": [] })),
-        "resources/list" => list_resources(&state, &bucket).await,
-        "resources/read" => read_resource(&state, &bucket, &request).await,
+        "resources/list" => {
+            if let Err(error) =
+                authorize_tenant(authenticated, requested_bucket, &state.bucket_name)
+            {
+                return access_error_response(&id, error);
+            }
+            list_resources(&state).await
+        }
+        "resources/read" => {
+            let Some(hash) = request
+                .pointer("/params/uri")
+                .and_then(Value::as_str)
+                .and_then(hash_from_uri)
+            else {
+                return invalid_params_response(&id);
+            };
+            if let Err(error) = authorize_resource_read(
+                authenticated,
+                requested_bucket,
+                &state.bucket_name,
+                hash,
+                token,
+            ) {
+                return access_error_response(&id, error);
+            }
+            read_resource(&state, &request).await
+        }
         other => Err(format!("unsupported method {other}")),
     };
 
@@ -102,7 +237,9 @@ async fn rpc(
 
 /// Lists every published generated app. Metadata sidecars written by
 /// `publish_resource` carry the title, thread and creation time.
-async fn list_resources(state: &AppState, bucket: &str) -> Result<Value, String> {
+/// #2661 — the bucket is always the server's configured tenant bucket.
+async fn list_resources(state: &AppState) -> Result<Value, String> {
+    let bucket = state.bucket_name.as_str();
     let drive = state
         .drive
         .as_ref()
@@ -153,13 +290,15 @@ async fn list_resources(state: &AppState, bucket: &str) -> Result<Value, String>
     Ok(json!({ "resources": resources }))
 }
 
-async fn read_resource(state: &AppState, bucket: &str, request: &Value) -> Result<Value, String> {
+/// #2661 — the bucket is resolved from server configuration, never from the
+/// request, so a caller cannot reach another tenant's object store.
+async fn read_resource(state: &AppState, request: &Value) -> Result<Value, String> {
     let uri = request
         .pointer("/params/uri")
         .and_then(Value::as_str)
         .ok_or_else(|| "params.uri is required".to_string())?;
     let hash = hash_from_uri(uri).ok_or_else(|| format!("unsupported resource uri {uri}"))?;
-    let resource = crate::core::bot::sandbox::read_resource(state, bucket, hash)
+    let resource = crate::core::bot::sandbox::read_resource(state, &state.bucket_name, hash)
         .await
         .ok_or_else(|| format!("resource {uri} not found"))?;
     Ok(json!({
@@ -173,7 +312,15 @@ async fn read_resource(state: &AppState, bucket: &str, request: &Value) -> Resul
 
 #[cfg(test)]
 mod tests {
-    use super::{hash_from_uri, URI_PREFIX};
+    use axum::http::StatusCode;
+
+    use super::{
+        authorize_resource_read, authorize_tenant, hash_from_uri, ResourceAccessError, URI_PREFIX,
+    };
+    use crate::core::bot::sandbox::sign::sign_resource;
+
+    const HASH: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const BUCKET: &str = "acme_default";
 
     #[test]
     fn accepts_only_generated_app_uris() {
@@ -187,6 +334,88 @@ mod tests {
         assert_eq!(
             hash_from_uri(&format!("{URI_PREFIX}{}", "z".repeat(64))),
             None
+        );
+    }
+
+    /// #2661 — an unsigned read (no `?t=`) is refused with 401, even for an
+    /// otherwise authenticated caller on the correct tenant.
+    #[test]
+    fn unsigned_read_is_unauthorized() {
+        let error = authorize_resource_read(true, None, BUCKET, HASH, None).unwrap_err();
+        assert_eq!(error, ResourceAccessError::MissingToken);
+        assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    /// #2661 — a caller that tries to redirect the read to another tenant's
+    /// bucket is refused with 403, even with a valid signature.
+    #[test]
+    fn cross_tenant_bucket_is_forbidden() {
+        let token = sign_resource("thread-1", HASH, 60);
+        let error =
+            authorize_resource_read(true, Some("other-org_default"), BUCKET, HASH, Some(&token))
+                .unwrap_err();
+        assert_eq!(error, ResourceAccessError::TenantMismatch);
+        assert_eq!(error.status_code(), StatusCode::FORBIDDEN);
+    }
+
+    /// #2661 — a signed, same-tenant read succeeds, whether or not the caller
+    /// repeats its own bucket in the query string.
+    #[test]
+    fn signed_same_tenant_read_is_allowed() {
+        let token = sign_resource("thread-1", HASH, 60);
+        assert_eq!(
+            authorize_resource_read(true, None, BUCKET, HASH, Some(&token)),
+            Ok(())
+        );
+        assert_eq!(
+            authorize_resource_read(true, Some(BUCKET), BUCKET, HASH, Some(&token)),
+            Ok(())
+        );
+    }
+
+    /// #2661 — fail closed: anonymous callers, malformed tokens and tokens
+    /// minted for a different resource are all refused.
+    #[test]
+    fn authorization_fails_closed() {
+        let token = sign_resource("thread-1", HASH, 60);
+        assert_eq!(
+            authorize_resource_read(false, None, BUCKET, HASH, Some(&token)).unwrap_err(),
+            ResourceAccessError::Unauthenticated
+        );
+        assert_eq!(
+            authorize_resource_read(true, None, BUCKET, HASH, Some("garbage")).unwrap_err(),
+            ResourceAccessError::InvalidToken
+        );
+        let other = sign_resource("thread-1", &"b".repeat(64), 60);
+        assert_eq!(
+            authorize_resource_read(true, None, BUCKET, HASH, Some(&other)).unwrap_err(),
+            ResourceAccessError::InvalidToken
+        );
+        // `resources/list` has no token but still enforces the tenant gate.
+        assert_eq!(
+            authorize_tenant(true, Some("other-org_default"), BUCKET).unwrap_err(),
+            ResourceAccessError::TenantMismatch
+        );
+        assert_eq!(authorize_tenant(true, None, BUCKET), Ok(()));
+    }
+
+    #[test]
+    fn access_error_status_codes_are_fail_closed() {
+        assert_eq!(
+            ResourceAccessError::Unauthenticated.status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            ResourceAccessError::MissingToken.status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            ResourceAccessError::InvalidToken.status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            ResourceAccessError::TenantMismatch.status_code(),
+            StatusCode::FORBIDDEN
         );
     }
 }

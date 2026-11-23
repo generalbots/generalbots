@@ -5,7 +5,7 @@ pub async fn handle_disable_mcp_server(
     Path(name): Path<String>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     match set_mcp_server_enabled(&work_path, &bot_id, &name, false) {
@@ -18,7 +18,7 @@ pub async fn handle_list_mcp_server_tools(
     Path(name): Path<String>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);
@@ -53,7 +53,7 @@ pub async fn handle_test_mcp_server(
     Path(name): Path<String>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);
@@ -78,7 +78,7 @@ pub async fn handle_scan_mcp_directory(
     State(state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);
@@ -113,7 +113,7 @@ pub async fn handle_list_all_tools(
     State(state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     let mut all_tools: Vec<McpToolResponse> = Vec::new();
@@ -154,7 +154,7 @@ pub async fn handle_mcp_servers(
     State(state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let bot_id = safe_bot_id(params.bot_id.as_deref());
     let work_path = get_work_path_or_default(&state.get_work_path);
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);

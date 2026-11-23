@@ -86,6 +86,8 @@ impl McpClient {
                 updated_at: Utc::now(),
                 last_health_check: None,
                 health_status: HealthStatus::default(),
+                risk_level: ToolRiskLevel::default(),
+                requires_approval: false,
             };
 
             self.servers.insert(row.name, server);
@@ -202,6 +204,35 @@ impl McpClient {
                     ),
                     details: None,
                     retryable: true,
+                }),
+                metadata: McpResponseMetadata {
+                    duration_ms: start_time.elapsed().as_millis() as i64,
+                    server_version: None,
+                    rate_limit_remaining: None,
+                    rate_limit_reset: None,
+                },
+            });
+        }
+
+        // #2662 — enforce the tool's declared risk/permission metadata before
+        // any HTTP/stdio dispatch. Missing metadata fails closed here.
+        if let Err(reason) = super::tool_authorization::authorize_tool_invocation(server, &request)
+        {
+            if self.config.audit_enabled {
+                info!(
+                    "MCP invocation denied: server={} tool={} reason={:?}",
+                    request.server, request.tool, reason
+                );
+            }
+            return Ok(McpResponse {
+                id: request.id,
+                success: false,
+                result: None,
+                error: Some(McpError {
+                    code: reason.code().to_string(),
+                    message: reason.message(),
+                    details: None,
+                    retryable: false,
                 }),
                 metadata: McpResponseMetadata {
                     duration_ms: start_time.elapsed().as_millis() as i64,

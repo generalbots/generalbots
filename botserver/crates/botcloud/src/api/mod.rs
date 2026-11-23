@@ -122,6 +122,8 @@ mod branches;
 mod byok;
 mod catalog;
 mod checkout;
+mod checkout_binding;
+mod checkout_success;
 mod helpers;
 #[cfg(test)]
 mod helpers_tests;
@@ -144,6 +146,7 @@ pub use workspaces_api::*;
 pub(crate) use byok::*;
 pub(crate) use catalog::*;
 pub(crate) use checkout::*;
+pub(crate) use checkout_success::*;
 pub(crate) use helpers::*;
 pub(crate) use llm_api::*;
 pub(crate) use login::*;

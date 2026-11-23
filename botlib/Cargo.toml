@@ -32,7 +32,7 @@ serde_json = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 toml = { workspace = true }
-tokio = { workspace = true, features = ["sync", "time"] }
+tokio = { workspace = true, features = ["sync", "time", "process"] }
 dirs = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "uuid", "serde_json"], optional = true }
 botschema = { workspace = true, optional = true }

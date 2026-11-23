@@ -184,6 +184,7 @@ mod default_enabled;
 mod default_timeout;
 mod default_api_key_header;
 mod get_csv_path;
+mod csv_metadata;
 mod parse_csv_columns;
 mod generate_example_configs;
 

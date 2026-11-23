@@ -6,7 +6,8 @@ impl From<&str> for SandboxRuntime {
             "lxc" => Self::LXC,
             "docker" => Self::Docker,
             "firecracker" => Self::Firecracker,
-            _ => Self::Process,
+            // Unknown configuration must never silently become host execution.
+            _ => Self::Unknown,
         }
     }
 }
