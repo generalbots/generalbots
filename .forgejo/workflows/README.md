@@ -20,6 +20,9 @@ Division of work:
 
 If an ALM-runnable workflow is ever needed in this repository, put the real
 `.yaml` files next to this README — they will be picked up by the `gbo` runner.
+The `malware-clamav` job in `.github/workflows/ci.yml` (#2602) deliberately has
+no `github.server_url` guard, so it can be copied verbatim into such a workflow
+and will run the real ClamAV upload gate there too.
 
 ## Why `ubuntu-latest` is not mapped to the `gbo` runner
 

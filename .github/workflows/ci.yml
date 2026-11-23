@@ -1532,6 +1532,38 @@ jobs:
           cargo test -p bottest --test slo_budget_test
           python3 scripts/check_slo.py --profile hotpath --snapshot target/slo/hotpath.json
 
+  # #2602 — a real ClamAV scan on a hostile-file upload. Deliberately has NO
+  # `github.server_url` guard: this gate must run on every host that executes
+  # this workflow (GitHub Actions or the Forgejo/ALM mirror). No boteval calls.
+  malware-clamav:
+    name: Real ClamAV upload gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: malware-clamav
+      - name: Install ClamAV and signatures
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clamav
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam
+          clamscan --version
+      - name: ClamAV upload gate detects EICAR and accepts clean bytes
+        run: |
+          set -euo pipefail
+          cargo test -p botsecurity-core --lib -- --ignored clamav_detects_eicar_and_accepts_clean_payload --nocapture
+          cargo test -p botsecurity-core --lib antivirus::byte_scan
+      - name: Hostile-file corpus for Docs, Sheets and Slides
+        run: |
+          set -euo pipefail
+          cargo test -p botdocs --lib hostile_
+          cargo test -p botsheet --lib hostile_
+          cargo test -p botslides --lib hostile_corpus
+
   # #2115 — performance budgets. The numbers live in `ops/slo.yaml`, the table
   # in `botbook/src/11-hardware-scaling/slo.md`; this job proves the gate fails
   # closed and that the committed baseline still satisfies every budget. It runs

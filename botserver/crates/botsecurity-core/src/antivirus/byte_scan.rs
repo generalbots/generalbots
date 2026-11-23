@@ -156,6 +156,20 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires an installed ClamAV with signatures; CI job malware-clamav runs it"]
+    fn clamav_detects_eicar_and_accepts_clean_payload() {
+        let eicar = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*";
+        assert!(matches!(
+            scan_bytes(eicar),
+            ByteScanVerdict::Infected { .. }
+        ));
+        assert!(matches!(
+            scan_bytes(b"ordinary document bytes"),
+            ByteScanVerdict::Clean { .. }
+        ));
+    }
+
+    #[test]
     fn clean_and_empty_results_are_distinct() {
         assert_eq!(
             infected_signature("Scanning /tmp/x.bin\nInfected files: 0\n"),
