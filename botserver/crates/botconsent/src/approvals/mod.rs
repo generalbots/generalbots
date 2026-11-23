@@ -14,6 +14,9 @@ pub mod types;
 pub use engine::content_hash;
 pub use store::ApprovalStore;
 pub use types::{
-    ApprovalRecord, ApprovalStatus, ApprovalStep, DecisionKind, Delegation, PublishedArtifact,
-    SignedDecision, SlaEvent, SlaEventKind, StepKind, StepMode,
+    ApprovalRecord, ApprovalStatus, ApprovalStep, CallerPrincipal, DecisionKind, Delegation,
+    PublishedArtifact, SignedDecision, SlaEvent, SlaEventKind, StepKind, StepMode,
 };
+
+#[cfg(test)]
+mod tests;

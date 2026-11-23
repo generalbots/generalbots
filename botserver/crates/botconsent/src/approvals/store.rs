@@ -19,8 +19,14 @@ use super::types::{
 };
 
 pub struct ApprovalStore {
-    records: RwLock<HashMap<Uuid, ApprovalRecord>>,
+    /// Tenant-scoped records. A bare id must never address another tenant's
+    /// approval: every lookup carries the caller's server-derived tenant.
+    records: RwLock<HashMap<(String, Uuid), ApprovalRecord>>,
     secret: Vec<u8>,
+}
+
+fn key(tenant: &str, id: Uuid) -> (String, Uuid) {
+    (tenant.to_string(), id)
 }
 
 /// Signing key comes from the environment when configured; otherwise a fresh
@@ -47,12 +53,22 @@ impl ApprovalStore {
         }
     }
 
-    fn read(&self) -> Result<std::sync::RwLockReadGuard<'_, HashMap<Uuid, ApprovalRecord>>, String> {
-        self.records.read().map_err(|_| "approval store lock poisoned".to_string())
+    fn read(
+        &self,
+    ) -> Result<std::sync::RwLockReadGuard<'_, HashMap<(String, Uuid), ApprovalRecord>>, String>
+    {
+        self.records
+            .read()
+            .map_err(|_| "approval store lock poisoned".to_string())
     }
 
-    fn write(&self) -> Result<std::sync::RwLockWriteGuard<'_, HashMap<Uuid, ApprovalRecord>>, String> {
-        self.records.write().map_err(|_| "approval store lock poisoned".to_string())
+    fn write(
+        &self,
+    ) -> Result<std::sync::RwLockWriteGuard<'_, HashMap<(String, Uuid), ApprovalRecord>>, String>
+    {
+        self.records
+            .write()
+            .map_err(|_| "approval store lock poisoned".to_string())
     }
 
     pub fn create(
@@ -68,32 +84,44 @@ impl ApprovalStore {
         let mut record = engine::blank_record(tenant, doc_id, doc_class, owner, &hash);
         record.title = title.to_string();
         let mut records = self.write()?;
-        records.insert(record.id, record.clone());
+        records.insert(key(tenant, record.id), record.clone());
         Ok(record)
     }
 
-    pub fn get(&self, id: Uuid) -> Result<Option<ApprovalRecord>, String> {
-        Ok(self.read()?.get(&id).cloned())
+    pub fn get(&self, tenant: &str, id: Uuid) -> Result<Option<ApprovalRecord>, String> {
+        Ok(self.read()?.get(&key(tenant, id)).cloned())
     }
 
-    pub fn list(&self) -> Result<Vec<ApprovalRecord>, String> {
-        let mut rows: Vec<ApprovalRecord> = self.read()?.values().cloned().collect();
+    /// Lists only the caller's tenant. A global dump would leak every
+    /// organisation's documents and trails to any authenticated user.
+    pub fn list(&self, tenant: &str) -> Result<Vec<ApprovalRecord>, String> {
+        let mut rows: Vec<ApprovalRecord> = self
+            .read()?
+            .values()
+            .filter(|record| record.tenant == tenant)
+            .cloned()
+            .collect();
         rows.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         Ok(rows)
     }
 
-    /// Pending approvals for a person/team/tenant identifier, after applying
+    /// Pending approvals for a person/team within one tenant, after applying
     /// delegations. Used by the dashboard and by chat status queries.
-    pub fn pending_for(&self, actor: &str) -> Result<Vec<ApprovalRecord>, String> {
+    pub fn pending_for(&self, tenant: &str, actor: &str) -> Result<Vec<ApprovalRecord>, String> {
         let now = Utc::now();
         let mut rows: Vec<ApprovalRecord> = self
             .read()?
             .values()
             .filter(|record| {
-                matches!(
-                    record.status,
-                    ApprovalStatus::InReview | ApprovalStatus::AwaitingSignature
-                ) && record.effective_assignees(now).iter().any(|name| name == actor)
+                record.tenant == tenant
+                    && matches!(
+                        record.status,
+                        ApprovalStatus::InReview | ApprovalStatus::AwaitingSignature
+                    )
+                    && record
+                        .effective_assignees(now)
+                        .iter()
+                        .any(|name| name == actor)
             })
             .cloned()
             .collect();
@@ -103,6 +131,7 @@ impl ApprovalStore {
 
     pub fn set_route(
         &self,
+        tenant: &str,
         id: Uuid,
         route: Vec<ApprovalStep>,
         message: &str,
@@ -110,16 +139,36 @@ impl ApprovalStore {
     ) -> Result<ApprovalRecord, String> {
         let now = Utc::now();
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         engine::start_route(record, route, message, due_at, now)?;
         Ok(record.clone())
     }
 
-    pub fn delegate(&self, id: Uuid, delegation: Delegation) -> Result<ApprovalRecord, String> {
+    /// Delegation always binds `from` to the authenticated caller at the API
+    /// layer; the store only accepts a delegation whose `from` already belongs
+    /// to this tenant record's route, so it cannot be used to impersonate a
+    /// third party.
+    pub fn delegate(
+        &self,
+        tenant: &str,
+        id: Uuid,
+        delegation: Delegation,
+    ) -> Result<ApprovalRecord, String> {
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         if record.status.is_immutable() {
             return Err("published approval is immutable".to_string());
+        }
+        if !record
+            .route
+            .iter()
+            .any(|step| step.approvers.iter().any(|name| name == &delegation.from))
+        {
+            return Err("delegator is not an assignee".to_string());
         }
         record.delegations.push(delegation);
         record.updated_at = Utc::now();
@@ -128,6 +177,7 @@ impl ApprovalStore {
 
     pub fn decide(
         &self,
+        tenant: &str,
         id: Uuid,
         actor: &str,
         kind: DecisionKind,
@@ -137,7 +187,9 @@ impl ApprovalStore {
     ) -> Result<ApprovalRecord, String> {
         let now = Utc::now();
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         engine::apply_decision(
             record,
             &self.secret,
@@ -153,9 +205,17 @@ impl ApprovalStore {
 
     /// Explicit e-signature step: only legal on a signature step, produces the
     /// same signed decision event and sets the signed status.
-    pub fn sign(&self, id: Uuid, actor: &str, comment: &str) -> Result<ApprovalRecord, String> {
+    pub fn sign(
+        &self,
+        tenant: &str,
+        id: Uuid,
+        actor: &str,
+        comment: &str,
+    ) -> Result<ApprovalRecord, String> {
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         if record
             .current_step()
             .map(|step| step.kind != super::types::StepKind::Signature)
@@ -178,10 +238,17 @@ impl ApprovalStore {
     }
 
     /// A substantive edit after routing invalidates the approval visibly.
-    pub fn update_content(&self, id: Uuid, content: &str) -> Result<ApprovalRecord, String> {
+    pub fn update_content(
+        &self,
+        tenant: &str,
+        id: Uuid,
+        content: &str,
+    ) -> Result<ApprovalRecord, String> {
         let hash = version_hash(content.as_bytes());
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         if record.status.is_immutable() {
             return Err("published approval is immutable".to_string());
         }
@@ -192,10 +259,13 @@ impl ApprovalStore {
 
     /// SLA sweep. `now` is injectable so a scheduler or UAT can simulate a
     /// breach without waiting. Reminder and escalation are marked once.
-    pub fn check_sla_at(&self, now: DateTime<Utc>) -> Result<Vec<SlaEvent>, String> {
+    pub fn check_sla_at(&self, tenant: &str, now: DateTime<Utc>) -> Result<Vec<SlaEvent>, String> {
         let mut records = self.write()?;
         let mut events = Vec::new();
-        for record in records.values_mut() {
+        for record in records
+            .values_mut()
+            .filter(|record| record.tenant == tenant)
+        {
             let found = engine::check_sla(record, now);
             if found
                 .iter()
@@ -217,16 +287,18 @@ impl ApprovalStore {
         Ok(events)
     }
 
-    pub fn publish(&self, id: Uuid) -> Result<PublishedArtifact, String> {
+    pub fn publish(&self, tenant: &str, id: Uuid) -> Result<PublishedArtifact, String> {
         let mut records = self.write()?;
-        let record = records.get_mut(&id).ok_or("approval not found".to_string())?;
+        let record = records
+            .get_mut(&key(tenant, id))
+            .ok_or("approval not found".to_string())?;
         engine::publish(record, Utc::now())
     }
 
     /// Verifies every decision signature in the trail. A tampered decision
     /// (or a key change across restarts) makes this return `false`.
-    pub fn verify_trail(&self, id: Uuid) -> Result<bool, String> {
-        let record = match self.get(id)? {
+    pub fn verify_trail(&self, tenant: &str, id: Uuid) -> Result<bool, String> {
+        let record = match self.get(tenant, id)? {
             Some(record) => record,
             None => return Ok(false),
         };
@@ -250,5 +322,3 @@ impl ApprovalStore {
     }
 }
 
-#[cfg(test)]
-mod tests;

@@ -157,6 +157,12 @@ pub fn apply_decision(
     ) {
         return Err("approval is not in review".to_string());
     }
+    // A creator may never approve their own request, even if they listed
+    // themselves in the route or obtained a delegation. `actor` is the
+    // server-derived principal, so this cannot be evaded by renaming fields.
+    if actor == record.owner.as_str() {
+        return Err("owner_cannot_approve".to_string());
+    }
     if let Some(hash) = expected_hash {
         if hash != record.version_hash {
             return Err("version_mismatch".to_string());
@@ -169,9 +175,7 @@ pub fn apply_decision(
     if !record.effective_assignees(now).iter().any(|a| a == actor) {
         return Err("not_an_assignee".to_string());
     }
-    if step.mode == StepMode::Sequential
-        && record.next_actor(now).as_deref() != Some(actor)
-    {
+    if step.mode == StepMode::Sequential && record.next_actor(now).as_deref() != Some(actor) {
         return Err("out_of_turn".to_string());
     }
     if kind != DecisionKind::Approve && reason.trim().is_empty() {
@@ -231,9 +235,7 @@ pub fn apply_decision(
             record.step_progress += 1;
             let done = match step.mode {
                 StepMode::Parallel => record.step_progress >= step.quorum_size(),
-                StepMode::Sequential => {
-                    record.step_progress >= step.approvers.len().max(1)
-                }
+                StepMode::Sequential => record.step_progress >= step.approvers.len().max(1),
             };
             let is_signature = step.kind == StepKind::Signature;
             if done {
@@ -308,7 +310,10 @@ pub fn check_sla(record: &ApprovalRecord, now: DateTime<Utc>) -> Vec<SlaEvent> {
 
 /// Creates the immutable published artefact and its records entry. Only a
 /// signed record at the current version may be published.
-pub fn publish(record: &mut ApprovalRecord, now: DateTime<Utc>) -> Result<PublishedArtifact, String> {
+pub fn publish(
+    record: &mut ApprovalRecord,
+    now: DateTime<Utc>,
+) -> Result<PublishedArtifact, String> {
     if record.status != ApprovalStatus::Signed {
         return Err("only signed approvals can be published".to_string());
     }

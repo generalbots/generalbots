@@ -1,20 +1,24 @@
 //! HTTP surface for the approvals workflow. Routes are merged into the
 //! consent router, which already carries `Arc<ConsentService>` as state.
+//!
+//! Every handler derives its actor and tenant from the authenticated caller.
+//! No identity or tenant value is ever read from a request body or query
+//! string (issue #2901).
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
     Json, Router,
 };
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use super::store::ApprovalStore;
-use super::types::{ApprovalStep, DecisionKind, Delegation};
+use super::types::{ApprovalStep, CallerPrincipal, DecisionKind, Delegation};
 use crate::ConsentService;
 
 fn status_for(error: &str) -> StatusCode {
@@ -22,6 +26,12 @@ fn status_for(error: &str) -> StatusCode {
         "approval not found" => StatusCode::NOT_FOUND,
         "published approval is immutable" | "already published" => StatusCode::CONFLICT,
         "version_mismatch" | "invalidated" => StatusCode::CONFLICT,
+        "owner_cannot_approve"
+        | "not_an_assignee"
+        | "out_of_turn"
+        | "already_decided"
+        | "delegator is not an assignee"
+        | "delegate is not a tenant user" => StatusCode::FORBIDDEN,
         _ => StatusCode::BAD_REQUEST,
     }
 }
@@ -32,16 +42,114 @@ fn approvals(service: &Arc<ConsentService>) -> &ApprovalStore {
     &service.approvals
 }
 
+#[derive(QueryableByName)]
+struct TenantRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    tenant: String,
+}
+
+/// Resolves a user's tenant strictly from persisted membership. No header,
+/// query parameter or request body can influence this value.
+fn tenant_of_user(
+    pool: &crate::DbPool,
+    user_id: Uuid,
+    default_only: bool,
+) -> Result<Option<String>, (StatusCode, String)> {
+    let mut conn = pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+    diesel::sql_query(
+        "SELECT COALESCE(o.tenant_id::text, o.org_id::text) AS tenant \
+         FROM users u \
+         JOIN user_organizations uo ON uo.user_id = u.id \
+         JOIN organizations o ON o.org_id = uo.org_id \
+         WHERE u.id = $1 AND COALESCE(u.is_active, true) = true \
+         AND ($2 = false OR COALESCE(uo.is_default, false) = true) \
+         ORDER BY uo.joined_at DESC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Bool, _>(default_only)
+    .get_result::<TenantRow>(&mut conn)
+    .optional()
+    .map(|row| row.map(|r| r.tenant))
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("tenant lookup failed: {e}"),
+        )
+    })
+}
+
+/// Binds a request to the identity returned by authentication and to the
+/// tenant that identity belongs to. The actor token is the user's UUID, which
+/// a client cannot forge with a body field.
+fn principal(
+    service: &Arc<ConsentService>,
+    headers: &HeaderMap,
+) -> Result<CallerPrincipal, (StatusCode, String)> {
+    let user_id = crate::api::require_consent_user(headers, &service.pool)?;
+    let tenant =
+        tenant_of_user(&service.pool, user_id, true)?.unwrap_or_else(|| user_id.to_string());
+    Ok(CallerPrincipal::new(user_id, tenant))
+}
+
+/// A delegation target must be an active user whose membership includes the
+/// caller's tenant. Without this check an attacker could point a delegation
+/// at an arbitrary account in another organisation.
+fn ensure_tenant_user(
+    service: &Arc<ConsentService>,
+    target: &str,
+    tenant: &str,
+) -> Result<(), (StatusCode, String)> {
+    #[derive(QueryableByName)]
+    struct ExistsRow {
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        ok: bool,
+    }
+    let target_id = Uuid::parse_str(target)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "invalid delegate".to_string()))?;
+    let mut conn = service
+        .pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+    let found = diesel::sql_query(
+        "SELECT EXISTS( \
+             SELECT 1 FROM users u \
+             JOIN user_organizations uo ON uo.user_id = u.id \
+             JOIN organizations o ON o.org_id = uo.org_id \
+             WHERE u.id = $1 AND COALESCE(u.is_active, true) = true \
+             AND COALESCE(o.tenant_id::text, o.org_id::text) = $2 \
+         ) AS ok",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(target_id)
+    .bind::<diesel::sql_types::Text, _>(tenant)
+    .get_result::<ExistsRow>(&mut conn)
+    .optional()
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("delegate lookup failed: {e}"),
+        )
+    })?
+    .map(|row| row.ok)
+    .unwrap_or(false);
+    if found {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::FORBIDDEN,
+            "delegate is not a tenant user".to_string(),
+        ))
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct CreateBody {
-    #[serde(default)]
-    tenant: Option<String>,
     doc_id: String,
     #[serde(default)]
     doc_class: Option<String>,
     #[serde(default)]
     title: Option<String>,
-    owner: String,
     content: String,
 }
 
@@ -56,7 +164,6 @@ struct RouteBody {
 
 #[derive(Debug, Deserialize)]
 struct DelegateBody {
-    from: String,
     to: String,
     #[serde(default)]
     reason: Option<String>,
@@ -66,7 +173,6 @@ struct DelegateBody {
 
 #[derive(Debug, Deserialize)]
 struct DecideBody {
-    actor: String,
     decision: DecisionKind,
     #[serde(default)]
     reason: Option<String>,
@@ -78,7 +184,6 @@ struct DecideBody {
 
 #[derive(Debug, Deserialize)]
 struct SignBody {
-    actor: String,
     #[serde(default)]
     comment: Option<String>,
 }
@@ -109,41 +214,39 @@ pub fn router() -> Router<Arc<ConsentService>> {
         .route("/api/approvals/:id/verify", get(verify))
 }
 
-/// `POST /api/approvals` — creates a draft bound to the content hash.
+/// `POST /api/approvals` — creates a draft owned by the authenticated caller
+/// and scoped to that caller's tenant.
 pub async fn create(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
     Json(body): Json<CreateBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
-    let tenant = body.tenant.unwrap_or_else(|| "default".to_string());
+    let caller = principal(&service, &headers)?;
     let doc_class = body.doc_class.unwrap_or_else(|| "document".to_string());
     let title = body.title.unwrap_or_else(String::new);
     let record = approvals(&service)
         .create(
-            &tenant,
+            &caller.tenant,
             &body.doc_id,
             &doc_class,
             &title,
-            &body.owner,
+            &caller.actor,
             &body.content,
         )
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
-/// `GET /api/approvals` — dashboard; `?actor=` filters to that person's queue.
+/// `GET /api/approvals` — lists only the authenticated caller's tenant. No
+/// `?actor=` override is honoured: identity comes from the session alone.
 pub async fn list(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
-    Query(params): Query<HashMap<String, String>>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
-    let rows = match params.get("actor") {
-        Some(actor) if !actor.is_empty() => approvals(&service).pending_for(actor),
-        _ => approvals(&service).list(),
-    }
-    .map_err(|e| (status_for(&e), e))?;
+    let caller = principal(&service, &headers)?;
+    let rows = approvals(&service)
+        .list(&caller.tenant)
+        .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approvals": rows })))
 }
 
@@ -152,9 +255,9 @@ pub async fn get_approval(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let record = approvals(&service)
-        .get(id)
+        .get(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "approval not found".to_string()))?;
     Ok(Json(serde_json::json!({ "approval": record })))
@@ -166,10 +269,10 @@ pub async fn route(
     Path(id): Path<Uuid>,
     Json(body): Json<RouteBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let message = body.message.unwrap_or_else(String::new);
     let record = approvals(&service)
-        .set_route(id, body.steps, &message, body.due_at)
+        .set_route(&caller.tenant, id, body.steps, &message, body.due_at)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
@@ -180,16 +283,17 @@ pub async fn delegate(
     Path(id): Path<Uuid>,
     Json(body): Json<DelegateBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
+    ensure_tenant_user(&service, &body.to, &caller.tenant)?;
     let delegation = Delegation {
-        from: body.from,
+        from: caller.actor.clone(),
         to: body.to,
         reason: body.reason.unwrap_or_else(String::new),
         expires_at: body.expires_at,
         created_at: Utc::now(),
     };
     let record = approvals(&service)
-        .delegate(id, delegation)
+        .delegate(&caller.tenant, id, delegation)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
@@ -200,13 +304,14 @@ pub async fn decide(
     Path(id): Path<Uuid>,
     Json(body): Json<DecideBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let reason = body.reason.unwrap_or_else(String::new);
     let comment = body.comment.unwrap_or_else(String::new);
     let record = approvals(&service)
         .decide(
+            &caller.tenant,
             id,
-            &body.actor,
+            &caller.actor,
             body.decision,
             &reason,
             &comment,
@@ -222,10 +327,10 @@ pub async fn sign(
     Path(id): Path<Uuid>,
     Json(body): Json<SignBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let comment = body.comment.unwrap_or_else(String::new);
     let record = approvals(&service)
-        .sign(id, &body.actor, &comment)
+        .sign(&caller.tenant, id, &caller.actor, &comment)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
@@ -236,9 +341,9 @@ pub async fn update_content(
     Path(id): Path<Uuid>,
     Json(body): Json<ContentBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let record = approvals(&service)
-        .update_content(id, &body.content)
+        .update_content(&caller.tenant, id, &body.content)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
@@ -251,9 +356,9 @@ pub async fn check_sla(
     Path(id): Path<Uuid>,
     Json(body): Json<SlaBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let record = approvals(&service)
-        .get(id)
+        .get(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "approval not found".to_string()))?;
     let now = body.at.unwrap_or_else(Utc::now);
@@ -261,17 +366,17 @@ pub async fn check_sla(
     Ok(Json(serde_json::json!({ "events": events })))
 }
 
-/// `POST /api/approvals/sla-sweep` — global sweep; marks reminder/escalation
-/// as sent so each fires once per step. `{"at":"..."}` is optional.
+/// `POST /api/approvals/sla-sweep` — sweeps only the caller's tenant. `{"at":"..."}`
+/// is optional.
 pub async fn sla_sweep(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
     Json(body): Json<SlaBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let now = body.at.unwrap_or_else(Utc::now);
     let events = approvals(&service)
-        .check_sla_at(now)
+        .check_sla_at(&caller.tenant, now)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "events": events })))
 }
@@ -281,9 +386,9 @@ pub async fn publish(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let artifact = approvals(&service)
-        .publish(id)
+        .publish(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "artifact": artifact })))
 }
@@ -293,9 +398,9 @@ pub async fn verify(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    crate::api::require_consent_user(&headers, &service.pool)?;
+    let caller = principal(&service, &headers)?;
     let verified = approvals(&service)
-        .verify_trail(id)
+        .verify_trail(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?;
     Ok(Json(serde_json::json!({ "verified": verified })))
 }
@@ -309,10 +414,21 @@ mod tests {
         assert_eq!(status_for("approval not found"), StatusCode::NOT_FOUND);
         assert_eq!(status_for("version_mismatch"), StatusCode::CONFLICT);
         assert_eq!(status_for("reason_required"), StatusCode::BAD_REQUEST);
+        assert_eq!(status_for("owner_cannot_approve"), StatusCode::FORBIDDEN);
     }
 
     #[test]
     fn router_builds_without_panics() {
         router();
+    }
+
+    #[test]
+    fn principal_actor_is_the_authenticated_id() {
+        let user_id =
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_else(|_| Uuid::nil());
+        let caller = CallerPrincipal::new(user_id, "tenant-a".to_string());
+        assert_eq!(caller.actor, user_id.to_string());
+        assert_eq!(caller.user_id, user_id);
+        assert_eq!(caller.tenant, "tenant-a");
     }
 }

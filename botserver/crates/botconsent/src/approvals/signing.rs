@@ -168,7 +168,7 @@ mod tests {
         let digest = hmac_sha256(b"Jefe", b"what do ya want for nothing?");
         assert_eq!(
             hex_encode(&digest),
-            "750c783e6ab0b503eaa86e310a5db73818ff56e3a781c81b60f21ba6796ac6fa"
+            "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
         );
     }
 

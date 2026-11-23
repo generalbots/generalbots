@@ -4,6 +4,32 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Server-derived caller identity for the approvals workflow.
+///
+/// `actor` is the authenticated principal's UUID rendered as a string. It is
+/// produced only from `require_consent_user`'s returned identity (never from a
+/// request body), is used as the canonical token in routes, owners and
+/// delegations, and is the value bound into every decision signature. Because
+/// the token is a UUID chosen by the server, a client cannot assert another
+/// party's identity by supplying an `actor`/`owner`/`from` field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CallerPrincipal {
+    pub user_id: Uuid,
+    pub tenant: String,
+    pub actor: String,
+}
+
+impl CallerPrincipal {
+    #[must_use]
+    pub fn new(user_id: Uuid, tenant: String) -> Self {
+        Self {
+            user_id,
+            tenant,
+            actor: user_id.to_string(),
+        }
+    }
+}
+
 /// Lifecycle of one approval. `Draft` is also the destination after a reject
 /// or a request-for-changes: the document goes back to its author.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -245,7 +271,10 @@ impl ApprovalRecord {
     pub fn next_actor(&self, now: DateTime<Utc>) -> Option<String> {
         let step = self.route.get(self.current_step)?;
         match step.mode {
-            StepMode::Sequential => self.effective_assignees(now).get(self.step_progress).cloned(),
+            StepMode::Sequential => self
+                .effective_assignees(now)
+                .get(self.step_progress)
+                .cloned(),
             StepMode::Parallel => None,
         }
     }
@@ -318,7 +347,8 @@ mod tests {
     fn sequential_next_actor_follows_step_progress() {
         let mut step = step(StepMode::Sequential, &["alice", "cfo"]);
         step.id = "s1".to_string();
-        let mut record = crate::approvals::engine::blank_record("t", "doc", "contract", "owner", "hash");
+        let mut record =
+            crate::approvals::engine::blank_record("t", "doc", "contract", "owner", "hash");
         record.route = vec![step];
         assert_eq!(record.next_actor(Utc::now()).as_deref(), Some("alice"));
         record.step_progress = 1;
