@@ -1,18 +1,34 @@
 use super::*;
+use crate::security::auth_api::types::AuthenticatedUser;
+use axum::Extension;
 
 pub async fn handle_dns_search(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     use diesel::prelude::*;
 
     let q = params.get("q").cloned().unwrap_or_default();
+    // #2793: the search term is untrusted; the tenant boundary is derived
+    // only from the signed branch claim and the authenticated principal.
+    let branch_id = botsecurity_core::scope::branch_from_jwt_pool(&headers, &state.conn);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => {
             return Html(format!(
                 "<tr><td colspan=\"7\">{}</td></tr>",
                 html_escape(&e.1)
+            ))
+        }
+    };
+    let scope = match caller_dns_scope(&mut conn, &user, branch_id) {
+        Ok(scope) => scope,
+        Err(e) => {
+            return Html(format!(
+                "<tr><td colspan=\"7\">{}</td></tr>",
+                html_escape(&e)
             ))
         }
     };
@@ -35,18 +51,27 @@ pub async fn handle_dns_search(
     }
 
     let pattern = format!("%{q}%");
+    // No SQL LIMIT before the tenant filter, otherwise foreign rows could
+    // evict the caller's own matches from a 200-row page.
     let rows: Vec<DnsRow> = if q.is_empty() {
-        diesel::sql_query("SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC LIMIT 200")
-            .load(&mut conn)
-            .unwrap_or_default()
+        diesel::sql_query(
+            "SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC",
+        )
+        .load(&mut conn)
+        .unwrap_or_default()
     } else {
         diesel::sql_query(
-            "SELECT id, hostname, record_type, target, ttl, status FROM dns_records WHERE LOWER(hostname) LIKE LOWER($1) ORDER BY hostname ASC LIMIT 200",
+            "SELECT id, hostname, record_type, target, ttl, status FROM dns_records WHERE LOWER(hostname) LIKE LOWER($1) ORDER BY hostname ASC",
         )
         .bind::<diesel::sql_types::Text, _>(&pattern)
         .load(&mut conn)
         .unwrap_or_default()
     };
+    let rows: Vec<DnsRow> = rows
+        .into_iter()
+        .filter(|r| hostname_visible_in(&r.hostname, &scope))
+        .take(200)
+        .collect();
 
     if rows.is_empty() {
         return Html(

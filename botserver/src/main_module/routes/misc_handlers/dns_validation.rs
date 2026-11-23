@@ -9,7 +9,8 @@
 
 use crate::security::auth_api::types::AuthenticatedUser;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use uuid::Uuid;
+
+use super::dns_scope::caller_owns_hostname_in;
 
 /// Upper-cased allow-list of record types this endpoint is able to validate.
 /// Anything outside this list is rejected rather than stored verbatim.
@@ -208,41 +209,7 @@ pub(crate) fn caller_owns_hostname(
     user: &AuthenticatedUser,
     hostname: &str,
 ) -> Result<bool, String> {
-    if user.is_admin() || user.is_service() {
-        return Ok(true);
-    }
-
-    use diesel::prelude::*;
-    #[derive(diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct ZoneRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        domain: String,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-        org_id: Option<Uuid>,
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        bot_id: Uuid,
-    }
-
-    let zones: Vec<ZoneRow> = diesel::sql_query("SELECT domain, org_id, bot_id FROM bot_domains")
-        .load(conn)
-        .map_err(|e| format!("Zone ownership lookup failed: {e}"))?;
-
-    for zone in zones {
-        if !hostname_in_zone(hostname, &zone.domain) {
-            continue;
-        }
-        if zone
-            .org_id
-            .is_some_and(|org| user.can_access_organization(&org))
-        {
-            return Ok(true);
-        }
-        if user.can_manage_bot(&zone.bot_id) || user.can_operate_bot(&zone.bot_id) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+    caller_owns_hostname_in(conn, user, None, hostname)
 }
 
 #[cfg(test)]

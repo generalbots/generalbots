@@ -96,15 +96,30 @@ pub async fn handle_dns_register(
     .into_response()
 }
 
+/// GET /api/dns/:id/edit
+///
+/// Only the record's owner may see its fragment. A foreign or unknown id is
+/// indistinguishable from a missing record: both return 404.
 pub async fn handle_dns_edit_form(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
-) -> impl IntoResponse {
+) -> Response {
     use diesel::prelude::*;
 
+    // #2793: ownership is derived from the signed branch claim and the
+    // authenticated principal, never from the requested record id.
+    let branch_id = botsecurity_core::scope::branch_from_jwt_pool(&headers, &state.conn);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<p>{}</p>", html_escape(&e.1))),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!("<p>{}</p>", html_escape(&e.1))),
+            )
+                .into_response()
+        }
     };
 
     #[derive(diesel::QueryableByName)]
@@ -127,20 +142,44 @@ pub async fn handle_dns_edit_form(
     .get_result(&mut conn)
     .ok();
 
+    let not_found = || {
+        (
+            StatusCode::NOT_FOUND,
+            Html("<p class=\"text-muted\">Record not found</p>".to_string()),
+        )
+            .into_response()
+    };
+
     match row {
-        Some(r) => Html(format!(
-            r##"<form hx-post="/api/dns/register" hx-target="#edit-dns-form-container" hx-swap="innerHTML">
+        Some(r) => {
+            let owns = match caller_owns_hostname_in(&mut conn, &user, branch_id, &r.hostname) {
+                Ok(owns) => owns,
+                Err(e) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Html(format!("<p>{}</p>", html_escape(&e))),
+                    )
+                        .into_response()
+                }
+            };
+            if !owns {
+                return not_found();
+            }
+            Html(format!(
+                r##"<form hx-post="/api/dns/register" hx-target="#edit-dns-form-container" hx-swap="innerHTML">
             <div class="form-group"><label>Hostname</label><input type="text" name="hostname" value="{hostname}" required /></div>
             <div class="form-group"><label>Type</label><input type="text" name="record_type" value="{rtype}" /></div>
             <div class="form-group"><label>Target/IP</label><input type="text" name="target" value="{target}" /></div>
             <div class="form-group"><label>TTL</label><input type="number" name="ttl" value="{ttl}" /></div>
             <button type="submit" class="btn-primary btn-sm">Save</button>
         </form>"##,
-            hostname = html_escape(&r.hostname),
-            rtype = html_escape(&r.record_type),
-            target = html_escape(&r.target),
-            ttl = r.ttl,
-        )),
-        None => Html("<p class=\"text-muted\">Record not found</p>".to_string()),
+                hostname = html_escape(&r.hostname),
+                rtype = html_escape(&r.record_type),
+                target = html_escape(&r.target),
+                ttl = r.ttl,
+            ))
+            .into_response()
+        }
+        None => not_found(),
     }
 }

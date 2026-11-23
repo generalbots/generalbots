@@ -1,4 +1,6 @@
 use super::*;
+use crate::security::auth_api::types::AuthenticatedUser;
+use axum::Extension;
 
 pub async fn handle_autotask_create(
     State(state): State<Arc<AppState>>,
@@ -245,15 +247,31 @@ pub async fn handle_contacts_search(
 // DNS records: /api/dns/list, /api/dns/register, /api/dns/remove,
 //              /api/dns/:id/edit, /api/dns/search
 // ---------------------------------------------------------------------------
-pub async fn handle_dns_list(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn handle_dns_list(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    Extension(user): Extension<AuthenticatedUser>,
+) -> impl IntoResponse {
     use diesel::prelude::*;
 
+    // #2793: scope comes only from the signed branch claim and the
+    // authenticated principal — never from the request's search/list params.
+    let branch_id = botsecurity_core::scope::branch_from_jwt_pool(&headers, &state.conn);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => {
             return Html(format!(
                 "<tr><td colspan=\"7\">{}</td></tr>",
                 html_escape(&e.1)
+            ))
+        }
+    };
+    let scope = match caller_dns_scope(&mut conn, &user, branch_id) {
+        Ok(scope) => scope,
+        Err(e) => {
+            return Html(format!(
+                "<tr><td colspan=\"7\">{}</td></tr>",
+                html_escape(&e)
             ))
         }
     };
@@ -275,11 +293,18 @@ pub async fn handle_dns_list(State(state): State<Arc<AppState>>) -> impl IntoRes
         status: String,
     }
 
+    // Filter before limiting: a global LIMIT 200 would let foreign rows push
+    // the caller's own records out of the result set.
     let rows: Vec<DnsRow> = diesel::sql_query(
-        "SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC LIMIT 200",
+        "SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC",
     )
     .load(&mut conn)
     .unwrap_or_default();
+    let rows: Vec<DnsRow> = rows
+        .into_iter()
+        .filter(|r| hostname_visible_in(&r.hostname, &scope))
+        .take(200)
+        .collect();
 
     if rows.is_empty() {
         return Html(
