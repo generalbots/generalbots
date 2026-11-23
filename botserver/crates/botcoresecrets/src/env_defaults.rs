@@ -21,7 +21,10 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
             secrets.insert("port".into(), "5432".into());
             secrets.insert("database".into(), "botserver".into());
             secrets.insert("username".into(), "gbuser".into());
-            secrets.insert("password".into(), "changeme".into());
+            // #2764 — a usable-looking fallback password lets a misconfigured
+            // install connect with a credential nobody rotated. Fail closed:
+            // an empty password makes the connection attempt fail loudly.
+            secrets.insert("password".into(), String::new());
         }
         "directory" | "gbo/directory" | "system/directory" => {
             secrets.insert("url".into(), String::new());
