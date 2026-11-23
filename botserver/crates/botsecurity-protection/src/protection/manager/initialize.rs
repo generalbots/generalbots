@@ -235,7 +235,7 @@ impl ProtectionManager {
             ProtectionTool::Chkrootkit => super::chkrootkit::run_scan().await,
             ProtectionTool::Suricata => super::suricata::get_alerts().await,
             ProtectionTool::LMD => super::lmd::run_scan(None).await,
-            ProtectionTool::ClamAV => super::lynis::run_scan().await,
+            ProtectionTool::ClamAV => super::clamav::run_scan().await,
         };
 
         result.completed_at = Some(Utc::now());
