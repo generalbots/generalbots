@@ -1,6 +1,7 @@
 //! `api::run` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
+use botsecurity_core::scope::branch_from_jwt_pool;
 
 /// Upper bound on a single run's intent text (#925). Rejects oversized
 /// requests with 413 instead of feeding unbounded text into prompts/DB JSONB.
@@ -368,10 +369,18 @@ pub(crate) async fn get_pipeline(
 
 pub(crate) async fn get_run_events(
     Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Path(run_id): Path<Uuid>,
-) -> impl IntoResponse {
+) -> Response {
+    let caller = caller_run_scope(&user, branch_from_jwt_pool(&headers, api.state.db_pool()));
+    // #2855 — traces/spans are scoped like any other run data: authorize the
+    // run id first so a foreign/unknown id cannot stream someone else's events.
+    if load_owned_run(&api, run_id, &caller).await.is_none() {
+        return run_not_found();
+    }
     let events = api.telemetry.get_events_for_run(run_id, 100).await;
-    Json(events)
+    Json(events).into_response()
 }
 
 /// Cuts `text` on a character boundary (not a byte boundary) so logging a

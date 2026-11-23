@@ -4,6 +4,7 @@ mod core;
 mod metrics;
 mod run_metrics;
 mod run;
+mod run_ownership;
 mod tools;
 mod tool_capabilities;
 #[cfg(test)]
@@ -38,6 +39,7 @@ pub(crate) use core::{SiteEnvQuery, parse_site_env_param, parse_use_case};
 pub use metrics::{CreateRunResponse, ListRunsQuery, MetricsResponse};
 pub(crate) use metrics::{create_run};
 pub(crate) use run_metrics::{cancel_run, get_global_metrics, get_run, get_run_metrics, promote_project_site, rollback_project_site, unpublish_project_site};
+pub(crate) use run_ownership::{caller_run_scope, load_owned_run, run_not_found};
 pub use run::{PipelineResponse};
 pub(crate) use run::{MAX_INTENT_CHARS, MAX_TIMEOUT_SECONDS, UnpublishSiteRequest, bot_accessible_to_user, get_pipeline, get_run_events, list_runs, resolve_effective_bot_id, resolve_project, truncate_chars};
 pub use tools::{CreateRunRequest, GetRunResponse, ListToolsResponse, VibeApiDeps, VibeSecurityDeps, router};

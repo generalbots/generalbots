@@ -1,45 +1,21 @@
 //! `api::run_metrics` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
+use botsecurity_core::scope::branch_from_jwt_pool;
 
+/// #2855 — a bare `run_id` no longer authorizes a read. Scope comes from the
+/// authenticated principal plus the signature-verified JWT branch, and a
+/// foreign/unknown id is indistinguishable from a missing run (404).
 pub(crate) async fn get_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Path(run_id): Path<Uuid>,
-) -> impl IntoResponse {
-    let state_runs = api.state.active_runs().read().await;
-    if let Some(run) = state_runs.get(&run_id) {
-        return Json(run_to_response(run));
-    }
-    drop(state_runs);
-    let runs = api.runs.read().await;
-    if let Some(run) = runs.get(&run_id) {
-        return Json(run_to_response(run));
-    }
-    drop(runs);
-    // Fall back to the persisted store (Issue #793): runs survive restarts.
-    match api.runs_store.get_run(run_id) {
-        Some(run) => Json(run_to_response(&run)),
-        None => Json(GetRunResponse {
-            run_id,
-            bot_id: Uuid::nil(),
-            session_id: Uuid::nil(),
-            state: "not_found".to_string(),
-            use_case: String::new(),
-            intent: String::new(),
-            tool_call_count: 0,
-            last_tool_name: None,
-            created_at: String::new(),
-            completed_at: None,
-            error: Some("Run not found".to_string()),
-            budget_cents: 0,
-            lang: String::new(),
-            model: None,
-            max_tool_calls: 0,
-            auto_approve: false,
-            project_id: None,
-            project_name: None,
-            pipeline_mode: None,
-        }),
+) -> Response {
+    let caller = caller_run_scope(&user, branch_from_jwt_pool(&headers, api.state.db_pool()));
+    match load_owned_run(&api, run_id, &caller).await {
+        Some(run) => Json(run_to_response(&run)).into_response(),
+        None => run_not_found(),
     }
 }
 
@@ -153,19 +129,29 @@ pub(crate) async fn get_global_metrics(Extension(api): Extension<Arc<VibeApiInne
 
 pub(crate) async fn get_run_metrics(
     Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Path(run_id): Path<Uuid>,
-) -> impl IntoResponse {
+) -> Response {
+    let caller = caller_run_scope(&user, branch_from_jwt_pool(&headers, api.state.db_pool()));
+    // #2855 — authorize the id before touching telemetry: a foreign or unknown
+    // run must never expose its metrics through a guessed id.
+    if load_owned_run(&api, run_id, &caller).await.is_none() {
+        return run_not_found();
+    }
     match api.telemetry.get_run_metrics(run_id).await {
         Some(metrics) => Json(MetricsResponse {
             success: true,
             metrics: Some(serde_json::to_value(metrics).unwrap_or(serde_json::Value::Null)),
             error: None,
-        }),
+        })
+        .into_response(),
         None => Json(MetricsResponse {
             success: false,
             metrics: None,
             error: Some("No metrics found for run".to_string()),
-        }),
+        })
+        .into_response(),
     }
 }
 
