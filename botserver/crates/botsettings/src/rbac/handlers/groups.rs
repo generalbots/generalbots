@@ -11,6 +11,7 @@ use uuid::Uuid;
 use botcore::shared::models::{NewRbacGroup, NewRbacGroupRole, RbacGroup, RbacGroupRole, RbacRole};
 use botcore::shared::state::AppState;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
+use botsecurity::rbac_middleware::invalidate_rbac_cache;
 use diesel::prelude::*;
 
 use super::super::CreateGroupRequest;
@@ -157,7 +158,10 @@ pub async fn update_group(
     .await;
 
     match result {
-        Ok(Ok(group)) => Json(group).into_response(),
+        Ok(Ok(group)) => {
+            invalidate_rbac_cache();
+            Json(group).into_response()
+        }
         Ok(Err(e)) => (
             StatusCode::BAD_REQUEST,
             log_and_sanitize_str(&e, "update_group", None),
@@ -188,7 +192,10 @@ pub async fn delete_group(
     .await;
 
     match result {
-        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Ok(())) => {
+            invalidate_rbac_cache();
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(Err(e)) => (
             StatusCode::BAD_REQUEST,
             log_and_sanitize_str(&e, "delete_group", None),
@@ -270,6 +277,7 @@ pub async fn assign_role_to_group(
                 success: true,
                 details: Some(&format!("Assigned role {role_id} to group {group_id}")),
             });
+            invalidate_rbac_cache();
             (StatusCode::CREATED, Json(gr)).into_response()
         }
         Ok(Err(e)) => (
@@ -316,6 +324,7 @@ pub async fn remove_role_from_group(
                 success: true,
                 details: Some(&format!("Revoked role {role_id} from group {group_id}")),
             });
+            invalidate_rbac_cache();
             StatusCode::NO_CONTENT.into_response()
         }
         Ok(Err(e)) => (

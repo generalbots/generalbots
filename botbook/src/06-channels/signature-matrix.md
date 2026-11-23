@@ -169,8 +169,14 @@ channels.
 ## Outbound settings webhooks
 
 The server signs its own deliveries (`botsettings/src/webhook_delivery.rs`):
-`X-Webhook-Signature` carries an HMAC-SHA256 over the payload, keyed by a secret
-stored in Vault under `secret/gbo/settings/webhooks/{webhook_id}`. The same
+`X-Webhook-Signature` carries a v2 HMAC-SHA256 (a hex digest prefixed `v2=`),
+keyed by a secret stored in Vault under
+`secret/gbo/settings/webhooks/{webhook_id}`. The signed material is
+`v2.<unix timestamp>.<nonce>.<raw body>`; the timestamp and nonce travel in
+`X-Webhook-Timestamp` and `X-Webhook-Nonce`. Receivers must enforce a 300-second
+clock-skew tolerance and cache nonces to reject replays; the legacy v1 scheme
+(no timestamp or nonce) is neither produced nor accepted. The delivery log
+stores the full v2 triple in `webhook_deliveries.signature`. The same
 module validates destination URLs: HTTPS is required when `GB_ENV=production`,
 and `localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, `169.254.`, `10.` and `192.168.`
 are refused. That blocklist does not cover `172.16.0.0/12`, IPv4-mapped IPv6

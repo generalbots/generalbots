@@ -8,6 +8,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+mod webhook_audit;
+pub use webhook_audit::{
+    format_audit_signature, parse_audit_signature, sign_delivery, DeliverySignature,
+};
+
 pub const WEBHOOK_VAULT_ROOT: &str = "secret/gbo/settings/webhooks";
 
 /// Header carrying the versioned HMAC signature.
@@ -19,7 +24,6 @@ pub const NONCE_HEADER: &str = "X-Webhook-Nonce";
 /// Maximum accepted clock skew, in seconds, for an inbound delivery (#2645).
 pub const CLOCK_SKEW_TOLERANCE_SECONDS: i64 = 300;
 
-const SIGNATURE_V1: &str = "v1";
 const SIGNATURE_V2: &str = "v2";
 
 pub fn webhook_vault_path(webhook_id: Uuid) -> String {
@@ -64,18 +68,6 @@ pub fn parse_events(raw: Option<&str>) -> serde_json::Value {
         serde_json::json!(["*"])
     } else {
         serde_json::Value::Array(events.into_iter().map(serde_json::Value::String).collect())
-    }
-}
-
-/// Legacy HMAC-SHA256 v1 signature over the raw payload.
-///
-/// Retained for receivers still verifying the original scheme. It has no
-/// timestamp or nonce and is therefore replayable; new deliveries must use
-/// [`sign_payload_at`] / [`create_signature_headers`] instead.
-pub fn sign_payload(payload: &str, secret: &str) -> String {
-    match hmac_hex(payload, secret) {
-        Some(digest) => format!("{SIGNATURE_V1}={digest}"),
-        None => format!("{SIGNATURE_V1}="),
     }
 }
 
@@ -179,8 +171,7 @@ impl WebhookSignatureVerifier {
         }
 
         let Some(supplied) = signature.strip_prefix(&format!("{SIGNATURE_V2}=")) else {
-            // Legacy v1 signatures are intentionally not accepted here: they
-            // carry no freshness data and would reopen the replay hole.
+            // v1 has no freshness data; accepting it reopens the replay hole.
             return SignatureValidation::Invalid;
         };
 
@@ -274,12 +265,17 @@ async fn read_capped_body(resp: &mut reqwest::Response) -> String {
 
 /// Delivers a payload with exponential backoff retries, recording every
 /// attempt in `webhook_deliveries`. Runs in a background task.
+///
+/// The caller supplies the exact v2 triple that goes on the wire and into the
+/// audit column, so the record is re-verifiable (#2645, #2829). Retries reuse
+/// it: the backoff finishes inside the 300 s window and the nonce cache makes
+/// a repeat harmless.
 pub async fn deliver_with_retries(
     state: Arc<AppState>,
     delivery_id: Uuid,
     url: String,
     payload: &str,
-    secret: &str,
+    signed: DeliverySignature,
 ) {
     let max_attempts = 5;
     let mut attempt = 0;
@@ -305,15 +301,12 @@ pub async fn deliver_with_retries(
 
     loop {
         attempt += 1;
-        // A fresh timestamp and nonce per attempt: a retry is never a replay,
-        // and a captured delivery cannot be resent later (#2645).
-        let (signature, timestamp, nonce) = create_signature_headers(payload, secret);
         let result = client
             .post(&url)
             .header("Content-Type", "application/json")
-            .header(SIGNATURE_HEADER, &signature)
-            .header(TIMESTAMP_HEADER, &timestamp)
-            .header(NONCE_HEADER, &nonce)
+            .header(SIGNATURE_HEADER, &signed.signature)
+            .header(TIMESTAMP_HEADER, &signed.timestamp)
+            .header(NONCE_HEADER, &signed.nonce)
             .header("X-Webhook-Event", "test")
             .body(payload.to_string())
             .send()

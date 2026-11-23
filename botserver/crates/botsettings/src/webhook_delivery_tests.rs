@@ -2,9 +2,10 @@
 //! the display helpers.
 
 use super::{
-    cap_body, create_signature_headers, escape_html, parse_events, sign_payload, sign_payload_at,
-    truncate, validate_webhook_url, webhook_vault_path, WebhookSignatureVerifier,
-    CLOCK_SKEW_TOLERANCE_SECONDS, MAX_RESPONSE_BODY_BYTES,
+    cap_body, create_signature_headers, escape_html, format_audit_signature, hmac_hex,
+    parse_audit_signature, parse_events, sign_payload_at, truncate, validate_webhook_url,
+    webhook_vault_path, WebhookSignatureVerifier, CLOCK_SKEW_TOLERANCE_SECONDS,
+    MAX_RESPONSE_BODY_BYTES,
 };
 use botsecurity::webhook::SignatureValidation;
 use serde_json::json;
@@ -82,21 +83,20 @@ fn events_are_split_trimmed_and_deduplicated_by_position() {
 }
 
 #[test]
-fn the_signature_matches_the_published_hmac_vector() {
-    // RFC 4231, test case 2.
+fn the_hmac_matches_the_published_vector() {
+    // RFC 4231, test case 2 — the primitive behind every v2 signature.
     assert_eq!(
-        sign_payload("what do ya want for nothing?", "Jefe"),
-        "v1=5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+        hmac_hex("what do ya want for nothing?", "Jefe").as_deref(),
+        Some("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843")
     );
 }
 
 #[test]
-fn the_signature_is_key_and_payload_sensitive() {
-    let base = sign_payload("payload", "secret");
-    assert!(base.starts_with("v1="));
-    assert_eq!(base.len(), 3 + 64);
-    assert_ne!(base, sign_payload("payload", "other-secret"));
-    assert_ne!(base, sign_payload("Payload", "secret"));
+fn the_hmac_is_key_and_payload_sensitive() {
+    let base = hmac_hex("payload", "secret");
+    assert_eq!(base.as_deref().map(str::len), Some(64));
+    assert_ne!(base, hmac_hex("payload", "other-secret"));
+    assert_ne!(base, hmac_hex("Payload", "secret"));
 }
 
 #[test]
@@ -142,8 +142,8 @@ fn the_v2_signature_covers_timestamp_nonce_and_payload() {
     assert_ne!(a, e, "the secret must be part of the key");
     assert!(a.starts_with("v2="));
     assert_eq!(a.len(), 3 + 64);
-    // A v2 signature must not be mistaken for a legacy v1 one.
-    assert_ne!(a, sign_payload("payload", "secret"));
+    // A v2 signature must never be confused with the removed, replayable v1 one.
+    assert!(!a.starts_with("v1="));
 }
 
 #[test]
@@ -280,12 +280,6 @@ fn missing_and_malformed_headers_are_refused() {
         verifier.verify_at("body", &signature, &now.to_string(), "", "secret", now),
         SignatureValidation::Missing
     );
-    // Legacy v1 signatures have no freshness data and are rejected by the v2 verifier.
-    let legacy = sign_payload("body", "secret");
-    assert_eq!(
-        verifier.verify_at("body", &legacy, &now.to_string(), "n-legacy", "secret", now),
-        SignatureValidation::Invalid
-    );
 }
 
 #[test]
@@ -297,6 +291,91 @@ fn extreme_timestamps_do_not_overflow_the_freshness_check() {
         let result = verifier.verify_at("body", &signature, &timestamp, "n-extreme", "secret", now);
         assert_eq!(result, SignatureValidation::Expired, "timestamp {timestamp}");
     }
+}
+
+// ── #2829: no legacy v1 in the audit column, full v2 triple persisted ──────
+
+#[test]
+fn a_cryptographically_valid_v1_signature_is_still_refused() {
+    // RFC 4231 test case 2 is a *correct* v1 HMAC. The verifier must reject it
+    // purely because it is v1: no timestamp/nonce means a captured delivery
+    // would stay replayable forever (#2645, #2829).
+    let payload = "what do ya want for nothing?";
+    let legacy_v1 = "v1=5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843";
+    let now = 5_000;
+    let mut verifier = WebhookSignatureVerifier::new();
+    assert_eq!(
+        verifier.verify_at(payload, legacy_v1, &now.to_string(), "n-v1", "Jefe", now),
+        SignatureValidation::Invalid,
+        "a valid v1 HMAC must never be accepted by the receiver"
+    );
+}
+
+#[test]
+fn a_captured_v2_delivery_outside_the_tolerance_window_is_refused() {
+    // Replay after the 300 s freshness window, even with a valid v2 signature
+    // and a never-before-seen nonce, must fail (#2645).
+    let signed_at = 10_000;
+    let signature = sign_payload_at("body", "secret", signed_at, "n-replay-late");
+    let mut verifier = WebhookSignatureVerifier::new();
+    assert_eq!(
+        verifier.verify_at(
+            "body",
+            &signature,
+            &signed_at.to_string(),
+            "n-replay-late",
+            "secret",
+            signed_at + CLOCK_SKEW_TOLERANCE_SECONDS + 1,
+        ),
+        SignatureValidation::Expired
+    );
+}
+
+#[test]
+fn v2_headers_round_trip_through_the_audit_column() {
+    let (signature, timestamp, nonce) = create_signature_headers("{\"a\":1}", "secret");
+    let stored = format_audit_signature(&signature, &timestamp, &nonce);
+
+    // The column is VARCHAR(128); the full v2 triple must fit.
+    assert!(
+        stored.len() <= 128,
+        "audit value too long: {}",
+        stored.len()
+    );
+
+    let (parsed_sig, parsed_ts, parsed_nonce) =
+        parse_audit_signature(&stored).expect("a v2 triple must parse");
+    assert_eq!(parsed_sig, signature);
+    assert_eq!(parsed_ts, timestamp);
+    assert_eq!(parsed_nonce, nonce);
+
+    // The persisted triple is enough to re-verify the exact bytes that were sent.
+    let signed_at = parsed_ts.parse::<i64>().expect("numeric timestamp");
+    let mut verifier = WebhookSignatureVerifier::new();
+    assert_eq!(
+        verifier.verify_at(
+            "{\"a\":1}",
+            parsed_sig,
+            parsed_ts,
+            parsed_nonce,
+            "secret",
+            signed_at
+        ),
+        SignatureValidation::Valid
+    );
+}
+
+#[test]
+fn a_legacy_or_malformed_value_is_not_a_valid_audit_record() {
+    // The audit column must never be mistaken for the removed v1 scheme.
+    assert!(parse_audit_signature("").is_none());
+    assert!(parse_audit_signature(
+        "v1=5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+    )
+    .is_none());
+    // A v2 signature without its timestamp/nonce cannot be verified.
+    assert!(parse_audit_signature("v2=abcdef").is_none());
+    assert!(parse_audit_signature("v2=abcdef|1234|").is_none());
 }
 
 // ── #2781: bounded webhook response bodies ────────────────────────────────

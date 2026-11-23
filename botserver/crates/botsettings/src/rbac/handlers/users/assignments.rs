@@ -14,6 +14,7 @@ use botcore::shared::models::{
 };
 use botcore::shared::state::AppState;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
+use botsecurity::rbac_middleware::invalidate_rbac_cache;
 
 use crate::rbac::AssignRoleRequest;
 
@@ -89,6 +90,7 @@ pub async fn assign_role_to_user(
                 success: true,
                 details: Some(&format!("Assigned role {role_id} to user {user_id}")),
             });
+            invalidate_rbac_cache();
             (StatusCode::CREATED, Json(ur)).into_response()
         }
         Ok(Err(e)) => (
@@ -135,6 +137,7 @@ pub async fn remove_role_from_user(
                 success: true,
                 details: Some(&format!("Revoked role {role_id} from user {user_id}")),
             });
+            invalidate_rbac_cache();
             StatusCode::NO_CONTENT.into_response()
         }
         Ok(Err(e)) => (
@@ -218,6 +221,7 @@ pub async fn add_user_to_group(
                 success: true,
                 details: Some(&format!("Added user {user_id} to group {group_id}")),
             });
+            invalidate_rbac_cache();
             (StatusCode::CREATED, Json(ug)).into_response()
         }
         Ok(Err(e)) => (
@@ -264,6 +268,7 @@ pub async fn remove_user_from_group(
                 success: true,
                 details: Some(&format!("Removed user {user_id} from group {group_id}")),
             });
+            invalidate_rbac_cache();
             StatusCode::NO_CONTENT.into_response()
         }
         Ok(Err(e)) => (

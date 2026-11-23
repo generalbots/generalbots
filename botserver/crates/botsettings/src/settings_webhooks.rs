@@ -12,6 +12,7 @@ use botcore::shared::state::AppState;
 use botcoresecrets::manager::SecretsManager;
 
 use crate::settings_api::{get_conn, random_key, resolve_user_id};
+use crate::webhook_delivery::sign_delivery;
 
 // ─────────────────────────── Webhooks ───────────────────────────
 
@@ -179,7 +180,7 @@ pub async fn webhooks_create(
             r#"<div class="webhook-created">
                 <p>Webhook registered. Signing secret (shown once):</p>
                 <code class="api-key-secret">{secret}</code>
-                <p class="hint">Deliveries are signed with <code>X-Webhook-Signature: v1=&lt;hmac&gt;</code>.</p>
+                <p class="hint">Deliveries are signed with <code>X-Webhook-Signature: v2=&lt;hmac&gt;</code>, <code>X-Webhook-Timestamp: &lt;unix&gt;</code> and <code>X-Webhook-Nonce: &lt;uuid&gt;</code>. Verify the HMAC over <code>v2.&lt;unix&gt;.&lt;uuid&gt;.&lt;raw body&gt;</code>, reject timestamps older than 300 seconds and cache nonces to stop replays.</p>
             </div>"#
         )),
     )
@@ -310,7 +311,8 @@ pub async fn webhooks_test(
         "data": { "message": "Test event from General Bots" },
     });
 
-    let signature = crate::webhook_delivery::sign_payload(&payload.to_string(), &secret);
+    let payload_str = payload.to_string();
+    let signed = sign_delivery(&payload_str, &secret);
     let state_clone = state.clone();
     let delivery_id = Uuid::new_v4();
     let url = row.url.clone();
@@ -323,21 +325,18 @@ pub async fn webhooks_test(
     )
     .bind::<diesel::sql_types::Uuid, _>(delivery_id)
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
-    .bind::<diesel::sql_types::Text, _>(&payload.to_string())
-    .bind::<diesel::sql_types::Text, _>(&signature)
+    .bind::<diesel::sql_types::Text, _>(&payload_str)
+    .bind::<diesel::sql_types::Text, _>(&signed.stored)
     .execute(&mut conn);
 
     let url_clone = url.clone();
-    let payload_str = payload.to_string();
-    let payload_clone = payload_str.clone();
-    let secret_clone = secret.clone();
     tokio::spawn(async move {
         crate::webhook_delivery::deliver_with_retries(
             state_clone,
             delivery_id,
             url_clone,
-            &payload_clone,
-            &secret_clone,
+            &payload_str,
+            signed,
         )
         .await;
     });
