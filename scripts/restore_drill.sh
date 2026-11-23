@@ -28,6 +28,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 checks="$here/restore_drill_checks.py"
 
 dsn="${DATABASE_URL:-}"
+safe_dsn=""
 dump=""
 expected=""
 report=""
@@ -38,6 +39,41 @@ self_test="0"
 
 usage() {
   sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+# An unpredictable, private dump path: mktemp defeats pre-created symlinks and
+# TOCTOU races, chmod 600 makes the PII/password-hash payload local-only even
+# when the caller's umask is permissive.
+new_dump() {
+  local path
+  path="$(mktemp "${TMPDIR:-/tmp}/gb-restore-drill.XXXXXX.dump")"
+  chmod 600 "$path"
+  printf '%s' "$path"
+}
+
+# Offline proof of the dump guarantees: unique names and mode 0600. The
+# credential/argv half of the test lives in restore_drill_checks.py --self-test.
+security_self_test() {
+  local first second path mode failures=0
+  first="$(new_dump)"
+  second="$(new_dump)"
+  if [ "$first" = "$second" ]; then
+    echo "self-test FAIL: dump names are predictable" >&2
+    failures=1
+  fi
+  for path in "$first" "$second"; do
+    mode="$(stat -c '%a' "$path" 2>/dev/null || stat -f '%Lp' "$path" 2>/dev/null || echo '?')"
+    if [ "$mode" != "600" ]; then
+      echo "self-test FAIL: dump mode is '$mode' (expected 600)" >&2
+      failures=1
+    fi
+  done
+  rm -f "$first" "$second"
+  if [ "$failures" -ne 0 ]; then
+    return 1
+  fi
+  echo "self-test: dump names unpredictable, modes 0600"
+  return 0
 }
 
 while [ $# -gt 0 ]; do
@@ -56,6 +92,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$self_test" = "1" ]; then
+  security_self_test || exit 1
   exec python3 "$checks" --self-test
 fi
 
@@ -65,30 +102,17 @@ if [ -z "$dsn" ]; then
 fi
 
 # Never print credentials: keep scheme/host/port/database, drop the userinfo.
-masked="$(printf '%s' "$dsn" | sed -E 's#^([a-zA-Z][a-zA-Z0-9+.-]*)://[^@/]*@#\1://***@#')"
+masked="$(sed -E 's#^([a-zA-Z][a-zA-Z0-9+.-]*)://[^@/]*@#\1://***@#' <<< "$dsn")"
 scratch="gb_restore_drill_$$"
 workdir="$(mktemp -d "${TMPDIR:-/tmp}/gb-restore-drill.XXXXXX")"
 created_dump=""
 scratch_created="0"
 report="${report:-/tmp/gb-restore-drill-$(date -u +%Y%m%dT%H%M%SZ).md}"
 
-needed=(psql python3)
-if [ "$verify_only" = "0" ]; then
-  needed+=(pg_dump pg_restore)
-fi
-missing=()
-for tool in "${needed[@]}"; do
-  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
-done
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "error: missing required tool(s): ${missing[*]} — install the PostgreSQL client" >&2
-  exit 2
-fi
-
 drop_scratch() {
   if [ "$scratch_created" = "1" ]; then
-    if psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\" with (force)" >/dev/null 2>&1 ||
-       psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\"" >/dev/null 2>&1; then
+    if psql "$safe_dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\" with (force)" >/dev/null 2>&1 ||
+       psql "$safe_dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\"" >/dev/null 2>&1; then
       echo "-- dropped throwaway database: $scratch"
     else
       echo "warning: could not drop $scratch — drop it by hand: dropdb $scratch" >&2
@@ -108,13 +132,38 @@ cleanup() {
   rm -rf "$workdir"
   exit "$status"
 }
+# Armed before credential preparation: even a failure there removes the private
+# workdir (including the 0600 env file) and the throwaway database.
 trap cleanup EXIT
+
+needed=(psql python3)
+if [ "$verify_only" = "0" ]; then
+  needed+=(pg_dump pg_restore)
+fi
+missing=()
+for tool in "${needed[@]}"; do
+  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+done
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "error: missing required tool(s): ${missing[*]} — install the PostgreSQL client" >&2
+  exit 2
+fi
+
+# Credentials must never appear in a process argument list (`ps` exposes argv to
+# every local user). Write them to a 0600 env file inside the private workdir,
+# source it so libpq tools inherit PGUSER/PGPASSWORD, and keep a credential-free
+# DSN for every psql/pg_dump/pg_restore/python3 invocation below. The env file
+# lives in $workdir and is removed by cleanup() on every exit path.
+conn_env="$workdir/pg.env"
+safe_dsn="$(python3 "$checks" --prepare-conn "$conn_env" <<< "$dsn")"
+# shellcheck disable=SC1090
+source "$conn_env"
 
 echo "== restore drill: $masked"
 
 if [ "$verify_only" = "1" ]; then
   echo "-- mode: verify-only (no dump, no restore)"
-  args=(--dsn "$dsn" --label "verify-only (no restore)" --report "$report" --min-migrations "$min_migrations")
+  args=(--dsn "$safe_dsn" --label "verify-only (no restore)" --report "$report" --min-migrations "$min_migrations")
   if [ -n "$expected" ]; then
     args+=(--expected "$expected")
   fi
@@ -132,12 +181,12 @@ if [ -n "$dump" ] && [ ! -f "$dump" ]; then
 fi
 
 if [ -z "$dump" ]; then
-  dump="${TMPDIR:-/tmp}/gb-restore-drill-$$.dump"
+  dump="$(new_dump)"
   created_dump="$dump"
   echo "-- dump: $masked -> $dump"
-  pg_dump -Fc -d "$dsn" -f "$dump"
+  pg_dump -Fc -d "$safe_dsn" -f "$dump"
   expected="${expected:-$dump.manifest.json}"
-  python3 "$checks" --dsn "$dsn" --manifest "$expected"
+  python3 "$checks" --dsn "$safe_dsn" --manifest "$expected"
 elif [ -z "$expected" ] && [ -f "${dump}.manifest.json" ]; then
   expected="${dump}.manifest.json"
 fi
@@ -149,9 +198,9 @@ fi
 note="\`$(basename "$dump")\` restored with pg_restore --exit-on-error"
 
 echo "-- throwaway database: $scratch"
-psql "$dsn" -v ON_ERROR_STOP=1 -q -c "create database \"$scratch\""
+psql "$safe_dsn" -v ON_ERROR_STOP=1 -q -c "create database \"$scratch\""
 scratch_created="1"
-scratch_url="$(python3 "$checks" --scratch-url "$dsn" --name "$scratch")"
+scratch_url="$(python3 "$checks" --scratch-url "$safe_dsn" --name "$scratch")"
 
 echo "-- restore: $(basename "$dump") -> $scratch"
 if ! pg_restore --no-owner --no-privileges --exit-on-error -d "$scratch_url" "$dump"; then

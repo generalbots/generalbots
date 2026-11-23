@@ -15,6 +15,8 @@ Never push secrets (API keys, passwords, tokens) to git. Never commit `init.json
 
 **Credentials cache:** Agent reads `~/.gbo-credentials` for production IPs, container names, Vault tokens, MinIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
 
+**Operator address table:** the authoritative IP/host mapping (container IPs, DNAT targets, public server addresses) is kept only in that private operator record, outside the repository. This guide uses placeholders such as `<email-container-ip>` and `<srv1-public-ip>`; never paste the real values here — `scripts/check_doc_ips.py` rejects literal IPs in tracked Markdown.
+
 ---
 
 ## ENVIRONMENT CONTEXT

@@ -1,7 +1,7 @@
 //! Split from `suite.rs` — 258 lines.
 
 use super::*;
-use crate::ui_server::js_escape::html_attr;
+use crate::ui_server::js_escape::{html_attr, js_window_script};
 
 /// Page names served as standalone auth pages (not bot workspaces). Only
 /// names with a real hosted page belong here: `forgot-password` and
@@ -12,6 +12,13 @@ pub(crate) fn is_auth_page(bot_name: Option<&str>) -> bool {
         Some(name) => name.ends_with(".html") || name == "login" || name == "register",
         None => false,
     }
+}
+
+/// Build the config script injected into the desktop shell (#2702): the
+/// env-derived `LOGIN_URL` is escaped by the shared helper before it reaches
+/// the HTML.
+fn build_login_script(login_url: &str) -> String {
+    js_window_script(&[("GB_LOGIN_URL", login_url)])
 }
 
 pub async fn serve_suite(
@@ -92,10 +99,7 @@ pub async fn serve_suite_impl(
                 if !auth_page {
                     let login_url = std::env::var("LOGIN_URL")
                         .unwrap_or_else(|_| "http://localhost:5000".to_string());
-                    let login_script = format!(
-                        r#"<script>window.GB_LOGIN_URL = "{}";</script>"#,
-                        js_string(&login_url)
-                    );
+                    let login_script = build_login_script(&login_url);
                     html.insert_str(head_end + base_tag.len(), &login_script);
 
                     if let Some(name) = bot_name {
@@ -104,10 +108,7 @@ pub async fn serve_suite_impl(
                             "serve_suite: Injecting bot_name '{}' into page with base href='{}'",
                             name, base_href
                         );
-                        let bot_script = format!(
-                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}";</script>"#,
-                            js_string(name)
-                        );
+                        let bot_script = js_window_script(&[("__INITIAL_BOT_NAME__", &name)]);
                         html.insert_str(ins_offset, &bot_script);
                         info!("serve_suite: Successfully injected base tag and bot_name script");
                     } else {
@@ -293,6 +294,26 @@ pub async fn serve_suite_impl(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hostile_env_values_cannot_break_out_of_the_injected_script() {
+        // #2702: LOGIN_URL is env-controlled and must stay inert in the
+        // <script> injected into every suite page.
+        for hostile in [
+            "\";alert(1);//",
+            "</script><img src=x onerror=alert(1)>",
+            "a\u{2028}b\u{2029}c",
+            "&<>",
+        ] {
+            let script = build_login_script(hostile);
+            assert_eq!(script.matches("</script>").count(), 1, "{script}");
+            assert!(!script.contains("<img"), "{script}");
+            assert!(!script.contains('\u{2028}'), "{script}");
+            assert!(!script.contains('\u{2029}'), "{script}");
+        }
+        let script = build_login_script("</script>");
+        assert!(script.contains("\\u003c/script\\u003e"), "{script}");
+    }
 
     #[test]
     fn real_auth_pages_are_recognized() {

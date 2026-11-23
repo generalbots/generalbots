@@ -8,32 +8,11 @@ use tokio::sync::Mutex;
 
 use crate::BrowserSession;
 
-/// Hard cap for the browser agent loop (#2883). A caller can never drive more
-/// steps than this, regardless of the requested budget.
+mod log_safety;
+use log_safety::{log_safe_fill, log_safe_url};
+
+/// Hard cap for the browser agent loop (#2883), regardless of requested budget.
 pub const MAX_AGENT_STEPS: usize = 20;
-/// Reduces a URL to `scheme://host[:port]` for logging (#2678).
-///
-/// Query strings, fragments and userinfo can carry tokens and identifiers, so
-/// they never reach the log. A value that cannot be parsed is reported as an
-/// opaque marker rather than echoed.
-fn log_safe_url(url: &str) -> String {
-    let without_scheme = match url.split_once("://") {
-        Some((scheme, rest)) => (scheme, rest),
-        None => return "<unparseable-url>".to_string(),
-    };
-    let (scheme, rest) = without_scheme;
-    let authority = rest
-        .split(['/', '?', '#'])
-        .next()
-        .unwrap_or_default()
-        .rsplit('@')
-        .next()
-        .unwrap_or_default();
-    if authority.is_empty() {
-        return "<unparseable-url>".to_string();
-    }
-    format!("{scheme}://{authority}")
-}
 /// Budget used when a caller does not specify one.
 const DEFAULT_AGENT_STEPS: usize = 10;
 /// Process-local llama.cpp endpoint shipped with the stack; used only when the
@@ -432,10 +411,7 @@ pub async fn execute_action(
         AgentAction::Fill { selector, text } => {
             // #2678 — form values are secrets/PII (passwords, tokens, personal
             // data). Log the target and the size only, never the content.
-            log::info!(
-                "Agent filling {selector} with {} bytes",
-                text.len()
-            );
+            log::info!("Agent filling {}", log_safe_fill(selector, text));
             session.fill(selector, text).await?;
         }
         AgentAction::ExtractText => {
@@ -470,26 +446,4 @@ pub async fn execute_action(
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod logging_tests {
-    use super::log_safe_url;
-
-    #[test]
-    fn query_strings_and_userinfo_are_stripped() {
-        assert_eq!(
-            log_safe_url("https://user:pass@example.com:8443/path?token=secret#frag"),
-            "https://example.com:8443"
-        );
-        assert_eq!(
-            log_safe_url("http://localhost:3000/suite/desktop.html?a=1"),
-            "http://localhost:3000"
-        );
-    }
-
-    #[test]
-    fn unparseable_values_are_not_echoed() {
-        assert_eq!(log_safe_url("not a url"), "<unparseable-url>");
-    }
 }

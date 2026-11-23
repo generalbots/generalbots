@@ -15,6 +15,7 @@ mod commands;
 mod handoff;
 mod hostcheck;
 mod media;
+mod origin;
 mod paths;
 mod progress;
 mod provision;
@@ -32,6 +33,7 @@ pub use types::*;
 pub use window::{ensure_suite_window, open_window, reveal_suite};
 
 pub(crate) use handoff::write_admin_credentials_draft;
+pub(crate) use origin::navigation_guard;
 pub(crate) use paths::{
     draft_path, installers_path, log_path, progress_path, stack_path, workspace_path,
 };

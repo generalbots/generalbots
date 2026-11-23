@@ -3,8 +3,8 @@
 //! the pure decision function extracted from the permission callback.
 
 use super::{
-    decide, origin_allowed, origin_of, redacted, revoked, set_device_permission, split_authority,
-    BUNDLED_ORIGINS, DEV_ORIGIN, MediaDecision,
+    decide, origin_allowed, origin_of, redacted, revoked, sensitive_permission_allowed,
+    set_device_permission, split_authority, MediaDecision, BUNDLED_ORIGINS, DEV_ORIGIN,
 };
 
 #[test]
@@ -73,10 +73,20 @@ fn test_localhost_ports_follow_debug_policy() {
         MediaDecision::DenyForeign
     );
     assert_eq!(
-        decide(Some("https://localhost:8080/api/product"), false, true, &[], false),
+        decide(
+            Some("https://localhost:8080/api/product"),
+            false,
+            true,
+            &[],
+            false
+        ),
         MediaDecision::Grant
     );
-    for page in ["http://localhost", "http://localhost:9999", "http://127.0.0.1:8080"] {
+    for page in [
+        "http://localhost",
+        "http://localhost:9999",
+        "http://127.0.0.1:8080",
+    ] {
         assert_eq!(
             decide(Some(page), true, true, &[], true),
             MediaDecision::DenyForeign,
@@ -121,19 +131,34 @@ fn test_harmless_permissions_never_grant() {
 
 #[test]
 fn test_unparseable_page_uri_is_denied() {
-    assert_eq!(decide(None, true, true, &[], false), MediaDecision::DenyUnparseable);
+    assert_eq!(
+        decide(None, true, true, &[], false),
+        MediaDecision::DenyUnparseable
+    );
     assert_eq!(
         decide(Some("not a uri"), true, true, &[], false),
         MediaDecision::DenyUnparseable
     );
     assert_eq!(
-        decide(Some("http://user:secret@localhost:3000/"), true, false, &[], true),
+        decide(
+            Some("http://user:secret@localhost:3000/"),
+            true,
+            false,
+            &[],
+            true
+        ),
         MediaDecision::DenyUnparseable
     );
     // file:// and an empty URI have no authority to compare against the
     // allow-list, so they are unparseable rather than foreign (#2504).
-    assert_eq!(decide(Some("file://"), true, true, &[], true), MediaDecision::DenyUnparseable);
-    assert_eq!(decide(Some(""), true, true, &[], true), MediaDecision::DenyUnparseable);
+    assert_eq!(
+        decide(Some("file://"), true, true, &[], true),
+        MediaDecision::DenyUnparseable
+    );
+    assert_eq!(
+        decide(Some(""), true, true, &[], true),
+        MediaDecision::DenyUnparseable
+    );
 }
 
 #[test]
@@ -142,11 +167,23 @@ fn test_env_allowlist_requires_an_exact_origin() {
     assert!(origin_allowed("https://partner.example", &extra, false));
     assert!(origin_allowed("HTTPS://PARTNER.EXAMPLE", &extra, false));
     assert_eq!(
-        decide(Some("https://partner.example.evil.example/"), true, false, &extra, false),
+        decide(
+            Some("https://partner.example.evil.example/"),
+            true,
+            false,
+            &extra,
+            false
+        ),
         MediaDecision::DenyForeign
     );
     assert_eq!(
-        decide(Some("https://partner.example/drive"), true, false, &[], false),
+        decide(
+            Some("https://partner.example/drive"),
+            true,
+            false,
+            &[],
+            false
+        ),
         MediaDecision::DenyForeign
     );
 }
@@ -167,7 +204,10 @@ fn test_origin_of_normalizes_page_uris() {
 
 #[test]
 fn test_authority_port_parsing_is_fail_closed() {
-    assert_eq!(split_authority("localhost:3000"), ("localhost", Some(3000u16)));
+    assert_eq!(
+        split_authority("localhost:3000"),
+        ("localhost", Some(3000u16))
+    );
     assert_eq!(split_authority("[::1]:443"), ("::1", Some(443u16)));
     assert_eq!(split_authority("localhost:abc"), ("localhost:abc", None));
     assert_eq!(
@@ -186,6 +226,64 @@ fn test_ip_literals_are_masked_in_logs() {
     );
 }
 
+#[test]
+fn test_sensitive_permissions_only_for_trusted_local_origins() {
+    // The shell's own bundled UI (wizard/splash) is trusted in both profiles.
+    for origin in BUNDLED_ORIGINS {
+        assert!(sensitive_permission_allowed(Some(origin), false));
+        assert!(sensitive_permission_allowed(
+            Some(&format!("{origin}/index.html?q=1#frag")),
+            false
+        ));
+    }
+    // The Tauri dev server serves the trusted suite only in debug builds.
+    assert!(sensitive_permission_allowed(Some(DEV_ORIGIN), true));
+    assert!(!sensitive_permission_allowed(Some(DEV_ORIGIN), false));
+
+    // #2698 — every other origin is untrusted, above all the loopback sidecar
+    // that serves remote/model-generated content. Local-network proximity and
+    // a port from the media allowlist do not make it trustworthy; neither does
+    // a `GB_MEDIA_ORIGINS` entry (checked in the next test).
+    for page in [
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "https://localhost:8080",
+        "https://127.0.0.1:8080",
+        "http://localhost:4000",
+        "http://localhost:5000",
+        "https://pragmatismo.com.br/",
+        "https://beiner.generalbots.org/drive",
+        "https://evil.example",
+        "http://user:secret@localhost:3000/",
+        "file:///etc/passwd",
+        "not a uri",
+    ] {
+        assert!(
+            !sensitive_permission_allowed(Some(page), true),
+            "sensitive permission must not be granted to {page} in debug"
+        );
+        assert!(
+            !sensitive_permission_allowed(Some(page), false),
+            "sensitive permission must not be granted to {page} in release"
+        );
+    }
+    assert!(!sensitive_permission_allowed(None, true));
+    assert!(!sensitive_permission_allowed(None, false));
+}
+
+#[test]
+fn test_media_origin_override_does_not_widen_sensitive_permissions() {
+    let extra = vec!["https://partner.example".to_string()];
+    assert!(origin_allowed("https://partner.example", &extra, false));
+    assert!(!sensitive_permission_allowed(
+        Some("https://partner.example"),
+        false
+    ));
+    assert!(!sensitive_permission_allowed(
+        Some("https://partner.example"),
+        true
+    ));
+}
 
 #[test]
 fn test_settings_revoke_overrides_the_allowlist() {

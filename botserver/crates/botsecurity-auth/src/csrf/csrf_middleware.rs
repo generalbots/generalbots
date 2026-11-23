@@ -134,93 +134,153 @@ fn loopback_origin_ok(request: &Request<Body>) -> Result<bool, ()> {
     Ok(false)
 }
 
+/// Outcome of the pure CSRF exemption decision (#2683).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CsrfDecision {
+    /// The request is safe (read-only) or authenticated by a non-cookie means.
+    Skip,
+    /// A credential-entry POST carried a foreign Origin/Referer (#2815).
+    RejectCrossOrigin,
+    /// A non-loopback Origin/Referer in `no_security` desktop mode.
+    RejectNonLoopback,
+    /// No exemption applies: the double-submit token must be validated.
+    Validate,
+}
+
+/// Pure exemption decision, free of axum types so it can be unit-tested
+/// without a running server (#2683).
+///
+/// The order preserves the previous middleware behaviour exactly:
+/// read-only methods → same-origin checks → path exemptions → the `no_security`
+/// loopback guard → Bearer/internal-service identities → token validation.
+///
+/// Crucially, a path exemption is only one input: a cookie/session-authenticated
+/// state-changing request whose path is NOT exempt reaches `Validate`, so no
+/// ambient-credential write is left unguarded. Bearer callers are stateless and
+/// skip the token check here, independent of any path. `loopback_verdict` is
+/// `Some(true/false)` for a loopback / absent Origin and `None` for a foreign
+/// non-loopback Origin, keeping the desktop-mode CSRF guard active.
+fn csrf_decision(
+    config: &CsrfConfig,
+    method: &str,
+    path: &str,
+    has_bearer: bool,
+    is_same_origin: bool,
+    loopback_verdict: Option<bool>,
+    is_internal_service: bool,
+) -> CsrfDecision {
+    if !config.enabled {
+        return CsrfDecision::Skip;
+    }
+
+    let exempt_method = config
+        .exempt_methods
+        .iter()
+        .any(|m| m.eq_ignore_ascii_case(method));
+    if exempt_method {
+        return CsrfDecision::Skip;
+    }
+
+    // #2815 — login/signup cannot carry a double-submit token (the forms post
+    // JSON), so require a same-origin Origin/Referer before the path exemption
+    // can apply. Bearer callers stay exempt.
+    let origin_check_required = config
+        .origin_check_paths
+        .iter()
+        .any(|pattern| path_matches(pattern, path));
+    if origin_check_required && !has_bearer && !is_same_origin {
+        return CsrfDecision::RejectCrossOrigin;
+    }
+
+    let exempt_path = config
+        .exempt_paths
+        .iter()
+        .any(|pattern| path_matches(pattern, path));
+    if exempt_path {
+        return CsrfDecision::Skip;
+    }
+
+    // CSRF stays enabled in `no_security` desktop mode: a browser cross-site
+    // request sends a non-loopback Origin/Referer and is rejected. A loopback
+    // origin or no Origin at all (a local, non-browser tool) is allowed — the
+    // loopback check replaces the double-submit token the WebView cannot send.
+    if config.no_security_mode {
+        return match loopback_verdict {
+            None => CsrfDecision::RejectNonLoopback,
+            Some(_) => CsrfDecision::Skip,
+        };
+    }
+
+    // Bearer tokens are stateless; a cross-origin page cannot read one from a
+    // cookie jar. The internal service identity is inserted by the auth
+    // middleware after matching the configured secret (#2122).
+    if has_bearer || is_internal_service {
+        return CsrfDecision::Skip;
+    }
+
+    CsrfDecision::Validate
+}
+
 pub async fn csrf_middleware(
     csrf_manager: Arc<CsrfManager>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
     let config = csrf_manager.config();
-
-    if !config.enabled {
-        return next.run(request).await;
-    }
-
     let method = request.method().to_string();
     let path = request.uri().path().to_string();
 
-    if csrf_manager.is_exempt_method(&method) {
-        return next.run(request).await;
-    }
-
-    // #2815 — the login/signup POSTs cannot carry a double-submit token (the
-    // forms post JSON), so they are exempted from the token check. Enforce
-    // same-origin Origin/Referer validation on them instead, before the
-    // blanket exemption applies, so a foreign site cannot drive a session-
-    // fixation login/signup. Bearer/API callers stay exempt.
-    if config
-        .origin_check_paths
-        .iter()
-        .any(|pattern| path_matches(pattern, &path))
-        && !has_bearer_auth(&request)
-        && !is_same_origin(&request)
-    {
-        warn!("CSRF blocked cross-origin {} {} (#2815)", method, path);
-        return (
-            StatusCode::FORBIDDEN,
-            Json(serde_json::json!({
-                "error": "csrf_validation_failed",
-                "message": "Cross-origin requests are not allowed for this endpoint"
-            })),
-        )
-            .into_response();
-    }
-
-    if csrf_manager.is_exempt_path(&path) {
-        return next.run(request).await;
-    }
-
-    if config.no_security_mode {
-        match loopback_origin_ok(&request) {
-            Ok(true) => return next.run(request).await,
-            Ok(false) => {
-                // No Origin/Referer: non-browser/local clients on a loopback-bound
-                // desktop server are allowed; browser cross-site requests send Origin.
-                return next.run(request).await;
-            }
-            Err(()) => {
-                warn!(
-                    "CSRF blocked non-loopback origin for {} {} in no_security mode",
-                    method, path
-                );
-                return (
-                    StatusCode::FORBIDDEN,
-                    Json(serde_json::json!({
-                        "error": "csrf_validation_failed",
-                        "message": "Cross-origin requests are not allowed in desktop-local mode"
-                    })),
-                )
-                    .into_response();
-            }
-        }
-    }
-
-    // Skip CSRF for API requests using Bearer token auth (stateless)
-    if has_bearer_auth(&request) {
-        return next.run(request).await;
-    }
-
-    // Skip CSRF only for the verified internal service identity that the auth
-    // middleware inserted after matching `X-Internal-Token` against the
-    // configured secret (e.g. the VIBE RUN BASIC keyword calling back into the
-    // local API). A caller-supplied header value is never an identity, so a
-    // bare `X-User-ID`/`X-Internal-Token` string must not exempt a request
-    // from CSRF (#2122).
+    // Gather the request facts as pure values, then delegate the decision so
+    // it can be exercised in tests without an axum runtime (#2683).
+    let has_bearer = has_bearer_auth(&request);
+    let is_same_origin = is_same_origin(&request);
+    let loopback_verdict = match loopback_origin_ok(&request) {
+        Ok(value) => Some(value),
+        Err(()) => None,
+    };
     let is_internal_service = request
         .extensions()
         .get::<AuthenticatedUser>()
         .is_some_and(|user| user.has_role(&Role::Service) && user.username == "service:internal");
-    if is_internal_service {
-        return next.run(request).await;
+
+    let decision = csrf_decision(
+        config,
+        &method,
+        &path,
+        has_bearer,
+        is_same_origin,
+        loopback_verdict,
+        is_internal_service,
+    );
+
+    match decision {
+        CsrfDecision::Skip => return next.run(request).await,
+        CsrfDecision::RejectCrossOrigin => {
+            warn!("CSRF blocked cross-origin {} {} (#2815)", method, path);
+            return (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "csrf_validation_failed",
+                    "message": "Cross-origin requests are not allowed for this endpoint"
+                })),
+            )
+                .into_response();
+        }
+        CsrfDecision::RejectNonLoopback => {
+            warn!(
+                "CSRF blocked non-loopback origin for {} {} in no_security mode",
+                method, path
+            );
+            return (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "csrf_validation_failed",
+                    "message": "Cross-origin requests are not allowed in desktop-local mode"
+                })),
+            )
+                .into_response();
+        }
+        CsrfDecision::Validate => {}
     }
 
     let header_token = request
@@ -323,3 +383,7 @@ mod origin_tests {
         assert!(!paths.iter().any(|p| path_matches(p, "/api/cloud/profile")));
     }
 }
+
+#[cfg(test)]
+#[path = "csrf_middleware_exemption_tests.rs"]
+mod exemption_decision_tests;

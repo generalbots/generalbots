@@ -240,7 +240,7 @@ pub fn configure_router() -> Router {
         router
             .fallback(get(index))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 
@@ -268,7 +268,7 @@ pub fn configure_cloud_router() -> Router {
             // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
             .fallback(get(serve_cloud_fallback))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 
@@ -287,7 +287,7 @@ pub fn configure_login_router() -> Router {
             .nest("/ws", create_ws_router())
             .fallback(get(serve_login_index))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 

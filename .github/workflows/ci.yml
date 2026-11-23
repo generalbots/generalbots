@@ -671,6 +671,16 @@ jobs:
           python3 scripts/check_upload_validation.py --self-test
           python3 scripts/check_upload_validation.py --check
 
+      # #2674 — documentation must not commit real production IP literals.
+      # The self-test proves the gate fails on an added literal (and accepts
+      # the documented placeholder ranges); the scan then covers every tracked
+      # *.md, including INFRA.md. Pure Python, no network, no extra action.
+      - name: "Guard: no real IP literals in documentation (#2674)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_doc_ips.py --self-test
+          python3 scripts/check_doc_ips.py
+
   # #2543 — the three error-handling lints stay `warn` in Cargo.toml because
   # workspace lints cannot express a per-file baseline exclusion. This is the
   # equivalent blocking gate: clippy emits JSON diagnostics, the script keeps
@@ -900,6 +910,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/restore_drill_checks.py --self-test
+          scripts/restore_drill.sh --self-test
           scripts/restore_drill.sh --dsn "$DATABASE_URL" --report /tmp/gb-restore-drill.md
           cat /tmp/gb-restore-drill.md
 

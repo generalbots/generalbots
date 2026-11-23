@@ -32,6 +32,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from restore_drill_credentials import credential_self_test, write_pg_env
+
 CORE_TABLES = ("organizations", "branches", "bots", "users")
 SCOPE_COLUMNS = ("org_id", "branch_id", "bot_id", "tenant_id")
 # `Uuid::nil()` is the documented global SaaS scope (`branch_id = nil`), not a
@@ -342,6 +344,7 @@ def fixture_self_test() -> int:
     ]
 
     failures: list[str] = []
+    credential_self_test(failures)
     for name, observed, expected, minimum, should_pass, needle in cases:
         found = compare(observed, expected, minimum)
         if should_pass and found:
@@ -364,7 +367,7 @@ def fixture_self_test() -> int:
         for failure in failures:
             print(f"FAIL: {failure}", file=sys.stderr)
         return 1
-    print(f"self-test: ok ({len(cases)} assertion case(s), scratch URL and masking)")
+    print(f"self-test: ok ({len(cases)} assertion case(s), scratch URL, masking, 0600 creds)")
     return 0
 
 
@@ -384,8 +387,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-migrations", type=int, default=1, help="minimum applied migrations")
     parser.add_argument("--scratch-url", help="print this URL pointed at --name and exit")
     parser.add_argument("--name", help="database name for --scratch-url")
+    parser.add_argument("--prepare-conn", metavar="ENVFILE",
+                        help="read a DSN from stdin, write a 0600 env file, print a credential-free DSN")
     args = parser.parse_args(argv)
 
+    if args.prepare_conn:
+        print(write_pg_env(sys.stdin.read().rstrip("\n"), args.prepare_conn))
+        return 0
     if args.self_test:
         return fixture_self_test()
     if args.scratch_url:

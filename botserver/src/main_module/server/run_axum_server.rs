@@ -2,6 +2,11 @@ use super::*;
 #[cfg(feature = "deployment")]
 use std::net::SocketAddr;
 
+// #2683 — the exemption list lives in a pure, unit-tested sibling module.
+#[path = "run_axum_server_csrf_config.rs"]
+mod csrf_config;
+use csrf_config::build_csrf_config;
+
 pub async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -128,77 +133,9 @@ pub async fn run_axum_server(
         PanicHandlerConfig::development()
     };
 
-    let csrf_config = CsrfConfig {
-        // Keep CSRF active in all modes. In single-user desktop (`no_security`),
-        // the middleware enforces loopback Origin/Referer checks so a cross-site
-        // page cannot drive the localhost API, while trusted loopback origins
-        // (the desktop WebView) can proceed without a double-submit token pair.
-        enabled: true,
-        no_security_mode: sec.no_security,
-        exempt_paths: vec![
-            "/api/health".into(),
-            "/api/auth".into(),
-            "/api/auth/login".into(),
-            "/api/auth/refresh".into(),
-            "/api/auth/bootstrap".into(),
-            "/api/setup/status".into(),
-            "/api/product".into(),
-            "/api/manifest".into(),
-            "/api/i18n".into(),
-            "/api/client-errors".into(),
-            // Peer machine-to-machine routes (#2141): a peer presents the shared
-            // node token, not a CSRF cookie, so only these exact routes are
-            // exempt. `enable`/`disable` are admin controls and stay under the
-            // normal CSRF check.
-            "/api/peer/status".into(),
-            "/api/peer/register".into(),
-            "/api/peer/heartbeat".into(),
-            "/api/peer/home-site".into(),
-            "/api/peer/payloads".into(),
-            // #2815 — login/signup stay exempt from the double-submit token
-            // (the JS forms post JSON), but the middleware now requires a
-            // same-origin Origin/Referer on these two paths before honouring
-            // the exemption. Bearer/other API paths keep the exemption.
-            "/api/cloud/auth*".into(),
-            "/api/sheet*".into(),
-            "/suite/sheet*".into(),
-            "/api/auth/cloud-sso".into(),
-            "/api/auth/suite-sso".into(),
-            "/api/auth/unified-login".into(),
-            "/api/catalog".into(),
-            "/ws".into(),
-            "/ws/".into(),
-            "/webhook/whatsapp".into(),
-            "/api/whatsapp/webhook".into(),
-            "/api/facebook/webhook".into(),
-            "/webhook".into(),
-            // Inbound channel webhooks arrive from the provider, which cannot
-            // hold a CSRF token; each handler proves the call itself (#1327).
-            "/webhook/telegram*".into(),
-            "/api/instagram/webhook".into(),
-            "/api/msteams/messages".into(),
-            // #2538 — published-site forms are anonymous by design; the
-            // handler enforces a honeypot, per-e-mail rate limit and field
-            // validation instead of a session cookie. The slug addresses one
-            // published site, never a tenant namespace.
-            "/forms/*".into(),
-            // CalDAV clients (Thunderbird, Apple Calendar, DAVx5) authenticate
-            // with HTTP Basic and their write verbs — PROPFIND, REPORT, PUT,
-            // DELETE — are not in the exempt method list, so a CSRF check
-            // rejected every discovery request and no client could sync. The
-            // DAV router authenticates and authorizes each request itself
-            // (#1335).
-            "/caldav*".into(),
-            "/.well-known/caldav".into(),
-        ],
-        // #2815: enforce same-origin Origin/Referer on the two anonymous auth
-        // POSTs instead of leaving them wholly unprotected by the exemption.
-        origin_check_paths: vec![
-            "/api/cloud/auth/login".into(),
-            "/api/cloud/auth/signup".into(),
-        ],
-        ..Default::default()
-    };
+    // #2683 — built by a pure helper so the exemption list is unit-testable
+    // and every entry carries an inline auth-model justification.
+    let csrf_config = build_csrf_config(sec.no_security);
     // #2141 — the CSRF signing secret must never be a public constant: anyone
     // who can read the repository could then mint a valid token/header pair.
     // Resolution order is env → Vault → ephemeral (development only); in

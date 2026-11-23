@@ -84,9 +84,12 @@ fn capability_origins_are_scoped_to_shell_and_sidecar() {
     let caps = config_json("capabilities/default.json");
     assert_eq!(caps["local"].as_bool(), Some(true));
 
-    let urls = caps["remote"]["urls"]
+    // #2688 split the capabilities: the local-only wizard set lives in
+    // default.json, while the sidecar-facing main WebView set lives in main.json.
+    let main = config_json("capabilities/main.json");
+    let urls = main["remote"]["urls"]
         .as_array()
-        .expect("remote.urls must be a list");
+        .expect("remote.urls must be a list in main.json");
     let urls: Vec<&str> = urls.iter().filter_map(|entry| entry.as_str()).collect();
     for url in &urls {
         assert!(!url.contains('*'), "wildcard remote origin {url}");
@@ -96,9 +99,11 @@ fn capability_origins_are_scoped_to_shell_and_sidecar() {
     assert!(urls.contains(&"http://127.0.0.1:8080"));
     assert!(urls.contains(&"http://localhost:8080"));
 
-    let raw = read_config("capabilities/default.json").to_ascii_lowercase();
-    assert!(!raw.contains("http://**"), "broad HTTP plugin permission remains");
-    assert!(!raw.contains("https://**"), "broad HTTP plugin permission remains");
+    for file in ["capabilities/default.json", "capabilities/main.json"] {
+        let raw = read_config(file).to_ascii_lowercase();
+        assert!(!raw.contains("http://**"), "broad HTTP plugin permission remains in {file}");
+        assert!(!raw.contains("https://**"), "broad HTTP plugin permission remains in {file}");
+    }
 }
 
 /// #2688/#2698 — privilege separation. The sidecar origin (main window) gets

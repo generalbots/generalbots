@@ -173,3 +173,57 @@ mod csrf_origin_tests {
         }
     }
 }
+
+/// #2683 — the production exemption list must not cover cookie/session
+/// state-changing endpoints. The sheet UI sends `Authorization: Bearer` (the
+/// middleware exempts it), so a path exemption would only add a CSRF hole.
+mod csrf_exemption_tests {
+    use super::*;
+
+    fn production_manager() -> CsrfManager {
+        CsrfManager::new(
+            build_csrf_config(false),
+            b"this-is-a-very-long-secret-key-for-testing-csrf",
+        )
+        .expect("test manager")
+    }
+
+    #[test]
+    fn sheet_and_catalog_paths_are_not_exempt() {
+        let manager = production_manager();
+        for path in [
+            "/api/sheet/save",
+            "/api/sheet/delete",
+            "/api/sheet/cells",
+            "/suite/sheet/fragments/charts",
+            "/api/catalog",
+            "/api/catalog/products",
+        ] {
+            assert!(
+                !manager.is_exempt_path(path),
+                "{path} must require the CSRF token for a cookie-auth write"
+            );
+        }
+    }
+
+    #[test]
+    fn documented_machine_caller_exemptions_remain() {
+        let manager = production_manager();
+        for path in [
+            "/api/health",
+            "/webhook/whatsapp",
+            "/webhook/telegram/acme",
+            "/forms/contact",
+            "/caldav/principal",
+        ] {
+            assert!(manager.is_exempt_path(path), "{path} must stay exempt");
+        }
+    }
+
+    #[test]
+    fn csrf_stays_enabled_in_no_security_desktop_mode() {
+        let config = build_csrf_config(true);
+        assert!(config.enabled, "CSRF is never switched off (#2683)");
+        assert!(config.no_security_mode, "desktop mode must enable loopback checks");
+    }
+}

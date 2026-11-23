@@ -1,7 +1,7 @@
 use axum::{
     extract::{
-        OriginalUri, Query, State,
         ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade},
+        OriginalUri, Query, State,
     },
     response::IntoResponse,
 };
@@ -51,9 +51,19 @@ fn redact_query(query: &str) -> String {
         .join("&")
 }
 
+/// Build exactly the string the API WS proxy writes to its INFO log.
+/// Kept separate from the `info!` call so the "no credential in logs"
+/// property can be asserted without a log capture harness (#2703).
+fn redacted_api_ws_target(backend_base: &str, path: &str, query: &str) -> String {
+    format!(
+        "{backend_base}{path}?{}",
+        redact_query(query.trim_start_matches('?'))
+    )
+}
+
 #[cfg(test)]
 mod redaction_tests {
-    use super::redact_query;
+    use super::{redact_query, redacted_api_ws_target};
 
     #[test]
     fn tokens_are_redacted_but_other_parameters_survive() {
@@ -62,6 +72,37 @@ mod redaction_tests {
         assert!(redacted.contains("session_id=abc"));
         assert!(redacted.contains("bot_name=demo"));
         assert!(redacted.contains("token=<redacted>"));
+    }
+
+    #[test]
+    fn access_token_and_mixed_case_variants_are_redacted() {
+        let redacted = redact_query("ACCESS_TOKEN=SENTINEL-A&Token=SENTINEL-B&id=ok");
+        assert!(!redacted.contains("SENTINEL-A"));
+        assert!(!redacted.contains("SENTINEL-B"));
+        assert!(redacted.contains("ACCESS_TOKEN=<redacted>"));
+        assert!(redacted.contains("Token=<redacted>"));
+        assert!(redacted.contains("id=ok"));
+    }
+
+    #[test]
+    fn empty_credential_is_not_turned_into_a_value() {
+        assert_eq!(redact_query("token&id=ok"), "token&id=ok");
+    }
+
+    #[test]
+    fn logged_target_never_contains_a_sentinel_token() {
+        let logged = redacted_api_ws_target(
+            "ws://backend",
+            "/api/terminal/ws",
+            "?id=session-1&capability=cap-1&token=SENTINEL-JWT&access_token=SENTINEL-2",
+        );
+        assert!(!logged.contains("SENTINEL-JWT"));
+        assert!(!logged.contains("SENTINEL-2"));
+        assert!(logged.starts_with("ws://backend/api/terminal/ws?"));
+        assert!(logged.contains("id=session-1"));
+        assert!(logged.contains("capability=cap-1"));
+        assert!(logged.contains("token=<redacted>"));
+        assert!(logged.contains("access_token=<redacted>"));
     }
 }
 
@@ -93,8 +134,8 @@ async fn handle_api_ws_proxy(
     let backend_url = format!("{backend_base}{path}{query}");
 
     info!(
-        "Proxying API WebSocket to: {backend_base}{path}?{}",
-        redact_query(query.trim_start_matches('?'))
+        "Proxying API WebSocket to: {}",
+        redacted_api_ws_target(&backend_base, &path, &query)
     );
 
     let backend_socket = if backend_url.starts_with("wss://") {
@@ -230,8 +271,8 @@ fn normalize_ws_bot_name(name: &str) -> String {
         "brazil",
         "browser",
         "campaigns",
-    "events",
-    "approvals",
+        "events",
+        "approvals",
         "compliance",
         "database",
         "email",

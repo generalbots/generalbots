@@ -71,6 +71,14 @@ pub fn run() {
 
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init());
+    // #2697 — guard the privileged main WebView against redirects to external
+    // origins. Registered before any window is created, so it also covers the
+    // config-created `main` window (the builder-level hook only covers windows
+    // we create ourselves).
+    #[cfg(feature = "desktop-local")]
+    {
+        builder = builder.plugin(crate::desktop::wizard::navigation_guard());
+    }
     #[cfg(target_os = "linux")]
     { builder = builder.plugin(crate::desktop::webkit_permissions::plugin()); }
     let builder = builder.manage(tray_manager).manage(service_monitor);

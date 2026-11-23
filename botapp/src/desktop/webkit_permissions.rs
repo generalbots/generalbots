@@ -27,6 +27,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager};
 use webkit2gtk::glib::prelude::Cast;
 use webkit2gtk::{
+    GeolocationPermissionRequest, NotificationPermissionRequest, PermissionRequest,
     PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt,
     WebViewExt,
 };
@@ -155,7 +156,10 @@ fn split_authority(authority: &str) -> (&str, Option<u16>) {
 /// attack like `evil.pragmatismo.com.br` never grants media.
 fn product_host_allowed(host: &str) -> bool {
     let lower = host.to_ascii_lowercase();
-    if PRODUCT_HOSTS.iter().any(|allowed| lower.as_str() == *allowed) {
+    if PRODUCT_HOSTS
+        .iter()
+        .any(|allowed| lower.as_str() == *allowed)
+    {
         return true;
     }
     match lower.strip_suffix(BOT_SUBDOMAIN_SUFFIX) {
@@ -221,6 +225,26 @@ fn decide(
     }
 }
 
+/// #2698 — geolocation and notifications are sensitive permissions. They are
+/// granted only to the shell's own trusted local UI: the bundled custom-scheme
+/// origins, plus the Tauri dev server in debug builds. The loopback sidecar
+/// (`http(s)://localhost:8080` / `127.0.0.1:8080`) serves remote, possibly
+/// model-generated content, so it is explicitly untrusted here even though it
+/// is local on the network. Unlike media, the `GB_MEDIA_ORIGINS` override never
+/// widens this allowlist.
+fn sensitive_permission_allowed(page_uri: Option<&str>, debug: bool) -> bool {
+    let Some(origin) = page_uri.and_then(origin_of) else {
+        return false;
+    };
+    if BUNDLED_ORIGINS
+        .iter()
+        .any(|allowed| origin.eq_ignore_ascii_case(allowed))
+    {
+        return true;
+    }
+    debug && origin.eq_ignore_ascii_case(DEV_ORIGIN)
+}
+
 /// Parses the optional operator override into exact normalised origins. An
 /// empty, malformed or IP-literal entry is simply ignored (fail-closed).
 fn configured_extra_origins() -> Vec<String> {
@@ -273,8 +297,44 @@ fn publish_grant<R: tauri::Runtime>(
     }
 }
 
+/// Answers the sensitive (geolocation / notification) permission requests the
+/// WebView raises. Returns `true` only when this handler actually decided the
+/// request; unknown request kinds return `false` so WebKit keeps its own
+/// handlers. The decision itself is the pure `sensitive_permission_allowed`.
+fn handle_sensitive_permission(page_uri: Option<&str>, request: &PermissionRequest) -> bool {
+    let kind = if request
+        .downcast_ref::<GeolocationPermissionRequest>()
+        .is_some()
+    {
+        "geolocation"
+    } else if request
+        .downcast_ref::<NotificationPermissionRequest>()
+        .is_some()
+    {
+        "notification"
+    } else {
+        return false;
+    };
+
+    let origin = page_uri.and_then(origin_of).unwrap_or("<unknown>");
+    if sensitive_permission_allowed(page_uri, cfg!(debug_assertions)) {
+        request.allow();
+        log::info!(
+            "{PLUGIN_NAME}: AUDIT sensitive-allow kind={kind} origin={}",
+            redacted(origin)
+        );
+    } else {
+        request.deny();
+        log::warn!(
+            "{PLUGIN_NAME}: AUDIT sensitive-deny kind={kind} origin={} reason=untrusted",
+            redacted(origin)
+        );
+    }
+    true
+}
+
 /// Builds the plugin that enables MediaStream/WebRTC and answers the
-/// user-media permission requests raised by the desktop WebView.
+/// user-media and sensitive permission requests raised by the desktop WebView.
 pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     // #2502 — this hook is registered before Tauri creates the first WebView,
     // so scrubbing here means WebKit and all of its child processes inherit an
@@ -302,17 +362,22 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
                 }
 
                 wk.connect_permission_request(move |wv, request| {
+                    let page_uri = wv.uri();
+
                     let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() else {
-                        // Leave geolocation, notifications and other requests
-                        // to their own handlers.
-                        return false;
+                        return handle_sensitive_permission(page_uri.as_deref(), request);
                     };
 
                     let audio = media.is_for_audio_device();
                     let video = media.is_for_video_device();
                     let extra = configured_extra_origins();
-                    let page_uri = wv.uri();
-                    let decision = decide(page_uri.as_deref(), audio, video, &extra, cfg!(debug_assertions));
+                    let decision = decide(
+                        page_uri.as_deref(),
+                        audio,
+                        video,
+                        &extra,
+                        cfg!(debug_assertions),
+                    );
                     let origin = page_uri
                         .as_deref()
                         .and_then(origin_of)

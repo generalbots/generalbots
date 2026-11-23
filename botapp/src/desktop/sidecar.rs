@@ -201,7 +201,7 @@ impl Sidecar {
             StartDecision::Spawn => {}
         }
 
-        let path = Self::botserver_path()?;
+        let path = Self::botserver_path().map_err(anyhow::Error::msg)?;
 
         let stack = Self::stack_path();
         std::fs::create_dir_all(&stack)?;

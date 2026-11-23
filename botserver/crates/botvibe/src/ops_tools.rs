@@ -104,9 +104,39 @@ async fn do_backup_snapshot(pool: DbPool, args: Value) -> Result<Value, String> 
     Ok(json!({ "backup": rec }))
 }
 
+/// #2680 — fail-closed tenant check shared by `backup/export` and
+/// `backup/restore`. A backup may only be exported or restored by the project
+/// that owns it. The HTTP path enforces the same rule at `ops_api.rs:335`;
+/// the tool path previously accepted a bare `backup_id` with no ownership
+/// check, letting any caller read or overwrite another tenant's VM backup.
+fn backup_access_allowed(backup_project_id: Uuid, caller_project_id: Uuid) -> bool {
+    backup_project_id == caller_project_id
+}
+
+/// Fetch `backup_id` and deny access unless it belongs to `caller_project_id`.
+/// Returns the record so both tools can carry an already-authorized backup.
+fn scoped_backup(
+    backups: &crate::backups::Backups,
+    backup_id: Uuid,
+    caller_project_id: Uuid,
+) -> Result<crate::backups::BackupRecord, String> {
+    let record = backups.get(backup_id)?;
+    if backup_access_allowed(record.project_id, caller_project_id) {
+        Ok(record)
+    } else {
+        Err(format!(
+            "backup {backup_id} does not belong to project {caller_project_id}"
+        ))
+    }
+}
+
 async fn do_backup_export(pool: DbPool, args: Value) -> Result<Value, String> {
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?).map_err(|e| format!("invalid backup_id: {e}"))?;
-    let rec = crate::backups::Backups::new(pool).export_snapshot(bid)?;
+    let backups = crate::backups::Backups::new(pool);
+    // #2680 — authorize before any export/copy happens; fail closed.
+    scoped_backup(&backups, bid, pid)?;
+    let rec = backups.export_snapshot(bid)?;
     Ok(json!({ "backup": rec, "exported": true }))
 }
 
@@ -117,8 +147,11 @@ async fn do_backup_list(pool: DbPool, args: Value) -> Result<Value, String> {
 }
 
 async fn do_backup_restore(pool: DbPool, args: Value) -> Result<Value, String> {
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?).map_err(|e| format!("invalid backup_id: {e}"))?;
     let backups = crate::backups::Backups::new(pool.clone());
+    // #2680 — authorize before any restore/mutation happens; fail closed.
+    scoped_backup(&backups, bid, pid)?;
     let ops = VmOps::new(pool);
     let (rec, probe) = backups.restore(bid, &ops).await?;
     Ok(json!({ "backup": rec, "probe_after_restore": probe }))
@@ -138,8 +171,17 @@ fn project_env_params() -> Value {
     )
 }
 
+/// #2680 — `backup_id` alone is not enough: `project_id` is required so the
+/// handler can verify the backup belongs to the caller's tenant before it
+/// exports or restores anything (missing key → schema validation fails closed).
 fn id_params() -> Value {
-    params(json!({ "backup_id": { "type": "string" } }), &["backup_id"])
+    params(
+        json!({
+            "project_id": { "type": "string" },
+            "backup_id": { "type": "string" }
+        }),
+        &["project_id", "backup_id"],
+    )
 }
 
 fn history_params() -> Value {
@@ -379,4 +421,25 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
     })
     .await
     .map_err(|e| format!("refresh task: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn backup_access_same_tenant_allowed() {
+        let tenant = Uuid::new_v4();
+        assert!(backup_access_allowed(tenant, tenant));
+    }
+
+    #[test]
+    fn backup_access_denies_cross_tenant_for_export_and_restore() {
+        let tenant_a = Uuid::new_v4();
+        let tenant_b = Uuid::new_v4();
+        // export: tenant B must not export tenant A's backup (read/copy out).
+        assert!(!backup_access_allowed(tenant_a, tenant_b));
+        // restore: tenant A must not restore over tenant B's VM (mutation).
+        assert!(!backup_access_allowed(tenant_b, tenant_a));
+    }
 }

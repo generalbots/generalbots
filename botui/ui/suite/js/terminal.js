@@ -237,11 +237,11 @@ const botCoderTerminal = {
             }
             this.sessionId = data.id;
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // #2729 — the WS handshake requires the unguessable per-session
-            // capability returned by /api/terminal/create.
+            // #2729 — the unguessable per-session capability returned by
+            // /api/terminal/create is the WS credential. #2703 — never add
+            // the JWT to the URL: query strings land in proxy/access logs.
             const wsUrl = protocol + '//' + window.location.host + '/api/terminal/ws?id=' +
-                encodeURIComponent(data.id) + '&capability=' + encodeURIComponent(data.capability || '') +
-                (tok ? '&token=' + encodeURIComponent(tok) : '');
+                encodeURIComponent(data.id) + '&capability=' + encodeURIComponent(data.capability || '');
             this.ws = new WebSocket(wsUrl);
             this.ws.onopen = () => {
                 this.reconnectAttempts = 0;

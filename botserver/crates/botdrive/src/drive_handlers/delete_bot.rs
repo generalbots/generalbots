@@ -39,7 +39,7 @@ pub async fn delete_bot(
             return Err(err(
                 StatusCode::SERVICE_UNAVAILABLE,
                 &format!("Database unavailable: {e}"),
-            ))
+            ));
         }
     };
 
@@ -339,19 +339,63 @@ pub async fn list_shared(
     }
     Ok(Json(vec![]))
 }
+/// Pure ownership predicate for `share_folder` (#2668). The `owner_id` on a
+/// share row must be the authenticated caller: a client `user_id` is accepted
+/// only when it equals the caller's id, or for a platform admin acting for
+/// support tooling (the delegation `effective_uid` already allows). Fail closed.
+fn share_owner_allowed(
+    caller_id: &str,
+    requested_owner: Option<&str>,
+    platform_admin: bool,
+) -> bool {
+    match requested_owner {
+        None => true,
+        Some(requested) => requested == caller_id || platform_admin,
+    }
+}
+
 pub async fn share_folder(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateShareBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let owner_id = req
-        .user_id
-        .as_deref()
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| get_user_id(&user));
-    let bucket = req.bucket.as_deref().unwrap_or("default");
-    let path = &req.path;
-    let recipient_id = &req.recipient_id;
+    let caller_id = get_user_id(&user);
+    let platform_admin = is_platform_admin(&state, &user);
+
+    // #2668 — never trust a client-supplied owner: a non-admin naming another
+    // user is forging a share attributed to that victim. Refuse, fail closed.
+    if !share_owner_allowed(&caller_id, req.user_id.as_deref(), platform_admin) {
+        warn!(
+            "drive: denied share with forged owner id {:?} for user {:?}",
+            req.user_id, user.email
+        );
+        return Err(err(
+            StatusCode::FORBIDDEN,
+            "Cannot create a share as another user",
+        ));
+    }
+    let owner_id = effective_uid(&state, &user, req.user_id.as_deref());
+
+    let scope = req.scope.unwrap_or_default();
+    // #2668 — validate bucket against the caller's tenant membership like
+    // every other write handler, and pin user scope to the verified owner.
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(owner_id.as_str()),
+        None,
+        &user,
+    )?;
+    // Normalize path to strip traversal (`..`) before persisting.
+    let path = normalize_path(&req.path);
+    if path.is_empty() {
+        return Err(err(StatusCode::BAD_REQUEST, "A share path is required"));
+    }
+    let recipient_id = req.recipient_id.trim();
+    if recipient_id.is_empty() {
+        return Err(err(StatusCode::BAD_REQUEST, "A recipient is required"));
+    }
     let permissions = req.permissions.as_deref().unwrap_or("read");
 
     let mut conn = state
@@ -373,4 +417,32 @@ pub async fn share_folder(
     })?;
 
     Ok(Json(SuccessResponse { success: true }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::share_owner_allowed;
+
+    #[test]
+    fn share_owner_allowed_no_requested_id_uses_caller() {
+        assert!(share_owner_allowed("victim", None, false));
+    }
+
+    #[test]
+    fn share_owner_allowed_same_user() {
+        assert!(share_owner_allowed("alice", Some("alice"), false));
+    }
+
+    #[test]
+    fn share_owner_allowed_rejects_forged_owner() {
+        // The #2668 attack: attacker names a victim as owner.
+        assert!(!share_owner_allowed("attacker", Some("victim"), false));
+        assert!(!share_owner_allowed("alice", Some(""), false));
+    }
+
+    #[test]
+    fn share_owner_allowed_platform_admin_delegation() {
+        // Platform admins may act for another user (support tooling).
+        assert!(share_owner_allowed("admin", Some("victim"), true));
+    }
 }
