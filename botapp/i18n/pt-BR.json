@@ -5,6 +5,7 @@
   "download-invalid-destination": "Destino inválido: {error}",
   "download-provide-source": "Informe uma URL de download ou o conteúdo do arquivo.",
   "download-too-large": "O arquivo é grande demais para ser salvo.",
+  "download-url-not-allowed": "Esta URL de download não é permitida.",
   "download-unsupported-scheme": "Somente downloads http(s) são suportados.",
   "download-write-failed": "Não foi possível gravar {path}: {error}",
   "folder-open-failed": "Não foi possível abrir a pasta: {error}",

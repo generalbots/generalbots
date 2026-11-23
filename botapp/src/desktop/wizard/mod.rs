@@ -8,7 +8,8 @@
 //!
 //! Split by responsibility: `types` (payloads), `paths` (filesystem locations),
 //! `progress` (resume marker and context), `session` (desktop sign-in),
-//! `window` (wizard/suite windows) and `handoff` (credentials + completion).
+//! `window` (wizard/suite windows), `handoff` (credentials + completion) and
+//! `private_file` (owner-only writes for every credential).
 
 mod appearance;
 mod commands;
@@ -17,6 +18,7 @@ mod hostcheck;
 mod media;
 mod origin;
 mod paths;
+mod private_file;
 mod progress;
 mod provision;
 mod session;

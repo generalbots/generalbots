@@ -5,7 +5,39 @@ use super::system::{self, ModelTestResult, WorkspaceCheck};
 use super::{FinishRequest, ModelRequest, ProvisionRequest, WizardContext, WizardState};
 use crate::desktop::drive::confirmation;
 use log::warn;
+use std::path::Path;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+
+/// #2689 — the reset confirmation must be the opaque receipt minted by the
+/// native dialog, never a guessable folder name such as `stack`. Pure so the
+/// rejection of a plain string is testable without a dialog or a grant store.
+pub(crate) fn is_reset_token(value: &str) -> bool {
+    value.len() == 24 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod reset_confirmation_tests {
+    use super::is_reset_token;
+
+    #[test]
+    fn a_plain_folder_name_is_not_a_confirmation() {
+        for bad in [
+            "",
+            "stack",
+            " Stack ",
+            "0123456789abcdef0123456z",
+            "0123456789abcdef01234567a",
+        ] {
+            assert!(!is_reset_token(bad), "accepted plain confirmation {bad:?}");
+        }
+    }
+
+    #[test]
+    fn only_minted_receipts_have_the_confirmation_shape() {
+        assert!(is_reset_token("0123456789abcdef01234567"));
+        assert!(is_reset_token("ffffffffffffffffffffffff"));
+    }
+}
 
 #[tauri::command]
 pub fn wizard_context() -> WizardContext {
@@ -103,6 +135,8 @@ pub fn request_reset_stack_confirmation(
     window: tauri::Window,
     state: tauri::State<'_, WizardState>,
 ) -> Result<String, String> {
+    // #2692 — only the trusted local wizard window may mint a reset grant.
+    let label = confirmation::trusted_label(&window)?;
     if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(crate::desktop::i18n::t("setup-cancel-before-reset"));
     }
@@ -120,21 +154,35 @@ pub fn request_reset_stack_confirmation(
     if !approved {
         return Err("Confirmation was cancelled".to_string());
     }
-    confirmation::mint(
-        confirmation::Operation::ResetStack,
-        &target,
-        window.label(),
-    )
+    confirmation::mint(confirmation::Operation::ResetStack, &target, &label)
 }
 
 #[tauri::command]
-pub fn wizard_reset_stack(confirmation: String, state: tauri::State<'_, WizardState>) -> Result<(), String> {
+pub fn wizard_reset_stack(
+    window: tauri::Window,
+    confirmation: String,
+    state: tauri::State<'_, WizardState>,
+) -> Result<(), String> {
+    // #2692 — verify the caller again before consuming; the sidecar window is
+    // denied even if a capability grants this command.
+    let label = confirmation::trusted_label(&window)?;
     if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(crate::desktop::i18n::t("setup-cancel-before-reset"));
     }
-    let target = super::stack_path().to_string_lossy().to_string();
-    confirmation::consume(confirmation::Operation::ResetStack, &target)?;
-    system::reset_stack(&confirmation)
+    // #2689 — a plain folder name such as `stack` is not a capability; only
+    // the opaque receipt minted after the native dialog is accepted here.
+    if !is_reset_token(&confirmation) {
+        return Err("Reset requires the confirmation granted in the native dialog.".to_string());
+    }
+    let stack = super::stack_path();
+    let target = stack.to_string_lossy().to_string();
+    // #2689 — the confirmed target must be the exact configured stack once
+    // symlinks are resolved; a guessable name never stands in for the path.
+    if !system::reset_target_is_exact(&stack, Path::new(&target)) {
+        return Err("Refusing to reset an unverified stack path.".to_string());
+    }
+    confirmation::consume_for(confirmation::Operation::ResetStack, &target, &label)?;
+    system::reset_stack()
 }
 
 #[tauri::command]

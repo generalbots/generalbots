@@ -1,13 +1,15 @@
 use log::{info, warn};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+mod binary;
 mod bootlog;
 mod paths;
 pub(crate) mod probe;
 mod product;
 
+pub(crate) use binary::ValidatedBinary;
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
 use product::sync_product_file;
 pub(crate) use product::PRODUCT_FILE;
@@ -17,69 +19,6 @@ use probe::{
     pid_looks_like_botserver, port_is_open, record_pid, recorded_pid, sidecar_port,
     terminate_pid, StartDecision,
 };
-
-/// #2694 — resolve the executable once, canonicalize it (killing symlink
-/// TOCTOU) and require it to live beside the app or in the install stack. An
-/// arbitrary `BOTSERVER_BIN` value is refused before it can reach `Command`.
-fn validate_binary_path(candidate: &Path, app_dir: Option<&Path>, stack: &Path) -> Result<PathBuf, String> {
-    let canonical = std::fs::canonicalize(candidate)
-        .map_err(|e| format!("sidecar binary not found at {}: {e}", candidate.display()))?;
-    let parent = canonical.parent();
-    let stack_canonical = std::fs::canonicalize(stack).ok();
-    let in_app_dir = app_dir.is_some_and(|dir| Some(dir) == parent);
-    let in_stack = stack_canonical.as_deref().is_some_and(|dir| Some(dir) == parent);
-    if !in_app_dir && !in_stack {
-        return Err(format!(
-            "Refusing to start a sidecar outside the application or stack directory: {}",
-            canonical.display()
-        ));
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mode = std::fs::metadata(&canonical)
-            .map_err(|e| format!("cannot stat sidecar: {e}"))?
-            .permissions()
-            .mode();
-        if mode & 0o111 == 0 {
-            return Err("The sidecar binary is not executable".to_string());
-        }
-    }
-    Ok(canonical)
-}
-
-#[cfg(test)]
-mod binary_validation_tests {
-    use super::validate_binary_path;
-    use std::path::Path;
-
-    #[test]
-    fn hostile_binary_paths_are_refused() {
-        let base = std::env::temp_dir().join(format!("gb-bin-{}", std::process::id()));
-        let app = base.join("app");
-        let stack = base.join("stack");
-        let outside = base.join("outside");
-        for dir in [&app, &stack, &outside] {
-            std::fs::create_dir_all(dir).ok();
-        }
-        let good = app.join("botserver");
-        std::fs::write(&good, b"binary").ok();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut permissions = std::fs::metadata(&good).expect("stat").permissions();
-            permissions.set_mode(0o700);
-            std::fs::set_permissions(&good, permissions).ok();
-        }
-        assert!(validate_binary_path(&good, Some(&app), &stack).is_ok());
-
-        let hostile = outside.join("botserver");
-        std::fs::write(&hostile, b"evil").ok();
-        assert!(validate_binary_path(&hostile, Some(&app), &stack).is_err());
-        assert!(validate_binary_path(Path::new("/tmp/no-such-sidecar"), Some(&app), &stack).is_err());
-        std::fs::remove_dir_all(&base).ok();
-    }
-}
 
 /// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
 /// of [`Sidecar`] (for example a temporary taken from Tauri's managed state)
@@ -119,18 +58,20 @@ impl Sidecar {
         }
     }
 
-    pub(crate) fn botserver_path() -> Result<PathBuf, String> {
+    /// #2694 — resolve `BOTSERVER_BIN` (or the bundled/extracted default) into
+    /// a validated, open handle. The handle is kept for the spawn so the binary
+    /// cannot be swapped between validation and exec.
+    pub(crate) fn botserver_binary() -> Result<ValidatedBinary, String> {
         let explicit = std::env::var("BOTSERVER_BIN").ok();
-        let beside = std::env::current_exe()
-            .ok()
+        let current_exe = std::env::current_exe().ok();
+        let beside = current_exe
+            .as_deref()
             .and_then(|exe| exe.parent().map(|dir| dir.join(paths::BINARY_NAME)))
             .filter(|path| path.exists());
         let stack = Self::stack_path();
         let candidate = paths::resolve_binary(explicit.as_deref(), beside, &stack);
-        let app_dir = std::env::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent().map(|dir| dir.to_path_buf()));
-        validate_binary_path(&candidate, app_dir.as_deref(), &stack)
+        let app_dir = current_exe.and_then(|exe| exe.parent().map(|dir| dir.to_path_buf()));
+        ValidatedBinary::resolve(&candidate, app_dir.as_deref(), &stack)
     }
 
     pub(crate) fn stack_path() -> PathBuf {
@@ -201,7 +142,7 @@ impl Sidecar {
             StartDecision::Spawn => {}
         }
 
-        let path = Self::botserver_path().map_err(anyhow::Error::msg)?;
+        let binary = Self::botserver_binary().map_err(anyhow::Error::msg)?;
 
         let stack = Self::stack_path();
         std::fs::create_dir_all(&stack)?;
@@ -265,7 +206,7 @@ impl Sidecar {
 
         info!(
             "Starting botserver sidecar: {} (stack: {}, installers: {})",
-            path.display(),
+            binary.path().display(),
             stack.display(),
             installers.display()
         );
@@ -294,7 +235,9 @@ impl Sidecar {
         }
         let opened_inode = file_inode(&log_path);
 
-        let mut command = Command::new(&path);
+        // Exec through the validated, retained handle (Linux) rather than the
+        // path: a later rename/replace of the path cannot change what runs.
+        let mut command = Command::new(binary.program());
         command.no_console_window();
         #[cfg(target_os = "windows")]
         command.env("PATH", Self::prepare_windows_runtime(&installers)?);
