@@ -11,6 +11,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
         // Opt-in peer-network foundation (#1864). The handlers themselves
         // return `peer_network_disabled` until GB_PEER_NETWORK opts in.
         .merge(super::peer_network::configure_peer_routes())
+        // #2756 — public and liveness-only. `?deep=1` is downgraded in the
+        // handler; never route this to `readiness_response()`. Dependency
+        // probes, build metadata and admission telemetry belong only on the
+        // authenticated `/ready` route below.
         .route("/health", get(crate::health_check_simple))
         .route("/ready", get(crate::main_module::health_ready))
         .route(ApiUrls::HEALTH, get(crate::health_check))
@@ -40,6 +44,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             "/api/whats-new",
             get(super::product_handlers::get_whats_new),
         )
+        // #2723 — public, read-only advisory API. Handlers serve the canonical
+        // records from botlib; anonymous access is declared in
+        // botsecurity-auth's routes_public.rs.
+        .route("/api/advisories", get(super::advisories::list))
+        .route("/api/advisories/:id", get(super::advisories::get))
         .route("/api/client-errors", post(crate::receive_client_errors))
         .route(
             "/api/desktop/activity",
@@ -377,5 +386,10 @@ pub fn add_base_api_routes(mut api_router: Router<Arc<AppState>>) -> Router<Arc<
             post(handle_office365_migration),
         );
     }
+    // #2624 — admin-only by the /api/admin/** RBAC rule; counts only.
+    api_router = api_router.route(
+        "/api/admin/dlp/violations",
+        get(super::dlp_admin::handle_dlp_violations),
+    );
     api_router
 }

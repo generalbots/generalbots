@@ -19,12 +19,13 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4", "v5"] }
 botsecurity = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 # HS256 token minting for the auth tests (valid, tampered, alg:none, unsigned).
 base64 = { workspace = true }
-hmac = { workspace = true }
-sha2 = { workspace = true }
 
 [lints]
 workspace = true

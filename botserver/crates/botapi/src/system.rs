@@ -1,13 +1,16 @@
 use axum::{
-    extract::State,
-    response::Json,
+    extract::{Request, State},
+    http::StatusCode,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
-    Router,
+    Json, Router,
 };
+use botcore::shared::state::AppState;
+use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-use botcore::shared::state::AppState;
 
 #[path = "system_setup.rs"]
 mod system_setup;
@@ -17,13 +20,66 @@ pub use system_setup::{
     ConfigureSetupResponse, SetupStatusResponse,
 };
 
+/// #2747 — pure, side-effect-free admin predicate over a principal's roles.
+/// Kept independent of the HTTP layer so every role combination can be pinned
+/// by an inline unit test without building an extractor or a router.
+pub(crate) fn is_admin_roles(roles: &[Role]) -> bool {
+    roles
+        .iter()
+        .any(|role| matches!(role, Role::Admin | Role::SuperAdmin))
+}
+
+/// #2747 — defense-in-depth admin gate for the sensitive system/status routes.
+/// The RBAC route table already requires Admin/SuperAdmin for
+/// `/api/setup/**` POST, but `/api/system/**` is registered with empty roles
+/// (any authenticated token passes). Repeating the check at the handler
+/// boundary means a route-table regression cannot expose host CPU/memory and
+/// version details, or allow bot creation, to an authenticated non-admin.
+///
+/// A missing or unrecognised principal is denied (fail closed). Callers that
+/// are not privileged receive `403 Forbidden`; no handler state is consulted.
+pub(crate) async fn require_admin(request: Request, next: Next) -> Response {
+    let allowed = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .is_some_and(|user| is_admin_roles(&user.roles));
+    if allowed {
+        next.run(request).await
+    } else {
+        log::warn!("System/status endpoint denied: admin role required");
+        (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "access_denied",
+                "message": "Administrator access required",
+                "code": "RBAC_DENIED"
+            })),
+        )
+            .into_response()
+    }
+}
+
 pub fn configure_system_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/system/versions", get(get_versions))
-        .route("/api/system/check-updates", post(check_updates))
-        .route("/api/system/usage", get(get_system_usage))
+        .route(
+            "/api/system/versions",
+            get(get_versions).layer(middleware::from_fn(require_admin)),
+        )
+        .route(
+            "/api/system/check-updates",
+            post(check_updates).layer(middleware::from_fn(require_admin)),
+        )
+        .route(
+            "/api/system/usage",
+            get(get_system_usage).layer(middleware::from_fn(require_admin)),
+        )
+        // Deliberately left ungated: the first-boot wizard polls this before an
+        // admin exists, and #2767 already returns a constant for unknown state.
         .route("/api/setup/status", get(get_setup_status))
-        .route("/api/setup/configure", post(configure_setup))
+        .route(
+            "/api/setup/configure",
+            post(configure_setup).layer(middleware::from_fn(require_admin)),
+        )
 }
 
 /// Live host resource usage for the desktop Resources widget (#1150).
@@ -151,9 +207,7 @@ pub struct SystemVersionsResponse {
     pub zitadel: String,
 }
 
-pub async fn get_versions(
-    State(_state): State<Arc<AppState>>,
-) -> Json<SystemVersionsResponse> {
+pub async fn get_versions(State(_state): State<Arc<AppState>>) -> Json<SystemVersionsResponse> {
     Json(SystemVersionsResponse {
         botserver: env!("CARGO_PKG_VERSION").to_string(),
         botui: env!("CARGO_PKG_VERSION").to_string(),
@@ -196,3 +250,36 @@ pub async fn check_updates(
 #[cfg(test)]
 #[path = "system_tests.rs"]
 mod system_tests;
+
+/// #2747 — inline tests for the pure admin predicate used by the handler-level
+/// gate. They pin the fail-closed contract without standing up a router.
+#[cfg(test)]
+mod admin_gate_tests {
+    use super::is_admin_roles;
+    use botsecurity_auth::auth_api::types::Role;
+
+    #[test]
+    fn only_admin_roles_grant_access() {
+        assert!(!is_admin_roles(&[]));
+        assert!(!is_admin_roles(&[Role::Anonymous]));
+        assert!(!is_admin_roles(&[Role::User]));
+        assert!(!is_admin_roles(&[Role::Moderator]));
+        assert!(!is_admin_roles(&[
+            Role::BotOwner,
+            Role::BotOperator,
+            Role::BotViewer
+        ]));
+        assert!(!is_admin_roles(&[Role::Service, Role::Bot]));
+        assert!(is_admin_roles(&[Role::Admin]));
+        assert!(is_admin_roles(&[Role::SuperAdmin]));
+    }
+
+    #[test]
+    fn admin_predicate_scans_the_whole_role_slice() {
+        // A privileged role is recognised regardless of where it appears, and
+        // a non-privileged role never cancels it out.
+        assert!(is_admin_roles(&[Role::User, Role::Moderator, Role::Admin]));
+        assert!(is_admin_roles(&[Role::SuperAdmin, Role::User]));
+        assert!(!is_admin_roles(&[Role::User, Role::Service, Role::Bot]));
+    }
+}

@@ -354,8 +354,8 @@ pub async fn health_check(
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    // #2757 — `/api/health` is public; return only liveness, never build
-    // metadata or admission telemetry.
+    // #2756, #2757 — `/api/health` is public; return only liveness, never
+    // build metadata or admission telemetry.
     (code, Json(liveness_payload(status, Some(db_ok))))
 }
 
@@ -364,9 +364,16 @@ pub(crate) struct HealthQuery {
     deep: Option<u8>,
 }
 
+/// Detect `?deep=1`, which asks for diagnostics served only by the
+/// authenticated `/ready` route. On `/health` it is downgraded, never honoured
+/// (#2756). Pure so the rule is testable without a running server.
+fn deep_probe_requested(deep: Option<u8>) -> bool {
+    deep == Some(1)
+}
+
 /// Public liveness payload. Never include build metadata, commit hashes or
 /// admission/cgroup telemetry here (or on `/api/health`): both endpoints are
-/// anonymous, and that data fingerprints an unconfigured install (#2757).
+/// anonymous, and that data fingerprints an unconfigured install (#2756, #2757).
 /// Deep dependency probes stay on the authenticated `/ready` route only.
 fn liveness_payload(status: &str, database: Option<bool>) -> serde_json::Value {
     let mut body = serde_json::json!({
@@ -380,13 +387,14 @@ fn liveness_payload(status: &str, database: Option<bool>) -> serde_json::Value {
     body
 }
 
-/// GET /health is a fast, anonymous liveness stub. `?deep=1` is ignored on
-/// this public route — use the authenticated `/ready` for dependency probes.
+/// Fast, anonymous liveness stub. `?deep=1` is downgraded to this same minimal
+/// body (#2756): the handler never calls `readiness_response()` nor serialises
+/// an `AdmissionSnapshot` — both stay on the authenticated `/ready` route.
 pub async fn health_check_simple(
     Query(query): Query<HealthQuery>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    if query.deep == Some(1) {
-        log::debug!("deep probe requested on public /health; use authenticated /ready");
+    if deep_probe_requested(query.deep) {
+        log::debug!("deep probe requested on public /health; downgraded to liveness (#2756)");
     }
     (StatusCode::OK, Json(liveness_payload("ok", None)))
 }
@@ -434,16 +442,5 @@ pub async fn receive_client_errors(
 }
 
 #[cfg(test)]
-mod public_health_tests {
-    use super::liveness_payload;
-
-    #[test]
-    fn public_liveness_has_no_build_or_admission_telemetry() {
-        let body = liveness_payload("ok", Some(true));
-        for key in ["commit", "build_date", "admission", "failing", "dependencies"] {
-            assert!(body.get(key).is_none(), "public health leaked '{key}'");
-        }
-        assert_eq!(body["status"], "ok");
-        assert_eq!(body["database"], true);
-    }
-}
+#[path = "health_public_tests.rs"]
+mod public_health_tests;

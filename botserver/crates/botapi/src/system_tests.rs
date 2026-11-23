@@ -7,7 +7,9 @@
 //! parameterized setup INSERT and slug normalization against injection
 //! payloads. The `/proc` read itself and the directory walk stay in the shell.
 
-use super::system_setup::{guess_content_type, safe_bot_slug, BOT_SETUP_INSERT_SQL};
+use super::system_setup::{
+    guess_content_type, safe_bot_slug, shape_setup_status, BOT_SETUP_INSERT_SQL,
+};
 use super::parse_meminfo_kb;
 use std::path::Path;
 
@@ -155,4 +157,33 @@ fn bot_slug_neutralizes_injection_payloads() {
     }
     assert_eq!(safe_bot_slug("My Assistant"), "my-assistant");
     assert_eq!(safe_bot_slug("  !!  "), "assistant");
+}
+
+/// #2767 — an unauthenticated caller always receives the same constant,
+/// independent of the real state, so probing cannot fingerprint a fresh
+/// install. The response carries exactly one field: no component versions,
+/// hosts, readiness details or counts can leak through it.
+#[test]
+fn setup_status_for_anonymous_caller_is_a_constant() {
+    for (wizard_enabled, bot_count) in [
+        (false, None),
+        (true, None),
+        (true, Some(0)),
+        (true, Some(42)),
+    ] {
+        let response = shape_setup_status(false, wizard_enabled, bot_count);
+        assert!(response.setup_complete, "anonymous response revealed state");
+        let json = serde_json::to_value(&response).expect("serialize setup status");
+        assert_eq!(json, serde_json::json!({ "setup_complete": true }));
+    }
+}
+
+/// #2767 — only an authenticated wizard may observe the real bit; every
+/// unknown state still collapses to `true` (assume already configured).
+#[test]
+fn setup_status_for_authenticated_caller_reports_only_the_wizard_bit() {
+    assert!(!shape_setup_status(true, true, Some(0)).setup_complete);
+    assert!(shape_setup_status(true, true, Some(1)).setup_complete);
+    assert!(shape_setup_status(true, true, None).setup_complete);
+    assert!(shape_setup_status(true, false, Some(0)).setup_complete);
 }

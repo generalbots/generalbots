@@ -1,3 +1,4 @@
+pub mod advisories;
 #[cfg(feature = "agent-vm")]
 pub mod agent_drive;
 #[cfg(feature = "agent-vm")]
@@ -5,6 +6,7 @@ pub mod ai_accounts;
 pub mod anonymous_auth;
 pub mod appearance;
 pub mod api_setup;
+mod dlp_admin;
 pub mod custom_instructions;
 pub mod bot_tree;
 pub mod catalog;

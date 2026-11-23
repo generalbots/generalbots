@@ -192,7 +192,7 @@ pub struct UserSearchHit {
 
 async fn search_users(
     Extension(rbac): Extension<ProjectRbac>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(query): Query<UserSearchQuery>,
 ) -> Result<Json<UserSearchResponse>, (StatusCode, Json<UserSearchResponse>)> {
     let q = query.q.unwrap_or_default().trim().to_string();
@@ -203,7 +203,9 @@ async fn search_users(
             error: None,
         }));
     }
-    match rbac.search_users(&q, 20) {
+    // #2769 — scope by the verified caller, never enumerate the global users
+    // table. Anonymous/service callers have the nil id and match no tenant.
+    match rbac.search_users_scoped(&q, 20, user.user_id) {
         Ok(rows) => Ok(Json(UserSearchResponse {
             success: true,
             users: Some(

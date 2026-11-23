@@ -423,7 +423,7 @@ pub async fn execute_action(
             // #2678 — never log query strings/fragments/userinfo: they carry
             // tokens and identifiers. Scheme + host is all an operator needs.
             log::info!("Agent navigating to {}", log_safe_url(url));
-            session.navigate(url).await?
+            session.navigate(url).await?;
         }
         AgentAction::Click { selector } => {
             log::info!("Agent clicking {selector}");

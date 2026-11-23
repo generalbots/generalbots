@@ -43,6 +43,10 @@ pub(crate) async fn execute_run(
     };
 
     let use_case = run.use_case;
+    // #2751 — the run's user is server-recorded at creation; stamp it on every
+    // project-admin tool before execution so a stored client payload can never
+    // supply its own acting user.
+    let acting_user = run.user_id;
     let tool_calls = run.tool_calls.clone();
     drop(runs);
     let state_clone = api.state.clone();
@@ -57,6 +61,11 @@ pub(crate) async fn execute_run(
         }
 
         let mut owned = tool_call.clone();
+        crate::tool_executor::stamp_acting_user(
+            &owned.tool_name,
+            &mut owned.arguments,
+            acting_user,
+        );
         let result = api
             .tool_executor
             .execute(&mut owned, use_case, state_clone.as_ref())

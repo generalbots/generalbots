@@ -85,6 +85,10 @@ pub async fn create_schedule(
     let cron = CronExpr::parse(&body.cron_expr)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid cron expression: {e}")))?;
 
+    // The client-supplied bot must belong to the caller's verified org/branch:
+    // it drives an LLM goal with that bot's tool allowlist (engine/exec.rs:63).
+    assert_owned_bot(&state, &headers, query.bot_id)?;
+
     let mut conn = state.pool().get().map_err(|e| db_err("create schedule", e))?;
 
     let org = tenant::org_from_claims(&headers);
@@ -224,7 +228,10 @@ pub async fn update_schedule(
 pub async fn delete_schedule(
     State(state): State<Arc<AutomationService>>,
     Path(schedule_id): Path<Uuid>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Foreign/unknown ids answer 404 before any mutation (#2762).
+    assert_owned_schedule(&state, &headers, "", schedule_id)?;
     let mut conn = state.pool().get().map_err(|e| db_err("delete schedule", e))?;
     let deleted = diesel::delete(agent_schedules::dsl::agent_schedules.find(schedule_id))
         .execute(&mut conn)
@@ -238,8 +245,10 @@ pub async fn delete_schedule(
 pub async fn trigger_run(
     State(state): State<Arc<AutomationService>>,
     Path(schedule_id): Path<Uuid>,
+    headers: HeaderMap,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, String)> {
-    let schedule = load_schedule(&state, schedule_id)?;
+    // Never trigger a run for a schedule the verified caller does not own.
+    let schedule = assert_owned_schedule(&state, &headers, "", schedule_id)?;
     let mut conn = state.pool().get().map_err(|e| db_err("trigger run", e))?;
     let new_run = NewAgentRun {
         id: Uuid::new_v4(),
@@ -261,8 +270,41 @@ pub async fn trigger_run(
 
 pub async fn list_runs(
     State(state): State<Arc<AutomationService>>,
+    headers: HeaderMap,
     Query(query): Query<ListRunsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Runs inherit their owner/org/branch from the parent schedule. Derive the
+    // set of schedules the verified caller owns and scope the listing to those;
+    // a caller without a verified owner/org sees no runs at all (fail closed).
+    let owned_ids = match caller_identity(&headers, "") {
+        Some(caller) if caller.is_admin => None,
+        Some(caller) => {
+            if caller.owner.is_nil() {
+                return Ok(Json(json!({ "runs": [] })));
+            }
+            let Some(org_id) = caller.org else {
+                return Ok(Json(json!({ "runs": [] })));
+            };
+            let mut scope_conn = state
+                .pool()
+                .get()
+                .map_err(|e| db_err("list runs scope", e))?;
+            use agent_schedules::dsl as s;
+            let schedules = s::agent_schedules
+                .filter(s::org_id.eq(org_id))
+                .load::<AgentSchedule>(&mut scope_conn)
+                .map_err(|e| db_err("list runs scope", e))?;
+            Some(
+                schedules
+                    .iter()
+                    .filter(|sc| is_owned(&caller, &OwnedResource::from(*sc)))
+                    .map(|sc| sc.id)
+                    .collect::<Vec<_>>(),
+            )
+        }
+        None => return Ok(Json(json!({ "runs": [] }))),
+    };
+
     let mut conn = state.pool().get().map_err(|e| db_err("list runs", e))?;
     let mut boxed = agent_runs::dsl::agent_runs
         .order(agent_runs::dsl::created_at.desc())
@@ -274,6 +316,11 @@ pub async fn list_runs(
     if let Some(st) = query.status {
         boxed = boxed.filter(agent_runs::dsl::status.eq(st));
     }
+    match owned_ids {
+        None => {}
+        Some(ids) if ids.is_empty() => return Ok(Json(json!({ "runs": [] }))),
+        Some(ids) => boxed = boxed.filter(agent_runs::dsl::schedule_id.eq_any(ids)),
+    }
     let runs = boxed
         .load::<AgentRun>(&mut conn)
         .map_err(|e| db_err("query runs", e))?;
@@ -283,8 +330,10 @@ pub async fn list_runs(
 pub async fn cancel_run(
     State(state): State<Arc<AutomationService>>,
     Path(run_id): Path<Uuid>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let existing = load_run_row(&state, run_id)?;
+    // Resolve ownership through the run's parent schedule before touching it.
+    let existing = assert_owned_run(&state, &headers, "", run_id)?;
     if is_terminal(&existing.status) {
         return Ok(Json(json!({ "status": "already_finished", "run_status": existing.status })));
     }

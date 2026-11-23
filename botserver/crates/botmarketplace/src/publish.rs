@@ -61,6 +61,13 @@ pub(crate) fn upsert_package_and_version(
     let now = chrono::Utc::now();
     let tags_text = body.tags.to_string();
     let visibility = body.effective_visibility();
+    // Bind the bundle to its checksum and to this package/version with a
+    // server-keyed signature. An unsigned package can never be installed.
+    let content = crate::b64::decode_flexible(&body.content_base64)
+        .ok_or("publish content is not valid base64")?;
+    let signed_manifest = crate::verify::sign_manifest(&body.slug, &body.version, &content, &body.manifest)
+        .map_err(|e| format!("Sign manifest: {e}"))?;
+    let manifest_text = signed_manifest.to_string();
 
     let package_id: PackageIdRow = diesel::sql_query(
         r#"INSERT INTO skill_packages
@@ -105,7 +112,7 @@ pub(crate) fn upsert_package_and_version(
     .bind::<SqlUuid, _>(Uuid::new_v4())
     .bind::<SqlUuid, _>(package_id.id)
     .bind::<Text, _>(body.version.as_str())
-    .bind::<Text, _>(body.manifest.to_string().as_str())
+    .bind::<Text, _>(manifest_text.as_str())
     .bind::<Text, _>(blobstore::package_object_key(&body.slug, &body.version))
     .bind::<SqlNullable<Text>, _>(body.changelog.as_deref())
     .bind::<Timestamptz, _>(now)

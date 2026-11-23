@@ -37,14 +37,16 @@ pub(super) async fn handle_proxy(
         }
     };
 
+    // Read the body first: `text()` borrows the response, while taking
+    // `final_url` / `content_type` below moves fields out.
+    let body = response.text();
     let status = response.status;
     let final_url = response.final_url;
-    // Read the body first: `text()` borrows the response, while taking
-    // `content_type` below moves it out.
-    let body = response.text();
     let content_type = response
         .content_type
-        .unwrap_or_else(|| "application/octet-stream".to_string());
+        .as_deref()
+        .unwrap_or("application/octet-stream")
+        .to_string();
     let html = if content_type.to_lowercase().contains("html") {
         rewrite_html(&body)
     } else {

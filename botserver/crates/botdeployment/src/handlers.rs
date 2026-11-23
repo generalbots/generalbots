@@ -7,6 +7,7 @@ use diesel::prelude::*;
 use crate::models::Project;
 use super::router::DeploymentRouter;
 use super::types::*;
+use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
 
 pub use botlib::db_pool::DbPool;
 
@@ -280,9 +281,47 @@ pub async fn deploy_project(
     }))
 }
 
+/// #2774 — pure claims predicate for deployment lifecycle mutations.
+///
+/// Only `Admin` / `SuperAdmin` roles found on the authenticated principal may
+/// start or stop a deployment. Kept free of any I/O (no pool, no HTTP) so it can
+/// be unit-tested inline; the handlers call it before touching the Incus
+/// router. Ordinary `User`, `Service`, `Bot` and anonymous principals are
+/// deliberately excluded: an internal token or a plain session is not a
+/// deployment-admin credential, and the route-table permission for
+/// `/api/deployment/**` POST has empty roles (the RBAC manager skips such
+/// checks), so the handler must enforce the gate itself.
+fn claims_grant_deployment_mutation(roles: &[Role]) -> bool {
+    roles
+        .iter()
+        .any(|role| matches!(role, Role::Admin | Role::SuperAdmin))
+}
+
+/// #2774 — shared handler-level guard for start/stop. Returns `Forbidden` for
+/// any principal whose claims do not grant admin or whose session id is nil.
+fn deny_non_admin_deployment_mutation(
+    action: &str,
+    user: &AuthenticatedUser,
+) -> Result<(), DeploymentApiError> {
+    if !claims_grant_deployment_mutation(&user.roles) || user.user_id.is_nil() {
+        log::warn!(
+            "Deployment {action} denied: user={} roles={:?}",
+            user.username,
+            user.roles
+        );
+        return Err(DeploymentApiError::Forbidden(format!(
+            "forbidden: {action} a deployment requires an admin role"
+        )));
+    }
+    Ok(())
+}
+
 pub async fn stop_project(
+    Extension(user): Extension<AuthenticatedUser>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
+    deny_non_admin_deployment_mutation("stopping", &user)?;
+
     let app_name = body.get("app_name")
         .and_then(|v| v.as_str())
         .unwrap_or_default()
@@ -301,8 +340,11 @@ pub async fn stop_project(
 }
 
 pub async fn start_project(
+    Extension(user): Extension<AuthenticatedUser>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
+    deny_non_admin_deployment_mutation("starting", &user)?;
+
     let app_name = body.get("app_name")
         .and_then(|v| v.as_str())
         .unwrap_or_default()
@@ -342,4 +384,45 @@ pub async fn get_projects(
         .map_err(|e| DeploymentApiError::DeploymentFailed(format!("Failed to load projects: {}", e)))?;
 
     Ok(Json(list))
+}
+
+#[cfg(test)]
+mod deployment_mutation_auth_tests {
+    use super::claims_grant_deployment_mutation;
+    use botsecurity_auth::auth_api::types::Role;
+
+    #[test]
+    fn admin_claims_grant_deployment_mutation() {
+        assert!(claims_grant_deployment_mutation(&[Role::Admin]));
+        assert!(claims_grant_deployment_mutation(&[Role::SuperAdmin]));
+        assert!(claims_grant_deployment_mutation(&[Role::User, Role::Admin]));
+    }
+
+    #[test]
+    fn admin_role_among_many_roles_still_grants() {
+        let roles = [Role::BotViewer, Role::User, Role::SuperAdmin, Role::Bot];
+        assert!(claims_grant_deployment_mutation(&roles));
+    }
+
+    #[test]
+    fn non_admin_claims_deny_deployment_mutation() {
+        // A different tenant's ordinary user, a service token, a bot and an
+        // anonymous principal are all rejected — two-tenant start/stop denial.
+        for roles in [
+            vec![],
+            vec![Role::Anonymous],
+            vec![Role::User],
+            vec![Role::Moderator],
+            vec![Role::Service],
+            vec![Role::Bot],
+            vec![Role::BotOwner],
+            vec![Role::BotOperator],
+            vec![Role::BotViewer],
+        ] {
+            assert!(
+                !claims_grant_deployment_mutation(&roles),
+                "roles {roles:?} must NOT grant deployment mutation"
+            );
+        }
+    }
 }

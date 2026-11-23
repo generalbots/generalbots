@@ -255,18 +255,11 @@ pub(crate) async fn execute_tool_direct(
     let mode = api.permissions.mode().await;
     let needs_approval = api.permissions.requires_approval(false, &tool_name, mode);
     let mut arguments = body.arguments;
-    // #1280/#1291 — publish is deploy-role gated downstream; the tool runs
-    // server-side without a session, so stamp the CALLING user's id into the
-    // arguments exactly like the agent loop does (never silently privileged:
-    // the deployment handler enforces the same RBAC for this id).
-    if tool_name == "publish/project" {
-        if let Some(args) = arguments.as_object_mut() {
-            args.insert(
-                "on_behalf_of_user".to_string(),
-                serde_json::Value::String(user.user_id.to_string()),
-            );
-        }
-    }
+    // #1280/#1291/#2751 — deploy/domain tools are RBAC-gated downstream; the
+    // tool runs server-side without a session, so stamp the CALLING user's id
+    // into the arguments exactly like the agent loop does (never silently
+    // privileged: a client-supplied `on_behalf_of_user` is overwritten here).
+    crate::tool_executor::stamp_acting_user(&tool_name, &mut arguments, user.user_id);
     let mut call = crate::types::VibeToolCall::new(
         Uuid::nil(),
         tool_name.clone(),
