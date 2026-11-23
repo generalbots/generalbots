@@ -32,6 +32,80 @@ pub(crate) fn python_entry_of(path: &str) -> Option<&str> {
     }
 }
 
+/// Check a project-declared web entry before it reaches a systemd unit (#2655).
+/// The value is interpolated into `ExecStart`, so it must be a plain relative
+/// path: no absolute paths, no `..` traversal, no whitespace/newlines, no NUL,
+/// no shell metacharacters and no systemd specifiers (`%`).
+pub(crate) fn is_safe_entry(entry: &str) -> bool {
+    !entry.is_empty()
+        && !entry.starts_with('/')
+        && entry.split('/').all(|part| !part.is_empty() && part != "..")
+        && entry
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'/' | b'-'))
+}
+
+/// Parse every `package.json` in the file set, ignoring malformed manifests.
+fn manifest_json(files: &[serde_json::Value]) -> impl Iterator<Item = serde_json::Value> + '_ {
+    files
+        .iter()
+        .filter(|file| file.get("path").and_then(|v| v.as_str()) == Some("package.json"))
+        .filter_map(|file| {
+            let content = file.get("content").and_then(|v| v.as_array())?;
+            let bytes: Vec<u8> = content
+                .iter()
+                .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
+                .collect();
+            serde_json::from_slice(&bytes).ok()
+        })
+}
+
+/// All project-declared entry candidates (`main` first, then a `node <file>`
+/// start script). Both are validated so a hostile value in either is refused.
+fn manifest_entries(manifest: &serde_json::Value) -> Vec<String> {
+    let mut entries = Vec::new();
+    if let Some(main) = manifest.get("main").and_then(|v| v.as_str()) {
+        entries.push(main.to_string());
+    }
+    if let Some(start) = manifest
+        .get("scripts")
+        .and_then(|s| s.get("start"))
+        .and_then(|v| v.as_str())
+    {
+        if let Some(entry) = start.strip_prefix("node ") {
+            entries.push(entry.to_string());
+        }
+    }
+    entries
+}
+
+/// Fail-closed gate called before a VM is provisioned (#2655): a single unsafe
+/// `main` / `node <file>` entry aborts the deployment instead of being written
+/// into `vibe-app.service`.
+pub(crate) fn validate_manifest_entries(files: &[serde_json::Value]) -> Result<(), String> {
+    for manifest in manifest_json(files) {
+        for entry in manifest_entries(&manifest) {
+            if !is_safe_entry(entry.as_str()) {
+                return Err(format!("unsafe package.json web entry rejected: {entry:?}"));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Build the systemd `ExecStart` line from an already-validated entry (#2655).
+/// The allowlist excludes `%`, quotes, whitespace and shell metacharacters, so
+/// no quoting is required; `%` is doubled defensively in case the allowlist is
+/// widened later (systemd treats `%` as a specifier).
+pub(crate) fn exec_start_line(interpreter: &str, entry: &str) -> Result<String, String> {
+    if !is_safe_entry(entry) {
+        return Err(format!("unsafe web entry cannot be used in ExecStart: {entry:?}"));
+    }
+    let interpreter = interpreter.replace('%', "%%");
+    let path = format!("/opt/vibe/app/{entry}").replace('%', "%%");
+    Ok(format!("ExecStart={interpreter} {path}"))
+}
+
 pub(crate) fn resolve_web_entry(files: &[serde_json::Value]) -> WebEntry {
     let has_index_js = files.iter().any(|f| {
         f.get("path")
@@ -50,27 +124,12 @@ pub(crate) fn resolve_web_entry(files: &[serde_json::Value]) -> WebEntry {
     // An explicit web entry declared by the project (package.json "main" or
     // a "start" script of the form `node <file>`) wins over conventional
     // file names.
-    let declared_entry: Option<String> = files.iter().find_map(|f| {
-        if f.get("path").and_then(|v| v.as_str()) != Some("package.json") {
-            return None;
-        }
-        let content = f.get("content").and_then(|v| v.as_array())?;
-        let bytes: Vec<u8> = content
-            .iter()
-            .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
-            .collect();
-        let manifest: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
-        let main = manifest
-            .get("main")
-            .and_then(|v| v.as_str())
-            .map(str::to_string);
-        let start = manifest
-            .get("scripts")
-            .and_then(|s| s.get("start"))
-            .and_then(|v| v.as_str())
-            .and_then(|s| s.strip_prefix("node ").map(str::to_string));
-        main.or(start)
-    });
+    // #2655 — only a validated relative path may become an ExecStart
+    // argument. A hostile declared entry is ignored here (defense in depth);
+    // `validate_manifest_entries` refuses the deployment up front.
+    let declared_entry: Option<String> = manifest_json(files)
+        .find_map(|manifest| manifest_entries(&manifest).into_iter().next())
+        .filter(|entry| is_safe_entry(entry.as_str()));
     let has_node_entry = has_index_js || has_server_js || declared_entry.is_some();
     let python_entry = files
         .iter()
@@ -135,7 +194,7 @@ sys.exit(1)
 
 #[cfg(test)]
 pub(crate) mod entry_resolution_tests {
-    use super::resolve_web_entry;
+    use super::{exec_start_line, is_safe_entry, resolve_web_entry, validate_manifest_entries};
 
     fn f(path: &str) -> serde_json::Value {
         serde_json::json!({ "path": path, "content": [1, 2, 3] })
@@ -215,5 +274,53 @@ pub(crate) mod entry_resolution_tests {
         let r = resolve_web_entry(&[f("backend/main.py")]);
         assert!(r.is_python);
         assert_eq!(r.entry, "main.py");
+    }
+
+    #[test]
+    fn hostile_manifest_entry_is_refused() {
+        // #2655: a crafted `main` must not inject another systemd directive.
+        let pkg = pkg_json(r#"{"main":"dist/index.js\n[Service]\nUser=root"}"#);
+        assert!(validate_manifest_entries(&[pkg.clone()]).is_err());
+        let r = resolve_web_entry(&[pkg]);
+        assert!(!r.entry.contains('\n'), "newline reached ExecStart: {:?}", r.entry);
+        assert!(!r.entry.contains("[Service]"));
+        assert!(r.needs_static_fallback);
+    }
+
+    #[test]
+    fn hostile_start_script_entry_is_refused() {
+        let pkg = pkg_json(r#"{"scripts":{"start":"node dist/x.js; echo pwned"}}"#);
+        assert!(validate_manifest_entries(&[pkg.clone()]).is_err());
+        let r = resolve_web_entry(&[pkg]);
+        assert!(!r.entry.contains(';'), "shell metacharacter reached ExecStart");
+    }
+
+    #[test]
+    fn unsafe_entry_shapes_are_rejected() {
+        for entry in [
+            "/etc/passwd",
+            "../evil.js",
+            "dist/../../evil.js",
+            "dist//index.js",
+            "x\ny",
+            "x\0y",
+            "x%y",
+            "x;y",
+            "x$y",
+            "x y",
+            "",
+        ] {
+            assert!(!is_safe_entry(entry), "entry must be rejected: {entry:?}");
+        }
+        assert!(is_safe_entry("dist/index.js"));
+        assert!(is_safe_entry("src/main.js"));
+    }
+
+    #[test]
+    fn exec_start_line_never_emits_extra_directives() {
+        assert!(exec_start_line("/usr/bin/node", "x\n[Service]\nUser=root").is_err());
+        let line = exec_start_line("/usr/bin/node", "dist/index.js").unwrap_or_default();
+        assert_eq!(line, "ExecStart=/usr/bin/node /opt/vibe/app/dist/index.js");
+        assert!(!line.contains('\n'));
     }
 }

@@ -2,6 +2,12 @@
 
 use super::*;
 
+// #2654 — private staging for the project DB URL lives in its own module so
+// this file stays under the 450-line limit (AGENTS.md).
+#[path = "secure_env.rs"]
+mod secure_env;
+use secure_env::{harden_proxy_env_file, SecureEnvFile};
+
 /// Install (or refresh) the per-site python systemd service inside the
 /// proxy: venv + dependency install + unit + start. Idempotent. The unit
 /// name and payload dir come from the (slug, env) target so prod and dev
@@ -57,8 +63,10 @@ pub(crate) fn ensure_python_service_for(
     let env_file = format!("/etc/gb-vibe/{unit_name}.env");
     if let Some(url) = database_url {
         let env_content = format!("DATABASE_URL={url}\n");
-        let env_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.env"));
-        std::fs::write(&env_tmp, env_content).map_err(|e| format!("write env file: {e}"))?;
+        // #2654 — never stage the DB URL (with its password) in a predictable,
+        // world-readable /tmp file. The private 0700 dir + 0600 O_EXCL file are
+        // owned by `env_tmp`; its Drop removes them on every exit path.
+        let env_tmp = SecureEnvFile::create(&env_content)?;
         let _ = proxy_exec(
             &["mkdir".to_string(), "-p".to_string(), "/etc/gb-vibe".to_string()],
             15,
@@ -72,17 +80,18 @@ pub(crate) fn ensure_python_service_for(
             &[
                 "file".to_string(),
                 "push".to_string(),
-                env_tmp.to_string_lossy().to_string(),
+                env_tmp.path().to_string_lossy().to_string(),
                 format!("proxy{env_file}"),
             ],
             Path::new("."),
             30,
         )
         .map_err(|e| format!("incus file push env file: {e}"))?;
-        let _ = std::fs::remove_file(&env_tmp);
         if pushed_env.exit_code != Some(0) {
-            return Err(format!("env file push failed: {}", pushed_env.stderr.trim()));
+            // Generic message: never echo tool output that could carry the URL.
+            return Err("env file push failed".to_string());
         }
+        harden_proxy_env_file(&env_file)?;
     }
     let unit = format!(
         "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nEnvironmentFile=-{env_file}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"

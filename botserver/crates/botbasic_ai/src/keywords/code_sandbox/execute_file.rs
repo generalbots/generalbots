@@ -274,23 +274,29 @@ impl CodeSandbox {
         }
     }
 
-    pub async fn execute_file(&self, file_path: &str, language: CodeLanguage) -> ExecutionResult {
+    pub async fn execute_file(
+        &self,
+        file_path: &str,
+        language: CodeLanguage,
+        bot_work_roots: &[std::path::PathBuf],
+    ) -> ExecutionResult {
         // #2659 — a BASIC script must never turn an arbitrary host path into
-        // interpreter source. Canonicalize and require containment inside one
-        // of the configured allowed roots (symlinks and `..` are rejected by
-        // the shared path guard).
-        let candidate = std::path::Path::new(file_path);
-        let resolved = self
-            .config
-            .allowed_paths
-            .iter()
-            .map(std::path::PathBuf::from)
-            .find_map(|root| botsecurity::path_guard::canonicalize_safe(candidate, &root).ok());
-        let Some(path) = resolved else {
-            return ExecutionResult::error(
-                "Sandbox file path is outside the configured allowed roots",
-            );
-        };
+        // interpreter source. Resolve it only inside this bot's materialized
+        // work tree, and only when the sandbox allowlist also covers it.
+        let path =
+            match validate_sandbox_file_path(file_path, bot_work_roots, &self.config.allowed_paths)
+            {
+                Ok(path) => path,
+                Err(error) => {
+                    warn!(
+                        "Refusing sandbox file read for session {}: {}",
+                        self.session_id, error
+                    );
+                    return ExecutionResult::error(&format!(
+                        "Sandbox file access refused: {error}"
+                    ));
+                }
+            };
         match std::fs::read_to_string(path) {
             Ok(code) => self.execute(&code, language).await,
             Err(e) => ExecutionResult::error(&format!("Failed to read file: {}", e)),
@@ -302,51 +308,36 @@ impl CodeSandbox {
 mod tests {
     use super::*;
 
-    fn config_with_allowed_root(root: &std::path::Path) -> SandboxConfig {
-        let mut config = SandboxConfig::default();
-        config.allowed_paths = vec![root.to_string_lossy().to_string()];
-        config
-    }
-
-    #[tokio::test]
-    async fn allowed_root_is_extracted_from_a_pure_helper() {
-        // The path decision is the security boundary; extract it so the
-        // adversarial cases can be asserted without running an interpreter.
-        let root = std::env::temp_dir().join("gb-sandbox-uat2659");
+    /// #2659: the hostile cases once checked the now-removed ad-hoc helper;
+    /// they must exercise the real boundary used by `execute_file`.
+    #[test]
+    fn hostile_paths_are_refused_by_the_real_validator() {
+        let root = std::env::temp_dir().join(format!("gb2659-exec-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&root).expect("test root");
         let inside = root.join("script.py");
         std::fs::write(&inside, "print(1)").expect("test script");
-        let config = config_with_allowed_root(&root);
+        let allowed = vec![root.to_string_lossy().to_string()];
+        let roots = [root.clone()];
 
-        let resolved = config
-            .allowed_paths
-            .iter()
-            .map(std::path::PathBuf::from)
-            .find_map(|allowed| {
-                botsecurity::path_guard::canonicalize_safe(&inside, &allowed).ok()
-            });
-        assert!(resolved.is_some(), "a file inside an allowed root must resolve");
-
-        for outside in ["/etc/shadow", "/tmp/vault-token-gb", "../../etc/passwd"] {
-            let candidate = std::path::Path::new(outside);
-            let accepted = config
-                .allowed_paths
-                .iter()
-                .map(std::path::PathBuf::from)
-                .any(|allowed| {
-                    botsecurity::path_guard::canonicalize_safe(candidate, &allowed).is_ok()
-                });
-            assert!(!accepted, "{outside} must never be an allowed sandbox file");
+        assert_eq!(
+            validate_sandbox_file_path("script.py", &roots, &allowed).expect("allowed"),
+            inside.canonicalize().expect("canonical fixture")
+        );
+        for hostile in ["/etc/shadow", "/tmp/vault-token-gb", "../../etc/passwd"] {
+            assert!(
+                validate_sandbox_file_path(hostile, &roots, &allowed).is_err(),
+                "{hostile} must never be an allowed sandbox file"
+            );
         }
-        // A symlink inside the root pointing outside must also be refused.
+
         #[cfg(unix)]
         {
             let link = root.join("escape.py");
-            let _ = std::os::unix::fs::symlink("/etc/passwd", &link);
-            let via_link = config.allowed_paths.iter().map(std::path::PathBuf::from).any(|allowed| {
-                botsecurity::path_guard::canonicalize_safe(&link, &allowed).is_ok()
-            });
-            assert!(!via_link, "a symlink escape must never be an allowed sandbox file");
+            std::os::unix::fs::symlink("/etc/passwd", &link).expect("create symlink");
+            assert_eq!(
+                validate_sandbox_file_path("escape.py", &roots, &allowed).unwrap_err(),
+                SandboxPathError::SymlinkNotAllowed
+            );
         }
         let _ = std::fs::remove_dir_all(&root);
     }

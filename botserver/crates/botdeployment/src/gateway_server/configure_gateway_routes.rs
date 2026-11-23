@@ -30,7 +30,8 @@ pub(super) fn validate_deploy_key(headers: &HeaderMap, state: &GatewayState) -> 
     }
 }
 /// Only `file://` artifacts inside the configured sites root may be pushed
-/// into a container (#2613). Canonicalisation defeats `..`/symlink escapes.
+/// into a container (#2613, #2650). Canonicalisation defeats `..`/symlink
+/// escapes; well-known credential names are refused even inside the root.
 pub(super) fn allowed_local_artifact(sites_root: &str, artifact_url: &str) -> Option<std::path::PathBuf> {
     let raw = artifact_url.strip_prefix("file://")?;
     if raw.is_empty() || raw.contains('\0') || raw.contains("..") {
@@ -38,11 +39,39 @@ pub(super) fn allowed_local_artifact(sites_root: &str, artifact_url: &str) -> Op
     }
     let root = std::path::Path::new(sites_root).canonicalize().ok()?;
     let candidate = std::path::Path::new(raw).canonicalize().ok()?;
-    if candidate.starts_with(&root) && candidate.is_file() {
-        Some(candidate)
-    } else {
-        None
+    if !candidate.starts_with(&root) || !candidate.is_file() {
+        return None;
     }
+    if contains_sensitive_component(&root, &candidate) {
+        return None;
+    }
+    Some(candidate)
+}
+
+/// Fail closed on any path that cannot be proven to be a relative child of the
+/// allowlisted root, or that names a well-known credential/secret (#2650).
+fn contains_sensitive_component(root: &std::path::Path, candidate: &std::path::Path) -> bool {
+    const SENSITIVE: &[&str] = &[
+        ".ssh",
+        ".aws",
+        ".gnupg",
+        ".kube",
+        ".npmrc",
+        ".git-credentials",
+        "id_rsa",
+        "id_ed25519",
+        "authorized_keys",
+        "credentials",
+        "passwd",
+        "shadow",
+    ];
+    let Ok(relative) = candidate.strip_prefix(root) else {
+        return true;
+    };
+    relative.components().any(|component| {
+        let name = component.as_os_str().to_string_lossy().to_ascii_lowercase();
+        SENSITIVE.contains(&name.as_str())
+    })
 }
 
 /// #1297 — org/app identifiers flow from HTTP bodies straight into
@@ -310,12 +339,14 @@ pub(super) async fn deploy_to_incus(
     if !request.artifact_url.is_empty() && request.artifact_url.starts_with("file://") {
         let artifact_path = allowed_local_artifact(&state.sites_root, &request.artifact_url)
             .ok_or_else(|| "artifact_path must resolve inside the configured sites root".to_string())?;
-        let _ = run_incus_command(state, &[
+        // The guard above proves a single regular file, so `--recursive` is
+        // neither needed nor safe. A failed push must abort the deploy rather
+        // than start an empty app (#2650).
+        run_incus_command(state, &[
             "file", "push",
             artifact_path.to_string_lossy().as_ref(),
             &format!("{container_name}/opt/app/"),
-            "--recursive",
-        ]).await;
+        ]).await.map_err(|e| format!("Artifact push failed: {e}"))?;
     }
 
     run_incus_command(state, &["start", container_name]).await
@@ -363,6 +394,10 @@ mod artifact_boundary_tests {
         assert_eq!(allowed.as_deref(), Some(inside.as_path()));
         assert!(allowed_local_artifact(&root_text, &format!("file://{}", outside.display())).is_none());
         assert!(allowed_local_artifact(&root_text, "file:///etc/passwd").is_none());
+        assert!(allowed_local_artifact(&root_text, "file:///etc/").is_none());
+        assert!(allowed_local_artifact(&root_text, "file://../../etc/passwd").is_none());
+        assert!(allowed_local_artifact(&root_text, "file://app.zip\0.txt").is_none());
+        assert!(allowed_local_artifact(&root_text, "file://").is_none());
         assert!(allowed_local_artifact(&root_text, &format!("file://{}/../outside", nested.display())).is_none());
         // A directory is not a pushable artifact.
         assert!(allowed_local_artifact(&root_text, &format!("file://{}", nested.display())).is_none());
@@ -371,6 +406,10 @@ mod artifact_boundary_tests {
         #[cfg(unix)]
         std::os::unix::fs::symlink(&outside, &link).expect("create symlink");
         assert!(allowed_local_artifact(&root_text, &format!("file://{}", link.display())).is_none());
+        // Credential names are refused even when they live inside the root.
+        let secret = nested.join("id_rsa");
+        fs::write(&secret, b"private key").expect("write secret");
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", secret.display())).is_none());
 
         fs::remove_dir_all(&root).ok();
         fs::remove_file(outside).ok();

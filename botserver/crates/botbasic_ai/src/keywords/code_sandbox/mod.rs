@@ -159,6 +159,7 @@ mod execute_file;
 mod file_extension;
 mod from_bot_config;
 mod generate_python_lxc_config;
+mod path_validation;
 pub mod preview_store;
 mod read_bot_config_from_vault;
 mod run_python_keyword;
@@ -167,6 +168,7 @@ mod success;
 
 pub use execute_file::*;
 pub use generate_python_lxc_config::*;
+pub(crate) use path_validation::{validate_sandbox_file_path, SandboxPathError};
 pub use preview_store::{
     classify, shared, PreviewEntry, PreviewStatus, PreviewStore, DEFAULT_CAPACITY, DEFAULT_TTL_MS,
 };

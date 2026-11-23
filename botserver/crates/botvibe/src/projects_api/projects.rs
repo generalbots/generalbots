@@ -120,7 +120,13 @@ pub(crate) fn project_run_port(project: &Project) -> u16 {
     let offset = (project_hash(&project.name) % 1000) as u16;
     if let Ok(p) = std::env::var("VIBE_RUN_PORT_BASE") {
         if let Ok(base) = p.parse::<u16>() {
-            return base + offset;
+            // #2651 — a misconfigured base must never wrap into a privileged
+            // or arbitrary host port (nor panic on overflow in debug builds).
+            if let Some(port) = base.checked_add(offset) {
+                if (DEV_VM_PORT_MIN..DEV_VM_PORT_MAX).contains(&port) {
+                    return port;
+                }
+            }
         }
     }
     31000 + offset

@@ -1,4 +1,5 @@
 use super::*;
+use diesel::prelude::*;
 
 /// Hard upper bound for a synchronous Rhai `RUN …` call. The worker thread is
 /// bounded by this deadline too, so a hung child can never pin it forever.
@@ -25,6 +26,70 @@ fn clamped_sandbox(state: &dyn BasicRuntime, bot_id: Uuid, session_id: Uuid) -> 
         CALLER_MARGIN_SECS,
     );
     CodeSandbox::new(config, session_id)
+}
+
+/// #2659 — the only filesystem subtree a BASIC script may read through
+/// `WITH FILE` is its own bot's materialized work tree. Both the current
+/// org-scoped layout and the legacy bot-named layout are accepted so an
+/// operator-configured path can never pull in another tenant's files.
+fn file_work_roots(
+    state: &dyn BasicRuntime,
+    user: &UserSession,
+) -> Result<Vec<std::path::PathBuf>, String> {
+    use botschema::bots;
+
+    let mut conn = state
+        .db_pool()
+        .get()
+        .map_err(|e| format!("DB error: {e}"))?;
+    let bot_name: String = bots::table
+        .filter(bots::id.eq(user.bot_id))
+        .select(bots::name)
+        .first(&mut *conn)
+        .map_err(|e| format!("Failed to resolve bot name: {e}"))?;
+    if bot_name.is_empty()
+        || bot_name.starts_with('.')
+        || bot_name.contains('/')
+        || bot_name.contains('\\')
+        || bot_name.contains("..")
+    {
+        return Err("unsafe bot name for sandbox file access".to_string());
+    }
+
+    let work_root = std::path::PathBuf::from(state.data_dir());
+    let org = user.org_id().unwrap_or_else(uuid::Uuid::nil);
+    let current = work_root
+        .join(format!("{org}.gborg"))
+        .join(format!("{bot_name}.gbai"));
+    if current.is_dir() {
+        return Ok(vec![current]);
+    }
+    let legacy = work_root
+        .join(format!("{bot_name}.gborg"))
+        .join(format!("{bot_name}.gbai"));
+    Ok(vec![legacy, current])
+}
+
+/// A `WITH FILE` sandbox also carries the bot work tree in its allowlist, so
+/// the same roots are visible to a container runtime and to the path guard.
+fn file_sandbox(
+    state: &dyn BasicRuntime,
+    user: &UserSession,
+    work_roots: &[std::path::PathBuf],
+) -> CodeSandbox {
+    let mut config = SandboxConfig::from_bot_config(state, user.bot_id);
+    config.timeout_seconds = effective_sandbox_timeout(
+        config.timeout_seconds,
+        CALLER_DEADLINE.as_secs(),
+        CALLER_MARGIN_SECS,
+    );
+    for root in work_roots {
+        let value = root.to_string_lossy().to_string();
+        if !config.allowed_paths.contains(&value) {
+            config.allowed_paths.push(value);
+        }
+    }
+    CodeSandbox::new(config, user.id)
 }
 
 /// Bridge the synchronous Rhai engine to the async sandbox.
@@ -198,16 +263,27 @@ pub fn run_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
 
             trace!(
                 "RUN PYTHON WITH FILE {} for session: {}",
-                file_path, user_clone.id
+                file_path,
+                user_clone.id
             );
 
             let state_for_task = Arc::clone(&state_clone);
-            let session_id = user_clone.id;
-            let bot_id = user_clone.bot_id;
+            let user_for_task = user_clone.clone();
+            let work_roots = match file_work_roots(&*state_for_task, &user_for_task) {
+                Ok(roots) => roots,
+                Err(error) => {
+                    warn!("Refusing sandbox file access: {error}");
+                    return Ok(Dynamic::from(format!(
+                        "Error: Sandbox file access refused: {error}"
+                    )));
+                }
+            };
 
             run_sandbox_blocking(move || async move {
-                let sandbox = clamped_sandbox(&*state_for_task, bot_id, session_id);
-                sandbox.execute_file(&file_path, CodeLanguage::Python).await
+                let sandbox = file_sandbox(&*state_for_task, &user_for_task, &work_roots);
+                sandbox
+                    .execute_file(&file_path, CodeLanguage::Python, &work_roots)
+                    .await
             })
         },
     ) {
@@ -225,13 +301,21 @@ pub fn run_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 .to_string();
 
             let state_for_task = Arc::clone(&state);
-            let session_id = user.id;
-            let bot_id = user.bot_id;
+            let user_for_task = user.clone();
+            let work_roots = match file_work_roots(&*state_for_task, &user_for_task) {
+                Ok(roots) => roots,
+                Err(error) => {
+                    warn!("Refusing sandbox file access: {error}");
+                    return Ok(Dynamic::from(format!(
+                        "Error: Sandbox file access refused: {error}"
+                    )));
+                }
+            };
 
             run_sandbox_blocking(move || async move {
-                let sandbox = clamped_sandbox(&*state_for_task, bot_id, session_id);
+                let sandbox = file_sandbox(&*state_for_task, &user_for_task, &work_roots);
                 sandbox
-                    .execute_file(&file_path, CodeLanguage::JavaScript)
+                    .execute_file(&file_path, CodeLanguage::JavaScript, &work_roots)
                     .await
             })
         },

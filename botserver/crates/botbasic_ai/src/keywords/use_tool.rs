@@ -401,4 +401,40 @@ mod tests {
             assert!(!is_safe_name_component(raw), "accepted {raw:?}");
         }
     }
+
+    #[test]
+    fn issue_2664_full_path_never_returns_the_original_operand() {
+        // #2664: the old `.unwrap_or(tool_path_str)` fallback returned the
+        // *whole* operand when `.bas` was absent, so a full path reached the
+        // manifest/script joins. Every full-path spelling must collapse to
+        // the bare leaf, never to the operand or any slice containing a
+        // separator or the `.gbdialog` prefix.
+        for raw in [
+            "bot.gbdialog/foo.bas",
+            "bot.gbdialog/foo",
+            "work/bot.gbai/bot.gbdialog/foo.bas",
+            "work/bot.gbai/bot.gbdialog/foo",
+        ] {
+            let normalized = normalize_tool_name(raw);
+            assert_eq!(normalized, Some("foo"), "wrong normalization of {raw:?}");
+            if let Some(name) = normalized {
+                assert!(!name.contains('/'), "separator leaked: {raw:?}");
+                assert!(!name.contains('\\'), "separator leaked: {raw:?}");
+                assert!(!name.contains(".gbdialog"), "prefix leaked: {raw:?}");
+            }
+        }
+
+        // Slicing at the first prefix must still fail closed when what remains
+        // is a nested prefix, a separator or an empty leaf: the guard rejects
+        // these rather than fabricating a name from the unsafe remainder.
+        for raw in [
+            "bot.gbdialog/a.gbdialog/foo.bas",
+            "bot.gbdialog/foo/bar.bas",
+            "bot.gbdialog/.hidden.bas",
+            "bot.gbdialog/foo..bar.bas",
+            "bot.gbdialog/",
+        ] {
+            assert_eq!(normalize_tool_name(raw), None, "accepted {raw:?}");
+        }
+    }
 }

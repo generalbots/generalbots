@@ -128,4 +128,25 @@ mod tests {
         assert_eq!(resolve_bot_file_in(root.to_str().unwrap_or(""), "../secret", "gbdialog", "x.ast"), None);
         assert_eq!(resolve_bot_file_in(root.to_str().unwrap_or(""), "bot", "gbdialog", "../x.ast"), None);
     }
+
+    #[test]
+    fn issue_2664_rejects_full_path_tool_names_in_resolver() {
+        // #2664: a USE TOOL operand that still carried separators after a
+        // broken normalization was joined into manifest/script paths here.
+        // The resolver must fail closed on every such shape.
+        let root = std::env::temp_dir().join("gb-tool-paths-2664");
+        let root = root.to_str().unwrap_or("");
+        for file in [
+            "bot.gbdialog/foo.bas",
+            "work/bot.gbai/bot.gbdialog/foo",
+            "..\\secret.bas",
+            "foo/bar.ast",
+        ] {
+            assert_eq!(
+                resolve_bot_file_in(root, "bot", "gbdialog", file),
+                None,
+                "accepted {file:?}"
+            );
+        }
+    }
 }

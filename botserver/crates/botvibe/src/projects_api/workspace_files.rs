@@ -228,23 +228,44 @@ pub struct RunProjectQuery {
     pub port: Option<u16>,
 }
 
-/// Pure port guard shared by Run and the preview endpoint (#2651).
+/// Pure allowlist guard for host ports Vibe may expose (#2651). The dev-VM
+/// proxy range is the only host port namespace Vibe owns.
 pub(crate) fn is_valid_dev_port(port: u16) -> bool {
     (DEV_VM_PORT_MIN..DEV_VM_PORT_MAX).contains(&port)
 }
 
+/// A caller-supplied port is honoured only when it is both allowlisted AND
+/// the deterministic port derived from the requesting project's identity.
+/// Host ports are a shared namespace: a Viewer of project A must not be able
+/// to bind the port owned by project B/another tenant (#2651).
+pub(crate) fn is_owned_dev_port(requested: u16, owned: u16) -> bool {
+    is_valid_dev_port(requested) && requested == owned
+}
+
 #[cfg(test)]
 mod dev_port_tests {
-    use super::is_valid_dev_port;
+    use super::{is_owned_dev_port, is_valid_dev_port};
 
     #[test]
     fn only_allocated_dev_ports_are_accepted() {
         assert!(is_valid_dev_port(31000));
         assert!(is_valid_dev_port(31999));
-        assert!(!is_valid_dev_port(32000));
-        assert!(!is_valid_dev_port(80));
-        assert!(!is_valid_dev_port(22));
-        assert!(!is_valid_dev_port(0));
+        // Exclusive upper bound plus privileged/reserved/out-of-range ports.
+        for hostile in [0, 1, 22, 80, 443, 1024, 32000, u16::MAX] {
+            assert!(!is_valid_dev_port(hostile), "hostile port {hostile} accepted");
+        }
+    }
+
+    #[test]
+    fn only_the_projects_own_port_is_accepted() {
+        let owned = 31007;
+        assert!(is_owned_dev_port(owned, owned));
+        // In-range but assigned to a different project/tenant.
+        assert!(!is_owned_dev_port(31008, owned));
+        // A bad owned value must never become bindable, even on an exact match.
+        for hostile in [0, 22, 80, 32000, u16::MAX] {
+            assert!(!is_owned_dev_port(hostile, hostile), "hostile port {hostile} accepted");
+        }
     }
 }
 
@@ -362,7 +383,24 @@ pub(crate) async fn run_project_app(
         Ok(vm) => vm,
         Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
     };
-    let port = query.port.unwrap_or_else(|| project_run_port(&project));
+    // #2651 — the host port namespace is shared by every Vibe project.
+    // Fail closed: derive the only port this project may own and reject a
+    // caller-supplied port that belongs to another project/tenant even when
+    // it is inside the allowlisted range.
+    let owned_port = project_run_port(&project);
+    let port = match query.port {
+        Some(requested) if is_owned_dev_port(requested, owned_port) => requested,
+        Some(requested) => {
+            log::warn!("Vibe Run {}: rejected host port {requested} not owned by this project", project.name);
+            return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": "invalid dev-vm port" })));
+        }
+        None => owned_port,
+    };
+    // Fail closed: a misconfigured derived port must never reach the proxy.
+    if !is_valid_dev_port(port) {
+        log::error!("Vibe Run {}: derived host port {port} is outside the dev range", project.name);
+        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": "invalid dev-vm port" })));
+    }
     // #1386 — the dev VM always gets the project's `_dev` database: dev Run
     // traffic can never read or write the production database.
     let database_url = match crate::project_db::ensure_project_database(
