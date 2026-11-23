@@ -269,6 +269,24 @@ impl VmLifecycle {
         }
     }
 
+    /// #2648 — find the tenant that owns a container name. Used before an
+    /// existing Incus instance is adopted so one branch cannot take over
+    /// another branch's VM.
+    pub(crate) fn lookup_by_container_name(&self, container_name: &str) -> Result<Option<VmInstance>, String> {
+        let mut conn = self.conn()?;
+        let result = diesel::sql_query(
+            "SELECT id, project_id, org_id, branch_id, project_name, env, tier, status, container_name, runner_enabled, error, created_at, updated_at
+             FROM vm_instances WHERE container_name = $1",
+        )
+        .bind::<diesel::sql_types::Text, _>(container_name)
+        .get_result::<VmRow>(&mut conn);
+        match result {
+            Ok(row) => Ok(Some(row.into_vm())),
+            Err(diesel::result::Error::NotFound) => Ok(None),
+            Err(e) => Err(format!("lookup vm by container name: {e}")),
+        }
+    }
+
     pub(crate) fn lookup_by_id(&self, id: &Uuid) -> Result<VmInstance, String> {
         let mut conn = self.conn()?;
         let row = diesel::sql_query(
