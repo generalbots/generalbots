@@ -143,7 +143,18 @@ async fn load_export_document(
     let user_id = user.id();
 
     match load_document_from_drive(state, user_id, &query.id).await {
-        Ok(Some(d)) => Ok(d),
+        // #2624 — every mounted export format flows through this loader;
+        // redact here so a stored secret never leaves in pdf/docx/html/odt.
+        Ok(Some(mut d)) => {
+            let dlp_user = uuid::Uuid::parse_str(user_id).ok();
+            d.content = botsecurity_core::dlp::redact_text(
+                &d.content,
+                botsecurity_core::dlp::ScanDirection::Outbound,
+                dlp_user,
+            )
+            .await;
+            Ok(d)
+        }
         Ok(None) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Document not found" })),
