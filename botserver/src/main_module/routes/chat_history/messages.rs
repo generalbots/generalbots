@@ -9,6 +9,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use super::{bearer_user, db_error, HandlerError};
+use crate::main_module::routes::anonymous_auth::resolve_chat_user_uuid;
 use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_pin};
 
 #[derive(Serialize)]
@@ -50,19 +51,16 @@ pub async fn handle_chat_history_messages(
     let Some(sess) = owner else {
         return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
     };
-    // #1915 — the strict ownership check rejected legitimate owners whenever
-    // the bearer token resolved to a different (but equivalent) identity
-    // (e.g. guest-repaired rows). Log the mismatch and allow the
-    // authenticated user to read their own session instead of returning 403.
-    if sess.user_id.to_string() != user_uuid.to_string() {
-        // #3006 — CodeQL rust/cleartext-logging: botlog scrubs the identifiers
-        // while the message keeps the mismatch traceable.
-        botlog::safe_warn!(
-            "chat history: session {} owned by {} but bearer is {} — allowing",
-            session_id,
-            sess.user_id,
-            user_uuid
-        );
+    // #2857 — fail closed: messages and the persisted `gb.activity` trace are
+    // private to the conversation owner. #1915 used to log a mismatch and
+    // allow the read, so any authenticated caller holding a session UUID could
+    // read another user's messages and trace frames. Both ids are normalized
+    // through `resolve_chat_user_uuid`, so an equivalent identity (e.g. a
+    // guest-repaired row) still compares equal while a foreign caller gets a
+    // 404 — matching the sibling rename/delete/truncate handlers and without
+    // leaking whether the session exists.
+    if !caller_owns_session(&sess.user_id.to_string(), user_uuid) {
+        return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
     }
     // #1682 — a locked conversation releases its messages only with the PIN.
     if sess.locked {
@@ -178,6 +176,17 @@ pub async fn handle_chat_history_messages(
     })))
 }
 
+/// #2857 — pure ownership check. `owner_id` is the session's stored user id
+/// (`user_sessions.user_id`, text) and `caller` is the authenticated bearer's
+/// resolved UUID. Both go through `resolve_chat_user_uuid` (idempotent for
+/// UUIDs, deterministic v5 for a raw Zitadel subject), so an equivalent
+/// identity — e.g. a guest-repaired row whose email/username changed but whose
+/// subject did not — still compares equal, while a foreign caller never does.
+/// The check is pure: it never logs, reads state, or fails open.
+fn caller_owns_session(owner_id: &str, caller: Uuid) -> bool {
+    resolve_chat_user_uuid(owner_id) == caller
+}
+
 /// Loads persisted `gb.activity` events for a session from `run_events`,
 /// merges start/end pairs into one object per activity (with both timestamps
 /// and duration), and returns them ordered by first-seen time.
@@ -259,4 +268,41 @@ struct ActivityRow {
     ts: chrono::NaiveDateTime,
     #[diesel(sql_type = diesel::sql_types::Jsonb)]
     payload: serde_json::Value,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owner_matches_caller() {
+        let id = Uuid::new_v4();
+        assert!(caller_owns_session(&id.to_string(), id));
+    }
+
+    #[test]
+    fn foreign_caller_is_rejected() {
+        let owner = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        assert!(!caller_owns_session(&owner.to_string(), other));
+    }
+
+    #[test]
+    fn equivalent_raw_zitadel_subject_matches_normalized_caller() {
+        // The bearer side is normalized by `bearer_user`; a session whose
+        // owner is stored as the same raw subject must still compare equal
+        // (#1915) without skipping the check.
+        let sub = "zitadel-user-2857";
+        let caller = resolve_chat_user_uuid(sub);
+        assert!(caller_owns_session(sub, caller));
+    }
+
+    #[test]
+    fn different_raw_subject_and_garbage_are_rejected() {
+        let caller = resolve_chat_user_uuid("zitadel-user-2857");
+        assert!(!caller_owns_session("zitadel-user-other", caller));
+        let random = Uuid::new_v4();
+        assert!(!caller_owns_session("not-a-uuid", random));
+        assert!(!caller_owns_session("", random));
+    }
 }

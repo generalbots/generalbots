@@ -1,6 +1,14 @@
+//! Email/CRM integration endpoints.
+//!
+//! #2856 — the feature-flags endpoint used to accept the tenant org id from
+//! the URL path and query `feature_flags` with it, so any authenticated user
+//! could read another organization's flags by editing the path. The org id is
+//! now resolved from verified caller claims and must match the path param;
+//! an administrator targeting another tenant uses the separate admin path.
+
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::Json,
 };
 use diesel::prelude::*;
@@ -9,13 +17,27 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::handlers::flag_scope::{caller_org, resolve_flag_org, FlagScopeError};
 use crate::models::AppState;
 use crate::types::*;
 
 pub async fn get_feature_flags(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<FeatureFlags>, StatusCode> {
+    let org_id = match resolve_flag_org(caller_org(&headers), org_id) {
+        Ok(org) => org,
+        Err(FlagScopeError::MissingClaim) => {
+            tracing::warn!("feature flags refused: caller has no verified org claim");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        Err(FlagScopeError::ForeignOrg) => {
+            tracing::warn!("feature flags refused: path org differs from verified caller org");
+            return Err(StatusCode::FORBIDDEN);
+        }
+    };
+
     let mut conn = state.pool.get().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     #[derive(QueryableByName)]

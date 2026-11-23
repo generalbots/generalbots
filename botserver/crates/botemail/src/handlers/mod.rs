@@ -8,3 +8,4 @@ pub mod integration;
 pub mod snooze;
 pub mod nudges;
 pub mod flags;
+pub mod flag_scope;
