@@ -3,29 +3,6 @@ use tracing::info;
 
 use botsecurity_core::command_guard::SafeCommand;
 
-const JAIL_LOCAL: &str = r#"[DEFAULT]
-bantime  = 1h
-findtime = 10m
-maxretry = 5
-backend  = systemd
-
-[sshd]
-enabled  = true
-port     = ssh
-logpath  = %(sshd_log)s
-maxretry = 3
-
-[postfix]
-enabled  = true
-port     = smtp,465,587
-logpath  = %(postfix_log)s
-
-[dovecot]
-enabled  = true
-port     = pop3,pop3s,imap,imaps,submission,465,sieve
-logpath  = %(dovecot_log)s
-"#;
-
 /// jail.local for the proxy container (Caddy) — no sshd, only HTTP flood
 const PROXY_JAIL_LOCAL: &str = r#"[DEFAULT]
 bantime  = 1h
@@ -166,15 +143,14 @@ impl Fail2banManager {
     }
 
     async fn write_jail_config(log: &mut String) -> Result<()> {
-        std::fs::write("/tmp/gb-jail.local", JAIL_LOCAL)
-            .context("failed to write jail config to /tmp")?;
-
+        // The helper is root-owned and installed by `botserver security bootstrap`.
+        // No source file is ever created in a world-writable directory: a local
+        // user cannot pre-create or symlink a predictable /tmp path to influence
+        // the contents of /etc/fail2ban/jail.local.
         SafeCommand::new("sudo")?
-            .arg("cp")?
-            .arg("/tmp/gb-jail.local")?
-            .arg("/etc/fail2ban/jail.local")?
+            .arg(super::sudoers::JAIL_WRITER_PATH)?
             .execute()
-            .context("failed to copy jail.local")?;
+            .context("failed to write jail.local via root-owned helper")?;
 
         log.push_str("jail.local written (ssh + postfix + dovecot jails)\n");
         Ok(())
