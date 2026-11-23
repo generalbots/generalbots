@@ -118,6 +118,28 @@ pub(crate) fn comment_resource(
         .map(|r| (r.resource_type, r.resource_id))
 }
 
+/// Resolve the (resource_type, resource_id) a version belongs to. Handlers
+/// addressed by a bare version id use this to derive the ownership scope from
+/// the stored row before returning or mutating its content (#2768).
+pub(crate) fn version_resource(
+    conn: &mut PgConnection,
+    id: uuid::Uuid,
+) -> Option<(String, String)> {
+    #[derive(QueryableByName)]
+    struct ResRow {
+        #[diesel(sql_type = Text)]
+        pub(crate) resource_type: String,
+        #[diesel(sql_type = Text)]
+        pub(crate) resource_id: String,
+    }
+    diesel::sql_query("SELECT resource_type, resource_id FROM collab_versions WHERE id = $1")
+        .bind::<SqlUuid, _>(id)
+        .load::<ResRow>(conn)
+        .ok()
+        .and_then(|mut rows| rows.pop())
+        .map(|r| (r.resource_type, r.resource_id))
+}
+
 /// SHA-256 hex digest of a snapshot's content, used to dedup unchanged saves
 /// and shown as an integrity fingerprint in the version list.
 pub(crate) fn sha256_hex(content: &str) -> String {
@@ -195,13 +217,47 @@ pub(crate) fn effective_role(
     None
 }
 
+/// Pure ownership predicate over a role resolved from `resource_permissions`.
+/// `None` means the caller has no grant at all (a foreign resource), which is
+/// never ownership. The role comes from `effective_role`, which derives the
+/// caller identity from *verified* JWT claims (user id / email / email domain),
+/// never from a request parameter (#2768).
+pub(crate) fn is_owner_role(role: Option<&str>) -> bool {
+    role == Some("owner")
+}
+
+/// Pure access predicate over a role resolved from `resource_permissions`.
+/// Any explicit grant — viewer, commenter, editor or owner — is legitimate
+/// collaboration; `None` (foreign resource) is denied. The admin/super-admin
+/// bypass is applied in [`has_collab_access`], where the verified
+/// `AuthenticatedUser` claims are available (#2768).
+pub(crate) fn grants_collab_access(role: Option<&str>) -> bool {
+    matches!(role, Some("viewer" | "commenter" | "editor" | "owner"))
+}
+
+/// Gate every collab REST handler on the caller's relationship to the target
+/// resource. Scope is derived from verified claims only: the `AuthenticatedUser`
+/// extracted by the auth middleware (admin flags, user id, email, domain). The
+/// resource type/id come from the request but are only used as a lookup key into
+/// `resource_permissions`. Fail closed: no grant and no admin claim → deny.
+pub(crate) fn has_collab_access(
+    conn: &mut PgConnection,
+    user: &AuthenticatedUser,
+    resource_type: &str,
+    resource_id: &str,
+) -> bool {
+    user.is_admin()
+        || user.is_super_admin()
+        || grants_collab_access(effective_role(conn, user, resource_type, resource_id).as_deref())
+}
+
 pub(crate) fn is_owner(
     conn: &mut PgConnection,
     user: &AuthenticatedUser,
     resource_type: &str,
     resource_id: &str,
 ) -> bool {
-    effective_role(conn, user, resource_type, resource_id).as_deref() == Some("owner")
+    is_owner_role(effective_role(conn, user, resource_type, resource_id).as_deref())
 }
 
 /// Bootstrap ownership: if a resource has no owner grant yet, make the current
@@ -252,5 +308,66 @@ pub(crate) fn ensure_owner(
             warn!("owner bootstrap failed: {e}");
             false
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Two-tenant fixture for the pure predicates. Each tenant owns a distinct
+    /// resource; there is deliberately no cross-grant. A lookup for a resource
+    /// the caller has no grant on resolves to `None`, exactly like
+    /// `effective_role` does against `resource_permissions`.
+    fn granted_role<'a>(
+        grants: &'a [((&str, &str), &'a str)],
+        tenant: &str,
+        resource: &str,
+    ) -> Option<&'a str> {
+        grants
+            .iter()
+            .find(|((t, r), _)| *t == tenant && *r == resource)
+            .map(|(_, role)| *role)
+    }
+
+    #[test]
+    fn only_an_explicit_owner_grant_counts_as_ownership() {
+        let grants = [
+            (("tenant-a", "doc-a"), "owner"),
+            (("tenant-b", "doc-b"), "owner"),
+        ];
+        assert!(is_owner_role(granted_role(&grants, "tenant-a", "doc-a")));
+        assert!(is_owner_role(granted_role(&grants, "tenant-b", "doc-b")));
+        // A foreign resource has no grant for the caller — never ownership.
+        assert!(!is_owner_role(granted_role(&grants, "tenant-a", "doc-b")));
+        assert!(!is_owner_role(granted_role(&grants, "tenant-b", "doc-a")));
+        assert!(!is_owner_role(None));
+        assert!(!is_owner_role(Some("editor")));
+    }
+
+    #[test]
+    fn any_explicit_grant_allows_collaboration_but_foreign_resources_do_not() {
+        let grants = [
+            (("tenant-a", "doc-a"), "owner"),
+            (("tenant-b", "doc-b"), "viewer"),
+            (("tenant-b", "doc-c"), "commenter"),
+            (("tenant-b", "doc-d"), "editor"),
+        ];
+        assert!(grants_collab_access(granted_role(&grants, "tenant-a", "doc-a")));
+        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-b")));
+        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-c")));
+        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-d")));
+        // Tenant B has no grant on A's document and must be denied.
+        assert!(!grants_collab_access(granted_role(&grants, "tenant-b", "doc-a")));
+        assert!(!grants_collab_access(granted_role(&grants, "tenant-a", "doc-b")));
+        assert!(!grants_collab_access(None));
+    }
+
+    #[test]
+    fn unknown_or_malformed_roles_are_denied() {
+        assert!(!grants_collab_access(Some("")));
+        assert!(!grants_collab_access(Some("administrator")));
+        assert!(!grants_collab_access(Some("OWNER")));
+        assert!(!is_owner_role(Some("administrator")));
     }
 }

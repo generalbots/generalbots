@@ -4,6 +4,7 @@ pub mod alm_setup;
 pub mod cache;
 pub mod checksum;
 pub mod cli;
+pub mod cli_audit;
 pub mod cli_display;
 pub mod cli_ops;
 pub mod cli_secrets;
@@ -17,6 +18,7 @@ pub mod installer;
 pub mod installer_regs;
 pub mod installer_vault;
 pub mod os;
+pub mod safe_staging;
 pub mod setup;
 
 // #1347/#1732 — package_manager duplication note: the module that is actually

@@ -27,6 +27,7 @@ pub use self::suite_ops::*;
 pub use self::ws::*;
 
 use axum::{
+    extract::DefaultBodyLimit,
     routing::{any, get},
     Router,
 };
@@ -57,6 +58,11 @@ use botsecurity_core::headers::with_security_headers;
 /// output (report-only CSP, TLS-gated HSTS).
 fn harden(router: Router) -> Router {
     with_security_headers(router, security_headers::ui_security_headers_config())
+        // #2777 — cap bodies before any extractor runs (the default axum cap
+        // is only 2 MiB). `proxy_api` reads the body itself with a path-aware
+        // cap: the Drive and video upload routes it serves keep their larger
+        // backend budgets, so no route needs a `DefaultBodyLimit::disable()`.
+        .layer(DefaultBodyLimit::max(proxy_body_limit_bytes()))
         .layer(CompressionLayer::new())
         .layer(axum::middleware::from_fn(security_headers::ui_header_policy))
 }

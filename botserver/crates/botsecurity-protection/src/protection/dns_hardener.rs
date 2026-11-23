@@ -3,6 +3,8 @@ use tracing::info;
 
 use botsecurity_core::command_guard::SafeCommand;
 
+use super::secure_staging::{verify_pushed, SecureStaging};
+
 const DNS_CONTAINER: &str = "pragmatismo-dns";
 const COREFILE_PATH: &str = "/opt/gbo/conf/Corefile";
 
@@ -86,17 +88,21 @@ impl DnsHardener {
     }
 
     async fn write_config(content: &str) -> Result<()> {
-        let host_tmp = "/tmp/gb-corefile";
-        std::fs::write(host_tmp, content).context("failed to write Corefile to /tmp")?;
+        // Stage in a random 0700 dir with a 0600 file instead of the old
+        // world-predictable /tmp/gb-corefile (#2790).
+        let staging = SecureStaging::new()?;
+        let host_tmp_path = staging.stage(content.as_bytes())?;
+        let host_tmp = host_tmp_path.to_string_lossy().into_owned();
 
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg(host_tmp)?
+            .arg(&host_tmp)?
             .arg(format!("{DNS_CONTAINER}{COREFILE_PATH}"))?
             .execute()
             .context("incus file push Corefile failed")?;
 
+        verify_pushed(DNS_CONTAINER, COREFILE_PATH, content.as_bytes())?;
         Ok(())
     }
 

@@ -4,6 +4,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt, VerifiedJwt};
 use chrono::Utc;
 use diesel::prelude::*;
 use serde_json::Value;
@@ -14,67 +15,20 @@ use crate::models::{BindingsBody, CallLog, ChannelBinding};
 use crate::schema::{call_logs, channel_bindings};
 use crate::ChannelBindingsService;
 
-
-fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
-    let mut normalized = String::with_capacity(input.len());
-    for c in input.trim().chars() {
-        match c {
-            '-' => normalized.push('+'),
-            '_' => normalized.push('/'),
-            c if !c.is_whitespace() => normalized.push(c),
-            _ => {}
-        }
-    }
-    if normalized.len() % 4 == 1 {
-        return None;
-    }
-    let mut out = Vec::with_capacity(normalized.len() / 4 * 3);
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    for b in normalized.bytes() {
-        if b == b'=' {
-            break;
-        }
-        let v = match b {
-            b'A'..=b'Z' => (b - b'A') as u32,
-            b'a'..=b'z' => (b - b'a' + 26) as u32,
-            b'0'..=b'9' => (b - b'0' + 52) as u32,
-            b'+' => 62,
-            b'/' => 63,
-            _ => return None,
-        };
-        acc = (acc << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push(((acc >> bits) & 0xFF) as u8);
-        }
-    }
-    Some(out)
+/// Verified claims of the request. `verify_saas_jwt` pins HS256 and checks the
+/// signature, expiry and subject before any claim is exposed; a self-decoded
+/// `alg:none` payload used to pass every binding/call gate (#2773).
+fn verified_claims(headers: &HeaderMap) -> Option<VerifiedJwt> {
+    verify_saas_jwt(bearer_token(headers)?).ok()
 }
 
-fn bearer_token(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")
-        .map(|t| t.trim().to_string())
-        .filter(|t| !t.is_empty())
-}
-
-fn jwt_claims(headers: &HeaderMap) -> Option<Value> {
-    let token = bearer_token(headers)?;
-    let payload = token.split('.').nth(1)?;
-    let decoded = b64_decode_flexible(payload)?;
-    serde_json::from_slice(&decoded).ok()
-}
-
-fn require_jwt(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
-    match jwt_claims(headers) {
-        Some(_) => Ok(()),
-        None => Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string())),
-    }
+fn require_verified_jwt(headers: &HeaderMap) -> Result<VerifiedJwt, (StatusCode, String)> {
+    verified_claims(headers).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            "Valid JWT required".to_string(),
+        )
+    })
 }
 
 fn parse_bot_id(raw: &str) -> Result<Uuid, (StatusCode, String)> {
@@ -108,7 +62,7 @@ pub async fn get_bindings(
     Path(bot_id): Path<String>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_jwt(&headers)?;
+    require_verified_jwt(&headers)?;
     let bot = parse_bot_id(&bot_id)?;
     let mut conn = service
         .pool
@@ -137,7 +91,7 @@ pub async fn put_bindings(
     headers: HeaderMap,
     Json(body): Json<BindingsBody>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_jwt(&headers)?;
+    require_verified_jwt(&headers)?;
     let bot = parse_bot_id(&bot_id)?;
     let phone_default = clean_optional(body.phone_default, 40)?;
     let whatsapp_number = clean_optional(body.whatsapp_number, 40)?;
@@ -183,7 +137,7 @@ pub async fn list_calls(
     Path(bot_id): Path<String>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    require_jwt(&headers)?;
+    require_verified_jwt(&headers)?;
     let bot = parse_bot_id(&bot_id)?;
     let mut conn = service
         .pool
@@ -208,4 +162,39 @@ pub fn configure_routes() -> Router<Arc<ChannelBindingsService>> {
             get(get_bindings).put(put_bindings),
         )
         .route("/api/channels/:bot_id/calls", get(list_calls))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    fn headers(auth: &str) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        map.insert("authorization", HeaderValue::from_str(auth).expect("header"));
+        map
+    }
+
+    #[test]
+    fn missing_token_is_unauthorized() {
+        assert!(verified_claims(&HeaderMap::new()).is_none());
+        assert_eq!(
+            require_verified_jwt(&HeaderMap::new()).map(|_| ()).unwrap_err().0,
+            StatusCode::UNAUTHORIZED
+        );
+    }
+
+    #[test]
+    fn forged_admin_payload_is_denied() {
+        // `alg:none` payload claiming an admin email and role; the hand-rolled
+        // decoder accepted any decodable JSON and opened the bindings/calls
+        // endpoints to it (#2773).
+        let forged = "eyJhbGciOiJub25lIn0.eyJlbWFpbCI6ImFkbWluQGxvY2FsaG9zdCIsInJvbGUiOiJhZG1pbiIsInN1YiI6IngiLCJleHAiOjQxMDI0NDQ4MDB9.";
+        let map = headers(&format!("Bearer {forged}"));
+        assert!(verified_claims(&map).is_none());
+        assert_eq!(
+            require_verified_jwt(&map).map(|_| ()).unwrap_err().0,
+            StatusCode::UNAUTHORIZED
+        );
+    }
 }

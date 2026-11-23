@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use base64::Engine;
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt, VerifiedJwt};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -65,33 +65,37 @@ async fn enroll_handler(
     }
 }
 
-/// Resolve the current user id for an enrollment. The suite UI authenticates
-/// with opaque `gb_*` tokens, so derive a deterministic per-token UUID;
-/// JWT bearer tokens contribute their `sub` claim when present.
-fn user_id_from_headers(headers: &HeaderMap) -> Uuid {
-    let token = headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|auth| auth.strip_prefix("Bearer "))
-        .map(|t| t.split(',').next().unwrap_or(t).trim().to_string());
+/// User id named by a **verified** JWT subject. A UUID is used as-is, any
+/// other subject becomes the stable `UUIDv5("zitadel:{sub}")`. No claim is read
+/// until `verify_saas_jwt` has checked the HS256 signature and expiry, so a
+/// forged `sub`/`role` payload cannot enroll or certify another user (#2773).
+fn user_id_from_verified(claims: &VerifiedJwt) -> Option<Uuid> {
+    let raw = claims.sub.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    Some(Uuid::parse_str(raw).unwrap_or_else(|_| {
+        Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{raw}").as_bytes())
+    }))
+}
 
-    let Some(token) = token else {
+/// Resolve the current user id for an enrollment.
+///
+/// JWT-shaped tokens are accepted only through [`verify_saas_jwt`]: an
+/// unsigned/tampered/expired token is refused outright instead of contributing
+/// a self-declared `sub`. Opaque suite `gb_*` tokens are server-issued session
+/// secrets, so deriving a stable id from the token itself is safe and keeps the
+/// existing chat flow working.
+fn user_id_from_headers(headers: &HeaderMap) -> Uuid {
+    let Some(token) = bearer_token(headers) else {
         return Uuid::nil();
     };
 
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() == 3 {
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(parts[1])
-            .ok()
-            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok());
-        if let Some(payload) = payload {
-            if let Some(sub) = payload.get("sub").and_then(|v| v.as_str()) {
-                if let Ok(uid) = Uuid::parse_str(sub) {
-                    return uid;
-                }
-            }
-        }
+    if token.split('.').count() == 3 {
+        return match verify_saas_jwt(token) {
+            Ok(claims) => user_id_from_verified(&claims).unwrap_or(Uuid::nil()),
+            Err(_) => Uuid::nil(),
+        };
     }
 
     Uuid::new_v5(&Uuid::NAMESPACE_OID, token.as_bytes())
@@ -300,4 +304,69 @@ async fn get_badge_definitions_handler(
 ) -> Result<Json<Vec<BadgeDefinition>>, (StatusCode, String)> {
     let badges = state.get_badge_definitions().to_vec();
     Ok(Json(badges))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    fn headers(auth: &str) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        map.insert("authorization", HeaderValue::from_str(auth).expect("header"));
+        map
+    }
+
+    fn verified(sub: &str) -> VerifiedJwt {
+        VerifiedJwt {
+            sub: sub.to_string(),
+            email: None,
+            org_id: None,
+            branch_id: None,
+            roles: Vec::new(),
+            exp: chrono::Utc::now().timestamp() + 3600,
+            jti: None,
+        }
+    }
+
+    #[test]
+    fn verified_subject_maps_to_a_user_id() {
+        let id = "00000000-0000-0000-0000-000000000001";
+        assert_eq!(
+            user_id_from_verified(&verified(id)),
+            Some(Uuid::parse_str(id).expect("uuid"))
+        );
+        assert_eq!(
+            user_id_from_verified(&verified("123456789")),
+            Some(Uuid::new_v5(
+                &Uuid::NAMESPACE_DNS,
+                b"zitadel:123456789"
+            ))
+        );
+    }
+
+    #[test]
+    fn missing_token_is_anonymous() {
+        assert_eq!(user_id_from_headers(&HeaderMap::new()), Uuid::nil());
+    }
+
+    #[test]
+    fn forged_sub_claim_is_denied() {
+        // `alg:none` payload naming a UUID `sub`; the old decoder enrolled the
+        // caller as that user (#2773).
+        let forged = "eyJhbGciOiJub25lIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjQxMDI0NDQ4MDB9.";
+        assert_eq!(
+            user_id_from_headers(&headers(&format!("Bearer {forged}"))),
+            Uuid::nil()
+        );
+    }
+
+    #[test]
+    fn opaque_session_token_keeps_its_stable_id() {
+        let token = "gb_0123456789abcdef_1234567890";
+        assert_eq!(
+            user_id_from_headers(&headers(&format!("Bearer {token}"))),
+            Uuid::new_v5(&Uuid::NAMESPACE_OID, token.as_bytes())
+        );
+    }
 }

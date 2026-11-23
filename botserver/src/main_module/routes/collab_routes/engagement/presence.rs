@@ -22,6 +22,11 @@ pub async fn update_presence(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — a presence heartbeat is a write to the resource; verify access
+    // before recording it so foreign resources cannot be probed via presence.
+    if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     diesel::sql_query(
         "INSERT INTO collab_presence (resource_type, resource_id, user_id, user_name, last_seen, typing) \
@@ -44,7 +49,7 @@ pub async fn update_presence(
 /// (heartbeat within the last 60 seconds) on the resource.
 pub async fn list_presence(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<CommentQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<PresenceItem>>, (StatusCode, Json<serde_json::Value>)> {
@@ -60,6 +65,10 @@ pub async fn list_presence(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — presence reveals who is viewing/editing a resource; gate it.
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     let rows = diesel::sql_query(
         "SELECT user_id, user_name, typing, last_seen FROM collab_presence \

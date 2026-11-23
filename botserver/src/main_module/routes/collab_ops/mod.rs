@@ -8,7 +8,9 @@
 // Every op carries an `actor_type` (`human` | `llm`) so a concurrent AI agent's
 // edits are ordered, filtered and visualized separately from a person's.
 
-pub(crate) use super::collab_routes::{collab_user_id, collab_user_name, sanitize_resource};
+pub(crate) use super::collab_routes::{
+    collab_user_id, collab_user_name, has_collab_access, sanitize_resource,
+};
 pub(crate) use crate::security::auth_api::types::AuthenticatedUser;
 pub(crate) use axum::{
     extract::{Path, Query, State},
@@ -42,8 +44,14 @@ pub struct SubmitOpBody {
 pub struct OpsQuery {
     pub resource_type: String,
     pub resource_id: String,
+    /// Exclusive Lamport cursor. Pass the `lamport` of the last item of the
+    /// previous page to fetch the next one.
     #[serde(default)]
     pub since: Option<i64>,
+    /// Requested page size. The server clamps this to `OPS_PAGE_LIMIT`, so a
+    /// caller can ask for fewer rows but never force an unbounded read.
+    #[serde(default)]
+    pub limit: Option<i64>,
 }
 
 #[derive(Deserialize)]

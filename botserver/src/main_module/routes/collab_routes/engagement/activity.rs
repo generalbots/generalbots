@@ -4,7 +4,7 @@ use super::super::*;
 /// timeline for a resource, newest first, cursor-paginated on `created_at`.
 pub async fn list_activity(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ActivityQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<ActivityItem>>, (StatusCode, Json<serde_json::Value>)> {
@@ -34,6 +34,11 @@ pub async fn list_activity(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — the audit timeline can contain sensitive payloads; never expose
+    // it for a resource the caller cannot access.
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     // A NULL `before` means "start from the newest"; the single 4-bind query
     // keeps both cases type-compatible with diesel.
@@ -101,6 +106,11 @@ pub async fn record_activity_event(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — a client-supplied event must not be attributable to a foreign
+    // resource; the actor is verified but the resource must be gated too.
+    if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     record_activity(
         &mut conn,
