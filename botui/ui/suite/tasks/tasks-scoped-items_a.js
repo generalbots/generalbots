@@ -202,17 +202,47 @@ function updateDetailTerminal(taskId, message, step, activity) {
   addTerminalLine(terminalOutput, messageStr, step, activity);
 }
 
+// #2839 — untrusted LLM/status text is rendered with innerHTML by
+// tasks-scoped-items_b.js. Every markdown helper must escape before it adds
+// any markup of its own, otherwise raw <img onerror>/<svg onload> survive.
+function escapeMarkdownText(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// escapeMarkdownText() intentionally leaves quotes alone (they are harmless in
+// text nodes), but a bare `"`/`'` breaks out of href="...". Escape them only
+// where a value is interpolated into an attribute.
+function escapeHtmlAttributeValue(value) {
+  return String(value == null ? "" : value)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Only http(s) and relative/fragment URLs are safe for an anchor. Control
+// characters and whitespace are stripped first because browsers ignore them
+// inside a scheme (java\tscript: still executes).
+function safeLinkHref(value) {
+  const href = String(value == null ? "" : value)
+    .replace(/[\u0000-\u0020\u00A0]/g, "")
+    .trim();
+  if (!href) return "#";
+  // No scheme => relative path, fragment or protocol-relative URL: safe.
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(href)) return href;
+  // Explicit scheme => allow http/https only; neutralise everything else.
+  return /^https?:\/\//i.test(href) ? href : "#";
+}
+
 // Simple markdown parser for terminal/LLM output
 function parseMarkdown(text) {
   if (!text) return "";
 
   let html = text;
 
-  // Escape HTML first
-  html = html
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  // Escape HTML first (untrusted LLM output).
+  html = escapeMarkdownText(html);
 
   // Code blocks (```language\ncode```) - must be before other replacements
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
@@ -239,10 +269,17 @@ function parseMarkdown(text) {
     '<code class="terminal-inline-code">$1</code>',
   );
 
-  // Links [text](url)
+  // Links [text](url) — #2839: validate the scheme and escape quotes so the
+  // URL can never break out of href="..." (e.g. [x](" onmouseover="alert(1)).
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+    function () {
+      const label = arguments[1];
+      const url = arguments[2];
+      const href = escapeHtmlAttributeValue(safeLinkHref(url));
+      const text = escapeHtmlAttributeValue(label);
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    },
   );
 
   // Unordered lists (- item or * item)
@@ -286,6 +323,10 @@ function parseMarkdown(text) {
 // Format markdown-like text for terminal display (simple version for status messages)
 function formatTerminalMarkdown(text) {
   if (!text) return "";
+
+  // #2839 — this is the missing escape pass. Without it <img onerror> and
+  // <svg onload> reached line.innerHTML unchanged in addTerminalLine().
+  text = escapeMarkdownText(text);
 
   // Headers (## Header)
   text = text.replace(

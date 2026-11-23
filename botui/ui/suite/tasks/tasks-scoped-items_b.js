@@ -138,3 +138,72 @@ function closeFloatingProgress() {
 function minimizeFloatingProgress() {
   // No floating panel to minimize
 }
+
+// #2839 self-test for the terminal render sink. Call from the browser console
+// or the webtest: window.TasksTerminalSelfTest.run(). IDs are machine
+// identifiers (not user-facing text), so no locale catalog entry is needed.
+// guardClean() parses the rendered HTML and rejects real elements/attributes;
+// escaped text such as "&lt;img onerror=alert(1)&gt;" is inert and passes.
+(function () {
+  const VECTORS = [
+    {
+      id: "terminal-img-onerror",
+      input: 'before <img src=x onerror="alert(1)"> after',
+      render: (value) => formatTerminalMarkdown(value),
+    },
+    {
+      id: "terminal-svg-onload",
+      input: '<svg onload="alert(1)">x</svg>',
+      render: (value) => formatTerminalMarkdown(value),
+    },
+    {
+      id: "markdown-link-attribute-breakout",
+      input: '[x](" onmouseover="alert(1))',
+      render: (value) => parseMarkdown(value),
+    },
+    {
+      id: "markdown-link-javascript-scheme",
+      input: "[x](javascript:alert(1))",
+      render: (value) => parseMarkdown(value),
+    },
+    {
+      id: "markdown-link-obfuscated-scheme",
+      input: "[x](java\tscript:alert(1))",
+      render: (value) => parseMarkdown(value),
+    },
+    {
+      id: "markdown-raw-img",
+      input: '<img src=x onerror="alert(1)">',
+      render: (value) => parseMarkdown(value),
+    },
+  ];
+
+  function guardClean(html) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = String(html == null ? "" : html);
+    const DROP = ["img", "svg", "script", "iframe", "object", "embed", "form"];
+    const nodes = tpl.content.querySelectorAll("*");
+    for (const el of nodes) {
+      const tag = (el.tagName || "").toLowerCase();
+      if (DROP.includes(tag)) return false;
+      for (const attr of el.attributes) {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith("on")) return false;
+        if (["href", "src", "xlink:href"].includes(name)) {
+          const uri = attr.value.replace(/[\u0000-\u0020\u00A0]/g, "").toLowerCase();
+          if (/^(javascript|vbscript|livescript):/.test(uri)) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function run() {
+    return VECTORS.map((vector) => {
+      const html = vector.render(vector.input);
+      return { id: vector.id, input: vector.input, html, pass: guardClean(html) };
+    });
+  }
+
+  window.TasksTerminalSelfTest = { run, guardClean, VECTORS };
+})();
