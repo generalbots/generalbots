@@ -281,6 +281,8 @@ jobs:
         run: python3 scripts/check_workflow_pinning.py
       - name: Security audits are not GitHub-only (#2744)
         run: python3 scripts/check_security_workflow_host_neutral.py
+      - name: Security/crypto dependencies are exactly pinned (#2672)
+        run: python3 scripts/check_security_dependency_pins.py
       - name: Component checksums are pinned
         # #2001 — every downloadable runtime binary must carry a SHA-256 in
         # 3rdparty.toml, or be acknowledged with a reason in
