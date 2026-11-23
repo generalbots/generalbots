@@ -276,6 +276,14 @@ pub fn validate_upload_with_policy(
 ) -> Result<ValidatedUpload, UploadError> {
     let limits = limits_for(class);
 
+    // #2606 — the emergency rollback is allowed to stay, but every skipped
+    // scan produces a durable, queryable audit record.
+    if !policy.require_malware_scanner {
+        if let Err(error) = crate::upload_hostile::malware::record_opt_out(filename) {
+            log::error!("could not record malware opt-out: {error}");
+        }
+    }
+
     if data.is_empty() {
         return Err(UploadError::Empty);
     }

@@ -190,12 +190,11 @@ fn the_unified_scanner_switch_keeps_the_corpus_fail_closed_by_default() {
     assert!(!opted_out.require_malware_scanner);
 
     // Read the switch, never mutate it: tests run in parallel. The live Slides
-    // policy must track the shared variable (or its deprecated alias).
+    // policy must track the single shared variable (#2606).
     let shared = std::env::var(UNCHECKED_IMPORT_OPT_OUT_ENV).ok();
-    let deprecated = std::env::var(DEPRECATED_SLIDES_OPT_OUT).ok();
     assert_eq!(
         slides_hostile_policy().require_malware_scanner,
-        !is_import_opted_out(shared.as_deref(), deprecated.as_deref())
+        !is_import_opted_out(shared.as_deref())
     );
 
     // Structural guards are independent of scanning: every case stays refused
