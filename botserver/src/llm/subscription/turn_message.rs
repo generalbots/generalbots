@@ -46,22 +46,31 @@ pub(super) fn persona(config: &Value) -> Option<String> {
 }
 
 /// The system notes of this turn: every system message except the leading
-/// persona that is not part of the replayed history, i.e. those before the
-/// first conversation message and those after the person's latest message.
+/// persona that is not part of the replayed history. The pipeline adds this
+/// turn's notes before the history (persona, mode, workspace), right after it
+/// (the attachment text, Drive and page context, which come after the
+/// history and before the person's message) and after the message; only
+/// system rows inside the replayed history are left out.
 pub(super) fn current_notes(config: &Value) -> Vec<&str> {
     let Some(messages) = config.as_array() else {
         return Vec::new();
     };
     let history_start = messages.iter().position(|message| role(message) != "system");
     let latest_user = messages.iter().rposition(|message| role(message) == "user");
+    let notes_before_message = latest_user.map(|latest| {
+        messages[..latest]
+            .iter()
+            .rposition(|message| role(message) != "system")
+            .map_or(0, |last_history| last_history + 1)
+    });
     let skip_persona = messages.first().is_some_and(|message| role(message) == "system");
     messages
         .iter()
         .enumerate()
         .filter(|(index, message)| {
             let before_history = history_start.map_or(true, |start| *index < start);
-            let after_latest = latest_user.is_some_and(|latest| *index > latest);
-            role(message) == "system" && !(skip_persona && *index == 0) && (before_history || after_latest)
+            let next_to_latest = notes_before_message.is_some_and(|start| *index >= start);
+            role(message) == "system" && !(skip_persona && *index == 0) && (before_history || next_to_latest)
         })
         .filter_map(|(_, message)| content(message))
         .collect()
@@ -98,10 +107,48 @@ mod tests {
             {"role": "user", "content": "first"},
             {"role": "system", "content": "an old stored note"},
             {"role": "assistant", "content": "ok"},
-            {"role": "user", "content": "what does the report say?"},
             {"role": "system", "content": "[Attachment text] Total: 42"},
+            {"role": "user", "content": "what does the report say?"},
             {"role": "system", "content": "[Página lida: example.org] Hello"},
         ])
+    }
+
+    /// A long paste: the pipeline's order (persona and workspace notes,
+    /// history, the attachment note, the person's message).
+    fn long_paste_turn(pasted: &str) -> Value {
+        json!([
+            {"role": "system", "content": "You are Ana."},
+            {"role": "system", "content": "The person attached these files: /opt/vibe/conversations/c/data/texto-colado.txt"},
+            {"role": "user", "content": "earlier question"},
+            {"role": "assistant", "content": "earlier answer"},
+            {"role": "system", "content": format!(
+                "The user attached 'texto-colado.txt'.\n\n--- BEGIN ATTACHMENT texto-colado.txt ---\n{pasted}\n--- END ATTACHMENT texto-colado.txt ---"
+            )},
+            {"role": "user", "content": "Qual é o CODIGO-FINAL no texto colado?"},
+        ])
+    }
+
+    #[test]
+    fn a_long_paste_after_the_history_reaches_the_resumed_message_whole() {
+        let mut pasted = String::new();
+        let mut line = 0;
+        while pasted.chars().count() < 30_000 {
+            line += 1;
+            pasted.push_str(&format!("Linha {line}: texto de preenchimento para o teste de colagem longa.\n"));
+        }
+        pasted.push_str("CODIGO-FINAL: PITANGA-5512");
+        assert!(pasted.chars().count() > 30_000);
+        let message = for_resumed("fallback", &long_paste_turn(&pasted));
+        assert!(message.contains("Linha 1: texto"));
+        assert!(message.contains("CODIGO-FINAL: PITANGA-5512"));
+        assert!(message.contains(&pasted));
+        assert!(message.contains("/opt/vibe/conversations/c/data/texto-colado.txt"));
+        assert!(!message.contains("earlier answer"));
+        assert!(message.ends_with("[The person's message]\nQual é o CODIGO-FINAL no texto colado?"));
+        let sent = botagent::codex::app_server::turn_start_with_images("thread", &message, &[], "default");
+        let text = sent["input"][0]["text"].as_str().unwrap_or_default();
+        assert!(text.contains("CODIGO-FINAL: PITANGA-5512"));
+        assert_eq!(text, message);
     }
 
     #[test]

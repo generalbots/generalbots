@@ -56,6 +56,7 @@ fn the_note_names_every_exact_path_and_the_failures() {
     let note = workspace_note(&copied, &["\"x.pdf\"".to_string()]);
     assert!(note.contains("/opt/vibe/conversations/c/data/Tusks Poster.jpg"));
     assert!(note.contains("read the whole file"));
+    assert!(note.contains("part of what they asked for"));
     assert!(note.contains("could not be copied"));
     assert!(workspace_note(&[], &[]).is_empty());
 }

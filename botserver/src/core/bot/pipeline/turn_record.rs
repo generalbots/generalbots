@@ -145,7 +145,7 @@ fn attachment_line(attachment: &AttachmentInfo) -> String {
         "arquivo"
     };
     format!(
-        "[Anexo: {} ({kind}) — recebido e lido naquela rodada; o conteúdo não é repetido aqui]",
+        "[Anexo: {} ({kind}) — recebido inteiro e lido naquela rodada; o histórico só não repete o conteúdo]",
         clip(&attachment.name, MAX_COMMAND_CHARS)
     )
 }

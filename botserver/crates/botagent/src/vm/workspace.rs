@@ -46,21 +46,9 @@ pub async fn ensure_conversation_folder(
         return Ok(row.folder_path);
     }
 
-    exec_in_vm(
-        state,
-        &session.vm_name,
-        &["mkdir".into(), "-p".into(), folder_path.clone()],
-    )
-    .await?;
-    for sub in ["output", "program", "data"] {
-        let sub_path = format!("{folder_path}/{sub}");
-        let _ = exec_in_vm(
-            state,
-            &session.vm_name,
-            &["mkdir".into(), "-p".into(), sub_path],
-        )
-        .await;
-    }
+    // One round trip: each exec costs most of a second through WSL, and a
+    // new conversation's first turn waited for four of them.
+    exec_in_vm(state, &session.vm_name, &folder_command(&folder_path)).await?;
 
     let mut conn = state
         .pool()
@@ -80,6 +68,14 @@ pub async fn ensure_conversation_folder(
         .map_err(|e| internal(format!("conv_folders insert: {e}")))?;
 
     Ok(folder_path)
+}
+
+/// `mkdir -p` of the conversation folder and its `output`, `program` and
+/// `data` sub-folders in one command.
+fn folder_command(folder_path: &str) -> Vec<String> {
+    let mut args = vec!["mkdir".to_string(), "-p".to_string(), folder_path.to_string()];
+    args.extend(["output", "program", "data"].iter().map(|sub| format!("{folder_path}/{sub}")));
+    args
 }
 
 /// List regular files directly under the conversation's `output/` folder.
@@ -210,4 +206,24 @@ pub async fn delete_conversation_folder(
             .map_err(|e| internal(format!("agent_sessions clear active: {e}")))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::folder_command;
+
+    #[test]
+    fn the_folder_and_its_sub_folders_are_made_in_one_command() {
+        assert_eq!(
+            folder_command("/opt/vibe/conversations/abc"),
+            vec![
+                "mkdir",
+                "-p",
+                "/opt/vibe/conversations/abc",
+                "/opt/vibe/conversations/abc/output",
+                "/opt/vibe/conversations/abc/program",
+                "/opt/vibe/conversations/abc/data",
+            ]
+        );
+    }
 }

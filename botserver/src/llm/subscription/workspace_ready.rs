@@ -45,7 +45,9 @@ pub fn verified_recently(user_id: Uuid) -> bool {
 }
 
 /// The container of a workspace verified recently that the records still show
-/// running, with this conversation's folder in place. `None` means "check".
+/// running. `None` means "check". This conversation's folder is made beside
+/// the turn: no engine works in it and a copied attachment makes its own
+/// parent folder, so a new conversation's first turn does not wait for it.
 pub async fn ready_vm(session_id: Uuid, user_id: Uuid) -> Option<String> {
     if user_id.is_nil()
         || !verified_recently(user_id)
@@ -58,11 +60,13 @@ pub async fn ready_vm(session_id: Uuid, user_id: Uuid) -> Option<String> {
     if row.status != botagent::vm::STATUS_RUNNING {
         return None;
     }
-    if let Err((_, error)) = botagent::vm::ensure_conversation_folder(service, &row, &session_id.to_string()).await {
-        botlog::safe_warn!("conversation folder for {session_id}: {error}");
-        return None;
-    }
-    Some(row.vm_name)
+    let vm_name = row.vm_name.clone();
+    tokio::spawn(async move {
+        if let Err((_, error)) = botagent::vm::ensure_conversation_folder(service, &row, &session_id.to_string()).await {
+            botlog::safe_warn!("conversation folder for {session_id}: {error}");
+        }
+    });
+    Some(vm_name)
 }
 
 /// The workspace container for this turn: [`ready_vm`] when it is known to

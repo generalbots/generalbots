@@ -150,7 +150,8 @@ pub(super) fn workspace_note(copied: &[(String, String, u64)], failed: &[String]
              supports it; otherwise open the file at its path to look at it, and never describe a \
              picture you did not open. Any excerpt of an attachment quoted in the message may be \
              cut short: the file holds the whole content, so read the whole file before answering \
-             about it.",
+             about it. Reading a file the person attached is part of what they asked for: open it \
+             when the quoted text is cut or missing instead of saying you received only part of it.",
             list.join("\n")
         ));
     }
