@@ -1,0 +1,117 @@
+# officestress — synthetic Office load corpus (#2531)
+
+Test-only generator of deterministic, synthetic large files for the Office
+large-file memory/load-stress lab. It is **not** the measurement harness and
+**not** the cgroup/soak runner — those need a running server and live outside
+this offline slice. This tool only mints the corpus and an auditable manifest.
+
+## Why it exists
+
+Issue #2531 needs a reproducible 5–100 MB corpus of DOCX/XLSX/PPTX files with a
+controlled feature mix (formulas, images, tables, charts, shared strings,
+comments, tracked changes) so peak-RSS/heap/wire measurements are comparable
+across runs and machines. A generator that produces different bytes on every
+run makes a "10 % regression" gate meaningless — hence fixed seeds, fixed ZIP
+metadata and `ZIP_STORED` members, and a manifest that carries the SHA-256.
+
+## Feature matrix
+
+A *feature* is a selectable family of structural elements. Each instance emits
+exactly one marker (`<!-- OSF-<FEATURE>-<n> -->` in XML, or an `OSF-<FEATURE>-<n>`
+field for CSV). The manifest counts those markers, and `--verify` re-counts
+them from the regenerated file, so the counts are a property of the artifact.
+
+`units` is the number of structural elements (paragraphs / rows / slides);
+by default it scales with target size (`target_bytes // 16384`, clamped to
+8…4096). Feature instance counts are `max(1, int(units * weight))`.
+
+| Kind | Feature | Weight | What is emitted |
+|------|---------|--------|-----------------|
+| docx | `paragraphs` | 1.00 | `word/document.xml` `<w:p>` body paragraphs |
+| docx | `tables` | 0.05 | `<w:tbl>` tables with seeded rows/cells |
+| docx | `tracking` | 0.10 | `<w:ins>` tracked-insertion revisions |
+| docx | `comments` | 0.04 | `word/comments.xml` `<w:comment>` + anchors |
+| docx | `images` | 0.02 | `word/media/imageN.png` + `<w:drawing>` refs |
+| docx | `charts` | 0.01 | `word/charts/chartN.xml` + `<w:drawing>` refs |
+| xlsx | `cells` | 1.00 | `sheet1.xml` `<c>` numeric value cells |
+| xlsx | `formulas` | 0.20 | `<c><f>` formula cells |
+| xlsx | `shared_strings` | 0.30 | `xl/sharedStrings.xml` `<si>` + `t="s"` cells |
+| xlsx | `tables` | 0.02 | `xl/tables/tableN.xml` `<table>` definitions |
+| xlsx | `comments` | 0.04 | `xl/comments1.xml` `<comment>` notes |
+| xlsx | `images` | 0.02 | `xl/media/imageN.png` + drawing parts |
+| xlsx | `charts` | 0.01 | `xl/charts/chartN.xml` + `<c:chart>` |
+| pptx | `slides` | 1.00 | `ppt/slides/slideN.xml` shape trees |
+| pptx | `tables` | 0.05 | slide `<p:graphicFrame>` table frames |
+| pptx | `comments` | 0.04 | `ppt/commentAuthors.xml` + slide frames |
+| pptx | `images` | 0.04 | `ppt/media/imageN.png` + `<p:pic>` refs |
+| pptx | `charts` | 0.02 | `ppt/charts/chartN.xml` + graphic frames |
+| csv | `rows` | 1.00 | plain UTF-8 data rows with a marker column |
+| ods | `cells` | 1.00 | ODF `content.xml` `<table:table-cell>` values |
+| ods | `formulas` | 0.20 | ODF `table:formula` attributes |
+
+Sizes are whole MB in the declared 5–100 MB policy. Seeds are non-negative
+integers; the same `(kind, size, seed, features, units)` always yields the same
+SHA-256. Default seed is `2531`.
+
+## Usage
+
+```bash
+# Offline self-check (determinism, exact size, policy, feature counts).
+python3 bottest/tools/officestress/officestress.py --self-test
+
+# One file with a chosen feature mix, plus its manifest.
+python3 bottest/tools/officestress/officestress.py \
+  --kind xlsx --size-mb 25 --seed 2531 \
+  --features cells,formulas,shared_strings,tables,charts \
+  --out /tmp/opencode/officestress --manifest
+
+# Full acceptance matrix: DOCX/XLSX/PPTX at 5/10/25/50/100 MB.
+python3 bottest/tools/officestress/officestress.py --all \
+  --out /tmp/opencode/officestress --manifest
+
+# Reproducibility gate: regenerate every manifest case and compare SHA/size/counts.
+python3 bottest/tools/officestress/officestress.py --verify \
+  --out /tmp/opencode/officestress
+```
+
+Output and manifests go under `/tmp/opencode/` by default — never in the repo.
+Exit codes: `0` success, `1` self-test/verification failure, `2` bad args/I/O.
+
+## Manifest schema
+
+`manifest.json` is stable (`sort_keys`, sorted cases). Top level records the
+generator path, issue, `synthetic_only`, compression, policy and acceptance
+sizes. Each case carries:
+
+| Field | Meaning |
+|-------|---------|
+| `file` | corpus filename |
+| `kind` | docx / xlsx / pptx / csv / ods |
+| `size_mb`, `size_bytes` | requested and exact written size |
+| `seed`, `units` | deterministic inputs |
+| `features` | ordered selected feature names |
+| `feature_counts` | verified per-feature instance counts |
+| `sha256` | SHA-256 of the finished file |
+
+## Determinism notes
+
+* OOXML/ODS members are `ZIP_STORED`; deflate is avoided because its bytes are
+  zlib-version dependent. A seeded `corpus/filler.bin` member inflates the
+  archive to the exact target size.
+* Each `ZipInfo` uses the DOS epoch (1980-01-01), `create_system=0` and fixed
+  creator fields, so no host OS, clock, umask or locale leaks into the bytes.
+* All synthetic text comes from a fixed vocabulary via one seeded `Random`;
+  the filler uses a separately salted `Random`, so changing features does not
+  perturb filler bytes. PNG payloads are real 1×1 images built with seeded RGB.
+* No document text, tenant name, path or real client data is ever embedded.
+  Generated files are structurally OOXML-like and intended for import/memory
+  stress, not to open in Word/Excel.
+
+## Files
+
+| File | Role |
+|------|------|
+| `officestress.py` | CLI, manifest, `--verify`, `--self-test` |
+| `os_matrix.py` | policy constants, feature matrix, config resolution |
+| `os_builders.py` | content builders + feature-marker verification |
+| `os_zip.py` | deterministic ZIP writer, sizing, SHA-256 |

@@ -95,6 +95,8 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         )
         .route("/api/docs/ai", axum::routing::post(handle_docs_ai))
         .route("/api/docs/:id", get(handle_docs_get_by_id))
+        // #2451 — compact, tenant-scoped structured read for the Docs app.
+        .route("/api/docs/:id/ast", get(handle_docs_ast))
         .route("/api/docs/template/blank", get(handle_template_blank))
         .route("/api/docs/template/meeting", get(handle_template_meeting))
         .route("/api/docs/template/report", get(handle_template_report))

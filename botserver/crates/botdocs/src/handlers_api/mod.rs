@@ -1,5 +1,6 @@
 pub mod admission;
 pub mod ai;
+pub mod ast;
 pub mod comments;
 pub mod crud;
 pub mod export;
@@ -13,6 +14,7 @@ pub mod toc;
 pub mod track_changes;
 
 pub use ai::*;
+pub use ast::*;
 pub use comments::*;
 pub use crud::*;
 pub use export::*;

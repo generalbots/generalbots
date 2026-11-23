@@ -43,6 +43,7 @@ use crate::handlers::named_ranges_csv::{
 };
 use crate::handlers::pivot::handle_pivot;
 use crate::handlers::validation::{handle_add_note, handle_data_validation, handle_validate_cell};
+use crate::handlers::window::handle_sheet_window;
 use crate::handlers::worksheets::{
     add_worksheet, delete_worksheet, rename_worksheet, switch_worksheet,
 };
@@ -122,6 +123,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
             post(handle_batch_evaluate_ai),
         )
         .route("/api/sheet/:id", get(handle_get_sheet_by_id))
+        .route("/api/sheet/:id/window", get(handle_sheet_window))
         .route("/api/sheet/:id/ops", get(handle_sheet_ops))
         .route(
             "/api/sheet/:id/collaborators",
