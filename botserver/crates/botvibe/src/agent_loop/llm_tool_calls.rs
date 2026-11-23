@@ -100,10 +100,11 @@ impl AgentLoop {
         let run_id = run.run_id;
         let executed_ok = match timeout(Duration::from_secs(MAX_TOOL_EXEC_SECS), async {
             // #1280 — publish is deploy-role gated downstream. The tool runs
+            // #2751 — domain/* tools also require the acting user's id.
             // server-side without a session, so stamp the initiating user's
             // id into the arguments; the deployment handler enforces RBAC for
             // internal callers through this field (never silently privileged).
-            if tool_call.tool_name == "publish/project" {
+            if crate::domains_tool::requires_actor(&tool_call.tool_name) {
                 if let Some(args) = tool_call.arguments.as_object_mut() {
                     args.insert(
                         "on_behalf_of_user".to_string(),

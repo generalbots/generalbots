@@ -11,8 +11,45 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::domains::{BindDomainRequest, ProjectDomains};
+use crate::rbac::{ProjectRbac, ProjectRole};
 use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult, VibeUseCase};
+
+/// #2751 — tool calls carry the acting user id stamped server-side by the API
+/// and agent loop. A missing stamp is anonymous and is rejected, never treated
+/// as an internal/admin caller.
+fn acting_user(args: &Value) -> Result<Uuid, String> {
+    args.get("on_behalf_of_user")
+        .and_then(|value| value.as_str())
+        .and_then(|value| Uuid::parse_str(value).ok())
+        .ok_or_else(|| "domain tool requires an authenticated caller".to_string())
+}
+
+fn require_project_admin(pool: &crate::types::DbPool, user_id: Uuid, project_id: Uuid) -> Result<(), String> {
+    ProjectRbac::new(pool.clone())
+        .require_role(user_id, project_id, ProjectRole::Admin)
+        .map(|_| ())
+}
+
+/// Pure guard used by the domain tools' argument validation (#2751).
+pub(crate) fn requires_actor(tool_name: &str) -> bool {
+    tool_name == "publish/project"
+        || (tool_name.starts_with("domain/") && tool_name != "domain/verify")
+}
+
+#[cfg(test)]
+mod actor_guard_tests {
+    use super::requires_actor;
+
+    #[test]
+    fn domain_tools_require_the_acting_user_stamp() {
+        assert!(requires_actor("domain/bind"));
+        assert!(requires_actor("domain/security"));
+        assert!(requires_actor("domain/tls"));
+        assert!(!requires_actor("domain/verify"));
+        assert!(requires_actor("publish/project"));
+    }
+}
 
 pub fn domain_bind_schema() -> ToolSchema {
     ToolSchema::new(
@@ -136,6 +173,7 @@ async fn do_domain_bind(args: Value, pool: crate::types::DbPool) -> Result<Value
         .and_then(|v| v.as_str())
         .and_then(|s| Uuid::parse_str(s).ok())
         .ok_or_else(|| "domain/bind requires 'project_id' (uuid string)".to_string())?;
+    require_project_admin(&pool, acting_user(&args)?, project_id)?;
     let domain = args
         .get("domain")
         .and_then(|v| v.as_str())
@@ -212,6 +250,7 @@ async fn do_domain_security(args: Value, pool: crate::types::DbPool) -> Result<V
     let env = args.get("env").and_then(|v| v.as_str()).unwrap_or("production").to_string();
     let domains = ProjectDomains::new(pool);
     let bind = domains.get_by_domain_env(&d, &env)?;
+    require_project_admin(&pool, acting_user(&args)?, bind.project_id)?;
     let updated = domains.update_access(bind.id, access, allowed_emails).await?;
     Ok(serde_json::json!({
         "updated": true,
@@ -249,5 +288,6 @@ async fn do_domain_tls(args: Value, pool: crate::types::DbPool) -> Result<Value,
     let domains = ProjectDomains::new(pool);
     let bind = domains.get_by_domain_env(&d, &env)
         .map_err(|_| format!("no binding for {d}/{env}; bind it first with domain/bind"))?;
+    require_project_admin(&pool, acting_user(&args)?, bind.project_id)?;
     domains.issue_tls(&bind).await
 }

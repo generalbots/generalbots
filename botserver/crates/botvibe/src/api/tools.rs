@@ -255,11 +255,11 @@ pub(crate) async fn execute_tool_direct(
     let mode = api.permissions.mode().await;
     let needs_approval = api.permissions.requires_approval(false, &tool_name, mode);
     let mut arguments = body.arguments;
-    // #1280/#1291 — publish is deploy-role gated downstream; the tool runs
+    // #1280/#1291/#2751 — publish and domain/* are role-gated downstream; the tool runs
     // server-side without a session, so stamp the CALLING user's id into the
     // arguments exactly like the agent loop does (never silently privileged:
     // the deployment handler enforces the same RBAC for this id).
-    if tool_name == "publish/project" {
+    if crate::domains_tool::requires_actor(&tool_name) {
         if let Some(args) = arguments.as_object_mut() {
             args.insert(
                 "on_behalf_of_user".to_string(),
