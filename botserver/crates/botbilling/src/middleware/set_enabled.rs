@@ -229,44 +229,53 @@ pub async fn storage_check_middleware(
         return next.run(request).await;
     }
 
-    let check_result = state
+    // Reserve the upload bytes under the quota manager's write lock BEFORE
+    // running the handler (#2788). Checking first and incrementing after the
+    // upload let concurrent uploads all observe the same pre-upload usage and
+    // exceed the cap. `increment_usage` now checks and reserves atomically; a
+    // refused reservation leaves usage untouched.
+    let reservation = state
         .quota_manager
-        .check_quota(org_id, UsageMetric::StorageBytes, content_length)
+        .increment_usage(org_id, UsageMetric::StorageBytes, content_length)
         .await;
 
-    match check_result {
-        Ok(result) => {
-            if !result.allowed {
-                return StorageQuotaExceededResponse {
-                    message: format!(
-                        "Storage quota exceeded. Current: {} bytes, Limit: {:?} bytes",
-                        result.current, result.limit
-                    ),
-                    current_usage: result.current,
-                    limit: result.limit,
-                }
-                .into_response();
-            }
-
-            let response = next.run(request).await;
-
-            if response.status().is_success() {
-                if let Err(e) = state
-                    .quota_manager
-                    .increment_usage(org_id, UsageMetric::StorageBytes, content_length)
-                    .await
-                {
-                    tracing::warn!("Failed to increment storage for org {}: {}", org_id, e);
-                }
-            }
-
-            response
-        }
+    let result = match reservation {
+        Ok(result) => result,
         Err(e) => {
-            tracing::log::error!("Failed to check storage quota for org {}: {}", org_id, e);
-            next.run(request).await
+            tracing::log::error!("Failed to reserve storage quota for org {}: {}", org_id, e);
+            return next.run(request).await;
+        }
+    };
+
+    if !result.allowed {
+        return StorageQuotaExceededResponse {
+            message: format!(
+                "Storage quota exceeded. Current: {} bytes, Limit: {:?} bytes",
+                result.current, result.limit
+            ),
+            current_usage: result.current,
+            limit: result.limit,
+        }
+        .into_response();
+    }
+
+    let response = next.run(request).await;
+
+    if !response.status().is_success() {
+        if let Err(e) = state
+            .quota_manager
+            .decrement_usage(org_id, UsageMetric::StorageBytes, content_length)
+            .await
+        {
+            tracing::warn!(
+                "Failed to roll back storage reservation for org {}: {}",
+                org_id,
+                e
+            );
         }
     }
+
+    response
 }
 pub(super) fn extract_organization_id(request: &Request<Body>) -> Option<Uuid> {
     if let Some(org_header) = request.headers().get("X-Organization-Id") {

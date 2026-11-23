@@ -71,8 +71,18 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
                 "id postgres 2>/dev/null || useradd -r -s /bin/false postgres 2>/dev/null; [ \"$(id -u)\" -eq 0 ] && chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null || true".to_string(),
                 // Root-aware wrapper: run as the `postgres` user when root, otherwise directly as the launching user (allows non-root dev stacks where no `postgres` user exists).
                 "cat > {{BIN_PATH}}/pgwrap.sh <<'PGB_WRAP'\n#!/bin/bash\ncmd=\"$*\"\nif [ \"$(id -u)\" -eq 0 ]; then su -s /bin/bash postgres -c \"$cmd\"; else bash -c \"$cmd\"; fi\nPGB_WRAP\nchmod +x {{BIN_PATH}}/pgwrap.sh".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then printf '%s\\n' '{{DB_PASSWORD}}' > {{LOGS_PATH}}/pwfile && {{BIN_PATH}}/pgwrap.sh \"cd {{BIN_PATH}} && ./bin/initdb -D {{DATA_PATH}}/pgdata -U gbuser --pwfile={{LOGS_PATH}}/pwfile\" && rm -f {{LOGS_PATH}}/pwfile; fi".to_string(),
+                // #2785 — pin SCRAM as the password format before initdb
+                // creates the gbuser verifier (`-c` is written into the cluster's
+                // postgresql.conf before CREATE/ALTER ROLE runs). `--auth-*`
+                // makes the generated pg_hba reject MD5 and trust connections.
+                // Migrating an existing pre-SCRAM cluster: set
+                // password_encryption = 'scram-sha-256' + reload, re-run
+                // `ALTER ROLE <role> WITH PASSWORD '<same password>'` for every
+                // login role (gbuser, zitadel, ...), replace md5 with
+                // scram-sha-256 in pg_hba.conf, then reload again.
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then printf '%s\\n' '{{DB_PASSWORD}}' > {{LOGS_PATH}}/pwfile && {{BIN_PATH}}/pgwrap.sh \"cd {{BIN_PATH}} && ./bin/initdb -D {{DATA_PATH}}/pgdata -U gbuser --pwfile={{LOGS_PATH}}/pwfile --auth-local=scram-sha-256 --auth-host=scram-sha-256 -c password_encryption=scram-sha-256\" && rm -f {{LOGS_PATH}}/pwfile; fi".to_string(),
                 "echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"password_encryption = 'scram-sha-256'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                 "echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                 "echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                 "echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
@@ -82,7 +92,7 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
                 "echo \"ssl_ca_file = '{{CONF_PATH}}/system/certificates/ca/ca.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                 "echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                 "echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                "echo \"hostssl all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
+                "echo \"hostssl all all all scram-sha-256\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
                 "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
                 "{{BIN_PATH}}/pgwrap.sh \"cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30\"".to_string(),
                 "sleep 5".to_string(),
@@ -317,6 +327,55 @@ mod tests {
         assert!(
             probe < initdb,
             "the libstdc++ probe must run before initdb creates pgdata"
+        );
+    }
+
+    /// #2785 — a fresh install must never emit deprecated MD5 authentication.
+    #[test]
+    fn tables_fresh_install_uses_scram_and_no_md5() {
+        let mut components = HashMap::new();
+        register_tables(&mut components);
+        let tables = components.get("tables").expect("tables component");
+
+        for cmd in tables
+            .post_install_cmds_linux
+            .iter()
+            .chain(tables.post_install_cmds_windows.iter())
+        {
+            assert!(
+                !cmd.contains("md5"),
+                "generated PostgreSQL config must not contain md5: {cmd}"
+            );
+        }
+
+        let hba = tables
+            .post_install_cmds_linux
+            .iter()
+            .find(|cmd| cmd.contains("pg_hba.conf"))
+            .expect("pg_hba.conf generation command");
+        assert!(
+            hba.contains("hostssl all all all scram-sha-256"),
+            "pg_hba must use SCRAM: {hba}"
+        );
+
+        assert!(
+            tables
+                .post_install_cmds_linux
+                .iter()
+                .any(|cmd| cmd.contains("password_encryption = 'scram-sha-256'")),
+            "postgresql.conf must pin password_encryption to scram-sha-256"
+        );
+
+        let initdb = tables
+            .post_install_cmds_linux
+            .iter()
+            .find(|cmd| cmd.contains("initdb -D"))
+            .expect("initdb command");
+        assert!(
+            initdb.contains("--auth-local=scram-sha-256")
+                && initdb.contains("--auth-host=scram-sha-256")
+                && initdb.contains("-c password_encryption=scram-sha-256"),
+            "initdb must create the SCRAM verifier and cluster config: {initdb}"
         );
     }
 }

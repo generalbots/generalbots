@@ -225,6 +225,77 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_concurrent_increment_never_exceeds_cap() {
+        let manager = Arc::new(QuotaManager::new());
+        let org_id = Uuid::new_v4();
+        manager.set_quotas(create_test_quotas(org_id, "business")).await;
+
+        // 200 parallel callers each request a single Messages unit against a
+        // cap of 100. With the check and increment behind separate locks every
+        // caller would read 0, pass, and push usage to 200 (#2788).
+        let callers = 200usize;
+        let mut handles = Vec::with_capacity(callers);
+        for _ in 0..callers {
+            let manager = Arc::clone(&manager);
+            handles.push(tokio::spawn(async move {
+                manager
+                    .increment_usage(org_id, UsageMetric::Messages, 1)
+                    .await
+                    .map(|result| result.allowed)
+            }));
+        }
+
+        let mut admitted = 0usize;
+        for handle in handles {
+            match handle.await {
+                Ok(Ok(true)) => admitted += 1,
+                Ok(Ok(false)) | Ok(Err(_)) | Err(_) => {}
+            }
+        }
+
+        let quotas = manager.get_quotas(org_id).await.expect("quotas exist");
+        assert!(admitted <= 100, "cap exceeded: {admitted} callers admitted");
+        assert_eq!(admitted, 100, "exactly the cap should be admitted");
+        assert_eq!(quotas.usage.messages_today, admitted as u64);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_storage_reservation_never_exceeds_cap() {
+        let manager = Arc::new(QuotaManager::new());
+        let org_id = Uuid::new_v4();
+        let mut quotas = create_test_quotas(org_id, "business");
+        quotas.limits.storage_bytes = LimitValue::Limited(100);
+        manager.set_quotas(quotas).await;
+
+        // Mirror the upload path: N parallel reservations of 1 byte against a
+        // 100-byte cap. Only the first 100 may be admitted (#2788).
+        let callers = 200usize;
+        let mut handles = Vec::with_capacity(callers);
+        for _ in 0..callers {
+            let manager = Arc::clone(&manager);
+            handles.push(tokio::spawn(async move {
+                manager
+                    .increment_usage(org_id, UsageMetric::StorageBytes, 1)
+                    .await
+                    .map(|result| result.allowed)
+            }));
+        }
+
+        let mut admitted = 0usize;
+        for handle in handles {
+            match handle.await {
+                Ok(Ok(true)) => admitted += 1,
+                Ok(Ok(false)) | Ok(Err(_)) | Err(_) => {}
+            }
+        }
+
+        let quotas = manager.get_quotas(org_id).await.expect("quotas exist");
+        assert!(admitted <= 100, "storage cap exceeded: {admitted}");
+        assert_eq!(admitted, 100);
+        assert_eq!(quotas.usage.storage_bytes, admitted as u64);
+    }
+
+    #[tokio::test]
     async fn test_decrement_usage() {
         let manager = QuotaManager::new();
         let org_id = Uuid::new_v4();

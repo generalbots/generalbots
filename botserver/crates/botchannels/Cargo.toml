@@ -9,6 +9,7 @@ repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 botchannels-core = { workspace = true }
+botsecurity-core = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
 base64 = { workspace = true }

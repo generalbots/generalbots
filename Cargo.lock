@@ -1680,6 +1680,7 @@ dependencies = [
  "axum 0.7.9",
  "base64 0.22.1",
  "botchannels-core",
+ "botsecurity-core",
  "chrono",
  "hex",
  "hmac 0.12.1",

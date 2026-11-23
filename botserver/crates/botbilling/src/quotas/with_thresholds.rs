@@ -46,44 +46,31 @@ impl QuotaManager {
             .ok_or(BillingError::SubscriptionNotFound)?;
 
         let (current, limit) = self.get_metric_values(quotas, metric);
-        let new_value = current + increment;
-
-        let (allowed, remaining, percentage) = match limit {
-            LimitValue::Unlimited => (true, None, 0.0),
-            LimitValue::Limited(max) => {
-                let allowed = new_value <= max;
-                let remaining = max.saturating_sub(new_value);
-                let percentage = (new_value as f64 / max as f64) * 100.0;
-                (allowed, Some(remaining), percentage)
-            }
-        };
-
-        let alerts = self.generate_alerts(metric, percentage);
-
-        Ok(QuotaCheckResult {
-            allowed,
-            metric,
-            current: new_value,
-            limit: limit.value(),
-            remaining,
-            percentage_used: percentage,
-            alerts,
-        })
+        Ok(self.build_check_result(metric, increment, current, limit))
     }
 
+    /// Atomically check the live value and apply the increment under a single
+    /// write lock (#2788). The old implementation checked under a read lock,
+    /// released it, then re-acquired a write lock to increment; N concurrent
+    /// callers could all observe the same pre-increment value and bust the cap.
+    /// Computing `allowed` against the value we are about to mutate closes
+    /// that window. When the increment is refused, usage is left untouched.
     pub async fn increment_usage(
         &self,
         organization_id: Uuid,
         metric: UsageMetric,
         amount: u64,
     ) -> Result<QuotaCheckResult, BillingError> {
-        let check_result = self.check_quota(organization_id, metric, amount).await?;
+        let mut cache = self.usage_cache.write().await;
+        let quotas = cache
+            .get_mut(&organization_id)
+            .ok_or(BillingError::SubscriptionNotFound)?;
+
+        let (current, limit) = self.get_metric_values(quotas, metric);
+        let check_result = self.build_check_result(metric, amount, current, limit);
 
         if check_result.allowed {
-            let mut cache = self.usage_cache.write().await;
-            if let Some(quotas) = cache.get_mut(&organization_id) {
-                self.apply_increment(&mut quotas.usage, metric, amount);
-            }
+            self.apply_increment(&mut quotas.usage, metric, amount);
         }
 
         Ok(check_result)
@@ -220,6 +207,38 @@ impl QuotaManager {
             Err(_) => QuotaAction::Block {
                 message: "Unable to verify quota".to_string(),
             },
+        }
+    }
+
+    pub(super) fn build_check_result(
+        &self,
+        metric: UsageMetric,
+        increment: u64,
+        current: u64,
+        limit: LimitValue,
+    ) -> QuotaCheckResult {
+        let new_value = current.saturating_add(increment);
+
+        let (allowed, remaining, percentage) = match limit {
+            LimitValue::Unlimited => (true, None, 0.0),
+            LimitValue::Limited(max) => {
+                let allowed = new_value <= max;
+                let remaining = max.saturating_sub(new_value);
+                let percentage = (new_value as f64 / max as f64) * 100.0;
+                (allowed, Some(remaining), percentage)
+            }
+        };
+
+        let alerts = self.generate_alerts(metric, percentage);
+
+        QuotaCheckResult {
+            allowed,
+            metric,
+            current: new_value,
+            limit: limit.value(),
+            remaining,
+            percentage_used: percentage,
+            alerts,
         }
     }
 

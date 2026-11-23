@@ -97,7 +97,9 @@ impl WeChatProvider {
         let result = hasher.finalize();
         let computed = hex::encode(result);
 
-        computed == signature
+        // Constant-time comparison: `==` short-circuits on the first differing
+        // byte and leaks the matching signature prefix through timing (#2786).
+        botsecurity_core::constant_time::eq_str(&computed, signature)
     }
 
     /// Parse incoming message XML
@@ -263,5 +265,46 @@ impl WeChatProvider {
                 )
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn signature_for(token: &str, timestamp: &str, nonce: &str) -> String {
+        use sha1::{Digest, Sha1};
+        let mut params = [token, timestamp, nonce];
+        params.sort();
+        let joined = params.join("");
+        let mut hasher = Sha1::new();
+        hasher.update(joined.as_bytes());
+        hex::encode(hasher.finalize())
+    }
+
+    #[test]
+    fn verify_signature_equal_unequal_and_different_length() {
+        let provider = WeChatProvider::new();
+        let (token, timestamp, nonce) = ("token", "1234567890", "nonce");
+        let correct = signature_for(token, timestamp, nonce);
+
+        // Equal signature verifies.
+        assert!(provider.verify_signature(token, timestamp, nonce, &correct));
+
+        // Unequal signature of the same length fails.
+        let mut wrong = correct.clone();
+        let replacement = if wrong.starts_with('0') { '1' } else { '0' };
+        wrong.replace_range(0..1, &replacement.to_string());
+        assert_eq!(correct.len(), wrong.len());
+        assert!(!provider.verify_signature(token, timestamp, nonce, &wrong));
+
+        // Different-length signatures fail without panicking.
+        let too_short = &correct[..correct.len() - 1];
+        assert!(!provider.verify_signature(token, timestamp, nonce, too_short));
+        let too_long = format!("{}0", correct);
+        assert!(!provider.verify_signature(token, timestamp, nonce, &too_long));
+
+        // Empty signature is always rejected.
+        assert!(!provider.verify_signature(token, timestamp, nonce, ""));
     }
 }

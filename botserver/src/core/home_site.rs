@@ -67,7 +67,13 @@ impl HomeSite {
     }
 
     pub fn verify(&self, key: &str) -> bool {
-        simple_signature(key, &self.canonical()) == self.signature && !self.signature.is_empty()
+        // Constant-time comparison: `==` short-circuits on the first differing
+        // byte and leaks the matching signature prefix through timing (#2786).
+        !self.signature.is_empty()
+            && botsecurity_core::constant_time::eq_str(
+                &simple_signature(key, &self.canonical()),
+                &self.signature,
+            )
     }
 }
 
@@ -133,5 +139,31 @@ mod tests {
         let site = HomeSiteGenerator::generate("bob", Uuid::new_v4(), "T", "B", 2, "k");
         assert!(!site.signature.is_empty());
         assert!(site.verify("k"));
+    }
+
+    #[test]
+    fn verify_equal_unequal_and_different_length_signatures() {
+        let mut site = HomeSite::new("alice", Uuid::new_v4(), "Hi", "body", 1);
+        site.sign("secret");
+
+        // Equal secret: the stored signature verifies.
+        assert!(site.verify("secret"));
+
+        // Unequal secret: same-length digest differs in its bytes.
+        assert!(!site.verify("secRet"));
+
+        // Different-length stored signature: must not verify, and must not
+        // panic inside the constant-time comparison.
+        let original = site.signature.clone();
+        site.signature.push('0');
+        assert!(!site.verify("secret"));
+        site.signature.truncate(original.len() - 1);
+        assert!(!site.verify("secret"));
+        site.signature = original;
+        assert!(site.verify("secret"));
+
+        // Empty signature is always rejected.
+        site.signature.clear();
+        assert!(!site.verify("secret"));
     }
 }
