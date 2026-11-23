@@ -108,7 +108,7 @@ pub async fn handle_worksheet_tabs_sidebar(
             i = i,
             sid = sheet.id,
             name = html_escape(&ws.name),
-            confirm = tf(lang, "tabs.confirm_delete", &[("name", &ws.name)]),
+            confirm = tf(lang, "tabs.confirm_delete", &[("name", &html_escape(&ws.name))]),
             del_title = t(lang, "tabs.delete_title")
         ));
     }

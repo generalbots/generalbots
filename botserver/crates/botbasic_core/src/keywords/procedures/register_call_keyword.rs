@@ -60,7 +60,33 @@ pub(super) fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSes
         log::error!("Failed to register CALL without args syntax: {e}");
     }
 }
+/// Validate a BASIC script name before it is used to build a filesystem path.
+///
+/// Only ASCII alphanumeric characters, `_`, `-` and `/` are allowed. Traversal
+/// (`..`), absolute paths (POSIX or Windows drive/UNC) and NUL bytes are
+/// rejected. `/` is permitted so bots can organize tools in subdirectories,
+/// but every component must be non-empty.
+fn is_safe_script_name(name: &str) -> bool {
+    if name.is_empty() || name.contains('\0') || name.contains("..") {
+        return false;
+    }
+    if name.starts_with('/') || name.starts_with('\\') || name.contains('\\') {
+        return false;
+    }
+    let bytes = name.as_bytes();
+    if bytes.len() >= 2 && bytes[1] == b':' && bytes[0].is_ascii_alphabetic() {
+        return false;
+    }
+    name.bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-' || byte == b'/')
+        && name.split('/').all(|component| !component.is_empty())
+}
+
 pub(super) fn call_bas_script(state: &Arc<dyn BasicRuntime>, user: &UserSession, script_name: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+    if !is_safe_script_name(script_name) {
+        return Err(format!("Invalid script name: {}", script_name).into());
+    }
+
     // Get bot name from bot_id
     let bot_name = {
         if let Ok(mut conn) = state.db_pool().get() {
@@ -75,10 +101,13 @@ pub(super) fn call_bas_script(state: &Arc<dyn BasicRuntime>, user: &UserSession,
     };
 
     let work_path = std::env::var("GBO_WORK_PATH").unwrap_or_else(|_| "/opt/gbo/work".to_string());
-    let script_path = PathBuf::from(&work_path)
+    let dialog_root = PathBuf::from(&work_path)
         .join(format!("{}.gbai", bot_name))
-        .join(format!("{}.gbdialog", bot_name))
-        .join(format!("{}.bas", script_name.to_lowercase()));
+        .join(format!("{}.gbdialog", bot_name));
+    let script_path = dialog_root.join(format!("{}.bas", script_name.to_lowercase()));
+    if !script_path.starts_with(&dialog_root) {
+        return Err(format!("Invalid script path for: {}", script_name).into());
+    }
 
     if !script_path.exists() {
         return Err(format!("Undefined procedure/script: {}", script_name).into());
@@ -279,4 +308,58 @@ pub fn preprocess_functions(input: &str) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_safe_script_name;
+
+    #[test]
+    fn safe_script_names_are_accepted() {
+        for name in ["start", "classify_media", "my-tool", "tools/report", "a/b/c"] {
+            assert!(is_safe_script_name(name), "{name} must be accepted");
+        }
+    }
+
+    #[test]
+    fn traversal_payloads_are_rejected() {
+        for name in [
+            "..",
+            "../start",
+            "foo/../bar",
+            "tools/../../etc/passwd",
+            "..\\..\\windows\\system32",
+            "foo..bar",
+        ] {
+            assert!(!is_safe_script_name(name), "{name} must be rejected");
+        }
+    }
+
+    #[test]
+    fn absolute_paths_are_rejected() {
+        for name in [
+            "/etc/passwd",
+            "//server/share/script",
+            "C:\\Windows\\system32\\cmd",
+            "C:/Windows/cmd",
+        ] {
+            assert!(!is_safe_script_name(name), "{name} must be rejected");
+        }
+    }
+
+    #[test]
+    fn injection_payloads_are_rejected() {
+        for name in [
+            "start.bas; rm -rf /",
+            "start\u{0000}.bas",
+            "start\nCALL evil",
+            "$(whoami)",
+            "start|id",
+            "foo bar",
+            "foo.bar",
+            "",
+        ] {
+            assert!(!is_safe_script_name(name), "{name} must be rejected");
+        }
+    }
 }

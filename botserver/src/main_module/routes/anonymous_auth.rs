@@ -275,12 +275,8 @@ pub(crate) fn cloud_jwt_session_user(
     let signing_input = format!("{}.{}", parts[0], parts[1]);
     let expected = base64_url_decode_impl(parts[2])?;
 
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    type HmacSha256 = Hmac<Sha256>;
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).ok()?;
-    mac.update(signing_input.as_bytes());
-    if mac.finalize().into_bytes().as_slice() != expected.as_slice() {
+    // #2908 — constant-time signature comparison: never `!=` on HMAC bytes.
+    if !verify_hmac_signature(&secret, &signing_input, &expected) {
         return None;
     }
     let payload_json = base64_url_decode_impl(parts[1])?;
@@ -352,16 +348,8 @@ fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
         None => return (String::new(), Vec::new(), false),
     };
 
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    type HmacSha256 = Hmac<Sha256>;
-    let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
-        Ok(m) => m,
-        Err(_) => return (String::new(), Vec::new(), false),
-    };
-    mac.update(signing_input.as_bytes());
-    let sig = mac.finalize().into_bytes();
-    if sig.as_slice() != expected.as_slice() {
+    // #2908 — constant-time signature comparison: never `!=` on HMAC bytes.
+    if !verify_hmac_signature(&secret, &signing_input, &expected) {
         return (String::new(), Vec::new(), false);
     }
 
@@ -391,6 +379,23 @@ fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
     (sub.to_string(), Vec::new(), true)
 }
 
+/// Constant-time HS256 signature verification (#2908); `==`/`!=` on HMAC
+/// bytes short-circuits and leaks the matching prefix via timing.
+fn verify_hmac_signature(secret: &str, signing_input: &str, expected: &[u8]) -> bool {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
+    if secret.is_empty() {
+        return false;
+    }
+    let Ok(mut mac) = HmacSha256::new_from_slice(secret.as_bytes()) else {
+        return false;
+    };
+    mac.update(signing_input.as_bytes());
+    let computed = mac.finalize().into_bytes();
+    botsecurity_core::constant_time::eq(computed.as_slice(), expected)
+}
+
 fn base64_url_decode_impl(input: &str) -> Option<Vec<u8>> {
     use base64::{engine::general_purpose, Engine as _};
     let raw = input.replace('-', "+").replace('_', "/");
@@ -401,4 +406,42 @@ fn base64_url_decode_impl(input: &str) -> Option<Vec<u8>> {
         _ => return None,
     };
     general_purpose::STANDARD.decode(raw).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::verify_hmac_signature;
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+
+    const SECRET: &str = "test-saas-jwt-secret";
+    const SIGNING_INPUT: &str = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyLTEifQ";
+
+    fn expected_signature(input: &str) -> Vec<u8> {
+        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(SECRET.as_bytes())
+            .expect("HMAC-SHA256 accepts keys of any length");
+        mac.update(input.as_bytes());
+        mac.finalize().into_bytes().to_vec()
+    }
+
+    #[test]
+    fn equal_signatures_are_accepted() {
+        let signature = expected_signature(SIGNING_INPUT);
+        assert!(verify_hmac_signature(SECRET, SIGNING_INPUT, &signature));
+    }
+
+    #[test]
+    fn unequal_signatures_are_rejected() {
+        let mut signature = expected_signature(SIGNING_INPUT);
+        signature[0] ^= 0x01;
+        assert!(!verify_hmac_signature(SECRET, SIGNING_INPUT, &signature));
+    }
+
+    #[test]
+    fn different_length_signatures_are_rejected() {
+        let signature = expected_signature(SIGNING_INPUT);
+        let truncated = &signature[..signature.len() - 1];
+        assert!(!verify_hmac_signature(SECRET, SIGNING_INPUT, truncated));
+        assert!(!verify_hmac_signature(SECRET, SIGNING_INPUT, &[]));
+    }
 }

@@ -1,5 +1,6 @@
 use super::*;
 use botschema::{calendar_events, calendars};
+use crate::conflicts::html_escape;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct EventsQuery {
@@ -90,15 +91,15 @@ hx-get="/api/ui/calendar/events/{}" hx-target="#event-detail" hx-swap="innerHTML
 {}</div>
 </div>"##,
                         id,
-                        event_color,
+                        html_escape(&event_color),
                         id,
                         date_str,
-                        title,
+                        html_escape(&title),
                         time_str,
                         if location_text.is_empty() {
                             String::new()
                         } else {
-                            format!(r##"<span class="event-location">{}</span>"##, location_text)
+                            format!(r##"<span class="event-location">{}</span>"##, html_escape(&location_text))
                         }
                     )
                 })
@@ -186,7 +187,7 @@ pub async fn ui_event_detail(
             } else {
                 attendees_list
                     .iter()
-                    .map(|a| format!(r##"<span class="attendee-badge">{}</span>"##, a))
+                    .map(|a| format!(r##"<span class="attendee-badge">{}</span>"##, html_escape(a)))
                     .collect::<Vec<_>>()
                     .join("")
             };
@@ -220,13 +221,13 @@ pub async fn ui_event_detail(
 <button class="btn btn-danger" hx-delete="/api/calendar/events/{}" hx-swap="none" hx-confirm="Delete this event?">Delete</button>
 </div>
 </div>"##,
-                event_color,
-                title,
-                status,
-                status,
+                html_escape(&event_color),
+                html_escape(&title),
+                html_escape(&status),
+                html_escape(&status),
                 time_str,
-                location_text,
-                description,
+                html_escape(&location_text),
+                html_escape(&description),
                 attendees_html,
                 id,
                 id

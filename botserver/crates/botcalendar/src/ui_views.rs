@@ -1,5 +1,6 @@
 use super::*;
 use botschema::calendar_events;
+use crate::conflicts::html_escape;
 
 pub async fn ui_today_events_count(State(state): State<Arc<DbPool>>) -> Html<String> {
     let pool = state.clone();
@@ -100,7 +101,7 @@ pub async fn ui_month_view(
                     .take(3)
                     .map(|(_, _, _, color)| {
                         let c = color.clone().unwrap_or_else(|| "#3b82f6".to_string());
-                        format!(r##"<span class="event-dot" style="background: {};"></span>"##, c)
+                        format!(r##"<span class="event-dot" style="background: {};"></span>"##, html_escape(&c))
                     })
                     .collect();
 
@@ -211,7 +212,7 @@ hx-get="/api/ui/calendar/events/{}" hx-target="#event-detail">
 <span class="event-time">{}</span>
 <span class="event-title">{}</span>
 </div>"##,
-                        event_color, id, time_str, title
+                        html_escape(&event_color), id, time_str, html_escape(title)
                     )
                 })
                 .collect();
