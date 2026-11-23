@@ -4,6 +4,25 @@ use anyhow::Result;
 use log::{info, warn};
 use std::path::PathBuf;
 
+/// #2791 — an unpredictable, non-world-writable remote staging directory.
+fn remote_cert_staging_dir(container: &str) -> String {
+    format!("/tmp/gb-certs-{}-{}", container, uuid::Uuid::new_v4())
+}
+
+#[cfg(test)]
+mod cert_staging_tests {
+    use super::remote_cert_staging_dir;
+
+    #[test]
+    fn staging_path_is_unpredictable() {
+        let first = remote_cert_staging_dir("proxy");
+        let second = remote_cert_staging_dir("proxy");
+        assert_ne!(first, second);
+        assert!(first.starts_with("/tmp/gb-certs-proxy-"));
+        assert!(!first.ends_with("/ca.crt"));
+    }
+}
+
 /// Service descriptor for certificate generation
 pub struct ServiceCert {
     pub name: &'static str,
@@ -127,32 +146,47 @@ pub fn push_all_certs_ssh(base_path: &std::path::Path, ssh_host: &str) -> Result
             ("server.key", svc_dir.join("server.key")),
         ];
 
-        for (fname, fpath) in &files {
-            if !fpath.exists() {
-                warn!("{} missing for {}, skipping", fname, name);
-                continue;
+        // #2791 — stage in a fresh 0700 directory with an unpredictable name.
+        // A predictable /tmp/{container}-{file} could be pre-created or
+        // symlinked by a local user on the remote host.
+        let staging_dir = remote_cert_staging_dir(container);
+        safe_sh(&format!(
+            "ssh {ssh_host} -o StrictHostKeyChecking=accept-new 'mkdir -p {staging_dir} && chmod 700 {staging_dir}'"
+        ))?;
+
+        let push_result = (|| -> Result<()> {
+            for (fname, fpath) in &files {
+                if !fpath.exists() {
+                    warn!("{} missing for {}, skipping", fname, name);
+                    continue;
+                }
+
+                let remote_tmp = PathBuf::from(format!("{staging_dir}/{fname}"));
+
+                // SCP to host
+                safe_sh(&format!(
+                    "scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 {} {}:{}",
+                    fpath.display(), ssh_host, remote_tmp.display()
+                ))?;
+
+                // mkdir + incus file push on host
+                let target_dir = format!("/opt/gbo/conf/system/certificates/{}", name);
+                safe_sh(&format!(
+                    "ssh {} -o StrictHostKeyChecking=accept-new 'sudo incus exec {} -- mkdir -p {} && sudo incus file push {} {}:{}/{}'",
+                    ssh_host, container, target_dir, remote_tmp.display(), container, target_dir, fname
+                ))?;
             }
+            Ok(())
+        })();
 
-            let remote_tmp = PathBuf::from(format!("/tmp/{}-{}", container, fname));
-
-            // SCP to host
-            safe_sh(&format!(
-                "scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 {} {}:{}",
-                fpath.display(), ssh_host, remote_tmp.display()
-            ))?;
-
-            // mkdir + incus file push on host
-            let target_dir = format!("/opt/gbo/conf/system/certificates/{}", name);
-            safe_sh(&format!(
-                "ssh {} -o StrictHostKeyChecking=accept-new 'sudo incus exec {} -- mkdir -p {} && sudo incus file push {} {}:{}/{}'",
-                ssh_host, container, target_dir, remote_tmp.display(), container, target_dir, fname
-            ))?;
-
-            // Cleanup temp
-            safe_sh(&format!(
-                "ssh {} -o StrictHostKeyChecking=accept-new 'sudo rm -f {}'",
-                ssh_host, remote_tmp.display()
-            ))?;
+        // Cleanup runs on success and on failure; the next provisioning run
+        // uses a different UUID even if this cleanup could not complete.
+        let cleanup = safe_sh(&format!(
+            "ssh {ssh_host} -o StrictHostKeyChecking=accept-new 'rm -rf {staging_dir}'"
+        ));
+        push_result?;
+        if cleanup.is_err() {
+            warn!("remote cert staging cleanup failed: {staging_dir}");
         }
 
         info!("Certificates pushed for {} -> {}", name, container);
