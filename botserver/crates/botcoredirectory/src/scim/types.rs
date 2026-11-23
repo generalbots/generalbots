@@ -194,7 +194,9 @@ impl ScimUser {
         let mut emails = serde_json::Map::new();
         if let Some(e) = self.emails.first() {
             emails.insert("email".to_string(), serde_json::json!(e.value));
-            emails.insert("isVerified".to_string(), serde_json::json!(true));
+            // #2848: SCIM has no verified-email assertion. Never let a SCIM
+            // caller mint a pre-verified Zitadel user.
+            emails.insert("isVerified".to_string(), serde_json::json!(false));
         }
 
         serde_json::json!({

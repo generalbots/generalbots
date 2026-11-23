@@ -1,6 +1,8 @@
 use super::*;
+use axum::middleware::from_fn_with_state;
 
 pub fn configure_scim_routes() -> Router<Arc<AppState>> {
+    let verifier = Arc::new(ScimTokenVerifier::from_env());
     Router::new()
         .route("/scim/v2/Users", get(list_users).post(create_user))
         .route("/scim/v2/Users/:user_id", get(get_user).put(update_user).delete(delete_user))
@@ -12,6 +14,7 @@ pub fn configure_scim_routes() -> Router<Arc<AppState>> {
         .route("/scim/v2/ServiceProviderConfig", get(service_provider_config))
         .route("/scim/v2/ResourceTypes", get(resource_types))
         .route("/scim/v2/Schemas", get(schemas))
+        .layer(from_fn_with_state(verifier, scim_auth_middleware))
 }
 pub(super) async fn service_provider_config() -> Json<serde_json::Value> {
     Json(serde_json::json!({
@@ -92,15 +95,20 @@ pub(super) async fn get_me(
 pub(super) async fn list_users(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<Json<ScimListResponse>, (StatusCode, Json<ScimError>)> {
     let start_index = params.get("startIndex")
         .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(1);
+        .unwrap_or(1)
+        .max(1);
     let count = params.get("count")
         .and_then(|s| s.parse::<u32>().ok())
         .unwrap_or(20);
 
-    info!("SCIM GET /Users startIndex={} count={}", start_index, count);
+    botlog::safe_info!(
+        "SCIM GET /Users startIndex={} count={} org={} branch={}",
+        start_index, count, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -144,8 +152,14 @@ pub(super) async fn list_users(
 pub(super) async fn get_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    botlog::safe_info!("SCIM GET /Users/{}", user_id);
+    let user_id = parse_scim_user_id(&user_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    let user_key = user_id.to_string();
+    botlog::safe_info!(
+        "SCIM GET /Users/{} org={} branch={}", user_id, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -156,7 +170,7 @@ pub(super) async fn get_user(
         }))
     })?.lock().await;
 
-    let user_data = auth_service.get_user(&user_id).await.map_err(|e| {
+    let user_data = auth_service.get_user(&user_key).await.map_err(|e| {
         (StatusCode::NOT_FOUND, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: Some("invalidValue".to_string()),
@@ -165,7 +179,7 @@ pub(super) async fn get_user(
         }))
     })?;
 
-    let memberships = auth_service.get_user_memberships(&user_id, 0, 100).await
+    let memberships = auth_service.get_user_memberships(&user_key, 0, 100).await
         .unwrap_or_default();
     let groups: Vec<ScimGroupRef> = memberships.get("result")
         .and_then(|r| r.as_array())
@@ -188,9 +202,13 @@ pub(super) async fn get_user(
 }
 pub(super) async fn create_user(
     State(state): State<Arc<AppState>>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_user): Json<ScimUser>,
 ) -> Result<(StatusCode, Json<ScimUser>), (StatusCode, Json<ScimError>)> {
-    botlog::safe_info!("SCIM POST /Users - creating: {}", scim_user.user_name);
+    botlog::safe_info!(
+        "SCIM POST /Users - creating: {} org={} branch={}",
+        scim_user.user_name, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -235,9 +253,14 @@ pub(super) async fn create_user(
 pub(super) async fn update_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_user): Json<ScimUser>,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    botlog::safe_info!("SCIM PUT /Users/{}", user_id);
+    let user_id = parse_scim_user_id(&user_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    botlog::safe_info!(
+        "SCIM PUT /Users/{} org={} branch={}", user_id, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -262,13 +285,14 @@ pub(super) async fn update_user(
     })?;
 
     let mut updated = scim_user;
-    updated.id = Some(user_id.clone());
+    updated.id = Some(user_id.to_string());
     Ok(Json(updated))
 }
 pub(super) async fn replace_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_user): Json<ScimUser>,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    update_user(State(state), Path(user_id), Json(scim_user)).await
+    update_user(State(state), Path(user_id), ScimCaller(caller), Json(scim_user)).await
 }

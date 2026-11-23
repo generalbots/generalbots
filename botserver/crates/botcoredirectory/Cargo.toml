@@ -16,6 +16,7 @@ botlog = { workspace = true }
 anyhow = { workspace = true }
 argon2 = { workspace = true }
 axum = { workspace = true }
+async-trait = { workspace = true }
 botcoresecrets = { workspace = true }
 botschema = { workspace = true, features = ["mail"] }
 chrono = { workspace = true, features = ["clock", "std"] }

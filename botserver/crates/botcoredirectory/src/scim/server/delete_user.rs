@@ -3,8 +3,13 @@ use super::*;
 pub(super) async fn delete_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<StatusCode, (StatusCode, Json<ScimError>)> {
-    botlog::safe_info!("SCIM DELETE /Users/{}", user_id);
+    let user_id = parse_scim_user_id(&user_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    botlog::safe_info!(
+        "SCIM DELETE /Users/{} org={} branch={}", user_id, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -31,15 +36,20 @@ pub(super) async fn delete_user(
 pub(super) async fn list_groups(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<Json<ScimListResponse>, (StatusCode, Json<ScimError>)> {
     let start_index = params.get("startIndex")
         .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(1);
+        .unwrap_or(1)
+        .max(1);
     let count = params.get("count")
         .and_then(|s| s.parse::<u32>().ok())
         .unwrap_or(20);
 
-    info!("SCIM GET /Groups startIndex={} count={}", start_index, count);
+    botlog::safe_info!(
+        "SCIM GET /Groups startIndex={} count={} org={} branch={}",
+        start_index, count, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -107,8 +117,13 @@ pub(super) async fn list_groups(
 pub(super) async fn get_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<Json<ScimGroup>, (StatusCode, Json<ScimError>)> {
-    info!("SCIM GET /Groups/{}", group_id);
+    let group_key = validate_scim_group_key(&group_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    botlog::safe_info!(
+        "SCIM GET /Groups/{} org={} branch={}", group_key, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -120,7 +135,7 @@ pub(super) async fn get_group(
     })?.lock().await;
 
     let metadata = auth_service.http_get(
-        format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
+        format!("{}/metadata/organization/{}", auth_service.api_url(), percent_encode_path_segment(&group_key)),
     ).await.map_err(|e| {
         (StatusCode::NOT_FOUND, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
@@ -151,9 +166,13 @@ pub(super) async fn get_group(
 }
 pub(super) async fn create_group(
     State(state): State<Arc<AppState>>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_group): Json<ScimGroup>,
 ) -> Result<(StatusCode, Json<ScimGroup>), (StatusCode, Json<ScimError>)> {
-    info!("SCIM POST /Groups - creating: {}", scim_group.display_name);
+    botlog::safe_info!(
+        "SCIM POST /Groups - creating: {} org={} branch={}",
+        scim_group.display_name, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -165,7 +184,9 @@ pub(super) async fn create_group(
     })?.lock().await;
 
     let member_ids: Vec<String> = scim_group.members.iter().map(|m| m.value.clone()).collect();
-    let metadata_key = format!("group_{}", scim_group.id.as_deref().unwrap_or("new"));
+    // #2848: the id/name in the request body is attacker-controlled. Generate the
+    // Zitadel metadata key server-side so `group_admins` can never be overwritten.
+    let metadata_key = format!("group_{}", uuid::Uuid::new_v4());
     let metadata_value = serde_json::json!({
         "name": scim_group.display_name,
         "members": member_ids,
@@ -204,9 +225,14 @@ pub(super) async fn create_group(
 pub(super) async fn update_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_group): Json<ScimGroup>,
 ) -> Result<Json<ScimGroup>, (StatusCode, Json<ScimError>)> {
-    info!("SCIM PUT /Groups/{}", group_id);
+    let group_key = validate_scim_group_key(&group_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    botlog::safe_info!(
+        "SCIM PUT /Groups/{} org={} branch={}", group_key, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -229,7 +255,7 @@ pub(super) async fn update_group(
     });
 
     auth_service.http_put(
-        format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
+        format!("{}/metadata/organization/{}", auth_service.api_url(), percent_encode_path_segment(&group_key)),
         body,
     ).await.map_err(|e| {
         (StatusCode::BAD_REQUEST, Json(ScimError {
@@ -241,21 +267,27 @@ pub(super) async fn update_group(
     })?;
 
     let mut updated = scim_group;
-    updated.id = Some(group_id);
+    updated.id = Some(group_key);
     Ok(Json(updated))
 }
 pub(super) async fn replace_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
     Json(scim_group): Json<ScimGroup>,
 ) -> Result<Json<ScimGroup>, (StatusCode, Json<ScimError>)> {
-    update_group(State(state), Path(group_id), Json(scim_group)).await
+    update_group(State(state), Path(group_id), ScimCaller(caller), Json(scim_group)).await
 }
 pub(super) async fn delete_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
+    ScimCaller(caller): ScimCaller,
 ) -> Result<StatusCode, (StatusCode, Json<ScimError>)> {
-    info!("SCIM DELETE /Groups/{}", group_id);
+    let group_key = validate_scim_group_key(&group_id)
+        .map_err(|detail| scim_error(StatusCode::BAD_REQUEST, &detail, 400))?;
+    botlog::safe_info!(
+        "SCIM DELETE /Groups/{} org={} branch={}", group_key, caller.org_id, caller.branch_id
+    );
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -267,7 +299,7 @@ pub(super) async fn delete_group(
     })?.lock().await;
 
     auth_service.http_delete(
-        format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
+        format!("{}/metadata/organization/{}", auth_service.api_url(), percent_encode_path_segment(&group_key)),
     ).await.map_err(|e| {
         (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
