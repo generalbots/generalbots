@@ -7,8 +7,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::biometric::{BiometricMatcher, BiometricMatch, BiometricTemplate};
-use super::digital_signature::{SignatureRequest, SignatureService, SignedDocument, ValidationStatus};
+use super::biometric::{BiometricMatch, BiometricMatcher, BiometricTemplate};
+use super::digital_signature::{
+    self, SignatureRequest, SignatureService, SignedDocument, ValidationStatus,
+};
 use super::kyc::{CheckStatus, CheckType, ComplianceCheck, KycProfile, KycService, KycStatus};
 
 pub fn configure_security_api_routes<S>() -> Router<S>
@@ -20,9 +22,18 @@ where
         .route("/api/security/kyc/profiles/:id", get(get_kyc_profile))
         .route("/api/security/kyc/profiles/:id/checks", post(run_kyc_check))
         .route("/api/security/biometric/verify", post(verify_biometric))
-        .route("/api/security/signatures/requests", post(create_signature_request))
-        .route("/api/security/signatures/requests/:id/complete", post(complete_signature))
-        .route("/api/security/signatures/:id/validate", get(validate_signature))
+        .route(
+            "/api/security/signatures/requests",
+            post(create_signature_request),
+        )
+        .route(
+            "/api/security/signatures/requests/:id/complete",
+            post(complete_signature),
+        )
+        .route(
+            "/api/security/signatures/:id/validate",
+            post(validate_signature),
+        )
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,6 +70,21 @@ pub struct CreateSignatureRequestBody {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompleteSignatureBody {
+    /// Signer whose authoritative key was provisioned at boot.
+    pub signer_id: Uuid,
+    /// The real document being signed; the hash is derived from these bytes,
+    /// never accepted from the caller as an unverified claim.
+    pub document_content_b64: String,
+    /// Base64-encoded raw Ed25519 signature over the document SHA-256 digest.
+    pub signature_value: String,
+    pub certificate_chain: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ValidateSignatureBody {
+    pub signer_id: Uuid,
+    pub document_hash_sha256: String,
+    pub document_hash_sha512: String,
     pub signature_value: String,
     pub certificate_chain: Vec<String>,
 }
@@ -70,9 +96,7 @@ async fn create_kyc_profile(
     Ok(Json(profile))
 }
 
-async fn get_kyc_profile(
-    Path(id): Path<Uuid>,
-) -> Result<Json<KycProfile>, (StatusCode, String)> {
+async fn get_kyc_profile(Path(id): Path<Uuid>) -> Result<Json<KycProfile>, (StatusCode, String)> {
     Ok(Json(KycService::start_profile(Uuid::nil(), id)))
 }
 
@@ -126,40 +150,65 @@ async fn complete_signature(
     Path(id): Path<Uuid>,
     Json(req): Json<CompleteSignatureBody>,
 ) -> Result<Json<SignedDocument>, (StatusCode, String)> {
+    use base64::Engine;
+    if req.signature_value.is_empty() || req.document_content_b64.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "signature and document are required".into(),
+        ));
+    }
+    let content = base64::engine::general_purpose::STANDARD
+        .decode(&req.document_content_b64)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid base64 document".into()))?;
     let svc = SignatureService::new();
-    let pending = svc.create_request(
-        Uuid::nil(),
-        Uuid::nil(),
-        Uuid::nil(),
-        b"",
-        None,
-        None,
-    );
-    let mut request = pending;
+    let mut request = svc.create_request(Uuid::nil(), id, req.signer_id, &content, None, None);
     request.id = id;
-    let signed = svc.complete_signature(request, req.signature_value, req.certificate_chain);
+    let signed = digital_signature::complete_with_shared(
+        request,
+        req.signature_value,
+        req.certificate_chain,
+    )
+    .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid signature material".into()))?;
+    if signed.validation_status != ValidationStatus::Valid {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Signature verification failed".into(),
+        ));
+    }
     Ok(Json(signed))
 }
 
 async fn validate_signature(
     Path(id): Path<Uuid>,
+    Json(req): Json<ValidateSignatureBody>,
 ) -> Result<Json<ValidationResponse>, (StatusCode, String)> {
-    let pending = SignedDocument {
+    if req.signature_value.is_empty()
+        || req.document_hash_sha256.is_empty()
+        || req.document_hash_sha512.is_empty()
+    {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "signature and document hashes are required".into(),
+        ));
+    }
+    // All inputs are real request data; the verdict is computed by the crypto
+    // verifier against the authoritative key. No status is fabricated here.
+    let presented = SignedDocument {
         id,
         signature_request_id: Uuid::nil(),
         document_id: Uuid::nil(),
-        signer_id: Uuid::nil(),
-        document_hash_sha256: String::new(),
-        document_hash_sha512: String::new(),
+        signer_id: req.signer_id,
+        document_hash_sha256: req.document_hash_sha256,
+        document_hash_sha512: req.document_hash_sha512,
         signed_at: chrono::Utc::now(),
-        algorithm: super::digital_signature::SignatureAlgorithm::Ed25519,
-        signature_value: "placeholder".into(),
-        certificate_chain: vec!["cert1".into()],
+        algorithm: digital_signature::SignatureAlgorithm::Ed25519,
+        signature_value: req.signature_value,
+        certificate_chain: req.certificate_chain,
         timestamp_token: None,
         ocsp_response: None,
-        validation_status: ValidationStatus::Valid,
+        validation_status: ValidationStatus::Unknown,
     };
-    let status = SignatureService::validate(&pending);
+    let status = digital_signature::validate_with_shared(&presented);
     Ok(Json(ValidationResponse { id, status }))
 }
 

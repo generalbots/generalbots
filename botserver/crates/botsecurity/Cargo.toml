@@ -26,6 +26,7 @@ chrono = { workspace = true, features = ["serde", "clock"] }
 base64 = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "blocking"] }
+ring = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
