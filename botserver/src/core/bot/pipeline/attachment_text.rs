@@ -6,9 +6,12 @@
 //! the user's own text stays clean (and is what gets persisted), while the
 //! model can actually read the file.
 
-/// How much of the document the prompt carries. Large enough for a real
+/// How much of a PDF or DOCX the prompt carries. Large enough for a real
 /// summary, small enough that a 200-page PDF cannot exhaust the context.
 const MAX_EXCERPT_CHARS: usize = 12_000;
+/// How much of a plain-text file the prompt carries. A long text pasted in
+/// the composer arrives as a `.txt` attachment and must reach the model whole.
+const MAX_TEXT_CHARS: usize = 150_000;
 
 fn extension(name: &str) -> String {
     name.rsplit('.').next().unwrap_or("").to_lowercase()
@@ -77,6 +80,11 @@ pub fn extract_excerpt(name: &str, bytes: &[u8]) -> Option<String> {
         return None;
     }
     let ext = extension(name);
+    let limit = if is_text(&ext) {
+        MAX_TEXT_CHARS
+    } else {
+        MAX_EXCERPT_CHARS
+    };
     let raw = if is_text(&ext) {
         String::from_utf8_lossy(bytes).to_string()
     } else if ext == "pdf" {
@@ -86,7 +94,7 @@ pub fn extract_excerpt(name: &str, bytes: &[u8]) -> Option<String> {
     } else {
         return None;
     };
-    let excerpt = normalize(&raw);
+    let excerpt = normalize(&raw, limit);
     if excerpt.is_empty() {
         None
     } else {
@@ -94,8 +102,9 @@ pub fn extract_excerpt(name: &str, bytes: &[u8]) -> Option<String> {
     }
 }
 
-fn normalize(raw: &str) -> String {
-    let mut out = String::with_capacity(raw.len().min(MAX_EXCERPT_CHARS));
+fn normalize(raw: &str, limit: usize) -> String {
+    let mut out = String::with_capacity(raw.len().min(limit));
+    let mut count = 0usize;
     let mut last_blank = false;
     for line in raw.lines() {
         let trimmed = line.trim_end();
@@ -105,13 +114,15 @@ fn normalize(raw: &str) -> String {
             }
             last_blank = true;
             out.push('\n');
+            count += 1;
         } else {
             last_blank = false;
             out.push_str(trimmed);
             out.push('\n');
+            count += trimmed.chars().count() + 1;
         }
-        if out.chars().count() >= MAX_EXCERPT_CHARS {
-            let clipped: String = out.chars().take(MAX_EXCERPT_CHARS).collect();
+        if count >= limit {
+            let clipped: String = out.chars().take(limit).collect();
             return format!("{clipped}\n[… excerpt truncated]");
         }
     }
@@ -194,15 +205,23 @@ mod tests {
 
     #[test]
     fn excerpt_is_bounded() {
-        let big = "palavra ".repeat(10_000);
+        let big = "palavra ".repeat(30_000);
         let excerpt = extract_excerpt("big.md", big.as_bytes()).expect("markdown must extract");
-        assert!(excerpt.chars().count() <= super::MAX_EXCERPT_CHARS + 32);
+        assert!(excerpt.chars().count() <= super::MAX_TEXT_CHARS + 32);
         assert!(excerpt.contains("truncated"));
     }
 
     #[test]
+    fn a_long_pasted_text_arrives_whole() {
+        let pasted = "linha do texto colado\n".repeat(4_000);
+        let excerpt = extract_excerpt("texto-colado.txt", pasted.as_bytes()).expect("text must extract");
+        assert!(!excerpt.contains("truncated"));
+        assert_eq!(excerpt.lines().count(), 4_000);
+    }
+
+    #[test]
     fn blank_lines_collapse() {
-        assert_eq!(normalize("a\n\n\n\nb\n"), "a\n\nb");
+        assert_eq!(normalize("a\n\n\n\nb\n", super::MAX_EXCERPT_CHARS), "a\n\nb");
     }
 
     #[test]
