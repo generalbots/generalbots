@@ -1,15 +1,14 @@
 //! Shared shape of one non-interactive subscription CLI turn inside the VM.
 //!
 //! Every CLI runs as its own Unix user with that user's HOME, so the
-//! credentials it wrote at sign-in are the ones it reads. The prompt is
-//! base64 encoded on the host and reaches the CLI through stdin (or a 0600
-//! file owned by that user), never through shell interpolation.
+//! credentials it wrote at sign-in are the ones it reads. The prompt reaches
+//! the VM on the standard input of one exec and the CLI through stdin (or a
+//! 0600 file owned by that user), never through shell interpolation.
 
 /// Upper bound for one turn inside the VM, in seconds.
 pub const TURN_TIMEOUT_SECS: u64 = 300;
 
 use axum::http::StatusCode;
-use base64::Engine;
 
 use crate::vm;
 use crate::AgentService;
@@ -32,46 +31,27 @@ pub fn cli_model(model: &str) -> String {
     }
 }
 
-/// One prompt-staging write; each is a short `printf` inside the VM.
+/// Longest the prompt staging may take: one exec, the prompt on its stdin.
 const STAGE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 
-/// Base64 characters per write: the command guard refuses a `sh -c` script
-/// over 8 KB, and a whole conversation easily passes that.
-const CHUNK: usize = 6_000;
+/// The script that stores standard input as a 0600 file owned by `user`.
+fn stage_script(user: &str, path: &str) -> String {
+    format!("umask 077; cat > {path}.part && mv -f {path}.part {path} && chown {user}:{user} {path}")
+}
 
-/// Writes the prompt to `prompt_path` inside the VM in base64 pieces small
-/// enough for the command guard, then decodes it into a 0600 file owned by
-/// `user`.
-async fn stage_prompt(
+/// Writes `bytes` to `path` inside the VM as a 0600 file owned by `user`, in
+/// one exec with the bytes on standard input: a whole conversation or a long
+/// paste is far beyond what a shell argument may carry, and the old pieces
+/// cost one WSL round trip each.
+pub async fn stage_file(
     state: &AgentService,
     vm_name: &str,
     user: &str,
-    prompt_path: &str,
-    prompt: &str,
+    path: &str,
+    bytes: Vec<u8>,
 ) -> Result<(), (StatusCode, String)> {
-    let encoded = base64::engine::general_purpose::STANDARD.encode(prompt.as_bytes());
-    let tmp = format!("{prompt_path}.b64");
-    let mut first = true;
-    for piece in encoded.as_bytes().chunks(CHUNK) {
-        let piece = std::str::from_utf8(piece).unwrap_or_default();
-        let redirect = if first { ">" } else { ">>" };
-        first = false;
-        run(state, vm_name, format!("umask 077; printf '%s' '{piece}' {redirect} {tmp}")).await?;
-    }
-    if first {
-        run(state, vm_name, format!("umask 077; : > {tmp}")).await?;
-    }
-    run(
-        state,
-        vm_name,
-        format!("umask 077; base64 -d {tmp} > {prompt_path} && rm -f {tmp} && chown {user}:{user} {prompt_path}"),
-    )
-    .await
-}
-
-async fn run(state: &AgentService, vm_name: &str, script: String) -> Result<(), (StatusCode, String)> {
     let (ok, stdout, stderr) =
-        vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), script], STAGE_TIMEOUT).await?;
+        vm::exec_in_vm_with_input(state, vm_name, &stage_script(user, path), bytes, STAGE_TIMEOUT).await?;
     if ok {
         Ok(())
     } else {
@@ -80,6 +60,16 @@ async fn run(state: &AgentService, vm_name: &str, script: String) -> Result<(), 
             format!("could not hand the prompt to the agent: {}", failure_reason(&stdout, &stderr)),
         ))
     }
+}
+
+async fn stage_prompt(
+    state: &AgentService,
+    vm_name: &str,
+    user: &str,
+    prompt_path: &str,
+    prompt: &str,
+) -> Result<(), (StatusCode, String)> {
+    stage_file(state, vm_name, user, prompt_path, prompt.as_bytes().to_vec()).await
 }
 
 /// The shell script that runs `invocation` as `user` from `home` with `HOME`
@@ -182,10 +172,13 @@ mod tests {
     }
 
     #[test]
-    fn a_staging_piece_fits_the_command_guard() {
-        let piece = "A".repeat(super::CHUNK);
-        let cmd = format!("umask 077; printf '%s' '{piece}' >> /tmp/gb-codex-prompt.txt.b64");
-        assert!(cmd.len() < 8192);
+    fn the_prompt_is_staged_from_stdin_not_from_the_script() {
+        let script = super::stage_script("antigravity", "/home/antigravity/.gb-prompt.txt");
+        assert_eq!(
+            script,
+            "umask 077; cat > /home/antigravity/.gb-prompt.txt.part && mv -f /home/antigravity/.gb-prompt.txt.part /home/antigravity/.gb-prompt.txt && chown antigravity:antigravity /home/antigravity/.gb-prompt.txt"
+        );
+        assert!(script.len() < 1024);
     }
 
     #[test]

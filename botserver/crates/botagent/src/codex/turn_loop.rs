@@ -57,8 +57,21 @@ pub async fn run_turn<H: Approvals>(
     model: &str,
     handler: &H,
 ) -> Result<String, BridgeError> {
+    run_turn_with_images(client, inbox, thread_id, prompt, &[], model, handler).await
+}
+
+/// [`run_turn`] with attached pictures given to Codex as image inputs.
+pub async fn run_turn_with_images<H: Approvals>(
+    client: &RpcClient,
+    inbox: &mut RpcInbox,
+    thread_id: &str,
+    prompt: &str,
+    images: &[String],
+    model: &str,
+    handler: &H,
+) -> Result<String, BridgeError> {
     let started = client
-        .request("turn/start", proto::turn_start_params(thread_id, prompt, model), REQUEST_WAIT)
+        .request("turn/start", proto::turn_start_with_images(thread_id, prompt, images, model), REQUEST_WAIT)
         .await
         .map_err(|e| rpc_failure("turn/start", &e))?;
     let mut turn: Turn<H::Ticket> = Turn {

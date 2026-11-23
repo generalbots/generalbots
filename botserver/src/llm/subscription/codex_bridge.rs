@@ -69,12 +69,17 @@ impl CodexBridgeProvider {
         };
         let conversation = self.session_id.to_string();
         let instructions = system_prompt(config);
+        #[cfg(feature = "drive")]
+        let images = attached_images(self.session_id);
+        #[cfg(not(feature = "drive"))]
+        let images: Vec<String> = Vec::new();
         let turn = CodexTurn {
             conversation: &conversation,
             transcript: &transcript,
             latest: &latest,
             model: selected,
             instructions: instructions.as_deref(),
+            images: &images,
         };
         let label = provider_label(CODEX_CLI);
         match botagent::codex::run_bridged(&self.service, &self.vm_name, turn, &gate).await {
@@ -92,6 +97,17 @@ impl CodexBridgeProvider {
             }
         }
     }
+}
+
+/// Pictures the person attached to this message, already copied into the
+/// workspace, for Codex to see as images (`localImage`).
+#[cfg(feature = "drive")]
+fn attached_images(session_id: Uuid) -> Vec<String> {
+    crate::core::bot::pipeline::native_drive::attached::staged_for(session_id)
+        .into_iter()
+        .filter(|file| file.image)
+        .map(|file| file.vm_path)
+        .collect()
 }
 
 fn unsafe_refusal(label: &str, version: &str) -> String {

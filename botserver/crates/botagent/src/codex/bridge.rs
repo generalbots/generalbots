@@ -24,7 +24,7 @@ use crate::duplex::{RpcClient, RpcError};
 
 use super::app_server::{self as proto, ActionOutcome};
 
-pub use super::turn_loop::run_turn;
+pub use super::turn_loop::{run_turn, run_turn_with_images};
 
 pub(super) const REQUEST_WAIT: Duration = Duration::from_secs(60);
 

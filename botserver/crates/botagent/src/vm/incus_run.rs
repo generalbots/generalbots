@@ -13,7 +13,7 @@
 use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
 use std::future::Future;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::process::{Child, Output, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -118,9 +118,35 @@ pub(crate) fn output_within(cmd: &SafeCommand, deadline: Duration) -> Result<Out
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    let child = command
+        .spawn()
+        .map_err(|error| RunFailure::Spawn(error.to_string()))?;
+    wait_output(child, deadline)
+}
+
+/// [`output_within`] with `input` written to the command's standard input,
+/// which is then closed. Bytes travel through the pipe, so their size is not
+/// bounded by the command line.
+pub(crate) fn output_with_input(cmd: &SafeCommand, input: Vec<u8>, deadline: Duration) -> Result<Output, RunFailure> {
+    let mut command = cmd.into_std_command();
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     let mut child = command
         .spawn()
         .map_err(|error| RunFailure::Spawn(error.to_string()))?;
+    if let Some(mut pipe) = child.stdin.take() {
+        std::thread::spawn(move || {
+            if let Err(error) = pipe.write_all(&input) {
+                tracing::debug!("incus stdin: write ended early: {error}");
+            }
+        });
+    }
+    wait_output(child, deadline)
+}
+
+fn wait_output(mut child: Child, deadline: Duration) -> Result<Output, RunFailure> {
     let stdout = pipe_reader(child.stdout.take());
     let stderr = pipe_reader(child.stderr.take());
     let started = Instant::now();

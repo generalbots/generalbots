@@ -14,7 +14,7 @@ use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcInbox, RpcOptions};
 use crate::{vm, AgentService};
 
 use super::app_server::{safe_id, HANDLED_REQUESTS};
-use super::bridge::{check_account, handshake, open_thread, run_turn, Approvals, BridgeError};
+use super::bridge::{check_account, handshake, open_thread, run_turn_with_images, Approvals, BridgeError};
 use super::paths::{CODEX_HOME, CODEX_USER};
 use super::selfcheck;
 
@@ -36,6 +36,8 @@ pub struct CodexTurn<'a> {
     pub model: &'a str,
     /// The system prompt, passed again when the thread is resumed.
     pub instructions: Option<&'a str>,
+    /// Absolute in-VM paths of pictures attached to this turn.
+    pub images: &'a [String],
 }
 
 /// The session's shell script: print the stored thread id on the first
@@ -127,7 +129,7 @@ async fn drive<H: Approvals>(
         store_thread(state, vm_name, conversation, &thread_id).await;
     }
     let prompt = if new_thread || turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
-    match run_turn(client, inbox, &thread_id, prompt, &model, handler).await {
+    match run_turn_with_images(client, inbox, &thread_id, prompt, turn.images, &model, handler).await {
         Err(BridgeError::Unasked) => {
             selfcheck::mark_unsafe(vm_name, &version);
             Err(BridgeError::Unsafe { version })

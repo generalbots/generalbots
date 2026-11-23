@@ -93,10 +93,20 @@ pub fn thread_resume_params(thread_id: &str, cwd: &str, model: &str, instruction
 /// settings differ still asks for every action.
 #[must_use]
 pub fn turn_start_params(thread_id: &str, prompt: &str, model: &str) -> Value {
+    turn_start_with_images(thread_id, prompt, &[], model)
+}
+
+/// [`turn_start_params`] with pictures the person attached, as `localImage`
+/// inputs: absolute paths inside the VM that Codex reads and shows to the
+/// model as images, not as text.
+#[must_use]
+pub fn turn_start_with_images(thread_id: &str, prompt: &str, images: &[String], model: &str) -> Value {
+    let mut input = vec![json!({ "type": "text", "text": prompt })];
+    input.extend(images.iter().map(|path| json!({ "type": "localImage", "path": path })));
     with_model(
         json!({
             "threadId": thread_id,
-            "input": [{ "type": "text", "text": prompt }],
+            "input": input,
             "approvalPolicy": APPROVAL_POLICY,
         }),
         model,
@@ -312,6 +322,12 @@ mod tests {
         assert_eq!(turn["input"][0]["text"], "olá");
         assert_eq!(turn["model"], "gpt-5-codex");
         assert!(turn_start_params("t1", "x", "").get("model").is_none());
+        let images = ["/opt/vibe/conversations/c/data/Tusks Poster.jpg".to_string()];
+        let with = turn_start_with_images("t1", "veja", &images, "");
+        assert_eq!(with["input"][0]["text"], "veja");
+        assert_eq!(with["input"][1]["type"], "localImage");
+        assert_eq!(with["input"][1]["path"], images[0].as_str());
+        assert_eq!(turn_start_params("t1", "x", "")["input"].as_array().map(Vec::len), Some(1));
     }
 
     #[test]
