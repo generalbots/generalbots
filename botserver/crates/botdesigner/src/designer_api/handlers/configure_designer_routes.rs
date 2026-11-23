@@ -83,43 +83,62 @@ pub async fn handle_load_file(
     State(state): State<Arc<DesignerState>>,
     Query(params): Query<FileQuery>,
 ) -> impl IntoResponse {
-    let file_path = params.path.unwrap_or_else(|| "welcome".to_string());
+    let requested_path = params.path.unwrap_or_else(|| "welcome".to_string());
 
-    let content = if let Some(bucket) = params.bucket {
-        match (state.load_from_drive)(&bucket, &file_path) {
-            Ok(c) => c,
-            Err(e) => {
-                log::error!("Failed to load file from drive: {}", e);
-                get_default_dialog_content()
-            }
-        }
-    } else {
+    let content = {
         let conn = state.conn.clone();
-        let file_id = file_path;
+        // #2834 — bucket and bot identity are server-owned. The client only
+        // supplies `path`; `bucket` was removed from FileQuery entirely.
+        let bucket = state.bucket_name.clone();
+        let get_default_bot = state.get_default_bot.clone();
+        let load_from_drive = state.load_from_drive.clone();
 
-        let dialog = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> String {
             let mut db_conn = match conn.get() {
                 Ok(c) => c,
                 Err(e) => {
                     log::error!("DB connection error: {}", e);
-                    return None;
+                    return get_default_dialog_content();
                 }
             };
+            let (bot_id, _) = get_default_bot(&mut db_conn);
 
-            diesel::sql_query(
-                "SELECT id, name, content, updated_at FROM designer_dialogs WHERE id = $1",
-            )
-            .bind::<diesel::sql_types::Text, _>(&file_id)
-            .get_result::<DialogRow>(&mut db_conn)
-            .ok()
+            match resolve_designer_drive_key(bot_id, &bucket, &requested_path) {
+                DesignerDriveKey::Tenant(drive_key) => {
+                    match load_from_drive(&bucket, &drive_key) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            log::error!("Failed to load designer file from drive: {}", e);
+                            get_default_dialog_content()
+                        }
+                    }
+                }
+                DesignerDriveKey::Denied => {
+                    log::warn!(
+                        "Rejected designer Drive key outside resolved tenant prefix: {:?}",
+                        requested_path
+                    );
+                    get_default_dialog_content()
+                }
+                DesignerDriveKey::DialogId => {
+                    let dialog = diesel::sql_query(
+                        "SELECT id, name, content, updated_at FROM designer_dialogs WHERE id = $1",
+                    )
+                    .bind::<diesel::sql_types::Text, _>(&requested_path)
+                    .get_result::<DialogRow>(&mut db_conn);
+
+                    match dialog {
+                        Ok(d) => d.content,
+                        Err(e) => {
+                            log::warn!("Designer dialog load failed: {}", e);
+                            get_default_dialog_content()
+                        }
+                    }
+                }
+            }
         })
         .await
-        .unwrap_or(None);
-
-        match dialog {
-            Some(d) => d.content,
-            None => get_default_dialog_content(),
-        }
+        .unwrap_or_else(|_| get_default_dialog_content())
     };
 
     let mut html = String::new();

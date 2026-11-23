@@ -203,6 +203,11 @@ pub(crate) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
             get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
             get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
             get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
+            // #2834 — this closure is only ever called with `bucket` from
+            // `state.bucket_name` (server config, never the query string) and a
+            // `key` already confined to the resolved default bot's `.gbapp`
+            // prefix by `resolve_designer_drive_key`. Do not widen either input
+            // when this stub is replaced with a real Drive read.
             load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> {
                 Err("not available".to_string())
             }),
