@@ -294,6 +294,8 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
             get(crate::compliance::unsubscribe::unsubscribe)
                 .post(crate::compliance::unsubscribe::unsubscribe),
         )
+        // #2886 — anonymous webhook, but every state change is gated by a
+        // verified HMAC capability bound to (branch, recipient, address).
         .route("/api/marketing/bounce", post(crate::compliance::bounce::record_bounce))
         // #2139 — the destination is a signed query parameter, never a path
         // segment: an anonymous route must not redirect to caller input.

@@ -101,6 +101,108 @@ pub(crate) fn notification_recipient(
     profile
 }
 
+// ---------------------------------------------------------------------------
+// #2899 — tenant scope for @mention recipient resolution
+// ---------------------------------------------------------------------------
+
+/// The caller's tenant, used to scope @mention recipient lookup. The scope
+/// comes from the authenticated caller, never from the mention token itself.
+/// A principal with no verifiable organization has no tenant and gets no
+/// delivery (fail closed) — there is intentionally no global user lookup.
+#[cfg(feature = "mail")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MentionTenant {
+    org_id: uuid::Uuid,
+}
+
+#[cfg(feature = "mail")]
+impl MentionTenant {
+    pub(crate) fn from_caller(org_id: Option<uuid::Uuid>) -> Option<Self> {
+        match org_id {
+            Some(org_id) if org_id != uuid::Uuid::nil() => Some(Self { org_id }),
+            _ => None,
+        }
+    }
+
+    /// Pure (I/O-free) tenant filter: keep only candidate users whose
+    /// organization memberships include the caller's org. Users with no
+    /// membership, or membership only in another tenant, are dropped. #2899.
+    pub(crate) fn in_scope<'a>(
+        &self,
+        candidates: &'a [MentionCandidate],
+    ) -> Vec<&'a MentionCandidate> {
+        candidates
+            .iter()
+            .filter(|candidate| candidate.org_ids.iter().any(|id| *id == self.org_id))
+            .collect()
+    }
+}
+
+/// A user returned by the scoped mention lookup together with every
+/// organization they belong to. `org_ids` is what the pure
+/// [`MentionTenant::in_scope`] filter uses to enforce tenant isolation (#2899).
+#[cfg(feature = "mail")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct MentionCandidate {
+    pub(crate) id: String,
+    pub(crate) email: String,
+    pub(crate) org_ids: Vec<uuid::Uuid>,
+}
+
+#[cfg(all(test, feature = "mail"))]
+mod tests {
+    use super::*;
+
+    fn candidate(id: &str, org_ids: &[uuid::Uuid]) -> MentionCandidate {
+        MentionCandidate {
+            id: id.to_string(),
+            email: format!("{id}@example.test"),
+            org_ids: org_ids.to_vec(),
+        }
+    }
+
+    #[test]
+    fn caller_without_tenant_is_rejected() {
+        assert_eq!(MentionTenant::from_caller(None), None);
+        assert_eq!(MentionTenant::from_caller(Some(uuid::Uuid::nil())), None);
+        let org = uuid::Uuid::new_v4();
+        assert_eq!(
+            MentionTenant::from_caller(Some(org)),
+            Some(MentionTenant { org_id: org })
+        );
+    }
+
+    #[test]
+    fn recipients_are_restricted_to_the_callers_tenant() {
+        let org_a = uuid::Uuid::new_v4();
+        let org_b = uuid::Uuid::new_v4();
+        let tenant = MentionTenant { org_id: org_a };
+
+        let candidates = vec![
+            candidate("alice", &[org_a]),
+            candidate("bob", &[org_b]),
+            candidate("carol", &[org_a, org_b]),
+            candidate("orphan", &[]),
+        ];
+
+        let scoped: Vec<&str> = tenant
+            .in_scope(&candidates)
+            .into_iter()
+            .map(|candidate| candidate.id.as_str())
+            .collect();
+        assert_eq!(scoped, vec!["alice", "carol"]);
+    }
+
+    #[test]
+    fn cross_tenant_only_token_is_rejected() {
+        let org_a = uuid::Uuid::new_v4();
+        let org_b = uuid::Uuid::new_v4();
+        let tenant = MentionTenant { org_id: org_a };
+        let candidates = vec![candidate("bob", &[org_b])];
+        assert!(tenant.in_scope(&candidates).is_empty());
+    }
+}
+
 pub(crate) struct NotificationSender {
     from: String,
     host: String,

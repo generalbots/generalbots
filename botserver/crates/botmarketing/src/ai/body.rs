@@ -1,4 +1,5 @@
 use super::*;
+use axum::http::HeaderMap;
 
 pub(super) fn build_generation_prompt(req: &ContentGenerationRequest) -> String {
     let tone = req.tone.as_deref().unwrap_or(DEFAULT_TONE);
@@ -142,8 +143,23 @@ pub(super) fn parse_llm_response(response: &str) -> Result<ContentGenerationResu
     })
 }
 
+/// Resolve (org_id, branch_id) from verified caller claims (#2890); nil/missing
+/// values fall back to the default bot scope. Pure, so it is unit-testable.
+fn resolve_scope(
+    caller_org: Option<Uuid>,
+    caller_branch: Option<Uuid>,
+    default_org: Uuid,
+    default_branch: Uuid,
+) -> (Uuid, Uuid) {
+    let org_id = caller_org.filter(|id| !id.is_nil()).unwrap_or(default_org);
+    let branch_id = caller_branch.filter(|id| !id.is_nil()).unwrap_or(default_branch);
+    (org_id, branch_id)
+}
+
 pub async fn personalize_content(
     state: &Arc<AppState>,
+    org_id: Uuid,
+    branch_id: Uuid,
     bot_id: Uuid,
     req: PersonalizationRequest,
 ) -> Result<PersonalizationResult, String> {
@@ -154,7 +170,8 @@ pub async fn personalize_content(
 
     let contact = crm_contacts::table
         .filter(crm_contacts::id.eq(req.contact_id))
-        .filter(crm_contacts::branch_id.eq(bot_id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .filter(crm_contacts::org_id.eq(org_id))
         .select((
             crm_contacts::first_name,
             crm_contacts::last_name,
@@ -339,9 +356,20 @@ pub struct PersonalizeRequest {
 
 pub async fn personalize_api(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<PersonalizeRequest>,
 ) -> Result<Json<PersonalizationResult>, (StatusCode, String)> {
-    let bot_id = Uuid::nil();
+    // Scope from the verified caller (#2890): JWT claims win, default is the
+    // fallback. `branch_from_jwt_pool` also resolves opaque suite tokens.
+    let (default_org, default_branch, bot_id) = state.get_scope();
+    let caller_branch = crate::scope::branch_from_jwt_pool(&headers, &state.conn);
+    let caller_org = botsecurity_core::verified_jwt::bearer_token(&headers)
+        .and_then(|token| botsecurity_core::verified_jwt::verify_saas_jwt(token).ok())
+        .and_then(|claims| claims.org_id);
+    let (org_id, branch_id) = resolve_scope(caller_org, caller_branch, default_org, default_branch);
+    if branch_id.is_nil() {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "no tenant scope".to_string()));
+    }
 
     let internal_req = PersonalizationRequest {
         template: req.template,
@@ -349,7 +377,7 @@ pub async fn personalize_api(
         context: req.context,
     };
 
-    personalize_content(&state, bot_id, internal_req).await
+    personalize_content(&state, org_id, branch_id, bot_id, internal_req).await
         .map(Json).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))
 }
 
@@ -392,5 +420,30 @@ pub async fn generate_studio_image(
             "url": url,
         }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Image generation failed: {e}"))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn verified_caller_claims_win() {
+        let (org, branch) = (Uuid::new_v4(), Uuid::new_v4());
+        let got = resolve_scope(Some(org), Some(branch), Uuid::nil(), Uuid::nil());
+        assert_eq!(got, (org, branch));
+    }
+
+    #[test]
+    fn nil_and_missing_claims_fall_back_to_default() {
+        let default = (Uuid::new_v4(), Uuid::new_v4());
+        let resolved = |o, b| resolve_scope(o, b, default.0, default.1);
+        assert_eq!(resolved(None, None), default);
+        assert_eq!(resolved(Some(Uuid::nil()), Some(Uuid::nil())), default);
+    }
+    #[test]
+    fn each_component_falls_back_independently() {
+        let (org, branch) = (Uuid::new_v4(), Uuid::new_v4());
+        assert_eq!(resolve_scope(Some(org), None, Uuid::nil(), branch), (org, branch));
+        assert_eq!(resolve_scope(None, Some(branch), org, Uuid::nil()), (org, branch));
     }
 }

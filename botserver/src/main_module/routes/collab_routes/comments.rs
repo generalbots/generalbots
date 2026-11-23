@@ -149,6 +149,46 @@ fn notification_email_enabled(conn: &mut PgConnection, user_id: &str, flag: &str
         .unwrap_or(true)
 }
 
+/// Fetch users matching a raw @mention token together with all of their
+/// organization memberships. Tenant filtering is intentionally *not* done in
+/// SQL here: the pure [`super::notification_email::MentionTenant::in_scope`]
+/// filter applies it uniformly to both the author and recipient lookups and is
+/// unit-testable with a two-tenant fixture (#2899).
+#[cfg(feature = "mail")]
+fn mention_candidates(
+    conn: &mut PgConnection,
+    token: &str,
+) -> Vec<super::notification_email::MentionCandidate> {
+    #[derive(QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Text)]
+        email: String,
+        #[diesel(sql_type = diesel::sql_types::Array<SqlUuid>)]
+        org_ids: Vec<uuid::Uuid>,
+    }
+    diesel::sql_query(
+        "SELECT u.id::text AS id, u.email, \
+                COALESCE(array_agg(uo.org_id) FILTER (WHERE uo.org_id IS NOT NULL), '{}'::uuid[]) AS org_ids \
+         FROM users u \
+         LEFT JOIN user_organizations uo ON uo.user_id = u.id \
+         WHERE LOWER(u.username) = LOWER($1) OR LOWER(u.email) = LOWER($1) \
+            OR u.id::text = $1 \
+         GROUP BY u.id, u.email",
+    )
+    .bind::<Text, _>(token)
+    .load::<Row>(conn)
+    .unwrap_or_default()
+    .into_iter()
+    .map(|row| super::notification_email::MentionCandidate {
+        id: row.id,
+        email: row.email,
+        org_ids: row.org_ids,
+    })
+    .collect()
+}
+
 /// `POST /api/collab/comments` — create a comment (or reply via parent_id).
 /// Deliver @mention notification emails through the platform notification
 /// sender (compiled only with the `mail` feature, which pulls in `lettre`).
@@ -164,7 +204,16 @@ pub(crate) fn send_mention_emails(
     resource_id: String,
     mentions: Vec<String>,
     body: String,
+    caller_org_id: Option<uuid::Uuid>,
 ) {
+    // #2899 — the tenant scope comes from the authenticated caller, never from
+    // the mention token. Without a tenant, delivery is disabled (fail closed)
+    // so a principal can never trigger a cross-tenant notification email.
+    let Some(tenant) = super::notification_email::MentionTenant::from_caller(caller_org_id) else {
+        warn!("mention email: no tenant scope for caller; delivery disabled (#2899)");
+        return;
+    };
+
     // Platform-owned sender only. Never use the author's or the recipient's
     // `user_email_accounts` mailbox as the sender: notification mail must not
     // leave through a personal Gmail/Outlook account, and delivery is simply
@@ -183,53 +232,37 @@ pub(crate) fn send_mention_emails(
         }
     };
 
-    #[derive(QueryableByName)]
-    struct UserRow {
-        #[diesel(sql_type = Text)]
-        pub(crate) id: String,
-        #[diesel(sql_type = Text)]
-        pub(crate) email: String,
-    }
+    // Resolve the author and every recipient through the same tenant-scoped
+    // lookup. The SQL returns each matching user with all their organization
+    // memberships; `tenant.in_scope` is the pure filter that discards users
+    // outside the caller's tenant (#2899), including for self-exclusion.
+    let author_candidates = mention_candidates(&mut conn, &author_id);
+    let author = tenant.in_scope(&author_candidates).into_iter().next();
+    let author_user_id = author.as_ref().map(|candidate| candidate.id.clone());
+    let author_email = author
+        .as_ref()
+        .map(|candidate| candidate.email.to_lowercase());
 
-    // author_id is either the author's email or their user UUID (see
-    // collab_user_id). Resolve both forms so the author is never emailed
-    // about their own comment.
-    let author = diesel::sql_query(
-        "SELECT id::text AS id, email FROM users \
-         WHERE LOWER(email) = LOWER($1) OR id::text = $1 LIMIT 1",
-    )
-    .bind::<Text, _>(&author_id)
-    .get_result::<UserRow>(&mut conn)
-    .ok();
-    let author_user_id = author.as_ref().map(|row| row.id.clone());
-    let author_email = author.as_ref().map(|row| row.email.to_lowercase());
-
-    let mut recipients: Vec<UserRow> = Vec::new();
+    let mut recipients: Vec<super::notification_email::MentionCandidate> = Vec::new();
     let mut seen = std::collections::HashSet::new();
     for token in &mentions {
         let token = token.trim();
         if token.is_empty() || !seen.insert(token.to_lowercase()) {
             continue;
         }
-        let rows = diesel::sql_query(
-            "SELECT id::text AS id, email FROM users \
-             WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1",
-        )
-        .bind::<Text, _>(token)
-        .get_results::<UserRow>(&mut conn)
-        .unwrap_or_default();
-        if let Some(row) = rows.into_iter().next() {
-            if author_user_id.as_deref() == Some(row.id.as_str()) {
-                continue;
-            }
-            if author_email.as_deref() == Some(row.email.to_lowercase().as_str()) {
-                continue;
-            }
-            if recipients.iter().any(|r| r.id == row.id) {
-                continue;
-            }
-            recipients.push(row);
+        let candidates = mention_candidates(&mut conn, token);
+        let Some(candidate) = tenant.in_scope(&candidates).into_iter().next() else {
+            continue;
+        };
+        if author_user_id.as_deref() == Some(candidate.id.as_str())
+            || author_email.as_deref() == Some(candidate.email.to_lowercase().as_str())
+        {
+            continue;
         }
+        if recipients.iter().any(|r| r.id == candidate.id) {
+            continue;
+        }
+        recipients.push((*candidate).clone());
     }
 
     if recipients.is_empty() {
@@ -294,6 +327,9 @@ pub async fn create_comment(
 
     let author_id = collab_user_id(&user);
     let author_name = collab_user_name(&user);
+    // #2899 — the authenticated caller's active organization is the only
+    // trusted tenant scope for @mention email delivery.
+    let caller_org_id = user.organization_id;
     let mentions = extract_mentions(&body);
     let mentions_json = serde_json::to_string(&mentions).unwrap_or_else(|_| "[]".to_string());
     let parent_id: Option<uuid::Uuid> = match req.parent_id.as_deref() {
@@ -364,6 +400,7 @@ pub async fn create_comment(
         let task_resource_id = req.resource_id.clone();
         let task_mentions = mentions.clone();
         let task_body = body.clone();
+        let task_caller_org_id = caller_org_id;
         tokio::task::spawn_blocking(move || {
             send_mention_emails(
                 pool,
@@ -373,6 +410,7 @@ pub async fn create_comment(
                 task_resource_id,
                 task_mentions,
                 task_body,
+                task_caller_org_id,
             );
         });
     }

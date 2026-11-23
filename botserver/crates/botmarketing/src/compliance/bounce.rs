@@ -14,6 +14,9 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use super::bounce_signing::{
+    authorized_branch, signing_key, verify_bounce_signature, BounceClaims,
+};
 use super::suppression::{
     persist_suppression, MarketingChannel, SuppressionKey, SuppressionStore,
 };
@@ -228,6 +231,11 @@ pub fn persist_attempt(
 }
 
 /// Webhook body accepted by `POST /api/marketing/bounce`.
+///
+/// `signature` is the HMAC capability over the other fields (see
+/// [`super::bounce_signing`]). The endpoint makes no state change until it has
+/// been verified, and the tenant used for suppression comes from the signed
+/// claim plus the persisted recipient row, never from these raw fields.
 #[derive(Debug, Clone, Deserialize)]
 pub struct BounceWebhookPayload {
     pub recipient_id: Option<Uuid>,
@@ -236,6 +244,7 @@ pub struct BounceWebhookPayload {
     pub channel: Option<String>,
     pub reason: Option<String>,
     pub bounce_type: Option<String>,
+    pub signature: Option<String>,
 }
 
 /// Typed result of processing a bounce.
@@ -266,7 +275,13 @@ impl BounceError {
 
 type RecipientRow = (Uuid, Uuid, Option<String>, Option<String>, Option<Value>);
 
-fn load_recipient(conn: &mut PgConnection, body: &BounceWebhookPayload) -> Result<RecipientRow, BounceError> {
+/// Loads the recipient using the **verified** claim only.
+///
+/// #2886 — the branch filter is always applied from the signed claim
+/// (`caller_branch`), so a capability issued for tenant A can never resolve a
+/// recipient belonging to tenant B. The raw body's `branch_id` is never used to
+/// select rows.
+fn load_recipient(conn: &mut PgConnection, claims: &BounceClaims) -> Result<RecipientRow, BounceError> {
     let mut query = marketing_recipients::table
         .select((
             marketing_recipients::id,
@@ -275,15 +290,14 @@ fn load_recipient(conn: &mut PgConnection, body: &BounceWebhookPayload) -> Resul
             marketing_recipients::channel,
             marketing_recipients::response,
         ))
+        .filter(marketing_recipients::branch_id.eq(claims.branch_id))
         .into_boxed();
-    match (body.recipient_id, body.branch_id.as_ref(), body.address.as_ref()) {
-        (Some(id), _, _) => {
+    match (claims.recipient_id, claims.address.as_deref()) {
+        (Some(id), _) => {
             query = query.filter(marketing_recipients::id.eq(id));
         }
-        (None, Some(branch_id), Some(address)) => {
-            query = query
-                .filter(marketing_recipients::branch_id.eq(*branch_id))
-                .filter(marketing_recipients::email.eq(address));
+        (None, Some(address)) => {
+            query = query.filter(marketing_recipients::email.eq(address));
         }
         _ => return Err(BounceError::MissingIdentifier),
     }
@@ -316,31 +330,48 @@ fn mark_contact_suppressed(conn: &mut PgConnection, branch_id: Uuid, address: &s
 
 /// `POST /api/marketing/bounce` — records a bounce/complaint, auto-suppresses
 /// terminal addresses and updates the recipient's status and attempt counter.
+///
+/// #2886 — the signed capability is verified **before** the connection is even
+/// acquired, so a forged or missing signature cannot mutate consent anywhere.
+/// Every decision below uses the verified claim; the raw body is only a
+/// transport envelope.
 pub async fn record_bounce(
     State(state): State<Arc<AppState>>,
     Json(body): Json<BounceWebhookPayload>,
 ) -> Result<Json<BounceResult>, (StatusCode, String)> {
+    let claims = verify_bounce_signature(signing_key(), &body).map_err(|error| {
+        log::warn!("bounce capability rejected: {}", error.reason());
+        (error.status(), error.reason().to_string())
+    })?;
+
     let mut conn = state
         .conn
         .get()
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, BounceError::Database.reason().to_string()))?;
-    let (recipient_id, branch_id, stored_email, stored_channel, stored_response) =
-        load_recipient(&mut conn, &body)
+    let (recipient_id, recipient_branch, stored_email, stored_channel, stored_response) =
+        load_recipient(&mut conn, &claims)
             .map_err(|error| (StatusCode::BAD_REQUEST, error.reason().to_string()))?;
+    // The tenant is fixed by the persisted recipient row the capability
+    // selected, never by the raw body. Cross-check it against the signed claim
+    // so a capability for tenant A cannot suppress a recipient in tenant B.
+    let branch_id = authorized_branch(&claims, recipient_branch).map_err(|error| {
+        log::warn!("bounce tenant mismatch rejected: {}", error.reason());
+        (error.status(), error.reason().to_string())
+    })?;
 
-    let reason = body.reason.as_deref().unwrap_or("");
-    let class = body
+    let reason = claims.reason.as_deref().unwrap_or("");
+    let class = claims
         .bounce_type
         .as_deref()
         .and_then(BounceClass::parse)
         .unwrap_or_else(|| classify_bounce(reason));
-    let channel = body
+    let channel = claims
         .channel
         .as_deref()
         .and_then(MarketingChannel::parse)
         .or_else(|| stored_channel.as_deref().and_then(MarketingChannel::parse))
         .unwrap_or(MarketingChannel::Email);
-    let address = body
+    let address = claims
         .address
         .as_deref()
         .or(stored_email.as_deref())
