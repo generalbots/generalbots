@@ -21,18 +21,14 @@ pub(super) async fn handle_agent_ws_stream(
 
     let session_arc = Arc::new(Mutex::new(session));
 
-    let llm_url = params
-        .llm_url
-        .clone()
-        .unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
-    let llm_key = params.llm_key.clone().unwrap_or_default();
-    let llm_model = params
-        .llm_model
-        .clone()
-        .unwrap_or_else(|| "default".to_string());
-    let llm_config = agent::LlmConfig::new(&llm_url, &llm_key, &llm_model);
-
-    let max_steps = params.max_steps.unwrap_or(10);
+    // #2883: ignore caller-supplied LLM endpoint/key/model and cap the step
+    // budget. Only the server-configured trusted endpoint is ever used.
+    let llm_config = agent::LlmConfig::for_request(
+        params.llm_url.as_deref(),
+        params.llm_key.as_deref(),
+        params.llm_model.as_deref(),
+    );
+    let max_steps = agent::bounded_max_steps(params.max_steps);
     let mut step_count = 0;
 
     let _ = socket

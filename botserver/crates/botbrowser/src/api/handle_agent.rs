@@ -9,13 +9,14 @@ pub async fn handle_agent(
     let session = get_session(&sessions, &id, &caller).await?;
     let session_arc = Arc::new(Mutex::new(session));
 
-    let llm_url = payload
-        .llm_url
-        .unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
-    let llm_key = payload.llm_key.unwrap_or_default();
-    let llm_model = payload.llm_model.unwrap_or_else(|| "default".to_string());
-    let llm_config = agent::LlmConfig::new(&llm_url, &llm_key, &llm_model);
-    let max_steps = payload.max_steps.unwrap_or(10);
+    // #2883: the endpoint/key/model come from server configuration only and
+    // the step budget is hard-capped; caller-supplied values are discarded.
+    let llm_config = agent::LlmConfig::for_request(
+        payload.llm_url.as_deref(),
+        payload.llm_key.as_deref(),
+        payload.llm_model.as_deref(),
+    );
+    let max_steps = agent::bounded_max_steps(payload.max_steps);
 
     match agent::run_agent_loop(&session_arc, &payload.goal, &llm_config, max_steps).await {
         Ok(steps) => Ok(Json(serde_json::json!({

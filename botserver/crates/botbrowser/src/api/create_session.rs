@@ -18,6 +18,12 @@ pub(super) async fn create_session_inner(
     payload: CreateSessionRequest,
     caller: &SessionCaller,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    // #2878 — reject an unsafe initial URL before allocating a browser tab.
+    if let Some(url) = payload.url.as_deref().filter(|u| !u.trim().is_empty()) {
+        if let Err(reason) = crate::url_policy::validate_navigation_url(url) {
+            return Err((axum::http::StatusCode::BAD_REQUEST, reason));
+        }
+    }
     let headless = payload.headless.unwrap_or(true);
     let meta = BrowserTabMeta {
         owner: Some(caller.owner.clone()),

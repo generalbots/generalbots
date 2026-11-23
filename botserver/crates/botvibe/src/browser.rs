@@ -9,47 +9,55 @@ fn cdp_base() -> String {
     std::env::var("BROWSER_CDP_URL").unwrap_or_else(|_| "http://127.0.0.1:9222".to_string())
 }
 
-/// #926 — blocks navigation to loopback, private, link-local, multicast and
-/// other non-public destinations so a prompt-injected agent cannot reach
-/// internal applications or the host's own services.
+/// #926 / #2884 — navigation targets go through the shared SSRF policy so a
+/// prompt-injected agent cannot open `file:`, `javascript:`, `data:`,
+/// userinfo-bearing or loopback/private/link-local URLs in the CDP browser.
+/// The former local parse + host checks were string-only: they missed userinfo
+/// smuggling (`http://example.com@127.0.0.1/`), encoded IPv4 and the
+/// control-plane port matrix. `validate_url_ssrf_strict` is the single shared
+/// guard for all of those and returns a generic, non-reflecting error.
 fn validate_navigation_target(url: &str) -> Result<(), String> {
-    let parsed = reqwest::Url::parse(url).map_err(|e| format!("invalid url: {e}"))?;
-    if parsed.scheme() != "http" && parsed.scheme() != "https" {
-        return Err("url must be http(s)".to_string());
-    }
-    let host = parsed.host_str().unwrap_or_default().to_ascii_lowercase();
-    // Some url versions keep IPv6 brackets in host_str; strip them so the
-    // literal can be parsed by std::net.
-    let host = host.trim_start_matches('[').trim_end_matches(']');
-    if host.is_empty() {
-        return Err("url has no host".to_string());
-    }
-    if let Ok(ipv4) = host.parse::<std::net::Ipv4Addr>() {
-        if ipv4.is_loopback()
-            || ipv4.is_private()
-            || ipv4.is_link_local()
-            || ipv4.is_multicast()
-            || ipv4.is_unspecified()
-        {
-            return Err(format!("navigation to internal address {host} is blocked"));
+    botsecurity_core::validation::validate_url_ssrf_strict(url)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+/// #2884 — arbitrary JavaScript execution via CDP `Runtime.evaluate` is a
+/// high-risk capability (cookie/token theft, same-origin SSRF, drive-by
+/// actions). It is OFF unless a deployment explicitly grants this opaque
+/// token. No tool argument, method-name string or loose truthy value
+/// ("true"/"1"/"allow") can forge it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CdpEvalCapability {
+    _sealed: (),
+}
+
+const CDP_EVAL_OPT_IN_ENV: &str = "BROWSER_CDP_EVAL_OPT_IN";
+const CDP_EVAL_OPT_IN_TOKEN: &str = "grant-cdp-runtime-evaluate";
+
+impl CdpEvalCapability {
+    /// The only constructor. Requires the exact opt-in token; an unset or
+    /// differently-valued variable leaves arbitrary evaluation disabled.
+    pub fn from_env() -> Option<Self> {
+        match std::env::var(CDP_EVAL_OPT_IN_ENV) {
+            Ok(value) if value == CDP_EVAL_OPT_IN_TOKEN => Some(Self { _sealed: () }),
+            _ => None,
         }
-        return Ok(());
     }
-    if let Ok(ipv6) = host.parse::<std::net::Ipv6Addr>() {
-        if ipv6.is_loopback() || ipv6.is_unspecified() || ipv6.is_multicast() || ipv6.is_unique_local() {
-            return Err(format!("navigation to internal address {host} is blocked"));
-        }
-        return Ok(());
-    }
-    if host == "localhost"
-        || host.ends_with(".localhost")
-        || host.ends_with(".local")
-        || host.ends_with(".internal")
-        || host.ends_with(".localdomain")
-    {
-        return Err(format!("navigation to internal host {host} is blocked"));
-    }
-    Ok(())
+}
+
+/// CDP methods that run caller-controlled JavaScript. Every call to one of
+/// these must carry a [`CdpEvalCapability`]. The enforcement lives in
+/// `cdp_call`, so a future eval-based tool cannot bypass the gate by simply
+/// calling the transport with a new method name.
+fn is_eval_method(method: &str) -> bool {
+    matches!(
+        method,
+        "Runtime.evaluate"
+            | "Runtime.callFunctionOn"
+            | "Runtime.awaitPromise"
+            | "Page.addScriptToEvaluateOnNewDocument"
+    )
 }
 
 fn ok(data: Value) -> VibeToolResult {
@@ -88,7 +96,19 @@ async fn tab_ws_url(tab_id: &str) -> Result<String, String> {
 
 /// Sends one CDP command over the tab's WebSocket and returns the `result`
 /// object, or the `error` message on protocol failure.
-async fn cdp_call(tab_id: &str, method: &str, params: Value) -> Result<Value, String> {
+async fn cdp_call(
+    tab_id: &str,
+    method: &str,
+    params: Value,
+    eval_capability: Option<CdpEvalCapability>,
+) -> Result<Value, String> {
+    // #2884 — check before any socket is opened. The method string only
+    // identifies which calls are dangerous; the typed capability is the gate.
+    if is_eval_method(method) && eval_capability.is_none() {
+        return Err(format!(
+            "CDP {method} requires the explicit eval capability (set {CDP_EVAL_OPT_IN_ENV} to grant it)"
+        ));
+    }
     let ws_url = tab_ws_url(tab_id).await?;
     let (mut ws, _) = tokio_tungstenite::connect_async(&ws_url)
         .await
@@ -144,7 +164,7 @@ pub fn browser_tools() -> Vec<(String, ToolSchema, ToolHandler)> {
             },
             "required": ["tab_id"]
         })), browser_screenshot()),
-        ("browser/eval".into(), ToolSchema::new("browser/eval", "Run JavaScript in the tab and return the serialized result").with_parameters(json!({
+        ("browser/eval".into(), ToolSchema::new("browser/eval", "Run JavaScript in the tab and return the serialized result (disabled unless the deployment grants the CDP eval capability)").with_parameters(json!({
             "type": "object",
             "properties": {
                 "tab_id": {"type": "string", "description": "Tab id from browser/list"},
@@ -152,7 +172,7 @@ pub fn browser_tools() -> Vec<(String, ToolSchema, ToolHandler)> {
             },
             "required": ["tab_id", "expression"]
         })), browser_eval()),
-        ("browser/fill".into(), ToolSchema::new("browser/fill", "Set the value of an input matched by CSS selector").with_parameters(json!({
+        ("browser/fill".into(), ToolSchema::new("browser/fill", "Set the value of an input matched by CSS selector (uses CDP eval; requires the eval capability)").with_parameters(json!({
             "type": "object",
             "properties": {
                 "tab_id": {"type": "string", "description": "Tab id from browser/list"},
@@ -161,7 +181,7 @@ pub fn browser_tools() -> Vec<(String, ToolSchema, ToolHandler)> {
             },
             "required": ["tab_id", "selector", "value"]
         })), browser_fill()),
-        ("browser/click".into(), ToolSchema::new("browser/click", "Click the first element matched by a CSS selector").with_parameters(json!({
+        ("browser/click".into(), ToolSchema::new("browser/click", "Click the first element matched by a CSS selector (uses CDP eval; requires the eval capability)").with_parameters(json!({
             "type": "object",
             "properties": {
                 "tab_id": {"type": "string", "description": "Tab id from browser/list"},
@@ -261,7 +281,14 @@ fn browser_screenshot() -> ToolHandler {
             // Real CDP: Page.captureScreenshot over the tab's WebSocket. The
             // result `data` field is the base64 PNG, returned inline so the
             // Vibe chat can render it directly.
-            match cdp_call(&tab_id, "Page.captureScreenshot", json!({ "format": "png" })).await {
+            match cdp_call(
+                &tab_id,
+                "Page.captureScreenshot",
+                json!({ "format": "png" }),
+                None,
+            )
+            .await
+            {
                 Ok(result) => {
                     let b64 = result
                         .get("data")
@@ -293,10 +320,16 @@ fn browser_eval() -> ToolHandler {
             if tab_id.is_empty() || expression.is_empty() {
                 return err("tab_id and expression are required".into());
             }
+            let Some(capability) = CdpEvalCapability::from_env() else {
+                return err(format!(
+                    "browser/eval is disabled; set {CDP_EVAL_OPT_IN_ENV} to grant the eval capability"
+                ));
+            };
             match cdp_call(
                 &tab_id,
                 "Runtime.evaluate",
                 json!({ "expression": expression, "returnByValue": true }),
+                Some(capability),
             )
             .await
             {
@@ -332,10 +365,16 @@ fn browser_fill() -> ToolHandler {
                  el.value = {value_js}; el.dispatchEvent(new Event('input', {{ bubbles: true }})); \
                  el.dispatchEvent(new Event('change', {{ bubbles: true }})); return {{ found: true, value: el.value }}; }})()"
             );
+            let Some(capability) = CdpEvalCapability::from_env() else {
+                return err(format!(
+                    "browser/fill is disabled; set {CDP_EVAL_OPT_IN_ENV} to grant the eval capability"
+                ));
+            };
             match cdp_call(
                 &tab_id,
                 "Runtime.evaluate",
                 json!({ "expression": expression, "returnByValue": true }),
+                Some(capability),
             )
             .await
             {
@@ -367,10 +406,16 @@ fn browser_click() -> ToolHandler {
                 "(() => {{ const el = document.querySelector({selector_js}); if (!el) return {{ found: false }}; \
                  el.click(); return {{ found: true, tag: el.tagName, text: (el.innerText || '').slice(0, 120) }}; }})()"
             );
+            let Some(capability) = CdpEvalCapability::from_env() else {
+                return err(format!(
+                    "browser/click is disabled; set {CDP_EVAL_OPT_IN_ENV} to grant the eval capability"
+                ));
+            };
             match cdp_call(
                 &tab_id,
                 "Runtime.evaluate",
                 json!({ "expression": expression, "returnByValue": true }),
+                Some(capability),
             )
             .await
             {
@@ -389,38 +434,5 @@ fn browser_click() -> ToolHandler {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cdp_base_defaults_to_localhost_9222() {
-        std::env::remove_var("BROWSER_CDP_URL");
-        assert_eq!(cdp_base(), "http://127.0.0.1:9222");
-        std::env::set_var("BROWSER_CDP_URL", "http://example.com:9223");
-        assert_eq!(cdp_base(), "http://example.com:9223");
-        std::env::remove_var("BROWSER_CDP_URL");
-    }
-
-    #[test]
-    fn navigation_allows_public_targets() {
-        assert!(validate_navigation_target("https://example.com").is_ok());
-        assert!(validate_navigation_target("http://chat.example.com:8080/").is_ok());
-    }
-
-    #[test]
-    fn navigation_blocks_internal_targets() {
-        for bad in [
-            "http://127.0.0.1/",
-            "http://10.0.0.5/",
-            "http://192.168.1.1/",
-            "http://169.254.169.254/",
-            "http://[::1]/",
-            "http://localhost:3000/",
-            "https://app.internal/",
-            "https://foo.local/",
-            "ftp://example.com",
-        ] {
-            assert!(validate_navigation_target(bad).is_err(), "should block {bad}");
-        }
-    }
-}
+#[path = "browser/tests.rs"]
+mod tests;

@@ -8,6 +8,18 @@ use tokio::sync::Mutex;
 
 use crate::BrowserSession;
 
+/// Hard cap for the browser agent loop (#2883). A caller can never drive more
+/// steps than this, regardless of the requested budget.
+pub const MAX_AGENT_STEPS: usize = 20;
+/// Budget used when a caller does not specify one.
+const DEFAULT_AGENT_STEPS: usize = 10;
+/// Process-local llama.cpp endpoint shipped with the stack; used only when the
+/// operator has not configured `LLM_URL`.
+const DEFAULT_LLM_URL: &str = "http://127.0.0.1:8081/v1/chat/completions";
+
+#[cfg(test)]
+mod tests;
+
 pub struct LlmConfig {
     pub url: String,
     pub key: String,
@@ -26,6 +38,39 @@ impl LlmConfig {
             },
         }
     }
+
+    /// LLM settings come only from server-controlled environment variables
+    /// (populated from Vault at boot). Request data is never consulted (#2883).
+    pub fn from_server_config() -> Self {
+        let url = non_empty_env("LLM_URL").unwrap_or_else(|| DEFAULT_LLM_URL.to_string());
+        let key = non_empty_env("LLM_KEY")
+            .or_else(|| non_empty_env("OPENAI_API_KEY"))
+            .unwrap_or_else(String::new);
+        let model = non_empty_env("LLM_MODEL").unwrap_or_else(|| "default".to_string());
+        Self::new(&url, &key, &model)
+    }
+
+    /// Resolve the effective config for a request. Caller-supplied endpoint,
+    /// key and model are intentionally discarded so this endpoint cannot be
+    /// used as an SSRF primitive or to route paid traffic to arbitrary hosts
+    /// (#2883).
+    pub fn for_request(
+        caller_url: Option<&str>,
+        caller_key: Option<&str>,
+        caller_model: Option<&str>,
+    ) -> Self {
+        if caller_url.is_some() || caller_key.is_some() || caller_model.is_some() {
+            log::warn!("Ignoring caller-supplied LLM endpoint/key/model in agent request (#2883)");
+        }
+        Self::from_server_config()
+    }
+}
+
+fn non_empty_env(name: &str) -> Option<String> {
+    std::env::var(name)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,14 +126,19 @@ impl AgentObservation {
     }
 }
 
-async fn call_llm(prompt: &str, config: &LlmConfig) -> Result<String> {
-    // SSRF guard: the configured LLM endpoint must be an absolute http(s) URL
-    // with an explicit host before any request is issued.
-    let parsed = url::Url::parse(&config.url).context("invalid LLM endpoint URL")?;
+/// Defense in depth: even a server-configured endpoint must be an absolute
+/// http(s) URL with a host before any request is issued (#2883).
+pub fn validate_llm_endpoint(url: &str) -> Result<url::Url> {
+    let parsed = url::Url::parse(url).context("invalid LLM endpoint URL")?;
     anyhow::ensure!(
         matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some(),
         "LLM endpoint must be an absolute http(s) URL"
     );
+    Ok(parsed)
+}
+
+async fn call_llm(prompt: &str, config: &LlmConfig) -> Result<String> {
+    validate_llm_endpoint(&config.url)?;
     let client = reqwest::Client::new();
     let response = client
         .post(&config.url)
@@ -223,12 +273,22 @@ pub async fn decide_next_action(
     Ok(AgentStep { action, reasoning })
 }
 
+/// Clamp a caller-supplied step budget into `1..=MAX_AGENT_STEPS` (#2883).
+pub fn bounded_max_steps(requested: Option<usize>) -> usize {
+    requested
+        .unwrap_or(DEFAULT_AGENT_STEPS)
+        .clamp(1, MAX_AGENT_STEPS)
+}
+
 pub async fn run_agent_loop(
     session: &Arc<Mutex<BrowserSession>>,
     goal: &str,
     llm_config: &LlmConfig,
     max_steps: usize,
 ) -> Result<Vec<AgentStep>> {
+    // Hard cap at the loop itself: even an internal caller passing a huge
+    // budget cannot turn this into an unbounded paid LLM loop (#2883).
+    let max_steps = max_steps.clamp(1, MAX_AGENT_STEPS);
     let mut steps: Vec<AgentStep> = Vec::new();
 
     for step_count in 1..=max_steps {

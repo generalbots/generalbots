@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 pub mod agent;
 pub mod api;
 mod owner;
+mod url_policy;
 
 pub use agent::*;
 pub use api::*;
@@ -200,13 +201,23 @@ impl BrowserSession {
     }
 
     pub async fn navigate(&self, url: &str) -> Result<PageState> {
+        // #2878 — validate before connect and re-check the post-redirect URL
+        // before reading any page content.
+        let target = crate::url_policy::validate_navigation_target(url)
+            .await
+            .map_err(anyhow::Error::msg)?;
         let page = self.page.lock().await;
-        page.goto(url).await.context("Failed to navigate")?;
+        page.goto(target.as_str())
+            .await
+            .context("Failed to navigate")?;
         page.wait_for_navigation()
             .await
             .context("Failed to wait for navigation")?;
 
         let current_url = page.url().await.ok().flatten().unwrap_or_default();
+        crate::url_policy::validate_navigation_target(&current_url)
+            .await
+            .map_err(anyhow::Error::msg)?;
         let title = page.get_title().await.ok().flatten().unwrap_or_default();
         let text_content = extract_page_text(&page).await;
 
@@ -222,13 +233,23 @@ impl BrowserSession {
     }
 
     pub async fn navigate_with_result(&self, url: &str) -> Result<NavigationResult> {
+        // #2878 — same pre-connect and post-redirect policy as `navigate`, so
+        // neither /extract nor /screenshot can capture an internal page.
+        let target = crate::url_policy::validate_navigation_target(url)
+            .await
+            .map_err(anyhow::Error::msg)?;
         let page = self.page.lock().await;
-        page.goto(url).await.context("Failed to navigate")?;
+        page.goto(target.as_str())
+            .await
+            .context("Failed to navigate")?;
         page.wait_for_navigation()
             .await
             .context("Failed to wait for navigation")?;
 
         let current_url = page.url().await.ok().flatten().unwrap_or_default();
+        crate::url_policy::validate_navigation_target(&current_url)
+            .await
+            .map_err(anyhow::Error::msg)?;
         let title = page.get_title().await.ok().flatten().unwrap_or_default();
         let text_content = extract_page_text(&page).await;
         let links = extract_links(&page).await;
