@@ -1,5 +1,21 @@
 use super::*;
 
+#[cfg(feature = "vectordb")]
+use botqdrant::drive_vectordb::{chunk_is_authorized, AccessVerifier, VectorScope};
+#[cfg(feature = "vectordb")]
+use std::sync::OnceLock;
+
+/// Process-wide current-ACL verifier for Drive vector search (#2820). Installed
+/// once at startup from a trusted source (Drive/MinIO object + `drive_shares`).
+/// The first installation wins; a second attempt is returned for logging.
+#[cfg(feature = "vectordb")]
+static ACCESS_VERIFIER: OnceLock<Arc<AccessVerifier>> = OnceLock::new();
+
+#[cfg(feature = "vectordb")]
+pub fn set_drive_access_verifier(verifier: Arc<AccessVerifier>) -> Result<(), Arc<AccessVerifier>> {
+    ACCESS_VERIFIER.set(verifier)
+}
+
 impl UserDriveVectorDB {
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("drive_{}_{}", bot_id, user_id);
@@ -76,13 +92,17 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let payload: botqdrant::Payload = serde_json::to_value(file)?
+        let mut payload: botqdrant::Payload = serde_json::to_value(file)?
             .as_object()
             .cloned()
             .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
             .collect::<serde_json::Map<String, serde_json::Value>>();
+
+        // Stamp only server-derived ids. These are native strings (not the
+        // double-encoded document values) so the query-time parse succeeds.
+        VectorScope::new(self.bot_id, self.user_id).stamp(&mut payload);
 
         let point = PointStruct::new(file.id.clone(), embedding, payload);
 
@@ -110,16 +130,18 @@ impl UserDriveVectorDB {
                 .as_ref()
                 .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
+            let scope = VectorScope::new(self.bot_id, self.user_id);
             let points: Vec<PointStruct> = files
                 .iter()
                 .filter_map(|(file, embedding)| {
                     serde_json::to_value(file).ok().and_then(|v| {
                         v.as_object().map(|m| {
-                            let payload: botqdrant::Payload = m
+                            let mut payload: botqdrant::Payload = m
                                 .clone()
                                 .into_iter()
                                 .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
                                 .collect::<serde_json::Map<String, serde_json::Value>>();
+                            scope.stamp(&mut payload);
                             PointStruct::new(file.id.clone(), embedding.clone(), payload)
                         })
                     })
@@ -154,52 +176,48 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let filter =
-            if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
-                let mut conditions = Vec::new();
+        // The scope is derived only from server-side ids (#2820). Request
+        // filters are layered on top, never in place of this mandatory one.
+        let scope = VectorScope::new(self.bot_id, self.user_id);
+        let mut conditions = vec![
+            botqdrant::Condition::matches(
+                "scope_bot_id",
+                serde_json::Value::String(scope.bot_id.to_string()),
+            ),
+            botqdrant::Condition::matches(
+                "scope_user_id",
+                serde_json::Value::String(scope.user_id.to_string()),
+            ),
+        ];
 
-                if let Some(bucket) = &query.bucket {
-                    conditions.push(botqdrant::Condition::matches(
-                        "bucket",
-                        serde_json::Value::String(bucket.clone()),
-                    ));
-                }
+        if let Some(bucket) = &query.bucket {
+            conditions.push(botqdrant::Condition::matches(
+                "bucket",
+                serde_json::Value::String(bucket.clone()),
+            ));
+        }
+        if let Some(file_type) = &query.file_type {
+            conditions.push(botqdrant::Condition::matches(
+                "file_type",
+                serde_json::Value::String(file_type.clone()),
+            ));
+        }
+        for tag in &query.tags {
+            conditions.push(botqdrant::Condition::matches(
+                "tags",
+                serde_json::Value::String(tag.clone()),
+            ));
+        }
 
-                if let Some(file_type) = &query.file_type {
-                    conditions.push(botqdrant::Condition::matches(
-                        "file_type",
-                        serde_json::Value::String(file_type.clone()),
-                    ));
-                }
-
-                for tag in &query.tags {
-                    conditions.push(botqdrant::Condition::matches(
-                        "tags",
-                        serde_json::Value::String(tag.clone()),
-                    ));
-                }
-
-                if conditions.is_empty() {
-                    None
-                } else {
-                    Some(botqdrant::Filter::must(conditions))
-                }
-            } else {
-                None
-            };
-
-        let mut search_builder = botqdrant::SearchPointsBuilder::new(
+        let search_result = botqdrant::SearchPointsBuilder::new(
             &self.collection_name,
             query_embedding,
             query.limit,
         )
-        .with_payload(true);
-
-        if let Some(f) = filter {
-            search_builder = search_builder.filter(Some(f));
-        }
-
-        let search_result = search_builder.build(client).await?;
+        .with_payload(true)
+        .filter(Some(botqdrant::Filter::must(conditions)))
+        .build(client)
+        .await?;
 
         let mut results = Vec::new();
         for point in search_result.result {
@@ -241,6 +259,23 @@ impl UserDriveVectorDB {
                         .map(|s: &str| s.to_string()),
                     tags: vec![],
                 };
+
+                // Re-check the trusted stamp and the current ACL before any
+                // embedded text leaves the index (#2820).
+                let access_verifier = ACCESS_VERIFIER.get().map(|v| v.as_ref());
+                if !chunk_is_authorized(
+                    &scope,
+                    &payload,
+                    &file.file_path,
+                    &file.bucket,
+                    access_verifier,
+                ) {
+                    log::warn!(
+                        "Dropping Qdrant point '{}': server scope or current ACL rejected it",
+                        file.id
+                    );
+                    continue;
+                }
 
                 let snippet = Self::create_snippet(&file.content_text, &query.query_text, 200);
                 let highlights = Self::extract_highlights(&file.content_text, &query.query_text, 3);
@@ -300,5 +335,58 @@ mod vector_collection_tests {
             .collection_name()
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'));
+    }
+}
+
+#[cfg(test)]
+mod scope_recheck_tests {
+    use botqdrant::drive_vectordb::{chunk_is_authorized, AccessVerifier, VectorScope};
+    use serde_json::Map;
+    use uuid::Uuid;
+
+    #[test]
+    fn a_revoked_document_chunk_is_no_longer_returned() {
+        let scope = VectorScope::new(Uuid::from_u128(1), Uuid::from_u128(2));
+        let mut payload = Map::new();
+        scope.stamp(&mut payload);
+
+        // Trusted source initially grants access to this path.
+        let granted = std::sync::Mutex::new(true);
+        let verifier: AccessVerifier = |_scope, _path, _bucket| granted.lock().is_ok_and(|g| *g);
+        assert!(chunk_is_authorized(
+            &scope,
+            &payload,
+            "docs/a.pdf",
+            "bucket",
+            Some(&verifier)
+        ));
+
+        // Permission revoked; the stale Qdrant payload is unchanged.
+        if let Ok(mut g) = granted.lock() {
+            *g = false;
+        }
+        assert!(!chunk_is_authorized(
+            &scope,
+            &payload,
+            "docs/a.pdf",
+            "bucket",
+            Some(&verifier)
+        ));
+    }
+
+    #[test]
+    fn a_foreign_tenant_payload_is_rejected_even_with_a_verifier() {
+        let owner = VectorScope::new(Uuid::from_u128(1), Uuid::from_u128(2));
+        let attacker = VectorScope::new(Uuid::from_u128(3), Uuid::from_u128(4));
+        let mut payload = Map::new();
+        owner.stamp(&mut payload);
+        let permissive: AccessVerifier = |_scope, _path, _bucket| true;
+        assert!(!chunk_is_authorized(
+            &attacker,
+            &payload,
+            "docs/a.pdf",
+            "bucket",
+            Some(&permissive)
+        ));
     }
 }

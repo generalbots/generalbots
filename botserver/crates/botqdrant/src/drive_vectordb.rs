@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs;
@@ -8,6 +9,9 @@ use uuid::Uuid;
 
 use crate::qdrant_native::QdrantClient;
 use crate::re_cache::cached_re;
+
+pub mod scope;
+pub use scope::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
@@ -51,6 +55,11 @@ pub struct UserDriveVectorDB {
     collection_name: String,
     db_path: PathBuf,
     client: Option<Arc<QdrantClient>>,
+    /// Trusted owner stamp written to every point at index time (#2820).
+    scope: VectorScope,
+    /// Optional current-ACL recheck installed by the caller from a trusted
+    /// source. Without one the scope stamp is still enforced on every read.
+    access_verifier: Option<Arc<AccessVerifier>>,
 }
 
 impl UserDriveVectorDB {
@@ -59,9 +68,11 @@ impl UserDriveVectorDB {
         Self {
             user_id,
             bot_id,
+            scope: VectorScope::new(bot_id, user_id),
             collection_name,
             db_path,
             client: None,
+            access_verifier: None,
         }
     }
 
@@ -101,11 +112,19 @@ impl UserDriveVectorDB {
     }
 
     pub async fn index_file(&self, file: &FileDocument, embedding: Vec<f32>) -> Result<()> {
+        // Stamp identifiers from trusted server state, never from the document
+        // or the request (#2820). A payload without this stamp is unreadable.
+        let mut payload = match serde_json::to_value(file)? {
+            Value::Object(map) => map,
+            _ => Map::new(),
+        };
+        self.scope.stamp(&mut payload);
+
         if let Some(client) = self.client.as_ref() {
             let point = serde_json::json!({
                 "id": file.id,
                 "vector": embedding,
-                "payload": serde_json::to_value(file)?
+                "payload": payload
             });
             client
                 .upsert_points(&self.collection_name, vec![point])
@@ -113,7 +132,7 @@ impl UserDriveVectorDB {
             log::debug!("Indexed file: {} - {}", file.id, file.file_name);
         } else {
             let file_path = self.db_path.join(format!("{}.json", file.id));
-            let json = serde_json::to_string_pretty(file)?;
+            let json = serde_json::to_string_pretty(&payload)?;
             fs::write(file_path, json).await?;
         }
         Ok(())
@@ -132,22 +151,27 @@ impl UserDriveVectorDB {
         query_embedding: Vec<f32>,
     ) -> Result<Vec<FileSearchResult>> {
         if let Some(client) = self.client.as_ref() {
+            // Scope is derived from trusted server state, never from the query
+            // or the Qdrant payload (#2820).
+            let filter = self.scope.as_qdrant_filter();
             let results = client
                 .search_points(
                     &self.collection_name,
                     &query_embedding,
                     query.limit,
-                    None,
+                    Some(filter),
                 )
                 .await?;
 
             let mut search_results = Vec::new();
             for point in results {
-                let payload = point
-                    .get("payload")
-                    .and_then(|p| p.as_object())
-                    .cloned()
-                    .unwrap_or_default();
+                let payload = match point.get("payload").and_then(|p| p.as_object()) {
+                    Some(obj) => obj.clone(),
+                    None => {
+                        log::warn!("Dropping Qdrant point with no payload object");
+                        continue;
+                    }
+                };
 
                 let get_str = |key: &str| -> String {
                     payload
@@ -182,14 +206,20 @@ impl UserDriveVectorDB {
                     tags: vec![],
                 };
 
-                let score = point
-                    .get("score")
-                    .and_then(|v| v.as_f64())
-                    .unwrap_or(0.0) as f32;
+                // Re-check the stamp and the current ACL before any embedded
+                // text is returned (#2820). Payload claims are not authority.
+                if !self.authorize_chunk(&payload, &file.file_path, &file.bucket) {
+                    log::warn!(
+                        "Dropping Qdrant point '{}': server scope or current ACL rejected it",
+                        file.id
+                    );
+                    continue;
+                }
+
+                let score = point.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
 
                 let snippet = Self::create_snippet(&file.content_text, &query.query_text, 200);
-                let highlights =
-                    Self::extract_highlights(&file.content_text, &query.query_text, 3);
+                let highlights = Self::extract_highlights(&file.content_text, &query.query_text, 3);
 
                 search_results.push(FileSearchResult {
                     file,
@@ -205,25 +235,47 @@ impl UserDriveVectorDB {
             while let Some(entry) = entries.next_entry().await? {
                 if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
                     let content = fs::read_to_string(entry.path()).await?;
-                    if let Ok(file) = serde_json::from_str::<FileDocument>(&content) {
-                        let query_lower = query.query_text.to_lowercase();
-                        if file.file_name.to_lowercase().contains(&query_lower)
-                            || file.content_text.to_lowercase().contains(&query_lower)
-                        {
-                            let snippet =
-                                Self::create_snippet(&file.content_text, &query.query_text, 200);
-                            let highlights = Self::extract_highlights(
-                                &file.content_text,
-                                &query.query_text,
-                                3,
-                            );
-                            results.push(FileSearchResult {
-                                file,
-                                score: 1.0,
-                                snippet,
-                                highlights,
-                            });
+                    let value: Value = match serde_json::from_str(&content) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            log::warn!("Skipping unreadable vector JSON: {}", e);
+                            continue;
                         }
+                    };
+                    let payload = match value.as_object() {
+                        Some(obj) => obj,
+                        None => continue,
+                    };
+                    let file = match serde_json::from_value::<FileDocument>(value.clone()) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            log::warn!("Skipping malformed vector JSON: {}", e);
+                            continue;
+                        }
+                    };
+
+                    if !self.authorize_chunk(payload, &file.file_path, &file.bucket) {
+                        log::warn!(
+                            "Skipping vector JSON '{}': server scope or current ACL rejected it",
+                            file.id
+                        );
+                        continue;
+                    }
+
+                    let query_lower = query.query_text.to_lowercase();
+                    if file.file_name.to_lowercase().contains(&query_lower)
+                        || file.content_text.to_lowercase().contains(&query_lower)
+                    {
+                        let snippet =
+                            Self::create_snippet(&file.content_text, &query.query_text, 200);
+                        let highlights =
+                            Self::extract_highlights(&file.content_text, &query.query_text, 3);
+                        results.push(FileSearchResult {
+                            file,
+                            score: 1.0,
+                            snippet,
+                            highlights,
+                        });
                     }
                     if results.len() >= query.limit {
                         break;
@@ -333,6 +385,7 @@ impl UserDriveVectorDB {
     }
 }
 
+mod access;
 mod file_content_extractor;
 pub use file_content_extractor::*;
 
@@ -346,7 +399,10 @@ mod snippet_tests {
     fn snippet_around_a_multibyte_match_snaps_to_char_boundaries() {
         let content = "relatório café açúcar mascavo";
         let snippet = UserDriveVectorDB::create_snippet(content, "café", 10);
-        assert!(snippet.contains("café"), "the match must survive: {snippet}");
+        assert!(
+            snippet.contains("café"),
+            "the match must survive: {snippet}"
+        );
         assert!(snippet.starts_with("..."), "{snippet}");
     }
 
