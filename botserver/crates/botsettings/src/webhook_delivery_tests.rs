@@ -1,7 +1,12 @@
 //! Webhook guards: the SSRF allow-list, the HMAC signature, event parsing and
 //! the display helpers.
 
-use super::{escape_html, parse_events, sign_payload, truncate, validate_webhook_url, webhook_vault_path};
+use super::{
+    create_signature_headers, escape_html, parse_events, sign_payload, sign_payload_at, truncate,
+    validate_webhook_url, webhook_vault_path, WebhookSignatureVerifier,
+    CLOCK_SKEW_TOLERANCE_SECONDS,
+};
+use botsecurity::webhook::SignatureValidation;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -118,4 +123,178 @@ fn escaping_covers_the_markup_breakers() {
 fn an_existing_entity_gains_one_more_escaping_level() {
     // `&` is escaped first, so an already-escaped entity gains one more level.
     assert_eq!(escape_html("&amp;"), "&amp;amp;");
+}
+
+// ── #2645: timestamped + nonced delivery signatures ──────────────────────
+
+#[test]
+fn the_v2_signature_covers_timestamp_nonce_and_payload() {
+    let a = sign_payload_at("payload", "secret", 5000, "nonce-a");
+    let b = sign_payload_at("payload", "secret", 5001, "nonce-a");
+    let c = sign_payload_at("payload", "secret", 5000, "nonce-b");
+    let d = sign_payload_at("payload!", "secret", 5000, "nonce-a");
+    let e = sign_payload_at("payload", "other-secret", 5000, "nonce-a");
+
+    assert_eq!(a, sign_payload_at("payload", "secret", 5000, "nonce-a"));
+    assert_ne!(a, b, "the timestamp must be signed");
+    assert_ne!(a, c, "the nonce must be signed");
+    assert_ne!(a, d, "the payload must be signed");
+    assert_ne!(a, e, "the secret must be part of the key");
+    assert!(a.starts_with("v2="));
+    assert_eq!(a.len(), 3 + 64);
+    // A v2 signature must not be mistaken for a legacy v1 one.
+    assert_ne!(a, sign_payload("payload", "secret"));
+}
+
+#[test]
+fn producer_and_receiver_agree_without_clock_skew() {
+    let (signature, timestamp, nonce) = create_signature_headers("{\"a\":1}", "secret");
+    let mut verifier = WebhookSignatureVerifier::new();
+    let result = verifier.verify("{\"a\":1}", &signature, &timestamp, &nonce, "secret");
+    assert_eq!(result, SignatureValidation::Valid);
+    assert_eq!(verifier.cached_nonce_count(), 1);
+}
+
+#[test]
+fn a_fresh_delivery_is_valid() {
+    let mut verifier = WebhookSignatureVerifier::new();
+    let now = 5_000;
+    let signature = sign_payload_at("body", "secret", now, "n-fresh");
+    let result = verifier.verify_at("body", &signature, &now.to_string(), "n-fresh", "secret", now);
+    assert_eq!(result, SignatureValidation::Valid);
+}
+
+#[test]
+fn a_delivery_just_inside_the_tolerance_window_is_valid() {
+    let now = 5_000;
+    let signed_at = now - CLOCK_SKEW_TOLERANCE_SECONDS;
+    let signature = sign_payload_at("body", "secret", signed_at, "n-boundary");
+    let mut verifier = WebhookSignatureVerifier::new();
+    let result = verifier.verify_at(
+        "body",
+        &signature,
+        &signed_at.to_string(),
+        "n-boundary",
+        "secret",
+        now,
+    );
+    assert_eq!(result, SignatureValidation::Valid);
+}
+
+#[test]
+fn a_stale_delivery_is_refused_in_both_directions() {
+    let now = 10_000;
+    let mut verifier = WebhookSignatureVerifier::new();
+
+    for signed_at in [
+        now - CLOCK_SKEW_TOLERANCE_SECONDS - 1,
+        now + CLOCK_SKEW_TOLERANCE_SECONDS + 1,
+    ] {
+        let signature = sign_payload_at("body", "secret", signed_at, "n-stale");
+        let result = verifier.verify_at(
+            "body",
+            &signature,
+            &signed_at.to_string(),
+            "n-stale",
+            "secret",
+            now,
+        );
+        assert_eq!(result, SignatureValidation::Expired, "signed at {signed_at}");
+    }
+}
+
+#[test]
+fn a_replayed_delivery_is_refused() {
+    let now = 5_000;
+    let signature = sign_payload_at("body", "secret", now, "n-replay");
+    let timestamp = now.to_string();
+    let mut verifier = WebhookSignatureVerifier::new();
+
+    assert_eq!(
+        verifier.verify_at("body", &signature, &timestamp, "n-replay", "secret", now),
+        SignatureValidation::Valid
+    );
+    assert_eq!(
+        verifier.verify_at("body", &signature, &timestamp, "n-replay", "secret", now),
+        SignatureValidation::Replayed
+    );
+}
+
+#[test]
+fn a_tampered_payload_or_signature_is_refused() {
+    let now = 5_000;
+    let signature = sign_payload_at("{\"amount\":10}", "secret", now, "n-tamper");
+    let timestamp = now.to_string();
+    let mut verifier = WebhookSignatureVerifier::new();
+
+    assert_eq!(
+        verifier.verify_at("{\"amount\":1000}", &signature, &timestamp, "n-tamper", "secret", now),
+        SignatureValidation::Invalid
+    );
+    assert_eq!(
+        verifier.verify_at("{\"amount\":10}", &signature, &timestamp, "n-tamper", "wrong", now),
+        SignatureValidation::Invalid
+    );
+
+    let mut flipped = signature.clone().into_bytes();
+    let last = flipped.len() - 1;
+    flipped[last] = if flipped[last] == b'0' { b'1' } else { b'0' };
+    let flipped = String::from_utf8(flipped).expect("utf8");
+    assert_eq!(
+        verifier.verify_at("{\"amount\":10}", &flipped, &timestamp, "n-tamper", "secret", now),
+        SignatureValidation::Invalid
+    );
+}
+
+#[test]
+fn a_signature_reused_under_a_different_timestamp_is_invalid() {
+    let now = 5_000;
+    let signature = sign_payload_at("body", "secret", now, "n-shift");
+    let mut verifier = WebhookSignatureVerifier::new();
+    let result = verifier.verify_at(
+        "body",
+        &signature,
+        &(now - 5).to_string(),
+        "n-shift",
+        "secret",
+        now,
+    );
+    assert_eq!(result, SignatureValidation::Invalid);
+}
+
+#[test]
+fn missing_and_malformed_headers_are_refused() {
+    let now = 5_000;
+    let signature = sign_payload_at("body", "secret", now, "n-malformed");
+    let mut verifier = WebhookSignatureVerifier::new();
+
+    assert_eq!(
+        verifier.verify_at("body", "", &now.to_string(), "n-malformed", "secret", now),
+        SignatureValidation::Missing
+    );
+    assert_eq!(
+        verifier.verify_at("body", &signature, "not-a-number", "n-malformed", "secret", now),
+        SignatureValidation::Invalid
+    );
+    assert_eq!(
+        verifier.verify_at("body", &signature, &now.to_string(), "", "secret", now),
+        SignatureValidation::Missing
+    );
+    // Legacy v1 signatures have no freshness data and are rejected by the v2 verifier.
+    let legacy = sign_payload("body", "secret");
+    assert_eq!(
+        verifier.verify_at("body", &legacy, &now.to_string(), "n-legacy", "secret", now),
+        SignatureValidation::Invalid
+    );
+}
+
+#[test]
+fn extreme_timestamps_do_not_overflow_the_freshness_check() {
+    let now = 5_000;
+    let mut verifier = WebhookSignatureVerifier::new();
+    for timestamp in [i64::MIN.to_string(), i64::MAX.to_string()] {
+        let signature = sign_payload_at("body", "secret", 5000, "n-extreme");
+        let result = verifier.verify_at("body", &signature, &timestamp, "n-extreme", "secret", now);
+        assert_eq!(result, SignatureValidation::Expired, "timestamp {timestamp}");
+    }
 }

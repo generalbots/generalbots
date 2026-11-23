@@ -1,12 +1,26 @@
+use botcore::shared::state::AppState;
+use botsecurity::constant_time::eq_str;
+use botsecurity::webhook::SignatureValidation;
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use hmac::{Hmac, Mac};
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use botcore::shared::state::AppState;
-
 pub const WEBHOOK_VAULT_ROOT: &str = "secret/gbo/settings/webhooks";
+
+/// Header carrying the versioned HMAC signature.
+pub const SIGNATURE_HEADER: &str = "X-Webhook-Signature";
+/// Header carrying the unix timestamp that was folded into the signature.
+pub const TIMESTAMP_HEADER: &str = "X-Webhook-Timestamp";
+/// Header carrying the per-delivery random nonce that was folded into the signature.
+pub const NONCE_HEADER: &str = "X-Webhook-Nonce";
+/// Maximum accepted clock skew, in seconds, for an inbound delivery (#2645).
+pub const CLOCK_SKEW_TOLERANCE_SECONDS: i64 = 300;
+
+const SIGNATURE_V1: &str = "v1";
+const SIGNATURE_V2: &str = "v2";
 
 pub fn webhook_vault_path(webhook_id: Uuid) -> String {
     format!("{WEBHOOK_VAULT_ROOT}/{webhook_id}")
@@ -53,16 +67,155 @@ pub fn parse_events(raw: Option<&str>) -> serde_json::Value {
     }
 }
 
-/// HMAC-SHA256 v1 signature over the payload.
+/// Legacy HMAC-SHA256 v1 signature over the raw payload.
+///
+/// Retained for receivers still verifying the original scheme. It has no
+/// timestamp or nonce and is therefore replayable; new deliveries must use
+/// [`sign_payload_at`] / [`create_signature_headers`] instead.
 pub fn sign_payload(payload: &str, secret: &str) -> String {
-    type HmacSha256 = Hmac<sha2::Sha256>;
+    match hmac_hex(payload, secret) {
+        Some(digest) => format!("{SIGNATURE_V1}={digest}"),
+        None => format!("{SIGNATURE_V1}="),
+    }
+}
+
+type HmacSha256 = Hmac<sha2::Sha256>;
+
+/// HMAC-SHA256 over `material`, returning the hex digest. An unusable key fails
+/// closed: `None` becomes an empty signature that verification rejects, never a
+/// process abort (#1368).
+fn hmac_hex(material: &str, secret: &str) -> Option<String> {
     let Ok(mut mac) = HmacSha256::new_from_slice(secret.as_bytes()) else {
         log::error!("webhook sign: HMAC key rejected");
-        return String::new();
+        return None;
     };
-    mac.update(payload.as_bytes());
-    let result = mac.finalize();
-    format!("v1={}", hex::encode(result.into_bytes()))
+    mac.update(material.as_bytes());
+    Some(hex::encode(mac.finalize().into_bytes()))
+}
+
+/// Canonical v2 signed material: version, unix timestamp, nonce and payload
+/// (#2645). Binding the timestamp and nonce makes each delivery unique and lets
+/// a receiver enforce a freshness window and a replay cache.
+fn signed_material(timestamp: i64, nonce: &str, payload: &str) -> String {
+    format!("{SIGNATURE_V2}.{timestamp}.{nonce}.{payload}")
+}
+
+/// Signs one delivery with an explicit timestamp and nonce. Keeping this pure
+/// (no wall-clock read) makes the signature reproducible for tests and for
+/// receivers replaying the exact headers they received.
+pub fn sign_payload_at(payload: &str, secret: &str, timestamp: i64, nonce: &str) -> String {
+    let material = signed_material(timestamp, nonce, payload);
+    match hmac_hex(&material, secret) {
+        Some(digest) => format!("{SIGNATURE_V2}={digest}"),
+        None => format!("{SIGNATURE_V2}="),
+    }
+}
+
+/// Creates a fresh timestamp, nonce and signature for one outbound delivery.
+/// Returns `(signature, timestamp_header_value, nonce)`; send them in
+/// [`SIGNATURE_HEADER`], [`TIMESTAMP_HEADER`] and [`NONCE_HEADER`].
+pub fn create_signature_headers(payload: &str, secret: &str) -> (String, String, String) {
+    let timestamp = Utc::now().timestamp();
+    let nonce = Uuid::new_v4().to_string();
+    let signature = sign_payload_at(payload, secret, timestamp, &nonce);
+    (signature, timestamp.to_string(), nonce)
+}
+
+/// Receiving helper for signed deliveries (#2645).
+///
+/// Verifies the v2 signature over `timestamp.nonce.payload`, refuses timestamps
+/// outside [`CLOCK_SKEW_TOLERANCE_SECONDS`] and refuses a nonce seen before.
+/// Keys are cached for the width of the freshness window and pruned on each
+/// verification, so the cache stays bounded while still catching replays.
+pub struct WebhookSignatureVerifier {
+    seen_nonces: HashMap<String, i64>,
+}
+
+impl Default for WebhookSignatureVerifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl WebhookSignatureVerifier {
+    pub fn new() -> Self {
+        Self {
+            seen_nonces: HashMap::new(),
+        }
+    }
+
+    /// Verify a delivery using the current wall clock.
+    pub fn verify(
+        &mut self,
+        payload: &str,
+        signature: &str,
+        timestamp_header: &str,
+        nonce: &str,
+        secret: &str,
+    ) -> SignatureValidation {
+        self.verify_at(
+            payload,
+            signature,
+            timestamp_header,
+            nonce,
+            secret,
+            Utc::now().timestamp(),
+        )
+    }
+
+    /// Verify against a supplied clock value. Public so receivers can inject
+    /// their own clock and so tests are deterministic.
+    pub fn verify_at(
+        &mut self,
+        payload: &str,
+        signature: &str,
+        timestamp_header: &str,
+        nonce: &str,
+        secret: &str,
+        now: i64,
+    ) -> SignatureValidation {
+        if signature.is_empty() || timestamp_header.is_empty() || nonce.is_empty() {
+            return SignatureValidation::Missing;
+        }
+
+        let Some(supplied) = signature.strip_prefix(&format!("{SIGNATURE_V2}=")) else {
+            // Legacy v1 signatures are intentionally not accepted here: they
+            // carry no freshness data and would reopen the replay hole.
+            return SignatureValidation::Invalid;
+        };
+
+        let Ok(timestamp) = timestamp_header.parse::<i64>() else {
+            return SignatureValidation::Invalid;
+        };
+
+        // i128 avoids overflowing on hostile values such as i64::MIN/MAX.
+        let skew = (i128::from(now) - i128::from(timestamp)).abs();
+        if skew > i128::from(CLOCK_SKEW_TOLERANCE_SECONDS) {
+            return SignatureValidation::Expired;
+        }
+
+        let expected = sign_payload_at(payload, secret, timestamp, nonce);
+        let Some(expected_hex) = expected.strip_prefix(&format!("{SIGNATURE_V2}=")) else {
+            return SignatureValidation::Invalid;
+        };
+        if !eq_str(supplied, expected_hex) {
+            return SignatureValidation::Invalid;
+        }
+
+        let cutoff = now.saturating_sub(CLOCK_SKEW_TOLERANCE_SECONDS);
+        self.seen_nonces.retain(|_, seen_at| *seen_at >= cutoff);
+        if self.seen_nonces.contains_key(nonce) {
+            return SignatureValidation::Replayed;
+        }
+        self.seen_nonces.insert(nonce.to_string(), now);
+
+        SignatureValidation::Valid
+    }
+
+    /// Number of nonces currently held in the replay cache.
+    pub fn cached_nonce_count(&self) -> usize {
+        self.seen_nonces.len()
+    }
 }
 
 pub fn truncate(s: &str, max: usize) -> String {
@@ -106,11 +259,15 @@ pub async fn deliver_with_retries(
 
     loop {
         attempt += 1;
-        let signature = sign_payload(payload, secret);
+        // A fresh timestamp and nonce per attempt: a retry is never a replay,
+        // and a captured delivery cannot be resent later (#2645).
+        let (signature, timestamp, nonce) = create_signature_headers(payload, secret);
         let result = client
             .post(&url)
             .header("Content-Type", "application/json")
-            .header("X-Webhook-Signature", &signature)
+            .header(SIGNATURE_HEADER, &signature)
+            .header(TIMESTAMP_HEADER, &timestamp)
+            .header(NONCE_HEADER, &nonce)
             .header("X-Webhook-Event", "test")
             .body(payload.to_string())
             .send()

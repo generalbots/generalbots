@@ -82,9 +82,11 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
             info!("HTTPS graceful shutdown initiated, waiting for connections to drain...");
         });
 
+        // #2614 — ConnectInfo<SocketAddr> must be inserted or the per-IP rate
+        // limiter's extractor gets None and every client shares one bucket.
         axum_server::bind_rustls(addr, tls_config)
             .handle(handle)
-            .serve(app.into_make_service())
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await
             .map_err(|e| {
                 error!("HTTPS server failed on {}: {}", addr, e);
@@ -109,9 +111,13 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
         };
         info!("HTTP server listening on {}", addr);
         info!("Server ready - shutdown via SIGINT (Ctrl+C) or SIGTERM (systemctl stop)");
-        let result = axum::serve(listener, app.into_make_service())
-            .with_graceful_shutdown(shutdown_signal())
-            .await;
+        // #2614 — same fix on the plain-HTTP path (see HTTPS branch above).
+        let result = axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(shutdown_signal())
+        .await;
         match &result {
             Ok(()) => info!("HTTP server shut down gracefully"),
             Err(e) => error!("HTTP server shutdown with error: {}", e),
@@ -120,4 +126,40 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod connect_info_tests {
+    use super::*;
+    use axum::{body::Body, extract::ConnectInfo, http::Request, routing::get};
+    use tower::{Service, ServiceExt};
+
+    async fn who(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
+        addr.to_string()
+    }
+
+    /// #2614 — the make-service flavour used by both listener paths must
+    /// insert a distinct ConnectInfo per source address, which is what the
+    /// per-IP rate limiter keys on.
+    #[tokio::test]
+    async fn connect_info_is_inserted_per_source_address() {
+        let app = Router::new().route("/who", get(who));
+        let mut make = app.into_make_service_with_connect_info::<SocketAddr>();
+        for ip in ["127.0.0.1", "127.0.0.2"] {
+            let addr: SocketAddr = format!("{ip}:12345").parse().expect("addr");
+            let svc = make.call(addr).await.expect("make service");
+            let res = svc
+                .oneshot(Request::builder().uri("/who").body(Body::empty()).expect("request"))
+                .await
+                .expect("response");
+            let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+                .await
+                .expect("body");
+            assert!(
+                String::from_utf8_lossy(&body).contains(ip),
+                "handler did not see the source address {ip}: {}",
+                String::from_utf8_lossy(&body)
+            );
+        }
+    }
 }

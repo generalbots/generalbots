@@ -561,6 +561,7 @@ windows = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
+tower = { workspace = true, features = ["util"] }
 mockito = { workspace = true }
 tempfile = { workspace = true }
 bigdecimal = { workspace = true }
