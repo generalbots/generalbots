@@ -222,7 +222,7 @@ pub(crate) async fn unpublish_project_site(
         Some(Json(b)) => (b.purge, b.env),
         None => (false, None),
     };
-    let slug = crate::proxy_sites::site_slug(&project.name);
+    let slug = crate::proxy_sites::site_slug(&project.name, project.branch_id);
     // #1290 — `?env=test` (or the legacy `development`) targets the test
     // twin; production stays the default.
     let env = parse_site_env_param(&env_q.env, body_env.as_deref());
@@ -259,7 +259,7 @@ pub(crate) async fn rollback_project_site(
         Ok(p) => p,
         Err((status, msg)) => return (status, msg).into_response(),
     };
-    let slug = crate::proxy_sites::site_slug(&project.name);
+    let slug = crate::proxy_sites::site_slug(&project.name, project.branch_id);
     // #1290 — `?env=development` targets the DEV site's release ring.
     let env = parse_site_env_param(&env_q.env, None);
     let result = match env {
@@ -310,7 +310,7 @@ pub(crate) async fn promote_project_site(
         Ok(url) => Json(serde_json::json!({
             "success": true,
             "message": "test release promoted to production",
-            "site": crate::proxy_sites::site_slug(&project.name),
+            "site": crate::proxy_sites::site_slug(&project.name, project.branch_id),
             "url": url,
         }))
         .into_response(),

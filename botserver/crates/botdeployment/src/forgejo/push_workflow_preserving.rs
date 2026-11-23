@@ -11,9 +11,10 @@ fn validate_workflow_field(name: &str, value: &str) -> Result<(), DeploymentErro
             "workflow field {name} must be 1-128 characters"
         )));
     }
-    if value.chars().any(|c| {
-        !(c.is_ascii_alphanumeric() || matches!(c, '_' | ' ' | '.' | '/' | ':' | '-'))
-    }) {
+    if value
+        .chars()
+        .any(|c| !(c.is_ascii_alphanumeric() || matches!(c, '_' | ' ' | '.' | '/' | ':' | '-')))
+    {
         return Err(DeploymentError::ConfigurationError(format!(
             "workflow field {name} contains a forbidden character"
         )));
@@ -21,19 +22,117 @@ fn validate_workflow_field(name: &str, value: &str) -> Result<(), DeploymentErro
     Ok(())
 }
 
+/// Defense-in-depth gate on the fully-rendered workflow (#2649). Every dynamic
+/// value is allowlisted above, so the template's line count is fixed; an
+/// injected newline would change it. NUL/CR are never legal in a workflow
+/// that CI will execute with deploy secrets. This check runs before the YAML
+/// string is handed to `create_cicd_workflow` (and hence before any write).
+fn validate_rendered_workflow(yaml: &str) -> Result<(), DeploymentError> {
+    if yaml.contains('\0') || yaml.contains('\r') {
+        return Err(DeploymentError::ConfigurationError(
+            "generated workflow contains a forbidden control character".to_string(),
+        ));
+    }
+    const EXPECTED_LINES: usize = 43;
+    let line_count = yaml.lines().count();
+    if line_count != EXPECTED_LINES {
+        return Err(DeploymentError::ConfigurationError(format!(
+            "generated workflow line count changed ({line_count} != {EXPECTED_LINES})"
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod workflow_injection_tests {
-    use super::validate_workflow_field;
+    use super::*;
+
+    fn test_client() -> ForgejoClient {
+        ForgejoClient {
+            base_url: "http://127.0.0.1:0".to_string(),
+            token: "test-token".to_string(),
+            client: Client::new(),
+        }
+    }
+
+    fn app(
+        framework: &str,
+        node_version: Option<&str>,
+        build_command: Option<&str>,
+        output_directory: Option<&str>,
+    ) -> ProjectType {
+        ProjectType::App {
+            framework: framework.to_string(),
+            node_version: node_version.map(str::to_string),
+            build_command: build_command.map(str::to_string),
+            output_directory: output_directory.map(str::to_string),
+        }
+    }
+
+    fn generate(pt: &ProjectType) -> Result<String, DeploymentError> {
+        test_client().generate_app_workflow(
+            pt,
+            &DeployTarget::IncusContainer,
+            &DeploymentEnvironment::Production,
+        )
+    }
 
     #[test]
     fn rejects_multiline_and_shell_metacharacters() {
         assert!(validate_workflow_field("build_command", "npm run build").is_ok());
         assert!(validate_workflow_field("output_directory", "./dist/app").is_ok());
-        assert!(validate_workflow_field("build_command", "npm run build\n  - run: curl evil").is_err());
+        assert!(
+            validate_workflow_field("build_command", "npm run build\n  - run: curl evil").is_err()
+        );
         assert!(validate_workflow_field("build_command", "npm; curl evil").is_err());
         assert!(validate_workflow_field("framework", "$(id)").is_err());
         assert!(validate_workflow_field("node_version", "'20'").is_err());
         assert!(validate_workflow_field("output_directory", "").is_err());
+    }
+
+    #[test]
+    fn rejects_nul_quotes_backticks_and_control_characters() {
+        assert!(validate_workflow_field("build_command", "npm\0run").is_err());
+        assert!(validate_workflow_field("build_command", "npm\rrun").is_err());
+        assert!(validate_workflow_field("build_command", "npm\trun").is_err());
+        assert!(validate_workflow_field("build_command", "npm`id`").is_err());
+        assert!(validate_workflow_field("build_command", "npm\"run").is_err());
+        assert!(validate_workflow_field("build_command", "npm|curl").is_err());
+        assert!(validate_workflow_field("build_command", "npm&curl").is_err());
+    }
+
+    #[test]
+    fn generate_app_workflow_rejects_hostile_build_fields() {
+        // A newline-injected build command must be refused before any YAML is
+        // produced; create_cicd_workflow uses `?` on this result before it
+        // builds the GeneratedFile, so no `.forgejo/workflows/deploy.yml` is
+        // ever written for these inputs.
+        assert!(generate(&app(
+            "htmx",
+            None,
+            Some("npm run build\n  - run: curl evil"),
+            None
+        ))
+        .is_err());
+        assert!(generate(&app("htmx", None, None, Some("./dist\0;curl"))).is_err());
+        assert!(generate(&app("$(id)", None, None, None)).is_err());
+        assert!(generate(&app("htmx", Some("20'"), None, None)).is_err());
+        assert!(generate(&app("htmx", None, Some("npm;curl evil"), None)).is_err());
+
+        let benign = app("htmx", Some("20"), Some("npm run build"), Some("./dist"));
+        let yaml = generate(&benign).expect("benign workflow must render");
+        assert!(yaml.contains("name: Deploy htmx App"));
+        assert!(validate_rendered_workflow(&yaml).is_ok());
+    }
+
+    #[test]
+    fn rendered_workflow_guard_rejects_injected_step() {
+        let benign = app("htmx", Some("20"), Some("npm run build"), Some("./dist"));
+        let yaml = generate(&benign).expect("benign workflow must render");
+        let injected = format!("{yaml}\n      - run: curl evil");
+        assert!(validate_rendered_workflow(&injected).is_err());
+        assert!(validate_rendered_workflow("name: x\0").is_err());
+        assert!(validate_rendered_workflow("name: x\r\n").is_err());
     }
 }
 
@@ -45,8 +144,9 @@ impl ForgejoClient {
     ) -> Result<(), DeploymentError> {
         let temp_dir = app.temp_dir()?;
         if temp_dir.exists() {
-            std::fs::remove_dir_all(&temp_dir)
-                .map_err(|e| DeploymentError::GitError(format!("Failed to clean temp dir: {}", e)))?;
+            std::fs::remove_dir_all(&temp_dir).map_err(|e| {
+                DeploymentError::GitError(format!("Failed to clean temp dir: {}", e))
+            })?;
         }
         std::fs::create_dir_all(&temp_dir)
             .map_err(|e| DeploymentError::GitError(format!("Failed to create temp dir: {}", e)))?;
@@ -54,9 +154,8 @@ impl ForgejoClient {
         let auth_url = self.add_token_to_url(repo_url);
         // #2860: git errors may echo the token-bearing URL passed as an argv
         // element; strip the secret before the error can be logged upstream.
-        let sanitize = |msg: String| {
-            DeploymentError::GitError(redact_alm_secret(&msg, &self.token))
-        };
+        let sanitize =
+            |msg: String| DeploymentError::GitError(redact_alm_secret(&msg, &self.token));
         let git = |args: &[&str]| -> Result<String, DeploymentError> {
             let label = args.first().copied().unwrap_or("git");
             let mut command = SafeCommand::new("git")
@@ -112,8 +211,9 @@ impl ForgejoClient {
         for file in &app.files {
             let file_path = temp_dir.join(&file.path);
             if let Some(parent) = file_path.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| DeploymentError::GitError(format!("Failed to create parent dir: {}", e)))?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    DeploymentError::GitError(format!("Failed to create parent dir: {}", e))
+                })?;
             }
             std::fs::write(&file_path, &file.content)
                 .map_err(|e| DeploymentError::GitError(format!("Failed to write file: {}", e)))?;
@@ -173,16 +273,35 @@ impl ForgejoClient {
         }
     }
 
-    pub(super) fn generate_app_workflow(&self, project_type: &ProjectType, _deploy_target: &DeployTarget, environment: &DeploymentEnvironment) -> Result<String, DeploymentError> {
+    pub(super) fn generate_app_workflow(
+        &self,
+        project_type: &ProjectType,
+        _deploy_target: &DeployTarget,
+        environment: &DeploymentEnvironment,
+    ) -> Result<String, DeploymentError> {
         let env_name = environment.to_string();
         let (framework, node_version, build_command, output_dir) = match project_type {
-            ProjectType::App { framework, node_version, build_command, output_directory } => (
+            ProjectType::App {
+                framework,
+                node_version,
+                build_command,
+                output_directory,
+            } => (
                 framework.clone(),
                 node_version.clone().unwrap_or_else(|| "20".to_string()),
-                build_command.clone().unwrap_or_else(|| "npm run build".to_string()),
-                output_directory.clone().unwrap_or_else(|| "dist".to_string()),
+                build_command
+                    .clone()
+                    .unwrap_or_else(|| "npm run build".to_string()),
+                output_directory
+                    .clone()
+                    .unwrap_or_else(|| "dist".to_string()),
             ),
-            _ => ("htmx".to_string(), "20".to_string(), "npm run build".to_string(), "dist".to_string()),
+            _ => (
+                "htmx".to_string(),
+                "20".to_string(),
+                "npm run build".to_string(),
+                "dist".to_string(),
+            ),
         };
 
         validate_workflow_field("framework", &framework)?;
@@ -190,7 +309,8 @@ impl ForgejoClient {
         validate_workflow_field("build_command", &build_command)?;
         validate_workflow_field("output_directory", &output_dir)?;
 
-        Ok(format!(r#"name: Deploy {framework} App
+        let workflow = format!(
+            r#"name: Deploy {framework} App
 
 on:
   push:
@@ -233,13 +353,17 @@ jobs:
         env:
           DEPLOY_GATEWAY_URL: ${{{{ secrets.DEPLOY_GATEWAY_URL }}}}
           DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
-"#))
+"#
+        );
+        validate_rendered_workflow(&workflow)?;
+        Ok(workflow)
     }
 
     pub(super) fn generate_site_workflow(&self, environment: &DeploymentEnvironment) -> String {
         let env_name = environment.to_string();
 
-        format!(r#"name: Deploy Static Site
+        format!(
+            r#"name: Deploy Static Site
 
 on:
   push:
@@ -282,6 +406,7 @@ jobs:
         env:
           DEPLOY_GATEWAY_URL: ${{{{ secrets.DEPLOY_GATEWAY_URL }}}}
           DEPLOY_KEY: ${{{{ secrets.DEPLOY_KEY }}}}
-"#)
+"#
+        )
     }
 }

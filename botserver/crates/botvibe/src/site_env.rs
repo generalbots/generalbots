@@ -53,6 +53,11 @@ impl SiteEnv {
 }
 
 /// Resolved filesystem/host targets for one (slug, env) pair.
+///
+/// #2648 — `slug` must already be tenant-scoped (see
+/// `proxy_sites::site_slug`): this type does not re-derive identity from a
+/// bare project name, so a tag embedded in the slug flows into both the
+/// payload directory and the public hostname.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SiteTarget {
     /// Payload directory inside the proxy (`websites/{dir_name}`).
@@ -112,6 +117,22 @@ mod tests {
         assert_eq!(SiteEnv::parse("development"), Some(SiteEnv::Test));
         assert_eq!(SiteEnv::parse("dev"), Some(SiteEnv::Test));
         assert_eq!(SiteEnv::parse("staging"), None);
+    }
+
+    /// #2648 — tenant-tagged slugs keep two branches' sites apart even when
+    /// their project names are identical.
+    #[test]
+    fn tenant_scoped_slugs_produce_distinct_targets() {
+        let tenant_a = crate::vm_lifecycle::VmLifecycle::tenant_tag(uuid::Uuid::new_v4());
+        let tenant_b = crate::vm_lifecycle::VmLifecycle::tenant_tag(uuid::Uuid::new_v4());
+        let slug_a = format!("catalog-{tenant_a}");
+        let slug_b = format!("catalog-{tenant_b}");
+        let (prod_a, test_a) = both_targets(&slug_a, "generalbots.org");
+        let (prod_b, test_b) = both_targets(&slug_b, "generalbots.org");
+        assert_ne!(prod_a.dir, prod_b.dir);
+        assert_ne!(prod_a.host, prod_b.host);
+        assert_ne!(test_a.dir, test_b.dir);
+        assert_ne!(test_a.host, test_b.host);
     }
 
     #[test]

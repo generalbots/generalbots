@@ -73,6 +73,20 @@ pub fn validate_slug(slug: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// #2648 — validate the tenant-agnostic project name BEFORE the tenant tag is
+/// appended. The final slug (`{base}-{tag}`) would no longer equal a reserved
+/// name such as `admin`, so checking only the final slug would silently
+/// re-allow names the enterprise rules reject.
+pub(crate) fn validate_project_site_name(project_name: &str) -> Result<(), String> {
+    let base = super::sites::site_slug_base(project_name);
+    if RESERVED_SLUGS.contains(&base.as_str()) {
+        return Err(format!(
+            "site name '{base}' is reserved for platform infrastructure"
+        ));
+    }
+    Ok(())
+}
+
 /// Deterministic per-site port for python services (20000-29999). Stable
 /// across restarts so the Caddy route never churns. The dev environment
 /// hashes a DIFFERENT string (`{slug}-test`) so production and test services

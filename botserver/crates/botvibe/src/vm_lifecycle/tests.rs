@@ -17,18 +17,60 @@ use super::*;
 
     #[test]
     fn container_names_are_env_scoped() {
+        let branch = Uuid::nil();
+        let tag = VmLifecycle::tenant_tag(branch);
         assert_eq!(
-            VmLifecycle::container_name("My App", "development", false),
-            "my-app-development"
+            VmLifecycle::container_name("My App", "development", false, branch),
+            format!("my-app-{tag}-development")
         );
         assert_eq!(
-            VmLifecycle::container_name("My App", "production", false),
-            "my-app-prod"
+            VmLifecycle::container_name("My App", "production", false, branch),
+            format!("my-app-{tag}-prod")
         );
         assert_eq!(
-            VmLifecycle::container_name("Web", "development", true),
-            "web-development-runner"
+            VmLifecycle::container_name("Web", "development", true, branch),
+            format!("web-{tag}-development-runner")
         );
+    }
+
+    /// #2648 — the same project name in two branches must never resolve to
+    /// the same Incus container (that used to share one VM and its
+    /// `DATABASE_URL` across tenants).
+    #[test]
+    fn container_names_are_tenant_scoped_and_deterministic() {
+        let branch_a = Uuid::new_v4();
+        let branch_b = Uuid::new_v4();
+        assert_ne!(branch_a, branch_b);
+        let a = VmLifecycle::container_name("Customer Portal", "development", false, branch_a);
+        let b = VmLifecycle::container_name("Customer Portal", "development", false, branch_b);
+        assert_ne!(a, b, "two tenants must never share a container name");
+        assert_eq!(
+            a,
+            VmLifecycle::container_name("Customer Portal", "development", false, branch_a),
+            "the name must be stable across calls/restarts"
+        );
+        // Both stay valid Incus/DNS labels: lowercase, digits, hyphens only.
+        for name in [&a, &b] {
+            assert!(name.len() < 64, "name too long for a DNS label: {name}");
+            assert!(
+                name.chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'),
+                "invalid container name: {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn tenant_tag_is_short_hex_and_branch_specific() {
+        let branch_a = Uuid::new_v4();
+        let branch_b = Uuid::new_v4();
+        let tag_a = VmLifecycle::tenant_tag(branch_a);
+        let tag_b = VmLifecycle::tenant_tag(branch_b);
+        assert_eq!(tag_a.len(), 8);
+        assert_eq!(tag_b.len(), 8);
+        assert_ne!(tag_a, tag_b);
+        assert!(tag_a.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_eq!(tag_a, VmLifecycle::tenant_tag(branch_a));
     }
 
     #[test]

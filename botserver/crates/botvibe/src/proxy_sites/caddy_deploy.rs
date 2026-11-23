@@ -237,8 +237,9 @@ pub(crate) fn deploy_site_to_target_sync(
     deploy_rev: Option<&str>,
 ) -> Result<(String, String), String> {
     let _guard = lock_publish();
-    let slug = site_slug(&project.name);
+    let slug = site_slug(&project.name, project.branch_id);
     validate_slug(&slug)?;
+    validate_project_site_name(&project.name)?;
     if env == SiteEnv::Test {
         // The test suffix must itself be a legal host label.
         validate_slug(&format!("{slug}-test"))?;
@@ -302,7 +303,7 @@ pub async fn deploy_site_to_proxy_env(
     let domain = crate::publish::published_domain();
     let pool = pool.clone();
     tokio::task::spawn_blocking(move || {
-        let slug = site_slug(&p.name);
+        let slug = site_slug(&p.name, p.branch_id);
         let target = SiteTarget::new(&slug, env, &domain);
         deploy_site_to_target_sync(&p, &pool, python, true, &target, env, deploy_rev.as_deref())
     })

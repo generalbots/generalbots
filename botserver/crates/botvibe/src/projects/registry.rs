@@ -24,6 +24,40 @@ pub struct ProjectRegistry {
     pub(crate) pool: DbPool,
 }
 
+/// #2648 — resolve the tenant (branch) that owns a project by its bare name.
+///
+/// Name-addressed tools (the codegraph handlers) need the same tenant-scoped
+/// container name the VM lifecycle generates. Callers that already hold a
+/// `Project` must use its `branch_id` instead: this lookup is inherently
+/// ambiguous when two branches own the same name, so it picks the oldest row
+/// deterministically and falls back to the nil branch when the name is unknown.
+pub fn branch_id_for_name(pool: &DbPool, name: &str) -> Uuid {
+    #[derive(diesel::QueryableByName)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: Uuid,
+    }
+    let mut conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::warn!("branch lookup for '{name}' failed: {e}");
+            return Uuid::nil();
+        }
+    };
+    match diesel::sql_query(
+        "SELECT branch_id FROM vibe_projects WHERE name = $1 ORDER BY created_at LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(name)
+    .get_result::<BranchRow>(&mut conn)
+    {
+        Ok(row) => row.branch_id,
+        Err(e) => {
+            log::warn!("branch lookup for '{name}' failed: {e}");
+            Uuid::nil()
+        }
+    }
+}
+
 impl ProjectRegistry {
     pub fn new(pool: DbPool) -> Self {
         Self { pool }

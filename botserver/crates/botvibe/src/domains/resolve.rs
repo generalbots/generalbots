@@ -193,7 +193,7 @@ impl ProjectDomains {
         let container = if project_last_deploy_target(&project) == Some("proxy-websites") {
             "proxy".to_string()
         } else {
-            VmLifecycle::container_name(&project.name, &env, false)
+            VmLifecycle::container_name(&project.name, &env, false, branch)
         };
         let token = format!("{}:{}", branch.simple(), domain);
         let access = match &req.access {

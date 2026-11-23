@@ -20,6 +20,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-pub use registry::{ListProjectsQuery, ProjectRegistry, ProjectRegistryRef};
+pub use registry::{branch_id_for_name, ListProjectsQuery, ProjectRegistry, ProjectRegistryRef};
 pub use schema::{CreateProjectRequest, Project, ProjectKind, UpdateProjectRequest, VIBE_PROJECTS_SCHEMA};
 pub(crate) use schema::{ProjectRow};
