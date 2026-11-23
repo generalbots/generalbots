@@ -1,4 +1,5 @@
 use super::*;
+use crate::rbac_middleware::is_admin_group_name;
 
 impl ZitadelUser {
     pub fn to_authenticated_user(&self) -> Result<AuthenticatedUser, AuthError> {
@@ -49,7 +50,7 @@ pub(super) fn map_zitadel_role_to_role(zitadel_role: &str) -> Role {
 
     if role_lower.contains("super") || role_lower.contains("root") {
         Role::SuperAdmin
-    } else if role_lower.contains("admin") {
+    } else if is_admin_group_name(&role_lower) {
         Role::Admin
     } else if role_lower.contains("moderator") || role_lower.contains("mod") {
         Role::Moderator

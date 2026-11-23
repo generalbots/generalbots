@@ -153,27 +153,15 @@ mod tests {
 
         assert!(zitadel_user.to_authenticated_user().is_err());
     }
-
-    #[test]
-    fn test_base64_url_decode() {
-        let encoded = "SGVsbG8gV29ybGQ";
-        let decoded = base64_url_decode(encoded).unwrap();
-        assert_eq!(String::from_utf8(decoded).unwrap(), "Hello World");
-    }
-
-    #[test]
-    fn test_base64_url_decode_with_special_chars() {
-        let encoded = "PDw_Pz4-";
-        let result = base64_url_decode(encoded);
-        assert!(result.is_ok());
-    }
 }
 
 mod sanitized_api_base;
 mod to_authenticated_user;
 mod authenticate_request;
 mod get_service_token;
-mod base64_url_decode;
+mod jwks;
+
+#[cfg(test)]
+mod jwks_tests;
 
 use to_authenticated_user::*;
-use base64_url_decode::*;

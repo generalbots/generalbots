@@ -53,7 +53,7 @@ impl ZitadelAuthProvider {
         let user = if self.config.introspect_tokens {
             self.introspect_and_get_user(token).await?
         } else {
-            self.decode_jwt_user(token)?
+            self.decode_jwt_user(token).await?
         };
 
         self.cache_user(token, &user).await;
@@ -173,21 +173,18 @@ impl ZitadelAuthProvider {
         zitadel_user.to_authenticated_user()
     }
 
-    pub(super) fn decode_jwt_user(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        let parts: Vec<&str> = token.split('.').collect();
-        if parts.len() != 3 {
-            return Err(AuthError::InvalidToken);
-        }
-
-        let payload = parts[1];
-        let decoded = base64_url_decode(payload).map_err(|_| AuthError::InvalidToken)?;
-
-        let claims: serde_json::Value =
-            serde_json::from_slice(&decoded).map_err(|_| AuthError::InvalidToken)?;
+    /// Verifies the bearer token against the directory's JWKS before any claim
+    /// is used. Reading the base64 payload without checking the signature let
+    /// any caller forge `sub`, `email` or `roles` and, through the RBAC role
+    /// resolver, escalate to admin (#2851).
+    pub(super) async fn decode_jwt_user(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
+        let claims = super::jwks::verify_token(&self.http_client, &self.config, token).await?;
 
         let user_id = claims
             .get("sub")
             .and_then(|v| v.as_str())
+            // `sub` is required by the verifier; keep the guard so this stays
+            // safe even if the verifier's required-claim list changes.
             .ok_or(AuthError::InvalidToken)?;
 
         let username = claims
@@ -195,15 +192,6 @@ impl ZitadelAuthProvider {
             .or_else(|| claims.get("username"))
             .and_then(|v| v.as_str())
             .unwrap_or(user_id);
-
-        let exp = claims
-            .get("exp")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
-
-        if exp > 0 && exp < chrono::Utc::now().timestamp() {
-            return Err(AuthError::ExpiredToken);
-        }
 
         let roles: Vec<String> = claims
             .get("roles")
@@ -240,7 +228,10 @@ impl ZitadelAuthProvider {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             roles,
-            organization_id: None,
+            organization_id: claims
+                .get("urn:zitadel:iam:user:resourceowner:id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
             metadata: HashMap::new(),
         };
 
