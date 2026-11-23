@@ -611,6 +611,15 @@ jobs:
           python3 scripts/check_security_directives.py --check
           python3 scripts/check_security_directives.py --self-test
 
+      # #2673 / IMP-10 — crypto/security deps must use exact '=' versions;
+      # Cargo.lock alone is not a substitute. Self-test proves the gate fails
+      # on an unpinned security crate.
+      - name: Dependency exact-pin guard (IMP-10)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_dependency_pins.py
+          python3 scripts/check_dependency_pins.py --self-test
+
       # #2545 — the three app manifests must agree: every APPS_REGISTRY id is
       # classified in .product (apps/preview/hidden or core), every listed id
       # has a launcher tile, and every hxGet target exists. Prevents silent
