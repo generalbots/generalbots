@@ -58,14 +58,44 @@ pub(super) fn err(status: StatusCode, message: &str) -> ApiError {
     (status, Json(serde_json::json!({ "error": message })))
 }
 
+/// Decide the tenant branch from a caller's identity and its optional
+/// `crm_contacts` binding.
+///
+/// #2865 — the global (nil) branch is reserved for the single-user desktop
+/// principal. Every other authenticated principal must resolve to a real
+/// branch; without a binding it is rejected. Connections are unique on
+/// `(branch_id, provider)` ([`crate::external::db::ensure_schema`]), so letting
+/// two unrelated principals fall back to nil would share one connection — and
+/// therefore one set of mirrored files and OAuth grant — between them.
+pub(super) fn branch_from_binding(
+    user: &AuthenticatedUser,
+    binding: Option<Uuid>,
+) -> Result<Uuid, ApiError> {
+    if user.metadata.contains_key("desktop_local") {
+        return Ok(Uuid::nil());
+    }
+    match binding {
+        Some(branch) if !branch.is_nil() => Ok(branch),
+        _ => Err(err(
+            StatusCode::FORBIDDEN,
+            "no workspace binding for this account; connect an external drive from a bound workspace",
+        )),
+    }
+}
+
 /// Resolve the caller's tenant branch.
 ///
 /// The connection is the signup-derived `crm_contacts` binding — the same source
 /// that decides which buckets `drive_handlers` lets someone address, so a user
-/// cannot reach an external account through a different tenant's identity. An
-/// account with no binding falls back to the global (nil) branch, which is what
-/// the suite does everywhere else.
+/// cannot reach an external account through a different tenant's identity.
+/// Only the desktop-local principal may fall back to the global (nil) branch;
+/// any other account without a binding is rejected with 403 (#2865).
 pub(super) fn caller_branch(state: &AppState, user: &AuthenticatedUser) -> Result<Uuid, ApiError> {
+    // #2865 — keep nil exclusive to the local principal and avoid a DB round
+    // trip for it (a desktop install may have no directory to query anyway).
+    if user.metadata.contains_key("desktop_local") {
+        return Ok(Uuid::nil());
+    }
     let mut conn = db::conn(&state.conn).map_err(|e| {
         err(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -77,7 +107,7 @@ pub(super) fn caller_branch(state: &AppState, user: &AuthenticatedUser) -> Resul
         .as_deref()
         .filter(|e| !e.is_empty() && *e != "session-user")
     else {
-        return Ok(Uuid::nil());
+        return branch_from_binding(user, None);
     };
     #[derive(diesel::QueryableByName)]
     struct Row {
@@ -96,7 +126,7 @@ pub(super) fn caller_branch(state: &AppState, user: &AuthenticatedUser) -> Resul
             &format!("tenant lookup failed: {e}"),
         )
     })?;
-    Ok(row.map(|r| r.branch_id).unwrap_or_else(Uuid::nil))
+    branch_from_binding(user, row.map(|r| r.branch_id))
 }
 
 pub(super) fn parse_provider(value: &str) -> Result<Provider, ApiError> {

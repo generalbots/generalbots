@@ -230,11 +230,16 @@ pub fn get_connection(
 /// #2047 — the tenant branch a chat user belongs to, for tool-initiated
 /// uploads (the tool path has no `AuthenticatedUser`). Same rule as
 /// [`crate::external::routes::caller_branch`]: the signup-derived contact
-/// binding, falling back to the global (nil) branch when the account has none.
+/// binding. `Ok(None)` means a real (non-nil) user has no binding — callers
+/// must deny instead of falling back to a nil connection shared with others
+/// (#2865). `Ok(Some(nil))` is only for the nil/desktop-local principal.
 pub fn branch_for_user(
     conn: &mut diesel::PgConnection,
     user_id: Uuid,
-) -> Result<Uuid, String> {
+) -> Result<Option<Uuid>, String> {
+    if user_id.is_nil() {
+        return Ok(Some(Uuid::nil()));
+    }
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = DieselUuid)]
@@ -249,7 +254,7 @@ pub fn branch_for_user(
     .get_result::<Row>(conn)
     .optional()
     .map_err(|e| format!("tenant lookup failed: {e}"))?;
-    Ok(row.map(|r| r.branch_id).unwrap_or_else(Uuid::nil))
+    Ok(row.map(|r| r.branch_id).filter(|branch| !branch.is_nil()))
 }
 
 /// Connections that are due for a pass: their cadence elapsed and their

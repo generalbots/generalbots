@@ -126,10 +126,23 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
             return;
         };
         let branch_id = match external_db::branch_for_user(&mut conn, user_id) {
-            Ok(branch) => branch,
+            Ok(Some(branch)) => branch,
+            Ok(None) => {
+                // #2865 — no crm_contacts binding: never fall back to the shared
+                // nil branch, which would upload through another user's grant.
+                let message = "Your account is not bound to a workspace. Connect an external \
+                               drive from a bound workspace first."
+                    .to_string();
+                send(identity, &message).await;
+                persist(state, session_id, user_id, &message).await;
+                return;
+            }
             Err(error) => {
                 botlog::safe_warn!("external save: branch lookup failed: {error}");
-                uuid::Uuid::nil()
+                let message = "Could not resolve your workspace for this save.".to_string();
+                send(identity, &message).await;
+                persist(state, session_id, user_id, &message).await;
+                return;
             }
         };
         let connection = external_db::get_connection(&mut conn, branch_id, provider)
