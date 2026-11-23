@@ -47,8 +47,7 @@
                 onApproved();
                 return;
             }
-            var anchor = document.querySelector(".gb-composer-inner") ||
-                document.querySelector(".gb-composer-card");
+            var anchor = A.visibleComposer();
             A.confirmExternal(target, anchor, function () {
                 guardCleared = true;
                 onApproved();
@@ -76,8 +75,7 @@
                 return;
             }
             A.hideThinking();
-            var anchor = document.querySelector(".gb-composer-inner") ||
-                document.querySelector(".gb-composer-card");
+            var anchor = A.visibleComposer();
             A.confirmExternal(target, anchor, function () {
                 A.showThinking();
                 sent = realSend.call(A, text, files, messageType);

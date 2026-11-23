@@ -123,7 +123,10 @@
             hdr.className = "gb-code-header";
             var lbl = document.createElement("span");
             lbl.className = "gb-code-lang";
-            lbl.textContent = lang || "code";
+            /* A real language name stays as written; no name or plain text
+               gets the person's words. */
+            lbl.textContent = !lang ? A.t("assistant.code-lang", "Code")
+                : (/^(text|txt|plain|plaintext)$/i.test(lang) ? A.t("assistant.text-lang", "Text") : lang);
             hdr.appendChild(lbl);
 
             var cpBtn = document.createElement("button");

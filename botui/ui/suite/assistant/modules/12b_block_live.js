@@ -142,14 +142,16 @@ function stepLabel(step) {
     /* A stage the program itself names (vm_trace markers): its own words. */
     if (step.key.indexOf("trace:") === 0 && step.name) { return t("Etapa do programa: ", "Program step: ") + step.name; }
     var l = STEP_LABELS[step.key] || OTHER_STEP;
-    return step.state === "running" ? t(l[2], l[3]) : t(l[0], l[1]);
+    var label = step.state === "running" ? t(l[2], l[3]) : t(l[0], l[1]);
+    /* The site a page came from is data, not words: shown as sent. */
+    return step.key === "web_fetch" && step.detail ? label + ": " + step.detail : label;
 }
 
-/* The run header's second line: the shell's label; package names are
-   the only server detail shown (they are data, not words). */
+/* The run header's second line: the shell's label; package names and the
+   site of a page read are the only server details shown (data, not words). */
 function stepSummary(step) {
     var label = stepLabel(step);
-    return (step.key === "package_install" || step.key === "web_fetch") && step.detail ? label + ": " + step.detail : label;
+    return step.key === "package_install" && step.detail ? label + ": " + step.detail : label;
 }
 
 function runFor(runId) {
@@ -291,8 +293,10 @@ function onStep(frame) {
     if (data.exit_code != null) { step.exit = data.exit_code; }
     if (frame.type === "STEP_STARTED") {
         step.state = "running";
-        step.detail = data.detail || "";
-    } else {
+    }
+    /* STEP_FINISHED may repeat the detail or leave it out: keep the start's. */
+    if (data.detail) { step.detail = data.detail; }
+    if (frame.type !== "STEP_STARTED") {
         step.state = data.status === "ok" || data.status === "completed" || data.status === "succeeded" ? "ok" : "failed";
         step.ms = data.elapsed_ms != null ? data.elapsed_ms : data.duration_ms;
         if (step.quiet) {

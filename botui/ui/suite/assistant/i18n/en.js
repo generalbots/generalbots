@@ -19,6 +19,8 @@ window.GBAssistantLocales["en"] = {
     "assistant.copied":           "Copied",
     "assistant.copy-code":        "Copy code",
     "assistant.wrap":             "Wrap",
+    "assistant.code-lang":        "Code",
+    "assistant.text-lang":        "Text",
     "assistant.nowrap":           "No wrap",
     "assistant.rename":           "Rename",
     "assistant.delete":           "Delete",

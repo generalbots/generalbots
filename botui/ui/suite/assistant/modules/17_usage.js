@@ -13,7 +13,7 @@
         document.querySelectorAll(".gb-fast-toggle").forEach(function (button) {
             button.disabled = !available;
             button.title = available ? tr("Respostas mais rápidas e curtas", "Faster, shorter answers")
-                : tr("Fast indisponível neste motor", "Fast is unavailable on this engine");
+                : tr("Rápido indisponível neste motor", "Fast is unavailable on this engine");
             button.setAttribute("aria-pressed", String(A.fastOn()));
         });
     }
@@ -93,11 +93,12 @@
         usage.querySelector(".gb-usage-bar").appendChild(node("span"));
         usage.insertAdjacentHTML("beforeend", '<svg class="gb-usage-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
         var toggles = node("div", "gb-engine-toggles");
-        var fast = makeButton("gb-fast-toggle gb-engine-toggle", "Fast", "", function () {
+        var fastName = tr("Rápido", "Fast");
+        var fast = makeButton("gb-fast-toggle gb-engine-toggle", fastName, "", function () {
             A.fastEnabled = !A.fastEnabled;
             syncFast();
         });
-        fast.append(node("span", "", "Fast"), node("span", "gb-toggle-track"));
+        fast.append(node("span", "", fastName), node("span", "gb-toggle-track"));
         toggles.appendChild(fast);
         motor.append(heading, model, usage, toggles);
         composer.appendChild(motor);

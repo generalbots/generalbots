@@ -39,16 +39,8 @@
     };
 
     /* ---- Sending while the card waits ---- */
-    function visibleComposer() {
-        var all = document.querySelectorAll(".gb-composer-inner, .gb-composer-card");
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].offsetParent !== null) { return all[i]; }
-        }
-        return all[0] || null;
-    }
-
     function focusComposer() {
-        var composer = visibleComposer();
+        var composer = A.visibleComposer();
         var input = composer && composer.querySelector("textarea");
         if (input) { input.focus(); }
     }
@@ -100,7 +92,7 @@
             box.remove();
             focusComposer();
         });
-        var composer = visibleComposer();
+        var composer = A.visibleComposer();
         if (composer && composer.parentNode) { composer.parentNode.insertBefore(box, composer); }
         else { document.body.appendChild(box); }
         back.focus();

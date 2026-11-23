@@ -390,6 +390,9 @@
                 var blob = new Blob([text], { type: "text/plain" });
                 var name = A.t("attach.pasted-text", "texto-colado") + ".txt";
                 var file = new File([blob], name, { type: "text/plain" });
+                /* The attachment card shows the real length of what was pasted. */
+                A.pastedChars = A.pastedChars || {};
+                A.pastedChars[name + "|" + file.size] = text.length;
                 A.pendingFiles.push(file);
                 renderFileChips();
             }

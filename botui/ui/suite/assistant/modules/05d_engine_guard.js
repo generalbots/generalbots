@@ -16,6 +16,16 @@ var KEY = "gb-external-ok";
 
 function tr(ptT, enT) { return (A.locale || "").startsWith("pt") ? ptT : enT; }
 
+/* The empty state and the conversation each have a composer; only one
+   shows. Cards that belong above the composer go above the visible one. */
+A.visibleComposer = function () {
+    var all = document.querySelectorAll(".gb-composer-inner, .gb-composer-card");
+    for (var i = 0; i < all.length; i++) {
+        if (all[i].offsetParent !== null) { return all[i]; }
+    }
+    return all[0] || null;
+};
+
 var load = A.loadModels;
 if (typeof load === "function") {
     A.loadModels = function () {
@@ -112,6 +122,7 @@ A.confirmExternal = function (target, anchor, onYes) {
     go.addEventListener("click", function () { card.remove(); accept(target.host); onYes(); });
     card.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); card.remove(); } });
     var composer = anchor && anchor.closest(".gb-composer-inner, .gb-composer-card");
+    if (!composer || composer.offsetParent === null) { composer = A.visibleComposer(); }
     if (composer && composer.parentNode) { composer.parentNode.insertBefore(card, composer); }
     else { document.body.appendChild(card); }
     go.focus();

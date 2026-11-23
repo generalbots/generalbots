@@ -37,6 +37,18 @@ A.blockThinking = function (evOrElapsed, reasoning) {
         bodyHtml: reason ? '<div class="gb-block-prose">' + esc(reason) + '</div>' : "" });
 };
 
+/* How much of an attachment was read. A pasted text: the length the shell
+   pasted. The server's count stops at READ_COUNT_CAP, so an untruncated
+   read at the cap is the whole text, not a cut one. */
+var READ_COUNT_CAP = 12000;
+function readText(s, name) {
+    var size = s.size || s.size_bytes || 0;
+    var pasted = !s.truncated && A.pastedChars ? A.pastedChars[name + "|" + size] : 0;
+    var chars = Number(pasted || s.chars_read) || 0;
+    if (!pasted && !s.truncated && chars === READ_COUNT_CAP) { return t("o texto todo", "the whole text"); }
+    return chars.toLocaleString(A.locale || undefined) + " " + t("caracteres", "characters");
+}
+
 A.blockAttachmentRead = function (ev) {
     var s = sum(ev);
     var isFailed = ev.status === "failed";
@@ -58,7 +70,7 @@ A.blockAttachmentRead = function (ev) {
             row(t("Arquivo", "File"), name) +
             (s.type || s.content_type ? row(t("Tipo", "Type"), s.type || s.content_type) : "") +
             (s.size || s.size_bytes ? row(t("Tamanho", "Size"), fmtBytes(s.size || s.size_bytes)) : "") +
-            (s.chars_read ? row(t("Lido", "Read"), s.chars_read + " " + t("caracteres", "characters")) : "") +
+            (s.chars_read ? row(t("Lido", "Read"), readText(s, name)) : "") +
             (s.seen_by_model ? row(t("Enviado ao modelo", "Sent to the model"), t("o próprio arquivo, para ele ver", "the file itself, for it to see")) : "") +
             (s.truncated ? B.noteRow(t("Truncado: só o começo foi ao modelo", "Truncated: only the start went to the model"), "warn") : "") });
     if (typeof A.makeAttachClickable === "function" && name) {
