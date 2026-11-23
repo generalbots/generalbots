@@ -29,6 +29,7 @@ mod server;
 pub mod settings_digest;
 mod shutdown;
 mod staged_model_choice;
+mod tls_state;
 pub mod state_builder;
 mod types;
 pub mod ui_plan;

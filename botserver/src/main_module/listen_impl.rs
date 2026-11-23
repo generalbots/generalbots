@@ -1,4 +1,5 @@
 use super::shutdown::shutdown_signal;
+use super::tls_state;
 use axum::Router;
 use log::{error, info};
 use std::net::SocketAddr;
@@ -64,8 +65,33 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
     let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false);
+    let certs_present = cert_path.exists() && key_path.exists();
 
-    if !disable_tls && cert_path.exists() && key_path.exists() {
+    // #2684 — a production posture must never silently degrade to cleartext
+    // HTTP. A loopback-only bind (no_security desktop, plus the default desktop
+    // and shell binds) never exposes that cleartext on the network, so it counts
+    // as a safe context alongside the explicit development override.
+    let explicit_override = tls_state::plain_http_override_enabled(
+        std::env::var(tls_state::ALLOW_PLAIN_HTTP_ENV).ok().as_deref(),
+    );
+    let is_production = botsecurity_core::jwt_secret::is_production_env();
+    let plain_http_override = explicit_override || ip.is_loopback();
+    let mode = match tls_state::decide_tls_mode(
+        is_production,
+        disable_tls,
+        certs_present,
+        plain_http_override,
+    ) {
+        Ok(mode) => mode,
+        Err(error) => {
+            error!("Refusing to start: {error}");
+            return Err(std::io::Error::other(error.to_string()));
+        }
+    };
+    tls_state::record(mode);
+    info!("Effective TLS state: {}", mode.as_str());
+
+    if mode == tls_state::TlsMode::Enabled {
         let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert_path, key_path)
             .await
             .map_err(std::io::Error::other)?;

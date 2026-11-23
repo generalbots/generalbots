@@ -313,6 +313,7 @@ async fn readiness_response(state: &Arc<AppState>) -> (StatusCode, Json<serde_js
             "status": status,
             "service": "botserver",
             "version": botcore::product::build_info::version(),
+            "tls": super::tls_state::snapshot(),
             "build_date": build_date,
             "commit": commit,
             "failing": failing,
@@ -380,6 +381,7 @@ fn liveness_payload(status: &str, database: Option<bool>) -> serde_json::Value {
         "status": status,
         "service": "botserver",
         "version": botcore::product::build_info::version(),
+        "tls": super::tls_state::snapshot(),
     });
     if let Some(ok) = database {
         body["database"] = serde_json::json!(ok);
