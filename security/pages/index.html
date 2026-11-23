@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="page-title">Avisos de segurança</title>
+  <link rel="stylesheet" href="advisory.css">
+  <script src="i18n.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#advisories" data-i18n="skip-link">Ir para os avisos</a>
+  <header><a href="/security/">General Bots / <span data-i18n="page-title">Avisos de segurança</span></a></header>
+  <main>
+    <h1 data-i18n="page-title">Avisos de segurança</h1>
+    <p data-i18n="page-lede">Avisos de segurança oficiais do General Bots. A discussão ocorre no fórum da comunidade.</p>
+    <p class="authoritative" data-i18n="authoritative">PT-BR é o idioma oficial; traduções podem estar desatualizadas.</p>
+    <p><a href="/security/index.html?lang=en" lang="en">English</a></p>
+    <p class="warning" role="status" aria-live="polite" data-i18n="not-scanning">SEM VERIFICAÇÃO — nenhum scanner está conectado ao envio de arquivos</p>
+    <section id="advisories">
+      <h2 data-i18n="table-id">ID</h2>
+      <table>
+        <thead><tr><th scope="col" data-i18n="table-id">ID</th><th scope="col" data-i18n="table-date">Publicado</th><th scope="col" data-i18n="table-severity">Gravidade</th><th scope="col" data-i18n="table-product">Produto afetado</th></tr></thead>
+        <tbody>
+          <tr><td><a href="advisories/GB-SA-2026-0001.html">GB-SA-2026-0001</a></td><td>2026-11-23</td><td>Critical (example)</td><td>General Bots</td></tr>
+        </tbody>
+      </table>
+      <p data-i18n="example-title">EXEMPLO — aviso ilustrativo (não é uma vulnerabilidade real)</p>
+    </section>
+    <details><summary data-i18n="faq-title">Perguntas frequentes</summary>
+      <h3 data-i18n="faq-q1">Onde devo relatar uma vulnerabilidade?</h3>
+      <p data-i18n="faq-a1">Use o formulário privado ou security@pragmatismo.com.br; nunca uma issue pública.</p>
+      <h3 data-i18n="faq-q2">Por que a discussão fica em um fórum separado?</h3>
+      <p data-i18n="faq-a2">O boletim é a fonte oficial; tópicos são apenas discussão e não alteram um aviso.</p>
+    </details>
+    <nav aria-label="Feeds">
+      <a href="../csaf/provider-metadata.json" data-i18n="feed-link">Feed CSAF</a>
+      <a href="status.html" data-i18n="status-link">Estado dos serviços</a>
+      <a href="hall-of-fame.html" data-i18n="hall-link">Hall of fame dos relatores</a>
+      <a href="../SECURITY.md" data-i18n="contact-link">Como relatar</a>
+    </nav>
+  </main>
+</body>
+</html>

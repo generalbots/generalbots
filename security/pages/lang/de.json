@@ -1,0 +1,21 @@
+{
+  "skip-link": "Skip to advisories",
+  "page-title": "Security advisories",
+  "page-lede": "Authoritative security bulletins for General Bots. Discussion happens in the community forum.",
+  "authoritative": "PT-BR is the authoritative locale; translations may lag.",
+  "table-id": "ID",
+  "table-date": "Published",
+  "table-severity": "Severity",
+  "table-product": "Affected product",
+  "example-title": "EXAMPLE — placeholder advisory (not a real vulnerability)",
+  "faq-title": "Frequently asked questions",
+  "faq-q1": "Where do I report a vulnerability?",
+  "faq-a1": "Use the private advisory form or security@pragmatismo.com.br; never a public issue.",
+  "faq-q2": "Why is discussion in a separate forum?",
+  "faq-a2": "The bulletin is authoritative; threads are discussion only and cannot amend an advisory.",
+  "feed-link": "CSAF feed",
+  "status-link": "Service status",
+  "hall-link": "Reporter hall of fame",
+  "contact-link": "How to report",
+  "not-scanning": "NOT SCANNING — no scanner is wired to the upload path"
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="page-title">Security advisories</title>
+  <link rel="stylesheet" href="advisory.css">
+  <script src="i18n.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#advisories" data-i18n="skip-link">Skip to advisories</a>
+  <header><a href="/security/">General Bots / <span data-i18n="page-title">Security advisories</span></a></header>
+  <main>
+    <h1 data-i18n="page-title">Security advisories</h1>
+    <p data-i18n="page-lede">Authoritative security bulletins for General Bots. Discussion happens in the community forum.</p>
+    <p class="authoritative" data-i18n="authoritative">PT-BR is the authoritative locale; translations may lag.</p>
+    <p><a href="/security/index.html?lang=pt-BR" lang="pt-BR">Português (Brasil)</a></p>
+    <p class="warning" role="status" aria-live="polite" data-i18n="not-scanning">NOT SCANNING — no scanner is wired to the upload path</p>
+    <section id="advisories">
+      <h2 data-i18n="table-id">ID</h2>
+      <table>
+        <thead><tr><th scope="col" data-i18n="table-id">ID</th><th scope="col" data-i18n="table-date">Published</th><th scope="col" data-i18n="table-severity">Severity</th><th scope="col" data-i18n="table-product">Affected product</th></tr></thead>
+        <tbody>
+          <tr><td><a href="advisories/GB-SA-2026-0001.html">GB-SA-2026-0001</a></td><td>2026-11-23</td><td>Critical (example)</td><td>General Bots</td></tr>
+        </tbody>
+      </table>
+      <p data-i18n="example-title">EXAMPLE — placeholder advisory (not a real vulnerability)</p>
+    </section>
+    <details><summary data-i18n="faq-title">Frequently asked questions</summary>
+      <h3 data-i18n="faq-q1">Where do I report a vulnerability?</h3>
+      <p data-i18n="faq-a1">Use the private advisory form or security@pragmatismo.com.br; never a public issue.</p>
+      <h3 data-i18n="faq-q2">Why is discussion in a separate forum?</h3>
+      <p data-i18n="faq-a2">The bulletin is authoritative; threads are discussion only and cannot amend an advisory.</p>
+    </details>
+    <nav aria-label="Feeds">
+      <a href="../csaf/provider-metadata.json" data-i18n="feed-link">CSAF feed</a>
+      <a href="status.html" data-i18n="status-link">Service status</a>
+      <a href="hall-of-fame.html" data-i18n="hall-link">Reporter hall of fame</a>
+      <a href="../SECURITY.md" data-i18n="contact-link">How to report</a>
+    </nav>
+  </main>
+</body>
+</html>

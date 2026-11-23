@@ -1,0 +1,21 @@
+{
+  "skip-link": "Ir para os avisos",
+  "page-title": "Avisos de segurança",
+  "page-lede": "Avisos de segurança oficiais do General Bots. A discussão ocorre no fórum da comunidade.",
+  "authoritative": "PT-BR é o idioma oficial; traduções podem estar desatualizadas.",
+  "table-id": "ID",
+  "table-date": "Publicado",
+  "table-severity": "Gravidade",
+  "table-product": "Produto afetado",
+  "example-title": "EXEMPLO — aviso ilustrativo (não é uma vulnerabilidade real)",
+  "faq-title": "Perguntas frequentes",
+  "faq-q1": "Onde devo relatar uma vulnerabilidade?",
+  "faq-a1": "Use o formulário privado ou security@pragmatismo.com.br; nunca uma issue pública.",
+  "faq-q2": "Por que a discussão fica em um fórum separado?",
+  "faq-a2": "O boletim é a fonte oficial; tópicos são apenas discussão e não alteram um aviso.",
+  "feed-link": "Feed CSAF",
+  "status-link": "Estado dos serviços",
+  "hall-link": "Hall of fame dos relatores",
+  "contact-link": "Como relatar",
+  "not-scanning": "SEM VERIFICAÇÃO — nenhum scanner está conectado ao envio de arquivos"
+}
