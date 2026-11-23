@@ -38,34 +38,13 @@
 
   /**
    * Renders authored document HTML with the tags an anonymous reader must
-   * never execute removed. Document bodies are authored by the owner, but a
-   * link reaches readers outside that trust boundary, so active content is
-   * dropped rather than rendered.
+   * never execute removed. The implementation lives in docs-sanitize.js so
+   * the viewer and the editor use one vetted sanitizer (#2840). Fail closed
+   * (empty body) if that shared script did not load.
    */
   function sanitize(html) {
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(String(html || ""), "text/html");
-    var blocked = ["script", "iframe", "object", "embed", "form", "meta", "link", "base"];
-    blocked.forEach(function (tag) {
-      Array.prototype.forEach.call(doc.querySelectorAll(tag), function (node) {
-        if (node.parentNode) node.parentNode.removeChild(node);
-      });
-    });
-    Array.prototype.forEach.call(doc.querySelectorAll("*"), function (node) {
-      Array.prototype.slice.call(node.attributes).forEach(function (attr) {
-        var name = attr.name.toLowerCase();
-        var value = String(attr.value || "").replace(/\s/g, "").toLowerCase();
-        var isHandler = name.indexOf("on") === 0;
-        var isScriptUrl = (name === "href" || name === "src" || name === "xlink:href") &&
-          value.indexOf("javascript:") === 0;
-        if (isHandler || isScriptUrl) node.removeAttribute(attr.name);
-      });
-      if (node.tagName === "A") {
-        node.setAttribute("rel", "noopener noreferrer");
-        node.setAttribute("target", "_blank");
-      }
-    });
-    return doc.body.innerHTML;
+    if (typeof window.docsSanitizeHtml === "function") return window.docsSanitizeHtml(html);
+    return "";
   }
 
   function roleLabel(role) {

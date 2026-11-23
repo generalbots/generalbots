@@ -44,8 +44,9 @@ function initCollab() {
         var removeLength = typeof msg.removeLength === "number" ? msg.removeLength : (msg.length && msg.length > 0 && msg.content === "" ? msg.length : 0);
         applyDeltaEdit(article, pos, msg.content, removeLength);
       } else if (typeof msg.content === "string") {
+        // #2840: a remote edit is untrusted input — sanitize before render.
         var offset = getCaretCharacterOffsetWithin(article);
-        article.innerHTML = msg.content;
+        article.innerHTML = typeof docsSanitizeHtml === "function" ? docsSanitizeHtml(msg.content) : "";
         setCaretPosition(article, offset);
       }
       article.dataset.suppressRemote = "";

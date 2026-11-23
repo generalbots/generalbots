@@ -16,7 +16,8 @@
   function applyRestored(doc) {
     var article = document.querySelector("article[contenteditable]");
     if (!article || !doc || typeof doc.content !== "string") return false;
-    article.innerHTML = doc.content;
+    // #2840: restored history content is untrusted — sanitize before render.
+    article.innerHTML = typeof docsSanitizeHtml === "function" ? docsSanitizeHtml(doc.content) : "";
     article.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   }

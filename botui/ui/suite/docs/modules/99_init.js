@@ -112,7 +112,9 @@ function loadDriveFileIntoEditor(linkParams) {
         attachEditorHandlers(contentEl);
       }
       if (article) {
-        article.innerHTML = doc.content || '';
+        // #2840: content comes from Drive via the API — sanitize before it
+        // becomes live markup in the editor (same helper as the share viewer).
+        article.innerHTML = typeof docsSanitizeHtml === "function" ? docsSanitizeHtml(doc.content) : "";
         if (article.dataset) article.dataset.docId = doc.id || file;
         if (typeof docsAfterContentLoad === 'function') docsAfterContentLoad(article);
         if (window.updatePageCount) window.updatePageCount();
