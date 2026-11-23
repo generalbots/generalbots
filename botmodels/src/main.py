@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .api.dependencies import is_valid_api_key
 from .api.v1.endpoints import (
     anomaly,
     image,
@@ -22,8 +23,53 @@ from .core.startup import finalize_mode, health_summary
 from .services.backends import registry
 from .services.errors import BotModelsError
 from .services.media_capabilities import media_capabilities
+from .utils.error_codes import text as error_text
 
 logger = get_logger("main")
+
+
+def docs_urls_for(production: bool) -> dict:
+    """FastAPI docs/OpenAPI kwargs: disabled entirely in production.
+
+    Pure so the production posture can be unit-tested without booting a server
+    or mutating the module-level settings singleton.
+    """
+    if production:
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {
+        "docs_url": "/api/docs",
+        "redoc_url": "/api/redoc",
+        "openapi_url": "/openapi.json",
+    }
+
+
+class AuthenticatedStaticFiles(StaticFiles):
+    """StaticFiles that requires the BotModels API key on every artifact.
+
+    ``app.mount()`` has no ``dependencies=`` parameter, so a normal FastAPI
+    dependency cannot guard a static mount. The check runs at the ASGI layer
+    instead, using the same constant-time predicate as the HTTP routes. A 401
+    is returned before the file is looked up, so a missing file and a missing
+    key are indistinguishable to an unauthenticated caller.
+    """
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            headers = {
+                name.lower(): value for name, value in scope.get("headers", [])
+            }
+            candidate = headers.get(b"x-api-key")
+            if candidate is None:
+                detail = error_text("botmodels-auth-missing-key")
+            elif not is_valid_api_key(candidate.decode("latin-1")):
+                detail = error_text("botmodels-auth-invalid-key")
+            else:
+                detail = None
+            if detail is not None:
+                response = JSONResponse({"detail": detail}, status_code=401)
+                await response(scope, receive, send)
+                return
+        await super().__call__(scope, receive, send)
 
 
 @asynccontextmanager
@@ -51,8 +97,7 @@ app = FastAPI(
     title=settings.project_name,
     version=settings.version,
     lifespan=lifespan,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    **docs_urls_for(settings.is_production),
 )
 
 
@@ -99,7 +144,11 @@ app.include_router(scoring.router, prefix=settings.api_v1_prefix)
 app.include_router(anomaly.router, prefix=settings.api_v1_prefix)
 app.include_router(voice.router)
 
-app.mount("/outputs", StaticFiles(directory=str(settings.output_dir)), name="outputs")
+app.mount(
+    "/outputs",
+    AuthenticatedStaticFiles(directory=str(settings.output_dir)),
+    name="outputs",
+)
 
 
 @app.get("/")
@@ -111,7 +160,7 @@ async def root():
             "commit": settings.commit,
             "status": "running",
             "mode": settings.resolved_mode,
-            "docs": "/api/docs",
+            "docs": None if settings.is_production else "/api/docs",
             "endpoints": {
                 "image": "/api/image",
                 "music": "/api/music",

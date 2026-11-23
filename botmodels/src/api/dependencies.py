@@ -12,9 +12,20 @@ def _compare(candidate: str, expected: str) -> bool:
     return hmac.compare_digest(candidate.encode("utf-8"), expected.encode("utf-8"))
 
 
+def is_valid_api_key(candidate: Optional[str]) -> bool:
+    """Pure predicate: True only when ``candidate`` matches the configured key.
+
+    Shared by the HTTP/WS dependencies and the static-artifact gate so there is
+    a single constant-time comparison point. Unit-testable without a server.
+    """
+    if candidate is None:
+        return False
+    return _compare(candidate, settings.api_key)
+
+
 async def verify_api_key(x_api_key: str = Header(...)):
     """Standard header auth for HTTP routes. Raises 401 on mismatch."""
-    if not _compare(x_api_key, settings.api_key):
+    if not is_valid_api_key(x_api_key):
         raise HTTPException(
             status_code=401, detail=error_text("botmodels-auth-invalid-key")
         )
@@ -28,9 +39,7 @@ def verify_api_key_optional(x_api_key: Optional[str] = Header(None)):
     check for None — the previous implementation returned None for a missing key
     *and* a wrong one, and the /api/detect endpoint then ran unauthenticated.
     """
-    if x_api_key is None:
-        return None
-    if not _compare(x_api_key, settings.api_key):
+    if not is_valid_api_key(x_api_key):
         return None
     return x_api_key
 
@@ -41,7 +50,7 @@ def require_api_key(x_api_key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=401, detail=error_text("botmodels-auth-missing-key")
         )
-    if not _compare(x_api_key, settings.api_key):
+    if not is_valid_api_key(x_api_key):
         raise HTTPException(
             status_code=401, detail=error_text("botmodels-auth-invalid-key")
         )
@@ -62,7 +71,7 @@ def verify_ws_key(
         raise HTTPException(
             status_code=401, detail=error_text("botmodels-auth-missing-key")
         )
-    if not _compare(candidate, settings.api_key):
+    if not is_valid_api_key(candidate):
         raise HTTPException(
             status_code=401, detail=error_text("botmodels-auth-invalid-key")
         )
