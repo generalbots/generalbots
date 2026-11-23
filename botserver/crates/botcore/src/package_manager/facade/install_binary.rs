@@ -189,6 +189,19 @@ impl PackageManager {
         }
         Ok(())
     }
+    /// Fail-closed verdict for an unpinned component (#2622). Pure so the
+    /// policy is unit-testable without mutating process environment.
+    fn unpinned_checksum_error(component: &str, required: bool) -> Option<String> {
+        if required {
+            Some(format!(
+                "no SHA-256 configured for '{component}' and GB_REQUIRE_CHECKSUMS is on; \
+                 refusing to install an unverified download"
+            ))
+        } else {
+            None
+        }
+    }
+
     pub fn download_in_container(
         &self,
         container: &str,
@@ -200,24 +213,33 @@ impl PackageManager {
         self.exec_in_container(container, &download_cmd)?;
         // #2001 — verify the fetched asset before unpacking it into
         // /opt/gbo/bin (the container path had no checksum at all).
-        let expected = botcorepkg::installer::checksum_for_url(url).unwrap_or_default();
-        if expected.is_empty() {
-            if botcorepkg::checksum::require_checksums() {
-                return Err(anyhow::anyhow!(
-                    "no SHA-256 configured for '{component}' and GB_REQUIRE_CHECKSUMS is on; \
-                     refusing to install an unverified download"
-                ));
+        // #2622 — handle the missing pin explicitly. `.unwrap_or_default()`
+        // silently turned "no pin configured" into an empty expected hash,
+        // blurring the policy boundary with the cache path which refuses to
+        // treat an empty sha256 as verified. Now the unpinned case is an
+        // explicit branch with the same fail-closed verdict under
+        // GB_REQUIRE_CHECKSUMS as the cache installer path.
+        let expected = botcorepkg::installer::checksum_for_url(url);
+        match expected.as_deref() {
+            Some(hash) if !hash.is_empty() => {
+                let verify_cmd = format!("echo '{hash}  /tmp/download.tmp' | sha256sum -c -");
+                self.exec_in_container(container, &verify_cmd).map_err(|error| {
+                    anyhow::anyhow!("checksum verification failed for '{component}': {error}")
+                })?;
+                info!("Checksum verified for '{}' in {}", component, container);
             }
-            warn!(
-                "No SHA-256 checksum configured for '{}'; the container download is NOT verified",
-                component
-            );
-        } else {
-            let verify_cmd = format!("echo '{expected}  /tmp/download.tmp' | sha256sum -c -");
-            self.exec_in_container(container, &verify_cmd).map_err(|error| {
-                anyhow::anyhow!("checksum verification failed for '{component}': {error}")
-            })?;
-            info!("Checksum verified for '{}' in {}", component, container);
+            _ => {
+                if let Some(message) = Self::unpinned_checksum_error(
+                    component,
+                    botcorepkg::checksum::require_checksums(),
+                ) {
+                    return Err(anyhow::anyhow!(message));
+                }
+                warn!(
+                    "No SHA-256 checksum configured for '{}'; the container download is NOT verified",
+                    component
+                );
+            }
         }
         let path = std::path::Path::new(url);
         let is_tar_gz = path
@@ -354,5 +376,24 @@ fn redact_secret(command: &str, secret: &str) -> String {
         command.to_string()
     } else {
         command.replace(secret, "***")
+    }
+}
+
+#[cfg(test)]
+mod unpinned_checksum_tests {
+    use super::PackageManager;
+
+    #[test]
+    fn unpinned_checksum_fails_closed_when_required() {
+        let err = PackageManager::unpinned_checksum_error("demo", true)
+            .expect("required checksums must refuse an unpinned component");
+        assert!(err.contains("demo"));
+        assert!(err.contains("GB_REQUIRE_CHECKSUMS"));
+        assert!(err.contains("refusing to install an unverified download"));
+    }
+
+    #[test]
+    fn unpinned_checksum_is_acknowledged_when_not_required() {
+        assert!(PackageManager::unpinned_checksum_error("demo", false).is_none());
     }
 }
