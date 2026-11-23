@@ -82,6 +82,13 @@ pub(super) async fn send_via_connected_account(
     info!("Email sent via {} account: {}", creds.provider, message_id);
     Ok(format!("Email sent via {}: {}", creds.provider, message_id))
 }
+/// Strips CR/LF from a header value so a caller-supplied recipient or subject
+/// cannot inject extra MIME headers (Bcc:, Content-Type:, …) into the raw
+/// message (#2637).
+fn sanitize_header_value(value: &str) -> String {
+    value.replace(['\r', '\n'], " ").trim().to_string()
+}
+
 pub(super) async fn send_via_gmail(
     _state: &AppState,
     creds: &AccountCredentials,
@@ -91,6 +98,8 @@ pub(super) async fn send_via_gmail(
 ) -> Result<(), String> {
     let client = reqwest::Client::new();
 
+    let to = sanitize_header_value(to);
+    let subject = sanitize_header_value(subject);
     let raw_message = format!(
         "To: {}\r\nSubject: {}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n{}",
         to, subject, body
@@ -292,4 +301,27 @@ pub(super) fn extract_template_subject(content: &str) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_header_value;
+
+    #[test]
+    fn header_values_cannot_inject_extra_headers() {
+        let sanitized = sanitize_header_value("a@b.c\r\nBcc: victim@x.y");
+        assert!(!sanitized.contains('\r'));
+        assert!(!sanitized.contains('\n'));
+
+        let expression = sanitize_header_value("x\rBcc: y");
+        assert!(!expression.contains('\r'));
+        let bare_lf = sanitize_header_value("x\nBcc: y");
+        assert!(!bare_lf.contains('\n'));
+    }
+
+    #[test]
+    fn ordinary_header_values_are_preserved() {
+        assert_eq!(sanitize_header_value("  Hello  "), "Hello");
+        assert_eq!(sanitize_header_value("user@example.com"), "user@example.com");
+    }
 }

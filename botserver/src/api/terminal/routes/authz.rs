@@ -102,14 +102,11 @@ fn project_role_at_least_viewer(
             }
         }
     }
-    // Mirror the Vibe project RBAC semantics: an authenticated user with no
-    // explicit membership on the project is treated as a viewer there (the
-    // run/files endpoints resolve to the default `Viewer` role), so the
-    // Terminal must grant the same access — otherwise a user who can already
-    // Run a project's VM gets a 403 from its own companion terminal. The
-    // container is still restricted to `vm_instances` rows, so infra
-    // containers (tables, vault, system) remain unreachable.
-    Ok(true)
+    // #2730 — fail closed. An authenticated user with no membership (direct or
+    // via an active group) on the project that owns the VM gets no terminal
+    // access. The previous `Ok(true)` made every project VM in every tenant
+    // reachable by any signed-in user.
+    Ok(false)
 }
 
 fn is_viewer_or_above(role: &str) -> bool {
