@@ -8,12 +8,15 @@
 //! network I/O — the transport models a 5xx endpoint so the replay flow is
 //! reproducible without an external service.
 //!
-//! A single runtime is shared by every request through [`runtime()`]. The
-//! event/streaming handlers in `botserver` only read from it.
+//! A single runtime is shared by every request through [`runtime()`]. Its
+//! dead-letter queues and idempotency ledgers are held in per-tenant
+//! dispatchers keyed by the caller's verified org/branch, so no caller can
+//! list or replay another tenant's signed delivery. The event/streaming
+//! handlers in `botserver` only read from it.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -30,6 +33,75 @@ use super::taxonomy::OfficeEventType;
 /// runtime's two-attempt retry policy the first publish dead-letters and the
 /// replay (a later delivery for the same key) succeeds.
 const DEMO_FAILURES_BEFORE_SUCCESS: u32 = 2;
+const DEMO_WEBHOOK_URL: &str = "https://events.example.test/hook";
+
+const NIL_SCOPE_ID: &str = "00000000-0000-0000-0000-000000000000";
+
+/// The deterministic dead letter used by the admin replay walkthrough.
+fn demo_event() -> DomainEvent {
+    DomainEvent::new(
+        "evt-demo-001",
+        OfficeEventType::SheetsExported,
+        "ws_123",
+        "sheet_456",
+        "usr_789",
+    )
+    .with_tag("finance")
+    .with_metadata("title", json!("Quarterly report"))
+}
+
+/// Owner of an event pipeline: both ids come from the caller's verified JWT
+/// (or a verified session binding) in `botserver`. Strings keep this crate
+/// free of a UUID dependency; the server passes canonical UUID text.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EventTenantScope {
+    org_id: String,
+    branch_id: String,
+}
+
+impl EventTenantScope {
+    /// Builds a scope only when both identifiers are present and non-nil.
+    /// Missing scope must never degrade into a global queue (fail closed).
+    #[must_use]
+    pub fn new(org_id: impl Into<String>, branch_id: impl Into<String>) -> Option<Self> {
+        let scope = Self {
+            org_id: org_id.into(),
+            branch_id: branch_id.into(),
+        };
+        scope.is_valid().then_some(scope)
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        is_scope_id(&self.org_id) && is_scope_id(&self.branch_id)
+    }
+}
+
+fn is_scope_id(id: &str) -> bool {
+    !id.trim().is_empty() && id == id.trim() && id != NIL_SCOPE_ID
+}
+
+/// Pure tenant-ownership predicate (issue #2825). A caller may touch a
+/// record only when both identities are valid and exactly equal. No I/O, so
+/// the two-tenant rule is unit-testable without a server.
+fn scope_owns(owner: &EventTenantScope, caller: &EventTenantScope) -> bool {
+    owner.is_valid() && caller.is_valid() && owner == caller
+}
+
+/// Compatibility scope for the unscoped offline API used by contract tests.
+/// No HTTP handler may use it; production callers must supply `new(...)`.
+fn legacy_scope() -> EventTenantScope {
+    EventTenantScope {
+        org_id: "legacy-org".to_string(),
+        branch_id: "legacy-branch".to_string(),
+    }
+}
+
+/// One tenant's isolated dispatcher plus the scope that owns it.
+struct TenantRuntime {
+    scope: EventTenantScope,
+    dispatcher: WebhookDispatcher,
+}
 
 /// Deterministic transport for the admin/event surface. Failures are counted
 /// per idempotency key (the `X-GB-Delivery` header), so a publish exhausts its
@@ -171,8 +243,12 @@ pub struct ReplayResult {
 }
 
 /// The process-wide event runtime shared by every HTTP/WS handler.
+///
+/// Each tenant's dead-letter queue and idempotency ledger live in their own
+/// dispatcher. The map is keyed by the verified org/branch scope, so a caller
+/// cannot even address another tenant's queue by guessing a key.
 pub struct OfficeEventsRuntime {
-    dispatcher: WebhookDispatcher,
+    tenants: Mutex<HashMap<EventTenantScope, Arc<TenantRuntime>>>,
     stream: OfficeEventStream,
     sequence: AtomicU64,
 }
@@ -186,21 +262,44 @@ impl Default for OfficeEventsRuntime {
 impl OfficeEventsRuntime {
     #[must_use]
     pub fn new() -> Self {
-        let transport = Arc::new(DemoTransport::new(DEMO_FAILURES_BEFORE_SUCCESS));
-        let dispatcher = WebhookDispatcher::new(transport, Arc::new(DenyAllContent))
-            .with_retry(RetryPolicy::new(2, 1, 1, 1));
-        // The suite automation consumes this in-platform queue; no HTTP hook.
-        dispatcher.native().subscribe(NativeSubscription::new(
-            "sub-suite-automation",
-            "default",
-        ));
         let runtime = Self {
-            dispatcher,
+            tenants: Mutex::new(HashMap::new()),
             stream: OfficeEventStream::new(),
             sequence: AtomicU64::new(1),
         };
-        runtime.seed_demo_dead_letter();
+        // Unscoped compatibility surface (offline contract tests only).
+        runtime.register_tenant(Arc::new(new_tenant_runtime(&legacy_scope())));
+        runtime.publish(&demo_event(), Some(DEMO_WEBHOOK_URL));
         runtime
+    }
+
+    fn tenants(&self) -> MutexGuard<'_, HashMap<EventTenantScope, Arc<TenantRuntime>>> {
+        self.tenants
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn tenant(&self, scope: &EventTenantScope) -> Option<Arc<TenantRuntime>> {
+        if !scope.is_valid() {
+            return None;
+        }
+        self.tenants().get(scope).cloned()
+    }
+
+    fn register_tenant(&self, tenant: Arc<TenantRuntime>) {
+        self.tenants().insert(tenant.scope.clone(), tenant);
+    }
+
+    fn tenant_or_create(&self, scope: &EventTenantScope) -> Arc<TenantRuntime> {
+        if let Some(tenant) = self.tenant(scope) {
+            return tenant;
+        }
+        let tenant = Arc::new(new_tenant_runtime(scope));
+        self.register_tenant(Arc::clone(&tenant));
+        // Each tenant sees the same seeded demo letter; the already-registered
+        // scope makes this a normal publish, not a recursive tenant creation.
+        self.publish_scoped(scope, &demo_event(), Some(DEMO_WEBHOOK_URL));
+        tenant
     }
 
     #[must_use]
@@ -216,23 +315,33 @@ impl OfficeEventsRuntime {
         format!("evt-live-{}-{}", Utc::now().timestamp_millis(), sequence)
     }
 
-    /// Publishes one event to webhook subscribers (when a URL is supplied)
-    /// and to the native queue, mirroring envelopes into the browser stream.
-    pub fn publish(&self, event: &DomainEvent, webhook_url: Option<&str>) -> DispatchReport {
+    /// Publishes one event into the caller's tenant dispatcher (webhooks when
+    /// a URL is supplied, plus the native queue mirrored into the stream).
+    /// An invalid scope performs no delivery at all.
+    pub fn publish_scoped(
+        &self,
+        scope: &EventTenantScope,
+        event: &DomainEvent,
+        webhook_url: Option<&str>,
+    ) -> DispatchReport {
+        if !scope.is_valid() {
+            return DispatchReport::default();
+        }
+        let tenant = self.tenant_or_create(scope);
         if let Some(url) = webhook_url {
             let id = format!("sub-{}", event.event_id);
-            if !self.dispatcher.subscriptions().iter().any(|s| s.id == id) {
+            if !tenant.dispatcher.subscriptions().iter().any(|s| s.id == id) {
                 // Per-publish secret, derived at runtime — no credential is
                 // embedded in source or shared across deliveries.
                 let secret = format!("demo-signing-{}", Utc::now().timestamp_millis());
-                self.dispatcher.add_subscription(
+                tenant.dispatcher.add_subscription(
                     WebhookSubscription::new(id, url, "runtime-key", secret)
                         .with_event_types(vec![event.event_type]),
                 );
             }
         }
-        let mut report = self.dispatcher.publish_webhooks(event);
-        let envelopes = self.dispatcher.native().publish_and_collect(event);
+        let mut report = tenant.dispatcher.publish_webhooks(event);
+        let envelopes = tenant.dispatcher.native().publish_and_collect(event);
         for envelope in &envelopes {
             self.stream.push(envelope.clone());
         }
@@ -240,9 +349,21 @@ impl OfficeEventsRuntime {
         report
     }
 
+    /// Unscoped compatibility surface for offline contract tests. HTTP
+    /// handlers must use `publish_scoped` with a verified tenant scope.
+    pub fn publish(&self, event: &DomainEvent, webhook_url: Option<&str>) -> DispatchReport {
+        self.publish_scoped(&legacy_scope(), event, webhook_url)
+    }
+
+    /// Lists only the dead letters owned by the verified tenant. An unknown or
+    /// unresolvable scope sees nothing (fail closed).
     #[must_use]
-    pub fn dead_letters(&self) -> Vec<DeadLetterView> {
-        self.dispatcher
+    pub fn dead_letters_scoped(&self, scope: &EventTenantScope) -> Vec<DeadLetterView> {
+        let Some(tenant) = self.tenant(scope) else {
+            return Vec::new();
+        };
+        tenant
+            .dispatcher
             .dlq()
             .list()
             .iter()
@@ -250,25 +371,49 @@ impl OfficeEventsRuntime {
             .collect()
     }
 
-    /// Replays a dead letter. A key already recorded in the ledger returns the
-    /// stored receipt with `deduped: true` and performs no delivery.
-    pub fn replay(&self, idempotency_key: &str) -> Result<ReplayResult, ReplayError> {
-        let deduped = self.dispatcher.ledger().contains(idempotency_key);
-        let receipt = self.dispatcher.replay(idempotency_key)?;
+    #[must_use]
+    pub fn dead_letters(&self) -> Vec<DeadLetterView> {
+        self.dead_letters_scoped(&legacy_scope())
+    }
+
+    /// Replays a dead letter owned by the verified tenant. A key from a
+    /// foreign tenant, an unknown key or a missing scope is indistinguishable
+    /// from "not found" — no other tenant's subscription URL is ever touched.
+    pub fn replay_scoped(
+        &self,
+        scope: &EventTenantScope,
+        idempotency_key: &str,
+    ) -> Result<ReplayResult, ReplayError> {
+        let Some(tenant) = self.tenant(scope) else {
+            return Err(ReplayError::NotFound);
+        };
+        if !scope_owns(&tenant.scope, scope) {
+            return Err(ReplayError::NotFound);
+        }
+        let deduped = tenant.dispatcher.ledger().contains(idempotency_key);
+        let receipt = tenant.dispatcher.replay(idempotency_key)?;
         Ok(ReplayResult { receipt, deduped })
     }
 
-    fn seed_demo_dead_letter(&self) {
-        let event = DomainEvent::new(
-            "evt-demo-001",
-            OfficeEventType::SheetsExported,
-            "ws_123",
-            "sheet_456",
-            "usr_789",
-        )
-        .with_tag("finance")
-        .with_metadata("title", json!("Quarterly report"));
-        self.publish(&event, Some("https://events.example.test/hook"));
+    /// Unscoped compatibility surface for offline contract tests.
+    pub fn replay(&self, idempotency_key: &str) -> Result<ReplayResult, ReplayError> {
+        self.replay_scoped(&legacy_scope(), idempotency_key)
+    }
+}
+
+/// Builds a dispatcher with its own retry policy and native subscription.
+/// Per-tenant state never crosses this boundary.
+fn new_tenant_runtime(scope: &EventTenantScope) -> TenantRuntime {
+    let transport = Arc::new(DemoTransport::new(DEMO_FAILURES_BEFORE_SUCCESS));
+    let dispatcher = WebhookDispatcher::new(transport, Arc::new(DenyAllContent))
+        .with_retry(RetryPolicy::new(2, 1, 1, 1));
+    // The suite automation consumes this in-platform queue; no HTTP hook.
+    dispatcher
+        .native()
+        .subscribe(NativeSubscription::new("sub-suite-automation", "default"));
+    TenantRuntime {
+        scope: scope.clone(),
+        dispatcher,
     }
 }
 
@@ -283,3 +428,7 @@ pub fn runtime() -> &'static OfficeEventsRuntime {
 #[cfg(test)]
 #[path = "runtime_tests.rs"]
 mod runtime_tests;
+
+#[cfg(test)]
+#[path = "runtime_tenant_tests.rs"]
+mod runtime_tenant_tests;

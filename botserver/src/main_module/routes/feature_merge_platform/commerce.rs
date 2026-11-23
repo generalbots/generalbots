@@ -2,7 +2,7 @@
 //! learn, meet, billing, SaaS and Office event-stream router merges.
 
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{Query, WebSocketUpgrade};
+use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
 use axum::response::IntoResponse;
@@ -10,13 +10,15 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use botcore::shared::state::AppState;
 use botevents::office::runtime::runtime;
-use botevents::{DeadLetterView, DomainEvent, NativeEnvelope, OfficeEventType, ReplayError};
+use botevents::{DomainEvent, NativeEnvelope, OfficeEventType, ReplayError};
 use serde::Deserialize;
 use serde_json::json;
 use std::convert::Infallible;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
+
+use super::events_scope::caller_scope;
 
 type NativeEventStream = Pin<Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>>;
 
@@ -95,13 +97,28 @@ struct StreamQuery {
 }
 
 /// `GET /api/events/dead-letters` — privacy-safe DLQ summary for the admin UI.
-async fn list_dead_letters() -> Json<Vec<DeadLetterView>> {
-    Json(runtime().dead_letters())
+/// Only dead letters owned by the caller's verified org/branch are returned.
+async fn list_dead_letters(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    let Some(scope) = caller_scope(&headers, &state) else {
+        return error_json(StatusCode::NOT_FOUND, "not_found");
+    };
+    Json(runtime().dead_letters_scoped(&scope)).into_response()
 }
 
-/// `POST /api/events/replay` — exactly-once replay by idempotency key.
-async fn replay_dead_letter(Json(request): Json<ReplayRequest>) -> axum::response::Response {
-    match runtime().replay(&request.idempotency_key) {
+/// `POST /api/events/replay` — exactly-once replay by idempotency key, limited
+/// to a dead letter in the caller's own tenant.
+async fn replay_dead_letter(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<ReplayRequest>,
+) -> axum::response::Response {
+    let Some(scope) = caller_scope(&headers, &state) else {
+        return error_json(StatusCode::NOT_FOUND, "not_found");
+    };
+    match runtime().replay_scoped(&scope, &request.idempotency_key) {
         Ok(result) => (
             StatusCode::OK,
             Json(json!({
@@ -116,9 +133,7 @@ async fn replay_dead_letter(Json(request): Json<ReplayRequest>) -> axum::respons
         )
             .into_response(),
         Err(ReplayError::NotFound) => error_json(StatusCode::NOT_FOUND, "not_found"),
-        Err(ReplayError::SubscriptionGone) => {
-            error_json(StatusCode::CONFLICT, "subscription_gone")
-        }
+        Err(ReplayError::SubscriptionGone) => error_json(StatusCode::CONFLICT, "subscription_gone"),
         Err(ReplayError::DeliveryFailed(message)) => (
             StatusCode::BAD_GATEWAY,
             Json(crate::security::error_sanitizer::log_and_sanitize_json(
@@ -133,16 +148,23 @@ async fn replay_dead_letter(Json(request): Json<ReplayRequest>) -> axum::respons
 
 /// `POST /api/events/publish` — emits one metadata-only event into the
 /// dispatcher. Clients never supply content or an event id.
-async fn publish_event(Json(request): Json<PublishRequest>) -> axum::response::Response {
+async fn publish_event(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<PublishRequest>,
+) -> axum::response::Response {
+    // The event is written into the caller's own pipeline so its dead letters
+    // and ledger entry are owned by the same verified tenant (issue #2825).
+    let Some(scope) = caller_scope(&headers, &state) else {
+        return error_json(StatusCode::NOT_FOUND, "not_found");
+    };
     let Some(name) = OfficeEventType::from_name(canonical_type(&request.event_type)) else {
         return error_json(StatusCode::BAD_REQUEST, "unknown_event_type");
     };
     let event = DomainEvent::new(
         runtime().next_event_id(),
         name,
-        request
-            .workspace_id
-            .unwrap_or_else(|| "ws_123".to_string()),
+        request.workspace_id.unwrap_or_else(|| "ws_123".to_string()),
         request.doc_id.unwrap_or_else(|| "doc_456".to_string()),
         request.actor_id.unwrap_or_else(|| "usr_789".to_string()),
     );
@@ -153,7 +175,7 @@ async fn publish_event(Json(request): Json<PublishRequest>) -> axum::response::R
         )
             .into_response();
     }
-    let report = runtime().publish(&event, request.webhook_url.as_deref());
+    let report = runtime().publish_scoped(&scope, &event, request.webhook_url.as_deref());
     (
         StatusCode::OK,
         Json(json!({
@@ -205,13 +227,10 @@ async fn stream_events(
                     Some(envelope) => envelope,
                     None => continue,
                 };
-                if !types.is_empty()
-                    && !types.iter().any(|name| name == &envelope.event_type)
-                {
+                if !types.is_empty() && !types.iter().any(|name| name == &envelope.event_type) {
                     continue;
                 }
-                let data =
-                    serde_json::to_string(&envelope).unwrap_or_else(|_| "{}".to_string());
+                let data = serde_json::to_string(&envelope).unwrap_or_else(|_| "{}".to_string());
                 let event = SseEvent::default().event("native").data(data);
                 return Some((Ok(event), (cursor, types, pending)));
             }
@@ -276,10 +295,21 @@ fn merge_events_router(api_router: &mut Router<Arc<AppState>>) {
     let require_auth = axum::middleware::from_fn(
         crate::security::botsecurity_auth::auth_api::middleware::require_auth_middleware,
     );
+    let require_admin =
+        axum::middleware::from_fn(crate::security::rbac_middleware::require_admin_middleware);
+    // Dead-letter inspection and replay are admin-only: the DLQ carries
+    // subscription URLs and replay causes a real delivery (issue #2825).
+    // `require_auth` is layered last so it runs first and populates the
+    // AuthenticatedUser extension the admin middleware checks.
     *api_router = api_router.clone().merge(
         Router::new()
             .route("/api/events/dead-letters", get(list_dead_letters))
             .route("/api/events/replay", post(replay_dead_letter))
+            .layer(require_admin)
+            .layer(require_auth.clone()),
+    );
+    *api_router = api_router.clone().merge(
+        Router::new()
             .route("/api/events/publish", post(publish_event))
             .layer(require_auth),
     );

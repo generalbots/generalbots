@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 mod channels;
 mod commerce;
+mod events_scope;
 mod governance;
 #[cfg(any(
     feature = "vibe",
