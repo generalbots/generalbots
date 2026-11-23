@@ -29,6 +29,21 @@ pub(crate) async fn get_server_capacity(
     }))
 }
 
+/// #2669 — the only source of persisted checkout amounts: the server catalog.
+/// Client payload values are deliberately not parameters of this function.
+fn server_price_for_plan(plan: &str) -> Option<(f64, String)> {
+    let config = botbilling::default_product_config();
+    let plan = config.plans.get(plan)?;
+    let price = match &plan.price {
+        botbilling::PlanPrice::Fixed { amount, currency, .. } => {
+            (*amount as f64 / 100.0, currency.clone())
+        }
+        botbilling::PlanPrice::Free
+        | botbilling::PlanPrice::Custom => (0.0, "usd".to_string()),
+    };
+    Some(price)
+}
+
 /// `POST /api/cloud/checkout`
 ///
 /// Creates invoice in billing + contact/deal in CRM + Stripe session.
@@ -56,8 +71,12 @@ pub(crate) async fn handle_checkout(
     let customer_name = body.organization_name.clone()
         .unwrap_or_else(|| format!("{} Customer", payload.plan));
 
-    let total_cents = (payload.total * 100.0) as u64;
-    let total_value = total_cents as f64;
+    // #2669 — resolve the plan from the server catalog FIRST. `payload.total`
+    // and `payload.currency` are client-controlled and must never reach an
+    // invoice, GL entry or subscription amount. Stripe charges by `price_id`
+    // (= payload.plan), which this same catalog lookup validates.
+    let (total_value, server_currency) = server_price_for_plan(&payload.plan)
+        .ok_or_else(|| (StatusCode::BAD_REQUEST, format!("Plan '{}' not found", payload.plan)))?;
     let invoice_id = Uuid::new_v4();
     let invoice_number = botbilling::api_models::generate_invoice_number(&mut conn, effective_branch_id);
 
@@ -79,7 +98,7 @@ pub(crate) async fn handle_checkout(
         total: botbilling::api_models::bd(total_value),
         amount_paid: botbilling::api_models::bd(0.0),
         amount_due: botbilling::api_models::bd(total_value),
-        currency: payload.currency.clone(),
+        currency: server_currency.clone(),
         notes: Some(format!("SaaS: plan={}, period={}, storage={}GB", payload.plan, payload.period, payload.storage)),
         terms: None, footer: None, paid_at: None, sent_at: None, voided_at: None,
         created_at: now, updated_at: now,
@@ -110,7 +129,7 @@ pub(crate) async fn handle_checkout(
 
     // --- Notification: invoice generated ---
     let mut vars = notifier::EmailVars::new(
-        &customer_name, &customer_email, &payload.plan, total_value, &payload.currency,
+        &customer_name, &customer_email, &payload.plan, total_value, &server_currency,
     )
     .with_locale(notifier::recipient_locale(body.locale.as_deref()));
     vars.invoice_id = invoice_id.to_string();
@@ -136,7 +155,7 @@ pub(crate) async fn handle_checkout(
         invoice_id,
         &format!("Assinatura {} - {}", payload.plan, customer_name),
         total_value,
-        &payload.currency,
+        &server_currency,
     )
     .map_err(|e| {
         tracing::warn!("CRM deal creation failed (non-fatal): {e}");
@@ -164,11 +183,13 @@ pub(crate) async fn handle_checkout(
     )
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Stripe customer mapping: {e}")))?;
 
-    let plan_config = botbilling::default_product_config();
-    let plan = plan_config.plans.get(&payload.plan)
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, format!("Plan '{}' not found", payload.plan)))?;
-
     let cancel_url = format!("{}/cloud/checkout/cancel", service.config.base_url);
+    // Server catalog, never client input — same lookup that validated the plan.
+    let plan = botbilling::default_product_config()
+        .plans
+        .get(&payload.plan)
+        .ok_or_else(|| (StatusCode::BAD_REQUEST, format!("Plan '{}' not found", payload.plan)))?
+        .clone();
 
     let session = service.stripe
         .create_checkout_session(
@@ -300,4 +321,20 @@ pub(crate) fn directory_token_from_vault() -> Option<String> {
     rx.recv_timeout(std::time::Duration::from_secs(5))
         .ok()
         .flatten()
+}
+
+#[cfg(test)]
+mod checkout_price_tests {
+    use super::server_price_for_plan;
+
+    #[test]
+    fn tampered_client_total_cannot_change_persisted_amount() {
+        // The helper takes only a plan id — there is no parameter through which
+        // a client-supplied `payload.total` / `payload.currency` could flow.
+        let (price, currency) = server_price_for_plan("shared").expect("catalog plan");
+        assert_eq!(price, 3.99);
+        assert_eq!(currency, "usd");
+        assert_eq!(server_price_for_plan("free").map(|p| p.0), Some(0.0));
+        assert!(server_price_for_plan("does-not-exist").is_none());
+    }
 }
