@@ -1,14 +1,17 @@
 use super::*;
 
-/// `POST /api/cloud/auth/signup`
-///
-/// Creates organization in DB + contact in CRM, returning the IDs.
-/// Same trust model as `botcoredirectory::client::is_private_host`: an
-/// internal deployment talks to the directory service over plain http on a
-/// private network (container-to-container, e.g. http://10.0.0.x). Signup
-/// must not skip identity creation in that topology — it did once and left
-/// new organizations with logins that could never succeed. Only passwords to
-/// PUBLIC hosts over plain http are refused.
+/// #2811 — only the IdP's verified-email echo for this exact address may mark
+/// a signup verified; a client-supplied flag or a missing echo never does.
+pub(super) fn signup_email_verified(idp_verified_email: Option<&str>, signup_email: &str) -> bool {
+    match idp_verified_email {
+        Some(verified) => verified.trim().eq_ignore_ascii_case(signup_email.trim()),
+        None => false,
+    }
+}
+
+/// `POST /api/cloud/auth/signup` — creates the org + CRM contact and returns IDs.
+/// Plain http is allowed only for private/internal directory hosts; public-host
+/// http is refused so identities are never silently skipped.
 pub(crate) async fn handle_signup(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<SignupBody>,
@@ -220,6 +223,8 @@ pub(crate) async fn handle_signup(
     }
 
     // 10. Create identity in directory (Zitadel) if configured (non-fatal — outside tx)
+    // #2811 — signup never trusts a client flag; only an IdP echo can verify.
+    let mut idp_verified_email: Option<String> = None;
     if let (Some(dir_url), Some(dir_token)) = (&service.config.directory_api_url, &service.config.directory_service_token) {
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
@@ -251,12 +256,10 @@ pub(crate) async fn handle_signup(
                 .json(&serde_json::json!({
                     "userName": &body.email,
                     "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
-                    // Zitadel v1 proto field is isEmailVerified — "isVerified" was
-                    // silently dropped, leaving the user uninitialized with an init
-                    // code: the follow-up password set failed with
-                    // "User is not yet initialized (COMMAND-M9dse)" and the account
-                    // could never log in (#1365).
-                    "email": { "email": &body.email, "isEmailVerified": true },
+                    // Zitadel v1 field is isEmailVerified (#1365). #2811: signup
+                    // NEVER asserts a verified address — leave it false so the IdP's
+                    // real verification flow must complete before a session exists.
+                    "email": { "email": &body.email, "isEmailVerified": false },
                     "password": body.password.as_deref().unwrap_or(""),
                 }));
             if let Some(host) = &service.config.directory_external_domain {
@@ -267,6 +270,10 @@ pub(crate) async fn handle_signup(
             match create_resp {
                 Ok(resp) if resp.status().is_success() => {
                     if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        // #2811 — only the IdP's own verdict is a trusted signal.
+                        idp_verified_email = data.get("verifiedEmail")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_owned);
                         if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
                             // Provision the local users row immediately so the
                             // first login resolves a stable subject (#1365).
@@ -283,9 +290,10 @@ pub(crate) async fn handle_signup(
                                 let mut pw_req = client
                                     .post(format!("{dir_url}/management/v1/users/{user_id}/password"))
                                     .header("Authorization", format!("Bearer {dir_token}"))
+                                    // #2811 — no `noVerification`: the IdP's own
+                                    // verification state must be respected.
                                     .json(&serde_json::json!({
-                                        "password": password,
-                                        "noVerification": true
+                                        "password": password
                                     }));
                                 if let Some(host) = &service.config.directory_external_domain {
                                     pw_req = pw_req.header("Host", host);
@@ -382,26 +390,24 @@ pub(crate) async fn handle_signup(
         &body.name, &body.email, &chosen_plan, 0.0, "USD",
     ).with_locale(notifier::recipient_locale(body.locale.as_deref())));
 
-    let header = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-    let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();
-    // #2631 — signup mints a session JWT too; it must carry a jti so logout
-    // can revoke it through the shared blacklist just like a login token.
-    let jti = botsecurity_auth::jwt::revocation::generate_jti();
-    let payload = base64_url_encode(
-        format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"bucket\":\"{}.gborg\",\"exp\":{},\"jti\":\"{}\"}}",
-            new_bot_id, body.email, org_id, branch_id, new_bot_id, org_slug, now_ts, jti,
-        ).as_bytes()
-    );
-    let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    // Store the JWT in the global session cache so /api/auth/me recognizes it.
-    // Persist to login_sessions so the session survives botserver restarts.
-    {
-        use botcoredirectory::auth_routes::{SESSION_CACHE, persist_session};
-        let mut cache = SESSION_CACHE.write().await;
-        let session_user = botcoredirectory::auth_routes::SessionUserData {
+    // #2811 — a new signup is UNVERIFIED. Only a trusted IdP verified-email
+    // echo for this exact address may issue a session; a forged client flag or
+    // missing signal MUST NOT. Verify with the IdP, then call /api/cloud/auth/login.
+    let verified = signup_email_verified(idp_verified_email.as_deref(), &body.email);
+    let token = if verified {
+        let header = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+        let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();
+        let jti = botsecurity_auth::jwt::revocation::generate_jti();
+        let payload = base64_url_encode(
+            format!(
+                "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"bucket\":\"{}.gborg\",\"exp\":{},\"jti\":\"{}\"}}",
+                new_bot_id, body.email, org_id, branch_id, new_bot_id, org_slug, now_ts, jti,
+            ).as_bytes()
+        );
+        let signed = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData, persist_session};
+        let session_user = SessionUserData {
             user_id: new_bot_id.to_string(),
             email: body.email.clone(),
             username: bot_name.clone(),
@@ -413,12 +419,17 @@ pub(crate) async fn handle_signup(
             bucket: Some(format!("{}.gborg", org_slug)),
             created_at: chrono::Utc::now().timestamp(),
         };
-        cache.insert(token.clone(), session_user.clone());
-        persist_session(&token, &session_user);
-    }
+        SESSION_CACHE.write().await.insert(signed.clone(), session_user.clone());
+        persist_session(&signed, &session_user);
+        Some(signed)
+    } else {
+        tracing::info!("signup: {} is unverified — no session JWT issued", body.email);
+        None
+    };
 
     Ok(Json(serde_json::json!({
         "status": "ok",
+        "verification_required": !verified,
         "account": { "email": body.email, "name": body.name },
         "org_id": org_id,
         "branch_id": branch_id,
@@ -431,3 +442,7 @@ pub(crate) async fn handle_signup(
         "token": token,
     })))
 }
+
+#[cfg(test)]
+#[path = "signup_tests.rs"]
+mod signup_tests;
