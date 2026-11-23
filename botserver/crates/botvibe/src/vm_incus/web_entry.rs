@@ -32,6 +32,79 @@ pub(crate) fn python_entry_of(path: &str) -> Option<&str> {
     }
 }
 
+/// #2655 — only a relative, single-line path made of safe characters may be
+/// interpolated into `ExecStart`. Newlines or systemd specifiers would let a
+/// project manifest add arbitrary directives to the unit.
+pub(crate) fn is_safe_entry(entry: &str) -> bool {
+    !entry.is_empty()
+        && !entry.starts_with('/')
+        && entry
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-'))
+}
+
+/// Fail before provisioning when a project manifest declares an unsafe entry.
+pub(crate) fn validate_manifest_entries(files: &[serde_json::Value]) -> Result<(), String> {
+    for file in files {
+        if file.get("path").and_then(|v| v.as_str()) != Some("package.json") {
+            continue;
+        }
+        let Some(content) = file.get("content").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        let bytes: Vec<u8> = content
+            .iter()
+            .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
+            .collect();
+        let Ok(manifest) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+            continue;
+        };
+        let candidates = [
+            manifest.get("main").and_then(|v| v.as_str()),
+            manifest
+                .get("scripts")
+                .and_then(|s| s.get("start"))
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.strip_prefix("node ")),
+        ];
+        for entry in candidates.into_iter().flatten() {
+            if !is_safe_entry(entry) {
+                return Err(format!(
+                    "package.json declares an unsafe web entry ({}); refusing to generate a systemd unit",
+                    entry.chars().take(32).collect::<String>()
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod entry_validation_tests {
+    use super::{is_safe_entry, validate_manifest_entries};
+    use serde_json::json;
+
+    #[test]
+    fn rejects_directive_injection_and_absolute_paths() {
+        assert!(is_safe_entry("dist/index.js"));
+        assert!(is_safe_entry("src/server.js"));
+        assert!(!is_safe_entry("dist/index.js\n[Service]\nUser=root"));
+        assert!(!is_safe_entry("/etc/passwd"));
+        assert!(!is_safe_entry("index.js; curl evil"));
+        assert!(!is_safe_entry("index.js%"));
+    }
+
+    #[test]
+    fn malicious_manifest_is_refused() {
+        let bytes = br#"{"main":"index.js\n[Service]\nUser=root"}"#;
+        let file = json!({
+            "path": "package.json",
+            "content": bytes.iter().map(|b| *b as u64).collect::<Vec<_>>(),
+        });
+        assert!(validate_manifest_entries(std::slice::from_ref(&file)).is_err());
+    }
+}
+
 pub(crate) fn resolve_web_entry(files: &[serde_json::Value]) -> WebEntry {
     let has_index_js = files.iter().any(|f| {
         f.get("path")
@@ -69,7 +142,7 @@ pub(crate) fn resolve_web_entry(files: &[serde_json::Value]) -> WebEntry {
             .and_then(|s| s.get("start"))
             .and_then(|v| v.as_str())
             .and_then(|s| s.strip_prefix("node ").map(str::to_string));
-        main.or(start)
+        main.or(start).filter(|entry| is_safe_entry(entry))
     });
     let has_node_entry = has_index_js || has_server_js || declared_entry.is_some();
     let python_entry = files
