@@ -7,6 +7,7 @@ use axum::{
     http::{header, HeaderValue},
     response::{Html, IntoResponse, Response},
 };
+use botcoreoauth::RedirectPolicy;
 
 /// Token handoff page shared by the JWT and opaque-session paths.
 pub(super) fn sso_html(token: &str, redirect: &str) -> String {
@@ -68,25 +69,38 @@ pub(super) fn session_cookie(token: String, html: Html<String>) -> Response {
 }
 
 pub(super) fn sanitize_redirect(url: &str) -> String {
-    // Only allow relative paths or same-origin absolute URLs
-    let forbidden = |s: &str| {
-        s.contains('"')
-            || s.contains('\'')
-            || s.contains('\\')
-            || s.contains('<')
-            || s.contains('>')
-            || s.contains('\n')
-            || s.contains('\r')
+    // #2813 — the old code accepted any parseable absolute http(s) URL, so a
+    // foreign host passed despite the "same-origin" comment. Delegate to the
+    // shared RedirectPolicy: it rejects `//host` protocol-relative inputs,
+    // control characters and any absolute URL whose host is not the deployment
+    // host (GB_LOGIN_URL) or an explicitly configured allowlist entry.
+    let policy = match std::env::var("GB_LOGIN_URL") {
+        Ok(base) if !base.trim().is_empty() => {
+            RedirectPolicy::from_base_url(&base).with_env_allowlist()
+        }
+        _ => RedirectPolicy::default().with_env_allowlist(),
     };
-    let is_relative = url.starts_with('/');
-    let is_absolute_with_host = (url.starts_with("http://") || url.starts_with("https://"))
-        && url::Url::parse(url)
-            .map(|u| u.host_str().is_some())
-            .unwrap_or(false);
-    if (is_relative || is_absolute_with_host) && !forbidden(url) {
-        url.to_string()
-    } else {
-        "/".to_string()
+    policy.sanitize(Some(url))
+}
+
+#[cfg(test)]
+mod redirect_tests {
+    use super::sanitize_redirect;
+
+    #[test]
+    fn foreign_absolute_and_protocol_relative_redirects_are_rejected() {
+        // No GB_LOGIN_URL / allowlist in the test env: only relative paths pass.
+        for hostile in [
+            "https://evil.example/steal",
+            "http://evil.example:8080/x",
+            "//evil.example/x",
+            "///evil.example/x",
+            "/\\evil.example",
+            "javascript:alert(1)",
+        ] {
+            assert_eq!(sanitize_redirect(hostile), "/", "hostile: {hostile}");
+        }
+        assert_eq!(sanitize_redirect("/drive"), "/drive");
     }
 }
 
