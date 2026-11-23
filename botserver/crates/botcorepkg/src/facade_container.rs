@@ -256,13 +256,24 @@ pub fn create_container_service(
         .replace("{{DATA_PATH}}", "/opt/gbo/data")
         .replace("{{CONF_PATH}}", "/opt/gbo/conf")
         .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
+    // #2763 — resolve the Zitadel role password once per install (Vault seed
+    // or explicit env), never leave the fixed installer literal in the unit.
+    let zitadel_password = if env_vars.values().any(|value| value.contains("{{ZITADEL_PASSWORD}}")) {
+        std::env::var("ZITADEL_DB_PASSWORD").ok()
+            .filter(|value| !value.is_empty())
+            .or_else(|| crate::db_utils::get_secret_value_sync("secret/gbo/directory", "db_password").ok())
+            .unwrap_or_else(|| crate::generate_random_string(32))
+    } else {
+        String::new()
+    };
     let mut env_section = String::new();
     for (key, value) in env_vars {
         let rendered_value = value
             .replace("{{DATA_PATH}}", "/opt/gbo/data")
             .replace("{{BIN_PATH}}", "/opt/gbo/bin")
             .replace("{{CONF_PATH}}", "/opt/gbo/conf")
-            .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
+            .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
+            .replace("{{ZITADEL_PASSWORD}}", &zitadel_password);
         let _ = writeln!(env_section, "Environment={key}={rendered_value}");
     }
     let service_content = format!(

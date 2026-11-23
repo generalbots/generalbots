@@ -1,5 +1,35 @@
 use super::*;
 
+/// #2763 — resolve the Zitadel role password: explicit operator env, else the
+/// random value seeded in Vault, else a fresh random value for this run.
+fn resolve_zitadel_password(from_env: Option<String>, from_vault: Option<String>) -> String {
+    from_env
+        .filter(|value| !value.is_empty())
+        .or_else(|| from_vault.filter(|value| !value.is_empty()))
+        .unwrap_or_else(|| crate::generate_random_string(32))
+}
+
+#[cfg(test)]
+mod zitadel_password_tests {
+    use super::resolve_zitadel_password;
+
+    #[test]
+    fn never_uses_a_fixed_literal() {
+        assert_eq!(
+            resolve_zitadel_password(Some("from-env".to_string()), Some("from-vault".to_string())),
+            "from-env"
+        );
+        assert_eq!(
+            resolve_zitadel_password(None, Some("from-vault".to_string())),
+            "from-vault"
+        );
+        let first = resolve_zitadel_password(None, None);
+        let second = resolve_zitadel_password(None, None);
+        assert_ne!(first, second);
+        assert_ne!(first, "zitadel");
+    }
+}
+
 pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, name: &str) -> Result<()> {
     #[cfg(target_os = "windows")]
     let name = if !name.ends_with(".exe") {
@@ -77,6 +107,14 @@ pub fn run_commands_with_password(
             }
         }
     };
+    let zitadel_password = if commands.iter().any(|cmd| cmd.contains("{{ZITADEL_PASSWORD}}")) {
+        resolve_zitadel_password(
+            std::env::var("ZITADEL_DB_PASSWORD").ok(),
+            crate::db_utils::get_secret_value_sync("secret/gbo/directory", "db_password").ok(),
+        )
+    } else {
+        String::new()
+    };
     for cmd in commands {
         let rendered_cmd = cmd
             .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -85,7 +123,8 @@ pub fn run_commands_with_password(
             .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
             .replace("{{STACK_PATH}}", &base_path.to_string_lossy())
             .replace("{{DATA_PATH_FWD}}", &data_path.to_string_lossy().replace('\\', "/"))
-            .replace("{{DB_PASSWORD}}", &db_password);
+            .replace("{{DB_PASSWORD}}", &db_password)
+            .replace("{{ZITADEL_PASSWORD}}", &zitadel_password);
         if target == "local" {
             trace!("Executing command: {}", rendered_cmd);
             #[cfg(target_os = "windows")]
