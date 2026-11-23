@@ -348,9 +348,14 @@ impl PackageManager {
             "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
             component, env_section, rendered_cmd
         );
-        let service_file = format!("/tmp/{}.service", component);
-        std::fs::write(&service_file, &service_content)?;
+        // #2616 — private unpredictable staging, no predictable /tmp name.
+        let service_name = format!("{component}.service");
+        let staged = crate::package_manager::safe_staging::StagedFile::create(
+            &service_name,
+            service_content.as_bytes(),
+        )?;
         let dest = format!("{container}/etc/systemd/system/{component}.service");
+        let service_file = staged.as_path().to_string_lossy().to_string();
         let output = safe_incus(&["file", "push", &service_file, &dest])
             .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc file push command"))?;
         if !output.status.success() {
@@ -359,7 +364,7 @@ impl PackageManager {
         self.exec_in_container(container, "systemctl daemon-reload")?;
         self.exec_in_container(container, &format!("systemctl enable {}", component))?;
         self.exec_in_container(container, &format!("systemctl start {}", component))?;
-        std::fs::remove_file(&service_file)?;
+        drop(staged); // #2616 — clean up the private staging directory
         trace!(
             "Created and started service in container {}: {}",
             container,

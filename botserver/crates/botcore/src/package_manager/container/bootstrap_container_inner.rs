@@ -188,16 +188,19 @@ impl PackageManager {
         let settings = self.get_container_settings(container)?;
 
         let service_name = format!("{container}.service");
-        let temp_path = format!("/tmp/{service_name}");
-
-        std::fs::write(&temp_path, &settings.service_template)
-            .context("Failed to write service template")?;
+        // #2616 — private unpredictable staging; create_new + 0600 refuses
+        // pre-created files/symlinks, and the guard cleans up after the push.
+        let staged = crate::package_manager::safe_staging::StagedFile::create(
+            &service_name,
+            settings.service_template.as_bytes(),
+        )
+        .context("Failed to stage service template")?;
 
     let target_service_path = format!("{container}:/etc/systemd/system/{service_name}");
         SafeCommand::new("incus")
             .and_then(|c| c.arg("file"))
             .and_then(|c| c.arg("push"))
-            .and_then(|c| c.arg(temp_path.as_str()))
+            .and_then(|c| c.arg(staged.as_path().to_string_lossy().as_ref()))
             .and_then(|c| c.arg(target_service_path.as_str()))
             .and_then(|cmd| cmd.execute())?;
 
@@ -219,7 +222,7 @@ impl PackageManager {
             cmd_builder?.execute()?;
         }
 
-        std::fs::remove_file(&temp_path).ok();
+        // #2616 — StagedFile Drop removes the private staging directory.
         Ok(())
     }
 }

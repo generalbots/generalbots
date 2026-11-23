@@ -4,6 +4,7 @@ pub mod component;
 pub mod container;
 pub mod installer;
 pub mod os;
+pub mod safe_staging;
 pub mod setup;
 pub mod alm_setup;
 

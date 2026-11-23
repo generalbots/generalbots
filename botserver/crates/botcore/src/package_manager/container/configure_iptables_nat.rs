@@ -196,26 +196,23 @@ impl ContainerOperations for PackageManager {
         url: &str,
         binary_name: &str,
     ) -> Result<()> {
-        let temp_path = format!("/tmp/{binary_name}");
-
-        // Download to temp
+        // #2616 — private unpredictable staging for the downloaded binary.
         let output = SafeCommand::new("curl")
             .and_then(|c| c.arg("-fsSL"))
             .and_then(|c| c.arg(url))
             .and_then(|cmd| cmd.execute())?;
-
-        std::fs::write(&temp_path, output.stdout)?;
+        let staged = crate::package_manager::safe_staging::StagedFile::create(binary_name, &output.stdout)?;
 
         // Push to container
         let target_path = format!("{container}:/opt/gbo/bin/{binary_name}");
         SafeCommand::new("incus")
             .and_then(|c| c.arg("file"))
             .and_then(|c| c.arg("push"))
-            .and_then(|c| c.arg(temp_path.as_str()))
+            .and_then(|c| c.arg(staged.as_path().to_string_lossy().as_ref()))
             .and_then(|c| c.arg(target_path.as_str()))
             .and_then(|cmd| cmd.execute())?;
 
-        std::fs::remove_file(&temp_path).ok();
+        // #2616 — StagedFile Drop removes the private staging directory.
         Ok(())
     }
 
