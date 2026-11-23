@@ -313,8 +313,15 @@
         fetch(data.source_url)
             .then(res => res.text())
             .then(text => {
-                // Simple markdown parsing (use marked.js in production)
-                wrapper.innerHTML = parseMarkdown(text);
+                // #2745 — fetched markdown is untrusted. parseMarkdown builds
+                // HTML from regex replacements without escaping `<`, so an
+                // <img onerror> in the source would execute in the suite
+                // origin. Sanitize before every innerHTML assignment.
+                const parsed = parseMarkdown(text);
+                wrapper.innerHTML =
+                    window.GBSanitize && typeof window.GBSanitize.html === 'function'
+                        ? window.GBSanitize.html(parsed)
+                        : escapeHtml(text);
             })
             .catch(() => {
                 wrapper.innerHTML = '<p data-i18n="chat-str-failed-to-load-markdown"></p>';
