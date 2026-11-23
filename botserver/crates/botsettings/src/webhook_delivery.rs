@@ -226,6 +226,52 @@ pub fn truncate(s: &str, max: usize) -> String {
     }
 }
 
+/// Maximum number of bytes of an outbound webhook's HTTP response that we read
+/// into memory and persist to `webhook_deliveries.response_body`. A hostile or
+/// misbehaving receiver could otherwise return an unbounded body, exhausting
+/// both process memory and the database column (#2781).
+const MAX_RESPONSE_BODY_BYTES: usize = 4 * 1024;
+
+/// Returns a prefix of `s` no longer than `max_bytes`, trimmed back to a UTF-8
+/// character boundary. Never panics: the boundary walk stops at zero.
+fn cap_body(s: &str, max_bytes: usize) -> &str {
+    if s.len() <= max_bytes {
+        return s;
+    }
+    let mut end = max_bytes;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
+}
+
+/// Reads at most [`MAX_RESPONSE_BODY_BYTES`] of the response body, stopping as
+/// soon as the budget is exhausted so the rest is never buffered. The returned
+/// text is safe to persist: it is bounded in size and valid UTF-8 (#2781).
+async fn read_capped_body(resp: &mut reqwest::Response) -> String {
+    let mut buf: Vec<u8> = Vec::with_capacity(MAX_RESPONSE_BODY_BYTES);
+    while buf.len() < MAX_RESPONSE_BODY_BYTES {
+        match resp.chunk().await {
+            Ok(Some(chunk)) if !chunk.is_empty() => {
+                let remaining = MAX_RESPONSE_BODY_BYTES - buf.len();
+                let take = chunk.len().min(remaining);
+                buf.extend_from_slice(&chunk[..take]);
+                if take < chunk.len() {
+                    // Budget reached mid-chunk; do not pull any more data.
+                    break;
+                }
+            }
+            Ok(Some(_)) | Ok(None) => break,
+            Err(e) => {
+                log::warn!("webhook deliver: could not read response body: {e}");
+                break;
+            }
+        }
+    }
+    let text = String::from_utf8_lossy(&buf);
+    cap_body(text.as_ref(), MAX_RESPONSE_BODY_BYTES).to_string()
+}
+
 /// Delivers a payload with exponential backoff retries, recording every
 /// attempt in `webhook_deliveries`. Runs in a background task.
 pub async fn deliver_with_retries(
@@ -274,15 +320,18 @@ pub async fn deliver_with_retries(
             .await;
 
         match result {
-            Ok(resp) => {
+            Ok(mut resp) => {
                 let code = resp.status().as_u16();
                 let ok = (200..300).contains(&code);
-                let body = resp.text().await.unwrap_or_default();
+                // Bound the read and the persisted value (#2781): a remote
+                // receiver must never decide our memory or DB consumption.
+                let body = read_capped_body(&mut resp).await;
+                let stored_body = cap_body(&body, MAX_RESPONSE_BODY_BYTES);
                 let status = if ok { "success" } else { "failed" };
                 let err = if ok {
                     None
                 } else {
-                    Some(format!("HTTP {code}: {}", truncate(&body, 200)))
+                    Some(format!("HTTP {code}: {}", truncate(stored_body, 200)))
                 };
                 let should_retry = !ok && attempt < max_attempts;
                 if should_retry {
@@ -291,7 +340,7 @@ pub async fn deliver_with_retries(
                         delivery_id,
                         "retrying",
                         Some(code),
-                        Some(&body),
+                        Some(stored_body),
                         attempt,
                         err.as_deref(),
                     );
@@ -306,7 +355,7 @@ pub async fn deliver_with_retries(
                     delivery_id,
                     status,
                     Some(code),
-                    Some(&body),
+                    Some(stored_body),
                     attempt,
                     err.as_deref(),
                 );

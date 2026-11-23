@@ -12,6 +12,8 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -31,6 +33,18 @@ impl AuthMiddlewareState {
             provider_registry,
         }
     }
+}
+
+/// Log-safe view of a caller-supplied Authorization header. Never log the raw
+/// value: even a truncated prefix leaks a usable share of the token; use a fixed
+/// marker plus a non-reversible fingerprint instead of any secret material.
+fn redact_auth_header(header: Option<&str>) -> String {
+    let Some(header) = header else {
+        return "<absent>".to_string();
+    };
+    let mut hasher = DefaultHasher::new();
+    header.hash(&mut hasher);
+    format!("<redacted> fp={:016x}", hasher.finish())
 }
 
 pub async fn auth_middleware_with_providers(
@@ -80,9 +94,7 @@ pub async fn auth_middleware_with_providers(
             .get(&state.config.internal_token_header)
             .and_then(|v| v.to_str().ok())
             .unwrap_or_default();
-        if !supplied.is_empty()
-            && botsecurity_core::constant_time::eq_str(supplied, expected)
-        {
+        if !supplied.is_empty() && botsecurity_core::constant_time::eq_str(supplied, expected) {
             info!("Internal token accepted for {} {}", method, path);
             request
                 .extensions_mut()
@@ -97,16 +109,11 @@ pub async fn auth_middleware_with_providers(
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
+        .and_then(|v| v.to_str().ok());
 
-    info!(
-        "Authorization header: {:?}",
-        auth_header.as_ref().map(|h| {
-            // The header is caller-supplied: never slice it mid-character.
-            botlib::text::truncate_with_suffix(h, 30, "...")
-        })
-    );
+    // Never log the raw header or any part of the bearer token. Log only a fixed
+    // marker plus a non-reversible fingerprint (see `redact_auth_header`).
+    info!("Authorization header: {}", redact_auth_header(auth_header));
 
     let extracted = ExtractedAuthData::from_request(&request, &state.config);
     let user =
@@ -418,5 +425,25 @@ mod tests {
         };
         assert_eq!(fallback_user(&desktop).username, "local");
         assert!(fallback_user(&desktop).has_role(&Role::User));
+    }
+
+    #[test]
+    fn redacted_auth_header_never_contains_the_token() {
+        // Uppercase letters in the token cannot collide with the lowercase hex
+        // fingerprint, so the substring assertions are deterministic.
+        let token = "SuperSecretTokenVALUE9876";
+        let raw = format!("Bearer {token}");
+        let redacted = redact_auth_header(Some(&raw));
+        assert!(!redacted.contains(&raw), "raw header leaked: {redacted}");
+        assert!(!redacted.contains(token), "token leaked: {redacted}");
+        assert!(
+            !redacted.contains("SuperSecret"),
+            "token prefix leaked: {redacted}"
+        );
+        assert!(!redacted.contains("Bearer"), "scheme leaked: {redacted}");
+
+        let bare = redact_auth_header(Some("BareSecretTokenVALUE1234"));
+        assert!(!bare.contains("BareSecret"), "bare token leaked: {bare}");
+        assert_eq!(redact_auth_header(None), "<absent>");
     }
 }

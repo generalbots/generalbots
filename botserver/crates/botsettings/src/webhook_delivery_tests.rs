@@ -2,9 +2,9 @@
 //! the display helpers.
 
 use super::{
-    create_signature_headers, escape_html, parse_events, sign_payload, sign_payload_at, truncate,
-    validate_webhook_url, webhook_vault_path, WebhookSignatureVerifier,
-    CLOCK_SKEW_TOLERANCE_SECONDS,
+    cap_body, create_signature_headers, escape_html, parse_events, sign_payload, sign_payload_at,
+    truncate, validate_webhook_url, webhook_vault_path, WebhookSignatureVerifier,
+    CLOCK_SKEW_TOLERANCE_SECONDS, MAX_RESPONSE_BODY_BYTES,
 };
 use botsecurity::webhook::SignatureValidation;
 use serde_json::json;
@@ -297,4 +297,24 @@ fn extreme_timestamps_do_not_overflow_the_freshness_check() {
         let result = verifier.verify_at("body", &signature, &timestamp, "n-extreme", "secret", now);
         assert_eq!(result, SignatureValidation::Expired, "timestamp {timestamp}");
     }
+}
+
+// ── #2781: bounded webhook response bodies ────────────────────────────────
+
+#[test]
+fn a_large_response_body_is_bounded_before_persistence() {
+    // A receiver could return megabytes; the value handed to mark_delivery
+    // (and therefore stored in response_body) must stay bounded.
+    let huge = "x".repeat(1_000_000);
+    let bounded = cap_body(&huge, MAX_RESPONSE_BODY_BYTES);
+    assert_eq!(bounded.len(), MAX_RESPONSE_BODY_BYTES);
+    assert_eq!(bounded, &huge[..MAX_RESPONSE_BODY_BYTES]);
+
+    // Multi-byte content must never be cut in the middle of a character.
+    let multibyte = "é".repeat(100);
+    let boundary = cap_body(&multibyte, 7);
+    assert_eq!(boundary, "ééé"); // 6 bytes, <= 7, on a char boundary
+
+    // Normal-sized bodies pass through unchanged.
+    assert_eq!(cap_body("ok", MAX_RESPONSE_BODY_BYTES), "ok");
 }

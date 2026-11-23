@@ -115,9 +115,9 @@ pub async fn get_current_user(
             })
         }
         Some(session_token) => {
-            info!("get_current_user: looking up session token (len={}, prefix={}...)",
-                  session_token.len(),
-                  botlib::text::truncate_at_char_boundary(session_token, 20));
+            // #2766 — never emit token material (not even a 20-char prefix).
+            // Only the length and a one-way fingerprint are logged.
+            info!("{}", session_lookup_log_message(session_token));
 
             let cache = SESSION_CACHE.read().await;
             // Clone the entry so the read guard's borrow ends before any write
@@ -338,6 +338,20 @@ fn redact_session_token(token: &str) -> String {
     format!("redacted:{:016x}", hasher.finish())
 }
 
+/// Builds the exact INFO payload emitted for a session-token lookup (#2766).
+/// Only the token length and the one-way fingerprint from
+/// [`redact_session_token`] are included — no prefix, suffix or any other
+/// token material — so a clear-text credential can never reach
+/// stdout/journald. Kept as a pure function so tests can assert on the exact
+/// string that `info!` logs without installing a global logger.
+fn session_lookup_log_message(token: &str) -> String {
+    format!(
+        "get_current_user: looking up session token (len={}, fingerprint={})",
+        token.len(),
+        redact_session_token(token)
+    )
+}
+
 pub async fn verify_2fa(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<TwoFactorRequest>,
@@ -358,23 +372,58 @@ pub async fn verify_2fa(
 
 #[cfg(test)]
 mod tests {
-    use super::redact_session_token;
+    use super::{redact_session_token, session_lookup_log_message};
+    use log::{LevelFilter, Log, Metadata, Record};
+    use std::sync::{Mutex, OnceLock};
+
+    // Distinctive token: its fragments contain non-hex letters so they cannot
+    // coincide with the fingerprint's hex digits (no flaky matches).
+    const RAW: &str = "sess_supersecret_9f8e7d6c5b4a3210_verification_token_ZZZ";
 
     #[test]
     fn redacted_session_token_never_contains_raw_secret() {
-        let raw = "sess_supersecret_9f8e7d6c5b4a3210_verification_token";
-        let redacted = redact_session_token(raw);
-        assert!(
-            !redacted.contains(raw),
-            "raw session token leaked into log output: {redacted}"
-        );
-        assert!(
-            !redacted.contains("supersecret"),
-            "raw session token fragment leaked into log output: {redacted}"
-        );
-        assert!(
-            redacted.starts_with("redacted:"),
-            "redaction marker missing: {redacted}"
-        );
+        let redacted = redact_session_token(RAW);
+        assert!(!redacted.contains(RAW), "raw token leaked: {redacted}");
+        assert!(!redacted.contains("supersecret"), "fragment leaked: {redacted}");
+        assert!(redacted.starts_with("redacted:"), "marker missing: {redacted}");
+    }
+
+    // Capturing logger proves the real `info!` output carries no token material.
+    static CAPTURED: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    struct CaptureLogger;
+    impl Log for CaptureLogger {
+        fn enabled(&self, _metadata: &Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &Record<'_>) {
+            if let Ok(mut captured) = CAPTURED.lock() {
+                captured.push(record.args().to_string());
+            }
+        }
+        fn flush(&self) {}
+    }
+    static LOGGER: CaptureLogger = CaptureLogger;
+    static INSTALLED: OnceLock<bool> = OnceLock::new();
+
+    #[test]
+    fn captured_info_log_has_no_token_material() {
+        let using_capture = *INSTALLED.get_or_init(|| log::set_logger(&LOGGER).is_ok());
+        log::set_max_level(LevelFilter::Trace);
+        if let Ok(mut captured) = CAPTURED.lock() {
+            captured.clear();
+        }
+        log::info!("{}", session_lookup_log_message(RAW)); // get_current_user's call
+        let snapshot = match CAPTURED.lock() {
+            Ok(captured) if using_capture => captured.join("\n"),
+            // Another test owns the global logger: assert the exact payload
+            // that was handed to info! instead of its unobservable output.
+            _ => session_lookup_log_message(RAW),
+        };
+        assert!(snapshot.contains("looking up session token"), "missing entry: {snapshot}");
+        for fragment in [RAW, &RAW[..20], "supersecret", "verification_token_ZZZ"] {
+            assert!(!snapshot.contains(fragment), "token material leaked: {fragment:?}");
+        }
+        assert!(snapshot.contains("fingerprint=redacted:"), "no fingerprint: {snapshot}");
+        assert!(snapshot.contains(&format!("len={}", RAW.len())), "no length: {snapshot}");
     }
 }
