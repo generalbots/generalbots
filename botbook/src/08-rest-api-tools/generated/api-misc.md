@@ -77,6 +77,12 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 | GET | `/api/bot/config` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/bot/public` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 
+## `botmodels`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| ANY | `/api/botmodels/:param` | schema not modeled | no | `botserver/src/botmodels_gateway/mod.rs` |
+
 ## `brazil`
 
 | Method | Path | Summary | Inventory | Registered in |
@@ -120,6 +126,13 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/api/client-errors` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/client-errors` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
+
+## `commands`
+
+| Method | Path | Summary | Inventory | Registered in |
+|---|---|---|---|---|
+| GET | `/api/commands/stats` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| POST | `/api/commands/stats` | schema not modeled | no | `botserver/src/apps/installs.rs` |
 
 ## `config`
 
@@ -236,7 +249,7 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/health` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/health` | schema not modeled | no | `botserver/src/apps/integration_catalog/tests.rs` |
 | POST | `/health` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 
 ## `history`
@@ -245,15 +258,5 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 |---|---|---|---|---|
 | GET | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
 | POST | `/history` | schema not modeled | no | `botserver/crates/botmaintenance/src/create_cleanup_tables_migration.rs` |
-
-## `i18n`
-
-| Method | Path | Summary | Inventory | Registered in |
-|---|---|---|---|---|
-| GET | `/api/i18n/:param` | registered in crates/botcore/src/i18n.rs | yes | `botserver/crates/botcore/src/i18n/routes.rs` |
-| GET | `/api/i18n/locales` | registered in crates/botcore/src/i18n.rs | yes | `botserver/crates/botcore/src/i18n/routes.rs` |
-| POST | `/api/i18n/locales` | schema not modeled | no | `botserver/crates/botcore/src/i18n/routes.rs` |
-| GET | `/api/i18n/preference` | schema not modeled | no | `botserver/crates/botcore/src/i18n/routes.rs` |
-| POST | `/api/i18n/preference` | schema not modeled | no | `botserver/crates/botcore/src/i18n/routes.rs` |
 
 [All families](./README.md)

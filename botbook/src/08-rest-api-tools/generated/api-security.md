@@ -2,14 +2,13 @@
 
 # API / security
 
-41 routes in the `security` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+37 routes in the `security` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/security/biometric/verify` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | POST | `/api/security/biometric/verify` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | GET | `/api/security/fix` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/fix` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
@@ -19,7 +18,6 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/security/kyc/profiles` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | GET | `/api/security/kyc/profiles/:param` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | POST | `/api/security/kyc/profiles/:param` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
-| GET | `/api/security/kyc/profiles/:param/checks` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | POST | `/api/security/kyc/profiles/:param/checks` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | GET | `/api/security/protection/:param/auto` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/protection/:param/auto` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
@@ -45,10 +43,8 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/security/protection/clamav/quarantine/:param` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | GET | `/api/security/protection/status` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
 | POST | `/api/security/protection/status` | schema not modeled | no | `botserver/crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs` |
-| GET | `/api/security/signatures/:param/validate` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
-| GET | `/api/security/signatures/requests` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
+| POST | `/api/security/signatures/:param/validate` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | POST | `/api/security/signatures/requests` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
-| GET | `/api/security/signatures/requests/:param/complete` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 | POST | `/api/security/signatures/requests/:param/complete` | schema not modeled | no | `botserver/crates/botsecurity/src/routes_security.rs` |
 
 [All families](./README.md)

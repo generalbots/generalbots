@@ -2,18 +2,33 @@
 
 # API / apps
 
-33 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+48 routes in the `apps` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/apps/catalog` | registered in src/apps/mod.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
-| GET | `/api/apps/integrations/catalog` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
-| GET | `/api/apps/integrations/catalog/:param` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/core/bot/endpoint_inventory.rs` |
+| GET | `/api/apps/catalog` | registered in src/apps/mod.rs | yes | `botserver/src/apps/installs.rs` |
+| POST | `/api/apps/catalog` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| GET | `/api/apps/install` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| POST | `/api/apps/install` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| GET | `/api/apps/install/stats` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| POST | `/api/apps/install/stats` | schema not modeled | no | `botserver/src/apps/installs.rs` |
+| GET | `/api/apps/integrations/catalog` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/apps/integration_catalog/routes.rs` |
+| POST | `/api/apps/integrations/catalog` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
+| DELETE | `/api/apps/integrations/catalog/:param` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
+| GET | `/api/apps/integrations/catalog/:param` | registered in src/apps/integration_catalog/routes.rs | yes | `botserver/src/apps/integration_catalog/routes.rs` |
+| POST | `/api/apps/integrations/catalog/:param` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
+| PUT | `/api/apps/integrations/catalog/:param` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
 | GET | `/api/apps/integrations/context` | registered in crates/botintegrations/src/routes.rs; default active bot plus integration-connections base URL | yes | `botserver/crates/botintegrations/src/routes.rs` |
 | GET | `/api/apps/integrations/mentions` | schema not modeled | no | `botserver/crates/botintegrations/src/routes.rs` |
+| DELETE | `/api/apps/integrations/providers` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
+| GET | `/api/apps/integrations/providers` | registered in src/apps/integration_catalog/routes.rs; admin-only: list operator integration providers | yes | `botserver/src/apps/integration_catalog/routes.rs` |
+| POST | `/api/apps/integrations/providers` | registered in src/apps/integration_catalog/routes.rs; admin-only: create an operator integration provider | yes | `botserver/src/apps/integration_catalog/routes.rs` |
+| PUT | `/api/apps/integrations/providers` | schema not modeled | no | `botserver/src/apps/integration_catalog/routes.rs` |
+| DELETE | `/api/apps/integrations/providers/:param` | registered in src/apps/integration_catalog/routes.rs; admin-only: delete an operator integration provider | yes | `botserver/src/apps/integration_catalog/routes.rs` |
+| PUT | `/api/apps/integrations/providers/:param` | registered in src/apps/integration_catalog/routes.rs; admin-only: update an operator integration provider | yes | `botserver/src/apps/integration_catalog/routes.rs` |
 | DELETE | `/apps` | schema not modeled | no | `botserver/crates/botweba/src/configure_routes.rs` |
 | GET | `/apps` | schema not modeled | no | `botserver/crates/botbasic_system/src/keywords/app_server/serve_suite_js_file.rs` |
 | POST | `/apps` | schema not modeled | no | `botserver/crates/botsources/src/routes.rs` |

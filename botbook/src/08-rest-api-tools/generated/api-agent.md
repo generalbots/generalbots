@@ -2,7 +2,7 @@
 
 # API / agent
 
-25 routes in the `agent` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+26 routes in the `agent` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -13,6 +13,7 @@ Base URL: `http://localhost:8080` — see
 | POST | `/api/agent/conversations/switch` | schema not modeled | no | `botserver/crates/botagent/src/lib.rs` |
 | GET | `/api/agent/drive/save` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | GET | `/api/agent/drive/share` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| POST | `/api/agent/plan` | schema not modeled | no | `botserver/src/apps/installs.rs` |
 | DELETE | `/api/agent/sessions/:param/snapshots` | schema not modeled | no | `botserver/crates/botagent/src/lib.rs` |
 | GET | `/api/agent/sessions/:param/snapshots` | schema not modeled | no | `botserver/crates/botagent/src/lib.rs` |
 | POST | `/api/agent/sessions/:param/snapshots` | schema not modeled | no | `botserver/crates/botagent/src/lib.rs` |

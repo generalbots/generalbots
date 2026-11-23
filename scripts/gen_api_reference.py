@@ -105,7 +105,7 @@ def scan_routes() -> tuple[dict[tuple[str, str], list[str]], int]:
     routes: dict[tuple[str, str], list[str]] = defaultdict(list)
     nests = 0
     for path in files(
-        "botserver/src/main_module/routes/**/*.rs",
+        "botserver/src/**/*.rs",
         "botserver/crates/*/src/**/*.rs",
     ):
         text = read(path)

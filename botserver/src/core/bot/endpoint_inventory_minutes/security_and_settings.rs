@@ -135,7 +135,7 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
         summary: "registered in crates/botsecurity-protection/src/protection/api.rs",
     },
     ApiEndpoint {
-        method: "GET",
+        method: "POST",
         path: "/api/security/signatures/:id/validate",
         summary: "registered in crates/botsecurity/src/routes_security.rs",
     },

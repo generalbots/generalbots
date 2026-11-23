@@ -2,7 +2,7 @@
 
 # API / auth
 
-15 routes in the `auth` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+16 routes in the `auth` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -21,6 +21,7 @@ Base URL: `http://localhost:8080` — see
 | GET | `/api/auth/unified-login` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
 | POST | `/api/auth/unified-login` | registered in src/main_module/routes/api_setup.rs | yes | `botserver/src/main_module/routes/api_setup.rs` |
 | PUT | `/api/auth/unified-login` | schema not modeled | no | `botserver/src/main_module/routes/api_setup.rs` |
+| GET | `/auth/callback` | schema not modeled | no | `botserver/src/core/ai_accounts_chatgpt/mod.rs` |
 | GET | `/auth/oauth/:param` | schema not modeled | no | `botserver/crates/botcoreoauth/src/routes/configure.rs` |
 | GET | `/auth/oauth/:param/callback` | schema not modeled | no | `botserver/crates/botcoreoauth/src/routes/configure.rs` |
 | GET | `/auth/oauth/providers` | schema not modeled | no | `botserver/crates/botcoreoauth/src/routes/configure.rs` |

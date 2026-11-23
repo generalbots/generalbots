@@ -56,6 +56,14 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/apps/catalog", summary: "registered in src/apps/mod.rs" },
     ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog", summary: "registered in src/apps/integration_catalog/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog/:provider", summary: "registered in src/apps/integration_catalog/routes.rs" },
+    // #2906 — the four provider-CRUD routes are mounted (and admin_guard-ed)
+    // in src/apps/integration_catalog/routes.rs but were absent here, so the
+    // state-changing admin surface was invisible to auditors and to api.find.
+    // The admin-only marker keeps that classification explicit in the catalog.
+    ApiEndpoint { method: "GET", path: "/api/apps/integrations/providers", summary: "registered in src/apps/integration_catalog/routes.rs; admin-only: list operator integration providers" },
+    ApiEndpoint { method: "POST", path: "/api/apps/integrations/providers", summary: "registered in src/apps/integration_catalog/routes.rs; admin-only: create an operator integration provider" },
+    ApiEndpoint { method: "PUT", path: "/api/apps/integrations/providers/:id", summary: "registered in src/apps/integration_catalog/routes.rs; admin-only: update an operator integration provider" },
+    ApiEndpoint { method: "DELETE", path: "/api/apps/integrations/providers/:id", summary: "registered in src/apps/integration_catalog/routes.rs; admin-only: delete an operator integration provider" },
     ApiEndpoint { method: "GET", path: "/api/apps/integrations/context", summary: "registered in crates/botintegrations/src/routes.rs; default active bot plus integration-connections base URL" },
     ApiEndpoint { method: "POST", path: "/api/attendance/assign", summary: "registered in crates/botattendance/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/attendance/assign-by-skill", summary: "registered in crates/botattendance/src/routes.rs" },

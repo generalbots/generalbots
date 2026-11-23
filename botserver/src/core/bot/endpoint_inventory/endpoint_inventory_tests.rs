@@ -95,3 +95,33 @@ fn every_path_is_absolute_and_every_method_is_known() {
         );
     }
 }
+
+/// #2906 — all four provider-CRUD routes are admin_guard-ed where they are
+/// mounted, but only the two read-only catalog GETs were inventoried. Without
+/// these rows the state-changing admin surface is invisible to auditors and to
+/// `api.find`. Assert presence (one entry per method/path) and that every entry
+/// carries the admin-only classification in its summary.
+#[test]
+fn provider_crud_routes_are_inventoried_and_admin_only() {
+    const EXPECTED: &[(&str, &str)] = &[
+        ("GET", "/api/apps/integrations/providers"),
+        ("POST", "/api/apps/integrations/providers"),
+        ("PUT", "/api/apps/integrations/providers/:id"),
+        ("DELETE", "/api/apps/integrations/providers/:id"),
+    ];
+    for (method, path) in EXPECTED {
+        let matches: Vec<_> = all_routes()
+            .filter(|e| e.method == *method && e.path == *path)
+            .collect();
+        assert_eq!(
+            matches.len(),
+            1,
+            "{method} {path} must appear exactly once in the inventory"
+        );
+        assert!(
+            matches[0].summary.contains("admin-only"),
+            "{method} {path} must be marked admin-only, got: {}",
+            matches[0].summary
+        );
+    }
+}

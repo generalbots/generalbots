@@ -2,7 +2,7 @@
 
 # API / retail
 
-10 routes in the `retail` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
+12 routes in the `retail` family. `Inventory` says whether the route is also listed in the API command catalog; `Registered in` is the file that mounts it.
 
 Base URL: `http://localhost:8080` — see
 [Network Contract](../../02-architecture-packages/network-contract.md).
@@ -17,7 +17,9 @@ Base URL: `http://localhost:8080` — see
 | PUT | `/api/retail/branches/:param` | schema not modeled | no | `botserver/crates/botretail/src/lib.rs` |
 | GET | `/api/retail/promotions` | schema not modeled | no | `botserver/crates/botretail/src/lib.rs` |
 | POST | `/api/retail/promotions` | schema not modeled | no | `botserver/crates/botretail/src/lib.rs` |
+| GET | `/api/retail/stock` | schema not modeled | no | `botserver/src/retail/mod.rs` |
 | GET | `/api/retail/suppliers` | schema not modeled | no | `botserver/crates/botretail/src/lib.rs` |
 | POST | `/api/retail/suppliers` | schema not modeled | no | `botserver/crates/botretail/src/lib.rs` |
+| GET | `/api/retail/top-products` | schema not modeled | no | `botserver/src/retail/mod.rs` |
 
 [All families](./README.md)
