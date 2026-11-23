@@ -44,17 +44,21 @@ async fn test_people_routes_match_and_allow_authenticated() {
     let routes = build_default_route_permissions();
     let manager = RbacManager::with_defaults();
     manager.register_routes(routes).await;
-    let user = AuthenticatedUser::new(Uuid::new_v4(), "test@example.com".to_string());
-    let allowed_base = manager
-        .check_route_access("/api/people", "POST", &user)
-        .await
-        .is_allowed();
-    assert!(allowed_base, "POST /api/people should be allowed for authenticated user");
-    let allowed_skill = manager
-        .check_route_access("/api/people/123/skills", "POST", &user)
-        .await
-        .is_allowed();
-    assert!(allowed_skill, "POST /api/people/:id/skills should be allowed");
+    // #2874 — people mutations are now admin-only (separation of duties).
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "test@example.com".to_string())
+        .with_role(Role::User);
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+        .with_role(Role::Admin);
+    for path in ["/api/people", "/api/people/123/skills"] {
+        assert!(
+            !manager.check_route_access(path, "POST", &user).await.is_allowed(),
+            "POST {path} must be denied for a non-admin"
+        );
+        assert!(
+            manager.check_route_access(path, "POST", &admin).await.is_allowed(),
+            "POST {path} must be allowed for an admin"
+        );
+    }
 }
 
 #[tokio::test]
@@ -412,4 +416,35 @@ async fn setup_configure_route_is_admin_only() {
             .is_allowed(),
         "GET /api/setup/status must stay readable by a non-admin"
     );
+}
+
+/// #2874 — separation of duties for financial/compliance mutations. Every
+/// state-changing route in these namespaces must be admin-only; the matching
+/// GET routes stay readable by any authenticated user.
+#[tokio::test]
+async fn financial_mutations_are_admin_only() {
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(build_default_route_permissions()).await;
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string())
+        .with_role(Role::User);
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+        .with_role(Role::Admin);
+
+    for prefix in ["/api/erp", "/api/people", "/api/kyc", "/api/tax", "/api/banking"] {
+        let path = format!("{prefix}/anything");
+        for method in ["POST", "PUT", "DELETE"] {
+            assert!(
+                !manager.check_route_access(&path, method, &user).await.is_allowed(),
+                "{method} {path} must be denied for a non-admin"
+            );
+            assert!(
+                manager.check_route_access(&path, method, &admin).await.is_allowed(),
+                "{method} {path} must be allowed for an admin"
+            );
+        }
+        assert!(
+            manager.check_route_access(&path, "GET", &user).await.is_allowed(),
+            "GET {path} must stay readable by a non-admin"
+        );
+    }
 }

@@ -165,9 +165,12 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/legal/**", "GET", ""),
         RoutePermission::new("/api/legal/**", "POST", ""),
         RoutePermission::new("/api/erp/**", "GET", ""),
-        RoutePermission::new("/api/erp/**", "POST", ""),
-        RoutePermission::new("/api/erp/**", "PUT", ""),
-        RoutePermission::new("/api/erp/**", "DELETE", ""),
+        RoutePermission::new("/api/erp/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/erp/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/erp/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // Plan / Projects / Resources / Workflow
         RoutePermission::new("/api/plan/**", "GET", ""),
@@ -251,9 +254,12 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
 
         // People / Directory
         RoutePermission::new("/api/people/**", "GET", ""),
-        RoutePermission::new("/api/people/**", "POST", ""),
-        RoutePermission::new("/api/people/**", "PUT", ""),
-        RoutePermission::new("/api/people/**", "DELETE", ""),
+        RoutePermission::new("/api/people/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/people/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/people/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // HR
         RoutePermission::new("/api/hr/**", "GET", ""),
@@ -288,9 +294,12 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
 
         // KYC / Biometry
         RoutePermission::new("/api/kyc/**", "GET", ""),
-        RoutePermission::new("/api/kyc/**", "POST", ""),
-        RoutePermission::new("/api/kyc/**", "PUT", ""),
-        RoutePermission::new("/api/kyc/**", "DELETE", ""),
+        RoutePermission::new("/api/kyc/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/kyc/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/kyc/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/biometry/**", "GET", ""),
         RoutePermission::new("/api/biometry/**", "POST", ""),
         RoutePermission::new("/api/biometry/**", "PUT", ""),
@@ -335,16 +344,22 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
 
         // Tax (Brazilian NF-e/CT-e/NFS-e/SPED)
         RoutePermission::new("/api/tax/**", "GET", ""),
-        RoutePermission::new("/api/tax/**", "POST", ""),
-        RoutePermission::new("/api/tax/**", "PUT", ""),
-        RoutePermission::new("/api/tax/**", "DELETE", ""),
+        RoutePermission::new("/api/tax/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/tax/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/tax/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/ui/tax/**", "GET", ""),
         RoutePermission::new("/api/fiscal/**", "GET", ""),
         RoutePermission::new("/api/fiscal/**", "POST", ""),
         RoutePermission::new("/api/banking/**", "GET", ""),
-        RoutePermission::new("/api/banking/**", "POST", ""),
-        RoutePermission::new("/api/banking/**", "PUT", ""),
-        RoutePermission::new("/api/banking/**", "DELETE", ""),
+        RoutePermission::new("/api/banking/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/banking/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/banking/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // Directory / Users & Groups management
         RoutePermission::new("/users/**", "GET", "")
