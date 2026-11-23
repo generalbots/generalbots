@@ -20,6 +20,9 @@ if (typeof TasksState === "undefined") {
   };
 }
 
+// Quick-intent result escaping/URL validation lives in the shared helper
+// tasks-intent-security.js (loaded before this file).
+
 // =============================================================================
 // INITIALIZATION
 // =============================================================================
@@ -134,7 +137,7 @@ function setupIntentInputHandlers() {
       const resultDiv = document.getElementById("intent-result");
       resultDiv.innerHTML = `
         <div class="result-card">
-          <div class="result-message">Processing your request...</div>
+          <div class="result-message">${TasksIntentSecurity.t("tasks-intent-processing", "Processing your request...")}</div>
           <div class="result-progress">
             <div class="result-progress-bar" style="width: 30%"></div>
           </div>
@@ -173,33 +176,24 @@ function setupIntentInputHandlers() {
 
         // Handle completed task (legacy sync response)
         if (response.success) {
-          let html = `<div class="result-card">
-            <div class="result-message result-success">✓ ${response.message || "Done!"}</div>`;
-
-          if (response.app_url) {
-            html += `<a href="${response.app_url}" class="result-link" target="_blank" rel="noopener noreferrer">
-              Open App →
-            </a>`;
-          }
-
-          if (response.task_id) {
-            html += `<div style="margin-top:8px;color:#666;font-size:13px;">Task ID: ${response.task_id}</div>`;
-          }
-
-          html += `</div>`;
-          resultDiv.innerHTML = html;
+          TasksIntentSecurity.renderResult(resultDiv, response);
 
           document.getElementById("quick-intent-input").value = "";
           htmx.trigger(document.body, "taskCreated");
         } else {
-          resultDiv.innerHTML = `<div class="result-card">
-            <div class="result-message result-error">✗ ${response.error || response.message || "Something went wrong"}</div>
-          </div>`;
+          TasksIntentSecurity.renderResult(resultDiv, response);
         }
       } catch (err) {
-        resultDiv.innerHTML = `<div class="result-card">
-          <div class="result-message result-error">✗ Failed to process response</div>
-        </div>`;
+        const card = document.createElement("div");
+        card.className = "result-card";
+        const message = document.createElement("div");
+        message.className = "result-message result-error";
+        message.textContent =
+          "✗ " +
+          TasksIntentSecurity.t("tasks-intent-failed", "Failed to process response");
+        card.appendChild(message);
+        resultDiv.innerHTML = "";
+        resultDiv.appendChild(card);
       }
     }
   });

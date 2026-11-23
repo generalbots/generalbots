@@ -198,6 +198,15 @@ tasks-status-running = Running
 tasks-status-awaiting = Awaiting
 tasks-status-paused = Paused
 tasks-status-blocked = Blocked
+
+# Quick-intent result card strings (#2838)
+tasks-intent-processing = Processing your request...
+tasks-intent-done = Done!
+tasks-intent-open-app = Open App →
+tasks-intent-task-id = Task ID:
+tasks-intent-error = Something went wrong
+tasks-intent-failed = Failed to process response
+
 canvas-clear-confirm = Clear all elements?
 canvas-saved = Saved
 canvas-saved-local = Saved (local)

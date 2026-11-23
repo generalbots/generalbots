@@ -607,3 +607,13 @@ artifact-drawing-not-started = Le dessin n'a pas encore commencé.
 app-kit-api-error = Erreur d'API
 app-kit-download-complete = Téléchargement terminé
 app-kit-download-failed = Échec du téléchargement
+
+# ============================================================================
+# Tasks quick-intent result card strings (#2838)
+# ============================================================================
+tasks-intent-processing = Traitement de votre demande...
+tasks-intent-done = Terminé !
+tasks-intent-open-app = Ouvrir l'application →
+tasks-intent-task-id = ID de la tâche :
+tasks-intent-error = Une erreur s'est produite
+tasks-intent-failed = Échec du traitement de la réponse

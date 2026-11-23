@@ -607,3 +607,13 @@ artifact-drawing-not-started = 그리기가 아직 시작되지 않았습니다.
 app-kit-api-error = API 오류
 app-kit-download-complete = 다운로드 완료
 app-kit-download-failed = 다운로드 실패
+
+# ============================================================================
+# Tasks quick-intent result card strings (#2838)
+# ============================================================================
+tasks-intent-processing = 요청을 처리하는 중...
+tasks-intent-done = 완료!
+tasks-intent-open-app = 앱 열기 →
+tasks-intent-task-id = 작업 ID:
+tasks-intent-error = 문제가 발생했습니다
+tasks-intent-failed = 응답을 처리하지 못했습니다

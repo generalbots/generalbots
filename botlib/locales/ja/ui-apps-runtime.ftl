@@ -607,3 +607,13 @@ artifact-drawing-not-started = 描画はまだ始まっていません。
 app-kit-api-error = API エラー
 app-kit-download-complete = ダウンロード完了
 app-kit-download-failed = ダウンロード失敗
+
+# ============================================================================
+# Tasks quick-intent result card strings (#2838)
+# ============================================================================
+tasks-intent-processing = リクエストを処理しています...
+tasks-intent-done = 完了!
+tasks-intent-open-app = アプリを開く →
+tasks-intent-task-id = タスク ID:
+tasks-intent-error = 問題が発生しました
+tasks-intent-failed = 応答の処理に失敗しました
