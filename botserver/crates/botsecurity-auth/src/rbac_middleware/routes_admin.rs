@@ -209,8 +209,13 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/system/**", "POST", ""),
         RoutePermission::new("/api/governance/**", "GET", ""),
         RoutePermission::new("/api/governance/**", "POST", ""),
-        RoutePermission::new("/api/ops/**", "GET", ""),
-        RoutePermission::new("/api/ops/**", "POST", ""),
+        // #2854 — /api/ops/** exposes operational status, metrics, traces and
+        // error logs. Without roles the first matching route lets any
+        // authenticated user through (manager.rs returns on first match).
+        RoutePermission::new("/api/ops/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/ops/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // Peer-network control surface (#2141). `enable`/`disable` used to be
         // anonymous, so they were never in the registry; now that they require

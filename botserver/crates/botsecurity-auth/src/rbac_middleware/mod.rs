@@ -33,6 +33,8 @@ mod types;
 #[cfg(test)]
 mod cache_invalidation_tests;
 #[cfg(test)]
+mod ops_routes_tests;
+#[cfg(test)]
 mod tests;
 
 // `manager.rs` holds only the RbacManager impl blocks, so there is nothing to
