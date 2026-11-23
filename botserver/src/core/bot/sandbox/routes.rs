@@ -13,7 +13,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use botcore::shared::state::AppState;
@@ -21,13 +21,14 @@ use botcore::shared::state::AppState;
 use super::csp::UiCsp;
 use super::preview_status;
 use super::sign::verify_resource;
-use super::store::read_resource;
+use super::store::{is_hash_revoked, read_resource, revoke_resource};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/sandbox/ui/:hash", get(serve_resource))
         .route("/api/sandbox/config", get(config))
         .route("/api/sandbox/status/:hash", get(resource_status))
+        .route("/api/sandbox/revoke/:hash", post(revoke))
 }
 
 /// #2541 — a resource id is the sha256 of its bytes: always 64 hex digits.
@@ -70,6 +71,26 @@ async fn resource_status(Path(hash): Path<String>) -> Response {
     response
 }
 
+/// #2798 — revoke a published sandbox resource. The hash is added to the
+/// in-process denylist, its `_sandbox/ui/{hash}.*` objects are deleted from
+/// Drive and the cached copy is forgotten. Every signed URL for that hash
+/// returns 404 from then on, even before its signature expires.
+async fn revoke(
+    State(state): State<Arc<AppState>>,
+    Path(hash): Path<String>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Response {
+    if !valid_hash(&hash) {
+        return (StatusCode::BAD_REQUEST, "invalid resource id").into_response();
+    }
+    let bucket = query
+        .get("b")
+        .cloned()
+        .unwrap_or_else(|| state.bucket_name.clone());
+    revoke_resource(&state, &bucket, &hash).await;
+    axum::Json(serde_json::json!({ "hash": hash, "revoked": true })).into_response()
+}
+
 async fn serve_resource(
     State(state): State<Arc<AppState>>,
     Path(hash): Path<String>,
@@ -87,6 +108,11 @@ async fn serve_resource(
             "invalid or expired resource token",
         )
             .into_response();
+    }
+    // #2798 — revocation is enforced at verification time too: a token whose
+    // signature is still valid must not serve a revoked resource.
+    if is_hash_revoked(&hash) {
+        return (StatusCode::NOT_FOUND, "resource revoked").into_response();
     }
     let bucket = query
         .get("b")

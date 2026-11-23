@@ -5,7 +5,7 @@
 //! A changed resource is a different hash, so a pinned hash can never silently
 //! point at new content.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -55,6 +55,40 @@ fn lock_cache() -> std::sync::MutexGuard<'static, HashMap<String, StoredResource
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
     }
+}
+
+/// #2798 — hashes whose signed URLs have been revoked. Consulted before any
+/// cache or Drive lookup so a still-valid token cannot resurrect a resource
+/// whose durable objects were deleted.
+fn denylist() -> &'static Mutex<HashSet<String>> {
+    static DENYLIST: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    DENYLIST.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn lock_denylist() -> std::sync::MutexGuard<'static, HashSet<String>> {
+    match denylist().lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
+}
+
+/// #2798 — pure revocation predicate. Free of global state so the
+/// publish → revoke → stale-URL decision is unit-testable.
+#[must_use]
+pub fn is_revoked(denylist: &HashSet<String>, hash: &str) -> bool {
+    denylist.contains(hash)
+}
+
+/// #2798 — pure counterpart of [`is_revoked`]: add `hash` to the denylist.
+pub fn mark_revoked(denylist: &mut HashSet<String>, hash: &str) {
+    denylist.insert(hash.to_string());
+}
+
+/// #2798 — live query used by both the read and serve paths.
+#[must_use]
+pub fn is_hash_revoked(hash: &str) -> bool {
+    let denylist = lock_denylist();
+    is_revoked(&denylist, hash)
 }
 
 #[must_use]
@@ -137,8 +171,13 @@ pub async fn publish_resource(
     signed_path(thread_id, &hash, ttl_secs)
 }
 
-/// Reads a resource by hash: cache first, then Drive.
+/// Reads a resource by hash: revocation gate, then cache, then Drive.
 pub async fn read_resource(state: &AppState, bucket: &str, hash: &str) -> Option<StoredResource> {
+    // #2798 — checked before the cache AND the Drive fallback: a revoked hash
+    // must never be re-inserted by a request that still carries a valid token.
+    if is_hash_revoked(hash) {
+        return None;
+    }
     if let Some(resource) = lock_cache().get(hash).cloned() {
         return Some(resource);
     }
@@ -166,6 +205,27 @@ pub fn forget(hash: &str) {
     preview_store::shared().forget(hash);
 }
 
+/// #2798 — revoke a published resource: deny the hash in-process, delete its
+/// durable Drive objects and drop the cached copies. A signed URL issued
+/// before revocation keeps its valid signature but can no longer be served.
+pub async fn revoke_resource(state: &AppState, bucket: &str, hash: &str) {
+    // Deny first so a concurrent read cannot slip through between the Drive
+    // deletion and `forget`. Release the lock before awaiting the Drive I/O.
+    {
+        let mut denylist = lock_denylist();
+        mark_revoked(&mut denylist, hash);
+    }
+    if let Some(drive) = state.drive.as_ref() {
+        for suffix in ["html", "json", "meta.json"] {
+            let key = format!("_sandbox/ui/{hash}.{suffix}");
+            if let Err(error) = drive.delete_object(bucket, &key).await {
+                log::warn!("sandbox revoke could not delete {key}: {error}");
+            }
+        }
+    }
+    forget(hash);
+}
+
 /// #2541 — called at boot after the durable stores are available.
 pub fn reconcile_previews() {
     preview_store::shared().reconcile_on_boot(boot_id(), now_ms());
@@ -173,12 +233,57 @@ pub fn reconcile_previews() {
 
 #[cfg(test)]
 mod tests {
-    use super::resource_hash;
+    use std::collections::HashSet;
+
+    use crate::core::bot::sandbox::sign::{sign_resource, verify_resource};
+    use super::{is_revoked, mark_revoked, resource_hash};
 
     #[test]
     fn hash_is_content_addressed() {
         assert_eq!(resource_hash(b"abc"), resource_hash(b"abc"));
         assert_ne!(resource_hash(b"abc"), resource_hash(b"abd"));
         assert_eq!(resource_hash(b"abc").len(), 64);
+    }
+
+    /// #2798 — the pure revoke/check predicate only denies the revoked hash;
+    /// unrelated resources stay readable and re-revoking is idempotent.
+    #[test]
+    fn revoke_predicate_only_denies_the_revoked_hash() {
+        let mut denylist = HashSet::new();
+        let a = resource_hash(b"resource-a");
+        let b = resource_hash(b"resource-b");
+        assert!(!is_revoked(&denylist, &a));
+        assert!(!is_revoked(&denylist, &b));
+        mark_revoked(&mut denylist, &a);
+        assert!(is_revoked(&denylist, &a));
+        assert!(!is_revoked(&denylist, &b));
+        mark_revoked(&mut denylist, &a);
+        assert_eq!(denylist.len(), 1);
+    }
+
+    /// #2798 — publish → revoke → stale signed URL. The token keeps verifying
+    /// (correct signature, not expired) but the denylist now makes the read
+    /// path return `None`, which the route maps to 404.
+    #[test]
+    fn published_then_revoked_url_is_denied() {
+        let hash = resource_hash(b"<html>published app</html>");
+        let token = sign_resource("thread-1", &hash, 60);
+        let mut denylist = HashSet::new();
+
+        // Freshly published: the signed URL verifies and the hash is readable.
+        assert_eq!(
+            verify_resource(&hash, &token).ok().as_deref(),
+            Some("thread-1")
+        );
+        assert!(!is_revoked(&denylist, &hash));
+
+        // Revoked: the *same* signed URL still verifies, yet the read gate
+        // (`read_resource` → `is_hash_revoked`) now denies it → HTTP 404.
+        mark_revoked(&mut denylist, &hash);
+        assert_eq!(
+            verify_resource(&hash, &token).ok().as_deref(),
+            Some("thread-1")
+        );
+        assert!(is_revoked(&denylist, &hash));
     }
 }
