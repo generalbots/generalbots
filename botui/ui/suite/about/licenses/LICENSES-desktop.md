@@ -21,6 +21,7 @@ the AGPL/BUSL entries that is where the corresponding source is obtained.
 |---|---|---|---|---|---|
 | `drive` | MinIO Object Storage | RELEASE.2025-09-07T16-13-09Z | AGPL-3.0-or-later | https://github.com/minio/minio | payload `LICENSE` |
 | `mc` | MinIO Client (mc) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | https://github.com/minio/mc | payload `LICENSE` |
+| `clamav` | ClamAV Antivirus Engine | 1.5.5 | GPL-2.0-or-later | https://github.com/Cisco-Talos/clamav | payload `copyright` |
 | `tables` | PostgreSQL Database | 18.6.1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
 | `cache` | Valkey Cache (Redis-compatible) | 9.1.3 | BSD-3-Clause | https://github.com/valkey-io/valkey | payload `COPYING` |
 | `caddy` | Caddy Web Server | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | payload `LICENSE` |
