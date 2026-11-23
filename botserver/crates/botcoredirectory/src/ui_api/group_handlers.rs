@@ -4,15 +4,36 @@
 //! parent module's imports (`Json`, `State`, diesel traits) and its
 //! `get_conn` helper through `super::*`.
 use super::*;
+use crate::group_authz::{
+    authorize_group_mutation, load_group_name, load_user_org_ids, resolve_caller, GroupAuthDenial,
+    GroupMutation,
+};
+use axum::extract::Extension;
+use botsecurity::auth::AuthenticatedUser;
 use botsecurity::rbac_middleware::invalidate_rbac_cache;
 
 pub(super) async fn update_group_json(
     State(state): State<Arc<DirectoryApiState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(group_id): Path<Uuid>,
     Json(payload): Json<GroupUpdateRequest>,
 ) -> Result<Json<GroupResponse>, (StatusCode, String)> {
     let mut conn = get_conn(&state)
         .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "database unavailable".to_string()))?;
+
+    // #2847 — authorize before any write. `name` and `is_active` feed role
+    // resolution, so a non-admin or an admin-named target must never reach the
+    // UPDATE statements below.
+    let caller = resolve_caller(&mut conn, &user);
+    let current_name = load_group_name(&mut conn, group_id);
+    authorize_group_mutation(&GroupMutation {
+        caller_is_admin: caller.is_admin,
+        caller_org_ids: &caller.org_ids,
+        group_name: current_name.as_deref(),
+        proposed_name: payload.name.as_deref(),
+        member_target_org_ids: None,
+    })
+    .map_err(GroupAuthDenial::response)?;
 
     if let Some(name) = &payload.name {
         diesel::sql_query("UPDATE rbac_groups SET name = $1, updated_at = NOW() WHERE id = $2")
@@ -59,10 +80,22 @@ pub(super) async fn update_group_json(
 
 pub(super) async fn delete_group_json(
     State(state): State<Arc<DirectoryApiState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = get_conn(&state)
         .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "database unavailable".to_string()))?;
+
+    let caller = resolve_caller(&mut conn, &user);
+    let current_name = load_group_name(&mut conn, group_id);
+    authorize_group_mutation(&GroupMutation {
+        caller_is_admin: caller.is_admin,
+        caller_org_ids: &caller.org_ids,
+        group_name: current_name.as_deref(),
+        proposed_name: None,
+        member_target_org_ids: None,
+    })
+    .map_err(GroupAuthDenial::response)?;
 
     diesel::sql_query("DELETE FROM rbac_groups WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(group_id)
@@ -117,6 +150,7 @@ pub struct AddMemberRequest {
 
 pub(super) async fn add_group_member_json(
     State(state): State<Arc<DirectoryApiState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(group_id): Path<Uuid>,
     Json(payload): Json<AddMemberRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -141,6 +175,21 @@ pub(super) async fn add_group_member_json(
         return Err((StatusCode::BAD_REQUEST, "user_id or email required".to_string()));
     };
 
+    // #2847 — membership writes grant roles. Only an admin may perform them,
+    // never on an admin-named group, and never across tenant boundaries.
+    // A non-admin therefore cannot self-assign an admin-granting group.
+    let caller = resolve_caller(&mut conn, &user);
+    let current_name = load_group_name(&mut conn, group_id);
+    let target_org_ids = load_user_org_ids(&mut conn, user_id);
+    authorize_group_mutation(&GroupMutation {
+        caller_is_admin: caller.is_admin,
+        caller_org_ids: &caller.org_ids,
+        group_name: current_name.as_deref(),
+        proposed_name: None,
+        member_target_org_ids: Some(&target_org_ids),
+    })
+    .map_err(GroupAuthDenial::response)?;
+
     diesel::sql_query(
         "INSERT INTO rbac_user_groups (user_id, group_id, added_at) VALUES ($1, $2, NOW()) ON CONFLICT DO NOTHING",
     )
@@ -163,6 +212,7 @@ pub struct RemoveMemberRequest {
 
 pub(super) async fn remove_group_member_json(
     State(state): State<Arc<DirectoryApiState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(group_id): Path<Uuid>,
     Json(payload): Json<RemoveMemberRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -172,6 +222,18 @@ pub(super) async fn remove_group_member_json(
 
     let mut conn = get_conn(&state)
         .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "database unavailable".to_string()))?;
+
+    let caller = resolve_caller(&mut conn, &user);
+    let current_name = load_group_name(&mut conn, group_id);
+    let target_org_ids = load_user_org_ids(&mut conn, user_id);
+    authorize_group_mutation(&GroupMutation {
+        caller_is_admin: caller.is_admin,
+        caller_org_ids: &caller.org_ids,
+        group_name: current_name.as_deref(),
+        proposed_name: None,
+        member_target_org_ids: Some(&target_org_ids),
+    })
+    .map_err(GroupAuthDenial::response)?;
 
     diesel::sql_query("DELETE FROM rbac_user_groups WHERE user_id = $1 AND group_id = $2")
         .bind::<diesel::sql_types::Uuid, _>(user_id)

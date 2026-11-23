@@ -1,7 +1,13 @@
 use super::*;
+use crate::group_authz::{
+    authorize_group_mutation, resolve_caller, GroupAuthDenial, GroupMutation,
+};
+use axum::extract::Extension;
+use botsecurity::auth::AuthenticatedUser;
 
 pub async fn create_group(
     State(state): State<Arc<DirectoryApiState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Form(form): axum::extract::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     let name = form.get("name").cloned().unwrap_or_default();
@@ -19,6 +25,21 @@ pub async fn create_group(
             );
         }
     };
+
+    // #2847 — creating an admin-named group is the first step of the
+    // self-escalation flow; only an admin may create groups and never with a
+    // built-in administrator name.
+    let caller = resolve_caller(&mut conn, &user);
+    if let Err(denial) = authorize_group_mutation(&GroupMutation {
+        caller_is_admin: caller.is_admin,
+        caller_org_ids: &caller.org_ids,
+        group_name: None,
+        proposed_name: Some(&name),
+        member_target_org_ids: None,
+    }) {
+        let (status, message) = denial.response();
+        return (status, Html(message));
+    }
 
     let group_id = uuid::Uuid::new_v4();
     let result = diesel::sql_query(

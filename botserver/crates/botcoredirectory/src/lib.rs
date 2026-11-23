@@ -1,4 +1,5 @@
 pub mod api;
+pub mod group_authz;
 pub mod provisioning;
 pub mod auth_routes;
 pub mod bootstrap;
