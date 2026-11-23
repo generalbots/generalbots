@@ -10,6 +10,100 @@ pub(crate) fn base64_url_encode(input: &[u8]) -> String {
         .to_string()
 }
 
+/// #2635 — verify the desktop-local administrator credential.
+///
+/// New records are Argon2id PHC strings. A legacy `SHA256(salt || password)`
+/// record still verifies once and is rewritten as Argon2id with a loud warning;
+/// a plaintext `password` field is never accepted.
+fn verify_admin_hash(password: &str, salt: &str, hash: &str) -> (bool, bool) {
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    if hash.starts_with("$argon2") {
+        let parsed = match PasswordHash::new(hash) {
+            Ok(value) => value,
+            Err(error) => {
+                log::error!("desktop admin credential has a malformed Argon2 hash: {error}");
+                return (false, false);
+            }
+        };
+        return (Argon2::default().verify_password(password.as_bytes(), &parsed).is_ok(), false);
+    }
+    if salt.is_empty() || hash.is_empty() {
+        return (false, false);
+    }
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(password.as_bytes());
+    (format!("{:x}", hasher.finalize()) == hash, true)
+}
+
+fn argon2_phc(password: &str) -> Option<String> {
+    use argon2::password_hash::{rand_core::OsRng, SaltString};
+    use argon2::{Argon2, PasswordHasher};
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .ok()
+        .map(|hash| hash.to_string())
+}
+
+/// Rewrite a legacy record in place so the next login uses Argon2id. The file
+/// keeps the operator-owned fields and stays owner-only on Unix.
+fn migrate_admin_credential(path: &std::path::Path, json: &serde_json::Value, password: &str) {
+    let Some(phc) = argon2_phc(password) else {
+        log::error!("could not migrate the legacy desktop admin credential to Argon2id");
+        return;
+    };
+    let mut updated = json.clone();
+    if let Some(object) = updated.as_object_mut() {
+        object.remove("password_salt");
+        object.insert("password_hash".to_string(), serde_json::json!(phc));
+    }
+    let Ok(raw) = serde_json::to_string_pretty(&updated) else {
+        return;
+    };
+    if let Err(error) = std::fs::write(path, raw) {
+        log::error!("could not persist the migrated admin credential: {error}");
+        return;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = std::fs::metadata(path) {
+            let mut permissions = metadata.permissions();
+            permissions.set_mode(0o600);
+            let _ = std::fs::set_permissions(path, permissions);
+        }
+    }
+    log::warn!("desktop admin credential migrated from single-round SHA-256 to Argon2id");
+}
+
+#[cfg(test)]
+mod credential_tests {
+    use super::{argon2_phc, verify_admin_hash};
+
+    #[test]
+    fn argon2_records_verify_and_never_need_migration() {
+        let phc = argon2_phc("correct horse").expect("hash");
+        assert!(phc.starts_with("$argon2id$"));
+        assert_eq!(verify_admin_hash("correct horse", "", &phc), (true, false));
+        assert_eq!(verify_admin_hash("wrong", "", &phc), (false, false));
+        assert_eq!(verify_admin_hash("correct horse", "", "$argon2id$broken"), (false, false));
+    }
+
+    #[test]
+    fn legacy_sha256_verifies_once_and_flags_migration() {
+        use sha2::{Digest, Sha256};
+        let salt = "fixed-salt";
+        let mut hasher = Sha256::new();
+        hasher.update(salt.as_bytes());
+        hasher.update(b"legacy-password");
+        let hash = format!("{:x}", hasher.finalize());
+        assert_eq!(verify_admin_hash("legacy-password", salt, &hash), (true, true));
+        assert_eq!(verify_admin_hash("wrong", salt, &hash), (false, true));
+    }
+}
+
 /// Picks the JWT subject for a password-verified Zitadel session. Normally the
 /// Zitadel user id is used (RBAC and org checks derive a stable UUIDv5 from
 /// it). When that identity has no users-table row but the verified email does,
@@ -182,15 +276,11 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
             let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
             // #2231 — never compare against a plaintext `password` field read
             // from disk; only the salted digest is authoritative.
-            let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
-                use sha2::{Digest, Sha256};
-                let mut hasher = Sha256::new();
-                hasher.update(file_salt.as_bytes());
-                hasher.update(password.as_bytes());
-                format!("{:x}", hasher.finalize()) == file_hash
-            } else {
-                false
-            };
+            let (mut matched, needs_migration) = verify_admin_hash(password, file_salt, file_hash);
+            if matched && needs_migration {
+                migrate_admin_credential(&candidate, &json, password);
+                matched = true;
+            }
             // #2231 — the hardcoded "dev" bootstrap is gated behind an explicit
             // dev-mode flag so production builds never accept it.
             if !matched {
