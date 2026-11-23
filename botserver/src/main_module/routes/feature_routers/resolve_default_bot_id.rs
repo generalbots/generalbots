@@ -215,6 +215,12 @@ pub(crate) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
             // every path component before this closure is reached. Keep
             // `bucket` server-owned and never pass a client-supplied path or
             // bot id here when this stub becomes a real Drive writer.
+            // #2832 — plugin toggle/remove keys are rebuilt by
+            // `botdesigner::plugin_manifest::handlers::plugin_object_key` from
+            // this same server-owned bucket plus a strict slug (no `..`, `/`,
+            // `\` or NUL), confining every write to `plugins/`. Do not pass a
+            // raw client-supplied manifest name, or any key not proven under
+            // that prefix, to this closure when it becomes a real Drive writer.
             write_to_drive: Arc::new(
                 |_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> {
                     Err("not available".to_string())

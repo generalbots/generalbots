@@ -13,6 +13,53 @@ use super::{
     load_manifests_from_drive, html_escape, DEFAULT_PLUGINS_PREFIX,
 };
 
+/// #2832 — `PluginStateEntry` (owned by a prior fix in `mod.rs`) deliberately
+/// does not carry the Drive source object key, so the toggle/remove sinks must
+/// rebuild it. Rebuilding is only safe if the manifest name is first reduced to
+/// a strict slug: without this check a signed manifest named `"../start"` made
+/// the sink write/delete an object outside the server-owned `plugins/` prefix.
+///
+/// Rejects `..`, `/`, `\` and NUL explicitly, then enforces an ASCII allowlist
+/// so no other separator, control character or absolute-path marker survives.
+fn manifest_slug(name: &str) -> Result<&str, String> {
+    if name.is_empty() {
+        return Err("Plugin manifest name is empty".to_string());
+    }
+    if name.len() > 128 {
+        return Err("Plugin manifest name is too long".to_string());
+    }
+    for forbidden in ["..", "/", "\\", "\0"] {
+        if name.contains(forbidden) {
+            return Err(format!(
+                "Plugin manifest name contains forbidden sequence {forbidden:?}"
+            ));
+        }
+    }
+    let bytes = name.as_bytes();
+    if !bytes[0].is_ascii_alphanumeric() {
+        return Err("Plugin manifest name must start with a letter or digit".to_string());
+    }
+    if !bytes
+        .iter()
+        .all(|&b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+    {
+        return Err("Plugin manifest name contains invalid characters".to_string());
+    }
+    Ok(name)
+}
+
+/// Builds the Drive object key from the **server-owned** bucket and a strictly
+/// validated manifest slug. The bucket argument must come from
+/// `state.bucket_name` (server config, never the query string); the returned
+/// key is always confined to `{DEFAULT_PLUGINS_PREFIX}/<slug>.json`.
+fn plugin_object_key(bucket: &str, name: &str) -> Result<String, String> {
+    if bucket.is_empty() {
+        return Err("Drive bucket is empty".to_string());
+    }
+    let slug = manifest_slug(name)?;
+    Ok(format!("{DEFAULT_PLUGINS_PREFIX}/{slug}.json"))
+}
+
 pub async fn handle_list_plugins(
     State(state): State<Arc<DesignerState>>,
 ) -> impl IntoResponse {
@@ -152,7 +199,14 @@ pub async fn handle_toggle_plugin(
     for entry in &plugins {
         if entry.manifest.id == plugin_id {
             let new_enabled = !entry.manifest.enabled;
-            let manifest_path = format!("{}/{}.json", DEFAULT_PLUGINS_PREFIX, entry.manifest.name);
+            // #2832 — never build a Drive key from the raw manifest name.
+            let manifest_path = match plugin_object_key(bucket, &entry.manifest.name) {
+                Ok(path) => path,
+                Err(e) => {
+                    log::error!("Refusing to save plugin manifest with unsafe name: {e}");
+                    break;
+                }
+            };
             let mut updated = entry.manifest.clone();
             updated.enabled = new_enabled;
 
@@ -188,8 +242,19 @@ pub async fn handle_remove_plugin(
 
     for entry in &plugins {
         if entry.manifest.id == plugin_id {
-            let manifest_path = format!("{}/{}.json", DEFAULT_PLUGINS_PREFIX, entry.manifest.name);
-            let _ = (state.write_to_drive)(bucket, &manifest_path, b"{}", "application/json");
+            // #2832 — never build a Drive key from the raw manifest name.
+            let manifest_path = match plugin_object_key(bucket, &entry.manifest.name) {
+                Ok(path) => path,
+                Err(e) => {
+                    log::error!("Refusing to remove plugin manifest with unsafe name: {e}");
+                    break;
+                }
+            };
+            if let Err(e) =
+                (state.write_to_drive)(bucket, &manifest_path, b"{}", "application/json")
+            {
+                log::error!("Failed to remove plugin manifest: {e}");
+            }
             log::info!("Removed plugin: {} from bucket {}", entry.manifest.name, bucket);
             break;
         }
@@ -309,4 +374,52 @@ pub fn configure_plugin_routes() -> Router<Arc<DesignerState>> {
         .route("/api/ui/plugins/:id", delete(handle_remove_plugin))
         .route("/api/ui/plugins/upload", post(handle_upload_manifest))
         .route("/suite/plugins", get(handle_plugins_page))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::DEFAULT_PLUGINS_PREFIX;
+    use super::{manifest_slug, plugin_object_key};
+
+    #[test]
+    fn manifest_slug_accepts_safe_names() {
+        for name in ["sample", "my-plugin", "my_plugin", "v1.2.3", "a"] {
+            assert_eq!(manifest_slug(name).ok(), Some(name));
+        }
+    }
+
+    #[test]
+    fn manifest_slug_rejects_traversal_and_absolute_payloads() {
+        for name in [
+            "../start",
+            "..",
+            "a/../b",
+            "a/b",
+            "a\\b",
+            "C:\\windows\\system32",
+            "/etc/passwd",
+            "a\0b",
+            "",
+            ".hidden",
+            "with space",
+        ] {
+            assert!(manifest_slug(name).is_err(), "must reject {name:?}");
+        }
+    }
+
+    #[test]
+    fn plugin_object_key_is_confined_to_plugins_prefix() {
+        let key = plugin_object_key("botbucket", "sample").expect("valid slug");
+        assert_eq!(key, format!("{DEFAULT_PLUGINS_PREFIX}/sample.json"));
+        assert!(key.starts_with(&format!("{DEFAULT_PLUGINS_PREFIX}/")));
+        assert!(!key.contains(".."));
+
+        for name in ["../start", "/etc/passwd", "a\\b", "a\0b"] {
+            assert!(
+                plugin_object_key("botbucket", name).is_err(),
+                "must not build a key from {name:?}"
+            );
+        }
+        assert!(plugin_object_key("", "sample").is_err());
+    }
 }
