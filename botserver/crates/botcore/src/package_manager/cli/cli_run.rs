@@ -228,6 +228,11 @@ pub async fn run() -> Result<()> {
                 );
             }
         }
+        "audit" => {
+            // #2723 — exit 0 = not affected, 1 = affected, 2 = usage error.
+            let code = botcorepkg::cli_audit::run(&args).await?;
+            std::process::exit(code);
+        }
         "version" => {
             let show_all = args.contains(&"--all".to_string());
             print_version(show_all).await?;
