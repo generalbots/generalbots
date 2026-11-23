@@ -116,9 +116,26 @@ impl RateLimiter {
     }
 }
 
-fn default_bot(conn: &mut diesel::PgConnection) -> Uuid {
-    drop(conn);
-    Uuid::nil()
+/// Resolves the default bot *inside the tenant that owns the site* (#2888).
+/// A branch-scoped lookup can never pull a bot from another tenant's branch.
+fn default_bot_in_branch(conn: &mut diesel::PgConnection, branch: Uuid) -> Uuid {
+    use diesel::prelude::*;
+    #[derive(diesel::QueryableByName)]
+    struct BotRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT id FROM bots WHERE branch_id = $1 AND is_active = true \
+         ORDER BY is_default_for_branch DESC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .get_result::<BotRow>(conn)
+    .map(|row| row.id)
+    .unwrap_or_else(|error| {
+        log::warn!("WEBA default bot lookup for branch {branch} failed: {error}");
+        Uuid::nil()
+    })
 }
 
 fn contact_change(conn: &mut diesel::PgConnection, id: Uuid, action: &str, user: Uuid) {
@@ -138,14 +155,28 @@ fn field(fields: &HashMap<String, String>, name: &str) -> Option<String> {
 
 /// Creates or updates the CRM contact and lead through the existing CRM
 /// lead-form handler. `source` is always `site:{slug}`.
-pub async fn sync_crm(slug: &str, submission: &FormSubmission) -> Result<(), String> {
+///
+/// `site_branch` is the server-resolved tenant that owns the site/form (#2888).
+/// It is validated again here so a caller can never smuggle a nil branch into
+/// the CRM write, and it is passed explicitly to the scoped lead handler — no
+/// client-supplied org and no "default bot" fallback is consulted.
+pub async fn sync_crm(
+    site_branch: Uuid,
+    slug: &str,
+    submission: &FormSubmission,
+) -> Result<(), String> {
+    let branch = crate::configure_routes::resolve_form_branch(site_branch, None)
+        .map_err(|error| format!("form tenant rejected: {error:?}"))?;
     let pool = botcore::shared::utils::pool().map_err(|error| {
         let (status, detail) = error;
         format!("pool status {} detail {detail}", status.as_u16())
     })?;
+    let bot_lookup: botcontacts::GetDefaultBotFn = std::sync::Arc::new(
+        move |conn: &mut diesel::PgConnection| default_bot_in_branch(conn, branch),
+    );
     let state = botcontacts::CrateState::new(
         (*pool).clone(),
-        std::sync::Arc::new(default_bot),
+        bot_lookup,
         std::sync::Arc::new(contact_change),
         std::sync::Arc::new(deal_stage_change),
     );
@@ -164,10 +195,11 @@ pub async fn sync_crm(slug: &str, submission: &FormSubmission) -> Result<(), Str
         currency: None,
         lost_reason: None,
     };
-    match botcontacts::handlers::deals::create_lead_form(
-        State(std::sync::Arc::new(state)),
+    match botcontacts::handlers::deals::create_lead_form_for_site(
+        branch,
+        std::sync::Arc::new(state),
         axum::http::HeaderMap::new(),
-        Json(lead),
+        lead,
     )
     .await
     {

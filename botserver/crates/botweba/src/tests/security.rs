@@ -1,4 +1,6 @@
 use super::*;
+use axum::extract::Query;
+use std::collections::HashMap;
 use crate::configure_routes::authorize_publisher;
 use crate::render_routes::render_app;
 use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
@@ -139,7 +141,7 @@ pub(super) fn test_render_route_response_carries_csp_header() {
         state.apps.write().await.insert(app_id, app);
         state.publish(app_id).await.expect("publish must freeze the site");
 
-        render_app(State(state), Path("served".to_string()))
+        render_app(State(state), Path("served".to_string()), Query(HashMap::new()))
             .await
             .expect("render_app must serve a published app")
     });
@@ -197,7 +199,7 @@ pub(super) fn test_rendering_uses_the_published_snapshot() {
         state.pages.write().await.insert(page_id, page);
         state.publish(app_id).await.expect("publish");
 
-        let first = render_app(State(state.clone()), Path("frozen".to_string()))
+        let first = render_app(State(state.clone()), Path("frozen".to_string()), Query(HashMap::new()))
             .await
             .expect("render")
             .into_body();
@@ -211,7 +213,7 @@ pub(super) fn test_rendering_uses_the_published_snapshot() {
             .get_mut(&page_id)
             .expect("page")
             .content = "edited draft".to_string();
-        let second = render_app(State(state), Path("frozen".to_string()))
+        let second = render_app(State(state), Path("frozen".to_string()), Query(HashMap::new()))
             .await
             .expect("render")
             .into_body();

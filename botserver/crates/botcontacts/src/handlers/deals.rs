@@ -21,18 +21,17 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
-fn default_bot_id(state: &CrateState) -> Uuid {
-    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
-    use diesel::prelude::*;
-
-    let Ok(mut conn) = state.db_pool.get() else {
-        return Uuid::nil();
-    };
-    bots
-        .filter(is_default_for_branch.eq(true))
-        .select(id)
-        .first::<Uuid>(&mut conn)
-        .unwrap_or(Uuid::nil())
+/// #2888 — Form-capture entry point. `site_branch` is resolved server-side by
+/// the WebA handler from the site/form owner; it is never supplied by the
+/// visitor. A nil branch is refused and a conflicting verified claim from a
+/// different tenant is rejected before any write happens.
+pub async fn create_lead_form_for_site(
+    site_branch: Uuid,
+    state: Arc<CrateState>,
+    headers: HeaderMap,
+    req: CreateLeadForm,
+) -> Result<CrmDeal, (StatusCode, String)> {
+    create_lead_form_scoped(state, headers, req, Some(site_branch)).await
 }
 
 pub async fn create_lead_form(
@@ -40,11 +39,35 @@ pub async fn create_lead_form(
     headers: HeaderMap,
     Json(req): Json<CreateLeadForm>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
+    let lead = create_lead_form_scoped(state, headers, req, None).await?;
+    Ok(Json(lead))
+}
+
+async fn create_lead_form_scoped(
+    state: Arc<CrateState>,
+    headers: HeaderMap,
+    req: CreateLeadForm,
+    site_branch: Option<Uuid>,
+) -> Result<CrmDeal, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    // #2888 — with a site branch the tenant is fixed by the form owner; a
+    // verified claim from another tenant is a mismatch, never an override.
+    let branch_id = match site_branch {
+        Some(site) => match crate::scope::branch_from_jwt(&headers, &mut conn) {
+            Some(claim) if claim != site => {
+                return Err((StatusCode::FORBIDDEN, "tenant mismatch".to_string()));
+            }
+            _ => site,
+        },
+        None => crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| get_bot_context(&state)),
+    };
+    if branch_id.is_nil() {
+        return Err((StatusCode::CONFLICT, "form site has no tenant".to_string()));
+    }
     let effective_branch_id = branch_id;
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -163,7 +186,7 @@ pub async fn create_lead_form(
     let lead = CrmDeal {
         id,
         org_id: effective_branch_id,
-        bot_id: default_bot_id(&state),
+        bot_id: state.bot_for_branch(effective_branch_id),
         branch_id: effective_branch_id,
         contact_id,
         account_id,
@@ -214,7 +237,7 @@ pub async fn create_lead_form(
         },
     );
 
-    Ok(Json(lead))
+    Ok(lead)
 }
 
 pub async fn create_lead(
@@ -236,7 +259,7 @@ pub async fn create_lead(
     let lead = CrmDeal {
         id,
         org_id: branch_id,
-        bot_id: default_bot_id(&state),
+        bot_id: state.bot_for_branch(branch_id),
         branch_id,
         contact_id: req.contact_id,
         account_id: req.account_id,

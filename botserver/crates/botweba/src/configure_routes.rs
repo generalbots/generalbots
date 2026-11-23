@@ -34,6 +34,34 @@ pub fn configure_routes(state: Arc<WebaState>) -> Router {
         .with_state(state)
 }
 
+/// #2888 — A captured form may only be written to the tenant that owns the
+/// published site. `site_branch` is resolved server-side from the form's site
+/// (the branch-scoped WebA state that owns the form id); `claimed_branch` is
+/// the visitor's verified JWT branch when one is present. This is deliberately
+/// pure so the tenant rule is testable without a database or a running server.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormTenantError {
+    /// The site has no owning branch — a lead may never land in the nil tenant.
+    UnboundSite,
+    /// The visitor's verified branch is not the branch that owns the site.
+    BranchMismatch,
+}
+
+/// Resolves the single branch a form submission is allowed to be written to.
+#[must_use]
+pub fn resolve_form_branch(
+    site_branch: Uuid,
+    claimed_branch: Option<Uuid>,
+) -> Result<Uuid, FormTenantError> {
+    if site_branch.is_nil() {
+        return Err(FormTenantError::UnboundSite);
+    }
+    match claimed_branch {
+        Some(claim) if claim != site_branch => Err(FormTenantError::BranchMismatch),
+        _ => Ok(site_branch),
+    }
+}
+
 /// A published document is handed to every visitor, so publishing is an
 /// administrative act. A single-user desktop install has no directory account:
 /// the local OS user owns the instance and keeps the ability to publish.
@@ -133,4 +161,47 @@ pub(super) async fn campaign_clicks(
         .filter(|click| click.app_id == id || click.slug == slug)
         .collect();
     Ok(Json(serde_json::json!({ "site": slug, "clicks": matched })))
+}
+
+#[cfg(test)]
+mod tenant_tests {
+    use super::*;
+
+    #[test]
+    fn rejects_a_site_without_a_tenant() {
+        assert_eq!(
+            resolve_form_branch(Uuid::nil(), None),
+            Err(FormTenantError::UnboundSite)
+        );
+    }
+
+    #[test]
+    fn rejects_a_nil_site_even_when_a_claim_is_present() {
+        assert_eq!(
+            resolve_form_branch(Uuid::nil(), Some(Uuid::new_v4())),
+            Err(FormTenantError::UnboundSite)
+        );
+    }
+
+    #[test]
+    fn uses_the_site_owner_when_no_claim_is_present() {
+        let branch = Uuid::new_v4();
+        assert_eq!(resolve_form_branch(branch, None), Ok(branch));
+    }
+
+    #[test]
+    fn accepts_a_claim_that_matches_the_site_owner() {
+        let branch = Uuid::new_v4();
+        assert_eq!(resolve_form_branch(branch, Some(branch)), Ok(branch));
+    }
+
+    #[test]
+    fn rejects_a_claim_from_another_tenant() {
+        let site = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        assert_eq!(
+            resolve_form_branch(site, Some(other)),
+            Err(FormTenantError::BranchMismatch)
+        );
+    }
 }

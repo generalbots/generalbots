@@ -4,7 +4,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use super::calendar_types::*;
-use super::calendar_service_helpers;
+use super::calendar_service_helpers::{self, TenantScope};
 
 pub struct CalendarIntegrationService {
     db_pool: Arc<crate::DbPool>,
@@ -17,12 +17,12 @@ impl CalendarIntegrationService {
 
     pub async fn link_contact_to_event(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         request: &LinkContactRequest,
     ) -> Result<EventContact, CalendarIntegrationError> {
-        self.verify_contact(organization_id, request.contact_id).await?;
-        self.verify_event(organization_id, event_id).await?;
+        self.verify_contact(scope, request.contact_id).await?;
+        self.verify_event(scope.branch_id, event_id).await?;
 
         if self.is_contact_linked(event_id, request.contact_id).await? {
             return Err(CalendarIntegrationError::AlreadyLinked);
@@ -65,7 +65,7 @@ impl CalendarIntegrationService {
 
     pub async fn bulk_link_contacts(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         request: &BulkLinkContactsRequest,
     ) -> Result<Vec<EventContact>, CalendarIntegrationError> {
@@ -76,7 +76,7 @@ impl CalendarIntegrationService {
                 role: request.role.clone(),
                 send_notification: request.send_notification,
             };
-            match self.link_contact_to_event(organization_id, event_id, &link_request).await {
+            match self.link_contact_to_event(scope, event_id, &link_request).await {
                 Ok(event_contact) => results.push(event_contact),
                 Err(CalendarIntegrationError::AlreadyLinked) => continue,
                 Err(e) => return Err(e),
@@ -87,12 +87,12 @@ impl CalendarIntegrationService {
 
     pub async fn unlink_contact_from_event(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         contact_id: Uuid,
     ) -> Result<(), CalendarIntegrationError> {
-        self.verify_contact(organization_id, contact_id).await?;
-        self.verify_event(organization_id, event_id).await?;
+        self.verify_contact(scope, contact_id).await?;
+        self.verify_event(scope.branch_id, event_id).await?;
         self.delete_event_contact_link(event_id, contact_id).await?;
         self.log_contact_activity(
             contact_id,
@@ -106,13 +106,13 @@ impl CalendarIntegrationService {
 
     pub async fn update_event_contact(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         contact_id: Uuid,
         request: &UpdateEventContactRequest,
     ) -> Result<EventContact, CalendarIntegrationError> {
-        self.verify_contact(organization_id, contact_id).await?;
-        self.verify_event(organization_id, event_id).await?;
+        self.verify_contact(scope, contact_id).await?;
+        self.verify_event(scope.branch_id, event_id).await?;
 
         let mut event_contact = self.get_event_contact(event_id, contact_id).await?;
         if let Some(role) = &request.role {
@@ -127,11 +127,11 @@ impl CalendarIntegrationService {
 
     pub async fn get_event_contacts(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         query: &EventContactsQuery,
     ) -> Result<Vec<EventContactWithDetails>, CalendarIntegrationError> {
-        self.verify_event(organization_id, event_id).await?;
+        self.verify_event(scope.branch_id, event_id).await?;
         let contacts = self.fetch_event_contacts(event_id, query).await?;
 
         if query.include_contact_details.unwrap_or(true) {
@@ -167,12 +167,12 @@ impl CalendarIntegrationService {
 
     pub async fn get_contact_events(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         contact_id: Uuid,
         query: &ContactEventsQuery,
     ) -> Result<ContactEventsResponse, CalendarIntegrationError> {
-        self.verify_contact(organization_id, contact_id).await?;
-        let events = self.fetch_contact_events(contact_id, query).await?;
+        self.verify_contact(scope, contact_id).await?;
+        let events = self.fetch_contact_events(scope, contact_id, query).await?;
         let total_count = events.len() as u32;
         let now = Utc::now();
         let upcoming_count = events.iter().filter(|e| e.event.start_time > now).count() as u32;
@@ -188,17 +188,17 @@ impl CalendarIntegrationService {
 
     pub async fn get_suggested_contacts(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         event_id: Uuid,
         limit: Option<u32>,
     ) -> Result<Vec<SuggestedContact>, CalendarIntegrationError> {
-        self.verify_event(organization_id, event_id).await?;
+        self.verify_event(scope.branch_id, event_id).await?;
         let limit = limit.unwrap_or(10);
         let mut suggestions: Vec<SuggestedContact> = Vec::new();
 
         if let Some(organizer_id) = self.get_event_organizer_contact_id(event_id).await? {
             let linked = self.get_linked_contact_ids(event_id).await?;
-            let collaborators = self.find_frequent_collaborators(organizer_id, &linked, 5).await?;
+            let collaborators = self.find_frequent_collaborators(scope, organizer_id, &linked, 5).await?;
             for contact in collaborators {
                 suggestions.push(SuggestedContact {
                     contact,
@@ -209,7 +209,7 @@ impl CalendarIntegrationService {
         }
 
         let linked = self.get_linked_contact_ids(event_id).await?;
-        let company_contacts = self.find_same_company_contacts(event_id, &linked, 5).await?;
+        let company_contacts = self.find_same_company_contacts(scope, event_id, &linked, 5).await?;
         for contact in company_contacts {
             suggestions.push(SuggestedContact {
                 contact,
@@ -225,12 +225,12 @@ impl CalendarIntegrationService {
 
     pub async fn find_contacts_for_event(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         emails: &[String],
     ) -> Result<HashMap<String, Option<ContactSummary>>, CalendarIntegrationError> {
         let mut results = HashMap::new();
         for email in emails {
-            let contact = self.find_contact_by_email(organization_id, email).await.ok();
+            let contact = self.find_contact_by_email(scope.org_id, email).await.ok();
             results.insert(email.clone(), contact);
         }
         Ok(results)
@@ -238,18 +238,18 @@ impl CalendarIntegrationService {
 
     pub async fn create_contacts_from_attendees(
         &self,
-        organization_id: Uuid,
+        scope: TenantScope,
         user_id: Uuid,
         attendees: &[AttendeeInfo],
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
         let mut created = Vec::new();
         for attendee in attendees {
-            if self.find_contact_by_email(organization_id, &attendee.email).await.is_ok() {
+            if self.find_contact_by_email(scope.org_id, &attendee.email).await.is_ok() {
                 continue;
             }
             let contact_id = Uuid::new_v4();
             let now = Utc::now();
-            self.create_contact_from_attendee(contact_id, organization_id, user_id, attendee, now)
+            self.create_contact_from_attendee(contact_id, scope.org_id, user_id, attendee, now)
                 .await?;
             created.push(ContactSummary {
                 id: contact_id,
@@ -265,8 +265,29 @@ impl CalendarIntegrationService {
         Ok(created)
     }
 
-    async fn verify_contact(&self, _org: Uuid, _cid: Uuid) -> Result<(), CalendarIntegrationError> {
-        Ok(())
+    /// A bare `contact_id` from the URL is only usable when that contact
+    /// belongs to the caller's verified org *and* branch. A foreign or missing
+    /// contact is indistinguishable from "not found" to the client (#2896).
+    async fn verify_contact(
+        &self,
+        scope: TenantScope,
+        contact_id: Uuid,
+    ) -> Result<(), CalendarIntegrationError> {
+        let pool = self.db_pool.clone();
+        let in_scope = tokio::task::spawn_blocking(move || {
+            calendar_service_helpers::contact_in_scope_db(&pool, scope, contact_id)
+        })
+        .await
+        .map_err(|e| {
+            log::error!("Spawn blocking error: {e}");
+            CalendarIntegrationError::DatabaseError
+        })??;
+
+        if in_scope {
+            Ok(())
+        } else {
+            Err(CalendarIntegrationError::ContactNotFound)
+        }
     }
 
     async fn verify_event(&self, _org: Uuid, _eid: Uuid) -> Result<(), CalendarIntegrationError> {
@@ -314,13 +335,13 @@ impl CalendarIntegrationService {
     }
 
     async fn fetch_contact_events(
-        &self, contact_id: Uuid, query: &ContactEventsQuery,
+        &self, scope: TenantScope, contact_id: Uuid, query: &ContactEventsQuery,
     ) -> Result<Vec<ContactEventWithDetails>, CalendarIntegrationError> {
         let pool = self.db_pool.clone();
         let from_date = query.from_date;
         let to_date = query.to_date;
         tokio::task::spawn_blocking(move || {
-            calendar_service_helpers::fetch_contact_events_db(pool, contact_id, from_date, to_date)
+            calendar_service_helpers::fetch_contact_events_db(pool, contact_id, scope, from_date, to_date)
         })
         .await
         .map_err(|e: tokio::task::JoinError| {
@@ -345,12 +366,12 @@ impl CalendarIntegrationService {
     }
 
     async fn find_frequent_collaborators(
-        &self, contact_id: Uuid, exclude: &[Uuid], limit: usize,
+        &self, scope: TenantScope, contact_id: Uuid, exclude: &[Uuid], limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
         let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
         tokio::task::spawn_blocking(move || {
-            calendar_service_helpers::query_contacts_excluding(&pool, Some(contact_id), &exclude, limit, false)
+            calendar_service_helpers::query_contacts_excluding(&pool, scope, Some(contact_id), &exclude, limit, false)
         })
         .await
         .map_err(|e: tokio::task::JoinError| {
@@ -360,12 +381,12 @@ impl CalendarIntegrationService {
     }
 
     async fn find_same_company_contacts(
-        &self, _eid: Uuid, exclude: &[Uuid], limit: usize,
+        &self, scope: TenantScope, _eid: Uuid, exclude: &[Uuid], limit: usize,
     ) -> Result<Vec<ContactSummary>, CalendarIntegrationError> {
         let pool = self.db_pool.clone();
         let exclude = exclude.to_vec();
         tokio::task::spawn_blocking(move || {
-            calendar_service_helpers::query_contacts_excluding(&pool, None, &exclude, limit, true)
+            calendar_service_helpers::query_contacts_excluding(&pool, scope, None, &exclude, limit, true)
         })
         .await
         .map_err(|_| CalendarIntegrationError::DatabaseError)?

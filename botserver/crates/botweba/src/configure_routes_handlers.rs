@@ -326,6 +326,27 @@ async fn submit_form_inner(
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "site_not_found" })),
         ))?;
+    // #2888 — the tenant that owns this site/form is the only branch the lead
+    // may be written to. Any verified claim from the visitor must agree with
+    // it; a nil owning branch is a misconfigured site, never a valid tenant.
+    let site_branch = match super::resolve_form_branch(
+        state.branch_id,
+        botsecurity_core::scope::branch_from_claim(&headers),
+    ) {
+        Ok(branch) => branch,
+        Err(super::FormTenantError::UnboundSite) => {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(serde_json::json!({ "error": "site_not_bound" })),
+            ));
+        }
+        Err(super::FormTenantError::BranchMismatch) => {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({ "error": "tenant_mismatch" })),
+            ));
+        }
+    };
     let email = forms::normalize_email(&request.email);
     let existing = state
         .submissions
@@ -349,7 +370,7 @@ async fn submit_form_inner(
     let crm_submission = submission.clone();
     state.record_submission(submission).await;
 
-    if let Err(error) = forms::sync_crm(&slug, &crm_submission).await {
+    if let Err(error) = forms::sync_crm(site_branch, &slug, &crm_submission).await {
         let sanitized = log_and_sanitize_json(&error, "weba::configure_routes::submit_form", None);
         log::error!("WEBA CRM sync: {sanitized}");
         return Err((
