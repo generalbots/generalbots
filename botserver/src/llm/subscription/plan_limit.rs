@@ -40,6 +40,7 @@ async fn turn_error(service: &AgentService, vm_name: &str, agent: &str, error: S
         Vec::new()
     };
     let reset = reset_at(reset_hint(phrase, now), &windows, now);
+    botagent::plan_usage::record_spent(vm_name, agent, reset);
     AgentLimit {
         agent: agent.to_string(),
         label: provider_label(agent).to_string(),

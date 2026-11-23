@@ -1,10 +1,12 @@
 //! `GET /api/llm/limits` — usage limits of every engine, from real sources only.
 //!
-//! - Codex subscription: the CLI's own session logs inside the agent workspace.
+//! - Codex subscription: the CLI's own session logs inside the agent workspace;
+//!   `?refresh=1` re-reads it from the service through the CLI's app server.
 //! - HTTP providers (own key, free model, ChatGPT plan): the rate-limit headers
 //!   of their last response, kept in memory by `botllm::rate_limits`.
-//! - Claude Code and Antigravity expose no usage outside their interactive
-//!   sessions, so they are listed with no windows and no source.
+//! - Claude Code: the plan windows its stream-json turns reported, kept in
+//!   memory by `botagent::plan_usage` (none until a turn ran since start).
+//! - Antigravity reports nothing until a turn ends on a spent plan.
 //! - The local engine has no quota.
 //!
 //! Nothing is estimated: an engine without a source has an empty `windows`.
@@ -12,7 +14,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::routing::get;
 use axum::{Extension, Json, Router};
 use botcore::shared::state::AppState;
@@ -114,18 +116,94 @@ async fn provider_accounts() -> Vec<AccountRef> {
         .unwrap_or_default()
 }
 
+/// What each subscription engine can report, for the page's wording:
+/// `live` is re-read from the service on refresh, `turns` arrives with each
+/// answer, `headers` with each HTTP response, `none` only when the plan is spent.
 #[cfg(feature = "agent-vm")]
-async fn subscription_engines(state: &Arc<AppState>, user: &AuthenticatedUser) -> Vec<Value> {
+fn reports(provider: &str) -> &'static str {
+    use crate::core::ai_accounts::{CHATGPT_PLAN, CLAUDE_CODE, CODEX_CLI};
+    match provider {
+        CODEX_CLI => "live",
+        CLAUDE_CODE => "turns",
+        CHATGPT_PLAN => "headers",
+        _ => "none",
+    }
+}
+
+/// Adds what the CLI said during its turns: Claude Code's plan windows and,
+/// for any agent, a spent plan that has not come back yet.
+#[cfg(feature = "agent-vm")]
+fn with_turn_reports(entry: &mut Value, usage: Option<botagent::plan_usage::PlanUsage>) {
+    let Some(usage) = usage else { return };
+    let now = chrono::Utc::now();
+    let mut windows: Vec<Value> = usage
+        .windows
+        .iter()
+        .map(|w| {
+            json!({
+                "name": w.name,
+                "used_percent": w.used_percent,
+                "limit": null,
+                "remaining": null,
+                "status": w.status,
+                "resets_at": rfc3339(w.resets_at),
+            })
+        })
+        .collect();
+    let spent_now = match (usage.spent_at, usage.spent_until) {
+        (Some(_), Some(until)) => until > now,
+        (Some(at), None) => now - at < chrono::Duration::hours(1),
+        _ => false,
+    };
+    if spent_now {
+        windows.insert(0, json!({ "name": "plan", "used_percent": 100.0, "limit": null, "remaining": null,
+            "status": "rejected", "resets_at": rfc3339(usage.spent_until) }));
+    }
+    if windows.is_empty() {
+        return;
+    }
+    let newer = usage.observed_at().map(|t| t.to_rfc3339());
+    let current = entry["observed_at"].as_str().map(str::to_string);
+    if entry["windows"].as_array().map_or(true, Vec::is_empty) {
+        entry["windows"] = json!(windows);
+        entry["source"] = json!("agent-turn");
+        entry["observed_at"] = json!(newer);
+    } else if spent_now {
+        if let Some(list) = entry["windows"].as_array_mut() {
+            list.insert(0, windows.remove(0));
+        }
+        if newer > current {
+            entry["observed_at"] = json!(newer);
+        }
+    }
+}
+
+#[cfg(feature = "agent-vm")]
+fn workspace(user: &AuthenticatedUser) -> Option<(&'static Arc<botagent::AgentService>, String)> {
+    let service = crate::core::bot::agent_vm_hook::service()?;
+    match botagent::vm::get_user_vm(service, &user.user_id) {
+        Ok(Some(row)) => Some((service, row.vm_name)),
+        Ok(None) => None,
+        Err((code, message)) => {
+            log::warn!("llm limits: workspace lookup failed ({}): {message}", code.as_u16());
+            None
+        }
+    }
+}
+
+#[cfg(feature = "agent-vm")]
+async fn subscription_engines(state: &Arc<AppState>, user: &AuthenticatedUser, refresh: bool) -> Vec<Value> {
     use crate::core::ai_accounts;
     let linked: Vec<String> = ai_accounts::list_accounts(&state.conn, user.user_id)
         .into_iter()
         .filter(|a| a.get("status").and_then(Value::as_str) == Some("linked"))
         .filter_map(|a| a.get("provider").and_then(Value::as_str).map(str::to_string))
         .collect();
+    let vm = if linked.is_empty() { None } else { workspace(user) };
     let mut out = Vec::new();
     for provider in linked {
-        let entry = match provider.as_str() {
-            ai_accounts::CODEX_CLI => codex_engine(user).await,
+        let mut entry = match provider.as_str() {
+            ai_accounts::CODEX_CLI => codex_engine(vm.as_ref(), refresh).await,
             ai_accounts::CHATGPT_PLAN => {
                 let seen = rate_limits::for_host(PLAN_HOST);
                 engine("subscription", ai_accounts::CHATGPT_PLAN, "ChatGPT plan", seen.as_ref())
@@ -134,43 +212,57 @@ async fn subscription_engines(state: &Arc<AppState>, user: &AuthenticatedUser) -
             ai_accounts::ANTIGRAVITY => no_source("subscription", ai_accounts::ANTIGRAVITY, "Antigravity"),
             _ => continue,
         };
+        if let Some((_, vm_name)) = vm.as_ref() {
+            with_turn_reports(&mut entry, botagent::plan_usage::latest(vm_name, &provider));
+        }
+        entry["reports"] = json!(reports(&provider));
         out.push(entry);
     }
     out
 }
 
 #[cfg(feature = "agent-vm")]
-async fn codex_engine(user: &AuthenticatedUser) -> Value {
+fn codex_json(entry: &mut Value, limits: &botagent::codex::CodexLimits, source: &str) {
+    entry["source"] = json!(source);
+    entry["observed_at"] = rfc3339(limits.observed_at);
+    entry["windows"] = limits
+        .windows
+        .iter()
+        .map(|w| {
+            json!({
+                "name": w.name,
+                "used_percent": w.used_percent,
+                "limit": null,
+                "remaining": null,
+                "status": null,
+                "resets_at": rfc3339(w.resets_at),
+            })
+        })
+        .collect();
+}
+
+/// Codex: re-read from the service on refresh, else the newest state its
+/// session logs recorded.
+#[cfg(feature = "agent-vm")]
+async fn codex_engine(vm: Option<&(&'static Arc<botagent::AgentService>, String)>, refresh: bool) -> Value {
     let mut entry = no_source("subscription", crate::core::ai_accounts::CODEX_CLI, "Codex");
-    let Some(service) = crate::core::bot::agent_vm_hook::service() else {
+    let Some((service, vm_name)) = vm else {
         return entry;
     };
-    let vm = match botagent::vm::get_user_vm(service, &user.user_id) {
-        Ok(Some(row)) => row,
-        Ok(None) => return entry,
-        Err((code, message)) => {
-            log::warn!("llm limits: workspace lookup failed ({}): {message}", code.as_u16());
-            return entry;
+    if refresh {
+        match botagent::codex::live_limits(service, vm_name).await {
+            Ok(Some(limits)) => {
+                codex_json(&mut entry, &limits, "codex-service");
+                entry["refreshed"] = json!(true);
+                return entry;
+            }
+            Ok(None) => log::info!("llm limits: codex service sent no plan windows"),
+            Err((code, message)) => log::warn!("llm limits: codex live read failed ({}): {message}", code.as_u16()),
         }
-    };
-    match botagent::codex::limits(service, &vm.vm_name).await {
-        Ok(Some(limits)) => {
-            entry["source"] = json!("codex-session");
-            entry["observed_at"] = rfc3339(limits.observed_at);
-            entry["windows"] = limits
-                .windows
-                .iter()
-                .map(|w| {
-                    json!({
-                        "name": w.name,
-                        "used_percent": w.used_percent,
-                        "limit": null,
-                        "remaining": null,
-                        "resets_at": rfc3339(w.resets_at),
-                    })
-                })
-                .collect();
-        }
+        entry["refresh_failed"] = json!(true);
+    }
+    match botagent::codex::limits(service, vm_name).await {
+        Ok(Some(limits)) => codex_json(&mut entry, &limits, "codex-session"),
         Ok(None) => {}
         Err((code, message)) => {
             log::warn!("llm limits: codex session logs unreadable ({}): {message}", code.as_u16());
@@ -180,15 +272,23 @@ async fn codex_engine(user: &AuthenticatedUser) -> Value {
 }
 
 #[cfg(not(feature = "agent-vm"))]
-async fn subscription_engines(_: &Arc<AppState>, _: &AuthenticatedUser) -> Vec<Value> {
+async fn subscription_engines(_: &Arc<AppState>, _: &AuthenticatedUser, _: bool) -> Vec<Value> {
     Vec::new()
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct LimitsQuery {
+    #[serde(default)]
+    refresh: Option<String>,
 }
 
 async fn limits(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    Query(query): Query<LimitsQuery>,
 ) -> Json<Value> {
-    let mut engines = subscription_engines(&state, &user).await;
+    let refresh = matches!(query.refresh.as_deref(), Some("1" | "true"));
+    let mut engines = subscription_engines(&state, &user, refresh).await;
     let config = botcore::config::ConfigManager::new(state.conn.clone());
     let main_url = config
         .get_config(&uuid::Uuid::nil(), "llm-url", Some(""))
@@ -201,7 +301,7 @@ async fn limits(
         local["unlimited"] = json!(true);
         engines.push(local);
     }
-    Json(json!({ "engines": engines }))
+    Json(json!({ "engines": engines, "checked_at": chrono::Utc::now().to_rfc3339(), "refreshed": refresh }))
 }
 
 #[cfg(test)]
@@ -243,6 +343,26 @@ mod tests {
         assert_eq!(out[1]["source"], "response-headers");
         assert_eq!(out[1]["windows"][0]["used_percent"], 40.0);
         assert_eq!(out[1]["windows"][0]["resets_at"], Value::Null);
+    }
+
+    #[cfg(feature = "agent-vm")]
+    #[test]
+    fn turn_reports_fill_a_silent_engine_and_a_spent_plan_leads() {
+        use botagent::plan_usage::{PlanUsage, PlanWindow};
+        let window = PlanWindow { name: "5h".into(), used_percent: Some(82.0), resets_at: None, status: Some("allowed_warning".into()), observed_at: Utc::now() };
+        let mut silent = no_source("subscription", "claude-code", "Claude Code");
+        with_turn_reports(&mut silent, Some(PlanUsage { windows: vec![window], ..PlanUsage::default() }));
+        assert_eq!(silent["source"], "agent-turn");
+        assert_eq!(silent["windows"][0]["status"], "allowed_warning");
+        let mut spent = no_source("subscription", "antigravity", "Antigravity");
+        let until = Utc::now() + chrono::Duration::hours(1);
+        with_turn_reports(&mut spent, Some(PlanUsage { windows: Vec::new(), spent_at: Some(Utc::now()), spent_until: Some(until) }));
+        assert_eq!(spent["windows"][0]["name"], "plan");
+        assert_eq!(spent["windows"][0]["used_percent"], 100.0);
+        let mut over = no_source("subscription", "antigravity", "Antigravity");
+        let past = Utc::now() - chrono::Duration::hours(1);
+        with_turn_reports(&mut over, Some(PlanUsage { windows: Vec::new(), spent_at: Some(past), spent_until: Some(past) }));
+        assert_eq!(over["windows"], json!([]));
     }
 
     #[test]

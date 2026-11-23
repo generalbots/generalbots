@@ -67,6 +67,8 @@ pub struct DriveReport {
     /// Tools whose result came back successful without being asked.
     pub unasked: Vec<String>,
     pub stopped: bool,
+    /// The `rate_limit_info` objects the CLI printed, in order.
+    pub rate_limits: Vec<serde_json::Value>,
 }
 
 /// A name the CLI sent, safe for a log line.
@@ -185,6 +187,7 @@ pub async fn drive<G: BridgeGate>(session: DuplexSession, prompt: &str, gate: &G
             }
             None => break,
         };
+        turn.report.rate_limits.extend(crate::plan_usage::claude_rate_limit(&line));
         for incoming in protocol::parse(&line) {
             match incoming {
                 Incoming::Init { session_id, cwd } => {

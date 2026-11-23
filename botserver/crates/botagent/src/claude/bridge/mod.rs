@@ -129,7 +129,9 @@ async fn session(
 ) -> Result<DriveReport, (StatusCode, String)> {
     let args = ["sh".to_string(), "-c".to_string(), command::turn_script(model, resume)];
     let session = crate::vm::exec_in_vm_duplex(state, vm_name, &args, DuplexOptions::default()).await?;
-    Ok(drive(session, prompt, gate).await)
+    let report = drive(session, prompt, gate).await;
+    crate::plan_usage::record_claude(vm_name, &report.rate_limits);
+    Ok(report)
 }
 
 /// Runs one chat turn in `vm_name` through the bridge. The workspace must

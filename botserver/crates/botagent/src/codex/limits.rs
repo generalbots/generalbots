@@ -33,7 +33,7 @@ pub struct CodexLimits {
     pub windows: Vec<CodexWindow>,
 }
 
-fn window_name(minutes: Option<u64>, slot: &str) -> String {
+pub(super) fn window_name(minutes: Option<u64>, slot: &str) -> String {
     match minutes {
         Some(300) => "5h".to_string(),
         Some(1440) => "daily".to_string(),
@@ -44,7 +44,7 @@ fn window_name(minutes: Option<u64>, slot: &str) -> String {
     }
 }
 
-fn epoch(value: &Value) -> Option<DateTime<Utc>> {
+pub(super) fn epoch(value: &Value) -> Option<DateTime<Utc>> {
     let secs = value.as_i64().or_else(|| value.as_f64().map(|v| v as i64))?;
     Utc.timestamp_opt(secs, 0).single()
 }

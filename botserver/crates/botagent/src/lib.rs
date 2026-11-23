@@ -21,6 +21,7 @@ pub mod duplex;
 pub mod keys;
 pub mod models;
 pub mod plan_limit;
+pub mod plan_usage;
 pub mod sandbox;
 pub mod schema;
 pub mod snapshots;
