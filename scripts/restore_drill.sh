@@ -66,6 +66,41 @@ fi
 
 # Never print credentials: keep scheme/host/port/database, drop the userinfo.
 masked="$(printf '%s' "$dsn" | sed -E 's#^([a-zA-Z][a-zA-Z0-9+.-]*)://[^@/]*@#\1://***@#')"
+
+# #2679 — never put credentials in a process argument list. Split the URL's
+# userinfo into libpq environment variables and keep only a credential-free
+# URL for psql/pg_dump/pg_restore and the Python checks (which shell out to psql).
+readarray -t dsn_parts < <(python3 - "$dsn" <<'PY'
+import sys
+import urllib.parse
+
+url = urllib.parse.urlsplit(sys.argv[1])
+user = urllib.parse.unquote(url.username or "")
+password = urllib.parse.unquote(url.password or "")
+netloc = url.hostname or ""
+if url.port is not None:
+    netloc = f"{netloc}:{url.port}"
+clean = urllib.parse.urlunsplit((url.scheme, netloc, url.path, url.query, url.fragment))
+print(user)
+print(password)
+print(clean)
+PY
+)
+if [ "${#dsn_parts[@]}" -ne 3 ] || [ -z "${dsn_parts[2]}" ]; then
+  echo "error: could not parse --dsn into a credential-free URL" >&2
+  exit 2
+fi
+dsn_user="${dsn_parts[0]:-}"
+dsn_password="${dsn_parts[1]:-}"
+dsn="${dsn_parts[2]:-$dsn}"
+if [ -n "$dsn_user" ]; then
+  export PGUSER="$dsn_user"
+fi
+if [ -n "$dsn_password" ]; then
+  export PGPASSWORD="$dsn_password"
+fi
+unset dsn_user dsn_password dsn_parts
+
 scratch="gb_restore_drill_$$"
 workdir="$(mktemp -d "${TMPDIR:-/tmp}/gb-restore-drill.XXXXXX")"
 created_dump=""
@@ -132,7 +167,10 @@ if [ -n "$dump" ] && [ ! -f "$dump" ]; then
 fi
 
 if [ -z "$dump" ]; then
-  dump="${TMPDIR:-/tmp}/gb-restore-drill-$$.dump"
+  # #2679 — unpredictable name and owner-only mode: a full dump contains PII
+  # and password hashes. cleanup() removes it on every exit path.
+  dump="$(mktemp "${TMPDIR:-/tmp}/gb-restore-drill.XXXXXX.dump")"
+  chmod 600 "$dump"
   created_dump="$dump"
   echo "-- dump: $masked -> $dump"
   pg_dump -Fc -d "$dsn" -f "$dump"
