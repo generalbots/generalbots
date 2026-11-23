@@ -269,8 +269,16 @@ pub fn create_container_service(
         "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
         component, env_section, rendered_cmd
     );
-    let service_file = format!("/tmp/{}.service", component);
-    std::fs::write(&service_file, &service_content)?;
+    // #2789 — never stage a root-owned systemd unit at a predictable /tmp
+    // path; a local user could pre-create or symlink it and substitute a unit.
+    let staged = crate::safe_staging::StagedFile::create(
+        &format!("{component}.service"),
+        service_content.as_bytes(),
+    )?;
+    if std::fs::read(staged.as_path())? != service_content.as_bytes() {
+        return Err(anyhow::anyhow!("staged systemd unit differs from the generated template"));
+    }
+    let service_file = staged.as_path().to_string_lossy().to_string();
     let dest = format!("{container}/etc/systemd/system/{component}.service");
     let output = safe_incus(&["file", "push", &service_file, &dest])
         .ok_or_else(|| anyhow::anyhow!("Failed to execute incus file push command"))?;
@@ -281,7 +289,6 @@ pub fn create_container_service(
     exec(container, "systemctl daemon-reload")?;
     exec(container, &format!("systemctl enable {}", component))?;
     exec(container, &format!("systemctl start {}", component))?;
-    std::fs::remove_file(&service_file)?;
     trace!("Created and started service in container {}: {}", container, component);
     Ok(())
 }
