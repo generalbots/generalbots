@@ -22,7 +22,8 @@ var L = { "pt-BR": {
   space:"ESPAÇO ISOLADO", spaceOff:"INDISPONÍVEL",
   connect:"Conectar", disconnect:"Sair da conta", useNow:"Usar no chat", linked:"CONECTADO", connecting:"CONECTANDO…", off:"NÃO CONECTADO",
   preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
-  open:"Abrir a página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
+  open:"Abrir página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
+  signIn:"Entre na sua conta na página de login.", signInPaste:"Entre na sua conta na página de login e cole aqui o código que ela mostrar.", verifying:"Conferindo o código…",
   paste:"Cole aqui o código que a página mostrar", send:"Enviar código",
   unavailable:"A máquina virtual de agentes não está disponível neste computador:", failed:"Não foi possível conectar:",
   models:"MODELOS NO MENU DO CHAT", modelsTip:"Ligue os modelos deste agente que devem aparecer no menu do chat.",
@@ -37,7 +38,8 @@ en: {
   space:"ISOLATED SPACE", spaceOff:"UNAVAILABLE",
   connect:"Connect", disconnect:"Sign out", useNow:"Use in chat", linked:"CONNECTED", connecting:"CONNECTING…", off:"NOT CONNECTED",
   preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
-  open:"Open the sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
+  open:"Open sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
+  signIn:"Sign in to your account on the sign-in page.", signInPaste:"Sign in on the sign-in page, then paste here the code it shows.", verifying:"Checking the code…",
   paste:"Paste the code the page shows", send:"Send code",
   unavailable:"The agent virtual machine is not available on this computer:", failed:"Could not connect:",
   models:"MODELS IN THE CHAT MENU", modelsTip:"Switch on the models of this agent that should appear in the chat menu.",
@@ -215,12 +217,16 @@ function flowParts(el, a) {
   var box = el.querySelector('[data-flow="' + a.id + '"]');
   if (!box) { return null; }
   if (!box.querySelector('[data-role="msg"]')) {
-    box.innerHTML = '<p class="gb-set-hint" data-role="msg"></p>' +
+    box.innerHTML = '<div class="gb-ag-wait" data-role="wait" role="status"><span class="gb-ag-spin" data-role="spin" aria-hidden="true"></span><span data-role="msg"></span></div>' +
       '<a class="gb-of-btn acc gb-prov-open" data-role="open" target="_blank" rel="noopener noreferrer" style="display:none">' + esc(g("open")) + ' ↗</a>' +
       '<div data-role="codewrap" style="display:none"><p class="gb-set-hint">' + esc(g("codeHelp")) + '</p><div class="gb-prov-url gb-prov-code" data-role="code"></div></div>' +
       '<div class="gb-set-form-actions" data-role="pastewrap" style="display:none"><input class="gb-of-in" data-paste="' + a.id + '" placeholder="' + esc(g("paste")) + '" autocomplete="off" aria-label="' + esc(g("paste")) + '"/>' +
         '<button type="button" class="gb-of-btn pri" data-send="' + a.id + '">' + esc(g("send")) + '</button></div>' +
       '<div data-role="err"></div>';
+    box.querySelector('[data-role="open"]').addEventListener("click", function (e) {
+      var href = e.currentTarget.getAttribute("href");
+      if (href && openOutside(href)) { e.preventDefault(); }
+    });
     var send = box.querySelector('[data-send="' + a.id + '"]');
     send.addEventListener("click", function () {
       var input = box.querySelector('[data-paste="' + a.id + '"]');
@@ -236,15 +242,31 @@ function flowParts(el, a) {
   return box;
 }
 
-/** The sign-in step: link, code to type there, or a box for the code it returns. */
+/* The desktop app opens the page in the person's own browser (opener
+ * plugin); a plain browser keeps the visible button. */
+function openOutside(url) {
+  var tauri = window.__TAURI_INTERNALS__;
+  if (!tauri || typeof tauri.invoke !== "function" || !/^https:\/\//.test(url)) { return false; }
+  tauri.invoke("plugin:opener|open_url", { url: url }).catch(function () { window.open(url, "_blank", "noopener"); });
+  return true;
+}
+
+/** The sign-in step: link, code to type there, or a box for the code it returns.
+ *  The words are the shell's own per step; a workspace message (vm*Msg)
+ *  replaces them while the machine is off or starting. */
 function showFlow(el, a, d) {
-  var f = flows[a.id] || (flows[a.id] = { url: "", code: "", msg: "" });
+  var f = flows[a.id] || (flows[a.id] = { url: "", code: "", msg: "", opened: false });
   if (d.url) { f.url = d.url; }
   if (d.device_code || d.auth_code) { f.code = d.device_code || d.auth_code; }
-  if (d.message) { f.msg = d.message; }
+  f.msg = d.vmMsg || "";
   var box = flowParts(el, a);
   if (!box) { return; }
-  setText(box.querySelector('[data-role="msg"]'), f.msg || g("preparing"));
+  var busy = !f.url || d.state === "verifying" || !!d.vmMsg;
+  var text = f.msg || (d.state === "verifying" ? g("verifying") : !f.url ? g("preparing") : a.paste ? g("signInPaste") : g("signIn"));
+  setText(box.querySelector('[data-role="msg"]'), text);
+  show(box.querySelector('[data-role="spin"]'), busy);
+  box.querySelector('[data-role="wait"]').classList.toggle("idle", !busy);
+  if (f.url && !f.opened && started[a.id]) { f.opened = true; openOutside(f.url); }
   var open = box.querySelector('[data-role="open"]');
   if (f.url && open.getAttribute("href") !== f.url) { open.setAttribute("href", f.url); }
   show(open, !!f.url);
@@ -261,7 +283,7 @@ function watch(el, a) {
       if (polls[a.id] !== p || res.skipped) { return WATCH_MS; }
       if (res.vm) {
         markRow(el, a, true, res.vm);
-        showFlow(el, a, { message: g("vm" + res.vm.charAt(0).toUpperCase() + res.vm.slice(1) + "Msg") });
+        showFlow(el, a, { vmMsg: g("vm" + res.vm.charAt(0).toUpperCase() + res.vm.slice(1) + "Msg") });
         return res.vm === "starting" ? WATCH_MS : WATCH_BACKOFF;
       }
       if (res.failed) { return WATCH_BACKOFF; }

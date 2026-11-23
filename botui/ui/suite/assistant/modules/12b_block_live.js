@@ -23,6 +23,12 @@ var esc = B.esc, t = B.t;
 var VM_PHASES = { infra: 1, tool: 1 };
 /* Steps that belong to the virtual machine (not: local_engine_start, generate). */
 var VM_STEPS = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1, package_install: 1, execute: 1, repair: 1, save: 1, publish: 1, vm_action: 1 };
+/* Start-up checks the server sends before every agent turn. They show only
+   when the machine really had to start (the step runs past QUIET_MS or
+   fails, the same quiet window as the server's workspace start); a machine
+   that is already on stays out of the answer. */
+var STARTUP = { queued: 1, image_pull: 1, container_start: 1, bootstrap: 1 };
+var QUIET_MS = 2000;
 var STEP_LABELS = {
     queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
     image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
@@ -35,7 +41,8 @@ var STEP_LABELS = {
     save: ["Guardou o resultado", "Saved the output", "Guardando o resultado", "Saving the output"],
     publish: ["Publicou no Drive", "Published to Drive", "Publicando no Drive", "Publishing to Drive"],
     generate: ["Gerou a resposta", "Wrote the answer", "Gerando a resposta", "Writing the answer"],
-    vm_action: ["Ação na Máquina Virtual", "Virtual Machine action", "Ação na Máquina Virtual", "Virtual Machine action"]
+    vm_action: ["Ação na Máquina Virtual", "Virtual Machine action", "Ação na Máquina Virtual", "Virtual Machine action"],
+    web_fetch: ["Leu a página", "Read the web page", "Lendo a página", "Reading the web page"]
 };
 /* A step id the shell does not know: a neutral line, never the server's
    own (English) name or detail. */
@@ -142,16 +149,21 @@ function stepLabel(step) {
    the only server detail shown (they are data, not words). */
 function stepSummary(step) {
     var label = stepLabel(step);
-    return step.key === "package_install" && step.detail ? label + ": " + step.detail : label;
+    return (step.key === "package_install" || step.key === "web_fetch") && step.detail ? label + ": " + step.detail : label;
 }
 
 function runFor(runId) {
     var key = runId || "run";
-    if (!runs[key]) { runs[key] = { key: key, el: null, steps: [], ok: null, vm: false, local: false }; }
+    if (!runs[key]) { runs[key] = { key: key, el: null, steps: [], ok: null, vm: false, local: false, web: false }; }
     return runs[key];
 }
 
 function runTitle(run, status) {
+    /* Pages read from the web (phase "web"): not the virtual machine. */
+    if (run.web && !run.vm && !run.local) {
+        if (status === "running") { return t("Lendo a web", "Reading the web"); }
+        return status === "failed" ? t("Não conseguiu ler a página", "Could not read the page") : t("Leu a web", "Read the web");
+    }
     if (run.local && !run.vm) {
         if (status === "running") { return t("Preparando o modelo local", "Preparing the local model"); }
         return status === "failed" ? t("Falhou ao preparar o modelo local", "Failed to prepare the local model")
@@ -165,7 +177,7 @@ function runTitle(run, status) {
 }
 
 function showRun(run) {
-    if (!run.vm && !run.local) { return; }
+    if (!run.vm && !run.local && !run.web) { return; }
     if (!run.el || !document.body.contains(run.el)) {
         run.el = B.block({ kind: "machine", icon: "terminal", title: runTitle(run, "running"),
             summary: "", status: "running", open: true });
@@ -189,15 +201,25 @@ function showRun(run) {
     paintRun(run);
 }
 
+function shown(run) { return run.steps.filter(function (s) { return !s.quiet; }); }
+
+function wakeStep(run, step) {
+    clearTimeout(step.timer);
+    if (!step.quiet) { return; }
+    step.quiet = false;
+    run.vm = true;
+}
+
 function paintRun(run) {
-    var done = run.steps.filter(function (s) { return s.state !== "running"; }).length;
-    var failed = run.steps.some(function (s) { return s.state === "failed"; }) || run.ok === false;
-    var current = run.steps.filter(function (s) { return s.waiting && s.state === "running"; })[0] ||
-        run.steps.filter(function (s) { return s.state === "running"; })[0];
+    var steps = shown(run);
+    var done = steps.filter(function (s) { return s.state !== "running"; }).length;
+    var failed = steps.some(function (s) { return s.state === "failed"; }) || run.ok === false;
+    var current = steps.filter(function (s) { return s.waiting && s.state === "running"; })[0] ||
+        steps.filter(function (s) { return s.state === "running"; })[0];
     var status = failed ? "failed" : (!current && run.ok !== null ? "done" : "running");
-    var waiting = run.steps.some(function (s) { return s.waiting && s.state === "running"; });
-    var denied = failed && run.steps.some(function (s) { return s.denied; }) &&
-        run.steps.every(function (s) { return s.state !== "failed" || s.denied; });
+    var waiting = steps.some(function (s) { return s.waiting && s.state === "running"; });
+    var denied = failed && steps.some(function (s) { return s.denied; }) &&
+        steps.every(function (s) { return s.state !== "failed" || s.denied; });
     if (waiting) { status = "needs-you"; }
     var el = run.el;
     el.querySelector(".gb-block-title").textContent = runTitle(run, denied ? "denied" : status);
@@ -208,15 +230,15 @@ function paintRun(run) {
         count.className = "gb-block-count";
         el.querySelector(".gb-block-chip").before(count);
     }
-    count.textContent = done + " " + t("de", "of") + " " + run.steps.length;
+    count.textContent = done + " " + t("de", "of") + " " + steps.length;
     B.updateStatus(el, status);
     if (denied) {
-        var last = run.steps.filter(function (s) { return s.denied; }).pop();
+        var last = steps.filter(function (s) { return s.denied; }).pop();
         var chip = vm().chip[last.denied] || vm().chip.denied;
         el.querySelector(".gb-block-chip").textContent = t(chip[0], chip[1]);
     }
     /* A run with an agent action stays open: what ran, and how, stays in view. */
-    var acted = run.steps.some(function (s) { return s.key === "vm_action"; });
+    var acted = steps.some(function (s) { return s.key === "vm_action"; });
     if (acted && el.dataset.userToggled !== "1" && !el.classList.contains("open")) {
         el.classList.add("open");
         el.querySelector(".gb-block-header").setAttribute("aria-expanded", "true");
@@ -225,8 +247,8 @@ function paintRun(run) {
         el.classList.remove("open");
         el.querySelector(".gb-block-header").setAttribute("aria-expanded", "false");
     }
-    var pct = run.steps.length ? Math.round(done * 100 / run.steps.length) : 0;
-    el.querySelector(".gb-block-body").innerHTML = '<div class="gb-block-list">' + run.steps.map(function (s) {
+    var pct = steps.length ? Math.round(done * 100 / steps.length) : 0;
+    el.querySelector(".gb-block-body").innerHTML = '<div class="gb-block-list">' + steps.map(function (s) {
         var mark = s.state === "ok" ? "✓" : (s.state === "failed" ? "✕" : "");
         return '<div class="gb-run-step gb-run-step--' + s.state + '"><span class="gb-run-mark" aria-hidden="true">' + mark + '</span>' +
             '<span class="gb-run-label">' + esc(stepLabel(s)) + '</span>' +
@@ -245,11 +267,18 @@ function onStep(frame) {
     var step = run.steps.filter(function (s) { return s.id === id; })[0];
     if (!step) {
         if (frame.type !== "STEP_STARTED" && !data.phase) { return; }
-        step = { id: id, key: data.step || "", name: data.name || "", detail: "", state: "running", ms: null };
+        step = { id: id, key: data.step || "", name: data.name || "", detail: "", state: "running", ms: null,
+            quiet: !!STARTUP[data.step || ""] };
         run.steps.push(step);
+        if (step.quiet) {
+            step.timer = setTimeout(function () {
+                if (step.state === "running") { wakeStep(run, step); showRun(run); }
+            }, QUIET_MS);
+        }
     }
-    if (VM_PHASES[data.phase] && VM_STEPS[data.step || ""]) { run.vm = true; }
+    if (VM_PHASES[data.phase] && VM_STEPS[data.step || ""] && !STARTUP[data.step || ""]) { run.vm = true; }
     if ((data.step || "") === "local_engine_start") { run.local = true; }
+    if (data.phase === "web") { run.web = true; }
     if (data.action) { step.action = data.action; }
     if (data.allowed_by) { step.allowedBy = data.allowed_by; }
     if (data.waiting != null) { step.waiting = !!data.waiting; }
@@ -266,6 +295,10 @@ function onStep(frame) {
     } else {
         step.state = data.status === "ok" || data.status === "completed" || data.status === "succeeded" ? "ok" : "failed";
         step.ms = data.elapsed_ms != null ? data.elapsed_ms : data.duration_ms;
+        if (step.quiet) {
+            clearTimeout(step.timer);
+            if (step.state === "failed" || (step.ms || 0) >= QUIET_MS) { wakeStep(run, step); }
+        }
     }
     showRun(run);
 }

@@ -16,7 +16,7 @@
     var A = window.GBAssistant;
 
     /* ---- Tool-call JSON in text ---- */
-    var TOOL_NAMES = "propose_plan|show_app|ask_user|show_surface|classify_media|vm_exec|execute_code|run_terminal|web_search|research";
+    var TOOL_NAMES = "propose_plan|show_app|ask_user|show_surface|classify_media|vm_exec|execute_code|run_terminal|web_search|web_fetch|research";
     var TOOL_RE = new RegExp('"tool_call"\\s*:\\s*true|"__tool_call__"\\s*:|"name"\\s*:\\s*"(' + TOOL_NAMES + ')"');
 
     function stripToolCallJson(text) {

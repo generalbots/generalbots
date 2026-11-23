@@ -292,7 +292,16 @@ select.gb-of-in { padding: 0 8px; }
 .gb-of-ag-r .tool { font: 600 11.5px/normal var(--id-font-mono); color: var(--id-muted); }
 .gb-of-ag-st { display: flex; align-items: center; gap: 6px; font: 600 11px/normal var(--id-font-mono); }
 .gb-of-ag-r .gb-of-btn { height: 30px; min-width: 96px; justify-content: center; font-size: 12.5px; }
-.gb-of-ag .gb-prov-flow:not(:empty) { padding: 0 16px 14px 60px; display: flex; flex-direction: column; gap: 8px; }
+.gb-of-ag .gb-prov-flow:not(:empty) { margin: 0; padding: 0 16px 14px 60px; display: flex; flex-direction: column; gap: 10px; }
+/* The sign-in's waiting line: same calm row as the chat's waiting answer. */
+.gb-of-ag .gb-ag-wait { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+  background: var(--id-surface); color: var(--id-text); font-size: 12.5px; line-height: 1.5; }
+.gb-of-ag .gb-ag-wait.idle { padding: 0; border: 0; background: none; }
+.gb-of-ag .gb-ag-spin { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--id-line); border-top-color: var(--id-accent);
+  animation: gb-ag-spin .9s linear infinite; }
+@keyframes gb-ag-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gb-of-ag .gb-ag-spin { animation: gb-ag-breathe 2.4s ease-in-out infinite; } }
+@keyframes gb-ag-breathe { 50% { opacity: .35; } }
 .gb-of-ag .gb-prov-flow p { margin: 0; font-size: 12.5px; color: var(--id-text); line-height: 1.5; }
 .gb-of-ag .gb-prov-code { font: 600 16px/normal var(--id-font-mono); letter-spacing: .1em; padding: 8px 10px; border: 1px solid var(--id-line); background: var(--id-paper); align-self: flex-start; }
 .gb-of-ag .gb-set-form-actions { display: flex; gap: 8px; }
