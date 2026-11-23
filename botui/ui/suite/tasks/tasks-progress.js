@@ -1,13 +1,10 @@
 
-function updateProgressUI(data) {
-  if (data && data.current_step !== undefined) {
-    updateDetailProgress(
-      data.task_id,
-      data.current_step,
-      data.total_steps,
-      data.progress,
-    );
-  }
+// Pure HTML-escape helper for untrusted progress messages (#2841).
+function escapeProgressText(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // Legacy function - errors now shown in detail panel
@@ -62,12 +59,12 @@ function updateProgressUI(data) {
     if (resultDiv && data.message) {
       resultDiv.innerHTML = `
         <div class="result-card">
-          <div class="result-message">${data.message}</div>
+          <div class="result-message">${escapeProgressText(data.message)}</div>
           <div class="result-progress">
             <div class="result-progress-bar" style="width: ${percent}%"></div>
           </div>
           <div style="margin-top:8px;font-size:12px;color:var(--sentient-text-muted);">
-            Step ${data.current_step}/${data.total_steps} (${percent}%)
+            Step ${escapeProgressText(data.current_step)}/${escapeProgressText(data.total_steps)} (${percent}%)
           </div>
         </div>
       `;
