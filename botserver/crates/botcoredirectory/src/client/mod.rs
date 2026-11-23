@@ -143,7 +143,9 @@ mod tests {
         let with: ZitadelConfig =
             serde_json::from_str(r#"{"base_url": "http://a.b", "allow_insecure_http": true}"#).unwrap();
         assert!(with.allow_insecure_http);
-        assert_eq!(with.api_url, "http://a.b");
+        // `base_url` is a separate legacy field by design (see the struct
+        // above), so it deserializes there — not into `api_url`.
+        assert_eq!(with.base_url, "http://a.b");
     }
 }
 

@@ -117,7 +117,10 @@ impl StripeClient {
 
         let expected_sig = hex::encode(mac.finalize().into_bytes());
 
-        if expected_sig != *received_sig {
+        // Compare the hex digests in constant time. A plain `!=` short-circuits
+        // at the first differing byte, leaking how many leading characters an
+        // attacker guessed correctly via response timing (#2642).
+        if !constant_time_eq(expected_sig.as_bytes(), received_sig.as_bytes()) {
             return Err(StripeError::InvalidWebhook("Signature mismatch".to_string()));
         }
 
@@ -212,5 +215,47 @@ impl StripeClient {
         }
 
         serde_json::from_str(&body).map_err(|e| StripeError::ParseError(e.to_string()))
+    }
+}
+
+/// Byte-wise equality that does not short-circuit on the first difference.
+///
+/// Both inputs are fixed-length hex HMAC digests; the length is public, while
+/// the bytes must not be. Accumulate the XOR of every byte so the work done is
+/// independent of where the first mismatch occurs. Kept local to avoid adding
+/// a dependency on `subtle` (or on the `botwhatsapp` crate) for one comparison.
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (left, right) in a.iter().zip(b.iter()) {
+        diff |= left ^ right;
+    }
+    diff == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::constant_time_eq;
+
+    #[test]
+    fn constant_time_eq_matches_equal_secrets_and_rejects_unequal() {
+        let secret = b"a1b2c3d4e5f60718293a4b5c6d7e8f90";
+        assert!(constant_time_eq(secret, secret));
+        assert!(constant_time_eq(
+            secret,
+            b"a1b2c3d4e5f60718293a4b5c6d7e8f90"
+        ));
+
+        let mut different = *secret;
+        different[0] ^= 1;
+        assert!(!constant_time_eq(secret, &different));
+
+        let mut last_different = *secret;
+        last_different[last_different.len() - 1] ^= 1;
+        assert!(!constant_time_eq(secret, &last_different));
+
+        assert!(!constant_time_eq(secret, b"short"));
     }
 }

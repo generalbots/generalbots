@@ -279,13 +279,25 @@ pub async fn refresh_token(
         message: Some("Token refreshed successfully".to_string()),
     }))
 }
+/// Short, non-reversible fingerprint of a secret for log correlation (#2634).
+/// The raw token is never emitted, so a clear-text credential cannot reach
+/// stdout/journald. A stable hash keeps "same token retried" traceable without
+/// exposing the token itself.
+fn redact_session_token(token: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    token.hash(&mut hasher);
+    format!("redacted:{:016x}", hasher.finish())
+}
+
 pub async fn verify_2fa(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<TwoFactorRequest>,
 ) -> Result<Json<LoginResponse>, (StatusCode, Json<ErrorResponse>)> {
     info!(
         "2FA verification attempt for session: {}",
-        req.session_token
+        redact_session_token(&req.session_token)
     );
 
     Err((
@@ -295,4 +307,27 @@ pub async fn verify_2fa(
             details: Some("This feature will be available in a future update".to_string()),
         }),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::redact_session_token;
+
+    #[test]
+    fn redacted_session_token_never_contains_raw_secret() {
+        let raw = "sess_supersecret_9f8e7d6c5b4a3210_verification_token";
+        let redacted = redact_session_token(raw);
+        assert!(
+            !redacted.contains(raw),
+            "raw session token leaked into log output: {redacted}"
+        );
+        assert!(
+            !redacted.contains("supersecret"),
+            "raw session token fragment leaked into log output: {redacted}"
+        );
+        assert!(
+            redacted.starts_with("redacted:"),
+            "redaction marker missing: {redacted}"
+        );
+    }
 }

@@ -191,23 +191,24 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Audit pinned requirements
+      - name: Audit all runtime requirements (#2675)
         run: |
           set -euo pipefail
           python3 -m venv /tmp/audit-venv
           /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
-          # Audit the exact pins without installing torch and friends (~3 GB):
-          # `--disable-pip --no-deps` reads the requirement metadata directly.
-          # `>=` lines are resolved by pip to the latest release at install time;
-          # they were checked against PyPI latest + OSV on 2026-11-06 and the
-          # OSV check is repeated in the release runbook. The two accepted
-          # accelerate aliases are the only ignores.
-          grep -E '^[A-Za-z0-9_.-]+(\[[^]]+\])?==' botmodels/requirements.txt \
-            > /tmp/requirements-exact.txt
+          # Feed the WHOLE requirements file to pip-audit. We deliberately do
+          # NOT grep for `==` and do NOT pass `--disable-pip`/`--no-deps`:
+          # pip-audit rejects non-pinned lines under those flags
+          # ("requirement X is not pinned to an exact version"), so the old
+          # filter silently skipped every >= / ~= / < / unpinned dependency.
+          # Without them, pip resolves each specifier to the version it would
+          # actually install (plus transitives) and audits that version, so
+          # no runtime dependency escapes the audit. A new advisory still
+          # fails this step; the two accelerate aliases remain the only
+          # accepted ignores. Coverage of this command is guarded by
+          # scripts/check_pip_audit_coverage.py in the workflow-lint job.
           /tmp/audit-venv/bin/pip-audit \
-            --requirement /tmp/requirements-exact.txt \
-            --no-deps \
-            --disable-pip \
+            --requirement botmodels/requirements.txt \
             --progress-spinner off \
             --ignore-vuln GHSA-4j2p-28q2-5m79 \
             --ignore-vuln PYSEC-2026-3804
@@ -260,6 +261,12 @@ jobs:
           sudo install -m 0755 /tmp/actionlint /usr/local/bin/actionlint
       - name: Lint workflows
         run: actionlint
+      - name: pip-audit covers every runtime requirement (#2675)
+        # The python job used to grep only `==` lines, so >= / ~= / unpinned
+        # deps were never audited. Keep the whole-file audit honest.
+        run: |
+          python3 scripts/check_pip_audit_coverage.py --self-test
+          python3 scripts/check_pip_audit_coverage.py
       - name: Every `uses:` must be a commit SHA
         run: python3 scripts/check_workflow_pinning.py
       - name: Component checksums are pinned

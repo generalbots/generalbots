@@ -11,6 +11,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
+use botsecurity_core::constant_time;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
@@ -104,7 +105,14 @@ pub(crate) fn verify_challenge(
         return Err((StatusCode::FORBIDDEN, "Invalid mode"));
     }
 
-    if params.hub_verify_token.as_deref() != Some(verify_token) {
+    let provided = match params.hub_verify_token.as_deref() {
+        Some(token) => token,
+        None => return Err((StatusCode::FORBIDDEN, "Invalid verify token")),
+    };
+    // Constant-time: `hub.verify_token` is a shared secret, so an `!=` check
+    // would leak the matching prefix through timing. The POST signature gate
+    // (utils.rs) and the Instagram handshake use the same comparison.
+    if !constant_time::eq_str(verify_token, provided) {
         return Err((StatusCode::FORBIDDEN, "Invalid verify token"));
     }
 

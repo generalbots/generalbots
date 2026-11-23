@@ -84,6 +84,32 @@ fn a_missing_verify_token_is_forbidden() {
 }
 
 #[test]
+fn the_verify_token_is_compared_in_constant_time() {
+    // The handshake must accept only a byte-for-byte equal shared token,
+    // whether it is compared directly or through `verify_challenge`.
+    assert!(constant_time::eq_str("test-auth-token", "test-auth-token"));
+    assert!(!constant_time::eq_str("test-auth-token", "wrong"));
+    assert!(!constant_time::eq_str("test-auth-token", "test-auth-toke"));
+    assert!(!constant_time::eq_str("test-auth-token", "test-auth-token-extra"));
+    assert!(!constant_time::eq_str("test-auth-token", ""));
+
+    // These outcomes are unchanged by the constant-time comparison: equal
+    // tokens echo the challenge, different-length and unequal tokens do not.
+    assert_eq!(
+        verify_challenge(&params(Some("subscribe"), Some("test-auth-token"), Some("42")), "test-auth-token"),
+        Ok("42".to_string())
+    );
+    assert_eq!(
+        verify_challenge(&params(Some("subscribe"), Some("test-auth-toke"), Some("42")), "test-auth-token"),
+        Err((StatusCode::FORBIDDEN, "Invalid verify token"))
+    );
+    assert_eq!(
+        verify_challenge(&params(Some("subscribe"), Some("test-auth-token-extra"), Some("42")), "test-auth-token"),
+        Err((StatusCode::FORBIDDEN, "Invalid verify token"))
+    );
+}
+
+#[test]
 fn a_wrong_or_missing_mode_is_forbidden() {
     assert_eq!(
         verify_challenge(&params(Some("unsubscribe"), Some("t"), Some("1")), "t"),

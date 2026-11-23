@@ -9,6 +9,7 @@ use axum::{
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::PgConnection;
+use sha2::Digest;
 use std::sync::Arc;
 
 use crate::click_sign::{self, ClickError, ClickOutcome, ClickQuery};
@@ -70,6 +71,17 @@ fn base64_decode(input: &str) -> Option<Vec<u8>> {
     Some(output)
 }
 
+/// Short, deterministic fingerprint of a secret token for safe logging.
+///
+/// An open-tracking token is a bearer capability: anyone who can read logs and
+/// sees the raw token can forge an open event for that recipient. The
+/// fingerprint keeps log lines correlatable (the same token always produces the
+/// same value) without disclosing the secret itself.
+fn redact_token(token: &str) -> String {
+    let digest = sha2::Sha256::digest(token.as_bytes());
+    hex::encode(&digest[..4])
+}
+
 pub async fn track_email_open_pixel(
     State(state): State<Arc<AppState>>,
     Path(token): Path<String>,
@@ -89,7 +101,10 @@ pub async fn track_email_open_pixel(
             ))
             .execute(&mut conn);
 
-            log::info!("Email open tracked via pixel: token={}", token);
+            log::info!(
+                "Email open tracked via pixel: token_fp={}",
+                redact_token(&token)
+            );
         }
     }
 
@@ -299,4 +314,27 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
         .route("/api/crm/ai/generate", post(crate::ai::generate_content_api))
         .route("/api/crm/ai/image", post(crate::ai::generate_studio_image))
         .route("/api/crm/ai/personalize", post(crate::ai::personalize_api))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redact_token_omits_raw_token() {
+        let token = "6f8a1e2c-3b4d-4a5e-8f90-123456789abc";
+        let redacted = redact_token(token);
+
+        assert!(
+            !redacted.contains(token),
+            "raw token leaked into log output: {redacted}"
+        );
+        assert!(
+            !redacted.contains("6f8a1e2c"),
+            "token fragment leaked into log output: {redacted}"
+        );
+        assert_eq!(redacted.len(), 8, "fingerprint should be a short digest");
+        assert_eq!(redacted, redact_token(token), "fingerprint must be stable");
+        assert_ne!(redacted, redact_token("a-different-token"));
+    }
 }
