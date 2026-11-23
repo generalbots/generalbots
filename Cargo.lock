@@ -1182,6 +1182,7 @@ name = "botapp"
 version = "7.1.0"
 dependencies = [
  "anyhow",
+ "argon2",
  "botlib",
  "botvideo",
  "chrono",
@@ -2103,6 +2104,7 @@ name = "botdeployment"
 version = "7.1.0"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "botcoresecrets",
  "botlib",
  "botschema",

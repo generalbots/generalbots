@@ -48,7 +48,11 @@ pub fn scan_bytes(data: &[u8]) -> ByteScanVerdict {
 
     let path = match stage(data) {
         Ok(path) => path,
-        Err(detail) => return ByteScanVerdict::Failed { detail },
+        Err(detail) => {
+            return ByteScanVerdict::Failed {
+                detail: detail.to_string(),
+            };
+        }
     };
 
     let outcome = run_clamscan(&path);

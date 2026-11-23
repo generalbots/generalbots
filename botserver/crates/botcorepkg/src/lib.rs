@@ -20,7 +20,6 @@ pub mod installer_vault;
 pub mod os;
 pub mod safe_staging;
 pub mod setup;
-pub mod safe_staging;
 
 // #1347/#1732 — package_manager duplication note: the module that is actually
 // invoked at boot is `botcore::package_manager` (botserver main.rs CLI and
