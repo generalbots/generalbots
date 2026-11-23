@@ -1,14 +1,14 @@
 use axum::{
     extract::{Path, Query, State},
-    http::HeaderMap,
-    response::{Html, IntoResponse, Json},
+    http::{HeaderMap, StatusCode},
+    response::{Html, IntoResponse, Json, Response},
 };
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::state::TasksState;
-use crate::task_api::engine::TaskEngine;
+use crate::task_api::engine::{TaskEngine, TASK_NOT_FOUND};
 use crate::task_api::engine_persist::EnginePersistence;
 use crate::task_api::html_renderers_cards::render_cards;
 use crate::task_api::html_renderers_terminal::render_terminal;
@@ -34,6 +34,26 @@ fn resolve_branch(state: &Arc<TasksState>, headers: &HeaderMap) -> Uuid {
                 .and_then(|id| id.parse::<Uuid>().ok())
         })
         .unwrap_or_else(Uuid::nil)
+}
+
+/// A task id that does not resolve inside the caller's verified branch is a
+/// 404 — it must never fall through to a manifest read or write (issue #2822).
+fn task_not_found_response() -> Response {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({"error": TASK_NOT_FOUND})),
+    )
+        .into_response()
+}
+
+/// Maps the branch-scoped engine's not-found sentinel to 404, leaving every
+/// other failure on the established JSON error path.
+fn engine_error_response(error: String) -> Response {
+    if error == TASK_NOT_FOUND {
+        task_not_found_response()
+    } else {
+        Json(serde_json::json!({"error": error})).into_response()
+    }
 }
 
 pub async fn handle_list_tasks(
@@ -128,8 +148,14 @@ pub async fn handle_execute_task(
     let branch_id = resolve_branch(&state, &headers);
 
     let engine = TaskEngine::new(state.clone());
+    // Defense in depth: prove the task belongs to the caller's verified branch
+    // before touching the shared manifest cache. `resolve_branch` ignores
+    // client-supplied org/branch, so a foreign id is refused here (#2822).
+    if engine.get_task(id, branch_id).is_err() {
+        return task_not_found_response();
+    }
     if let Err(e) = engine.update_task_status(id, branch_id, "running") {
-        return Json(serde_json::json!({"error": e})).into_response();
+        return engine_error_response(e);
     }
 
     let persistence = EnginePersistence::new(state.clone());
@@ -166,8 +192,13 @@ pub async fn handle_cancel_task(
     let branch_id = resolve_branch(&state, &headers);
 
     let engine = TaskEngine::new(state.clone());
+    // Defense in depth: same ownership check as execute — never load, mutate
+    // or save a manifest for a task outside the caller's branch (#2822).
+    if engine.get_task(id, branch_id).is_err() {
+        return task_not_found_response();
+    }
     if let Err(e) = engine.update_task_status(id, branch_id, "cancelled") {
-        return Json(serde_json::json!({"error": e})).into_response();
+        return engine_error_response(e);
     }
 
     let persistence = EnginePersistence::new(state.clone());

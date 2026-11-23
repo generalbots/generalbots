@@ -15,6 +15,12 @@ impl EnginePersistence {
         Self { state }
     }
 
+    /// Writes a manifest under the bare task id in the shared cache.
+    ///
+    /// The cache key is tenant-neutral, so callers MUST first prove the id
+    /// belongs to the caller's verified branch via the branch-scoped
+    /// `TaskEngine::get_task(id, branch_id)` (issue #2822). Every manifest
+    /// write path in `task_api::handlers` does so before reaching this method.
     pub async fn save_manifest(&self, task_id: Uuid, manifest: &TaskManifest) -> Result<(), String> {
         let manifest_json = serde_json::to_string(manifest)
             .map_err(|e| format!("Serialize error: {}", e))?;
@@ -31,6 +37,10 @@ impl EnginePersistence {
         Ok(())
     }
 
+    /// Reads a manifest by bare task id from the shared cache.
+    ///
+    /// As with `save_manifest`, callers MUST have verified branch ownership of
+    /// `task_id` first (issue #2822); the cache key itself carries no tenant.
     pub async fn load_manifest(&self, task_id: Uuid) -> Result<Option<TaskManifest>, String> {
         let cached = (self.state.cache_get)(format!("task_manifest:{}", task_id))
             .await

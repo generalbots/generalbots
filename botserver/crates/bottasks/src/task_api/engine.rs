@@ -7,6 +7,29 @@ use uuid::Uuid;
 use crate::state::TasksState;
 use crate::types::{NewTask, Task, UpdateTaskRequest};
 
+/// Sentinel returned when a task id does not resolve inside the caller's
+/// verified branch. Shared by the branch-scoped fetch and the status update so
+/// handlers can map "foreign or unknown task" to a 404 (issue #2822).
+pub(crate) const TASK_NOT_FOUND: &str = "Task not found";
+
+/// Pure tenant-ownership predicate (issue #2822).
+///
+/// A task is operable only by a caller whose *verified* branch id matches the
+/// task's own `branch_id`. Kept free of I/O so the cross-branch refusal is
+/// unit-testable without a database or cache.
+fn task_owned_by_branch(task_branch_id: Uuid, caller_branch_id: Uuid) -> bool {
+    task_branch_id == caller_branch_id
+}
+
+/// Pure gate for a branch-scoped `UPDATE ... WHERE id AND branch_id`: zero
+/// rows affected means the id was foreign or unknown, never success.
+fn status_update_outcome(rows_affected: usize) -> Result<(), &'static str> {
+    match rows_affected {
+        0 => Err(TASK_NOT_FOUND),
+        _ => Ok(()),
+    }
+}
+
 pub struct TaskEngine {
     state: Arc<TasksState>,
 }
@@ -84,10 +107,19 @@ impl TaskEngine {
             .get()
             .map_err(|e| format!("Pool error: {}", e))?;
 
-        tasks
+        let task = tasks
             .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
             .first::<Task>(&mut conn)
-            .map_err(|e| format!("Query error: {}", e))
+            .map_err(|e| format!("Query error: {}", e))?;
+
+        // Defense in depth: the SQL filter above already scopes the row to the
+        // caller's branch, but re-check the loaded value so a future refactor
+        // of the query cannot silently reintroduce cross-tenant reads (#2822).
+        if !task_owned_by_branch(task.branch_id, task_branch_id) {
+            return Err(TASK_NOT_FOUND.to_string());
+        }
+
+        Ok(task)
     }
 
     pub fn update_task_status(&self, task_id: Uuid, task_branch_id: Uuid, new_status: &str) -> Result<(), String> {
@@ -99,12 +131,15 @@ impl TaskEngine {
             .get()
             .map_err(|e| format!("Pool error: {}", e))?;
 
-        diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
+        let rows_affected = diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
             .set((status.eq(new_status.to_string()), updated_at.eq(Utc::now())))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))?;
 
-        Ok(())
+        // A foreign/unknown id updates zero rows. Treating that as success was
+        // the ownership gate in execute/cancel and let callers reach another
+        // tenant's manifest (issue #2822).
+        status_update_outcome(rows_affected).map_err(|e| e.to_string())
     }
 
     /// Applies a partial update to a task, scoped by tenant branch (issue #877).
@@ -238,5 +273,45 @@ impl TaskEngine {
             .map_err(|e| format!("Delete error: {}", e))?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{status_update_outcome, task_owned_by_branch, TASK_NOT_FOUND};
+
+    #[test]
+    fn zero_rows_affected_is_reported_as_not_found() {
+        assert_eq!(status_update_outcome(0), Err(TASK_NOT_FOUND));
+    }
+
+    #[test]
+    fn one_or_more_rows_affected_is_success() {
+        assert_eq!(status_update_outcome(1), Ok(()));
+        assert_eq!(status_update_outcome(3), Ok(()));
+    }
+
+    #[test]
+    fn owner_branch_can_operate_on_its_own_task() {
+        let branch = uuid::Uuid::new_v4();
+        assert!(task_owned_by_branch(branch, branch));
+    }
+
+    #[test]
+    fn foreign_branch_is_refused_before_any_manifest_access() {
+        // Two-branch scenario: a task in branch A must not be reachable by a
+        // caller verified in branch B, even when the caller knows its UUID.
+        let victim_branch = uuid::Uuid::new_v4();
+        let attacker_branch = uuid::Uuid::new_v4();
+        assert_ne!(victim_branch, attacker_branch);
+        assert!(!task_owned_by_branch(victim_branch, attacker_branch));
+        assert!(task_owned_by_branch(victim_branch, victim_branch));
+    }
+
+    #[test]
+    fn unknown_or_nil_branch_never_matches_a_real_task() {
+        let task_branch = uuid::Uuid::new_v4();
+        assert!(!task_owned_by_branch(task_branch, uuid::Uuid::nil()));
+        assert!(!task_owned_by_branch(uuid::Uuid::nil(), task_branch));
     }
 }
