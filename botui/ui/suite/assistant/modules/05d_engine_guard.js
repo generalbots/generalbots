@@ -124,6 +124,15 @@ A.confirmExternal = function (target, anchor, onYes, kind) {
     go.addEventListener("click", function () { card.remove(); accept(target.host); onYes(); });
     card.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); card.remove(); } });
     var composer = anchor && anchor.closest(".gb-composer-inner, .gb-composer-card");
+    /* Asked from a Settings page: the card stays on the page, under the row. */
+    if (!composer && anchor && anchor.offsetParent !== null && anchor.closest("#gbSettingsView")) {
+        var flow = anchor.closest(".gb-of-ag");
+        flow = flow && flow.querySelector(".gb-prov-flow");
+        card.classList.add("gb-confirm--page");
+        if (flow) { flow.appendChild(card); } else { anchor.parentNode.insertBefore(card, anchor.nextSibling); }
+        go.focus();
+        return;
+    }
     if (!composer || composer.offsetParent === null) { composer = A.visibleComposer(); }
     if (composer && composer.parentNode) { composer.parentNode.insertBefore(card, composer); }
     else { document.body.appendChild(card); }

@@ -61,6 +61,8 @@
 .gb-of-cap.no { color: var(--id-muted); }
 .gb-of-cap b { font: 600 11px/normal "Geist Mono", ui-monospace, monospace; color: var(--of-ok); }
 .gb-of-cap.no b { color: var(--id-muted); } .gb-of-cap.part b { color: var(--of-warn); }
+.gb-of-cap[data-tip] { cursor: help; }
+.gb-confirm.gb-confirm--page { max-width: 560px; margin: 0; }
 .gb-of-segs { display: flex; gap: 3px; flex: none; }
 .gb-of-segs i { width: 16px; height: 6px; background: var(--id-line); }
 .gb-of-segs.sm { gap: 2px; } .gb-of-segs.sm i { width: 8px; height: 4px; }

@@ -175,7 +175,8 @@ A._modelShared = {
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
   doSwitchMode: function (body, msgEl, btn) { return doSwitchMode(body, msgEl, btn); },
-  refreshAfterChange: function () { return refreshAfterChange(); },
+  activate: function (mode, btn) { return activate(mode, btn); },
+  refreshAfterChange: function (picked) { return refreshAfterChange(picked); },
   /* Lists changed (download, removal, engine install) but the model in use did not. */
   refreshKeepingView: function () {
     var panel = document.querySelector('#gbSetPanel[data-section="model"]');
@@ -228,7 +229,7 @@ function renderFull(panel) {
   var html;
   var editable = !readOnly && !cfgError;
   if (G) {
-    html = '<div class="gb-of">' + G.dashboard(cfg, privacyText(scope, host), editable) + '<div class="gb-gar-dash-warn">';
+    html = '<div class="gb-of">' + G.dashboard(cfg, editable) + '<div class="gb-gar-dash-warn">';
   } else {
     html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
       '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
@@ -267,7 +268,7 @@ function renderFull(panel) {
 
   /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
   if (!readOnly && G && !cfgError) {
-    html += G.modeButtons(currentMode, modes, cfg) + G.dialogs(modes, cfg);
+    html += G.modeButtons(G.inUseKind(cfg), modes, cfg) + G.dialogs(modes, cfg);
   }
   if (G) { html += '</div>'; }
 
@@ -280,14 +281,6 @@ function renderFull(panel) {
   var retry = document.getElementById("gbModelRetry");
   if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
   if (!readOnly) { bindModeCards(panel); if (G) { G.bind(panel, modes, function () { return viewMode; }); } }
-}
-
-/* The dashboard's privacy line, already escaped. */
-function privacyText(scope, host) {
-  if (scope === "machine") return esc(t("privLocal"));
-  if (scope === "network") return esc(t("privNet").replace("%h", host || ""));
-  if (scope === "external") return '<span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span>';
-  return '';
 }
 
 function shortName(m) { if (!m) return "—"; var s=m; var i=s.lastIndexOf("/"); if(i>=0)s=s.substring(i+1); var c=s.indexOf(":"); if(c>0)s=s.substring(0,c); return s||m; }
@@ -331,7 +324,7 @@ function doSwitchMode(body, msgEl, disableBtn) {
         var label = d.provider_swapped ? t("swapped") : t("saved");
         pendingStatus = { html: '<p class="gb-set-hint gb-set-ok">' + esc(label) + '</p>' };
       }
-      refreshAfterChange();
+      refreshAfterChange(true);
     })
     .catch(function () {
       setBusy(false);
@@ -347,7 +340,7 @@ function bindModeCards(panel) {
       renderModeDetail(panel, mode);
     });
   });
-  if (cfg) renderModeDetail(panel, viewMode || cfg.mode || "local");
+  if (cfg) renderModeDetail(panel, viewMode || (A._modelGarage && A._modelGarage.inUseKind(cfg)) || cfg.mode || "local");
 }
 
 function renderModeDetail(panel, mode) {
@@ -415,8 +408,16 @@ function renderFreeDetail(el) {
       "Use it for public text, drafts and research. No key needed; usage limits are lower.")) + '</span></div></div></div></div>';
 }
 
-async function refreshAfterChange() {
+/* `picked`: the person turned an engine on here, so the chat leaves the agent
+   or key model it had chosen in the menu and uses this one. */
+async function refreshAfterChange(picked) {
+  if (A._engineNow) { A._engineNow.refreshHosts(); }
+  if (picked && /^(sub|acct):/.test(A.selectedModel || "")) {
+    A.selectedModel = "";
+    try { localStorage.removeItem("gb-model-preference"); } catch (e) { /* private window */ }
+  }
   if (typeof A.loadModels === "function") { await A.loadModels(); }
+  if (picked && typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
   if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
   if (typeof A.renderStatus === "function") { A.renderStatus(); }
   var panel = document.querySelector('#gbSetPanel[data-section="model"]');

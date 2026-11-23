@@ -329,7 +329,7 @@ async function doActivate(id) {
     if (d.restart_required && msg) {
       msg.innerHTML = '<p class="gb-set-hint">' + esc(t("restartNeeded")) + '</p>';
     }
-    S().refreshAfterChange();
+    S().refreshAfterChange(true);
   } catch (e) {
     S().setBusy(false);
     if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(S().errText("")) + '</p>';

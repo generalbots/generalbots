@@ -404,12 +404,16 @@
     function selectModel(model) {
         var anchor = activeModelMenu ? activeModelMenu.previousElementSibling : null;
         closeModelMenu();
-        if (!anchor) { anchor = visible(".gb-model-btn"); }
-        if (!A.externalTarget || !A.confirmExternal) { applyModel(model); return; }
-        A.externalTarget(model).then(function (target) {
-            A.confirmExternal(target, anchor, function () { applyModel(model); });
-        });
+        A.pickEngine(model, anchor || visible(".gb-model-btn"));
     }
+
+    /* Picks an engine for the chat from any surface (this menu, Settings >
+       Modelo): the first send outside this computer asks next to `anchor`. */
+    A.pickEngine = function (model, anchor, onApplied) {
+        function apply() { applyModel(model); if (onApplied) { onApplied(); } }
+        if (!A.externalTarget || !A.confirmExternal) { apply(); return; }
+        A.externalTarget(model).then(function (target) { A.confirmExternal(target, anchor, apply); });
+    };
 
     /* Exposed for the keyboard-navigation module (05f). */
     A.closeModelMenu = closeModelMenu;

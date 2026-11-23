@@ -41,41 +41,49 @@ function segs(n, tone, cls) {
   var h = ""; for (var i = 0; i < 5; i++) { h += '<i class="' + (i < n ? "on" : "") + '"></i>'; }
   return '<span class="gb-of-segs' + (cls ? " " + cls : "") + '" data-tone="' + tone + '" role="img" aria-label="' + esc(label) + '" title="' + esc(label) + '">' + h + '</span>';
 }
-function cap(kind, text) { return '<span class="gb-of-cap' + (kind === "yes" ? "" : kind === "part" ? " part" : " no") + '"><b>' + (kind === "yes" ? "✓" : kind === "part" ? "~" : "–") + '</b>' + esc(text) + '</span>'; }
+function cap(kind, text, tip) { return '<span class="gb-of-cap' + (kind === "yes" ? "" : kind === "part" ? " part" : " no") + '"' + (tip ? ' tabindex="0" data-tip="' + esc(tip) + '"' : '') + '><b>' + (kind === "yes" ? "✓" : kind === "part" ? "~" : "–") + '</b>' + esc(text) + '</span>'; }
 function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
 function localHardware(modes) { var m = (modes || []).find(function (x) { return x.id === "local"; }); return (m && m.hardware) || {}; }
 function machineFits(hw) { return !!(hw.cuda_usable && hw.vram_gb >= 6); }
-function privacyLevel(mode, scope) { return mode === "local" || scope === "machine" ? 5 : scope === "network" ? 4 : INFO[mode] ? INFO[mode][4] : 1; }
 function tone(level) { return level >= 4 ? "ok" : level === 3 ? "mid" : "out"; }
 
 /* ---- Header and the engine in use ---- */
-function dashboard(cfg, shortName, privacyText, showTools) {
-  var mode = cfg && cfg.mode;
-  var name = shortName(cfg ? cfg.model : (A.defaultModel || A.selectedModel || "")).replace(/\.gguf$/i, "");
+function dashboard(cfg, showTools) {
   var html = '<div class="gb-of-head"><div><span class="gb-of-k">' + sl() + tr("OFICINA DO ASSISTENTE", "ASSISTANT WORKSHOP") + '</span>' +
     '<h1>' + tr("Onde o seu assistente pensa.", "Where your assistant thinks.") + '</h1></div>';
   if (showTools) {
     html += '<div class="gb-of-tools"><button type="button" class="gb-of-btn" id="gbOpenGuide">' + svg(I.help, 14, 1.8) + tr("Me ajude a escolher", "Help me choose") +
       '</button><button type="button" class="gb-of-btn" id="gbOpenCompare">' + svg(I.table, 14, 1.8) + tr("Comparar os 4 motores", "Compare the 4 engines") + '</button></div>';
   }
-  html += '</div>';
+  return html + '</div>' + runCard(cfg);
+}
+/* The engine the chat uses now (10j_engine_now.js), not only the stored runtime. */
+function now(cfg) { return A._engineNow ? A._engineNow.describe(cfg) : { kind: cfg && cfg.mode, name: (cfg && cfg.model) || "—", dest: "", level: 1 }; }
+function inUseKind(cfg) { return now(cfg).kind || ""; }
+function runCard(cfg) {
+  var E = A._engineNow, info = now(cfg), mode = info.kind;
   var rt = cfg && cfg.local_runtime;
   var state = !mode ? "" : mode !== "local" ? ['gb-of-ok', tr("EM USO", "IN USE")]
     : rt && rt.running ? ['gb-of-ok', tr("EM EXECUÇÃO", "RUNNING")] : ['gb-of-muc', tr("PARADO", "STOPPED")];
-  var meta = mode === "local" && rt && rt.build ? tr("motor ", "engine ") + rt.build
-    : cfg && cfg.endpoint_host && mode !== "local" ? cfg.endpoint_host : "";
-  var level = privacyLevel(mode, cfg && cfg.endpoint_scope);
-  var ocr = isWindows();
-  html += '<section class="gb-of-card gb-of-run"><div class="gb-of-run-h"><div>' + sl() + '<span>' + tr("MOTOR EM USO", "ENGINE IN USE") + '</span></div>' +
+  var meta = mode === "local" && rt && rt.build ? tr("motor ", "engine ") + rt.build : info.dest;
+  var priv = E ? E.privacy(info) : "";
+  var list = E ? E.caps(info) : [];
+  return '<section class="gb-of-card gb-of-run" data-engine="' + esc(info.value || "") + '"><div class="gb-of-run-h"><div>' + sl() + '<span>' + tr("MOTOR EM USO", "ENGINE IN USE") + '</span></div>' +
     (state ? '<div class="gb-of-state ' + state[0] + '"><span class="gb-of-sq"></span>' + state[1] + '</div>' : '') + '</div>' +
-    '<div class="gb-of-run-cells"><div><span class="gb-of-engine">' + esc(name) + '</span><div class="gb-of-row">' +
+    '<div class="gb-of-run-cells"><div><span class="gb-of-engine">' + esc(info.name) + '</span><div class="gb-of-row">' +
     (mode ? '<span class="gb-of-chip">' + esc(modeLabel(mode)) + '</span>' : '') + (meta ? '<span class="gb-of-meta">' + esc(meta) + '</span>' : '') + '</div></div>' +
-    '<div><div class="gb-of-row sb"><span class="gb-of-lab">' + tr("PRIVACIDADE", "PRIVACY") + '</span>' + (mode ? segs(level, tone(level)) : '') + '</div>' +
-    (privacyText ? '<p class="gb-of-priv">' + privacyText + '</p>' : '') +
-    '<div class="gb-of-caps"><span class="gb-of-lab">' + tr("RECURSOS", "FEATURES") + '</span>' + cap("yes", tr("Documentos", "Documents")) +
-    cap(ocr ? "yes" : "no", tr("Texto em imagens", "Text in images")) +
-    cap("no", tr("Fotos e gráficos", "Photos and charts")) + '</div></div></div></section>';
-  return html;
+    '<div><div class="gb-of-row sb"><span class="gb-of-lab">' + tr("PRIVACIDADE", "PRIVACY") + '</span>' + (mode ? segs(info.level, tone(info.level)) : '') + '</div>' +
+    (priv ? '<p class="gb-of-priv">' + priv + '</p>' : '') +
+    '<div class="gb-of-caps"><span class="gb-of-lab">' + tr("RECURSOS", "FEATURES") + '</span>' +
+    list.map(function (c) { return cap(c[0], c[1], c[2]); }).join("") + '</div></div></div></section>';
+}
+/* After a new pick: the "in use" chip moves to the card of the engine's kind. */
+function markInUse(panel, kind, cfg) {
+  panel.querySelectorAll(".gb-of-mode .gb-of-inuse").forEach(function (c) { c.remove(); });
+  var card = kind && panel.querySelector('.gb-of-mode[data-mode="' + kind + '"] .gb-of-sp');
+  if (card) { card.insertAdjacentHTML("afterend", '<span class="gb-of-chip sm gb-of-inuse">' + tr("EM USO", "IN USE") + '</span>'); }
+  var viewed = panel.querySelector('#gbOfModes .gb-of-mode[aria-pressed="true"]'), act = S().activate;
+  if (viewed && act) { setDetail(panel, viewed.getAttribute("data-mode"), cfg, act); }
 }
 
 /* ---- What each engine does in this version (the comparison) ---- */
@@ -95,12 +103,12 @@ function facts(mode, cfg, hw) {
   if (mode === "own_key") {
     return { privacy: cell(scope === "network" ? "yes" : "part", scope === "network" ? tr("Ficam na rede da sua organização", "Stay in your organization’s network") : tr("Vão ao servidor que você indicar", "Go to the server you set")),
       offline: cell("part", tr("Só com servidor na sua rede", "Only with a server on your network")), cost: cell("part", tr("Conforme o contrato", "Per your contract")),
-      docs: reads, ocr: ocr, photos: notYet, needs: cell("part", tr("Endereço do servidor e uma chave", "The server address and a key")) };
+      docs: reads, ocr: ocr, photos: cell("part", tr("Depende do servidor", "Depends on the server")), needs: cell("part", tr("Endereço do servidor e uma chave", "The server address and a key")) };
   }
   if (mode === "acp") {
-    var does = cell("yes", tr("O agente faz", "The agent does it")), dep = cell("part", tr("Depende do agente", "Depends on the agent"));
+    var does = cell("yes", tr("O agente faz", "The agent does it"));
     return { privacy: cell("part", tr("Vão ao provedor do agente", "Go to the agent’s provider")), offline: cell("no", tr("Não funciona", "Does not work")),
-      cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: dep, photos: dep,
+      cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: does, photos: does,
       needs: cell("part", tr("Instalar o agente e entrar na sua conta", "Install the agent and sign in to your account")) };
   }
   return { privacy: cell("no", tr("Vão a um provedor externo", "Go to an external provider")), offline: cell("no", tr("Não funciona", "Does not work")),
@@ -132,7 +140,7 @@ function modeButtons(currentMode, modes) {
       var f = INFO[mode];
       return '<button type="button" class="gb-of-mode" data-mode="' + mode + '" aria-controls="gbModeDetail" aria-pressed="false"' + (off ? " disabled" : "") + '>' +
         '<span class="gb-of-mode-top"><span class="gb-of-ico">' + svg(f[5], 15) + '</span><span class="gb-of-num">0' + (i + 1) + '</span><span class="gb-of-sp"></span>' +
-        (currentMode === mode ? '<span class="gb-of-chip sm">' + tr("EM USO", "IN USE") + '</span>' : '') +
+        (currentMode === mode ? '<span class="gb-of-chip sm gb-of-inuse">' + tr("EM USO", "IN USE") + '</span>' : '') +
         (off ? '<span class="gb-of-chip sm mute">' + tr("INDISPONÍVEL", "UNAVAILABLE") + '</span>' : '') +
         '<span class="gb-of-chip sm line gb-of-rec">' + tr("RECOMENDADO", "RECOMMENDED") + '</span></span>' +
         '<span class="gb-of-mode-txt"><strong>' + esc(L2(f[0])) + '</strong><span>' + esc(L2(f[1])) + '</span></span>' +
@@ -149,7 +157,7 @@ function setDetail(panel, mode, cfg, onActivate) {
   ["#gbOfConfirm", "#gbOfActMsg"].forEach(function (s) { var n = panel.querySelector(s); if (n) { n.innerHTML = ""; } });
   if (name) { name.textContent = modeLabel(mode); }
   if (!st) { return; }
-  if (cfg && cfg.mode === mode) {
+  if (inUseKind(cfg) === mode) {
     st.innerHTML = '<span class="gb-of-now">' + svg(I.check, 13, 2.2) + tr("EM USO AGORA", "IN USE NOW") + '</span>';
   } else {
     st.innerHTML = '<button type="button" class="gb-of-btn acc" id="gbOfActivate">' + esc(L2(ACT[mode])) + svg(I.arrow, 14, 3) + '</button>';
@@ -162,7 +170,7 @@ function compare(modes, cfg, viewed) {
   MODES.forEach(function (m) { all[m] = facts(m, cfg, hw); });
   return '<div class="gb-of-cmp"><div><div class="gb-of-cr hd"><div></div>' + MODES.map(function (m, i) {
     return '<div class="gb-of-ch' + (m === viewed ? " sel" : "") + '"><div><span class="gb-of-num">0' + (i + 1) + '</span>' +
-      (cfg && cfg.mode === m ? '<span class="gb-of-chip xs">' + tr("EM USO", "IN USE") + '</span>' : '') + '</div><strong>' + esc(modeLabel(m)) + '</strong>' +
+      (inUseKind(cfg) === m ? '<span class="gb-of-chip xs">' + tr("EM USO", "IN USE") + '</span>' : '') + '</div><strong>' + esc(modeLabel(m)) + '</strong>' +
       '<button type="button" data-cmp-go="' + m + '">' + tr("Ver detalhes", "See details") + svg(I.next, 12, 3) + '</button></div>';
   }).join("") + '</div>' + ROWS.map(function (r) {
     return '<div class="gb-of-cr"><div class="gb-of-cl"><span>' + esc(L2(r[1])) + '</span>' + (r[2] ? help(L2(r[2])) : '') + '</div>' + MODES.map(function (m) {
@@ -275,7 +283,7 @@ function bindDialog(panel, buttonId, dialog, onOpen) {
 }
 
 A._modelGarage = {
-  dashboard: function (cfg, privacyText, showTools) { return dashboard(cfg, S().shortName || function (m) { return m || "—"; }, privacyText, showTools); },
+  dashboard: dashboard, runCard: runCard, markInUse: markInUse, inUseKind: inUseKind,
   modeButtons: modeButtons, dialogs: dialogs, modeLabel: modeLabel, setDetail: setDetail, help: help, svg: svg, sl: sl,
   bind: function (panel, modes, viewed) {
     var cmp = panel.querySelector("#gbGarageCompareDialog"), guide = panel.querySelector("#gbGarageGuideDialog");

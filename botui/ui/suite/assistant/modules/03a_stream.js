@@ -65,6 +65,16 @@
     var thinkingStartTime = 0;
     var thinkingWatchdog = null;
     var THINKING_TIMEOUT_S = 90;
+    var thinkingObserver = null;
+
+    /* The indicator is always the last item of the conversation: a reasoning,
+       run or permission card added while it shows goes above it. */
+    function keepThinkingLast() {
+        var el = document.getElementById("gbThinking");
+        if (!el || !el.parentNode || el.parentNode.lastElementChild === el) { return; }
+        el.parentNode.appendChild(el);
+        if (!userScrolledUp) { A.scrollToBottom(false); }
+    }
 
     A.showThinking = function () {
         if (!A.isStreaming && !document.getElementById("gbThinking")) {
@@ -82,6 +92,8 @@
                 '<span class="gb-thinking-elapsed"></span>';
             msgs.appendChild(el);
             if (!userScrolledUp) { A.scrollToBottom(false); }
+            if (!thinkingObserver && typeof MutationObserver === "function") { thinkingObserver = new MutationObserver(keepThinkingLast); }
+            if (thinkingObserver) { thinkingObserver.observe(msgs, { childList: true }); }
             thinkingTimer = setInterval(function () {
                 var secs = Math.floor((Date.now() - thinkingStartTime) / 1000);
                 var elapsedEl = el.querySelector(".gb-thinking-elapsed");
@@ -91,6 +103,7 @@
         // Safety watchdog: if no server frame arrives within the timeout,
         // replace the indicator with a timeout error card (#2562). Every
         // call (the server's keep-alive frames included) starts it again.
+        keepThinkingLast();
         if (document.getElementById("gbThinking")) {
             if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); }
             thinkingWatchdog = setTimeout(function () {
@@ -108,6 +121,7 @@
 
     A.hideThinking = function () {
         var el = document.getElementById("gbThinking");
+        if (thinkingObserver) { thinkingObserver.disconnect(); }
         if (el) { el.remove(); }
         if (thinkingTimer) { clearInterval(thinkingTimer); thinkingTimer = null; }
         if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); thinkingWatchdog = null; }

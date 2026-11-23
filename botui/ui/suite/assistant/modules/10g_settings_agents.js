@@ -20,6 +20,7 @@ var AGENTS = [
 var L = { "pt-BR": {
   title:"Agentes por assinatura", tip:"O agente roda separado do resto do sistema, numa máquina virtual isolada neste computador. Sem ela, o modo agente fica desligado.",
   space:"ESPAÇO ISOLADO", spaceOff:"INDISPONÍVEL",
+  picked:"Em uso no chat. As conversas com este agente ligam a chave Agente: ele trabalha na máquina virtual isolada deste computador.",
   connect:"Conectar", disconnect:"Sair da conta", useNow:"Usar no chat", linked:"CONECTADO", connecting:"CONECTANDO…", off:"NÃO CONECTADO",
   preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
   open:"Abrir página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
@@ -36,6 +37,7 @@ var L = { "pt-BR": {
 en: {
   title:"Subscription agents", tip:"The agent runs apart from the rest of the system, in an isolated virtual machine on this computer. Without it, agent mode stays off.",
   space:"ISOLATED SPACE", spaceOff:"UNAVAILABLE",
+  picked:"In use in the chat. Conversations with this agent turn the Agent switch on: it works in this computer’s isolated virtual machine.",
   connect:"Connect", disconnect:"Sign out", useNow:"Use in chat", linked:"CONNECTED", connecting:"CONNECTING…", off:"NOT CONNECTED",
   preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
   open:"Open sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
@@ -335,17 +337,18 @@ function bindRow(el, a) {
         });
     });
   }
-  /* Same as picking the agent in the chat's model menu: the conversation's
-   * Agent switch turns on and the next message goes to this agent. */
+  /* Same as picking the agent in the chat's model menu (the conversation's
+   * Agent switch turns on and the next message goes to this agent), but the
+   * page stays open: the choice shows in "Motor em uso" and in the row. */
   var use = el.querySelector('[data-agent-use="' + a.id + '"]');
   if (use) {
     use.addEventListener("click", function () {
-      A.selectedModel = "sub:" + a.id;
-      try { localStorage.setItem("gb-model-preference", A.selectedModel); } catch (e) { /* private window */ }
-      if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
-      if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
-      if (typeof A.renderStatus === "function") { A.renderStatus(); }
-      if (typeof A.switchView === "function") { A.switchView("chat"); }
+      var box = el.querySelector('[data-flow="' + a.id + '"]');
+      var off = A.productConfig && A.productConfig.agent_backend_unavailable;
+      if (off) { if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("unavailable") + " " + off) + '</p>'; } return; }
+      var current = A.selectedModel || "";
+      var value = current === "sub:" + a.id || current.indexOf("sub:" + a.id + "/") === 0 ? current : "sub:" + a.id;
+      A.pickEngine(value, use, function () { if (box) { box.innerHTML = '<p class="gb-set-hint gb-set-ok gb-of-picked">' + esc(g("picked")) + '</p>'; } });
     });
   }
   var off = el.querySelector('[data-agent-off="' + a.id + '"]');
