@@ -10,6 +10,7 @@ pub(crate) use super::security_fix::{run_security_fix, run_security_status, Secu
 // Split fallout (#1492): `api/part*.rs` refers to sibling tool
 // modules through `super::`, which now means `api`.
 pub(crate) use super::lmd;
+pub(crate) use botsecurity_core::upload_hostile::malware as hostile_quarantine;
 
 static PROTECTION_MANAGER: OnceLock<Arc<RwLock<ProtectionManager>>> = OnceLock::new();
 

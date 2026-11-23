@@ -42,7 +42,15 @@ where
         )
         .route(
             "/api/security/protection/clamav/quarantine/:id",
-            post(remove_from_quarantine),
+            post(restore_from_quarantine),
+        )
+        // LMD keeps its own explicitly-labelled quarantine endpoints; the
+        // ClamAV-labelled routes above now read the canonical hostile-file
+        // quarantine (#2600).
+        .route("/api/security/protection/lmd/quarantine", get(get_lmd_quarantine))
+        .route(
+            "/api/security/protection/lmd/quarantine/:id",
+            post(restore_lmd_quarantine),
         )
 }
 pub(super) fn parse_tool(tool_name: &str) -> Result<ProtectionTool, (StatusCode, Json<ApiResponse<()>>)> {
@@ -273,10 +281,12 @@ pub(super) async fn toggle_auto(
         }
     }
 }
+/// Canonical malware quarantine: the hostile-file scan records written by the
+/// upload gate and by ClamAV, not LMD's separate store (#2600).
 pub(super) async fn get_quarantine(
-) -> Result<Json<ApiResponse<Vec<super::lmd::QuarantinedFile>>>, (StatusCode, Json<ApiResponse<()>>)>
+) -> Result<Json<ApiResponse<Vec<hostile_quarantine::QuarantineEntry>>>, (StatusCode, Json<ApiResponse<()>>)>
 {
-    match super::lmd::list_quarantined().await {
+    match hostile_quarantine::list_quarantine_records() {
         Ok(files) => Ok(Json(ApiResponse::success(files))),
         Err(e) => {
             warn!(error = %e, "Failed to get quarantine list");
@@ -287,19 +297,56 @@ pub(super) async fn get_quarantine(
         }
     }
 }
-pub(super) async fn remove_from_quarantine(
+
+/// Restore is re-scanned by the core store; an infected payload is refused.
+/// Request authentication and tenant scoping are the caller's responsibility.
+pub(super) async fn restore_from_quarantine(
+    Path(file_id): Path<String>,
+) -> Result<Json<ApiResponse<ActionResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+    match hostile_quarantine::restore_quarantine_record(&file_id) {
+        Ok(()) => Ok(Json(ApiResponse::success(ActionResponse {
+            success: true,
+            message: format!("Quarantine record {file_id} re-scanned and restored"),
+        }))),
+        Err(e) => {
+            warn!(error = %e, "Failed to restore file from quarantine");
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(ApiResponse::error("Restore refused: re-scan failed or file still infected")),
+            ))
+        }
+    }
+}
+
+/// LMD's own quarantine stays available under an explicitly LMD-labelled path.
+pub(super) async fn get_lmd_quarantine(
+) -> Result<Json<ApiResponse<Vec<super::lmd::QuarantinedFile>>>, (StatusCode, Json<ApiResponse<()>>)>
+{
+    match super::lmd::list_quarantined().await {
+        Ok(files) => Ok(Json(ApiResponse::success(files))),
+        Err(e) => {
+            warn!(error = %e, "Failed to get LMD quarantine list");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error("Failed to get LMD quarantine list")),
+            ))
+        }
+    }
+}
+
+pub(super) async fn restore_lmd_quarantine(
     Path(file_id): Path<String>,
 ) -> Result<Json<ApiResponse<ActionResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
     match super::lmd::restore_file(&file_id).await {
         Ok(()) => Ok(Json(ApiResponse::success(ActionResponse {
             success: true,
-            message: format!("File {file_id} restored from quarantine"),
+            message: format!("File {file_id} restored from LMD quarantine"),
         }))),
         Err(e) => {
-            warn!(error = %e, "Failed to restore file from quarantine");
+            warn!(error = %e, "Failed to restore file from LMD quarantine");
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::error("Failed to restore file from quarantine")),
+                Json(ApiResponse::error("Failed to restore file from LMD quarantine")),
             ))
         }
     }
