@@ -1,6 +1,43 @@
 "use strict";
 /* docs init — bootstrap on DOMContentLoaded */
 
+// #chat-office — a chat-generated file is published to Drive at turn end. The
+// VM preview is the fast path, but the VM can be gone (restart/eviction). When
+// that happens, find the durable copy by name and open it instead of leaving
+// the editor blank.
+function docsOpenPublishedDriveCopy(vmPath, statusEl) {
+  var fileName = String(vmPath || "").split("/").pop();
+  if (!fileName) {
+    if (statusEl) statusEl.textContent = docsT("docs-open-from-drive-failed", "Failed to open from Drive: no file name");
+    return;
+  }
+  var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
+  var headers = token ? { Authorization: "Bearer " + token } : {};
+  fetch("/api/files/search?query=" + encodeURIComponent(fileName) + "&all_buckets=true", {
+    headers: headers,
+    credentials: "same-origin",
+  })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (items) {
+      var lower = fileName.toLowerCase();
+      var hit = (items || []).find(function (item) {
+        return item && !item.is_dir && item.bucket && item.path &&
+          String(item.name || item.path).toLowerCase().indexOf(lower) !== -1;
+      });
+      if (!hit) throw new Error("not found in Drive");
+      loadDriveFileIntoEditor({ file: hit.path, bucket: hit.bucket });
+    })
+    .catch(function (err) {
+      if (statusEl) {
+        statusEl.textContent = docsT(
+          "docs-open-from-drive-failed",
+          "Failed to open from Drive: " + err.message,
+          { error: err.message },
+        );
+      }
+    });
+}
+
 // Issue #720: when opened from the Drive app (?file=...&bucket=...), load the
 // document content from the drive and render it into the editor.
 function loadDriveFileIntoEditor(linkParams) {
@@ -25,9 +62,19 @@ function loadDriveFileIntoEditor(linkParams) {
     var url = '/api/agent/vm/file?conversation_id=' + encodeURIComponent(vmConvId) +
       '&path=' + encodeURIComponent(vmPath) + '&preview=1';
     var headers = token ? { Authorization: 'Bearer ' + token } : {};
+    var vmStatus = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
     fetch(url, { headers: headers, credentials: 'same-origin' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(function (html) {
+        // Extract <body> innerHTML from the converted document, then sanitize
+        // it exactly like the Drive path (#2840) before it becomes live markup.
+        var m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        var content = m ? m[1] : html;
+        // Never inject unsanitized preview markup. If the sanitizer is not
+        // registered yet, use the Drive path below, which falls back to text.
+        if (typeof docsSanitizeHtml !== 'function') throw new Error('sanitizer unavailable');
+        content = docsSanitizeHtml(content);
+        if (!content || !String(content).trim()) throw new Error('empty preview');
         var scope = document.querySelector('[id^="window-body-docs"]') || document;
         var titleEl = scope.querySelector('#docTitle');
         if (titleEl) titleEl.value = String(vmPath).split('/').pop().replace(/\.[^.]+$/, '');
@@ -42,9 +89,7 @@ function loadDriveFileIntoEditor(linkParams) {
           if (typeof attachEditorHandlers === 'function') attachEditorHandlers(contentEl);
         }
         if (article) {
-          // Extract <body> innerHTML from the converted document.
-          var m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-          article.innerHTML = m ? m[1] : html;
+          article.innerHTML = content;
           if (article.dataset) article.dataset.docId = 'vm-' + vmPath;
           if (typeof docsAfterContentLoad === 'function') docsAfterContentLoad(article);
           if (window.updatePageCount) window.updatePageCount();
@@ -53,8 +98,9 @@ function loadDriveFileIntoEditor(linkParams) {
         if (statusEl) statusEl.textContent = (typeof window.gbT === "function" ? window.gbT("docs-vm-opened", "Opened from VM") : "Opened from VM");
       })
       .catch(function (err) {
-        var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
-        if (statusEl) statusEl.textContent = (typeof window.gbT === "function" ? window.gbT("docs-vm-open-failed", "Failed to open from VM:") : "Failed to open from VM:") + ' ' + err.message;
+        // The preview can fail because the VM was recycled, not because the
+        // file is gone — the turn-end publisher already copied it to Drive.
+        docsOpenPublishedDriveCopy(vmPath, vmStatus);
       });
     return;
   }
@@ -114,7 +160,13 @@ function loadDriveFileIntoEditor(linkParams) {
       if (article) {
         // #2840: content comes from Drive via the API — sanitize before it
         // becomes live markup in the editor (same helper as the share viewer).
-        article.innerHTML = typeof docsSanitizeHtml === "function" ? docsSanitizeHtml(doc.content) : "";
+        // #chat-office — never turn valid content into an empty editor when
+        // the sanitizer script has not registered yet; fall back to safe text.
+        if (typeof docsSanitizeHtml === "function") {
+          article.innerHTML = docsSanitizeHtml(doc.content || "");
+        } else if (doc.content) {
+          article.textContent = doc.content;
+        }
         if (article.dataset) article.dataset.docId = doc.id || file;
         if (typeof docsAfterContentLoad === 'function') docsAfterContentLoad(article);
         if (window.updatePageCount) window.updatePageCount();
