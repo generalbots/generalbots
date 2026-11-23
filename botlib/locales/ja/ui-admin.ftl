@@ -866,3 +866,4 @@ protection-action-failed = The action failed.
 protection-load-error = Scanner status is unavailable.
 protection-clamav = ClamAV
 protection-lmd = LMD
+protection-quarantined-count = {count} 件の隔離

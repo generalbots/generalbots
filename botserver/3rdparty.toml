@@ -75,8 +75,11 @@ sha256_win = "c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157"
 # ClamAV 1.5.5 (#2603) — pinned to the upstream release whose SHA-256 digests
 # come from the release's GitHub API `digest` fields. This patch release fixes
 # CVE-2026-76422, -76411, -76415, -76414, -76416, -76417, -76421, -76430,
-# -76516 and -76515. Debian packages carry `clamscan` + signatures updater;
-# place the archive in the offline installer cache for desktop-local installs.
+# -76516 and -76515. The three digests below were re-verified on 2026-11-23
+# against the `digest` fields of this release's GitHub API assets for the
+# x86_64 .deb, aarch64 .deb and win.x64 .zip. Debian packages carry `clamscan`
+# + signatures updater; place these exact filenames in the offline installer
+# cache for desktop-local installs (no CDN, no network fetch at first run).
 [components.clamav]
 name = "ClamAV Antivirus Engine"
 url = "https://github.com/Cisco-Talos/clamav/releases/download/clamav-1.5.5/clamav-1.5.5.linux.x86_64.deb"

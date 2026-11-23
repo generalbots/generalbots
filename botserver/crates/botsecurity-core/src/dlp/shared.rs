@@ -6,6 +6,9 @@
 //! and export handlers must not reimplement the regexes.
 
 use super::*;
+use crate::audit::{
+    record_security_decision, AuditActor, AuditEventType, AuditOutcome, SecurityDecision,
+};
 use std::sync::OnceLock;
 
 static DLP: OnceLock<Option<Arc<DlpManager>>> = OnceLock::new();
@@ -43,6 +46,28 @@ pub async fn redact_text(content: &str, direction: ScanDirection, user_id: Optio
                 content,
             )
             .await;
+        // #2765 — the violation record stores a content hash only, but it is
+        // not part of the tamper-evident chain. Emit the enforcement decision
+        // with a server-minted actor; `content` is reduced to a fingerprint.
+        let actor = match user_id {
+            Some(user_id) => AuditActor::user(user_id),
+            None => AuditActor::service("dlp"),
+        };
+        let decision = SecurityDecision {
+            event_type: if result.blocked {
+                AuditEventType::ThreatDetected
+            } else {
+                AuditEventType::PolicyViolation
+            },
+            actor,
+            outcome: AuditOutcome::Failure,
+            action: "dlp.redact",
+            reason_code: if result.blocked { "dlp.blocked" } else { "dlp.redacted" },
+            payload: content,
+        };
+        if let Err(error) = record_security_decision(&decision).await {
+            tracing::warn!("DLP security decision audit write failed: {error}");
+        }
     }
     if result.blocked {
         return "[blocked by DLP policy]".to_string();

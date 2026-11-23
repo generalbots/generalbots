@@ -1573,17 +1573,30 @@ jobs:
           sudo systemctl stop clamav-freshclam || true
           sudo freshclam
           clamscan --version
-      - name: ClamAV upload gate detects EICAR and accepts clean bytes
+      - name: Prove clamscan detects EICAR (all artifacts under /tmp only)
         run: |
           set -euo pipefail
-          cargo test -p botsecurity-core --lib -- --ignored clamav_detects_eicar_and_accepts_clean_payload --nocapture
+          printf '%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > /tmp/gb-eicar.txt
+          set +e
+          clamscan --no-summary --infected /tmp/gb-eicar.txt | tee /tmp/gb-clamscan-eicar.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 1
+          grep -q 'Eicar-Test-Signature FOUND' /tmp/gb-clamscan-eicar.log
+          rm -f /tmp/gb-eicar.txt /tmp/gb-clamscan-eicar.log
+      - name: ClamAV upload gate (real handler, typed MalwareDetected verdict)
+        run: |
+          set -euo pipefail
+          cargo test -p botsecurity-core --lib -- --ignored clamav_upload_gate_detects_eicar_and_accepts_clean_file --nocapture
           cargo test -p botsecurity-core --lib antivirus::byte_scan
       - name: Hostile-file corpus for Docs, Sheets and Slides
         run: |
           set -euo pipefail
-          cargo test -p botdocs --lib hostile_
-          cargo test -p botsheet --lib hostile_
+          cargo test -p botdocs --lib hostile_corpus
+          cargo test -p botsheet --lib hostile_import_tests
           cargo test -p botslides --lib hostile_corpus
+      - name: Both CI hosts carry the identical, ungated malware gate
+        run: python3 scripts/check_malware_clamav_gates.py
 
   # #2115 — performance budgets. The numbers live in `ops/slo.yaml`, the table
   # in `botbook/src/11-hardware-scaling/slo.md`; this job proves the gate fails

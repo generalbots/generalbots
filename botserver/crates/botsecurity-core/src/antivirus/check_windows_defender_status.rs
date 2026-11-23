@@ -1,5 +1,70 @@
 use super::*;
 
+/// Pure protection claims derived from observable facts (#2601). A config flag
+/// alone never grants "protection": the process-wide upload scanner registered
+/// by `install_scanner_at_boot` is the source of truth. Both flags fail closed
+/// when it is absent, so the manager cannot advertise protection it lacks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct ProtectionFlags {
+    pub real_time_protection: bool,
+    pub general_bots_protection: bool,
+}
+
+pub(super) fn derive_protection_flags(
+    real_time_config: bool,
+    scanner_installed: bool,
+) -> ProtectionFlags {
+    ProtectionFlags {
+        general_bots_protection: scanner_installed,
+        real_time_protection: real_time_config && scanner_installed,
+    }
+}
+
+fn parsed_quarantined_at(
+    entry: &crate::upload_hostile::malware::QuarantineEntry,
+) -> Option<chrono::DateTime<chrono::Utc>> {
+    entry
+        .quarantined_at
+        .as_deref()
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+        .map(|value| value.with_timezone(&chrono::Utc))
+}
+
+/// Pure status projection from the registered scanner and the canonical
+/// quarantine records. No I/O and no wall-clock reads: `now` is injected so the
+/// fail-closed policy and the reported counts are unit-testable offline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct DerivedProtection {
+    pub flags: ProtectionFlags,
+    pub last_scan: Option<chrono::DateTime<chrono::Utc>>,
+    pub threats_blocked_today: u32,
+    pub quarantined_items: u32,
+}
+
+pub(super) fn derive_protection_status(
+    real_time_config: bool,
+    scanner_installed: bool,
+    records: &[crate::upload_hostile::malware::QuarantineEntry],
+    now: chrono::DateTime<chrono::Utc>,
+) -> DerivedProtection {
+    let today = now.date_naive();
+    let threats_blocked_today = records
+        .iter()
+        .filter(|entry| entry.verdict == "infected")
+        .filter(|entry| {
+            parsed_quarantined_at(*entry)
+                .map(|value| value.date_naive() == today)
+                .unwrap_or(false)
+        })
+        .count() as u32;
+    DerivedProtection {
+        flags: derive_protection_flags(real_time_config, scanner_installed),
+        last_scan: records.iter().filter_map(parsed_quarantined_at).max(),
+        threats_blocked_today,
+        quarantined_items: records.len() as u32,
+    }
+}
+
 impl AntivirusManager {
     pub fn new(config: AntivirusConfig) -> Result<Self> {
         std::fs::create_dir_all(&config.quarantine_dir)
@@ -10,20 +75,27 @@ impl AntivirusManager {
         // upload gate's registered scanner is the source of truth; the legacy
         // `real_time_protection` config flag alone is not protection.
         let scanner_installed = crate::upload_hostile::malware_scanner_installed();
-        let records = crate::upload_hostile::malware::list_quarantine_records().unwrap_or_default();
-        let last_scan = records
-            .first()
-            .and_then(|entry| entry.quarantined_at.as_deref())
-            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
-            .map(|value| value.with_timezone(&chrono::Utc));
+        let records = match crate::upload_hostile::malware::list_quarantine_records() {
+            Ok(records) => records,
+            Err(error) => {
+                warn!("Cannot read malware quarantine for protection status: {error}");
+                Vec::new()
+            }
+        };
+        let derived = derive_protection_status(
+            config.real_time_protection,
+            scanner_installed,
+            &records,
+            chrono::Utc::now(),
+        );
         let protection_status = ProtectionStatus {
-            real_time_protection: config.real_time_protection && scanner_installed,
+            real_time_protection: derived.flags.real_time_protection,
             windows_defender_enabled: Self::check_windows_defender_status(),
-            general_bots_protection: scanner_installed,
-            last_scan,
+            general_bots_protection: derived.flags.general_bots_protection,
+            last_scan: derived.last_scan,
             last_definition_update: None,
-            threats_blocked_today: records.iter().filter(|entry| entry.verdict == "infected").count() as u32,
-            quarantined_items: records.len() as u32,
+            threats_blocked_today: derived.threats_blocked_today,
+            quarantined_items: derived.quarantined_items,
         };
 
         Ok(Self {
@@ -242,5 +314,97 @@ impl AntivirusManager {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::upload_hostile::malware::QuarantineEntry;
+
+    fn entry(id: &str, verdict: &str, quarantined_at: Option<&str>) -> QuarantineEntry {
+        QuarantineEntry {
+            id: id.to_string(),
+            original_path: format!("{id}.docx"),
+            quarantine_path: String::new(),
+            size: 0,
+            quarantined_at: quarantined_at.map(str::to_string),
+            threat_name: None,
+            verdict: verdict.to_string(),
+            scanner: "clamav".to_string(),
+            organization_id: None,
+        }
+    }
+
+    fn fixed_now() -> chrono::DateTime<chrono::Utc> {
+        chrono::DateTime::parse_from_rfc3339("2026-11-23T12:00:00+00:00")
+            .map(|value| value.with_timezone(&chrono::Utc))
+            .unwrap_or_else(|_| chrono::Utc::now())
+    }
+
+    #[test]
+    fn protection_flags_fail_closed_without_a_scanner() {
+        let expected = ProtectionFlags {
+            real_time_protection: false,
+            general_bots_protection: false,
+        };
+        assert_eq!(derive_protection_flags(true, false), expected);
+        assert_eq!(derive_protection_flags(false, false), expected);
+    }
+
+    #[test]
+    fn protection_flags_require_both_the_flag_and_the_scanner() {
+        assert_eq!(
+            derive_protection_flags(true, true),
+            ProtectionFlags {
+                real_time_protection: true,
+                general_bots_protection: true,
+            }
+        );
+        assert_eq!(
+            derive_protection_flags(false, true),
+            ProtectionFlags {
+                real_time_protection: false,
+                general_bots_protection: true,
+            }
+        );
+    }
+
+    #[test]
+    fn status_counts_only_todays_infected_records_and_latest_scan() {
+        let records = vec![
+            entry("1", "infected", Some("2026-11-23T09:00:00+00:00")),
+            entry("2", "infected", Some("2026-11-22T09:00:00+00:00")),
+            entry("3", "clean", Some("2026-11-23T10:00:00+00:00")),
+            entry("4", "infected", None),
+        ];
+        let status = derive_protection_status(true, true, &records, fixed_now());
+        assert_eq!(
+            status.flags,
+            ProtectionFlags {
+                real_time_protection: true,
+                general_bots_protection: true,
+            }
+        );
+        assert_eq!(status.quarantined_items, 4);
+        assert_eq!(status.threats_blocked_today, 1);
+        assert_eq!(
+            status.last_scan,
+            Some(
+                chrono::DateTime::parse_from_rfc3339("2026-11-23T10:00:00+00:00")
+                    .map(|value| value.with_timezone(&chrono::Utc))
+                    .unwrap_or_else(|_| fixed_now())
+            )
+        );
+    }
+
+    #[test]
+    fn status_without_a_scanner_never_claims_protection() {
+        let status = derive_protection_status(true, false, &[], fixed_now());
+        assert!(!status.flags.real_time_protection);
+        assert!(!status.flags.general_bots_protection);
+        assert_eq!(status.threats_blocked_today, 0);
+        assert_eq!(status.quarantined_items, 0);
+        assert_eq!(status.last_scan, None);
     }
 }

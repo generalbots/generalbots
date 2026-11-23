@@ -300,6 +300,33 @@ installer cache (#2603). Its behaviour is split across three paths:
 | Protection Run Scan | Real `clamscan` byte scan over the hostile-file quarantine, or the single file in `GB_CLAMAV_SCAN_TARGET` | `manager/initialize.rs:238`, `protection/clamav/mod.rs:23-82`, `antivirus/byte_scan.rs:37` |
 | Definition update | `sudo freshclam` | `manager/update_definitions.rs:14-18` |
 
+#### Offline provisioning (desktop-local)
+
+`sudo botserver install protection` is a **host-only, root-required** path: it
+uses `apt-get` and writes sudoers, so it never runs in a desktop-local/ISO
+install where downloads are refused. Use the packaged scanner instead: place
+the pinned archive in `botserver-installers/` (or the directory named by
+`BOTSERVER_INSTALLERS_PATH`) before first run.
+
+| Platform | Cache filename | SHA-256 (pinned) |
+|---|---|---|
+| Linux x86_64 | `clamav-1.5.5.linux.x86_64.deb` | `fff17fb1f8917d1ea1308c9736dabe376077458aba000a5dadcce7193a8c538c` |
+| Linux arm64 | `clamav-1.5.5.linux.aarch64.deb` | `3df976260dd631936f945c7b92e32bf530f43dab05a8a469b3a8cbb5d83b6100` |
+| Windows x64 | `clamav-1.5.5.win.x64.zip` | `90169f5e551010bfbd0208b50d9b2fa8988ef396cccbd46b0cc8cae03e22a4a4` |
+
+The digests are the `digest` fields of the upstream 1.5.5 release assets and
+are enforced by `scripts/check_component_checksums.py`; verify a staged copy
+with `echo "<digest>  botserver-installers/<file>" | sha256sum -c -`.
+
+Signatures are a separate, network-dependent input: on the host,
+`sudo freshclam` refreshes them (`manager/update_definitions.rs:14-18`) and the
+last update time is recorded in the tool status. No `.cvd` snapshot is pinned
+for offline installs, so an offline scanner must ship with current signatures
+or report a signature/engine failure. ClamAV never reports a clean verdict when
+the scanner cannot run — the upload hook fails closed
+(`antivirus/byte_scan.rs:37`, `upload_hostile/clamav_scanner.rs:11`). Treat that
+failure as "unknown", not "clean", and refresh signatures before use.
+
 ### LMD (Linux Malware Detect)
 
 Malware scanner designed for shared hosting environments.

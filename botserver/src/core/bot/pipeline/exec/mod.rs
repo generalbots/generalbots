@@ -1,3 +1,4 @@
+use botsecurity_core::audit::{AuditActor, AuditEventType, AuditOutcome, SecurityDecision};
 use uuid::Uuid;
 
 pub use super::types::PipelineFn;
@@ -86,6 +87,20 @@ pub async fn process_message_internal(
     let (injection, sanitized) = botsecurity_core::prompt_security::scan_inbound(&user_text);
     if injection.blocked {
         let session = session_id.to_string();
+        // #2765 — record the block in the tamper-evident chain before the
+        // chat frame is emitted. The actor comes from the verified session;
+        // only a fingerprint of the rejected text is retained.
+        let decision = SecurityDecision {
+            event_type: AuditEventType::InjectionAttempt,
+            actor: AuditActor::user(user_id),
+            outcome: AuditOutcome::Failure,
+            action: "prompt_injection.block",
+            reason_code: "injection.blocked",
+            payload: &user_text,
+        };
+        if let Err(error) = botsecurity_core::audit::record_security_decision(&decision).await {
+            log::warn!("prompt-injection audit write failed: {error}");
+        }
         context::emit_injection_blocked(sink, bot_uuid, user_id, &session, &injection.threat_level).await;
         return Ok(());
     }

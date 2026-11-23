@@ -1,4 +1,40 @@
 use super::*;
+use botsecurity_core::audit::{
+    record_security_decision, AuditActor, AuditEventType, AuditOutcome, SecurityDecision,
+};
+
+/// #2765 — append a denial to the tamper-evident audit chain. The actor is
+/// derived from the server-populated `AuthenticatedUser`, and only the
+/// `method path` pair is fingerprinted (the denial reason may be dynamic and
+/// is deliberately not copied into the record).
+async fn audit_rbac_denial(
+    user: &AuthenticatedUser,
+    method: &str,
+    path: &str,
+    reason_code: &'static str,
+) {
+    let actor = if user.is_authenticated() {
+        let mut actor = AuditActor::user(user.user_id).with_username(user.username.clone());
+        if let Some(ref session) = user.session_id {
+            actor = actor.with_session(session.clone());
+        }
+        actor
+    } else {
+        AuditActor::anonymous()
+    };
+    let payload = format!("{method} {path}");
+    let decision = SecurityDecision {
+        event_type: AuditEventType::PermissionDenied,
+        actor,
+        outcome: AuditOutcome::Failure,
+        action: "rbac.deny",
+        reason_code,
+        payload: &payload,
+    };
+    if let Err(error) = record_security_decision(&decision).await {
+        warn!("RBAC security decision audit write failed: {error}");
+    }
+}
 
 /// RBAC middleware function for use with middleware::from_fn
 /// This version takes the RbacManager as a parameter instead of State
@@ -40,6 +76,7 @@ pub async fn rbac_middleware_fn(
                 "RBAC: Unauthorized access attempt to {} {} (no auth)",
                 method, path
             );
+            audit_rbac_denial(&user, &method, &path, "rbac.unauthenticated").await;
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
@@ -54,6 +91,7 @@ pub async fn rbac_middleware_fn(
             "RBAC: Forbidden access to {} {} for user {} with roles {:?}",
             method, path, user.user_id, user.roles
         );
+        audit_rbac_denial(&user, &method, &path, "rbac.forbidden").await;
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
@@ -92,6 +130,7 @@ pub async fn rbac_middleware(
 
     if !decision.is_allowed() {
         if !user.is_authenticated() {
+            audit_rbac_denial(&user, &method, &path, "rbac.unauthenticated").await;
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
@@ -102,6 +141,7 @@ pub async fn rbac_middleware(
                 .into_response();
         }
 
+        audit_rbac_denial(&user, &method, &path, "rbac.forbidden").await;
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({

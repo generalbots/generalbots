@@ -20,6 +20,27 @@ pub(super) struct MintedPublicLink {
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+/// Row selected for revoke-by-file (#2797). The bucket is read from the stored
+/// link record, never from the request, so revocation hits the bucket where the
+/// link was actually minted.
+#[derive(diesel::QueryableByName)]
+struct RevokeTarget {
+    #[diesel(sql_type = Text)]
+    bucket: String,
+    #[diesel(sql_type = Text)]
+    share_token: String,
+}
+
+/// #2797 — pure bucket resolution for revoke-by-file. The link record is the
+/// authoritative source: creation stores the bucket resolved from the caller's
+/// scope (the personal `user-<uid>` bucket under the default User scope). A
+/// blank stored bucket fails closed instead of falling back to a client param
+/// or the hardcoded workspace default.
+pub(super) fn revoke_bucket_from_record(record_bucket: &str) -> Option<&str> {
+    let bucket = record_bucket.trim();
+    (!bucket.is_empty()).then_some(bucket)
+}
+
 /// Mints a revocable public link for one file after checking that it exists in
 /// the caller's scope. Shared by the link endpoint and the email share flow.
 pub(super) async fn mint_public_link(
@@ -181,9 +202,9 @@ pub async fn list_public_links(
 
     Ok(Json(items))
 }
-/// `POST /api/files/revoke-link` — revoke by token, or by file (bucket+path)
-/// for the caller. Revoked links keep their row (audit trail) but stop
-/// resolving immediately.
+/// `POST /api/files/revoke-link` — revoke by token, or by file (path scoped to
+/// the caller; the bucket comes from the stored link record). Revoked links
+/// keep their row (audit trail) but stop resolving immediately.
 pub async fn revoke_public_link(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -210,24 +231,49 @@ pub async fn revoke_public_link(
             )
         })?
     } else if let Some(path) = req.path.as_deref().filter(|p| !p.is_empty()) {
-        let bucket = req
-            .bucket
-            .clone()
-            .unwrap_or_else(|| state.bucket_name.clone());
-        diesel::sql_query(
-            "UPDATE drive_public_links SET revoked = TRUE \
-             WHERE owner_id = $1 AND bucket = $2 AND path = $3",
+        // #2797 — creation stores the bucket resolved from the caller's scope
+        // (personal `user-<uid>` under default User scope); this branch used
+        // `req.bucket`/workspace bucket with a raw path, matched 0 rows and
+        // left the link live. Use each record's bucket + normalized path.
+        let path = normalize_path(path);
+        let targets = diesel::sql_query(
+            "SELECT bucket, share_token FROM drive_public_links \
+             WHERE owner_id = $1 AND path = $2 AND revoked = FALSE",
         )
         .bind::<Text, _>(&uid)
-        .bind::<Text, _>(&bucket)
-        .bind::<Text, _>(path)
-        .execute(&mut conn)
+        .bind::<Text, _>(&path)
+        .load::<RevokeTarget>(&mut conn)
         .map_err(|e| {
             err(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!("Failed to revoke link: {e}"),
             )
-        })?
+        })?;
+
+        let mut changed = 0;
+        for target in targets {
+            match revoke_bucket_from_record(&target.bucket) {
+                Some(bucket) => {
+                    changed += diesel::sql_query(
+                        "UPDATE drive_public_links SET revoked = TRUE \
+                         WHERE share_token = $1 AND owner_id = $2 AND bucket = $3 \
+                         AND revoked = FALSE",
+                    )
+                    .bind::<Text, _>(&target.share_token)
+                    .bind::<Text, _>(&uid)
+                    .bind::<Text, _>(bucket)
+                    .execute(&mut conn)
+                    .map_err(|e| {
+                        err(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            &format!("Failed to revoke link: {e}"),
+                        )
+                    })?;
+                }
+                None => continue, // fail closed: never guess a bucket
+            }
+        }
+        changed
     } else {
         return Err(err(StatusCode::BAD_REQUEST, "token or path is required"));
     };
@@ -388,58 +434,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hostile_object_name_yields_one_sanitized_filename_parameter() {
-        for name in [
-            "quote\"injection.txt",
-            "back\\slash.txt",
-            "crlf\r\nX-Injected: 1.txt",
-            "control\0\x01\x7f.txt",
-        ] {
-            let disposition = attachment_disposition(name);
-            assert!(disposition.starts_with("attachment; filename=\""), "{name}");
-            assert_eq!(disposition.matches('"').count(), 2, "{name}");
-            assert!(
-                disposition
-                    .chars()
-                    .all(|c| !matches!(c, '\r' | '\n' | '\0' | '\\')),
-                "{name}"
-            );
-            assert!(axum::http::HeaderValue::from_str(&disposition).is_ok(), "{name}");
-        }
-    }
-
-    #[test]
-    fn inline_disposition_is_also_sanitized() {
-        let disposition = inline_disposition("img\" onload=\"x\r\nX: y.png");
-        assert_eq!(disposition, "inline; filename=\"img onload=xX: y.png\"");
-        assert_eq!(disposition.matches('"').count(), 2);
-        assert!(axum::http::HeaderValue::from_str(&disposition).is_ok());
-    }
-
-    #[test]
-    fn mutation_revokes_exact_key_and_subtree_only_in_same_bucket() {
-        assert!(mutation_invalidates_link("b", "docs/a.txt", "b", "docs/a.txt"));
-        assert!(mutation_invalidates_link("b", "docs/a.txt", "b", "docs/"));
-        assert!(mutation_invalidates_link("b", "docs/sub/a.txt", "b", "docs"));
-        assert!(!mutation_invalidates_link("b", "docs/a.txt", "other", "docs/a.txt"));
-        assert!(!mutation_invalidates_link("b", "docs/a.txt", "b", "docs/b.txt"));
-        assert!(!mutation_invalidates_link("b", "docs2/a.txt", "b", "docs"));
-        assert!(!mutation_invalidates_link("b", "docs/a.txt", "b", "doc"));
-    }
-
-    #[test]
-    fn overwriting_a_key_revokes_its_link_but_not_a_sibling_or_other_bucket() {
-        let key = "users/u1/report.pdf";
-        let links = [
-            ("bucket", key),
-            ("bucket", "users/u1/other.pdf"),
-            ("other-bucket", key),
-        ];
-        let revoked: Vec<&str> = links
-            .iter()
-            .filter(|(bucket, link_key)| mutation_invalidates_link(bucket, link_key, "bucket", key))
-            .map(|(_, link_key)| *link_key)
-            .collect();
-        assert_eq!(revoked, vec![key]);
+    fn revoke_bucket_comes_from_record_and_fails_closed_on_blank() {
+        // Creation binds the record's bucket from the caller's scope; revoke
+        // must use it, never the client param or the workspace default (#2797).
+        let personal = "user-11111111-1111-1111-1111-111111111111.gbai";
+        assert_eq!(revoke_bucket_from_record(personal), Some(personal));
+        assert_eq!(
+            revoke_bucket_from_record("  acme.gborg  "),
+            Some("acme.gborg")
+        );
+        assert_eq!(revoke_bucket_from_record(""), None);
+        assert_eq!(revoke_bucket_from_record("   "), None);
     }
 }

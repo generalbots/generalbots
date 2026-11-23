@@ -1,5 +1,48 @@
 use super::*;
 use crate::auth::{AuthenticatedUser, Role};
+use botsecurity_core::audit::{
+    record_security_decision, AuditActor, AuditEventType, AuditOutcome, SecurityDecision,
+};
+
+/// #2765 — write a CSRF rejection to the tamper-evident audit chain.
+///
+/// The actor is taken from the server-populated request extension (never from
+/// a header), and only `method path` is fingerprinted: tokens, cookies and
+/// form values are not part of the record.
+/// Extract the audit actor into owned data. `Request<Body>` is not `Sync`, so
+/// a reference to it must never be held across an `.await` in an async fn.
+fn csrf_audit_actor(request: &Request<Body>) -> AuditActor {
+    match request.extensions().get::<AuthenticatedUser>() {
+        Some(user) if user.user_id != uuid::Uuid::nil() => {
+            let mut actor = AuditActor::user(user.user_id).with_username(user.username.clone());
+            if let Some(ref session) = user.session_id {
+                actor = actor.with_session(session.clone());
+            }
+            actor
+        }
+        _ => AuditActor::anonymous(),
+    }
+}
+
+async fn audit_csrf_reject(
+    actor: AuditActor,
+    method: &str,
+    path: &str,
+    reason_code: &'static str,
+) {
+    let payload = format!("{method} {path}");
+    let decision = SecurityDecision {
+        event_type: AuditEventType::UnauthorizedAccess,
+        actor,
+        outcome: AuditOutcome::Failure,
+        action: "csrf.reject",
+        reason_code,
+        payload: &payload,
+    };
+    if let Err(error) = record_security_decision(&decision).await {
+        warn!("CSRF security decision audit write failed: {error}");
+    }
+}
 
 fn is_loopback_host(host: &str) -> bool {
     matches!(
@@ -257,6 +300,7 @@ pub async fn csrf_middleware(
         CsrfDecision::Skip => return next.run(request).await,
         CsrfDecision::RejectCrossOrigin => {
             warn!("CSRF blocked cross-origin {} {} (#2815)", method, path);
+            audit_csrf_reject(csrf_audit_actor(&request), &method, &path, "csrf.cross_origin").await;
             return (
                 StatusCode::FORBIDDEN,
                 Json(serde_json::json!({
@@ -271,6 +315,7 @@ pub async fn csrf_middleware(
                 "CSRF blocked non-loopback origin for {} {} in no_security mode",
                 method, path
             );
+            audit_csrf_reject(csrf_audit_actor(&request), &method, &path, "csrf.non_loopback").await;
             return (
                 StatusCode::FORBIDDEN,
                 Json(serde_json::json!({
@@ -314,6 +359,7 @@ pub async fn csrf_middleware(
             path,
             validation_result.error_message()
         );
+        audit_csrf_reject(csrf_audit_actor(&request), &method, &path, "csrf.token_invalid").await;
 
         return (
             StatusCode::FORBIDDEN,
