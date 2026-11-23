@@ -149,7 +149,10 @@ if [ "$PROFILE" != base ]; then
         python-docx openpyxl python-pptx lxml reportlab pikepdf pypdf markdown jinja2
     # WeasyPrint is deliberately absent: the embedded Chromium prints HTML to
     # PDF, which is faster and 55 MB smaller.
-    run sh -c 'printf "%s\n" "#!/bin/sh" "set -eu" "chrome=\${GB_CHROME_BIN:-}" "if [ -z \"\$chrome\" ]; then if [ -x /opt/chromium/chrome ]; then chrome=/opt/chromium/chrome; else chrome=\$(command -v chromium) || chrome=; fi; fi" "[ -n \"\$chrome\" ] || { echo \"html2pdf: no chromium in this VM\" >&2; exit 78; }" "exec \"\$chrome\" --headless=new --no-sandbox --disable-gpu --print-to-pdf=\"\$2\" \"file://\$(realpath \"\$1\")\"" > /usr/local/bin/html2pdf'
+    # #2845: no --no-sandbox (the Incus VM is the sandbox); blackhole DNS and
+    # reject file:/data:/javascript: input URIs. The bootstrap installs the
+    # full HTML-sanitizing wrapper over this one at VM boot.
+    run sh -c 'printf "%s\n" "#!/bin/sh" "set -eu" "chrome=\${GB_CHROME_BIN:-}" "if [ -z \"\$chrome\" ]; then if [ -x /opt/chromium/chrome ]; then chrome=/opt/chromium/chrome; else chrome=\$(command -v chromium) || chrome=; fi; fi" "[ -n \"\$chrome\" ] || { echo \"html2pdf: no chromium in this VM\" >&2; exit 78; }" "case \"\$1\" in http://*|https://*) uri=\$1 ;; [a-zA-Z]*:*) echo \"html2pdf: unsupported input URI scheme\" >&2; exit 64 ;; *) uri=file://\$(realpath \"\$1\") ;; esac" "exec \"\$chrome\" --headless=new --disable-gpu --disable-background-networking --host-resolver-rules=\"MAP * ~NOTFOUND\" --print-to-pdf=\"\$2\" \"\$uri\"" > /usr/local/bin/html2pdf'
     run chmod +x /usr/local/bin/html2pdf
 fi
 
