@@ -115,6 +115,15 @@ pub async fn import_ical(
     let (org_id, bot_id, branch_id) = (scope.org_id, scope.bot_id, scope.branch_id);
     let owner_id = Uuid::nil();
 
+    // #2894 — the iCal is imported into the path calendar; never let a caller
+    // write events into a calendar outside their verified org/bot/branch.
+    if let Err(status) = ensure_calendar_in_scope(&state, &scope, calendar_id).await {
+        return Err((
+            status,
+            "calendar not found or outside caller scope".to_string(),
+        ));
+    }
+
     let events = import_from_ical(&body, &owner_id.to_string(), calendar_id);
     let count = events.len();
 

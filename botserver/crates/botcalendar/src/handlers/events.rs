@@ -144,8 +144,13 @@ pub async fn create_event(
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
+    // #2894 — a client-supplied calendar id must resolve to a calendar inside
+    // the caller's verified org/bot/branch before an event may reference it.
     let calendar_id = match input.calendar_id {
-        Some(id) if id != Uuid::nil() => id,
+        Some(id) if id != Uuid::nil() => {
+            ensure_calendar_in_scope(&state, &scope, id).await?;
+            id
+        }
         _ => default_calendar_id(&state, org_id, bot_id, scope.branch_id).await?,
     };
 
@@ -209,7 +214,18 @@ pub async fn update_event(
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = scope_from_headers(&state, &headers);
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id) = (scope.org_id, scope.bot_id);
+
+    // #2894 — validate a client-supplied calendar reference before any write.
+    // A nil value keeps the event's current calendar (no cross-tenant move).
+    let target_calendar_id = match input.calendar_id {
+        Some(id) if id != Uuid::nil() => {
+            ensure_calendar_in_scope(&state, &scope, id).await?;
+            Some(id)
+        }
+        _ => None,
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -237,7 +253,7 @@ pub async fn update_event(
         }
         event.updated_at = Utc::now();
 
-        if let Some(calendar_id) = input.calendar_id {
+        if let Some(calendar_id) = target_calendar_id {
             event.calendar_id = calendar_id;
         }
 
