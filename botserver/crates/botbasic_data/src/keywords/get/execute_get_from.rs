@@ -168,3 +168,31 @@ pub async fn get_from_bucket(
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     Err("S3 drive is not enabled. Configure MinIO to use this feature.".into())
 }
+
+#[cfg(test)]
+mod path_screen_tests {
+    use super::is_safe_path;
+
+    /// #2619 — both GET entry points call this one predicate, so a single
+    /// corpus assertion covers the function form and the custom syntax form.
+    #[test]
+    fn both_forms_apply_the_same_adversarial_path_verdict() {
+        for bad in [
+            "../secrets.env",
+            "/etc/shadow",
+            "http://127.0.0.1:8080/admin",
+            "http://2130706433/",
+            "http://[::ffff:127.0.0.1]/",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://metadata.google.internal/",
+            "file:///etc/passwd",
+            "ftp://example.com/x",
+            "C:\\secrets\\key",
+        ] {
+            assert!(!is_safe_path(bad), "must be rejected: {bad}");
+        }
+        for good in ["docs/readme.md", "gbdrive/inbox/report.txt", "https://example.com/a"] {
+            assert!(is_safe_path(good), "must be allowed: {good}");
+        }
+    }
+}
