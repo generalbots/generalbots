@@ -1,7 +1,7 @@
+use botsecurity_core::validation::{resolve_checked, validate_url_ssrf_strict};
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
-use std::net::{IpAddr, ToSocketAddrs};
 use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -40,10 +40,14 @@ impl WebhookEvent {
 
     pub fn verify_signature(&self, secret: &str) -> bool {
         let expected = Self::compute_signature(&self.payload, secret, &self.timestamp);
-        expected == self.signature
+        botsecurity_core::constant_time::eq_str(&expected, &self.signature)
     }
 
-    fn compute_signature(payload: &serde_json::Value, secret: &str, timestamp: &DateTime<Utc>) -> String {
+    fn compute_signature(
+        payload: &serde_json::Value,
+        secret: &str,
+        timestamp: &DateTime<Utc>,
+    ) -> String {
         let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
             Ok(m) => m,
             Err(_) => return String::new(),
@@ -55,45 +59,27 @@ impl WebhookEvent {
         hex::encode(result.into_bytes())
     }
 
-    fn is_safe_webhook_url(url: &str) -> bool {
-        let parsed = match url::Url::parse(url) {
-            Ok(u) => u,
-            Err(_) => return false,
-        };
-        let host = match parsed.host_str() {
-            Some(h) => h,
-            None => return false,
-        };
-        if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
-            return false;
-        }
-        if host.ends_with(".local") || host.ends_with(".internal") {
-            return false;
-        }
-        if let Ok(addrs) = (host, 0).to_socket_addrs() {
-            for addr in addrs {
-                match addr.ip() {
-                    IpAddr::V4(v4) => {
-                        if v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified() {
-                            return false;
-                        }
-                    }
-                    IpAddr::V6(v6) => {
-                        if v6.is_loopback() || v6.is_unspecified() {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        true
+    /// Applies the shared outbound-request policy before an outbound webhook.
+    ///
+    /// `validate_url_ssrf_strict` rejects non-http(s) schemes, userinfo,
+    /// local/metadata hosts, obfuscated IPv4 and every non-global IP literal
+    /// (loopback, private, link-local, IPv6 ULA and IPv4-mapped loopback).
+    /// `resolve_checked` then refuses a hostname that resolves to any
+    /// non-global address, which also stops a mixed public/private DNS answer
+    /// set. This replaces the old hand-rolled URL guard that missed those
+    /// ranges (issue #2643).
+    async fn check_webhook_target(url: &str) -> Result<(), String> {
+        let parsed = validate_url_ssrf_strict(url)
+            .map_err(|_| "Blocked webhook to unsafe URL".to_string())?;
+        resolve_checked(&parsed)
+            .await
+            .map_err(|_| "Blocked webhook to unsafe URL".to_string())?;
+        Ok(())
     }
 
-    pub fn dispatch(&self, url: &str) -> Result<(), String> {
-        if !Self::is_safe_webhook_url(url) {
-            return Err("Blocked webhook to unsafe URL".to_string());
-        }
-        let client = reqwest::blocking::Client::builder()
+    pub async fn dispatch(&self, url: &str) -> Result<(), String> {
+        Self::check_webhook_target(url).await?;
+        let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
@@ -113,13 +99,14 @@ impl WebhookEvent {
             .header("X-Webhook-Event", &self.event_type)
             .json(&body)
             .send()
+            .await
             .map_err(|e| format!("HTTP request failed: {}", e))?;
 
         if resp.status().is_success() {
             Ok(())
         } else {
             let status = resp.status();
-            let text = resp.text().unwrap_or_default();
+            let text = resp.text().await.unwrap_or_default();
             Err(format!("Webhook delivery failed ({}): {}", status, text))
         }
     }
@@ -164,19 +151,19 @@ impl WebhookDispatcher {
         self.subscribers.len() < before
     }
 
-    pub fn dispatch_event(&self, event: &WebhookEvent) -> Vec<(String, Result<(), String>)> {
+    pub async fn dispatch_event(&self, event: &WebhookEvent) -> Vec<(String, Result<(), String>)> {
         let mut results = Vec::new();
         for sub in &self.subscribers {
             if !sub.events.contains(&event.event_type) {
                 continue;
             }
 
-            let result = event.dispatch(&sub.url);
+            let result = event.dispatch(&sub.url).await;
 
             if result.is_err() && sub.retry_count > 0 {
                 for attempt in 1..=sub.retry_count {
-                    std::thread::sleep(std::time::Duration::from_secs(2u64.pow(attempt)));
-                    let retry_result = event.dispatch(&sub.url);
+                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt))).await;
+                    let retry_result = event.dispatch(&sub.url).await;
                     if retry_result.is_ok() {
                         results.push((sub.url.clone(), Ok(())));
                         break;
@@ -193,7 +180,8 @@ impl WebhookDispatcher {
     }
 
     pub fn subscribers_for_event(&self, event_type: &str) -> Vec<&WebhookSubscriber> {
-        self.subscribers.iter()
+        self.subscribers
+            .iter()
             .filter(|s| s.events.contains(&event_type.to_string()))
             .collect()
     }
@@ -243,5 +231,31 @@ mod tests {
         assert_eq!(subs.len(), 1);
         let subs = disp.subscribers_for_event("ticket.updated");
         assert_eq!(subs.len(), 0);
+    }
+
+    #[test]
+    fn test_public_url_passes_static_policy() {
+        assert!(validate_url_ssrf_strict("https://example.com/hook").is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_adversarial_webhook_urls_rejected() {
+        let event = WebhookEvent::new("test.event", serde_json::json!({"k": 1}), "s");
+        // The old ad-hoc guard accepted these non-global ranges. The shared
+        // policy must refuse them before any request leaves the process.
+        let blocked = [
+            "http://[fd00::1]/hook",                   // IPv6 unique-local (fc00::/7)
+            "http://[fe80::1]/hook",                   // IPv6 link-local (fe80::/10)
+            "http://[::ffff:127.0.0.1]/hook",          // IPv4-mapped loopback
+            "http://169.254.169.254/latest/meta-data", // IPv4 link-local / metadata
+            "http://127.0.0.1/hook",                   // IPv4 loopback
+            "http://10.0.0.1/hook",                    // IPv4 private
+            "http://localhost/hook",                   // local hostname
+            "http://service.internal/hook",            // blocked hostname suffix
+        ];
+        for url in blocked {
+            let result = event.dispatch(url).await;
+            assert!(result.is_err(), "expected {url} to be rejected");
+        }
     }
 }

@@ -1,45 +1,101 @@
 use super::*;
+use crate::security::auth_api::types::AuthenticatedUser;
+use axum::response::Response;
+use axum::Extension;
 
+/// POST /api/dns/register
+///
+/// Inserts a DNS record only after (a) every field passes strict validation
+/// and (b) the authenticated caller is shown to control the record's zone.
 pub async fn handle_dns_register(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Form(form): Form<DnsRecordRequest>,
-) -> impl IntoResponse {
+) -> Response {
     use diesel::prelude::*;
 
-    let hostname = form.hostname.unwrap_or_default().trim().to_string();
-    if hostname.is_empty() {
-        return Html("<div class=\"dns-error\">Hostname is required</div>".to_string());
-    }
-    let record_type = form.record_type.unwrap_or_else(|| "A".to_string());
-    let target = form.target.unwrap_or_default();
-    let ttl = form.ttl.and_then(|t| t.parse::<i32>().ok()).unwrap_or(300);
-    let id = Uuid::new_v4();
+    let record = match validate_dns_record(
+        form.hostname.as_deref(),
+        form.record_type.as_deref(),
+        form.target.as_deref(),
+        form.ttl.as_deref(),
+    ) {
+        Ok(record) => record,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Html(format!(
+                    "<div class=\"dns-error\">{}</div>",
+                    html_escape(&e)
+                )),
+            )
+                .into_response()
+        }
+    };
 
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => {
-            return Html(format!(
-                "<div class=\"dns-error\">{}</div>",
-                html_escape(&e.1)
-            ))
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!(
+                    "<div class=\"dns-error\">{}</div>",
+                    html_escape(&e.1)
+                )),
+            )
+                .into_response()
         }
     };
 
-    let _ = diesel::sql_query(
+    let owns = match caller_owns_hostname(&mut conn, &user, &record.hostname) {
+        Ok(owns) => owns,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!(
+                    "<div class=\"dns-error\">{}</div>",
+                    html_escape(&e)
+                )),
+            )
+                .into_response()
+        }
+    };
+    if !owns {
+        return (
+            StatusCode::FORBIDDEN,
+            Html("<div class=\"dns-error\">You do not control this DNS zone</div>".to_string()),
+        )
+            .into_response();
+    }
+
+    let id = Uuid::new_v4();
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO dns_records (id, hostname, record_type, target, ttl, status) VALUES ($1, $2, $3, $4, $5, 'active') ON CONFLICT DO NOTHING",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
-    .bind::<diesel::sql_types::Text, _>(&hostname)
-    .bind::<diesel::sql_types::Text, _>(&record_type)
-    .bind::<diesel::sql_types::Text, _>(&target)
-    .bind::<diesel::sql_types::Int4, _>(ttl)
-    .execute(&mut conn);
+    .bind::<diesel::sql_types::Text, _>(&record.hostname)
+    .bind::<diesel::sql_types::Text, _>(&record.record_type)
+    .bind::<diesel::sql_types::Text, _>(&record.target)
+    .bind::<diesel::sql_types::Int4, _>(record.ttl)
+    .execute(&mut conn)
+    {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html(format!(
+                "<div class=\"dns-error\">{}</div>",
+                html_escape(&e.to_string())
+            )),
+        )
+            .into_response();
+    }
 
     Html(format!(
         r#"<div class="dns-success">DNS record <strong>{hostname}</strong> registered</div>"#,
-        hostname = html_escape(&hostname),
+        hostname = html_escape(&record.hostname),
     ))
+    .into_response()
 }
+
 pub async fn handle_dns_edit_form(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<Uuid>,

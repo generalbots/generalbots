@@ -1,31 +1,103 @@
 use super::*;
+use crate::security::auth_api::types::AuthenticatedUser;
+use axum::response::Response;
+use axum::Extension;
 
+/// POST /api/dns/remove
+///
+/// Deletes a record only when the caller controls the zone its hostname
+/// belongs to; otherwise the request is rejected with 403.
 pub async fn handle_dns_remove(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Form(form): Form<DnsRemoveRequest>,
-) -> impl IntoResponse {
+) -> Response {
     use diesel::prelude::*;
 
     let id = form.id.and_then(|s| Uuid::parse_str(&s).ok());
     let Some(id) = id else {
-        return Html("<div class=\"dns-error\">Invalid record id</div>".to_string());
+        return Html("<div class=\"dns-error\">Invalid record id</div>".to_string()).into_response();
     };
 
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => {
-            return Html(format!(
-                "<div class=\"dns-error\">{}</div>",
-                html_escape(&e.1)
-            ))
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!(
+                    "<div class=\"dns-error\">{}</div>",
+                    html_escape(&e.1)
+                )),
+            )
+                .into_response()
         }
     };
 
-    let _ = diesel::sql_query("DELETE FROM dns_records WHERE id = $1")
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .execute(&mut conn);
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct HostnameRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        hostname: String,
+    }
 
-    Html("<div class=\"dns-success\">DNS record removed</div>".to_string())
+    let record: Option<HostnameRow> =
+        match diesel::sql_query("SELECT hostname FROM dns_records WHERE id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .get_result(&mut conn)
+        {
+            Ok(row) => Some(row),
+            Err(diesel::result::Error::NotFound) => None,
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Html(format!(
+                        "<div class=\"dns-error\">{}</div>",
+                        html_escape(&e.to_string())
+                    )),
+                )
+                    .into_response()
+            }
+        };
+    let Some(record) = record else {
+        return Html("<div class=\"dns-error\">Record not found</div>".to_string()).into_response();
+    };
+
+    let owns = match caller_owns_hostname(&mut conn, &user, &record.hostname) {
+        Ok(owns) => owns,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!(
+                    "<div class=\"dns-error\">{}</div>",
+                    html_escape(&e)
+                )),
+            )
+                .into_response()
+        }
+    };
+    if !owns {
+        return (
+            StatusCode::FORBIDDEN,
+            Html("<div class=\"dns-error\">You do not control this DNS zone</div>".to_string()),
+        )
+            .into_response();
+    }
+
+    if let Err(e) = diesel::sql_query("DELETE FROM dns_records WHERE id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .execute(&mut conn)
+    {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html(format!(
+                "<div class=\"dns-error\">{}</div>",
+                html_escape(&e.to_string())
+            )),
+        )
+            .into_response();
+    }
+
+    Html("<div class=\"dns-success\">DNS record removed</div>".to_string()).into_response()
 }
 
 // ---------------------------------------------------------------------------

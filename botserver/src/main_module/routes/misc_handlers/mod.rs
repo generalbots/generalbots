@@ -39,6 +39,7 @@ pub struct DnsRemoveRequest {
     pub id: Option<String>,
 }
 
+mod dns_validation;
 mod handle_autotask_create;
 mod handle_calendar_event_save;
 mod handle_dns_register;
@@ -46,6 +47,7 @@ mod handle_dns_remove;
 mod handle_dns_search;
 mod html_escape;
 
+pub(crate) use dns_validation::*;
 pub use handle_autotask_create::*;
 pub use handle_calendar_event_save::*;
 pub use handle_dns_register::*;
