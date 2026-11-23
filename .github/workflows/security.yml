@@ -142,6 +142,21 @@ jobs:
         # informational SARIF upload. Update scripts/osv_allowlist.txt only
         # together with a written reachability argument in SECURITY.md.
         run: python3 scripts/check_osv_allowlist.py --report /tmp/osv.json --allowlist scripts/osv_allowlist.txt
+      - name: Scan npm lockfiles for JS advisories (#2742)
+        # Three checked-in npm lockfiles were invisible to every gate. Reuse
+        # the installed osv-scanner and the existing dated allowlist so a new
+        # advisory blocks the build on GitHub and on the ALM mirror.
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --lockfile bottemplates/apps/node-starter/package-lock.json \
+            --format json \
+            --output-file /tmp/osv-js.json \
+            || true
+          test -s /tmp/osv-js.json
+          python3 scripts/check_osv_allowlist.py --report /tmp/osv-js.json --allowlist scripts/osv_allowlist.txt
 
   secrets:
     name: Secret scan (full history)
