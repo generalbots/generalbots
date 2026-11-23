@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs;
@@ -151,16 +151,13 @@ impl UserDriveVectorDB {
         query_embedding: Vec<f32>,
     ) -> Result<Vec<FileSearchResult>> {
         if let Some(client) = self.client.as_ref() {
-            // Scope is derived from trusted server state, never from the query
-            // or the Qdrant payload (#2820).
-            let filter = self.scope.as_qdrant_filter();
+            // One effective Qdrant filter: trusted tenant scope (#2820) plus the
+            // request's per-file conditions (#2819), in a single `must`. The
+            // client-side recheck below only re-validates the stamp/current ACL,
+            // so the two layers compose rather than cancelling each other.
+            let filter = effective_filter(&self.scope, query);
             let results = client
-                .search_points(
-                    &self.collection_name,
-                    &query_embedding,
-                    query.limit,
-                    Some(filter),
-                )
+                .search_points(&self.collection_name, &query_embedding, query.limit, Some(filter))
                 .await?;
 
             let mut search_results = Vec::new();
@@ -385,32 +382,63 @@ impl UserDriveVectorDB {
     }
 }
 
+/// One Qdrant filter: trusted scope + caller conditions (#2819), pure for tests.
+fn effective_filter(scope: &VectorScope, query: &FileSearchQuery) -> Value {
+    let mut filter = scope.as_qdrant_filter();
+    if let Some(must) = filter.get_mut("must").and_then(Value::as_array_mut) {
+        if let Some(v) = &query.bucket { must.push(json!({"key":"bucket","match":{"value":v}})); }
+        if let Some(v) = &query.file_type { must.push(json!({"key":"file_type","match":{"value":v}})); }
+        for v in &query.tags { must.push(json!({"key":"tags","match":{"value":v}})); }
+    }
+    filter
+}
+
 mod access;
 mod file_content_extractor;
 pub use file_content_extractor::*;
 
 #[cfg(test)]
-mod snippet_tests {
-    use super::UserDriveVectorDB;
+mod unit_tests {
+    use super::*;
 
-    /// The window edges come from a match position in the lowercased copy, so
-    /// either edge can land inside an accented character (#1508).
     #[test]
     fn snippet_around_a_multibyte_match_snaps_to_char_boundaries() {
         let content = "relatório café açúcar mascavo";
         let snippet = UserDriveVectorDB::create_snippet(content, "café", 10);
-        assert!(
-            snippet.contains("café"),
-            "the match must survive: {snippet}"
-        );
+        assert!(snippet.contains("café"), "the match must survive: {snippet}");
         assert!(snippet.starts_with("..."), "{snippet}");
     }
 
-    /// The no-match branch cut a byte budget straight out of the content.
     #[test]
     fn snippet_without_a_match_truncates_on_a_char_boundary() {
         let content = "relatório de açúcar";
-        let snippet = UserDriveVectorDB::create_snippet(content, "ausente", 6);
-        assert_eq!(snippet, "relat...");
+        assert_eq!(UserDriveVectorDB::create_snippet(content, "ausente", 6), "relat...");
+    }
+
+    /// The filter is present, non-empty and carries scope + caller conditions;
+    /// a document from a foreign bucket/tag cannot satisfy it (#2819).
+    #[test]
+    fn effective_filter_is_non_empty_and_excludes_a_foreign_bucket_and_tag() {
+        let db = UserDriveVectorDB::new(Uuid::new_v4(), Uuid::new_v4(), PathBuf::from("/tmp/v"));
+        let query = FileSearchQuery {
+            query_text: "q".into(), bucket: Some("finance".into()), file_type: None,
+            date_from: None, date_to: None, tags: vec!["hr".into()], limit: 10,
+        };
+        let filter = effective_filter(db.scope(), &query);
+        let must = filter["must"].as_array().expect("must");
+        assert!(must.len() >= 4 && must.iter().any(|c| c["key"] == "bucket"
+            && c["match"]["value"] == "finance") && must.iter().any(|c| c["key"] == "tags"
+            && c["match"]["value"] == "hr"), "{filter}");
+
+        let mut payload = Map::new();
+        db.scope().stamp(&mut payload);
+        payload.insert("bucket".into(), Value::String("other".into()));
+        payload.insert("tags".into(), json!(["other"]));
+        let matches = must.iter().all(|c| match c["key"].as_str() {
+            Some("tags") => payload["tags"].as_array().is_some_and(|t| t.contains(&c["match"]["value"])),
+            Some(key) => payload.get(key) == Some(&c["match"]["value"]),
+            None => false,
+        });
+        assert!(!matches, "a foreign bucket/tag must yield no results");
     }
 }

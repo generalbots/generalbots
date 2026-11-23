@@ -181,11 +181,14 @@ mod tests {
         // payload is unchanged when the trusted source revokes the grant.
         let scope = scope();
         let payload = stamped(&scope);
-        let granted = std::sync::Mutex::new(vec![(scope.user_id, "docs/a.pdf".to_string())]);
-        let current_acl: AccessVerifier = |scope, path, _bucket| {
-            granted
-                .lock()
-                .is_ok_and(|g| g.iter().any(|(uid, p)| *uid == scope.user_id && p == path))
+        let granted = std::sync::Arc::new(std::sync::Mutex::new(vec![(
+            scope.user_id,
+            "docs/a.pdf".to_string(),
+        )]));
+        let g = std::sync::Arc::clone(&granted);
+        let current_acl = move |scope: &VectorScope, path: &str, _bucket: &str| {
+            g.lock()
+                .is_ok_and(|granted| granted.iter().any(|(uid, p)| *uid == scope.user_id && p == path))
         };
 
         assert!(chunk_is_authorized(

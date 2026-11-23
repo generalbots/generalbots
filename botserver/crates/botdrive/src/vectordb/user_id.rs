@@ -92,17 +92,8 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let mut payload: botqdrant::Payload = serde_json::to_value(file)?
-            .as_object()
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
-            .collect::<serde_json::Map<String, serde_json::Value>>();
-
-        // Stamp only server-derived ids. These are native strings (not the
-        // double-encoded document values) so the query-time parse succeeds.
-        VectorScope::new(self.bot_id, self.user_id).stamp(&mut payload);
+        let scope = VectorScope::new(self.bot_id, self.user_id);
+        let payload = file_payload(file, &scope)?;
 
         let point = PointStruct::new(file.id.clone(), embedding, payload);
 
@@ -134,16 +125,8 @@ impl UserDriveVectorDB {
             let points: Vec<PointStruct> = files
                 .iter()
                 .filter_map(|(file, embedding)| {
-                    serde_json::to_value(file).ok().and_then(|v| {
-                        v.as_object().map(|m| {
-                            let mut payload: botqdrant::Payload = m
-                                .clone()
-                                .into_iter()
-                                .map(|(k, v)| (k, serde_json::Value::String(v.to_string())))
-                                .collect::<serde_json::Map<String, serde_json::Value>>();
-                            scope.stamp(&mut payload);
-                            PointStruct::new(file.id.clone(), embedding.clone(), payload)
-                        })
+                    file_payload(file, &scope).ok().map(|payload| {
+                        PointStruct::new(file.id.clone(), embedding.clone(), payload)
                     })
                 })
                 .collect();
@@ -176,51 +159,19 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        // The scope is derived only from server-side ids (#2820). Request
-        // filters are layered on top, never in place of this mandatory one.
+        // One effective Qdrant filter: trusted tenant scope (#2820) plus the
+        // caller's per-file conditions (#2819) in a single `must`. The native
+        // `match.value` shape is required by Qdrant; `Condition::matches` used
+        // to emit a flat `value` that never matched, cancelling the scope and
+        // ACL rechecks below by returning zero points.
         let scope = VectorScope::new(self.bot_id, self.user_id);
-        let mut conditions = vec![
-            botqdrant::Condition::matches(
-                "scope_bot_id",
-                serde_json::Value::String(scope.bot_id.to_string()),
-            ),
-            botqdrant::Condition::matches(
-                "scope_user_id",
-                serde_json::Value::String(scope.user_id.to_string()),
-            ),
-        ];
-
-        if let Some(bucket) = &query.bucket {
-            conditions.push(botqdrant::Condition::matches(
-                "bucket",
-                serde_json::Value::String(bucket.clone()),
-            ));
-        }
-        if let Some(file_type) = &query.file_type {
-            conditions.push(botqdrant::Condition::matches(
-                "file_type",
-                serde_json::Value::String(file_type.clone()),
-            ));
-        }
-        for tag in &query.tags {
-            conditions.push(botqdrant::Condition::matches(
-                "tags",
-                serde_json::Value::String(tag.clone()),
-            ));
-        }
-
-        let search_result = botqdrant::SearchPointsBuilder::new(
-            &self.collection_name,
-            query_embedding,
-            query.limit,
-        )
-        .with_payload(true)
-        .filter(Some(botqdrant::Filter::must(conditions)))
-        .build(client)
-        .await?;
+        let filter = build_effective_filter(&scope, query);
+        let points = client
+            .search_points(&self.collection_name, &query_embedding, query.limit, Some(filter))
+            .await?;
 
         let mut results = Vec::new();
-        for point in search_result.result {
+        for point in points {
             let payload = point
                 .get("payload")
                 .and_then(|p| p.as_object())
@@ -294,6 +245,33 @@ impl UserDriveVectorDB {
     }
 }
 
+/// Build a point payload with native JSON values and the trusted scope stamp.
+/// The old `Value::String(v.to_string())` double-encoded every field (`"x"` ->
+/// `"\"x\""`), so no per-file Qdrant filter could ever match (#2819).
+#[cfg(feature = "vectordb")]
+fn file_payload(file: &FileDocument, scope: &VectorScope) -> Result<botqdrant::Payload> {
+    let mut payload: botqdrant::Payload = serde_json::to_value(file)?
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
+    scope.stamp(&mut payload);
+    Ok(payload)
+}
+
+/// Build the single Qdrant filter for a Drive search (#2819): the trusted
+/// server-derived scope plus the caller's per-file conditions, in the `must`
+/// shape Qdrant's REST API accepts. Pure so the filter is testable offline.
+#[cfg(feature = "vectordb")]
+fn build_effective_filter(scope: &VectorScope, query: &FileSearchQuery) -> serde_json::Value {
+    let mut filter = scope.as_qdrant_filter();
+    if let Some(must) = filter.get_mut("must").and_then(serde_json::Value::as_array_mut) {
+        if let Some(v) = &query.bucket { must.push(serde_json::json!({"key":"bucket","match":{"value":v}})); }
+        if let Some(v) = &query.file_type { must.push(serde_json::json!({"key":"file_type","match":{"value":v}})); }
+        for v in &query.tags { must.push(serde_json::json!({"key":"tags","match":{"value":v}})); }
+    }
+    filter
+}
+
 #[cfg(test)]
 mod vector_collection_tests {
     use super::*;
@@ -350,9 +328,13 @@ mod scope_recheck_tests {
         let mut payload = Map::new();
         scope.stamp(&mut payload);
 
-        // Trusted source initially grants access to this path.
-        let granted = std::sync::Mutex::new(true);
-        let verifier: AccessVerifier = |_scope, _path, _bucket| granted.lock().is_ok_and(|g| *g);
+        // Trusted source initially grants access to this path. The verifier is
+        // `'static`, so it owns an Arc clone of the grant state.
+        let granted = std::sync::Arc::new(std::sync::Mutex::new(true));
+        let g = std::sync::Arc::clone(&granted);
+        let verifier = move |_scope: &VectorScope, _path: &str, _bucket: &str| {
+            g.lock().is_ok_and(|v| *v)
+        };
         assert!(chunk_is_authorized(
             &scope,
             &payload,
@@ -380,7 +362,7 @@ mod scope_recheck_tests {
         let attacker = VectorScope::new(Uuid::from_u128(3), Uuid::from_u128(4));
         let mut payload = Map::new();
         owner.stamp(&mut payload);
-        let permissive: AccessVerifier = |_scope, _path, _bucket| true;
+        let permissive = |_scope: &VectorScope, _path: &str, _bucket: &str| true;
         assert!(!chunk_is_authorized(
             &attacker,
             &payload,
@@ -388,5 +370,77 @@ mod scope_recheck_tests {
             "bucket",
             Some(&permissive)
         ));
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "vectordb")]
+mod filter_tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn query() -> FileSearchQuery {
+        FileSearchQuery {
+            query_text: "q".into(), bucket: Some("finance".into()), file_type: Some("pdf".into()),
+            date_from: None, date_to: None, tags: vec!["hr".into()], limit: 10,
+        }
+    }
+
+    fn document() -> FileDocument {
+        FileDocument {
+            id: "f1".into(), file_path: "docs/a.pdf".into(), file_name: "a.pdf".into(),
+            file_type: "pdf".into(), file_size: 1, bucket: "finance".into(),
+            content_text: "x".into(), content_summary: None, mime_type: None,
+            created_at: chrono::Utc::now(), modified_at: chrono::Utc::now(),
+            indexed_at: chrono::Utc::now(), tags: vec!["hr".into()],
+        }
+    }
+
+    /// The real search filter must be present, non-empty and combine the
+    /// trusted scope with every caller-supplied condition (#2819).
+    #[test]
+    fn effective_filter_is_present_and_non_empty() {
+        let scope = VectorScope::new(Uuid::from_u128(1), Uuid::from_u128(2));
+        let filter = build_effective_filter(&scope, &query());
+        let must = filter["must"].as_array().expect("must");
+        assert_eq!(must.len(), 5, "{filter}");
+        assert!(must.iter().any(|c| c["key"] == "scope_bot_id"));
+        assert!(must.iter().any(|c| c["key"] == "scope_user_id"));
+        assert!(must.iter().any(|c| c["key"] == "bucket" && c["match"]["value"] == "finance"));
+        assert!(must.iter().any(|c| c["key"] == "file_type" && c["match"]["value"] == "pdf"));
+        assert!(must.iter().any(|c| c["key"] == "tags" && c["match"]["value"] == "hr"));
+    }
+
+    /// Simulate Qdrant's `must` evaluation: a foreign bucket/tag document
+    /// cannot satisfy the filter, so the query returns no results (#2819).
+    #[test]
+    fn a_foreign_bucket_and_tag_yield_no_results() {
+        let scope = VectorScope::new(Uuid::from_u128(1), Uuid::from_u128(2));
+        let filter = build_effective_filter(&scope, &query());
+        let mut payload = serde_json::Map::new();
+        scope.stamp(&mut payload);
+        payload.insert("bucket".into(), Value::String("other".into()));
+        payload.insert("file_type".into(), Value::String("png".into()));
+        payload.insert("tags".into(), json!(["other"]));
+
+        let must = filter["must"].as_array().expect("must");
+        let matches = must.iter().all(|c| match c["key"].as_str() {
+            Some("tags") => payload["tags"].as_array().is_some_and(|t| t.contains(&c["match"]["value"])),
+            Some(key) => payload.get(key) == Some(&c["match"]["value"]),
+            None => false,
+        });
+        assert!(!matches, "a foreign bucket/file_type/tag must yield no results");
+    }
+
+    /// The stored values must be native JSON, not `v.to_string()` wrapped
+    /// strings, otherwise the filter conditions above can never match.
+    #[test]
+    fn indexed_payload_values_are_native_not_double_encoded() {
+        let scope = VectorScope::new(Uuid::from_u128(1), Uuid::from_u128(2));
+        let payload = file_payload(&document(), &scope).expect("payload");
+        assert_eq!(payload["bucket"], Value::String("finance".into()));
+        assert_eq!(payload["file_type"], Value::String("pdf".into()));
+        assert_eq!(payload["tags"], json!(["hr"]));
+        assert_eq!(payload["scope_bot_id"], Value::String(scope.bot_id.to_string()));
     }
 }
