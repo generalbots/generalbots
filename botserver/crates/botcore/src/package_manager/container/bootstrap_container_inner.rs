@@ -1,5 +1,19 @@
 use super::*;
 
+/// Build the in-container `chown` argv used by `fix_permissions_inner`.
+///
+/// Every value stays its own argv element and no shell is involved, so a
+/// settings-derived value containing shell metacharacters is handed to `chown`
+/// verbatim instead of being interpreted by `sh -c` (issue #2623).
+fn chown_argv(owner: &str, path: &str) -> Vec<String> {
+    vec![
+        "chown".to_string(),
+        "-R".to_string(),
+        owner.to_string(),
+        path.to_string(),
+    ]
+}
+
 impl PackageManager {
 
     pub(crate) async fn bootstrap_container_inner(
@@ -155,20 +169,22 @@ impl PackageManager {
     pub(crate) async fn fix_permissions_inner(&self, container: &str) -> Result<()> {
         let settings = self.get_container_settings(container)?;
 
-        let chown_cmd = if let Some(group) = &settings.group {
-            format!("chown -R {}:{} /opt/gbo/", settings.user, group)
-        } else {
-            format!("chown -R {}:{} /opt/gbo/", settings.user, settings.user)
+        let owner = match &settings.group {
+            Some(group) => format!("{}:{}", settings.user, group),
+            None => format!("{}:{}", settings.user, settings.user),
         };
 
-        SafeCommand::new("incus")
-            .and_then(|c| c.arg("exec"))
-            .and_then(|c| c.arg(container))
-            .and_then(|c| c.arg("--"))
-            .and_then(|c| c.arg("sh"))
-            .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.arg(&chown_cmd))
-            .and_then(|cmd| cmd.execute())?;
+        // #2623 — no `sh -c`: each value is a distinct argv element, so a
+        // settings-derived owner/path can never be interpreted by a shell.
+        let mut cmd_builder: Result<SafeCommand, botlib::security::command_guard::CommandGuardError> =
+            SafeCommand::new("incus")
+                .and_then(|c| c.arg("exec"))
+                .and_then(|c| c.arg(container))
+                .and_then(|c| c.arg("--"));
+        for arg in chown_argv(&owner, "/opt/gbo/") {
+            cmd_builder = cmd_builder.and_then(|c| c.arg(arg));
+        }
+        cmd_builder?.execute()?;
 
         // Make binaries executable
         let bin_path = format!("{}/bin/*", self.base_path.display());
@@ -224,5 +240,33 @@ impl PackageManager {
 
         // #2616 — StagedFile Drop removes the private staging directory.
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::chown_argv;
+
+    #[test]
+    fn chown_argv_passes_shell_metacharacters_verbatim() {
+        // A settings-derived value that would run arbitrary commands if a
+        // shell were involved. It must reach `chown` as one literal argument.
+        let evil_path = "/opt/gbo/; touch /tmp/pwned $(id) `whoami`";
+        let owner = "gbuser:gbgroup; touch /tmp/pwned";
+
+        let args = chown_argv(owner, evil_path);
+
+        // The program after `--` is chown itself — there is no `sh -c`.
+        assert_eq!(args.first().map(String::as_str), Some("chown"));
+        assert!(args.iter().all(|a| a != "sh" && a != "-c"));
+
+        // The owner and the path survive as single, distinct argv elements,
+        // byte-for-byte, with no expansion or splitting by a shell.
+        assert_eq!(args.get(2).map(String::as_str), Some(owner));
+        assert_eq!(args.get(3).map(String::as_str), Some(evil_path));
+        assert_eq!(args.len(), 4);
+
+        // No element merged the two values into one shell command string.
+        assert!(!args.iter().any(|a| a.contains(evil_path) && a.contains(owner)));
     }
 }

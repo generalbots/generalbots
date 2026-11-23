@@ -19,6 +19,11 @@ use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 use crate::vm_lifecycle::{VmInstance, VmLifecycle};
 
+mod permissions;
+mod retention;
+
+use permissions::{create_private_file, enforce_private_file};
+
 pub const VM_BACKUPS_SCHEMA: &str = r"
 CREATE TABLE IF NOT EXISTS vm_backups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -109,18 +114,39 @@ impl Backups {
         let root = Path::new(&backup_root()).join(backup.project_id.to_string());
         std::fs::create_dir_all(&root).map_err(|e| format!("backup dir: {e}"))?;
         let target = root.join(format!("{}-{}.tar.gz", backup.tag, sanitize_for_path(&backup.env)));
+        // #2686: stage a 0600 file so the exporter cannot leave a world-readable
+        // VM image on a shared host, then re-assert the mode in case it wrote a
+        // fresh inode with umask defaults.
+        create_private_file(&target)?;
         let out = VmLifecycle::new(self.pool.clone())
             .linux_export(&backup.container_name, &backup.tag, &target.to_string_lossy())
             .map_err(|e| format!("incus export: {e}"))?;
+        enforce_private_file(&target)?;
         let size = std::fs::metadata(&target)
             .map(|m| m.len() as i64)
             .unwrap_or(0);
-        self.update_status(backup_id, "exported", Some(out), size)
-            .map(|_| BackupRecord {
-                status: "exported".to_string(),
-                size_bytes: size,
-                ..backup
-            })
+        self.update_status(backup_id, "exported", Some(out), size)?;
+        // #2686: keep the tarball directory bounded. A retention failure must
+        // not turn an otherwise successful export into a failure, so log it.
+        match self.apply_retention(backup.project_id) {
+            Ok(pruned) if pruned > 0 => {
+                log::info!(
+                    "pruned {} expired backups for project {}",
+                    pruned,
+                    backup.project_id
+                );
+            }
+            Ok(_) => {}
+            Err(e) => log::warn!(
+                "backup retention failed for project {}: {e}",
+                backup.project_id
+            ),
+        }
+        Ok(BackupRecord {
+            status: "exported".to_string(),
+            size_bytes: size,
+            ..backup
+        })
     }
 
     pub fn list(&self, project_id: Uuid) -> Result<Vec<BackupRecord>, String> {
