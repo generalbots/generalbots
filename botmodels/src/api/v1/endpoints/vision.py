@@ -13,8 +13,10 @@ from ....services.media_capabilities import require_pyzbar
 from ....services.ocr_service import describe_codes, image_metadata, run_ocr
 from ....services.vision_service import get_vision_service
 from ...dependencies import verify_api_key
+from .uploads import read_upload
 
 router = APIRouter(prefix="/vision", tags=["Vision"])
+MAX_VIDEO_FRAMES = 32
 
 
 @router.post("/describe", response_model=ImageDescribeResponse)
@@ -28,7 +30,7 @@ async def describe_image(
     Get a caption/description for an image.
     Optionally provide a prompt to guide the description.
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
     result = await service.describe_image(image_data, prompt)
     return ImageDescribeResponse(**result)
 
@@ -36,7 +38,7 @@ async def describe_image(
 @router.post("/describe-video", response_model=VideoDescribeResponse)
 async def describe_video(
     file: UploadFile = File(...),
-    num_frames: int = Form(8),
+    num_frames: int = Form(8, ge=1, le=MAX_VIDEO_FRAMES),
     api_key: str = Depends(verify_api_key),
     service=Depends(get_vision_service),
 ):
@@ -47,7 +49,7 @@ async def describe_video(
         file: Video file (mp4, avi, mov, webm, mkv)
         num_frames: Number of frames to sample for analysis (default: 8)
     """
-    video_data = await file.read()
+    video_data = await read_upload(file)
     result = await service.describe_video(video_data, num_frames)
     return VideoDescribeResponse(**result)
 
@@ -77,7 +79,7 @@ async def visual_question_answering(
         file: Image file
         question: Question to ask about the image
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
     result = await service.answer_question(image_data, question)
     return ImageDescribeResponse(**result)
 
@@ -98,7 +100,7 @@ async def read_qrcode(
     Returns:
         QRCodeResponse with data from all found QR codes
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
 
     # Imported here, not at module level: pyzbar loads libzbar on import, and a
     # host without it must still serve the rest of the vision endpoints.
@@ -175,7 +177,7 @@ async def read_barcode(
     Returns:
         List of all barcodes found with their data and type
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
 
     pyzbar = require_pyzbar()
 
@@ -245,7 +247,7 @@ async def extract_text(
     Returns:
         Extracted text from the image
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
     return run_ocr(image_data, language)
 
 
@@ -266,7 +268,7 @@ async def analyze_image(
     Args:
         file: Image file to analyze
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
 
     result: dict = {"description": None, "text": None, "codes": [], "metadata": {}}
 

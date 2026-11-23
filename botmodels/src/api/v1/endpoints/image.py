@@ -7,6 +7,7 @@ from ....schemas.generation import (
 )
 from ....services.image_service import get_image_service
 from ...dependencies import verify_api_key
+from .uploads import read_upload
 
 router = APIRouter(prefix="/image", tags=["Image"])
 
@@ -59,6 +60,6 @@ async def describe_image(
     Returns:
         ImageDescribeResponse with description
     """
-    image_data = await file.read()
+    image_data = await read_upload(file)
     result = await service.describe(image_data)
     return ImageDescribeResponse(**result)

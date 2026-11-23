@@ -15,6 +15,10 @@ class MusicServiceError(RuntimeError):
     """A safe, user-facing failure returned by the ACE-Step service."""
 
 
+#: Container extensions ACE-Step produces for generated tracks.
+AUDIO_EXTENSIONS = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus")
+
+
 class MusicService:
     """Stateless adapter for the official ACE-Step 1.5 asynchronous API."""
 
@@ -222,11 +226,19 @@ class MusicService:
         parsed = urlparse(file_value)
         if parsed.path.endswith("/v1/audio"):
             values = parse_qs(parsed.query).get("path")
-            return values[0] if values else None
+            candidate = values[0] if values else None
+            return candidate if candidate and MusicService._valid_audio_path(candidate) else None
         return file_value if MusicService._valid_audio_path(file_value) else None
 
     @staticmethod
     def _valid_audio_path(audio_path: str) -> bool:
+        """Accept only generated audio inside ACE-Step's ``outputs`` tree.
+
+        The path is forwarded verbatim to the ACE-Step backend, so permitting
+        *any* absolute path turned ``/api/music/audio`` into a caller-chosen
+        file-read proxy (#2805). The backend's generated tracks live under an
+        ``outputs`` directory; an audio extension is required as well.
+        """
         if not audio_path or len(audio_path) > 4096 or "\x00" in audio_path:
             return False
         normalized = audio_path.replace("\\", "/")
@@ -237,7 +249,11 @@ class MusicService:
             and normalized[0].isalpha()
             and normalized[1:3] == ":/"
         )
-        return normalized.startswith("/") or windows_absolute
+        if not (normalized.startswith("/") or windows_absolute):
+            return False
+        if not normalized.lower().endswith(AUDIO_EXTENSIONS):
+            return False
+        return "outputs/" in normalized.lower()
 
     @staticmethod
     def _number(value: Any) -> Optional[float]:

@@ -35,6 +35,8 @@ ERROR_MESSAGES: Dict[str, str] = {
     "botmodels-speech-no-audio": "Speech backend returned no audio",
     "botmodels-speech-realtime-unavailable": "Realtime audio unavailable",
     "botmodels-speech-backend-failed": "Speech backend failed: {error}",
+    # --- shared uploads (api/v1/endpoints/uploads.py) ---
+    "botmodels-upload-too-large": "Upload exceeds {mib} MiB",
     # --- scoring (api/v1/endpoints/scoring.py) ---
     "botmodels-scoring-failed": "Scoring failed: {error}",
     "botmodels-scoring-batch-failed": "Batch scoring failed: {error}",
