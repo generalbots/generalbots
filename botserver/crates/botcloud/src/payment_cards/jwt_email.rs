@@ -1,3 +1,4 @@
+use super::scoping::customer_adoptable_by_branch;
 use super::*;
 
 /// Extracts the `email` claim from the Bearer JWT, if present.
@@ -79,15 +80,37 @@ pub async fn resolve_stripe_customer(
         }
     }
 
-    // 2. Ask Stripe whether a customer for this email already exists.
+    // 2. Ask Stripe whether a customer for this email already exists. Email is
+    //    NOT an identity boundary: the same address can belong to admins in
+    //    several branches. Only adopt the customer when it is unowned or
+    //    already owned by the caller's branch (issue #2869).
     if let Some(customer) = service
         .stripe
         .find_customer_by_email(email)
         .await
         .map_err(|e| format!("Stripe lookup: {e}"))?
     {
-        persist_customer_mapping(service, branch_id, &customer.id, email)?;
-        return Ok(customer.id);
+        let existing_owner: Option<Uuid> = {
+            let mut conn = service.pool().get().map_err(|e| format!("DB pool: {e}"))?;
+            use crate::schema_ext::billing_customers::dsl::{
+                billing_customers, branch_id as bc_branch, stripe_customer_id as bc_stripe,
+            };
+            billing_customers
+                .filter(bc_stripe.eq(customer.id.as_str()))
+                .select(bc_branch)
+                .first::<Uuid>(&mut conn)
+                .optional()
+                .map_err(|e| format!("Query customer owner: {e}"))?
+        };
+        if customer_adoptable_by_branch(existing_owner, branch_id) {
+            persist_customer_mapping(service, branch_id, &customer.id, email)?;
+            return Ok(customer.id);
+        }
+        // The id belongs to another branch — fall through and create a fresh
+        // customer scoped to the caller so cards never bind to the victim.
+        tracing::warn!(
+            "stripe customer found by email is owned by another branch; creating a fresh one"
+        );
     }
 
     // 3. No customer yet — create one and remember it.

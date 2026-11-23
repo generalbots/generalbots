@@ -18,6 +18,7 @@ pub(crate) use crate::api::{base64_url_decode, get_branch_id_from_jwt, is_super_
 pub(crate) use crate::SaasService;
 
 mod jwt_email;
+mod scoping;
 mod set_default_payment_card;
 
 pub use jwt_email::*;

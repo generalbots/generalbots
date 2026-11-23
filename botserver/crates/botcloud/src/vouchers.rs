@@ -102,6 +102,34 @@ pub(crate) fn redemption_rejection(
     None
 }
 
+// #2868 — pure helpers so the NOT NULL / cross-tenant guards are testable.
+/// #2868 — the (org_id, branch_id) pair shared by every row a redemption
+/// writes. A nil org or branch is never a valid tenant scope.
+pub(crate) fn redemption_scope(org_id: Uuid, branch_id: Uuid) -> Option<(Uuid, Uuid)> {
+    (!org_id.is_nil() && !branch_id.is_nil()).then_some((org_id, branch_id))
+}
+
+/// #2868 — a prior redemption is in scope only when it carries the caller's
+/// verified branch. Pure; refuses a cross-tenant replay of the same voucher.
+pub(crate) fn redemption_matches_branch(row_branch: Option<Uuid>, caller_branch: Uuid) -> bool {
+    !caller_branch.is_nil() && matches!(row_branch, Some(b) if !b.is_nil() && b == caller_branch)
+}
+
+/// #2868 — ordered columns of the trial subscription INSERT. `branch_id` is
+/// NOT NULL in `billing_recurring` and branch-scoped subscription handlers
+/// locate the trial by it, so it must never be omitted from the statement.
+pub(crate) const TRIAL_SUBSCRIPTION_COLUMNS: &[&str] = &[
+    "id", "org_id", "branch_id", "bot_id", "customer_name", "customer_email", "status",
+    "frequency", "interval_count", "amount", "currency", "description", "next_invoice_date",
+    "start_date", "last_invoice_id", "invoices_generated", "created_at", "updated_at",
+];
+
+/// #2868 — true only when `columns` binds `branch_id` and `org_id` exactly once.
+pub(crate) fn insert_fields_are_branch_scoped(columns: &[&str]) -> bool {
+    columns.iter().filter(|c| **c == "branch_id").count() == 1
+        && columns.iter().filter(|c| **c == "org_id").count() == 1
+}
+
 /// `POST /api/cloud/vouchers`
 pub async fn create_voucher(
     State(service): State<Arc<SaasService>>,
@@ -224,6 +252,11 @@ pub async fn redeem_voucher(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Lookup org from branch: {e}")))?
         .org_id;
 
+    // #2868 — resolve the exact (org, branch) scope once. Every row written
+    // below shares it; a nil branch can never become a tenant scope.
+    let (scope_org_id, scope_branch_id) = redemption_scope(actual_org_id, user_branch_id)
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid redemption scope".to_string()))?;
+
     // Get contact and organization details from crm_contacts
     let (ctct_id, _, ctct_name, ctct_email) = if let Some(auth_val) = headers.get("authorization")
         .and_then(|v| v.to_str().ok())
@@ -270,6 +303,17 @@ pub async fn redeem_voucher(
         .optional()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Check redemption: {e}")))?;
 
+    // #2868 — a voucher already redeemed by this contact under a *different*
+    // branch must not grant a second trial here (cross-tenant replay).
+    if let Some(existing) = &already_redeemed {
+        if !redemption_matches_branch(Some(existing.branch_id), scope_branch_id) {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Voucher already redeemed in another branch".to_string(),
+            ));
+        }
+    }
+
     if let Some(reason) = redemption_rejection(
         voucher.uses_count,
         voucher.max_uses,
@@ -297,48 +341,66 @@ pub async fn redeem_voucher(
     let now = Utc::now();
     let trial_end_date = now.date_naive() + Duration::days(voucher.trial_days as i64);
 
-    // Insert into billing_recurring
-    diesel::sql_query(
-        r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
-            amount, currency, description, next_invoice_date, start_date, last_invoice_id,
-            invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'trialing', $6, $7, $8, $9, $10, $11, $12, NULL, 0, $13, $13)"#,
-    )
-    .bind::<diesel::sql_types::Uuid, _>(sub_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_branch_id)
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(&ctct_name)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(ctct_email))
-    .bind::<diesel::sql_types::Text, _>("monthly")
-    .bind::<diesel::sql_types::Int4, _>(1)
-    .bind::<diesel::sql_types::Numeric, _>(botbilling::api_models::bd(0.0))
-    .bind::<diesel::sql_types::Text, _>("USD")
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(format!("Voucher {} - {} Days Trial", voucher.code, voucher.trial_days)))
-    .bind::<diesel::sql_types::Date, _>(trial_end_date)
-    .bind::<diesel::sql_types::Date, _>(now.date_naive())
-    .bind::<diesel::sql_types::Timestamptz, _>(now)
-    .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create trial subscription: {e}")))?;
+    // 4. Create the branch-scoped trial subscription. `org_id` is the real
+    // organization and `branch_id` is the verified caller branch (NOT NULL),
+    // so branch-scoped subscription handlers can see the trial (#2868).
+    if !insert_fields_are_branch_scoped(TRIAL_SUBSCRIPTION_COLUMNS) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Trial INSERT is missing branch scope".to_string(),
+        ));
+    }
+    let insert_sql = format!(
+        "INSERT INTO billing_recurring ({}) VALUES ($1, $2, $3, $4, $5, $6, 'trialing', $7, $8, $9, $10, $11, $12, $13, NULL, 0, $14, $14)",
+        TRIAL_SUBSCRIPTION_COLUMNS.join(", ")
+    );
 
-    // 5. Register redemption record
-    diesel::insert_into(cvr_tbl)
-        .values((
-            crate::schema_ext::cloud_voucher_redemptions::dsl::voucher_id.eq(voucher.id),
-            crate::schema_ext::cloud_voucher_redemptions::dsl::contact_id.eq(ctct_id),
-            crate::schema_ext::cloud_voucher_redemptions::dsl::org_id.eq(actual_org_id),
-            crate::schema_ext::cloud_voucher_redemptions::dsl::branch_id.eq(user_branch_id),
-            crate::schema_ext::cloud_voucher_redemptions::dsl::subscription_id.eq(Some(sub_id)),
-            crate::schema_ext::cloud_voucher_redemptions::dsl::trial_days.eq(voucher.trial_days),
-        ))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Save redemption failed: {e}")))?;
+    // All three writes commit atomically: a failed redemption insert must not
+    // leave a trial row or an incremented use counter behind (#2868).
+    conn.build_transaction()
+        .read_write()
+        .run::<_, diesel::result::Error, _>(|tx| {
+            diesel::sql_query(insert_sql.as_str())
+                .bind::<diesel::sql_types::Uuid, _>(sub_id)
+                .bind::<diesel::sql_types::Uuid, _>(scope_org_id)
+                .bind::<diesel::sql_types::Uuid, _>(scope_branch_id)
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(&ctct_name)
+                .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(ctct_email))
+                .bind::<diesel::sql_types::Text, _>("monthly")
+                .bind::<diesel::sql_types::Int4, _>(1)
+                .bind::<diesel::sql_types::Numeric, _>(botbilling::api_models::bd(0.0))
+                .bind::<diesel::sql_types::Text, _>("USD")
+                .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(format!(
+                    "Voucher {} - {} Days Trial",
+                    voucher.code, voucher.trial_days
+                )))
+                .bind::<diesel::sql_types::Date, _>(trial_end_date)
+                .bind::<diesel::sql_types::Date, _>(now.date_naive())
+                .bind::<diesel::sql_types::Timestamptz, _>(now)
+                .execute(tx)?;
 
-    // 6. Update uses_count
-    diesel::update(cv_tbl.filter(vid.eq(voucher.id)))
-        .set(vuc.eq(voucher.uses_count + 1))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update voucher use failed: {e}")))?;
+            // 5. Register redemption record — same verified scope.
+            diesel::insert_into(cvr_tbl)
+                .values((
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::voucher_id.eq(voucher.id),
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::contact_id.eq(ctct_id),
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::org_id.eq(scope_org_id),
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::branch_id
+                        .eq(scope_branch_id),
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::subscription_id
+                        .eq(Some(sub_id)),
+                    crate::schema_ext::cloud_voucher_redemptions::dsl::trial_days.eq(voucher.trial_days),
+                ))
+                .execute(tx)?;
+
+            // 6. Update uses_count
+            diesel::update(cv_tbl.filter(vid.eq(voucher.id)))
+                .set(vuc.eq(voucher.uses_count + 1))
+                .execute(tx)?;
+            Ok(())
+        })
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Redemption failed: {e}")))?;
 
     Ok(Json(serde_json::json!({
         "status": "redeemed",

@@ -113,3 +113,43 @@ fn cld8_exhaustion_wins_over_expiry_and_duplication() {
         Some("Voucher has expired")
     );
 }
+
+// #2868 — the trial subscription INSERT used to omit the NOT NULL
+// `billing_recurring.branch_id`, so every redeem hit a constraint violation and
+// the trial was invisible to branch-scoped handlers. These pure guards lock
+// both the insert field list and the cross-tenant scope check in place.
+
+#[test]
+fn c2868_trial_insert_columns_include_branch_id_and_org_id() {
+    assert!(insert_fields_are_branch_scoped(TRIAL_SUBSCRIPTION_COLUMNS));
+    let mut without_branch: Vec<&str> = TRIAL_SUBSCRIPTION_COLUMNS
+        .iter()
+        .copied()
+        .filter(|c| *c != "branch_id")
+        .collect();
+    assert!(!insert_fields_are_branch_scoped(&without_branch));
+    // The old bug: branch slot replaced by a second org_id binding.
+    without_branch.push("org_id");
+    assert!(!insert_fields_are_branch_scoped(&without_branch));
+}
+
+#[test]
+fn c2868_redemption_scope_rejects_nil_org_or_branch() {
+    let org = Uuid::new_v4();
+    let branch = Uuid::new_v4();
+    assert_eq!(redemption_scope(org, branch), Some((org, branch)));
+    assert_eq!(redemption_scope(org, Uuid::nil()), None);
+    assert_eq!(redemption_scope(Uuid::nil(), branch), None);
+    assert_eq!(redemption_scope(Uuid::nil(), Uuid::nil()), None);
+}
+
+#[test]
+fn c2868_redemption_matches_branch_requires_same_non_nil_branch() {
+    let branch = Uuid::new_v4();
+    let other = Uuid::new_v4();
+    assert!(redemption_matches_branch(Some(branch), branch));
+    assert!(!redemption_matches_branch(Some(other), branch));
+    assert!(!redemption_matches_branch(None, branch));
+    assert!(!redemption_matches_branch(Some(Uuid::nil()), branch));
+    assert!(!redemption_matches_branch(Some(branch), Uuid::nil()));
+}
