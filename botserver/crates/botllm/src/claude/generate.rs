@@ -40,7 +40,7 @@ impl LLMProvider for ClaudeClient {
         };
 
         // Use reqwest for non-streaming
-        let client = reqwest::Client::builder()
+        let client = crate::pinned_http::pinned_builder()
             .timeout(Duration::from_millis(TIMEOUT_MS))
             .build()?;
 

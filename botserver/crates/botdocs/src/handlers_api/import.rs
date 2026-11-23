@@ -10,7 +10,7 @@ use crate::types::{
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
 use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
-use botcore::WorkClass;
+use botcore::{ImportSize, WorkClass};
 use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
@@ -128,6 +128,18 @@ pub async fn handle_import_document(
             Json(serde_json::json!({ "error": "No file uploaded" })),
         )
     })?;
+
+    // #2530 — pure, env-configurable budget check before any converter
+    // materialises the document model. Content-free and fail-closed: only the
+    // byte length is known here, so row/page dimensions stay at zero.
+    let budget = crate::handlers_api::admission::import_budget(WorkClass::DocsImport);
+    if let Err(error) = budget.check(ImportSize {
+        bytes: bytes.len() as u64,
+        ..ImportSize::default()
+    }) {
+        log::warn!("botdocs::import: budget refused: {}", error.code());
+        return Err((error.status_code(), Json(error.json_body())));
+    }
 
     // #2530 — admit before any converter runs. The permit is held for the
     // whole parse/convert/save below and released by RAII on every exit.

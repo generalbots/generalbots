@@ -27,7 +27,20 @@
 //! 8. #2522 — zip containers additionally go through the hostile-file gate
 //!    ([`crate::upload_hostile`]): compressed/uncompressed/ratio caps,
 //!    encrypted, nested and macro-bearing parts, SSRF-checked relationship
-//!    targets and an honest malware-scan decision.
+//!    targets and an honest malware-scan decision;
+//! 9. #2598 — every other payload (Drive binary/transfer/external, PDF, image,
+//!    audio/video, text) goes through that same scanner through
+//!    [`needs_standalone_malware_scan`], and the typed verdict is returned on
+//!    [`ValidatedUpload::malware_scan`]. A missing or failing scanner is a
+//!    typed refusal under the default policy, never a silent "clean".
+//!
+//! # Scanning boundary (#2598)
+//!
+//! This is a **persisted-upload gate**, not a whole-request-body middleware:
+//! it runs in the handlers that buffer an upload within [`UploadLimits`] and
+//! then write it to Drive or to an importer. Endpoints and bodies that never
+//! reach an upload handler are not scanned here — do not claim protection at
+//! a layer that does not scan.
 //!
 //! Handlers answer with [`rejection_json`] / [`rejection_message`], which
 //! translate a stable catalogue code for the request locale and never echo
@@ -211,6 +224,18 @@ pub fn max_bytes(class: UploadClass) -> usize {
     limits_for(class).max_bytes
 }
 
+/// #2598 — pure coverage predicate for the shared malware gate. `true` means
+/// the payload has no structural zip gate and must be scanned directly before
+/// it is persisted (Drive binary/transfer/external, PDF, images, media, text).
+/// `false` means the structural gate at
+/// [`crate::upload_hostile::inspect_hostile_upload_with`] owns the scan.
+/// Either route scans; the predicate only decides *where*. It reads no scanner
+/// state and performs no I/O, so the "no bypass" contract is testable.
+#[must_use]
+pub fn needs_standalone_malware_scan(expected_mime: &str) -> bool {
+    !is_zip_container(expected_mime)
+}
+
 /// An upload that passed every rule. `filename` is already sanitized, and
 /// `extension` is the lowercased final extension used to build the stored key.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,6 +244,9 @@ pub struct ValidatedUpload {
     pub extension: String,
     pub mime: String,
     pub size: usize,
+    /// #2598 — typed verdict from the shared malware gate. Returned so callers
+    /// can audit the scanner name instead of inferring "clean" from a write.
+    pub malware_scan: MalwareScanDecision,
 }
 
 /// Reduces `raw` to a safe stored filename: last path component, no control
@@ -354,28 +382,31 @@ pub fn validate_upload_with_policy(
         }
     }
 
-    if is_zip_container(expected) {
-        // #2522 — the full hostile-file gate runs centrally for every zip
-        // container, so an import handler cannot forget to call it. Handlers
-        // that need the report (scanner decision, observed ratios) can call
-        // `inspect_hostile_upload_named` themselves with the same defaults.
-        crate::upload_hostile::inspect_hostile_upload_with(data, &filename, policy)?;
-    } else if crate::upload_hostile::malware_scanner_installed() {
-        // #2598 — the structural gate is zip-only, but malware is not. Every
-        // non-container payload (Drive binary/transfer/external, PDF, images,
-        // media) goes through the same scanner and the same durable audit
-        // record when one is registered. Bounded above by `limits.max_bytes`.
-        // When no scanner is registered the existing fail-closed zip rule still
-        // applies; this branch does not silently claim a clean verdict.
-        let decision = scan_for_malware(data, &filename);
-        malware_decision(&decision, policy.require_malware_scanner)?;
-    }
+    // #2598 — the malware gate covers every payload, container or not.
+    // Containers take the structural pass (which already scans); everything
+    // else takes the standalone pass. No `malware_scanner_installed()`
+    // shortcut: a missing scanner yields NotConfigured and a scanner error
+    // yields Failed, and `malware_decision` turns both into typed refusals
+    // under the default policy. Both passes are bounded by `limits.max_bytes`.
+    let malware_scan = match needs_standalone_malware_scan(expected) {
+        false => {
+            let report =
+                crate::upload_hostile::inspect_hostile_upload_with(data, &filename, policy)?;
+            report.malware_scan
+        }
+        true => {
+            let decision = scan_for_malware(data, &filename);
+            malware_decision(&decision, policy.require_malware_scanner)?;
+            decision
+        }
+    };
 
     Ok(ValidatedUpload {
         filename,
         extension,
         mime: expected.to_string(),
         size: data.len(),
+        malware_scan,
     })
 }
 
@@ -386,4 +417,20 @@ const UNVERIFIABLE_EXTENSIONS: &[&str] = &["bin", "dat", "mpp"];
 #[path = "upload_policy_helpers.rs"]
 mod helpers;
 use helpers::*;
+
+#[cfg(test)]
+#[path = "upload_policy_malware_tests.rs"]
+mod upload_policy_malware_tests;
+
+#[cfg(test)]
+mod malware_coverage_tests {
+    use super::*;
+
+    #[test]
+    fn non_container_payloads_need_the_standalone_scan() {
+        assert!(!needs_standalone_malware_scan("application/zip"));
+        assert!(needs_standalone_malware_scan("application/pdf"));
+        assert!(needs_standalone_malware_scan("application/msword"));
+    }
+}
 

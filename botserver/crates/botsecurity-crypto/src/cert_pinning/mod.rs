@@ -70,7 +70,7 @@ pub struct PinValidationResult {
     pub backup_match: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CertPinningManager {
     config: Arc<RwLock<CertPinningConfig>>,
     validation_cache: Arc<RwLock<HashMap<String, (PinValidationResult, std::time::Instant)>>>,
@@ -92,8 +92,12 @@ mod success;
 mod default_manager;
 mod get_stats;
 mod compute_spki_fingerprint;
+mod pin_decision;
+mod tls_verifier;
 
 #[cfg(test)]
 mod pinning_tests;
 
 pub use compute_spki_fingerprint::*;
+pub use pin_decision::{pin_decision, PinDecision};
+pub use tls_verifier::{global_pinning_manager, PIN_CONFIG_ENV, PIN_DISABLED_ENV};

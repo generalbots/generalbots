@@ -31,8 +31,8 @@ pub use shared::state::AppState;
 pub use shared::utils::DbPool;
 pub use shared::enums::*;
 pub use shared::memory_admission::{
-    AdmissionError, AdmissionPermit, AdmissionSnapshot, CgroupMemory, CgroupSource, ClassPolicy,
-    MemoryAdmission, MemoryPolicy, WorkClass,
+    AdmissionError, AdmissionPermit, AdmissionSnapshot, BudgetError, CgroupMemory, CgroupSource,
+    ClassPolicy, ImportBudget, ImportSize, MemoryAdmission, MemoryPolicy, WorkClass,
 };
 pub use shared::memory_monitor::*;
 pub use shared::models::*;

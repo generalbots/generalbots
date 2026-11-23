@@ -10,6 +10,22 @@ const PNG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]
 const PDF: &[u8] = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n";
 const OLE: &[u8] = &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0, 0, 0, 0];
 
+/// These tests exercise name/type/size rules, not the malware gate. An
+/// explicit scanner-free policy keeps them deterministic whether or not a
+/// process-wide scanner is installed; #2598 coverage is tested separately.
+fn validate_without_scanner(
+    class: UploadClass,
+    filename: &str,
+    content_type: &str,
+    data: &[u8],
+) -> Result<ValidatedUpload, UploadError> {
+    let policy = HostileFilePolicy {
+        require_malware_scanner: false,
+        ..HostileFilePolicy::default()
+    };
+    validate_upload_with_policy(class, filename, content_type, data, &policy)
+}
+
 fn zip_with(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
     for (name, body) in entries {
@@ -35,7 +51,7 @@ fn docx() -> Vec<u8> {
 
 #[test]
 fn a_real_png_is_accepted() {
-    let upload = validate_upload(UploadClass::ChatAttachment, "photo.png", "image/png", PNG)
+    let upload = validate_without_scanner(UploadClass::ChatAttachment, "photo.png", "image/png", PNG)
         .expect("a real PNG must be accepted");
 
     assert_eq!(upload.extension, "png");
@@ -45,7 +61,7 @@ fn a_real_png_is_accepted() {
 
 #[test]
 fn a_png_whose_bytes_are_a_pdf_is_rejected() {
-    let error = validate_upload(UploadClass::ChatAttachment, "photo.png", "image/png", PDF)
+    let error = validate_without_scanner(UploadClass::ChatAttachment, "photo.png", "image/png", PDF)
         .expect_err("a PNG extension over PDF bytes must be refused");
 
     assert!(
@@ -57,7 +73,7 @@ fn a_png_whose_bytes_are_a_pdf_is_rejected() {
 
 #[test]
 fn an_unknown_extension_is_rejected() {
-    let error = validate_upload(UploadClass::Drive, "payload.qqq", "", PNG)
+    let error = validate_without_scanner(UploadClass::Drive, "payload.qqq", "", PNG)
         .expect_err("an unknown extension must be refused");
 
     assert!(
@@ -69,7 +85,7 @@ fn an_unknown_extension_is_rejected() {
 #[test]
 fn a_double_extension_is_rejected() {
     // The last extension decides: `.html` is not on any image allowlist.
-    let error = validate_upload(UploadClass::ChatAttachment, "a.png.html", "image/png", PNG)
+    let error = validate_without_scanner(UploadClass::ChatAttachment, "a.png.html", "image/png", PNG)
         .expect_err("a double extension must be refused");
 
     assert!(
@@ -81,7 +97,7 @@ fn a_double_extension_is_rejected() {
 #[test]
 fn blocked_executable_extensions_are_rejected_before_any_other_check() {
     for name in ["shell.php", "page.jsp", "setup.exe", "lib.so", "run.sh", "macro.docm"] {
-        let error = validate_upload(UploadClass::Drive, name, "", PDF)
+        let error = validate_without_scanner(UploadClass::Drive, name, "", PDF)
             .expect_err("an executable extension must be refused");
         assert!(
             matches!(error, UploadError::ExtensionBlocked { .. }),
@@ -92,7 +108,7 @@ fn blocked_executable_extensions_are_rejected_before_any_other_check() {
 
 #[test]
 fn an_extension_outside_the_endpoint_allowlist_is_rejected() {
-    let error = validate_upload(UploadClass::SpreadsheetImport, "clip.mp4", "video/mp4", b"ftyp")
+    let error = validate_without_scanner(UploadClass::SpreadsheetImport, "clip.mp4", "video/mp4", b"ftyp")
         .expect_err("the spreadsheet importer must refuse video");
 
     assert!(matches!(error, UploadError::ExtensionNotAllowed { .. }));
@@ -100,7 +116,7 @@ fn an_extension_outside_the_endpoint_allowlist_is_rejected() {
 
 #[test]
 fn a_declared_type_that_contradicts_the_extension_is_rejected() {
-    let error = validate_upload(UploadClass::ChatAttachment, "photo.png", "application/pdf", PNG)
+    let error = validate_without_scanner(UploadClass::ChatAttachment, "photo.png", "application/pdf", PNG)
         .expect_err("a declared type must agree with the extension");
 
     assert!(matches!(error, UploadError::TypeMismatch { .. }));
@@ -111,7 +127,7 @@ fn an_oversized_upload_is_refused() {
     let limits = limits_for(UploadClass::Image);
     let big = vec![0u8; limits.max_bytes + 1];
 
-    let error = validate_upload(UploadClass::Image, "avatar.png", "image/png", &big)
+    let error = validate_without_scanner(UploadClass::Image, "avatar.png", "image/png", &big)
         .expect_err("an oversized image must be refused");
 
     assert!(matches!(error, UploadError::TooLarge { .. }));
@@ -144,7 +160,7 @@ fn a_content_length_within_the_cap_passes() {
 
 #[test]
 fn filenames_are_reduced_to_a_safe_basename() {
-    let upload = validate_upload(
+    let upload = validate_without_scanner(
         UploadClass::ChatAttachment,
         "../../etc/pa\"sswd.png",
         "image/png",
@@ -158,7 +174,7 @@ fn filenames_are_reduced_to_a_safe_basename() {
 #[test]
 fn a_hidden_or_empty_filename_is_rejected() {
     for name in ["", ".env", "..", "   "] {
-        let error = validate_upload(UploadClass::Drive, name, "", PNG)
+        let error = validate_without_scanner(UploadClass::Drive, name, "", PNG)
             .expect_err("an unsafe filename must be refused");
         assert!(
             matches!(error, UploadError::FilenameInvalid | UploadError::UnknownExtension { .. }),
@@ -205,7 +221,7 @@ fn a_docx_container_is_accepted_and_must_be_a_real_zip() {
 fn a_zip_with_an_escaping_entry_name_is_refused() {
     let bytes = zip_with(&[("../../etc/passwd", b"root")]);
 
-    let error = validate_upload(UploadClass::Drive, "archive.zip", "application/zip", &bytes)
+    let error = validate_without_scanner(UploadClass::Drive, "archive.zip", "application/zip", &bytes)
         .expect_err("a zip-slip entry must be refused");
 
     assert!(
@@ -216,7 +232,7 @@ fn a_zip_with_an_escaping_entry_name_is_refused() {
 
 #[test]
 fn legacy_office_ole_files_are_accepted() {
-    let upload = validate_upload(UploadClass::Drive, "old.doc", "application/msword", OLE)
+    let upload = validate_without_scanner(UploadClass::Drive, "old.doc", "application/msword", OLE)
         .expect("an OLE2 document must be accepted");
 
     assert_eq!(upload.mime, "application/msword");
@@ -226,11 +242,11 @@ fn legacy_office_ole_files_are_accepted() {
 fn html_is_only_accepted_where_the_endpoint_asks_for_it() {
     let page = b"<!DOCTYPE html><html><body>hi</body></html>";
 
-    let error = validate_upload(UploadClass::ChatAttachment, "page.html", "text/html", page)
+    let error = validate_without_scanner(UploadClass::ChatAttachment, "page.html", "text/html", page)
         .expect_err("a chat attachment must never be HTML");
     assert!(matches!(error, UploadError::ExtensionNotAllowed { .. }));
 
-    let upload = validate_upload(UploadClass::DocumentImport, "page.html", "text/html", page)
+    let upload = validate_without_scanner(UploadClass::DocumentImport, "page.html", "text/html", page)
         .expect("the document importer accepts HTML explicitly");
     assert_eq!(upload.extension, "html");
 }
@@ -240,7 +256,7 @@ fn svg_is_refused_where_the_endpoint_does_not_accept_it() {
     let svg = br#"<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>"#;
 
     // Chat attachments never accept SVG.
-    let error = validate_upload(
+    let error = validate_without_scanner(
         UploadClass::ChatAttachment,
         "logo.svg",
         "image/svg+xml",
@@ -251,11 +267,11 @@ fn svg_is_refused_where_the_endpoint_does_not_accept_it() {
 
     // Drive accepts it (the designers save SVG) but only real SVG bytes: an
     // HTML document renamed `.svg` is refused, and so is a script payload.
-    let upload = validate_upload(UploadClass::Drive, "logo.svg", "image/svg+xml", svg)
+    let upload = validate_without_scanner(UploadClass::Drive, "logo.svg", "image/svg+xml", svg)
         .expect("a real SVG must be accepted by Drive");
     assert_eq!(upload.mime, "image/svg+xml");
 
-    let error = validate_upload(
+    let error = validate_without_scanner(
         UploadClass::Drive,
         "logo.svg",
         "image/svg+xml",
@@ -279,7 +295,7 @@ fn every_class_refuses_the_empty_payload() {
         UploadClass::VideoMedia,
         UploadClass::Image,
     ] {
-        let error = validate_upload(class, "file.png", "image/png", &[])
+        let error = validate_without_scanner(class, "file.png", "image/png", &[])
             .expect_err("an empty payload must be refused");
         assert_eq!(error, UploadError::Empty);
     }
@@ -302,7 +318,7 @@ fn the_rejection_body_carries_a_stable_code_and_a_message() {
 #[test]
 fn the_drive_accepts_extensionless_text_artifacts() {
     // `LICENSE`, `Makefile`, `Dockerfile` are normal Drive files.
-    let upload = validate_upload(UploadClass::Drive, "LICENSE", "", b"MIT License\n")
+    let upload = validate_without_scanner(UploadClass::Drive, "LICENSE", "", b"MIT License\n")
         .expect("an extensionless text file must be accepted by Drive");
     assert_eq!(upload.filename, "LICENSE");
     assert_eq!(upload.extension, "");
@@ -310,14 +326,14 @@ fn the_drive_accepts_extensionless_text_artifacts() {
 
     // The same name carrying a binary payload is refused.
     let elf = [0x7F, 0x45, 0x4C, 0x46, 2, 1, 1, 0];
-    let error = validate_upload(UploadClass::Drive, "Makefile", "", &elf)
+    let error = validate_without_scanner(UploadClass::Drive, "Makefile", "", &elf)
         .expect_err("an extensionless binary must be refused");
     assert!(matches!(error, UploadError::TypeMismatch { .. }));
 }
 
 #[test]
 fn a_hidden_drive_file_with_a_known_extension_is_accepted() {
-    let upload = validate_upload(
+    let upload = validate_without_scanner(
         UploadClass::Drive,
         "Desktop/.gbdesktop.json",
         "application/json",
@@ -334,7 +350,7 @@ fn text_with_newlines_and_accents_is_still_text() {
     // A CSV/ICS/Markdown upload is full of newlines and may be UTF-8: the
     // magic-byte check must not mistake that for binary.
     let csv = "nome,cidade\nJoão,São Paulo\n".as_bytes();
-    let upload = validate_upload(
+    let upload = validate_without_scanner(
         UploadClass::SpreadsheetImport,
         "contatos.csv",
         "text/csv",
@@ -344,7 +360,7 @@ fn text_with_newlines_and_accents_is_still_text() {
     assert_eq!(upload.mime, "text/csv");
 
     let ical = b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
-    validate_upload(
+    validate_without_scanner(
         UploadClass::CalendarImport,
         "agenda.ics",
         "text/calendar",
@@ -357,10 +373,10 @@ fn text_with_newlines_and_accents_is_still_text() {
 fn client_mime_aliases_are_canonicalized() {
     // Browsers send `audio/x-wav`, `image/jpg` and `application/x-zip-compressed`.
     let wav = b"RIFF\x24\x00\x00\x00WAVEfmt ";
-    validate_upload(UploadClass::ChatAttachment, "nota.wav", "audio/x-wav", wav)
+    validate_without_scanner(UploadClass::ChatAttachment, "nota.wav", "audio/x-wav", wav)
         .expect("audio/x-wav must be accepted for .wav");
 
-    let png_alias = validate_upload(UploadClass::Image, "avatar.jpg", "image/jpg", PNG);
+    let png_alias = validate_without_scanner(UploadClass::Image, "avatar.jpg", "image/jpg", PNG);
     assert!(png_alias.is_err(), "an image/jpg claim over PNG bytes must fail");
 }
 
@@ -370,12 +386,12 @@ fn password_protected_ooxml_is_reported_as_encrypted_before_the_magic_check() {
     // password-protected package. It must reach the actionable
     // `ArchiveEncrypted` refusal instead of the generic magic-byte mismatch.
     let declared = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    let error = validate_upload(UploadClass::DocumentImport, "report.docx", declared, OLE)
+    let error = validate_without_scanner(UploadClass::DocumentImport, "report.docx", declared, OLE)
         .expect_err("a CFB-wrapped DOCX must be refused as encrypted");
     assert_eq!(error, UploadError::ArchiveEncrypted);
 
     let xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    let error = validate_upload(UploadClass::SpreadsheetImport, "report.xlsx", xlsx, OLE)
+    let error = validate_without_scanner(UploadClass::SpreadsheetImport, "report.xlsx", xlsx, OLE)
         .expect_err("a CFB-wrapped XLSX must be refused as encrypted");
     assert_eq!(error, UploadError::ArchiveEncrypted);
 }
@@ -384,7 +400,7 @@ fn password_protected_ooxml_is_reported_as_encrypted_before_the_magic_check() {
 fn cfb_bytes_with_a_legacy_office_extension_keep_their_current_behavior() {
     // A legacy `.doc` is itself a genuine OLE2 compound file, so the same CFB
     // magic is legitimate and must NOT be reported as encrypted.
-    let result = validate_upload(UploadClass::Drive, "old.doc", "application/msword", OLE);
+    let result = validate_without_scanner(UploadClass::Drive, "old.doc", "application/msword", OLE);
     assert!(result.is_ok(), "legacy OLE .doc stays accepted: {result:?}");
 }
 
@@ -392,7 +408,7 @@ fn cfb_bytes_with_a_legacy_office_extension_keep_their_current_behavior() {
 fn cfb_bytes_with_a_non_office_extension_are_not_treated_as_encrypted() {
     // The helper requires a zip-based Office extension; a mislabeled binary
     // must still fail the ordinary magic-byte check, not look encrypted.
-    let error = validate_upload(UploadClass::ChatAttachment, "payload.png", "image/png", OLE)
+    let error = validate_without_scanner(UploadClass::ChatAttachment, "payload.png", "image/png", OLE)
         .expect_err("CFB bytes named .png are a type mismatch");
     assert!(
         matches!(error, UploadError::TypeMismatch { .. }),

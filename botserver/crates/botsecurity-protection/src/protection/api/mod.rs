@@ -102,8 +102,10 @@ mod tests {
 mod get_manager;
 mod success;
 mod configure_protection_routes;
+mod quarantine_routes;
 mod security_fix_handler;
 
 use get_manager::*;
 pub use configure_protection_routes::*;
+pub use quarantine_routes::*;
 use security_fix_handler::*;

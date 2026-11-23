@@ -10,6 +10,7 @@ pub mod biometric;
 pub mod digital_signature;
 pub mod integration;
 pub mod kyc;
+pub mod mtls_policy;
 pub mod routes_security;
 pub mod schema;
 

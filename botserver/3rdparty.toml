@@ -25,23 +25,37 @@ cache_dir = "botserver-installers"
 # - sha256: Optional checksum for verification (empty = skip verification)
 [components.drive]
 name = "MinIO Object Storage"
-# dl.min.io was shut down (HTTP 410 Gone, 2025-10); the archived release
-# assets on GitHub remain the only official source of the binary.
-# NOTE: RELEASE.2025-10-15 (the CVE-2025-62506 fix) has **no binary assets**
-# (GitHub release is empty and dl.min.io returns 410). Production runs the
-# binary built from the official source tag with scripts/build-minio-fixed.sh
-# (tag RELEASE.2025-10-15T17-29-55Z, commit 9e49d5e7a648); this URL stays on
-# the last published binary for fresh installs until upstream ships assets.
-url = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
-url_win = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe"
-# arm64 asset checksum: minio.linux-arm64...sha256sum in the same release.
-url_arm64 = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-arm64.RELEASE.2025-09-07T16-13-09Z"
+# #2612 — CVE-2025-62506 is fixed in RELEASE.2025-10-15T17-29-55Z, but that
+# upstream release publishes **no binary assets** (the GitHub release contains
+# only source archives and dl.min.io answers 410 Gone). The last published
+# binary is vulnerable, so every download URL here is intentionally empty:
+# no install path can fetch it. Fresh installs use the binary built from the
+# pinned source by scripts/build-minio-fixed.sh and shipped in the offline
+# installer cache (the cache copy is authoritative).
+url = ""
+url_win = ""
+url_arm64 = ""
 filename = "minio"
 filename_win = "minio.exe"
 filename_arm64 = "minio"
-sha256 = "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
-sha256_arm64 = "5c83cd2cf151717ba0243f73e1c7802ff36e272b67144bdd7f1f7d684fd6f03d"
-sha256_win = "af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4"
+# Provenance of the fixed binary. Upstream publishes no binary checksum, so
+# integrity is anchored to the immutable GitHub source archive that the build
+# script downloads and verifies before compiling. `source_sha256` was obtained
+# by fetching that exact archive twice on 2026-11-23; both copies were byte
+# identical and hashed to the value below. The script then writes the digest
+# of the resulting binary to `minio.sha256` beside the cached binary.
+source_tag = "RELEASE.2025-10-15T17-29-55Z"
+source_commit = "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a"
+source_url = "https://github.com/minio/minio/archive/refs/tags/RELEASE.2025-10-15T17-29-55Z.tar.gz"
+source_sha256 = "be6d0bd3696c3a13a35f02d3a0280b64319c67918b4501c5c3d87f96d000085c"
+build_script = "scripts/build-minio-fixed.sh"
+cve_fixed = "CVE-2025-62506"
+# No binary digest can be pinned offline: it depends on the Go toolchain used
+# at build time. The gate verifies the source pin above and the sidecar the
+# build script writes; a hardcoded binary hash here would be fabricated.
+sha256 = ""
+sha256_arm64 = ""
+sha256_win = ""
 
 
 [components.mc]

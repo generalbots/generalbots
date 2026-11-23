@@ -9,11 +9,17 @@ use axum::{
 use serde_json::json;
 
 fn botmodels_url() -> String {
-    std::env::var("BOTMODELS_HOST")
+    let url = std::env::var("BOTMODELS_HOST")
         .or_else(|_| std::env::var("BOTMODELS_URL"))
         .unwrap_or_else(|_| "http://localhost:8085".to_string())
         .trim_end_matches('/')
-        .to_string()
+        .to_string();
+    // #2590 — in containerized installs with mTLS provisioned, talk to the
+    // internal BotModels service over HTTPS. This is a no-op for desktop-local
+    // and single-host localhost installs (TLS integration is never initialized).
+    #[cfg(feature = "security")]
+    let url = botsecurity::integration::to_secure_url(&url);
+    url
 }
 
 fn botmodels_key() -> String {
@@ -21,6 +27,14 @@ fn botmodels_key() -> String {
 }
 
 fn client() -> Result<reqwest::Client, String> {
+    // #2590 — when internal mTLS is active, build the client with the
+    // provisioned botserver client identity and internal CA trust. Otherwise
+    // fall through to the unchanged plain client (localhost/desktop-local).
+    #[cfg(feature = "security")]
+    if botsecurity::integration::is_mtls_active() {
+        return botsecurity::integration::create_https_client("api")
+            .map_err(|error| format!("Could not create BotModels mTLS client: {error}"));
+    }
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120))
         .build()

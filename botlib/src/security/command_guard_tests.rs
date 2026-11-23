@@ -193,8 +193,9 @@ fn zitadel_bare_rejected_on_linux() {
     assert!(SafeCommand::new("zitadel").is_err());
 }
 
-/// #2621 — the untrusted shell-script path must reject command separators,
-/// redirects, substitution and control characters.
+/// #2621 — the untrusted shell-script path must reject the full adversarial
+/// metacharacter corpus, including a bare `&` and the quoting/globbing chars
+/// the original fix missed.
 #[test]
 fn shell_script_arg_rejects_the_adversarial_metacharacter_corpus() {
     let bash = || SafeCommand::new("bash").expect("bash is allowlisted").arg("-c").expect("arg");
@@ -207,15 +208,81 @@ fn shell_script_arg_rejects_the_adversarial_metacharacter_corpus() {
         "`id`",
         "echo a\necho b",
         "echo a\recho b",
+        "echo a\0echo b",
         "$HOME",
+        "${IFS}cat /etc/passwd",
         "../secret",
+        "echo a &",
+        "echo a &&& b",
+        "echo *",
+        "echo ?",
+        "echo ~",
+        "echo # note",
+        "echo 'quoted'",
+        "echo \"quoted\"",
+        "echo {a,b}",
+        "echo [ab]",
+        "echo !!",
+        "echo (a)",
     ] {
         assert!(
             bash().shell_script_arg(hostile).is_err(),
             "must be rejected: {hostile:?}"
         );
     }
+    // The server-constructed installer idiom stays usable on this path.
+    assert!(bash().shell_script_arg("cd /tmp/x && ./install.sh").is_ok());
     assert!(bash().shell_script_arg("echo hi").is_ok());
+}
+
+/// #2621 — hostile arguments must be refused at the `SafeCommand` boundary,
+/// not only by the free function, and environment values are equally guarded.
+#[test]
+fn hostile_arguments_are_refused_by_safe_command() {
+    let corpus = [
+        "a;b", "a|b", "a&b", "a$b", "a`b", "a>b", "a<b", "a\nb", "a\rb",
+        "a\0b", "a(b", "a)b", "a{b", "a}b", "a*b", "a?b", "a[b", "a]b",
+        "a~b", "a!b", "a#b", "a'b", "a\"b", "../../etc/passwd",
+    ];
+    for hostile in corpus {
+        assert!(
+            SafeCommand::new("pdftotext")
+                .and_then(|c| c.arg(hostile))
+                .is_err(),
+            "SafeCommand::arg must refuse {hostile:?}"
+        );
+        assert!(
+            SafeCommand::new("pdftotext")
+                .and_then(|c| c.args(&[hostile]))
+                .is_err(),
+            "SafeCommand::args must refuse {hostile:?}"
+        );
+        assert!(
+            SafeCommand::new("pdftotext")
+                .and_then(|c| c.env("GB_VALUE", hostile))
+                .is_err(),
+            "SafeCommand::env must refuse {hostile:?}"
+        );
+    }
+    for safe in ["report.pdf", "My Document 2026.docx", "/tmp/out.png", "a-b_c.d"] {
+        assert!(
+            SafeCommand::new("pdftotext")
+                .and_then(|c| c.arg(safe))
+                .is_ok(),
+            "ordinary argument must be accepted: {safe:?}"
+        );
+    }
+}
+
+/// A local, constant curl write-out token is not shell syntax. It is the only
+/// kind of brace-bearing value allowed through `trusted_arg` (#2621).
+#[test]
+fn trusted_arg_accepts_local_curl_write_out_token() {
+    let cmd = SafeCommand::new("curl")
+        .expect("curl is allowlisted")
+        .trusted_arg("%{http_code}")
+        .expect("local constant token");
+    assert!(cmd.arg("https://example.com/health").is_ok());
 }
 
 #[test]

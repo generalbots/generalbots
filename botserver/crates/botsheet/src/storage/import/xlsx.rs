@@ -1,6 +1,8 @@
+use botcore::{ImportSize, WorkClass};
 use botsheet_core::engine::from_xlsx_formula;
 use botsheet_core::engine::value::CellValue;
 use std::collections::HashMap;
+use std::io::Read;
 
 /// #2530 — hard cap on the number of cells materialised per worksheet during
 /// import. Each cell allocates a heap `String` key plus a typed `CellData`;
@@ -21,6 +23,70 @@ fn ensure_within_cell_cap(retained: usize, sheet_name: &str) -> Result<(), Strin
     Ok(())
 }
 
+/// Counts `marker` occurrences across a chunked byte stream using only a
+/// `marker.len() - 1` byte carry. A marker split across two reads is still
+/// counted; memory is constant regardless of the part size (#2530 streaming).
+fn count_marker_in_chunk(chunk: &[u8], marker: &[u8], carry: &mut Vec<u8>) -> u64 {
+    let mut combined = Vec::with_capacity(carry.len().saturating_add(chunk.len()));
+    combined.extend_from_slice(carry);
+    combined.extend_from_slice(chunk);
+
+    let mut count = 0u64;
+    let mut index = 0usize;
+    while index + marker.len() <= combined.len() {
+        if &combined[index..index + marker.len()] == marker {
+            count = count.saturating_add(1);
+            index += marker.len();
+        } else {
+            index += 1;
+        }
+    }
+
+    carry.clear();
+    let keep = marker.len().saturating_sub(1).min(combined.len());
+    let start = combined.len() - keep;
+    carry.extend_from_slice(&combined[start..]);
+    count
+}
+
+/// Streaming pre-parse row count for an OOXML package: reads only the
+/// `xl/worksheets/*.xml` parts in 8 KiB chunks and stops as soon as the budget
+/// is exceeded. Returns `0` for packages the zip reader cannot open; the real
+/// parser below then reports the format error as before.
+fn count_rows_streaming(bytes: &[u8], limit: u64) -> u64 {
+    let Ok(mut archive) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else {
+        return 0;
+    };
+    let mut total = 0u64;
+    for index in 0..archive.len() {
+        let Ok(mut entry) = archive.by_index(index) else {
+            continue;
+        };
+        let name = match entry.name() {
+            Ok(name) => name.into_owned(),
+            Err(_) => continue,
+        };
+        if !name.starts_with("xl/worksheets/") || !name.ends_with(".xml") {
+            continue;
+        }
+        let mut buffer = [0u8; 8192];
+        let mut carry = Vec::new();
+        loop {
+            let read = match entry.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(size) => size,
+                Err(_) => break,
+            };
+            total =
+                total.saturating_add(count_marker_in_chunk(&buffer[..read], b"<row ", &mut carry));
+            if total > limit {
+                return total;
+            }
+        }
+    }
+    total
+}
+
 pub fn parse_xlsx_to_worksheets(
     bytes: &[u8],
     ext: &str,
@@ -30,6 +96,20 @@ pub fn parse_xlsx_to_worksheets(
     }
 
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
+        // #2530 — reject oversized workbooks *before* umya builds the whole
+        // workbook DOM. The row count comes from a bounded streaming scan of
+        // the worksheet parts, so the check costs kilobytes, not the hundreds
+        // of megabytes the parse would allocate.
+        let budget = crate::handlers::admission::import_budget(WorkClass::SheetsImport);
+        let rows = count_rows_streaming(bytes, budget.max_rows);
+        if let Err(error) = budget.check(ImportSize {
+            bytes: bytes.len() as u64,
+            rows,
+            ..ImportSize::default()
+        }) {
+            return Err(error.message());
+        }
+
         // Repair the OOXML forms the reader cannot parse (self-closing
         // `<mergeCell/>`, emitted by our own export) and never let a library
         // panic escape into a request handler (#2152).
@@ -305,5 +385,38 @@ mod orientation_tests {
         let worksheets = parse_xlsx_to_worksheets(&sample_workbook(), "xlsx").expect("parse");
         assert!(!worksheets.is_empty());
         assert!(worksheets[0].data.contains_key("0,0"));
+    }
+}
+
+#[cfg(test)]
+mod budget_streaming_tests {
+    use super::count_marker_in_chunk;
+
+    #[test]
+    fn counts_markers_within_a_single_chunk() {
+        let mut carry = Vec::new();
+        let count = count_marker_in_chunk(b"<row r=\"1\"><row r=\"2\">", b"<row ", &mut carry);
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn counts_a_marker_split_across_two_chunks() {
+        let mut carry = Vec::new();
+        assert_eq!(count_marker_in_chunk(b"<ro", b"<row ", &mut carry), 0);
+        assert_eq!(carry.as_slice(), b"<ro".as_slice());
+        assert_eq!(
+            count_marker_in_chunk(b"w r=\"1\">", b"<row ", &mut carry),
+            1
+        );
+    }
+
+    #[test]
+    fn counts_a_run_of_markers_across_chunk_boundaries() {
+        let mut carry = Vec::new();
+        let mut total = 0u64;
+        for chunk in [b"x<ro".as_slice(), b"w >y<row ".as_slice(), b"z".as_slice()] {
+            total += count_marker_in_chunk(chunk, b"<row ", &mut carry);
+        }
+        assert_eq!(total, 2);
     }
 }

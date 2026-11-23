@@ -7,6 +7,20 @@ use std::net::SocketAddr;
 mod csrf_config;
 use csrf_config::build_csrf_config;
 
+// #2597 — the boot-time malware scanner decision is a pure, unit-tested
+// sibling module; the one-shot ClamAV registration runs before any route can
+// accept an upload.
+#[path = "run_axum_server_malware_scanner.rs"]
+mod malware_scanner_boot;
+
+// #2613 — deploy-gateway bind policy: loopback unless explicitly opted in
+// with a configured per-deployment secret. Pure helpers + inline tests.
+#[cfg(feature = "deployment")]
+#[path = "run_axum_server_gateway_bind.rs"]
+mod gateway_bind;
+#[cfg(feature = "deployment")]
+use gateway_bind::{external_bind_enabled, gateway_bind_addr, EXTERNAL_BIND_ENV};
+
 pub async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -69,6 +83,21 @@ pub async fn run_axum_server(
     {
         tokio::spawn(async {
             let gateway_state = std::sync::Arc::new(crate::deployment::GatewayState::default());
+            // #2613 — loopback by default. External binding needs an explicit
+            // opt-in AND a real per-deployment secret (never the ephemeral
+            // fail-closed key). See gateway_bind_addr for the threat model.
+            let external_opt_in =
+                external_bind_enabled(std::env::var(EXTERNAL_BIND_ENV).ok().as_deref());
+            let gateway_addr = gateway_bind_addr(
+                external_opt_in,
+                gateway_state.deploy_key_is_configured(),
+            );
+            if gateway_addr.ip().is_unspecified() {
+                log::warn!(
+                    "Deploy Gateway EXTERNALLY exposed on {gateway_addr} — explicit \
+                     opt-in and a configured per-deployment secret are both required (#2613)"
+                );
+            }
             let gateway_router = crate::deployment::configure_gateway_routes(gateway_state);
             // IMP-09: this listener is a separate `axum::serve`, so it needs
             // the layer explicitly — the main router's layer never reaches it.
@@ -76,10 +105,9 @@ pub async fn run_axum_server(
                 gateway_router,
                 SecurityHeadersConfig::from_env(),
             );
-            let gateway_addr = SocketAddr::from(([0, 0, 0, 0], 5860));
             match tokio::net::TcpListener::bind(gateway_addr).await {
                 Ok(listener) => {
-                    log::info!("Deploy Gateway Server listening on http://0.0.0.0:5860");
+                    log::info!("Deploy Gateway Server listening on http://{gateway_addr}");
                     // IMP-07 — the gateway's rate limiter keys its per-client
                     // budget on `ConnectInfo<SocketAddr>`, which axum only
                     // inserts for this make-service flavour.
@@ -91,7 +119,7 @@ pub async fn run_axum_server(
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to bind Deploy Gateway Server to port 5860: {}", e);
+                    log::error!("Failed to bind Deploy Gateway Server to {gateway_addr}: {e}");
                 }
             }
         });
@@ -233,6 +261,15 @@ pub async fn run_axum_server(
     );
 
     let no_security = sec.no_security;
+
+    // #2597 — install the real ClamAV byte scanner once, before any route can
+    // accept an upload. Registration fails closed: a hook that cannot be
+    // installed aborts startup instead of serving uploads unscanned. #2606
+    // removed the rollback switch, so there is no opt-out path.
+    if let Err(error) = malware_scanner_boot::install_scanner_at_boot() {
+        error!("Refusing to start: {error}");
+        return Err(std::io::Error::other(error));
+    }
 
     let app = apply_middleware(
         base_router,

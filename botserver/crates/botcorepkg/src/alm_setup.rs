@@ -147,7 +147,11 @@ async fn try_alm_api_setup(
 
     // Check if ALM is responding
     let check = SafeCommand::new("curl")?
-        .args(&["-s", "-o", "/dev/null", "-w", "%{http_code}", &format!("{}/api/v1/version", base_url)])?
+        .args(&["-s", "-o", "/dev/null", "-w"])?
+        // #2621 — the write-out placeholder is a local, constant curl format
+        // token (not shell syntax), so it is passed through the trusted path.
+        .trusted_arg("%{http_code}")?
+        .arg(&format!("{}/api/v1/version", base_url))?
         .execute()?;
     
     let status = String::from_utf8_lossy(&check.stdout).trim().to_string();

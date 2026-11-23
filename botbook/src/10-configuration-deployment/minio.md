@@ -72,7 +72,7 @@ The `force_path_style(true)` setting ensures compatibility with S3-compatible st
 
 ### Local Mode
 
-The default mode runs drive on the same machine. The binary is downloaded to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`.
+The default mode runs drive on the same machine. The MinIO binary is copied from the offline installer cache to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`. There is no download URL for the server: upstream publishes no binary for the patched release.
 
 ### Container Mode (Incus)
 
@@ -92,6 +92,23 @@ To use external storage, configure it through the Directory service admin consol
 ## Security
 
 Credentials are managed by the Directory service for centralized security. TLS can be enabled for secure communication between components. Bucket policies control access on a per-bot basis, and credential rotation is handled automatically without service interruption.
+
+## MinIO build provenance (CVE-2025-62506)
+
+MinIO releases before `RELEASE.2025-10-15T17-29-55Z` are affected by CVE-2025-62506, a privilege escalation through session-policy bypass for service and STS accounts. Upstream fixed it in that tag but published **no binary assets** for it, and the `dl.min.io` download host is gone. The last published binary is the vulnerable `RELEASE.2025-09-07T16-13-09Z` build.
+
+General Bots therefore ships a MinIO binary built from the official source tag. This is an exception to the usual "download the pinned release" rule, recorded in `botserver/3rdparty.toml` under `[components.drive]`:
+
+| Field | Value |
+|---|---|
+| `source_tag` | `RELEASE.2025-10-15T17-29-55Z` |
+| `source_commit` | `9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a` |
+| `source_sha256` | SHA-256 of the upstream GitHub tag archive, fetched twice and byte-identical |
+| `build_script` | `scripts/build-minio-fixed.sh` |
+
+No `url`, `url_win` or `url_arm64` is configured for the drive component, so no install path can fetch the vulnerable release. The binary is built with the tag and commit baked in, and `minio --version` reports them; both the release pipeline and `scripts/check_component_checksums.py --verify-minio` check that report. Because the compiled binary's digest depends on the Go toolchain, integrity is anchored to the immutable source archive rather than a fabricated binary hash. The build script writes the actual binary digest to `minio.sha256` next to the cached copy and the release job verifies the vendored binary before packaging it.
+
+An install whose cached binary does not report the fixed tag fails closed instead of falling back to a download. To build and verify one locally, run `scripts/build-minio-fixed.sh /tmp/minio-fixed`, then `python3 scripts/check_component_checksums.py --verify-minio /tmp/minio-fixed`, and copy the result into the installer cache.
 
 ## Monitoring
 

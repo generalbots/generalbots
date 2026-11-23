@@ -2,7 +2,9 @@ pub use super::command_validation::CommandGuardError;
 use super::command_allowlist::ALLOWED_COMMANDS;
 #[cfg(windows)]
 use super::command_allowlist::WINDOWS_ONLY_COMMANDS;
-use super::command_validation::{normalise_command_name, validate_argument, validate_path};
+use super::command_validation::{
+    find_forbidden_script_char, normalise_command_name, validate_argument, validate_path,
+};
 use super::utils::get_stack_path;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -109,17 +111,18 @@ impl SafeCommand {
         // #2621 — the untrusted shell path must reject the full metacharacter
         // set, not just command substitution and traversal. A caller-supplied
         // argument that reaches `sh -c` with any of these can change the
-        // command structure or inject a new line of shell script.
-        let forbidden_patterns = [
-            "$(", "`", "..", ";", "|", ">", "<", "\n", "\r", "$",
-        ];
-        for pattern in forbidden_patterns {
-            if script.contains(pattern) {
-                return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                    "Dangerous pattern '{}' in shell script",
-                    pattern
-                )));
-            }
+        // command structure or inject a new line of shell script. Control
+        // characters (including NUL) are covered by `find_forbidden_script_char`.
+        if let Some(c) = find_forbidden_script_char(script) {
+            return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                "Forbidden character '{}' in shell script",
+                c.escape_default()
+            )));
+        }
+        if script.contains("..") {
+            return Err(CommandGuardError::ShellInjectionAttempt(
+                "Dangerous pattern '..' in shell script".to_string(),
+            ));
         }
         self.args.push(script.to_string());
         Ok(self)
@@ -178,24 +181,21 @@ impl SafeCommand {
             ));
         }
         if !trusted {
-            // #2621 — the untrusted shell path must reject the full
-            // metacharacter set, not just command substitution and traversal.
-            // A caller-supplied argument that reaches `sh -c` with any of these
-            // can change command structure or inject a new shell line.
-            // `&&` is deliberately not in this set: shipped installer scripts
-            // (e.g. `cd <dir> && ./install.sh`) use it and are already
-            // constructed server-side. Pipe/redirect/separator/substitution
-            // and control characters are never needed by those scripts.
-            let forbidden_patterns = [
-                "$(", "`", "..", ";", "|", ">", "<", "\n", "\r", "$",
-            ];
-            for pattern in forbidden_patterns {
-                if script.contains(pattern) {
-                    return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                        "Dangerous pattern '{}' in shell script",
-                        pattern
-                    )));
-                }
+            // #2621 — full metacharacter rejection on the untrusted path.
+            // `&&` is tolerated by `find_forbidden_script_char` because shipped
+            // installer scripts (`cd <dir> && ./install.sh`) are constructed
+            // server-side; a bare `&` is still rejected. Traversal is checked
+            // separately because `..` is not a single shell metacharacter.
+            if let Some(c) = find_forbidden_script_char(script) {
+                return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                    "Forbidden character '{}' in shell script",
+                    c.escape_default()
+                )));
+            }
+            if script.contains("..") {
+                return Err(CommandGuardError::ShellInjectionAttempt(
+                    "Dangerous pattern '..' in shell script".to_string(),
+                ));
             }
         }
         self.args.push(script.to_string());

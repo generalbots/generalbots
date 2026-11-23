@@ -1,3 +1,4 @@
+pub mod admission;
 pub mod ai;
 pub mod collab;
 pub mod export;

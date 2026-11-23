@@ -26,7 +26,10 @@
 //! durable copy is loaded, so files are not republished. When the cache is
 //! unavailable the in-memory fallback republishes once;
 //! `drive_bridge::save_object` uses a deterministic key, so that is an overwrite
-//! of the same object, never a duplicate.
+//! of the same object, never a duplicate. #2541 bounds the in-memory fallback
+//! with an LRU/TTL cache (`GB_PUBLISH_LEDGER_CAP` = [`MAX_LEDGER_SESSIONS`],
+//! `GB_PUBLISH_LEDGER_CACHE_TTL_MS` = 30 days); eviction only costs one
+//! re-upload of an already-published object.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -35,6 +38,8 @@ use async_trait::async_trait;
 use botcore::shared::state::AppState;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::core::bot::bounded::{self, BoundedMap};
 
 use super::doc_delta;
 use super::native_tools::{persist, send};
@@ -137,14 +142,23 @@ pub fn digest(bytes: &[u8]) -> u64 {
     hash
 }
 
-fn ledger() -> &'static Mutex<HashMap<Uuid, HashMap<String, PublishedFile>>> {
-    static LEDGER: OnceLock<Mutex<HashMap<Uuid, HashMap<String, PublishedFile>>>> = OnceLock::new();
-    LEDGER.get_or_init(|| Mutex::new(HashMap::new()))
+/// #2541 — LRU + TTL bounded in-memory fallback. The durable mirror in
+/// [`ledger`] is the source of truth; evicting here can only cause a harmless
+/// re-upload of the same deterministic Drive object.
+fn ledger() -> &'static Mutex<BoundedMap<Uuid, HashMap<String, PublishedFile>>> {
+    static LEDGER: OnceLock<Mutex<BoundedMap<Uuid, HashMap<String, PublishedFile>>>> =
+        OnceLock::new();
+    LEDGER.get_or_init(|| {
+        Mutex::new(BoundedMap::new(
+            bounded::cap_from_env("GB_PUBLISH_LEDGER_CAP", MAX_LEDGER_SESSIONS),
+            bounded::ttl_from_env("GB_PUBLISH_LEDGER_CACHE_TTL_MS", 30 * 24 * 60 * 60 * 1000),
+        ))
+    })
 }
 
 fn snapshot(session_id: Uuid) -> HashMap<String, PublishedFile> {
     match ledger().lock() {
-        Ok(map) => map.get(&session_id).cloned().unwrap_or_default(),
+        Ok(mut map) => map.get(&session_id).cloned().unwrap_or_default(),
         Err(error) => {
             botlog::safe_warn!("output publish: ledger lock failed: {error}");
             HashMap::new()
@@ -157,14 +171,8 @@ fn store(session_id: Uuid, entries: HashMap<String, PublishedFile>) {
         botlog::safe_warn!("output publish: ledger lock failed on write");
         return;
     };
-    if !map.contains_key(&session_id) && map.len() >= MAX_LEDGER_SESSIONS {
-        // Bounded memory: the map has no ordering, so any one conversation is
-        // dropped. A dropped conversation re-publishes once; the deterministic
-        // Drive key makes that an overwrite, not a duplicate.
-        if let Some(victim) = map.keys().next().copied() {
-            map.remove(&victim);
-        }
-    }
+    // BoundedMap evicts expired and least-recently-used conversations before
+    // inserting, so the fallback can never grow past its configured cap.
     map.insert(session_id, entries);
 }
 

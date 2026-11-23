@@ -1,4 +1,5 @@
 use super::*;
+use super::nat_rule_guard::{is_valid_interface, prerouting_dnat_args, public_dnat_verdict};
 
 /// Fail-closed verdict for an unpinned container binary (#2610, #2709). Pure
 /// so the GB_REQUIRE_CHECKSUMS policy is testable without mutating the env.
@@ -38,31 +39,6 @@ mod unpinned_checksum_tests {
     }
 }
 
-/// Valid Linux interface names: letters, digits, `-`, `_`, `.`, at most 15
-/// chars. Pure so the guard is testable without touching a host.
-fn is_valid_interface(name: &str) -> bool {
-    !name.is_empty()
-        && name.len() <= 15
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
-}
-
-#[cfg(test)]
-mod interface_guard_tests {
-    use super::is_valid_interface;
-
-    #[test]
-    fn accepts_real_names_and_rejects_injection() {
-        assert!(is_valid_interface("eth0"));
-        assert!(is_valid_interface("enp3s0"));
-        assert!(is_valid_interface("br-abc.1"));
-        assert!(!is_valid_interface(""));
-        assert!(!is_valid_interface("eth0;drop"));
-        assert!(!is_valid_interface("all"));
-    }
-}
-
 impl ContainerOperations for PackageManager {
     async fn configure_iptables_nat(&self, container: &str) -> Result<()> {
         let settings = self.get_container_settings(container)?;
@@ -76,7 +52,7 @@ impl ContainerOperations for PackageManager {
             ));
         }
 
-        // Scope route_localnet to that interface, not net.ipv4.conf.all.
+        // Scope route_localnet to that interface, never to the global namespace.
         let _ = SafeCommand::new("sudo")
             .and_then(|c| c.arg("sysctl"))
             .and_then(|c| c.arg("-w"))
@@ -92,24 +68,19 @@ impl ContainerOperations for PackageManager {
             let protocol_ref = rule.protocol.as_str();
             let ip_ref = settings.ip.as_str();
 
-            // PREROUTING rule - for external traffic
-            SafeCommand::new("sudo")
-                .and_then(|c| c.arg("iptables"))
-                .and_then(|c| c.arg("-t"))
-                .and_then(|c| c.arg("nat"))
-                .and_then(|c| c.arg("-A"))
-                .and_then(|c| c.arg("PREROUTING"))
-                .and_then(|c| c.arg("-i"))
-                .and_then(|c| c.arg(iface.as_str()))
-                .and_then(|c| c.arg("-p"))
-                .and_then(|c| c.arg(protocol_ref))
-                .and_then(|c| c.arg("--dport"))
-                .and_then(|c| c.arg(port_ref))
-                .and_then(|c| c.arg("-j"))
-                .and_then(|c| c.arg("DNAT"))
-                .and_then(|c| c.arg("--to-destination"))
-                .and_then(|c| c.arg(dest_ref))
-                .and_then(|cmd| cmd.execute())?;
+            // #2617 — never DNAT an internal/admin port from the public
+            // interface. Local OUTPUT/FORWARD rules below still let the host
+            // and Incus network reach those services.
+            if public_dnat_verdict(rule.port) {
+                let args = prerouting_dnat_args(iface.as_str(), protocol_ref, rule.port, dest_ref);
+                let mut cmd = SafeCommand::new("sudo")?.arg("iptables")?;
+                for a in &args {
+                    cmd = cmd.arg(a)?;
+                }
+                cmd.execute()?;
+            } else {
+                log::warn!("Skipping public DNAT for internal-only port {}", rule.port);
+            }
 
             // OUTPUT rule - for local traffic
             SafeCommand::new("sudo")
@@ -420,17 +391,36 @@ mod staged_push_guard_tests {
         env!("CARGO_MANIFEST_DIR"),
         "/src/package_manager/container/configure_iptables_nat.rs"
     );
-    /// #2709 — verification of the staged bytes must reject a mismatched pin.
+    /// #2610/#2709 — a tampered pin must refuse the staged bytes *and* leave
+    /// nothing behind, because the privileged `incus file push` is never
+    /// reached on this path. Using the real staging helper proves cleanup on
+    /// the failure path without a container or a network download.
     #[test]
-    fn mismatched_pin_refuses_the_staged_binary() {
+    fn mismatched_pin_refuses_the_staged_binary_and_cleans_up() {
+        let staged = crate::package_manager::safe_staging::StagedFile::create(
+            "container-binary",
+            b"downloaded payload",
+        )
+        .expect("stage downloaded bytes");
+        let staging_dir = staged
+            .as_path()
+            .parent()
+            .expect("staging directory")
+            .to_path_buf();
         let error = botcorepkg::checksum::verify_with_policy(
-            std::path::Path::new(SOURCE),
+            staged.as_path(),
             &"0".repeat(64),
             "container-binary",
             true,
         )
         .expect_err("a mismatched pin must refuse the staged binary");
         assert!(error.to_string().contains("checksum mismatch"));
+        assert!(staging_dir.exists(), "staging survives until the guard returns");
+        drop(staged);
+        assert!(
+            !staging_dir.exists(),
+            "no staged binary may survive a refused push"
+        );
     }
 
     /// #2709 — the privileged push must resolve the pin and verify first.

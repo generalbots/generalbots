@@ -1,4 +1,5 @@
 pub use botcorebot::*;
+mod bounded;
 pub mod api_catalog;
 pub mod api_exec;
 pub mod api_exec_assertion;

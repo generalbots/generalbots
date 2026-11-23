@@ -16,7 +16,7 @@ impl VertexClient {
         });
 
         Self {
-            client: reqwest::Client::builder()
+            client: crate::pinned_http::pinned_builder()
                 .timeout(std::time::Duration::from_secs(180))
                 .connect_timeout(std::time::Duration::from_secs(30))
                 .build()

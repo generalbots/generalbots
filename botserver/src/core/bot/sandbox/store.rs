@@ -4,11 +4,18 @@
 //! preview immediately; Drive is the durable copy across restarts and nodes.
 //! A changed resource is a different hash, so a pinned hash can never silently
 //! point at new content.
+//!
+//! #2541 — the in-process cache is an LRU/TTL bounded map
+//! (`GB_SANDBOX_CACHE_CAP` = 256, `GB_SANDBOX_CACHE_TTL_MS` = 1 h). Drive is
+//! always the durable source, so evicting a preview only costs a re-read. The
+//! revocation denylist is deliberately unbounded: dropping a revocation could
+//! resurrect a resource whose durable objects were deleted.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::core::bot::bounded::{self, BoundedMap};
 use botbasic_ai::keywords::code_sandbox::preview_store;
 
 use sha2::{Digest, Sha256};
@@ -45,12 +52,19 @@ pub fn preview_status(hash: &str) -> Option<String> {
         .map(|status| status.reason_code().to_string())
 }
 
-fn cache() -> &'static Mutex<HashMap<String, StoredResource>> {
-    static CACHE: OnceLock<Mutex<HashMap<String, StoredResource>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+/// #2541 — bounded preview cache. The durable copy in Drive is reloaded on a
+/// miss, so LRU/TTL eviction can never lose user data.
+fn cache() -> &'static Mutex<BoundedMap<String, StoredResource>> {
+    static CACHE: OnceLock<Mutex<BoundedMap<String, StoredResource>>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        Mutex::new(BoundedMap::new(
+            bounded::cap_from_env("GB_SANDBOX_CACHE_CAP", 256),
+            bounded::ttl_from_env("GB_SANDBOX_CACHE_TTL_MS", 3_600_000),
+        ))
+    })
 }
 
-fn lock_cache() -> std::sync::MutexGuard<'static, HashMap<String, StoredResource>> {
+fn lock_cache() -> std::sync::MutexGuard<'static, BoundedMap<String, StoredResource>> {
     match cache().lock() {
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
@@ -178,8 +192,11 @@ pub async fn read_resource(state: &AppState, bucket: &str, hash: &str) -> Option
     if is_hash_revoked(hash) {
         return None;
     }
-    if let Some(resource) = lock_cache().get(hash).cloned() {
-        return Some(resource);
+    {
+        let mut cache = lock_cache();
+        if let Some(resource) = cache.get(&hash.to_string()).cloned() {
+            return Some(resource);
+        }
     }
     let drive = state.drive.as_ref()?;
     let key = format!("_sandbox/ui/{hash}.html");
@@ -201,7 +218,7 @@ pub async fn read_resource(state: &AppState, bucket: &str, hash: &str) -> Option
 /// Removes a resource from the cache (Drive retention is handled by the
 /// bucket lifecycle). Used when a hash is revoked.
 pub fn forget(hash: &str) {
-    lock_cache().remove(hash);
+    lock_cache().remove(&hash.to_string());
     preview_store::shared().forget(hash);
 }
 

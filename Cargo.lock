@@ -2106,6 +2106,7 @@ version = "7.1.0"
 dependencies = [
  "axum 0.7.9",
  "base64 0.22.1",
+ "botcorepkg",
  "botcoresecrets",
  "botlib",
  "botschema",
@@ -3259,6 +3260,7 @@ version = "7.1.0"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "botsecurity-auth",
  "botsecurity-core",
  "chrono",
  "log",
@@ -3563,6 +3565,7 @@ dependencies = [
  "axum 0.7.9",
  "base64 0.22.1",
  "botbasic_core",
+ "botcore",
  "botlib",
  "botsecurity-auth",
  "botsecurity-core",

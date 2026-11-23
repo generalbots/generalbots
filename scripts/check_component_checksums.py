@@ -20,9 +20,16 @@ re-hashed against the file on disk, and any unlisted *.min.js in the vendor
 tree fails. That is a direct tamper seal, not an allowlist: the manifest itself
 is the source of truth.
 
+For MinIO (#2612) the gate is stricter: no download URL may be configured,
+the source pin must be the release that fixes CVE-2025-62506, and the archive
+digest must match the recorded upstream value. `--verify-minio` checks the
+cached binary against the digest written by the source-build script and the
+version it reports.
+
 Usage:
     python3 scripts/check_component_checksums.py [--toml PATH] [--allowlist PATH]
     python3 scripts/check_component_checksums.py --js-manifest PATH [--vendor-dir PATH]
+    python3 scripts/check_component_checksums.py --verify-minio [PATH]
 
 Exit codes: 0 clean, 1 otherwise.
 """
@@ -35,10 +42,12 @@ import sys
 import tomllib
 from pathlib import Path
 
+from minio_pin import MINIO_CVE, MINIO_FIXED_TAG, minio_problems, verify_minio_binary
+
 DEFAULT_TOML = Path("botserver/3rdparty.toml")
 DEFAULT_ALLOWLIST = Path("scripts/component_checksums_allowlist.txt")
 DEFAULT_VENDOR_DIR = Path("botui/ui/suite/js/vendor")
-
+DEFAULT_MINIO = Path("botserver/botserver-installers/minio")
 
 def load_allowlist(path: Path) -> dict[str, str]:
     """`component  reason` per line; `#` starts a comment."""
@@ -59,8 +68,11 @@ def gaps(components: dict) -> list[tuple[str, str]]:
 
     Works for both `[components.*]` and `[models.*]` (#2708)."""
     found: list[tuple[str, str]] = []
+    # An asset with no download URL cannot be fetched at all, so a missing
+    # hash is not an unverified download (#2612: the fixed MinIO ships only as
+    # a locally built, cache-authoritative binary).
     for name, entry in sorted(components.items()):
-        if not str(entry.get("sha256", "")).strip():
+        if entry.get("url") and not str(entry.get("sha256", "")).strip():
             found.append((name, "url"))
         if entry.get("url_win") and not str(entry.get("sha256_win", "")).strip():
             found.append((name, "url_win"))
@@ -163,7 +175,25 @@ def main() -> int:
         default=DEFAULT_VENDOR_DIR,
         help=f"root of the vendored JS tree (default: {DEFAULT_VENDOR_DIR})",
     )
+    parser.add_argument(
+        "--verify-minio",
+        nargs="?",
+        const=DEFAULT_MINIO,
+        type=Path,
+        metavar="PATH",
+        help="verify the cached MinIO binary's build sidecar and version (#2612)",
+    )
     args = parser.parse_args()
+
+    if args.verify_minio is not None:
+        errors = verify_minio_binary(args.verify_minio)
+        for error in errors:
+            print(error)
+        if errors:
+            print(f"\n{len(errors)} MinIO binary integrity error(s)")
+            return 1
+        print(f"ok: cached MinIO binary is {MINIO_FIXED_TAG} ({MINIO_CVE} fixed)")
+        return 0
 
     if args.self_test:
         from gate_selftests import run_self_test
@@ -187,6 +217,16 @@ def main() -> int:
         document = tomllib.load(handle)
     components = document.get("components", {})
     models = document.get("models", {})
+
+    # #2612 — the MinIO pin is unconditional: no vulnerable URL may survive,
+    # the source pin must be the known-good fix release, and its archive digest
+    # must be the verified value. No allowlist entry can excuse a failure here.
+    minio_errors = minio_problems(components)
+    if minio_errors:
+        for error in minio_errors:
+            print(error)
+        print(f"\n{len(minio_errors)} MinIO provenance error(s)")
+        return 1
 
     # #2708 — a model URL is as much a supply-chain entry point as a component
     # URL: llama-server loads the downloaded GGUF. Check both tables.

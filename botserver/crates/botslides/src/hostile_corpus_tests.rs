@@ -4,9 +4,9 @@
 //! crafted decks (VBA part, XLM macro sheet, encrypted package, SSRF
 //! relationship, XML entity bomb, oversized embedded-media ratio, external
 //! `file://` relationship, deeply nested container) that must fail closed at
-//! the Slides import boundary. The policy under test is the one the unified
-//! `GB_ALLOW_UNSCANNED_IMPORT` switch produces when it is not opted out, so
-//! this file is also CI evidence that the switch defaults to fail-closed.
+//! the Slides import boundary. The policy under test is the shared
+//! `HostileFilePolicy::default()`, which always requires a scanner, so this
+//! file is also CI evidence that the default is fail-closed.
 //!
 //! Included from `handlers/import_tests.rs`, which owns the private gate
 //! helpers (`zip_with`, `audit_hostile_upload`, `is_sanitized_rejection`) via
@@ -138,10 +138,9 @@ fn slides_cases() -> Vec<SlidesCase> {
     ]
 }
 
-/// `policy_for_opt_out(false)` is exactly what the unified switch yields when
-/// it is unset or carries an unrecognised value, i.e. the fail-closed default.
+/// The shared default, used verbatim by the import boundary, is fail-closed.
 fn fail_closed_policy() -> upload_policy::HostileFilePolicy {
-    policy_for_opt_out(false)
+    upload_policy::HostileFilePolicy::default()
 }
 
 #[test]
@@ -183,38 +182,28 @@ fn slides_hostile_corpus_rejections_are_sanitized() {
 }
 
 #[test]
-fn the_unified_scanner_switch_keeps_the_corpus_fail_closed_by_default() {
-    let fail_closed = fail_closed_policy();
-    let opted_out = policy_for_opt_out(true);
-    assert!(fail_closed.require_malware_scanner);
-    assert!(!opted_out.require_malware_scanner);
-
-    // Read the switch, never mutate it: tests run in parallel. The live Slides
-    // policy must track the shared variable (or its deprecated alias).
-    let shared = std::env::var(UNCHECKED_IMPORT_OPT_OUT_ENV).ok();
-    let deprecated = std::env::var(DEPRECATED_SLIDES_OPT_OUT).ok();
-    assert_eq!(
-        slides_hostile_policy().require_malware_scanner,
-        !is_import_opted_out(shared.as_deref(), deprecated.as_deref())
+fn the_default_policy_keeps_the_corpus_fail_closed_with_no_opt_out() {
+    let policy = fail_closed_policy();
+    assert!(
+        policy.require_malware_scanner,
+        "the import boundary must never accept an unscanned package"
     );
 
-    // Structural guards are independent of scanning: every case stays refused
-    // even when an operator opts out of the scanner requirement.
+    // Structural guards are independent of scanning: every case is refused by
+    // the same policy the handler uses, before any parser touches the package.
     for case in slides_cases() {
-        for policy in [&fail_closed, &opted_out] {
-            let result = audit_hostile_upload(
-                &case.bytes,
-                case.filename,
-                &axum::http::HeaderMap::new(),
-                "slides-corpus",
-                policy,
-            );
-            assert!(
-                is_sanitized_rejection(result, "error-file-archive-unsafe"),
-                "corpus case {} must fail closed under either switch value",
-                case.name
-            );
-        }
+        let result = audit_hostile_upload(
+            &case.bytes,
+            case.filename,
+            &axum::http::HeaderMap::new(),
+            "slides-corpus",
+            &policy,
+        );
+        assert!(
+            is_sanitized_rejection(result, "error-file-archive-unsafe"),
+            "corpus case {} must fail closed under the default policy",
+            case.name
+        );
     }
 }
 

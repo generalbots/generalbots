@@ -361,28 +361,31 @@ impl TlsIntegration {
     }
 
     pub fn load_all_certs_from_dir(&mut self, cert_dir: &Path) -> Result<()> {
-        let ca_path = cert_dir.join("ca.crt");
-        if ca_path.exists() {
+        // Containerized installs keep the CA under `ca/ca.crt`; older flat
+        // layouts used `ca.crt` at the cert-dir root. Accept both.
+        let ca_path = cert_dir.join("ca/ca.crt");
+        let ca_path = if ca_path.is_file() {
+            ca_path
+        } else {
+            cert_dir.join("ca.crt")
+        };
+        if ca_path.is_file() {
             self.load_ca_cert(&ca_path)?;
         }
 
-        for service in &[
-            "api",
-            "llm",
-            "embedding",
-            "qdrant",
-            "postgres",
-            "redis",
-            "minio",
-        ] {
-            let service_dir = cert_dir.join(service);
-            if service_dir.exists() {
-                let cert_path = service_dir.join("client.crt");
-                let key_path = service_dir.join("client.key");
-
-                if cert_path.exists() && key_path.exists() {
-                    self.load_client_cert(service, &cert_path, &key_path)?;
-                }
+        // The `botserver` client identity is the credential THIS process
+        // presents to every internal service, so register it under each name
+        // that `create_client(service)` looks up (the target's own client cert
+        // is not the right credential for an outbound call).
+        let cert = cert_dir.join("botserver/client.crt");
+        let key = cert_dir.join("botserver/client.key");
+        if cert.is_file() && key.is_file() {
+            for service in [
+                "api", "botserver", "llm", "embedding", "vectordb", "qdrant", "postgres",
+                "tables", "redis", "cache", "minio", "drive", "directory", "vault", "alm",
+                "meet",
+            ] {
+                self.load_client_cert(service, &cert, &key)?;
             }
         }
 
@@ -413,6 +416,13 @@ pub fn init_tls_integration(tls_enabled: bool, cert_dir: Option<PathBuf>) -> Res
 
 pub fn get_tls_integration() -> Option<Arc<TlsIntegration>> {
     TLS_INTEGRATION.get().cloned()
+}
+
+/// Whether internal HTTP clients should present client certificates and use
+/// `https`/`rediss` URLs. False when bootstrap never enabled TLS (desktop-local
+/// and single-host localhost installs).
+pub fn is_mtls_active() -> bool {
+    TLS_INTEGRATION.get().is_some_and(|t| t.is_tls_enabled())
 }
 
 pub fn to_secure_url(url: &str) -> String {

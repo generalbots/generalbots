@@ -5,6 +5,7 @@ pub use csv::parse_csv_to_worksheets;
 pub use xlsx::parse_xlsx_to_worksheets;
 
 use crate::types::Spreadsheet;
+use botcore::{ImportSize, WorkClass};
 use botsheet_core::engine::value::CellValue;
 
 use chrono::Utc;
@@ -101,6 +102,17 @@ pub fn import_spreadsheet_bytes(
     filename: &str,
     owner_id: &str,
 ) -> Result<Spreadsheet, String> {
+    // #2530 — shared pure budget gate, applied before any parser builds its
+    // in-memory workbook/grid. The row dimension is re-checked by the
+    // streaming pre-scan in `xlsx.rs` and by the CSV parser once known.
+    let budget = crate::handlers::admission::import_budget(WorkClass::SheetsImport);
+    if let Err(error) = budget.check(ImportSize {
+        bytes: bytes.len() as u64,
+        ..ImportSize::default()
+    }) {
+        return Err(error.message());
+    }
+
     let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     let detected = detect_spreadsheet_format(bytes);
 

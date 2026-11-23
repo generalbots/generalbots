@@ -79,7 +79,7 @@ impl VertexTokenManager {
             .map_err(|e| format!("Failed to encode JWT: {}", e))?;
 
         // Exchange JWT for access token
-        let client = reqwest::Client::builder()
+        let client = crate::pinned_http::pinned_builder()
             .timeout(std::time::Duration::from_secs(30))
             .connect_timeout(std::time::Duration::from_secs(15))
             .build()

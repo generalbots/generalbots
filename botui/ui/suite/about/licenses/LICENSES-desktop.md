@@ -19,7 +19,7 @@ the AGPL/BUSL entries that is where the corresponding source is obtained.
 
 | component | name | version | license | source | text |
 |---|---|---|---|---|---|
-| `drive` | MinIO Object Storage | RELEASE.2025-09-07T16-13-09Z | AGPL-3.0-or-later | https://github.com/minio/minio | payload `LICENSE` |
+| `drive` | MinIO Object Storage | RELEASE.2025-10-15T17-29-55Z (built from source) | AGPL-3.0-or-later | https://github.com/minio/minio | payload `LICENSE` |
 | `mc` | MinIO Client (mc) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | https://github.com/minio/mc | payload `LICENSE` |
 | `clamav` | ClamAV Antivirus Engine | 1.5.5 | GPL-2.0-or-later | https://github.com/Cisco-Talos/clamav | payload `copyright` |
 | `tables` | PostgreSQL Database | 18.6.1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
