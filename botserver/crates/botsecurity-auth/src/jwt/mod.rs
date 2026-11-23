@@ -6,6 +6,7 @@
 pub mod jwt_types;
 pub mod jwt_manager;
 pub mod jwt_utils;
+pub mod revocation;
 
 #[cfg(test)]
 mod hardening_tests;

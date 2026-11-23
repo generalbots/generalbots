@@ -7,7 +7,9 @@
 //! (which enforces them) rejects them — the suite middleware then degraded
 //! every cloud-authenticated request to an anonymous "session-user",
 //! leaving CRM/Drive apps scoped to a random default branch. This provider
-//! validates the SaaS JWT signature + expiry only.
+//! validates the SaaS JWT signature + expiry, then consults the shared
+//! revocation blacklist by `jti` so a logged-out token is rejected on the
+//! very next request (issue #2631).
 //!
 //! #2112 — the verification itself lives in
 //! [`botsecurity_core::verified_jwt`], the same function the tenant resolver
@@ -16,6 +18,7 @@
 
 use crate::auth::{AuthError, AuthenticatedUser, Role};
 use crate::auth_provider::AuthProvider;
+use crate::jwt::revocation::{blacklist_verdict, global_blacklist, BlacklistVerdict};
 use async_trait::async_trait;
 use botsecurity_core::verified_jwt::verify_hs256_jwt;
 use uuid::Uuid;
@@ -56,6 +59,20 @@ impl AuthProvider for SaasJwtAuthProvider {
             log::warn!("saas-jwt token rejected: {reason}");
             AuthError::InvalidToken
         })?;
+
+        // #2631 — signature + exp alone let a stolen, logged-out token live
+        // for seven days. The shared store is the same one logout writes to.
+        let verdict = match claims.jti.as_deref() {
+            Some(jti) => blacklist_verdict(Some(jti), global_blacklist().contains(jti).await),
+            None => blacklist_verdict(None, false),
+        };
+        if verdict.is_rejected() {
+            log::warn!("saas-jwt token rejected: jti is on the revocation blacklist");
+            return Err(AuthError::InvalidToken);
+        }
+        if verdict == BlacklistVerdict::MissingJti {
+            log::warn!("saas-jwt token carries no jti (pre-#2631); it cannot be revoked until exp");
+        }
 
         let user_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| {
             Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{}", claims.sub).as_bytes())

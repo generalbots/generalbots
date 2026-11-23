@@ -1,4 +1,23 @@
 use super::*;
+use botsecurity::rbac_middleware::is_admin_group_name;
+
+/// #2633 — reject ambiguous group names that merely *contain* `admin` but
+/// are not one of the canonical administrator names. Such names used to grant
+/// full admin through a substring check; now that role derivation is exact,
+/// refusing them at creation time also stops provisioning/admin UIs from
+/// reintroducing the confusion in the first place.
+fn validate_group_name(name: &str) -> Result<(), &'static str> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Group name is required");
+    }
+    if trimmed.to_ascii_lowercase().contains("admin") && !is_admin_group_name(trimmed) {
+        return Err(
+            "Group name uses a reserved administrator substring; use an exact admin role name or a non-admin name",
+        );
+    }
+    Ok(())
+}
 
 pub async fn groups_create(
     State(state): State<Arc<AppState>>,
@@ -27,11 +46,8 @@ pub async fn groups_create(
 
     let name = form.name.unwrap_or_default();
     let display = form.display_name.clone().unwrap_or_else(|| name.clone());
-    if name.trim().is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Html("Group name is required".to_string()),
-        );
+    if let Err(reason) = validate_group_name(&name) {
+        return (StatusCode::BAD_REQUEST, Html(reason.to_string()));
     }
 
     let _ = diesel::sql_query(
@@ -52,4 +68,32 @@ pub async fn groups_create(
             html_escape(&display)
         )),
     )
+}
+
+#[cfg(test)]
+mod name_validation_tests {
+    use super::validate_group_name;
+
+    #[test]
+    fn rejects_ambiguous_admin_substrings() {
+        for name in [
+            "not-admin", "admin-readonly", "admins-in-training", "notadmin", "ADMINtrainee",
+        ] {
+            assert!(
+                validate_group_name(name).is_err(),
+                "'{name}' must be refused as an ambiguous admin name"
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_canonical_admin_and_ordinary_names() {
+        for name in ["admin", "SuperAdmin", "users", "support team"] {
+            assert!(
+                validate_group_name(name).is_ok(),
+                "'{name}' should be accepted"
+            );
+        }
+        assert!(validate_group_name("   ").is_err());
+    }
 }

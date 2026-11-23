@@ -303,6 +303,14 @@ pub(crate) fn cloud_jwt_session_user(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
+    // #2631 — this resolver is a synchronous fn pointer and cannot await the
+    // Redis blacklist. Use the local mirror written at logout so a revoked
+    // token is not resurrected as an authenticated /api/auth/me identity.
+    if let Some(jti) = payload.get("jti").and_then(|v| v.as_str()) {
+        if crate::security::botsecurity_auth::jwt::revocation::is_locally_revoked(jti) {
+            return None;
+        }
+    }
     let name = email.split('@').next().unwrap_or("User").to_string();
     Some(botcoredirectory::auth_routes::SessionUserData {
         user_id: sub.to_string(),
@@ -369,6 +377,12 @@ fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
     let sub = payload.get("sub").and_then(|v| v.as_str()).unwrap_or("");
     if sub.is_empty() {
         return (String::new(), Vec::new(), false);
+    }
+    // #2631 — do not resolve a just-logged-out JWT into a chat identity.
+    if let Some(jti) = payload.get("jti").and_then(|v| v.as_str()) {
+        if crate::security::botsecurity_auth::jwt::revocation::is_locally_revoked(jti) {
+            return (String::new(), Vec::new(), false);
+        }
     }
     info!(
         "Cloud JWT verified for chat session: sub={}...",

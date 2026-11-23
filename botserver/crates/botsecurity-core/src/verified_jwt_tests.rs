@@ -168,6 +168,17 @@ fn role_claims_are_normalized_from_both_spellings() {
 }
 
 #[test]
+fn a_signed_jti_claim_is_exposed_for_revocation() {
+    let payload = format!(r#"{{"sub":"user-1","jti":"jti-abc","exp":{}}}"#, in_an_hour());
+    let claims = verify_hs256_jwt(&token(&payload, SECRET), SECRET).expect("valid token");
+    assert_eq!(claims.jti.as_deref(), Some("jti-abc"));
+
+    let no_jti = format!(r#"{{"sub":"user-1","exp":{}}}"#, in_an_hour());
+    let claims = verify_hs256_jwt(&token(&no_jti, SECRET), SECRET).expect("valid token");
+    assert_eq!(claims.jti, None);
+}
+
+#[test]
 fn a_token_without_role_claims_has_no_roles() {
     let payload = format!(r#"{{"sub":"user-1","exp":{}}}"#, in_an_hour());
     let claims = verify_hs256_jwt(&token(&payload, SECRET), SECRET).expect("valid token");

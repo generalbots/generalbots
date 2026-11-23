@@ -18,6 +18,53 @@ pub async fn logout(
             info!("User logged out (session was not in cache)");
         }
         remove_persisted_session(token_str);
+        drop(cache);
+
+        // #2631 — removing the opaque session is not enough: the cloud JWT
+        // itself is accepted by every API route until `exp`. Revoke its jti
+        // in the shared blacklist with the token's remaining TTL so a stolen
+        // copy is rejected immediately, on this and every other instance.
+        if token_str.split('.').count() == 3 {
+            use botsecurity::botsecurity_auth::jwt::revocation as revocation;
+
+            let verified = botsecurity::botsecurity_core::verified_jwt::verify_saas_jwt(token_str)
+                .map_err(|reason| {
+                    warn!("logout: presented JWT could not be verified: {reason}");
+                    (
+                        StatusCode::UNAUTHORIZED,
+                        Json(ErrorResponse {
+                            error: "Invalid or expired token".to_string(),
+                            details: None,
+                        }),
+                    )
+                })?;
+            match verified.jti.as_deref() {
+                Some(jti) => {
+                    let entry = revocation::revocation_entry(jti, verified.exp, chrono::Utc::now());
+                    revocation::global_blacklist().insert(entry).await.map_err(|e| {
+                        // Honest failure: the caller must not believe logout
+                        // succeeded while the token is still usable.
+                        log::error!("logout: failed to blacklist JWT jti: {e}");
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(ErrorResponse {
+                                error: "Could not revoke token".to_string(),
+                                details: None,
+                            }),
+                        )
+                    })?;
+                    // Also mirror it for synchronous resolvers that cannot
+                    // await Redis (e.g. /api/auth/me's cloud-JWT fallback).
+                    revocation::record_local_revocation(jti);
+                    info!("logout: revoked JWT (jti on shared blacklist)");
+                }
+                None => {
+                    // Legacy pre-#2631 token: no jti, so it cannot be revoked
+                    // individually. Its session is gone and it expires at exp.
+                    warn!("logout: JWT has no jti claim; it stays valid until exp");
+                }
+            }
+        }
     }
 
     Ok(Json(LogoutResponse {

@@ -127,7 +127,7 @@ pub(super) fn is_admin_user(state: &Arc<AppState>, user_id: uuid::Uuid) -> bool 
     .unwrap_or_default();
     names
         .iter()
-        .any(|g| g.name.to_lowercase().contains("admin"))
+        .any(|g| botsecurity::rbac_middleware::is_admin_group_name(&g.name))
 }
 pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
     Router::new()

@@ -271,7 +271,9 @@ pub(super) fn routes() -> Vec<RoutePermission> {
 
 #[cfg(test)]
 mod approvals_tests {
-    use super::super::*;
+    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
+    use crate::{AuthenticatedUser, Role};
+    use uuid::Uuid;
 
     /// #2501 — the approvals prefix must carry every verb in the authenticated
     /// catalogue with anonymous access disabled; otherwise default-deny 403s
@@ -339,7 +341,9 @@ mod approvals_tests {
 
 #[cfg(test)]
 mod sandbox_status_tests {
-    use super::super::*;
+    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
+    use crate::{AuthenticatedUser, Role};
+    use uuid::Uuid;
 
     /// Sandbox status is a read-only status of a published resource: it must be
     /// in the authenticated catalogue with anonymous access disabled, or the

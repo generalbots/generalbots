@@ -48,6 +48,10 @@ pub struct VerifiedJwt {
     pub roles: Vec<String>,
     /// Expiry in epoch seconds (always present on a verified token).
     pub exp: i64,
+    /// The signed `jti` claim, used to consult the shared revocation blacklist
+    /// (#2631). `None` for legacy pre-#2631 tokens; callers treat those as
+    /// non-revocable but still valid until `exp`.
+    pub jti: Option<String>,
 }
 
 /// Why a token was refused. Callers must never fall back to the payload.
@@ -185,6 +189,7 @@ pub fn verify_hs256_jwt(token: &str, secret: &str) -> Result<VerifiedJwt, JwtVer
         branch_id: uuid_claim(&payload, "branch_id"),
         roles: role_claims(&payload),
         exp,
+        jti: string_claim(&payload, "jti"),
     })
 }
 

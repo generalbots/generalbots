@@ -22,6 +22,7 @@ use super::auth::{AuthenticatedUser, Permission, PublicPathAllowed, Role};
 // extractors), routes_public/routes_user/routes_admin (the default route
 // permission table, one function per documented section) and tests.
 // The public surface is unchanged.
+mod admin_group;
 mod manager;
 mod middleware;
 mod routes_admin;
@@ -34,6 +35,7 @@ mod tests;
 
 // `manager.rs` holds only the RbacManager impl blocks, so there is nothing to
 // re-export from it.
+pub use admin_group::{is_admin_group_name, ADMIN_GROUP_NAMES};
 pub use middleware::*;
 pub use types::*;
 

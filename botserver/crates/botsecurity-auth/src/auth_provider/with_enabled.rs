@@ -61,10 +61,16 @@ impl AuthProvider for LocalJwtAuthProvider {
     }
 
     async fn authenticate(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        let claims = self.jwt_manager.validate_access_token(token).map_err(|e| {
-            debug!("JWT validation failed: {e}");
-            AuthError::InvalidToken
-        })?;
+        // #2631 — the blacklist-blind validator would accept a logged-out
+        // token until `exp`. Use the shared-store-aware path on every request.
+        let claims = self
+            .jwt_manager
+            .validate_access_token_with_blacklist(token)
+            .await
+            .map_err(|e| {
+                debug!("JWT validation failed: {e}");
+                AuthError::InvalidToken
+            })?;
 
         self.claims_to_user(&claims)
     }

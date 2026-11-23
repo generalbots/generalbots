@@ -1,6 +1,7 @@
 use botcore::shared::schema::rbac_groups;
 use botcore::shared::schema::rbac_user_groups;
 use botcore::shared::utils::DbPool;
+use botsecurity::rbac_middleware::is_admin_group_name;
 use diesel::prelude::*;
 use log::{debug, info};
 use uuid::Uuid;
@@ -51,7 +52,7 @@ pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
         .unwrap_or_default();
 
     for name in &group_names {
-        if name.to_lowercase().contains("admin") {
+        if is_admin_group_name(name) {
             info!("resolve_user_role: user {user_id} is admin via group '{name}'");
             return ROLE_ADMIN.to_string();
         }

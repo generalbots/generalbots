@@ -124,7 +124,10 @@ pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str)
     .bind::<diesel::sql_types::Uuid, _>(stable)
     .load(conn)
     .unwrap_or_default();
-    if names.iter().any(|g| g.name.to_lowercase().contains("admin")) {
+    if names
+        .iter()
+        .any(|g| botsecurity_auth::rbac_middleware::is_admin_group_name(&g.name))
+    {
         vec!["admin".to_string()]
     } else {
         vec!["user".to_string()]

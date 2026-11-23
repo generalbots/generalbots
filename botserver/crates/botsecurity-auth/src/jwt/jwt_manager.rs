@@ -45,6 +45,9 @@ impl JwtManager {
     /// Replaces the default in-memory blacklist with a custom store (e.g. a
     /// Redis/Valkey-backed store so revocations survive restarts).
     pub fn with_blacklist_store(mut self, store: Arc<dyn BlacklistStore>) -> Self {
+        // #2631 — the same store object must back every verification path and
+        // logout. Install it process-wide; the first installation wins.
+        crate::jwt::revocation::init_global_blacklist(Arc::clone(&store));
         self.blacklist = store;
         self
     }

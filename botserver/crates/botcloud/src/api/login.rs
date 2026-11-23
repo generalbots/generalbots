@@ -256,6 +256,10 @@ pub(crate) async fn handle_login(
             .map(|r| r.org_id)
     });
 
+    // #2631 — every minted token needs a jti so logout can address it in the
+    // shared revocation blacklist. UUIDv4 is URL/base64-safe and opaque.
+    let jti = botsecurity_auth::jwt::revocation::generate_jti();
+
     let payload_body = match (org_scope, branch_scope) {
         (Some(org_id), Some(branch)) => {
             // The caller's workspace bucket travels in the JWT so the suite
@@ -282,20 +286,21 @@ pub(crate) async fn handle_login(
                 .map(|slug| format!("{slug}.gborg"));
             match (&org_id, &branch, &bucket_claim) {
                 (_, _, Some(bucket)) => format!(
-                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bucket\":\"{}\"}}",
-                    sub, body.email, exp, org_id, branch, bucket
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"jti\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bucket\":\"{}\"}}",
+                    sub, body.email, exp, jti, org_id, branch, bucket
                 ),
                 _ => format!(
-                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
-                    sub, body.email, exp, org_id, branch
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"jti\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
+                    sub, body.email, exp, jti, org_id, branch
                 ),
             }
         }
         _ => format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"jti\":\"{}\"}}",
             sub,
             body.email,
-            exp
+            exp,
+            jti
         ),
     };
     let payload = base64_url_encode(payload_body.as_bytes());

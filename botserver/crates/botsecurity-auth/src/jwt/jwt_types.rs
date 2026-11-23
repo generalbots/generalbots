@@ -125,7 +125,7 @@ impl Claims {
             exp: expiry.timestamp(),
             iat: now.timestamp(),
             nbf: now.timestamp(),
-            jti: Uuid::new_v4().to_string(),
+            jti: crate::jwt::revocation::generate_jti(),
             token_type: token_type.as_str().to_string(),
             email: None,
             username: None,

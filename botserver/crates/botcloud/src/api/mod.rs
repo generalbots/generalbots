@@ -69,12 +69,37 @@ async fn cloud_jwt_middleware(
                 let err = serde_json::json!({"error": "Invalid token format"});
                 return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
             }
-            let (header_b64, _payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
+            let (header_b64, sig_b64) = (parts[0], parts[2]);
             let message = format!("{}.{}", header_b64, parts[1]);
             let expected_sig = jwt_sign_inner(&message, jwt_secret.as_bytes());
             if sig_b64 != expected_sig {
                 let err = serde_json::json!({"error": "Invalid token signature"});
                 return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+            }
+
+            // #2631 — a valid signature alone is not enough: expired and
+            // logged-out tokens must be rejected on every request. The single
+            // verifier enforces exp and exposes the signed jti for the shared
+            // blacklist lookup (same store logout writes to).
+            let verified = match botsecurity::botsecurity_core::verified_jwt::verify_hs256_jwt(
+                &token,
+                &jwt_secret,
+            ) {
+                Ok(verified) => verified,
+                Err(reason) => {
+                    tracing::warn!("cloud JWT rejected: {reason}");
+                    let err = serde_json::json!({"error": "Invalid or expired token"});
+                    return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+                }
+            };
+            if let Some(jti) = verified.jti.as_deref() {
+                if botsecurity_auth::jwt::revocation::global_blacklist()
+                    .contains(jti)
+                    .await
+                {
+                    let err = serde_json::json!({"error": "Token has been revoked"});
+                    return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+                }
             }
             next.run(request).await
         }

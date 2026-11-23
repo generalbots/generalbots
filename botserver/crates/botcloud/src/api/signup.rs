@@ -384,10 +384,13 @@ pub(crate) async fn handle_signup(
 
     let header = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
     let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();
+    // #2631 — signup mints a session JWT too; it must carry a jti so logout
+    // can revoke it through the shared blacklist just like a login token.
+    let jti = botsecurity_auth::jwt::revocation::generate_jti();
     let payload = base64_url_encode(
         format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"bucket\":\"{}.gborg\",\"exp\":{}}}",
-            new_bot_id, body.email, org_id, branch_id, new_bot_id, org_slug, now_ts,
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"bucket\":\"{}.gborg\",\"exp\":{},\"jti\":\"{}\"}}",
+            new_bot_id, body.email, org_id, branch_id, new_bot_id, org_slug, now_ts, jti,
         ).as_bytes()
     );
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
