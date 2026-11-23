@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     Json,
     http::StatusCode,
 };
@@ -10,6 +10,7 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use botcore::shared::state::AppState;
+use botsecurity::auth::AuthenticatedUser;
 
 use crate::minutes::types::*;
 use crate::minutes::storage::MinuteStorage;
@@ -332,9 +333,13 @@ pub async fn handle_get_signatures(
 
 pub async fn handle_sign_minutes(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<SignMinutesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if user.user_id.is_nil() {
+        return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
+    }
     let pool = state.conn.clone();
     let minute = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| format!("Failed to get DB connection: {e}"))?;
@@ -345,8 +350,14 @@ pub async fn handle_sign_minutes(
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Task failed: {e}")))?
     .map_err(|e| (StatusCode::NOT_FOUND, e))?;
 
-    let user_id = Uuid::nil();
-    let signature = SignatureService::sign_minute(&minute, user_id, req.signature_id, req.ip_address);
+    let signature = SignatureService::sign_minute(&minute, user.user_id, req.signature_id, req.ip_address)
+        .map_err(|error| {
+            log::error!("Failed to sign minute {id}: {error}");
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Meeting-minute signing is unavailable".to_string(),
+            )
+        })?;
 
     let pool = state.conn.clone();
     let sig = signature.clone();
