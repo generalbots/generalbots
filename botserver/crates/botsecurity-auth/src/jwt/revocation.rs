@@ -51,6 +51,25 @@ pub fn is_locally_revoked(jti: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Synchronous revocation check for plain `fn`-pointer JWT verifiers that
+/// cannot await (issue #2830).
+///
+/// The process-local mirror alone is not enough: it is only written by the
+/// instance that handled logout, so a token revoked on instance A would be
+/// accepted as a valid `/api/auth/me` identity on instance B. This check
+/// consults the local mirror first (free, covers this instance) and then the
+/// shared store's synchronous view, which reads the same Redis blacklist all
+/// instances write to. A backend with no synchronous view returns `None` and
+/// the local mirror remains authoritative — a positive hit is never ignored.
+pub fn is_revoked_sync(jti: &str) -> bool {
+    if is_locally_revoked(jti) {
+        return true;
+    }
+    global_blacklist()
+        .contains_sync(jti)
+        .unwrap_or(false)
+}
+
 /// Installs the process-wide blacklist. The first installation wins so a
 /// worker cannot silently swap revocation backends after boot.
 pub fn init_global_blacklist(store: Arc<dyn BlacklistStore>) -> bool {
@@ -190,5 +209,44 @@ mod tests {
         let entry = revocation_entry(&jti, Utc::now().timestamp() + 60, Utc::now());
         global_blacklist().insert(entry).await.expect("insert");
         assert!(global_blacklist().contains(&jti).await);
+    }
+
+    /// Regression test for #2830: a jti revoked only in the shared store (as
+    /// happens when a *different* instance handles logout) must be rejected by
+    /// the synchronous verifier path, without the local mirror being written.
+    #[tokio::test]
+    async fn shared_store_revocation_is_rejected_by_synchronous_path() {
+        let jti = format!("cross-instance-{}", generate_jti());
+        assert!(
+            !is_locally_revoked(&jti),
+            "test requires a clean local mirror"
+        );
+
+        // Simulate instance A: only the shared blacklist learns the revocation.
+        global_blacklist()
+            .insert(revocation_entry(
+                &jti,
+                Utc::now().timestamp() + 60,
+                Utc::now(),
+            ))
+            .await
+            .expect("insert into shared blacklist");
+        assert!(global_blacklist().contains(&jti).await);
+
+        // Instance B's synchronous resolver must now refuse the token.
+        assert!(
+            is_revoked_sync(&jti),
+            "synchronous path must reject a jti revoked in the shared store"
+        );
+        assert!(
+            !is_locally_revoked(&jti),
+            "the local mirror must remain untouched for this test"
+        );
+    }
+
+    #[test]
+    fn synchronous_check_fails_closed_for_an_unknown_jti() {
+        let jti = format!("unknown-{}", generate_jti());
+        assert!(!is_revoked_sync(&jti));
     }
 }

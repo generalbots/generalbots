@@ -14,15 +14,32 @@ use crate::blacklist::{BlacklistEntry, BlacklistStore};
 
 const BLACKLIST_KEY_PREFIX: &str = "jwt:blacklist:";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RedisBlacklistStore {
     client: Arc<redis::Client>,
+    /// Lazily-created blocking connection used by the synchronous revocation
+    /// check (#2830). `fn`-pointer JWT verifiers cannot await the async
+    /// store, so they do a direct `EXISTS` on the shared Redis instance —
+    /// that is what makes a logout on instance A visible on instance B.
+    sync_conn: Arc<std::sync::Mutex<Option<redis::Connection>>>,
+}
+
+impl std::fmt::Debug for RedisBlacklistStore {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RedisBlacklistStore")
+            .field("client", &self.client)
+            .finish_non_exhaustive()
+    }
 }
 
 impl RedisBlacklistStore {
     /// Creates a Redis-backed blacklist from a shared client.
     pub fn new(client: Arc<redis::Client>) -> Self {
-        Self { client }
+        Self {
+            client,
+            sync_conn: Arc::new(std::sync::Mutex::new(None)),
+        }
     }
 
     fn key(jti: &str) -> String {
@@ -68,6 +85,41 @@ impl BlacklistStore for RedisBlacklistStore {
             Err(e) => {
                 tracing::warn!("Redis EXISTS failed for token blacklist key: {e}");
                 false
+            }
+        }
+    }
+
+    fn contains_sync(&self, jti: &str) -> Option<bool> {
+        // Synchronous EXISTS against the *shared* store: a jti blacklisted by
+        // a logout on another instance is rejected here too (#2830). The
+        // connection is cached so a plain-fn verifier pays no async/await cost
+        // and no per-check connection setup beyond the first call.
+        let mut guard = match self.sync_conn.lock() {
+            Ok(guard) => guard,
+            Err(e) => {
+                tracing::warn!("Redis sync blacklist lock poisoned: {e}");
+                return None;
+            }
+        };
+        if guard.is_none() {
+            match self.client.get_connection() {
+                Ok(connection) => *guard = Some(connection),
+                Err(e) => {
+                    tracing::warn!("Redis connection error during sync blacklist check: {e}");
+                    return None;
+                }
+            }
+        }
+        let key = Self::key(jti);
+        let result = redis::cmd("EXISTS")
+            .arg(&key)
+            .query::<i64>(guard.as_mut()?);
+        match result {
+            Ok(count) => Some(count > 0),
+            Err(e) => {
+                tracing::warn!("Redis sync EXISTS failed for token blacklist key: {e}");
+                *guard = None; // force a reconnect on the next check
+                None
             }
         }
     }

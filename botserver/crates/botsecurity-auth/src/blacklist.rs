@@ -56,6 +56,16 @@ pub trait BlacklistStore: Send + Sync {
     /// Returns `true` when the given JTI is currently revoked.
     async fn contains(&self, jti: &str) -> bool;
 
+    /// Best-effort synchronous lookup for verifiers that are plain `fn`
+    /// pointers and cannot await (e.g. the `/api/auth/me` cloud-JWT fallback,
+    /// #2830). `None` means this backend has no synchronous view; callers then
+    /// fall back to the process-local mirror. The shared Redis backend
+    /// overrides this so a revocation on instance A is visible on instance B.
+    fn contains_sync(&self, jti: &str) -> Option<bool> {
+        let _ = jti;
+        None
+    }
+
     /// Removes every entry whose revocation and original expiration both
     /// precede `expired_before`. Returns the number of removed entries.
     async fn cleanup(&self, expired_before: DateTime<Utc>) -> usize;
@@ -93,6 +103,15 @@ impl BlacklistStore for InMemoryBlacklistStore {
     async fn contains(&self, jti: &str) -> bool {
         let entries = self.entries.read().await;
         entries.contains_key(jti)
+    }
+
+    fn contains_sync(&self, jti: &str) -> Option<bool> {
+        // `try_read` never blocks and needs no reactor, so it is safe to call
+        // from a synchronous `fn`-pointer verifier (#2830).
+        self.entries
+            .try_read()
+            .ok()
+            .map(|entries| entries.contains_key(jti))
     }
 
     async fn cleanup(&self, expired_before: DateTime<Utc>) -> usize {
@@ -138,6 +157,17 @@ mod tests {
             .expect("insert must succeed");
         assert!(store.contains("jti-1").await);
         assert!(!store.contains("jti-2").await);
+    }
+
+    #[tokio::test]
+    async fn in_memory_store_exposes_a_synchronous_view() {
+        let store = InMemoryBlacklistStore::new();
+        assert_eq!(store.contains_sync("jti-sync"), Some(false));
+        store
+            .insert(entry("jti-sync", 10, -300))
+            .await
+            .expect("insert must succeed");
+        assert_eq!(store.contains_sync("jti-sync"), Some(true));
     }
 
     #[tokio::test]

@@ -1838,6 +1838,7 @@ dependencies = [
  "bigdecimal",
  "botlib",
  "botschema",
+ "botsecurity-auth",
  "botsecurity-core",
  "chrono",
  "csv",
