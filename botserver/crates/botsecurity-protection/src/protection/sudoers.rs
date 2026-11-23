@@ -11,7 +11,7 @@ pub const SUDOERS_CONTENT: &str = r#"# General Bots — security fix sudoers
 {user} ALL=(ALL) NOPASSWD: /usr/sbin/ufw
 {user} ALL=(ALL) NOPASSWD: /usr/bin/apt-get install -y ufw
 {user} ALL=(ALL) NOPASSWD: /usr/bin/apt-get install -y fail2ban
-{user} ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client *
+{user} ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client status
 {user} ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now fail2ban
 {user} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart fail2ban
 {user} ALL=(ALL) NOPASSWD: /usr/local/sbin/gb-write-fail2ban-jail
@@ -58,10 +58,43 @@ mv -f "$tmp" /etc/fail2ban/jail.local
 trap - EXIT HUP INT TERM
 "#;
 
+/// Strict POSIX-account validation before a name is substituted into a
+/// root-owned sudoers file. Rejects newlines, separators and leading digits.
+pub fn validate_sudo_user(user: &str) -> Result<(), String> {
+    if user.is_empty() || user.len() > 32 {
+        return Err("user name must be 1-32 characters".to_string());
+    }
+    let mut chars = user.chars();
+    let first = chars.next().ok_or_else(|| "empty user name".to_string())?;
+    if !first.is_ascii_lowercase() && first != '_' {
+        return Err("user name must start with a lowercase letter or underscore".to_string());
+    }
+    for character in chars {
+        if !character.is_ascii_lowercase()
+            && !character.is_ascii_digit()
+            && !matches!(character, '_' | '-' | '$')
+        {
+            return Err("user name contains an invalid character".to_string());
+        }
+    }
+    Ok(())
+}
+
 /// Print the one-time setup commands the operator must run as root to enable
-/// unattended security fix.
+/// unattended security fix. An invalid or missing `USER` fails closed: no
+/// sudoers snippet is emitted at all.
 pub fn print_bootstrap_instructions() {
-    let user = std::env::var("USER").unwrap_or_else(|_| "rodriguez".to_string());
+    let user = match std::env::var("USER") {
+        Ok(user) => user,
+        Err(_) => {
+            eprintln!("USER is not set; refusing to generate a sudoers file");
+            return;
+        }
+    };
+    if let Err(error) = validate_sudo_user(&user) {
+        eprintln!("Invalid USER for sudoers generation: {error}");
+        return;
+    }
     let content = SUDOERS_CONTENT.replace("{user}", &user);
     println!("=== One-time setup required ===");
     println!("Run this on the host as root:");
@@ -90,6 +123,26 @@ mod tests {
         assert!(!SUDOERS_CONTENT.contains("/tmp/"), "no /tmp source in sudoers");
         assert!(!SUDOERS_CONTENT.contains("/usr/bin/cp"), "no cp grant");
         assert!(SUDOERS_CONTENT.contains(JAIL_WRITER_PATH));
+    }
+
+    #[test]
+    fn no_sudoers_constant_contains_a_wildcard() {
+        assert!(!SUDOERS_CONTENT.contains('*'), "security fix sudoers has a wildcard");
+        #[cfg(not(windows))]
+        assert!(
+            !super::installer::SUDOERS_CONTENT.contains('*'),
+            "protection installer sudoers has a wildcard"
+        );
+    }
+
+    #[test]
+    fn username_validation_rejects_injection() {
+        assert!(validate_sudo_user("rodriguez").is_ok());
+        assert!(validate_sudo_user("_svc-user$").is_ok());
+        assert!(validate_sudo_user("root\nALL=(ALL) NOPASSWD: ALL").is_err());
+        assert!(validate_sudo_user("1user").is_err());
+        assert!(validate_sudo_user("user:group").is_err());
+        assert!(validate_sudo_user("").is_err());
     }
 
     #[test]
