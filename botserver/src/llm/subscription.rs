@@ -15,6 +15,8 @@ use botagent::AgentService;
 mod claude_bridge;
 mod codex_bridge;
 mod plan_limit;
+mod turn_message;
+pub mod workspace_ready;
 
 /// Runs prompts through the `antigravity` CLI inside the user's agent VM (#2576).
 pub struct AntigravityProvider {
@@ -179,19 +181,15 @@ pub async fn build(
             }
             let service = crate::core::bot::agent_vm_hook::service()
                 .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
-            let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(
-                session_id,
-                user_id,
-                bot_uuid,
-            )
-            .await
-            .ok_or_else(|| {
-                "Sign in to use your Claude Code subscription in the agent workspace.".to_string()
-            })?;
+            let vm_name = workspace_ready::workspace_vm(session_id, user_id, bot_uuid)
+                .await
+                .ok_or_else(|| {
+                    "Sign in to use your Claude Code subscription in the agent workspace.".to_string()
+                })?;
             let turn = crate::core::bot::pipeline::vm_consent::BridgeIdentity::new(state.clone(), user_id, session_id, bot_uuid);
             Ok(Arc::new(claude_bridge::ClaudeBridgeProvider::new(
                 service.clone(),
-                row.vm_name,
+                vm_name,
                 resolved.model.clone(),
                 turn,
                 session_id,
@@ -203,13 +201,13 @@ pub async fn build(
             }
             let service = crate::core::bot::agent_vm_hook::service()
                 .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
-            let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid)
+            let vm_name = workspace_ready::workspace_vm(session_id, user_id, bot_uuid)
                 .await
                 .ok_or_else(|| "Sign in to use your Codex subscription in the agent workspace.".to_string())?;
             let turn = crate::core::bot::pipeline::vm_consent::BridgeIdentity::new(state.clone(), user_id, session_id, bot_uuid);
             Ok(Arc::new(codex_bridge::CodexBridgeProvider::new(
                 service.clone(),
-                row.vm_name,
+                vm_name,
                 resolved.model.clone(),
                 turn,
                 session_id,
@@ -221,10 +219,10 @@ pub async fn build(
             }
             let service = crate::core::bot::agent_vm_hook::service()
                 .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
-            let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid)
+            let vm_name = workspace_ready::workspace_vm(session_id, user_id, bot_uuid)
                 .await
                 .ok_or_else(|| "Sign in to use your Antigravity account in the agent workspace.".to_string())?;
-            Ok(Arc::new(AntigravityProvider::new(service.clone(), row.vm_name, resolved.model.clone())))
+            Ok(Arc::new(AntigravityProvider::new(service.clone(), vm_name, resolved.model.clone())))
         }
         crate::core::ai_accounts::CHATGPT_PLAN => {
             let manager = botcoresecrets::SecretsManager::get()

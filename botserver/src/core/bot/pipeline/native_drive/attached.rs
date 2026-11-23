@@ -61,18 +61,6 @@ pub(super) fn clear(session_id: Uuid) {
     record(session_id, Vec::new());
 }
 
-/// The attachment paths for an engine that receives only the latest message.
-pub fn resumed_note(files: &[StagedFile]) -> String {
-    if files.is_empty() {
-        return String::new();
-    }
-    let paths: Vec<&str> = files.iter().map(|file| file.vm_path.as_str()).collect();
-    format!(
-        "[Attached to this message and copied whole into the workspace: {}. Open each file at that          exact path (pictures included) and read the whole file before answering about it.]",
-        paths.join(", ")
-    )
-}
-
 /// The attachment names the hook recorded in `text`, exactly as stored.
 pub(super) fn attached_names(text: &str) -> Vec<String> {
     let mut names = Vec::new();
@@ -207,16 +195,24 @@ pub(super) async fn stage_attachments(
         botlog::safe_warn!("drive bridge: no Drive scope for bot {bot_uuid}");
         return 0;
     };
-    if agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid).await.is_none() {
+    // The workspace check and the Drive reads run together: a workspace
+    // verified a moment ago answers from the records, a cold one is checked
+    // while the files are read.
+    let names: Vec<String> = names.into_iter().take(MAX_FILES).collect();
+    let reads = futures::future::join_all(names.iter().map(|name| read_inbox(state, &scope, name)));
+    let (vm, contents) = tokio::join!(
+        crate::llm::subscription::workspace_ready::workspace_vm(session_id, user_id, bot_uuid),
+        reads
+    );
+    if vm.is_none() {
         return 0;
     }
-    let mut copied: Vec<(String, String, u64)> = Vec::new();
     let mut failed: Vec<String> = Vec::new();
-    let mut staged_files = Vec::new();
     let mut total: u64 = 0;
     let mut used_names: Vec<String> = Vec::new();
-    for name in names.into_iter().take(MAX_FILES) {
-        let Some(bytes) = read_inbox(state, &scope, &name).await else {
+    let mut copies: Vec<(String, String, Vec<u8>)> = Vec::new();
+    for (name, bytes) in names.into_iter().zip(contents) {
+        let Some(bytes) = bytes else {
             failed.push(format!("\"{name}\""));
             continue;
         };
@@ -231,13 +227,22 @@ pub(super) async fn stage_attachments(
             file_name = format!("{}-{file_name}", used_names.len() + 1);
         }
         used_names.push(file_name.clone());
+        copies.push((name, file_name, bytes));
+    }
+    let written = futures::future::join_all(copies.iter().map(|(_, file_name, bytes)| async move {
         let local = format!("data/{file_name}");
         let ticket = crate::core::bot::pipeline::vm_consent::VmConsent::for_person_request(session_id, &local);
-        match agent_vm_hook::write_session_file(ticket, user_id, session_id, &local, &bytes).await {
-            Ok(_) => {
+        agent_vm_hook::write_session_file(ticket, user_id, session_id, &local, bytes).await.map(|_| local)
+    }))
+    .await;
+    let mut copied: Vec<(String, String, u64)> = Vec::new();
+    let mut staged_files = Vec::new();
+    for ((name, file_name, bytes), result) in copies.into_iter().zip(written) {
+        match result {
+            Ok(local) => {
                 let vm_path = conversation_path(session_id, &local);
                 staged_files.push(StagedFile { vm_path: vm_path.clone(), image: is_image(&file_name) });
-                copied.push((name, vm_path, size));
+                copied.push((name, vm_path, bytes.len() as u64));
             }
             Err(error) => {
                 botlog::safe_warn!("drive bridge: attachment copy failed: {error}");

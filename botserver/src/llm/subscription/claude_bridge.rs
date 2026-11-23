@@ -80,9 +80,7 @@ impl ClaudeBridgeProvider {
         tx: Option<&mpsc::Sender<String>>,
     ) -> Result<String, ProviderError> {
         let transcript = super::flatten_prompt(prompt, config);
-        let latest = latest_message(prompt, config);
-        #[cfg(feature = "drive")]
-        let latest = with_attachments(latest, self.session_id);
+        let latest = super::turn_message::for_resumed(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
         let thread = bus::thread_id(self.session_id);
         let run_bus = bus::bus();
@@ -128,34 +126,6 @@ fn unsafe_refusal() -> String {
         &format!("This version of {label} did not ask for permission before acting, so it is blocked."),
         &[("agent", CLAUDE_CODE), ("label", label), ("version", CLAUDE_CODE_VERSION)],
     )
-}
-
-/// A resumed session receives only the latest message, not the system note
-/// about this message's attachments, so their paths travel with it.
-#[cfg(feature = "drive")]
-fn with_attachments(latest: String, session_id: Uuid) -> String {
-    use crate::core::bot::pipeline::native_drive::attached;
-    let note = attached::resumed_note(&attached::staged_for(session_id));
-    if note.is_empty() {
-        latest
-    } else {
-        format!("{latest}
-
-{note}")
-    }
-}
-
-/// The person's latest message: all a resumed session still lacks.
-fn latest_message(prompt: &str, config: &Value) -> String {
-    config
-        .as_array()
-        .and_then(|messages| {
-            messages.iter().rev().find(|m| m.get("role").and_then(Value::as_str) == Some("user"))
-        })
-        .and_then(|message| message.get("content").and_then(Value::as_str))
-        .filter(|content| !content.trim().is_empty())
-        .unwrap_or(prompt)
-        .to_string()
 }
 
 /// The action the card shows for one Claude Code tool use. A read is its own
@@ -263,21 +233,8 @@ impl botlib::traits::LLMProvider for ClaudeBridgeProvider {
 
 #[cfg(test)]
 mod tests {
-    use super::{latest_message, vm_action};
+    use super::vm_action;
     use botagent::claude::bridge::ClaudeAction;
-    use serde_json::json;
-
-    #[test]
-    fn a_resumed_session_gets_only_the_latest_message() {
-        let config = json!([
-            {"role": "system", "content": "be brief"},
-            {"role": "user", "content": "first"},
-            {"role": "assistant", "content": "ok"},
-            {"role": "user", "content": "second"}
-        ]);
-        assert_eq!(latest_message("fallback", &config), "second");
-        assert_eq!(latest_message("fallback", &json!(null)), "fallback");
-    }
 
     #[test]
     fn the_card_carries_the_exact_command_path_or_url() {

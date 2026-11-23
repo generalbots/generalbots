@@ -56,7 +56,7 @@ impl CodexBridgeProvider {
         tx: Option<&mpsc::Sender<String>>,
     ) -> Result<String, ProviderError> {
         let transcript = super::flatten_prompt(prompt, config);
-        let latest = latest_message(prompt, config);
+        let latest = super::turn_message::for_resumed(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
         let thread = bus::thread_id(self.session_id);
         let run_bus = bus::bus();
@@ -68,7 +68,7 @@ impl CodexBridgeProvider {
             thread,
         };
         let conversation = self.session_id.to_string();
-        let instructions = system_prompt(config);
+        let instructions = super::turn_message::persona(config);
         #[cfg(feature = "drive")]
         let images = attached_images(self.session_id);
         #[cfg(not(feature = "drive"))]
@@ -117,38 +117,6 @@ fn unsafe_refusal(label: &str, version: &str) -> String {
         &format!("This version of {label} ({version}) did not ask for permission before acting, so it is blocked."),
         &[("agent", CODEX_CLI), ("label", label), ("version", version)],
     )
-}
-
-/// The person's latest message: what a resumed Codex thread still lacks.
-fn latest_message(prompt: &str, config: &Value) -> String {
-    config
-        .as_array()
-        .and_then(|messages| {
-            messages
-                .iter()
-                .rev()
-                .find(|message| message.get("role").and_then(Value::as_str) == Some("user"))
-        })
-        .and_then(|message| message.get("content").and_then(Value::as_str))
-        .filter(|content| !content.trim().is_empty())
-        .unwrap_or(prompt)
-        .to_string()
-}
-
-/// The turn's system prompt (the persona and its rules), given again to a
-/// resumed thread so a changed prompt reaches it.
-fn system_prompt(config: &Value) -> Option<String> {
-    let parts: Vec<&str> = config
-        .as_array()?
-        .iter()
-        .filter(|message| message.get("role").and_then(Value::as_str) == Some("system"))
-        .filter_map(|message| message.get("content").and_then(Value::as_str))
-        .map(str::trim)
-        .filter(|content| !content.is_empty())
-        .collect();
-    (!parts.is_empty()).then(|| parts.join("
-
-"))
 }
 
 /// The gate side of one turn.
@@ -233,37 +201,5 @@ impl botlib::traits::LLMProvider for CodexBridgeProvider {
         _tools: Option<&Vec<Value>>,
     ) -> Result<(), ProviderError> {
         self.answer(prompt, config, model, Some(&tx)).await.map(|_| ())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{latest_message, system_prompt};
-    use serde_json::json;
-
-    #[test]
-    fn a_resumed_thread_gets_the_current_system_prompt() {
-        let config = json!([
-            {"role": "system", "content": "You are Ana."},
-            {"role": "user", "content": "hi"},
-            {"role": "system", "content": "  Answer in Portuguese. "}
-        ]);
-        assert_eq!(system_prompt(&config).as_deref(), Some("You are Ana.
-
-Answer in Portuguese."));
-        assert_eq!(system_prompt(&json!([{"role": "user", "content": "hi"}])), None);
-        assert_eq!(system_prompt(&json!(null)), None);
-    }
-
-    #[test]
-    fn a_resumed_thread_gets_only_the_latest_message() {
-        let config = json!([
-            {"role": "system", "content": "Be brief."},
-            {"role": "user", "content": "first"},
-            {"role": "assistant", "content": "ok"},
-            {"role": "user", "content": "second"},
-        ]);
-        assert_eq!(latest_message("fallback", &config), "second");
-        assert_eq!(latest_message("only", &json!(null)), "only");
     }
 }

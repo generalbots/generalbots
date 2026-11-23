@@ -71,12 +71,3 @@ fn staged_files_last_until_the_next_message() {
     assert!(staged_for(session).is_empty());
     assert!(is_image("A.JPG") && !is_image("a.pdf"));
 }
-
-#[test]
-fn a_resumed_engine_gets_the_paths_with_the_message() {
-    assert!(resumed_note(&[]).is_empty());
-    let files = [StagedFile { vm_path: "/opt/vibe/conversations/c/data/a b.pdf".to_string(), image: false }];
-    let note = resumed_note(&files);
-    assert!(note.contains("/opt/vibe/conversations/c/data/a b.pdf"));
-    assert!(note.contains("read the whole file"));
-}

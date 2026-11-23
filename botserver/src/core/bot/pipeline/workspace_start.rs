@@ -18,11 +18,16 @@ use uuid::Uuid;
 use super::types::SessionIdentity;
 use super::workspace_progress::{WorkspaceProgress, PHASE_INFRA};
 use crate::core::bot::agent_vm_hook::WorkspaceError;
+use crate::llm::subscription::workspace_ready;
 
 /// Longest a turn waits for the workspace to start.
 pub(super) const START_BUDGET: Duration = Duration::from_secs(180);
 /// A start that finishes within this shows no step at all.
 const QUIET_START: Duration = Duration::from_secs(2);
+/// The quiet window when the records show the workspace running: checking a
+/// running container takes 2 to 4 s through WSL (more while another check of
+/// the same person holds the lock), a real start much longer.
+const QUIET_CHECK: Duration = Duration::from_secs(6);
 /// A turn that timed out marks the user; a second wait inside the same turn
 /// (or right after it) fails fast while that start is still running.
 const RECENT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -56,9 +61,19 @@ fn spawn_start(
     user_id: Uuid,
     bot_uuid: Uuid,
 ) -> JoinHandle<Result<AgentSessionRow, WorkspaceError>> {
-    tokio::spawn(crate::core::bot::agent_vm_hook::ensure_agent_vm_result(
-        session_id, user_id, bot_uuid,
-    ))
+    tokio::spawn(async move {
+        let result =
+            crate::core::bot::agent_vm_hook::ensure_agent_vm_result(session_id, user_id, bot_uuid).await;
+        workspace_ready::note_check(user_id, result.is_ok());
+        result
+    })
+}
+
+/// True when the records show the person's workspace running.
+fn recorded_running(user_id: Uuid) -> bool {
+    crate::core::bot::agent_vm_hook::service().is_some_and(|service| {
+        matches!(botagent::vm::get_user_vm(service, &user_id), Ok(Some(row)) if row.status == botagent::vm::STATUS_RUNNING)
+    })
 }
 
 /// `None` when the start did not finish within `limit`; the task keeps
@@ -200,8 +215,16 @@ pub(super) async fn before_subscription_turn(
         return Err(workspace_refusal(identity, model_preference,
             botcore::i18n::t(&locale, "error-workspace-start-timeout")));
     }
+    // Verified a moment ago and still recorded running: the check that runs
+    // beside the turn (`agent_vm_context`) keeps it honest, so this turn
+    // neither waits nor shows the start-up step.
+    let running = recorded_running(user_id);
+    if running && workspace_ready::verified_recently(user_id) {
+        return Ok(());
+    }
+    let quiet = if running { QUIET_CHECK } else { QUIET_START };
     let mut task = spawn_start(identity.session_id, user_id, identity.bot_uuid);
-    if let Some(result) = wait_for(&mut task, QUIET_START).await {
+    if let Some(result) = wait_for(&mut task, quiet).await {
         return quiet_outcome(identity, model_preference, result, &locale);
     }
     let progress = WorkspaceProgress::new(identity);
@@ -215,7 +238,7 @@ pub(super) async fn before_subscription_turn(
             )
             .await;
     }
-    let result = wait_for(&mut task, START_BUDGET.saturating_sub(QUIET_START)).await;
+    let result = wait_for(&mut task, START_BUDGET.saturating_sub(quiet)).await;
     let outcome = finish(identity, result);
     let message = outcome.as_ref().err().map(|error| user_message(error, &locale));
     if let Some(progress) = progress.as_ref() {
@@ -306,6 +329,7 @@ mod tests {
     fn the_budget_is_three_minutes_and_the_quiet_window_short() {
         assert_eq!(START_BUDGET, Duration::from_secs(180));
         assert!(QUIET_START < Duration::from_secs(5));
+        assert!(QUIET_START < QUIET_CHECK && QUIET_CHECK < Duration::from_secs(10));
     }
 
     #[tokio::test]
