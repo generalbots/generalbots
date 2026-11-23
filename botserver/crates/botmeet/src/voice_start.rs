@@ -31,7 +31,9 @@ pub async fn voice_start(
             botlog::safe_error!("Failed to start voice session for session {session_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::voice_start", None)})),
+                Json(
+                    serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::voice_start", None)}),
+                ),
             )
         }
     }
@@ -57,7 +59,9 @@ pub async fn voice_stop(
             botlog::safe_error!("Failed to stop voice session for session {session_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::voice_start", None)})),
+                Json(
+                    serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::voice_start", None)}),
+                ),
             )
         }
     }
@@ -81,7 +85,9 @@ pub async fn create_meeting(
             error!("Failed to create meeting room: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::voice_start", None)})),
+                Json(
+                    serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::voice_start", None)}),
+                ),
             )
         }
     }
@@ -93,11 +99,14 @@ pub async fn list_rooms(State(state): State<Arc<AppState>>) -> Html<String> {
     let rooms = meeting_service.rooms.read().await;
 
     if rooms.is_empty() {
-        return Html(r##"<div class="empty-state">
+        return Html(
+            r##"<div class="empty-state">
             <div class="empty-icon">📹</div>
             <p>No active rooms</p>
             <p class="empty-hint">Create a new meeting to get started</p>
-        </div>"##.to_string());
+        </div>"##
+                .to_string(),
+        );
     }
 
     let mut html = String::new();
@@ -156,7 +165,9 @@ pub async fn join_room(
             error!("Failed to join room {room_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::voice_start", None)})),
+                Json(
+                    serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::voice_start", None)}),
+                ),
             )
         }
     }
@@ -177,10 +188,7 @@ pub async fn leave_room(
     match rooms_guard.get_mut(&room_id) {
         Some(room) => {
             if room.participants.remove(&payload.participant_id).is_some() {
-                info!(
-                    "Participant {} left room {room_id}",
-                    payload.participant_id
-                );
+                info!("Participant {} left room {room_id}", payload.participant_id);
                 (
                     StatusCode::OK,
                     Json(serde_json::json!({

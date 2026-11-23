@@ -7,9 +7,9 @@ use log::error;
 use serde::Deserialize;
 use std::sync::Arc;
 
-use botcore::shared::state::AppState;
 use crate::room_persistence;
 use crate::{service::DefaultTranscriptionService, service::MeetingService};
+use botcore::shared::state::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct DashboardListQuery {
@@ -60,7 +60,9 @@ pub async fn dashboard_stats_htmx(
             error!("Failed to get dashboard stats: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::dashboard", None)})),
+                Json(
+                    serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::dashboard", None)}),
+                ),
             )
         }
     }
@@ -85,16 +87,11 @@ pub async fn dashboard_list_htmx(
         offset: Some(0),
     };
 
-    let meetings = match room_persistence::list_meetings(
-        &state,
-        db_query,
-        caller_scope(&headers),
-    )
-    .await
-    {
-        Ok(m) => m,
-        Err(e) => return Html(format!("<div class='error'>Error: {e}</div>")),
-    };
+    let meetings =
+        match room_persistence::list_meetings(&state, db_query, caller_scope(&headers)).await {
+            Ok(m) => m,
+            Err(e) => return Html(format!("<div class='error'>Error: {e}</div>")),
+        };
 
     if meetings.is_empty() {
         return Html(render_empty_state(view));
@@ -112,7 +109,8 @@ pub async fn create_room_htmx(
     State(state): State<Arc<AppState>>,
     axum::extract::Form(payload): axum::extract::Form<CreateRoomForm>,
 ) -> impl IntoResponse {
-    let name = payload.title
+    let name = payload
+        .title
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| format!("Meeting {}", chrono::Utc::now().format("%H:%M")));
     let created_by = payload.created_by.unwrap_or_else(|| "user".into());
@@ -179,7 +177,8 @@ fn render_meeting_card(m: &room_persistence::MeetingListItem) -> String {
         "scheduled" => "Scheduled",
         _ => "Ended",
     };
-    let time_str = m.scheduled_at
+    let time_str = m
+        .scheduled_at
         .map(|dt| dt.format("%b %d, %H:%M").to_string())
         .unwrap_or_else(|| m.created_at.format("%b %d, %H:%M").to_string());
     let join_btn = if m.status == "live" {

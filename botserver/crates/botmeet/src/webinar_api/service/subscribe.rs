@@ -91,7 +91,10 @@ impl WebinarService {
     }
 
     pub async fn get_webinar(&self, webinar_id: Uuid) -> Result<Webinar, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let sql = r#"
             SELECT id, organization_id, meeting_id, title, description,
@@ -113,7 +116,11 @@ impl WebinarService {
         Ok(self.row_to_webinar(row))
     }
 
-    pub async fn start_webinar(&self, webinar_id: Uuid, host_id: Uuid) -> Result<Webinar, WebinarError> {
+    pub async fn start_webinar(
+        &self,
+        webinar_id: Uuid,
+        host_id: Uuid,
+    ) -> Result<Webinar, WebinarError> {
         let webinar = self.get_webinar(webinar_id).await?;
 
         if webinar.host_id != host_id {
@@ -121,10 +128,15 @@ impl WebinarService {
         }
 
         if webinar.status != WebinarStatus::Scheduled && webinar.status != WebinarStatus::Paused {
-            return Err(WebinarError::InvalidState("Webinar cannot be started".to_string()));
+            return Err(WebinarError::InvalidState(
+                "Webinar cannot be started".to_string(),
+            ));
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         diesel::sql_query(
             "UPDATE webinars SET status = 'live', actual_start = COALESCE(actual_start, NOW()), updated_at = NOW() WHERE id = $1"
@@ -136,20 +148,31 @@ impl WebinarService {
             WebinarError::UpdateFailed
         })?;
 
-        self.broadcast_event(WebinarEventType::WebinarStarted, webinar_id, serde_json::json!({}));
+        self.broadcast_event(
+            WebinarEventType::WebinarStarted,
+            webinar_id,
+            serde_json::json!({}),
+        );
 
         info!("Started webinar {}", webinar_id);
         self.get_webinar(webinar_id).await
     }
 
-    pub async fn end_webinar(&self, webinar_id: Uuid, host_id: Uuid) -> Result<Webinar, WebinarError> {
+    pub async fn end_webinar(
+        &self,
+        webinar_id: Uuid,
+        host_id: Uuid,
+    ) -> Result<Webinar, WebinarError> {
         let webinar = self.get_webinar(webinar_id).await?;
 
         if webinar.host_id != host_id {
             return Err(WebinarError::NotAuthorized);
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         diesel::sql_query(
             "UPDATE webinars SET status = 'ended', actual_end = NOW(), updated_at = NOW() WHERE id = $1"
@@ -161,7 +184,11 @@ impl WebinarService {
             WebinarError::UpdateFailed
         })?;
 
-        self.broadcast_event(WebinarEventType::WebinarEnded, webinar_id, serde_json::json!({}));
+        self.broadcast_event(
+            WebinarEventType::WebinarEnded,
+            webinar_id,
+            serde_json::json!({}),
+        );
 
         info!("Ended webinar {}", webinar_id);
         self.get_webinar(webinar_id).await
@@ -178,7 +205,10 @@ impl WebinarService {
             return Err(WebinarError::RegistrationNotRequired);
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let existing: Vec<CountRow> = diesel::sql_query(
             "SELECT COUNT(*) as count FROM webinar_registrations WHERE webinar_id = $1 AND email = $2"
@@ -195,8 +225,8 @@ impl WebinarService {
         let id = Uuid::new_v4();
         let join_link = format!("/webinar/{}/join?token={}", webinar_id, Uuid::new_v4());
         let custom_fields = request.custom_fields.clone().unwrap_or_default();
-        let custom_fields_json = serde_json::to_string(&custom_fields)
-            .unwrap_or_else(|_| "{}".to_string());
+        let custom_fields_json =
+            serde_json::to_string(&custom_fields).unwrap_or_else(|_| "{}".to_string());
 
         let sql = r#"
             INSERT INTO webinar_registrations (
@@ -249,10 +279,15 @@ impl WebinarService {
         let webinar = self.get_webinar(webinar_id).await?;
 
         if webinar.status != WebinarStatus::Live && webinar.status != WebinarStatus::Scheduled {
-            return Err(WebinarError::InvalidState("Webinar is not active".to_string()));
+            return Err(WebinarError::InvalidState(
+                "Webinar is not active".to_string(),
+            ));
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let status = if webinar.settings.waiting_room_enabled {
             "in_waiting_room"
@@ -261,7 +296,7 @@ impl WebinarService {
         };
 
         diesel::sql_query(
-            "UPDATE webinar_participants SET status = $1, joined_at = NOW() WHERE id = $2"
+            "UPDATE webinar_participants SET status = $1, joined_at = NOW() WHERE id = $2",
         )
         .bind::<Text, _>(status)
         .bind::<DieselUuid, _>(participant_id)

@@ -93,7 +93,7 @@ pub(super) async fn main() -> std::io::Result<()> {
         let command = &args[1];
         match command.as_str() {
             "install" | "remove" | "list" | "status" | "start" | "stop" | "restart"
-            | "rotate-secret" | "rotate-secrets" | "vault"
+            | "rotate-secret" | "rotate-secrets" | "vault" | "audit"
             | "--version" | "-v" | "--help" | "-h" => match crate::core::package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {

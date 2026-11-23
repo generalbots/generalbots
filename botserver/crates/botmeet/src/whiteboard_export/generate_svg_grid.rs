@@ -41,13 +41,9 @@ impl WhiteboardExportService {
         let w = shape.width * scale;
         let h = shape.height * scale;
 
-        let fill = shape
-            .fill_color.as_deref()
-            .unwrap_or("none");
+        let fill = shape.fill_color.as_deref().unwrap_or("none");
 
-        let stroke = shape
-            .stroke_color.as_deref()
-            .unwrap_or("none");
+        let stroke = shape.stroke_color.as_deref().unwrap_or("none");
 
         let stroke_width = shape.stroke_width * options.scale;
         let opacity = shape.opacity;
@@ -127,7 +123,13 @@ impl WhiteboardExportService {
                 let text_content = shape.text.as_deref().unwrap_or("");
                 format!(
                     r#"<text class="shape" x="{}" y="{}" font-size="{}" fill="{}" opacity="{}"{}>{}</text>"#,
-                    x, y + font_size, font_size, fill, opacity, transform, text_content
+                    x,
+                    y + font_size,
+                    font_size,
+                    fill,
+                    opacity,
+                    transform,
+                    text_content
                 )
             }
             ShapeType::Image => {
@@ -195,7 +197,8 @@ impl WhiteboardExportService {
                 let inner_r = outer_r * 0.4;
                 let mut points = Vec::new();
                 for i in 0..10 {
-                    let angle = std::f64::consts::PI / 2.0 - (i as f64) * std::f64::consts::PI / 5.0;
+                    let angle =
+                        std::f64::consts::PI / 2.0 - (i as f64) * std::f64::consts::PI / 5.0;
                     let r = if i % 2 == 0 { outer_r } else { inner_r };
                     let px = cx + r * angle.cos();
                     let py = cy - r * angle.sin();
@@ -203,7 +206,12 @@ impl WhiteboardExportService {
                 }
                 format!(
                     r#"<polygon class="shape" points="{}" fill="{}" stroke="{}" stroke-width="{}" opacity="{}"{}/>"#,
-                    points.join(" "), fill, stroke, stroke_width, opacity, transform
+                    points.join(" "),
+                    fill,
+                    stroke,
+                    stroke_width,
+                    opacity,
+                    transform
                 )
             }
         }

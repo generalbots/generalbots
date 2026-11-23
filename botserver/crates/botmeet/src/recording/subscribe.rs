@@ -22,14 +22,19 @@ impl RecordingService {
     ) -> Result<WebinarRecording, RecordingError> {
         // Check if webinar is already being recorded
         let sessions = self.active_sessions.read().await;
-        if sessions.values().any(|s| s.webinar_id == request.webinar_id) {
+        if sessions
+            .values()
+            .any(|s| s.webinar_id == request.webinar_id)
+        {
             return Err(RecordingError::AlreadyRecording);
         }
         drop(sessions);
 
         let recording_id = Uuid::new_v4();
         let now = Utc::now();
-        let quality = request.quality.unwrap_or(self.config.default_quality.clone());
+        let quality = request
+            .quality
+            .unwrap_or(self.config.default_quality.clone());
 
         // Create recording session
         let session = RecordingSession {
@@ -45,9 +50,7 @@ impl RecordingService {
             screen_share_track_id: None,
             file_path: Some(format!(
                 "{}/{}/{}.webm",
-                self.config.storage_bucket,
-                request.webinar_id,
-                recording_id
+                self.config.storage_bucket, request.webinar_id, recording_id
             )),
             chunk_count: 0,
             bytes_written: 0,
@@ -104,7 +107,9 @@ impl RecordingService {
 
         session.paused_at = Some(Utc::now());
 
-        let _ = self.event_sender.send(RecordingEvent::Paused { recording_id });
+        let _ = self
+            .event_sender
+            .send(RecordingEvent::Paused { recording_id });
 
         Ok(())
     }
@@ -121,7 +126,9 @@ impl RecordingService {
             session.paused_at = None;
         }
 
-        let _ = self.event_sender.send(RecordingEvent::Resumed { recording_id });
+        let _ = self
+            .event_sender
+            .send(RecordingEvent::Resumed { recording_id });
 
         Ok(())
     }
@@ -137,9 +144,9 @@ impl RecordingService {
         drop(sessions);
 
         let now = Utc::now();
-        let duration_seconds =
-            ((now - session.started_at).num_milliseconds() as u64 - session.total_paused_duration_ms)
-                / 1000;
+        let duration_seconds = ((now - session.started_at).num_milliseconds() as u64
+            - session.total_paused_duration_ms)
+            / 1000;
 
         // Update database record
         self.update_recording_stopped(
@@ -160,7 +167,10 @@ impl RecordingService {
         self.process_recording(request.recording_id).await?;
 
         // Start transcription if requested
-        if request.start_transcription.unwrap_or(self.config.auto_transcribe) {
+        if request
+            .start_transcription
+            .unwrap_or(self.config.auto_transcribe)
+        {
             self.start_transcription(request.recording_id, session.webinar_id, None)
                 .await?;
         }
@@ -208,12 +218,10 @@ impl RecordingService {
         self.update_recording_processed(recording_id, &file_url, &download_url)
             .await?;
 
-        let _ = self
-            .event_sender
-            .send(RecordingEvent::ProcessingCompleted {
-                recording_id,
-                file_url,
-            });
+        let _ = self.event_sender.send(RecordingEvent::ProcessingCompleted {
+            recording_id,
+            file_url,
+        });
 
         Ok(())
     }

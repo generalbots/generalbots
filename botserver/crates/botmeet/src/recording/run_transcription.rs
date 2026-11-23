@@ -118,7 +118,10 @@ impl RecordingService {
             });
     }
 
-    pub async fn get_recording(&self, recording_id: Uuid) -> Result<WebinarRecording, RecordingError> {
+    pub async fn get_recording(
+        &self,
+        recording_id: Uuid,
+    ) -> Result<WebinarRecording, RecordingError> {
         // Check active sessions first
         let sessions = self.active_sessions.read().await;
         if let Some(session) = sessions.get(&recording_id) {

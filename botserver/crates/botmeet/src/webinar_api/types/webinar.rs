@@ -71,7 +71,7 @@ pub struct WebinarSettings {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub enum RecordingQuality {
     #[default]
-    Standard,  // 720p
+    Standard, // 720p
     High,      // 1080p
     Ultra,     // 4K
     AudioOnly, // Audio only recording
@@ -161,7 +161,10 @@ impl std::fmt::Display for ParticipantRole {
 }
 impl ParticipantRole {
     pub fn can_present(&self) -> bool {
-        matches!(self, Self::Host | Self::CoHost | Self::Presenter | Self::Panelist)
+        matches!(
+            self,
+            Self::Host | Self::CoHost | Self::Presenter | Self::Panelist
+        )
     }
 
     pub fn can_manage(&self) -> bool {
@@ -169,7 +172,10 @@ impl ParticipantRole {
     }
 
     pub fn can_speak(&self) -> bool {
-        matches!(self, Self::Host | Self::CoHost | Self::Presenter | Self::Panelist)
+        matches!(
+            self,
+            Self::Host | Self::CoHost | Self::Presenter | Self::Panelist
+        )
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]

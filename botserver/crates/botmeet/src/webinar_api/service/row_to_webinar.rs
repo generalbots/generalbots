@@ -2,7 +2,8 @@ use super::*;
 
 impl WebinarService {
     pub(super) fn row_to_webinar(&self, row: WebinarRow) -> Webinar {
-        let settings: WebinarSettings = serde_json::from_str(&row.settings_json).unwrap_or_default();
+        let settings: WebinarSettings =
+            serde_json::from_str(&row.settings_json).unwrap_or_default();
         let status = match row.status.as_str() {
             "draft" => WebinarStatus::Draft,
             "scheduled" => WebinarStatus::Scheduled,

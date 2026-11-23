@@ -1,11 +1,7 @@
 use super::*;
 
-pub async fn handle_meet_join_htmx(
-    Form(payload): Form<MeetJoinHtmxRequest>,
-) -> impl IntoResponse {
-    let name = payload
-        .user_name
-        .unwrap_or_else(|| "Guest".to_string());
+pub async fn handle_meet_join_htmx(Form(payload): Form<MeetJoinHtmxRequest>) -> impl IntoResponse {
+    let name = payload.user_name.unwrap_or_else(|| "Guest".to_string());
     let room = payload
         .room_id
         .or(payload.meeting_code)

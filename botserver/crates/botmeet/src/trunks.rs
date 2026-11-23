@@ -102,7 +102,9 @@ async fn provision_trunk(
         created_at: now_secs(),
     };
     {
-        let mut guard = registry().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut guard = registry()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         guard.push(trunk.clone());
     }
     info!(
@@ -118,7 +120,9 @@ async fn provision_trunk(
 }
 
 async fn list_trunks(State(_state): State<Arc<AppState>>) -> Json<TrunkResponse> {
-    let guard = registry().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let guard = registry()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     Json(TrunkResponse {
         success: true,
         trunk: None,
@@ -131,7 +135,9 @@ async fn release_trunk(
     State(_state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Json<TrunkResponse> {
-    let mut guard = registry().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut guard = registry()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(pos) = guard.iter().position(|t| t.id == id) {
         let trunk = guard.remove(pos);
         info!("Vibe voice: trunk '{}' released", trunk.name);

@@ -1,5 +1,12 @@
 use super::*;
 
+/// #2752 — catalog-level RBAC gate, testable without a database pool.
+pub(super) fn requires_admin(name: &str) -> bool {
+    commands_list()
+        .iter()
+        .any(|c| c.name == name && c.admin_only)
+}
+
 /// Executes a catalog command in-process against the backend state. Enforces
 /// the RBAC matrix: admin-only commands and admin-only endpoints are denied
 /// to non-admin users.
@@ -18,13 +25,8 @@ pub async fn execute_command(
     params: &Value,
 ) -> Result<Value, String> {
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
-    if role != crate::security::user_role::ROLE_ADMIN {
-        let denied = commands_list()
-            .iter()
-            .any(|c| c.name == name && c.admin_only);
-        if denied {
-            return Err(format!("command '{name}' requires the admin role"));
-        }
+    if role != crate::security::user_role::ROLE_ADMIN && requires_admin(name) {
+        return Err(format!("command '{name}' requires the admin role"));
     }
     let obj = match params {
         Value::Object(map) => map,
@@ -33,11 +35,7 @@ pub async fn execute_command(
 
     // #2372 — command usage stats (catalog command name).
     let cmd_meta = commands_list().iter().find(|c| c.name == name).copied();
-    crate::apps::record_command_usage(
-        name,
-        cmd_meta.map(|c| c.app),
-        cmd_meta.map(|c| c.label),
-    );
+    crate::apps::record_command_usage(name, cmd_meta.map(|c| c.app), cmd_meta.map(|c| c.label));
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
         "service.tax" | "tax.calculate" => {
@@ -402,6 +400,48 @@ pub async fn execute_command(
             } else {
                 Err(format!("unknown command '{name}'"))
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod admin_gate_tests {
+    use super::*;
+
+    /// #2752 — non-admins are rejected before any handler runs.
+    #[test]
+    fn state_changing_commands_require_admin() {
+        for name in [
+            "database.rows.insert",
+            "database.rows.update",
+            "database.rows.import",
+            "database.rows.delete",
+            "database.rows.batch_delete",
+            "database.table.create",
+            "database.column.add",
+            "database.connections.create",
+            "compliance.framework.create",
+            "compliance.control.add",
+            "compliance.evidence.attach",
+            "integrations.api-keys.create",
+            "integrations.webhooks.create",
+        ] {
+            assert!(requires_admin(name), "{name} is not gated for admin");
+        }
+        // `database.query` is admin-only at HEAD (read-only but SQL-capable);
+        // only the harmless listing verb stays open to regular users.
+        assert!(!requires_admin("database.tables.list"));
+    }
+
+    /// #2752 — adding a database verb without `admin_only: true` fails here.
+    #[cfg(feature = "database")]
+    #[test]
+    fn every_database_verb_is_admin_only() {
+        for name in database_verbs::declared_verbs() {
+            assert!(
+                requires_admin(name),
+                "database verb {name} needs admin_only"
+            );
         }
     }
 }

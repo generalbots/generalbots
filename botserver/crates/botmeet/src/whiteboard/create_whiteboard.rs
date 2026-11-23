@@ -1,5 +1,10 @@
 use super::*;
 
+use axum::{extract::Extension, http::StatusCode};
+use botsecurity::auth::AuthenticatedUser;
+
+use super::access_control::caller_can_access;
+
 impl Default for WhiteboardManager {
     fn default() -> Self {
         Self::new()
@@ -13,11 +18,7 @@ impl WhiteboardManager {
         }
     }
 
-    pub async fn create_whiteboard(
-        &self,
-        conversation_id: Uuid,
-        name: String,
-    ) -> Uuid {
+    pub async fn create_whiteboard(&self, conversation_id: Uuid, name: String) -> Uuid {
         let whiteboard_id = Uuid::new_v4();
         let state = WhiteboardState::new(whiteboard_id, conversation_id, name);
 
@@ -49,7 +50,10 @@ impl WhiteboardManager {
         whiteboards.remove(whiteboard_id).is_some()
     }
 
-    pub async fn subscribe(&self, whiteboard_id: &Uuid) -> Option<broadcast::Receiver<WhiteboardMessage>> {
+    pub async fn subscribe(
+        &self,
+        whiteboard_id: &Uuid,
+    ) -> Option<broadcast::Receiver<WhiteboardMessage>> {
         let channels = self.broadcast_channels.read().await;
         channels.get(whiteboard_id).map(|tx| tx.subscribe())
     }
@@ -166,12 +170,24 @@ impl Clone for WhiteboardState {
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/whiteboard/:id/ws", get(whiteboard_websocket))
-        .route("/whiteboard/create/:conversation_id", get(create_whiteboard))
+        .route(
+            "/whiteboard/create/:conversation_id",
+            get(create_whiteboard),
+        )
 }
 pub(super) async fn create_whiteboard(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(conversation_id): Path<Uuid>,
-) -> impl IntoResponse {
+) -> Result<axum::Json<serde_json::Value>, (StatusCode, axum::Json<serde_json::Value>)> {
+    let principal = WhiteboardPrincipal::from_authenticated(&user);
+    if !caller_can_access(&state, &principal, conversation_id).await {
+        return Err((
+            StatusCode::FORBIDDEN,
+            axum::Json(serde_json::json!({ "error": "whiteboard access denied" })),
+        ));
+    }
+
     let manager = state
         .extensions
         .get::<WhiteboardManager>()
@@ -182,15 +198,32 @@ pub(super) async fn create_whiteboard(
         .create_whiteboard(conversation_id, "New Whiteboard".to_string())
         .await;
 
-    axum::Json(serde_json::json!({
+    Ok(axum::Json(serde_json::json!({
         "whiteboard_id": whiteboard_id,
         "conversation_id": conversation_id
-    }))
+    })))
 }
 pub(super) async fn whiteboard_websocket(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(whiteboard_id): Path<Uuid>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_whiteboard_socket(socket, state, whiteboard_id))
+) -> Response {
+    let principal = WhiteboardPrincipal::from_authenticated(&user);
+    let manager = state
+        .extensions
+        .get::<WhiteboardManager>()
+        .await
+        .unwrap_or_else(|| Arc::new(WhiteboardManager::new()));
+
+    let conversation_id = match manager.get_whiteboard(&whiteboard_id).await {
+        Some(whiteboard) => whiteboard.conversation_id,
+        None => return StatusCode::NOT_FOUND.into_response(),
+    };
+    if !caller_can_access(&state, &principal, conversation_id).await {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+
+    ws.on_upgrade(move |socket| handle_whiteboard_socket(socket, state, whiteboard_id, principal))
+        .into_response()
 }

@@ -268,14 +268,14 @@ impl MeetingService {
             message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-        suggestions: Vec::new(),
-        switchers: Vec::new(),
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-        reasoning: String::new(),
-    })
-}
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+            reasoning: String::new(),
+        })
+    }
 
     async fn broadcast_to_room(&self, room_id: &str, message: MeetingMessage) {
         let connections = self.connections.read().await;

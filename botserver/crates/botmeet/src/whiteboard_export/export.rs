@@ -1,10 +1,35 @@
 use super::*;
 
+use botcore::shared::state::AppState;
+
+use crate::whiteboard::access_control::{caller_can_access, WhiteboardPrincipal};
+
 impl WhiteboardExportService {
     pub fn new() -> Self {
         Self {
             export_history: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    /// Authorized export entry point (#2740). Membership is resolved from the
+    /// database by [`caller_can_access`], never from caller-supplied data. The
+    /// raw [`Self::export`] below performs no access check and must only be
+    /// reached through this gate or from trusted internal callers.
+    pub async fn export_authorized(
+        &self,
+        whiteboard: &WhiteboardData,
+        options: ExportOptions,
+        principal: &WhiteboardPrincipal,
+        conversation_id: Uuid,
+        state: &Arc<AppState>,
+    ) -> Result<ExportResult, ExportError> {
+        if !caller_can_access(state, principal, conversation_id).await {
+            return Err(ExportError::NotAuthorized(
+                "caller is not a member of the whiteboard conversation".to_string(),
+            ));
+        }
+        self.export(whiteboard, options, principal.user_id, &principal.username)
+            .await
     }
 
     pub async fn export(
@@ -42,7 +67,11 @@ impl WhiteboardExportService {
             }
             ExportFormat::Json => {
                 let json_data = self.export_to_json(whiteboard, &shapes)?;
-                (json_data.into_bytes(), "application/json".to_string(), "json")
+                (
+                    json_data.into_bytes(),
+                    "application/json".to_string(),
+                    "json",
+                )
             }
         };
 
@@ -82,7 +111,11 @@ impl WhiteboardExportService {
         Ok(result)
     }
 
-    pub(super) fn calculate_bounds(&self, shapes: &[WhiteboardShape], options: &ExportOptions) -> ExportBounds {
+    pub(super) fn calculate_bounds(
+        &self,
+        shapes: &[WhiteboardShape],
+        options: &ExportOptions,
+    ) -> ExportBounds {
         if shapes.is_empty() {
             return ExportBounds {
                 min_x: 0.0,
@@ -130,7 +163,12 @@ impl WhiteboardExportService {
         match shape.shape_type {
             ShapeType::Freehand | ShapeType::Line | ShapeType::Arrow => {
                 if shape.points.is_empty() {
-                    return (shape.x, shape.y, shape.x + shape.width, shape.y + shape.height);
+                    return (
+                        shape.x,
+                        shape.y,
+                        shape.x + shape.width,
+                        shape.y + shape.height,
+                    );
                 }
                 let min_x = shape.points.iter().map(|p| p.x).fold(f64::MAX, f64::min);
                 let min_y = shape.points.iter().map(|p| p.y).fold(f64::MAX, f64::min);
@@ -138,7 +176,12 @@ impl WhiteboardExportService {
                 let max_y = shape.points.iter().map(|p| p.y).fold(f64::MIN, f64::max);
                 (min_x, min_y, max_x, max_y)
             }
-            _ => (shape.x, shape.y, shape.x + shape.width, shape.y + shape.height),
+            _ => (
+                shape.x,
+                shape.y,
+                shape.x + shape.width,
+                shape.y + shape.height,
+            ),
         }
     }
 
@@ -206,10 +249,7 @@ impl WhiteboardExportService {
         let w = (shape.width * scale) as i32;
         let h = (shape.height * scale) as i32;
 
-        let fill = shape
-            .fill_color
-            .as_ref()
-            .and_then(|c| parse_hex_color(c));
+        let fill = shape.fill_color.as_ref().and_then(|c| parse_hex_color(c));
 
         let stroke = shape
             .stroke_color
@@ -230,7 +270,12 @@ impl WhiteboardExportService {
                     width,
                     height,
                     area,
-                    Rgba { r: stroke.0, g: stroke.1, b: stroke.2, a: alpha },
+                    Rgba {
+                        r: stroke.0,
+                        g: stroke.1,
+                        b: stroke.2,
+                        a: alpha,
+                    },
                 );
             }
             ShapeType::Ellipse => {
@@ -252,7 +297,12 @@ impl WhiteboardExportService {
                         height,
                         CanvasPoint { x: x1, y: y1 },
                         CanvasPoint { x: x2, y: y2 },
-                        Rgba { r: stroke.0, g: stroke.1, b: stroke.2, a: alpha },
+                        Rgba {
+                            r: stroke.0,
+                            g: stroke.1,
+                            b: stroke.2,
+                            a: alpha,
+                        },
                     );
                 }
             }
@@ -298,7 +348,14 @@ impl WhiteboardExportService {
         color: Rgba,
     ) {
         let CanvasRect { x, y, w, h } = area;
-        self.draw_line(pixels, width, height, CanvasPoint { x, y }, CanvasPoint { x: x + w, y }, color);
+        self.draw_line(
+            pixels,
+            width,
+            height,
+            CanvasPoint { x, y },
+            CanvasPoint { x: x + w, y },
+            color,
+        );
         self.draw_line(
             pixels,
             width,
@@ -315,6 +372,13 @@ impl WhiteboardExportService {
             CanvasPoint { x, y: y + h },
             color,
         );
-        self.draw_line(pixels, width, height, CanvasPoint { x, y: y + h }, CanvasPoint { x, y }, color);
+        self.draw_line(
+            pixels,
+            width,
+            height,
+            CanvasPoint { x, y: y + h },
+            CanvasPoint { x, y },
+            color,
+        );
     }
 }

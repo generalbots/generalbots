@@ -8,40 +8,99 @@ use tokio::sync::RwLock;
 
 use botcore::shared::state::AppState;
 
+mod guard;
+
+pub use guard::authenticated_signaling_websocket;
+use guard::{target_in_room, ParticipantIdentity};
+
 pub const MAX_PARTICIPANTS_PER_ROOM: usize = 25;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SignalMessage {
-    Join { room_id: String, participant_id: String, participant_name: String },
-    Offer { target_id: String, sdp: serde_json::Value },
-    Answer { target_id: String, sdp: serde_json::Value },
-    IceCandidate { target_id: String, candidate: serde_json::Value },
-    ChatMessage { content: String },
-    Mute { muted: bool },
+    Join {
+        room_id: String,
+        participant_id: String,
+        participant_name: String,
+    },
+    Offer {
+        target_id: String,
+        sdp: serde_json::Value,
+    },
+    Answer {
+        target_id: String,
+        sdp: serde_json::Value,
+    },
+    IceCandidate {
+        target_id: String,
+        candidate: serde_json::Value,
+    },
+    ChatMessage {
+        content: String,
+    },
+    Mute {
+        muted: bool,
+    },
     ScreenShareStart,
     ScreenShareStop,
     RaiseHand,
-    Reaction { emoji: String },
+    Reaction {
+        emoji: String,
+    },
     Leave,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum OutgoingSignal {
-    UserJoined { participant_id: String, participant_name: String },
-    UserLeft { participant_id: String },
-    ParticipantList { participants: Vec<ParticipantEntry> },
-    Offer { from_id: String, sdp: serde_json::Value },
-    Answer { from_id: String, sdp: serde_json::Value },
-    IceCandidate { from_id: String, candidate: serde_json::Value },
-    ChatMessage { from_id: String, from_name: String, content: String, timestamp: String },
-    Muted { participant_id: String, muted: bool },
-    ScreenShareStart { participant_id: String },
-    ScreenShareStop { participant_id: String },
-    RaiseHand { participant_id: String },
-    Reaction { participant_id: String, emoji: String },
-    Error { message: String },
+    UserJoined {
+        participant_id: String,
+        participant_name: String,
+    },
+    UserLeft {
+        participant_id: String,
+    },
+    ParticipantList {
+        participants: Vec<ParticipantEntry>,
+    },
+    Offer {
+        from_id: String,
+        sdp: serde_json::Value,
+    },
+    Answer {
+        from_id: String,
+        sdp: serde_json::Value,
+    },
+    IceCandidate {
+        from_id: String,
+        candidate: serde_json::Value,
+    },
+    ChatMessage {
+        from_id: String,
+        from_name: String,
+        content: String,
+        timestamp: String,
+    },
+    Muted {
+        participant_id: String,
+        muted: bool,
+    },
+    ScreenShareStart {
+        participant_id: String,
+    },
+    ScreenShareStop {
+        participant_id: String,
+    },
+    RaiseHand {
+        participant_id: String,
+    },
+    Reaction {
+        participant_id: String,
+        emoji: String,
+    },
+    Error {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -70,8 +129,35 @@ pub fn new_signaling_rooms() -> SignalingRooms {
     Arc::new(RwLock::new(HashMap::new()))
 }
 
+/// Backwards-compatible entry point retained for callers that do not yet
+/// provide a verified identity. It is **not** routed: `configure.rs` uses
+/// `authenticated_signaling_websocket`. With no identity, every `Join` is
+/// refused, so this path can never grant room access.
 pub async fn handle_signaling_socket(
-    socket: WebSocket, room_id: String, state: Arc<AppState>, rooms: SignalingRooms,
+    socket: WebSocket,
+    room_id: String,
+    state: Arc<AppState>,
+    rooms: SignalingRooms,
+) {
+    handle_signaling_socket_inner(socket, room_id, state, rooms, None).await;
+}
+
+pub(crate) async fn handle_authenticated_signaling_socket(
+    socket: WebSocket,
+    room_id: String,
+    state: Arc<AppState>,
+    rooms: SignalingRooms,
+    identity: ParticipantIdentity,
+) {
+    handle_signaling_socket_inner(socket, room_id, state, rooms, Some(identity)).await;
+}
+
+async fn handle_signaling_socket_inner(
+    socket: WebSocket,
+    room_id: String,
+    state: Arc<AppState>,
+    rooms: SignalingRooms,
+    identity: Option<ParticipantIdentity>,
 ) {
     let (mut ws_sender, mut ws_receiver) = socket.split();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
@@ -80,7 +166,9 @@ pub async fn handle_signaling_socket(
 
     let write_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            if ws_sender.send(Message::Text(msg)).await.is_err() { break; }
+            if ws_sender.send(Message::Text(msg)).await.is_err() {
+                break;
+            }
         }
     });
 
@@ -88,7 +176,10 @@ pub async fn handle_signaling_socket(
         let text = match msg_result {
             Ok(Message::Text(t)) => t.to_string(),
             Ok(Message::Close(_)) => break,
-            Err(e) => { warn!("WS error room {room_id}: {e}"); break; }
+            Err(e) => {
+                warn!("WS error room {room_id}: {e}");
+                break;
+            }
             _ => continue,
         };
 
@@ -96,80 +187,224 @@ pub async fn handle_signaling_socket(
             Ok(s) => s,
             Err(e) => {
                 warn!("Invalid signal room {room_id}: {e}");
-                let _ = tx.send(serde_json::to_string(&OutgoingSignal::Error { message: format!("Invalid: {e}") }).unwrap_or_default());
+                let _ = tx.send(
+                    serde_json::to_string(&OutgoingSignal::Error {
+                        message: format!("Invalid: {e}"),
+                    })
+                    .unwrap_or_default(),
+                );
                 continue;
             }
         };
 
         match signal {
-            SignalMessage::Join { room_id: jr, participant_id: new_pid, participant_name: new_pname } => {
+            SignalMessage::Join { room_id: jr, .. } => {
                 if jr != room_id {
-                    let _ = tx.send(serde_json::to_string(&OutgoingSignal::Error { message: "Room ID mismatch".into() }).unwrap_or_default());
+                    let _ = tx.send(
+                        serde_json::to_string(&OutgoingSignal::Error {
+                            message: "Room ID mismatch".into(),
+                        })
+                        .unwrap_or_default(),
+                    );
                     continue;
                 }
+                // The client-supplied participant_id/participant_name are
+                // deliberately ignored (see `..` above): identity comes only
+                // from the verified user bound at the WebSocket upgrade.
+                let (new_pid, new_pname) = match &identity {
+                    Some(identity) => (identity.id.clone(), identity.name.clone()),
+                    None => {
+                        warn!("Rejected Join on room {room_id}: no verified identity");
+                        let _ = tx.send(
+                            serde_json::to_string(&OutgoingSignal::Error {
+                                message: "Unauthenticated signaling connection".into(),
+                            })
+                            .unwrap_or_default(),
+                        );
+                        continue;
+                    }
+                };
                 let mut guard = rooms.write().await;
                 let room = guard.entry(room_id.clone()).or_default();
                 if room.participants.len() >= MAX_PARTICIPANTS_PER_ROOM {
                     drop(guard);
-                    let _ = tx.send(serde_json::to_string(&OutgoingSignal::Error {
-                        message: format!("Room full (max {MAX_PARTICIPANTS_PER_ROOM})"),
-                    }).unwrap_or_default());
+                    let _ = tx.send(
+                        serde_json::to_string(&OutgoingSignal::Error {
+                            message: format!("Room full (max {MAX_PARTICIPANTS_PER_ROOM})"),
+                        })
+                        .unwrap_or_default(),
+                    );
                     continue;
                 }
-                let existing: Vec<ParticipantEntry> = room.participants.values()
-                    .map(|p| ParticipantEntry { id: p.participant_id.clone(), name: p.participant_name.clone(), muted: p.muted })
+                let existing: Vec<ParticipantEntry> = room
+                    .participants
+                    .values()
+                    .map(|p| ParticipantEntry {
+                        id: p.participant_id.clone(),
+                        name: p.participant_name.clone(),
+                        muted: p.muted,
+                    })
                     .collect();
-                room.participants.insert(new_pid.clone(), ParticipantSocket {
-                    participant_id: new_pid.clone(), participant_name: new_pname.clone(),
-                    muted: false, sender: tx.clone(),
-                });
+                room.participants.insert(
+                    new_pid.clone(),
+                    ParticipantSocket {
+                        participant_id: new_pid.clone(),
+                        participant_name: new_pname.clone(),
+                        muted: false,
+                        sender: tx.clone(),
+                    },
+                );
                 drop(guard);
 
                 for ep in &existing {
-                    let _ = tx.send(serde_json::to_string(&OutgoingSignal::UserJoined { participant_id: ep.id.clone(), participant_name: ep.name.clone() }).unwrap_or_default());
+                    let _ = tx.send(
+                        serde_json::to_string(&OutgoingSignal::UserJoined {
+                            participant_id: ep.id.clone(),
+                            participant_name: ep.name.clone(),
+                        })
+                        .unwrap_or_default(),
+                    );
                 }
-                let _ = tx.send(serde_json::to_string(&OutgoingSignal::ParticipantList { participants: existing }).unwrap_or_default());
-                broadcast_to_room(&rooms, &room_id, &new_pid, &serde_json::to_string(&OutgoingSignal::UserJoined { participant_id: new_pid.clone(), participant_name: new_pname.clone() }).unwrap_or_default()).await;
+                let _ = tx.send(
+                    serde_json::to_string(&OutgoingSignal::ParticipantList {
+                        participants: existing,
+                    })
+                    .unwrap_or_default(),
+                );
+                broadcast_to_room(
+                    &rooms,
+                    &room_id,
+                    &new_pid,
+                    &serde_json::to_string(&OutgoingSignal::UserJoined {
+                        participant_id: new_pid.clone(),
+                        participant_name: new_pname.clone(),
+                    })
+                    .unwrap_or_default(),
+                )
+                .await;
 
                 pid = Some(new_pid);
                 pname = Some(new_pname);
             }
             SignalMessage::Offer { target_id, sdp } => {
-                let from_id = match &pid { Some(id) => id.clone(), None => continue };
-                let _ = send_to_participant(&rooms, &room_id, &target_id, &serde_json::to_string(&OutgoingSignal::Offer { from_id, sdp }).unwrap_or_default()).await;
+                let from_id = match &pid {
+                    Some(id) => id.clone(),
+                    None => continue,
+                };
+                let _ = send_to_participant(
+                    &rooms,
+                    &room_id,
+                    &target_id,
+                    &serde_json::to_string(&OutgoingSignal::Offer { from_id, sdp })
+                        .unwrap_or_default(),
+                )
+                .await;
             }
             SignalMessage::Answer { target_id, sdp } => {
-                let from_id = match &pid { Some(id) => id.clone(), None => continue };
-                let _ = send_to_participant(&rooms, &room_id, &target_id, &serde_json::to_string(&OutgoingSignal::Answer { from_id, sdp }).unwrap_or_default()).await;
+                let from_id = match &pid {
+                    Some(id) => id.clone(),
+                    None => continue,
+                };
+                let _ = send_to_participant(
+                    &rooms,
+                    &room_id,
+                    &target_id,
+                    &serde_json::to_string(&OutgoingSignal::Answer { from_id, sdp })
+                        .unwrap_or_default(),
+                )
+                .await;
             }
-            SignalMessage::IceCandidate { target_id, candidate } => {
-                let from_id = match &pid { Some(id) => id.clone(), None => continue };
-                let _ = send_to_participant(&rooms, &room_id, &target_id, &serde_json::to_string(&OutgoingSignal::IceCandidate { from_id, candidate }).unwrap_or_default()).await;
+            SignalMessage::IceCandidate {
+                target_id,
+                candidate,
+            } => {
+                let from_id = match &pid {
+                    Some(id) => id.clone(),
+                    None => continue,
+                };
+                let _ = send_to_participant(
+                    &rooms,
+                    &room_id,
+                    &target_id,
+                    &serde_json::to_string(&OutgoingSignal::IceCandidate { from_id, candidate })
+                        .unwrap_or_default(),
+                )
+                .await;
             }
             SignalMessage::ChatMessage { content } => {
-                let from_id = match &pid { Some(id) => id.clone(), None => continue };
+                let from_id = match &pid {
+                    Some(id) => id.clone(),
+                    None => continue,
+                };
                 let from_name = pname.clone().unwrap_or_else(|| "Anonymous".into());
                 let ts = chrono::Utc::now().to_rfc3339();
-                broadcast_to_room(&rooms, &room_id, &from_id, &serde_json::to_string(
-                    &OutgoingSignal::ChatMessage { from_id: from_id.clone(), from_name, content, timestamp: ts },
-                ).unwrap_or_default()).await;
+                broadcast_to_room(
+                    &rooms,
+                    &room_id,
+                    &from_id,
+                    &serde_json::to_string(&OutgoingSignal::ChatMessage {
+                        from_id: from_id.clone(),
+                        from_name,
+                        content,
+                        timestamp: ts,
+                    })
+                    .unwrap_or_default(),
+                )
+                .await;
             }
             SignalMessage::Mute { muted } => {
                 if let Some(ref p) = pid {
                     let mut guard = rooms.write().await;
                     if let Some(room) = guard.get_mut(&room_id) {
-                        if let Some(ps) = room.participants.get_mut(p) { ps.muted = muted; }
+                        if let Some(ps) = room.participants.get_mut(p) {
+                            ps.muted = muted;
+                        }
                     }
                     drop(guard);
-                    broadcast_to_room(&rooms, &room_id, p, &serde_json::to_string(&OutgoingSignal::Muted { participant_id: p.clone(), muted }).unwrap_or_default()).await;
+                    broadcast_to_room(
+                        &rooms,
+                        &room_id,
+                        p,
+                        &serde_json::to_string(&OutgoingSignal::Muted {
+                            participant_id: p.clone(),
+                            muted,
+                        })
+                        .unwrap_or_default(),
+                    )
+                    .await;
                 }
             }
-            SignalMessage::ScreenShareStart => broadcast_event(&rooms, &room_id, &pid, |p| OutgoingSignal::ScreenShareStart { participant_id: p }).await,
-            SignalMessage::ScreenShareStop => broadcast_event(&rooms, &room_id, &pid, |p| OutgoingSignal::ScreenShareStop { participant_id: p }).await,
-            SignalMessage::RaiseHand => broadcast_event(&rooms, &room_id, &pid, |p| OutgoingSignal::RaiseHand { participant_id: p }).await,
+            SignalMessage::ScreenShareStart => {
+                broadcast_event(&rooms, &room_id, &pid, |p| {
+                    OutgoingSignal::ScreenShareStart { participant_id: p }
+                })
+                .await
+            }
+            SignalMessage::ScreenShareStop => {
+                broadcast_event(&rooms, &room_id, &pid, |p| {
+                    OutgoingSignal::ScreenShareStop { participant_id: p }
+                })
+                .await
+            }
+            SignalMessage::RaiseHand => {
+                broadcast_event(&rooms, &room_id, &pid, |p| OutgoingSignal::RaiseHand {
+                    participant_id: p,
+                })
+                .await
+            }
             SignalMessage::Reaction { emoji } => {
                 if let Some(ref p) = pid {
-                    broadcast_to_room(&rooms, &room_id, p, &serde_json::to_string(&OutgoingSignal::Reaction { participant_id: p.clone(), emoji }).unwrap_or_default()).await;
+                    broadcast_to_room(
+                        &rooms,
+                        &room_id,
+                        p,
+                        &serde_json::to_string(&OutgoingSignal::Reaction {
+                            participant_id: p.clone(),
+                            emoji,
+                        })
+                        .unwrap_or_default(),
+                    )
+                    .await;
                 }
             }
             SignalMessage::Leave => break,
@@ -181,18 +416,42 @@ pub async fn handle_signaling_socket(
         let mut guard = rooms.write().await;
         if let Some(room) = guard.get_mut(&room_id) {
             room.participants.remove(p);
-            if room.participants.is_empty() { guard.remove(&room_id); info!("Room {room_id} empty, removed"); }
+            if room.participants.is_empty() {
+                guard.remove(&room_id);
+                info!("Room {room_id} empty, removed");
+            }
         }
-        broadcast_to_room(&rooms, &room_id, p, &serde_json::to_string(&OutgoingSignal::UserLeft { participant_id: p.clone() }).unwrap_or_default()).await;
+        broadcast_to_room(
+            &rooms,
+            &room_id,
+            p,
+            &serde_json::to_string(&OutgoingSignal::UserLeft {
+                participant_id: p.clone(),
+            })
+            .unwrap_or_default(),
+        )
+        .await;
     }
     drop(state);
     write_task.abort();
 }
 
-async fn broadcast_event<F>(rooms: &SignalingRooms, room_id: &str, pid: &Option<String>, make_signal: F)
-where F: FnOnce(String) -> OutgoingSignal {
+async fn broadcast_event<F>(
+    rooms: &SignalingRooms,
+    room_id: &str,
+    pid: &Option<String>,
+    make_signal: F,
+) where
+    F: FnOnce(String) -> OutgoingSignal,
+{
     if let Some(ref p) = pid {
-        broadcast_to_room(rooms, room_id, p, &serde_json::to_string(&make_signal(p.clone())).unwrap_or_default()).await;
+        broadcast_to_room(
+            rooms,
+            room_id,
+            p,
+            &serde_json::to_string(&make_signal(p.clone())).unwrap_or_default(),
+        )
+        .await;
     }
 }
 
@@ -200,18 +459,32 @@ async fn broadcast_to_room(rooms: &SignalingRooms, room_id: &str, exclude_id: &s
     let guard = rooms.read().await;
     if let Some(room) = guard.get(room_id) {
         for (pid, p) in &room.participants {
-            if pid != exclude_id { let _ = p.sender.send(message.to_string()); }
+            if pid != exclude_id {
+                let _ = p.sender.send(message.to_string());
+            }
         }
     }
 }
 
-async fn send_to_participant(rooms: &SignalingRooms, room_id: &str, target_id: &str, message: &str) -> bool {
+async fn send_to_participant(
+    rooms: &SignalingRooms,
+    room_id: &str,
+    target_id: &str,
+    message: &str,
+) -> bool {
     let guard = rooms.read().await;
-    if let Some(room) = guard.get(room_id) {
-        if let Some(p) = room.participants.get(target_id) {
-            return p.sender.send(message.to_string()).is_ok();
+    match guard.get(room_id) {
+        Some(room) => {
+            let participant_ids: Vec<String> = room.participants.keys().cloned().collect();
+            if !target_in_room(&participant_ids, target_id) {
+                warn!("Routing ignored: target {target_id} is not a member of room {room_id}");
+                return false;
+            }
+            match room.participants.get(target_id) {
+                Some(participant) => participant.sender.send(message.to_string()).is_ok(),
+                None => false,
+            }
         }
-        warn!("Participant {target_id} not found in room {room_id}");
+        None => false,
     }
-    false
 }

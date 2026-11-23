@@ -47,7 +47,8 @@ impl From<CallRow> for CallResponse {
             call_type: r.call_type,
             status: r.status,
             started_by: r.started_by.unwrap_or(Uuid::nil()),
-            participants: serde_json::from_value::<Vec<CallParticipant>>(r.participants).unwrap_or_default(),
+            participants: serde_json::from_value::<Vec<CallParticipant>>(r.participants)
+                .unwrap_or_default(),
             started_at: r.started_at,
             ended_at: r.ended_at,
             duration_seconds: r.ended_at.map(|e| (e - r.started_at).num_seconds()),
@@ -92,7 +93,11 @@ pub async fn start_call(
     })
 }
 
-pub async fn join_call(pool: &DbPool, conversation_id: Uuid, user_id: Option<Uuid>) -> Result<SuccessResponse> {
+pub async fn join_call(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    user_id: Option<Uuid>,
+) -> Result<SuccessResponse> {
     let mut conn = pool.get()?;
     let user_id = user_id.unwrap_or_else(Uuid::new_v4);
     // Shape mirrors CallParticipant so it round-trips through serde.
@@ -120,7 +125,11 @@ pub async fn join_call(pool: &DbPool, conversation_id: Uuid, user_id: Option<Uui
     })
 }
 
-pub async fn leave_call(pool: &DbPool, conversation_id: Uuid, user_id: Option<Uuid>) -> Result<SuccessResponse> {
+pub async fn leave_call(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    user_id: Option<Uuid>,
+) -> Result<SuccessResponse> {
     let mut conn = pool.get()?;
     if let Some(uid) = user_id {
         log::info!("User {uid} left call in conversation {conversation_id}");
@@ -139,9 +148,17 @@ pub async fn leave_call(pool: &DbPool, conversation_id: Uuid, user_id: Option<Uu
     })
 }
 
-pub async fn toggle_recording(pool: &DbPool, conversation_id: Uuid, recording: bool) -> Result<SuccessResponse> {
+pub async fn toggle_recording(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    recording: bool,
+) -> Result<SuccessResponse> {
     let mut conn = pool.get()?;
-    let msg = if recording { "Recording started" } else { "Recording stopped" };
+    let msg = if recording {
+        "Recording started"
+    } else {
+        "Recording stopped"
+    };
     sql_query(
         "UPDATE meet_conversation_calls SET is_recording = $1
          WHERE conversation_id = $2 AND status = 'active'",
@@ -193,7 +210,11 @@ pub async fn start_screen_share(
 ) -> Result<ScreenShareResponse> {
     let mut conn = pool.get()?;
     let share_id = Uuid::new_v4();
-    let user_id = if user_id == Uuid::nil() { Uuid::new_v4() } else { user_id };
+    let user_id = if user_id == Uuid::nil() {
+        Uuid::new_v4()
+    } else {
+        user_id
+    };
     let now = Utc::now();
     let quality = req.quality.clone().unwrap_or_else(|| "high".to_string());
     let audio_included = req.audio_included.unwrap_or(false);

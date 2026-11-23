@@ -1,3 +1,8 @@
+pub(crate) use botcore::shared::utils::DbPool;
+pub(crate) use botcore::shared::utils::{
+    format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt,
+};
+pub(crate) use botschema::meeting_recordings;
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use serde::{Deserialize, Serialize};
@@ -5,9 +10,6 @@ pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::{broadcast, RwLock};
 pub(crate) use uuid::Uuid;
-pub(crate) use botschema::meeting_recordings;
-pub(crate) use botcore::shared::utils::DbPool;
-pub(crate) use botcore::shared::utils::{format_timestamp_plain, format_timestamp_srt, format_timestamp_vtt};
 
 #[derive(Debug, Clone)]
 pub enum RecordingError {
@@ -37,7 +39,6 @@ const SUPPORTED_LANGUAGES: &[&str] = &[
     "en-US", "en-GB", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "pt-BR", "pt-PT", "nl-NL",
     "pl-PL", "ru-RU", "ja-JP", "ko-KR", "zh-CN", "zh-TW", "ar-SA", "hi-IN", "tr-TR", "vi-VN",
 ];
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordingConfig {
@@ -218,11 +219,11 @@ mod tests {
     }
 }
 
-mod recording_error;
-mod recording_config;
-mod storage_backend;
-mod transcription_provider;
-mod subscribe;
-mod run_transcription;
-mod format_as_srt;
 mod create_transcription_record;
+mod format_as_srt;
+mod recording_config;
+mod recording_error;
+mod run_transcription;
+mod storage_backend;
+mod subscribe;
+mod transcription_provider;

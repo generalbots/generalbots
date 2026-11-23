@@ -79,6 +79,13 @@ pub async fn process_message_internal(
         .or_else(|| parsed.get("content").and_then(|v| v.as_str()))
         .unwrap_or("")
         .to_string();
+    // #2624 — redact secrets before they reach the prompt, history or tools.
+    user_text = botsecurity_core::dlp::redact_text(
+        &user_text,
+        botsecurity_core::dlp::ScanDirection::Inbound,
+        Some(user_id),
+    )
+    .await;
     let mut msg_type = parsed
         .get("message_type")
         .and_then(|v| v.as_i64())

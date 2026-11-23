@@ -1,14 +1,23 @@
 use super::*;
 
 impl WebinarService {
-    pub async fn raise_hand(&self, webinar_id: Uuid, participant_id: Uuid) -> Result<(), WebinarError> {
+    pub async fn raise_hand(
+        &self,
+        webinar_id: Uuid,
+        participant_id: Uuid,
+    ) -> Result<(), WebinarError> {
         let webinar = self.get_webinar(webinar_id).await?;
 
         if !webinar.settings.allow_hand_raise {
-            return Err(WebinarError::FeatureDisabled("Hand raising is disabled".to_string()));
+            return Err(WebinarError::FeatureDisabled(
+                "Hand raising is disabled".to_string(),
+            ));
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         diesel::sql_query(
             "UPDATE webinar_participants SET hand_raised = TRUE, hand_raised_at = NOW() WHERE id = $1 AND webinar_id = $2"
@@ -30,8 +39,15 @@ impl WebinarService {
         Ok(())
     }
 
-    pub async fn lower_hand(&self, webinar_id: Uuid, participant_id: Uuid) -> Result<(), WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+    pub async fn lower_hand(
+        &self,
+        webinar_id: Uuid,
+        participant_id: Uuid,
+    ) -> Result<(), WebinarError> {
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         diesel::sql_query(
             "UPDATE webinar_participants SET hand_raised = FALSE, hand_raised_at = NULL WHERE id = $1 AND webinar_id = $2"
@@ -53,8 +69,14 @@ impl WebinarService {
         Ok(())
     }
 
-    pub async fn get_raised_hands(&self, webinar_id: Uuid) -> Result<Vec<WebinarParticipant>, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+    pub async fn get_raised_hands(
+        &self,
+        webinar_id: Uuid,
+    ) -> Result<Vec<WebinarParticipant>, WebinarError> {
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let sql = r#"
             SELECT id, webinar_id, user_id, name, email, role, status,
@@ -72,7 +94,10 @@ impl WebinarService {
             .load(&mut conn)
             .unwrap_or_default();
 
-        Ok(rows.into_iter().map(|r| self.row_to_participant(r)).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| self.row_to_participant(r))
+            .collect())
     }
 
     pub async fn submit_question(
@@ -92,12 +117,23 @@ impl WebinarService {
             return Err(WebinarError::InvalidInput("Question too long".to_string()));
         }
 
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let id = Uuid::new_v4();
         let is_anonymous = request.is_anonymous.unwrap_or(false) && webinar.settings.anonymous_qa;
-        let status = if webinar.settings.moderated_qa { "pending" } else { "approved" };
-        let display_name = if is_anonymous { "Anonymous".to_string() } else { asker_name };
+        let status = if webinar.settings.moderated_qa {
+            "pending"
+        } else {
+            "approved"
+        };
+        let display_name = if is_anonymous {
+            "Anonymous".to_string()
+        } else {
+            asker_name
+        };
 
         let sql = r#"
             INSERT INTO webinar_questions (
@@ -133,7 +169,11 @@ impl WebinarService {
             asker_name: display_name,
             is_anonymous,
             question: request.question,
-            status: if webinar.settings.moderated_qa { QuestionStatus::Pending } else { QuestionStatus::Approved },
+            status: if webinar.settings.moderated_qa {
+                QuestionStatus::Pending
+            } else {
+                QuestionStatus::Approved
+            },
             upvotes: 0,
             upvoted_by: vec![],
             answer: None,
@@ -151,9 +191,16 @@ impl WebinarService {
         answerer_id: Uuid,
         request: crate::webinar_api::types::AnswerQuestionRequest,
     ) -> Result<QAQuestion, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
-        let status = if request.mark_as_live.unwrap_or(false) { "answered_live" } else { "answered" };
+        let status = if request.mark_as_live.unwrap_or(false) {
+            "answered_live"
+        } else {
+            "answered"
+        };
 
         diesel::sql_query(
             "UPDATE webinar_questions SET answer = $1, answered_by = $2, answered_at = NOW(), status = $3 WHERE id = $4"
@@ -171,8 +218,15 @@ impl WebinarService {
         self.get_question(question_id).await
     }
 
-    pub async fn upvote_question(&self, question_id: Uuid, voter_id: Uuid) -> Result<QAQuestion, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+    pub async fn upvote_question(
+        &self,
+        question_id: Uuid,
+        voter_id: Uuid,
+    ) -> Result<QAQuestion, WebinarError> {
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         diesel::sql_query(
             "UPDATE webinar_questions SET upvotes = upvotes + 1, upvoted_by = COALESCE(upvoted_by, '[]')::jsonb || $1::jsonb WHERE id = $2"
@@ -188,19 +242,32 @@ impl WebinarService {
         self.get_question(question_id).await
     }
 
-    pub async fn get_questions(&self, webinar_id: Uuid, include_pending: bool) -> Result<Vec<QAQuestion>, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+    pub async fn get_questions(
+        &self,
+        webinar_id: Uuid,
+        include_pending: bool,
+    ) -> Result<Vec<QAQuestion>, WebinarError> {
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
-        let status_filter = if include_pending { "" } else { "AND status != 'pending'" };
+        let status_filter = if include_pending {
+            ""
+        } else {
+            "AND status != 'pending'"
+        };
 
-        let sql = format!(r#"
+        let sql = format!(
+            r#"
             SELECT id, webinar_id, asker_id, asker_name, is_anonymous, question,
                    status, upvotes, upvoted_by, answer, answered_by, answered_at,
                    is_pinned, is_highlighted, created_at
             FROM webinar_questions
             WHERE webinar_id = $1 {status_filter}
             ORDER BY is_pinned DESC, upvotes DESC, created_at ASC
-        "#);
+        "#
+        );
 
         let rows: Vec<QuestionRow> = diesel::sql_query(&sql)
             .bind::<DieselUuid, _>(webinar_id)
@@ -211,7 +278,10 @@ impl WebinarService {
     }
 
     async fn get_question(&self, question_id: Uuid) -> Result<QAQuestion, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let sql = r#"
             SELECT id, webinar_id, asker_id, asker_name, is_anonymous, question,
@@ -229,8 +299,14 @@ impl WebinarService {
         Ok(self.row_to_question(row))
     }
 
-    pub(crate) async fn get_participant(&self, participant_id: Uuid) -> Result<WebinarParticipant, WebinarError> {
-        let mut conn = self.pool.get().map_err(|_| WebinarError::DatabaseConnection)?;
+    pub(crate) async fn get_participant(
+        &self,
+        participant_id: Uuid,
+    ) -> Result<WebinarParticipant, WebinarError> {
+        let mut conn = self
+            .pool
+            .get()
+            .map_err(|_| WebinarError::DatabaseConnection)?;
 
         let sql = r#"
             SELECT id, webinar_id, user_id, name, email, role, status,
@@ -259,12 +335,14 @@ impl WebinarService {
     ) -> Result<Uuid, WebinarError> {
         let id = Uuid::new_v4();
 
-        diesel::sql_query(r#"
+        diesel::sql_query(
+            r#"
             INSERT INTO webinar_participants (
                 id, webinar_id, user_id, name, email, role, status,
                 hand_raised, is_speaking, video_enabled, audio_enabled, screen_sharing
             ) VALUES ($1, $2, $3, $4, $5, $6, 'registered', FALSE, FALSE, FALSE, FALSE, FALSE)
-        "#)
+        "#,
+        )
         .bind::<DieselUuid, _>(id)
         .bind::<DieselUuid, _>(webinar_id)
         .bind::<Nullable<DieselUuid>, _>(user_id)
@@ -280,7 +358,12 @@ impl WebinarService {
         Ok(id)
     }
 
-    pub(super) fn broadcast_event(&self, event_type: WebinarEventType, webinar_id: Uuid, data: serde_json::Value) {
+    pub(super) fn broadcast_event(
+        &self,
+        event_type: WebinarEventType,
+        webinar_id: Uuid,
+        data: serde_json::Value,
+    ) {
         let event = crate::webinar_api::types::WebinarEvent {
             event_type,
             webinar_id,

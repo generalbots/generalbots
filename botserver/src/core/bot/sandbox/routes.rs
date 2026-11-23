@@ -1,9 +1,12 @@
 //! HTTP surface for sandbox resources.
 //!
 //! `/sandbox/ui/{hash}` is mounted on a separate origin when configured (the
-//! desktop build binds 127.0.0.1:8081). The main router also carries it so
-//! tests and single-origin deployments can reach the same handler; isolation
-//! still comes from the opaque iframe sandbox on the client.
+//! desktop build binds 127.0.0.1:8081). That loopback listener hosts *only*
+//! the signed-resource route (#2760): config, status and revoke are management
+//! surfaces and stay on the authenticated main router, behind its auth, CSRF,
+//! RBAC and rate-limit layers. The main router also carries the signed route
+//! so tests and single-origin deployments can reach the same handler;
+//! isolation still comes from the opaque iframe sandbox on the client.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,12 +26,61 @@ use super::preview_status;
 use super::sign::verify_resource;
 use super::store::{is_hash_revoked, read_resource, revoke_resource};
 
-pub fn router() -> Router<Arc<AppState>> {
+/// Signed-resource route — the only surface a separate listener may host.
+const RESOURCE_ROUTE: &str = "/sandbox/ui/:hash";
+const RESOURCE_ROUTE_PREFIX: &str = "/sandbox/ui/";
+const CONFIG_ROUTE: &str = "/api/sandbox/config";
+const STATUS_ROUTE: &str = "/api/sandbox/status/:hash";
+const REVOKE_ROUTE: &str = "/api/sandbox/revoke/:hash";
+
+/// Access class of a sandbox route (#2760).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SandboxRouteAccess {
+    Public,
+    Management,
+}
+
+/// Pure route classification (#2760). A path is public only when it serves a
+/// signed resource inside the opaque sandbox; every config/status/revoke path
+/// needs the main router's session layers.
+#[must_use]
+fn classify_sandbox_route(path: &str) -> SandboxRouteAccess {
+    if path.starts_with(RESOURCE_ROUTE_PREFIX) {
+        SandboxRouteAccess::Public
+    } else {
+        SandboxRouteAccess::Management
+    }
+}
+
+/// Routes hosted by the unauthenticated loopback listener. Kept as a table so
+/// the predicate below and the actual public surface cannot drift.
+const PUBLIC_ROUTES: &[&str] = &[RESOURCE_ROUTE];
+
+/// Router for the loopback listener: signed resources only, never management.
+fn public_router() -> Router<Arc<AppState>> {
+    let mut router = Router::new();
+    for path in PUBLIC_ROUTES {
+        debug_assert_eq!(
+            classify_sandbox_route(path),
+            SandboxRouteAccess::Public,
+            "sandbox listener must host signed-resource routes only: {path}"
+        );
+        router = router.route(path, get(serve_resource));
+    }
+    router
+}
+
+/// Management routes: merged into the authenticated main API router only.
+fn management_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/sandbox/ui/:hash", get(serve_resource))
-        .route("/api/sandbox/config", get(config))
-        .route("/api/sandbox/status/:hash", get(resource_status))
-        .route("/api/sandbox/revoke/:hash", post(revoke))
+        .route(CONFIG_ROUTE, get(config))
+        .route(STATUS_ROUTE, get(resource_status))
+        .route(REVOKE_ROUTE, post(revoke))
+}
+
+/// Full sandbox surface for the authenticated main router.
+pub fn router() -> Router<Arc<AppState>> {
+    public_router().merge(management_router())
 }
 
 /// #2541 — a resource id is the sha256 of its bytes: always 64 hex digits.
@@ -75,19 +127,14 @@ async fn resource_status(Path(hash): Path<String>) -> Response {
 /// in-process denylist, its `_sandbox/ui/{hash}.*` objects are deleted from
 /// Drive and the cached copy is forgotten. Every signed URL for that hash
 /// returns 404 from then on, even before its signature expires.
-async fn revoke(
-    State(state): State<Arc<AppState>>,
-    Path(hash): Path<String>,
-    Query(query): Query<HashMap<String, String>>,
-) -> Response {
+async fn revoke(State(state): State<Arc<AppState>>, Path(hash): Path<String>) -> Response {
     if !valid_hash(&hash) {
         return (StatusCode::BAD_REQUEST, "invalid resource id").into_response();
     }
-    let bucket = query
-        .get("b")
-        .cloned()
-        .unwrap_or_else(|| state.bucket_name.clone());
-    revoke_resource(&state, &bucket, &hash).await;
+    // #2760 — the bucket is server configuration, never request input. An
+    // attacker-controlled `?b=` could otherwise revoke objects in any bucket
+    // the service account can reach.
+    revoke_resource(&state, &state.bucket_name, &hash).await;
     axum::Json(serde_json::json!({ "hash": hash, "revoked": true })).into_response()
 }
 
@@ -114,11 +161,9 @@ async fn serve_resource(
     if is_hash_revoked(&hash) {
         return (StatusCode::NOT_FOUND, "resource revoked").into_response();
     }
-    let bucket = query
-        .get("b")
-        .cloned()
-        .unwrap_or_else(|| state.bucket_name.clone());
-    let Some(resource) = read_resource(&state, &bucket, &hash).await else {
+    // #2760 — `?b=` is ignored: the bucket always comes from server config,
+    // never from the request. The signed token authorizes the resource id.
+    let Some(resource) = read_resource(&state, &state.bucket_name, &hash).await else {
         return (StatusCode::NOT_FOUND, "resource not found").into_response();
     };
     let mut response = resource_response(&resource.html, &resource.csp);
@@ -240,8 +285,12 @@ pub fn spawn_listener(state: Arc<AppState>) {
         // IMP-09: separate listener, so it carries the header layer itself.
         // The layer uses `or_insert` for CSP and frame options, so the
         // per-resource sandbox policy stays in charge of those two.
+        // #2760 — only `public_router()` is bound here. Config/status/revoke
+        // are management surfaces and must go through the main router's
+        // auth/CSRF/RBAC/rate-limit layers; the signed token is the sole
+        // authorization for a resource served on this origin.
         let app = crate::security::headers::with_security_headers(
-            router().with_state(state),
+            public_router().with_state(state),
             crate::security::headers::SecurityHeadersConfig::from_env(),
         );
         if let Err(error) = axum::serve(listener, app).await {
@@ -367,3 +416,9 @@ mod tests {
         assert_eq!(status_body(Some("unknown"), "abc"), body);
     }
 }
+
+/// #2760 — route-access classification tests, kept in their own file so this
+/// module stays under the 450-line limit.
+#[cfg(test)]
+#[path = "routes_access_tests.rs"]
+mod access_tests;

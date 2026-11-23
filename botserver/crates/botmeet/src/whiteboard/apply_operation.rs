@@ -134,11 +134,14 @@ impl WhiteboardState {
         Ok(inverse)
     }
 
-    pub(super) fn compute_inverse(&self, operation: &WhiteboardOperation) -> Result<Option<WhiteboardOperation>, String> {
+    pub(super) fn compute_inverse(
+        &self,
+        operation: &WhiteboardOperation,
+    ) -> Result<Option<WhiteboardOperation>, String> {
         match operation {
-            WhiteboardOperation::AddShape { shape } => {
-                Ok(Some(WhiteboardOperation::DeleteShape { shape_id: shape.id }))
-            }
+            WhiteboardOperation::AddShape { shape } => Ok(Some(WhiteboardOperation::DeleteShape {
+                shape_id: shape.id,
+            })),
             WhiteboardOperation::UpdateShape { shape } => {
                 if let Some(old_shape) = self.shapes.get(&shape.id) {
                     Ok(Some(WhiteboardOperation::UpdateShape {
@@ -186,14 +189,15 @@ impl WhiteboardState {
                     shape_id: *shape_id,
                 }))
             }
-            WhiteboardOperation::Clear => {
-                Ok(None)
-            }
+            WhiteboardOperation::Clear => Ok(None),
             _ => Ok(None),
         }
     }
 
-    pub(super) fn reconstruct_operation(&self, inverse: &WhiteboardOperation) -> WhiteboardOperation {
+    pub(super) fn reconstruct_operation(
+        &self,
+        inverse: &WhiteboardOperation,
+    ) -> WhiteboardOperation {
         inverse.clone()
     }
 
@@ -237,7 +241,10 @@ impl WhiteboardState {
         }
     }
 
-    pub(super) fn apply_operation_without_history(&mut self, operation: WhiteboardOperation) -> Result<(), String> {
+    pub(super) fn apply_operation_without_history(
+        &mut self,
+        operation: WhiteboardOperation,
+    ) -> Result<(), String> {
         match operation {
             WhiteboardOperation::AddShape { shape } => {
                 self.shapes.insert(shape.id, shape);

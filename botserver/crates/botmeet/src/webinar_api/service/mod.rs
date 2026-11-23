@@ -1,14 +1,20 @@
+pub(crate) use super::constants::{MAX_RAISED_HANDS_VISIBLE, QA_QUESTION_MAX_LENGTH};
+pub(crate) use super::error::WebinarError;
+pub(crate) use super::types::{
+    CreateWebinarRequest, ParticipantRole, ParticipantStatus, QAQuestion, QuestionStatus,
+    RegisterRequest, RegistrationStatus, Webinar, WebinarEventType, WebinarParticipant,
+    WebinarRegistration, WebinarSettings, WebinarStatus,
+};
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use diesel::prelude::*;
-pub(crate) use diesel::sql_types::{BigInt, Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
+pub(crate) use diesel::sql_types::{
+    BigInt, Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid,
+};
 pub(crate) use log::info;
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::broadcast;
 pub(crate) use uuid::Uuid;
-pub(crate) use super::constants::{QA_QUESTION_MAX_LENGTH, MAX_RAISED_HANDS_VISIBLE};
-pub(crate) use super::error::WebinarError;
-pub(crate) use super::types::{ CreateWebinarRequest, ParticipantRole, ParticipantStatus, QAQuestion, QuestionStatus, RegisterRequest, RegistrationStatus, Webinar, WebinarParticipant, WebinarRegistration, WebinarSettings, WebinarStatus, WebinarEventType, };
 
 #[derive(QueryableByName)]
 struct WebinarRow {
@@ -127,6 +133,6 @@ pub struct WebinarService {
     event_sender: broadcast::Sender<super::types::WebinarEvent>,
 }
 
-mod subscribe;
 mod raise_hand;
 mod row_to_webinar;
+mod subscribe;

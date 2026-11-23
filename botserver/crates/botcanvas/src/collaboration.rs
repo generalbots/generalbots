@@ -1,4 +1,13 @@
 use super::*;
+use crate::auth::CanvasUser;
+use crate::tenant_scope::{
+    authorization_error, authorize_canvas_action, load_canvas_grants, load_scoped_canvas,
+    CanvasAction, CanvasApiError,
+};
+
+fn internal(context: &str, error: impl std::fmt::Display) -> CanvasApiError {
+    (StatusCode::INTERNAL_SERVER_ERROR, format!("{context}: {error}"))
+}
 
 /// Workspace-level collaborator (distinct users granted access to any canvas
 /// in the caller's scope, with their permission role) — #1248.
@@ -30,18 +39,18 @@ impl WorkspaceCollaboratorRow {
 }
 
 /// #1248 — workspace collaborators for the Canvas app's `loadCollaborators()`:
-/// `GET /api/canvas/collaborators` (no canvas id). Previously this route did
-/// not exist, so the UI always degraded to "No collaborators" even when
-/// canvases were shared. Returns every user granted access to any canvas in
-/// the caller's (org, bot) scope, deduplicated, joined to the users table for
-/// real emails/usernames.
+/// `GET /api/canvas/collaborators` (no canvas id). Returns every user granted
+/// access to any canvas in the caller's `(org, bot)` scope, deduplicated.
+/// #2735: the scope comes from `get_bot_context`, never from the request.
 pub(crate) async fn list_workspace_collaborators(
     State(state): State<Arc<CanvasState>>,
-) -> Result<Json<Vec<WorkspaceCollaborator>>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<Json<Vec<WorkspaceCollaborator>>, CanvasApiError> {
+    log::debug!(
+        "canvas workspace collaborators requested by {}",
+        caller.user_id
+    );
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
     let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
 
     let rows = diesel::sql_query(
@@ -55,12 +64,7 @@ pub(crate) async fn list_workspace_collaborators(
     .bind::<diesel::sql_types::Uuid, _>(org_id)
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .load::<WorkspaceCollaboratorRow>(&mut conn)
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Query error: {e}"),
-        )
-    })?;
+    .map_err(|e| internal("Query error", e))?;
 
     Ok(Json(
         rows.into_iter().map(|r| r.into_collaborator()).collect(),
@@ -70,21 +74,25 @@ pub(crate) async fn list_workspace_collaborators(
 pub(crate) async fn list_collaborators(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
-) -> Result<Json<Vec<DbCanvasCollaborator>>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<Json<Vec<DbCanvasCollaborator>>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::ListCollaborators,
+        caller.user_id,
+        &[],
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
-    let collaborators: Vec<DbCanvasCollaborator> = canvas_collaborators::table
+    let collaborators = canvas_collaborators::table
         .filter(canvas_collaborators::canvas_id.eq(canvas_id))
         .load(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Query error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Query error", e))?;
 
     Ok(Json(collaborators))
 }
@@ -92,37 +100,48 @@ pub(crate) async fn list_collaborators(
 pub(crate) async fn add_collaborator(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
+    caller: CanvasUser,
     Json(req): Json<AddCollaboratorRequest>,
-) -> Result<Json<DbCanvasCollaborator>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<Json<DbCanvasCollaborator>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    let grants = load_canvas_grants(&mut conn, canvas_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::AddCollaborator,
+        caller.user_id,
+        &grants,
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
-    let _: DbCanvas = canvases::table
-        .filter(canvases::id.eq(canvas_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Canvas not found".to_string()))?;
-
-    let now = Utc::now();
+    // #2735: `req.user_id` is untrusted input. The grantee and the actor are
+    // both the verified caller, so a forged body cannot grant access to a
+    // different identity (nor to another tenant's canvas, refused above).
+    let permission = match req
+        .permission
+        .as_deref()
+        .map(str::trim)
+        .map(|value| value.to_ascii_lowercase())
+    {
+        Some(value) if matches!(value.as_str(), "view" | "edit" | "editor" | "owner") => value,
+        _ => "view".to_string(),
+    };
     let collaborator = DbCanvasCollaborator {
         id: Uuid::new_v4(),
         canvas_id,
-        user_id: req.user_id,
-        permission: req.permission.unwrap_or_else(|| "view".to_string()),
-        added_by: None,
-        added_at: now,
+        user_id: caller.user_id,
+        permission,
+        added_by: Some(caller.user_id),
+        added_at: Utc::now(),
     };
 
     diesel::insert_into(canvas_collaborators::table)
         .values(&collaborator)
         .execute(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Insert error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Insert error", e))?;
 
     Ok(Json(collaborator))
 }
@@ -130,11 +149,21 @@ pub(crate) async fn add_collaborator(
 pub(crate) async fn remove_collaborator(
     State(state): State<Arc<CanvasState>>,
     Path((canvas_id, user_id)): Path<(Uuid, Uuid)>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<StatusCode, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    let grants = load_canvas_grants(&mut conn, canvas_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::RemoveCollaborator,
+        caller.user_id,
+        &grants,
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
     let deleted = diesel::delete(
         canvas_collaborators::table
@@ -142,12 +171,7 @@ pub(crate) async fn remove_collaborator(
             .filter(canvas_collaborators::user_id.eq(user_id)),
     )
     .execute(&mut conn)
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Delete error: {e}"),
-        )
-    })?;
+    .map_err(|e| internal("Delete error", e))?;
 
     if deleted > 0 {
         Ok(StatusCode::NO_CONTENT)
@@ -159,22 +183,26 @@ pub(crate) async fn remove_collaborator(
 pub(crate) async fn list_comments(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
-) -> Result<Json<Vec<DbCanvasComment>>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<Json<Vec<DbCanvasComment>>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::ListComments,
+        caller.user_id,
+        &[],
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
-    let comments: Vec<DbCanvasComment> = canvas_comments::table
+    let comments = canvas_comments::table
         .filter(canvas_comments::canvas_id.eq(canvas_id))
         .order(canvas_comments::created_at.asc())
         .load(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Query error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Query error", e))?;
 
     Ok(Json(comments))
 }
@@ -182,27 +210,30 @@ pub(crate) async fn list_comments(
 pub(crate) async fn create_comment(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
+    caller: CanvasUser,
     Json(req): Json<CreateCommentRequest>,
-) -> Result<Json<DbCanvasComment>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-
-    let _: DbCanvas = canvases::table
-        .filter(canvases::id.eq(canvas_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Canvas not found".to_string()))?;
+) -> Result<Json<DbCanvasComment>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    let grants = load_canvas_grants(&mut conn, canvas_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::CreateComment,
+        caller.user_id,
+        &grants,
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
     let now = Utc::now();
-    let user_id = Uuid::nil();
-
     let comment = DbCanvasComment {
         id: Uuid::new_v4(),
         canvas_id,
         element_id: req.element_id,
         parent_comment_id: req.parent_comment_id,
-        author_id: user_id,
+        author_id: caller.user_id,
         content: req.content,
         x_position: req.x_position,
         y_position: req.y_position,
@@ -216,12 +247,7 @@ pub(crate) async fn create_comment(
     diesel::insert_into(canvas_comments::table)
         .values(&comment)
         .execute(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Insert error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Insert error", e))?;
 
     Ok(Json(comment))
 }
@@ -229,15 +255,23 @@ pub(crate) async fn create_comment(
 pub(crate) async fn resolve_comment(
     State(state): State<Arc<CanvasState>>,
     Path((canvas_id, comment_id)): Path<(Uuid, Uuid)>,
-) -> Result<Json<DbCanvasComment>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<Json<DbCanvasComment>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    let grants = load_canvas_grants(&mut conn, canvas_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::ResolveComment,
+        caller.user_id,
+        &grants,
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
     let now = Utc::now();
-    let user_id = Uuid::nil();
-
     diesel::update(
         canvas_comments::table
             .filter(canvas_comments::id.eq(comment_id))
@@ -245,20 +279,16 @@ pub(crate) async fn resolve_comment(
     )
     .set((
         canvas_comments::resolved.eq(true),
-        canvas_comments::resolved_by.eq(Some(user_id)),
+        canvas_comments::resolved_by.eq(Some(caller.user_id)),
         canvas_comments::resolved_at.eq(Some(now)),
         canvas_comments::updated_at.eq(now),
     ))
     .execute(&mut conn)
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Update error: {e}"),
-        )
-    })?;
+    .map_err(|e| internal("Update error", e))?;
 
-    let comment: DbCanvasComment = canvas_comments::table
+    let comment = canvas_comments::table
         .filter(canvas_comments::id.eq(comment_id))
+        .filter(canvas_comments::canvas_id.eq(canvas_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Comment not found".to_string()))?;
 
@@ -268,22 +298,26 @@ pub(crate) async fn resolve_comment(
 pub(crate) async fn list_versions(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
-) -> Result<Json<Vec<DbCanvasVersion>>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    caller: CanvasUser,
+) -> Result<Json<Vec<DbCanvasVersion>>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::ListVersions,
+        caller.user_id,
+        &[],
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
-    let versions: Vec<DbCanvasVersion> = canvas_versions::table
+    let versions = canvas_versions::table
         .filter(canvas_versions::canvas_id.eq(canvas_id))
         .order(canvas_versions::version_number.desc())
         .load(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Query error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Query error", e))?;
 
     Ok(Json(versions))
 }
@@ -291,16 +325,21 @@ pub(crate) async fn list_versions(
 pub(crate) async fn create_version(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
-) -> Result<Json<DbCanvasVersion>, (StatusCode, String)> {
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-
-    let _: DbCanvas = canvases::table
-        .filter(canvases::id.eq(canvas_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Canvas not found".to_string()))?;
+    caller: CanvasUser,
+) -> Result<Json<DbCanvasVersion>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    let grants = load_canvas_grants(&mut conn, canvas_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::CreateVersion,
+        caller.user_id,
+        &grants,
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
 
     let db_elements: Vec<DbCanvasElement> = canvas_elements::table
         .filter(canvas_elements::canvas_id.eq(canvas_id))
@@ -316,7 +355,6 @@ pub(crate) async fn create_version(
         .flatten();
 
     let now = Utc::now();
-    let user_id = Uuid::nil();
     let elements_snapshot =
         serde_json::to_value(&db_elements).unwrap_or_else(|_| serde_json::json!([]));
 
@@ -326,27 +364,35 @@ pub(crate) async fn create_version(
         version_number: max_version.unwrap_or(0) + 1,
         name: None,
         elements_snapshot,
-        created_by: user_id,
+        created_by: caller.user_id,
         created_at: now,
     };
 
     diesel::insert_into(canvas_versions::table)
         .values(&version)
         .execute(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Insert error: {e}"),
-            )
-        })?;
+        .map_err(|e| internal("Insert error", e))?;
 
     Ok(Json(version))
 }
 
 pub(crate) async fn get_collaboration_info(
-    State(_state): State<Arc<CanvasState>>,
+    State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
-) -> Result<Json<Vec<CollaborationSession>>, (StatusCode, String)> {
-    let _ = canvas_id;
+    caller: CanvasUser,
+) -> Result<Json<Vec<CollaborationSession>>, CanvasApiError> {
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+    let mut conn = state.pool.get().map_err(|e| internal("DB error", e))?;
+    let canvas = load_scoped_canvas(&mut conn, canvas_id, org_id, bot_id)?;
+    authorize_canvas_action(
+        Some(&canvas),
+        CanvasAction::ListCollaborators,
+        caller.user_id,
+        &[],
+        org_id,
+        bot_id,
+    )
+    .map_err(authorization_error)?;
+
     Ok(Json(vec![]))
 }

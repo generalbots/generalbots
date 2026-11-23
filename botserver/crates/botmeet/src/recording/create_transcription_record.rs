@@ -37,7 +37,10 @@ impl RecordingService {
         Err(RecordingError::NotFound)
     }
 
-    pub(crate) async fn delete_recording_files(&self, _recording_id: Uuid) -> Result<(), RecordingError> {
+    pub(crate) async fn delete_recording_files(
+        &self,
+        _recording_id: Uuid,
+    ) -> Result<(), RecordingError> {
         Ok(())
     }
 }
