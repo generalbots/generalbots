@@ -95,7 +95,7 @@ pub(super) async fn build_and_stream(
 
     // #2562 — KB activity: emit only when knowledge bases are active.
     let kb_active = {
-        let active_kbs = crate::core::bot::kb_context::get_active_kbs(&state.conn, session_id);
+        let active_kbs = crate::core::bot::kb_context::get_active_kbs(&state.conn, session_id, bot_uuid);
         let active_web = crate::core::bot::kb_context::get_active_websites(&state.conn, session_id);
         !active_kbs.is_empty() || !active_web.is_empty()
     };
