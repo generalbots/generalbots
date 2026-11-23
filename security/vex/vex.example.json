@@ -1,0 +1,20 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://generalbots.org/security/vex/GB-SA-2026-0001.json",
+  "author": "General Bots security team",
+  "timestamp": "2026-11-23T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-0000"
+      },
+      "products": [
+        "generalbots@6.9.0"
+      ],
+      "status": "fixed",
+      "justification": "Upgraded component",
+      "last_updated": "2026-11-23T00:00:00Z"
+    }
+  ]
+}

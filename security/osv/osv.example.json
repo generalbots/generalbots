@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.6.0",
+  "id": "GB-SA-2026-0001",
+  "modified": "2026-11-23T00:00:00Z",
+  "published": "2026-11-23T00:00:00Z",
+  "summary": "EXAMPLE ONLY — not a real vulnerability",
+  "affected": [
+    {
+      "package": {
+        "name": "generalbots",
+        "ecosystem": "GeneralBots"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "6.9.0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://generalbots.org/security/advisories/GB-SA-2026-0001.html"
+    }
+  ]
+}

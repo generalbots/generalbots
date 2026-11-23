@@ -1,0 +1,15 @@
+{
+  "advisories": [
+    {
+      "id": "GB-SA-2026-0001",
+      "product": "generalbots",
+      "severity": "critical",
+      "affected": [
+        "< 6.9.0"
+      ],
+      "fixed": "6.9.0",
+      "published": "2026-11-23T00:00:00Z",
+      "title": "EXAMPLE ONLY — placeholder advisory"
+    }
+  ]
+}
