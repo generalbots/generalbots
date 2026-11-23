@@ -55,23 +55,42 @@ pub fn reset_vault_only() -> Result<()> {
     Ok(())
 }
 
+/// Pure command builder for the Vault password lookup (#2754). The token is
+/// deliberately absent: it is inherited from the parent process environment.
+fn vault_password_command(vault_addr: &str, vault_cacert: &str, vault_bin: &str) -> String {
+    format!(
+        "VAULT_ADDR={vault_addr} VAULT_CACERT={vault_cacert} {vault_bin} kv get -field=password secret/gbo/tables 2>/dev/null"
+    )
+}
+
+#[cfg(test)]
+mod vault_argv_tests {
+    use super::vault_password_command;
+
+    #[test]
+    fn token_is_never_part_of_the_command() {
+        let command = vault_password_command("https://vault.example:8200", "/tmp/ca.crt", "/opt/vault");
+        assert!(!command.contains("VAULT_TOKEN"));
+        assert!(command.contains("kv get -field=password secret/gbo/tables"));
+    }
+}
+
 /// Get database password from Vault
 pub fn get_db_password_from_vault() -> Option<String> {
     use crate::bootstrap::bootstrap_utils::safe_sh_command;
 
     let vault_addr = env::var("VAULT_ADDR").unwrap_or_default();
-    let vault_token = env::var("VAULT_TOKEN").ok()?;
-    if vault_addr.is_empty() {
+    if env::var("VAULT_TOKEN").ok().is_none() || vault_addr.is_empty() {
         return None;
     }
     let vault_cacert = env::var("VAULT_CACERT")
         .unwrap_or_else(|_| format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path()));
     let vault_bin = format!("{}/bin/vault/vault", get_stack_path());
 
-    let cmd = format!(
-        "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -field=password secret/gbo/tables 2>/dev/null",
-        vault_addr, vault_token, vault_cacert, vault_bin
-    );
+    // #2754 — the token is already in botserver's environment and is inherited
+    // by the child. Never place it in `sh -c` text: that becomes a visible argv
+    // element for every local user running `ps`.
+    let cmd = vault_password_command(&vault_addr, &vault_cacert, &vault_bin);
 
     let output = safe_sh_command(&cmd);
     if output.is_empty() {
