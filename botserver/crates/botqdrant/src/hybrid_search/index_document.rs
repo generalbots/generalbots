@@ -240,12 +240,17 @@ impl HybridSearchEngine {
             "with_payload": false
         });
 
-        let response = client
+        let request = client
             .post(format!(
                 "{}/collections/{}/points/search",
                 self.qdrant_url, self.collection_name
             ))
-            .json(&search_request)
+            .json(&search_request);
+        let request = match crate::qdrant_native::resolve_qdrant_api_key() {
+            Some(key) => request.header("api-key", key),
+            None => request,
+        };
+        let response = request
             .send()
             .await
             .map_err(|e| format!("Qdrant search failed: {}", e))?;

@@ -21,9 +21,11 @@ pub fn seed_vault_defaults(
     let meet_app_id = generate_random_string(24);
     let meet_app_secret = generate_random_string(48);
     let alm_token = generate_random_string(40);
+    // #2817 — the Qdrant data plane must never run with a placeholder key.
+    let vectordb_api_key = generate_random_string(48);
 
     info!(
-        "Generated strong random credentials for: drive, cache, tables, encryption, meet, alm"
+        "Generated strong random credentials for: drive, cache, tables, encryption, meet, alm, vectordb"
     );
 
     let defaults: Vec<(&str, Vec<(String, String)>)> = vec![
@@ -136,7 +138,7 @@ pub fn seed_vault_defaults(
                 ("host".to_string(), "127.0.0.1".to_string()),
                 ("port".to_string(), "6333".to_string()),
                 ("grpc_port".to_string(), "6334".to_string()),
-                ("api_key".to_string(), "none".to_string()),
+                ("api_key".to_string(), vectordb_api_key),
             ],
         ),
         (

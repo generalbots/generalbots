@@ -14,6 +14,10 @@ pub type Qdrant = QdrantClient;
 pub struct QdrantClient {
     client: Client,
     url: String,
+    /// Data-plane credential, sourced from `QDRANT_API_KEY` /
+    /// `VECTORDB_API_KEY` (or set explicitly via the builder). It is installed
+    /// as a default `api-key` header on `client`, so every request carries it.
+    api_key: Option<String>,
 }
 
 /// Builder trait for Qdrant client
@@ -24,6 +28,7 @@ pub trait Build {
 /// URL builder for Qdrant
 pub struct QdrantFromUrl {
     url: String,
+    api_key: Option<String>,
 }
 
 /// Response for list collections
@@ -138,6 +143,7 @@ pub struct DeletePointsBuilder {
 }
 
 mod from_url;
+pub(crate) use from_url::resolve_qdrant_api_key;
 mod vector;
 mod vector_params_builder;
 mod distance;

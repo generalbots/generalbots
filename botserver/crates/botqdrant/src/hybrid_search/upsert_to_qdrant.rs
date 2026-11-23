@@ -11,12 +11,17 @@ impl HybridSearchEngine {
             }]
         });
 
-        let response = client
+        let request = client
             .put(format!(
                 "{}/collections/{}/points",
                 self.qdrant_url, self.collection_name
             ))
-            .json(&upsert_request)
+            .json(&upsert_request);
+        let request = match crate::qdrant_native::resolve_qdrant_api_key() {
+            Some(key) => request.header("api-key", key),
+            None => request,
+        };
+        let response = request
             .send()
             .await
             .map_err(|e| format!("Qdrant upsert failed: {}", e))?;
@@ -36,12 +41,17 @@ impl HybridSearchEngine {
             "points": [doc_id]
         });
 
-        let response = client
+        let request = client
             .post(format!(
                 "{}/collections/{}/points/delete",
                 self.qdrant_url, self.collection_name
             ))
-            .json(&delete_request)
+            .json(&delete_request);
+        let request = match crate::qdrant_native::resolve_qdrant_api_key() {
+            Some(key) => request.header("api-key", key),
+            None => request,
+        };
+        let response = request
             .send()
             .await
             .map_err(|e| format!("Qdrant delete failed: {}", e))?;
