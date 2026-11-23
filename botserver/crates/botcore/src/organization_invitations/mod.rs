@@ -3,6 +3,69 @@ pub(crate) use chrono::{DateTime, Duration, Utc};
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use crate::i18n::Locale;
 
+/// Browser/SPA path on the login host that accepts an invitation (#2814).
+/// The invitation email links here with the token in the URL fragment; the
+/// page then POSTs that token to the API route of the same name registered in
+/// `configure()`. Defined once so the link and the API cannot drift apart.
+pub(crate) const INVITE_ACCEPT_PATH: &str = "/invitations/accept";
+
+/// Last-resort origin for invitation links (local/offline development only).
+const DEFAULT_INVITE_ORIGIN: &str = "http://localhost:5000";
+
+/// True when `value` is an absolute http(s) URL — emailed links must never be
+/// relative or scheme-less stubs (#2814).
+#[cfg(any(feature = "mail", test))]
+fn is_absolute_base(value: &str) -> bool {
+    value.starts_with("http://") || value.starts_with("https://")
+}
+
+/// Resolve the absolute base URL that invitation links are built from (#2814).
+///
+/// `INVITE_BASE_URL` wins (it may carry a path prefix behind a reverse proxy);
+/// otherwise the login server origin from `LOGIN_URL` is used. A configured
+/// value that is not absolute is rejected. The localhost default is a
+/// last-resort fallback for offline development, not a production default.
+#[cfg(feature = "mail")]
+fn invite_base_url() -> String {
+    let configured = std::env::var("INVITE_BASE_URL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            std::env::var("LOGIN_URL")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        });
+    match configured {
+        Some(value) if is_absolute_base(value.trim()) => {
+            value.trim().trim_end_matches('/').to_string()
+        }
+        Some(_) => {
+            log::warn!(
+                "INVITE_BASE_URL/LOGIN_URL is not an absolute URL — using default invite origin"
+            );
+            DEFAULT_INVITE_ORIGIN.to_string()
+        }
+        None => DEFAULT_INVITE_ORIGIN.to_string(),
+    }
+}
+
+/// Build the absolute invitation link for `token` (#2814).
+///
+/// The token lives in the URL fragment (`#token=…`), never in a query string
+/// or path: fragments are not transmitted in HTTP requests, so the token
+/// never reaches a proxy/access log. The SPA at [`INVITE_ACCEPT_PATH`] reads
+/// the fragment and POSTs the token to `/api/invitations/accept`.
+#[cfg(any(feature = "mail", test))]
+fn build_invite_link(base_url: &str, token: &str) -> String {
+    let base = base_url.trim_end_matches('/');
+    let path = if base.contains(INVITE_ACCEPT_PATH) {
+        ""
+    } else {
+        INVITE_ACCEPT_PATH
+    };
+    format!("{base}{path}#token={token}")
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InvitationStatus {
     Pending,

@@ -10,11 +10,11 @@ impl InvitationService {
         org_name: &str,
         locale: &crate::i18n::Locale,
     ) {
+        // #2814 — never log token material, not even a prefix.
         log::info!(
-            "Sending invitation email to {} for organization {} (token: {}...)",
+            "Sending invitation email to {} for organization {}",
             invitation.email,
-            org_name,
-            &invitation.token[..16]
+            org_name
         );
 
         #[cfg(feature = "mail")]
@@ -37,9 +37,9 @@ impl InvitationService {
                 return;
             }
 
-            let invite_url = std::env::var("INVITE_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:5000/invitations/accept".to_string());
-            let link = format!("{invite_url}?token={}", invitation.token);
+            // #2814 — absolute URL from config, token in the fragment so it
+            // is never transmitted in the GET request (and never logged).
+            let link = build_invite_link(&invite_base_url(), &invitation.token);
             let expires = invitation.expires_at.format("%Y-%m-%d %H:%M UTC").to_string();
 
             // No greeting line: the invitee has no display name yet, and
@@ -98,5 +98,46 @@ impl InvitationService {
             // stays part of the contract so callers do not branch on features.
             let _ = locale;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invite_link_points_at_spa_route_with_token_in_fragment() {
+        let link = build_invite_link("https://login.example.com", "abc123");
+        assert_eq!(
+            link,
+            "https://login.example.com/invitations/accept#token=abc123"
+        );
+    }
+
+    #[test]
+    fn invite_link_strips_trailing_slash_and_avoids_duplicate_path() {
+        assert_eq!(
+            build_invite_link("https://login.example.com/", "t"),
+            "https://login.example.com/invitations/accept#token=t"
+        );
+        assert_eq!(
+            build_invite_link("https://login.example.com/invitations/accept", "t"),
+            "https://login.example.com/invitations/accept#token=t"
+        );
+    }
+
+    #[test]
+    fn invite_link_never_uses_query_string_for_token() {
+        let link = build_invite_link("https://login.example.com", "t");
+        assert!(!link.contains("?token="));
+        assert!(link.contains("#token=t"));
+    }
+
+    #[test]
+    fn only_absolute_bases_are_accepted() {
+        assert!(is_absolute_base("https://login.example.com"));
+        assert!(is_absolute_base("http://localhost:5000"));
+        assert!(!is_absolute_base("login.example.com"));
+        assert!(!is_absolute_base("/invitations/accept"));
     }
 }

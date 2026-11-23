@@ -20,7 +20,7 @@ pub fn configure() -> Router<Arc<AppState>> {
             "/organizations/:org_id/invitations/:invitation_id/resend",
             post(resend_invitation),
         )
-        .route("/invitations/accept", post(accept_invitation))
+        .route(INVITE_ACCEPT_PATH, post(accept_invitation))
         .route("/invitations/decline", post(decline_invitation))
         .route("/invitations/validate/:token", get(validate_invitation))
 }
@@ -332,5 +332,17 @@ mod tests {
             resolve_accepting_user_id(None, None),
             Err(AcceptIdentityError::Unauthenticated)
         );
+    }
+
+    /// #2814 — the emailed link and the POST API must resolve to the same
+    /// path, otherwise the invite lands on a route that cannot accept it.
+    #[test]
+    fn invite_link_resolves_to_the_accept_api_route() {
+        assert_eq!(INVITE_ACCEPT_PATH, "/invitations/accept");
+        let link = build_invite_link("https://login.example.com", "tok");
+        assert!(link.starts_with(&format!(
+            "https://login.example.com{INVITE_ACCEPT_PATH}"
+        )));
+        assert!(link.ends_with("#token=tok"));
     }
 }

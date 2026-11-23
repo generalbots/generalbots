@@ -2,6 +2,17 @@
 
 use super::*;
 
+/// Page names served as standalone auth pages (not bot workspaces). Only
+/// names with a real hosted page belong here: `forgot-password` and
+/// `reset-password` were previously allowlisted but no such HTML exists in
+/// the UI tree (#2814), so they falsely suppressed the normal bot bootstrap.
+pub(crate) fn is_auth_page(bot_name: Option<&str>) -> bool {
+    match bot_name {
+        Some(name) => name.ends_with(".html") || name == "login" || name == "register",
+        None => false,
+    }
+}
+
 pub async fn serve_suite(
     State(state): State<AppState>,
     Query(params): Query<SuiteQueryParams>,
@@ -15,21 +26,9 @@ pub async fn serve_suite_impl(
     bot_name: Option<String>,
     _headers: axum::http::HeaderMap,
 ) -> Response {
-    let is_auth = bot_name
-        .as_ref()
-        .map(|n| {
-            n.ends_with(".html")
-                || n == "login"
-                || n == "register"
-                || n == "forgot-password"
-                || n == "reset-password"
-        })
-        .unwrap_or(false);
-
-    if !is_auth {
-        // Access control is handled by the botserver at WebSocket level.
-        // The UI always renders and lets the botserver enforce auth.
-    }
+    // Access control is handled by the botserver at WebSocket level. The UI
+    // always renders and lets the botserver enforce auth; the auth-page check
+    // below only decides base-href/script injection, not access control.
     let raw_html_res = {
         #[cfg(feature = "embed-ui")]
         {
@@ -69,18 +68,9 @@ pub async fn serve_suite_impl(
             let _ = &mut html;
 
             if let Some(head_end) = html.find("</head>") {
-                let is_auth_page = bot_name
-                    .as_ref()
-                    .map(|n| {
-                        n.ends_with(".html")
-                            || n == "login"
-                            || n == "register"
-                            || n == "forgot-password"
-                            || n == "reset-password"
-                    })
-                    .unwrap_or(false);
+                let auth_page = is_auth_page(bot_name.as_deref());
 
-                let base_href = if is_auth_page {
+                let base_href = if auth_page {
                     "/".to_string()
                 } else if let Some(ref name) = bot_name {
                     format!("/{}/", name)
@@ -90,7 +80,7 @@ pub async fn serve_suite_impl(
                 let base_tag = format!(r#"<base href="{}">"#, base_href);
                 html.insert_str(head_end, &base_tag);
 
-                if !is_auth_page {
+                if !auth_page {
                     let login_url = std::env::var("LOGIN_URL")
                         .unwrap_or_else(|_| "http://localhost:5000".to_string());
                     let login_script =
@@ -286,5 +276,31 @@ pub async fn serve_suite_impl(
             )
                 .into_response()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn real_auth_pages_are_recognized() {
+        assert!(is_auth_page(Some("login")));
+        assert!(is_auth_page(Some("register")));
+        assert!(is_auth_page(Some("index.html")));
+    }
+
+    #[test]
+    fn dead_password_reset_pages_are_not_allowlisted() {
+        // #2814 — no forgot-password/reset-password HTML exists in the UI
+        // tree, so do not pretend these are hosted auth pages.
+        assert!(!is_auth_page(Some("forgot-password")));
+        assert!(!is_auth_page(Some("reset-password")));
+    }
+
+    #[test]
+    fn bot_names_are_not_auth_pages() {
+        assert!(!is_auth_page(Some("default")));
+        assert!(!is_auth_page(None));
     }
 }
