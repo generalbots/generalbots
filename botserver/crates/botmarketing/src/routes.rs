@@ -173,12 +173,23 @@ fn record_click(conn: &mut PgConnection, tracking_id: uuid::Uuid) {
     }
 }
 
+/// Pure ordering rule for #2800: a click is persisted only for the single
+/// outcome that a verified, unexpired signature produces. Kept free of I/O so
+/// the record/no-record decision can be tested without a database.
+fn should_record_click(outcome: &ClickOutcome) -> bool {
+    matches!(outcome, ClickOutcome::Redirect(_))
+}
+
 /// `GET /api/marketing/track/click/:id?u=<url>&e=<expiry>&s=<signature>`
 ///
 /// #2139 — the destination is only honoured when it was signed into the link
 /// (HMAC over tracking record, destination and expiry). A tampered, unsigned,
 /// unsafe or expired target answers `400`; an unknown tracking id answers
-/// `404`. Neither ever answers `302`. The click itself is still recorded.
+/// `404`. Neither ever answers `302`.
+///
+/// #2800 — the click is recorded only after the signature verifies. A forged
+/// or unsigned link answers `4xx` and leaves no analytics row behind: knowing
+/// the tracking id alone must not let anyone mark a record as clicked.
 pub async fn track_email_click(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -203,10 +214,17 @@ pub async fn track_email_click(
         );
     };
 
-    record_click(&mut conn, record.id);
-
     let now = Utc::now().timestamp();
-    match click_sign::evaluate(&query, Some(&record), now, click_sign::signing_key()) {
+    let outcome = click_sign::evaluate(&query, Some(&record), now, click_sign::signing_key());
+
+    // #2800 — verify first, record second. Every rejection answer must leave
+    // the tracking row untouched, so holding a tracking id cannot forge a
+    // click by supplying arbitrary `u`/`e`/`s` values.
+    if should_record_click(&outcome) {
+        record_click(&mut conn, record.id);
+    }
+
+    match outcome {
         ClickOutcome::Redirect(destination) => match destination.parse::<HeaderValue>() {
             Ok(location) => {
                 let mut response = Response::new(Body::empty());
@@ -241,19 +259,15 @@ pub async fn track_email_click(
 /// The path used to carry the destination, which is exactly the open redirect
 /// #2139 removed. It is kept only to answer an explicit `400` (instead of a
 /// confusing `404`) for links already sitting in inboxes; the destination is
-/// never read, and the click is still recorded.
+/// never read. #2800: there is no signature to verify here, so a `400` must
+/// record nothing — an old link must not be usable to forge a click.
 pub async fn track_email_click_legacy_path(
-    State(state): State<Arc<AppState>>,
     Path((id, destination)): Path<(String, String)>,
 ) -> Response {
-    if let Ok(mut conn) = state.conn.get() {
-        if let Some(record) = load_tracking_record(&mut conn, &id) {
-            record_click(&mut conn, record.id);
-        }
-    }
     log::warn!(
-        "Email click rejected: caller-supplied path destination ({} bytes) is not accepted",
-        destination.len()
+        "Email click rejected: caller-supplied path destination ({} bytes, id {} bytes) is not accepted",
+        destination.len(),
+        id.len()
     );
     reject(
         StatusCode::BAD_REQUEST,
@@ -321,6 +335,66 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::click_sign::TrackingRecord;
+
+    const KEY: &str = "click-ordering-test-key";
+    const NOW: i64 = 1_700_000_000;
+    const EXPIRES: i64 = 2_000_000_000;
+
+    fn record() -> TrackingRecord {
+        TrackingRecord {
+            id: uuid::Uuid::from_u128(1),
+            campaign_id: None,
+            recipient_id: Some(uuid::Uuid::from_u128(2)),
+        }
+    }
+
+    fn query(signature: &str) -> ClickQuery {
+        ClickQuery {
+            u: Some("/pricing".to_string()),
+            e: Some(EXPIRES.to_string()),
+            s: Some(signature.to_string()),
+        }
+    }
+
+    #[test]
+    fn only_a_verified_redirect_is_recordable() {
+        assert!(should_record_click(&ClickOutcome::Redirect(
+            "/pricing".to_string()
+        )));
+        assert!(!should_record_click(&ClickOutcome::BadRequest(
+            ClickError::BadSignature.reason()
+        )));
+        assert!(!should_record_click(&ClickOutcome::BadRequest(
+            ClickError::Expired.reason()
+        )));
+        assert!(!should_record_click(&ClickOutcome::NotFound));
+    }
+
+    #[test]
+    fn an_invalid_signature_never_produces_a_recordable_click() {
+        // A correctly signed link is the only outcome allowed to record.
+        let valid = click_sign::sign(KEY, &record(), "/pricing", EXPIRES);
+        let verified = click_sign::evaluate(&query(&valid), Some(&record()), NOW, KEY);
+        assert_eq!(verified, ClickOutcome::Redirect("/pricing".to_string()));
+        assert!(should_record_click(&verified));
+
+        // A forged signature answers 4xx and records nothing.
+        let forged = click_sign::evaluate(&query("deadbeef"), Some(&record()), NOW, KEY);
+        assert!(matches!(forged, ClickOutcome::BadRequest(_)));
+        assert!(!should_record_click(&forged));
+
+        // A signature issued for another destination cannot be replayed here.
+        let other = click_sign::sign(KEY, &record(), "/other", EXPIRES);
+        let replayed = click_sign::evaluate(&query(&other), Some(&record()), NOW, KEY);
+        assert!(matches!(replayed, ClickOutcome::BadRequest(_)));
+        assert!(!should_record_click(&replayed));
+
+        // An expired-but-correctly-signed link records nothing either.
+        let expired = click_sign::evaluate(&query(&valid), Some(&record()), EXPIRES, KEY);
+        assert!(matches!(expired, ClickOutcome::BadRequest(_)));
+        assert!(!should_record_click(&expired));
+    }
 
     #[test]
     fn redact_token_omits_raw_token() {
