@@ -562,7 +562,9 @@ pub async fn process_message_internal(
     // agent VM's code-execution surface: skip the VM contract for them so the
     // model does not route the request into vm_exec (which never shows refs).
     // #2238 — explicit Agent toggle: skip VM provisioning/inject when off.
-    if agent_enabled && !super::turn_hooks::is_informational_request(&user_text) {
+    // Without web grounding in the build, informational turns keep the VM.
+    let web_grounding = cfg!(any(feature = "research", feature = "web-search"));
+    if agent_enabled && !(web_grounding && super::turn_hooks::is_informational_request(&user_text)) {
         super::turn_watch::long_stage("workspace");
         super::agent_vm_context::inject(identity, &mut messages).await;
     }
@@ -613,6 +615,10 @@ pub async fn process_message_internal(
     // call, so it is the freshest instruction in the prompt.
     #[cfg(feature = "drive")]
     super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
+
+    // A web address in the message (or the Web switch) lets the model read
+    // public pages through `web_fetch`, whatever the engine.
+    super::native_tools::web_fetch::apply(&parsed, session_id, &user_text, &mut messages);
 
     // #1632 item 3 / #2238 — the composer's Web switch is the decision.
     // When explicitly off, do not search (even for informational requests).

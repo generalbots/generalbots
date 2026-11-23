@@ -135,6 +135,7 @@ fn label_for(phase: &str, step: &str) -> &'static str {
         (PHASE_TOOL, "save") => "Saving the output",
         (PHASE_TOOL, "publish") => "Publishing to Drive",
         (PHASE_AGENT, "generate") => "Generating the program",
+        ("web", "web_fetch") => "Reading a web page",
         (_, "done") => "Done",
         (_, "failed") => "Failed",
         _ => "Workspace step",

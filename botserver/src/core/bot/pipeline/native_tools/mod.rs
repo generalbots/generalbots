@@ -5,8 +5,8 @@
 //! agent VM must expose it, so it is handled here before the script lookup.
 //!
 //! Split by tool family: `vm_exec` (program execution and its repair/render
-//! helpers), `terminal` (live PTY runs) and this module (capture buffer,
-//! chat send/persist and the dispatch table).
+//! helpers), `terminal` (live PTY runs), `web_fetch` (one public page) and
+//! this module (capture buffer, chat send/persist and the dispatch table).
 
 use super::types::SessionIdentity;
 use std::collections::HashMap;
@@ -30,6 +30,8 @@ mod vm_budget;
 mod vm_exec;
 #[cfg(feature = "agent-vm")]
 mod vm_trace;
+pub(super) mod web_fetch;
+mod web_text;
 
 /// The last message(s) a native tool sent to chat, keyed by session. The LLM
 /// pipeline uses it to feed the tool result back for a follow-up answer;
@@ -66,6 +68,10 @@ pub(super) fn take_capture(session_id: uuid::Uuid) -> String {
 /// Returns true when `name` is a native tool and the call was answered.
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
     if super::surface_tools::try_run(identity, name, args).await {
+        return true;
+    }
+    if name == web_fetch::TOOL {
+        web_fetch::run(identity, args).await;
         return true;
     }
     if name == "terminal_run" || name == "vm_exec" {

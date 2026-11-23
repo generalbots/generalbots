@@ -80,7 +80,9 @@ fn timeout_message(user_id: Uuid, pool: &botlib::db_pool::DbPool) -> String {
 }
 
 /// [`crate::core::bot::agent_vm_hook::ensure_agent_vm_result`] bounded by
-/// [`START_BUDGET`]. The timeout error carries the user's message.
+/// [`START_BUDGET`]. The timeout error carries the user's message. A
+/// workspace that answers within [`QUIET_START`] shows no step: the start-up
+/// step appears (and then finishes) only when the person really waits.
 pub(super) async fn ensure_within_budget(
     identity: &SessionIdentity<'_>,
 ) -> Result<AgentSessionRow, WorkspaceError> {
@@ -89,8 +91,53 @@ pub(super) async fn ensure_within_budget(
         return Err((504, timeout_message(user_id, &identity.state.conn)));
     }
     let mut task = spawn_start(identity.session_id, user_id, identity.bot_uuid);
-    let result = wait_for(&mut task, START_BUDGET).await;
-    finish(identity, result)
+    if let Some(result) = wait_for(&mut task, QUIET_START).await {
+        note_timeout(user_id, false);
+        return result;
+    }
+    let locale = botcore::i18n::locale_for_user_pool(&identity.state.conn, user_id);
+    let progress = WorkspaceProgress::new(identity);
+    if let Some(progress) = progress.as_ref() {
+        progress
+            .start(
+                PHASE_INFRA,
+                STEP,
+                &botcore::i18n::t(&locale, "workspace-step-starting-vm"),
+                &botcore::i18n::t(&locale, "workspace-step-starting-vm-detail"),
+            )
+            .await;
+    }
+    let result = wait_for(&mut task, START_BUDGET.saturating_sub(QUIET_START)).await;
+    let outcome = finish(identity, result);
+    if let Some(progress) = progress.as_ref() {
+        match &outcome {
+            Ok(_) => progress.finish(PHASE_INFRA, STEP, "ok", "").await,
+            Err(error) => {
+                progress
+                    .finish(PHASE_INFRA, STEP, "error", &user_message(error, &locale))
+                    .await;
+            }
+        }
+    }
+    outcome
+}
+
+/// Starts the same check without waiting for it, for a workspace the records
+/// already show running; a failure is logged.
+pub(super) fn check_in_background(identity: &SessionIdentity<'_>) {
+    let user_id = identity.user_id;
+    let task = spawn_start(identity.session_id, user_id, identity.bot_uuid);
+    tokio::spawn(async move {
+        match task.await {
+            Ok(Ok(_)) => {}
+            Ok(Err((_, error))) => {
+                botlog::safe_warn!("background workspace check for user {user_id}: {error}");
+            }
+            Err(join_error) => {
+                botlog::safe_warn!("background workspace check for user {user_id} failed: {join_error}");
+            }
+        }
+    });
 }
 
 fn finish(
