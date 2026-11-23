@@ -120,31 +120,62 @@ pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: 
             return true;
         }
     };
-    let patterns: Vec<String> = match diesel::sql_query(
+    let patterns = diesel::sql_query(
         "SELECT path_pattern FROM rbac_api_permissions \
          WHERE group_name = 'admin' AND (method = '*' OR method = $1)",
     )
     .bind::<diesel::sql_types::Text, _>(method.to_uppercase())
     .load::<PatternRow>(&mut conn)
-    {
-        Ok(rows) => rows.into_iter().map(|r| r.path_pattern).collect(),
+    .map(|rows| rows.into_iter().map(|r| r.path_pattern).collect::<Vec<String>>())
+    .map_err(|e| e.to_string());
+
+    admin_only_decision(patterns, path)
+}
+
+/// Pure decision table for [`is_admin_only_endpoint`].
+///
+/// `Err` is the fail-closed case: a matrix lookup that could not be completed
+/// denies non-admins instead of silently disabling the gate (#2632).
+fn admin_only_decision(patterns: Result<Vec<String>, String>, path: &str) -> bool {
+    match patterns {
+        Ok(patterns) => patterns.iter().any(|pattern| {
+            let base = pattern.trim_end_matches('%');
+            path.starts_with(base)
+        }),
         Err(e) => {
-            // #2632 — a query failure must not widen access.
             log::error!("is_admin_only_endpoint: query error, denying: {e}");
-            return true;
-        }
-    };
-    for pattern in &patterns {
-        let base = pattern.trim_end_matches('%');
-        if path.starts_with(base) {
-            return true;
+            true
         }
     }
-    false
 }
 
 #[derive(diesel::QueryableByName)]
 struct PatternRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     path_pattern: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::admin_only_decision;
+
+    #[test]
+    fn matrix_lookup_failure_denies() {
+        assert!(admin_only_decision(Err("pool closed".to_string()), "/api/admin/x"));
+    }
+
+    #[test]
+    fn empty_matrix_allows_non_admin_routes() {
+        assert!(!admin_only_decision(Ok(Vec::new()), "/api/chat/messages"));
+    }
+
+    #[test]
+    fn matching_prefix_denies() {
+        let patterns = Ok(vec!["/api/billing%".to_string()]);
+        assert!(admin_only_decision(patterns, "/api/billing/invoices"));
+        assert!(!admin_only_decision(
+            Ok(vec!["/api/billing%".to_string()]),
+            "/api/chat/messages"
+        ));
+    }
 }

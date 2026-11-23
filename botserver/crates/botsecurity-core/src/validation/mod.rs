@@ -202,6 +202,10 @@ mod ssrf_tests;
 #[path = "ssrf_guard_tests.rs"]
 mod ssrf_guard_tests;
 
+#[cfg(test)]
+#[path = "ssrf_fetch_tests.rs"]
+mod ssrf_fetch_tests;
+
 pub use validate_required::*;
 pub use validate_url_ssrf::*;
 

@@ -53,6 +53,12 @@ pub(crate) fn make_canvas_router(app_state: &Arc<AppState>) -> Router<()> {
         ),
     });
     Router::new()
-        .merge(crate::canvas::configure_canvas_routes().with_state(state.clone()))
+        .merge(
+            crate::canvas::configure_canvas_routes()
+                .layer(axum::middleware::from_fn(
+                    crate::canvas::user_middleware::canvas_user_middleware,
+                ))
+                .with_state(state.clone()),
+        )
         .merge(crate::canvas::configure_canvas_ui_routes().with_state(state))
 }

@@ -2,6 +2,17 @@ use serde_json::{json, Value};
 
 use super::LlmTurn;
 
+/// #2624 — one redaction point for every bot-authored frame. Applied to final
+/// answers and to streamed chunks so a secret is never rendered in the browser.
+async fn dlp_outbound(turn: &LlmTurn<'_>, content: String) -> String {
+    botsecurity_core::dlp::redact_text(
+        &content,
+        botsecurity_core::dlp::ScanDirection::Outbound,
+        Some(turn.user_id),
+    )
+    .await
+}
+
 /// Error frame used when the turn cannot start.
 /// #2360 — explicit structured failure markers so the UI can render retry
 /// without inferring from prose.
@@ -65,7 +76,8 @@ pub(super) fn keepalive(turn: &LlmTurn<'_>) -> Value {
 }
 
 /// One content chunk of the answer.
-pub(super) fn chunk(turn: &LlmTurn<'_>, content: String) -> Value {
+pub(super) async fn chunk(turn: &LlmTurn<'_>, content: String) -> Value {
+    let content = dlp_outbound(turn, content).await;
     json!({
         "bot_id": turn.bot_uuid.to_string(),
         "user_id": turn.user_id.to_string(),
@@ -83,12 +95,13 @@ pub(super) fn chunk(turn: &LlmTurn<'_>, content: String) -> Value {
 }
 
 /// Closing frame: the renderer reads `citations` only from here.
-pub(super) fn final_frame(
+pub(super) async fn final_frame(
     turn: &LlmTurn<'_>,
     content: String,
     reasoning: &str,
     citations: Vec<Value>,
 ) -> Value {
+    let content = dlp_outbound(turn, content).await;
     json!({
         "bot_id": turn.bot_uuid.to_string(),
         "user_id": turn.user_id.to_string(),
@@ -130,7 +143,8 @@ pub(super) fn llm_error(
 }
 
 /// Answer emitted when no LLM provider is configured.
-pub(super) fn fallback(turn: &LlmTurn<'_>, content: String) -> Value {
+pub(super) async fn fallback(turn: &LlmTurn<'_>, content: String) -> Value {
+    let content = dlp_outbound(turn, content).await;
     json!({
         "bot_id": turn.bot_uuid.to_string(),
         "user_id": turn.user_id.to_string(),

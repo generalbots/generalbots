@@ -16,7 +16,7 @@ pub use health::{
 };
 pub use procs::{
     component_process_patterns, dump_all_component_logs, get_processes_to_kill,
-    kill_component_processes, safe_pgrep, safe_pkill, safe_sh_command,
+    kill_component_processes, safe_pgrep, safe_pkill, safe_sh_command, safe_sh_command_with_env,
 };
 #[cfg(windows)]
 pub use procs::{kill_stack_component_windows, kill_stack_processes_windows};

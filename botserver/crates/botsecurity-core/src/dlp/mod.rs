@@ -142,8 +142,10 @@ mod with_description;
 mod build_detection_patterns;
 mod redact_content;
 mod extract_context;
+mod shared;
 
 pub use extract_context::*;
+pub use shared::{redact_text, violation_count};
 
 #[cfg(test)]
 #[path = "tests.rs"]

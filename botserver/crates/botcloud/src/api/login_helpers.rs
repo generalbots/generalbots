@@ -1,7 +1,7 @@
 use super::*;
 
 pub(crate) fn base64_url_encode(input: &[u8]) -> String {
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
     general_purpose::STANDARD
         .encode(input)
         .replace('+', "-")
@@ -30,15 +30,14 @@ pub(crate) fn resolve_login_subject(
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         id: Uuid,
     }
-    let email_row = diesel::sql_query(
-        "SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Text, _>(email)
-    .get_result::<UuidRow>(conn)
-    .optional()
-    .ok()
-    .flatten()
-    .map(|r| r.id);
+    let email_row =
+        diesel::sql_query("SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1")
+            .bind::<diesel::sql_types::Text, _>(email)
+            .get_result::<UuidRow>(conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.id);
     let derived_row = diesel::sql_query("SELECT id FROM users WHERE id = $1 LIMIT 1")
         .bind::<diesel::sql_types::Uuid, _>(derived)
         .get_result::<UuidRow>(conn)
@@ -57,7 +56,10 @@ pub(crate) fn resolve_login_subject(
 /// binding (users → user_organizations → branches). Returns `None` when the
 /// user has no verified org binding — callers then omit the branch claim
 /// rather than minting an unverified scope.
-pub(crate) fn resolve_branch_from_user_binding(conn: &mut diesel::PgConnection, email: &str) -> Option<Uuid> {
+pub(crate) fn resolve_branch_from_user_binding(
+    conn: &mut diesel::PgConnection,
+    email: &str,
+) -> Option<Uuid> {
     #[derive(diesel::QueryableByName)]
     struct UserRow {
         #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -109,7 +111,10 @@ pub(crate) fn resolve_branch_from_user_binding(conn: &mut diesel::PgConnection, 
 pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str) -> Vec<String> {
     let stable = match Uuid::parse_str(user_id) {
         Ok(u) => u,
-        Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{user_id}").as_bytes()),
+        Err(_) => Uuid::new_v5(
+            &Uuid::NAMESPACE_DNS,
+            format!("zitadel:{user_id}").as_bytes(),
+        ),
     };
     #[derive(diesel::QueryableByName)]
     struct GroupName {
@@ -134,13 +139,45 @@ pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str)
     }
 }
 
-/// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin
-/// from `admin-credentials.json` when the Zitadel sessions API is unavailable.
-/// Verifies the password against the salted digest persisted by the desktop
-/// wizard (never against a plaintext value read from disk). The legacy
-/// `admin@localhost / "dev"` bootstrap is accepted only when
-/// `BOTSERVER_DEV_MODE=1` is set. Never an email-only match.
-/// Plaintext `password` fields are ignored entirely (#2231).
+/// Pure authorization predicate for a parsed `admin-credentials.json`.
+/// The caller is authorized only when the file's email matches (ignoring
+/// ASCII case) and the supplied password verifies against the salted SHA-256
+/// digest persisted by the wizard. A missing/empty salt or digest, a plaintext
+/// `password` field, environment flags and hardcoded credentials never count
+/// (#2231, #2759).
+pub(crate) fn credentials_authorize(
+    credentials: &serde_json::Value,
+    email: &str,
+    password: &str,
+) -> bool {
+    let Some(cred_email) = credentials.get("email").and_then(|v| v.as_str()) else {
+        return false;
+    };
+    if !cred_email.eq_ignore_ascii_case(email) {
+        return false;
+    }
+    let Some(salt) = credentials.get("password_salt").and_then(|v| v.as_str()) else {
+        return false;
+    };
+    let Some(expected) = credentials.get("password_hash").and_then(|v| v.as_str()) else {
+        return false;
+    };
+    if salt.is_empty() || expected.is_empty() {
+        return false;
+    }
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(password.as_bytes());
+    format!("{:x}", hasher.finalize()) == expected
+}
+
+/// Resolves the Zitadel user_id for the bootstrap admin from
+/// `admin-credentials.json` when the Zitadel sessions API is unavailable.
+/// Authorization is decided by `credentials_authorize` alone: a case-insensitive
+/// email match AND a salted SHA-256 digest of the supplied password. No
+/// environment flag, hardcoded email/password or plaintext field is ever
+/// consulted (#2231, #2759).
 pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> Option<String> {
     let base = std::env::current_dir().ok()?;
     let mut candidates = vec![
@@ -170,43 +207,14 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
             continue;
         };
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            let cred_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
-            if !cred_email.eq_ignore_ascii_case(email) {
+            if !credentials_authorize(&json, email, password) {
                 continue;
             }
-            // #2231 — verify against the salted digest persisted by the
-            // desktop wizard (never against a plaintext password read from
-            // disk). Legacy files that still carry a plaintext `password`
-            // field are accepted only to upgrade them in place, then scrubbed.
-            let file_salt = json.get("password_salt").and_then(|v| v.as_str()).unwrap_or("");
-            let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
-            // #2231 — never compare against a plaintext `password` field read
-            // from disk; only the salted digest is authoritative.
-            let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
-                use sha2::{Digest, Sha256};
-                let mut hasher = Sha256::new();
-                hasher.update(file_salt.as_bytes());
-                hasher.update(password.as_bytes());
-                format!("{:x}", hasher.finalize()) == file_hash
-            } else {
-                false
-            };
-            // #2231 — the hardcoded "dev" bootstrap is gated behind an explicit
-            // dev-mode flag so production builds never accept it.
-            if !matched {
-                let dev_mode = std::env::var("BOTSERVER_DEV_MODE")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false);
-                if dev_mode
-                    && email.eq_ignore_ascii_case("admin@localhost")
-                    && password == "dev"
-                {
-                    // fall through to user_id resolution below
-                } else {
-                    continue;
-                }
-            }
-            if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+            if let Some(user_id) = json
+                .get("user_id")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+            {
                 return Some(user_id.to_string());
             }
         }
@@ -214,3 +222,94 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
     None
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn digest(salt: &str, password: &str) -> String {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(salt.as_bytes());
+        hasher.update(password.as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
+    #[test]
+    fn credentials_authorize_accepts_salted_digest() {
+        let credentials = json!({
+            "email": "admin@example.com",
+            "password_salt": "wizard-salt",
+            "password_hash": digest("wizard-salt", "correct horse"),
+            "user_id": "12345",
+        });
+        assert!(credentials_authorize(
+            &credentials,
+            "admin@example.com",
+            "correct horse"
+        ));
+    }
+
+    #[test]
+    fn credentials_authorize_email_compare_is_case_insensitive() {
+        let credentials = json!({
+            "email": "Admin@Example.com",
+            "password_salt": "wizard-salt",
+            "password_hash": digest("wizard-salt", "pw"),
+        });
+        assert!(credentials_authorize(
+            &credentials,
+            "ADMIN@EXAMPLE.COM",
+            "pw"
+        ));
+    }
+
+    #[test]
+    fn credentials_authorize_rejects_wrong_password_or_email() {
+        let credentials = json!({
+            "email": "admin@example.com",
+            "password_salt": "wizard-salt",
+            "password_hash": digest("wizard-salt", "pw"),
+        });
+        assert!(!credentials_authorize(
+            &credentials,
+            "admin@example.com",
+            "wrong"
+        ));
+        assert!(!credentials_authorize(
+            &credentials,
+            "other@example.com",
+            "pw"
+        ));
+    }
+
+    #[test]
+    fn credentials_authorize_never_uses_plaintext_field() {
+        let credentials = json!({
+            "email": "admin@example.com",
+            "password": "dev",
+            "user_id": "12345",
+        });
+        assert!(!credentials_authorize(
+            &credentials,
+            "admin@example.com",
+            "dev"
+        ));
+    }
+
+    #[test]
+    fn legacy_dev_bootstrap_is_rejected_without_a_digest() {
+        // #2759 — no environment flag or hardcoded admin@localhost/dev pair
+        // remains in the resolution path; a digest must be provisioned.
+        let credentials = json!({
+            "email": "admin@localhost",
+            "password": "dev",
+            "user_id": "12345",
+        });
+        assert!(!credentials_authorize(
+            &credentials,
+            "admin@localhost",
+            "dev"
+        ));
+    }
+}
