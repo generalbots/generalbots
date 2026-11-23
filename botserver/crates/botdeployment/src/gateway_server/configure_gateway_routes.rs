@@ -364,6 +364,13 @@ mod artifact_boundary_tests {
         assert!(allowed_local_artifact(&root_text, &format!("file://{}", outside.display())).is_none());
         assert!(allowed_local_artifact(&root_text, "file:///etc/passwd").is_none());
         assert!(allowed_local_artifact(&root_text, &format!("file://{}/../outside", nested.display())).is_none());
+        // A directory is not a pushable artifact.
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", nested.display())).is_none());
+        // A symlink pointing outside the root must resolve to its target and be refused.
+        let link = nested.join("escape.link");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, &link).expect("create symlink");
+        assert!(allowed_local_artifact(&root_text, &format!("file://{}", link.display())).is_none());
 
         fs::remove_dir_all(&root).ok();
         fs::remove_file(outside).ok();
