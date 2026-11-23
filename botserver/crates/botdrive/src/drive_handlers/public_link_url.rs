@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity_core::content_disposition::{attachment_disposition, inline_disposition};
 
 /// Absolute URL when the installation declares a public base, otherwise the
 /// path-relative link this API has always returned. Token minting, expiry and
@@ -297,10 +298,13 @@ pub async fn public_link_download(
     // chat: the reader would get a download prompt where the front page should
     // be. Images from a share link render in place; everything else keeps the
     // download disposition the Drive UI expects.
+    // #2843 — `file_name` comes from the stored `row.path`; build the header
+    // through the shared sanitizer so a quote/backslash/CRLF in an object name
+    // cannot break out of the quoted parameter or inject header lines.
     let disposition = if mime.starts_with("image/") {
-        format!("inline; filename=\"{file_name}\"")
+        inline_disposition(&file_name)
     } else {
-        format!("attachment; filename=\"{file_name}\"")
+        attachment_disposition(&file_name)
     };
     let headers = [
         (axum::http::header::CONTENT_TYPE, mime.to_string()),
@@ -316,4 +320,38 @@ pub async fn public_link_download(
         ),
     ];
     Ok((headers, data).into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hostile_object_name_yields_one_sanitized_filename_parameter() {
+        for name in [
+            "quote\"injection.txt",
+            "back\\slash.txt",
+            "crlf\r\nX-Injected: 1.txt",
+            "control\0\x01\x7f.txt",
+        ] {
+            let disposition = attachment_disposition(name);
+            assert!(disposition.starts_with("attachment; filename=\""), "{name}");
+            assert_eq!(disposition.matches('"').count(), 2, "{name}");
+            assert!(
+                disposition
+                    .chars()
+                    .all(|c| !matches!(c, '\r' | '\n' | '\0' | '\\')),
+                "{name}"
+            );
+            assert!(axum::http::HeaderValue::from_str(&disposition).is_ok(), "{name}");
+        }
+    }
+
+    #[test]
+    fn inline_disposition_is_also_sanitized() {
+        let disposition = inline_disposition("img\" onload=\"x\r\nX: y.png");
+        assert_eq!(disposition, "inline; filename=\"img onload=xX: y.png\"");
+        assert_eq!(disposition.matches('"').count(), 2);
+        assert!(axum::http::HeaderValue::from_str(&disposition).is_ok());
+    }
 }

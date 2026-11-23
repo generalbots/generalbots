@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::handlers::db_conn;
 use crate::models::*;
 use crate::schema::*;
+use botsecurity_core::content_disposition::attachment_disposition;
 use botsecurity_core::upload_policy::{self, UploadClass};
 
 /// Returns true when the content type is an image (rendered inline with a
@@ -141,7 +142,7 @@ pub async fn download_attachment(
     response
         .headers_mut()
         .insert(header::CONTENT_TYPE, HeaderValue::from_str(&row.content_type).unwrap_or_else(|_| HeaderValue::from_static("application/octet-stream")));
-    let disposition = format!("attachment; filename=\"{}\"", sanitize_filename(&row.name));
+    let disposition = attachment_disposition(&row.name);
     response
         .headers_mut()
         .insert(header::CONTENT_DISPOSITION, HeaderValue::from_str(&disposition).unwrap_or_else(|_| HeaderValue::from_static("attachment")));
@@ -154,15 +155,6 @@ pub async fn download_attachment(
         HeaderValue::from_static("nosniff"),
     );
     Ok(response)
-}
-
-/// Strips path separators, quote and control characters from a filename so the
-/// Content-Disposition header cannot be abused. A `"` would close the quoted
-/// string early and produce a malformed header.
-fn sanitize_filename(name: &str) -> String {
-    name.chars()
-        .filter(|c| !matches!(c, '/' | '\\' | '\0' | '\r' | '\n' | '"'))
-        .collect()
 }
 
 /// Best-effort content-type detection from the file extension when the
@@ -204,6 +196,16 @@ mod attachments_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use botsecurity_core::content_disposition::sanitize_filename;
+
+    // Shared-policy content-type check (the old local allow list was removed
+    // in #2132; pin the endpoint contract onto upload_tables instead).
+    fn content_type_allowed(content_type: &str) -> bool {
+        let ct = content_type.split(';').next().unwrap_or(content_type).trim();
+        ["png", "jpg", "gif", "webp", "pdf", "docx", "xlsx", "pptx", "csv", "txt", "zip", "mp3", "mp4"]
+            .iter()
+            .any(|ext| botsecurity_core::upload_tables::mime_for_extension(ext) == Some(ct))
+    }
 
     #[test]
     fn test_content_type_allow_list() {

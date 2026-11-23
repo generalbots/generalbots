@@ -7,6 +7,7 @@
 //! inline serving is limited to passive media.
 
 use super::*;
+use botsecurity_core::content_disposition::attachment_disposition;
 use botsecurity_core::upload_policy::{self, UploadClass};
 
 /// Local principal for single-user desktop installs (`no_security=true`).
@@ -266,16 +267,6 @@ pub async fn download_file_binary(
     Ok((headers, data).into_response())
 }
 
-/// `Content-Disposition` value with the client name stripped of characters
-/// that would break the quoted string (a `"` closes it early, CR/LF inject a
-/// header). #2132.
-fn attachment_disposition(file_name: &str) -> String {
-    let safe: String = file_name
-        .chars()
-        .filter(|c| !matches!(c, '"' | '\\' | '\r' | '\n' | '\0'))
-        .collect();
-    format!("attachment; filename=\"{safe}\"")
-}
 /// #1306 — raw file bytes served INLINE (no Content-Disposition attachment),
 /// so apps like the Photo Editor can load Drive images into a canvas with
 /// `fetch` + `createObjectURL` instead of base64 round-trips.

@@ -4,7 +4,7 @@
 //! connect/callback lifecycle (which writes credentials), this one only reads
 //! what the sync engine already mirrored.
 
-use super::routes::{caller_branch, err, parse_provider, sanitize_filename, ApiError, ApiResult};
+use super::routes::{caller_branch, err, parse_provider, ApiError, ApiResult};
 use crate::external::{config, db, engine, files, types::Provider};
 use axum::{
     extract::{Path, Query, State},
@@ -14,6 +14,7 @@ use axum::{
 };
 use botcore::shared::state::AppState;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
+use botsecurity_core::content_disposition::attachment_disposition;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -193,10 +194,7 @@ pub async fn download_file(
                     .clone()
                     .unwrap_or_else(|| "application/octet-stream".to_string()),
             ),
-            (
-                header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{}\"", sanitize_filename(&row.name)),
-            ),
+            (header::CONTENT_DISPOSITION, attachment_disposition(&row.name)),
         ],
         bytes,
     )
