@@ -6,6 +6,7 @@ pub mod error;
 pub mod http_client;
 #[cfg(feature = "i18n")]
 pub mod i18n;
+pub mod kb_scope;
 pub mod key_utils;
 pub mod limits;
 pub mod logging;

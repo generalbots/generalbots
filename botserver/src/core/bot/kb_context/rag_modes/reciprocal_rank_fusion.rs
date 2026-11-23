@@ -43,7 +43,7 @@ pub(super) async fn hybrid_search(
             .await
             .unwrap_or_default();
 
-    let keyword_results = kb_context_search::search_keyword_only(collection, query, limit).await;
+    let keyword_results = kb_context_search::search_keyword_only(collection, query, limit, bot_id).await;
 
     let vlen = vector_results.len();
     let klen = keyword_results.len();
@@ -159,7 +159,7 @@ pub(super) async fn corrective_search(
     }
 
     if all_results.is_empty() {
-        let keyword = kb_context_search::search_keyword_only(collection, query, limit).await;
+        let keyword = kb_context_search::search_keyword_only(collection, query, limit, bot_id).await;
         if !keyword.is_empty() {
             info!("Corrective RAG: vector search empty, falling back to keyword");
             return keyword;
@@ -361,5 +361,5 @@ pub(super) async fn entity_search_term(
         return results;
     }
 
-    kb_context_search::search_keyword_only(collection, term, limit).await
+    kb_context_search::search_keyword_only(collection, term, limit, bot_id).await
 }

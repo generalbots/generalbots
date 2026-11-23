@@ -147,7 +147,7 @@ pub(super) async fn agentic_search(
     }
 
     if all_results.is_empty() {
-        return kb_context_search::search_keyword_only(collection, query, limit).await;
+        return kb_context_search::search_keyword_only(collection, query, limit, bot_id).await;
     }
 
     all_results.sort_by(|a, b| {
@@ -242,7 +242,7 @@ pub(super) async fn multimodal_search(
     }
 
     if all_results.is_empty() {
-        return kb_context_search::search_keyword_only(collection, query, limit).await;
+        return kb_context_search::search_keyword_only(collection, query, limit, bot_id).await;
     }
 
     all_results.sort_by(|a, b| {

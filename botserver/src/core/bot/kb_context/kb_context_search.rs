@@ -5,8 +5,13 @@ use uuid::Uuid;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::embedding_generator::{EmbeddingConfig, KbEmbeddingGenerator};
 use botcore::shared::utils::DbPool;
+#[cfg(any(feature = "research", feature = "llm"))]
+use botlib::kb_scope::filter_for_bot;
 
 use super::KbSearchResult;
+
+mod payload_scope;
+pub use payload_scope::*;
 
 fn get_vectordb_url() -> String {
     std::env::var("QDRANT_URL")
@@ -71,6 +76,13 @@ pub async fn search_qdrant(
     let qdrant_url = get_vectordb_url();
     let api_key = get_vectordb_api_key();
 
+    // Every retrieval is pinned to the server-resolved bot. Without a verified
+    // bot there is no filter and therefore no query at all (fail closed).
+    let Some(scope_filter) = filter_for_bot(Some(bot_id)) else {
+        warn!("Refusing KB search '{collection_name}': no verified bot scope");
+        return Ok(Vec::new());
+    };
+
     let search_url = format!(
         "{}/collections/{}/points/search",
         qdrant_url.trim_end_matches('/'),
@@ -117,6 +129,8 @@ pub async fn search_qdrant(
                 query,
                 limit,
                 &api_key,
+                &scope_filter,
+                bot_id,
             )
             .await;
         }
@@ -126,6 +140,7 @@ pub async fn search_qdrant(
         "limit": limit,
         "with_vector": false,
         "with_payload": true,
+        "filter": scope_filter,
         "params": {
             "hnsw_ef": 128,
             "exact": false
@@ -201,6 +216,16 @@ pub async fn search_qdrant(
             continue;
         }
 
+        // Never return embedded text based on the payload alone (#2820).
+        let payload_value = payload.cloned().unwrap_or(serde_json::Value::Null);
+        if !kb_chunk_is_authorized(&payload_value, bot_id, collection_name, &document_path) {
+            debug!(
+                "Dropping KB point: untrusted payload scope or current ACL denied '{}'",
+                document_path
+            );
+            continue;
+        }
+
         search_results.push(KbSearchResult {
             content,
             document_path,
@@ -219,6 +244,8 @@ async fn search_qdrant_by_keyword(
     query: &str,
     limit: usize,
     api_key: &str,
+    scope_filter: &serde_json::Value,
+    bot_id: Uuid,
 ) -> Result<Vec<KbSearchResult>> {
     let scroll_url = format!(
         "{}/collections/{}/points/scroll",
@@ -245,13 +272,15 @@ async fn search_qdrant_by_keyword(
                 "limit": 100,
                 "with_vector": false,
                 "with_payload": true,
+                "filter": scope_filter,
                 "offset": off
             })
         } else {
             serde_json::json!({
                 "limit": 100,
                 "with_vector": false,
-                "with_payload": true
+                "with_payload": true,
+                "filter": scope_filter
             })
         };
 
@@ -306,6 +335,16 @@ async fn search_qdrant_by_keyword(
                     .unwrap_or("")
                     .to_string();
 
+                // Re-check the payload scope and current ACL before returning
+                // scrolled content (#2820).
+                if !kb_chunk_is_authorized(&payload, bot_id, collection_name, &document_path) {
+                    debug!(
+                        "Dropping scrolled KB point: untrusted payload scope or current ACL denied '{}'",
+                        document_path
+                    );
+                    continue;
+                }
+
                 all_points.push(KbSearchResult {
                     content: content.to_string(),
                     document_path,
@@ -341,7 +380,12 @@ pub async fn search_keyword_only(
     collection_name: &str,
     query: &str,
     limit: usize,
+    bot_id: Uuid,
 ) -> Vec<KbSearchResult> {
+    let Some(scope_filter) = filter_for_bot(Some(bot_id)) else {
+        warn!("Refusing keyword KB search '{collection_name}': no verified bot scope");
+        return Vec::new();
+    };
     let client = botlib::security::create_tls_client(None);
     let qdrant_url = get_vectordb_url();
     let api_key = get_vectordb_api_key();
@@ -352,6 +396,8 @@ pub async fn search_keyword_only(
         query,
         limit,
         &api_key,
+        &scope_filter,
+        bot_id,
     )
     .await
     .unwrap_or_default()
@@ -362,6 +408,7 @@ pub async fn search_keyword_only(
     _collection_name: &str,
     _query: &str,
     _limit: usize,
+    _bot_id: Uuid,
 ) -> Vec<KbSearchResult> {
     Vec::new()
 }

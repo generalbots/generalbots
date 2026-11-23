@@ -1,4 +1,5 @@
 use super::*;
+use botlib::kb_scope::KbTenantScope;
 
 /// A research bot paired with the tenant branch that owns it, resolved from
 /// the caller's verified claims rather than from a process-global default.
@@ -188,11 +189,18 @@ pub async fn handle_create_collection<S: ResearchState>(
         return Html(String::new());
     };
     let bot_id = scope.bot_id;
+    // The friendly name is caller-supplied; the bot/branch pair is not. Derive
+    // the physical collection name from the verified scope so two tenants can
+    // never collide on the same `kb_<name>` collection (issue #2818).
+    let Some(kb_scope) = KbTenantScope::new(bot_id, scope.branch_id) else {
+        log::warn!("Refusing KB collection creation without a verified tenant scope");
+        return Html(String::new());
+    };
     let conn = state.db_pool().clone();
     let id = uuid::Uuid::new_v4();
     let name = payload.name.clone();
     let description = payload.description.unwrap_or_default();
-    let qdrant_collection = format!("kb_{}", name.to_lowercase().replace(' ', "_"));
+    let qdrant_collection = kb_scope.collection_name(&name);
 
     let id_clone = id;
     let name_clone = name.clone();
@@ -357,5 +365,25 @@ mod tests {
         let other_branch = uuid::Uuid::parse_str(BRANCH_B).unwrap();
         let denied = authorize_scope(owner, Some(other_branch));
         assert_eq!(bot_scope_clause(&denied), " AND 1 = 0");
+    }
+
+    #[test]
+    fn identical_friendly_names_never_share_a_collection_or_filter() {
+        let tenant_a = scope(BOT_A, BRANCH_A);
+        let tenant_b = scope(BOT_B, BRANCH_B);
+        let scope_a = KbTenantScope::new(tenant_a.bot_id, tenant_a.branch_id).unwrap();
+        let scope_b = KbTenantScope::new(tenant_b.bot_id, tenant_b.branch_id).unwrap();
+
+        let collection_a = scope_a.collection_name("hr");
+        let collection_b = scope_b.collection_name("hr");
+        assert_ne!(collection_a, collection_b, "tenant collections must not collide");
+        assert!(collection_a.contains(BOT_A) && collection_a.contains(BRANCH_A));
+        assert!(collection_b.contains(BOT_B) && collection_b.contains(BRANCH_B));
+        assert_ne!(scope_a.filter(), scope_b.filter());
+        assert_eq!(scope_a.filter()["must"][0]["match"]["value"], BOT_A);
+        assert_eq!(scope_b.filter()["must"][0]["match"]["value"], BOT_B);
+
+        let unverified = authorize_scope(tenant_a, Some(uuid::Uuid::parse_str(BRANCH_B).unwrap()));
+        assert!(unverified.is_none());
     }
 }

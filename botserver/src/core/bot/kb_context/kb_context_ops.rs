@@ -3,10 +3,11 @@ use log::{debug, info, warn};
 use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
+use botlib::kb_scope::KbTenantScope;
 
 use super::{KbContext, RagMode, SessionKbAssociation, SessionWebsiteAssociation};
 
-pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionKbAssociation> {
+pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid, bot_id: Uuid) -> Vec<SessionKbAssociation> {
     let mut conn = match db_pool.get() {
         Ok(c) => c,
         Err(e) => {
@@ -16,28 +17,42 @@ pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionKbAssoci
     };
 
     #[derive(QueryableByName)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: Uuid,
+    }
+    let Some(scope) = diesel::sql_query("SELECT branch_id FROM bots WHERE id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result::<BranchRow>(&mut conn)
+        .ok()
+        .and_then(|r| KbTenantScope::new(bot_id, r.branch_id))
+    else {
+        warn!("Refusing KB context: no verified tenant scope for bot {bot_id}");
+        return Vec::new();
+    };
+
+    #[derive(QueryableByName)]
     struct KbAssocRow {
         #[diesel(sql_type = diesel::sql_types::Text)]
         kb_name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        qdrant_collection: String,
         #[diesel(sql_type = diesel::sql_types::Bool)]
         is_active: bool,
     }
 
     let query = diesel::sql_query(
-        "SELECT kb_name, qdrant_collection, is_active
+        "SELECT kb_name, is_active
         FROM session_kb_associations
-        WHERE session_id = $1 AND is_active = true",
+        WHERE session_id = $1 AND bot_id = $2 AND is_active = true",
     )
-    .bind::<diesel::sql_types::Uuid, _>(session_id);
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .bind::<diesel::sql_types::Uuid, _>(bot_id);
 
     match query.load::<KbAssocRow>(&mut conn) {
         Ok(rows) => rows
             .into_iter()
             .map(|r| SessionKbAssociation {
+                qdrant_collection: scope.collection_name(&r.kb_name),
                 kb_name: r.kb_name,
-                qdrant_collection: r.qdrant_collection,
                 is_active: r.is_active,
             })
             .collect(),
@@ -171,7 +186,7 @@ pub async fn inject_kb_context(
     );
 
     let active_kbs = if mention_config.kbs {
-        get_active_kbs(db_pool, session_id)
+        get_active_kbs(db_pool, session_id, bot_id)
     } else {
         Vec::new()
     };

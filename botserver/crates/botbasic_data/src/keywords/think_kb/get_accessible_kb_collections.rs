@@ -1,4 +1,5 @@
 use super::*;
+use botlib::kb_scope::{filter_for_bot, KbTenantScope};
 
 pub(super) fn get_accessible_kb_collections(
     conn: &mut diesel::PgConnection,
@@ -20,10 +21,38 @@ pub(super) fn get_accessible_kb_collections(
         id_str
     );
 
-    diesel::sql_query(&query_str)
+    let rows = diesel::sql_query(&query_str)
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .load::<KbCollectionRow>(conn)
-        .map_err(|e| format!("Failed to query KB collections: {e}"))
+        .map_err(|e| format!("Failed to query KB collections: {e}"))?;
+
+    // Never trust a stored collection name: re-derive it from the verified
+    // bot/branch pair so a legacy or tampered row cannot point at another
+    // tenant's collection (issue #2818).
+    #[derive(QueryableByName)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: uuid::Uuid,
+    }
+    let Some(branch_id) = diesel::sql_query("SELECT branch_id FROM bots WHERE id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result::<BranchRow>(conn)
+        .ok()
+        .map(|r| r.branch_id)
+    else {
+        return Ok(Vec::new());
+    };
+    let Some(scope) = KbTenantScope::new(bot_id, branch_id) else {
+        return Ok(Vec::new());
+    };
+
+    Ok(rows
+        .into_iter()
+        .map(|mut row| {
+            row.qdrant_collection = scope.collection_name(&row.name);
+            row
+        })
+        .collect())
 }
 pub(super) fn get_recent_consolidations(
     conn: &mut diesel::PgConnection,
@@ -104,6 +133,11 @@ pub(super) async fn search_qdrant_with_real_embeddings(
         .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
         .unwrap_or_default();
 
+    // Fail closed: no verified bot scope means no Qdrant request at all.
+    let Some(scope_filter) = filter_for_bot(Some(bot_id)) else {
+        return Ok(Vec::new());
+    };
+
     let client = botlib::security::create_tls_client(None);
 
     let check_url = format!(
@@ -156,6 +190,7 @@ pub(super) async fn search_qdrant_with_real_embeddings(
         "limit": limit,
         "with_vector": false,
         "with_payload": true,
+        "filter": scope_filter,
         "params": { "hnsw_ef": 128, "exact": false },
         "vector": vector
     }));

@@ -1,5 +1,6 @@
-use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use botbasic_types::UserSession;
+use botlib::kb_scope::KbTenantScope;
 use diesel::prelude::*;
 use log::{info, warn};
 use rhai::{Dynamic, Engine};
@@ -10,6 +11,8 @@ use uuid::Uuid;
 struct BotNameResult {
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
 }
 
 #[derive(QueryableByName)]
@@ -18,8 +21,6 @@ struct KbCollectionResult {
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     folder_path: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    qdrant_collection: String,
 }
 
 #[derive(QueryableByName, Debug, Clone)]
@@ -30,6 +31,51 @@ pub struct ActiveKbResult {
     pub kb_folder_path: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub qdrant_collection: String,
+}
+
+/// Current KB ACL facts from the trusted group tables. `$1` = kb_id, `$2` =
+/// user_id. Splitting the verdict into facts lets the pure predicate below be
+/// reused at attach time and at query time (#2820).
+const KB_ACCESS_FACTS_SQL: &str = "SELECT
+    NOT EXISTS (SELECT 1 FROM kb_group_associations kga WHERE kga.kb_id = kc.id) AS is_public,
+    EXISTS (
+        SELECT 1 FROM kb_group_associations kga
+        JOIN rbac_user_groups rug ON rug.group_id = kga.group_id
+        WHERE kga.kb_id = kc.id AND rug.user_id = $2
+    ) AS user_in_group
+    FROM kb_collections kc WHERE kc.id = $1";
+
+#[derive(QueryableByName)]
+struct KbAccessFacts {
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    is_public: bool,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    user_in_group: bool,
+}
+
+/// Pure permission recheck predicate: a KB is accessible when it has no group
+/// restrictions or the caller currently belongs to an authorized group.
+pub fn kb_access_allowed(is_public: bool, user_in_group: bool) -> bool {
+    is_public || user_in_group
+}
+
+/// Query-time ACL recheck against the trusted group tables. Call this before
+/// returning KB content so a revoked membership hides already-attached KBs
+/// (#2820); attach-time checks alone leave stale authorization.
+pub fn user_can_access_kb(
+    conn_pool: &botbasic_types::types::DbPool,
+    kb_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, String> {
+    let mut conn = conn_pool
+        .get()
+        .map_err(|e| format!("Failed to get DB connection: {}", e))?;
+    let facts = diesel::sql_query(KB_ACCESS_FACTS_SQL)
+        .bind::<diesel::sql_types::Uuid, _>(kb_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<KbAccessFacts>(&mut conn)
+        .map_err(|e| format!("Failed to recheck KB access: {}", e))?;
+    Ok(kb_access_allowed(facts.is_public, facts.user_in_group))
 }
 
 pub fn register_use_kb_keyword(
@@ -43,43 +89,45 @@ pub fn register_use_kb_keyword(
     let session_clone_for_syntax = session_clone.clone();
     let state_clone_for_syntax = state_clone.clone();
 
-    if let Err(e) = engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
-        let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
+    if let Err(e) =
+        engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
+            let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
-        info!(
-            "USE KB keyword executed - KB: {}, Session: {}",
-            kb_name, session_clone_for_syntax.id
-        );
+            info!(
+                "USE KB keyword executed - KB: {}, Session: {}",
+                kb_name, session_clone_for_syntax.id
+            );
 
-        let session_id = session_clone_for_syntax.id;
-        let bot_id = session_clone_for_syntax.bot_id;
-        let user_id = Uuid::parse_str(&session_clone_for_syntax.user_id).unwrap_or(Uuid::nil());
-        let conn = state_clone_for_syntax.db_pool().clone();
-        let kb_name_clone = kb_name.clone();
+            let session_id = session_clone_for_syntax.id;
+            let bot_id = session_clone_for_syntax.bot_id;
+            let user_id = Uuid::parse_str(&session_clone_for_syntax.user_id).unwrap_or(Uuid::nil());
+            let conn = state_clone_for_syntax.db_pool().clone();
+            let kb_name_clone = kb_name.clone();
 
-        let result = std::thread::spawn(move || {
-            add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
+            let result = std::thread::spawn(move || {
+                add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
+            })
+            .join();
+
+            match result {
+                Ok(Ok(_)) => {
+                    info!(
+                        " KB '{}' added to session {}",
+                        kb_name, session_clone_for_syntax.id
+                    );
+                    Ok(Dynamic::UNIT)
+                }
+                Ok(Err(e)) => {
+                    log::error!("Failed to add KB '{}': {}", kb_name, e);
+                    Err(format!("USE_KB failed: {}", e).into())
+                }
+                Err(e) => {
+                    log::error!("Thread panic in USE_KB: {:?}", e);
+                    Err("USE_KB failed: thread panic".into())
+                }
+            }
         })
-        .join();
-
-        match result {
-            Ok(Ok(_)) => {
-                info!(
-                    " KB '{}' added to session {}",
-                    kb_name, session_clone_for_syntax.id
-                );
-                Ok(Dynamic::UNIT)
-            }
-            Ok(Err(e)) => {
-                log::error!("Failed to add KB '{}': {}", kb_name, e);
-                Err(format!("USE_KB failed: {}", e).into())
-            }
-            Err(e) => {
-                log::error!("Thread panic in USE_KB: {:?}", e);
-                Err("USE_KB failed: thread panic".into())
-            }
-        }
-    }) {
+    {
         log::error!("Failed to register USE KB syntax: {e}");
     }
 
@@ -103,9 +151,14 @@ pub fn register_use_kb_keyword(
         })
         .join();
 
-        log::info!("use_kb AFTER JOIN kb {} result={:?} join_ok={}", kb_name,
-            join_result.as_ref().map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
-            join_result.is_ok());
+        log::info!(
+            "use_kb AFTER JOIN kb {} result={:?} join_ok={}",
+            kb_name,
+            join_result
+                .as_ref()
+                .map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
+            join_result.is_ok()
+        );
 
         match join_result {
             Ok(Ok(_)) => {
@@ -140,9 +193,14 @@ pub fn register_use_kb_keyword(
         })
         .join();
 
-        log::info!("USE_KB AFTER JOIN kb {} result={:?} join_ok={}", kb_name,
-            join_result.as_ref().map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
-            join_result.is_ok());
+        log::info!(
+            "USE_KB AFTER JOIN kb {} result={:?} join_ok={}",
+            kb_name,
+            join_result
+                .as_ref()
+                .map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
+            join_result.is_ok()
+        );
 
         match join_result {
             Ok(Ok(_)) => {
@@ -172,14 +230,21 @@ pub fn add_kb_to_session(
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
-    let bot_result: BotNameResult = diesel::sql_query("SELECT name FROM bots WHERE id = $1")
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .get_result(&mut conn)
-        .map_err(|e| format!("Failed to get bot name: {}", e))?;
+    let bot_result: BotNameResult =
+        diesel::sql_query("SELECT name, branch_id FROM bots WHERE id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .get_result(&mut conn)
+            .map_err(|e| format!("Failed to get bot name: {}", e))?;
     let bot_name = bot_result.name;
+    // The KB collection name is always derived from the server-resolved
+    // bot/branch pair, never from a caller-supplied name (issue #2818).
+    let Some(scope) = KbTenantScope::new(bot_id, bot_result.branch_id) else {
+        return Err(format!("Cannot resolve KB tenant scope for bot {bot_id}"));
+    };
+    let qdrant_collection = scope.collection_name(kb_name);
 
     let kb_exists: Option<KbCollectionResult> = diesel::sql_query(
-        "SELECT id, folder_path, qdrant_collection FROM kb_collections WHERE bot_id = $1 AND name = $2",
+        "SELECT id, folder_path FROM kb_collections WHERE bot_id = $1 AND name = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(kb_name)
@@ -187,46 +252,25 @@ pub fn add_kb_to_session(
     .optional()
     .map_err(|e| format!("Failed to check KB existence: {}", e))?;
 
-    let (kb_folder_path, qdrant_collection) = if let Some(kb_result) = kb_exists {
-        #[derive(QueryableByName)]
-        struct AccessCheck {
-            #[diesel(sql_type = diesel::sql_types::Bool)]
-            exists: bool,
-        }
-        let has_access: bool = diesel::sql_query(
-            "SELECT EXISTS (
-                SELECT 1 FROM kb_collections kc
-                WHERE kc.id = $1
-                AND (
-                    NOT EXISTS (SELECT 1 FROM kb_group_associations kga WHERE kga.kb_id = kc.id)
-                    OR EXISTS (
-                        SELECT 1 FROM kb_group_associations kga
-                        JOIN rbac_user_groups rug ON rug.group_id = kga.group_id
-                        WHERE kga.kb_id = kc.id AND rug.user_id = $2
-                    )
-                )
-            ) AS exists",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(kb_result.id)
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<AccessCheck>(&mut conn)
-        .map_err(|e| format!("Failed to check KB access: {}", e))?
-        .exists;
+    let kb_folder_path = if let Some(kb_result) = kb_exists {
+        let facts = diesel::sql_query(KB_ACCESS_FACTS_SQL)
+            .bind::<diesel::sql_types::Uuid, _>(kb_result.id)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<KbAccessFacts>(&mut conn)
+            .map_err(|e| format!("Failed to check KB access: {}", e))?;
 
-        if !has_access {
+        if !kb_access_allowed(facts.is_public, facts.user_in_group) {
             return Err(format!("Access denied for KB '{}'", kb_name));
         }
 
-        (kb_result.folder_path, kb_result.qdrant_collection)
+        kb_result.folder_path
     } else {
         let default_path = format!("work/{}/{}.gbkb/{}", bot_name, bot_name, kb_name);
-        let bot_id_short: String = bot_id.to_string().chars().take(8).collect();
-        let default_collection = format!("{}_{}_{}", bot_name, bot_id_short, kb_name);
         let kb_id = Uuid::new_v4();
 
         log::warn!(
             "KB '{}' not found in kb_collections for bot {}. Using default path: {}, collection: {}",
-            kb_name, bot_name, default_path, default_collection
+            kb_name, bot_name, default_path, qdrant_collection
         );
 
         diesel::sql_query(
@@ -240,40 +284,28 @@ pub fn add_kb_to_session(
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .bind::<diesel::sql_types::Text, _>(kb_name)
         .bind::<diesel::sql_types::Text, _>(&default_path)
-        .bind::<diesel::sql_types::Text, _>(&default_collection)
+        .bind::<diesel::sql_types::Text, _>(&qdrant_collection)
         .execute(&mut conn)
         .ok();
 
-        (default_path, default_collection)
+        default_path
     };
 
     let tool_name: Option<String> = None;
 
     // Ensure session exists in user_sessions for FK constraint on session_kb_associations
-    #[derive(diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct BranchIdRow { #[diesel(sql_type = diesel::sql_types::Uuid)] branch_id: uuid::Uuid }
-    let session_branch_id: Option<uuid::Uuid> = diesel::sql_query(
-        "SELECT branch_id FROM bots WHERE id = $1"
+    if let Err(e) = diesel::sql_query(
+        "INSERT INTO user_sessions (id, user_id, bot_id, branch_id, title, answer_mode, context_data, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'KB Session', 1, '{}'::jsonb, NOW(), NOW())
+         ON CONFLICT (id) DO NOTHING"
     )
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .bind::<diesel::sql_types::Text, _>(user_id.to_string())
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .get_result::<BranchIdRow>(&mut conn)
-    .ok()
-    .map(|r| r.branch_id);
-    if let Some(branch_id) = session_branch_id {
-        if let Err(e) = diesel::sql_query(
-            "INSERT INTO user_sessions (id, user_id, bot_id, branch_id, title, answer_mode, context_data, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, 'KB Session', 1, '{}'::jsonb, NOW(), NOW())
-             ON CONFLICT (id) DO NOTHING"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(session_id)
-        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .bind::<diesel::sql_types::Uuid, _>(branch_id)
-        .execute(&mut conn)
-        {
-            warn!("Failed to ensure session {} in user_sessions: {}", session_id, e);
-        }
+    .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
+    .execute(&mut conn)
+    {
+        warn!("Failed to ensure session {} in user_sessions: {}", session_id, e);
     }
 
     let assoc_id = Uuid::new_v4();
@@ -332,4 +364,29 @@ pub fn get_active_kbs_for_session(
         .into_iter()
         .map(|r| (r.kb_name, r.kb_folder_path, r.qdrant_collection))
         .collect())
+}
+
+#[cfg(test)]
+mod kb_access_tests {
+    use super::kb_access_allowed;
+
+    #[test]
+    fn public_kb_needs_no_group_membership() {
+        assert!(kb_access_allowed(true, false));
+        assert!(kb_access_allowed(true, true));
+    }
+
+    #[test]
+    fn restricted_kb_requires_a_current_group_membership() {
+        assert!(kb_access_allowed(false, true));
+        assert!(!kb_access_allowed(false, false));
+    }
+
+    #[test]
+    fn revoking_membership_denies_an_already_attached_kb() {
+        // At attach time the user was in an authorized group.
+        assert!(kb_access_allowed(false, true));
+        // Query time after the group row is removed: same KB, no live grant.
+        assert!(!kb_access_allowed(false, false));
+    }
 }
