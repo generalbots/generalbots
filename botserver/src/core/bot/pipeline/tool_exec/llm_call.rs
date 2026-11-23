@@ -138,11 +138,23 @@ pub async fn run_llm_tool_call(
         }
         let tool_args: &str = tool_args_owned.as_str();
 
-        log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
+        // Arguments can carry personal data (an address's query string, a
+        // command): only the tool, the argument size and, for a page, its site.
+        let site = if raw_tool_name == super::super::native_tools::web_fetch::TOOL {
+            super::super::native_tools::web_fetch::site_in_args(tool_args)
+                .map(|site| format!(" site={site}"))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        log::info!(
+            "LLM tool_call: executing tool '{raw_tool_name}' args_bytes={}{site}",
+            tool_args.len()
+        );
         if raw_tool_name.is_empty() {
             botlog::safe_warn!(
-                "tool_call: the model sent a call without a tool name; raw: {}",
-                tc_json.chars().take(200).collect::<String>()
+                "tool_call: the model sent a call without a tool name; raw_bytes={}",
+                tc_json.len()
             );
             let msg = "Não consegui identificar qual ferramenta executar para esse pedido. \
                        Pode repetir o que você precisa?";

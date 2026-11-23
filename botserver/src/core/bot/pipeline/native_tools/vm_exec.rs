@@ -290,6 +290,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             .and_then(|outcome| outcome.as_ref().map(|r| r.0))
     );
 
+    super::super::turn_record::note_command(identity.session_id, code, exit_code);
     super::super::vm_consent::tools::report_run(identity, &receipt, &result, exit_code).await;
     match result {
         Err((status, reason)) => {

@@ -5,7 +5,8 @@
 //! agent VM must expose it, so it is handled here before the script lookup.
 //!
 //! Split by tool family: `vm_exec` (program execution and its repair/render
-//! helpers), `terminal` (live PTY runs), `web_fetch` (one public page) and
+//! helpers), `terminal` (live PTY runs), `web_fetch` (one public page),
+//! `web_prefetch` (named pages read ahead for engines without tools) and
 //! this module (capture buffer, chat send/persist and the dispatch table).
 
 use super::types::SessionIdentity;
@@ -31,6 +32,7 @@ mod vm_exec;
 #[cfg(feature = "agent-vm")]
 mod vm_trace;
 pub(super) mod web_fetch;
+pub(super) mod web_prefetch;
 mod web_text;
 
 /// The last message(s) a native tool sent to chat, keyed by session. The LLM

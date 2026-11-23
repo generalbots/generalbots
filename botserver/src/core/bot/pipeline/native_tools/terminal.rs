@@ -44,7 +44,7 @@ pub(super) async fn run_terminal_run(
         ticket,
         identity.user_id,
         identity.session_id,
-        command,
+        command.clone(),
         timeout_secs,
     )
     .await;
@@ -52,6 +52,7 @@ pub(super) async fn run_terminal_run(
         Ok(run) => (run.output, run.exit_code),
         Err(error) => (format!("terminal_run failed: {error}"), None),
     };
+    super::super::turn_record::note_command(identity.session_id, &command, exit_code);
     let trimmed = text.trim();
     let summary: String = if trimmed.is_empty() {
         "The command finished with no output.".to_string()

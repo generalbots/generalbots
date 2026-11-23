@@ -108,10 +108,34 @@ async fn indexed_docs(state: &Arc<AppState>, bucket: &str, prefix: &str) -> Vec<
     docs
 }
 
+/// The names of the files attached to this message: their text already
+/// reaches the model whole, so Drive must not add a cut copy of them.
+fn attached_names(parsed: &serde_json::Value) -> Vec<String> {
+    let single = parsed.get("file").into_iter();
+    let many = parsed
+        .get("files")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten();
+    single
+        .chain(many)
+        .filter_map(|file| file.get("name").and_then(serde_json::Value::as_str))
+        .map(|name| name.trim().to_lowercase())
+        .filter(|name| !name.is_empty())
+        .collect()
+}
+
+fn is_attached(doc: &IndexedDoc, attached: &[String]) -> bool {
+    let name = doc.relative.to_lowercase();
+    let file = name.rsplit('/').next().unwrap_or(&name);
+    attached.iter().any(|attached| attached == file)
+}
+
 /// Picks the documents a question is most likely about.
-fn rank(docs: &[IndexedDoc], words: &[String]) -> Vec<IndexedDoc> {
+fn rank(docs: &[IndexedDoc], words: &[String], attached: &[String]) -> Vec<IndexedDoc> {
     let mut scored: Vec<(usize, &IndexedDoc)> = docs
         .iter()
+        .filter(|doc| !is_attached(doc, attached))
         .filter_map(|doc| {
             let name = doc.relative.to_lowercase();
             let score: usize = words
@@ -154,14 +178,16 @@ async fn read_excerpt(
     bucket: &str,
     doc: &IndexedDoc,
     words: &[String],
-) -> Option<String> {
+) -> Option<(String, bool)> {
     let drive = state.drive.clone()?;
     let bytes = drive.get_object(bucket, &doc.key).await.ok()?;
     let text = String::from_utf8_lossy(&bytes).to_string();
     if text.trim().is_empty() {
         return None;
     }
-    Some(excerpt(&text, words))
+    let window = excerpt(&text, words);
+    let cut = window.chars().count() < text.chars().count();
+    Some((window, cut))
 }
 
 /// Injects matching Drive documents as a system message. Never fails a turn:
@@ -171,9 +197,11 @@ pub async fn inject(
     bot_uuid: &Uuid,
     user_id: Uuid,
     question: &str,
+    parsed: &serde_json::Value,
     messages: &mut Vec<serde_json::Value>,
 ) {
     let words = keywords(question);
+    let attached = attached_names(parsed);
     if words.is_empty() {
         return;
     }
@@ -199,11 +227,11 @@ pub async fn inject(
             }
             docs.extend(indexed_docs(state, &location.bucket, prefix).await);
         }
-        let ranked = rank(&docs, &words);
+        let ranked = rank(&docs, &words, &attached);
         let mut blocks = Vec::new();
         for doc in ranked {
-            if let Some(text) = read_excerpt(state, &location.bucket, &doc, &words).await {
-                blocks.push((doc.relative, text));
+            if let Some((text, cut)) = read_excerpt(state, &location.bucket, &doc, &words).await {
+                blocks.push((doc.relative, text, cut));
             }
         }
         blocks
@@ -224,9 +252,44 @@ pub async fn inject(
          question, use their content and cite the file name. Do not invent data \
          that is not in the documents.\n\n",
     );
-    for (name, text) in &blocks {
-        block.push_str(&format!("--- {name} ---\n{text}\n\n"));
+    for (name, text, cut) in &blocks {
+        // A window of a longer file is named as such, so the model does not
+        // report the file itself as cut.
+        let part = if *cut { " (excerpt: the file is longer)" } else { "" };
+        block.push_str(&format!("--- {name}{part} ---\n{text}\n\n"));
     }
     messages.push(json!({ "role": "system", "content": block }));
     log::info!("drive context: injected {} documents", blocks.len());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn doc(relative: &str) -> IndexedDoc {
+        IndexedDoc {
+            key: format!("bucket/{relative}"),
+            relative: relative.to_string(),
+        }
+    }
+
+    #[test]
+    fn an_attached_file_is_not_added_again_from_drive() {
+        let parsed = serde_json::json!({"files": [{"name": "texto-colado.txt"}]});
+        let attached = attached_names(&parsed);
+        assert_eq!(attached, vec!["texto-colado.txt".to_string()]);
+        let docs = vec![doc("inbox/texto-colado.txt"), doc("notas/texto-antigo.txt")];
+        let words = keywords("resuma o texto-colado.txt");
+        let ranked = rank(&docs, &words, &attached);
+        assert!(ranked.iter().all(|d| d.relative != "inbox/texto-colado.txt"));
+        assert!(ranked.iter().any(|d| d.relative == "notas/texto-antigo.txt"));
+    }
+
+    #[test]
+    fn without_attachments_every_match_counts() {
+        let attached = attached_names(&serde_json::json!({"text": "oi"}));
+        assert!(attached.is_empty());
+        let ranked = rank(&[doc("inbox/relatorio.txt")], &keywords("relatorio"), &attached);
+        assert_eq!(ranked.len(), 1);
+    }
 }

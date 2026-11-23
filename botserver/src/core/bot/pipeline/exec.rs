@@ -135,6 +135,9 @@ pub async fn process_message_internal(
         return Ok(());
     }
 
+    // What this turn reads or runs is recorded with its answer (`turn_record`).
+    super::turn_record::begin(session_id);
+
     let mut is_switcher_replay = false;
     if msg_type == 8 {
         let last_user_msg = super::turn_watch::bounded("session history", super::turn_watch::STEP_LIMIT, async {
@@ -272,7 +275,7 @@ pub async fn process_message_internal(
                     let end = n[content_start..].find(&end_marker)
                         .map(|e| content_start + e)
                         .unwrap_or(n.len());
-                    n[content_start..end].chars().count().min(12000)
+                    n[content_start..end].chars().count()
                 })
             })
             .unwrap_or(0);
@@ -503,7 +506,7 @@ pub async fn process_message_internal(
             )
         } else {
             "THIS TURN: Answer directly using your knowledge and the API command catalog. \
-             Do not reference terminal commands, code execution, sandboxes or file generation."
+             Do not offer to run code, use a sandbox or generate files in this turn."
                 .to_string()
         }
     } else {
@@ -519,7 +522,7 @@ pub async fn process_message_internal(
     };
     messages.push(serde_json::json!({
         "role": "system",
-        "content": turn_instruction
+        "content": format!("{turn_instruction} {}", super::turn_record::RECORDS_ARE_FACTS)
     }));
 
     // #1670 — structured answers and approved plans shape this turn's prompt.
@@ -614,11 +617,11 @@ pub async fn process_message_internal(
     // #1545/#1547: grounding context goes LAST, immediately before the model
     // call, so it is the freshest instruction in the prompt.
     #[cfg(feature = "drive")]
-    super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
+    super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &parsed, &mut messages).await;
 
     // A web address in the message (or the Web switch) lets the model read
-    // public pages through `web_fetch`, whatever the engine.
-    super::native_tools::web_fetch::apply(&parsed, session_id, &user_text, &mut messages);
+    // public pages: `web_fetch`, or the named pages read ahead.
+    super::native_tools::web_prefetch::apply(identity, &parsed, &model_preference, &user_text, &mut messages).await;
 
     // #1632 item 3 / #2238 — the composer's Web switch is the decision.
     // When explicitly off, do not search (even for informational requests).

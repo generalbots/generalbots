@@ -6,7 +6,8 @@ use uuid::Uuid;
 use super::sink::ChannelSink;
 
 /// Replays the session's conversation history as LLM messages, limited by the
-/// bot's `history-limit` botconfig (default 10 turns).
+/// bot's `history-limit` botconfig (default 10 turns). Each message carries
+/// the record of what its turn received or did (`turn_record`).
 pub(super) async fn append_conversation_history(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
@@ -23,8 +24,11 @@ pub(super) async fn append_conversation_history(
         .unwrap_or(10);
 
     let mut sm = state.session_manager.lock().await;
-    if let Ok(history) = sm.get_conversation_history(session_id, user_id, Some(history_limit)) {
-        for (role, content) in history.iter() {
+    if let Ok(history) =
+        sm.get_conversation_history_raw(session_id, user_id, Some(history_limit), None)
+    {
+        for (role, stored, _) in history.iter() {
+            let content = super::turn_record::replay(role, stored);
             let api_role = match role.as_str() {
                 "user" => "user",
                 "assistant" | "bot" => "assistant",
