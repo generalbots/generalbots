@@ -19,6 +19,7 @@ use axum::{
     Json,
 };
 use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
+use botsecurity_core::verified_jwt::VerifiedJwt;
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -54,10 +55,7 @@ fn unauthorized() -> SafeErrorResponse {
     SafeErrorResponse::unauthorized()
 }
 
-/// Identity of a **verified** Bearer token.
-///
-/// #2112 — there is no fallback path: a token that cannot be verified
-/// (malformed, `alg:none`, tampered, foreign key, expired, no subject) yields
+/// Identity of a **verified** Bearer token (#2112); unverifiable tokens yield
 /// no claims, so the request is refused before any policy decision is taken.
 fn verified_user_id(token: &str) -> Result<Uuid, SafeErrorResponse> {
     let claims = verified_claims(token).ok_or_else(unauthorized)?;
@@ -68,6 +66,12 @@ fn verified_user_id(token: &str) -> Result<Uuid, SafeErrorResponse> {
 fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, SafeErrorResponse> {
     let token = bearer_token(headers).ok_or_else(unauthorized)?;
     verified_user_id(token)
+}
+
+/// #2882 — derives task scope only from verified claims. `branch_id` is the
+/// signed per-bot workspace (`bot_id`); `org_id` is the signed `.gborg` tenant.
+fn resolve_task_scope(claims: &VerifiedJwt) -> (Option<Uuid>, Option<Uuid>) {
+    (claims.org_id, claims.branch_id)
 }
 
 /// SSE transport: EventSource cannot set headers, so the suite passes the
@@ -117,13 +121,12 @@ fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, Safe
     })
 }
 
+/// #2882 — no `org_id`/`bot_id`: scope comes from verified claims, not client input.
 #[derive(Debug, Deserialize)]
 pub struct CreateTaskBody {
     pub goal: String,
     #[serde(default)]
     pub domains: Vec<String>,
-    pub bot_id: Option<Uuid>,
-    pub org_id: Option<Uuid>,
     pub budget_steps: Option<i32>,
     pub policy: Option<PolicyConfig>,
     pub task_kind: Option<String>,
@@ -134,7 +137,11 @@ pub async fn create_task_handler(
     headers: HeaderMap,
     Json(body): Json<CreateTaskBody>,
 ) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
-    let user_id = resolve_user_id(&headers)?;
+    let token = bearer_token(&headers).ok_or_else(unauthorized)?;
+    let claims = verified_claims(token).ok_or_else(unauthorized)?;
+    let user_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| SafeErrorResponse::new("unauthorized", "Invalid token subject"))?;
+    let (org_id, bot_id) = resolve_task_scope(&claims);
     if body.goal.trim().is_empty() {
         return Err(SafeErrorResponse::bad_request("Goal must not be empty"));
     }
@@ -149,8 +156,8 @@ pub async fn create_task_handler(
         svc.pool(),
         tasks::NewTaskRequest {
             user_id,
-            org_id: body.org_id,
-            bot_id: body.bot_id,
+            org_id,
+            bot_id,
             goal: body.goal,
             domains: body.domains,
             budget_steps: body.budget_steps.unwrap_or(60),

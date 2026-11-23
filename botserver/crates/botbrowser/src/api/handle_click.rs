@@ -3,9 +3,10 @@ use super::*;
 pub async fn handle_click(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
     Json(payload): Json<ClickRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
 
     // The VNC-like surface sends page coordinates because the user sees a
     // screenshot, not the DOM. Selector clicks stay supported for automation.

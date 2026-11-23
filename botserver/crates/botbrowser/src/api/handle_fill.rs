@@ -3,9 +3,10 @@ use super::*;
 pub async fn handle_fill(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
     Json(payload): Json<FillRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
     match session.fill(&payload.selector, &payload.text).await {
         Ok(()) => Ok(Json(serde_json::json!({ "status": "filled" }))),
         Err(e) => Err((
@@ -17,8 +18,9 @@ pub async fn handle_fill(
 pub async fn handle_screenshot(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
     match session.screenshot().await {
         Ok(data) => {
             use base64::Engine;
@@ -38,13 +40,19 @@ pub async fn handle_stream(
     ws: WebSocketUpgrade,
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |ws| async move {
-        handle_stream_inner(ws, sessions, id).await;
+        handle_stream_inner(ws, sessions, id, caller).await;
     })
 }
-pub(super) async fn handle_stream_inner(mut ws: WebSocket, sessions: SessionMap, id: String) {
-    let session = match get_session(&sessions, &id).await {
+pub(super) async fn handle_stream_inner(
+    mut ws: WebSocket,
+    sessions: SessionMap,
+    id: String,
+    caller: SessionCaller,
+) {
+    let session = match get_session(&sessions, &id, &caller).await {
         Ok(s) => s,
         Err(e) => {
             let _ = ws
@@ -89,8 +97,9 @@ pub(super) async fn handle_stream_inner(mut ws: WebSocket, sessions: SessionMap,
 pub async fn handle_extract(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
     let state = session.extract_page_state().await.map_err(|e| {
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,

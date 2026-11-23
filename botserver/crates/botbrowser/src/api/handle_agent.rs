@@ -3,9 +3,10 @@ use super::*;
 pub async fn handle_agent(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
     Json(payload): Json<AgentRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
     let session_arc = Arc::new(Mutex::new(session));
 
     let llm_url = payload
@@ -31,7 +32,8 @@ pub async fn handle_agent_ws(
     ws: WebSocketUpgrade,
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
     Query(params): Query<WsAgentParams>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_agent_ws_stream(socket, sessions, id, params))
+    ws.on_upgrade(move |socket| handle_agent_ws_stream(socket, sessions, id, caller, params))
 }

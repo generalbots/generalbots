@@ -1,4 +1,7 @@
-pub(crate) use crate::{agent, BrowserSession, BrowserTab, BrowserTabMeta, SessionMap};
+pub(crate) use crate::{
+    agent, owner_allows, session_access_allowed, BrowserSession, BrowserTab, BrowserTabMeta,
+    SessionMap, SessionOwner,
+};
 pub(crate) use axum::{
     extract::ws::{Message, WebSocket},
     extract::{Path, Query, State, WebSocketUpgrade},
@@ -81,6 +84,7 @@ pub struct WsAgentParams {
     pub llm_model: Option<String>,
 }
 
+mod caller;
 mod configure_routes;
 mod create_session;
 mod handle_agent;
@@ -92,6 +96,7 @@ mod handle_navigate;
 mod handle_proxy;
 mod handle_tabs;
 
+pub(crate) use caller::SessionCaller;
 pub use configure_routes::*;
 pub use create_session::*;
 pub use handle_agent::*;

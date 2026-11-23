@@ -158,3 +158,53 @@ fn the_admin_gate_fails_closed_on_an_unverified_email() {
 
     assert!(verified_email(&HeaderMap::new()).is_err());
 }
+
+// #2882 — the storage scope (`org_id`/`bot_id`) is derived only from
+// signature-verified claims. These tests pin that two different tenants can
+// never resolve to each other's scope, and that a token without tenant claims
+// yields an unattributed (safe) scope. `CreateTaskBody` has no scope fields, so
+// no client-supplied value can reach `resolve_task_scope` at all.
+const ORG_A: &str = "11111111-1111-1111-1111-111111111111";
+const BRANCH_A: &str = "22222222-2222-2222-2222-222222222222";
+const ORG_B: &str = "33333333-3333-3333-3333-333333333333";
+const BRANCH_B: &str = "44444444-4444-4444-4444-444444444444";
+
+fn tenant_token(org: &str, branch: &str) -> String {
+    let payload = format!(
+        r#"{{"sub":"{USER_A}","org_id":"{org}","branch_id":"{branch}","exp":{}}}"#,
+        in_an_hour()
+    );
+    hs256(&payload, &process_secret())
+}
+
+fn scope_of(raw: &str) -> (Option<Uuid>, Option<Uuid>) {
+    let claims = verified_claims(raw).expect("signed token verifies");
+    resolve_task_scope(&claims)
+}
+
+#[test]
+fn two_tenants_produce_distinct_scopes_from_verified_claims() {
+    let a = scope_of(&tenant_token(ORG_A, BRANCH_A));
+    let b = scope_of(&tenant_token(ORG_B, BRANCH_B));
+
+    assert_eq!(a.0, Uuid::parse_str(ORG_A).ok());
+    assert_eq!(a.1, Uuid::parse_str(BRANCH_A).ok());
+    assert_eq!(b.0, Uuid::parse_str(ORG_B).ok());
+    assert_eq!(b.1, Uuid::parse_str(BRANCH_B).ok());
+    assert_ne!(a, b, "tenant A must never resolve to tenant B's scope");
+}
+
+#[test]
+fn a_token_without_tenant_claims_yields_an_unattributed_scope() {
+    assert_eq!(scope_of(&valid_token(USER_A)), (None, None));
+}
+
+#[test]
+fn a_forged_scope_claim_cannot_produce_any_scope() {
+    let payload = format!(
+        r#"{{"sub":"{USER_A}","org_id":"{ORG_A}","branch_id":"{BRANCH_A}","exp":{}}}"#,
+        in_an_hour()
+    );
+    let forged = format!("{}.{}.", b64(br#"{"alg":"none","typ":"JWT"}"#), b64(payload.as_bytes()));
+    assert!(verified_claims(&forged).is_none());
+}

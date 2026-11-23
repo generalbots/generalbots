@@ -12,9 +12,11 @@ use tokio::sync::Mutex;
 
 pub mod agent;
 pub mod api;
+mod owner;
 
 pub use agent::*;
 pub use api::*;
+pub use owner::*;
 
 pub type SessionMap = Arc<Mutex<std::collections::HashMap<String, BrowserSession>>>;
 
@@ -23,6 +25,10 @@ pub type SessionMap = Arc<Mutex<std::collections::HashMap<String, BrowserSession
 /// the legacy isolated headless browser.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BrowserTabMeta {
+    /// Owner bound at creation (#2879). `None` means the session was created
+    /// before ownership existed and is therefore inaccessible via the API.
+    #[serde(default)]
+    pub owner: Option<SessionOwner>,
     #[serde(default)]
     pub vm: Option<String>,
     #[serde(default)]
@@ -51,6 +57,10 @@ pub struct BrowserTab {
 pub struct BrowserSession {
     pub id: String,
     pub created_at: DateTime<Utc>,
+    /// Owner bound at creation (#2879); never sent in a tab snapshot.
+    pub owner: Option<SessionOwner>,
+    /// Unguessable secret required on every session-scoped request (#2879).
+    pub capability: String,
     pub browser: Arc<Mutex<CdpBrowser>>,
     pub page: Arc<Mutex<Page>>,
     pub current_url: Arc<Mutex<String>>,
@@ -87,6 +97,7 @@ impl BrowserSession {
 
     pub async fn new_with_meta(headless: bool, meta: BrowserTabMeta) -> Result<Self> {
         let id = uuid::Uuid::new_v4().to_string();
+        let capability = new_capability();
         let vm = {
             let vm = meta.vm.clone().unwrap_or_default();
             if vm.trim().is_empty() {
@@ -149,6 +160,8 @@ impl BrowserSession {
         Ok(Self {
             id,
             created_at: Utc::now(),
+            owner: meta.owner,
+            capability,
             browser: Arc::new(Mutex::new(browser)),
             page: Arc::new(Mutex::new(page)),
             current_url: Arc::new(Mutex::new(url)),

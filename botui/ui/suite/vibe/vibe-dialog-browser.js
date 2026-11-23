@@ -46,7 +46,15 @@
     }
 
     var D = window.VibeDialogs;
-    var state = { sessionId: null, url: "", busy: false };
+    var state = { sessionId: null, capability: null, url: "", busy: false };
+    // #2879 — every session-scoped request must carry the capability minted
+    // at creation; the server verifies it in constant time against the owner.
+    function sessionApi(path, options) {
+        options = options || {};
+        options.headers = options.headers || {};
+        if (state.capability) options.headers["X-Browser-Capability"] = state.capability;
+        return D.api(path, options);
+    }
     var refreshTimer = null;
 
     function main() {
@@ -138,7 +146,7 @@
             body: { headless: true },
         }).then(function (data) {
             if (data && data.id) {
-                state.sessionId = data.id;
+                state.sessionId = data.id; state.capability = data.capability || null;
                 if (btn) { btn.disabled = false; btn.textContent = t("vibe-browser-restart-session", "Restart Session"); }
                 var closeBtn = document.getElementById("vibeBrowserCloseBtn");
                 if (closeBtn) closeBtn.style.display = "";
@@ -238,7 +246,7 @@
         state.busy = true;
         var stateEl = document.getElementById("vibeBrowserState");
         if (stateEl) { stateEl.textContent = t("vibe-browser-navigating", "navigating..."); stateEl.className = "vibe-status warn"; }
-        D.api("/api/browser/session/" + encodeURIComponent(state.sessionId) + "/navigate", {
+        sessionApi("/api/browser/session/" + encodeURIComponent(state.sessionId) + "/navigate", {
             method: "POST",
             body: { url: state.url },
         }).then(function (data) {
@@ -256,7 +264,7 @@
         var frame = document.getElementById("vibeBrowserFrame");
         var info = document.getElementById("vibeBrowserInfo");
         var stateEl = document.getElementById("vibeBrowserState");
-        D.api("/api/browser/session/" + encodeURIComponent(state.sessionId) + "/screenshot", {
+        sessionApi("/api/browser/session/" + encodeURIComponent(state.sessionId) + "/screenshot", {
             method: "GET",
         }).then(function (data) {
             state.busy = false;
@@ -277,10 +285,10 @@
 
     function closeSession() {
         if (!state.sessionId) return;
-        D.api("/api/browser/session/" + encodeURIComponent(state.sessionId), {
+        sessionApi("/api/browser/session/" + encodeURIComponent(state.sessionId), {
             method: "DELETE",
         }).then(function () {
-            state.sessionId = null;
+            state.sessionId = null; state.capability = null;
             var frame = document.getElementById("vibeBrowserFrame");
             if (frame) frame.innerHTML = '<div class="vibe-empty">Session closed.</div>';
             var stateEl = document.getElementById("vibeBrowserState");
@@ -290,7 +298,7 @@
             var closeBtn = document.getElementById("vibeBrowserCloseBtn");
             if (closeBtn) closeBtn.style.display = "none";
         }).catch(function () {
-            state.sessionId = null;
+            state.sessionId = null; state.capability = null;
         });
     }
 

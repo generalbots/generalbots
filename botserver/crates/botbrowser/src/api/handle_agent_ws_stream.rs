@@ -4,9 +4,10 @@ pub(super) async fn handle_agent_ws_stream(
     mut socket: WebSocket,
     sessions: SessionMap,
     id: String,
+    caller: SessionCaller,
     params: WsAgentParams,
 ) {
-    let session = match get_session(&sessions, &id).await {
+    let session = match get_session(&sessions, &id, &caller).await {
         Ok(s) => s,
         Err(e) => {
             let _ = socket
@@ -136,8 +137,9 @@ pub(super) async fn handle_agent_ws_stream(
 pub async fn handle_close(
     State(sessions): State<SessionMap>,
     Path(id): Path<String>,
+    caller: SessionCaller,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let session = get_session(&sessions, &id).await?;
+    let session = get_session(&sessions, &id, &caller).await?;
     session.close().await.map_err(|e| {
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
