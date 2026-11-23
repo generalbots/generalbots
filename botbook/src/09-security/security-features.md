@@ -127,7 +127,7 @@ The platform uses well-vetted cryptographic libraries for all security operation
 
 ### Data Encryption
 
-Encryption at rest protects stored data throughout the system. Database encryption applies column-level encryption to sensitive fields. File storage encryption uses AES-256-GCM for all uploaded files. Configuration encryption protects secrets using a master key.
+Field-level encryption is applied to a small set of sensitive values through `encrypt_field` (attendance content, external Drive content and session content). It is not applied to all uploaded files, all databases or all backups. Configuration secrets are read from Vault, not from an encrypted local store.
 
 Encryption in transit protects data during transmission. All external communications use TLS 1.3 for strong protection. Service-to-service communication uses mutual TLS (mTLS) for bidirectional authentication. Certificate pinning applies to critical services to prevent man-in-the-middle attacks.
 

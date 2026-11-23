@@ -76,7 +76,7 @@ Acceptable MFA methods include Time-based One-Time Passwords (TOTP) as the prefe
 
 ### 4.1 Data Encryption
 
-Encryption at rest protects stored data across all systems. Databases use AES-256-GCM encryption for sensitive fields. File storage applies AES-256-GCM encryption to all uploaded files. Backups are encrypted before transmission and storage. Mobile devices require full-disk encryption.
+Selected sensitive fields are encrypted with `encrypt_field` (attendance content, external Drive content and session content). Uploaded files, backups and databases are not encrypted at rest by the platform; operators requiring that control must provide it at the storage layer.
 
 Encryption in transit protects data during transmission. All external communications use TLS 1.3. Service-to-service communication uses mutual TLS (mTLS). Remote access requires VPN connections. Certificate pinning applies to critical services to prevent man-in-the-middle attacks.
 

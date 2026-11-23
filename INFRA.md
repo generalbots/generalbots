@@ -57,8 +57,8 @@ The host machine is accessed via `ssh user@<hostname>`, running Incus (an LXD fo
 | **alm** | Forgejo | Forgejo (Go) | `/opt/gbo/bin/forgejo` | `/opt/gbo/logs/forgejo/` | `/opt/gbo/data/forgejo/` | Git server (port 4747) |
 | **host** | Forgejo Runner | host mode, `forgejo-runner.service` (user `gbuser`, sudo limited to `incus`) | `/opt/gbo/bin/forgejo-runner` | `journalctl -u forgejo-runner` | `/opt/gbo/data/ci/` | CI/CD runner — **restored 2026-11-03**. It no longer compiles: GitHub builds every push (`alm-release.yml`) and the runner downloads the release, verifies its sha256 and deploys botserver / botui / BotModels with rollback. |
 | **proxy** | Caddy | Caddy | `/opt/gbo/bin/caddy` | `/opt/gbo/logs/caddy/` | `/opt/gbo/conf/` | Reverse proxy |
-| **email** | Stalwart | Stalwart (Rust) | `/opt/gbo/bin/stalwart` | `/opt/gbo/logs/email/` | `/opt/gbo/data/email/` | Mail server — **moved to SRV1 on 2026-10-29** (container IP `10.0.0.40`, outbound via the SRV1 public IP). SRV2 keeps the old container stopped as a rollback copy and now only DNATs mail ports to SRV1. See "Mail host migration" below. |
-| **webmail** | Roundcube (PHP built-in server) | PHP 8.3 | `/opt/gbo/data` (`public_html`) | journald | PostgreSQL `PROD-WEBMAIL` @ `10.0.0.18` | Webmail frontend — served by `webmail.service` (`php -S 0.0.0.0:5252`) behind Caddy vhost `webmail.<domain>`; **IMAP/SMTP point at `10.0.0.40`** (moved 2026-10-29), attachments up to **20 MB** (`upload_max_filesize=20M`, `post_max_size=25M`, Caddy `request_body max_size 25MB`) |
+| **email** | Stalwart | Stalwart (Rust) | `/opt/gbo/bin/stalwart` | `/opt/gbo/logs/email/` | `/opt/gbo/data/email/` | Mail server — **moved to SRV1 on 2026-10-29** (container IP `<email-container-ip>`, outbound via the SRV1 public IP). SRV2 keeps the old container stopped as a rollback copy and now only DNATs mail ports to SRV1. See "Mail host migration" below. |
+| **webmail** | Roundcube (PHP built-in server) | PHP 8.3 | `/opt/gbo/data` (`public_html`) | journald | PostgreSQL `PROD-WEBMAIL` @ `<db-host-ip>` | Webmail frontend — served by `webmail.service` (`php -S 0.0.0.0:5252`) behind Caddy vhost `webmail.<domain>`; **IMAP/SMTP point at `<email-container-ip>`** (moved 2026-10-29), attachments up to **20 MB** (`upload_max_filesize=20M`, `post_max_size=25M`, Caddy `request_body max_size 25MB`) |
 | **dns** | CoreDNS | CoreDNS (Go) | `/opt/gbo/bin/coredns` | `/opt/gbo/logs/dns/` | `/opt/gbo/conf/Corefile` | DNS resolution |
 | **meet** | LiveKit | LiveKit (Go) | `/opt/gbo/bin/livekit-server` | `/opt/gbo/logs/meet/` | `/opt/gbo/data/meet/` | Video conferencing |
 | **table-editor** | NocoDB | NocoDB | `/opt/gbo/bin/nocodb` | `/opt/gbo/logs/nocodb/` | `/opt/gbo/data/nocodb/` | Database UI |
@@ -84,17 +84,17 @@ The `email` container (Stalwart) moved from SRV2 to SRV1 because the SRV2 public
 
 | item | value |
 |---|---|
-| container | `email` on **SRV1**, static `10.0.0.40` on `incusbr0` |
+| container | `email` on **SRV1**, static `<email-container-ip>` on `incusbr0` |
 | data | same Stalwart store (`/opt/gbo/data`), 9.4 GB, copied with `incus copy` while stopped |
 | outbound IP | SRV1 public IP — Microsoft and Gmail accept `MAIL FROM` + `RCPT` from it |
-| DNAT on SRV1 | `25,110,143,465,587,993,995 → 10.0.0.40` (persisted with `netfilter-persistent`) |
+| DNAT on SRV1 | `25,110,143,465,587,993,995 → <email-container-ip>` (persisted with `netfilter-persistent`) |
 | DNAT on SRV2 | **removed 2026-10-29.** Forwarding SRV1's traffic from SRV2 does not work: Stalwart refuses connections whose source is its own PTR/hostname (`13.140…`), and without SNAT the return path is asymmetric. `mail.` must be served directly by SRV1, so the public A record has to point at the SRV1 IP. |
-| container DNS | `/etc/resolv.conf` pinned to public resolvers (the old `10.0.4.5` nameserver does not exist on SRV1; leave it out or SMTP stalls ~20 s per connection) |
+| container DNS | `/etc/resolv.conf` pinned to public resolvers (the old `<old-dns-ip>` nameserver does not exist on SRV1; leave it out or SMTP stalls ~20 s per connection) |
 | memory | `limits.memory 2GB` override, SRV1 has 2 GB swap (`/swapfile`) |
-| rollback | SRV2 `email` container stopped, untouched — restart it and restore the SRV2 DNAT to `10.0.4.10` |
+| rollback | SRV2 `email` container stopped, untouched — restart it and restore the SRV2 DNAT to `<rollback-dnat-ip>` |
 
 Outstanding / required public DNS:
-1. `mail` **A record must be `173.249.36.192`** (SRV1). While it points at SRV2, IMAP/SMTP clients cannot reach the server — SRV2 no longer has a mail listener.
+1. `mail` **A record must be `<srv1-public-ip>`** (SRV1). While it points at SRV2, IMAP/SMTP clients cannot reach the server — SRV2 no longer has a mail listener.
 2. PTR is done (`ns3.contabo.net` returns `mail.<domain>` for the SRV1 IP). Because the A record above does not include that IP yet, forward-confirmed rDNS fails: publish a second `mail` A record for `<srv1-ip>` or make it the only one.
 3. **Both nameservers must serve the same SPF.** On 2026-10-29 `ns1.ddsites.com.br` still returned the pre-migration SPF while `ns2` had the new one (identical serial `2026102901`) — with DMARC `p=reject` that intermittently rejects all outbound mail. Force a zone refresh and verify both.
 4. 443 on SRV1 belongs to the `proxy` container, so Stalwart's web UI is not exposed; IMAP/SMTP/POP3 are.
