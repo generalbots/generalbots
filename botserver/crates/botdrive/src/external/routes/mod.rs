@@ -119,7 +119,8 @@ fn header_value(headers: &HeaderMap, name: &str) -> Option<String> {
 /// `POST /api/external-drives/connect` — begin the consent flow.
 ///
 /// Returns the provider URL and a signed `state` bound to this branch; the
-/// client redirects the browser there.
+/// client redirects the browser there. The URL always carries an S256 PKCE
+/// challenge and the state hides the matching one-time verifier.
 pub async fn connect(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -144,17 +145,26 @@ pub async fn connect(
     )
     .or_else(|| config::base_from_headers(&headers, None, None));
     let redirect_uri = config::redirect_uri(base.as_deref());
-    let token = crypto::state_token(branch_id, provider);
+    // PKCE is used for every client, public or confidential. The verifier rides
+    // inside the signed, short-lived state so the anonymous callback can prove
+    // it started this flow; the S256 challenge goes to the provider here.
+    let verifier = crypto::code_verifier();
+    let challenge = crypto::code_challenge(&verifier);
+    let token = crypto::state_token_with_verifier(branch_id, provider, Some(verifier.as_str()));
     let authorize = match provider {
-        Provider::OneDrive => crate::external::onedrive::authorize_url(
+        Provider::OneDrive => crate::external::onedrive::authorize_url_with_pkce(
             &client.tenant_id,
             &client.client_id,
             &redirect_uri,
             &token,
+            Some(challenge.as_str()),
         ),
-        Provider::GoogleDrive => {
-            crate::external::gdrive::authorize_url(&client.client_id, &redirect_uri, &token)
-        }
+        Provider::GoogleDrive => crate::external::gdrive::authorize_url_with_pkce(
+            &client.client_id,
+            &redirect_uri,
+            &token,
+            Some(challenge.as_str()),
+        ),
     };
     Ok(Json(serde_json::json!({
         "provider": provider.as_str(),

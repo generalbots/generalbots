@@ -2,7 +2,8 @@ use super::*;
 /// `GET /api/external-drives/callback` — provider redirect target.
 ///
 /// Anonymous by necessity; the signed `state` is what proves the flow belongs
-/// to this branch. On success the browser is sent back to the Drive app with the
+/// to this branch, and the PKCE verifier it carries is what completes the code
+/// exchange. On success the browser is sent back to the Drive app with the
 /// connection already stored, so the user never lands on a raw JSON page.
 pub async fn oauth_callback(
     State(state): State<Arc<AppState>>,
@@ -30,16 +31,15 @@ pub async fn oauth_callback(
     let Some(token) = params.state.as_deref().filter(|s| !s.is_empty()) else {
         return back("external=error&reason=missing_state").into_response();
     };
-    let Some((branch_id, provider)) = crypto::peek_state(token) else {
+    // Authenticate the signed state and require the PKCE verifier it must
+    // carry. Missing, malformed, forged, expired or verifier-less state all
+    // fail closed here instead of reaching the token endpoint.
+    let Some((branch_id, provider, verifier)) =
+        crypto::verify_callback_state(token, chrono::Utc::now())
+    else {
+        log::warn!("external drive oauth state or PKCE verifier rejected");
         return back("external=error&reason=invalid_state").into_response();
     };
-    if !crypto::verify_state(token, branch_id, provider, chrono::Utc::now()) {
-        log::warn!(
-            "external drive oauth state rejected for provider {}",
-            provider.as_str()
-        );
-        return back("external=error&reason=invalid_state").into_response();
-    }
     let Some(code) = params.code.as_deref().filter(|c| !c.is_empty()) else {
         return back("external=error&reason=missing_code").into_response();
     };
@@ -65,7 +65,7 @@ pub async fn oauth_callback(
                 client.client_secret.as_deref(),
                 &redirect_uri,
                 code,
-                None,
+                Some(verifier.as_str()),
             )
             .await
             {
@@ -83,7 +83,7 @@ pub async fn oauth_callback(
                 client.client_secret.as_deref(),
                 &redirect_uri,
                 code,
-                None,
+                Some(verifier.as_str()),
             )
             .await
             {

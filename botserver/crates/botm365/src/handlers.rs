@@ -284,12 +284,21 @@ pub async fn connect_account(headers: HeaderMap) -> Result<Json<serde_json::Valu
         headers.get("x-forwarded-proto").and_then(|v| v.to_str().ok()),
     );
     let redirect_uri = botdrive::external::config::redirect_uri(base.as_deref());
-    let state = botdrive::external::crypto::state_token(branch, provider);
-    let authorize_url = botdrive::external::onedrive::authorize_url(
+    // The shared callback requires the verifier carried in the signed state, so
+    // this flow must use PKCE like the main external-drive connect endpoint.
+    let verifier = botdrive::external::crypto::code_verifier();
+    let challenge = botdrive::external::crypto::code_challenge(&verifier);
+    let state = botdrive::external::crypto::state_token_with_verifier(
+        branch,
+        provider,
+        Some(verifier.as_str()),
+    );
+    let authorize_url = botdrive::external::onedrive::authorize_url_with_pkce(
         &client.tenant_id,
         &client.client_id,
         &redirect_uri,
         &state,
+        Some(challenge.as_str()),
     );
     Ok(Json(serde_json::json!({
         "connected": false,

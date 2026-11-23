@@ -3,7 +3,9 @@
 //! OAuth access/refresh tokens are stored encrypted with the platform master
 //! key (`botsecurity-crypto`), never in plain text and never logged. The OAuth
 //! `state` parameter is a signed binding of (branch, provider) so a callback
-//! cannot be replayed against another tenant's connection.
+//! cannot be replayed against another tenant's connection. It also carries the
+//! one-time PKCE verifier, so a public client cannot complete the code exchange
+//! without proving it started the flow.
 
 use crate::external::types::Provider;
 use base64::Engine;
@@ -155,6 +157,29 @@ pub fn peek_state(token: &str) -> Option<(Uuid, Provider)> {
     Some((Uuid::parse_str(parts[0]).ok()?, Provider::parse(parts[1])?))
 }
 
+/// Authenticate an anonymous callback `state` and recover its PKCE verifier.
+///
+/// `peek_state` only decodes the claim; `verify_state` is what authenticates
+/// the branch and provider (and the 15-minute age). This helper composes both
+/// with `state_verifier` and fails closed when the state has no verifier, so
+/// the callback can never fall back to a non-PKCE code exchange for a public
+/// client. Returns `None` for missing, malformed, forged, expired or
+/// verifier-less state.
+pub fn verify_callback_state(
+    token: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Option<(Uuid, Provider, String)> {
+    let (branch_id, provider) = peek_state(token)?;
+    if !verify_state(token, branch_id, provider, now) {
+        return None;
+    }
+    let verifier = state_verifier(token)?;
+    if verifier.is_empty() {
+        return None;
+    }
+    Some((branch_id, provider, verifier))
+}
+
 /// HMAC-SHA256 over the state payload. An unusable key (no master key loaded)
 /// is an error rather than a silent fallback: an unverified state must fail
 /// closed, never be accepted under a well-known key.
@@ -273,5 +298,64 @@ mod tests {
         let a = state_token(branch, Provider::OneDrive);
         let b = state_token(branch, Provider::OneDrive);
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn code_challenge_matches_the_rfc7636_s256_example() {
+        // RFC 7636 Appendix B: the canonical S256 test vector.
+        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+        assert_eq!(
+            code_challenge(verifier),
+            "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+        );
+    }
+
+    #[test]
+    fn code_verifier_is_random_and_pkce_safe() {
+        let a = code_verifier();
+        let b = code_verifier();
+        assert_ne!(a, b);
+        assert!((43..=128).contains(&a.len()));
+        // PKCE permits only unreserved characters on the wire.
+        assert!(a
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_' | b'.' | b'~')));
+    }
+
+    #[test]
+    fn callback_state_yields_the_bound_verifier() {
+        let branch = Uuid::new_v4();
+        let verifier = code_verifier();
+        let token = state_token_with_verifier(branch, Provider::GoogleDrive, Some(verifier.as_str()));
+        assert_eq!(
+            verify_callback_state(&token, now()),
+            Some((branch, Provider::GoogleDrive, verifier))
+        );
+    }
+
+    #[test]
+    fn callback_state_rejects_missing_verifier_and_invalid_state() {
+        let branch = Uuid::new_v4();
+        // A state minted without PKCE (legacy/another caller) must be rejected.
+        let legacy = state_token(branch, Provider::OneDrive);
+        assert_eq!(verify_callback_state(&legacy, now()), None);
+        // An empty verifier is never persisted, so it is rejected too.
+        let empty = state_token_with_verifier(branch, Provider::OneDrive, Some(""));
+        assert_eq!(verify_callback_state(&empty, now()), None);
+
+        let verifier = code_verifier();
+        let token = state_token_with_verifier(branch, Provider::OneDrive, Some(verifier.as_str()));
+        // Any edit to the payload or signature breaks the HMAC.
+        let mut tampered = token.clone();
+        tampered.push('x');
+        assert_eq!(verify_callback_state(&tampered, now()), None);
+        // The 15-minute window still applies to PKCE flows.
+        assert_eq!(
+            verify_callback_state(&token, now() - chrono::Duration::minutes(30)),
+            None
+        );
+        // Structurally invalid and empty states fail closed.
+        assert_eq!(verify_callback_state("garbage", now()), None);
+        assert_eq!(verify_callback_state("", now()), None);
     }
 }

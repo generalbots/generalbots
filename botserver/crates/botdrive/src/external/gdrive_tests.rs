@@ -95,6 +95,17 @@ fn authorize_url_requests_offline_access_and_readonly_scope() {
 }
 
 #[test]
+fn authorize_url_with_pkce_sends_the_s256_challenge() {
+    let url = authorize_url_with_pkce("cid", "https://host/cb", "state1", Some("challenge-value"));
+    assert!(url.contains("state=state1"));
+    assert!(url.contains("code_challenge=challenge-value"));
+    assert!(url.contains("code_challenge_method=S256"));
+    // Without a challenge the flow carries no PKCE parameters at all.
+    let plain = authorize_url_with_pkce("cid", "https://host/cb", "state1", None);
+    assert!(!plain.contains("code_challenge"));
+}
+
+#[test]
 fn entries_without_a_name_are_skipped() {
     let page = parse_page(&json!({ "files": [{ "id": "x" }, { "name": "" }] }));
     assert!(page.items.is_empty());
