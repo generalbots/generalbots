@@ -169,8 +169,11 @@
                 localStorage.getItem("gb-access-token") ||
                 sessionStorage.getItem("gb-access-token") ||
                 "";
+            // #2729 — the WS handshake requires the unguessable per-session
+            // capability returned by /api/terminal/create.
             var url = proto + "//" + location.host + "/api/terminal/ws?id=" +
                 encodeURIComponent(sessionId) +
+                "&capability=" + encodeURIComponent(data.capability || "") +
                 (token ? "&token=" + encodeURIComponent(token) : "");
             ws = new WebSocket(url);
             ws.onopen = function () {

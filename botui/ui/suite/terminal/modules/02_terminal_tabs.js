@@ -198,7 +198,7 @@
                         terminal.write('\r\n\x1b[31m[' + app._vm.errorMessage(result.data, result.status) + ']\x1b[0m\r\n');
                         return;
                     }
-                    openSocket(result.data.id);
+                    openSocket(result.data.id, result.data.capability, token);
                 })
                 .catch(function (e) {
                     connecting = false;
@@ -209,7 +209,7 @@
                 });
         }
 
-        function openSocket(sessionId) {
+        function openSocket(sessionId, capability, token) {
             if (openTimer) clearTimeout(openTimer);
             openTimer = null;
             // The previous PTY (old VM) is still alive server-side; retire it
@@ -217,12 +217,15 @@
             if (currentSessionId && currentSessionId !== sessionId) {
                 fetch('/api/terminal/kill', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + (token || '')
+                    },
                     body: JSON.stringify({ id: currentSessionId }),
                 }).catch(function () { /* best-effort */ });
             }
             currentSessionId = sessionId;
-            ws = new WebSocket(app._vm.getWsUrl(sessionId));
+            ws = new WebSocket(app._vm.getWsUrl(sessionId, capability));
             ws.onopen = function() {
                 wsStatus.textContent = 'WS: ' + t('terminal-ws-connected', 'Connected');
                 setTermStatus(t('terminal-connected', 'Connected'), 'connected');

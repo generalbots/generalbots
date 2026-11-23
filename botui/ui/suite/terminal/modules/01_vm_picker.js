@@ -9,9 +9,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         return window.gbT ? window.gbT(key, fallback) : fallback;
     }
 
-    function getWsUrl(sessionId) {
+    // #2729 — the WS handshake requires the unguessable capability returned
+    // by /api/terminal/create; without it the backend rejects the upgrade.
+    function getWsUrl(sessionId, capability) {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        return proto + '//' + location.host + '/api/terminal/ws?id=' + encodeURIComponent(sessionId);
+        return proto + '//' + location.host + '/api/terminal/ws?id=' +
+            encodeURIComponent(sessionId) + '&capability=' + encodeURIComponent(capability || '');
     }
 
     // #1841 — the backend returns capability categories; turn them into

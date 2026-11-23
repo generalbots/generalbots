@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
+use uuid::Uuid;
 
 use super::TERMINAL_BUFFER_LINES;
 
@@ -29,6 +30,12 @@ pub struct TerminalSession {
     /// the shell runs INSIDE that container instead of on the botserver host,
     /// so the Vibe terminal shows the project's environment, not the server.
     pub container: Option<String>,
+    /// Exact user + tenant this PTY was created for. The process-wide registry
+    /// only exposes a session to callers matching this scope.
+    pub owner_user_id: Uuid,
+    pub owner_tenant_id: Option<Uuid>,
+    /// Unguessable per-session capability required on the WS handshake.
+    pub capability: String,
     pub created_at: DateTime<Utc>,
     pub child: Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>,
     pub writer: Mutex<Option<Box<dyn Write + Send>>>,
@@ -40,7 +47,7 @@ pub struct TerminalSession {
 
 impl TerminalSession {
     pub fn new(id: String, shell: String, cwd: String) -> Self {
-        Self::new_with_container(id, shell, cwd, None)
+        Self::new_scoped(id, shell, cwd, None, Uuid::nil(), None)
     }
 
     pub fn new_with_container(
@@ -49,12 +56,28 @@ impl TerminalSession {
         cwd: String,
         container: Option<String>,
     ) -> Self {
+        Self::new_scoped(id, shell, cwd, container, Uuid::nil(), None)
+    }
+
+    /// Constructor used by the registry: binds the session to its owner scope
+    /// and issues the capability a client must present to attach over WS.
+    pub fn new_scoped(
+        id: String,
+        shell: String,
+        cwd: String,
+        container: Option<String>,
+        owner_user_id: Uuid,
+        owner_tenant_id: Option<Uuid>,
+    ) -> Self {
         let (tx, _) = broadcast::channel(1024);
         Self {
             id,
             shell,
             cwd,
             container,
+            owner_user_id,
+            owner_tenant_id,
+            capability: super::routes::authz::new_capability(),
             created_at: Utc::now(),
             child: Mutex::new(None),
             writer: Mutex::new(None),

@@ -83,9 +83,12 @@ pub(super) async fn create_terminal(
         None if is_own_agent_vm => agent_conversation_cwd(&container).await,
         None => "/opt/vibe/app".to_string(),
     };
+    // #2729 — bind the PTY to the authenticated user + tenant from the moment
+    // it is created. Every later operation is checked against this scope.
+    let scope = authz::SessionScope::of(&user);
     let result = state
         .manager
-        .create_session_with_container(shell, cwd, Some(container));
+        .create_scoped_session(shell, cwd, Some(container), scope);
     let (code, body) = match result {
         Ok(session) => (
             axum::http::StatusCode::OK,
@@ -96,7 +99,15 @@ pub(super) async fn create_terminal(
                 "container": session.container,
                 "transport": if session.container.is_some() && cfg!(target_os = "windows") { "wsl-incus" } else if session.container.is_some() { "incus" } else { "local" },
                 "created_at": session.created_at,
-                "ws_url": format!("/api/terminal/ws?id={}", session.id),
+                // #2729 — the capability is an unguessable per-session token
+                // the client must echo on the WS handshake. Returning it only
+                // in this authenticated response keeps it out of other users'
+                // hands (the scoped list endpoint returns it to the owner too).
+                "capability": session.capability,
+                "ws_url": format!(
+                    "/api/terminal/ws?id={}&capability={}",
+                    session.id, session.capability
+                ),
             })),
         ),
         Err(e) => {
@@ -155,25 +166,34 @@ pub(super) async fn create_terminal(
 
 pub(super) async fn list_terminals(
     State(state): State<Arc<TerminalRouterState>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> impl IntoResponse {
     state.manager.reap();
-    Json(serde_json::json!({ "terminals": state.manager.list_sessions() }))
+    // #2729 — never enumerate the process-wide registry. Only the caller's
+    // own user + tenant scope is visible, including its reconnect capability.
+    let scope = authz::SessionScope::of(&user);
+    Json(serde_json::json!({ "terminals": state.manager.list_sessions_for(&scope) }))
 }
 
 pub(super) async fn kill_terminal(
     State(state): State<Arc<TerminalRouterState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<KillTerminalRequest>,
 ) -> impl IntoResponse {
-    match state.manager.kill_session(&req.id).await {
+    match state.manager.kill_session_scoped(&req.id, &user).await {
         Ok(()) => (
             axum::http::StatusCode::OK,
             Json(serde_json::json!({ "ok": true })),
         ),
-        Err(e) => {
-            log::warn!("terminal kill failed: {e}");
+        Err(_) => {
+            botlog::safe_warn!(
+                "terminal kill forbidden (user {}): {}",
+                user.user_id,
+                req.id
+            );
             (
-                axum::http::StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                axum::http::StatusCode::FORBIDDEN,
+                Json(serde_json::json!({ "error": "forbidden" })),
             )
         }
     }
@@ -181,20 +201,40 @@ pub(super) async fn kill_terminal(
 
 pub(super) async fn terminal_ws(
     State(state): State<Arc<TerminalRouterState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     Query(query): Query<std::collections::HashMap<String, String>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
     let id = query.get("id").cloned().unwrap_or_default();
-    let session = match state.manager.get_session(&id) {
-        Some(s) => s,
-        None => {
-            return axum::response::Response::builder()
-                .status(axum::http::StatusCode::NOT_FOUND)
-                .body("terminal session not found".into())
-                .unwrap_or_else(|_| axum::response::Response::default());
+    let capability = query
+        .get("capability")
+        .cloned()
+        .unwrap_or_else(String::new);
+    // `/api/terminal/ws` is a registered capability route: the browser proxy
+    // cannot forward an Authorization header, so the unguessable per-session
+    // capability is the credential. When the middleware does supply a real
+    // authenticated principal (direct call), also enforce the exact user +
+    // tenant scope — a matching capability from another tenant is a 403.
+    let principal = user
+        .as_ref()
+        .map(|Extension(u)| u)
+        .filter(|u| u.is_authenticated());
+    match state.manager.get_session_scoped(&id, principal, &capability) {
+        Ok(session) => ws.on_upgrade(move |socket| terminal_ws_loop(socket, session)),
+        Err(_) => {
+            botlog::safe_warn!(
+                "terminal ws handshake rejected (user {}): bad capability or scope",
+                user.as_ref().map_or_else(
+                    || "none".to_string(),
+                    |Extension(u)| u.user_id.to_string()
+                )
+            );
+            axum::response::Response::builder()
+                .status(axum::http::StatusCode::FORBIDDEN)
+                .body("terminal session forbidden".into())
+                .unwrap_or_else(|_| axum::response::Response::default())
         }
-    };
-    ws.on_upgrade(move |socket| terminal_ws_loop(socket, session))
+    }
 }
 
 async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::super::TerminalSession>) {

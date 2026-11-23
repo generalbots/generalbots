@@ -14,7 +14,7 @@ use crate::security::auth_api::types::AuthenticatedUser;
 use super::{sanitize_container_cwd, TerminalManager};
 use botcore::shared::utils::DbPool;
 
-mod authz;
+pub(crate) mod authz;
 mod handlers;
 
 #[derive(Deserialize)]
