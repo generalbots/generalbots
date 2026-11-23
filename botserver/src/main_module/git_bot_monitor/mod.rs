@@ -1,7 +1,9 @@
 //! Reform #1502/#1504 — git-pull bot monitor module root.
 //!
 //! Submodules:
-//! - [`core`] — git plumbing, checkout management, work-layout materialization.
+//! - [`core`] — git plumbing and checkout management.
+//! - [`materialize`] — work-layout materialization (symlink-safe, #2863).
+//! - [`path_safety`] — symlink-escape guard used by every materialization loop.
 //! - [`loop_ops`] — periodic sync loop, TEST/PROD hook dispatch, DB lists.
 //! - [`import`] — one-shot Drive → git source import (#1501).
 //! - [`source_ops`] — AutoTask source writes into the bot's repository (#1505).
@@ -13,6 +15,8 @@ pub(crate) mod bot_config;
 pub(crate) mod core;
 pub(crate) mod import;
 pub(crate) mod loop_ops;
+pub(crate) mod materialize;
+pub(crate) mod path_safety;
 pub(crate) mod source_ops;
 
 pub use archive::run_archive_pass;

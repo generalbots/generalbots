@@ -1,29 +1,17 @@
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     response::Json,
 };
 use botlib::security::SafeCommand;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
-const DEFAULT_REPO: &str = "/tmp/git-repo";
-
-/// Root that hosts every vibe project workspace (mirrors
-/// `botvibe::harness::workspace_root()` so the Source Control dialog reads
-/// the SAME repo the Vibe agent edits). `VIBE_WORKSPACE_ROOT` wins when set;
-/// otherwise the platform stack data directory is used.
-fn vibe_workspace_root() -> PathBuf {
-    std::env::var("VIBE_WORKSPACE_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            PathBuf::from(botlib::security::get_stack_path())
-                .join("data")
-                .join("vibe-workspaces")
-        })
-}
+use crate::path_guard::{
+    ensure_git_path_contained, resolve_repo, validate_git_path, validate_ref_name,
+};
 
 #[derive(Deserialize)]
 pub struct GitQuery {
@@ -93,36 +81,6 @@ pub struct GitBranch {
     pub current: bool,
 }
 
-fn resolve_repo(query_repo: Option<&str>) -> String {
-    let repo = query_repo
-        .map(str::trim)
-        .filter(|r| !r.is_empty())
-        .unwrap_or(DEFAULT_REPO);
-    if repo.starts_with("/tmp") || repo.starts_with("/var/tmp") {
-        return repo.to_string();
-    }
-    // Absolute paths point at an explicit git checkout.
-    if repo.starts_with('/') {
-        return repo.to_string();
-    }
-    // A bare name is a vibe project: resolve it against the workspace root
-    // (e.g. `e2e-gh-4404` → `/opt/gbo/data/vibe-workspaces/e2e-gh-4404`).
-    // Only accept plain project ids — no separators, no traversal.
-    if !repo.is_empty()
-        && repo != "."
-        && repo != ".."
-        && !repo.contains('/')
-        && !repo.contains('\\')
-        && repo.len() <= 128
-    {
-        let candidate = vibe_workspace_root().join(repo);
-        if candidate.join(".git").exists() {
-            return candidate.to_string_lossy().into_owned();
-        }
-    }
-    DEFAULT_REPO.to_string()
-}
-
 fn run_git(repo: &str, args: &[&str]) -> Result<String, String> {
     let mut cmd = SafeCommand::new("git").map_err(|e| e.to_string())?;
     cmd = cmd.arg("-C")?;
@@ -142,7 +100,7 @@ fn run_git(repo: &str, args: &[&str]) -> Result<String, String> {
 pub async fn git_status(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<GitStatusQuery>,
-) -> Result<Json<GitStatusResponse>, axum::http::StatusCode> {
+) -> Result<Json<GitStatusResponse>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     let branch_out = run_git(&repo, &["rev-parse", "--abbrev-ref", "HEAD"]);
     let branch = branch_out.ok();
@@ -183,12 +141,17 @@ pub async fn git_diff(
     State(_state): State<Arc<AppState>>,
     Path(file): Path<String>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let file = validate_git_path(&file, false).map_err(|error| {
+        log::warn!("rejected diff path {file:?}: {error}");
+        StatusCode::BAD_REQUEST
+    })?;
     let repo = resolve_repo(params.repo.as_deref());
-    let out = run_git(&repo, &["diff", "HEAD", "--", &file]);
+    ensure_git_path_contained(&repo, file).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let out = run_git(&repo, &["diff", "HEAD", "--", file]);
     let diff = match out {
         Ok(d) => d,
-        Err(_) => run_git(&repo, &["diff", "--cached", "--", &file]).unwrap_or_default(),
+        Err(_) => run_git(&repo, &["diff", "--cached", "--", file]).unwrap_or_default(),
     };
     Ok(Json(serde_json::json!({ "file": file, "diff": diff })))
 }
@@ -196,17 +159,25 @@ pub async fn git_diff(
 pub async fn git_commit(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<CommitRequest>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(payload.repo.as_deref());
     // #1506 — stage the selected files when a pathspec list is given, else
-    // persist everything (legacy single-panel behavior).
-    let add = if payload.files.is_empty() {
+    // persist everything (legacy single-panel behavior). #2862 — every staged
+    // pathspec is validated and containment-checked before reaching git.
+    let mut staged: Vec<&str> = Vec::with_capacity(payload.files.len());
+    for f in &payload.files {
+        let safe = validate_git_path(f, false).map_err(|error| {
+            log::warn!("rejected commit path {f:?}: {error}");
+            StatusCode::BAD_REQUEST
+        })?;
+        ensure_git_path_contained(&repo, safe).map_err(|_| StatusCode::BAD_REQUEST)?;
+        staged.push(safe);
+    }
+    let add = if staged.is_empty() {
         run_git(&repo, &["add", "-A"])
     } else {
         let mut args: Vec<&str> = vec!["add", "--"];
-        for f in &payload.files {
-            args.push(f);
-        }
+        args.extend(staged);
         run_git(&repo, &args)
     };
     let mut results = serde_json::Map::new();
@@ -248,7 +219,7 @@ pub async fn git_commit(
 pub async fn git_push(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     let out = run_git(&repo, &["push", "origin", "HEAD"]);
     match out {
@@ -260,7 +231,7 @@ pub async fn git_push(
 pub async fn git_branches(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     let out = run_git(&repo, &["branch", "--format=%(refname:short)"]);
     let current = run_git(&repo, &["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_default();
@@ -281,13 +252,17 @@ pub async fn git_create_or_switch_branch(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let name = validate_ref_name(&name).map_err(|error| {
+        log::warn!("rejected branch name {name:?}: {error}");
+        StatusCode::BAD_REQUEST
+    })?;
     let repo = resolve_repo(params.repo.as_deref());
     let exists = run_git(&repo, &["rev-parse", "--verify", &format!("refs/heads/{name}")]);
     let cmd: &[&str] = if exists.is_ok() {
-        &["checkout", &name]
+        &["checkout", name]
     } else {
-        &["checkout", "-B", &name]
+        &["checkout", "-B", name]
     };
     let out = run_git(&repo, cmd);
     match out {
@@ -299,7 +274,7 @@ pub async fn git_create_or_switch_branch(
 pub async fn git_log(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<GitLogResponse>, axum::http::StatusCode> {
+) -> Result<Json<GitLogResponse>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     let out = run_git(
         &repo,
@@ -327,13 +302,13 @@ pub async fn git_log(
 pub async fn git_tree(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<TreeQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
-    let dir = params.path.as_deref().unwrap_or("").trim().trim_matches('/');
-    // Pathspec safety: reject traversal before it reaches `git ls-files`.
-    if dir.split('/').any(|seg| seg == ".." || seg.is_empty() && !dir.is_empty()) {
-        return Ok(Json(serde_json::json!({ "entries": [], "error": "invalid path" })));
-    }
+    let dir = validate_git_path(params.path.as_deref().unwrap_or(""), true).map_err(|error| {
+        log::warn!("rejected tree path {:?}: {error}", params.path);
+        StatusCode::BAD_REQUEST
+    })?;
+    ensure_git_path_contained(&repo, dir).map_err(|_| StatusCode::BAD_REQUEST)?;
     let mut entries: Vec<GitTreeEntry> = Vec::new();
     // `git ls-files` rejects an empty pathspec argument — omit it entirely
     // for the repo root instead of passing "".
@@ -415,7 +390,7 @@ pub async fn git_tree(
 pub async fn git_pull(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
-) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     match run_git(&repo, &["pull", "--ff-only", "origin"])
     {
@@ -423,6 +398,3 @@ pub async fn git_pull(
         Err(e) => Ok(Json(serde_json::json!({ "status": "failure", "error": e }))),
     }
 }
-#[cfg(test)]
-#[path = "resolve_repo_tests.rs"]
-mod resolve_repo_tests;
