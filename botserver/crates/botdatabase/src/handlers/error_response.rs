@@ -15,18 +15,19 @@ pub(super) fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>)
 /// Builds the `DEFAULT ...` clause for a column. A UUID primary key with no
 /// explicit default gets `gen_random_uuid()` so the first row insert (which
 /// omits the auto-generated PK) doesn't fail with a not-null violation.
-pub(super) fn column_default(col: &ColumnDef, data_type: &str) -> String {
-    col.default
-        .as_ref()
-        .map(|d| format!(" DEFAULT {d}"))
-        .unwrap_or_else(|| {
-            let is_uuid_pk = col.primary_key.unwrap_or(false) && data_type.eq_ignore_ascii_case("uuid");
-            if is_uuid_pk {
-                " DEFAULT gen_random_uuid()".to_string()
-            } else {
-                String::new()
-            }
-        })
+/// #2772 — a client-supplied default is never interpolated directly: it must
+/// pass the strict literal allowlist in [`validate_default`] first.
+pub(super) fn column_default(
+    col: &ColumnDef,
+    data_type: &str,
+) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+    match col.default.as_ref() {
+        Some(d) => Ok(format!(" DEFAULT {}", validate_default(d)?)),
+        None if col.primary_key.unwrap_or(false) && data_type.eq_ignore_ascii_case("uuid") => {
+            Ok(" DEFAULT gen_random_uuid()".to_string())
+        }
+        None => Ok(String::new()),
+    }
 }
 pub(super) fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<serde_json::Value>)> {
     if let Some(v) = headers.get("X-Bot-Id").and_then(|v| v.to_str().ok()) {
@@ -259,4 +260,49 @@ pub(super) fn get_bot_pool_for_env(
         .max_size(3)
         .build(manager)
         .map_err(|e| internal_error(&format!("Dev database pool: {e}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn col(default: Option<&str>, pk: bool) -> ColumnDef {
+        ColumnDef {
+            name: "id".to_string(),
+            data_type: Some("UUID".to_string()),
+            col_type: None,
+            nullable: None,
+            not_null: None,
+            primary_key: Some(pk),
+            default: default.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn column_default_rejects_injection_payloads() {
+        for payload in [
+            "'; DROP TABLE users; --",
+            "0, x); DROP TABLE users; --",
+            "1; --",
+            "now(); DELETE FROM users",
+        ] {
+            assert!(
+                column_default(&col(Some(payload), true), "uuid").is_err(),
+                "default payload wasn't rejected: {payload}"
+            );
+        }
+    }
+
+    #[test]
+    fn column_default_emits_only_allowlisted_fragments() {
+        fn clause(column: ColumnDef) -> String {
+            match column_default(&column, "uuid") {
+                Ok(v) => v,
+                Err(_) => panic!("unexpected column_default error"),
+            }
+        }
+        assert_eq!(clause(col(None, true)), " DEFAULT gen_random_uuid()");
+        assert_eq!(clause(col(None, false)), "");
+        assert_eq!(clause(col(Some("'active'"), false)), " DEFAULT 'active'");
+    }
 }

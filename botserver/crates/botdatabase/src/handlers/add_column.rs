@@ -17,11 +17,18 @@ pub async fn add_column(
         return Err(error_response("Invalid column name"));
     }
 
-    let data_type = payload
+    // #2772 — type and default come straight from the request body and are
+    // interpolated into DDL, so both must pass a strict allowlist first.
+    let raw_type = payload
         .data_type
-        .clone()
-        .or_else(|| payload.col_type.clone())
+        .as_ref()
+        .or(payload.col_type.as_ref())
         .ok_or_else(|| error_response("Missing column data type"))?;
+    let data_type = validate_data_type(raw_type)?;
+    let default = match payload.default.as_ref() {
+        Some(d) => format!(" DEFAULT {}", validate_default(d)?),
+        None => String::new(),
+    };
 
     let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
@@ -30,11 +37,6 @@ pub async fn add_column(
         .or_else(|| payload.not_null.map(|n| !n))
         .unwrap_or(true);
     let null_clause = if nullable { "" } else { " NOT NULL" };
-    let default = payload
-        .default
-        .as_ref()
-        .map(|d| format!(" DEFAULT {d}"))
-        .unwrap_or_default();
 
     let sql = format!(
         "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {data_type}{null_clause}{default}",

@@ -131,18 +131,21 @@ pub async fn create_table(
         .iter()
         .map(|col| {
             let col_name = sanitize_identifier(&col.name);
-            let data_type = col
+            // #2772 — data_type/default are body-controlled DDL text: reduce
+            // both to allowlisted, canonical fragments before interpolating.
+            let raw_type = col
                 .data_type
-                .clone()
-                .or_else(|| col.col_type.clone())
+                .as_ref()
+                .or(col.col_type.as_ref())
                 .ok_or_else(|| error_response("Missing column data type"))?;
+            let data_type = validate_data_type(raw_type)?;
             let nullable = col
                 .nullable
                 .or_else(|| col.not_null.map(|n| !n))
                 .unwrap_or(true);
             let null_clause = if nullable { "" } else { " NOT NULL" };
             let pk_clause = if col.primary_key.unwrap_or(false) { " PRIMARY KEY" } else { "" };
-            let default = column_default(col, &data_type);
+            let default = column_default(col, &data_type)?;
             Ok::<String, (StatusCode, Json<serde_json::Value>)>(format!(
                 "    {col_name} {data_type}{null_clause}{pk_clause}{default}"
             ))
@@ -181,17 +184,19 @@ pub async fn alter_table(
     if let Some(add_cols) = &payload.add_columns {
         for col in add_cols {
             let col_name = sanitize_identifier(&col.name);
-            let data_type = col
+            // #2772 — same allowlist as create_table for ALTER TABLE additions.
+            let raw_type = col
                 .data_type
-                .clone()
-                .or_else(|| col.col_type.clone())
+                .as_ref()
+                .or(col.col_type.as_ref())
                 .ok_or_else(|| error_response("Missing column data type"))?;
+            let data_type = validate_data_type(raw_type)?;
             let nullable = col
                 .nullable
                 .or_else(|| col.not_null.map(|n| !n))
                 .unwrap_or(true);
             let null_clause = if nullable { "" } else { " NOT NULL" };
-            let default = column_default(col, &data_type);
+            let default = column_default(col, &data_type)?;
 
             let sql = format!(
                 "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {data_type}{null_clause}{default}",

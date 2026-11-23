@@ -212,6 +212,7 @@ struct ColName {
     column_name: String,
 }
 
+mod ddl_validation;
 mod error_response;
 mod get_bot_conn_for_env;
 mod get_schema;
@@ -220,6 +221,7 @@ mod insert_row;
 mod add_column;
 mod batch_delete;
 
+use ddl_validation::*;
 use error_response::*;
 use get_bot_conn_for_env::*;
 pub use get_schema::*;
