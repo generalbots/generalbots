@@ -69,16 +69,25 @@
       inner.innerHTML = '<div class="gb-message-text">' + processed + "</div>";
     } else if (typeof marked !== "undefined" && marked.parse) {
       try {
-        inner.innerHTML = marked.parse(displayContent || "");
+        // #2627 — model output is untrusted (live socket AND replayed history
+        // both reach here). Sanitize before any transform adds trusted markup,
+        // exactly like the primary addMessage path (messages/50_message_b.js).
+        // Without this, an <img onerror> or <script> in a bot reply executes in
+        // the suite origin where a live bearer token is stored.
+        var parsed = marked.parse(displayContent || "");
+        if (window.GBSanitize && typeof window.GBSanitize.html === "function") {
+          parsed = window.GBSanitize.html(parsed);
+        }
         // Replayed messages must render vmfile links as attachment cards too;
         // the stock addMessage path does this conversion, appendToContainer
         // (used by history replay and parallel tabs) did not.
         if (typeof renderVmFileLinks === "function") {
-          inner.innerHTML = renderVmFileLinks(inner.innerHTML);
+          parsed = renderVmFileLinks(parsed);
         }
         if (typeof renderDeepLinks === "function") {
-          inner.innerHTML = renderDeepLinks(inner.innerHTML);
+          parsed = renderDeepLinks(parsed);
         }
+        inner.innerHTML = parsed;
       } catch (e) {
         inner.textContent = displayContent;
       }
