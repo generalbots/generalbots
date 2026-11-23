@@ -78,9 +78,10 @@ function closeCards() { document.querySelectorAll(".gb-confirm").forEach(functio
 
 /**
  * Asks once per destination. `target` is {name, host} or null (stays here);
- * `anchor` is any element inside the composer.
+ * `anchor` is any element inside the composer. `kind` is "pick" (an engine
+ * chosen in the menu, the default) or "send" (a message waiting to leave).
  */
-A.confirmExternal = function (target, anchor, onYes) {
+A.confirmExternal = function (target, anchor, onYes, kind) {
     if (!target || !target.host || accepted().indexOf(target.host) >= 0) { onYes(); return; }
     closeCards();
     var shared = A._modelShared || {};
@@ -89,6 +90,7 @@ A.confirmExternal = function (target, anchor, onYes) {
     var parts = sentence.split("%h");
     var card = document.createElement("div");
     card.className = "gb-confirm";
+    card.dataset.kind = kind || "pick";
     card.setAttribute("role", "alertdialog");
     card.setAttribute("aria-label", tr("Confirmação", "Confirmation"));
     var head = document.createElement("div");

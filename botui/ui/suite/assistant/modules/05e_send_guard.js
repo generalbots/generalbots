@@ -51,7 +51,7 @@
             A.confirmExternal(target, anchor, function () {
                 guardCleared = true;
                 onApproved();
-            });
+            }, "send");
         });
     };
 
@@ -80,7 +80,7 @@
                 A.showThinking();
                 sent = realSend.call(A, text, files, messageType);
                 if (!sent) { A.hideThinking(); }
-            });
+            }, "send");
         });
         return true;
     };

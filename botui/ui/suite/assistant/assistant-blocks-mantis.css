@@ -142,6 +142,16 @@
 }
 .gb-confirm-text { margin: 0; line-height: 1.55; }
 .gb-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+/* A send held while the engine question is open: the card asks once more. */
+.gb-confirm-note { margin: 0; color: var(--id-accent-text); font-weight: 600; line-height: 1.45; }
+.gb-confirm--ask { animation: gb-confirm-ask .5s ease-out 1; }
+@keyframes gb-confirm-ask {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--id-accent) 45%, transparent); }
+    100% { box-shadow: 0 0 0 8px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gb-confirm--ask { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--id-accent) 45%, transparent); }
+}
 
 @media (max-width: 620px) {
     .gb-chat-view .gb-block-summary { flex-basis: 100%; order: 9; white-space: normal; }
