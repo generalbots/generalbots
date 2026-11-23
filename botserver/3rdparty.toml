@@ -179,7 +179,7 @@ sha256 = ""
 
 [components.table_editor]
 name = "NocoDB"
-url = "http://get.nocodb.com/linux-x64"
+url = "https://get.nocodb.com/linux-x64"
 filename = "nocodb-linux-x64"
 # #1966 — NocoDB publishes no standalone Windows executable (its GitHub
 # releases carry no assets at all); `nocodb-win-x64.exe` was a 404. Windows

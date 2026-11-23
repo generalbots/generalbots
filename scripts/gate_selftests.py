@@ -205,6 +205,14 @@ def component_checksums(tmp: Path) -> Case:
         "acknowledged", CLEAN,
         _gate("check_component_checksums.py", ["--toml", str(toml), "--allowlist", str(acknowledged)]),
     )
+    # #2611 — a plaintext download URL must fail unconditionally, even when the
+    # component's empty checksum is otherwise allowlisted.
+    plain = tmp / "3rdparty-plain.toml"
+    plain.write_text('[components.minio]\nversion = "1"\nurl = "http://example.invalid/m"\nsha256 = ""\n', encoding="utf-8")
+    case.expect(
+        "plaintext-url", VIOLATION,
+        _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
+    )
     return case
 
 

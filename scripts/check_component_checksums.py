@@ -56,6 +56,22 @@ def gaps(components: dict) -> list[tuple[str, str]]:
     return found
 
 
+def insecure_urls(components: dict) -> list[tuple[str, str]]:
+    """(component, url-field) for any download URL that is not HTTPS (#2611).
+
+    A plaintext URL lets an on-path attacker replace the archive before any
+    checksum is computed, so the hash (when one exists) is no longer a
+    provenance guarantee. This is an unconditional failure — no allowlist.
+    """
+    found: list[tuple[str, str]] = []
+    for name, entry in sorted(components.items()):
+        for field in ("url", "url_win", "url_arm64"):
+            value = entry.get(field)
+            if isinstance(value, str) and value and not value.startswith("https://"):
+                found.append((name, field))
+    return found
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--toml", type=Path, default=DEFAULT_TOML)
@@ -78,6 +94,16 @@ def main() -> int:
         return 1
     with args.toml.open("rb") as handle:
         components = tomllib.load(handle).get("components", {})
+
+    insecure = insecure_urls(components)
+    if insecure:
+        for name, field in insecure:
+            print(
+                f"error: component '{name}' uses a plaintext {field} in {args.toml}; "
+                "every download URL must start with https:// (#2611)"
+            )
+        print(f"\n{len(insecure)} insecure download URL(s)")
+        return 1
 
     found = gaps(components)
     if args.list:
