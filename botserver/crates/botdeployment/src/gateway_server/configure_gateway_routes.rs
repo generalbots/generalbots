@@ -65,12 +65,48 @@ pub(super) fn container_name_from_parts(org: &str, app_name: &str) -> Result<Str
     let app_name = sanitize_identifier_part(app_name)?;
     Ok(format!("{org}-{app_name}"))
 }
+/// Strict validation for a per-deployment PostgreSQL URL (#2652). The value
+/// is later base64-encoded into a root shell script, so no metacharacter or
+/// heredoc terminator may survive this boundary.
+pub(super) fn validate_database_url(url: Option<&str>) -> Result<(), StatusCode> {
+    let Some(url) = url else {
+        return Ok(());
+    };
+    if url.len() > 512
+        || (!url.starts_with("postgres://") && !url.starts_with("postgresql://"))
+        || url.contains("UNIT")
+        || url.chars().any(|c| {
+            !(c.is_ascii_alphanumeric() || matches!(c, ':' | '/' | '@' | '?' | '=' | '.' | '_' | '+' | '~' | '%' | '-'))
+        })
+    {
+        log::warn!("Rejected invalid database_url in deploy request");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod database_url_tests {
+    use super::validate_database_url;
+
+    #[test]
+    fn rejects_heredoc_and_shell_injection() {
+        assert!(validate_database_url(Some("postgresql://u:p@db.example:5432/app")).is_ok());
+        assert!(validate_database_url(None).is_ok());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app\nUNIT\nid")).is_err());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app$HOME")).is_err());
+        assert!(validate_database_url(Some("postgresql://u:p@db:5432/app;id")).is_err());
+        assert!(validate_database_url(Some("mysql://db/app")).is_err());
+    }
+}
+
 pub async fn gateway_deploy(
     State((state, registry)): State<(Arc<GatewayState>, Arc<ContainerRegistry>)>,
     headers: HeaderMap,
     Json(request): Json<DeployGatewayRequest>,
 ) -> Result<Json<DeployGatewayResponse>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
+    validate_database_url(request.database_url.as_deref())?;
 
     log::info!(
         "Gateway deploy: {}/{} type={:?} env={}",
