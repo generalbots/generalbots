@@ -17,16 +17,20 @@ async fn billing_store_state_changes_are_admin_only() {
     let manager = RbacManager::with_defaults();
     manager.register_routes(build_default_route_permissions()).await;
 
-    for path in [
-        "/api/billing/invoices",
-        "/api/billing/payments",
-        "/api/products/items",
-        "/api/cloud/store/purchase",
-        "/api/cloud/vouchers/redeem",
-        "/api/cloud/organizations",
-        "/api/ui/billing/subscription/upgrade",
-    ] {
-        for method in ["POST", "PUT", "DELETE"] {
+    // Only methods that are real state-changing endpoints are registered in
+    // the matrix. Unregistered methods are default-denied for *everyone*,
+    // which is safe but must not be asserted as "admin allowed".
+    let cases: [(&str, &[&str]); 7] = [
+        ("/api/billing/invoices", &["POST", "PUT", "DELETE"]),
+        ("/api/billing/payments", &["POST", "PUT", "DELETE"]),
+        ("/api/products/items", &["POST", "PUT", "DELETE"]),
+        ("/api/cloud/store/purchase", &["POST"]),
+        ("/api/cloud/vouchers/redeem", &["POST", "PUT", "DELETE"]),
+        ("/api/cloud/organizations", &["POST", "PUT", "DELETE"]),
+        ("/api/ui/billing/subscription/upgrade", &["POST", "PUT"]),
+    ];
+    for (path, methods) in cases {
+        for method in methods {
             assert!(
                 !manager.check_route_access(path, method, &user()).await.is_allowed(),
                 "{method} {path} must be denied for a non-admin tenant user"
