@@ -124,7 +124,8 @@
       if (cell.dataset.formula) {
         const key = cell.dataset.row + "," + cell.dataset.col;
         const cellData = self.cells.get(key);
-        cell.textContent = cellData ? (cellData.value || "") : "";
+        cell.textContent = cellData && cellData.value !== null && cellData.value !== undefined
+          ? String(cellData.value) : "";
       }
       return;
     }

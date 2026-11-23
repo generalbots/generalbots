@@ -221,7 +221,9 @@
         const ref = (g.colName ? g.colName(c) : String.fromCharCode(65 + c)) + (row + 1);
         const key = row + "," + c;
         const cellData = g.cells.get(key);
-        const value = cellData ? (cellData.value || "") : "";
+        // 0 is a real cell value; never paint it as an empty string.
+        const value = cellData && cellData.value !== null && cellData.value !== undefined
+          ? String(cellData.value) : "";
         const formula = cellData ? (cellData.formula || "") : "";
         const node = g.getOrCreateNode();
         node.style.display = "block";

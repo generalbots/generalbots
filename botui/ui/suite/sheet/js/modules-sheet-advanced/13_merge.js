@@ -242,7 +242,9 @@
             node.style.height = spanHeight(g, m.start_row, m.end_row) + "px";
             node.style.zIndex = "4";
             node.style.overflow = "hidden";
-            node.textContent = g.cells.get(r + "," + c) ? (g.cells.get(r + "," + c).value || "") : "";
+            var mergedCell = g.cells.get(r + "," + c);
+            node.textContent = mergedCell && mergedCell.value !== null && mergedCell.value !== undefined
+              ? String(mergedCell.value) : "";
           } else {
             node.style.display = "none";
           }

@@ -316,7 +316,9 @@
       const ref = colName(c) + (row + 1);
       const key = row + "," + c;
       const cellData = this.cells.get(key);
-      const value = cellData ? (cellData.value || "") : "";
+      // A cell value of 0 (or false) is valid data, not an empty cell (#numeric-cells).
+      const value = cellData && cellData.value !== null && cellData.value !== undefined
+        ? String(cellData.value) : "";
       const formula = cellData ? (cellData.formula || "") : "";
       const node = this.getOrCreateNode();
 

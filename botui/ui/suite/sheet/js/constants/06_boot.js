@@ -276,13 +276,14 @@
         }
         const key = row + "," + col;
         const existing = grid.cells.get(key) || {};
-        grid.cells.set(key, Object.assign({}, existing, { value: msg.content }));
+        const incoming = msg.content === null || msg.content === undefined ? "" : String(msg.content);
+        grid.cells.set(key, Object.assign({}, existing, { value: incoming }));
         if (grid.lastRenderedRange) {
           const parts = String(grid.lastRenderedRange).split("|")[0].split(":");
           const start = parseInt(parts[0], 10), end = parseInt(parts[1], 10);
           if (row >= start && row < end) {
             const el = grid.bodyInner && grid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
-            if (el) el.textContent = msg.content || "";
+            if (el) el.textContent = incoming;
           }
         }
       }

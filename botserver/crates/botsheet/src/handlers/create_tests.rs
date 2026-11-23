@@ -32,6 +32,20 @@
     }
 
     #[test]
+    fn stringified_rows_from_tool_calls_create_real_cells() {
+        // Chat tool calls sometimes send a JSON-encoded string instead of the
+        // array itself; the generated sheet must still contain its numbers.
+        let raw = json!("[[10,20],[30,0]]");
+        let rows = parse_grid_value(Some(&raw))
+            .expect("encoded grid is accepted")
+            .expect("a value");
+        let sheet = build_spreadsheet("owner-1", None, Some(&rows)).expect("grid");
+        let data = &sheet.worksheets[0].data;
+        assert_eq!(data.get("0,0").and_then(|c| c.value.as_deref()), Some("10"));
+        assert_eq!(data.get("1,1").and_then(|c| c.value.as_deref()), Some("0"));
+    }
+
+    #[test]
     fn rows_that_are_not_an_array_are_rejected() {
         let rows = json!({ "not": "a grid" });
         assert!(build_spreadsheet("owner-1", None, Some(&rows)).is_err());

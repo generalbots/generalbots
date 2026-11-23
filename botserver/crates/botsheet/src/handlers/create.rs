@@ -86,6 +86,27 @@ fn not_found(message: String) -> SheetError {
     (StatusCode::NOT_FOUND, Json(json!({ "error": message })))
 }
 
+/// Tool calls from chat occasionally stringify a JSON array
+/// (`"[[10,20],[30,40]]"`) instead of sending the array itself. Without this
+/// normalization `row_values` rejects the call and the generated sheet has no
+/// cells at all, which looks like "the numbers did not appear" (#chat-sheets).
+fn parse_grid_value(value: Option<&Value>) -> Result<Option<Value>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let Some(text) = value.as_str() else {
+        return Ok(Some(value.clone()));
+    };
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(Some(Value::Array(Vec::new())));
+    }
+    let parsed: Value = serde_json::from_str(trimmed).map_err(|error| {
+        format!("expected a JSON array (or a JSON-encoded array string): {error}")
+    })?;
+    Ok(Some(parsed))
+}
+
 /// Rows arrive as a JSON array of arrays; a flat array is treated as one row.
 fn row_values(rows: &Value) -> Result<Vec<Vec<String>>, String> {
     let outer = rows
@@ -239,7 +260,8 @@ pub async fn handle_create_sheet(
     Json(req): Json<CreateSheetRequest>,
 ) -> Result<Json<Spreadsheet>, SheetError> {
     let user_id = resolve_user_id(user.as_deref())?;
-    let mut sheet = build_spreadsheet(&user_id, req.title.as_deref(), req.rows.as_ref())
+    let rows = parse_grid_value(req.rows.as_ref()).map_err(bad_request)?;
+    let mut sheet = build_spreadsheet(&user_id, req.title.as_deref(), rows.as_ref())
         .map_err(bad_request)?;
     let sheet_id = sheet.id.clone();
     if let Some(ws) = sheet.worksheets.get_mut(0) {
@@ -286,7 +308,8 @@ pub async fn handle_set_cells(
     let ((start_row, start_col), _) =
         botsheet_core::formulas::refs::parse_range_or_single(&req.range)
             .ok_or_else(|| bad_request(format!("invalid A1 range '{}'", req.range)))?;
-    let grid = match req.values.as_ref() {
+    let values = parse_grid_value(req.values.as_ref()).map_err(bad_request)?;
+    let grid = match values.as_ref() {
         Some(v) => row_values(v).map_err(bad_request)?,
         None => Vec::new(),
     };
