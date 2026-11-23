@@ -125,6 +125,15 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             return div.innerHTML;
         }
 
+        // #2837 — textContent->innerHTML does not escape quotes, which is safe
+        // for text nodes but NOT for attribute values. Use this for any value
+        // interpolated into a quoted HTML attribute.
+        function escapeAttr(text) {
+            return escapeHtml(text)
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function populateSidebars() {
             loadMyCommunities();
             loadTrending();
@@ -153,9 +162,20 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             if (!el) return;
             fetch('/api/social/trending').then(function(r){return r.json()}).then(function(list){
                 if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No trending topics</p>'; return; }
+                // #2837 — `encodeURIComponent` does not escape `'`, so a tag
+                // containing one broke out of the inline onclick handler. Use
+                // an escaped data attribute plus a delegated listener instead.
                 el.innerHTML = list.map(function(t){
-                    return '<div class="trending-item" onclick="applyTrending(\'' + encodeURIComponent(t.tag) + '\')">#' + escapeHtml(t.tag) + ' <span class="trending-count">' + t.count + '</span></div>';
+                    return '<div class="trending-item" data-tag="' + escapeAttr(t.tag) + '">#' + escapeHtml(t.tag) + ' <span class="trending-count">' + escapeHtml(t.count) + '</span></div>';
                 }).join('');
+                if (!el.__trendingBound) {
+                    el.__trendingBound = true;
+                    el.addEventListener('click', function (event) {
+                        var item = event.target.closest && event.target.closest('.trending-item');
+                        if (!item || !el.contains(item)) return;
+                        applyTrending(encodeURIComponent(item.getAttribute('data-tag') || ''));
+                    });
+                }
             }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
         }
 
@@ -271,7 +291,10 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 var chart = document.getElementById('engagement-chart');
                 if (d.engagement_history && chart) {
                     chart.innerHTML = d.engagement_history.map(function(v) {
-                        return '<div style="flex:1;background:var(--accent, #3b82f6);height:' + (v.value || 10) + '%;border-radius:2px 2px 0 0" title="' + v.label + ': ' + v.value + '"></div>';
+                        // #2837 — label/value come from the API; a quote in
+                        // either used to break out of the title attribute.
+                        var pct = Number(v.value) || 10;
+                        return '<div style="flex:1;background:var(--accent, #3b82f6);height:' + pct + '%;border-radius:2px 2px 0 0" title="' + escapeAttr(v.label) + ': ' + escapeAttr(v.value) + '"></div>';
                     }).join('');
                 }
                 var bt = document.getElementById('best-times');
