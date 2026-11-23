@@ -59,6 +59,7 @@ pub mod confirmation {
     pub enum Operation {
         Delete,
         CreateFolder,
+        ResetStack,
     }
 
     impl Operation {
@@ -67,6 +68,7 @@ pub mod confirmation {
             match raw.trim() {
                 "delete" => Ok(Self::Delete),
                 "create_folder" => Ok(Self::CreateFolder),
+                "reset_stack" => Ok(Self::ResetStack),
                 _ => Err("Unknown destructive operation".to_string()),
             }
         }
@@ -76,6 +78,7 @@ pub mod confirmation {
             match self {
                 Self::Delete => "delete",
                 Self::CreateFolder => "create_folder",
+                Self::ResetStack => "reset stack",
             }
         }
     }
@@ -162,6 +165,32 @@ pub mod confirmation {
             Grant::new(token.clone(), operation, target, label, now),
         );
         Ok(token)
+    }
+
+    /// Consume an approval only when it was minted for the requesting window
+    /// (#2692). A grant minted by another page is worthless to a script on a
+    /// different window, closing the cross-page replay window.
+    pub fn consume_for(
+        operation: Operation,
+        target: &str,
+        label: &str,
+    ) -> Result<(), String> {
+        let mut store = grants()
+            .lock()
+            .map_err(|e| format!("Confirmation store unavailable: {e}"))?;
+        let now = Instant::now();
+        store.retain(|_, grant| !grant.is_expired(now));
+        let key = store
+            .iter()
+            .find(|(_, grant)| grant.matches(operation, target) && grant.label == label)
+            .map(|(key, _)| (*key).clone());
+        match key {
+            Some(key) => {
+                store.remove(&key);
+                Ok(())
+            }
+            None => Err("This action was not approved in this window".to_string()),
+        }
     }
 
     /// Consumes the matching approval; a missing, stale or mismatched one fails.

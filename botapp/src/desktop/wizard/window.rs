@@ -16,6 +16,48 @@ fn use_dev_server() -> bool {
     cfg!(debug_assertions) && !cfg!(feature = "custom-protocol")
 }
 
+/// #2697 — `GB_DESKTOP_SUITE_URL` and subsequent navigations must stay on the
+/// local sidecar origin. An attacker-controlled value must not turn the main
+/// WebView into a browser for an external origin with privileged IPC.
+fn is_allowed_suite_url(url: &tauri::Url) -> bool {
+    if !matches!(url.scheme(), "http" | "https") {
+        return false;
+    }
+    if !matches!(url.host_str(), Some("localhost") | Some("127.0.0.1")) {
+        return false;
+    }
+    let port = url.port_or_known_default().unwrap_or_default();
+    port == crate::desktop::sidecar::probe::sidecar_port()
+        || (use_dev_server() && port == 3000)
+}
+
+fn parse_suite_url(raw: &str) -> Option<tauri::Url> {
+    let url = tauri::Url::parse(raw.trim()).ok()?;
+    is_allowed_suite_url(&url).then_some(url)
+}
+
+#[cfg(test)]
+mod origin_tests {
+    use super::{is_allowed_suite_url, parse_suite_url};
+
+    #[test]
+    fn hostile_suite_urls_are_refused() {
+        for hostile in [
+            "https://evil.example/suite/desktop.html",
+            "file:///etc/passwd",
+            "http://localhost:9999/suite/desktop.html",
+            "http://user@127.0.0.1:8080/suite/desktop.html",
+            "javascript:alert(1)",
+        ] {
+            assert!(parse_suite_url(hostile).is_none(), "accepted {hostile}");
+        }
+        let port = crate::desktop::sidecar::probe::sidecar_port();
+        let good = tauri::Url::parse(&format!("http://127.0.0.1:{port}/suite/desktop.html"))
+            .expect("valid URL");
+        assert!(is_allowed_suite_url(&good));
+    }
+}
+
 /// Design size of the wizard window and the margin kept around it.
 const WIZARD_WIDTH: f64 = 1040.0;
 const WIZARD_HEIGHT: f64 = 700.0;
@@ -174,7 +216,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
 
     let target = std::env::var("GB_DESKTOP_SUITE_URL")
         .ok()
-        .and_then(|value| tauri::Url::parse(value.trim()).ok())
+        .and_then(|value| parse_suite_url(&value))
         .or_else(|| {
             // Development runs are served by botui (devUrl); packaged builds
             // are served by the sidecar itself. Never follow devUrl in a
@@ -268,7 +310,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         let token = wait_for_desktop_session(5).await;
         let target = std::env::var("GB_DESKTOP_SUITE_URL")
             .ok()
-            .and_then(|value| tauri::Url::parse(value.trim()).ok())
+            .and_then(|value| parse_suite_url(&value))
             .or_else(|| {
                 if !use_dev_server() {
                     return None;
@@ -292,7 +334,9 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         .title("General Bots")
         .inner_size(1340.0, 860.0)
         .min_inner_size(900.0, 560.0)
-        .resizable(true);
+        .resizable(true)
+        // #2697 — refuse any in-page navigation away from the sidecar origin.
+        .on_navigation(|_window, url| is_allowed_suite_url(url));
         // gbgov: page-drawn header; shadow gives edge resize + rounded corners.
         let builder = if CUSTOM_HEADER {
             builder.decorations(false).shadow(true)

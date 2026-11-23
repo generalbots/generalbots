@@ -1,9 +1,31 @@
 //! Mints the suite session the wizard hands to the desktop shell.
 
 use log::warn;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::paths::stack_path;
+
+/// Write a credential file with owner-only permissions from creation (#2691).
+/// `std::fs::write` follows the process umask (usually 0644) and would expose
+/// the admin bearer token to every local user on a multi-user host.
+fn write_private_file(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(path)?;
+        file.write_all(contents)
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::write(path, contents)
+    }
+}
 
 fn admin_credentials_path() -> PathBuf {
     stack_path()
@@ -122,9 +144,9 @@ async fn login_and_cache(email: &str, password: &str) -> Option<String> {
     }
     let body: serde_json::Value = response.json().await.ok()?;
     let token = token_from_body(&body)?;
-    let _ = std::fs::write(
-        desktop_session_path(),
-        serde_json::json!({ "access_token": token }).to_string(),
+    let _ = write_private_file(
+        &desktop_session_path(),
+        serde_json::json!({ "access_token": token }).to_string().as_bytes(),
     );
     Some(token)
 }
@@ -271,5 +293,18 @@ mod tests {
             without.as_str(),
             "http://127.0.0.1:8080/suite/desktop.html"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn session_files_are_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::env::temp_dir().join(format!("gb-session-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)));
+        std::fs::create_dir_all(&base).expect("temp dir");
+        let file = base.join("desktop-session.json");
+        super::write_private_file(&file, b"{\"access_token\":\"secret\"}").expect("write");
+        let mode = std::fs::metadata(&file).expect("stat").permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "session token file must be 0600");
+        std::fs::remove_dir_all(&base).ok();
     }
 }

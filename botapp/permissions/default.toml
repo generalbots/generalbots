@@ -7,6 +7,7 @@ permissions = [
     "allow-create-folder",
     "allow-delete-path",
     "allow-request-destructive-confirmation",
+    "allow-request-reset-stack-confirmation",
     "allow-get-home-dir",
     "allow-get-sync-status",
     "allow-start-sync",
@@ -88,6 +89,11 @@ commands.allow = ["delete_path"]
 identifier = "allow-request-destructive-confirmation"
 description = "Allow the native confirmation used before delete_path / create_folder (#2497)"
 commands.allow = ["request_destructive_confirmation"]
+
+[[permission]]
+identifier = "allow-request-reset-stack-confirmation"
+description = "Allow the native confirmation required before wizard_reset_stack (#2689)"
+commands.allow = ["request_reset_stack_confirmation"]
 
 [[permission]]
 identifier = "allow-get-home-dir"

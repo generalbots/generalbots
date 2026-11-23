@@ -17,6 +17,46 @@ use tauri_plugin_dialog::DialogExt;
 /// memory before the dialog is confirmed.
 const MAX_DOWNLOAD_BYTES: usize = 512 * 1024 * 1024;
 
+/// #2690 — the webview supplies the URL, so an unrestricted fetch is an SSRF
+/// primitive against the host's loopback/link-local services. Only the local
+/// sidecar (and the dev server in a development build) may be fetched.
+fn is_allowed_download_url(url: &reqwest::Url) -> bool {
+    if !matches!(url.scheme(), "http" | "https") {
+        return false;
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return false;
+    }
+    if !matches!(url.host_str(), Some("localhost") | Some("127.0.0.1")) {
+        return false;
+    }
+    let allowed_ports = [super::sidecar::probe::sidecar_port(), 3000];
+    url.port_or_known_default()
+        .is_some_and(|port| allowed_ports.contains(&port))
+}
+
+#[cfg(test)]
+mod url_tests {
+    use super::is_allowed_download_url;
+
+    #[test]
+    fn only_loopback_sidecar_urls_are_allowed() {
+        let port = super::super::sidecar::probe::sidecar_port();
+        let good = reqwest::Url::parse(&format!("http://127.0.0.1:{port}/api/files/x")).unwrap();
+        assert!(is_allowed_download_url(&good));
+        for hostile in [
+            "http://169.254.169.254/latest/meta-data/",
+            "http://localhost:22/",
+            "https://example.com/file",
+            "http://user@127.0.0.1:8080/file",
+            "file:///etc/passwd",
+        ] {
+            let url = reqwest::Url::parse(hostile).unwrap();
+            assert!(!is_allowed_download_url(&url), "SSRF URL accepted: {hostile}");
+        }
+    }
+}
+
 /// Keep only the base name the Save dialog should suggest. The user still
 /// chooses the final path; path separators and control characters never reach
 /// the native dialog.
@@ -56,14 +96,17 @@ pub async fn save_download(
         (Some(url), None) => {
             let parsed = reqwest::Url::parse(url.trim())
                 .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?;
-            if !matches!(parsed.scheme(), "http" | "https") {
+            if !is_allowed_download_url(&parsed) {
                 return Err(i18n::t("download-unsupported-scheme"));
             }
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(120))
+                // A redirect could move the request from the sidecar to an
+                // internal host after the URL check — never follow one (#2690).
+                .redirect(reqwest::redirect::Policy::none())
                 .build()
                 .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?;
-            let response = client
+            let mut response = client
                 .get(parsed)
                 .send()
                 .await
@@ -72,16 +115,23 @@ pub async fn save_download(
             if !status.is_success() {
                 return Err(i18n::t_args("download-failed", &[("error", &format!("HTTP {status}"))]));
             }
-            if let Some(length) = response.content_length() {
-                if length > MAX_DOWNLOAD_BYTES as u64 {
-                    return Err(i18n::t("download-too-large"));
-                }
+            if response.content_length().is_some_and(|length| length > MAX_DOWNLOAD_BYTES as u64) {
+                return Err(i18n::t("download-too-large"));
             }
-            response
-                .bytes()
+            // `content_length()` is optional on chunked responses; enforce the
+            // cap while streaming so an unbounded body cannot allocate memory.
+            let mut payload = Vec::new();
+            while let Some(chunk) = response
+                .chunk()
                 .await
                 .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?
-                .to_vec()
+            {
+                if payload.len().saturating_add(chunk.len()) > MAX_DOWNLOAD_BYTES {
+                    return Err(i18n::t("download-too-large"));
+                }
+                payload.extend_from_slice(&chunk);
+            }
+            payload
         }
         (None, Some(bytes)) => {
             if bytes.len() > MAX_DOWNLOAD_BYTES {

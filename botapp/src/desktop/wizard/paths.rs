@@ -58,13 +58,44 @@ pub(crate) fn log_path() -> PathBuf {
     stack_path().join("logs")
 }
 
+/// #2693 — a webview-controlled (or environment-controlled) directory must
+/// never resolve to a filesystem root, the home directory root, or a parent
+/// traversal. The wizard only creates files below a workspace subdirectory.
+fn safe_workspace_dir(value: &Path) -> bool {
+    if !value.is_absolute() || value.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return false;
+    }
+    if value.parent().is_none() || value.file_name().is_none() {
+        return false;
+    }
+    crate::desktop::fs_scope::check_not_protected(value).is_ok()
+}
+
 pub(crate) fn workspace_path() -> PathBuf {
     if let Ok(value) = std::env::var("GB_WIZARD_WORKSPACE") {
         if !value.trim().is_empty() {
-            return PathBuf::from(value);
+            let candidate = PathBuf::from(value);
+            if safe_workspace_dir(&candidate) {
+                return candidate;
+            }
+            log::warn!("wizard: refusing unsafe GB_WIZARD_WORKSPACE override");
         }
     }
     stack_path().join("workspace")
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::safe_workspace_dir;
+    use std::path::Path;
+
+    #[test]
+    fn workspace_overrides_cannot_target_roots_or_traversal() {
+        assert!(safe_workspace_dir(Path::new("/home/user/project")));
+        for bad in ["/", "/home", "relative/path", "/tmp/../etc", "/home/.env"] {
+            assert!(!safe_workspace_dir(Path::new(bad)), "accepted {bad}");
+        }
+    }
 }
 
 /// Desktop mode is explicit: the desktop-local feature or the desktop product

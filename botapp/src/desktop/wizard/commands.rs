@@ -3,7 +3,9 @@
 use super::provision;
 use super::system::{self, ModelTestResult, WorkspaceCheck};
 use super::{FinishRequest, ModelRequest, ProvisionRequest, WizardContext, WizardState};
+use crate::desktop::drive::confirmation;
 use log::warn;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 #[tauri::command]
 pub fn wizard_context() -> WizardContext {
@@ -92,11 +94,46 @@ pub fn wizard_provision_status(state: tauri::State<'_, WizardState>) -> super::P
     provision::status(&state)
 }
 
+/// #2689 — the reset used to accept the guessable string `stack` from any
+/// script on the sidecar origin. The user must now approve the exact target in
+/// a native dialog first; the typed name alone is not a capability.
+#[tauri::command]
+pub fn request_reset_stack_confirmation(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+    state: tauri::State<'_, WizardState>,
+) -> Result<String, String> {
+    if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(crate::desktop::i18n::t("setup-cancel-before-reset"));
+    }
+    let stack = super::stack_path();
+    if stack.file_name().is_none() || stack.parent().is_none() {
+        return Err("Refusing to reset an unsafe stack path.".to_string());
+    }
+    let target = stack.to_string_lossy().to_string();
+    let approved = app
+        .dialog()
+        .message(format!("Permanently delete all local state in {target}?"))
+        .title("Confirm stack reset")
+        .buttons(MessageDialogButtons::YesNo)
+        .blocking_show();
+    if !approved {
+        return Err("Confirmation was cancelled".to_string());
+    }
+    confirmation::mint(
+        confirmation::Operation::ResetStack,
+        &target,
+        window.label(),
+    )
+}
+
 #[tauri::command]
 pub fn wizard_reset_stack(confirmation: String, state: tauri::State<'_, WizardState>) -> Result<(), String> {
     if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(crate::desktop::i18n::t("setup-cancel-before-reset"));
     }
+    let target = super::stack_path().to_string_lossy().to_string();
+    confirmation::consume(confirmation::Operation::ResetStack, &target)?;
     system::reset_stack(&confirmation)
 }
 
