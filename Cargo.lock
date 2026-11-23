@@ -1770,6 +1770,7 @@ dependencies = [
  "botlib",
  "botlog",
  "botschema",
+ "botsecurity-auth",
  "botsecurity-core",
  "chrono",
  "csv",
@@ -1790,12 +1791,15 @@ name = "botconnectors"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "botcore",
  "botcoresecrets",
  "botlib",
  "botschema",
+ "botsecurity-core",
  "chrono",
  "diesel",
+ "hmac 0.12.1",
  "r2d2",
  "regex",
  "reqwest 0.12.28",
