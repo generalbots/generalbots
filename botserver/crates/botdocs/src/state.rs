@@ -175,9 +175,7 @@ pub struct DocState {
     /// History keyed by document id; added for server-side undo/redo
     /// (#1138). Uses interior mutability so fragment handlers can share it.
     pub history: tokio::sync::Mutex<std::collections::HashMap<String, DocHistory>>,
-    /// #2499 — projection of a saved document into the KB/vector index.
-    /// The production constructor installs [`in_memory_kb_indexer`]; a save
-    /// never fails because the index is unavailable.
+    /// #2499 — projection into the KB index; a save never fails if it is absent.
     pub kb_indexer: KbIndexer,
     /// #2499 — the in-process index shared by the indexer and the search side.
     pub kb_index: Arc<tokio::sync::RwLock<InMemoryKbIndex>>,
@@ -229,17 +227,10 @@ impl DocState {
         )
     }
 
-    /// #2499 — project a successfully saved document into storage-agnostic
-    /// upsert points and hand them to the runtime KB indexer.
-    /// `build_upsert_points` is built on `build_structured_chunks`, so
-    /// structure-aware addressing, the derived ACL and the bucket-scoped
-    /// tenant all travel with the points.
-    ///
-    /// Stable tenant UUID for a Drive bucket. Real buckets are often names
-    /// (`default.gbai`), while `UserContext::organization_id` is a `Uuid` and
-    /// `AclMetadata::allows` compares its string form to the projected tenant.
-    /// Parse UUID buckets directly; derive all others deterministically so
-    /// writer (project_to_kb) and reader (KB search) always agree (#2499).
+    /// #2499 — stable tenant UUID for a Drive bucket. `AclMetadata::allows`
+    /// compares string forms against `UserContext::organization_id`, so real
+    /// UUID buckets are parsed and names (`default.gbai`) derived
+    /// deterministically; writer and reader then always agree.
     pub fn tenant_uuid(bucket: &str) -> uuid::Uuid {
         match uuid::Uuid::parse_str(bucket) {
             Ok(id) => id,
@@ -269,6 +260,14 @@ impl DocState {
         if let Err(e) = (self.kb_indexer)(points) {
             log::warn!("botdocs: KB index projection for document {doc_id} failed: {e}");
         }
+    }
+
+    /// #2499 — replay every persisted document from Drive into the freshly
+    /// created in-memory KB index on boot. The index is process-local and empty
+    /// after a restart; this is strictly best effort and never fails startup.
+    /// Returns the number of documents successfully re-indexed.
+    pub async fn reindex_persisted_documents(&self) -> usize {
+        crate::handlers_api::kb_backfill::reindex_persisted_documents(self).await
     }
 }
 
