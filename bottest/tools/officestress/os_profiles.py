@@ -152,6 +152,26 @@ def validate_report(report: Any) -> list[str]:
             value = case.get(field)
             if value is not None and not _is_number(value):
                 problems.append(f"{case_id}.{field} must be numeric or null")
+        # #2531 — fail closed at gate time too. A stored report can be crafted
+        # or copied from another machine with document content / tenant / path
+        # keys embedded in a case; validate_report() previously only checked
+        # required numeric fields, so --gate silently accepted PII. Reject any
+        # forbidden content key and any unknown key (reports are a closed
+        # numeric-only schema). The --observations path already does this for
+        # live runs; this closes the stored-report gap.
+        bad_keys = sorted(FORBIDDEN_OBSERVATION_KEYS.intersection(case))
+        if bad_keys:
+            problems.append(
+                f"{case_id} has content/PII keys {bad_keys}"
+            )
+        unknown = sorted(
+            set(case)
+            - set(NUMERIC_CASE_FIELDS)
+            - set(OPTIONAL_CASE_FIELDS)
+            - {"id"}
+        )
+        if unknown:
+            problems.append(f"{case_id} has unknown keys {unknown}")
     return problems
 
 
