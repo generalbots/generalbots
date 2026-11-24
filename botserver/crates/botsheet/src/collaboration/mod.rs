@@ -1,4 +1,15 @@
+mod anchors;
+mod merge;
+mod offline;
+mod undo;
 mod websocket;
+
+// Co-editing correctness primitives (#2447). Re-exported so callers can adopt
+// them incrementally without changing the transport path in this slice.
+pub use anchors::{AnchorId, AnchorRegistry, AnchorStatus, GridPoint};
+pub use merge::{CellKey, CellOp, CellState, LamportClock};
+pub use offline::{reconcile, OfflineQueue, ReconcileResult};
+pub use undo::UndoManager;
 
 pub use websocket::{handle_sheet_connection, handle_sheet_websocket};
 
