@@ -241,13 +241,14 @@
       // plain "Slide N" label div. Update whichever is present.
       var num = node.querySelector(".sl-thumb-num");
       if (num) {
-        num.textContent = (/slide/i.test(num.textContent || "") ? "Slide " : "") + n;
+        num.textContent = /slide/i.test(num.textContent || "")
+          ? t("slides-outline-untitled", "Slide {n}", { n: n }) : String(n);
         return;
       }
       var labels = node.querySelectorAll("div");
       for (var j = 0; j < labels.length; j += 1) {
         if (/^\s*slide\s+\d+\s*$/i.test(labels[j].textContent || "")) {
-          labels[j].textContent = "Slide " + n;
+          labels[j].textContent = t("slides-outline-untitled", "Slide {n}", { n: n });
           break;
         }
       }
