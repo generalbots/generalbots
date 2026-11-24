@@ -31,6 +31,11 @@ pub(super) async fn merge_office_sub_routes(
     *sub_router = sub_router
         .clone()
         .merge(botcore::shared::analytics::configure().with_state(app_state.clone()));
+    // #2459 — canonical Prometheus scrape endpoint (text/plain; version=0.0.4)
+    // alongside the legacy /api/metrics JSON/text route.
+    *sub_router = sub_router
+        .clone()
+        .merge(botcore::shared::analytics::configure_canonical().with_state(app_state.clone()));
     *sub_router = sub_router
         .clone()
         .merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
@@ -142,6 +147,14 @@ pub(super) async fn merge_office_sub_routes(
                 .unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
             bucket_name: app_state.bucket_name.clone(),
             history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+            // #2499 — no runtime consumer of `UpsertPoint` exists yet, so the
+            // projection is deliberately dropped. The only KB handle on
+            // `AppState` (`kb_manager`, botcore/src/shared/state/mod.rs:112)
+            // exposes `index_document(doc_id, content)`, which is a no-op stub
+            // (botcore/src/kb/mod.rs:413) and cannot carry the projected ACL,
+            // tenant or citation. Wiring a real indexer requires editing
+            // botcore/botlib (out of this slice's ownership).
+            kb_indexer: botdocs::state::noop_kb_indexer(),
         });
 
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace

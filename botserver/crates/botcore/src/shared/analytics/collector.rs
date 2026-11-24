@@ -5,6 +5,7 @@ impl MetricsCollector {
         Self {
             metrics: Arc::new(RwLock::new(Vec::new())),
             aggregates: Arc::new(RwLock::new(HashMap::new())),
+            max_state: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -35,6 +36,26 @@ impl MetricsCollector {
 
     pub async fn gauge(&self, name: String, value: f64, labels: HashMap<String, String>) {
         self.record(name, value, labels).await;
+    }
+
+    /// Record a value only when it exceeds the previous maximum for the same
+    /// metric name and label set. This gives `_max` series true gauge semantics
+    /// (latest observed high-water mark) without summing them in `aggregates`.
+    pub async fn observe_max(&self, name: String, value: f64, labels: HashMap<String, String>) {
+        let fingerprint = Self::label_fingerprint(&name, &labels);
+        let mut state = self.max_state.write().await;
+        let is_new_max = state.get(&fingerprint).is_none_or(|prev| value > *prev);
+        if is_new_max {
+            state.insert(fingerprint, value);
+            drop(state);
+            self.record(name, value, labels).await;
+        }
+    }
+
+    fn label_fingerprint(name: &str, labels: &HashMap<String, String>) -> String {
+        let mut parts: Vec<String> = labels.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        parts.sort();
+        format!("{name}|{}", parts.join(","))
     }
 
     pub async fn get_metrics(&self) -> Vec<Metric> {
