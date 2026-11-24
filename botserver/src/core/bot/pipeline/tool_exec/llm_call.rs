@@ -3,10 +3,8 @@
 
 use super::super::types::SessionIdentity;
 use super::is_placeholder_value::all_args_are_placeholder;
-use super::parse::{
-    extract_tool_call, parse_dsml_tool_call, parse_xml_tool_use, recover_tool_name,
-    salvage_tool_call,
-};
+use super::envelope::read_call;
+use super::parse::{parse_dsml_tool_call, parse_xml_tool_use, recover_tool_name};
 use super::script::run_script_tool;
 
 pub async fn run_llm_tool_call(
@@ -43,7 +41,7 @@ pub async fn run_llm_tool_call(
         None => return String::new(),
     };
     let tc_json = &full_response[tc_start..];
-    let tool_call = match extract_tool_call(tc_json).or_else(|| salvage_tool_call(tc_json)) {
+    let tool_call = match read_call(tc_json) {
         Some(value) => value,
         None => {
             botlog::safe_warn!(

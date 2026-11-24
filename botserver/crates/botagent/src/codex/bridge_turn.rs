@@ -49,8 +49,9 @@ pub struct CodexTurn<'a> {
 /// line, then become the Codex app server as the `codex` user (`su`
 /// without `-`, so the session tag survives).
 pub(crate) fn launch_script(conversation: &str) -> String {
+    let output = crate::deliverables::writable_output(conversation);
     format!(
-        "printf '{THREAD_LINE}'; head -c 80 {THREADS_DIR}/{conversation} 2>/dev/null; echo; \
+        "printf '{THREAD_LINE}'; head -c 80 {THREADS_DIR}/{conversation} 2>/dev/null; echo; {output}; \
          exec su {CODEX_USER} -s /bin/sh -c 'cd {CODEX_HOME} && export HOME={CODEX_HOME} && exec codex app-server'"
     )
 }
@@ -211,8 +212,11 @@ async fn open(
     let stored = stored_thread(&mut process.inbox);
     check_account(&process.client).await?;
     selfcheck::ensure(state, vm_name, &version).await?;
+    // Codex works in the conversation's output/ folder: its sandbox may write
+    // there, and what it saves there is published to the person's Drive.
+    let cwd = crate::deliverables::output_dir(conversation);
     let (thread_id, new_thread) =
-        open_thread(&process.client, stored.as_deref(), CODEX_HOME, model, turn.instructions).await?;
+        open_thread(&process.client, stored.as_deref(), &cwd, model, turn.instructions).await?;
     if new_thread {
         store_thread(state, vm_name, conversation, &thread_id).await;
     }
@@ -232,6 +236,7 @@ mod tests {
         assert!(!script.contains("su -"));
         assert!(script.ends_with("exec codex app-server'"));
         assert!(!script.contains("/tmp"));
+        assert!(script.contains("chmod 0777 /opt/vibe/conversations/abc-123/output; } 2>/dev/null || true; exec su codex"));
     }
 
     #[test]

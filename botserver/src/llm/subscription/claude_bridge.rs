@@ -84,6 +84,7 @@ impl ClaudeBridgeProvider {
         model: &str,
         tx: Option<&mpsc::Sender<String>>,
     ) -> Result<String, ProviderError> {
+        let config = &botagent::deliverables::with_note(config, &self.session_id.to_string());
         let transcript = super::flatten_prompt(prompt, config);
         let latest = super::turn_message::for_resumed(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };

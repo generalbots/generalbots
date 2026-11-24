@@ -206,4 +206,5 @@ mod tests {
 mod azure;
 mod stream_single_attempt;
 mod generate;
+mod utf8_tail;
 pub mod web_search;

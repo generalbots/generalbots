@@ -227,11 +227,44 @@ pub async fn conversation_title(state: &Arc<AppState>, session_id: Uuid) -> Stri
         let mut sm = state.session_manager.lock().await;
         sm.get_first_user_message(session_id).ok().flatten()
     };
+    let id = session_id.to_string();
+    let short = &id[..8.min(id.len())];
     match first {
-        Some(text) if !text.trim().is_empty() => slug(&text),
-        _ => {
-            let id = session_id.to_string();
-            format!("conversation-{}", &id[..8.min(id.len())])
+        Some(text) if !text.trim().is_empty() => format!("{}-{short}", readable_slug(&text)),
+        _ => format!("conversation-{short}"),
+    }
+}
+
+/// [`slug`] that keeps accented letters (`Relatório-de-março`), for folder
+/// names the person reads in Drive.
+fn readable_slug(text: &str) -> String {
+    let mut out = String::new();
+    for ch in text.trim().chars() {
+        if ch.is_alphanumeric() {
+            out.push(ch);
+        } else if matches!(ch, ' ' | '-' | '_' | '.' | ':' | '(' | ')') && !out.ends_with('-') {
+            out.push('-');
         }
+        if out.chars().count() >= 60 {
+            break;
+        }
+    }
+    let out = out.trim_matches('-').to_string();
+    if out.is_empty() {
+        "conversation".to_string()
+    } else {
+        out
+    }
+}
+
+#[cfg(test)]
+mod readable_slug_tests {
+    use super::readable_slug;
+
+    #[test]
+    fn accents_stay_and_separators_collapse() {
+        assert_eq!(readable_slug("  Relatório de março: versão (final) "), "Relatório-de-março-versão-final");
+        assert_eq!(readable_slug("???"), "conversation");
+        assert_eq!(readable_slug(&"á".repeat(80)).chars().count(), 60);
     }
 }

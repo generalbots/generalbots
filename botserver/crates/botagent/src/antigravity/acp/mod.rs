@@ -84,8 +84,9 @@ pub struct AcpTurn<'a> {
 /// so the session tag survives), with the conversation folders in its
 /// workspace.
 pub(crate) fn launch_script(conversation: &str) -> String {
+    let output = crate::deliverables::writable_output(conversation);
     format!(
-        "printf '{SESSION_LINE}'; head -c 130 {SESSIONS_DIR}/{conversation} 2>/dev/null; echo; \
+        "printf '{SESSION_LINE}'; head -c 130 {SESSIONS_DIR}/{conversation} 2>/dev/null; echo; {output}; \
          exec su {ANTIGRAVITY_USER} -s /bin/sh -c 'cd {ANTIGRAVITY_HOME} && export HOME={ANTIGRAVITY_HOME} && exec agy acp --add-dir {CONVERSATIONS}'"
     )
 }

@@ -58,6 +58,7 @@ impl ClaudeClient {
         // Stream response body - this is like Node.js res.on('data')
         let mut stream = response.bytes_stream();
         let mut sse_buffer = String::new();
+        let mut utf8_pending: Vec<u8> = Vec::new();
         let mut text_chunks_sent = 0usize;
         let mut total_bytes = 0usize;
         let mut chunk_count = 0usize;
@@ -142,11 +143,8 @@ impl ClaudeClient {
 
             chunk_count += 1;
             total_bytes += chunk.len();
-            let chunk_str = String::from_utf8_lossy(&chunk);
-
-
-
-            sse_buffer.push_str(&chunk_str);
+            utf8_pending.extend_from_slice(&chunk);
+            sse_buffer.push_str(&super::utf8_tail::take_text(&mut utf8_pending));
 
             // Process complete SSE events in buffer
             while let Some(event_end) = sse_buffer.find("\n\n") {

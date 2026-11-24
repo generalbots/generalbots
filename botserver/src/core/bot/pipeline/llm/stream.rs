@@ -354,6 +354,10 @@ async fn stream_llm_response_inner(
                             let _ = sink.send_bot_response(&final_resp).await;
                         }
                     } else {
+                        #[cfg(feature = "agent-vm")]
+                        crate::core::bot::pipeline::native_tools::vm_turn_engine::remember(
+                            session_id, llm, llm_model, llm_key, engine_type, user_text,
+                        );
                         match super::stream_tools::execute_and_prepare_followup(
                             identity,
                             rx,

@@ -90,7 +90,7 @@ pub(super) fn turn_script(model: &str, resume: Option<&str>, conversation: Optio
         Some(id) => {
             let dir = format!("/opt/vibe/conversations/{id}");
             let before = format!("set --; [ -d {dir} ] && set -- --add-dir {dir}; ");
-            session_script("", "", &before, &format!("{invocation} \"$@\""))
+            session_script(&crate::deliverables::writable_output(&id), "", &before, &format!("{invocation} \"$@\""))
         }
         None => session_script("", "", "", &invocation),
     }

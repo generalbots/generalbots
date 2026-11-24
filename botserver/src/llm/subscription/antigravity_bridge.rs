@@ -69,7 +69,7 @@ impl AntigravityBridgeProvider {
         tx: Option<&mpsc::Sender<String>>,
     ) -> Result<String, ProviderError> {
         let conversation = self.session_id.to_string();
-        let config = super::acp_notes::for_acp(config, &conversation);
+        let config = botagent::deliverables::with_note(&super::acp_notes::for_acp(config, &conversation), &conversation);
         let transcript = super::flatten_prompt(prompt, &config);
         let latest = super::turn_message::for_resumed(prompt, &config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };

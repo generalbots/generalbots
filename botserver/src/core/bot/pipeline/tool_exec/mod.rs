@@ -10,6 +10,7 @@
 
 mod args_log;
 mod direct;
+mod envelope;
 mod is_placeholder_value;
 mod llm_call;
 mod parse;

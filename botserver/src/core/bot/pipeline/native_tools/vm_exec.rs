@@ -309,7 +309,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         }
         Ok(Some((ok, stdout, stderr))) => {
             let mut repair_failed = false;
-            if !ok && super::program_repair::looks_like_syntax_error(&stderr) {
+            let mut repair_refused = None;
+            if !ok
+                && super::program_repair::looks_like_syntax_error(&stderr)
+                && super::program_repair::offered(session_id)
+            {
                 send(
                     identity,
                     "🔧 The generated program had a syntax error; fixing it automatically…",
@@ -329,11 +333,15 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 // out. Past the budget the error is reported instead.
                 let repaired = tokio::time::timeout(
                     std::time::Duration::from_secs(REPAIR_TIMEOUT_SECS),
-                    repair_program(state, bot_uuid, language, code, &stderr),
+                    repair_program(state, bot_uuid, session_id, language, code, &stderr),
                 )
                 .await;
                 let fixed = match repaired {
-                    Ok(found) => found,
+                    Ok(Ok(found)) => Some(found),
+                    Ok(Err(refused)) => {
+                        repair_refused = refused;
+                        None
+                    }
                     Err(_) => {
                         botlog::safe_warn!(
                             "program repair gave up after {REPAIR_TIMEOUT_SECS}s: session={session_id}"
@@ -388,7 +396,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             // #2046 — the trace table replaces the raw markers.
             let stdout = super::vm_trace::strip_trace_lines(&stdout);
             let rendered = render_result(user_id, session_id, ok, &stdout, &stderr).await;
-            let message = if repair_failed {
+            let message = if let Some(why) = repair_refused {
+                format!("The automatic fix was not used because {why}. Here is the original error.
+
+{rendered}")
+            } else if repair_failed {
                 format!(
                     "The automatic fix did not work, so here is the original error.\n\n{rendered}"
                 )

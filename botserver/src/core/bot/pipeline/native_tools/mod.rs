@@ -32,6 +32,8 @@ mod vm_budget;
 mod vm_exec;
 #[cfg(feature = "agent-vm")]
 mod vm_trace;
+#[cfg(feature = "agent-vm")]
+pub mod vm_turn_engine;
 pub(super) mod web_fetch;
 pub(super) mod web_prefetch;
 #[cfg(any(feature = "research", feature = "web-search"))]
