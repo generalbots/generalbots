@@ -1,23 +1,13 @@
 #!/usr/bin/env python3
 """Static audit of the office chat-verb bindings (#2448).
 
-Proves, without building or running botserver, that every `bind(...)` in
-office_endpoints.rs is:
-
-  1. UNIQUE   - no verb name or bind signature is declared twice;
-  2. REAL     - the verb name exists in the curated command catalog
-                (`cmd(...)` entries in apps/commands);
-  3. BACKED   - the (method, path) pair exists in the endpoint inventory
-                (`ApiEndpoint { method, path }` entries under core/bot).
-
-Both `"/api/x"` and `"api/x"` spellings are normalised before comparison.
-
-Duplicate (method, path) pairs across *different* verbs are intentional
-aliases in this codebase (e.g. docs.save/docs.update both target
-/api/docs/save). They are allowlisted below; any NEW duplicate pair fails.
-Run with `--verbose` to list the accepted aliases.
-
-Exit 0 only on a clean audit; exit 1 on any violation.
+Offline audit of every `bind(...)` in office_endpoints.rs: UNIQUE (no
+duplicate verb/signature), REAL (verb in curated cmd() catalog), BACKED
+((method,path) in endpoint inventory), PARAMS (each curated cmd() param is a
+typed request field, a rename/default key, or an untyped Json<Value> route;
+otherwise FAIL/[GAP]). Paths are normalised; 3 documented aliases are
+allowlisted, any NEW duplicate pair fails (`--verbose` lists them).
+Exit 0 only on a clean audit.
 """
 
 from __future__ import annotations
@@ -25,7 +15,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
 
@@ -36,6 +26,12 @@ REL_CATALOG = "botserver/src/apps/commands"
 REL_INVENTORY = "botserver/src/core/bot"
 SKIP_CATALOG_FILES = {"app_command.rs"}  # the cmd() definition, not a catalog entry
 SKIP_NAME_PARTS = ("tests",)
+REL_CRATES = "botserver/crates"
+CMD_BLOCK_RE = re.compile(r"\bcmd\s*\("); ROUTE_RE = re.compile(r"\.route\s*\(")
+STRUCT_RE = re.compile(r"\bstruct\s+(\w+)\s*\{([^{}]*)\}")
+FN_RE = re.compile(r"\b(?:pub\s+)?async\s+fn\s+(\w+)\s*(?:<[^>{}]*>)?\s*\(((?:[^()]|\([^()]*\))*)\)")
+FIELD_RE = re.compile(r"^\s*pub\s+(\w+)\s*:", re.M); REQ_TYPE_RE = re.compile(r"(?:Json|Query|Form)<(?:\w+::)*(\w+)\s*>")
+HANDLER_RE = re.compile(r"\b(?:get|post|put|delete|patch|\w+::\w+)\s*\(\s*(\w+)(?:::<[^>]*>)?\s*\)")
 
 # (method, normalised path) -> verbs that are allowed to share it.
 INTENTIONAL_ALIASES: dict[tuple[str, str], frozenset[str]] = {
@@ -266,11 +262,62 @@ def parse_inventory(inventory_dir: Path) -> set[tuple[str, str]]:
     return routes
 
 
+def robust_pairs(arg: str) -> tuple[tuple[str, str], ...]:
+    value = arg.strip().lstrip("&").strip()
+    if not (value.startswith("[") and value.endswith("]")):
+        raise ValueError(f"expected a slice, got {arg[:80]!r}")
+    return tuple((lambda p: (string_arg(p[0]), string_arg(p[1])))(split_args(i.strip()[1:-1]))
+                 for i in split_args(value[1:-1]))
+
+def parse_catalog_params(catalog_dir: Path) -> dict[str, tuple[str, ...]]:
+    result: dict[str, tuple[str, ...]] = {}
+    for path in sorted(catalog_dir.rglob("*.rs")):
+        if path.name in SKIP_CATALOG_FILES or any(p in path.name for p in SKIP_NAME_PARTS):
+            continue
+        masked = read_masked(path)
+        for offset, block in balanced_blocks(masked, CMD_BLOCK_RE):
+            line = masked.count("\n", 0, offset) + 1
+            args = split_args(block[block.index("(") + 1 : -1])
+            if len(args) != 7:
+                raise ValueError(f"{path}:{line}: cmd() has {len(args)} args, expected 7")
+            try:
+                result[string_arg(args[1])] = tuple(a for a, _ in robust_pairs(args[4]))
+            except (ValueError, IndexError) as exc:
+                raise ValueError(f"{path}:{line}: cmd() params: {exc}") from exc
+    return result
+
+
+def parse_request_fields(crates_dir: Path) -> dict[str, set[str]]:
+    structs: dict[str, set[str]] = defaultdict(set)
+    handlers: dict[str, set[str]] = defaultdict(set)
+    routes: dict[str, set[str]] = defaultdict(set)
+    for path in sorted(crates_dir.rglob("*.rs")):
+        text = path.read_text(encoding="utf-8")
+        clean = "\n".join("" if ln.lstrip().startswith("//") else ln for ln in text.splitlines())
+        for name, body in STRUCT_RE.findall(clean):
+            structs[name].update(FIELD_RE.findall(body))
+        for name, sig in FN_RE.findall(text):
+            # Untyped Json<Value> accepts arbitrary keys.
+            if re.search(r"Json\s*\(\s*\w+\s*\)\s*:\s*Json\s*<\s*(?:serde_json::)?Value\s*>", sig):
+                handlers[name].add("*")
+            handlers[name].update(t for t in REQ_TYPE_RE.findall(sig) if t.endswith(("Request", "Query")))
+        try:
+            blocks = balanced_blocks(text, ROUTE_RE)
+        except (ValueError, IndexError):
+            continue
+        for _, block in blocks:
+            if (route := re.search(r'"([^"]+)"', block)):
+                routes[route.group(1)].update(HANDLER_RE.findall(block))
+    return {route: ({"*"} if "*" in {r for n in names for r in handlers.get(n, ())}
+                    else {f for n in names for r in handlers.get(n, ()) for f in structs.get(r, ())})
+            for route, names in routes.items()}
+
 def norm(path: str) -> str:
     return path.lstrip("/")
 
 
-def audit(bindings_path: Path, catalog_dir: Path, inventory_dir: Path, verbose: bool) -> int:
+def audit(bindings_path: Path, catalog_dir: Path, inventory_dir: Path, crates_dir: Path,
+          verbose: bool) -> int:
     violations: list[str] = []
     try:
         if not bindings_path.is_file():
@@ -327,6 +374,30 @@ def audit(bindings_path: Path, catalog_dir: Path, inventory_dir: Path, verbose: 
                 f" (#{bind.index}:{bind.line}, verb {bind.verb!r})"
             )
 
+    params_checked = binds_with_params = param_failures = 0
+    try:
+        catalog_params = parse_catalog_params(catalog_dir)
+        route_fields = parse_request_fields(crates_dir)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        print(f"[GAP] params: catalog/struct parse failed: {exc}")
+        violations.append("FAIL params audit incomplete (see [GAP] above)")
+    else:
+        for bind in binds:
+            plist = catalog_params.get(bind.verb)
+            if not plist:
+                if plist is None:
+                    print(f"[GAP] params: no catalog cmd() params for {bind.verb!r} "
+                          f"({bindings_path}:{bind.line})")
+                continue
+            binds_with_params += 1; params_checked += len(plist)
+            fields = route_fields.get(bind.path, set())
+            # `*` marks an untyped Json<Value> handler: it accepts every key.
+            covered = ({a for a, _ in bind.renames} | {a for a, _ in bind.defaults}
+                       | (set(plist) if "*" in fields else fields))
+            for param in (p for p in plist if p not in covered):
+                param_failures += 1
+                violations.append(f"FAIL params dropped: verb {bind.verb!r} param {param!r} "
+                                  f"(bind #{bind.index}:{bind.line}, {bind.method} {bind.path})")
     covered_verbs = sum(1 for b in binds if b.verb in catalog)
     covered_routes = sum(1 for b in binds if (b.method, norm(b.path)) in routes)
     renames = sum(len(b.renames) for b in binds)
@@ -340,6 +411,8 @@ def audit(bindings_path: Path, catalog_dir: Path, inventory_dir: Path, verbose: 
     print(f"  renames / defaults      : {renames} / {defaults}")
     print(f"  catalog coverage        : {covered_verbs}/{len(binds)}")
     print(f"  route coverage          : {covered_routes}/{len(binds)}")
+    print(f"  params checked          : {params_checked} ({binds_with_params} binds)")
+    print(f"  param failures          : {param_failures}")
     if verbose:
         for pair in aliases:
             print(f"  alias                   : {' '.join(pair)} -> "
@@ -362,6 +435,7 @@ def main() -> int:
         bindings_path=args.bindings or args.root / REL_BINDINGS,
         catalog_dir=args.catalog or args.root / REL_CATALOG,
         inventory_dir=args.inventory or args.root / REL_INVENTORY,
+        crates_dir=args.root / REL_CRATES,
         verbose=args.verbose,
     )
 
