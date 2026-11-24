@@ -484,7 +484,7 @@ pub(crate) async fn resolve_bot_llm_provider(
             );
             return Err(RefusalError::new(
                 refusal::AGENT_SWITCH_OFF,
-                super::agent_turn::DISABLED_MESSAGE,
+                super::agent_turn::DISABLED_FOR_PERSON,
             )
             .param("agent", &resolved.provider)
             .param("label", label));

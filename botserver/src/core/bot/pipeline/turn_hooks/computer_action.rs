@@ -52,7 +52,7 @@ pub(crate) async fn propose_computer_action(
                 bot_uuid.to_string(),
                 session_id.to_string(),
                 user_id.to_string(),
-                super::super::agent_turn::DISABLED_MESSAGE,
+                super::super::agent_turn::DISABLED_FOR_PERSON,
                 "web",
             );
             let _ = sink.send_bot_response(&resp).await;

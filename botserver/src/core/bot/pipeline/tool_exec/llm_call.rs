@@ -140,16 +140,9 @@ pub async fn run_llm_tool_call(
 
         // Arguments can carry personal data (an address's query string, a
         // command): only the tool, the argument size and, for a page, its site.
-        let site = if raw_tool_name == super::super::native_tools::web_fetch::TOOL {
-            super::super::native_tools::web_fetch::site_in_args(tool_args)
-                .map(|site| format!(" site={site}"))
-                .unwrap_or_default()
-        } else {
-            String::new()
-        };
         log::info!(
-            "LLM tool_call: executing tool '{raw_tool_name}' args_bytes={}{site}",
-            tool_args.len()
+            "LLM tool_call: executing tool '{raw_tool_name}' {}",
+            super::args_summary(&raw_tool_name, tool_args)
         );
         if raw_tool_name.is_empty() {
             botlog::safe_warn!(
@@ -173,7 +166,7 @@ pub async fn run_llm_tool_call(
             log::info!(
                 "All tool args are placeholder - asking user for real data instead of executing"
             );
-            let msg = "I need the actual values before I can run that tool. Please provide the requested details.".to_string();
+            let msg = "Preciso dos dados reais antes de executar essa ferramenta. Informe os detalhes pedidos.".to_string();
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
                 session_id.to_string(),

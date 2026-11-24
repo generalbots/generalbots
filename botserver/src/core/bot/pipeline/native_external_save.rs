@@ -9,7 +9,7 @@
 //! competes with the execution budget (#2045).
 
 use super::native_drive::DriveOutcome;
-use super::native_tools::{persist, send};
+use super::native_tools::{persist, refuse_vm_off, send};
 use super::types::SessionIdentity;
 use super::vm_consent::reason;
 use crate::core::bot::agent_vm_hook;
@@ -77,7 +77,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) -> DriveOutcome {
     } = *identity;
     // #2239 — reads artifacts from the conversation workspace (output/).
     if !identity.agent_vm_enabled {
-        send(identity, "Agent/VM is disabled for this conversation").await;
+        refuse_vm_off(identity).await;
         return DriveOutcome::refused(reason::VM_OFF);
     }
 

@@ -1,8 +1,15 @@
-use uuid::Uuid;
+//! One chat turn, from the incoming frame to the published artifacts. The
+//! attachment, the prompt, the turn's context and the control frames live in
+//! the `exec/` modules.
 
 use super::types::{PipelineResult, SessionIdentity};
 use log::info;
 pub use super::types::PipelineFn;
+
+mod attachment;
+mod context;
+mod frames;
+mod prompt;
 
 pub async fn process_message_internal(
     identity: &SessionIdentity<'_>,
@@ -29,44 +36,7 @@ pub async fn process_message_internal(
         pending.remove(&session_id.to_string());
     }
 
-    // Agent-mode control frame (legacy toggle, #1167). Always-on since #1580
-    // but kept for backward compat — the frame is consumed so it never
-    // reaches the LLM.
-    #[cfg(feature = "agent-vm")]
-    if parsed.get("type").and_then(|v| v.as_str()) == Some("agent_mode") {
-        if let Some(status) =
-            crate::core::bot::agent_vm_hook::handle_frame(&parsed, session_id, user_id, bot_uuid)
-                .await
-        {
-            let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(),
-                session_id.to_string(),
-                user_id.to_string(),
-                &status,
-                sink.channel_type(),
-            );
-            let _ = sink.send_bot_response(&resp).await;
-            return Ok(());
-        }
-    }
-
-    // #1644 — the client reports what happened for the action it executed.
-    // This is the frame the old build sent with no server handler.
-    if matches!(
-        parsed.get("type").and_then(|v| v.as_str()),
-        Some("browser_result") | Some("terminal_result")
-    ) || matches!(
-        parsed.get("message_type").and_then(|v| v.as_str()),
-        Some("browser_result") | Some("terminal_result")
-    ) {
-        let action_id = parsed
-            .get("action_id")
-            .and_then(|v| v.as_str())
-            .and_then(|value| Uuid::parse_str(value).ok());
-        if let Some(id) = action_id {
-            let result = parsed.get("result").cloned().unwrap_or_default();
-            let _ = crate::core::computer_use::complete(id, user_id, result).await;
-        }
+    if frames::consume_control_frame(identity, &parsed).await {
         return Ok(());
     }
 
@@ -204,129 +174,10 @@ pub async fn process_message_internal(
         ..*identity
     };
 
-    // Early run context for activity events that fire before the LLM call.
-    let early_run = super::event_sink::RunContext::new(&session_id.to_string(), "chat")
-        .with_scope(bot_uuid, user_id, None)
-        .with_state(state.clone());
-
-    // #1641 — store the attachment and turn it into prompt content.
-    // #2562 — emit attachment_read activities around the ingestion.
-    let has_file = parsed.get("file").is_some()
-        || parsed
-            .get("files")
-            .and_then(|v| v.as_array())
-            .is_some_and(|a| !a.is_empty());
-    let file_name = parsed
-        .get("file")
-        .and_then(|f| f.get("name"))
-        .and_then(|n| n.as_str())
-        .unwrap_or("")
-        .to_string();
-    let file_size = parsed
-        .get("file")
-        .and_then(|f| f.get("content_base64"))
-        .and_then(|b| b.as_str())
-        .map(|b| b.len() * 3 / 4)
-        .unwrap_or(0);
-    let attach_activity = if has_file {
-        let summary = super::activity::attachment_summary(
-            &file_name, "", file_size, 0, false, "",
-        );
-        let act = super::activity::Activity::started(
-            super::activity::ActivityKind::AttachmentRead,
-            summary,
-        )
-        .with_run_id(&early_run.run_id);
-        super::activity::emit_activity(sink, &early_run, &act).await;
-        Some(act)
-    } else {
-        None
-    };
-
-    let vision = has_file && {
-        let url = super::enriched_llm::turn_llm_url(state, bot_uuid, &model_preference).await;
-        botllm::media_parts::sees_images(&url)
-    };
-    let attachment = super::turn_hooks::ingest_attachment(
-        state, bot_uuid, bot_name, &parsed, user_text, vision,
-    )
-    .await;
-    super::turn_watch::stage("attachment read");
+    let attachment = attachment::read(identity, &parsed, user_text, &model_preference).await;
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
-    let media_fail_reason = attachment.media_fail_reason;
-    let store_fail_reason = attachment.store_fail_reason;
-
-    // Emit the completed/failed attachment activity.
-    if let Some(act) = attach_activity {
-        let drive_path = format!("inbox/{file_name}");
-        // Count only the actual extracted text (delimited by the BEGIN/END
-        // ATTACHMENT markers), not the wrapper instructions sent to the model.
-        // Without this, unsupported formats report chars_read = wrapper length
-        // and the step card does not show the "format not readable" warning.
-        let excerpt_chars = attachment_note
-            .as_ref()
-            .and_then(|n| {
-                let marker = format!("--- BEGIN ATTACHMENT {file_name} ---\n");
-                n.find(&marker).map(|start| {
-                    let content_start = start + marker.len();
-                    let end_marker = format!("\n--- END ATTACHMENT {file_name} ---");
-                    let end = n[content_start..].find(&end_marker)
-                        .map(|e| content_start + e)
-                        .unwrap_or(n.len());
-                    n[content_start..end].chars().count()
-                })
-            })
-            .unwrap_or(0);
-        let truncated = attachment_note
-            .as_ref()
-            .is_some_and(|n| n.contains("excerpt truncated"));
-        let mime = super::activity::mime_from_name(&file_name);
-        if let Some(reason) = store_fail_reason {
-            // The file was not kept (a full disk answers HTTP 507): the card
-            // says so instead of reporting a stored attachment.
-            let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
-            let key = if reason == "storage_full" {
-                "error-attachment-storage-full"
-            } else {
-                "error-attachment-not-stored"
-            };
-            let fail = act.failed(&botcore::i18n::t(&locale, key));
-            super::activity::emit_activity(sink, &early_run, &fail).await;
-        } else if let Some(reason) = media_fail_reason {
-            // #2561 — the file was stored but its media content could not be
-            // read (e.g. no image reader installed). Emit as failed with the
-            // reason code so the interface can show it.
-            let fail = act.failed(reason);
-            super::activity::emit_activity(sink, &early_run, &fail).await;
-        } else if attachment_note.is_some() || user_text.contains(&format!("inbox/{file_name}")) {
-            let summary = super::activity::attachment_summary(
-                &file_name,
-                &mime,
-                file_size,
-                excerpt_chars,
-                truncated,
-                &drive_path,
-            );
-            // The model received the file itself (image/PDF to a vision
-            // model): the card must not call it unreadable.
-            let mut summary = summary;
-            if !attachment_media.is_empty() {
-                summary["seen_by_model"] = serde_json::Value::Bool(true);
-            }
-            let done = act.completed(summary);
-            super::activity::emit_activity(sink, &early_run, &done).await;
-        } else {
-            let reason = if file_size > 50 * 1024 * 1024 {
-                "File exceeds the 50 MB limit"
-            } else {
-                "Could not store or read the file"
-            };
-            let fail = act.failed(reason);
-            super::activity::emit_activity(sink, &early_run, &fail).await;
-        }
-    }
 
     // #1642 — the assistant finally has a writer. An explicit "remember …"
     // turn is persisted to chat_preferences; the prompt already reads that
@@ -343,7 +194,8 @@ pub async fn process_message_internal(
         // removed something. Remember turns keep the normal LLM path.
         if crate::core::user_memory::extract_forget_directive(&user_text).is_some() {
             let reply = memory_reply.unwrap_or_else(|| {
-                "I could not update your stored memory. Please try again.".to_string()
+                let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+                botcore::i18n::t(&locale, "error-memory-not-updated")
             });
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
@@ -362,44 +214,7 @@ pub async fn process_message_internal(
     if super::turn_hooks::propose_computer_action(identity, msg_type, &user_text).await {
         return Ok(());
     }
-
-    if user_text.starts_with("__TOOL__:") {
-        let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
-        if !tool_name.is_empty() {
-            let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(),
-                session_id.to_string(),
-                user_id.to_string(),
-                format!("Tool '{tool_name}' not implemented via legacy path"),
-                "web",
-            );
-            let _ = sink.send_bot_response(&resp).await;
-        }
-        return Ok(());
-    }
-
-    if msg_type == 6 {
-        let raw_tool_name = user_text.trim().to_string();
-        let tool_name = match crate::core::bot::ws::handler::validate_bot_name(&raw_tool_name) {
-            Ok(n) => n,
-            Err(e) => {
-                log::warn!("TOOL_EXEC: invalid tool name '{}': {}", raw_tool_name, e);
-                let resp = botlib::models::BotResponse::new(
-                    bot_uuid.to_string(),
-                    session_id.to_string(),
-                    user_id.to_string(),
-                    format!("<p>Invalid tool name: {raw_tool_name}</p>"),
-                    "web",
-                );
-                let _ = sink.send_bot_response(&resp).await;
-                return Ok(());
-            }
-        };
-
-        if !tool_name.is_empty() {
-            super::turn_watch::long_stage("tool exec");
-            super::tool_exec::run_tool_exec(identity, &tool_name).await;
-        }
+    if frames::consume_tool_frame(identity, msg_type, &user_text).await {
         return Ok(());
     }
 
@@ -428,52 +243,14 @@ pub async fn process_message_internal(
         route.reason
     );
     super::turn_watch::stage("prompt build");
-
-    // The composer's app-automation/media switches ride with the client
-    // capabilities so the prompt only advertises what this turn may use.
-    let client_caps_value = {
-        let mut caps = parsed
-            .get("client_capabilities")
-            .cloned()
-            .unwrap_or_else(|| serde_json::json!({}));
-        if let Some(obj) = caps.as_object_mut() {
-            obj.insert("ui_automation".to_string(), serde_json::json!(ui_automation_enabled));
-            if media_type != "auto" {
-                obj.insert("media_type".to_string(), serde_json::json!(media_type.clone()));
-            }
-        }
-        caps
-    };
-
-    let channel = sink.channel_type();
-    let system_prompt = super::system_prompt::with_structured_tools(
-        super::system_prompt::build(
-            state,
-            bot_uuid,
-            session_id,
-            user_id,
-            bot_name,
-            channel,
-            &active_switchers,
-            Some(&client_caps_value),
-        ),
-        channel,
+    let system_prompt = prompt::system_prompt(
+        identity,
+        &parsed,
+        &active_switchers,
+        ui_automation_enabled,
+        &media_type,
+        &user_text,
     );
-    // #2238 — bias the answer toward the requested artifact/media type.
-    let system_prompt = if media_type != "auto" {
-        format!(
-            "{system_prompt}\n\n---\nRequested output type: {media_type}. Prefer producing this artifact/format when feasible; if not possible, explain briefly and provide the closest alternative."
-        )
-    } else {
-        system_prompt
-    };
-    // #1975 — selective Canvas/SVG subsystem prompt for drawing turns.
-    let canvas_block = super::system_prompt::canvas_drawing_block(&user_text);
-    let system_prompt = if canvas_block.is_empty() {
-        system_prompt
-    } else {
-        format!("{system_prompt}\n\n{canvas_block}")
-    };
 
     let session_context = super::turn_watch::bounded("session context", super::turn_watch::STEP_LIMIT, async {
         let sm = state.session_manager.lock().await;
@@ -486,40 +263,7 @@ pub async fn process_message_internal(
 
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
-
-    // #1946 — the selected mode is an instruction for this turn, not a
-    // session-wide switch: it tells the model whether to plan execution or to
-    // answer/patch through the catalog, while the guards stay in place.
-    // #2239 — when Agent/VM is disabled, never offer or encourage workspace tools.
-    // #2562 — when `agent-vm` is not compiled, the simpler "answer directly"
-    //         block replaces the full VM-disabled message so the model never
-    //         sees controls or capabilities that do not exist in this build.
-    let turn_instruction = if !agent_enabled {
-        if cfg!(feature = "agent-vm") {
-            format!(
-                "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
-                 terminal_run, or terminal.exec, and do not assume a workspace/VM is available. \
-                 Never claim a file was created and never emit a vmfile: link. Answer directly or use \
-                 non-VM capabilities only. When the request genuinely needs the VM (running code, \
-                 generating or attaching a file), say exactly: \"{}\"",
-                super::agent_turn::DISABLED_MESSAGE
-            )
-        } else {
-            "THIS TURN: Answer directly using your knowledge and the API command catalog. \
-             Do not offer to run code, use a sandbox or generate files in this turn."
-                .to_string()
-        }
-    } else {
-        match route.route {
-            crate::core::bot::ws::stream::routing::Route::Agentic => {
-                "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
-            }
-            crate::core::bot::ws::stream::routing::Route::NonAgentic => {
-                "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
-            }
-        }
-        .to_string()
-    };
+    let turn_instruction = prompt::turn_instruction(agent_enabled, route.route);
     messages.push(serde_json::json!({
         "role": "system",
         "content": format!("{turn_instruction} {}", super::turn_record::RECORDS_ARE_FACTS)
@@ -558,44 +302,7 @@ pub async fn process_message_internal(
     {
         return Ok(());
     }
-    super::turn_context::apply_drive_listing(&mut messages, &parsed);
-
-    // #1580: Always-on agent VM — auto-provision and inject execution context.
-    // #1835 — news/informational turns belong to web grounding, not to the
-    // agent VM's code-execution surface: skip the VM contract for them so the
-    // model does not route the request into vm_exec (which never shows refs).
-    // #2238 — explicit Agent toggle: skip VM provisioning/inject when off.
-    // Without web grounding in the build, informational turns keep the VM.
-    let web_grounding = cfg!(any(feature = "research", feature = "web-search"));
-    if agent_enabled && !(web_grounding && super::turn_hooks::is_informational_request(&user_text)) {
-        super::turn_watch::long_stage("workspace");
-        super::agent_vm_context::inject(identity, &mut messages).await;
-    }
-
-    // #1584: files named in the message are copied from Drive into data/
-    // before the model writes the program that reads them.
-    #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    if agent_enabled {
-        super::native_drive::fetch_referenced(
-            state,
-            bot_uuid,
-            user_id,
-            session_id,
-            &user_text,
-            &mut messages,
-        )
-        .await;
-    }
-
-    super::turn_watch::stage("history");
-    super::history::append_conversation_history(
-        state,
-        bot_uuid,
-        session_id,
-        user_id,
-        &mut messages,
-    )
-    .await;
+    context::workspace_and_history(identity, &parsed, &user_text, &mut messages).await;
 
     // #1641 — attachment content is a separate system block so it never gets
     // persisted as if the user had typed the whole file.
@@ -608,70 +315,7 @@ pub async fn process_message_internal(
         }
         messages.push(block);
     }
-
-    // #1644 — results of approved browser/terminal actions are fed back into
-    // the conversation before the model answers, so the next reply can cite
-    // the page title (or say the action was denied/failed).
-    super::turn_context::apply_completed_actions(session_id, user_id, &mut messages).await;
-
-    // #1545/#1547: grounding context goes LAST, immediately before the model
-    // call, so it is the freshest instruction in the prompt.
-    #[cfg(feature = "drive")]
-    super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &parsed, &mut messages).await;
-
-    // A web address in the message (or the Web switch) lets the model read
-    // public pages: `web_fetch`, or the named pages read ahead.
-    super::native_tools::web_prefetch::apply(identity, &parsed, &model_preference, &user_text, &mut messages).await;
-
-    // #1632 item 3 / #2238 — the composer's Web switch is the decision.
-    // When explicitly off, do not search (even for informational requests).
-    // When on (or unspecified legacy), search as before.
-    //
-    // #2147 — a front-page request is answered from rendered images, not from
-    // search snippets, so it never pays for a web search first.
-    #[cfg(all(feature = "browser", feature = "drive"))]
-    let front_page_turn = super::front_page::wants_front_page(&user_text);
-
-    #[cfg(any(feature = "research", feature = "web-search"))]
-    {
-        #[cfg(all(feature = "browser", feature = "drive"))]
-        let web_search_allowed = !front_page_turn;
-        #[cfg(not(all(feature = "browser", feature = "drive")))]
-        let web_search_allowed = true;
-
-        let web_flag = parsed.get("web_search").and_then(|value| value.as_bool());
-        let web_search_enabled = web_search_allowed
-            && match web_flag {
-                Some(false) => false,
-                Some(true) => true,
-                // No flag from the client. The government edition searches
-                // only when the person asked for it: nothing leaves the
-                // machine on the server's own judgement.
-                None => {
-                    !cfg!(feature = "gbgov")
-                        && super::turn_hooks::is_informational_request(&user_text)
-                }
-            };
-        if web_search_enabled {
-            let citations =
-                super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
-            if !citations.is_empty() {
-                state
-                    .pending_citations
-                    .lock()
-                    .await
-                    .insert(session_id.to_string(), citations);
-            }
-        }
-    }
-
-    // #2147 — "as capas dos jornais … foto" must arrive as pictures. The
-    // capture runs here, after every other grounding block, so the exact
-    // markdown image is the freshest instruction the model reads.
-    #[cfg(all(feature = "browser", feature = "drive"))]
-    if front_page_turn {
-        super::front_page::capture_and_inject(identity, &user_text, &mut messages).await;
-    }
+    context::grounding(identity, &parsed, &user_text, &model_preference, &mut messages).await;
     super::turn_watch::reached_model();
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 

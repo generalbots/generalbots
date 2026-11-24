@@ -50,15 +50,6 @@ pub(super) fn begin_capture(session_id: uuid::Uuid) {
     }
 }
 
-/// What native tools sent to chat so far in this tool round, left in place.
-pub(super) fn peek_capture(session_id: uuid::Uuid) -> String {
-    capture()
-        .lock()
-        .ok()
-        .and_then(|map| map.get(&session_id).cloned())
-        .unwrap_or_default()
-}
-
 pub(super) fn take_capture(session_id: uuid::Uuid) -> String {
     capture()
         .lock()
@@ -78,18 +69,17 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
     }
     if name == "terminal_run" || name == "vm_exec" {
         if !super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled) {
-            send(identity, super::agent_turn::DISABLED_MESSAGE).await;
+            refuse_vm_off(identity).await;
             return true;
         }
         if name == "terminal_run" {
             #[cfg(feature = "agent-vm")]
             if let Some(ticket) = super::vm_consent::tools::gate_terminal(identity, args).await {
                 let receipt = ticket.receipt();
-                let mark = super::vm_consent::tools::capture_mark(identity);
                 let scope = ModelOnly::begin(identity.session_id);
-                let exit_code = terminal::run_terminal_run(identity, args, ticket).await;
+                let outcome = terminal::run_terminal_run(identity, args, ticket).await;
                 drop(scope);
-                super::vm_consent::tools::report_captured(identity, &receipt, mark, Vec::new(), exit_code).await;
+                super::vm_consent::report(identity, &receipt, &outcome).await;
             }
             #[cfg(not(feature = "agent-vm"))]
             send(
@@ -134,6 +124,25 @@ pub(super) fn tell_model(session_id: uuid::Uuid, message: &str) {
 }
 
 pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
+    tell_model(identity.session_id, message);
+    show(identity, message).await;
+}
+
+/// The Agent (VM) switch is off: the model reads why in English, the person
+/// reads it in the edition's language (outside a model-only scope).
+pub(super) async fn refuse_vm_off(identity: &SessionIdentity<'_>) {
+    send_split(identity, super::agent_turn::DISABLED_MESSAGE, super::agent_turn::DISABLED_FOR_PERSON).await;
+}
+
+/// The model reads `for_model`; the person reads `for_person` (outside a
+/// model-only scope).
+pub(super) async fn send_split(identity: &SessionIdentity<'_>, for_model: &str, for_person: &str) {
+    tell_model(identity.session_id, for_model);
+    show(identity, for_person).await;
+}
+
+/// Shows `message` to the person unless a model-only scope is open.
+async fn show(identity: &SessionIdentity<'_>, message: &str) {
     let SessionIdentity {
         sink,
         bot_uuid,
@@ -141,7 +150,6 @@ pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
         user_id,
         ..
     } = *identity;
-    tell_model(session_id, message);
     if model_only(session_id) {
         return;
     }

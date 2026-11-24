@@ -63,6 +63,11 @@ impl Drop for TurnGuard {
 pub const DISABLED_MESSAGE: &str =
     "The VM is switched off for this conversation. Turn on Agent (VM) in the chat controls to run commands or generate files.";
 
+/// What the person reads when a tool call needs the switched-off VM; the
+/// model reads [`DISABLED_MESSAGE`].
+pub const DISABLED_FOR_PERSON: &str =
+    "O Agente está desativado nesta conversa. Ative o Agente nos controles do chat para executar comandos ou gerar arquivos.";
+
 /// The single decision every VM/workspace route asks before dispatching a run
 /// (#2239/#2264). `false` means the chat's Agent (VM) switch is off for this
 /// turn: no workspace provisioning, no VM bridge call and no agent/workspace
@@ -162,6 +167,12 @@ mod tests {
     fn refusal_message_tells_the_user_how_to_enable_the_vm() {
         assert!(DISABLED_MESSAGE.contains("Agent (VM)"));
         assert!(!DISABLED_MESSAGE.is_empty());
+    }
+
+    #[test]
+    fn the_person_reads_the_refusal_in_portuguese() {
+        assert!(DISABLED_FOR_PERSON.contains("Agente está desativado"));
+        assert_ne!(DISABLED_FOR_PERSON, DISABLED_MESSAGE);
     }
 
     #[test]

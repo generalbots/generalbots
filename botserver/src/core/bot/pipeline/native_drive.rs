@@ -18,6 +18,7 @@ use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
 use super::vm_consent::reason;
 pub mod attached;
+mod list;
 mod outcome;
 pub(crate) use outcome::DriveOutcome;
 use outcome::refuse;
@@ -29,23 +30,14 @@ const TEXT_EXTENSIONS: &[&str] = &[
     "sql",
 ];
 
+/// `drive_save` and `save_to_external_drive` never reach here: the consent
+/// gate (`vm_consent::tools::run_drive_tool`) runs first and handles both.
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
-    match name {
-        "drive_save" => {
-            run_drive_save(identity, args).await;
-            true
-        }
-        "drive_list" => {
-            run_drive_list(identity, args).await;
-            true
-        }
-        // #2047 — same capability the UI button uses, reachable from chat.
-        "save_to_external_drive" => {
-            super::native_external_save::run(identity, args).await;
-            true
-        }
-        _ => false,
+    if name != "drive_list" {
+        return false;
     }
+    list::run_drive_list(identity, args).await;
+    true
 }
 
 fn parse(args: &str) -> serde_json::Value {
@@ -86,11 +78,6 @@ fn split_bucket_path(bucket_path: &str) -> (&str, &str) {
         .unwrap_or((bucket_path, bucket_path))
 }
 
-/// Bucket-relative key of a [`drive_bridge::save_object`] result (`bucket/key`).
-fn relative_key(bucket_path: &str) -> &str {
-    split_bucket_path(bucket_path).1
-}
-
 /// Markdown link the chat renderer turns into an "Open in Drive" button.
 ///
 /// #2143 gap A — `drive:` is not a scheme any client resolves, so every saved
@@ -108,54 +95,6 @@ fn drive_link(name: &str, bucket: &str, key: &str) -> String {
     let path = urlencoding::encode(key);
     let bucket = urlencoding::encode(bucket);
     format!("[{name}](app://drive?path={path}&scope=bot&bucket={bucket})")
-}
-
-/// Deep link that opens a Drive file in the Docs editor (DOC-05 retrieval path).
-fn docs_href(bucket: &str, key: &str) -> String {
-    let path = urlencoding::encode(key);
-    let bucket = urlencoding::encode(bucket);
-    format!("app://docs?file={path}&bucket={bucket}")
-}
-
-fn docs_link(name: &str, bucket: &str, key: &str) -> String {
-    format!("[{name}]({})", docs_href(bucket, key))
-}
-
-fn drive_href(bucket: &str, key: &str) -> String {
-    let path = urlencoding::encode(key);
-    let bucket = urlencoding::encode(bucket);
-    format!("app://drive?path={path}&scope=bot&bucket={bucket}")
-}
-
-fn is_document_file(name: &str) -> bool {
-    matches!(
-        name.rsplit('.')
-            .next()
-            .unwrap_or("")
-            .to_ascii_lowercase()
-            .as_str(),
-        "doc" | "docx" | "odt" | "rtf" | "txt" | "md" | "markdown" | "pdf" | "html" | "htm"
-    )
-}
-
-fn matches_drive_query(item: &crate::core::bot::drive_bridge::DriveListItem, query: &str) -> bool {
-    let needle = query.trim().to_ascii_lowercase();
-    if needle.is_empty() {
-        return true;
-    }
-    let hay = format!(
-        "{} {}",
-        item.relative.to_ascii_lowercase(),
-        item.relative
-            .rsplit('/')
-            .next()
-            .unwrap_or(&item.relative)
-            .to_ascii_lowercase()
-    );
-    needle
-        .split_whitespace()
-        .filter(|t| !t.is_empty())
-        .all(|token| hay.contains(token))
 }
 
 /// Copies a Drive file into the conversation folder; the gate decided first
@@ -239,103 +178,6 @@ pub(crate) async fn run_drive_fetch(
     outcome
 }
 
-const DRIVE_LIST_DEFAULT_LIMIT: usize = 20;
-const DRIVE_LIST_MAX_LIMIT: usize = 100;
-const DRIVE_LIST_SEARCH_SCAN_LIMIT: usize = 200;
-
-/// #2164 — lists files in the bot's `.gbdrive` so the model can answer
-/// "open my last document about X" without the user naming a file.
-async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
-    let parsed = parse(args);
-    let limit = parsed
-        .get("limit")
-        .and_then(|v| v.as_u64())
-        .map(|n| n as usize)
-        .unwrap_or(DRIVE_LIST_DEFAULT_LIMIT)
-        .clamp(1, DRIVE_LIST_MAX_LIMIT);
-    let query = parsed
-        .get("query")
-        .or_else(|| parsed.get("q"))
-        .and_then(|v| v.as_str())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string);
-
-    let SessionIdentity {
-        state,
-        session_id,
-        user_id,
-        bot_uuid,
-        ..
-    } = *identity;
-    let Some(scope) = drive_bridge::scope(state, &bot_uuid, user_id) else {
-        send(identity, "Drive is not available for this workspace.").await;
-        return;
-    };
-    let scan_limit = if query.is_some() {
-        DRIVE_LIST_SEARCH_SCAN_LIMIT
-    } else {
-        limit
-    };
-    let Some(items) = drive_bridge::list_bot_drive_objects(state, &scope, scan_limit).await else {
-        send(identity, "Could not list files in your bot Drive.").await;
-        return;
-    };
-    let filtered: Vec<_> = if let Some(ref q) = query {
-        items
-            .into_iter()
-            .filter(|item| matches_drive_query(item, q))
-            .take(limit)
-            .collect()
-    } else {
-        items.into_iter().take(limit).collect()
-    };
-    if filtered.is_empty() {
-        let message = if let Some(ref q) = query {
-            format!("No files matching \"{q}\" were found in the bot Drive (`.gbdrive`).")
-        } else {
-            "No files found in the bot Drive (`.gbdrive`).".to_string()
-        };
-        send(identity, &message).await;
-        persist(state, session_id, user_id, &message).await;
-        return;
-    }
-    let heading = if let Some(ref q) = query {
-        format!("Bot Drive files matching \"{q}\" (newest first, up to {limit}):")
-    } else {
-        format!("Bot Drive files (newest first, up to {limit}):")
-    };
-    let mut lines = vec![heading];
-    for item in &filtered {
-        let name = sanitize_name(&item.relative);
-        let entry = if is_document_file(&item.relative) {
-            format!(
-                "- {} · [Open in Drive]({}) ({})",
-                docs_link(&name, &scope.bucket, &item.key),
-                drive_href(&scope.bucket, &item.key),
-                human_size(item.size)
-            )
-        } else {
-            format!(
-                "- {} ({})",
-                drive_link(&name, &scope.bucket, &item.key),
-                human_size(item.size)
-            )
-        };
-        lines.push(entry);
-    }
-    if query.is_some() {
-        lines.push(String::new());
-        lines.push(
-            "To open a document in the editor, use its Docs link (`app://docs?file=<key>&bucket=<bucket>`)."
-                .to_string(),
-        );
-    }
-    let message = lines.join("\n");
-    send(identity, &message).await;
-    persist(state, session_id, user_id, &message).await;
-}
-
 pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -> DriveOutcome {
     let parsed = parse(args);
     let SessionIdentity {
@@ -345,10 +187,8 @@ pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -
         bot_uuid,
         ..
     } = *identity;
-    // #2239 — workspace output access must be refused when Agent/VM is off.
-    if !identity.agent_vm_enabled {
-        return refuse(identity, "Agent/VM is disabled for this conversation", reason::VM_OFF).await;
-    }
+    // Only reached through the consent gate, which refuses the turn when the
+    // Agent (VM) switch is off.
     let requested: Vec<String> = parsed
         .get("files")
         .and_then(|v| v.as_array())
@@ -600,15 +440,5 @@ mod tests {
             split_bucket_path("beiner.gbai/beiner.gbdrive/conversations/report.pdf");
         assert_eq!(bucket, "beiner.gbai");
         assert_eq!(key, "beiner.gbdrive/conversations/report.pdf");
-    }
-
-    /// `save_object` returns `bucket/key`; the Drive app addresses the key.
-    #[test]
-    fn relative_key_drops_the_bucket() {
-        assert_eq!(
-            relative_key("beiner.gbai/beiner.gbdrive/conversations/x/report.pdf"),
-            "beiner.gbdrive/conversations/x/report.pdf"
-        );
-        assert_eq!(relative_key("no-slash"), "no-slash");
     }
 }

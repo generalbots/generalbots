@@ -344,7 +344,25 @@ workspace-step-starting-vm = Iniciando a máquina virtual
 workspace-step-starting-vm-detail = O primeiro início pode levar alguns minutos.
 error-workspace-start-timeout = A máquina virtual não iniciou a tempo. Ela continua iniciando em segundo plano; tente novamente em alguns minutos.
 error-workspace-start-failed = Não foi possível iniciar a máquina virtual. Tente novamente; se continuar falhando, verifique a máquina virtual em Configurações.
+error-workspace-service-restarting = Reiniciando o serviço da Máquina Virtual…
+error-workspace-service-failed = O serviço da Máquina Virtual não respondeu. Reinicie o computador ou o WSL.
 
 # Anexos do chat que não puderam ser guardados no Drive
 error-attachment-storage-full = O disco deste computador está cheio: o arquivo não foi salvo. Libere espaço e anexe-o novamente.
 error-attachment-not-stored = Não foi possível salvar o arquivo no Drive.
+error-attachment-too-large = O arquivo passa do limite de 50 MB.
+error-attachment-not-read = Não foi possível guardar ou ler o arquivo.
+
+# Respostas do chat dadas sem o modelo
+error-memory-not-updated = Não consegui atualizar a sua memória guardada. Tente novamente.
+error-tool-invalid-name = Nome de ferramenta inválido: { $name }
+error-tool-not-available = A ferramenta “{ $name }” não está disponível aqui.
+
+# Lista do Drive no chat (o modelo lê a própria cópia em inglês)
+chat-drive-unavailable = O Drive não está disponível neste espaço de trabalho.
+chat-drive-list-failed = Não foi possível listar os arquivos do seu Drive.
+chat-drive-list-empty = Nenhum arquivo encontrado no seu Drive.
+chat-drive-list-empty-query = Nenhum arquivo com “{ $query }” foi encontrado no seu Drive.
+chat-drive-list-heading = Arquivos do seu Drive (mais recentes primeiro, até { $limit }):
+chat-drive-list-heading-query = Arquivos do seu Drive com “{ $query }” (mais recentes primeiro, até { $limit }):
+chat-drive-open = Abrir no Drive

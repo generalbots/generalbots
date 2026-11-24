@@ -65,7 +65,7 @@ pub(super) async fn route_vibe_project(
                 bot_uuid.to_string(),
                 session_id.to_string(),
                 user_id.to_string(),
-                super::agent_turn::DISABLED_MESSAGE,
+                super::agent_turn::DISABLED_FOR_PERSON,
                 "web",
             );
             let _ = sink.send_bot_response(&resp).await;

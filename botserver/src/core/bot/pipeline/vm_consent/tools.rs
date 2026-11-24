@@ -7,7 +7,7 @@
 use serde_json::Value;
 
 use super::{ask, report, VmAction, VmActionKind, VmConsent, VmDecision, VmOutcome, VmReceipt};
-use crate::core::bot::pipeline::native_tools::{peek_capture, send, tell_model, ModelOnly};
+use crate::core::bot::pipeline::native_tools::{refuse_vm_off, tell_model, ModelOnly};
 use crate::core::bot::pipeline::types::SessionIdentity;
 
 fn strings(value: Option<&Value>) -> Vec<String> {
@@ -146,28 +146,6 @@ pub async fn allow_turn_publish(identity: &SessionIdentity<'_>, names: Vec<Strin
     }
 }
 
-/// Where the tool's own chat text starts, to read it back for its step.
-#[must_use]
-pub fn capture_mark(identity: &SessionIdentity<'_>) -> usize {
-    peek_capture(identity.session_id).len()
-}
-
-/// Closes a tool's step with the chat text the tool sent after `mark`, and
-/// the program's exit code. Without an exit code the command never ran to
-/// the end, so the step failed.
-pub async fn report_captured(
-    identity: &SessionIdentity<'_>,
-    receipt: &VmReceipt,
-    mark: usize,
-    files: Vec<String>,
-    exit_code: Option<i32>,
-) {
-    let output = peek_capture(identity.session_id).get(mark..).unwrap_or("").to_string();
-    let ok = exit_code == Some(0);
-    let outcome = VmOutcome { ok, exit_code, output, files, reason: None };
-    report(identity, receipt, &outcome).await;
-}
-
 /// Closes a `vm_exec` step with the run's result and the files now in
 /// `output/`.
 pub async fn report_run(
@@ -192,14 +170,18 @@ pub async fn report_run(
 }
 
 /// `drive_fetch`, `drive_save` and `save_to_external_drive` behind the gate.
-/// Returns false for any other tool.
+/// Returns false for any other tool. All three read or write the VM, so with
+/// the Agent (VM) switch off they are refused here, before any Drive work.
 #[cfg(feature = "drive")]
 pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
+    if !matches!(name, "drive_fetch" | "drive_save" | "save_to_external_drive") {
+        return false;
+    }
+    if !identity.agent_vm_enabled {
+        refuse_vm_off(identity).await;
+        return true;
+    }
     if name == "drive_fetch" {
-        if !identity.agent_vm_enabled {
-            send(identity, crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE).await;
-            return true;
-        }
         if let Some(ticket) = gate_drive_fetch(identity, args).await {
             let receipt = ticket.receipt();
             let scope = ModelOnly::begin(identity.session_id);
@@ -208,9 +190,6 @@ pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &s
             report(identity, &receipt, &fetched.into()).await;
         }
         return true;
-    }
-    if !identity.agent_vm_enabled {
-        return false;
     }
     let Some(action) = outside_action(name, args) else {
         return false;

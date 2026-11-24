@@ -57,7 +57,7 @@ pub(crate) async fn handle_api_call(
     if super::super::agent_turn::command_runs_in_workspace(&name, &params)
         && !super::super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled)
     {
-        let msg = super::super::agent_turn::DISABLED_MESSAGE;
+        let msg = super::super::agent_turn::DISABLED_FOR_PERSON;
         botlog::safe_info!(
             "api_call '{name}' refused for session {session_id}: Agent/VM is off"
         );
