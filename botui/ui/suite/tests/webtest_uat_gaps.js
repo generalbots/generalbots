@@ -25,6 +25,11 @@ var harness = require("./webtest-apps/00_harness");
   "13_canvas_icon_svg",
   "14_db_sales_by_state",
   "15_pos_two_items_card",
+  "16_canvas_fig_roundtrip",
+  "17_canvas_share_collab",
+  "18_canvas_org_chart_zoom",
+  "19_canvas_screenshot_wireframe",
+  "20_canvas_mindmap_rebalance",
 ].forEach(function (name) {
   require("./webtest-uat-gaps/" + name);
 });
