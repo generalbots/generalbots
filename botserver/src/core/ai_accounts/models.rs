@@ -191,8 +191,29 @@ pub async fn choose_model(user_id: Uuid, provider: &str, model: &str) -> Result<
         let label = normalize_provider(provider).map_or("AI", provider_label);
         format!("{label} does not offer a choice of model.")
     })?;
+    // A model the last list (or the curated one) already offers needs no
+    // round trip to the VM (about 2 s through WSL once the list is stale):
+    // the turn goes on and a stale list is read again beside it.
+    let vm = vm_name(user_id);
+    if let Ok(chosen) = check_model(provider, model, &cli_models::known(vm.as_deref(), cli)) {
+        refresh_if_stale(vm, cli);
+        return Ok(chosen);
+    }
     let list = resolve_list(user_id, cli).await;
     check_model(provider, model, &list)
+}
+
+/// Reads the live list in the background when the cached one has expired.
+fn refresh_if_stale(vm: Option<String>, cli: Cli) {
+    let (Some(vm), Some(service)) = (vm, crate::core::bot::agent_vm_hook::service()) else {
+        return;
+    };
+    if cli_models::cached(&vm, cli).is_some() {
+        return;
+    }
+    tokio::spawn(async move {
+        cli_models::live(service, &vm, cli).await;
+    });
 }
 
 #[cfg(test)]
@@ -201,6 +222,13 @@ mod tests {
 
     fn list() -> Vec<CliModel> {
         cli_models::curated(Cli::ClaudeCode)
+    }
+
+    #[tokio::test]
+    async fn a_listed_model_is_chosen_without_reading_the_list_again() {
+        assert_eq!(choose_model(Uuid::new_v4(), CODEX_CLI, DEFAULT_ID).await, Ok(DEFAULT_ID.to_string()));
+        assert_eq!(choose_model(Uuid::new_v4(), CLAUDE_CODE, "opus").await, Ok("opus".to_string()));
+        assert!(choose_model(Uuid::new_v4(), CODEX_CLI, "not-a-model").await.is_err());
     }
 
     #[test]

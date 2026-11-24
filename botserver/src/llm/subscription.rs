@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use tokio::sync::mpsc;
 
+mod acp_notes;
 mod antigravity_bridge;
 mod claude_bridge;
 mod codex_bridge;

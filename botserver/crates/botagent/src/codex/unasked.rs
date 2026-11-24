@@ -3,15 +3,24 @@
 //!
 //! Web search is turned off for every bridged thread: its default mode is
 //! `cached` (`ConfigToml::web_search`, `WebSearchMode` in Codex 0.171), so it
-//! would reach the web without asking. The workspace configures no MCP
-//! server. Either item, should one still appear, becomes a step row.
+//! would reach the web without asking. The ChatGPT apps connector (the
+//! `codex_apps` MCP server, feature `apps`, on by default) and plugins
+//! (feature `plugins`, which can bring their own MCP servers) are turned off
+//! too: their tools run without an approval request. The keys are dotted
+//! overrides, applied per thread like `-c features.apps=false`. The
+//! workspace configures no MCP server. Either item, should one still appear,
+//! becomes a step row.
 
 use serde_json::{json, Value};
 
 /// Config overrides sent with `thread/start` and `thread/resume`.
 #[must_use]
 pub fn thread_config() -> Value {
-    json!({ "web_search": "disabled" })
+    json!({
+        "web_search": "disabled",
+        "features.apps": false,
+        "features.plugins": false,
+    })
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -48,6 +57,14 @@ mod tests {
     fn every_bridged_thread_has_web_search_off() {
         assert_eq!(thread_start_params("/w", "", false)["config"]["web_search"], "disabled");
         assert_eq!(thread_resume_params("t1", "/w", "", None)["config"]["web_search"], "disabled");
+    }
+
+    #[test]
+    fn every_bridged_thread_has_apps_and_plugins_off() {
+        for params in [thread_start_params("/w", "", false), thread_resume_params("t1", "/w", "", None)] {
+            assert_eq!(params["config"]["features.apps"], false);
+            assert_eq!(params["config"]["features.plugins"], false);
+        }
     }
 
     #[test]

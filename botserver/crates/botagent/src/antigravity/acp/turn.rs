@@ -11,7 +11,8 @@
 //!   having asked ends the turn as unsafe.
 //!
 //! The person stopping the turn sends `session/cancel`. A session that stays
-//! silent for [`QUIET_LIMIT`] while no card is open ends the turn.
+//! silent for [`QUIET_LIMIT`] while no card is open ends the turn. What the
+//! session does is logged by [`super::trace`].
 
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
@@ -25,9 +26,11 @@ use crate::codex::Verdict;
 use crate::duplex::{Incoming, RpcClient, RpcError, RpcInbox, ServerRequest};
 
 use super::proto::{self, AcpAction, AgentInfo, Choice, ImagePart, TextResource, Update, PERMISSION_REQUEST};
-use super::AcpError;
+use super::{trace, AcpError};
 
 const STOP_POLL: Duration = Duration::from_millis(500);
+/// JSON-RPC "method not found".
+const METHOD_NOT_FOUND: i64 = -32601;
 /// After `session/cancel`, how long the prompt may take to answer.
 const CANCEL_GRACE: Duration = Duration::from_secs(15);
 /// Longest silence of the agent (no update, no request) while no card waits.
@@ -58,8 +61,11 @@ pub(super) struct PromptInput<'a> {
 
 struct Turn<T> {
     session_id: String,
-    kinds: HashMap<String, String>,
+    /// What the updates said about each tool call, and when it appeared.
+    calls: HashMap<String, (tokio::time::Instant, Value)>,
     asked: HashSet<String>,
+    warned: HashSet<String>,
+    notified: HashSet<String>,
     tickets: HashMap<String, Vec<(T, Vec<String>)>>,
     text: String,
     cancelled: bool,
@@ -81,15 +87,19 @@ pub(super) async fn run_prompt<H: AcpGate>(
     tokio::pin!(prompt);
     let mut turn: Turn<H::Ticket> = Turn {
         session_id: input.session_id.to_string(),
-        kinds: HashMap::new(),
+        calls: HashMap::new(),
         asked: HashSet::new(),
+        warned: HashSet::new(),
+        notified: HashSet::new(),
         tickets: HashMap::new(),
         text: String::new(),
         cancelled: false,
     };
     let mut stop_tick = tokio::time::interval(STOP_POLL);
     let mut cancelled_at: Option<tokio::time::Instant> = None;
-    let mut last_heard = tokio::time::Instant::now();
+    let started = tokio::time::Instant::now();
+    let mut last_heard = started;
+    tracing::info!("antigravity bridge: session/prompt sent");
     loop {
         tokio::select! {
             biased;
@@ -101,6 +111,8 @@ pub(super) async fn run_prompt<H: AcpGate>(
                     Some(Incoming::Notification { method, params }) => {
                         if method == "session/update" {
                             updated(client, &params, &mut turn, handler).await?;
+                        } else {
+                            trace::other_notification(&mut turn.notified, &method);
                         }
                     }
                 }
@@ -116,9 +128,15 @@ pub(super) async fn run_prompt<H: AcpGate>(
                         }
                     }
                 }
+                tracing::info!(
+                    "antigravity bridge: session/prompt answered after {} ms (stop reason {})",
+                    started.elapsed().as_millis(),
+                    answered.as_ref().map_or_else(|_| "error".to_string(), proto::stop_reason)
+                );
                 return finish(answered, turn);
             }
             _ = stop_tick.tick() => {
+                trace::waiting_unasked(&turn.calls, &turn.asked, &mut turn.warned);
                 if let Some(at) = cancelled_at {
                     if at.elapsed() > CANCEL_GRACE {
                         return Ok(turn.text);
@@ -180,13 +198,21 @@ async fn permission<H: AcpGate>(
     handler: &H,
 ) -> Result<(), AcpError> {
     if request.method != PERMISSION_REQUEST {
+        trace::request_refused(&request.method);
+        if let Err(error) = request.respond_error(METHOD_NOT_FOUND, "method not handled by this client") {
+            tracing::info!("antigravity bridge: refusal not delivered: {error}");
+        }
         return Ok(());
     }
+    let asked_at = tokio::time::Instant::now();
     let tool_id = proto::permission_tool_id(&request.params);
     turn.asked.insert(tool_id.clone());
+    let params = trace::with_known_call(&request.params, turn.calls.get(&tool_id).map(|(_, call)| call));
+    let actions = proto::actions_of(&params);
+    trace::permission_asked(&params, actions.len());
     let mut allowed: Vec<(H::Ticket, Vec<String>)> = Vec::new();
     let mut choice = Choice::Allow;
-    for action in proto::actions_of(&request.params) {
+    for action in actions {
         match until_ended(client, handler.decide(&action)).await? {
             Verdict::Allow(ticket) => allowed.push((ticket, written_paths(&action))),
             Verdict::Decline => {
@@ -200,16 +226,21 @@ async fn permission<H: AcpGate>(
         }
     }
     if choice == Choice::Allow {
-        turn.tickets.entry(tool_id).or_default().extend(allowed);
+        turn.tickets.entry(tool_id.clone()).or_default().extend(allowed);
     } else {
         for (ticket, files) in allowed {
             handler.finished(ticket, ActionOutcome::not_run(files.first().map_or("", String::as_str))).await;
         }
     }
-    let result = proto::permission_result(&request.params, choice);
-    if let Err(error) = request.respond(result) {
-        tracing::info!("antigravity bridge: permission answer not delivered: {error}");
-    }
+    let result = proto::permission_result(&params, choice);
+    let delivered = match request.respond(result) {
+        Ok(()) => true,
+        Err(error) => {
+            tracing::info!("antigravity bridge: permission answer not delivered: {error}");
+            false
+        }
+    };
+    trace::permission_answered(&tool_id, choice, asked_at, delivered);
     if choice == Choice::Cancelled {
         cancel(client, turn);
     }
@@ -236,9 +267,8 @@ async fn updated<H: AcpGate>(
         }
         Update::Thought(chunk) if !chunk.is_empty() => handler.thought(&chunk).await,
         Update::Tool { id, kind, status, call } => {
-            if let Some(kind) = kind {
-                turn.kinds.insert(id.clone(), kind);
-            }
+            trace::tool_update(&call);
+            trace::remember(&mut turn.calls, &id, &call);
             let status = status.unwrap_or_default();
             if !matches!(status.as_str(), "completed" | "failed") {
                 return Ok(());
@@ -249,7 +279,10 @@ async fn updated<H: AcpGate>(
                 }
             } else if status == "completed"
                 && !turn.asked.contains(&id)
-                && turn.kinds.get(&id).is_some_and(|kind| proto::acts(kind))
+                && kind
+                    .as_deref()
+                    .or_else(|| turn.calls.get(&id).and_then(|(_, known)| known.get("kind")).and_then(Value::as_str))
+                    .is_some_and(proto::acts)
             {
                 tracing::error!("antigravity bridge: an action finished without asking; turn stopped");
                 cancel(client, turn);

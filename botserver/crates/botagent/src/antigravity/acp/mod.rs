@@ -14,6 +14,7 @@
 
 mod check;
 mod proto;
+mod trace;
 mod turn;
 
 #[cfg(test)]

@@ -67,8 +67,10 @@ impl AntigravityBridgeProvider {
         model: &str,
         tx: Option<&mpsc::Sender<String>>,
     ) -> Result<String, ProviderError> {
-        let transcript = super::flatten_prompt(prompt, config);
-        let latest = super::turn_message::for_resumed(prompt, config);
+        let conversation = self.session_id.to_string();
+        let config = super::acp_notes::for_acp(config, &conversation);
+        let transcript = super::flatten_prompt(prompt, &config);
+        let latest = super::turn_message::for_resumed(prompt, &config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
         let thread = bus::thread_id(self.session_id);
         let run_bus = bus::bus();
@@ -79,7 +81,6 @@ impl AntigravityBridgeProvider {
             cancelled_at_start: run_bus.is_cancelled(&thread),
             thread,
         };
-        let conversation = self.session_id.to_string();
         let (images, resources) = self.attached(&conversation, transcript.contains(QUOTED_MARKER)).await;
         let turn = AcpTurn {
             conversation: &conversation,

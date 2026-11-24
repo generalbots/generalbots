@@ -8,8 +8,19 @@ use crate::codex::app_server::ActionOutcome;
 
 pub(super) const PROTOCOL_VERSION: u64 = 1;
 pub(super) const PERMISSION_REQUEST: &str = "session/request_permission";
-/// The only peer requests the bridge answers; any other is refused.
-pub(super) const HANDLED_REQUESTS: [&str; 1] = [PERMISSION_REQUEST];
+/// The peer requests the bridge reads: permission requests, and the ACP
+/// client methods it does not offer (files and terminals), which are logged
+/// and refused. Any other request is refused by the transport.
+pub(super) const HANDLED_REQUESTS: [&str; 8] = [
+    PERMISSION_REQUEST,
+    "fs/read_text_file",
+    "fs/write_text_file",
+    "terminal/create",
+    "terminal/output",
+    "terminal/wait_for_exit",
+    "terminal/kill",
+    "terminal/release",
+];
 /// Session modes in which the agent acts without asking first.
 const AUTO_MODES: [&str; 5] = ["auto", "accept-edits", "acceptedits", "bypasspermissions", "yolo"];
 /// Longest action output kept for a step row.
