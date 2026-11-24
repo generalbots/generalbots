@@ -70,7 +70,9 @@ pub(super) fn component_plan() -> Vec<Component> {
         Component {
             id: "directory",
             label: "Identity provider",
-            timeout_secs: 300,
+            // A cold appliance boot on a shared CI runner can need longer than
+            // five minutes once Zitadel has been downloaded and started.
+            timeout_secs: 600,
             optional: false,
             start: true,
             unavailable: None,

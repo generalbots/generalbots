@@ -526,7 +526,7 @@ jobs:
       # over the network and waits for the suite — the same sequence a user runs,
       # with the optional 1 GB local model replaced by an external provider.
       - name: First-run smoke test of the installer
-        timeout-minutes: 30
+        timeout-minutes: 45
         run: |
           set -euo pipefail
           TAG="${{ needs.release.outputs.version }}"
@@ -582,7 +582,10 @@ jobs:
           # No model override: "local" is the wizard default, so the smoke must
           # exercise exactly that path (1 GB model + llama.cpp startup).
           ok=0
-          for attempt in 1 2 3; do
+          # A single, longer attempt: three cold Zitadel boots only burn the
+          # step timeout, and one completed attempt still uploads the logs
+          # needed to diagnose a real provisioning failure.
+          for attempt in 1; do
             # Best-effort cleanup of services a previous attempt may have started.
             if [ "$attempt" -gt 1 ]; then
               cleanup_provision
