@@ -32,8 +32,7 @@ fn merge_states() -> &'static RwLock<HashMap<String, CellState>> {
 }
 
 /// Join an incoming edit with the convergent state and return the winning op.
-/// A client `seq` is its version cursor and is honoured when present; without
-/// one the next monotonic server value keeps the old arrival-order behaviour.
+/// A client `seq` is its version cursor; without one the server assigns one.
 fn stage_cell_edit(
     state: &mut CellState,
     actor: &str,
@@ -116,6 +115,7 @@ pub async fn handle_sheet_connection(
         row: None,
         col: None,
         value: None,
+        content: None,
         worksheet_index: None,
         seq: None,
         timestamp: Utc::now(),
@@ -142,6 +142,9 @@ pub async fn handle_sheet_connection(
                         collab_msg.user_color = user_color_clone.clone();
                         collab_msg.sheet_id = sheet_id_clone.clone();
                         collab_msg.timestamp = Utc::now();
+                        if collab_msg.value.is_none() {
+                            collab_msg.value = collab_msg.content.clone();
+                        }
 
                         match collab_msg.msg_type.as_str() {
                             "cursor" | "cell_select" => {
@@ -245,12 +248,8 @@ pub async fn handle_sheet_connection(
                                     }
                                 }
                             }
-                            // Server-authoritative edit (#791): the client sends
-                            // intent (row/col/content), the session applies it,
-                            // records an oplog entry and stamps the message with
-                            // the assigned sequence. Other clients order their
-                            // local state by `seq` and use it as the catch-up
-                            // cursor if they missed anything.
+                            // Server-authoritative edit (#791): apply intent,
+                            // record the oplog and stamp a monotonic seq for peers.
                             "edit" | "cell_update" => {
                                 if let (Some(row), Some(col), Some(content)) =
                                     (collab_msg.row, collab_msg.col, collab_msg.value.as_ref())
@@ -271,10 +270,8 @@ pub async fn handle_sheet_connection(
                                     };
                                     let ws_idx = {
                                         let sheet = session.sheet.read().await;
-                                        collab_msg
-                                            .worksheet_index
-                                            .unwrap_or(0)
-                                            .min(sheet.worksheets.len().saturating_sub(1))
+                                        let max = sheet.worksheets.len().saturating_sub(1);
+                                        collab_msg.worksheet_index.unwrap_or(0).min(max)
                                     };
                                     let winner = {
                                         let mut states = merge_states().write().await;
@@ -318,10 +315,8 @@ pub async fn handle_sheet_connection(
                                             Some(botsheet_core::engine::CellValue::parse(content));
                                         sheet.updated_at = Utc::now();
                                     }
-                                    // Recalculate dependents through the cached dependency graph
-                                    // (#784). Everything happens under one
-                                    // short blocking write guard — no awaits in
-                                    // this path, so the spawn future stays Send.
+                                    // Recalculate dependents (#784) under one short
+                                    // blocking guard — no awaits keeps the future Send.
                                     let changed = (row, col);
                                     {
                                         let mut graphs = match session.dep_graphs.lock() {
@@ -362,6 +357,9 @@ pub async fn handle_sheet_connection(
                         if let Err(e) = broadcast_tx_clone.send(collab_msg) {
                             log::error!("Failed to broadcast message: {e}");
                         }
+                    } else {
+                        // #2447 — log length only; payload may contain cell content.
+                        log::warn!("collab: dropped unparseable WS frame ({} bytes)", text.len());
                     }
                 }
                 Ok(Message::Close(_)) => break,
@@ -399,6 +397,7 @@ pub async fn handle_sheet_connection(
         row: None,
         col: None,
         value: None,
+        content: None,
         worksheet_index: None,
         seq: None,
         timestamp: Utc::now(),

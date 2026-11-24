@@ -17,9 +17,6 @@ struct EditRecord {
     cell: CellKey,
     undo_value: Option<String>,
     redo_value: Option<String>,
-    /// Id of the op that currently produced the live value for this record.
-    /// Guards against reverting a cell another author has since changed.
-    marker_op_id: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -58,7 +55,6 @@ impl UndoManager {
             cell,
             undo_value: before,
             redo_value: op.value.clone(),
-            marker_op_id: op.id.clone(),
         };
         let stacks = self.stacks.entry(actor.to_string()).or_default();
         stacks.undo.push(record);
@@ -73,15 +69,14 @@ impl UndoManager {
         let Some(stacks) = self.stacks.get_mut(actor) else {
             return false;
         };
-        let Some(mut record) = stacks.undo.pop() else {
+        let Some(record) = stacks.undo.pop() else {
             return false;
         };
-        if !can_apply(state, &record) {
+        if !can_apply(state, &record, actor) {
             return false;
         }
         let op = make_op(clock, actor, record.cell, record.undo_value.clone(), state);
-        state.apply(op.clone());
-        record.marker_op_id = op.id;
+        state.apply(op);
         stacks.redo.push(record);
         true
     }
@@ -93,25 +88,28 @@ impl UndoManager {
         let Some(stacks) = self.stacks.get_mut(actor) else {
             return false;
         };
-        let Some(mut record) = stacks.redo.pop() else {
+        let Some(record) = stacks.redo.pop() else {
             return false;
         };
-        if !can_apply(state, &record) {
+        if !can_apply(state, &record, actor) {
             return false;
         }
         let op = make_op(clock, actor, record.cell, record.redo_value.clone(), state);
-        state.apply(op.clone());
-        record.marker_op_id = op.id;
+        state.apply(op);
         stacks.undo.push(record);
         true
     }
 }
 
-/// Only revert when our own op is still the winner on that cell.
-fn can_apply(state: &CellState, record: &EditRecord) -> bool {
+/// Only revert while one of the caller's own ops is still the winner on the
+/// cell. Comparing the actor (not the exact op id) lets a user undo a whole
+/// stack of their own edits to the same cell — each compensating op is a new
+/// winner — while any op from a different actor (including a remote merge)
+/// still blocks the undo and preserves the other author's change.
+fn can_apply(state: &CellState, record: &EditRecord, actor: &str) -> bool {
     state
         .op(&record.cell)
-        .is_some_and(|winner| winner.id == record.marker_op_id)
+        .is_some_and(|winner| winner.actor == actor)
 }
 
 /// Build a fresh compensating op whose clock outranks the cell's current
@@ -205,5 +203,47 @@ mod tests {
 
         assert!(manager.undo("bob", &mut state));
         assert_eq!(value(&state, bob_cell), None);
+    }
+
+    /// One user editing the SAME cell twice must be able to undo twice: the
+    /// first undo restores the previous text, the second removes the original
+    /// edit. Guarding undo by the exact winning op id blocks this, because the
+    /// compensating op from the first undo becomes the new winner.
+    #[test]
+    fn repeated_undo_of_same_cell_reverts_full_local_history() {
+        let mut state = CellState::new();
+        let mut manager = UndoManager::new();
+        let target = cell(0);
+
+        manager.apply_local_edit("alice", target, Some("first".into()), &mut state);
+        manager.apply_local_edit("alice", target, Some("second".into()), &mut state);
+
+        assert!(manager.undo("alice", &mut state));
+        assert_eq!(value(&state, target), Some("first"));
+        assert!(manager.undo("alice", &mut state));
+        assert_eq!(value(&state, target), None);
+
+        assert!(manager.redo("alice", &mut state));
+        assert_eq!(value(&state, target), Some("first"));
+        assert!(manager.redo("alice", &mut state));
+        assert_eq!(value(&state, target), Some("second"));
+    }
+
+    /// A remote op merged into a different cell while a user has a pending
+    /// undo must survive that undo untouched.
+    #[test]
+    fn undo_keeps_remote_op_on_another_cell() {
+        let mut state = CellState::new();
+        let mut manager = UndoManager::new();
+        let mine = cell(0);
+        let theirs = cell(1);
+
+        manager.apply_local_edit("alice", mine, Some("mine".into()), &mut state);
+        let remote = CellOp::new("bob", 42, theirs, Some("theirs".into()));
+        state.apply(remote);
+
+        assert!(manager.undo("alice", &mut state));
+        assert_eq!(value(&state, mine), None);
+        assert_eq!(value(&state, theirs), Some("theirs"));
     }
 }
