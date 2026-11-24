@@ -1,0 +1,5 @@
+# Enable GPU/VA-API runtime detection at image build (mkosi runs preset-all).
+# This is an idempotent oneshot: it installs only missing matching drivers and
+# writes a stable environment.d drop-in, then exits. Disable with a systemd
+# drop-in setting GB_GRAPHICS_SKIP=1 when building for CI/non-GPU targets.
+enable gb-graphics-detect.service
