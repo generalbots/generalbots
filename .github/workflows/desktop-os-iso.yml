@@ -268,6 +268,59 @@ jobs:
               /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
             '
 
+      # #2478 — prove the signed boot path on firmware that behaves like a
+      # shipping laptop (Secure Boot on, Microsoft keys enrolled). Kept beside
+      # the unsigned published image: a production signing key is not shipped
+      # in the repo, so the throwaway MOK certificate is uploaded as evidence
+      # instead of being enrolled on real hardware here.
+      - name: Signed UKI / OVMF Secure Boot smoke (#2478)
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/build-image.sh ] \
+             || [ ! -f desktop/os/generate-secure-boot-keys.sh ] \
+             || [ ! -f desktop/os/mkosi.profiles/secure-boot-release.conf ]; then
+            echo "::warning::pinned tag predates the Secure Boot signing slice (#2478); skipping signed OVMF smoke"
+            exit 0
+          fi
+          keys=/tmp/gb-sb-keys
+          rm -rf "$keys"
+          desktop/os/generate-secure-boot-keys.sh --output-dir "$keys" \
+            --common-name "General Bots OS CI"
+          mkdir -p dist/sb
+          docker run --privileged --rm \
+            -v "$PWD/desktop/os:/work" \
+            -v "$PWD/dist/sb:/out" \
+            -v "$PWD:/repo:ro" \
+            -v "$keys:/keys:ro" \
+            -w /work \
+            debian:sid bash -c '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
+              apt-get update
+              # virt-firmware supplies virt-fw-vars for FirmwareVariables=microsoft-mok;
+              # ovmf supplies the Secure Boot enabled firmware used by mkosi vm.
+              apt-get install -y --no-install-recommends \
+                mkosi openssl ovmf virt-firmware linux-image-amd64
+              /repo/desktop/os/build-image.sh \
+                --mode release \
+                --key /keys/db.key --cert /keys/db.crt \
+                --output-dir /out --smoke
+            '
+          cp "$keys/db.cer" dist/generalbots-os-MOK.cer
+          ls -l dist/sb dist/generalbots-os-MOK.cer
+
+      - name: Upload Secure Boot evidence (#2478)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generalbots-os-secure-boot
+          path: |
+            dist/generalbots-os-MOK.cer
+            dist/sb/secure-boot-smoke.log
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Checksums
         run: |
           set -euo pipefail

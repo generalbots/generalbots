@@ -7,3 +7,12 @@ work/
 generalbots-os*
 SHA256SUMS-os
 vm-smoke.log*
+# Secure Boot signing material (#2478): keys are generated at build time into
+# /tmp, never committed. These patterns are a safety net for accidental runs
+# of `mkosi genkey` inside the recipe directory.
+mkosi.key
+mkosi.crt
+*.pem
+*.cer
+*.key
+.gb-sb-keys/

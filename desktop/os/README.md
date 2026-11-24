@@ -59,6 +59,10 @@ time-boxed remote-support controls.
 | `mkosi.extra/usr/lib/systemd/system/generalbots-shell.service` | the OS "shell": dbus run-session → cage → `/opt/general-bots/start.sh` |
 | `mkosi.finalize.chroot` | validates the payload, masks `getty@tty1` + rescue/emergency, enables the units, creates the kiosk state dir |
 | `check-webkit-sandbox.sh` | static check of the bwrap/WebKit sandbox configuration (#2500); optional extracted-image-tree argument; does not prove runtime sandboxing |
+| `generate-secure-boot-keys.sh` | generates a throwaway Secure Boot key pair + MOK certificate into a private directory outside the tree (#2478); never writes keys into the repo |
+| `build-image.sh` | wrapper with an explicit `dev` / `release` Secure Boot policy; release fails loudly on missing keys and optionally boots the signed image in OVMF with Secure Boot enabled |
+| `mkosi.profiles/secure-boot-release.conf` | checked-in release signing policy: signed UKI, Microsoft-signed shim, our key in MokList |
+| `mkosi.profiles/secure-boot-measured.conf` | optional measured boot (signed PCR values + `pcrs` JSON artifact) |
 
 Why the **tarball** and not the `.deb`: the distro package step in
 `desktop-binaries.yml` is `continue-on-error` and has never produced a
@@ -100,7 +104,18 @@ the same pinned image.
    `generalbots-os-appliance` artifact. `release.yml` attaches the ISO and
    its checksum file to the pinned release, next to
    `generalbots-payload.iso` — a GRUB data medium built by
-   `scripts/build_iso.sh` that is explicitly **not** a bootable OS.
+   `scripts/build_iso.sh` that is explicitly **not** a bootable OS;
+8. runs a **signed-image OVMF Secure Boot smoke** when the pinned tag contains
+   the signing slice (#2478): throwaway keys are generated in the runner's
+   `/tmp`, `build-image.sh --mode release --smoke` builds a signed UKI/shim
+   image and boots it with Secure Boot enabled plus Microsoft keys and our MOK
+   enrolled. The generated `db.cer` is uploaded as a CI artifact so the
+   enrolment path can be exercised. Tags predating the slice are skipped with
+   a warning, exactly like the license staging and boot-smoke gates above.
+
+The published `generalbots-os.iso` stays on the development (unsigned) policy
+until a production signing key is available; the signed build is the verified,
+documented path for operators who supply their own key.
 
 To assert the identity of a built appliance locally (needs `guestfish` from
 `libguestfs-tools`):
@@ -319,6 +334,16 @@ Until the payload is bundled and verified by CI/build (`GB_DESKTOP_OFFLINE=1`,
 QEMU `-net none` reaching chat UI), first boot may still require internet access
 for component downloads on networks/interfaces that are available.
 
+## Secure Boot: build modes and key handling (#2478)
+
+Two explicit modes: `build-image.sh --mode dev` builds an **unsigned but
+bootable** UKI with no keys; `--mode release` signs the UKI and bootloader and
+**refuses to build** without a PEM key/certificate. No signing key is ever
+committed. The full runbook — build-time key generation, the OVMF Secure Boot
+smoke with Microsoft keys + MOK enrolled, MOK enrolment on a laptop
+(`mokutil --import`) and optional measured boot — is in
+[README-secure-boot.md](README-secure-boot.md).
+
 ## Secure Boot boot failure fallback (#2478, offline docs slice)
 
 The current appliance image is **unsigned** (`SecureBoot=no`,
@@ -348,16 +373,21 @@ Common firmware keys/menu names (vary by vendor/model/firmware revision):
 Notes: keep UEFI mode enabled unless your hardware requires legacy/CSM for a
 separate reason; do not enable CSM as part of this fallback. This is a
 temporary workaround for the unsigned development/current image, not a security
-recommendation. Signed UKI/bootloader, MOK enrolment for unsigned-developer
-flows, release-build key enforcement, QEMU/OVMF Secure Boot CI tests, and
-recovery-screen integration are tracked/follow-up work (#2478, #2468).
+recommendation. The signed build path, build-time key generation, release-build
+key enforcement and the OVMF Secure Boot smoke now have tooling and a checked-in
+policy — see [README-secure-boot.md](README-secure-boot.md). Still outstanding
+is a production signing key and its deployment, plus recovery-screen
+integration (#2478, #2468).
 
 ## Next hardening steps (mkosi supports all of them)
 
-1. Signed boot chain (Secure Boot UKI/bootloader) — tracked by #2478. When
-   implemented and verified, at-rest encryption with documented unlock/recovery
-   (LUKS/TPM) — tracked by #2470. **Not implemented in this image recipe yet**
-   (no signed UKI, no LUKS mapping, no TPM-sealed root/data flow).
+1. **Signed boot chain (#2478): tooling and policy are in the tree** — see
+   [README-secure-boot.md](README-secure-boot.md). What is
+   still outstanding is a *production* signing key and its firmware/MOK
+   rollout; the published ISO remains unsigned and the fallback above applies.
+   At-rest encryption with documented unlock/recovery (LUKS/TPM) is tracked by
+   #2470 and is **not implemented in this image recipe yet** (no LUKS mapping,
+   no TPM-sealed root/data flow).
 2. A/B or slot-based OS updates with rollback — tracked by #2443.
 3. Drop in the vendored installers (`installers/` in the tarball directory)
    for an offline-first appliance that needs no internet on first boot —
