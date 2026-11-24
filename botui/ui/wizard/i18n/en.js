@@ -42,7 +42,7 @@ window.GBWizardLocales["en"] = {
   "network.note": "You can change this later in Settings — Network.",
 
   "welcome.greeting": "Let’s set things up.",
-  "welcome.lead": "General Bots runs locally: nothing leaves your computer unless you connect an external service.",
+  "welcome.lead": "General Bots runs on this computer. Your conversations leave it only for the engine you choose, and the app always shows where they go.",
   "welcome.note1": "This setup creates a private workspace, starts the local services the assistant needs and opens the assistant once everything responds.",
   "welcome.note2": "It takes a few minutes the first time. You can stop and continue later without losing what you entered.",
   "welcome.accent-label": "Accent colour",

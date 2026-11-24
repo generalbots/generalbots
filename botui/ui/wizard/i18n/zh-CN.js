@@ -33,7 +33,7 @@ window.GBWizardLocales["zh-CN"] = {
   "heading.finish": "可以打开助手了",
 
   "welcome.greeting": "让我们开始设置吧。",
-  "welcome.lead": "General Bots 在本地运行：除非您连接外部服务，否则任何内容都不会离开您的计算机。",
+  "welcome.lead": "General Bots 在这台计算机上运行。您的对话只会发送到您选择的引擎，应用会始终显示它们的去向。",
   "welcome.note1": "此设置将创建一个私有工作区，启动助手所需的本地服务，并在所有服务响应后打开助手。",
   "welcome.note2": "首次需要几分钟。您可以随时停止并稍后继续，已输入的内容不会丢失。",
   "welcome.accent-label": "强调色",

@@ -33,7 +33,7 @@ window.GBWizardLocales["ko"] = {
   "heading.finish": "어시스턴트를 열 준비 완료",
 
   "welcome.greeting": "설정을 시작합니다.",
-  "welcome.lead": "General Bots는 로컬에서 실행됩니다. 외부 서비스를 연결하지 않는 한 어떤 데이터도 컴퓨터 밖으로 나가지 않습니다.",
+  "welcome.lead": "General Bots는 이 컴퓨터에서 실행됩니다. 대화는 사용자가 선택한 엔진으로만 이 컴퓨터 밖으로 전송되며, 앱은 전송 위치를 항상 보여 줍니다.",
   "welcome.note1": "이 설정은 개인 작업 공간을 만들고, 어시스턴트에 필요한 로컬 서비스를 시작한 뒤, 모든 서비스가 응답하면 어시스턴트를 엽니다.",
   "welcome.note2": "처음에는 몇 분 정도 걸립니다. 중간에 멈추고 나중에 이어도 입력한 내용은 유지됩니다.",
   "welcome.accent-label": "강조 색상",

@@ -33,7 +33,7 @@ window.GBWizardLocales["es"] = {
   "heading.finish": "Listo para abrir el asistente",
 
   "welcome.greeting": "Vamos a configurar todo.",
-  "welcome.lead": "General Bots se ejecuta localmente: nada sale de su equipo, a menos que conecte un servicio externo.",
+  "welcome.lead": "General Bots se ejecuta en este equipo. Sus conversaciones solo salen de él hacia el motor que usted elija, y la aplicación siempre muestra adónde van.",
   "welcome.note1": "Esta configuración crea un espacio de trabajo privado, inicia los servicios locales que necesita el asistente y abre el asistente cuando todo responde.",
   "welcome.note2": "Tarda unos minutos la primera vez. Puede detenerse y continuar después sin perder lo que haya introducido.",
   "welcome.accent-label": "Color de acento",
