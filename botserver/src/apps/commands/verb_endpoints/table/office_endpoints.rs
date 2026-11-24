@@ -53,6 +53,19 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         &[("file_id", "doc_id")],
         &[],
     ),
+    // #2448 — the verb carries only `file_id`. `handle_update_toc` is a
+    // route-level defaulting dispatcher: UpdateTocRequest { doc_id } silently
+    // builds a GenerateTocRequest with max_level=3, page numbers and hyperlinks
+    // enabled, then calls handle_generate_toc. The `/toc/generate` route cannot
+    // be bound directly because GenerateTocRequest requires three extra fields
+    // (max_level: u32 + two bools) that this verb never supplies.
+    bind(
+        "docs.toc.generate",
+        "POST",
+        "/api/docs/toc/update",
+        &[("file_id", "doc_id")],
+        &[],
+    ),
     bind(
         "docs.collaborators",
         "GET",
@@ -170,6 +183,40 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         "/api/sheet/pivot",
         &[("file_id", "sheet_id"), ("range", "source_range")],
         &[],
+    ),
+    // ——— #2448 — three sheet verbs whose params are accepted by route-level
+    // dispatchers even though their typed structs look unbindable. ———
+    // FormatRequest has an A1 `range` shorthand that bounds_from_request()
+    // expands into numeric bounds; its `style: CellStyle` receives the verb's
+    // `format` JSON object (the plain `format` field is only a number-format
+    // string, so the object must be renamed onto `style`).
+    bind(
+        "sheet.format.apply",
+        "POST",
+        "/api/sheet/format",
+        &[("file_id", "sheet_id"), ("format", "style")],
+        &[],
+    ),
+    // ShareRequest requires `permission`; `with` is the curated name for the
+    // grantee and the handler keys the ACL entry by `email`. `read` is a safe
+    // default (never a value the user asked to change).
+    bind(
+        "sheet.share",
+        "POST",
+        "/api/sheet/share",
+        &[("file_id", "sheet_id"), ("with", "email")],
+        &[("permission", "read")],
+    ),
+    // SetCellsRequest parses its `merge` A1 range with parse_range_or_single.
+    // `range` is the required write anchor: default it to A1 and route the
+    // verb's A1 range to `merge`, so no values are written and only the merge
+    // is applied. (`/api/sheet/merge` needs numeric bounds and cannot bind.)
+    bind(
+        "sheet.merge",
+        "POST",
+        "/api/sheet/cells",
+        &[("file_id", "sheet_id"), ("range", "merge")],
+        &[("range", "A1")],
     ),
     // ——— #2448 — WorksheetActionRequest { id, name }: the generic targeting
     // key fills the required `id`; the sheet name passes through.
