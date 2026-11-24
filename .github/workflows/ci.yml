@@ -705,6 +705,15 @@ jobs:
           fi
           python3 scripts/check_metrics_wiring.py
 
+      # #2481 — the OS image must keep Mesa/VA-API packages and the software
+      # (swrast/GBM) fallback for WebKit. The guard's self-test covers its own
+      # parsing; this step runs it against the shipped image recipe.
+      - name: "Guard: graphics driver recipe and software fallback (#2481)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_graphics_support.py --self-test
+          python3 scripts/check_graphics_support.py --check
+
   # #2543 — the three error-handling lints stay `warn` in Cargo.toml because
   # workspace lints cannot express a per-file baseline exclusion. This is the
   # equivalent blocking gate: clippy emits JSON diagnostics, the script keeps
