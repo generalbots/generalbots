@@ -272,7 +272,7 @@ test("applyTheme on a selection changes only that slide and preserves overrides"
   assert(M.resolve(s, "1", "color.accent1").value === "#eeeeee", "override was lost");
 });
 
-test("applyTheme on all slides preserves every explicit override", function () {
+test("[UAT:SLIDE-03] applyTheme on all slides preserves every explicit override", function () {
   var s = freshState();
   addAltTheme(s, "#111111");
   for (var i = 0; i < 6; i++) {
@@ -370,7 +370,7 @@ test("template snapshots explicitly exclude slide overrides", function () {
     "template deletion failed");
 });
 // ── History / persistence ──────────────────────────────────────────────
-test("undo and redo restore master state and report availability honestly", function () {
+test("[UAT:SLIDE-03] undo and redo restore master state and report availability honestly", function () {
   var s = freshState();
   var theme = M.theme("theme_default");
   var before = theme.flat["color.accent1"];

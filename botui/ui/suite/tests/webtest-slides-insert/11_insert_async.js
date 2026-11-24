@@ -50,7 +50,7 @@ function captureCall(owner, name, invoke) {
   });
 }
 
-test("RUNTIME: layout placement posts slide/add with next position and refreshes", function () {
+test("[UAT:SLIDE-02] RUNTIME: layout placement posts slide/add with next position and refreshes", function () {
   env.reset();
   env.setFetchHandler(function () { return Promise.resolve(okResponse()); });
   return place.place(sFind("layout-title"), {}).then(function () {

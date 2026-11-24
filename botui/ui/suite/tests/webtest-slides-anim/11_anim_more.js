@@ -174,7 +174,7 @@ test("default transition is well-formed and supports per-slide override", functi
   assert(api.transition(1, false) === null, "inherit=false should not synthesize a transition");
 });
 
-test("apply-to-all resets per-slide overrides and survives serialization", function () {
+test("[UAT:SLIDE-07] apply-to-all resets per-slide overrides and survives serialization", function () {
   var env = h.loadModules();
   var api = env.A;
   api.setTransition({ type: "wipe", duration: 700 }, 0, false);
@@ -184,7 +184,7 @@ test("apply-to-all resets per-slide overrides and survives serialization", funct
   assert(api.load().defaultTransition.type === "push", "transition did not round-trip through storage");
 });
 
-test("playTransition never throws and is a no-op when reduced or unsupported", function () {
+test("[UAT:SLIDE-07] playTransition never throws and is a no-op when reduced or unsupported", function () {
   var env = h.loadModules();
   var calls = 0;
   var target = { animate: function () { calls++; } };

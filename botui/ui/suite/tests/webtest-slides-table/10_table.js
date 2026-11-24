@@ -380,7 +380,7 @@ test("bulk move redo re-applies the post-move order after undo", function () {
     "redo must restore the captured post-move order, not re-snapshot the restored DOM");
 });
 
-test("duplicate inserts the clone immediately after the selection", function () {
+test("[UAT:SLIDE-08] duplicate inserts the clone immediately after the selection", function () {
   var fixture = h.makeOutlineHost([0, 1]);
   var bulk = h.loadBulkOps(fixture.O);
   fixture.host.check([0]);

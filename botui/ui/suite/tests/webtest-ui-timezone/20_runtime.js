@@ -35,7 +35,7 @@ test("[RUNTIME] shipped zoneOffsetMinutes is DST-correct for America/New_York", 
   assert(winter !== summer, "shipped helper ignores DST");
 });
 
-test("[RUNTIME] shipped zoneOffsetMinutes resolves fixed and UTC zones", function () {
+test("[UAT:CLOCK-01][RUNTIME] shipped zoneOffsetMinutes resolves fixed and UTC zones", function () {
   equal(app.zoneOffsetMinutes("UTC", WINTER), 0, "UTC offset");
   equal(app.zoneOffsetMinutes("Asia/Tokyo", WINTER), 540, "Tokyo offset");
   equal(app.zoneOffsetMinutes("Europe/London", WINTER), 0, "London winter (GMT)");
@@ -46,7 +46,7 @@ test("[RUNTIME] unknown zone yields null in the shipped clock helper (no silent 
   equal(app.zoneOffsetMinutes(UNKNOWN, WINTER), null, "unknown-zone offset");
 });
 
-test("[RUNTIME] shipped timezoneDiff produces an offset label for a real zone", function () {
+test("[UAT:CLOCK-01][RUNTIME] shipped timezoneDiff produces an offset label for a real zone", function () {
   var label = app.timezoneDiff("America/New_York", SUMMER);
   assert(typeof label === "string" && label.length > 0, "empty timezoneDiff label");
   assert(label.indexOf("GMT") >= 0, "label lacks a GMT offset: " + label);

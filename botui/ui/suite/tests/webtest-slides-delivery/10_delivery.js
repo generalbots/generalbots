@@ -121,7 +121,7 @@ test("load() falls back on corrupt JSON and merges partial persisted fields", fu
 });
 
 // ── Navigation bounds ─────────────────────────────────────────────────
-test("console next/previous indices clamp at both deck bounds", function () {
+test("[UAT:SLIDE-09] console next/previous indices clamp at both deck bounds", function () {
   g.reset();
   state.slideCount = 5;
   state.current = 0;
@@ -132,7 +132,7 @@ test("console next/previous indices clamp at both deck bounds", function () {
   assert(D.console.previousIndex() === 3 && D.console.nextIndex() === 4, "upper bound");
 });
 
-test("console timer accumulates only running time across pause and reset", function () {
+test("[UAT:SLIDE-09] console timer accumulates only running time across pause and reset", function () {
   g.reset();
   assert(D.console.elapsed() === 0, "initial elapsed");
   g.setClock(1000);
@@ -329,7 +329,7 @@ test("apply() records a local appliedAt timestamp and reports status", function 
 });
 
 // ── Handouts ──────────────────────────────────────────────────────────
-test("pageCount() computes pages for 1/2/4/6-up layouts", function () {
+test("[UAT:SLIDE-06] pageCount() computes pages for 1/2/4/6-up layouts", function () {
   assert(D.handouts.ALLOWED.join(",") === "1,2,4,6", "allowed layout set");
   assert(D.handouts.pageCount(10, 1) === 10, "1-up");
   assert(D.handouts.pageCount(10, 2) === 5, "2-up");
