@@ -191,7 +191,7 @@ impl CardKeyword {
         style: Option<&str>,
         count: Option<usize>,
     ) -> Result<Vec<CardResult>> {
-        let card_style = style.map(CardStyle::from).unwrap_or_default();
+        let card_style = style.map(CardStyle::from).map_or_else(Default::default, |v| v);
         let card_count = count.unwrap_or(1).min(10);
 
         let config = CardConfig {

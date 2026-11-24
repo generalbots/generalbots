@@ -245,7 +245,7 @@ pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {
         started_unix_nano: unix_nanos(),
         attributes: model
             .map(|model| vec![("gen_ai.request.model".to_string(), model.to_string())])
-            .unwrap_or_default(),
+            .map_or_else(Default::default, |v| v),
     });
 }
 

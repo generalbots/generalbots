@@ -73,12 +73,16 @@ pub async fn handle_search_presentations<D: DriveOps>(
 ) -> Result<Json<Vec<PresentationMetadata>>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = user.owner_id().to_string();
 
-let presentations = match &state.drive {
-    Some(drive) => list_presentations_from_drive(drive, &user_id)
-        .await
-        .unwrap_or_default(),
-    None => Vec::new(),
-};
+    let presentations = match &state.drive {
+        Some(drive) => match list_presentations_from_drive(drive, &user_id).await {
+            Ok(p) => p,
+            Err(e) => {
+                log::warn!("Failed to search presentations: {e}");
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    };
 
     let filtered = if let Some(q) = query.q {
         let q_lower = q.to_lowercase();

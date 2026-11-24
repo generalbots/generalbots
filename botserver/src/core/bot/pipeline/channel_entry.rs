@@ -142,7 +142,7 @@ fn publish_channel_event(
         let path = rest
             .split_whitespace()
             .next()
-            .unwrap_or_default()
+            .map_or_else(Default::default, |v| v)
             .trim_end_matches(',')
             .to_string();
         if path.is_empty() {
@@ -246,7 +246,7 @@ async fn resolve_bot_uuid(pool: &botcore::shared::utils::DbPool, bot_name: &str)
             .get_result::<BotId>(&mut conn)
             .ok()
             .map(|r| r.id)
-            .unwrap_or_default()
+            .map_or_else(Default::default, |v| v)
     } else {
         uuid::Uuid::nil()
     }

@@ -23,7 +23,7 @@ fn advertised(raw: &str) -> HashSet<&str> {
                 .filter(|id| !id.is_empty())
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 /// Both shipped profiles: the cloud edition and the desktop-local edition.

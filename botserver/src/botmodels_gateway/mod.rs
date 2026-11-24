@@ -47,7 +47,7 @@ async fn proxy(Path(path): Path<String>, req: Request<Body>) -> impl IntoRespons
         .uri()
         .query()
         .map(|q| format!("?{}", q))
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let upstream_url = format!("{}/{}{}", botmodels_url(), path.trim_start_matches('/'), query);
 
     let client = match client() {

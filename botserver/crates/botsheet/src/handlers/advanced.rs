@@ -386,7 +386,13 @@ pub async fn handle_list_external_links(
     user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListExternalLinksResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
+    let sheet_id = match params.get("sheet_id") {
+        Some(sheet_id) => sheet_id.clone(),
+        None => {
+            log::warn!("list external links request is missing the sheet_id query parameter");
+            String::new()
+        }
+    };
     let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
@@ -399,6 +405,9 @@ pub async fn handle_list_external_links(
             )
         })?;
     let sheet = session.sheet.read().await;
-    let links = sheet.external_links.clone().unwrap_or_default();
+    let links = match &sheet.external_links {
+        Some(links) => links.clone(),
+        None => Vec::new(),
+    };
     Ok(Json(ListExternalLinksResponse { links }))
 }

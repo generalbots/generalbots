@@ -40,7 +40,7 @@ pub(super) async fn handle(
         .filter(|value| !value.trim().is_empty())
         .map(str::to_string)
         .or_else(|| bus::bus().current_run_id(thread_id))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     if run_id.is_empty() {
         let denied = serde_json::json!({
             "type": "run_takeover_ack",

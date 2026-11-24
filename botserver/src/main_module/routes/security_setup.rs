@@ -31,7 +31,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> Result<SecurityCompone
     let cfg = ConfigManager::new(app_state.conn.clone());
     let origins_str = cfg
         .get_config(&uuid::Uuid::nil(), "cors-allowed-origins", None)
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     if !origins_str.is_empty() {
         let origins: Vec<String> = origins_str
             .split(',')

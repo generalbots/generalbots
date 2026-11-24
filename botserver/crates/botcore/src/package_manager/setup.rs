@@ -205,7 +205,13 @@ impl DirectorySetup {
             .await?;
 
         if !create_response.status().is_success() {
-            let error_text = create_response.text().await.unwrap_or_default();
+            let error_text = match create_response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Could not read project creation error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!("Failed to create project: {error_text}"));
         }
 
@@ -247,14 +253,27 @@ impl DirectorySetup {
             .await?;
 
         if !app_response.status().is_success() {
-            let error_text = app_response.text().await.unwrap_or_default();
+            let error_text = match app_response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Could not read OIDC app creation error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!("Failed to create OIDC app: {error_text}"));
         }
 
         let app_data: serde_json::Value = app_response.json().await
             .map_err(|e| anyhow::anyhow!("Failed to parse OIDC app response: {e}"))?;
 
-        info!("OIDC app creation response: {}", serde_json::to_string_pretty(&app_data).unwrap_or_default());
+        let pretty = match serde_json::to_string_pretty(&app_data) {
+            Ok(pretty) => pretty,
+            Err(e) => {
+                log::warn!("Could not serialize OIDC app response for logging: {e}");
+                String::new()
+            }
+        };
+        info!("OIDC app creation response: {}", pretty);
 
         // The response contains clientId and clientSecret directly
         let client_id = app_data

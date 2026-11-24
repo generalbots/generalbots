@@ -136,7 +136,7 @@ h.statik("the real OCR engine is Windows-only and wired to attachments, not Shee
   });
 });
 
-h.statik("Docs PDF import and the SCAN BARCODE keyword are different features", function () {
+h.statik("[UAT:DOC-06] Docs PDF import and the SCAN BARCODE keyword are different features (partial: PDF text-extraction capability only)", function () {
   var pdf = h.readRepo(PDF_RS);
   var barcode = h.readRepo(BARCODE_RS);
   h.assert(/pdf_extract::extract_text_from_mem/.test(pdf));

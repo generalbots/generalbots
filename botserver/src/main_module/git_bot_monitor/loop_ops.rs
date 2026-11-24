@@ -43,7 +43,7 @@ pub(crate) fn list_monitored_bots(pool: &DbPool) -> Vec<MonitoredBot> {
          WHERE vp.project_type = 'bot' AND vp.source_control = 'git'",
     )
     .load::<Row>(&mut conn)
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     .into_iter()
     .map(|row| MonitoredBot {
         repo_slug: alm_repo(&row.name),
@@ -159,8 +159,8 @@ fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
         );
         return;
     }
-    let local = run_git(&checkout, &["rev-parse", "HEAD"]).unwrap_or_default();
-    let remote = run_git(&checkout, &["rev-parse", "origin/main"]).unwrap_or_default();
+    let local = run_git(&checkout, &["rev-parse", "HEAD"]).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
+    let remote = run_git(&checkout, &["rev-parse", "origin/main"]).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let remote = remote.trim().to_string();
     if remote.is_empty() {
         return; // empty remote (new repo) — nothing to pull yet

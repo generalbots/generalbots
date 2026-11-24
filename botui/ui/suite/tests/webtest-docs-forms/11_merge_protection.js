@@ -55,7 +55,7 @@ test("RUNTIME #2427: previewRecord clamps navigation and handles an empty source
   assert(empty.index === 0 && empty.record === null, "empty source has no record");
 });
 
-test("RUNTIME #2427: merge.run reports per-record missing required fields", function () {
+test("[UAT:BIZ-03] RUNTIME #2427: merge.run reports per-record missing required fields", function () {
   var f = loadForms();
   var C = f.NS.controls;
   var fields = [

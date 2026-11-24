@@ -24,7 +24,7 @@ fn get_vectordb_api_key() -> String {
     std::env::var("QDRANT_API_KEY")
         .ok()
         .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 #[cfg(any(feature = "research", feature = "llm"))]
@@ -104,7 +104,7 @@ pub async fn search_qdrant(
             .await;
         match resp {
             Ok(r) if r.status().is_success() => {
-                let info: serde_json::Value = r.json().await.unwrap_or_default();
+                let info: serde_json::Value = r.json().await.map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
                 info["result"]["config"]["params"]["vectors"]["size"]
                     .as_u64()
                     .map(|d| d as usize)
@@ -176,7 +176,7 @@ pub async fn search_qdrant(
     let points = result["result"]
         .as_array()
         .map(|a| a.to_vec())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
 
     if points.is_empty() {
         debug!("No points found in Qdrant collection '{}'", collection_name);
@@ -303,11 +303,11 @@ async fn search_qdrant_by_keyword(
         let points = result["result"]["points"]
             .as_array()
             .cloned()
-            .unwrap_or_default();
+            .map_or_else(Default::default, |v| v);
         let next_offset = result["result"]["next_page_offset"].clone();
 
         for point in points {
-            let payload = point.get("payload").cloned().unwrap_or_default();
+            let payload = point.get("payload").cloned().map_or_else(Default::default, |v| v);
             let content = payload
                 .get("content")
                 .or_else(|| payload.get("text"))
@@ -400,7 +400,7 @@ pub async fn search_keyword_only(
         bot_id,
     )
     .await
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
 }
 
 #[cfg(not(any(feature = "research", feature = "llm")))]

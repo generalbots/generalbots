@@ -15,9 +15,12 @@ static CLI_LOCALE: OnceLock<Locale> = OnceLock::new();
 /// Resolves the CLI locale from the arguments and the environment.
 #[must_use]
 pub fn resolve_locale(args: &[String]) -> Locale {
-    explicit_lang(args)
-        .or_else(environment_lang)
-        .unwrap_or_default()
+    match explicit_lang(args).or_else(environment_lang) {
+        Some(locale) => locale,
+        // No --lang flag and no locale environment variable: the documented
+        // English fallback, not an error (a fresh shell has none of these).
+        None => Locale::default(),
+    }
 }
 
 /// Records the CLI locale once, at the start of `main`.
@@ -30,7 +33,12 @@ pub fn init_from_args(args: &[String]) -> Locale {
 /// The locale recorded by [`init_from_args`], or the default.
 #[must_use]
 pub fn locale() -> Locale {
-    CLI_LOCALE.get().cloned().unwrap_or_default()
+    match CLI_LOCALE.get() {
+        Some(locale) => locale.clone(),
+        // init_from_args has not run yet (e.g. a library caller); use the
+        // documented fallback instead of assuming CLI startup completed.
+        None => Locale::default(),
+    }
 }
 
 /// Translates one CLI message.
@@ -73,12 +81,12 @@ fn environment_lang() -> Option<Locale> {
 /// Parses `pt_BR.UTF-8`, `pt-BR@euro`, `es` … into a catalogue locale. `C`
 /// and `POSIX` mean "no preference", not a language.
 fn parse_locale(raw: &str) -> Option<Locale> {
-    let code = raw
-        .trim()
-        .split(['.', '@'])
-        .next()
-        .unwrap_or_default()
-        .trim();
+    // split() always yields at least one item, but handle the empty case
+    // explicitly instead of leaning on a default.
+    let code = match raw.trim().split(['.', '@']).next() {
+        Some(code) => code.trim(),
+        None => "",
+    };
 
     if code.is_empty() || code.eq_ignore_ascii_case("c") || code.eq_ignore_ascii_case("posix") {
         return None;

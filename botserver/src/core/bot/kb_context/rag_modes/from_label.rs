@@ -45,15 +45,15 @@ pub(super) async fn create_llm_for_bot(
     };
     let llm_key = cfg
         .get_config(&bot_id, "llm-key", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let llm_model = cfg
         .get_config(&bot_id, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     // Empty default: let create_llm_provider_from_url derive the endpoint from
     // the URL (a forced /v1/chat/completions breaks full chat-completions URLs).
     let endpoint_path = cfg
         .get_config(&bot_id, "llm-endpoint-path", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let provider = crate::llm::provider_factory::create_llm_provider_from_url(
         &llm_url,
         if llm_model.is_empty() {
@@ -80,7 +80,7 @@ pub async fn search_by_mode(
         RagMode::Standard => {
             kb_context_search::search_qdrant(collection, query, limit, bot_id, db_pool)
                 .await
-                .unwrap_or_default()
+                .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         }
 
         RagMode::Hybrid => hybrid_search(collection, query, limit, bot_id, db_pool).await,

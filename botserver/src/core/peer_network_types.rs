@@ -283,7 +283,7 @@ impl PeerConfig {
 /// `secret/gbo/peer` as read now; empty when Vault is unavailable, which leaves
 /// the env variables and defaults in charge.
 fn vault_settings() -> BTreeMap<String, String> {
-    botcoresecrets::peer_secret_sync().unwrap_or_default()
+    botcoresecrets::peer_secret_sync().map_or_else(Default::default, |v| v)
 }
 
 /// Env → Vault → `~/.prod` for one setting.
@@ -341,7 +341,7 @@ fn parse_flag(raw: &str) -> bool {
 /// environment nor Vault states a preference.
 fn persisted_enabled(data_dir: Option<&Path>) -> bool {
     data_dir
-        .map(|dir| std::fs::read_to_string(dir.join("mode.json")).unwrap_or_default())
+        .map(|dir| std::fs::read_to_string(dir.join("mode.json")).unwrap_or(Default::default()))
         .map(|raw| raw.trim().eq_ignore_ascii_case("p2p"))
         .unwrap_or(false)
 }

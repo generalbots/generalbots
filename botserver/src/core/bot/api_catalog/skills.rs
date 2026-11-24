@@ -62,7 +62,7 @@ pub(super) fn list_skills(state: &Arc<AppState>, bot_uuid: Uuid) -> Result<Value
         .map(|row| {
             json!({
                 "name": row.name,
-                "description": row.description.unwrap_or_default(),
+                "description": row.description.unwrap_or(Default::default()),
                 "enabled": row.enabled,
             })
         })
@@ -190,7 +190,7 @@ pub(super) fn find_skills(
             let body: String = row.content.chars().take(MAX_BODY_CHARS).collect();
             json!({
                 "name": row.name,
-                "description": row.description.unwrap_or_default(),
+                "description": row.description.unwrap_or(Default::default()),
                 "version": row.version,
                 "body": body,
                 "truncated": truncated,

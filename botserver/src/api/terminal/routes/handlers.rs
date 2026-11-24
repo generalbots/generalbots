@@ -205,7 +205,7 @@ pub(super) async fn terminal_ws(
     Query(query): Query<std::collections::HashMap<String, String>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    let id = query.get("id").cloned().unwrap_or_default();
+    let id = query.get("id").cloned().map_or_else(Default::default, |v| v);
     let capability = query
         .get("capability")
         .cloned()

@@ -10,7 +10,11 @@ impl PartitionManager {
 
     pub async fn get_partitions(&self, organization_id: Uuid) -> Vec<DataPartition> {
         let partitions = self.partitions.read().await;
-        partitions.get(&organization_id).cloned().unwrap_or_default()
+        match partitions.get(&organization_id) {
+            Some(partitions) => partitions.clone(),
+            // An organization without partitions is the normal pre-create case.
+            None => Vec::new(),
+        }
     }
 
     pub async fn create_partition(

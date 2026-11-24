@@ -38,7 +38,7 @@ pub async fn handle_chat_history_sessions(
         .and_then(|v| v.parse::<i64>().ok())
         .map(|v| v.clamp(1, 200))
         .unwrap_or(DEFAULT_SESSION_LIMIT);
-    let bot_filter = params.get("bot_name").cloned().unwrap_or_default();
+    let bot_filter = params.get("bot_name").cloned().map_or_else(Default::default, |v| v);
     // #1682 — locked conversations never appear in the regular history. The
     // dedicated `locked=1` listing returns ids only (no titles) so the user
     // can pick one to unlock without leaking content.

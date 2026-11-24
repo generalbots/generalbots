@@ -15,13 +15,13 @@ pub(super) async fn call_llm_for_text(
     let cfg = ConfigManager::new(state.conn.clone());
     let llm_url = cfg
         .get_config(&bot_uuid, "llm-url", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let llm_key = cfg
         .get_config(&bot_uuid, "llm-key", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let llm_model = cfg
         .get_config(&bot_uuid, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let provider: Arc<dyn botlib::traits::LLMProvider> = if !llm_url.is_empty() {
         let inner = crate::llm::provider_factory::create_llm_provider_from_url(

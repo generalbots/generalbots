@@ -83,7 +83,7 @@ test("ISSUE #1641: attachment content is extracted and injected", function () {
   assert(exec.indexOf("attachment_note") !== -1, "attachment content not injected");
 });
 
-test("ISSUE #1644: browser actions have a producer, consent and feedback", function () {
+test("[UAT:CODE-05] ISSUE #1644: browser actions have a producer, consent and feedback (partial: browser action plumbing only)", function () {
   var core = readFile("../../../botserver/src/core/computer_use.rs");
   assert(core.indexOf("propose_from_text") !== -1, "URL producer missing");
   assert(core.indexOf("take_completed_for_prompt") !== -1, "results not fed back");

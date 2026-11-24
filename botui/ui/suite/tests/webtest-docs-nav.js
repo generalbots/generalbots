@@ -20,5 +20,6 @@ var harness = require("./webtest-docs-nav/00_harness");
 
 require("./webtest-docs-nav/10_nav_runtime");
 require("./webtest-docs-nav/11_nav_deferred");
+require("./webtest-docs-nav/12_doc_list_open");
 
 harness.finish();

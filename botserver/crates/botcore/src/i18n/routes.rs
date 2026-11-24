@@ -51,7 +51,13 @@ async fn handle_get_translations(
     State(_state): State<Arc<AppState>>,
     Path(locale_str): Path<String>,
 ) -> impl IntoResponse {
-    let locale = Locale::new(&locale_str).unwrap_or_default();
+    let locale = match Locale::new(&locale_str) {
+        Some(locale) => locale,
+        None => {
+            log::warn!("Unsupported locale requested; falling back to the default");
+            Locale::default()
+        }
+    };
 
     let translations = get_translations_json(&locale);
 
@@ -119,10 +125,15 @@ pub fn locale_for_user(conn: &mut diesel::PgConnection, user_id: Uuid) -> Locale
     .get_result(conn)
     .ok();
 
-    row.and_then(|r| r.value)
+    match row
+        .and_then(|r| r.value)
         .and_then(|raw| serde_json::from_str::<String>(&raw).ok())
         .and_then(|code| Locale::new(code.trim()))
-        .unwrap_or_default()
+    {
+        Some(locale) => locale,
+        // A first-time user has no stored preference: the default is expected.
+        None => Locale::default(),
+    }
 }
 
 /// `POST /api/i18n/preference` — persists the user's locale. Only a locale the

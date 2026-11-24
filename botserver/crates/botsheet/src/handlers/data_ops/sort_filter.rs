@@ -84,8 +84,16 @@ pub async fn handle_sort_range(
         let cmp = match (num_a, num_b) {
             (Some(na), Some(nb)) => na.partial_cmp(&nb).unwrap_or(std::cmp::Ordering::Equal),
             _ => {
-                let str_a = cell_a.and_then(|c| c.value.as_deref()).unwrap_or_default();
-                let str_b = cell_b.and_then(|c| c.value.as_deref()).unwrap_or_default();
+                // Sparse grids legitimately have no cell/value here: treat a
+                // missing display value as the empty string, as before.
+                let str_a = match cell_a.and_then(|c| c.value.as_deref()) {
+                    Some(value) => value,
+                    None => "",
+                };
+                let str_b = match cell_b.and_then(|c| c.value.as_deref()) {
+                    Some(value) => value,
+                    None => "",
+                };
                 str_a.cmp(str_b)
             }
         };

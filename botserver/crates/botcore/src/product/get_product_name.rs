@@ -93,12 +93,15 @@ pub fn get_product_config_json() -> serde_json::Value {
     // Effective apps come straight from the .product file. There is no runtime
     // guard: the `apps` list controls what the launcher and sidebar show, and
     // nothing more. Removing an app from it does not disable its routes.
-    let effective_apps: Vec<String> = config
-        .as_ref()
-        .map(|c| c.get_enabled_apps())
-        .unwrap_or_default()
-        .into_iter()
-        .collect();
+    let effective_apps: Vec<String> = match config.as_ref() {
+        Some(config) => config.get_enabled_apps().into_iter().collect(),
+        None => {
+            // A poisoned product-config lock must not masquerade as an empty
+            // .product file.
+            log::warn!("Product config lock poisoned while listing enabled apps");
+            Vec::new()
+        }
+    };
 
     // #1889 — the explicit `edition=` key wins; the flag-based fallback keeps
     // older product files working until they declare it.

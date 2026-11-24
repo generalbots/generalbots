@@ -27,7 +27,7 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 .collect();
             (enabled, hidden)
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     // #2450 — the General Bots OS image ships no console, so an app that runs
     // host commands is not a "preview" nice-to-have: it is refused, exactly

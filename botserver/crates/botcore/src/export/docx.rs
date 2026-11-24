@@ -218,8 +218,16 @@ impl DocxDocument {
             };
             let bold_xml = if p.bold { r#"<w:b/>"# } else { "" };
             let italic_xml = if p.italic { r#"<w:i/>"# } else { "" };
-            let sz_xml = p.font_size.map(|s| format!(r#"<w:sz w:val="{}"/>"#, s)).unwrap_or_default();
-            let num_id_xml = p.num_id.map(|n| format!(r#"<w:numPr><w:ilvl w:val="0"/><w:numId w:val="{}"/></w:numPr>"#, n)).unwrap_or_default();
+            let sz_xml = match p.font_size {
+                Some(size) => format!(r#"<w:sz w:val="{size}"/>"#),
+                None => String::new(),
+            };
+            let num_id_xml = match p.num_id {
+                Some(num_id) => {
+                    format!(r#"<w:numPr><w:ilvl w:val="0"/><w:numId w:val="{num_id}"/></w:numPr>"#)
+                }
+                None => String::new(),
+            };
             // A Word heading style keeps the outline/preview semantics; the
             // bold+size runs alone made generated headings look like body text.
             let style_xml = if p.style.starts_with("Heading ") {
@@ -381,7 +389,10 @@ mod zip_roundtrip_tests {
         let mut names = Vec::new();
         for index in 0..archive.len() {
             let file = archive.by_index(index).expect("entry");
-            names.push(file.name().map(|n| n.to_string()).unwrap_or_default());
+            names.push(
+                file.name()
+                    .map_or_else(|_| String::new(), |name| name.to_string()),
+            );
         }
         assert!(names.iter().any(|n| n == "[Content_Types].xml"), "parts: {names:?}");
         assert!(names.iter().any(|n| n == "word/document.xml"), "parts: {names:?}");

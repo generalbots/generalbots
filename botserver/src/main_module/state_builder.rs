@@ -134,7 +134,7 @@ pub async fn create_app_state(
         .get()
         .map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
     let (default_bot_id_str, default_bot_name) = crate::core::bot::get_default_bot();
-    let default_bot_id = uuid::Uuid::parse_str(&default_bot_id_str).unwrap_or_default();
+    let default_bot_id = uuid::Uuid::parse_str(&default_bot_id_str).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     info!(
         "Using default bot: {} (id: {})",
         default_bot_name, default_bot_id
@@ -159,7 +159,7 @@ pub async fn create_app_state(
     } else {
         config_manager
             .get_config(&default_bot_id, "llm-model", Some(""))
-            .unwrap_or_default()
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     };
     if !llm_model.is_empty() {
         info!("LLM Model: {}", llm_model);
@@ -172,7 +172,7 @@ pub async fn create_app_state(
                 .get_config(&default_bot_id, "llm-key", Some(""))
                 .map_err(|_| std::env::VarError::NotPresent)
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     // If llm-url points to external API but no key is configured, fall back to local LLM
     let llm_url = if llm_key.is_empty()
@@ -195,7 +195,7 @@ pub async fn create_app_state(
     // "Invalid path" 400s for every boot-time provider user (AutoTask).
     let llm_endpoint_path = config_manager
         .get_config(&default_bot_id, "llm-endpoint-path", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     #[cfg(feature = "llm")]
     let base_llm_provider = crate::llm::provider_factory::create_llm_provider_from_url(
@@ -284,7 +284,7 @@ pub async fn create_app_state(
         tokio::sync::broadcast::channel::<botcore::shared::state::TaskProgressEvent>(1000);
 
     // Initialize BotDatabaseManager for per-bot database support
-    let database_url = botcore::shared::utils::get_database_url_sync().unwrap_or_default();
+    let database_url = botcore::shared::utils::get_database_url_sync().unwrap_or(Default::default());
     let bot_database_manager = Arc::new(BotDatabaseManager::new(pool.clone(), &database_url));
 
     // Sync all bot databases on startup - ensures each bot has its own database

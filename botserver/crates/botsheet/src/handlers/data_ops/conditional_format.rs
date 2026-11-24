@@ -24,8 +24,13 @@ pub fn apply_conditional_request(
         req.end_row,
         req.end_col,
     );
+    // `value` is optional in a conditional-format request (e.g. "duplicates"
+    // carries none); an absent value has always meant an empty comparison.
+    let value = match req.value.as_deref() {
+        Some(value) => value.to_string(),
+        None => String::new(),
+    };
     let condition = if req.condition.trim().is_empty() {
-        let value = req.value.clone().unwrap_or_default();
         match req.rule_type.as_str() {
             "greater_than" => format!(">{value}"),
             "less_than" => format!("<{value}"),
@@ -42,7 +47,6 @@ pub fn apply_conditional_request(
     } else {
         let raw = req.condition.trim();
         let lowered = raw.to_ascii_lowercase().replace(['-', ' '], "_");
-        let value = req.value.clone().unwrap_or_default();
         let comparison = matches!(
             lowered.as_str(),
             "lessthan"

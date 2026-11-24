@@ -34,7 +34,7 @@ pub struct StoredResource {
 fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
         .as_millis() as u64
 }
 
@@ -153,7 +153,7 @@ pub async fn publish_resource(
             log::warn!("sandbox resource store failed: {error}");
         }
         let meta_key = format!("_sandbox/ui/{hash}.json");
-        let meta = serde_json::to_vec(&csp).unwrap_or_default();
+        let meta = serde_json::to_vec(&csp).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         if let Err(error) = drive
             .put_object(bucket, &meta_key, meta, Some("application/json"))
             .await
@@ -204,7 +204,7 @@ pub async fn read_resource(state: &AppState, bucket: &str, hash: &str) -> Option
     let html = String::from_utf8(bytes).ok()?;
     let meta_key = format!("_sandbox/ui/{hash}.json");
     let csp = match drive.get_object(bucket, &meta_key).await {
-        Ok(bytes) => serde_json::from_slice::<UiCsp>(&bytes).unwrap_or_default(),
+        Ok(bytes) => serde_json::from_slice::<UiCsp>(&bytes).unwrap_or(Default::default()),
         Err(_) => UiCsp::default(),
     };
     let resource = StoredResource {

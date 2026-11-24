@@ -388,7 +388,7 @@ test("RUNTIME #2424: variantValue falls back from first to odd to default", func
   assert(NS.variantValue({}, "odd") === "", "empty bucket yields an empty string");
 });
 
-test("RUNTIME #2424: resolveFields substitutes all supported fields", function () {
+test("[UAT:DOC-08] RUNTIME #2424: resolveFields substitutes all supported fields", function () {
   var NS = fixture().NS;
   var out = NS.resolveFields("P{$page}/{$total} { $title } { $author } { $date } { $nope }",
     { page: 3, total: 9, title: "Ti", author: "Au", date: "Da" });
@@ -396,7 +396,7 @@ test("RUNTIME #2424: resolveFields substitutes all supported fields", function (
   assert(NS.resolveFields(null, {}) === "", "null template is safe");
 });
 
-test("RUNTIME #2424: resolvePageChrome resolves per-page header/footer/watermark", function () {
+test("[UAT:DOC-08] RUNTIME #2424: resolvePageChrome resolves per-page header/footer/watermark", function () {
   var NS = fixture().NS;
   var section = {
     firstPageDifferent: true,

@@ -46,16 +46,16 @@ pub(crate) async fn resolve_bot_llm_provider(
     let cfg = ConfigManager::new(state.conn.clone());
     let mut llm_url = cfg
         .get_config(&bot_uuid, "llm-url", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let mut llm_key = cfg
         .get_config(&bot_uuid, "llm-key", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let configured_model = cfg
         .get_config(&bot_uuid, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let configured_provider = cfg
         .get_config(&bot_uuid, "llm-provider", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     // A connected subscription agent picked in the chat's model menu answers
     // this turn (`sub:<provider>`); the bot's own default is left untouched.
@@ -158,7 +158,7 @@ pub(crate) async fn resolve_bot_llm_provider(
         let tier_key = format!("llm-model-{tier}");
         let tier_model = cfg
             .get_config(&bot_uuid, &tier_key, Some(""))
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         if !tier_model.is_empty() {
             botlog::safe_info!("BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]");
             llm_model = tier_model;

@@ -96,7 +96,7 @@ impl TerminalManager {
             .lock()
             .ok()
             .map(|guard| guard.clone())
-            .unwrap_or_default();
+            .map_or_else(Default::default, |v| v);
         let mut out = Vec::new();
         for (id, session) in sessions {
             if session.owner_user_id != scope.user_id

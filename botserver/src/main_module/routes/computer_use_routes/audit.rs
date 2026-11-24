@@ -100,7 +100,7 @@ pub async fn terminal_audit(
     .bind::<DieselUuid, _>(user_id)
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<Row>(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     Ok(Json(json!({
         "entries": rows.into_iter().map(|row| json!({
             "id": row.id,
@@ -191,7 +191,7 @@ pub async fn browser_audit(
     .bind::<DieselUuid, _>(user_id)
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<Row>(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     Ok(Json(json!({
         "entries": rows.into_iter().map(|row| json!({
             "id": row.id,

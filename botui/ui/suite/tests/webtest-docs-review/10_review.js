@@ -97,7 +97,7 @@ test("RUNTIME #2425: addChange normalizes fields and defaults", function () {
   assert(NS.getChange(c.id) === c, "getChange finds the same object");
 });
 
-test("RUNTIME #2425: accepting one change leaves neighbours untouched; undo restores", function () {
+test("[UAT:DOC-09] RUNTIME #2425: accepting one change leaves neighbours untouched; undo restores", function () {
   var NS = fixture().NS;
   var a = NS.addChange({ id: "<a>", author: "alice" });
   var b = NS.addChange({ id: "<b>", author: "alice" });

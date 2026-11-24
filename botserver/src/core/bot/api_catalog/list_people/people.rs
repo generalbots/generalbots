@@ -38,15 +38,15 @@ pub(in crate::core::bot::api_catalog) async fn list_people(
         .map(|r| {
             let name = format!(
                 "{} {}",
-                r.first_name.unwrap_or_default(),
-                r.last_name.unwrap_or_default()
+                r.first_name.unwrap_or(Default::default()),
+                r.last_name.unwrap_or(Default::default())
             )
             .trim()
             .to_string();
             json!({
                 "person_id": r.person_id,
                 "name": if name.is_empty() { "Unnamed".to_string() } else { name },
-                "email": r.email.unwrap_or_default(),
+                "email": r.email.unwrap_or(Default::default()),
                 "status": r.status,
                 "deep_link": format!("app://people?person_id={}", r.person_id),
             })

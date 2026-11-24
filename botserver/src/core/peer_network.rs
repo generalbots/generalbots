@@ -44,7 +44,7 @@ pub fn persist_network_mode(mode: &str) -> Result<(), String> {
     std::fs::create_dir_all(&dir).map_err(|e| format!("create {stack}: {e}"))?;
     let env_path = dir.join(".env");
     let new_line = format!("{ENV_NETWORK_MODE}={mode}");
-    let existing = std::fs::read_to_string(&env_path).unwrap_or_default();
+    let existing = std::fs::read_to_string(&env_path).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let updated = if existing
         .lines()
         .any(|line| line.starts_with(&format!("{ENV_NETWORK_MODE}=")))
@@ -183,7 +183,7 @@ impl PeerNetwork {
         self.config.signing_key.clone().unwrap_or_else(|| {
             self.identity()
                 .map(|identity| identity.node_id.to_string())
-                .unwrap_or_default()
+                .map_or_else(Default::default, |v| v)
         })
     }
 

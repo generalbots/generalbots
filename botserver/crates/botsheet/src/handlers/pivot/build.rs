@@ -70,20 +70,18 @@ pub(super) fn build_pivot_worksheet(
         for ck in &ckeys {
             for i in 0..value_specs.len() {
                 let key = format!("{rk}\x00{ck}\x00{i}");
-                let val = cells
-                    .get(&key)
-                    .and_then(|v| v.as_f64())
-                    .map(|n| n.to_string())
-                    .unwrap_or_default();
+                let val = match cells.get(&key).and_then(|v| v.as_f64()) {
+                    Some(n) => n.to_string(),
+                    None => String::new(),
+                };
                 data.insert(format!("{r},{c}"), cell_str(&val));
                 c += 1;
             }
         }
-        let rt = row_totals
-            .get(rk)
-            .and_then(|v| v.as_f64())
-            .map(|n| n.to_string())
-            .unwrap_or_default();
+        let rt = match row_totals.get(rk).and_then(|v| v.as_f64()) {
+            Some(n) => n.to_string(),
+            None => String::new(),
+        };
         data.insert(format!("{r},{c}"), cell_str(&rt));
     }
     let total_row = (row_keys_v.len() + 1) as u32;
@@ -96,11 +94,10 @@ pub(super) fn build_pivot_worksheet(
     };
     for ck in &ckeys {
         for _ in 0..value_specs.len() {
-            let ct = col_totals
-                .get(ck)
-                .and_then(|v| v.as_f64())
-                .map(|n| n.to_string())
-                .unwrap_or_default();
+            let ct = match col_totals.get(ck).and_then(|v| v.as_f64()) {
+                Some(n) => n.to_string(),
+                None => String::new(),
+            };
             data.insert(format!("{total_row},{c}"), cell_str(&ct));
             c += 1;
         }

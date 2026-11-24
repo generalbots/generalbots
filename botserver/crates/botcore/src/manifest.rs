@@ -26,15 +26,17 @@ impl WorkspaceManifest {
     pub fn new() -> Self {
         let compiled: Vec<String> = COMPILED_FEATURES.iter().map(|s| s.to_string()).collect();
         
-        let enabled: Vec<String> = PRODUCT_CONFIG
-            .read()
-            .ok()
-            .as_ref()
-            .map(|c| c.get_enabled_apps())
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|app| compiled.contains(app))
-            .collect();
+        let enabled: Vec<String> = match PRODUCT_CONFIG.read() {
+            Ok(config) => config
+                .get_enabled_apps()
+                .into_iter()
+                .filter(|app| compiled.contains(app))
+                .collect(),
+            Err(_) => {
+                log::warn!("Product config lock poisoned while building workspace manifest");
+                Vec::new()
+            }
+        };
         
         let disabled: Vec<String> = compiled
             .iter()

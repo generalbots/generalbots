@@ -172,8 +172,8 @@ fn build_query(source: &EntitySource, org_clause: Option<&str>) -> String {
     let filter = source
         .filter
         .map(|f| format!(" AND ({f})"))
-        .unwrap_or_default();
-    let org = org_clause.map(|c| format!(" AND {c}")).unwrap_or_default();
+        .unwrap_or(Default::default());
+    let org = org_clause.map(|c| format!(" AND {c}")).unwrap_or(Default::default());
     format!(
         "SELECT {id} AS id, {title} AS title, {subtitle} AS subtitle \
          FROM {table} \
@@ -208,7 +208,7 @@ pub async fn handle_unified_search(
     Query(params): Query<SearchParams>,
     user: Option<axum::extract::Extension<crate::security::auth_api::types::AuthenticatedUser>>,
 ) -> impl IntoResponse {
-    let trimmed = params.q.unwrap_or_default();
+    let trimmed = params.q.unwrap_or(Default::default());
     let trimmed = trimmed.trim();
     if trimmed.is_empty() {
         return Json(json!({"results": []}));
@@ -242,7 +242,7 @@ pub async fn handle_unified_search(
     let enabled_apps = botcore::product::PRODUCT_CONFIG
         .read()
         .map(|product| product.apps.clone())
-        .unwrap_or_default();
+        .map_or_else(|_| Default::default(), |v| v);
 
     let pool = state.conn.clone();
 
@@ -292,7 +292,7 @@ pub async fn handle_unified_search(
         out
     })
     .await
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     Json(json!({ "results": results }))
 }

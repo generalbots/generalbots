@@ -22,7 +22,7 @@ pub async fn handle_get_organization(
 
     match auth_service.list_organizations().await {
         Ok(data) => {
-            let orgs = data.as_array().cloned().unwrap_or_default();
+            let orgs = data.as_array().cloned().map_or_else(Default::default, |v| v);
             if let Some(org) = orgs.first() {
                 Ok(Json(org.clone()))
             } else {
@@ -132,7 +132,7 @@ pub async fn handle_delete_organization(
             "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "main_module::routes::org_handlers::handle_get_organization", None)
         }))))?;
 
-    let orgs = orgs_data.as_array().cloned().unwrap_or_default();
+    let orgs = orgs_data.as_array().cloned().map_or_else(Default::default, |v| v);
     let org_id = orgs
         .first()
         .and_then(|o| o.get("id").or_else(|| o.get("orgId")))
@@ -175,7 +175,7 @@ pub async fn handle_get_org_audit(
     let entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     let recent: Vec<serde_json::Value> = entries.into_iter().rev().take(50).collect();
 
@@ -232,7 +232,7 @@ pub async fn handle_export_org_data(
     );
     let _ = std::fs::write(
         &export_path,
-        serde_json::to_string_pretty(&export).unwrap_or_default(),
+        serde_json::to_string_pretty(&export).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
     );
 
     Ok(Json(serde_json::json!({
@@ -272,7 +272,7 @@ pub async fn handle_update_organization(
 
     if let Err(e) = std::fs::write(
         &config_path,
-        serde_json::to_string_pretty(&merged).unwrap_or_default(),
+        serde_json::to_string_pretty(&merged).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
     ) {
         log::error!("Failed to save organization settings: {}", e);
         return Err((
@@ -289,7 +289,7 @@ pub async fn handle_update_organization(
         &body
             .as_object()
             .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
-            .unwrap_or_default(),
+            .map_or_else(Default::default, |v| v),
     );
 
     Ok(Json(serde_json::json!({"success": true})))
@@ -305,7 +305,7 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
     let mut entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     entries.push(serde_json::json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
@@ -320,7 +320,7 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
 
     let _ = std::fs::write(
         &log_path,
-        serde_json::to_string_pretty(&entries).unwrap_or_default(),
+        serde_json::to_string_pretty(&entries).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
     );
 }
 pub async fn handle_update_organization_contact(
@@ -335,7 +335,7 @@ pub async fn handle_update_organization_contact(
         &body
             .as_object()
             .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
-            .unwrap_or_default(),
+            .map_or_else(Default::default, |v| v),
     );
     Ok(result)
 }
@@ -351,7 +351,7 @@ pub async fn handle_update_organization_branding(
         &body
             .as_object()
             .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
-            .unwrap_or_default(),
+            .map_or_else(Default::default, |v| v),
     );
     Ok(result)
 }

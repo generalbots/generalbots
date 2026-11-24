@@ -99,7 +99,12 @@ pub async fn handle_import_presentation<D: DriveOps>(
         match field.name() {
             Some("file") => {
                 filename = field.file_name().unwrap_or("import.pptx").to_string();
-                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                // A multipart field may legitimately omit its content type;
+                // `validate_upload` below inspects the bytes instead.
+                content_type = match field.content_type() {
+                    Some(content_type) => content_type.to_string(),
+                    None => String::new(),
+                };
                 if let Ok(bytes) = field.bytes().await {
                     file_bytes = Some(bytes.to_vec());
                 }
@@ -107,10 +112,22 @@ pub async fn handle_import_presentation<D: DriveOps>(
             // The Drive opener sends the object identity so repeated opens of
             // the same file resolve to the same deck (#1710).
             Some("bucket") => {
-                source_bucket = field.text().await.unwrap_or_default();
+                source_bucket = match field.text().await {
+                    Ok(text) => text,
+                    Err(e) => {
+                        log::warn!("slides import: unreadable bucket field: {e}");
+                        String::new()
+                    }
+                };
             }
             Some("path") => {
-                source_path = field.text().await.unwrap_or_default();
+                source_path = match field.text().await {
+                    Ok(text) => text,
+                    Err(e) => {
+                        log::warn!("slides import: unreadable path field: {e}");
+                        String::new()
+                    }
+                };
             }
             _ => {}
         }

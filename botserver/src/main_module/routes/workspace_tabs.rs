@@ -68,7 +68,7 @@ fn requester(headers: &HeaderMap) -> Result<Uuid, HandlerError> {
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let (user_raw, _roles) = resolve_token_user(token)
         .ok_or_else(|| client_error(StatusCode::UNAUTHORIZED, "unauthorized", "Authentication required"))?;
     Ok(resolve_chat_user_uuid(&user_raw))

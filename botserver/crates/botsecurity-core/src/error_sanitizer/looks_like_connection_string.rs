@@ -252,7 +252,13 @@ mod hostile_payload_tests {
         ];
         for payload in payloads {
             let response = sanitizer.sanitize_error(&Hostile(payload.to_string()), None);
-            let body = serde_json::to_string(&response).unwrap_or_default();
+            let body = match serde_json::to_string(&response) {
+                Ok(body) => body,
+                Err(e) => {
+                    log::warn!("could not serialize sanitized response for assertion: {e}");
+                    String::new()
+                }
+            };
             assert!(!body.contains("s3cr3t"), "{payload} leaked a password");
             assert!(!body.contains("eyJ"), "{payload} leaked a token");
             assert!(!body.contains("postgres://"), "{payload} leaked a DSN");

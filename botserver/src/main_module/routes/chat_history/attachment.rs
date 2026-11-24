@@ -99,15 +99,15 @@ pub async fn handle_attachment_preview(
                 })
         })
         .or_else(|| params.get("access_token").cloned())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let (user_raw, _roles) = resolve_token_user(&token).ok_or((
         StatusCode::UNAUTHORIZED,
         "Authentication required".to_string(),
     ))?;
     let user_uuid = resolve_chat_user_uuid(&user_raw);
 
-    let name = params.get("name").cloned().unwrap_or_default();
-    let bot_name = params.get("bot").cloned().unwrap_or_default();
+    let name = params.get("name").cloned().map_or_else(Default::default, |v| v);
+    let bot_name = params.get("bot").cloned().map_or_else(Default::default, |v| v);
     if name.is_empty()
         || name.contains('/')
         || name.contains('\\')

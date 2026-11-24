@@ -82,7 +82,13 @@ pub async fn get_cached_presentation_bytes(pres_id: &str) -> Option<Vec<u8>> {
 }
 
 fn extract_id_from_path(path: &str) -> String {
-    let raw = path.split('/').next_back().unwrap_or_default();
+    let raw = match path.split('/').next_back() {
+        Some(raw) => raw,
+        None => {
+            log::warn!("slides: cannot extract a deck id from an empty path");
+            ""
+        }
+    };
     raw.strip_suffix(".json")
         .or_else(|| raw.strip_suffix(".pptx"))
         .unwrap_or(raw)

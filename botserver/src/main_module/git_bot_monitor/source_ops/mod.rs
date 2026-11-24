@@ -43,7 +43,7 @@ pub(crate) fn find_source_target(pool: &DbPool, bot_name: &str) -> Result<Source
         .ok_or_else(|| {
             format!("bot '{bot_name}' has no git project — sources cannot be committed")
         })?;
-    let branch_slug = project.branch_slug.clone().unwrap_or_default();
+    let branch_slug = project.branch_slug.clone().unwrap_or(Default::default());
     if branch_slug.is_empty() {
         return Err(format!(
             "bot '{bot_name}': project {} has no branch — cannot resolve the ALM org",

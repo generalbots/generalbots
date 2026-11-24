@@ -2,7 +2,7 @@ use super::*;
 
 /// Records an app-store install and returns the resolved app metadata.
 pub async fn install_handler(Json(body): Json<InstallBody>) -> Json<serde_json::Value> {
-    let app_id = body.app_id.unwrap_or_default();
+    let app_id = body.app_id.unwrap_or(Default::default());
     let found = registry::all_apps().into_iter().find(|a| a.id == app_id);
     match found {
         Some(app) => {

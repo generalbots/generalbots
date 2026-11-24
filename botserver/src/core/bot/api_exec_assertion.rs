@@ -42,7 +42,7 @@ pub(super) fn mint(
     let now = chrono::Utc::now().timestamp();
     let claims = json!({
         "sub": user_id.to_string(),
-        "email": user_email(state, user_id).unwrap_or_default(),
+        "email": user_email(state, user_id).unwrap_or(Default::default()),
         "bot_id": bot_uuid.map(|b| b.to_string()),
         "gb_aud": ASSERTION_AUDIENCE,
         "scope": ASSERTION_AUDIENCE,

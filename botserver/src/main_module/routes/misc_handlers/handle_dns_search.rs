@@ -10,7 +10,7 @@ pub async fn handle_dns_search(
 ) -> impl IntoResponse {
     use diesel::prelude::*;
 
-    let q = params.get("q").cloned().unwrap_or_default();
+    let q = params.get("q").cloned().map_or_else(Default::default, |v| v);
     // #2793: the search term is untrusted; the tenant boundary is derived
     // only from the signed branch claim and the authenticated principal.
     let branch_id = botsecurity_core::scope::branch_from_jwt_pool(&headers, &state.conn);
@@ -58,14 +58,14 @@ pub async fn handle_dns_search(
             "SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC",
         )
         .load(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     } else {
         diesel::sql_query(
             "SELECT id, hostname, record_type, target, ttl, status FROM dns_records WHERE LOWER(hostname) LIKE LOWER($1) ORDER BY hostname ASC",
         )
         .bind::<diesel::sql_types::Text, _>(&pattern)
         .load(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     };
     let rows: Vec<DnsRow> = rows
         .into_iter()

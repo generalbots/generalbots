@@ -12,8 +12,16 @@ pub(crate) use std::sync::RwLock;
 pub(crate) use tracing::{info, warn};
 
 /// Global product configuration instance
-pub static PRODUCT_CONFIG: Lazy<RwLock<ProductConfig>> =
-    Lazy::new(|| RwLock::new(ProductConfig::load().unwrap_or_default()));
+pub static PRODUCT_CONFIG: Lazy<RwLock<ProductConfig>> = Lazy::new(|| {
+    let config = match ProductConfig::load() {
+        Ok(config) => config,
+        Err(e) => {
+            log::warn!("Could not load .product configuration, using defaults: {e}");
+            ProductConfig::default()
+        }
+    };
+    RwLock::new(config)
+});
 
 /// Product configuration structure
 #[derive(Debug, Clone)]

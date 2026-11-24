@@ -124,8 +124,8 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
             .cloned()
             .filter(|u| !u.is_empty())
             .unwrap_or_else(|| url.clone()),
-        client_id: secrets.get("client_id").cloned().unwrap_or_default(),
-        client_secret: secrets.get("client_secret").cloned().unwrap_or_default(),
+        client_id: secrets.get("client_id").cloned().map_or_else(Default::default, |v| v),
+        client_secret: secrets.get("client_secret").cloned().map_or_else(Default::default, |v| v),
         redirect_uri: secrets
             .get("redirect_uri")
             .cloned()

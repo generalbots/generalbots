@@ -32,7 +32,7 @@ async fn run_quality(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let _bot = params.get("bot_id").cloned().unwrap_or_default();
+    let _bot = params.get("bot_id").cloned().map_or_else(Default::default, |v| v);
     let mut conn = match state.conn.get() {
         Ok(conn) => conn,
         Err(error) => {

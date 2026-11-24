@@ -175,7 +175,7 @@ impl StatusPanel {
 
         #[cfg(feature = "nvidia")]
         {
-            let system_metrics = get_system_metrics().unwrap_or_default();
+            let system_metrics = get_system_metrics().unwrap_or(Default::default());
             if let Some(gpu_usage) = system_metrics.gpu_usage {
                 let gpu_bar = Self::create_progress_bar(gpu_usage, 20);
                 lines.push(format!(" GPU: {:5.1}% {}", gpu_usage, gpu_bar));

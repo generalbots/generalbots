@@ -142,7 +142,13 @@ async fn fetch_runner_token(base_url: &str, api_token: &str) -> anyhow::Result<S
     if !resp.status().is_success() {
         return Err(anyhow::anyhow!("runner token endpoint returned {}", resp.status()));
     }
-    let body: serde_json::Value = resp.json().await.unwrap_or_default();
+    let body: serde_json::Value = match resp.json().await {
+        Ok(body) => body,
+        Err(e) => {
+            log::warn!("Could not parse runner registration-token response: {e}");
+            serde_json::Value::Null
+        }
+    };
     body.get("token")
         .and_then(|v| v.as_str())
         .map(|t| t.to_string())
@@ -200,7 +206,13 @@ async fn try_alm_api_setup(
             .map_err(|e| anyhow::anyhow!("ALM install request failed: {e}"))?;
         let install_status = resp.status();
         if !install_status.is_success() {
-            let body = resp.text().await.unwrap_or_default();
+            let body = match resp.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Could not read ALM install error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!(
                 "ALM install returned {}: {}",
                 install_status,
@@ -221,7 +233,13 @@ async fn try_alm_api_setup(
         .map_err(|e| anyhow::anyhow!("ALM token request failed: {e}"))?;
     let token_status = token_resp.status();
     if token_status.is_success() {
-        let body: serde_json::Value = token_resp.json().await.unwrap_or_default();
+        let body: serde_json::Value = match token_resp.json().await {
+            Ok(body) => body,
+            Err(e) => {
+                log::warn!("Could not parse ALM API token response: {e}");
+                serde_json::Value::Null
+            }
+        };
         if let Some(tok) = body.get("sha1").and_then(|v| v.as_str()) {
             info!("ALM API token minted for user {username}");
             return Ok(tok.to_string());

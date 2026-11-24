@@ -70,7 +70,7 @@ fn connected_providers(state: &Arc<AppState>, bot_uuid: Uuid) -> Vec<(String, us
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
         .load(&mut conn)
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         rows.into_iter()
             .map(|row| {
                 let count =

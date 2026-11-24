@@ -1,9 +1,13 @@
 use super::*;
 
 pub(super) fn count_rows(conn: &mut diesel::PgConnection, sql: &str) -> Vec<CountRow> {
-    diesel::sql_query(sql)
-        .load::<CountRow>(conn)
-        .unwrap_or_default()
+    match diesel::sql_query(sql).load::<CountRow>(conn) {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("report query failed: {error}");
+            Vec::new()
+        }
+    }
 }
 pub(super) fn money(value: Option<&bigdecimal::BigDecimal>) -> String {
     value

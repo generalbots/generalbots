@@ -54,7 +54,7 @@ pub async fn handle_timeseries_messages(
 ) -> impl IntoResponse {
     let conn = pool.clone();
 
-    let hourly_data = tokio::task::spawn_blocking(move || {
+    let hourly_data = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -63,7 +63,7 @@ pub async fn handle_timeseries_messages(
             }
         };
 
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as count
              FROM message_history
              WHERE created_at > NOW() - INTERVAL '24 hours'
@@ -71,10 +71,22 @@ pub async fn handle_timeseries_messages(
              ORDER BY hour",
         )
         .load::<HourlyCount>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(error) => {
+                log::warn!("hourly message count query failed: {error}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("hourly activity task failed: {error}");
+            Vec::new()
+        }
+    };
 
     let hours: Vec<i32> = (0..24).collect();
     let mut counts: Vec<i64> = vec![0; 24];
@@ -136,7 +148,7 @@ pub async fn handle_timeseries_response(
         avg_time: Option<f64>,
     }
 
-    let hourly_data = tokio::task::spawn_blocking(move || {
+    let hourly_data = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -145,7 +157,7 @@ pub async fn handle_timeseries_response(
             }
         };
 
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT EXTRACT(HOUR FROM created_at) as hour,
              AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg_time
              FROM message_history
@@ -154,10 +166,22 @@ pub async fn handle_timeseries_response(
              ORDER BY hour",
         )
         .load::<HourlyAvg>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(error) => {
+                log::warn!("hourly response time query failed: {error}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("timeseries task failed: {error}");
+            Vec::new()
+        }
+    };
 
     let mut avgs: Vec<f64> = vec![0.0; 24];
 
@@ -189,7 +213,7 @@ pub async fn handle_channels_distribution(State(pool): State<Arc<DbPool>>) -> im
         count: i64,
     }
 
-    let channel_data = tokio::task::spawn_blocking(move || {
+    let channel_data = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -198,7 +222,7 @@ pub async fn handle_channels_distribution(State(pool): State<Arc<DbPool>>) -> im
             }
         };
 
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT COALESCE(channel, 'web') as channel, COUNT(*) as count
              FROM sessions
              WHERE created_at > NOW() - INTERVAL '7 days'
@@ -207,10 +231,22 @@ pub async fn handle_channels_distribution(State(pool): State<Arc<DbPool>>) -> im
              LIMIT 5",
         )
         .load::<ChannelCount>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(error) => {
+                log::warn!("channel distribution query failed: {error}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("channel distribution task failed: {error}");
+            Vec::new()
+        }
+    };
 
     let total: i64 = channel_data.iter().map(|c| c.count).sum();
     let colors = ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -270,7 +306,7 @@ pub async fn handle_bots_performance(State(pool): State<Arc<DbPool>>) -> impl In
         count: i64,
     }
 
-    let bot_data = tokio::task::spawn_blocking(move || {
+    let bot_data = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -279,7 +315,7 @@ pub async fn handle_bots_performance(State(pool): State<Arc<DbPool>>) -> impl In
             }
         };
 
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT b.name, COUNT(mh.id) as count
              FROM bots b
              LEFT JOIN sessions s ON s.bot_id = b.id
@@ -290,10 +326,22 @@ pub async fn handle_bots_performance(State(pool): State<Arc<DbPool>>) -> impl In
              LIMIT 5",
         )
         .load::<BotStats>(&mut db_conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(error) => {
+                log::warn!("bot performance query failed: {error}");
+                Vec::new()
+            }
+        }
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("bot performance task failed: {error}");
+            Vec::new()
+        }
+    };
 
     let max_count = bot_data.iter().map(|b| b.count).max().unwrap_or(1).max(1);
 

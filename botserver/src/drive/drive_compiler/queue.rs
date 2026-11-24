@@ -253,7 +253,7 @@ pub(crate) fn git_owned_bots(
         "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND vp.source_control = 'git'",
     )
     .load::<Row>(conn)
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     .into_iter()
     .map(|r| (r.branch_slug, r.name))
     .collect()

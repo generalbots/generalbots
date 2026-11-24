@@ -165,7 +165,7 @@ pub(in crate::core::bot::api_catalog) async fn list_payments(state: &Arc<AppStat
             json!({
                 "payment_id": r.payment_id,
                 "payment_number": r.payment_number,
-                "payer_name": r.payer_name.unwrap_or_default(),
+                "payer_name": r.payer_name.unwrap_or(Default::default()),
                 "status": r.status,
                 "amount": r.amount.to_string(),
                 "invoice_id": r.invoice_id,

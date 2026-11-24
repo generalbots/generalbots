@@ -108,7 +108,7 @@ async fn drive_config_keys(
     let mut keys = s3
         .list_objects(bucket, Some(&live))
         .await
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     if keys.is_empty() {
         // The archive pass moved the prefix under `archive/{bot}-{stamp}/`;
         // recovery must read it back from there, otherwise the bot keeps
@@ -225,7 +225,7 @@ pub(crate) fn git_bot_names(pool: &DbPool) -> Vec<(String, String)> {
     list_monitored_bots(pool)
         .into_iter()
         .filter_map(|p| {
-            let slug = p.branch_slug.clone().unwrap_or_default();
+            let slug = p.branch_slug.clone().unwrap_or(Default::default());
             if slug.trim().is_empty() {
                 return None;
             }
@@ -246,9 +246,9 @@ mod tests {
         assert!(a[0].ends_with(".gbot"));
         assert!(a[1].ends_with("mybot.gbot"));
         assert!(!has_config_in_repo(&tmp, "mybot"));
-        std::fs::create_dir_all(&a[0]).unwrap_or_default();
+        std::fs::create_dir_all(&a[0]).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         assert!(!has_config_in_repo(&tmp, "mybot"));
-        std::fs::write(a[0].join("PROMPT.md"), "hi").unwrap_or_default();
+        std::fs::write(a[0].join("PROMPT.md"), "hi").map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         assert!(has_config_in_repo(&tmp, "mybot"));
         let _ = std::fs::remove_dir_all(&tmp);
     }

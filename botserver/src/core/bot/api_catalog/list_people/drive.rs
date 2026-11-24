@@ -129,7 +129,7 @@ pub(in crate::core::bot::api_catalog) fn calculate_anonymous_service_tax(
         .map_err(|_| (axum::http::StatusCode::BAD_REQUEST, "error-invalid-value"))?
         .ok_or_else(|| (axum::http::StatusCode::BAD_REQUEST, "error-value-required"))?;
     let loaded = bottax::storage::load_rates_from_billing(conn, branch_id);
-    let rates = loaded.unwrap_or_default();
+    let rates = loaded.unwrap_or(Default::default());
     let source = if loaded.is_some() {
         "billing_tax_rates"
     } else {

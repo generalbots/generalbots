@@ -121,14 +121,20 @@ pub fn handlers_for(pool: &DbPool, bot_id: Uuid, event_name: &str) -> Vec<String
     let Ok(mut conn) = pool.get() else {
         return Vec::new();
     };
-    system_automations::table
+    match system_automations::table
         .filter(system_automations::bot_id.eq(bot_id))
         .filter(system_automations::kind.eq(kind as i32))
         .filter(system_automations::target.eq(event_name))
         .filter(system_automations::is_active.eq(true))
         .select(system_automations::param)
         .load::<String>(&mut conn)
-        .unwrap_or_default()
+    {
+        Ok(handlers) => handlers,
+        Err(e) => {
+            log::warn!("Could not load event handlers for {event_name}: {e}");
+            Vec::new()
+        }
+    }
 }
 
 /// Record an event for later dispatch. Failures are reported, never fatal: the
@@ -189,15 +195,21 @@ pub fn pending_events(pool: &DbPool, limit: i64) -> Vec<PendingEvent> {
     let Ok(mut conn) = pool.get() else {
         return Vec::new();
     };
-    diesel::sql_query(
+    let rows = match diesel::sql_query(
         "SELECT id, workflow_id, event_name, event_data_json FROM workflow_events \
          WHERE processed = FALSE \
          ORDER BY created_at ASC LIMIT $1",
     )
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<Row>(&mut conn)
-    .unwrap_or_default()
-    .into_iter()
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("Could not load pending channel events: {e}");
+            Vec::new()
+        }
+    };
+    rows.into_iter()
         .map(|row| PendingEvent {
             id: row.id,
             // `publish` stores the bot in `workflow_id` (see the INSERT above).

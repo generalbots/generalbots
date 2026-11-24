@@ -99,7 +99,7 @@ fn botmodels_endpoint(state: &Arc<AppState>, bot_uuid: Uuid) -> Option<(String, 
         .ok()
         .filter(|key| !key.trim().is_empty())
         .or_else(|| std::env::var("BOTMODELS_API_KEY").ok())
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     Some((base.trim_end_matches('/').to_string(), key))
 }
@@ -150,7 +150,7 @@ pub(crate) async fn describe_media_locally(
     };
     if !response.status().is_success() {
         let status = response.status();
-        let body = response.text().await.unwrap_or_default();
+        let body = response.text().await.map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         log::warn!("botmodels media request for {fname} returned {status}: {body}");
         return None;
     }

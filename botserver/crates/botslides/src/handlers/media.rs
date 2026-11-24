@@ -46,11 +46,12 @@ pub async fn handle_add_media<D: DriveOps>(
     let media = match req.media.clone() {
         Some(media) => media,
         None => {
-            let src = req
-                .url
-                .clone()
-                .or_else(|| req.src.clone())
-                .unwrap_or_default();
+            // Both fields are optional by design; the explicit check below
+            // rejects an absent URL, so no warning is needed here.
+            let src = match req.url.clone().or_else(|| req.src.clone()) {
+                Some(src) => src,
+                None => String::new(),
+            };
             if src.trim().is_empty() {
                 return Err((
                     StatusCode::UNPROCESSABLE_ENTITY,
@@ -218,7 +219,13 @@ pub async fn handle_list_media<D: DriveOps>(
     user: SlidesUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListMediaResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let presentation_id = match params.get("presentation_id") {
+        Some(id) => id.clone(),
+        None => {
+            log::warn!("slides list-media: missing presentation_id query parameter");
+            String::new()
+        }
+    };
     let slide_index: usize = params
         .get("slide_index")
         .and_then(|s| s.parse().ok())
@@ -248,9 +255,10 @@ pub async fn handle_list_media<D: DriveOps>(
         ));
     }
 
-    let media = presentation.slides[slide_index]
-        .media
-        .clone()
-        .unwrap_or_default();
+    // A slide without media is normal; return an empty list, not a warning.
+    let media = match presentation.slides[slide_index].media.clone() {
+        Some(media) => media,
+        None => Vec::new(),
+    };
     Ok(Json(ListMediaResponse { media }))
 }

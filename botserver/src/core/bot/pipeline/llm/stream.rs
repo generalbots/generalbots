@@ -68,8 +68,8 @@ async fn stream_llm_response_inner(
         return Ok(());
     }
 
-    let env_key = std::env::var("LLM_KEY").unwrap_or_default();
-    let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
+    let env_key = std::env::var("LLM_KEY").unwrap_or(Default::default());
+    let env_model = std::env::var("LLM_MODEL").unwrap_or(Default::default());
     match bot_llm_provider.or_else(|| {
         state
             .llm_provider

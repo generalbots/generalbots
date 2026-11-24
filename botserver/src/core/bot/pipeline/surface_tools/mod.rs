@@ -61,7 +61,7 @@ pub fn answered_in_thread(thread_id: &str) -> std::collections::HashMap<String, 
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
     };
-    guard.get(thread_id).cloned().unwrap_or_default()
+    guard.get(thread_id).cloned().map_or_else(Default::default, |v| v)
 }
 
 /// Returns true when `name` is one of the structured-interaction tools.

@@ -8,7 +8,10 @@ pub(crate) fn record_to_objective(record: ObjectiveRecord) -> Objective {
         owner_name: None,
         parent_id: record.parent_id,
         title: record.title,
-        description: record.description.unwrap_or_default(),
+        description: match record.description {
+            Some(description) => description,
+            None => String::new(),
+        },
         period: record.period,
         period_start: record.period_start,
         period_end: record.period_end,
@@ -47,7 +50,10 @@ pub(crate) fn record_to_checkin(record: CheckInRecord) -> CheckIn {
         user_id: record.user_id,
         previous_value: record.previous_value.and_then(|v| v.to_f64()).unwrap_or(0.0),
         new_value: record.new_value.to_f64().unwrap_or(0.0),
-        note: record.note.unwrap_or_default(),
+        note: match record.note {
+            Some(note) => note,
+            None => String::new(),
+        },
         confidence: Confidence::from_label(record.confidence.as_deref().unwrap_or("medium")),
         blockers: record.blockers,
         created_at: record.created_at,

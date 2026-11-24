@@ -15,7 +15,7 @@ pub async fn get_public_bot_config(
 
     let mut map: HashMap<String, String> = HashMap::new();
     let Some(name) = params.get("bot_name") else {
-        return Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()));
+        return Ok(axum::Json(serde_json::to_value(&map).unwrap_or(Default::default())));
     };
 
     let bot: Option<(Uuid, bool)> = bots::table
@@ -42,7 +42,7 @@ pub async fn get_public_bot_config(
     if !is_public {
         // Private bot: anonymous callers learn nothing beyond the visibility
         // flag (the chat page uses it to force the login redirect).
-        return Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()));
+        return Ok(axum::Json(serde_json::to_value(&map).unwrap_or(Default::default())));
     }
 
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
@@ -64,5 +64,5 @@ pub async fn get_public_bot_config(
             map.insert(key.to_string(), value.clone());
         }
     }
-    Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
+    Ok(axum::Json(serde_json::to_value(&map).unwrap_or(Default::default())))
 }

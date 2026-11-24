@@ -42,18 +42,18 @@ fn drive_link_encodes_the_folder_key() {
         .split("path=")
         .nth(1)
         .and_then(|rest| rest.split('&').next())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let decoded = urlencoding::decode(encoded)
         .ok()
         .map(|value| value.into_owned())
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     assert_eq!(decoded, "beiner.gbdrive/conversations/q3 2026");
     assert!(encoded.contains("%2F"), "slashes must be encoded: {link}");
     let bucket = link
         .split("bucket=")
         .nth(1)
         .and_then(|s| s.strip_suffix(')'))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     assert_eq!(bucket, "beiner.gbai");
 }
 

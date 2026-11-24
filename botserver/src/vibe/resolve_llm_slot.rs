@@ -119,7 +119,7 @@ impl VibeStateImpl {
         if value(&format!("{prefix}provider")).is_some() {
             let model = value(&format!("{prefix}model"));
             let url = value(&format!("{prefix}url"));
-            let key = value(&format!("{prefix}key")).unwrap_or_default();
+            let key = value(&format!("{prefix}key")).unwrap_or(Default::default());
             if let (Some(model), Some(url)) = (model, url) {
                 return Some(LlmConfig { model, key, url });
             }
@@ -134,8 +134,8 @@ impl VibeStateImpl {
         }
         let per_bot = value("llm-model").map(|model| LlmConfig {
                 model,
-                key: value("llm-key").unwrap_or_default(),
-                url: value("llm-url").unwrap_or_default(),
+                key: value("llm-key").map_or_else(Default::default, |v| v),
+                url: value("llm-url").map_or_else(Default::default, |v| v),
             });
         // The per-bot path can resolve a model (Drive config.csv) while its
         // Vault secret lacks the key/url — that must NOT shadow the global
@@ -153,7 +153,7 @@ impl VibeStateImpl {
                 if !cfg.url.is_empty() {
                     let merged = LlmConfig {
                         model: if cfg.model.is_empty() { g_model.clone() } else { cfg.model.clone() },
-                        key: if cfg.key.is_empty() { g_key.clone().unwrap_or_default() } else { cfg.key },
+                        key: if cfg.key.is_empty() { g_key.clone().unwrap_or(Default::default()) } else { cfg.key },
                         url: cfg.url,
                     };
                     if !merged.url.is_empty() && !merged.model.is_empty() {
@@ -165,7 +165,7 @@ impl VibeStateImpl {
             if !g_url.is_empty() && !g_model.is_empty() {
                 return Some(LlmConfig {
                     model: g_model,
-                    key: g_key.unwrap_or_default(),
+                    key: g_key.unwrap_or(Default::default()),
                     url: g_url,
                 });
             }

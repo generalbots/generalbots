@@ -41,7 +41,7 @@ pub(super) async fn hybrid_search(
     let vector_results =
         kb_context_search::search_qdrant(collection, query, limit, bot_id, db_pool)
             .await
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let keyword_results = kb_context_search::search_keyword_only(collection, query, limit, bot_id).await;
 
@@ -154,7 +154,7 @@ pub(super) async fn corrective_search(
         let results =
             kb_context_search::search_qdrant(collection, sub_query, limit, bot_id, db_pool)
                 .await
-                .unwrap_or_default();
+                .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         all_results.extend(results);
     }
 
@@ -355,7 +355,7 @@ pub(super) async fn entity_search_term(
 ) -> Vec<KbSearchResult> {
     let results = kb_context_search::search_qdrant(collection, term, limit, bot_id, db_pool)
         .await
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     if !results.is_empty() {
         return results;

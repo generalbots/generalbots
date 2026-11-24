@@ -215,12 +215,8 @@ fn chart(data: &TrafficData) -> String {
         }
     }
 
-    let start_label = first
-        .map(|ts| ts.format("%H:%M").to_string())
-        .unwrap_or_default();
-    let end_label = last
-        .map(|ts| ts.format("%H:%M").to_string())
-        .unwrap_or_default();
+    let start_label = first.map_or_else(String::new, |ts| ts.format("%H:%M").to_string());
+    let end_label = last.map_or_else(String::new, |ts| ts.format("%H:%M").to_string());
 
     format!(
         "<svg class=\"ops-chart\" viewBox=\"0 0 600 160\" role=\"img\" aria-label=\"Turns over time with deploy markers\">

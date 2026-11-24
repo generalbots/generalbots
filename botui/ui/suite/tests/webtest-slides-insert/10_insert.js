@@ -158,7 +158,7 @@ test("RUNTIME: setCategory updates tab state and renders catalog order", functio
   hub.close();
 });
 
-test("RUNTIME: selecting a layout previews it, enables insert and marks one card", function () {
+test("[UAT:SLIDE-02] RUNTIME: selecting a layout previews it, enables insert and marks one card", function () {
   env.reset();
   hub.open();
   hub.setCategory("layouts");

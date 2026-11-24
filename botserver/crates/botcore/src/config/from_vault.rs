@@ -18,7 +18,10 @@ impl DriveConfig {
                     .filter(|s| !s.is_empty())
             })
             .ok_or_else(|| "VAULT_TOKEN not set".to_string())?;
-        let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+        let ca_cert = match std::env::var("VAULT_CACERT") {
+            Ok(cert) => cert,
+            Err(_) => String::new(),
+        };
         let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
 
         let mut curl_args = vec!["-sf"];
@@ -115,7 +118,10 @@ impl DriveConfig {
         // optional so the MinIO-only deployment is unchanged.
         let region = std::env::var("MINIO_REGION").unwrap_or_else(|_| "auto".to_string());
         let backend = std::env::var("MINIO_BACKEND").unwrap_or_else(|_| "minio".to_string());
-        let fallback_endpoint = std::env::var("MINIO_FALLBACK_ENDPOINT").unwrap_or_default();
+        let fallback_endpoint = match std::env::var("MINIO_FALLBACK_ENDPOINT") {
+            Ok(endpoint) => endpoint,
+            Err(_) => String::new(),
+        };
 
         Ok(Self {
             endpoint,

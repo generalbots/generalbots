@@ -86,7 +86,7 @@ async fn run_ttft(
     )
     .bind::<diesel::sql_types::Integer, _>(hours)
     .load::<SampleRow>(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let samples: Vec<u64> = rows
         .iter()

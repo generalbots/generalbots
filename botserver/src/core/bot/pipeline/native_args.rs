@@ -209,7 +209,7 @@ mod tests {
         let raw = "{\"language\":\"python\",\"code\":\"from reportlab.pdfgen import canvas\nc = canvas.Canvas(\\\"out.pdf\\\")\nc.drawString(72, 720, \\\"Hello\\\")\nprint(\\\"done\\\")\"}";
         let value = parse_args(raw).expect("salvaged");
         assert_eq!(value["language"], "python");
-        let code = value["code"].as_str().unwrap_or_default();
+        let code = value["code"].as_str().map_or_else(Default::default, |v| v);
         assert!(code.contains("canvas.Canvas(\"out.pdf\")"), "got: {code}");
         assert!(code.contains("print(\"done\")"), "got: {code}");
         assert!(!code.contains("\\\""), "escapes must be resolved: {code}");
@@ -219,7 +219,7 @@ mod tests {
     fn recovers_program_with_raw_quotes_and_newlines() {
         let raw = "{\"language\": \"python\", \"code\": \"line1 = \\\"a\\\"\nline2 = \\\"b\\\"\nprint(line1)\"}";
         let value = parse_args(raw).expect("salvaged");
-        let code = value["code"].as_str().unwrap_or_default();
+        let code = value["code"].as_str().map_or_else(Default::default, |v| v);
         assert_eq!(code, "line1 = \"a\"\nline2 = \"b\"\nprint(line1)");
     }
 }

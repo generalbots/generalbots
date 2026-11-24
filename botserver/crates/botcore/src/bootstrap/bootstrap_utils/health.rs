@@ -35,7 +35,10 @@ fn port_listening(port: u16) -> Option<bool> {
 
 /// Check if vault is healthy
 pub fn vault_health_check() -> bool {
-    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    let vault_addr = match std::env::var("VAULT_ADDR") {
+        Ok(addr) => addr,
+        Err(_) => String::new(),
+    };
     if vault_addr.is_empty() {
         return false;
     }

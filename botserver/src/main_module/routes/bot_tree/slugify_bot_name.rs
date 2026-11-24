@@ -181,7 +181,7 @@ pub async fn handle_bots_list(
     let rows: Vec<BotRow> = if caller_is_platform_admin(&req, &state) {
         diesel::sql_query("SELECT id, name FROM bots ORDER BY name ASC LIMIT 100")
             .load::<BotRow>(&mut conn)
-            .unwrap_or_default()
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     } else {
         diesel::sql_query(
             "SELECT b.id, b.name FROM bots b \
@@ -191,7 +191,7 @@ pub async fn handle_bots_list(
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
         .load::<BotRow>(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     };
 
     let bots: Vec<serde_json::Value> = rows
@@ -233,7 +233,7 @@ pub async fn handle_bots_tree(
             "SELECT id, name, description, parent_bot_id FROM bots ORDER BY name ASC LIMIT 200",
         )
         .load::<BotRow>(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     } else {
         diesel::sql_query(
             "SELECT b.id, b.name, b.description, b.parent_bot_id FROM bots b \
@@ -243,7 +243,7 @@ pub async fn handle_bots_tree(
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
         .load::<BotRow>(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     };
 
     if rows.is_empty() {
@@ -265,7 +265,7 @@ pub async fn handle_bots_tree(
             .description
             .as_deref()
             .map(|d| format!("<span class=\"bot-desc\">{}</span>", html_escape(d)))
-            .unwrap_or_default();
+            .unwrap_or(Default::default());
 
         let toggle = if children.is_empty() {
             String::new()

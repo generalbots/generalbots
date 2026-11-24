@@ -190,9 +190,13 @@ pub async fn handle_search_documents(
 ) -> Result<Json<Vec<DocumentMetadata>>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = user.id().to_string();
 
-    let docs = list_documents_from_drive(&state, &user_id)
-        .await
-        .unwrap_or_default();
+    let docs = match list_documents_from_drive(&state, &user_id).await {
+        Ok(docs) => docs,
+        Err(e) => {
+            log::warn!("Failed to list documents for search: {e}");
+            Vec::new()
+        }
+    };
 
     let filtered = if let Some(q) = query.q {
         let q_lower = q.to_lowercase();
@@ -305,6 +309,7 @@ pub async fn handle_delete_document(
             ),
         ));
     }
+    state.remove_from_kb(&doc_id); // #2499 — evict points from retrieval
 
     Ok(Json(DocsSaveResponse {
         id: doc_id,

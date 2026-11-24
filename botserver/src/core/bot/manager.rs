@@ -251,7 +251,7 @@ END IF
             status: BotStatus::Active,
             bucket: bucket_name.clone(),
             custom_ui: request.custom_ui,
-            settings: request.settings.unwrap_or_default(),
+            settings: request.settings.unwrap_or(Default::default()),
             access: BotAccess {
                 admins: vec![request.created_by],
                 ..Default::default()

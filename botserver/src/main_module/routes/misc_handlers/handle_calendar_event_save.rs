@@ -129,7 +129,7 @@ pub async fn handle_calendar_event_save(
     headers: axum::http::HeaderMap,
     Form(payload): Form<SaveEventRequest>,
 ) -> impl IntoResponse {
-    let title = payload.title.unwrap_or_default();
+    let title = payload.title.unwrap_or(Default::default());
     if title.trim().is_empty() {
         return Html("<div class=\"calendar-error\">Title is required</div>".to_string());
     }
@@ -205,8 +205,8 @@ pub async fn handle_calendar_event_save(
         }
     };
 
-    let start_str = payload.start.unwrap_or_default();
-    let end_str = payload.end.unwrap_or_default();
+    let start_str = payload.start.unwrap_or(Default::default());
+    let end_str = payload.end.unwrap_or(Default::default());
     let parse = |s: &str| -> Option<chrono::DateTime<Utc>> {
         if s.is_empty() {
             return None;

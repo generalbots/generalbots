@@ -216,7 +216,13 @@ pub async fn handle_list_comments(
     user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListCommentsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let doc_id = match params.get("doc_id") {
+        Some(value) => value.clone(),
+        None => {
+            log::warn!("[docs] comments list request without doc_id");
+            String::new()
+        }
+    };
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
@@ -236,6 +242,9 @@ pub async fn handle_list_comments(
         }
     };
 
-    let comments = doc.comments.unwrap_or_default();
+    let comments = match doc.comments {
+        Some(comments) => comments,
+        None => Vec::new(),
+    };
     Ok(Json(ListCommentsResponse { comments }))
 }

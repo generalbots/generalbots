@@ -123,7 +123,7 @@ test("highlightDuplicates builds a duplicates rule", function () {
   equal(p.style.color, "#000000");
 });
 
-test("colorScale builds a gradient rule with documented default colours", function () {
+test("[UAT:SHEET-03] colorScale builds a gradient rule with documented default colours", function () {
   env.reset();
   env.setSelection(SEL);
   C.colorScale();

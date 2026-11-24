@@ -75,7 +75,7 @@ test("a >0 rule paints only positive cells green", function () {
   equal(bg(g.node(0, 3)), GREEN.background);
 });
 
-test("opposing <0 red and >0 green rules compose on one 12-column balance row", function () {
+test("[UAT:SHEET-06] opposing <0 red and >0 green rules compose on one 12-column balance row", function () {
   var g = env.makeGrid(1, 12, 1);
   var values = [-500, 200, 0, -30, 900, 0, 45, -12, 300, 0, -75, 600];
   values.forEach(function (v, c) { g.set(0, c, v); });

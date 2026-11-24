@@ -216,7 +216,7 @@ h.test("overlay arrows respect direction, sheet filter and MAX_ARROWS", function
   O.clearArrows();
 });
 
-h.test("show-formulas swaps rendered text, preserves the cached value and emits an event", function () {
+h.test("[UAT:SHEET-07] show-formulas swaps rendered text, preserves the cached value and emits an event", function () {
   var cell = h.makeNode("div");
   cell.dataset.row = "0";
   cell.dataset.col = "0";

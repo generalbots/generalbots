@@ -75,7 +75,7 @@ pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
     user: SlidesUser,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Html<String>, SlidesUnauthorized> {
-    let pid = params.get("id").cloned().unwrap_or_default();
+    let pid = params.get("id").map_or_else(String::new, Clone::clone);
     if pid.is_empty() {
         return Ok(Html(super::err_fragment("id ausente")));
     }
@@ -108,7 +108,7 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
     let id = payload
         .get("id")
         .and_then(|v| v.as_str())
-        .unwrap_or_default();
+        .map_or_else(String::new, str::to_string);
     let requested_slide = payload
         .get("slide_index")
         .or_else(|| payload.get("slide"))
@@ -124,7 +124,7 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
             })
         })
         .unwrap_or(false);
-    match super::get_bridge::load_or_blank(&state, user.owner_id(), id, transient_new).await {
+    match super::get_bridge::load_or_blank(&state, user.owner_id(), &id, transient_new).await {
         Ok(pres) => Ok(Html(render_presentation_view(&pres, requested_slide))),
         Err(message) => Ok(Html(super::err_fragment(&message))),
     }
@@ -142,7 +142,7 @@ pub fn render_presentation_view(pres: &Presentation, requested: usize) -> String
     let bg = pres.theme.colors.background.clone();
     let primary = pres.theme.colors.primary.clone();
     let current_slide = pres.slides.get(current);
-    let slide_html = current_slide.map(render_slide).unwrap_or_default();
+    let slide_html = current_slide.map_or_else(String::new, render_slide);
     format!(
         r##"<div class="sl-view" id="slides-view" data-presentation-id="{id}" data-current-slide="{cur0}">
 <div class="sl-view-header" style="padding:12px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:#0f172a;">
@@ -189,7 +189,7 @@ pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> 
         .and_then(|v| v.as_str())
         .unwrap_or("");
     let idx = payload.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
-    let slide_html = slide.as_ref().map(render_slide).unwrap_or_default();
+    let slide_html = slide.as_ref().map_or_else(String::new, render_slide);
     let bg = slide
         .as_ref()
         .and_then(|s| s.background.color.clone())
@@ -275,7 +275,10 @@ pub(crate) fn render_chart_html(title: &str, data: &crate::types::ChartData) -> 
                 stops = stops
             ));
             for (index, value) in values.iter().enumerate() {
-                let label = data.labels.get(index).cloned().unwrap_or_default();
+                let label = data
+                    .labels
+                    .get(index)
+                    .map_or_else(String::new, Clone::clone);
                 html.push_str(&format!(
                     r#"<span><b style="color:{color};">&#9632;</b> {label}: {value}</span>"#,
                     color = palette[index % palette.len()],
@@ -327,7 +330,10 @@ pub(crate) fn render_chart_html(title: &str, data: &crate::types::ChartData) -> 
             );
             for (index, value) in values.iter().enumerate() {
                 let height = ((value / max) * 100.0).clamp(2.0, 100.0);
-                let label = data.labels.get(index).cloned().unwrap_or_default();
+                let label = data
+                    .labels
+                    .get(index)
+                    .map_or_else(String::new, Clone::clone);
                 html.push_str(&format!(
                     r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
                     height = height,
@@ -365,7 +371,11 @@ pub(super) fn render_slide(slide: &Slide) -> String {
             .font_family
             .clone()
             .unwrap_or_else(|| "Arial".to_string());
-        let text = e.content.text.clone().unwrap_or_default();
+        let text = e
+            .content
+            .text
+            .as_ref()
+            .map_or_else(String::new, Clone::clone);
         let text_align = e
             .style
             .text_align
@@ -387,7 +397,11 @@ pub(super) fn render_slide(slide: &Slide) -> String {
                 .map(|data| render_chart_html(&text, data))
                 .unwrap_or_else(|| html_escape(&text)),
             "image" => {
-                let src = e.content.src.clone().unwrap_or_default();
+                let src = e
+                    .content
+                    .src
+                    .as_ref()
+                    .map_or_else(String::new, Clone::clone);
                 if src.is_empty() {
                     String::new()
                 } else {

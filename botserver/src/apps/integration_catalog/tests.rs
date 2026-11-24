@@ -49,7 +49,7 @@ fn every_provider_publishes_a_vendor_link_and_numbered_setup_guide() {
     // providers (which explain why no credential should be collected).
     let catalog = search(None, None, None);
     for provider in &catalog.providers {
-        let docs = provider.official_docs.unwrap_or_default();
+        let docs = provider.official_docs.unwrap_or(Default::default());
         assert!(
             docs.starts_with("https://"),
             "{} must publish an https vendor help link, got {docs:?}",
@@ -88,7 +88,7 @@ fn supported_providers_publish_a_direct_credentials_page() {
             )
             && provider.id != "openai-compatible";
         if needs_credentials {
-            let url = provider.credentials_url.unwrap_or_default();
+            let url = provider.credentials_url.unwrap_or(Default::default());
             assert!(
                 url.starts_with("https://"),
                 "{} must publish an https credential page, got {url:?}",

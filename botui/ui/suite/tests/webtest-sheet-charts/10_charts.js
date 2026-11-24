@@ -221,7 +221,7 @@ test("cellValue reads vm-native Map cells", function () {
   equal(g.data.cellValue(0, 0), 7);
   equal(g.data.cellValue(3, 3), "");
 });
-test("bindRange reads labels, header and series from a fake sheet", function () {
+test("[UAT:SHEET-02] bindRange reads labels, header and series from a fake sheet", function () {
   useGrid(labelledGrid());
   deep(g.data.bindRange("A1:B3"), {
     range: "A1:B3", labels: ["North", "South"],

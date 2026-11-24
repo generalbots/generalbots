@@ -21,7 +21,10 @@ impl BootstrapManager {
     pub async fn install_all(&mut self) -> anyhow::Result<()> {
         // If VAULT_ADDR is set and points to a remote server, skip local installation
         // All services are assumed to be running in separate containers
-        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let vault_addr = match std::env::var("VAULT_ADDR") {
+            Ok(addr) => addr,
+            Err(_) => String::new(),
+        };
         let is_remote_vault = !vault_addr.is_empty()
             && !vault_addr.contains("localhost")
             && !vault_addr.contains("127.0.0.1");

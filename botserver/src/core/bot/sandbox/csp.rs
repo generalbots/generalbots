@@ -83,7 +83,7 @@ fn strings(value: Option<&Value>) -> Vec<String> {
                 .filter_map(safe_source)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 fn domains(value: Option<&Value>) -> Vec<String> {
@@ -110,7 +110,7 @@ fn permission_names(value: Option<&Value>) -> Vec<String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 /// Accepts explicit https/wss origins plus loopback http for development.

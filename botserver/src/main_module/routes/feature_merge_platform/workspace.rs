@@ -61,8 +61,8 @@ pub(super) async fn merge_workspace(
             .get_result(&mut conn);
             match row {
                 Ok(row) => (
-                    uuid::Uuid::parse_str(&row.org_id).unwrap_or_default(),
-                    uuid::Uuid::parse_str(&row.branch_id).unwrap_or_default(),
+                    uuid::Uuid::parse_str(&row.org_id).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
+                    uuid::Uuid::parse_str(&row.branch_id).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
                 ),
                 Err(error) => {
                     log::warn!("goals: default bot tenant context unavailable: {error}");

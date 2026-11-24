@@ -6,7 +6,7 @@ h.test("CALCULATOR: files exist", function () {
   h.assert(h.fileExists("calculator/calculator.html"), "calculator.html missing");
 });
 
-h.test("CALCULATOR: mounts after load (readyState complete)", function () {
+h.test("[UAT:CALC-02] CALCULATOR: mounts after load (readyState complete)", function () {
   var src = h.readFile("calculator/modules/99_init.js");
   h.assert(/readyState/.test(src) || src.indexOf("DOMContentLoaded") === -1, "calculator init should be mount-safe");
   var ids = ["gb-calc-root","gb-calc-expr","gb-calc-preview","gb-calc-pad","gb-calc-sci","gb-calc-converter","gb-calc-copy","gb-calc-history-btn","gb-calc-history","gb-calc-history-list","gb-calc-history-clear","gb-calc-angle","gb-calc-memory-indicator","gb-tab-standard","gb-tab-scientific","gb-tab-convert","gb-calc-conv-cat","gb-calc-conv-amt","gb-calc-conv-from","gb-calc-conv-to","gb-calc-conv-out","gb-calc-conv-swap"];

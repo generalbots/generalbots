@@ -229,7 +229,7 @@ pub(crate) async fn handle_api_call(
                             })
                             .collect()
                     })
-                    .unwrap_or_default();
+                    .unwrap_or(Default::default());
                 crate::core::bot::pipeline::activity::drive_list_summary(path, &entries)
             } else {
                 crate::core::bot::pipeline::activity::api_command_summary(&name, "ok")
@@ -308,7 +308,7 @@ pub(crate) async fn handle_api_call(
                      number, price, date or status that is not in the data. Never mention JSON, \
                      commands or internal details.\n\
                      {deep_link_instruction}",
-                    json = serde_json::to_string_pretty(&result).unwrap_or_default(),
+                    json = serde_json::to_string_pretty(&result).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
                     grounding = grounding,
                     deep_link_instruction = if name == "web.search" {
                         // #1547 — answers built from search results must show
@@ -426,7 +426,7 @@ pub(crate) async fn handle_api_call(
             let keys = params
                 .as_object()
                 .map(|map| map.keys().cloned().collect::<Vec<_>>().join(","))
-                .unwrap_or_default();
+                .map_or_else(Default::default, |v| v);
             log::warn!("api_call '{name}' failed: {e} (params: [{keys}])");
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),

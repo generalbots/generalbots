@@ -107,7 +107,7 @@ pub(super) fn apply_structured_answers(
         .and_then(|value| value.as_object())
     {
         super::surface_tools::record_answers(&session_id.to_string(), values);
-        let rendered = serde_json::to_string(values).unwrap_or_default();
+        let rendered = serde_json::to_string(values).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         messages.push(serde_json::json!({
             "role": "system",
             "content": format!(
@@ -116,7 +116,7 @@ pub(super) fn apply_structured_answers(
         }));
     }
     if let Some(plan) = parsed.get("plan_approval") {
-        let rendered = serde_json::to_string(plan).unwrap_or_default();
+        let rendered = serde_json::to_string(plan).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         messages.push(serde_json::json!({
             "role": "system",
             "content": format!(
@@ -148,7 +148,7 @@ pub(super) async fn apply_completed_actions(
             .get("action")
             .and_then(|value| value.as_str())
             .unwrap_or(&action.kind);
-        let result = serde_json::to_string(&action.result).unwrap_or_default();
+        let result = serde_json::to_string(&action.result).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         block.push_str(&format!("- {name}: {result}\n"));
     }
     block.push_str(
@@ -219,7 +219,7 @@ mod tests {
         let mut messages = Vec::new();
         apply_drive_listing(&mut messages, &drive_payload(None));
         assert_eq!(messages.len(), 1);
-        let content = messages[0]["content"].as_str().unwrap_or_default();
+        let content = messages[0]["content"].as_str().map_or_else(Default::default, |v| v);
         assert!(content.contains("budget.xlsx"));
         assert!(content.contains("contract.pdf"));
     }

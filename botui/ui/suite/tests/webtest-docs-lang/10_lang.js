@@ -136,7 +136,7 @@ test("RUNTIME #2484: suggestionsFor excludes the exact word and honours the limi
 
 // ── checkSpelling and its state inputs ──────────────────────────────
 
-test("RUNTIME #2484: checkSpelling flags misspelled words with ranges and suggestion fields", function () {
+test("[UAT:DOC-09] RUNTIME #2484: checkSpelling flags misspelled words with ranges and suggestion fields", function () {
   var ns = fixture().NS;
   // Build the fixture from the shipped dictionary so a CORE edit cannot turn a
   // "known" fixture word into a second false-positive issue.

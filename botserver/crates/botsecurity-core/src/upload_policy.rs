@@ -252,7 +252,13 @@ pub struct ValidatedUpload {
 /// Reduces `raw` to a safe stored filename: last path component, no control
 /// characters, no quotes or path separators, no leading dot, length-capped.
 pub fn sanitize_upload_filename(raw: &str, max_len: usize) -> Result<String, UploadError> {
-    let base = raw.rsplit(['/', '\\']).next().unwrap_or_default();
+    let base = match raw.rsplit(['/', '\\']).next() {
+        Some(base) => base,
+        None => {
+            log::warn!("upload filename has no final path component; refusing via empty base");
+            ""
+        }
+    };
     let cleaned: String = base
         .chars()
         .filter(|c| !c.is_control() && !matches!(c, '\0' | '"' | '\'' | '<' | '>' | '|' | '?' | '*'))

@@ -69,7 +69,7 @@ pub fn get_bot_table_schemas(
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Varchar, _>(&table.table_name)
             .load::<ColumnRow>(conn)
-            .unwrap_or_default()
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
             .into_iter()
             .map(|c| {
                 let field_type = &c.data_type;

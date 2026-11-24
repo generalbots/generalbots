@@ -122,7 +122,10 @@ pub async fn setup_directory() -> anyhow::Result<crate::package_manager::setup::
                             client_id: client_id.clone(),
                             client_secret: client_secret.clone(),
                             redirect_uri: secrets.get("redirect_uri").cloned().unwrap_or_else(|| "/auth/callback".to_string()),
-                            project_id: secrets.get("project_id").cloned().unwrap_or_default(),
+                            project_id: match secrets.get("project_id") {
+                                Some(project_id) => project_id.clone(),
+                                None => String::new(),
+                            },
                             api_url: secrets.get("api_url").cloned().unwrap_or_else(|| base_url.clone()),
                             service_account_key: secrets.get("service_account_key").cloned(),
                         };

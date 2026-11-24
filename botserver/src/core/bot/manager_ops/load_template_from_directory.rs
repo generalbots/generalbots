@@ -39,7 +39,7 @@ impl BotManager {
                         })
                         .collect::<Vec<_>>()
                 })
-                .unwrap_or_default()
+                .unwrap_or(Default::default())
         } else {
             Vec::new()
         };
@@ -331,5 +331,5 @@ pub async fn get_bot_config(
         );
     }
 
-    Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
+    Ok(axum::Json(serde_json::to_value(&map).unwrap_or(Default::default())))
 }

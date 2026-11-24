@@ -705,6 +705,57 @@ jobs:
           fi
           python3 scripts/check_metrics_wiring.py
 
+      # #2459 — real, PR-blocking budget gate for the office performance
+      # budgets. The boot-graph half is the strict check_boot_budget.py ratchet
+      # already wired in the `check` job (kept there to avoid a duplicate scan);
+      # this step closes the other half. check_office_memory.py --check is the
+      # strict declaration gate. The inline wrapper invokes the checker's own
+      # validate_config()/evaluate_snapshot() functions: it fails the PR if a
+      # declared RSS ceiling is loosened (shrink-only ratchet) or if the checker
+      # ever stops rejecting an over-ceiling snapshot. No RSS number is
+      # fabricated as PASS: the 4 GB soak stays UNVERIFIED until a measured
+      # snapshot is supplied by the hardware job (#2530/#2531).
+      - name: "Guard: office budget gate — memory ceilings (#2459/#2530)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_office_memory.py --check
+          python3 -c '
+          import sys
+          sys.path.insert(0, "scripts")
+          import check_office_memory as m
+          config = m.load_config()
+          problems = m.validate_config(config)
+          if problems:
+              print("invalid office memory declaration:", file=sys.stderr)
+              for problem in problems:
+                  print(f"  {problem}", file=sys.stderr)
+              sys.exit(1)
+          RATCHET = {"docs-large": 900, "sheets-large": 1200, "slides-large": 1100}
+          raised = []
+          for case, ceiling in config["rss_ceilings_mb"].items():
+              expected = RATCHET.get(case)
+              if expected is None or float(ceiling) > float(expected):
+                  raised.append(f"{case}: {expected} -> {ceiling} MB")
+          if raised:
+              print("office memory ceiling(s) loosened:", file=sys.stderr)
+              for item in raised:
+                  print(f"  {item}", file=sys.stderr)
+              sys.exit(1)
+          over = {"cases": {case: {
+              "peak_rss_mb": float(ceiling) + 1,
+              "baseline_rss_mb": 600.0,
+              "return_rss_mb": 620.0,
+              "cycles": int(config["soak"]["cycles"]),
+              "session_cache_growth_mb": 0.0,
+              "events_with_content": 0,
+          } for case, ceiling in config["rss_ceilings_mb"].items()}}
+          if m.evaluate_snapshot(config, over)["ok"]:
+              print("evaluate_snapshot accepted an over-ceiling snapshot", file=sys.stderr)
+              sys.exit(1)
+          n = len(config["rss_ceilings_mb"])
+          print(f"office memory: {n} ceilings ratcheted; over-ceiling detection OK")
+          '
+
       # #2481 — the OS image must keep Mesa/VA-API packages and the software
       # (swrast/GBM) fallback for WebKit. The guard's self-test covers its own
       # parsing; this step runs it against the shipped image recipe.

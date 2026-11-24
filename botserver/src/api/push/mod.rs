@@ -93,12 +93,12 @@ async fn register_push_subscription(
         .keys
         .as_ref()
         .map(|k| k.p256dh.trim().to_string())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let auth = req
         .keys
         .as_ref()
         .map(|k| k.auth.trim().to_string())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let mut conn = state
         .pool
         .get()

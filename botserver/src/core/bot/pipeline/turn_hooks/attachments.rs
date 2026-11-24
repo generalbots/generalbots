@@ -58,7 +58,7 @@ pub(crate) async fn ingest_attachment(
         .get("files")
         .and_then(Value::as_array)
         .cloned()
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     if files.is_empty() {
         return ingest_single_attachment(state, bot_uuid, bot_name, parsed, user_text, vision).await;
     }

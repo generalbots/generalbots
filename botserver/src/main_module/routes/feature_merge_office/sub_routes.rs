@@ -79,22 +79,27 @@ pub(super) async fn merge_office_sub_routes(
 
     #[cfg(feature = "chat")]
     {
-        *sub_router = sub_router
-            .clone()
-            .merge(crate::main_module::routes::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
         *sub_router = sub_router.clone().merge(
-            crate::main_module::routes::chat_history::configure_chat_history_routes().with_state(app_state.clone()),
+            crate::main_module::routes::chat_handlers::configure_chat_routes()
+                .with_state(app_state.clone()),
+        );
+        *sub_router = sub_router.clone().merge(
+            crate::main_module::routes::chat_history::configure_chat_history_routes()
+                .with_state(app_state.clone()),
         );
     }
 
-    *sub_router = sub_router
-        .clone()
-        .merge(crate::main_module::routes::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
-    *sub_router = sub_router
-        .clone()
-        .merge(crate::main_module::routes::bot_tree::configure_bot_tree_routes().with_state(app_state.clone()));
     *sub_router = sub_router.clone().merge(
-        crate::main_module::routes::unified_search::configure_unified_search_routes().with_state(app_state.clone()),
+        crate::main_module::routes::misc_handlers::configure_misc_routes()
+            .with_state(app_state.clone()),
+    );
+    *sub_router = sub_router.clone().merge(
+        crate::main_module::routes::bot_tree::configure_bot_tree_routes()
+            .with_state(app_state.clone()),
+    );
+    *sub_router = sub_router.clone().merge(
+        crate::main_module::routes::unified_search::configure_unified_search_routes()
+            .with_state(app_state.clone()),
     );
     #[cfg(feature = "tasks")]
     {
@@ -139,25 +144,21 @@ pub(super) async fn merge_office_sub_routes(
         // owner, so the router gets the middleware that turns the platform
         // principal into a `DocUser` (owner resolution is shared with Slides and
         // Paper in `security::office_owner`).
-        let docs_state = Arc::new(botdocs::state::DocState {
-            pool: Arc::new(app_state.conn.clone()),
-            drive: app_state
+        // #2499 — `with_in_memory_kb_index` installs the real in-memory KB indexer:
+        // structured chunks from a save are embedded locally, inserted into a
+        // shared `InMemoryKbIndex` and searchable in-process with ACL filtering.
+        // No Qdrant or external embedding service is required (and no save is
+        // made to depend on one).
+        let docs_state = Arc::new(botdocs::state::DocState::with_in_memory_kb_index(
+            Arc::new(app_state.conn.clone()),
+            app_state
                 .drive
                 .clone()
                 .unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
-            bucket_name: app_state.bucket_name.clone(),
-            history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
-            // #2499 — no runtime consumer of `UpsertPoint` exists yet, so the
-            // projection is deliberately dropped. The only KB handle on
-            // `AppState` (`kb_manager`, botcore/src/shared/state/mod.rs:112)
-            // exposes `index_document(doc_id, content)`, which is a no-op stub
-            // (botcore/src/kb/mod.rs:413) and cannot carry the projected ACL,
-            // tenant or citation. Wiring a real indexer requires editing
-            // botcore/botlib (out of this slice's ownership).
-            kb_indexer: botdocs::state::noop_kb_indexer(),
+            app_state.bucket_name.clone(),
             // #2459 — shared collector published at boot by state_builder.
-            metrics_collector: Arc::new(app_state.metrics_collector.clone()),
-        });
+            Arc::new(app_state.metrics_collector.clone()),
+        ));
 
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace
         // every account shared. On a single-user install the install owner is
@@ -193,6 +194,13 @@ pub(super) async fn merge_office_sub_routes(
                     botdocs::legacy::audit_legacy_namespace(&legacy_state).await;
                 }
             }
+            // #2499 — the in-memory KB index is empty after every restart.
+            // Replay persisted documents into it so chat/search finds them
+            // again without waiting for a re-save. Best effort, never fatal.
+            let reindexed = legacy_state.reindex_persisted_documents().await;
+            if reindexed > 0 {
+                log::info!("botdocs: reindexed {reindexed} persisted documents into KB");
+            }
         });
 
         *sub_router = sub_router.clone().merge(
@@ -211,7 +219,9 @@ pub(super) async fn merge_office_sub_routes(
                 .layer(axum::middleware::from_fn(
                     crate::paper::user_middleware::paper_user_middleware,
                 ))
-                .with_state(crate::main_module::routes::feature_routers::make_paper_state(app_state)),
+                .with_state(
+                    crate::main_module::routes::feature_routers::make_paper_state(app_state),
+                ),
         );
     }
 

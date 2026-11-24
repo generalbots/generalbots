@@ -40,7 +40,7 @@ pub(super) async fn fetch_page(url: &str) -> Result<PageContent, String> {
     let html = response.text();
     Ok(PageContent {
         url: response.final_url,
-        title: extract_tag(&html, "title").unwrap_or_default(),
+        title: extract_tag(&html, "title").unwrap_or(Default::default()),
         text: html_to_text(&html, 12_000),
     })
 }

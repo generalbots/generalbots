@@ -45,7 +45,13 @@ impl VaultConfigProvider for SecretsManagerVaultProvider {
         Ok((url, host, port, project_id))
     }
     fn get_directory_config_sync(&self) -> (String, String, String, String) {
-        self.get_directory_config().unwrap_or_default()
+        match self.get_directory_config() {
+            Ok(config) => config,
+            Err(e) => {
+                log::warn!("Could not read directory configuration: {e}");
+                Default::default()
+            }
+        }
     }
     fn get_vectordb_config_sync(&self) -> (String, Option<String>) { (String::new(), None) }
     fn get_llm_config(&self) -> (String, String, Option<String>, Option<String>, String) {

@@ -211,12 +211,18 @@ pub async fn get_dashboard(
             .get_result(&mut conn)
             .unwrap_or(0);
 
-        let objectives = okr_objectives::table
+        let objectives = match okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
             .filter(okr_objectives::branch_id.eq(branch_id))
             .select(okr_objectives::progress)
             .load::<BigDecimal>(&mut conn)
-            .unwrap_or_default();
+        {
+            Ok(objectives) => objectives,
+            Err(error) => {
+                log::warn!("goals dashboard progress query failed: {error}");
+                Vec::new()
+            }
+        };
 
         let avg_progress = if objectives.is_empty() {
             0.0
@@ -225,14 +231,20 @@ pub async fn get_dashboard(
             sum / objectives.len() as f32
         };
 
-        let upcoming_krs = okr_key_results::table
+        let upcoming_krs = match okr_key_results::table
             .filter(okr_key_results::org_id.eq(org_id))
             .filter(okr_key_results::branch_id.eq(branch_id))
             .filter(okr_key_results::due_date.is_not_null())
             .order(okr_key_results::due_date.asc())
             .limit(5)
             .load::<KeyResultRecord>(&mut conn)
-            .unwrap_or_default();
+        {
+            Ok(krs) => krs,
+            Err(error) => {
+                log::warn!("upcoming key results query failed: {error}");
+                Vec::new()
+            }
+        };
 
         let upcoming_check_ins: Vec<UpcomingCheckIn> = upcoming_krs.into_iter().map(|kr| {
             UpcomingCheckIn {
@@ -276,11 +288,17 @@ pub async fn get_alignment(
             .map_err(|e| GoalsError::Database(e.to_string()))?;
 
         let nodes: Vec<AlignmentNode> = objectives.into_iter().map(|obj| {
-            let key_results = okr_key_results::table
+            let key_results = match okr_key_results::table
                 .filter(okr_key_results::objective_id.eq(obj.id))
                 .load::<KeyResultRecord>(&mut conn)
-                .unwrap_or_default()
-                .into_iter()
+            {
+                Ok(key_results) => key_results,
+                Err(error) => {
+                    log::warn!("alignment key results query failed: {error}");
+                    Vec::new()
+                }
+            }
+            .into_iter()
                 .map(record_to_key_result)
                 .collect();
 

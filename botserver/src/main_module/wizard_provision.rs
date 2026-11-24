@@ -168,7 +168,7 @@ async fn provision_component(
             eprintln!(
                 "provision: {} reports not running (stack: {}, vault_addr: {:?})",
                 component.id,
-                std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
+                std::env::var("BOTSERVER_STACK_PATH").unwrap_or(Default::default()),
                 std::env::var("VAULT_ADDR").ok()
             );
         }
@@ -231,13 +231,13 @@ async fn provision_component(
 /// Local mode is seeded by the installer; free/own-key/hosted write the global
 /// LLM secret (a desktop install is single-user).
 async fn apply_llm_choice() {
-    let mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
+    let mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or(Default::default());
     let remote_model = !std::env::var("GB_WIZARD_LLM_URL")
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
         .trim()
         .is_empty()
         && !std::env::var("GB_WIZARD_LLM_MODEL")
-            .unwrap_or_default()
+            .unwrap_or(Default::default())
             .trim()
             .is_empty();
     let wants_local = if mode.trim().is_empty() {
@@ -248,8 +248,8 @@ async fn apply_llm_choice() {
     if wants_local {
         return;
     }
-    let url = std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default();
-    let model = std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default();
+    let url = std::env::var("GB_WIZARD_LLM_URL").unwrap_or(Default::default());
+    let model = std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or(Default::default());
     if url.trim().is_empty() || model.trim().is_empty() {
         return;
     }
@@ -263,7 +263,7 @@ async fn apply_llm_choice() {
     // the assistant's first boot, which happens after provisioning. The Vault
     // root token is already on disk from the install, so use it here instead of
     // silently dropping the model choice.
-    let stack = std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
+    let stack = std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or(Default::default()));
     if std::env::var("VAULT_TOKEN")
         .map(|v| v.trim().is_empty())
         .unwrap_or(true)
@@ -306,9 +306,9 @@ async fn apply_llm_choice() {
         // boot). Persist the choice on disk; the boot applies it before the
         // LLM provider is built, so the very first message already uses it.
         let stack =
-            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
+            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or(Default::default()));
         let path = stack.join("conf/system/model-choice.json");
-        let payload = serde_json::json!({ "url": url, "model": model, "api_key": std::env::var("GB_WIZARD_LLM_KEY").unwrap_or_default() });
+        let payload = serde_json::json!({ "url": url, "model": model, "api_key": std::env::var("GB_WIZARD_LLM_KEY").unwrap_or(Default::default()) });
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
@@ -368,7 +368,7 @@ pub async fn run() -> std::io::Result<()> {
     // ready; wait for the init file so the model choice can actually be saved.
     for _ in 0..120 {
         let stack =
-            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
+            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or(Default::default()));
         if stack.join("conf/vault/init.json").exists() {
             break;
         }

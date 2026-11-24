@@ -26,7 +26,7 @@ pub async fn enforce_stored_model(state: Arc<AppState>) {
 
     let model = cfg
         .get_config(&nil, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     // Gate: only enforce in local mode.  In free mode the nil-id llm-model
     // holds a hosted name like "dots-studio/dots-3-note-preview:free".
@@ -38,10 +38,10 @@ pub async fn enforce_stored_model(state: Arc<AppState>) {
 
     let gpu_layers = cfg
         .get_config(&nil, "llm-server-gpu-layers", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let ctx_size = cfg
         .get_config(&nil, "llm-server-ctx-size", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let desired = match runtime_ctl::desired_from_config(&model, &gpu_layers, &ctx_size) {
         Some(d) => d,

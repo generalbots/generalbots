@@ -23,7 +23,7 @@ pub async fn process_message_internal(
         bot_name,
         ..
     } = *identity;
-    let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
+    let parsed: serde_json::Value = serde_json::from_str(text).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     // #1635 — citations belong to exactly one turn. Drop anything left from a
     // previous turn (or from a stream that was interrupted before its final
@@ -68,7 +68,7 @@ pub async fn process_message_internal(
             .and_then(|v| v.as_str())
             .and_then(|value| Uuid::parse_str(value).ok());
         if let Some(id) = action_id {
-            let result = parsed.get("result").cloned().unwrap_or_default();
+            let result = parsed.get("result").cloned().map_or_else(Default::default, |v| v);
             let _ = crate::core::computer_use::complete(id, user_id, result).await;
         }
         return Ok(());

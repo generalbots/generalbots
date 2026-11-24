@@ -192,13 +192,19 @@ pub async fn handle_list_cursors<D: DriveOps>(
     State(_state): State<Arc<SlidesState<D>>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListCursorsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let presentation_id = match params.get("presentation_id") {
+        Some(id) => id.clone(),
+        None => {
+            log::warn!("slides list-cursors: missing presentation_id query parameter");
+            String::new()
+        }
+    };
 
     let cursors = if let Ok(cursors_map) = CURSORS.read() {
-        cursors_map
-            .get(&presentation_id)
-            .cloned()
-            .unwrap_or_default()
+        match cursors_map.get(&presentation_id) {
+            Some(cursors) => cursors.clone(),
+            None => Vec::new(),
+        }
     } else {
         vec![]
     };
@@ -210,13 +216,19 @@ pub async fn handle_list_selections<D: DriveOps>(
     State(_state): State<Arc<SlidesState<D>>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListSelectionsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let presentation_id = match params.get("presentation_id") {
+        Some(id) => id.clone(),
+        None => {
+            log::warn!("slides list-selections: missing presentation_id query parameter");
+            String::new()
+        }
+    };
 
     let selections = if let Ok(selections_map) = SELECTIONS.read() {
-        selections_map
-            .get(&presentation_id)
-            .cloned()
-            .unwrap_or_default()
+        match selections_map.get(&presentation_id) {
+            Some(selections) => selections.clone(),
+            None => Vec::new(),
+        }
     } else {
         vec![]
     };

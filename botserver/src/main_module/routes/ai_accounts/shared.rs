@@ -95,7 +95,7 @@ pub(super) fn first_bot_id(
         .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     let row = diesel::sql_query("SELECT id::text AS id FROM bots ORDER BY created_at ASC LIMIT 1")
         .load::<Row>(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         .into_iter()
         .next();
     match row.and_then(|row| Uuid::parse_str(&row.id).ok()) {

@@ -143,7 +143,7 @@ impl WhatsAppChannel {
             Ok(())
         } else {
             let status = resp.status();
-            let text = resp.text().unwrap_or_default();
+            let text = resp.text().map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
             Err(format!("WhatsApp API error ({}): {}", status, text))
         }
     }

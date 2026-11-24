@@ -48,7 +48,7 @@ pub(super) async fn stream_and_finalize(
     // so the renderer can attach the chips to the message that just completed.
     let citations = {
         let mut pending = state.pending_citations.lock().await;
-        pending.remove(&session_id.to_string()).unwrap_or_default()
+        pending.remove(&session_id.to_string()).map_or_else(Default::default, |v| v)
     };
     if !citations.is_empty() {
         let frame = serde_json::json!({

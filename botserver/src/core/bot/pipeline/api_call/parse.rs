@@ -120,7 +120,7 @@ mod parse_tests {
     #[test]
     fn extracts_a_normal_envelope() {
         let text = "{\"__api_call__\": {\"name\": \"products.items.list\", \"params\": {}}}\nnote";
-        let payload = extract_api_call_payload(text).unwrap_or_default();
+        let payload = extract_api_call_payload(text).map_or_else(Default::default, |v| v);
         assert_eq!(payload["name"], "products.items.list");
         assert_eq!(strip_api_call_block(text).trim(), "note");
     }
@@ -130,7 +130,7 @@ mod parse_tests {
         // #2583 — the shape the live model emitted before the price was
         // narrated as if the write had succeeded.
         let text = "\"__api_call__\": {\"name\": \"products.items.update\"}\nI changed it.";
-        let payload = extract_api_call_payload(text).unwrap_or_default();
+        let payload = extract_api_call_payload(text).map_or_else(Default::default, |v| v);
         assert_eq!(payload["name"], "products.items.update");
         assert_eq!(strip_api_call_block(text).trim(), "I changed it.");
     }

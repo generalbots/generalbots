@@ -29,8 +29,16 @@ impl InvitationService {
 
             let host = std::env::var("MAIL_HOST").unwrap_or_else(|_| "localhost".to_string());
             let port: u16 = std::env::var("MAIL_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(587);
-            let user = std::env::var("MAIL_USER").unwrap_or_default();
-            let pass = std::env::var("MAIL_PASS").unwrap_or_default();
+            // Absence is expected for an unauthenticated/local SMTP relay;
+            // the host/user check below warns once before returning.
+            let user = match std::env::var("MAIL_USER") {
+                Ok(value) => value,
+                Err(_) => String::new(),
+            };
+            let pass = match std::env::var("MAIL_PASS") {
+                Ok(value) => value,
+                Err(_) => String::new(),
+            };
             let from = std::env::var("MAIL_FROM").unwrap_or_else(|_| "notifications@pragmatismo.com.br".to_string());
             if host == "localhost" && user.is_empty() {
                 log::warn!("MAIL_HOST not configured — invitation email not delivered");

@@ -151,7 +151,17 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         &[("file_id", "id")],
         &[],
     ),
-    bind("sheet.import", "POST", "/api/sheet/import", &[], &[]),
+    // #2448 — the import handler reads a Drive path from the JSON body via
+    // ImportPathRequest { path, file, file_path }. The verb's curated name is
+    // `path`; rename it onto `file`, the first fallback the handler reads.
+    // (The multipart-upload branch is a different, already-working surface.)
+    bind(
+        "sheet.import",
+        "POST",
+        "/api/sheet/import",
+        &[("path", "file")],
+        &[],
+    ),
     bind(
         "sheet.search",
         "GET",
@@ -170,11 +180,13 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         ],
         &[],
     ),
+    // ConditionalFormatRequest { bg_color } accepts the curated `fill` name at
+    // runtime via a serde alias; make the mapping explicit for the audit.
     bind(
         "sheet.conditional_format.apply",
         "POST",
         "/api/sheet/conditional-format",
-        &[("file_id", "id")],
+        &[("file_id", "id"), ("fill", "bg_color")],
         &[],
     ),
     bind(
@@ -217,6 +229,20 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         "/api/sheet/cells",
         &[("file_id", "sheet_id"), ("range", "merge")],
         &[("range", "A1")],
+    ),
+    // #2448 — route-level defaulting dispatcher: DataValidationRequest gives
+    // `worksheet_index` and all four bounds `#[serde(default)]`, and
+    // handle_data_validation expands the A1 `range` with bounds_from_request(),
+    // so the verb's string-only params are sufficient. `file_id` is the
+    // generic targeting key (handler field `sheet_id`, serde alias `id`), and
+    // `rule` is the curated name for the validation type — the handler reads
+    // that type from `kind` when `validation_type` is omitted.
+    bind(
+        "sheet.data_validation.set",
+        "POST",
+        "/api/sheet/data-validation",
+        &[("file_id", "sheet_id"), ("rule", "kind")],
+        &[],
     ),
     // ——— #2448 — WorksheetActionRequest { id, name }: the generic targeting
     // key fills the required `id`; the sheet name passes through.
@@ -384,6 +410,19 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         "POST",
         "/api/canvas",
         &[("title", "name")],
+        &[],
+    ),
+    // #2448 — genuinely unbound office-suite verb with a safe field rename:
+    // delete_element needs no JSON body, only the two path params. `file_id`
+    // is the curated targeting key for `:canvas_id`; `element_id` already
+    // matches the second path segment. The self-rename makes that path-param
+    // mapping explicit for the static audit (path segments are not struct
+    // fields), so no defaulting is required.
+    bind(
+        "canvas.element.delete",
+        "DELETE",
+        "/api/canvas/:canvas_id/elements/:element_id",
+        &[("file_id", "canvas_id"), ("element_id", "element_id")],
         &[],
     ),
 ];

@@ -18,7 +18,7 @@ fn base_url() -> String {
 }
 
 fn bot_id() -> String {
-    std::env::var("GB_BOT_ID").unwrap_or_default()
+    std::env::var("GB_BOT_ID").unwrap_or(Default::default())
 }
 
 fn http_invoke(

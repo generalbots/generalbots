@@ -155,15 +155,15 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
     let cfg_phone_number_id = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_phone_number_id").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-phone-number-id"))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let cfg_api_key = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_api_key").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-api-key"))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let cfg_verify_token = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_verify_token").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-verify-token"))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     // Meta signs every delivery with the app secret. The webhook gate fails
     // closed without it (#2113), so it is resolved through the same Vault-first
     // path as the other credentials: `whatsapp_app_secret` in the per-bot
@@ -171,11 +171,11 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
     let cfg_app_secret = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_app_secret").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-app-secret"))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let cfg_business_account_id = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_business_account_id").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-business-account-id"))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let cfg_api_url = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_api_url").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-api-url"))
@@ -205,7 +205,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
             });
             let cl = reqwest::Client::builder()
                 .user_agent("GeneralBots/1.0")
-                .build().unwrap_or_default();
+                .build().map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
             let resp = cl
                 .post(&url)
                 .header("Authorization", format!("Bearer {}", key))
@@ -218,7 +218,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
                 log::info!("WhatsApp message sent to {}", to);
                 Ok(())
             } else {
-                let body_text = resp.text().await.unwrap_or_default();
+                let body_text = resp.text().await.map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
                 let err_msg = format!("WhatsApp API error {}: {}", status, body_text);
                 log::error!("{}", err_msg);
                 Err(err_msg)

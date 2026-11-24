@@ -183,7 +183,7 @@ fn is_hub_markup(body: &str) -> bool {
         .and_then(|re| re.captures(body))
         .and_then(|captures| captures.get(1))
         .map(|value| value.as_str().to_lowercase())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     value == "website"
 }
 

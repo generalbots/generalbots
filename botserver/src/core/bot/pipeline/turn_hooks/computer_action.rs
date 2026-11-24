@@ -36,7 +36,7 @@ pub(crate) async fn propose_computer_action(
             "browser_action": {
                 "action_id": proposal.id,
                 "action": "open_url",
-                "url": action.get("url").cloned().unwrap_or_default(),
+                "url": action.get("url").cloned().map_or_else(Default::default, |v| v),
             },
         });
         let _ = sink.send_raw_json(&frame).await;
@@ -72,9 +72,9 @@ pub(crate) async fn propose_computer_action(
             "session_id": session_id.to_string(),
             "terminal_action": {
                 "action_id": proposal.id,
-                "command": action.get("command").cloned().unwrap_or_default(),
-                "cwd": action.get("cwd").cloned().unwrap_or_default(),
-                "reason": action.get("reason").cloned().unwrap_or_default(),
+                "command": action.get("command").cloned().map_or_else(Default::default, |v| v),
+                "cwd": action.get("cwd").cloned().map_or_else(Default::default, |v| v),
+                "reason": action.get("reason").cloned().map_or_else(Default::default, |v| v),
             },
         });
         let _ = sink.send_raw_json(&frame).await;

@@ -208,8 +208,14 @@ pub fn roles_use_distinct_models() -> bool {
 
 /// One chat-completions call.
 async fn complete(model: &str, system: &str, user: &str) -> Result<String, String> {
-    let url = std::env::var("LLM_URL").unwrap_or_default();
-    let key = std::env::var("LLM_KEY").unwrap_or_default();
+    let url = match std::env::var("LLM_URL") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
+    let key = match std::env::var("LLM_KEY") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
     if url.trim().is_empty() {
         return Err("LLM_URL is not set".to_string());
     }
@@ -261,11 +267,11 @@ fn tracing_warn(message: &str) {
 
 /// Convenience wrapper for callers that want the outcome rather than HTTP.
 pub async fn review_document(text: &str, instruction: &str) -> Result<ReviewOutcome, ReviewError> {
-    if std::env::var("LLM_URL")
-        .unwrap_or_default()
-        .trim()
-        .is_empty()
-    {
+    let llm_url = match std::env::var("LLM_URL") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
+    if llm_url.trim().is_empty() {
         return Err(ReviewError::NotConfigured);
     }
     let mut reviews = Vec::new();

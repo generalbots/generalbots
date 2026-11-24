@@ -83,7 +83,7 @@ pub async fn run_bootstrap(
 
         // If VAULT_ADDR points to a remote server, treat bootstrap as completed
         // All services are assumed to be running in separate containers
-        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or(Default::default());
         let is_remote_vault = !vault_addr.is_empty()
             && !vault_addr.contains("localhost")
             && !vault_addr.contains("127.0.0.1");

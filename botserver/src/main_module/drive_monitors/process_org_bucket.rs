@@ -375,10 +375,10 @@ pub(super) async fn get_bot_names_in_branch(
             .filter(bots::dsl::is_active.eq(true))
             .select(bots::dsl::name)
             .load::<String>(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or(Default::default())
     })
     .await
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
 }
 
 #[cfg(test)]

@@ -27,7 +27,13 @@ pub async fn handle_export_named_ranges_csv(
     user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<NamedRangesExportResponse>, (StatusCode, Json<Value>)> {
-    let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
+    let sheet_id = match params.get("sheet_id") {
+        Some(sheet_id) => sheet_id.clone(),
+        None => {
+            log::warn!("named ranges CSV export is missing the sheet_id query parameter");
+            String::new()
+        }
+    };
     let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
@@ -46,7 +52,10 @@ pub async fn handle_export_named_ranges_csv(
                 r.end_row + 1,
                 r.end_col + 1
             );
-            let desc = r.comment.clone().unwrap_or_default();
+            let desc = match &r.comment {
+                Some(comment) => comment.clone(),
+                None => String::new(),
+            };
             csv.push_str(&format!(
                 "{},{},{}\n",
                 csv_escape(&r.name),
@@ -66,7 +75,13 @@ pub async fn handle_import_named_ranges_csv(
     Query(params): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Result<Json<NamedRangesImportResponse>, (StatusCode, Json<Value>)> {
-    let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
+    let sheet_id = match params.get("sheet_id") {
+        Some(sheet_id) => sheet_id.clone(),
+        None => {
+            log::warn!("named ranges CSV import is missing the sheet_id query parameter");
+            String::new()
+        }
+    };
     let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
@@ -114,9 +129,25 @@ pub async fn handle_import_named_ranges_csv(
         if parts.is_empty() {
             continue;
         }
-        let name = parts.first().cloned().unwrap_or_default();
-        let range = parts.get(1).cloned().unwrap_or_default();
-        let desc = parts.get(2).cloned().unwrap_or_default();
+        // `parts` is non-empty (checked above), so a missing first column
+        // would mean the parser invariant was broken.
+        let name = match parts.first() {
+            Some(name) => name.clone(),
+            None => {
+                log::warn!("CSV row produced no columns; skipping empty name");
+                String::new()
+            }
+        };
+        // Missing range/description columns are normal malformed rows and are
+        // reported to the caller through `errors` just below.
+        let range = match parts.get(1) {
+            Some(range) => range.clone(),
+            None => String::new(),
+        };
+        let desc = match parts.get(2) {
+            Some(desc) => desc.clone(),
+            None => String::new(),
+        };
         if name.is_empty() || range.is_empty() {
             errors.push(format!("Line {}: missing name or range", line_no + 1));
             continue;

@@ -1,12 +1,14 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use botcore::shared::state::AppState;
 use botlib::message_types::MessageType;
 use botlib::models::{BotResponse, UserMessage};
-use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
+use botsecurity_core::validation::{FetchPolicy, fetch_user_url};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use uuid::Uuid;
+
+mod handlers;
+
+pub use handlers::{download_media_handler, upload_media_handler, web_search_handler};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -135,13 +137,13 @@ impl MultimediaHandler for DefaultMultimediaHandler {
             }),
             MultimediaMessage::Image { url, caption, .. } => {
                 log::debug!("Processing image from URL: {}", url);
+                let caption_suffix = match caption.as_ref() {
+                    Some(c) => format!(" with caption: {}", c),
+                    None => String::new(),
+                };
                 let response_content = format!(
                     "I see you've shared an image from {}{}.",
-                    url,
-                    caption
-                        .as_ref()
-                        .map(|c| format!(" with caption: {}", c))
-                        .unwrap_or_default()
+                    url, caption_suffix
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -167,14 +169,17 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 ..
             } => {
                 log::debug!("Processing video from URL: {}", url);
+                let duration_suffix = match duration {
+                    Some(d) => format!(" ({}s)", d),
+                    None => String::new(),
+                };
+                let caption_suffix = match caption.as_ref() {
+                    Some(c) => format!(" - {}", c),
+                    None => String::new(),
+                };
                 let response_content = format!(
                     "You've shared a video from {}{}{}.",
-                    url,
-                    duration.map(|d| format!(" ({}s)", d)).unwrap_or_default(),
-                    caption
-                        .as_ref()
-                        .map(|c| format!(" - {}", c))
-                        .unwrap_or_default()
+                    url, duration_suffix, caption_suffix
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -230,13 +235,13 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 start_time,
                 ..
             } => {
+                let start_time_suffix = match start_time.as_ref() {
+                    Some(t) => format!("\nScheduled for: {}", t),
+                    None => String::new(),
+                };
                 let response_content = format!(
                     "Meeting invite received. Join at: {}{}",
-                    meeting_url,
-                    start_time
-                        .as_ref()
-                        .map(|t| format!("\nScheduled for: {}", t))
-                        .unwrap_or_default()
+                    meeting_url, start_time_suffix
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -388,63 +393,5 @@ impl UserMessageMultimedia for UserMessage {
                 content: self.content.clone(),
             }
         }
-    }
-}
-
-pub async fn upload_media_handler(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-    axum::Json(request): axum::Json<MediaUploadRequest>,
-) -> impl axum::response::IntoResponse {
-    let handler = DefaultMultimediaHandler::new();
-    match handler.upload_media(request).await {
-        Ok(response) => (
-            axum::http::StatusCode::OK,
-            axum::Json(serde_json::json!(response)),
-        ),
-        Err(e) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            axum::Json(crate::security::error_sanitizer::log_and_sanitize_json(
-                &e.to_string(),
-                "multimedia upload_media",
-                None,
-            )),
-        ),
-    }
-}
-
-pub async fn download_media_handler(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-    axum::extract::Path(_media_id): axum::extract::Path<String>,
-) -> impl axum::response::IntoResponse {
-    (
-        axum::http::StatusCode::OK,
-        axum::Json(serde_json::json!({"status": "ok"})),
-    )
-}
-
-pub async fn web_search_handler(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-    axum::Json(payload): axum::Json<serde_json::Value>,
-) -> impl axum::response::IntoResponse {
-    let query = payload.get("query").and_then(|q| q.as_str()).unwrap_or("");
-    let max_results = payload
-        .get("max_results")
-        .and_then(|m| m.as_u64())
-        .unwrap_or(10) as usize;
-
-    let handler = DefaultMultimediaHandler::new();
-    match handler.web_search(query, max_results).await {
-        Ok(results) => (
-            axum::http::StatusCode::OK,
-            axum::Json(serde_json::json!({"query": query, "results": results})),
-        ),
-        Err(e) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            axum::Json(crate::security::error_sanitizer::log_and_sanitize_json(
-                &e.to_string(),
-                "multimedia web_search",
-                None,
-            )),
-        ),
     }
 }

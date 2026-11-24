@@ -13,7 +13,13 @@ pub(super) fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result
         let sub = dirs[0].path();
         for entry in std::fs::read_dir(&sub).into_iter().flatten().flatten() {
             let src = entry.path();
-            let name = src.file_name().unwrap_or_default();
+            let name = match src.file_name() {
+                Some(name) => name,
+                None => {
+                    log::warn!("Skipping entry without a file name: {}", src.display());
+                    std::ffi::OsStr::new("")
+                }
+            };
             let dst = bin_path.join(name);
             let _ = std::fs::rename(&src, &dst);
         }

@@ -39,7 +39,7 @@ pub(super) static OFFICE_CREATE_AND_UTILITIES: &[AppCommand] = &[
         "sheet",
         "sheet.create",
         "Create spreadsheet",
-        "Create a spreadsheet from rows (JSON array of arrays) and open it. For forecasts/budgets include formulas in `rows` (balance row referencing month cells) so edits recalculate, and pass `styles`/`formats`/`conditional` in the SAME call. To render a chart in the same step pass `chart` (or `charts`) with {type, data_range/range, label_range, title}.",
+        "Create a spreadsheet from rows (JSON array of arrays) and open it. For forecasts/budgets include formulas in `rows` (balance row referencing month cells) so edits recalculate, and pass `styles`/`formats`/`conditional` in the SAME call. Use `sheet.chart.create` to add a chart after creation.",
         &[
             ("title", "file name"),
             ("rows", "JSON array of rows (values or =formulas)"),
@@ -55,10 +55,6 @@ pub(super) static OFFICE_CREATE_AND_UTILITIES: &[AppCommand] = &[
                 "conditional",
                 "optional JSON array of rules: {range, condition: negative|positive or <0|>=0, fill/bg_color}",
             ),
-            (
-                "chart",
-                "optional object {type: bar|line|pie, range/data_range, label_range, title} or `charts` array",
-            ),
         ],
         Some("app://sheet"),
         false,
@@ -67,7 +63,7 @@ pub(super) static OFFICE_CREATE_AND_UTILITIES: &[AppCommand] = &[
         "sheet",
         "sheet.cells.set",
         "Fill cells",
-        "Write values or formulas into a range. Optional `styles`/`formats`/`conditional` in the SAME call style the block. To render a chart in the same step pass `chart` (or `charts`) with {type, data_range/range, label_range, title}. Prefer this (or sheet.create) over per-cell UI plans for formatted tables.",
+        "Write values or formulas into a range. Optional `styles`/`formats`/`conditional` in the SAME call style the block. Use `sheet.chart.create` for a chart; prefer this (or sheet.create) over per-cell UI plans for formatted tables.",
         &[
             ("file_id", "spreadsheet id"),
             ("range", "A1 range, e.g. A1:M6"),
@@ -80,10 +76,6 @@ pub(super) static OFFICE_CREATE_AND_UTILITIES: &[AppCommand] = &[
             (
                 "conditional",
                 "optional JSON array of rules: {range, condition: negative|positive, fill or bg_color}",
-            ),
-            (
-                "chart",
-                "optional object {type: bar|line|pie, range/data_range, label_range, title} or `charts` array",
             ),
         ],
         Some("app://sheet?file_id={file_id}"),

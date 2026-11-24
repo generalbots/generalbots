@@ -68,9 +68,13 @@ pub async fn handle_search_sheets(
 ) -> Result<Json<Vec<SpreadsheetMetadata>>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
-    let sheets = list_sheets_from_drive(&state, &user_id)
-        .await
-        .unwrap_or_default();
+    let sheets = match list_sheets_from_drive(&state, &user_id).await {
+        Ok(sheets) => sheets,
+        Err(e) => {
+            log::warn!("Failed to search sheets in drive: {e}");
+            Vec::new()
+        }
+    };
 
     let filtered = if let Some(q) = query.q {
         let q_lower = q.to_lowercase();

@@ -139,7 +139,13 @@ pub async fn handle_get_presenter_notes<D: DriveOps>(
     user: SlidesUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PresenterNotesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
+    let presentation_id = match params.get("presentation_id") {
+        Some(id) => id.clone(),
+        None => {
+            log::warn!("slides presenter notes: missing presentation_id query parameter");
+            String::new()
+        }
+    };
     let slide_index: usize = params
         .get("slide_index")
         .and_then(|s| s.parse().ok())

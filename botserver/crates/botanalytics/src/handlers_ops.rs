@@ -120,7 +120,9 @@ fn render_cell(burn: Option<f64>, alert: crate::ops_slo::AlertPolicy) -> String 
 
 fn render(config: &SloConfig, windows: &[(String, WindowStats)], budget: &WindowStats) -> String {
     let base = runbook_base_url();
-    let first_window = windows.first().map(|(_, stats)| *stats).unwrap_or_default();
+    let first_window = windows
+        .first()
+        .map_or_else(WindowStats::default, |(_, stats)| *stats);
     let (measured, gate_only) = split_for_dashboard(&config.objectives);
     let mut rows = String::new();
 
