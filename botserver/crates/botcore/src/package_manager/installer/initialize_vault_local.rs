@@ -171,8 +171,9 @@ impl PackageManager {
         std::fs::write(&init_json, safe_json)?;
         {
             let abs = crate::os_abstraction::get_abstraction();
-            let _ = abs.set_readonly_owner(&init_json)
-                .map_err(|e| warn!("Failed to set permissions on {}: {}", init_json.display(), e));
+            if let Err(e) = abs.set_readonly_owner(&init_json) {
+                warn!("Failed to set permissions on {}: {e}", init_json.display());
+            }
         }
         info!("Created {} (no secret material)", init_json.display());
 
@@ -183,8 +184,9 @@ impl PackageManager {
         )?;
         {
             let abs = crate::os_abstraction::get_abstraction();
-            let _ = abs.set_readonly_owner(&env_file)
-                .map_err(|e| warn!("Failed to set permissions on {}: {}", env_file.display(), e));
+            if let Err(e) = abs.set_readonly_owner(&env_file) {
+                warn!("Failed to set permissions on {}: {e}", env_file.display());
+            }
         }
 
         // Migration: remove the legacy plaintext unseal-key file.

@@ -54,7 +54,9 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
             } else {
                 Err("Failed to create runtime".into())
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("KB statistics worker: failed to send result over channel: {e}");
+            }
         });
 
         let result = rx.recv().unwrap_or(Err("Channel error".into()));
@@ -101,7 +103,9 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
                 } else {
                     Err("Failed to create runtime".into())
                 };
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("KB statistics worker: failed to send result over channel: {e}");
+                }
             });
 
             let result = rx.recv().unwrap_or(Err("Channel error".into()));
@@ -178,7 +182,9 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
             } else {
                 Err("Failed to create runtime".into())
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("KB statistics worker: failed to send result over channel: {e}");
+            }
         });
 
         let result = rx.recv().unwrap_or(Err("Channel error".into()));
@@ -218,7 +224,9 @@ pub fn register_kb_statistics_keyword(state: Arc<dyn BasicRuntime>, user: UserSe
             } else {
                 Err("Failed to create runtime".into())
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("KB statistics worker: failed to send result over channel: {e}");
+            }
         });
 
         let result = rx.recv().unwrap_or(Err("Channel error".into()));

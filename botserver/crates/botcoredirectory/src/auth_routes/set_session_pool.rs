@@ -1,5 +1,7 @@
 use super::*;
 
 pub fn set_session_pool(pool: DbPool) {
-    let _ = SESSION_POOL.set(pool);
+    if let Err(e) = SESSION_POOL.set(pool) {
+        log::warn!("Session pool already initialized: {e:?}");
+    }
 }

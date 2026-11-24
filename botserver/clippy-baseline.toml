@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 1115
+discarded_result = 1068
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -47,9 +47,6 @@ discarded_result = 11
 discarded_result = 10
 
 [files."botserver/crates/botbasic_ai/src/keywords/api_tool_generator/generate_bas_file.rs"]
-discarded_result = 10
-
-[files."botserver/crates/botmeet/src/signaling/handler.rs"]
 discarded_result = 10
 
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
@@ -92,9 +89,6 @@ discarded_result = 7
 discarded_result = 7
 
 [files."botserver/crates/botllm/src/glm.rs"]
-discarded_result = 7
-
-[files."botserver/crates/botmeet/src/recording/subscribe.rs"]
 discarded_result = 7
 
 [files."botserver/src/console/wizard/wizard_core.rs"]
@@ -174,3 +168,9 @@ discarded_result = 5
 
 [files."botserver/src/core/bot/ws/stream.rs"]
 discarded_result = 5
+
+[files."botserver/src/main_module/routes/org_handlers/handle_get_organization.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botapi/src/terminal/terminal_ws.rs"]
+discarded_result = 4

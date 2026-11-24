@@ -74,11 +74,13 @@ async fn handle_signaling_socket_inner(
             Ok(s) => s,
             Err(e) => {
                 warn!("Invalid signal room {room_id}: {e}");
-                let _ = tx.send(
+                if let Err(e) = tx.send(
                     serialize_signal(&OutgoingSignal::Error {
                         message: format!("Invalid: {e}"),
                     }),
-                );
+                ) {
+                    log::warn!("Signaling room {room_id}: failed to send error signal: {e}");
+                }
                 continue;
             }
         };
@@ -86,11 +88,13 @@ async fn handle_signaling_socket_inner(
         match signal {
             SignalMessage::Join { room_id: jr, .. } => {
                 if jr != room_id {
-                    let _ = tx.send(
+                    if let Err(e) = tx.send(
                         serialize_signal(&OutgoingSignal::Error {
                             message: "Room ID mismatch".into(),
                         }),
-                    );
+                    ) {
+                        log::warn!("Signaling room {room_id}: failed to send room-mismatch error: {e}");
+                    }
                     continue;
                 }
                 // The client-supplied participant_id/participant_name are
@@ -100,11 +104,13 @@ async fn handle_signaling_socket_inner(
                     Some(identity) => (identity.id.clone(), identity.name.clone()),
                     None => {
                         warn!("Rejected Join on room {room_id}: no verified identity");
-                        let _ = tx.send(
+                        if let Err(e) = tx.send(
                             serialize_signal(&OutgoingSignal::Error {
                                 message: "Unauthenticated signaling connection".into(),
                             }),
-                        );
+                        ) {
+                            log::warn!("Signaling room {room_id}: failed to send auth error: {e}");
+                        }
                         continue;
                     }
                 };
@@ -112,11 +118,13 @@ async fn handle_signaling_socket_inner(
                 let room = guard.entry(room_id.clone()).or_default();
                 if room.participants.len() >= MAX_PARTICIPANTS_PER_ROOM {
                     drop(guard);
-                    let _ = tx.send(
+                    if let Err(e) = tx.send(
                         serialize_signal(&OutgoingSignal::Error {
                             message: format!("Room full (max {MAX_PARTICIPANTS_PER_ROOM})"),
                         }),
-                    );
+                    ) {
+                        log::warn!("Signaling room {room_id}: failed to send room-full error: {e}");
+                    }
                     continue;
                 }
                 let existing: Vec<ParticipantEntry> = room
@@ -140,18 +148,22 @@ async fn handle_signaling_socket_inner(
                 drop(guard);
 
                 for ep in &existing {
-                    let _ = tx.send(
+                    if let Err(e) = tx.send(
                         serialize_signal(&OutgoingSignal::UserJoined {
                             participant_id: ep.id.clone(),
                             participant_name: ep.name.clone(),
                         }),
-                    );
+                    ) {
+                        log::warn!("Signaling room {room_id}: failed to send user-joined signal: {e}");
+                    }
                 }
-                let _ = tx.send(
+                if let Err(e) = tx.send(
                     serialize_signal(&OutgoingSignal::ParticipantList {
                         participants: existing,
                     }),
-                );
+                ) {
+                    log::warn!("Signaling room {room_id}: failed to send participant list: {e}");
+                }
                 broadcast_to_room(
                     &rooms,
                     &room_id,
@@ -333,7 +345,9 @@ async fn broadcast_to_room(rooms: &SignalingRooms, room_id: &str, exclude_id: &s
     if let Some(room) = guard.get(room_id) {
         for (pid, p) in &room.participants {
             if pid != exclude_id {
-                let _ = p.sender.send(message.to_string());
+                if let Err(e) = p.sender.send(message.to_string()) {
+                    log::warn!("Signaling room {room_id}: failed to send to participant {pid}: {e}");
+                }
             }
         }
     }

@@ -53,7 +53,9 @@ if let Err(e) =     engine
                             .map_err(|e| format!("Search error: {e}")),
                             Err(_) => Err("Failed to create runtime".into()),
                         };
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("SEARCH worker: failed to send result over channel: {e}");
+                        }
                     });
                     let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
@@ -110,7 +112,9 @@ if let Err(e) =     engine
                         .map_err(|e| format!("Search error: {e}")),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SEARCH worker: failed to send result over channel: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
