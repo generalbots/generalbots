@@ -1,0 +1,270 @@
+use super::super::*;
+
+/// #2448 — Office chat/agent automation parity: review, collaboration and
+/// formatting actions that the Docs/Sheets/Slides editors expose but chat could
+/// not call. Every verb below is bound to an endpoint the inventory already
+/// registers (see `verb_endpoints/table/office_review_endpoints.rs`).
+///
+/// `AppCommand` has no dedicated `scope`, `confirmation` or `undo` fields, so
+/// that contract is carried in each `summary` — the text injected into the LLM
+/// system prompt — as the compact tokens `scope:`, `confirm:` and `undo:`.
+/// Destructive and bulk verbs carry `confirm: required` (preview the diff and
+/// ask the user first) and state that the whole batch is one undo entry.
+pub(super) static OFFICE_REVIEW_OPS: &[AppCommand] = &[
+    // ——— Docs: comment threads, tracked changes and styles ———
+    cmd(
+        "docs",
+        "docs.comment.reply",
+        "Reply to comment",
+        "Reply to an anchored comment thread in a document (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("comment_id", "thread id from docs.comments.list"),
+            ("content", "reply text"),
+        ],
+        Some("app://docs?file={file_id}"),
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.comment.resolve",
+        "Resolve comment",
+        "Resolve or reopen an anchored comment thread (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("comment_id", "thread id"),
+            ("resolved", "true to resolve, false to reopen"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.comment.delete",
+        "Delete comment",
+        "Delete a comment thread. Destructive: preview the thread and require explicit confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[("file_id", "document id"), ("comment_id", "thread id")],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.comments.list",
+        "List comments",
+        "List the anchored comment threads of a document (scope: read; confirm: no; undo: none).",
+        &[("file_id", "document id")],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.track_changes.list",
+        "List tracked changes",
+        "List tracked changes and whether tracking is enabled (scope: read; confirm: no; undo: none).",
+        &[("file_id", "document id")],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.track_changes.accept_reject",
+        "Accept or reject change",
+        "Accept or reject one tracked change (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("change_id", "change id from docs.track_changes.list"),
+            ("accept", "true to accept, false to reject"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.track_changes.accept_all",
+        "Accept or reject all changes",
+        "Accept or reject every tracked change in one bulk call. Destructive: show the change-count diff and require explicit confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("accept", "true to accept all, false to reject all"),
+        ],
+        None,
+        true,
+    ),
+    cmd(
+        "docs",
+        "docs.style.create",
+        "Create style",
+        "Create a reusable paragraph or character style in a document (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("style", "JSON DocumentStyle definition"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.style.update",
+        "Update style",
+        "Update an existing document style (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            (
+                "style",
+                "JSON DocumentStyle definition including its style_id",
+            ),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.style.delete",
+        "Delete style",
+        "Delete a document style. Destructive: preview the style and require confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[("file_id", "document id"), ("style_id", "style id")],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.styles.list",
+        "List styles",
+        "List the styles defined in a document (scope: read; confirm: no; undo: none).",
+        &[("file_id", "document id")],
+        None,
+        false,
+    ),
+    cmd(
+        "docs",
+        "docs.toc.update",
+        "Update table of contents",
+        "Refresh an existing table of contents after edits (scope: write; confirm: no; undo: one batch entry).",
+        &[("file_id", "document id")],
+        None,
+        false,
+    ),
+    // ——— Sheets: cell comments and worksheet structure ———
+    cmd(
+        "sheet",
+        "sheet.comment.add",
+        "Comment cell",
+        "Add a comment anchored to a cell (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("worksheet_index", "worksheet index, 0-based (default 0)"),
+            ("row", "zero-based row number"),
+            ("col", "zero-based column number"),
+            ("content", "comment text"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "sheet",
+        "sheet.comment.reply",
+        "Reply to cell comment",
+        "Reply to a comment anchored to a cell (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("worksheet_index", "worksheet index, 0-based"),
+            ("row", "zero-based row number"),
+            ("col", "zero-based column number"),
+            ("comment_id", "comment id from sheet.comments.list"),
+            ("content", "reply text"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "sheet",
+        "sheet.comment.resolve",
+        "Resolve cell comment",
+        "Resolve or reopen a cell comment thread (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("worksheet_index", "worksheet index, 0-based"),
+            ("row", "zero-based row number"),
+            ("col", "zero-based column number"),
+            ("comment_id", "comment id"),
+            ("resolved", "true to resolve, false to reopen"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "sheet",
+        "sheet.comment.delete",
+        "Delete cell comment",
+        "Delete a cell comment thread. Destructive: preview the thread and require confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("worksheet_index", "worksheet index, 0-based"),
+            ("row", "zero-based row number"),
+            ("col", "zero-based column number"),
+            ("comment_id", "comment id"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "sheet",
+        "sheet.comments.list",
+        "List cell comments",
+        "List the comments of a worksheet (scope: read; confirm: no; undo: none).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("worksheet_index", "worksheet index, 0-based"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "sheet",
+        "sheet.worksheets.delete",
+        "Delete worksheet",
+        "Delete a worksheet/tab and its cells. Destructive: preview the tab name and require confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[
+            ("file_id", "spreadsheet id"),
+            ("index", "zero-based worksheet index"),
+        ],
+        None,
+        true,
+    ),
+    // ——— Slides: bulk layout, media and presenter controls ———
+    cmd(
+        "slides",
+        "slides.transition.all",
+        "Apply transition to all slides",
+        "Apply one slide transition to every slide of a deck. Bulk: preview the slide count and require confirmation first (scope: write; confirm: required; undo: one batch entry).",
+        &[
+            ("file_id", "presentation id"),
+            ("transition", "transition name"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "slides",
+        "slides.media.update",
+        "Update slide media",
+        "Move, resize or restyle media placed on a slide (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "presentation id"),
+            ("slide", "slide index, 0-based"),
+            ("media_id", "media element id"),
+            ("changes", "JSON object of changed attributes"),
+        ],
+        None,
+        false,
+    ),
+    cmd(
+        "slides",
+        "slides.presenter.end",
+        "End presenter view",
+        "End the active presenter session for a deck (scope: write; confirm: no; undo: none).",
+        &[("file_id", "presentation id")],
+        None,
+        false,
+    ),
+];
