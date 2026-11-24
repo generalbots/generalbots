@@ -117,7 +117,7 @@ pub async fn run_doctor(skills: &SkillStore, sessions: &SessionStore) -> DoctorR
         });
     }
 
-    let workspace = std::env::var("VIBE_WORKSPACE_ROOT").unwrap_or_default();
+    let workspace = std::env::var("VIBE_WORKSPACE_ROOT").unwrap_or_else(|_| String::new());
     if workspace.is_empty() {
         checks.push(DoctorCheck {
             name: "workspace-root".into(),

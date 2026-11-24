@@ -26,7 +26,10 @@ pub(super) fn customer_creation_requires_name_or_email() {
     assert!(customer_create_fields(&json!({})).is_err());
     assert!(customer_create_fields(&json!({ "email": "not-an-address" })).is_err());
     let fields = customer_create_fields(&json!({ "name": "Acme", "email": "a@b.co" }))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("customer_create_fields failed: {e}");
+            Vec::new()
+        });
     assert!(fields.contains(&("name".to_string(), "Acme".to_string())));
     assert!(fields.contains(&("email".to_string(), "a@b.co".to_string())));
     assert!(customer_create_fields(&json!({ "name": "Only Name" })).is_ok());
@@ -38,7 +41,10 @@ pub(super) fn payment_intents_need_positive_amount_and_currency() {
     assert!(payment_intent_create_fields(&json!({ "amount": 100, "currency": "US" })).is_err());
     assert!(payment_intent_create_fields(&json!({ "amount": -5, "currency": "usd" })).is_err());
     let fields = payment_intent_create_fields(&json!({ "amount": 1500, "currency": "usd" }))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("payment_intent_create_fields failed: {e}");
+            Vec::new()
+        });
     assert_eq!(
         fields,
         vec![

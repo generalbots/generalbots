@@ -218,7 +218,7 @@ pub async fn user_password(
         Err(e) => return e,
     };
 
-    let current = form.current_password.unwrap_or_default();
+    let current = form.current_password.unwrap_or_else(String::new);
     if current.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
@@ -226,8 +226,8 @@ pub async fn user_password(
         );
     }
 
-    let new_pass = form.new_password.unwrap_or_default();
-    let confirm = form.confirm_password.unwrap_or_default();
+    let new_pass = form.new_password.unwrap_or_else(String::new);
+    let confirm = form.confirm_password.unwrap_or_else(String::new);
     if new_pass.len() < 8 {
         return (
             StatusCode::BAD_REQUEST,

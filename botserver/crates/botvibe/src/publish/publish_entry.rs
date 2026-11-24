@@ -280,7 +280,10 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             .await
             .map_err(|e| format!("deployment API unreachable: {e}"))?;
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            log::warn!("deployment response body unreadable: {e}");
+            String::new()
+        });
         if !status.is_success() {
             return Err(format!("deployment API returned {status}: {text}"));
         }
@@ -326,9 +329,9 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         "url": public_url
             .clone()
             .or_else(|| deployed.get("url").and_then(|v| v.as_str()).map(String::from))
-            .unwrap_or_default(),
+            .unwrap_or_else(String::new),
         "container": vm.container_name,
-        "domain": domain.clone().unwrap_or_default(),
+        "domain": domain.clone().unwrap_or_else(String::new),
         "track": "ok",
     });
     registry

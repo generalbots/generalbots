@@ -100,7 +100,7 @@ impl VmLifecycle {
             // the standard `DATABASE_URL` convention.
             let db_line = database_url
                 .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
-                .unwrap_or_default();
+                .unwrap_or_else(String::new);
             let exec_start = exec_start_line(
                 if is_python { "/usr/bin/python3" } else { "/usr/bin/node" },
                 &entry,
@@ -140,7 +140,7 @@ impl VmLifecycle {
                 self.push_run_static_server(name, &temp, server_js)?;
                 let db_line = database_url
                     .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let unit = format!(
                     "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
                 );

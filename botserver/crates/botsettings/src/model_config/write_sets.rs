@@ -95,8 +95,8 @@ pub fn compute(
     // ── per-bot map (mirror or clear) ───────────────────────────────
     // The per-bot path must never hold stale values from a previous mode.
     // Mirror the central values using per-bot key names, or remove them.
-    let url = central.get("url").cloned().unwrap_or_default();
-    let model = central.get("model").cloned().unwrap_or_default();
+    let url = central.get("url").cloned().unwrap_or_else(String::new);
+    let model = central.get("model").cloned().unwrap_or_else(String::new);
     let key = central.get("openai_key").cloned();
     let provider = central.get("provider").cloned();
 

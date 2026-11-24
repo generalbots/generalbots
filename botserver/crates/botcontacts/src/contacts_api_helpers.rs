@@ -78,14 +78,12 @@ pub(crate) struct CountRow {
 }
 
 pub(crate) fn row_to_contact(row: ContactRow) -> Contact {
-    let tags: Vec<String> = row
-        .tags
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default();
-    let custom_fields: HashMap<String, String> = row
-        .custom_fields
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_default();
+    let tags: Vec<String> = crate::value_or_default(
+        row.tags.and_then(|t| serde_json::from_str(&t).ok()),
+    );
+    let custom_fields: HashMap<String, String> = crate::value_or_default(
+        row.custom_fields.and_then(|c| serde_json::from_str(&c).ok()),
+    );
     let source = row.source.and_then(|s| match s.as_str() {
         "manual" => Some(ContactSource::Manual),
         "import" => Some(ContactSource::Import),

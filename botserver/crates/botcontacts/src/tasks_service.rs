@@ -71,7 +71,7 @@ impl TasksIntegrationService {
 
         let id = Uuid::new_v4();
         let now = Utc::now();
-        let role = request.role.clone().unwrap_or_default();
+        let role = crate::value_or_default(request.role.clone());
 
         self.create_task_contact_assignment(TaskAssignmentParams {
             id, task_id, contact_id: request.contact_id,

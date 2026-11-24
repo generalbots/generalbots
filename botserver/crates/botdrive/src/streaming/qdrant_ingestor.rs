@@ -144,7 +144,7 @@ impl QdrantStreamIngestor {
         })
         .as_object()
         .cloned()
-        .unwrap_or_default()
+        .unwrap_or_else(serde_json::Map::new)
         .into_iter()
         .collect::<serde_json::Map<String, serde_json::Value>>();
 

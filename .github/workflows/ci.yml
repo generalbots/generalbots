@@ -705,6 +705,20 @@ jobs:
           fi
           python3 scripts/check_metrics_wiring.py
 
+      # #2448 criterion 6 — parity guard: every office toolbar data-verb /
+      # dotted data-action must map to a cmd() verb in the chat catalog. The
+      # self-test proves rename/removal/vacuity cases fail closed. The live
+      # scan currently finds NO data-verb mapping: the 16 data-action values
+      # in docs/modules/31_lang_panels_*.js are unqualified UI actions, so the
+      # guard exits 1 with that exact GAP list. Non-blocking until the toolbars
+      # are annotated with catalog verbs; remove continue-on-error once green.
+      - name: "Guard: office toolbar action -> catalog verb parity (#2448)"
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 scripts/check_office_toolbar_parity.py --self-test
+          python3 scripts/check_office_toolbar_parity.py
+
       # #2459 — real, PR-blocking budget gate for the office performance
       # budgets. The boot-graph half is the strict check_boot_budget.py ratchet
       # already wired in the `check` job (kept there to avoid a duplicate scan);

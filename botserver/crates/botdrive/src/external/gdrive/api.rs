@@ -17,7 +17,13 @@ pub async fn start_page_token(
         .await
         .map_err(|e| SyncError::Transient(format!("startPageToken failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("Google Drive error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         return Err(classify_status(status.as_u16(), &body));
     }
@@ -88,7 +94,13 @@ async fn get_page(
         .await
         .map_err(|e| SyncError::Transient(format!("drive request failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("Google Drive error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         return Err(classify_status(status.as_u16(), &body));
     }
@@ -112,7 +124,13 @@ pub async fn download(
         .map_err(|e| SyncError::Transient(format!("download request failed: {e}")))?;
     let status = res.status();
     if !status.is_success() {
-        let body = res.text().await.unwrap_or_default();
+        let body = match res.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("Google Drive error response body unreadable: {:?}", e);
+                String::new()
+            }
+        };
         return Err(classify_status(status.as_u16(), &body));
     }
     res.bytes()

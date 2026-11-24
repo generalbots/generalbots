@@ -184,7 +184,13 @@ async fn post_token(
         .await
         .map_err(|e| SyncError::Transient(format!("token request failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("OneDrive token error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         // Entra answers an expired or revoked refresh token with 400/401 and
         // `invalid_grant`; the only recovery is the user reconnecting.

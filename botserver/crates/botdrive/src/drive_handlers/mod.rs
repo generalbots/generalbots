@@ -88,9 +88,13 @@ mod share_email;
 mod share_email_send;
 mod share_recipients;
 mod transfer;
+mod trash_empty;
 mod upload_binary;
 mod version_list_body;
 
+#[cfg(test)]
+#[path = "delete_bot_tests.rs"]
+mod delete_bot_tests;
 #[cfg(test)]
 #[path = "keys_tests.rs"]
 mod keys_tests;
@@ -110,5 +114,6 @@ pub use search_files::*;
 pub use share_email::*;
 pub use share_recipients::*;
 pub use transfer::*;
+pub use trash_empty::*;
 pub use upload_binary::*;
 pub use version_list_body::*;

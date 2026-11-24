@@ -123,7 +123,9 @@
         firstContentToSave: duration(first, save),
         saveToExport: duration(save, exported),
         openToSave: duration(open, save),
-        openToExport: duration(open, exported)
+        openToExport: duration(open, exported),
+        openToSlide: duration(open, marks.slide || null),
+        openToRecalc: duration(open, marks.recalc || null)
       };
     }
     return result;
@@ -133,6 +135,8 @@
     markOpen: function (appId) { return addMark(appId, "open"); },
     markFirstContent: function (appId) { return addMark(appId, "first-content"); },
     markSave: function (appId) { return addMark(appId, "save"); },
+    markSlide: function (appId) { return addMark(appId, "slide"); },
+    markRecalc: function (appId) { return addMark(appId, "recalc"); },
     markExport: function (appId, format) {
       return addMark(appId, "export." + formatLabel(format));
     },
@@ -155,7 +159,32 @@
       var detail = event && event.detail;
       if (detail && detail.appId) api.markExport(detail.appId, detail.format);
     });
+    global.document.addEventListener("gb:office-slide", function (event) {
+      var detail = event && event.detail;
+      if (detail && detail.appId) api.markSlide(detail.appId);
+    });
+    global.document.addEventListener("gb:office-recalc", function (event) {
+      var detail = event && event.detail;
+      if (detail && detail.appId) api.markRecalc(detail.appId);
+    });
   }
+
+  /* #2459 — the single dispatch entry point used by the office apps. It only
+   * emits a normalized app label + format; no document content or ids. */
+  global.gbPerfSignal = function (appId, stage, format) {
+    if (!global.document || typeof global.CustomEvent !== "function") return;
+    var names = {
+      save: "gb:office-saved", exported: "gb:office-exported",
+      export: "gb:office-exported", slide: "gb:office-slide", recalc: "gb:office-recalc"
+    };
+    var name = names[stage];
+    if (!name) return;
+    var detail = { appId: label(appId, 32), stage: stage };
+    if (stage === "export" || stage === "exported") detail.format = formatLabel(format);
+    try {
+      global.document.dispatchEvent(new global.CustomEvent(name, { detail: detail }));
+    } catch (e) { /* instrumentation must never break the app */ }
+  };
 
   global.GBOfficePerf = api;
 })(typeof window !== "undefined" ? window : null);

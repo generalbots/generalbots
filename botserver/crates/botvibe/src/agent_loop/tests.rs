@@ -139,7 +139,11 @@ use super::*;
         );
         if cfg!(windows) {
             let parsed: serde_json::Value =
-                serde_json::from_str(response.as_deref().unwrap_or_default()).unwrap_or_default();
+                serde_json::from_str(response.as_deref().unwrap_or(""))
+                .unwrap_or_else(|e| {
+                    log::warn!("agent response parse failed: {e}");
+                    serde_json::Value::Null
+                });
             assert_eq!(parsed["tool_calls"][0]["arguments"]["title"], "XCalculator");
         } else {
             assert!(response.is_none());

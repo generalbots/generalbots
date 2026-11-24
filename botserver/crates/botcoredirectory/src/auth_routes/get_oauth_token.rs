@@ -21,7 +21,13 @@ pub(super) async fn get_oauth_token(
         .map_err(|e| format!("Failed to request OAuth token: {}", e))?;
 
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = match response.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("OAuth token error response body unreadable: {:?}", e);
+                String::new()
+            }
+        };
         return Err(format!("OAuth token request failed: {}", error_text));
     }
 

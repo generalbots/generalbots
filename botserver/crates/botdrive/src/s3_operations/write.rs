@@ -247,7 +247,13 @@ impl S3Repository {
             Ok(())
         } else {
             let status = resp.status();
-            let body = resp.text().await.unwrap_or_default();
+            let body = match resp.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("S3 error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             Err(anyhow::anyhow!(
                 "Failed to create bucket {}: HTTP {} - {}",
                 bucket,

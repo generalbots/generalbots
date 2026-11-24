@@ -53,7 +53,10 @@ pub async fn dashboard_activity(
     .bind::<diesel::sql_types::Int4, _>(limit as i32)
     .bind::<diesel::sql_types::Int4, _>(offset as i32)
     .load::<ActivityRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load dashboard activity: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() && page == 1 {
         return Html(
@@ -86,7 +89,7 @@ pub async fn dashboard_activity(
             ),
         };
 
-        let detail = row.detail.unwrap_or_default();
+        let detail = row.detail.unwrap_or_else(String::new);
         items.push_str(&format!(
             r##"<div class="activity-item {kind}">
     {avatar}
@@ -128,7 +131,10 @@ pub async fn activity_recent(State(state): State<Arc<AppState>>) -> axum::Json<s
          ORDER BY ts DESC LIMIT 10",
     )
     .load::<ActivityRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load recent activity: {err}");
+        Vec::new()
+    });
 
     let items: Vec<serde_json::Value> = rows
         .into_iter()

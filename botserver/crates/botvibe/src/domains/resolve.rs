@@ -200,7 +200,7 @@ impl ProjectDomains {
             Some(a) => Self::validate_access(a)?,
             None => "public".to_string(),
         };
-        let allowed = req.allowed_emails.clone().unwrap_or_default();
+        let allowed = req.allowed_emails.clone().unwrap_or_else(String::new);
 
         let mut conn = self.conn()?;
         match self.select_by_domain_env(&mut conn, &domain, &env) {

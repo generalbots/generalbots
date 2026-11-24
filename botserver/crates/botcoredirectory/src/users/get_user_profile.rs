@@ -55,7 +55,7 @@ pub async fn get_user_profile(
                         .filter_map(|r| r.as_str().map(String::from))
                         .collect()
                 })
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
 
             let user = UserResponse {
                 id,

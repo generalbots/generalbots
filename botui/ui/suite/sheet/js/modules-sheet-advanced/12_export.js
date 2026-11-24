@@ -108,6 +108,7 @@
         }
         const filename = slug(currentName()) + "." + ext;
         download(blob, filename);
+        if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("sheet", "export", format);
         // The anchor is removed shortly after the click, so this toast is the
         // persistent confirmation the user (and the UI automation) can observe.
         showToast((typeof window.gbT === "function" ? window.gbT("sheet-exported", "Exported") : "Exported") + " " + filename, true);

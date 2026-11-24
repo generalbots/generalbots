@@ -126,7 +126,7 @@ pub async fn upload_file(
 
     // #2132 — the declared type and the bytes must agree with the name before
     // anything leaves for the provider.
-    let declared = body.mime_type.as_deref().unwrap_or_default();
+    let declared = body.mime_type.as_deref().unwrap_or("");
     let validated = upload_policy::validate_upload(UploadClass::Drive, &body.name, declared, &content)
         .map_err(|error| {
             log::warn!("external drive upload refused: {}", error.log_detail());
@@ -147,7 +147,7 @@ pub async fn upload_file(
         if connection.status == "disconnected" {
             return Err(upload_error(UploadError::NotConnected));
         }
-        let granted = connection.scopes.clone().unwrap_or_default();
+        let granted = connection.scopes.clone().unwrap_or_else(String::new);
         (connection, granted)
     };
     if !upload::allows_write(provider, &granted) {
@@ -156,7 +156,7 @@ pub async fn upload_file(
 
     let request = UploadRequest {
         provider,
-        path: body.path.unwrap_or_default(),
+        path: body.path.unwrap_or_else(String::new),
         name: validated.filename,
         mime_type: validated.mime,
         content,

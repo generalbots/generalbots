@@ -77,33 +77,39 @@ pub fn owner_emails(
     if owners.is_empty() {
         return HashMap::new();
     }
-    users::table
-        .filter(users::id.eq_any(owners.to_vec()))
-        .select((users::id, users::email))
-        .load::<(Uuid, String)>(conn)
-        .unwrap_or_default()
-        .into_iter()
-        .collect()
+    crate::default_on_error(
+        users::table
+            .filter(users::id.eq_any(owners.to_vec()))
+            .select((users::id, users::email))
+            .load::<(Uuid, String)>(conn),
+        "owner email lookup",
+    )
+    .into_iter()
+    .collect()
 }
 
 pub fn load_contacts(conn: &mut diesel::PgConnection, ids: &[Uuid]) -> Vec<CrmContact> {
     if ids.is_empty() {
         return Vec::new();
     }
-    crm_contacts::table
-        .filter(crm_contacts::id.eq_any(ids.to_vec()))
-        .load(conn)
-        .unwrap_or_default()
+    crate::default_on_error(
+        crm_contacts::table
+            .filter(crm_contacts::id.eq_any(ids.to_vec()))
+            .load(conn),
+        "contact lookup",
+    )
 }
 
 pub fn load_accounts(conn: &mut diesel::PgConnection, ids: &[Uuid]) -> Vec<CrmAccount> {
     if ids.is_empty() {
         return Vec::new();
     }
-    crm_accounts::table
-        .filter(crm_accounts::id.eq_any(ids.to_vec()))
-        .load(conn)
-        .unwrap_or_default()
+    crate::default_on_error(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq_any(ids.to_vec()))
+            .load(conn),
+        "account lookup",
+    )
 }
 
 /// Rebuilds the active filters as a query suffix so pager links keep the
@@ -158,12 +164,14 @@ pub async fn handle_crm_contacts(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut rows: Vec<CrmContact> = crm_contacts::table
-        .filter(crm_contacts::branch_id.eq(branch_id))
-        .order(crm_contacts::created_at.desc())
-        .limit(SORT_WINDOW)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut rows: Vec<CrmContact> = crate::default_on_error(
+        crm_contacts::table
+            .filter(crm_contacts::branch_id.eq(branch_id))
+            .order(crm_contacts::created_at.desc())
+            .limit(SORT_WINDOW)
+            .load(&mut conn),
+        "contacts grid query",
+    );
 
     if let Some(term) = query
         .search
@@ -249,12 +257,14 @@ pub async fn handle_crm_accounts(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut rows: Vec<CrmAccount> = crm_accounts::table
-        .filter(crm_accounts::branch_id.eq(branch_id))
-        .order(crm_accounts::created_at.desc())
-        .limit(SORT_WINDOW)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut rows: Vec<CrmAccount> = crate::default_on_error(
+        crm_accounts::table
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .order(crm_accounts::created_at.desc())
+            .limit(SORT_WINDOW)
+            .load(&mut conn),
+        "accounts grid query",
+    );
 
     if let Some(term) = query
         .search
@@ -294,13 +304,15 @@ pub async fn handle_crm_accounts(
     let page_ids: Vec<Uuid> = page_rows.iter().map(|a| a.id).collect();
     let mut deal_counts: HashMap<Uuid, i64> = HashMap::new();
     if !page_ids.is_empty() {
-        let grouped: Vec<(Option<Uuid>, i64)> = crm_deals::table
-            .filter(crm_deals::branch_id.eq(branch_id))
-            .filter(crm_deals::account_id.eq_any(&page_ids))
-            .group_by(crm_deals::account_id)
-            .select((crm_deals::account_id, diesel::dsl::count(crm_deals::id)))
-            .load(&mut conn)
-            .unwrap_or_default();
+        let grouped: Vec<(Option<Uuid>, i64)> = crate::default_on_error(
+            crm_deals::table
+                .filter(crm_deals::branch_id.eq(branch_id))
+                .filter(crm_deals::account_id.eq_any(&page_ids))
+                .group_by(crm_deals::account_id)
+                .select((crm_deals::account_id, diesel::dsl::count(crm_deals::id)))
+                .load(&mut conn),
+            "account deal counts",
+        );
         for (account_id, count) in grouped {
             if let Some(id) = account_id {
                 deal_counts.insert(id, count);

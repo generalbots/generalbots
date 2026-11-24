@@ -103,7 +103,10 @@ pub async fn calculate_service_tax_inner(
     };
     let by_name = by_id.or_else(|| {
         let lookup = if Uuid::parse_str(id).is_ok() {
-            name.unwrap_or_default().to_string()
+            match name {
+                Some(name) => name.to_string(),
+                None => String::new(),
+            }
         } else {
             id.to_string()
         };
@@ -133,11 +136,14 @@ pub async fn calculate_service_tax_inner(
         .ok_or((StatusCode::BAD_REQUEST, "error-service-price-required"))?;
 
     let loaded = bottax::storage::load_rates_from_billing(conn, &branch_id);
-    let mut rates = loaded.unwrap_or_default();
     let source = if loaded.is_some() {
         "billing_tax_rates"
     } else {
         "default"
+    };
+    let mut rates = match loaded {
+        Some(rates) => rates,
+        None => Default::default(),
     };
 
     // Per-service effective total override: scale proportionally so the four

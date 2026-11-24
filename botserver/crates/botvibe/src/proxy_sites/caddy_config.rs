@@ -22,7 +22,7 @@ pub(crate) fn site_block_for_target(target: &SiteTarget, slug: &str, python: boo
 pub(crate) fn pull_proxy_config() -> Result<std::path::PathBuf, String> {
     let tmp = std::env::temp_dir().join(format!(
         "gb-proxy-config-{}.conf",
-        chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     ));
     let pulled = crate::harness::cmd::run(
         "incus",
@@ -69,7 +69,7 @@ pub(crate) fn push_proxy_config(local: &Path) -> Result<(), String> {
 pub(crate) fn validate_candidate(candidate: &Path) -> Result<(), String> {
     let proxy_tmp = format!(
         "/tmp/candidate-{}.conf",
-        chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     );
     let pushed = crate::harness::cmd::run(
         "incus",

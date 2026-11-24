@@ -140,7 +140,13 @@ impl InstallJob {
         JobSnapshot {
             job_id: self.id.clone(),
             state: self.state(),
-            message: self.message.lock().ok().map(|g| g.clone()).unwrap_or_default(),
+            message: match self.message.lock() {
+                Ok(guard) => guard.clone(),
+                Err(err) => {
+                    log::warn!("install job message lock poisoned: {err}");
+                    String::new()
+                }
+            },
             stage: self.stage.lock().map(|g| *g).unwrap_or(""),
             code: self.code.lock().map(|g| *g).unwrap_or(""),
             update: self.update,
@@ -229,8 +235,14 @@ pub(super) async fn handle_install(
     // What a restart of the running model needs, read before the job starts.
     let config = ConfigManager::new(state.conn.clone());
     let nil = uuid::Uuid::nil();
-    let gpu_layers = config.get_config(&nil, "llm-server-gpu-layers", Some("")).unwrap_or_default();
-    let ctx_size = config.get_config(&nil, "llm-server-ctx-size", Some("")).unwrap_or_default();
+    let gpu_layers = config.get_config(&nil, "llm-server-gpu-layers", Some("")).unwrap_or_else(|err| {
+        log::warn!("failed to read llm-server-gpu-layers config: {err}");
+        String::new()
+    });
+    let ctx_size = config.get_config(&nil, "llm-server-ctx-size", Some("")).unwrap_or_else(|err| {
+        log::warn!("failed to read llm-server-ctx-size config: {err}");
+        String::new()
+    });
 
     tokio::spawn(async move {
         run_install(job, gpu_layers, ctx_size).await;

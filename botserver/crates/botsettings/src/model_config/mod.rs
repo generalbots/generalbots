@@ -36,6 +36,15 @@ use botcoresecrets::SecretsManager;
 use super::on_device_ai::catalog as local_catalog;
 use super::on_device_ai::hardware as local_hardware;
 
+// Config keys are optional: an unreadable key is treated as "not configured"
+// and the failure is logged rather than silently becoming an empty string.
+fn config_value(cfg: &ConfigManager, key: &str) -> String {
+    match cfg.get_config(&uuid::Uuid::nil(), key, Some("")) {
+        Ok(value) => value,
+        Err(err) => { log::warn!("failed to read {key} config: {err}"); String::new() }
+    }
+}
+
 // ── types ────────────────────────────────────────────────────────────────
 
 type ApiResult = Result<Json<Value>, (StatusCode, Json<Value>)>;
@@ -120,12 +129,11 @@ async fn handle_get_config(
     require_admin(&user)?;
 
     let cfg = ConfigManager::new(state.conn.clone());
-    let nil = uuid::Uuid::nil();
 
-    let url = cfg.get_config(&nil, "llm-url", Some("")).unwrap_or_default();
-    let model = cfg.get_config(&nil, "llm-model", Some("")).unwrap_or_default();
-    let key = cfg.get_config(&nil, "llm-key", Some("")).unwrap_or_default();
-    let provider = cfg.get_config(&nil, "llm-provider", Some("")).unwrap_or_default();
+    let url = config_value(&cfg, "llm-url");
+    let model = config_value(&cfg, "llm-model");
+    let key = config_value(&cfg, "llm-key");
+    let provider = config_value(&cfg, "llm-provider");
 
     let mode = infer_mode(&url, &model);
     let (host, scope) = crate::model_config::destination::describe(&url);
@@ -258,16 +266,12 @@ async fn handle_put_config(
     };
 
     // ── compute and persist both maps through the single pure function ───
-    let central: HashMap<String, String> = secrets
-        .get_secret(CENTRAL_LLM_PATH)
-        .await
-        .unwrap_or_default();
+    let central: HashMap<String, String> = secrets.get_secret(CENTRAL_LLM_PATH).await
+        .unwrap_or_else(|err| { log::warn!("central LLM config unreadable: {err}"); HashMap::new() });
     let nil = uuid::Uuid::nil();
     let bot_path = format!("gbo/{nil}/{nil}/{nil}");
-    let per_bot: HashMap<String, String> = secrets
-        .get_secret(&bot_path)
-        .await
-        .unwrap_or_default();
+    let per_bot: HashMap<String, String> = secrets.get_secret(&bot_path).await
+        .unwrap_or_else(|err| { log::warn!("per-bot LLM config unreadable: {err}"); HashMap::new() });
 
     let (new_central, new_per_bot) = write_sets::compute(&central, &per_bot, &target);
 
@@ -276,13 +280,9 @@ async fn handle_put_config(
     let mut runtime_restarted = false;
     if req.mode == ModelMode::Local {
         let config_mgr = ConfigManager::new(state.conn.clone());
-        let gpu_layers = config_mgr
-            .get_config(&nil, "llm-server-gpu-layers", Some(""))
-            .unwrap_or_default();
-        let ctx_size = config_mgr
-            .get_config(&nil, "llm-server-ctx-size", Some(""))
-            .unwrap_or_default();
-        let model_file = new_central.get("model").cloned().unwrap_or_default();
+        let gpu_layers = config_value(&config_mgr, "llm-server-gpu-layers");
+        let ctx_size = config_value(&config_mgr, "llm-server-ctx-size");
+        let model_file = new_central.get("model").cloned().unwrap_or_else(String::new);
 
         use super::on_device_ai::runtime_ctl;
         let result =
@@ -320,7 +320,7 @@ async fn handle_put_config(
         })?;
 
     // ── Step 3: hot-swap the running provider ───────────────────────────
-    let swap_url = new_central.get("url").cloned().unwrap_or_default();
+    let swap_url = new_central.get("url").cloned().unwrap_or_else(String::new);
     let swap_model = new_central.get("model").cloned();
     let swapped = {
         let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =

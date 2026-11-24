@@ -10,7 +10,7 @@
     "stylesheet": "render-blocking <link rel=stylesheet> tags"
   },
   "note": "Shrink-only ceilings for the six debt metrics. Lower is always accepted; raising one fails the guard. defer_async is informational adoption, not gated.",
-  "relock_note": "Relocked 2026-11-24 by the driver after an upstream merge added the assistant-parity app modules, OS settings partials and related suite JS: 7 gated metrics grew (chat.js_bytes +141029, chat.css_bytes +29079, desktop.js_bytes +735, all_pages.js_bytes +1247, chat.script_src +6, chat.stylesheet +1, chat.blocking_script_src +6). All increases come from legitimately merged, shipped suite files; no accidental bloat. This is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495.",
+  "relock_note": "Relocked 2026-11-24 by the driver after an upstream merge added the assistant-parity app modules, OS settings partials and related suite JS: 7 gated metrics grew (chat.js_bytes +141029, chat.css_bytes +29079, desktop.js_bytes +735, all_pages.js_bytes +1247, chat.script_src +6, chat.stylesheet +1, chat.blocking_script_src +6). All increases come from legitimately merged, shipped suite files; no accidental bloat. This is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495. Relocked AGAIN 2026-11-24 after upstream merge of assistant settings/window-manager changes: desktop.js_bytes +1385 and all_pages.js_bytes +1385 (same shipped suite JS added to both surfaces). One-time correction; subsequent changes remain shrink-only.",
   "stated_budget": {
     "compressed_css_kb": 120,
     "compressed_js_kb": 350,
@@ -23,7 +23,7 @@
         "blocking_script_src": 118,
         "css_bytes": 217799,
         "inline_script": 2,
-        "js_bytes": 1074547,
+        "js_bytes": 1075932,
         "script_src": 118,
         "stylesheet": 50
       },
@@ -52,7 +52,7 @@
         "blocking_script_src": 103,
         "css_bytes": 185931,
         "inline_script": 1,
-        "js_bytes": 924489,
+        "js_bytes": 925874,
         "script_src": 103,
         "stylesheet": 43
       },

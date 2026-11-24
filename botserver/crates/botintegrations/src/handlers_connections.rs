@@ -226,7 +226,7 @@ fn clear_vibe_slots_for_provider(
         let key = format!("vibe-llm-{agent}-provider");
         let current = config
             .get_config(bot_id, &key, Some(""))
-            .unwrap_or_default();
+            .unwrap_or_else(|_| String::new());
         if current.trim() != provider_slug {
             continue;
         }

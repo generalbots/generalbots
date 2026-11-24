@@ -31,9 +31,9 @@ pub(crate) async fn sts_caller_identity(
     response.require_success("sts.caller_identity.get")?;
 
     let document = response.text();
-    let arn = xml::first_text_by_path(&document, &["Arn"]).unwrap_or_default();
-    let account = xml::first_text_by_path(&document, &["Account"]).unwrap_or_default();
-    let user_id = xml::first_text_by_path(&document, &["UserId"]).unwrap_or_default();
+    let arn = xml::first_text_by_path(&document, &["Arn"]).unwrap_or_else(String::new);
+    let account = xml::first_text_by_path(&document, &["Account"]).unwrap_or_else(String::new);
+    let user_id = xml::first_text_by_path(&document, &["UserId"]).unwrap_or_else(String::new);
     if arn.is_empty() {
         return Err(invalid(
             "STS response did not contain a caller ARN".to_string(),
@@ -94,7 +94,7 @@ pub(crate) async fn ec2_instances_describe(
         .map(|(index, id)| {
             json!({
                 "instance_id": id,
-                "state": states.get(index).cloned().unwrap_or_default(),
+                "state": states.get(index).cloned().unwrap_or_else(String::new),
             })
         })
         .collect();
@@ -144,7 +144,7 @@ async fn ec2_change_state(
         .map(|(index, id)| {
             json!({
                 "instance_id": id,
-                "current_state": current_states.get(index).cloned().unwrap_or_default(),
+                "current_state": current_states.get(index).cloned().unwrap_or_else(String::new),
             })
         })
         .collect();

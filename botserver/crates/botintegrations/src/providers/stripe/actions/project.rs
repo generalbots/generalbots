@@ -2,46 +2,46 @@ use super::*;
 
 pub(super) fn project_balance_line(item: &Value) -> Value {
     json!({
-        "amount": item.get("amount").cloned().unwrap_or_default(),
-        "currency": item.get("currency").cloned().unwrap_or_default(),
+        "amount": item.get("amount").cloned().unwrap_or(Value::Null),
+        "currency": item.get("currency").cloned().unwrap_or(Value::Null),
     })
 }
 
 pub(super) fn project_customer(item: &Value) -> Value {
     json!({
-        "id": item.get("id").cloned().unwrap_or_default(),
-        "name": item.get("name").cloned().unwrap_or_default(),
-        "email": item.get("email").cloned().unwrap_or_default(),
-        "created": item.get("created").cloned().unwrap_or_default(),
+        "id": item.get("id").cloned().unwrap_or(Value::Null),
+        "name": item.get("name").cloned().unwrap_or(Value::Null),
+        "email": item.get("email").cloned().unwrap_or(Value::Null),
+        "created": item.get("created").cloned().unwrap_or(Value::Null),
     })
 }
 
 pub(super) fn project_payment_intent(item: &Value) -> Value {
     json!({
-        "id": item.get("id").cloned().unwrap_or_default(),
-        "amount": item.get("amount").cloned().unwrap_or_default(),
-        "currency": item.get("currency").cloned().unwrap_or_default(),
-        "status": item.get("status").cloned().unwrap_or_default(),
-        "created": item.get("created").cloned().unwrap_or_default(),
+        "id": item.get("id").cloned().unwrap_or(Value::Null),
+        "amount": item.get("amount").cloned().unwrap_or(Value::Null),
+        "currency": item.get("currency").cloned().unwrap_or(Value::Null),
+        "status": item.get("status").cloned().unwrap_or(Value::Null),
+        "created": item.get("created").cloned().unwrap_or(Value::Null),
     })
 }
 
 pub(super) fn project_price(item: &Value) -> Value {
     json!({
-        "id": item.get("id").cloned().unwrap_or_default(),
-        "unit_amount": item.get("unit_amount").cloned().unwrap_or_default(),
-        "currency": item.get("currency").cloned().unwrap_or_default(),
+        "id": item.get("id").cloned().unwrap_or(Value::Null),
+        "unit_amount": item.get("unit_amount").cloned().unwrap_or(Value::Null),
+        "currency": item.get("currency").cloned().unwrap_or(Value::Null),
         "active": item.get("active").cloned().unwrap_or(Value::Bool(true)),
-        "product": item.get("product").cloned().unwrap_or_default(),
+        "product": item.get("product").cloned().unwrap_or(Value::Null),
     })
 }
 
 pub(super) fn project_subscription(item: &Value) -> Value {
     json!({
-        "id": item.get("id").cloned().unwrap_or_default(),
-        "status": item.get("status").cloned().unwrap_or_default(),
-        "customer": item.get("customer").cloned().unwrap_or_default(),
-        "current_period_end": item.get("current_period_end").cloned().unwrap_or_default(),
+        "id": item.get("id").cloned().unwrap_or(Value::Null),
+        "status": item.get("status").cloned().unwrap_or(Value::Null),
+        "customer": item.get("customer").cloned().unwrap_or(Value::Null),
+        "current_period_end": item.get("current_period_end").cloned().unwrap_or(Value::Null),
     })
 }
 
@@ -50,7 +50,7 @@ pub(super) fn projected_list(document: &Value, key: &str, project: fn(&Value) ->
         .get(key)
         .and_then(Value::as_array)
         .map(|items| items.iter().map(project).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub(super) async fn balance_retrieve(creds: &StripeCreds) -> Result<ActionOutcome, String> {
@@ -64,12 +64,12 @@ pub(super) async fn balance_retrieve(creds: &StripeCreds) -> Result<ActionOutcom
                 .get("available")
                 .and_then(Value::as_array)
                 .map(|items| items.iter().map(project_balance_line).collect::<Vec<_>>())
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
             "pending": document
                 .get("pending")
                 .and_then(Value::as_array)
                 .map(|items| items.iter().map(project_balance_line).collect::<Vec<_>>())
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
         }),
     ))
 }

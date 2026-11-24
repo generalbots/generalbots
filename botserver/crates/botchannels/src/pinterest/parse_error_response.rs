@@ -17,7 +17,7 @@ impl PinterestProvider {
             return ChannelError::RateLimited { retry_after };
         }
 
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = crate::response_error_text(response).await;
 
         if let Ok(error_response) = serde_json::from_str::<PinterestErrorResponse>(&error_text) {
             return ChannelError::ApiError {

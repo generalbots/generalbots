@@ -60,11 +60,17 @@ pub(super) async fn list_groups(
         }))
     })?.lock().await;
 
-    let data = auth_service.http_get(
+    let data = match auth_service.http_get(
         format!("{}/metadata/organization?limit={}&offset={}", auth_service.api_url(), count, start_index - 1),
-    ).await.unwrap_or_default();
+    ).await {
+        Ok(v) => v,
+        Err(e) => {
+            log::warn!("SCIM list_groups: metadata fetch failed: {:?}", e);
+            serde_json::Value::Null
+        }
+    };
 
-    let metadata = data.as_array().cloned().unwrap_or_default();
+    let metadata = data.as_array().cloned().unwrap_or_else(Vec::new);
     let groups: Vec<serde_json::Value> = metadata.iter()
         .filter_map(|item| {
             let key = item.get("key")?.as_str()?;
@@ -75,7 +81,7 @@ pub(super) async fn list_groups(
             let member_ids: Vec<String> = value.get("members")
                 .and_then(|m| m.as_array())
                 .map(|arr| arr.iter().filter_map(|m| m.as_str().map(String::from)).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
 
             let members: Vec<ScimMember> = member_ids.iter().map(|id| {
                 ScimMember {
@@ -146,12 +152,18 @@ pub(super) async fn get_group(
     })?;
 
     let value_str = metadata.get("value").and_then(|v| v.as_str()).unwrap_or("{}");
-    let value: serde_json::Value = serde_json::from_str(value_str).unwrap_or_default();
+    let value: serde_json::Value = match serde_json::from_str(value_str) {
+        Ok(v) => v,
+        Err(e) => {
+            log::warn!("SCIM get_group: invalid metadata value JSON: {:?}", e);
+            serde_json::Value::Null
+        }
+    };
 
     let member_ids: Vec<String> = value.get("members")
         .and_then(|m| m.as_array())
         .map(|arr| arr.iter().filter_map(|m| m.as_str().map(String::from)).collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     let members: Vec<ScimMember> = member_ids.iter().map(|id| {
         ScimMember {

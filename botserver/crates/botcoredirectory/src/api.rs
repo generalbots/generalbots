@@ -246,10 +246,16 @@ pub async fn check_services_status(State(state): State<Arc<DirectoryApiState>>) 
 
     status.database = state.conn.get().is_ok();
 
-    let client = reqwest::Client::builder()
+    let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(2))
         .build()
-        .unwrap_or_default();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("Failed to build status-check HTTP client: {:?}", e);
+            reqwest::Client::new()
+        }
+    };
 
     // Server-side request forgery guard: the configured directory base URL
     // must be an http(s) URL with an explicit host before it is requested.

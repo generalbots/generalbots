@@ -122,7 +122,10 @@ pub async fn list_users(
         "SELECT id, username, email, is_active, is_admin, created_at FROM users ORDER BY created_at DESC LIMIT 50",
     )
     .load::<UserRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load users for export: {err}");
+        Vec::new()
+    });
 
     // Settings → Users swaps this endpoint into the page with HTMX (#1839).
     // Serve the same rows as an HTML table for that request, while keeping the
@@ -205,7 +208,10 @@ pub async fn list_groups(State(state): State<Arc<AppState>>) -> axum::Json<serde
     let rows: Vec<GroupRow> =
         diesel::sql_query("SELECT id, name FROM rbac_groups ORDER BY name")
             .load::<GroupRow>(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|err| {
+                log::warn!("failed to load rbac groups: {err}");
+                Vec::new()
+            });
 
     let groups: Vec<serde_json::Value> = rows
         .into_iter()
@@ -232,7 +238,10 @@ pub async fn list_dns(State(state): State<Arc<AppState>>) -> axum::Json<serde_js
 
     let rows: Vec<DnsRow> = diesel::sql_query("SELECT id, domain FROM bot_domains ORDER BY domain")
         .load::<DnsRow>(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load bot domains: {err}");
+            Vec::new()
+        });
 
     let domains: Vec<serde_json::Value> = rows
         .into_iter()

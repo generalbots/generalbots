@@ -184,7 +184,7 @@ pub(crate) async fn logs_search(creds: &AwsCreds, params: &Value) -> Result<Acti
             .get("results")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         if status != "Running" && !status.is_empty() {
             break;
         }
@@ -230,7 +230,7 @@ pub(crate) async fn lambda_functions_list(
         .get("Functions")
         .and_then(Value::as_array)
         .cloned()
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
         .iter()
         .map(|function| {
             json!({

@@ -132,7 +132,7 @@ impl AgentRegistry {
     }
 
     pub async fn runs(&self, agent_id: &Uuid) -> Vec<AgentRun> {
-        self.runs.read().await.get(agent_id).cloned().unwrap_or_default()
+        self.runs.read().await.get(agent_id).cloned().unwrap_or_else(Vec::new)
     }
 
     pub async fn usage(&self, agent_id: &Uuid) -> Option<AgentUsage> {
@@ -161,7 +161,10 @@ impl AgentRegistry {
                     .await;
                 match resp {
                     Ok(r) if r.status().is_success() => {
-                        let text = r.text().await.unwrap_or_default();
+                        let text = r.text().await.unwrap_or_else(|e| {
+                            log::warn!("agent response body unreadable: {e}");
+                            String::new()
+                        });
                         (text, "complete".to_string(), None, 0)
                     }
                     Ok(r) => (
@@ -215,7 +218,7 @@ impl AgentRegistry {
             usage.total_latency_ms += latency_ms;
         }
         if status == "failed" {
-            log::error!("Agent {} run {} failed: {}", agent.name, run_id, error.clone().unwrap_or_default());
+            log::error!("Agent {} run {} failed: {}", agent.name, run_id, error.clone().unwrap_or_else(String::new));
         }
         Ok(run)
     }

@@ -74,7 +74,7 @@ impl ProjectDomains {
         allowed_emails: Option<String>,
     ) -> Result<DomainBind, String> {
         let access = Self::validate_access(access)?;
-        let allowed = allowed_emails.unwrap_or_default();
+        let allowed = allowed_emails.unwrap_or_else(String::new);
         let mut conn = self.conn()?;
         diesel::sql_query(
             "UPDATE project_domains SET access = $2, allowed_emails = $3, updated_at = NOW() WHERE id = $1",

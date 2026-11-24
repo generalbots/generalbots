@@ -121,7 +121,7 @@ async fn llm_scaffold(
         .map(str::trim)
         .filter(|d| !d.is_empty())
         .map(|d| format!(" The user described it as: \"{d}\""))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let system = "You are the Vibe scaffolding engine. The user is creating a new project and \
                   the starter files you produce are the starting point an autonomous coding agent \
                   will iterate on. Respond with ONLY a JSON object mapping relative file paths to \

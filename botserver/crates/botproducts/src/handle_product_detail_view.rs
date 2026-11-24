@@ -121,8 +121,7 @@ pub(super) async fn handle_product_edit_form(
     let cost_str = product
         .cost
         .as_ref()
-        .map(|c| c.to_string())
-        .unwrap_or_default();
+        .map_or_else(String::new, |c| c.to_string());
     let tax_rate_str = product.tax_rate.to_string();
     let active_sel = |v: bool, expected: bool| {
         if v == expected { "selected" } else { "" }

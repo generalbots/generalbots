@@ -22,7 +22,7 @@ pub fn scan_for_empty_files(work_dir: &Path) -> Vec<String> {
                 let bot_name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let gbdialog = path.join(format!("{}.gbdialog", bot_name));
                 if gbdialog.exists() {
                     if let Ok(files) = std::fs::read_dir(&gbdialog) {

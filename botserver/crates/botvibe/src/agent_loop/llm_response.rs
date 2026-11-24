@@ -60,7 +60,10 @@ impl AgentLoop {
             .map_err(|e| format!("HTTP request failed: {e}"))?;
         if !resp.status().is_success() {
             let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                log::warn!("LLM response body unreadable: {e}");
+                String::new()
+            });
             return Err(format!("LLM returned status {status}: {text}"));
         }
         let payload = self.read_body(resp).await?;

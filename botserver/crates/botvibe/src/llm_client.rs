@@ -27,7 +27,7 @@ pub fn resolve_llm(
     let mut url = override_url
         .map(str::to_string)
         .or_else(|| std::env::var("LLM_URL").ok())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let mut model = override_model
         .map(str::to_string)
         .or_else(|| std::env::var("LLM_MODEL").ok())
@@ -35,7 +35,7 @@ pub fn resolve_llm(
     let mut key = override_key
         .map(str::to_string)
         .or_else(|| std::env::var("LLM_KEY").ok())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     if url.is_empty() || key.is_empty() {
         if let Some(secrets) = read_vault_llm() {
@@ -126,14 +126,17 @@ pub async fn chat_completion(
         .map_err(|e| format!("HTTP request failed: {e}"))?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            log::warn!("LLM response body unreadable: {e}");
+            String::new()
+        });
         return Err(format!("LLM HTTP {status}: {text}"));
     }
     let json: Value = resp.json().await.map_err(|e| format!("response json: {e}"))?;
     let message = &json["choices"][0]["message"];
     let mut content = message["content"]
         .as_str()
-        .unwrap_or_default()
+        .unwrap_or("")
         .trim()
         .to_string();
     if content.is_empty() {

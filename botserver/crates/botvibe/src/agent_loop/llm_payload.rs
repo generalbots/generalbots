@@ -28,7 +28,7 @@ pub(crate) fn parse_sse(body: &str) -> Option<serde_json::Value> {
         let delta = &event["choices"][0]["delta"];
         if let Some(text) = delta["content"].as_str() {
             message["content"] = serde_json::Value::String(
-                message["content"].as_str().unwrap_or_default().to_string() + text,
+                message["content"].as_str().unwrap_or("").to_string() + text,
             );
         }
         if let Some(deltas) = delta["tool_calls"].as_array() {
@@ -51,13 +51,13 @@ pub(crate) fn parse_sse(body: &str) -> Option<serde_json::Value> {
                 }
                 if let Some(name) = delta_call["function"]["name"].as_str() {
                     if !name.is_empty() {
-                        let current = entry["function"]["name"].as_str().unwrap_or_default();
+                        let current = entry["function"]["name"].as_str().unwrap_or("");
                         entry["function"]["name"] =
                             serde_json::Value::String(current.to_string() + name);
                     }
                 }
                 if let Some(args) = delta_call["function"]["arguments"].as_str() {
-                    let current = entry["function"]["arguments"].as_str().unwrap_or_default();
+                    let current = entry["function"]["arguments"].as_str().unwrap_or("");
                     entry["function"]["arguments"] =
                         serde_json::Value::String(current.to_string() + args);
                 }

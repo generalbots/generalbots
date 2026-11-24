@@ -61,14 +61,17 @@ pub async fn search_roles(
         return Html(String::new());
     };
 
-    let pattern = query.q.clone().unwrap_or_default().trim().to_string();
+    let pattern = query.q.clone().unwrap_or_else(String::new).trim().to_string();
 
     let rows: Vec<RoleRow> = if pattern.is_empty() {
         diesel::sql_query(
             "SELECT id, name, display_name FROM rbac_roles WHERE is_active = true ORDER BY display_name LIMIT 20",
         )
         .load(&mut conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load rbac search results: {err}");
+            Vec::new()
+        })
     } else {
         let p = format!("%{pattern}%");
         diesel::sql_query(
@@ -76,7 +79,10 @@ pub async fn search_roles(
         )
         .bind::<diesel::sql_types::Text, _>(p)
         .load(&mut conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load rbac search results: {err}");
+            Vec::new()
+        })
     };
 
     if rows.is_empty() {
@@ -103,14 +109,17 @@ pub async fn search_groups(
         return Html(String::new());
     };
 
-    let pattern = query.q.clone().unwrap_or_default().trim().to_string();
+    let pattern = query.q.clone().unwrap_or_else(String::new).trim().to_string();
 
     let rows: Vec<GroupRow> = if pattern.is_empty() {
         diesel::sql_query(
             "SELECT id, name, display_name FROM rbac_groups WHERE is_active = true ORDER BY display_name LIMIT 20",
         )
         .load(&mut conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load rbac search results: {err}");
+            Vec::new()
+        })
     } else {
         let p = format!("%{pattern}%");
         diesel::sql_query(
@@ -118,7 +127,10 @@ pub async fn search_groups(
         )
         .bind::<diesel::sql_types::Text, _>(p)
         .load(&mut conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load rbac search results: {err}");
+            Vec::new()
+        })
     };
 
     if rows.is_empty() {
@@ -145,12 +157,15 @@ pub async fn search_users(
         return Html(String::new());
     };
 
-    let pattern = query.q.clone().unwrap_or_default().trim().to_string();
+    let pattern = query.q.clone().unwrap_or_else(String::new).trim().to_string();
 
     let rows: Vec<UserRow> = if pattern.is_empty() {
         diesel::sql_query("SELECT id, username, email FROM users ORDER BY username LIMIT 20")
             .load(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|err| {
+                log::warn!("failed to load rbac users search results: {err}");
+                Vec::new()
+            })
     } else {
         let p = format!("%{pattern}%");
         diesel::sql_query(
@@ -158,7 +173,10 @@ pub async fn search_users(
         )
         .bind::<diesel::sql_types::Text, _>(p)
         .load(&mut conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load rbac search results: {err}");
+            Vec::new()
+        })
     };
 
     if rows.is_empty() {

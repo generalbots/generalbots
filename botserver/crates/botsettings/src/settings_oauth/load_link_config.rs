@@ -51,7 +51,10 @@ pub(super) fn read_oauth_bot_config(state: &Arc<AppState>) -> HashMap<String, St
         };
         let _ = tx.send(result);
     });
-    rx.recv().ok().flatten().unwrap_or_default()
+    match rx.recv().ok().flatten() {
+        Some(config) => config,
+        None => HashMap::new(),
+    }
 }
 pub(super) fn active_bot_id(state: &Arc<AppState>) -> uuid::Uuid {
     use diesel::prelude::*;

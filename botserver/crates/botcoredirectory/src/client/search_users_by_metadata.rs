@@ -25,7 +25,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to search users by metadata: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to search users by metadata: {}", error_text));
         }
 
@@ -38,7 +44,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(users)
     }
@@ -95,7 +101,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to get memberships: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to get memberships: {}", error_text));
         }
 
@@ -134,7 +146,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to add org member: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to add org member: {}", error_text));
         }
 
@@ -157,7 +175,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to remove org member: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to remove org member: {}", error_text));
         }
 
@@ -180,7 +204,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to get org members: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to get org members: {}", error_text));
         }
 
@@ -193,7 +223,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(members)
     }
@@ -211,7 +241,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to get organization: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to get organization: {}", error_text));
         }
 
@@ -241,7 +277,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to introspect token: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to introspect token: {}", error_text));
         }
 

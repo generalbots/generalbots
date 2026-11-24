@@ -37,7 +37,7 @@ pub async fn handle_lead_detail(
         return Html("<div class='crm-detail-empty'>Deal not found</div>".to_string());
     };
 
-    let title = deal.name.clone().unwrap_or_default();
+    let title = crate::value_or_default(deal.name.clone());
     let folder = deal
         .custom_fields
         .as_ref()
@@ -66,12 +66,14 @@ pub async fn handle_lead_detail(
 
     // #1441 A5 — per-record activity timeline (calls, emails, meetings, notes).
     // Server-rendered from crm_activities so the detail page is self-contained.
-    let activities: Vec<crate::models::CrmActivity> = crate::schema::crm_activities::table
-        .filter(crate::schema::crm_activities::lead_id.eq(deal.id))
-        .order(crate::schema::crm_activities::created_at.desc())
-        .limit(20)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let activities: Vec<crate::models::CrmActivity> = crate::default_on_error(
+        crate::schema::crm_activities::table
+            .filter(crate::schema::crm_activities::lead_id.eq(deal.id))
+            .order(crate::schema::crm_activities::created_at.desc())
+            .limit(20)
+            .load(&mut conn),
+        "lead detail activities",
+    );
     html.push_str(r#"<div class="lead-detail-timeline"><h4 class="lead-detail-subtitle">Activities</h4>"#);
     if activities.is_empty() {
         html.push_str(r#"<div class="lead-detail-empty-timeline">No activities recorded yet</div>"#);
@@ -156,7 +158,7 @@ fn deal_fields(deal: &CrmDeal) -> Vec<(&'static str, String)> {
     vec![
         ("Stage", deal.stage.clone().unwrap_or_else(|| "-".to_string())),
         ("Value", deal.value.map(|v| format!("{v}")).unwrap_or_else(|| "-".to_string())),
-        ("Source", deal.source.clone().unwrap_or_default()),
+        ("Source", crate::value_or_default(deal.source.clone())),
     ]
 }
 

@@ -110,7 +110,10 @@ use super::*;
             self.events
                 .lock()
                 .map(|events| events.clone())
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    log::warn!("pipeline event lock poisoned: {e}");
+                    Vec::new()
+                })
         }
     }
 
@@ -282,7 +285,7 @@ async fn a_stage_cut_off_by_the_budget_keeps_the_finished_rows() {
     assert_eq!(report.stages.len(), 2, "the finished stage must be kept");
     assert_eq!(report.stages[0].status, StageStatus::Completed);
     assert_eq!(report.stages[1].status, StageStatus::TimedOut);
-    let error = report.stages[1].error.clone().unwrap_or_default();
+    let error = report.stages[1].error.clone().unwrap_or_else(String::new);
     assert!(
         error.contains("Build and test"),
         "the in-flight step must be named: {error}"

@@ -195,7 +195,7 @@ async fn search_users(
     Extension(user): Extension<AuthenticatedUser>,
     Query(query): Query<UserSearchQuery>,
 ) -> Result<Json<UserSearchResponse>, (StatusCode, Json<UserSearchResponse>)> {
-    let q = query.q.unwrap_or_default().trim().to_string();
+    let q = query.q.unwrap_or_else(String::new).trim().to_string();
     if q.len() < 2 {
         return Ok(Json(UserSearchResponse {
             success: true,

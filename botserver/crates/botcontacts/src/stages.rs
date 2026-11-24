@@ -129,8 +129,8 @@ fn admin_headers(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
     // executor's rule server-side so the UI cannot bypass it).
     let token = headers
         .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or_default();
+        .and_then(|v| v.to_str().ok());
+    let token = crate::value_or_default(token);
     if token.is_empty() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }

@@ -68,7 +68,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: token_response.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(token_response.errmsg),
                 });
             }
         }
@@ -103,7 +103,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: response.errmsg.clone().unwrap_or_default(),
+                    message: crate::string_or_empty(response.errmsg.clone()),
                 });
             }
         }
@@ -117,13 +117,13 @@ impl WeChatProvider {
             return ChannelError::AuthenticationFailed("Invalid credentials".to_string());
         }
 
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = crate::response_error_text(response).await;
 
         if let Ok(api_response) = serde_json::from_str::<WeChatApiResponse<()>>(&error_text) {
             if let Some(errcode) = api_response.errcode {
                 return ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: api_response.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(api_response.errmsg),
                 };
             }
         }

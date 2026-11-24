@@ -44,7 +44,7 @@ pub async fn groups_create(
         );
     }
 
-    let name = form.name.unwrap_or_default();
+    let name = form.name.unwrap_or_else(String::new);
     let display = form.display_name.clone().unwrap_or_else(|| name.clone());
     if let Err(reason) = validate_group_name(&name) {
         return (StatusCode::BAD_REQUEST, Html(reason.to_string()));

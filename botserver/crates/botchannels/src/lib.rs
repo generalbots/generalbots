@@ -20,6 +20,39 @@ pub mod twilio_sms;
 pub mod wechat;
 pub mod youtube;
 
+/// Reads the body of a failed provider response. A body that cannot be read is
+/// logged instead of being silently replaced with an empty string.
+pub(crate) async fn response_error_text(response: reqwest::Response) -> String {
+    match response.text().await {
+        Ok(text) => text,
+        Err(error) => {
+            log::warn!("Could not read provider error response body: {error}");
+            String::new()
+        }
+    }
+}
+
+/// Explicit `Option<String>` -> `String` for provider fields whose absence is
+/// part of the API contract (optional error messages, empty webhook cells).
+pub(crate) fn string_or_empty(value: Option<String>) -> String {
+    match value {
+        Some(value) => value,
+        None => String::new(),
+    }
+}
+
+/// Explicit `Option<String>` -> `String` for fields that are expected to be
+/// present; a missing value is logged because it signals a malformed response.
+pub(crate) fn required_string(value: Option<String>, field: &'static str) -> String {
+    match value {
+        Some(value) => value,
+        None => {
+            log::warn!("Provider response is missing {field}; using an empty string");
+            String::new()
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelType {

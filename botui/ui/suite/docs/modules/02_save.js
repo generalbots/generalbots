@@ -45,6 +45,7 @@ function scheduleSave(id, content) {
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
       .then(function () {
         setSaveStatus("All changes saved", false);
+        if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("docs", "save");
         if (window.GBOfflineDraft) window.GBOfflineDraft.clear(docDraftKey(docId));
         if (window.GBCollabActivity) {
           window.GBCollabActivity.record({

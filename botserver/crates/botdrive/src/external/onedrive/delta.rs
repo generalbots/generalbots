@@ -24,7 +24,13 @@ pub async fn fetch_page(
         .await
         .map_err(|e| SyncError::Transient(format!("delta request failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("OneDrive delta error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         return Err(classify_status(status.as_u16(), &body));
     }
@@ -51,7 +57,13 @@ pub async fn download(
         .map_err(|e| SyncError::Transient(format!("download request failed: {e}")))?;
     let status = res.status();
     if !status.is_success() {
-        let body = res.text().await.unwrap_or_default();
+        let body = match res.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("OneDrive download error response body unreadable: {:?}", e);
+                String::new()
+            }
+        };
         return Err(classify_status(status.as_u16(), &body));
     }
     res.bytes()
@@ -95,7 +107,7 @@ pub fn parse_delta(json: &Value) -> DeltaPage {
             let name = item
                 .get("name")
                 .and_then(Value::as_str)
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_string();
             if name.is_empty() {
                 continue;

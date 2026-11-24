@@ -180,8 +180,8 @@ pub fn build_use_case_graph(
         tool_counts
             .get(b)
             .copied()
-            .unwrap_or_default()
-            .cmp(&tool_counts.get(a).copied().unwrap_or_default())
+            .unwrap_or(0)
+            .cmp(&tool_counts.get(a).copied().unwrap_or(0))
             .then(a.cmp(b))
     });
     tool_names.truncate(MAX_TOOL_NODES);
@@ -192,7 +192,7 @@ pub fn build_use_case_graph(
         .map(|(_, c)| c)
         .sum();
     for tool in tool_names.clone() {
-        let count = tool_counts.get(&tool).copied().unwrap_or_default();
+        let count = tool_counts.get(&tool).copied().unwrap_or(0);
         nodes.push(GraphNode {
             id: tool_id(&tool),
             label: tool.clone(),
@@ -226,7 +226,7 @@ pub fn build_use_case_graph(
                 continue;
             }
             edge_budget -= 1;
-            let count = tool_counts.get(tool).copied().unwrap_or_default();
+            let count = tool_counts.get(tool).copied().unwrap_or(0);
             edges.push(GraphEdge {
                 source: run_id_node(run),
                 target: tool_id(tool),
@@ -269,7 +269,7 @@ pub fn build_run_graph(run_id: &str, runs: &[RunNodeInfo]) -> Result<KnowledgeGr
     let mut edges: Vec<GraphEdge> = Vec::new();
 
     for tool in tool_names {
-        let count = tool_counts.get(&tool).copied().unwrap_or_default();
+        let count = tool_counts.get(&tool).copied().unwrap_or(0);
         nodes.push(GraphNode {
             id: tool_id(&tool),
             label: tool.clone(),

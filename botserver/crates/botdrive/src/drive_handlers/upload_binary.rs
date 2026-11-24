@@ -39,7 +39,7 @@ pub async fn upload_file_binary(
     let upload = match upload_policy::validate_upload(
         UploadClass::Drive,
         &filename,
-        detected.as_deref().unwrap_or_default(),
+        detected.as_deref().unwrap_or(""),
         &data,
     ) {
         Ok(upload) => upload,

@@ -187,7 +187,10 @@ pub async fn ops_errors_recent(State(state): State<Arc<AppState>>) -> impl IntoR
           ORDER BY errors DESC",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load ops dashboard data: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(
@@ -234,7 +237,10 @@ pub async fn ops_endpoints_performance(State(state): State<Arc<AppState>>) -> im
          GROUP BY b.id, b.name ORDER BY count DESC LIMIT 6",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load ops dashboard data: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="empty-state"><p>No endpoint activity</p></div>"#.to_string());
@@ -276,7 +282,10 @@ pub async fn ops_traces(State(state): State<Arc<AppState>>) -> impl IntoResponse
          ORDER BY mh.created_at DESC LIMIT 8",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load ops dashboard data: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="empty-state"><p>No traces recorded</p></div>"#.to_string());

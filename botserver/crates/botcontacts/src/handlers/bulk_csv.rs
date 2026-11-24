@@ -74,7 +74,7 @@ pub async fn bulk_leads(
 
     let result = match action {
         "stage" => {
-            let stage = req.stage.clone().unwrap_or_default();
+            let stage = crate::value_or_default(req.stage.clone());
             let updated = diesel::update(
                 crm_deals::table
                     .filter(crm_deals::branch_id.eq(branch_id))
@@ -104,7 +104,7 @@ pub async fn bulk_leads(
             LeadBulkActionResult { updated, deleted: 0, failed }
         }
         "owner" => {
-            let owner = req.owner_id.unwrap_or_default();
+            let owner = crate::value_or_default(req.owner_id);
             let updated = diesel::update(
                 crm_deals::table
                     .filter(crm_deals::branch_id.eq(branch_id))
@@ -203,7 +203,7 @@ pub async fn bulk_contacts(
 
     let result = match req.action.as_str() {
         "owner" => {
-            let owner = req.owner_id.unwrap_or_default();
+            let owner = crate::value_or_default(req.owner_id);
             let updated = diesel::update(
                 crm_contacts::table
                     .filter(crm_contacts::branch_id.eq(branch_id))

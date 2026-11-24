@@ -152,7 +152,7 @@ pub(crate) fn check_payload_limits(files: &[serde_json::Value]) -> Result<(), St
         if content.len() > MAX_SINGLE_FILE_BYTES {
             return Err(format!(
                 "file '{}' is {} bytes; the per-file limit is {MAX_SINGLE_FILE_BYTES}",
-                f["path"].as_str().unwrap_or_default(),
+                f["path"].as_str().unwrap_or(""),
                 content.len()
             ));
         }
@@ -247,7 +247,7 @@ pub(crate) fn stage_payload(
         let fh = std::fs::File::create(&tmp).map_err(|e| format!("create staging tar: {e}"))?;
         let mut builder = Builder::new(fh);
         for f in &files {
-            let rel = f["path"].as_str().unwrap_or_default();
+            let rel = f["path"].as_str().unwrap_or("");
             let Some(rel_path) = payload_relative_path(rel) else {
                 continue;
             };
@@ -264,7 +264,14 @@ pub(crate) fn stage_payload(
     }
 
     // Push the tarball, extract into a staging dir, verify non-empty, swap.
-    let proxy_tmp = format!("/tmp/{}", tmp.file_name().unwrap_or_default().to_string_lossy());
+    let file_name = match tmp.file_name() {
+        Some(name) => name.to_string_lossy().into_owned(),
+        None => {
+            log::warn!("staging tarball has no file name");
+            String::new()
+        }
+    };
+    let proxy_tmp = format!("/tmp/{file_name}");
     let pushed = crate::harness::cmd::run(
         "incus",
         &[

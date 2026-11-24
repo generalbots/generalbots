@@ -6,7 +6,7 @@ pub async fn move_file(
     Json(req): Json<MoveFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
@@ -141,7 +141,7 @@ pub async fn recent_files(
     Query(params): Query<RecentQueryParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = params.scope.unwrap_or_default();
+    let scope = params.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,

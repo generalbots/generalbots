@@ -96,7 +96,7 @@ pub fn parse_upload(json: &Value, fallback_name: &str, bytes: usize) -> (String,
     let remote_id = json
         .get("id")
         .and_then(Value::as_str)
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string();
     let name = json
         .get("name")

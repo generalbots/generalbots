@@ -61,7 +61,13 @@ impl ZitadelClient {
 
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             // Legacy Zitadel builds without the _import endpoint: retry the
             // classic AddHuman route so user creation still works there (the
             // password flag is dropped on those builds — caller must set the
@@ -77,7 +83,13 @@ impl ZitadelClient {
                     .await
                     .map_err(|e| anyhow!("Failed to create user: {}", e))?;
                 if !retry.status().is_success() {
-                    let retry_text = retry.text().await.unwrap_or_default();
+                    let retry_text = match retry.text().await {
+                        Ok(t) => t,
+                        Err(e) => {
+                            log::warn!("Zitadel retry error response body unreadable: {:?}", e);
+                            String::new()
+                        }
+                    };
                     return Err(anyhow!("Failed to create user: {}", retry_text));
                 }
                 let user_data: serde_json::Value = retry
@@ -132,7 +144,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to get user: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to get user: {}", error_text));
         }
 
@@ -161,7 +179,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to list users: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to list users: {}", error_text));
         }
 
@@ -174,7 +198,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(users)
     }
@@ -202,7 +226,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to search users: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to search users: {}", error_text));
         }
 
@@ -215,7 +245,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(users)
     }
@@ -243,7 +273,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to search users by phone: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to search users by phone: {}", error_text));
         }
 
@@ -256,7 +292,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(users)
     }
@@ -284,7 +320,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to search users by email: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to search users by email: {}", error_text));
         }
 
@@ -297,7 +339,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(users)
     }

@@ -211,31 +211,38 @@ pub async fn share_email_accounts(
         #[diesel(sql_type = Text)]
         auth_mode: String,
     }
-    let accounts: Vec<serde_json::Value> = diesel::sql_query(
+    let account_rows = match diesel::sql_query(
         "SELECT id::text, email, COALESCE(display_name, '') AS display_name, auth_mode \
          FROM user_email_accounts WHERE user_id = $1 AND is_active = true \
          ORDER BY is_primary DESC, updated_at DESC",
     )
     .bind::<diesel::sql_types::Uuid, _>(account_user)
     .load::<Row>(&mut conn)
-    .unwrap_or_default()
-    .into_iter()
-    .map(|row| {
-        serde_json::json!({
-            "id": row.id,
-            "email": row.email,
-            "display_name": row.display_name.unwrap_or_default(),
-            "auth_mode": row.auth_mode,
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("Failed to list email accounts: {:?}", e);
+            Vec::new()
+        }
+    };
+    let accounts: Vec<serde_json::Value> = account_rows
+        .into_iter()
+        .map(|row| {
+            serde_json::json!({
+                "id": row.id,
+                "email": row.email,
+                "display_name": row.display_name.unwrap_or_else(String::new),
+                "auth_mode": row.auth_mode,
+            })
         })
-    })
-    .collect();
+        .collect();
 
     let native = native_sender().await;
     Ok(Json(serde_json::json!({
         "accounts": accounts,
         "native": {
             "configured": native.is_some(),
-            "from": native.as_ref().map(|sender| sender.label.clone()).unwrap_or_default(),
+            "from": native.as_ref().map(|sender| sender.label.clone()).unwrap_or_else(String::new),
         }
     })))
 }
@@ -249,7 +256,7 @@ pub async fn send_share_email(
     Json(req): Json<ShareEmailBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let recipients = valid_recipients(&req.recipients)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,

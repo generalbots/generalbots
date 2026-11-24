@@ -18,7 +18,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -46,13 +46,13 @@ impl RedditChannel {
             .ok_or_else(|| RedditError::ApiError("No comment data returned".to_string()))?;
 
         Ok(RedditComment {
-            id: comment_data.id.unwrap_or_default(),
-            body: comment_data.body.unwrap_or_default(),
-            author: comment_data.author.unwrap_or_default(),
+            id: crate::required_string(comment_data.id, "comment id"),
+            body: crate::required_string(comment_data.body, "comment body"),
+            author: crate::required_string(comment_data.author, "comment author"),
             score: comment_data.score.unwrap_or(0),
             created_utc: comment_data.created_utc.unwrap_or(0.0),
-            parent_id: comment_data.parent_id.unwrap_or_default(),
-            link_id: comment_data.link_id.unwrap_or_default(),
+            parent_id: crate::required_string(comment_data.parent_id, "comment parent_id"),
+            link_id: crate::required_string(comment_data.link_id, "comment link_id"),
         })
     }
 
@@ -74,7 +74,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -92,16 +92,16 @@ impl RedditChannel {
             .ok_or(RedditError::PostNotFound)?;
 
         Ok(RedditPost {
-            id: post_data.id.unwrap_or_default(),
-            subreddit: post_data.subreddit.unwrap_or_default(),
-            title: post_data.title.unwrap_or_default(),
+            id: crate::required_string(post_data.id, "post id"),
+            subreddit: crate::required_string(post_data.subreddit, "post subreddit"),
+            title: crate::required_string(post_data.title, "post title"),
             selftext: post_data.selftext,
             url: post_data.url,
-            author: post_data.author.unwrap_or_default(),
+            author: crate::required_string(post_data.author, "post author"),
             score: post_data.score.unwrap_or(0),
             num_comments: post_data.num_comments.unwrap_or(0),
             created_utc: post_data.created_utc.unwrap_or(0.0),
-            permalink: post_data.permalink.unwrap_or_default(),
+            permalink: crate::required_string(post_data.permalink, "post permalink"),
             is_self: post_data.is_self.unwrap_or(false),
             link_flair_text: post_data.link_flair_text,
         })
@@ -119,7 +119,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -131,13 +131,13 @@ impl RedditChannel {
         let data = about.data;
 
         Ok(Subreddit {
-            name: data.name.unwrap_or_default(),
-            display_name: data.display_name.unwrap_or_default(),
-            title: data.title.unwrap_or_default(),
+            name: crate::required_string(data.name, "subreddit name"),
+            display_name: crate::required_string(data.display_name, "subreddit display name"),
+            title: crate::required_string(data.title, "subreddit title"),
             description: data.description,
             subscribers: data.subscribers.unwrap_or(0),
             public_description: data.public_description,
-            subreddit_type: data.subreddit_type.unwrap_or_default(),
+            subreddit_type: crate::string_or_empty(data.subreddit_type),
         })
     }
 
@@ -169,7 +169,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -184,16 +184,16 @@ impl RedditChannel {
             .into_iter()
             .filter_map(|c| c.data)
             .map(|d| RedditPost {
-                id: d.id.unwrap_or_default(),
-                subreddit: d.subreddit.unwrap_or_default(),
-                title: d.title.unwrap_or_default(),
+                id: crate::required_string(d.id, "post id"),
+                subreddit: crate::required_string(d.subreddit, "post subreddit"),
+                title: crate::required_string(d.title, "post title"),
                 selftext: d.selftext,
                 url: d.url,
-                author: d.author.unwrap_or_default(),
+                author: crate::required_string(d.author, "post author"),
                 score: d.score.unwrap_or(0),
                 num_comments: d.num_comments.unwrap_or(0),
                 created_utc: d.created_utc.unwrap_or(0.0),
-                permalink: d.permalink.unwrap_or_default(),
+                permalink: crate::required_string(d.permalink, "post permalink"),
                 is_self: d.is_self.unwrap_or(false),
                 link_flair_text: d.link_flair_text,
             })
@@ -221,7 +221,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -241,7 +241,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -265,7 +265,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -290,7 +290,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 

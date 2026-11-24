@@ -297,9 +297,14 @@ pub(crate) async fn promote_project_site(
         Ok(p) => p,
         Err((status, msg)) => return (status, msg).into_response(),
     };
-    let is_python = crate::proxy_sites::looks_like_python(
-        &crate::publish::collect_workspace_files(&project).unwrap_or_default(),
-    );
+    let workspace_files = match crate::publish::collect_workspace_files(&project) {
+        Ok(files) => files,
+        Err(e) => {
+            log::warn!("collect_workspace_files failed: {e}");
+            Vec::new()
+        }
+    };
+    let is_python = crate::proxy_sites::looks_like_python(&workspace_files);
     match crate::proxy_sites::promote_site_test_to_prod(
         &project,
         is_python,

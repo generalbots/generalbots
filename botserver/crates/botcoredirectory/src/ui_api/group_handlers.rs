@@ -258,7 +258,7 @@ pub(super) async fn send_group_invite_json(
     Path(group_id): Path<Uuid>,
     Json(payload): Json<SendInviteRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let email = payload.email.unwrap_or_default();
+    let email = payload.email.unwrap_or_else(String::new);
     if email.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "email required".to_string()));
     }

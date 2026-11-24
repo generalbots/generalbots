@@ -33,7 +33,10 @@ pub async fn oauth_accounts_list(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load::<LinkRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load linked oauth accounts: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return (
@@ -48,7 +51,7 @@ pub async fn oauth_accounts_list(
             .display_name
             .clone()
             .unwrap_or_else(|| row.provider.clone());
-        let email = row.email.unwrap_or_default();
+        let email = row.email.unwrap_or_else(String::new);
         html.push_str(&format!(
             r#"<div class="oauth-account-item">
                 <span class="oauth-account-name">{display}</span>

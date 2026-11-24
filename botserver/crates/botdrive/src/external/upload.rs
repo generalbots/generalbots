@@ -236,7 +236,13 @@ pub async fn send(
         .await
         .map_err(|e| SyncError::Transient(format!("upload request failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("External upload error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         return Err(classify_upload_status(
             status.as_u16(),

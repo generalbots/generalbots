@@ -26,7 +26,7 @@ pub async fn get_user_permissions(
                         .flatten()
                         .collect::<Vec<String>>()
                 })
-                .unwrap_or_default()
+                .unwrap_or_else(Vec::new)
         }
         Err(_) => vec![],
     };

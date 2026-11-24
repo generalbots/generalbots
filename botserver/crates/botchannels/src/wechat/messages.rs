@@ -130,8 +130,8 @@ impl WeChatProvider {
         })?;
 
         Ok(super::types::IncomingMessage {
-            to_user_name: get_value("ToUserName").unwrap_or_default(),
-            from_user_name: get_value("FromUserName").unwrap_or_default(),
+            to_user_name: crate::string_or_empty(get_value("ToUserName")),
+            from_user_name: crate::string_or_empty(get_value("FromUserName")),
             create_time: get_value("CreateTime")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0),

@@ -214,7 +214,7 @@ pub(crate) struct HistoryRunRow {
 pub(crate) fn history_resp(runs: Option<Vec<ProjectRunRow>>, error: String) -> Response {
     Json(ProjectHistoryResponse {
         success: false,
-        runs: runs.unwrap_or_default(),
+        runs: runs.unwrap_or_else(Vec::new),
         totals: ProjectTokenTotals {
             tokens: 0,
             input_tokens: 0,

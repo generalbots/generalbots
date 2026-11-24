@@ -22,7 +22,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to set password: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to set password: {}", error_text));
         }
 
@@ -61,7 +67,13 @@ impl ZitadelClient {
         }
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to list organizations: {}", error_text));
         }
 
@@ -74,7 +86,7 @@ impl ZitadelClient {
             .get("result")
             .and_then(|r| r.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(orgs)
     }
@@ -97,7 +109,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to create organization: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to create organization: {}", error_text));
         }
 
@@ -134,7 +152,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to update organization: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to update organization: {}", error_text));
         }
 
@@ -166,7 +190,13 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to create PAT: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("Zitadel error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow!("Failed to create PAT: {}", error_text));
         }
 

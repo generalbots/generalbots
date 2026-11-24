@@ -194,7 +194,7 @@ impl AzureAdSyncer {
                             .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(String::from))
                             .collect()
                     })
-                    .unwrap_or_default();
+                    .unwrap_or_else(Vec::new);
 
                 group_map.insert(gb_group_name.to_string(), member_ids);
                 result.groups_created += 1;
@@ -242,7 +242,7 @@ impl AzureAdSyncer {
                         })
                         .collect()
                 })
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
 
             let scim_user = ScimUser {
                 schemas: vec![

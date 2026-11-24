@@ -96,7 +96,7 @@ fn scan_processes() -> Vec<ProcessInfo> {
                         .to_ascii_lowercase()
                         .replace('/', &std::path::MAIN_SEPARATOR.to_string())
                 })
-                .unwrap_or_default();
+                .unwrap_or_else(String::new);
             let cmd: Vec<String> = proc.cmd().iter().map(|s| s.to_string_lossy().to_string()).collect();
             ProcessInfo {
                 pid: pid.as_u32(),
@@ -233,7 +233,7 @@ mod tests {
         let procs = vec![ProcessInfo {
             pid: my_pid,
             exe_lower: std::env::current_exe()
-                .unwrap_or_default()
+                .unwrap_or_else(|_| std::path::PathBuf::new())
                 .to_string_lossy()
                 .to_ascii_lowercase()
                 .replace('/', "\\"),
@@ -246,7 +246,7 @@ mod tests {
 
         // Also test is_stack_llm_process directly.
         let my_exe = std::env::current_exe()
-            .unwrap_or_default()
+            .unwrap_or_else(|_| std::path::PathBuf::new())
             .to_string_lossy()
             .to_ascii_lowercase();
         assert!(

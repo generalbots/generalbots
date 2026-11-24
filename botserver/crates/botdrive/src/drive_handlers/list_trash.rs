@@ -28,12 +28,18 @@ pub async fn list_trash(
             #[diesel(sql_type = Text)]
             expires_at: String,
         }
-        let rows = diesel::sql_query(
+        let rows = match diesel::sql_query(
             "SELECT id::text, user_id, bucket, path, original_path, is_dir, size::bigint, deleted_at::text, expires_at::text FROM drive_trash WHERE user_id = $1 ORDER BY deleted_at DESC"
         )
         .bind::<Text, _>(uid)
         .load::<Row>(&mut conn)
-        .unwrap_or_default();
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::warn!("Failed to list trash items: {:?}", e);
+                Vec::new()
+            }
+        };
 
         let items: Vec<TrashItem> = rows
             .into_iter()
@@ -59,7 +65,7 @@ pub async fn trash_file(
     Json(req): Json<DeleteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,
@@ -187,7 +193,7 @@ pub async fn restore_trash(
     Json(req): Json<RestoreTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
 
     let mut conn = state
@@ -206,14 +212,20 @@ pub async fn restore_trash(
         #[diesel(sql_type = Bool)]
         is_dir: bool,
     }
-    let rows = diesel::sql_query(
+    let rows = match diesel::sql_query(
         "SELECT bucket, path, original_path, is_dir FROM drive_trash \
          WHERE id::text = $1 AND user_id = $2",
     )
     .bind::<Text, _>(&req.id)
     .bind::<Text, _>(&uid)
     .load::<Row>(&mut conn)
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("Failed to load trash item: {:?}", e);
+            Vec::new()
+        }
+    };
 
     let Some(row) = rows.into_iter().next() else {
         return Err(err(StatusCode::NOT_FOUND, "Trash item not found"));
@@ -222,10 +234,13 @@ pub async fn restore_trash(
     let mut restored = 0usize;
     if row.is_dir {
         let prefix = format!("{}/", row.path.trim_end_matches('/'));
-        let keys = drive
-            .list_objects(&row.bucket, Some(&prefix))
-            .await
-            .unwrap_or_default();
+        let keys = match drive.list_objects(&row.bucket, Some(&prefix)).await {
+            Ok(keys) => keys,
+            Err(e) => {
+                log::warn!("Failed to list trashed folder objects: {:?}", e);
+                Vec::new()
+            }
+        };
         for child in keys {
             if child.ends_with('/') {
                 continue;
@@ -320,11 +335,17 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
         #[diesel(sql_type = Bool)]
         is_dir: bool,
     }
-    let rows = diesel::sql_query(
+    let rows = match diesel::sql_query(
         "SELECT id::text, bucket, path, is_dir FROM drive_trash WHERE expires_at <= NOW()",
     )
     .load::<Row>(&mut conn)
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("Failed to list expired trash rows: {:?}", e);
+            Vec::new()
+        }
+    };
     if rows.is_empty() {
         return Ok(0);
     }
@@ -374,52 +395,4 @@ pub fn spawn_trash_purge(state: Arc<AppState>) {
             }
         }
     });
-}
-
-pub async fn empty_trash(
-    State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
-    Json(req): Json<EmptyTrashBody>,
-) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-
-    if let Ok(mut conn) = state.conn.get() {
-        #[derive(QueryableByName)]
-        struct Row {
-            #[diesel(sql_type = Text)]
-            bucket: String,
-            #[diesel(sql_type = Text)]
-            path: String,
-            #[diesel(sql_type = Bool)]
-            is_dir: bool,
-        }
-        let rows =
-            diesel::sql_query("SELECT bucket, path, is_dir FROM drive_trash WHERE user_id = $1")
-                .bind::<Text, _>(&uid)
-                .load::<Row>(&mut conn)
-                .unwrap_or_default();
-
-        for row in &rows {
-            if row.is_dir {
-                // A trashed folder keeps every child under its prefix; deleting
-                // the row path alone orphaned the whole tree in .trash/.
-                let prefix = format!("{}/", row.path.trim_end_matches('/'));
-                if let Ok(keys) = drive.list_objects(&row.bucket, Some(&prefix)).await {
-                    for key in keys {
-                        revoke_links_for_key(&state, &row.bucket, &key)?;
-                        let _ = drive.delete_object(&row.bucket, &key).await;
-                    }
-                }
-            }
-            revoke_links_for_key(&state, &row.bucket, &row.path)?;
-            let _ = drive.delete_object(&row.bucket, &row.path).await;
-        }
-
-        let _ = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
-            .bind::<Text, _>(&uid)
-            .execute(&mut conn);
-    }
-
-    Ok(Json(SuccessResponse { success: true }))
 }

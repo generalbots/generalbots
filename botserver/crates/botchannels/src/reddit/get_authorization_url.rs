@@ -2,10 +2,13 @@ use super::*;
 
 impl RedditChannel {
     pub fn new(config: RedditConfig) -> Self {
-        let http_client = Client::builder()
-            .user_agent(&config.user_agent)
-            .build()
-            .unwrap_or_default();
+        let http_client = match Client::builder().user_agent(&config.user_agent).build() {
+            Ok(client) => client,
+            Err(error) => {
+                log::warn!("Invalid Reddit HTTP client configuration: {error}");
+                Client::new()
+            }
+        };
 
         Self {
             config,
@@ -43,7 +46,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -86,7 +89,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -134,7 +137,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -181,7 +184,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 
@@ -242,7 +245,7 @@ impl RedditChannel {
             .map_err(|e| RedditError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(RedditError::ApiError(error_text));
         }
 

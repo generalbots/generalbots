@@ -87,8 +87,8 @@ impl MicrosoftClient {
                 id: contact.id, etag: None,
                 first_name: contact.given_name, last_name: contact.surname,
                 display_name: contact.display_name,
-                email_addresses: email.map(|e| vec![ExternalEmail { address: e, label: None, primary: true }]).unwrap_or_default(),
-                phone_numbers: phone.map(|p| vec![ExternalPhone { number: p, label: None, primary: true }]).unwrap_or_default(),
+                email_addresses: crate::value_or_default(email.map(|e| vec![ExternalEmail { address: e, label: None, primary: true }])),
+                phone_numbers: crate::value_or_default(phone.map(|p| vec![ExternalPhone { number: p, label: None, primary: true }])),
                 addresses: Vec::new(), company: contact.company_name, job_title: contact.job_title,
                 department: None, notes: None, birthday: None, photo_url: None,
                 groups: Vec::new(), custom_fields: HashMap::new(), created_at: None, updated_at: None,
@@ -115,7 +115,7 @@ impl MicrosoftClient {
 
         if !response.status().is_success() {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = crate::default_on_error(response.text().await, "Microsoft create contact body");
             return Err(MicrosoftError::ApiError(format!("Create contact failed: {} - {}", status, body)));
         }
 

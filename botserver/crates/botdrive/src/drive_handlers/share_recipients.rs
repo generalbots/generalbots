@@ -44,7 +44,7 @@ pub async fn list_share_recipients(
     // enumeration primitive.
     let caller_id = user.user_id;
     let caller_email = user.email.as_deref().unwrap_or("");
-    let query = params.query.unwrap_or_default().trim().to_lowercase();
+    let query = params.query.unwrap_or_else(String::new).trim().to_lowercase();
     if query.len() < 2 {
         return Ok(Json(Vec::new()));
     }

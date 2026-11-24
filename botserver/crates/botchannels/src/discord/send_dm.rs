@@ -19,7 +19,7 @@ impl DiscordProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !dm_channel.status().is_success() {
-            let error_text = dm_channel.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(dm_channel).await;
             return Err(ChannelError::ApiError {
                 code: None,
                 message: format!("Failed to create DM channel: {}", error_text),
@@ -62,7 +62,7 @@ impl DiscordProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::ApiError {
                 code: None,
                 message: error_text,

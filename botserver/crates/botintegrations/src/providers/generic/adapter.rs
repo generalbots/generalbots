@@ -85,7 +85,7 @@ impl ProviderAdapter for GenericAdapter {
             if credential_body.is_some() || (spec.method != "GET" && build_body(spec, params)?.is_some()) {
                 let body = match credential_body {
                     Some(body) => body,
-                    None => build_body(spec, params)?.unwrap_or_default(),
+                    None => build_body(spec, params)?.unwrap_or_else(Vec::new),
                 };
                 headers.push(("content-type", "application/json".to_string()));
                 let response = rest_client::send(RestRequest {

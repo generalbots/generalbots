@@ -28,7 +28,7 @@ fn err(msg: String) -> VibeToolResult {
 fn str_arg(args: &serde_json::Value, key: &str) -> String {
     args.get(key)
         .and_then(|v| v.as_str())
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string()
 }
 
@@ -249,7 +249,7 @@ pub fn file_set_title() -> ToolHandler {
                 let extension = std::path::Path::new(&path)
                     .extension()
                     .and_then(|value| value.to_str())
-                    .unwrap_or_default()
+                    .unwrap_or("")
                     .to_ascii_lowercase();
                 if !matches!(
                     extension.as_str(),

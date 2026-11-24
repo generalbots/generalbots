@@ -135,7 +135,10 @@ pub(crate) fn grant_default_project_owner(conn: &mut PgConnection, project_id: U
     )
     .bind::<diesel::sql_types::Uuid, _>(org_id)
     .load(conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("workspace owner lookup failed: {e}");
+        Vec::new()
+    });
     let mut owner_ids: Vec<Uuid> = diesel::sql_query(
         "SELECT id FROM users WHERE email = ANY($1) ORDER BY created_at ASC",
     )
@@ -143,7 +146,10 @@ pub(crate) fn grant_default_project_owner(conn: &mut PgConnection, project_id: U
         emails.iter().map(|e| e.email.clone()).collect::<Vec<_>>(),
     )
     .load(conn)
-    .unwrap_or_default()
+    .unwrap_or_else(|e| {
+        log::warn!("workspace owner email lookup failed: {e}");
+        Vec::new()
+    })
     .into_iter()
     .map(|r: OwnerId| r.id)
     .collect();

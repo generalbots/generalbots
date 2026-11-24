@@ -82,7 +82,7 @@ async fn tab_ws_url(tab_id: &str) -> Result<String, String> {
         return Err(format!("CDP list returned status {}", resp.status()));
     }
     let tabs: Value = resp.json().await.map_err(|e| format!("CDP parse error: {e}"))?;
-    for tab in tabs.as_array().cloned().unwrap_or_default() {
+    for tab in tabs.as_array().cloned().unwrap_or_else(Vec::new) {
         if tab.get("id").and_then(|v| v.as_str()) == Some(tab_id) {
             return tab
                 .get("webSocketDebuggerUrl")
@@ -130,7 +130,10 @@ async fn cdp_call(
             .map_err(|e| format!("CDP read error: {e}"))?
             .into_text()
             .map_err(|_| "CDP non-text frame".to_string())?;
-        let parsed: Value = serde_json::from_str(&text).unwrap_or_default();
+        let parsed: Value = serde_json::from_str(&text).unwrap_or_else(|e| {
+            log::warn!("CDP frame parse failed: {e}");
+            Value::Null
+        });
         if parsed.get("id").and_then(|v| v.as_u64()) == Some(id) {
             if let Some(error) = parsed.get("error") {
                 return Err(format!("CDP {method} error: {error}"));
@@ -196,7 +199,7 @@ fn browser_navigate() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if let Err(e) = validate_navigation_target(&url) {
                 return err(e);
             }
@@ -231,7 +234,7 @@ fn browser_list() -> ToolHandler {
                         let tabs = v
                             .as_array()
                             .cloned()
-                            .unwrap_or_default()
+                            .unwrap_or_else(Vec::new)
                             .into_iter()
                             .map(|t| json!({
                                 "tab_id": t.get("id").cloned().unwrap_or(Value::Null),
@@ -255,7 +258,7 @@ fn browser_close() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if tab_id.is_empty() {
                 return err("tab_id is required".into());
             }
@@ -274,7 +277,7 @@ fn browser_screenshot() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if tab_id.is_empty() {
                 return err("tab_id is required".into());
             }
@@ -293,7 +296,7 @@ fn browser_screenshot() -> ToolHandler {
                     let b64 = result
                         .get("data")
                         .and_then(|v| v.as_str())
-                        .unwrap_or_default()
+                        .unwrap_or("")
                         .to_string();
                     if b64.is_empty() {
                         return err("Page.captureScreenshot returned no data".into());
@@ -315,8 +318,8 @@ fn browser_eval() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let expression = args.get("expression").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let expression = args.get("expression").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if tab_id.is_empty() || expression.is_empty() {
                 return err("tab_id and expression are required".into());
             }
@@ -351,9 +354,9 @@ fn browser_fill() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let selector = args.get("selector").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let value = args.get("value").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let selector = args.get("selector").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let value = args.get("value").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if tab_id.is_empty() || selector.is_empty() {
                 return err("tab_id and selector are required".into());
             }
@@ -396,8 +399,8 @@ fn browser_click() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let selector = args.get("selector").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let tab_id = args.get("tab_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let selector = args.get("selector").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if tab_id.is_empty() || selector.is_empty() {
                 return err("tab_id and selector are required".into());
             }

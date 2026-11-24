@@ -33,7 +33,10 @@ pub async fn dashboard_members(State(state): State<Arc<AppState>>) -> Html<Strin
          FROM users ORDER BY updated_at DESC LIMIT 6",
     )
     .load::<UserRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load dashboard members: {err}");
+        Vec::new()
+    });
 
     let mut items = String::new();
     for user in users {
@@ -88,7 +91,10 @@ pub async fn dashboard_roles(State(state): State<Arc<AppState>>) -> Html<String>
          FROM users GROUP BY role",
     )
     .load::<RoleRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load dashboard roles: {err}");
+        Vec::new()
+    });
 
     let total: i64 = rows.iter().map(|r| r.count).sum();
     let colors = [
@@ -150,7 +156,10 @@ pub async fn dashboard_bots(State(state): State<Arc<AppState>>) -> Html<String> 
          FROM bots b ORDER BY chat_count DESC LIMIT 5",
     )
     .load::<BotRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load dashboard bots: {err}");
+        Vec::new()
+    });
 
     let mut items = String::new();
     for bot in bots {

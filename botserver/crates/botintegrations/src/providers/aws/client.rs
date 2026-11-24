@@ -187,7 +187,7 @@ pub(crate) async fn signed_request(
     creds: &AwsCreds,
 ) -> Result<AwsResponse, String> {
     let host = plan.host.clone();
-    let payload = plan.body.take().unwrap_or_default();
+    let payload = plan.body.take().unwrap_or_else(Vec::new);
     let header_set = signed_headers(&plan, &payload, creds, SystemTime::now())?;
     let url = format!("https://{}{}", plan.host, plan.path_and_query);
     let mut request = shared_client()?.request(plan.method.clone(), &url);
@@ -241,7 +241,7 @@ impl AwsResponse {
         }
         let document = String::from_utf8_lossy(&self.body);
         let code = crate::providers::aws::xml::first_text_by_path(&document, &["Error", "Code"])
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         log::warn!(
             "AWS {what} failed with status {}: provider code {code}",
             self.status
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn signed_authorization_header_is_well_formed() {
         let plan = sts_plan("us-east-1");
-        let payload = plan.body.clone().unwrap_or_default();
+        let payload = plan.body.clone().unwrap_or_else(Vec::new);
         let headers = signed_headers(&plan, &payload, &sample_creds(false), fixed_time())
             .unwrap_or_else(|error| panic!("signing failed: {error}"));
 
@@ -340,7 +340,7 @@ mod tests {
             .iter()
             .find(|(name, _)| name == "authorization")
             .map(|(_, value)| value.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         assert!(authorization.starts_with("AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/"));
         assert!(authorization.contains("/us-east-1/sts/aws4_request"));
         assert!(authorization
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn session_token_is_signed_when_present() {
         let plan = sts_plan("eu-west-1");
-        let payload = plan.body.clone().unwrap_or_default();
+        let payload = plan.body.clone().unwrap_or_else(Vec::new);
         let headers = signed_headers(&plan, &payload, &sample_creds(true), fixed_time())
             .unwrap_or_else(|error| panic!("signing failed: {error}"));
 
@@ -363,13 +363,13 @@ mod tests {
             .iter()
             .find(|(name, _)| name == "x-amz-security-token")
             .map(|(_, value)| value.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         assert_eq!(token, "theSessionToken");
         let authorization = headers
             .iter()
             .find(|(name, _)| name == "authorization")
             .map(|(_, value)| value.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         assert!(authorization.contains(
             "SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date;x-amz-security-token"
         ));
@@ -399,7 +399,7 @@ mod tests {
             .iter()
             .find(|(name, _)| name == "authorization")
             .map(|(_, value)| value.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         assert!(authorization
             .contains("SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-target"));
     }

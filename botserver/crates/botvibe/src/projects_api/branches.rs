@@ -334,7 +334,7 @@ pub(crate) async fn list_project_branches(
     .ok()
     .filter(|o| o.exit_code == Some(0))
     .map(|o| o.stdout.trim().to_string())
-    .unwrap_or_default();
+    .unwrap_or_else(String::new);
     let mut out: Vec<BranchInfo> = Vec::new();
     if let Ok(b) = branches {
         if b.exit_code == Some(0) {

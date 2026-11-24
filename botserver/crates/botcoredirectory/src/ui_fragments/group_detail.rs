@@ -59,9 +59,9 @@ pub async fn create_user(
     State(state): State<Arc<DirectoryApiState>>,
     axum::extract::Form(form): axum::extract::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let username = form.get("username").cloned().unwrap_or_default();
-    let email = form.get("email").cloned().unwrap_or_default();
-    let password = form.get("password").cloned().unwrap_or_default();
+    let username = form.get("username").cloned().unwrap_or_else(String::new);
+    let email = form.get("email").cloned().unwrap_or_else(String::new);
+    let password = form.get("password").cloned().unwrap_or_else(String::new);
     let role = form.get("role").cloned().unwrap_or_else(|| "user".to_string());
     let status = form.get("status").cloned().unwrap_or_else(|| "active".to_string());
 
@@ -131,8 +131,8 @@ pub async fn update_user(
     Path(id): Path<uuid::Uuid>,
     axum::extract::Form(form): axum::extract::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let username = form.get("username").cloned().unwrap_or_default();
-    let email = form.get("email").cloned().unwrap_or_default();
+    let username = form.get("username").cloned().unwrap_or_else(String::new);
+    let email = form.get("email").cloned().unwrap_or_else(String::new);
     let role = form.get("role").cloned().unwrap_or_else(|| "user".to_string());
     let status = form.get("status").cloned().unwrap_or_else(|| "active".to_string());
 

@@ -106,7 +106,10 @@ pub fn list_audit_events(state: &Arc<AppState>, limit: i64) -> Vec<serde_json::V
     )
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<Row>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load audit log rows: {err}");
+        Vec::new()
+    });
 
     rows.into_iter()
         .map(|r| {

@@ -48,14 +48,16 @@ fn actor(conn: &mut diesel::PgConnection, headers: &HeaderMap) -> Option<ActorRo
 }
 
 fn is_group_admin(conn: &mut diesel::PgConnection, user_id: Uuid) -> bool {
-    diesel::sql_query(
-        "SELECT g.name FROM rbac_user_groups ug \
-         JOIN rbac_groups g ON g.id = ug.group_id \
-         WHERE ug.user_id = $1 AND g.is_active = true",
+    crate::default_on_error(
+        diesel::sql_query(
+            "SELECT g.name FROM rbac_user_groups ug \
+             JOIN rbac_groups g ON g.id = ug.group_id \
+             WHERE ug.user_id = $1 AND g.is_active = true",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load::<GroupRow>(conn),
+        "group membership lookup",
     )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .load::<GroupRow>(conn)
-    .unwrap_or_default()
     .iter()
     .any(|g| is_admin_group_name(&g.name))
 }

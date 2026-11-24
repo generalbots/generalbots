@@ -89,12 +89,20 @@ impl S3Repository {
             .map_err(|e| anyhow::anyhow!("Failed to download from S3: {}", e))?;
 
         if !response.status().is_success() {
+            let status = response.status();
+            let body = match response.text().await {
+                Ok(t) => t,
+                Err(e) => {
+                    log::warn!("S3 error response body unreadable: {:?}", e);
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!(
                 "S3 GET failed with status {} for {}/{}: {}",
-                response.status(),
+                status,
                 bucket,
                 key,
-                response.text().await.unwrap_or_default()
+                body
             ));
         }
 

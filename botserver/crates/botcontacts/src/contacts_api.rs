@@ -32,11 +32,11 @@ impl ContactsService {
 
         let id = Uuid::new_v4();
         let tags_json =
-            serde_json::to_string(&request.tags.unwrap_or_default()).unwrap_or_else(|_| "[]".to_string());
-        let custom_fields_json = serde_json::to_string(&request.custom_fields.unwrap_or_default())
+            serde_json::to_string(&crate::value_or_default(request.tags)).unwrap_or_else(|_| "[]".to_string());
+        let custom_fields_json = serde_json::to_string(&crate::value_or_default(request.custom_fields))
             .unwrap_or_else(|_| "{}".to_string());
         let source_str = request.source.map(|s| s.to_string());
-        let status_str = request.status.unwrap_or_default().to_string();
+        let status_str = crate::value_or_default(request.status).to_string();
 
         let sql = r#"
             INSERT INTO contacts (
@@ -221,10 +221,12 @@ impl ContactsService {
             .bind::<diesel::sql_types::Integer, _>(per_page)
             .bind::<diesel::sql_types::Integer, _>(offset);
 
-        let count_result: Vec<CountRow> = count_query.load(&mut conn).unwrap_or_default();
+        let count_result: Vec<CountRow> =
+            crate::default_on_error(count_query.load(&mut conn), "contact count");
         let total_count = count_result.first().map(|r| r.count).unwrap_or(0);
 
-        let rows: Vec<ContactRow> = list_query.load(&mut conn).unwrap_or_default();
+        let rows: Vec<ContactRow> =
+            crate::default_on_error(list_query.load(&mut conn), "contact list");
         let contacts: Vec<Contact> = rows.into_iter().map(row_to_contact).collect();
         let total_pages = ((total_count as f64) / (per_page as f64)).ceil() as i32;
 

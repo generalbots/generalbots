@@ -78,7 +78,7 @@ fn web_search() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if query.is_empty() {
                 return err("query is required".into());
             }
@@ -115,7 +115,7 @@ fn web_crawl() -> ToolHandler {
     Arc::new(move |args: Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let url = args.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if url.is_empty() || !(url.starts_with("http://") || url.starts_with("https://")) {
                 return err("url must be a full http(s) URL".into());
             }
@@ -139,7 +139,7 @@ fn web_crawl() -> ToolHandler {
             if !response.is_success() {
                 return err(format!("Fetch returned status {}", response.status));
             }
-            let content_type = response.content_type.clone().unwrap_or_default();
+            let content_type = response.content_type.clone().unwrap_or_else(String::new);
             let body = response.text();
             let mut text = if content_type.contains("text/html") {
                 strip_html(&body)

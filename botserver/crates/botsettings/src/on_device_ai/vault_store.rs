@@ -37,7 +37,10 @@ pub(crate) fn active_model(state: &std::sync::Arc<botcore::shared::state::AppSta
     let config = ConfigManager::new(state.conn.clone());
     config
         .get_config(&Uuid::nil(), "llm-model", Some(""))
-        .unwrap_or_default()
+        .unwrap_or_else(|err| {
+            log::warn!("failed to read llm-model config: {err}");
+            String::new()
+        })
 }
 
 /// True for the endpoints the on-device engine binds to. A hosted provider
@@ -64,13 +67,19 @@ pub(crate) async fn save_choice(
     let central: HashMap<String, String> = secrets
         .get_secret(CENTRAL_LLM_PATH)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to read central LLM config from Vault: {err}");
+            HashMap::new()
+        });
     let nil = Uuid::nil();
     let bot_path = format!("gbo/{nil}/{nil}/{nil}");
     let per_bot: HashMap<String, String> = secrets
         .get_secret(&bot_path)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to read per-bot LLM config from Vault: {err}");
+            HashMap::new()
+        });
 
     let target = write_sets::Target::Local { file: spec.file.to_string() };
     let (new_central, new_per_bot) = write_sets::compute(&central, &per_bot, &target);

@@ -170,7 +170,13 @@ async fn post_token(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<Tok
         .await
         .map_err(|e| SyncError::Transient(format!("token request failed: {e}")))?;
     let status = res.status();
-    let body = res.text().await.unwrap_or_default();
+    let body = match res.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("Google Drive token error response body unreadable: {:?}", e);
+            String::new()
+        }
+    };
     if !status.is_success() {
         // A rejected code or refresh token is a reconnect, not a retry: 400 is
         // what Google answers an invalid_grant with, and treating it as

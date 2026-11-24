@@ -113,7 +113,7 @@ pub async fn list_versions(
     Json(req): Json<VersionListBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.clone().unwrap_or_default();
+    let scope = req.scope.clone().unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,
@@ -143,7 +143,7 @@ pub async fn list_versions(
     let mut versions: Vec<serde_json::Value> = by_key
         .into_iter()
         .map(|(key, size)| {
-            let stamp = key.rsplit('/').next().unwrap_or_default().to_string();
+            let stamp = key.rsplit('/').next().unwrap_or("").to_string();
             serde_json::json!({
                 "version": key,
                 "stamp": stamp,
@@ -165,7 +165,7 @@ pub async fn restore_version(
     Json(req): Json<VersionRestoreBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.clone().unwrap_or_default();
+    let scope = req.scope.clone().unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,

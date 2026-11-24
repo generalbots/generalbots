@@ -167,7 +167,10 @@ pub async fn get_product_stats(
         
         .filter(products::is_active.eq(true))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load products for stats: {err}");
+            Vec::new()
+        });
 
     let total_stock_value: f64 = all_products
         .iter()
