@@ -9,6 +9,10 @@
  * textContent (never innerHTML). */
 (function (window) {
   var EVENT = "docs-kb-citation-open";
+  var NAV_EVENT = "docs-kb-citation-nav";
+  var POPOVER_ID = "docs-kb-citation-source";
+  var popoverNode = null;
+  var lastAnchor = null;
 
   function tr(key, fallback, params) {
     if (typeof docsT === "function") return docsT(key, fallback, params);
@@ -203,13 +207,150 @@
     region.textContent = text;
   }
 
-  function onOpen(event) {
-    var citation = event && event.detail;
-    if (!citation) return;
-    var target = locate(citation);
+  function unpack(detail) {
+    if (!detail) return { citation: null, anchor: null };
+    if (detail.citation && typeof detail.citation === "object") {
+      return { citation: detail.citation, anchor: detail.anchor || null };
+    }
+    return { citation: detail, anchor: null };
+  }
+
+  function isEditable(node) {
+    if (!node || !node.tagName) return false;
+    var tag = String(node.tagName).toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select" ||
+      node.isContentEditable === true;
+  }
+
+  function chipAt(index) {
+    var api = lib();
+    var chips = api && typeof api.getChips === "function" ? api.getChips() : [];
+    for (var i = 0; i < chips.length; i += 1) {
+      if (parseInt(chips[i].getAttribute("data-docs-kb-citation-index"), 10) === index) {
+        return chips[i];
+      }
+    }
+    return null;
+  }
+
+  function ensurePopover() {
+    if (popoverNode && popoverNode.parentNode) return popoverNode;
+    var panel = document.createElement("div");
+    panel.id = POPOVER_ID;
+    panel.className = "docs-kb-citation-source";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", tr("docs-references", "References"));
+    panel.style.position = "fixed";
+    panel.style.zIndex = "var(--z-system, 1000)";
+    panel.style.width = "min(360px, calc(100vw - 24px))";
+    panel.style.maxHeight = "60vh";
+    panel.style.overflow = "auto";
+    panel.style.padding = "12px 14px";
+    panel.style.border = "1px solid var(--palette-334155)";
+    panel.style.borderRadius = "8px";
+    panel.style.background = "var(--palette-0f172a)";
+    panel.style.color = "var(--palette-e2e8f0)";
+    panel.style.boxShadow = "0 10px 30px rgba(0,0,0,0.45)";
+    panel.style.font = "inherit";
+
+    var head = document.createElement("div");
+    head.className = "docs-kb-citation-source-head";
+    head.style.display = "flex";
+    head.style.alignItems = "center";
+    head.style.gap = "8px";
+    head.style.marginBottom = "8px";
+
+    var ref = document.createElement("strong");
+    ref.className = "docs-kb-citation-source-ref";
+    ref.style.flex = "1";
+    head.appendChild(ref);
+
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "docs-kb-citation-source-close";
+    close.textContent = tr("action-close", "Close");
+    close.setAttribute("aria-label", tr("action-close", "Close"));
+    close.style.cursor = "pointer";
+    close.addEventListener("click", hideSource);
+    head.appendChild(close);
+    panel.appendChild(head);
+
+    var quote = document.createElement("blockquote");
+    quote.className = "docs-kb-citation-source-quote";
+    quote.style.margin = "0";
+    quote.style.paddingLeft = "10px";
+    quote.style.borderLeft = "2px solid var(--palette-3b82f6)";
+    quote.style.fontSize = "13px";
+    quote.style.whiteSpace = "pre-wrap";
+    panel.appendChild(quote);
+
+    document.body.appendChild(panel);
+    popoverNode = panel;
+    return panel;
+  }
+
+  function hideSource() {
+    if (popoverNode && popoverNode.parentNode) {
+      popoverNode.parentNode.removeChild(popoverNode);
+    }
+    popoverNode = null;
+    lastAnchor = null;
+  }
+
+  function positionPopover(anchor) {
+    var panel = ensurePopover();
+    var width = 360;
+    var rect = anchor && typeof anchor.getBoundingClientRect === "function"
+      ? anchor.getBoundingClientRect() : null;
+    var viewW = window.innerWidth || 1024;
+    var viewH = window.innerHeight || 768;
+    var left = Math.max(8, viewW - width - 16);
+    var top = 72;
+    if (rect) {
+      left = Math.min(Math.max(8, rect.left), Math.max(8, viewW - width - 8));
+      top = rect.bottom + 8;
+      if (top + 180 > viewH && rect.top > 180) top = Math.max(8, rect.top - 188);
+    }
+    panel.style.left = Math.round(left) + "px";
+    panel.style.top = Math.round(top) + "px";
+  }
+
+  function showSource(citation, anchor) {
+    var panel = ensurePopover();
+    var api = lib();
+    var ref = api && typeof api.label === "function"
+      ? api.label(citation)
+      : (citation && citation.file) || "";
+    var quote = api && typeof api.quoteOf === "function" ? api.quoteOf(citation) : "";
+    var title = panel.querySelector(".docs-kb-citation-source-ref");
+    var body = panel.querySelector(".docs-kb-citation-source-quote");
+    if (title) title.textContent = ref || tr("docs-eq-reference", "Reference");
+    if (body) body.textContent = quote || tr("docs-nav-empty", "Nothing here yet");
+    positionPopover(anchor);
+    lastAnchor = anchor || null;
+    var close = panel.querySelector(".docs-kb-citation-source-close");
+    if (close && typeof close.focus === "function") close.focus();
+  }
+
+  function setActiveFor(citation, anchor) {
+    var api = lib();
+    if (!api || typeof api.setActive !== "function") return;
+    var index = -1;
+    if (anchor && typeof anchor.getAttribute === "function") {
+      var raw = anchor.getAttribute("data-docs-kb-citation-index");
+      if (raw != null) index = parseInt(raw, 10);
+    }
+    if (!(index >= 0)) {
+      var results = api.results || [];
+      index = results.indexOf(citation);
+    }
+    if (index >= 0) api.setActive(index);
+  }
+
+  function applyTarget(target, citation) {
     if (!target) {
       announce(citation, false);
-      return;
+      return false;
     }
     if (target.node) {
       scrollToNode(target.node);
@@ -223,12 +364,72 @@
       flash(activeArticle());
     }
     announce(citation, true);
+    return true;
+  }
+
+  function onOpen(event) {
+    var detail = unpack(event && event.detail);
+    var citation = detail.citation;
+    if (!citation) return;
+    setActiveFor(citation, detail.anchor);
+    showSource(citation, detail.anchor);
+    applyTarget(locate(citation), citation);
+  }
+
+  function navigate(step) {
+    var api = lib();
+    var results = (api && api.results) || [];
+    var total = results.length;
+    if (total < 2 || (step !== 1 && step !== -1)) return false;
+    var current = api && typeof api.activeIndex === "number" ? api.activeIndex : -1;
+    var start = current >= 0 && current < total ? current : (step > 0 ? -1 : 0);
+    var next = ((start + step) % total + total) % total;
+    if (api && typeof api.setActive === "function") api.setActive(next);
+    var citation = results[next];
+    showSource(citation, chipAt(next));
+    var navApi = window.DocsKbCitationNav;
+    var target = navApi && typeof navApi.locate === "function"
+      ? navApi.locate(citation) : locate(citation);
+    applyTarget(target, citation);
+    return true;
+  }
+
+  function onNav(event) {
+    var detail = event && event.detail;
+    if (detail) navigate(detail.step);
+  }
+
+  function onKeyDown(event) {
+    if (!event) return;
+    if (event.key === "Escape") {
+      if (popoverNode) {
+        var anchor = lastAnchor;
+        hideSource();
+        if (anchor && typeof anchor.focus === "function") anchor.focus();
+      }
+      return;
+    }
+    if (event.altKey && event.key === "ArrowRight") { navigate(1); return; }
+    if (event.altKey && event.key === "ArrowLeft") { navigate(-1); return; }
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === "]") {
+      if (!isEditable(event.target)) navigate(1);
+      return;
+    }
+    if (event.key === "[" && !isEditable(event.target)) navigate(-1);
   }
 
   document.addEventListener(EVENT, onOpen);
+  document.addEventListener(NAV_EVENT, onNav);
+  document.addEventListener("keydown", onKeyDown);
 
   window.DocsKbCitationNav = {
     locate: locate,
-    event: EVENT
+    event: EVENT,
+    navigate: navigate,
+    next: function () { return navigate(1); },
+    prev: function () { return navigate(-1); },
+    showSource: showSource,
+    hideSource: hideSource
   };
 })(window);

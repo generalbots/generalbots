@@ -45,6 +45,28 @@
     return isFinite(page) && page > 0 ? page : 0;
   }
 
+  /* The retrieval layer ships one bounded snippet with every result. Accept
+   * the common field names so the source panel works across producers. */
+  function quoteOf(citation) {
+    if (!citation) return "";
+    var candidates = [
+      citation.quote,
+      citation.snippet,
+      citation.excerpt,
+      citation.passage,
+      citation.text,
+      citation.content,
+      citation.source && citation.source.quote,
+      citation.source && citation.source.snippet,
+      citation.chunk && citation.chunk.content
+    ];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var value = candidates[i];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return "";
+  }
+
   function clauseText(citation) {
     var source = citation.source || {};
     // A page-kind locator already is the page number; the page label below
@@ -95,13 +117,44 @@
     value.textContent = text;
     button.appendChild(tag);
     button.appendChild(value);
+    if (typeof settings.index === "number" && settings.index >= 0) {
+      button.setAttribute("data-docs-kb-citation-index", String(settings.index));
+    }
     button.addEventListener("click", function () {
+      var api = window.DocsKbCitations;
+      if (api && typeof api.setActive === "function" && typeof settings.index === "number") {
+        api.setActive(settings.index);
+      }
       if (typeof settings.onOpen === "function") {
         settings.onOpen(citation);
         return;
       }
       document.dispatchEvent(new CustomEvent("docs-kb-citation-open", {
-        detail: citation,
+        detail: { citation: citation, anchor: button },
+        bubbles: true
+      }));
+    });
+    return button;
+  }
+
+  function navButton(key, fallback, step) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "docs-kb-citation-nav-btn";
+    var text = label(key, fallback);
+    button.textContent = text;
+    button.setAttribute("aria-label", text);
+    button.style.padding = "4px 10px";
+    button.style.marginRight = "6px";
+    button.style.cursor = "pointer";
+    button.style.border = "1px solid var(--palette-334155)";
+    button.style.borderRadius = "4px";
+    button.style.background = "var(--palette-0f172a)";
+    button.style.color = "var(--palette-e2e8f0)";
+    button.style.font = "inherit";
+    button.addEventListener("click", function () {
+      document.dispatchEvent(new CustomEvent("docs-kb-citation-nav", {
+        detail: { step: step },
         bubbles: true
       }));
     });
@@ -110,6 +163,7 @@
 
   function renderCitations(container, citations, options) {
     if (!container) return;
+    var settings = options || {};
     container.textContent = "";
     var results = citations || [];
     if (!results.length) {
@@ -123,16 +177,53 @@
     }
     var list = document.createElement("ol");
     list.className = "docs-kb-citations";
-    results.forEach(function (citation) {
+    results.forEach(function (citation, index) {
       var item = document.createElement("li");
       item.className = "docs-kb-citations-item";
-      item.appendChild(renderChip(citation, options));
+      item.appendChild(renderChip(citation, { index: index, onOpen: settings.onOpen }));
       list.appendChild(item);
     });
     container.appendChild(list);
+    if (results.length > 1) {
+      var nav = document.createElement("div");
+      nav.className = "docs-kb-citation-nav";
+      nav.setAttribute("role", "group");
+      nav.setAttribute("aria-label", label("docs-references", "References"));
+      nav.style.marginTop = "8px";
+      nav.appendChild(navButton("action-previous", "Previous", -1));
+      nav.appendChild(navButton("action-next", "Next", 1));
+      container.appendChild(nav);
+    }
+  }
+
+  function getChips() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll(".docs-kb-citation[data-docs-kb-citation-index]")
+    );
+  }
+
+  function setActive(index) {
+    var value = typeof index === "number" && isFinite(index) ? index : -1;
+    window.DocsKbCitations.activeIndex = value;
+    var chips = getChips();
+    for (var i = 0; i < chips.length; i += 1) {
+      var chip = chips[i];
+      var active = parseInt(chip.getAttribute("data-docs-kb-citation-index"), 10) === value;
+      chip.classList.toggle("docs-kb-citation-active", active);
+      if (active) {
+        chip.setAttribute("aria-current", "true");
+        chip.style.borderColor = "var(--palette-3b82f6)";
+        chip.style.boxShadow = "inset 0 0 0 1px var(--palette-3b82f6)";
+      } else {
+        chip.removeAttribute("aria-current");
+        chip.style.borderColor = "";
+        chip.style.boxShadow = "";
+      }
+    }
   }
 
   function mount() {
+    window.DocsKbCitations.activeIndex = -1;
     var containers = document.querySelectorAll("[data-docs-kb-citations]");
     for (var i = 0; i < containers.length; i += 1) {
       renderCitations(containers[i], window.DocsKbCitations.results || []);
@@ -143,10 +234,14 @@
     label: citationLabel,
     locationLabel: locationLabel,
     sourcePage: sourcePage,
+    quoteOf: quoteOf,
     render: renderCitations,
     renderChip: renderChip,
+    getChips: getChips,
+    setActive: setActive,
     mount: mount,
-    results: []
+    results: [],
+    activeIndex: -1
   };
 
   if (document.readyState === "loading") {
