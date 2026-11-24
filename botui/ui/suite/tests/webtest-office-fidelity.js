@@ -12,6 +12,7 @@
  *   11_helpers.js      real render/export/preview helper runtime checks
  *   12_fuzz.js         malformed ZIP and resource-cap checks
  *   20_static.js       [STATIC] production-source assertions
+ *   25_recent_fixes.js [STATIC] guards for the #2457 fixes already landed
  *   30_coverage.js     matrix derived from recorded results
  *
  * No server, browser, cargo, CDN or i18n change is involved. Nothing is
@@ -25,6 +26,7 @@ require("./webtest-office-fidelity/10_roundtrip");
 require("./webtest-office-fidelity/11_helpers");
 require("./webtest-office-fidelity/12_fuzz");
 require("./webtest-office-fidelity/20_static");
+require("./webtest-office-fidelity/25_recent_fixes");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
