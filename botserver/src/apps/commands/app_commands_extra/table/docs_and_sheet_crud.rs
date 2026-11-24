@@ -315,7 +315,7 @@ pub(super) static DOCS_AND_SHEET_CRUD: &[AppCommand] = &[
         &[
             ("file_id", "spreadsheet id"),
             ("range", "A1 range"),
-            ("rule", "JSON validation rule"),
+            ("rule", "validation type string: list, number, date or custom"),
         ],
         None,
         false,
