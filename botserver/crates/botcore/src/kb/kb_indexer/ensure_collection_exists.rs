@@ -34,7 +34,15 @@ impl KbIndexer {
                         format!("{}/collections/{}", self.qdrant_config.url, collection_name);
                     let del_resp = self.http_client.delete(&delete_url).send().await?;
                     if !del_resp.status().is_success() {
-                        let err = del_resp.text().await.unwrap_or_default();
+                        let err = match del_resp.text().await {
+                            Ok(text) => text,
+                            Err(e) => {
+                                log::warn!(
+                                    "Failed to read delete response for stale collection {collection_name}: {e}"
+                                );
+                                String::new()
+                            }
+                        };
                         return Err(anyhow::anyhow!(
                             "Failed to delete stale collection {}: {}",
                             collection_name,
@@ -83,7 +91,13 @@ impl KbIndexer {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Failed to read create-collection error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!(
                 "Failed to create collection: {}",
                 error_text
@@ -204,7 +218,13 @@ impl KbIndexer {
                 .await?;
 
             if !response.status().is_success() {
-                let error_text = response.text().await.unwrap_or_default();
+                let error_text = match response.text().await {
+                    Ok(text) => text,
+                    Err(e) => {
+                        log::warn!("Failed to read upsert error body: {e}");
+                        String::new()
+                    }
+                };
                 return Err(anyhow::anyhow!("Failed to upsert points: {}", error_text));
             }
         }

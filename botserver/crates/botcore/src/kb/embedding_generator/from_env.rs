@@ -27,18 +27,28 @@ impl EmbeddingConfig {
 
         let config_manager = ConfigManager::new(pool.clone());
 
-        let embedding_model_raw = config_manager
-            .get_config(_bot_id, "embedding-model", Some(""))
-            .unwrap_or_default();
+        let embedding_model_raw =
+            match config_manager.get_config(_bot_id, "embedding-model", Some("")) {
+                Ok(value) => value,
+                Err(e) => {
+                    log::warn!("Failed to read embedding-model config: {e}");
+                    String::new()
+                }
+            };
         let embedding_model = if embedding_model_raw.trim().is_empty() {
             DEFAULT_EMBEDDING_MODEL.to_string()
         } else {
             embedding_model_raw.clone()
         };
 
-        let embedding_url_raw = config_manager
-            .get_config(_bot_id, "embedding-url", Some(""))
-            .unwrap_or_default();
+        let embedding_url_raw = match config_manager.get_config(_bot_id, "embedding-url", Some(""))
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::warn!("Failed to read embedding-url config: {e}");
+                String::new()
+            }
+        };
 
         // The local llama.cpp embedding server always uses the bundled GGUF
         // when no model is configured (see `ensure_llama_servers_running`).

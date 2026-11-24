@@ -205,7 +205,12 @@ fn decode_sheet_rows(xml: &str, shared: &[String]) -> Vec<SheetRow> {
                     .ok()
                     .and_then(|index| shared.get(index))
                     .cloned()
-                    .unwrap_or_default(),
+                    .unwrap_or_else(|| {
+                        log::warn!(
+                            "XLSX cell references a missing shared-string index; using empty text"
+                        );
+                        String::new()
+                    }),
                 "b" => match raw.trim() {
                     "1" => "TRUE".to_string(),
                     "0" => "FALSE".to_string(),

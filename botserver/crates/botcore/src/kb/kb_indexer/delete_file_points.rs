@@ -33,7 +33,13 @@ impl KbIndexer {
             {
                 Ok(response) => {
                     if !response.status().is_success() {
-                        let error_text = response.text().await.unwrap_or_default();
+                        let error_text = match response.text().await {
+                            Ok(text) => text,
+                            Err(e) => {
+                                log::warn!("Failed to read delete-points error body: {e}");
+                                String::new()
+                            }
+                        };
                         return Err(anyhow::anyhow!("Failed to delete points: {}", error_text));
                     }
 
@@ -203,7 +209,13 @@ impl KbIndexer {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Failed to read search error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!("Search failed: {}", error_text));
         }
 
@@ -216,16 +228,25 @@ impl KbIndexer {
                 if let (Some(score), Some(payload)) =
                     (item["score"].as_f64(), item["payload"].as_object())
                 {
-                    let content = payload
-                        .get("content")
-                        .and_then(|c| c.as_str())
-                        .unwrap_or_default()
-                        .to_string();
+                    let content = payload.get("content").and_then(|c| c.as_str()).map_or_else(
+                        || {
+                            log::warn!("Search result in {collection_name} has no 'content' field");
+                            String::new()
+                        },
+                        |value| value.to_string(),
+                    );
                     let document_path = payload
                         .get("document_path")
                         .and_then(|p| p.as_str())
-                        .unwrap_or_default()
-                        .to_string();
+                        .map_or_else(
+                            || {
+                                log::warn!(
+                                    "Search result in {collection_name} has no 'document_path' field"
+                                );
+                                String::new()
+                            },
+                            |value| value.to_string(),
+                        );
 
                     results.push(SearchResult {
                         content,
@@ -246,7 +267,13 @@ impl KbIndexer {
         let response = self.http_client.delete(&delete_url).send().await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Failed to read delete-collection error body: {e}");
+                    String::new()
+                }
+            };
             info!(
                 "Failed to delete collection {}: {}",
                 collection_name, error_text

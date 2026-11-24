@@ -53,7 +53,10 @@ impl KbEmbeddingGenerator {
                 "{}://{}{}",
                 parsed.scheme(),
                 parsed.host_str().unwrap_or("localhost"),
-                parsed.port().map(|p| format!(":{}", p)).unwrap_or_default()
+                match parsed.port() {
+                    Some(port) => format!(":{port}"),
+                    None => String::new(),
+                }
             )
         } else {
             url.to_string()

@@ -20,7 +20,13 @@ impl QdrantConfig {
                     .get_config(bot_id, "vectordb-url", None)
                     .unwrap_or_else(|_| "".to_string());
                 let url = if url.is_empty() {
-                    std::env::var("VECTORDB_URL").unwrap_or_default()
+                    match std::env::var("VECTORDB_URL") {
+                        Ok(value) => value,
+                        Err(e) => {
+                            log::warn!("VECTORDB_URL is not set or invalid: {e}");
+                            String::new()
+                        }
+                    }
                 } else {
                     url
                 };

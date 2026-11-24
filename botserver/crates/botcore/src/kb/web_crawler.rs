@@ -183,7 +183,10 @@ impl WebCrawler {
             return Ok(());
         }
 
-        let content_type = response.content_type.clone().unwrap_or_default();
+        let content_type = match response.content_type.clone() {
+            Some(value) => value,
+            None => String::new(),
+        };
 
         if !content_type.contains("text/html") {
             trace!("Skipping non-HTML content: {}", url);

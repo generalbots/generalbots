@@ -115,7 +115,13 @@ impl KbEmbeddingGenerator {
 
                 let status = resp.status();
                 if !status.is_success() {
-                    let error_bytes = resp.bytes().await.unwrap_or_default();
+                    let error_bytes = match resp.bytes().await {
+                        Ok(bytes) => bytes,
+                        Err(e) => {
+                            log::warn!("Failed to read HuggingFace error response body: {e}");
+                            Default::default()
+                        }
+                    };
                     let error_text =
                         String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
                     return Err(anyhow::anyhow!(
@@ -210,7 +216,13 @@ impl KbEmbeddingGenerator {
 
         let status = response.status();
         if !status.is_success() {
-            let error_bytes = response.bytes().await.unwrap_or_default();
+            let error_bytes = match response.bytes().await {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    log::warn!("Failed to read embedding error response body: {e}");
+                    Default::default()
+                }
+            };
             let error_text = String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
             return Err(anyhow::anyhow!(
                 "Embedding service error {}: {}",
