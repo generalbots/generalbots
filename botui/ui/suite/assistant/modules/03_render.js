@@ -313,7 +313,7 @@
                     el.appendChild(bd);
                 }
                 addAssistantActions(el, m.content, false);
-                if (A.answerModel) { A.attachModelTag(el, m.model || A.answerModel(m.content)); }
+                if (A.answerModel) { A.attachModelTag(el, A.answerModel(m.content) || m.model); }
             }
             A.addMessageHeading(el, m.role === "user", m.created_at || m.timestamp);
             msgs.appendChild(el);

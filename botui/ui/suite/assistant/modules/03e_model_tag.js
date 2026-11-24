@@ -1,6 +1,6 @@
 "use strict";
 /**
- * 03d_model_tag.js - Names the model that wrote each answer.
+ * 03e_model_tag.js - Names the model that wrote each answer.
  *
  * A small tag sits next to the "Concluído" chip of the thinking card, or at
  * the start of the answer toolbar when the answer had no thinking card.
@@ -46,7 +46,9 @@ A.answerModel = function (content) {
     return rec ? rec.m : "";
 };
 
-function label(model) {
+/** The name an answer's tag shows for a recorded model, in every mode. */
+A.answerModelLabel = function (model) {
+    model = String(model || "");
     if (/^free:/.test(model)) { return A.engineName("free", "group"); }
     /* Subscription agents: show the agent's name for the default model,
        "Agent · model" for a specific one. Independent of sub:<p> vs sub:<p>/default. */
@@ -64,7 +66,7 @@ function label(model) {
     }
     var name = typeof A.shortModelName === "function" ? A.shortModelName(model) : model;
     return String(name || "").replace(/\.gguf$/i, "");
-}
+};
 
 /** Puts the tag on an answer element; replaces an older tag. */
 A.attachModelTag = function (el, model) {
@@ -75,11 +77,11 @@ A.attachModelTag = function (el, model) {
     var tag = document.createElement("span");
     tag.className = "gb-model-tag";
     var free = /^free:/.test(model) ? model.slice(5) : null;
-    var who = free === null ? model : label(model) + (free ? " (" + free + ")" : "");
+    var who = free === null && !/^(sub|acct):/.test(model) ? model : A.answerModelLabel(model) + (free ? " (" + free + ")" : "");
     tag.title = (pt ? "Resposta gerada por " : "Answer written by ") + who;
     tag.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">' +
         '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>' +
-        '<span>' + esc(label(model)) + '</span>';
+        '<span>' + esc(A.answerModelLabel(model)) + '</span>';
     var thinking = el.querySelectorAll(".gb-block-stack .gb-block--done .gb-block-header");
     var hdr = thinking.length ? thinking[thinking.length - 1] : null;
     var chip = hdr ? hdr.querySelector(".gb-block-chip") : null;
@@ -93,19 +95,33 @@ A.attachModelTag = function (el, model) {
     el.appendChild(line);
 };
 
+/** The engine that wrote the answer to the turn sent now. `reported`: the
+    model a frame named, which is the bot's stored model, not the engine. */
+A.answerModelFor = function (reported) {
+    var now = A.turnModelNow();
+    /* An agent or a key's model picked in the menu is what answered. */
+    if (/^(sub|acct):/.test(now)) { return now; }
+    var rep = reported && reported !== A.staleModel && !/^(sub|acct):/.test(reported) ? String(reported) : "";
+    /* The free engine answers with its own model, whatever name is saved
+       for an own key. */
+    if (A.engineMode === "free") { return "free:" + (/:free$/i.test(rep) ? rep : A.engineModel || ""); }
+    return rep || now;
+};
+
 /** A live answer just finished: record and show the model it came from. */
 A.tagAnswer = function (el, content, model) {
-    /* The server reports the bot's configured model; an agent or a key's
-       model picked in the menu is what really answered this turn. */
-    var now = A.turnModelNow();
-    var reported = model && model !== A.staleModel ? model : "";
-    var used = /^(sub|acct):/.test(now) ? now : (reported || now);
-    /* If the frame carried the actual model name (llm_model), prefer it. */
-    if (reported && !/^(sub|acct):/.test(reported)) { used = reported; }
-    /* The free engine answers with its own model, whatever name is saved
-       for an own key: the tag names the engine. */
-    if (A.engineMode === "free" && !/^(sub|acct):/.test(now)) { used = "free:" + (reported || A.engineModel || ""); }
+    var used = A.answerModelFor(model);
     A.rememberAnswerModel(content, used);
     A.attachModelTag(el, used);
+    /* The engine was switched a moment ago, or has not been read yet: name
+       the engine again once the shell knows it. */
+    var pending = A._engineSync || (!A.engineMode && A.syncEngine ? A.syncEngine() : null);
+    if (!pending) { return; }
+    pending.then(function () {
+        var again = A.answerModelFor(model);
+        if (again === used || !el.isConnected) { return; }
+        A.rememberAnswerModel(content, again);
+        A.attachModelTag(el, again);
+    });
 };
 })();

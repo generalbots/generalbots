@@ -29,9 +29,17 @@ A.visibleComposer = function () {
 var load = A.loadModels;
 if (typeof load === "function") {
     A.loadModels = function () {
-        return Promise.resolve(load.apply(A, arguments)).then(reconcile);
+        return Promise.resolve(load.apply(A, arguments)).then(A.syncEngine);
     };
 }
+
+/* Reads the runtime's engine; `A._engineSync` is the read in flight, so an
+   answer that ends meanwhile is named again once it lands (03e). */
+A.syncEngine = function () {
+    var run = reconcile().then(function () { if (A._engineSync === run) { A._engineSync = null; } });
+    A._engineSync = run;
+    return run;
+};
 
 function reconcile() {
     return A.apiFetch("/api/llm/config").then(function (r) { return r.ok ? r.json() : null; }).then(function (cfg) {
