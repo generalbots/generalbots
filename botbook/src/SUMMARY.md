@@ -860,6 +860,15 @@
 
 ---
 
+# Part XIV: Office
+
+- [Chapter 14: Office in the Suite](./14-office/README.md)
+   - [Creating office files from chat](./14-office/from-chat.md)
+   - [Working in the editors](./14-office/editors.md)
+   - [Current limitations](./14-office/current-limitations.md)
+
+---
+
 # Appendices
 
    - [Glossary](./glossary.md)
