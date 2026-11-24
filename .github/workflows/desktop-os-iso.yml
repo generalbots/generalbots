@@ -229,6 +229,39 @@ jobs:
           test -d desktop/os/mkosi.extra/opt/general-bots/ui/suite
           du -sh desktop/os/mkosi.extra/opt/general-bots
 
+      # #2441 — an appliance must provision itself from the medium: a laptop
+      # has no wired port and the image cannot join Wi-Fi, so the ~2.5 GB of
+      # component archives must already be in the image before first boot.
+      # The cache itself is NOT in git (binaries, no CDN links in the recipe):
+      # a self-hosted runner exposes it via GB_OS_PAYLOAD_CACHE. Absent cache
+      # is an explicit SKIP (older/online images still build); a present cache
+      # fails closed on a missing or tampered artifact. The 1.8 GB model group
+      # is a separate, size-disclosed opt-in (GB_OS_INCLUDE_MODEL=1).
+      - name: Stage offline provisioner payload in the image (#2441)
+        env:
+          PAYLOAD_CACHE: ${{ vars.GB_OS_PAYLOAD_CACHE || '' }}
+          INCLUDE_MODEL: ${{ vars.GB_OS_INCLUDE_MODEL || '0' }}
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/provision/stage-offline-payload.sh ] \
+             || [ ! -f desktop/os/provision/offline-payload.toml ]; then
+            echo "::warning::pinned tag predates the offline payload slice (#2441); SKIP"
+            exit 0
+          fi
+          if [ -z "${PAYLOAD_CACHE:-}" ] || [ ! -d "$PAYLOAD_CACHE" ]; then
+            echo "::warning::GB_OS_PAYLOAD_CACHE is unset or absent; SKIP offline payload staging (#2441)"
+            exit 0
+          fi
+          args=(--cache-dir "$PAYLOAD_CACHE")
+          if [ "${INCLUDE_MODEL:-0}" = "1" ]; then
+            args+=(--include-model)
+          fi
+          bash desktop/os/provision/stage-offline-payload.sh "${args[@]}"
+          du -sh desktop/os/mkosi.extra/opt/general-bots/installers
+          if [ "${INCLUDE_MODEL:-0}" != "1" ]; then
+            echo "::notice::local model group not bundled (~1.8 GB); set GB_OS_INCLUDE_MODEL=1 to opt in"
+          fi
+
       - name: Build the image, REQUIRED boot smoke, assert the appliance
         # No continue-on-error: the QEMU smoke and the in-image assertions
         # gate the release together with the mkosi build itself.

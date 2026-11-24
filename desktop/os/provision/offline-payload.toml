@@ -1,0 +1,147 @@
+# Offline provisioner payload manifest for the General Bots OS image (#2441).
+#
+# Derived from the code that actually decides what first boot installs:
+#   * botserver/src/main_module/wizard_provision/component_plan.rs
+#       vault, tables, cache, drive, vector_db, directory,
+#       llm (opt-in), botmodels (optional)
+#   * botserver/crates/botcorepkg/src/installer_regs/register_drive.rs
+#       the `drive` component also needs the `mc` data file, and `llm`
+#       needs the two GGUF data files in [models.*]
+#   * botserver/crates/botcorepkg/src/installer/urls.rs
+#       resolves every component/model via botserver/3rdparty.toml
+#   * desktop/linux/start.sh
+#       seeds $HERE/installers/* into BOTSERVER_INSTALLERS_PATH (the flat
+#       cache the provisioner looks up by `filename`)
+#
+# This manifest records names and checksums only — NO download URLs and NO
+# secrets. stage-offline-payload.sh cross-checks every sha256 below against
+# botserver/3rdparty.toml at staging time, so a stale pin fails the build.
+# Checksums that upstream does not publish are left empty and reported as
+# UNPINNED (MinIO is verified through the build script's `minio.sha256`
+# sidecar instead; botmodels publishes no digest at all).
+#
+# `group` controls inclusion:
+#   core        always staged (the mandatory first-boot plan)
+#   local_model staged only with --include-model — explicit, size-disclosed
+#               opt-in (~1.8 GB of GGUF files plus the small llama.cpp
+#               runtime; both Vulkan and CPU runtime archives are included
+#               because the URL is chosen from the host's GPU)
+#   optional    staged when present, skipped with a warning when absent
+version = 1
+arch = "x86_64"
+os = "linux"
+# Relative to the repository root; mkosi picks up mkosi.extra/ automatically.
+payload_dir = "desktop/os/mkosi.extra/opt/general-bots/installers"
+
+[[payload]]
+id = "vault"
+key = "vault"
+section = "components"
+filename = "vault_2.2.1_linux_amd64.zip"
+sha256 = "079435de8ff146bdec4cdbe3be71d672ef4e59e4df6af0f2dba672e71be21a68"
+group = "core"
+source = "component_plan.rs:vault; 3rdparty.toml:[components.vault]"
+
+[[payload]]
+id = "tables"
+key = "tables"
+section = "components"
+filename = "postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = "e84b02dd8d0ce5879fb697330a789231c8b8f8d958dae3ad4d90fecc710b1315"
+group = "core"
+source = "component_plan.rs:tables; 3rdparty.toml:[components.tables]"
+
+[[payload]]
+id = "cache"
+key = "cache"
+section = "components"
+filename = "valkey-9.1.3-jammy-x86_64.tar.gz"
+sha256 = "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
+group = "core"
+source = "component_plan.rs:cache; 3rdparty.toml:[components.cache]"
+
+[[payload]]
+id = "drive"
+key = "drive"
+section = "components"
+filename = "minio"
+# Upstream publishes no binary digest for the CVE-fixed source build.
+# scripts/build-minio-fixed.sh writes the digest of the compiled binary to
+# minio.sha256; that sidecar is the authoritative pin for this artifact.
+sha256 = ""
+sha256_sidecar = "minio.sha256"
+group = "core"
+source = "component_plan.rs:drive; 3rdparty.toml:[components.drive]; scripts/build-minio-fixed.sh"
+
+[[payload]]
+id = "mc"
+key = "mc"
+section = "components"
+filename = "mc"
+sha256 = "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+group = "core"
+source = "installer_regs/register_drive.rs:38 (drive data_download_list)"
+
+[[payload]]
+id = "vector_db"
+key = "vector_db"
+section = "components"
+filename = "qdrant-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "b03a64616a1f41ddab78b480a318466541765f19835318113b1821cbea8df52c"
+group = "core"
+source = "component_plan.rs:vector_db; 3rdparty.toml:[components.vector_db]"
+
+[[payload]]
+id = "directory"
+key = "directory"
+section = "components"
+filename = "zitadel-linux-amd64.tar.gz"
+sha256 = "2e99a33409ffe0a527ea640d157c6c1e3f74823f3cffc6b538fd1c5cef4cfc9c"
+group = "core"
+source = "component_plan.rs:directory; 3rdparty.toml:[components.directory]"
+
+[[payload]]
+id = "llm-cpu"
+key = "llm"
+section = "components"
+filename = "llama-b7345-bin-ubuntu-x64.zip"
+sha256 = "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+group = "local_model"
+source = "component_plan.rs:llm; installer_regs/register_drive.rs (get_llama_cpp_url)"
+
+[[payload]]
+id = "llm-vulkan"
+key = "llm_linux_vulkan"
+section = "components"
+filename = "llama-b7345-bin-ubuntu-vulkan-x64.zip"
+sha256 = "03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442"
+group = "local_model"
+source = "3rdparty.toml:[components.llm_linux_vulkan] (selected on Vulkan hosts)"
+
+[[payload]]
+id = "deepseek_small"
+key = "deepseek_small"
+section = "models"
+filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"
+sha256 = "b1094879ee7e222cba5be013e6de2d0658c64f91aef5d3c9bff0db5cefbfa020"
+group = "local_model"
+source = "installer_regs/register_drive.rs:210 (llm data_download_list)"
+
+[[payload]]
+id = "bge_embedding"
+key = "bge_embedding"
+section = "models"
+filename = "bge-small-en-v1.5-f32.gguf"
+sha256 = "bf40c42ad7d89382e9ba7376d5c4b73f6b556cb541fab37aaa1da9c320149b65"
+group = "local_model"
+source = "installer_regs/register_drive.rs:211 (llm data_download_list)"
+
+[[payload]]
+id = "botmodels"
+key = "botmodels"
+section = "components"
+filename = "botmodels-pythonbox-linux-x86_64.tar.gz"
+# The pythonbox releases publish no digest in 3rdparty.toml.
+sha256 = ""
+group = "optional"
+source = "component_plan.rs:botmodels; 3rdparty.toml:[components.botmodels]"
