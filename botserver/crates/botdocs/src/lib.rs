@@ -17,6 +17,7 @@ pub mod ooxml;
 pub mod pdf;
 pub mod preview;
 pub mod review;
+pub mod semantic;
 pub mod shared_link;
 pub mod state;
 pub mod storage;
