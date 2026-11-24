@@ -33,6 +33,20 @@ pub mod tray;
 pub mod update;
 #[cfg(target_os = "linux")]
 pub mod webkit_permissions;
+
+// The Tauri command list is shared by every platform, but WebKitGTK exists
+// only on Linux. On other platforms the WebView handles getUserMedia itself;
+// keep the command registered so the shared list compiles and report honestly
+// that there is no Linux permission store to change.
+#[cfg(not(target_os = "linux"))]
+pub mod webkit_permissions {
+    #[tauri::command]
+    pub fn set_media_permission(kind: String, enabled: bool) -> Result<(), String> {
+        Err(format!(
+            "media permission for {kind} cannot be set on this platform (requested={enabled})"
+        ))
+    }
+}
 #[cfg(feature = "desktop-local")]
 pub mod wizard;
 
