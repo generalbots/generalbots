@@ -27,4 +27,5 @@ mod chunk_size;
 mod strip_html_tags;
 mod fallback_text_extraction;
 mod extract_text_from_word_document;
+pub mod structure;
 
