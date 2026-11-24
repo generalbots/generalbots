@@ -37,6 +37,7 @@ function reconcile() {
     return A.apiFetch("/api/llm/config").then(function (r) { return r.ok ? r.json() : null; }).then(function (cfg) {
         A.engineMode = cfg && cfg.mode ? cfg.mode : "";
         var live = cfg && typeof cfg.model === "string" ? cfg.model.trim() : "";
+        A.engineModel = live;
         var stale = A.defaultModel || "";
         if (!live || live === stale) { return; }
         A.staleModel = stale;

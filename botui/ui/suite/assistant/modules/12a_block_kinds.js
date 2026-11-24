@@ -62,11 +62,17 @@ A.blockAttachmentRead = function (ev) {
     }
     var noText = ev.status === "completed" && !s.chars_read && !s.seen_by_model;
     var name = s.name || s.file || "";
+    /* An image that did not go to the model as a picture and had no text the
+       recognizer could read: the engine does not see images. */
+    var image = /^image\//i.test(s.type || s.content_type || "") || /\.(png|jpe?g|gif|webp|bmp|tiff?)$/i.test(name);
+    var noTextNote = image
+        ? t("Este motor não vê imagens e o texto da imagem não pôde ser lido",
+            "This engine does not see images and the text in the image could not be read")
+        : t("Formato não legível: o texto não pôde ser extraído", "Format not readable: text could not be extracted");
     var el = block({ kind: "file-read", icon: "paperclip", title: t("Leitura de anexo", "Attachment read"),
         summary: name || failLabel, status: B.mapStatus(ev.status), activityId: ev.id,
         bodyHtml: (failLabel ? B.noteRow(failLabel, "warn") : "") +
-            (noText ? B.noteRow(t("Formato não legível: o texto não pôde ser extraído",
-                "Format not readable: text could not be extracted"), "warn") : "") +
+            (noText ? B.noteRow(noTextNote, "warn") : "") +
             row(t("Arquivo", "File"), name) +
             (s.type || s.content_type ? row(t("Tipo", "Type"), s.type || s.content_type) : "") +
             (s.size || s.size_bytes ? row(t("Tamanho", "Size"), fmtBytes(s.size || s.size_bytes)) : "") +

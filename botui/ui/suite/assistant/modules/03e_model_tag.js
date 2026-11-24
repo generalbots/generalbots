@@ -47,6 +47,7 @@ A.answerModel = function (content) {
 };
 
 function label(model) {
+    if (/^free:/.test(model)) { return A.engineName("free", "group"); }
     /* Subscription agents: show the agent's name for the default model,
        "Agent · model" for a specific one. Independent of sub:<p> vs sub:<p>/default. */
     if (/^sub:/.test(model)) {
@@ -73,7 +74,9 @@ A.attachModelTag = function (el, model) {
     var pt = A.locale && A.locale.startsWith("pt");
     var tag = document.createElement("span");
     tag.className = "gb-model-tag";
-    tag.title = (pt ? "Resposta gerada por " : "Answer written by ") + model;
+    var free = /^free:/.test(model) ? model.slice(5) : null;
+    var who = free === null ? model : label(model) + (free ? " (" + free + ")" : "");
+    tag.title = (pt ? "Resposta gerada por " : "Answer written by ") + who;
     tag.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">' +
         '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>' +
         '<span>' + esc(label(model)) + '</span>';
@@ -99,6 +102,9 @@ A.tagAnswer = function (el, content, model) {
     var used = /^(sub|acct):/.test(now) ? now : (reported || now);
     /* If the frame carried the actual model name (llm_model), prefer it. */
     if (reported && !/^(sub|acct):/.test(reported)) { used = reported; }
+    /* The free engine answers with its own model, whatever name is saved
+       for an own key: the tag names the engine. */
+    if (A.engineMode === "free" && !/^(sub|acct):/.test(now)) { used = "free:" + (reported || A.engineModel || ""); }
     A.rememberAnswerModel(content, used);
     A.attachModelTag(el, used);
 };
