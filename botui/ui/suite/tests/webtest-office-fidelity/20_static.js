@@ -28,7 +28,11 @@ h.staticTest("DOCX/PPTX exporters build minimal OOXML [docx:paragraphs] [pptx:sl
   h.sourceHas("botui/ui/suite/js/modules-export/04_docx_pptx_md.js", "ppt/slides/slide", "PPTX slide parts");
 });
 
-h.staticTest("PPTX export deliberately flattens tables/charts [pptx:tables] [pptx:charts]", function () {
+// #2457 — renamed from "deliberately flattens..." once the server exporter
+// gained native table/chart writers. This now guards that the historical
+// limitation note is still documented in source; native structure is proven
+// by the runtime round-trip tests in 10_roundtrip.js.
+h.staticTest("PPTX native table/chart writer limitation is documented [pptx:tables] [pptx:charts]", function () {
   h.sourceHas("botserver/crates/botslides/src/pptx/export.rs",
     "Tables/charts have no native shape writer", "degradation is documented in source");
 });
