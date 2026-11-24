@@ -127,13 +127,22 @@ pub async fn get_active_sessions(State(state): State<Arc<AppState>>) -> Html<Str
         "SELECT user_data, created_at FROM login_sessions ORDER BY created_at DESC LIMIT 20",
     )
     .load::<SessionRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load login sessions: {err}");
+        Vec::new()
+    });
 
     let now = chrono::Utc::now();
     let mut items = String::new();
     let mut count = 0;
     for r in rows {
-        let parsed: serde_json::Value = serde_json::from_str(&r.user_data).unwrap_or_default();
+        let parsed: serde_json::Value = match serde_json::from_str(&r.user_data) {
+            Ok(value) => value,
+            Err(err) => {
+                log::warn!("failed to parse session user_data: {err}");
+                serde_json::Value::Null
+            }
+        };
         let uid = parsed.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
         let Ok(parsed_uid) = uuid::Uuid::parse_str(uid) else {
             continue;
@@ -200,7 +209,10 @@ pub async fn revoke_all_sessions(State(state): State<Arc<AppState>>) -> Html<Str
         }
         diesel::sql_query("SELECT token, user_data FROM login_sessions")
             .load::<SessionRow>(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|err| {
+                log::warn!("failed to load login sessions for revocation: {err}");
+                Vec::new()
+            })
             .into_iter()
             .filter(|r| {
                 serde_json::from_str::<serde_json::Value>(&r.user_data)

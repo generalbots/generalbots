@@ -266,14 +266,14 @@ impl PermissionInheritanceResolver {
         self.user_roles
             .get(&user_id)
             .map(|r| r.iter().cloned().collect())
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
     }
 
     pub fn get_user_groups(&self, user_id: Uuid) -> Vec<String> {
         self.user_groups
             .get(&user_id)
             .map(|g| g.iter().cloned().collect())
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
     }
 }
 impl Default for PermissionInheritanceResolver {

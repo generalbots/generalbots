@@ -15,7 +15,7 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 1727
+unwrap_or_default = 1632
 discarded_result = 1327
 
 [rule_notes]
@@ -136,9 +136,6 @@ unwrap_or_default = 10
 unwrap_or_default = 3
 discarded_result = 7
 
-[files."botserver/crates/botsettings/src/model_config/mod.rs"]
-unwrap_or_default = 10
-
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
 discarded_result = 10
 
@@ -174,9 +171,6 @@ unwrap_or_default = 9
 unwrap_or_default = 8
 discarded_result = 1
 
-[files."botserver/crates/botsettings/src/rbac/search.rs"]
-unwrap_or_default = 9
-
 [files."botserver/crates/botsheet/src/ui_fragments/toolbar.rs"]
 unwrap_or_default = 9
 
@@ -195,3 +189,11 @@ discarded_result = 8
 
 [files."botserver/crates/botbasic_comms/src/keywords/add_bot/register_bot_keywords.rs"]
 discarded_result = 8
+
+[files."botserver/crates/botbasic_comms/src/keywords/play/play_keyword.rs"]
+unwrap_or_default = 2
+discarded_result = 6
+
+[files."botserver/crates/botbrowser/src/agent.rs"]
+unwrap_or_default = 5
+discarded_result = 3

@@ -256,7 +256,10 @@ async fn fetch_into(
     // Test-only: `GB_MODEL_DOWNLOAD_BASE` overrides the base URL so the
     // download flow can be proved with a local HTTP server and a stand-in file.
     // Inert in production (never set in .env or .product).
-    let base = std::env::var("GB_MODEL_DOWNLOAD_BASE").unwrap_or_default();
+    let base = match std::env::var("GB_MODEL_DOWNLOAD_BASE") {
+        Ok(base) => base,
+        Err(_) => String::new(),
+    };
     let url = if base.is_empty() {
         format!(
             "https://huggingface.co/{}/resolve/main/{}",

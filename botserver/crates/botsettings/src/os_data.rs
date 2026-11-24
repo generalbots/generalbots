@@ -380,7 +380,7 @@ mod tests {
         let expected = log_file_candidates_in(&stack, "botserver")
             .into_iter()
             .next()
-            .unwrap_or_default();
+            .unwrap_or_else(Default::default);
         assert!(expected.ends_with("botserver-sidecar.log"));
         assert!(!expected.is_file());
         assert!(std::fs::remove_dir_all(&stack).is_ok());

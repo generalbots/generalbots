@@ -36,7 +36,7 @@ pub async fn create_product(
         stock_quantity: req.stock_quantity.unwrap_or(0),
         low_stock_threshold: req.low_stock_threshold.unwrap_or(10),
         is_active: true,
-        images: serde_json::json!(req.images.unwrap_or_default()),
+        images: serde_json::json!(req.images.unwrap_or_else(Vec::new)),
         attributes: serde_json::json!({}),
         created_at: now,
         updated_at: now,
@@ -175,7 +175,10 @@ pub async fn get_product(
         .filter(product_variants::product_id.eq(id))
         .order(product_variants::name.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to load product variants: {err}");
+            Vec::new()
+        });
 
     Ok(Json(ProductWithVariants { product, variants }))
 }

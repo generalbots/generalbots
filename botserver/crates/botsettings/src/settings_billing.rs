@@ -109,7 +109,10 @@ pub async fn billing_invoices(State(state): State<Arc<AppState>>) -> impl IntoRe
         "SELECT invoice_number AS number, total, status, created_at FROM billing_invoices ORDER BY created_at DESC LIMIT 8",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load billing invoices: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="empty-state"><p>No invoices yet</p></div>"#.to_string());
@@ -228,7 +231,10 @@ pub async fn data_export(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load user preferences for export: {err}");
+        Vec::new()
+    });
     let sensitive = ["token", "key", "secret", "password", "credential", "auth", "cookie", "session"];
     let preferences: Vec<serde_json::Value> = prefs_raw
         .into_iter()
@@ -262,19 +268,40 @@ pub async fn data_export(
             .start_file("manifest.json", opts)
             .map_err(|e| e.to_string())?;
         archive
-            .write_all(serde_json::to_string_pretty(&manifest).unwrap_or_default().as_bytes())
+            .write_all(
+                serde_json::to_string_pretty(&manifest)
+                    .unwrap_or_else(|err| {
+                        log::warn!("failed to serialize export manifest: {err}");
+                        String::new()
+                    })
+                    .as_bytes(),
+            )
             .map_err(|e| e.to_string())?;
         archive
             .start_file("profile.json", opts)
             .map_err(|e| e.to_string())?;
         archive
-            .write_all(serde_json::to_string_pretty(&profile).unwrap_or_default().as_bytes())
+            .write_all(
+                serde_json::to_string_pretty(&profile)
+                    .unwrap_or_else(|err| {
+                        log::warn!("failed to serialize export profile: {err}");
+                        String::new()
+                    })
+                    .as_bytes(),
+            )
             .map_err(|e| e.to_string())?;
         archive
             .start_file("preferences.json", opts)
             .map_err(|e| e.to_string())?;
         archive
-            .write_all(serde_json::to_string_pretty(&preferences).unwrap_or_default().as_bytes())
+            .write_all(
+                serde_json::to_string_pretty(&preferences)
+                    .unwrap_or_else(|err| {
+                        log::warn!("failed to serialize export preferences: {err}");
+                        String::new()
+                    })
+                    .as_bytes(),
+            )
             .map_err(|e| e.to_string())?;
         archive.finish().map_err(|e| e.to_string())?;
         Ok(cursor.into_inner())

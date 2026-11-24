@@ -266,7 +266,7 @@ pub(super) async fn handle_products_search(
     headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
-    let q = query.q.clone().unwrap_or_default();
+    let q = query.q.clone().unwrap_or_else(String::new);
     if q.is_empty() {
         return Html(String::new());
     }
@@ -294,8 +294,10 @@ pub(super) async fn handle_products_search(
             .filter(product_categories::branch_id.eq(branch_id))
             .select((product_categories::id, product_categories::name))
             .load::<(Uuid, String)>(&mut conn)
-            .ok()
-            .unwrap_or_default()
+            .unwrap_or_else(|err| {
+                log::warn!("failed to load product categories: {err}");
+                Vec::new()
+            })
             .into_iter()
             .map(|(id, name)| (id.to_string(), name))
             .collect();
@@ -327,7 +329,7 @@ pub(super) async fn handle_products_search(
         let mut html = String::new();
         for (id, sku, name, category, price, currency) in items {
             let sku_str = sku.as_deref().filter(|s| !s.is_empty()).unwrap_or("-").to_string();
-            let cat_id = category.unwrap_or_default();
+            let cat_id = category.unwrap_or_else(String::new);
             let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
                 if cat_id.is_empty() { "Uncategorized".to_string() } else { cat_id }
             });

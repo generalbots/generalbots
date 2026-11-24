@@ -102,11 +102,10 @@ pub(crate) fn deny(message: &str) -> (StatusCode, Json<serde_json::Value>) {
 /// from any peer (#2122). A reverse proxy forwards the external host in `Host`,
 /// which correctly keeps the panel unreachable through it.
 fn request_is_loopback(headers: &HeaderMap) -> bool {
-    let raw = headers
-        .get("host")
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default()
-        .trim();
+    let raw = match headers.get("host").and_then(|value| value.to_str().ok()) {
+        Some(value) => value.trim(),
+        None => "",
+    };
     let host = if let Some(rest) = raw.strip_prefix('[') {
         rest.split(']').next().unwrap_or(rest)
     } else if raw.matches(':').count() == 1 {

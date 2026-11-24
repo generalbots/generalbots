@@ -83,7 +83,10 @@ pub async fn api_keys_list(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load api keys: {err}");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return (
@@ -404,7 +407,7 @@ fn parse_scopes(raw: Option<&str>) -> serde_json::Value {
                 .filter(|p| !p.is_empty())
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     if scopes.is_empty() {
         serde_json::json!(["user"])
     } else {

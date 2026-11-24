@@ -70,10 +70,16 @@ fn parse_price_list(raw: &str) -> BTreeMap<String, f64> {
 /// never an invented number.
 fn prices_for(state: &Arc<AppState>, models: &[String]) -> BTreeMap<String, f64> {
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
-    let mut prices = cfg
+    let mut prices = match cfg
         .get_config(&Uuid::nil(), "llm-pricing", Some(""))
         .map(|raw| parse_price_list(&raw))
-        .unwrap_or_default();
+    {
+        Ok(prices) => prices,
+        Err(err) => {
+            log::warn!("failed to read llm-pricing config: {err}");
+            BTreeMap::new()
+        }
+    };
     if prices.is_empty() {
         if let Ok(raw) = std::env::var("GB_LLM_PRICING") {
             prices = parse_price_list(&raw);

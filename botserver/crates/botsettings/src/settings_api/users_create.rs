@@ -25,9 +25,9 @@ pub async fn users_create(
         );
     }
 
-    let username = form.username.unwrap_or_default();
-    let email = form.email.unwrap_or_default();
-    let password = form.password.unwrap_or_default();
+    let username = form.username.unwrap_or_else(String::new);
+    let email = form.email.unwrap_or_else(String::new);
+    let password = form.password.unwrap_or_else(String::new);
     if username.trim().is_empty() || email.trim().is_empty() || password.len() < 8 {
         return (
             StatusCode::BAD_REQUEST,

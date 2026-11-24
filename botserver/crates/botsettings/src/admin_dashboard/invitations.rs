@@ -46,7 +46,10 @@ pub async fn dashboard_invitations(State(state): State<Arc<AppState>>) -> Html<S
          WHERE status = 'pending' ORDER BY created_at DESC LIMIT 10",
     )
     .load::<InviteRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load pending invitations: {err}");
+        Vec::new()
+    });
 
     if invites.is_empty() {
         return Html(
@@ -272,7 +275,10 @@ pub async fn admin_invitations(
         "SELECT id, email, role, status, created_at FROM organization_invitations ORDER BY created_at DESC LIMIT 50",
     )
     .load::<InviteRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load invitations: {err}");
+        Vec::new()
+    });
 
     let items: Vec<serde_json::Value> = rows
         .into_iter()

@@ -62,7 +62,10 @@ pub async fn list_users_with_roles(
                     .filter(rbac_roles::is_active.eq(true))
                     .select(RbacRole::as_select())
                     .load(&mut db_conn)
-                    .unwrap_or_default();
+                    .unwrap_or_else(|err| {
+                        log::warn!("failed to load roles for user: {err}");
+                        Vec::new()
+                    });
                 serde_json::json!({
                     "id": u.id,
                     "email": u.email,

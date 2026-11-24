@@ -56,8 +56,10 @@ fn snapshot_without_backend_is_503_with_generic_code() {
 #[test]
 fn snapshot_with_drive_descriptor_is_202_non_destructive_without_secrets() {
     let reason = "nightly backup token=sk_live_secret";
-    let descriptor =
-        snapshot_descriptor(&registered_snapshot_backends(true), reason).unwrap_or_default();
+    let descriptor = match snapshot_descriptor(&registered_snapshot_backends(true), reason) {
+        Some(descriptor) => descriptor,
+        None => Value::Null,
+    };
     let spec = snapshot_response(true, Some(descriptor));
 
     assert_eq!(spec.status, StatusCode::ACCEPTED);

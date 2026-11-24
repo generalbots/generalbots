@@ -89,7 +89,10 @@ async fn probe_with_timeout(timeout: Duration) -> RuntimeProbe {
         .connect_timeout(timeout)
         .timeout(timeout)
         .build()
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to build runtime probe client: {err}");
+            reqwest::Client::default()
+        });
     let url = format!("http://127.0.0.1:{CHAT_PORT}/v1/models");
     let resp = match client.get(&url).send().await {
         Ok(r) if r.status().is_success() => r,

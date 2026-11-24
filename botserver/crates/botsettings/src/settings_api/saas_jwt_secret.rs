@@ -89,7 +89,13 @@ pub fn resolve_user_id(
         ));
     };
 
-    let parsed: serde_json::Value = serde_json::from_str(&row.user_data).unwrap_or_default();
+    let parsed: serde_json::Value = match serde_json::from_str(&row.user_data) {
+        Ok(value) => value,
+        Err(err) => {
+            log::warn!("failed to parse session user_data for jwt secret: {err}");
+            serde_json::Value::Null
+        }
+    };
     let uid = parsed.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
     if uid.is_empty() {
         return Err((
@@ -124,7 +130,10 @@ pub(super) fn is_admin_user(state: &Arc<AppState>, user_id: uuid::Uuid) -> bool 
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load admin group names: {err}");
+        Vec::new()
+    });
     names
         .iter()
         .any(|g| botsecurity::rbac_middleware::is_admin_group_name(&g.name))

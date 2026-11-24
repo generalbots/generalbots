@@ -7,10 +7,13 @@ pub async fn admin_audit(State(_state): State<Arc<AppState>>) -> Html<String> {
     let stack = botcore::shared::utils::get_stack_path();
     let log_path = std::path::PathBuf::from(format!("{}/conf/directory/audit-log.json", stack));
 
-    let entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
+    let entries: Vec<serde_json::Value> = match std::fs::read_to_string(&log_path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default();
+    {
+        Some(entries) => entries,
+        None => Vec::new(),
+    };
 
     if entries.is_empty() {
         return Html(

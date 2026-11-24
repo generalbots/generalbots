@@ -239,10 +239,16 @@ async fn activate(
     let nil = uuid::Uuid::nil();
     let gpu_layers = config_mgr
         .get_config(&nil, "llm-server-gpu-layers", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to read llm-server-gpu-layers config: {err}");
+            String::new()
+        });
     let ctx_size = config_mgr
         .get_config(&nil, "llm-server-ctx-size", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|err| {
+            log::warn!("failed to read llm-server-ctx-size config: {err}");
+            String::new()
+        });
 
     let runtime_result =
         match runtime_ctl::desired_from_config(spec.file, &gpu_layers, &ctx_size) {

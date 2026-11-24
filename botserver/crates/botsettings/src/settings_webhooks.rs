@@ -47,7 +47,7 @@ pub async fn webhooks_list(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| { log::warn!("failed to load webhooks: {err}"); Vec::new() });
 
     if rows.is_empty() {
         return (
@@ -119,7 +119,7 @@ pub async fn webhooks_create(
         Err(e) => return e,
     };
 
-    let url = form.url.unwrap_or_default().trim().to_string();
+    let url = match form.url.as_deref() { Some(url) => url.trim().to_string(), None => String::new() };
     if let Err(msg) = crate::webhook_delivery::validate_webhook_url(&url) {
         return (StatusCode::BAD_REQUEST, Html(msg.to_string()));
     }
@@ -292,7 +292,7 @@ pub async fn webhooks_test(
                 .await
                 .ok()
                 .and_then(|data| data.get("secret").cloned())
-                .unwrap_or_default(),
+                .unwrap_or_else(|| { log::warn!("webhook signing secret missing at {path}"); String::new() }),
             Err(_) => String::new(),
         },
         None => String::new(),
@@ -406,7 +406,7 @@ pub async fn webhook_deliveries_list(
     )
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| { log::warn!("failed to load webhook deliveries: {err}"); Vec::new() });
 
     if rows.is_empty() {
         return (

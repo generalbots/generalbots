@@ -20,7 +20,10 @@ pub(super) fn active_connection_counts(state: &Arc<AppState>) -> Vec<(String, i6
          GROUP BY provider_slug",
     )
     .load::<ProviderRow>(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        log::warn!("failed to load active connection counts: {err}");
+        Vec::new()
+    });
 
     rows.into_iter()
         .map(|row| (row.provider_slug, row.total))

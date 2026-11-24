@@ -63,7 +63,7 @@ pub fn parse_events(raw: Option<&str>) -> serde_json::Value {
                 .filter(|p| !p.is_empty())
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     if events.is_empty() {
         serde_json::json!(["*"])
     } else {

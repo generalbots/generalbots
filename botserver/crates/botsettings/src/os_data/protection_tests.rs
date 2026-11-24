@@ -113,7 +113,7 @@ fn drive_descriptor_is_bounded_and_non_destructive() {
     assert!(!rendered.contains("password="));
 
     // The object key is a bounded, fixed-layout logical path.
-    let key = d["drive_object"].as_str().unwrap_or_default();
+    let key = d["drive_object"].as_str().unwrap_or("");
     assert!(key.starts_with("os-snapshots/"));
     assert!(key.ends_with(".tar.zst"));
     assert!(key.len() < 96);
@@ -175,7 +175,7 @@ fn drive_unavailable_fails_closed_with_no_descriptor() {
     assert_eq!(status["backup"]["descriptor_adapter"], "drive-archive");
     let result = status["backup"]["contract"]["result"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or("");
     assert!(result.contains("503"));
 }
 
@@ -201,7 +201,7 @@ fn drive_configured_stages_202_descriptor_with_retention_and_no_destruction() {
     assert!(staged["location"].is_string());
     assert!(staged["message"]
         .as_str()
-        .unwrap_or_default()
+        .unwrap_or("")
         .contains("no archive was created"));
 
     let retention = &staged["retention"];
@@ -225,7 +225,7 @@ fn drive_configured_stages_202_descriptor_with_retention_and_no_destruction() {
     let status = status_payload();
     let result = status["backup"]["contract"]["result"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or("");
     assert!(result.contains("202"));
 }
 
@@ -251,8 +251,8 @@ fn drive_reason_never_leaks_into_descriptor_or_receipt() {
             location: String::new(),
         });
         let fields = [
-            descriptor["manifest_id"].as_str().unwrap_or_default(),
-            descriptor["drive_object"].as_str().unwrap_or_default(),
+            descriptor["manifest_id"].as_str().unwrap_or(""),
+            descriptor["drive_object"].as_str().unwrap_or(""),
             receipt.job_id.as_str(),
             receipt.location.as_str(),
         ];
@@ -275,7 +275,7 @@ fn drive_descriptor_key_is_bounded_logical_and_deterministic() {
     assert_eq!(first["drive_object"], second["drive_object"]);
     assert_eq!(first["manifest_id"], second["manifest_id"]);
 
-    let key = first["drive_object"].as_str().unwrap_or_default();
+    let key = first["drive_object"].as_str().unwrap_or("");
     assert!(key.starts_with("os-snapshots/"));
     assert!(key.ends_with(".tar.zst"));
     let parts: Vec<&str> = key.split('/').collect();
@@ -338,7 +338,7 @@ fn export_contract_remains_descriptor_only_and_never_destructive() {
     assert_eq!(status["export"]["descriptor_available"], true);
     let result = status["export"]["contract"]["result"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or("");
     assert!(result.contains("200"));
     assert!(result.contains("no archive is created"));
 }
@@ -361,7 +361,7 @@ fn reset_contract_stays_disabled_and_requires_the_exact_token() {
     );
     let result = status["reset"]["contract"]["result"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or("");
     assert!(result.contains("400"));
     assert!(result.contains("501"));
 }
