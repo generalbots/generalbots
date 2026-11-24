@@ -28,6 +28,7 @@ require("./webtest-office-fidelity/12_fuzz");
 require("./webtest-office-fidelity/20_static");
 require("./webtest-office-fidelity/25_recent_fixes");
 require("./webtest-office-fidelity/26_kb_citation");
+require("./webtest-office-fidelity/27_kb_backfill");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
