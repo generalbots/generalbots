@@ -363,6 +363,7 @@ mod tests {
             drive: Some(Arc::new(MemDrive::default())),
             on_save: None,
             sessions: SessionStore::default(),
+            metrics_collector: Arc::new(botcore::shared::analytics::MetricsCollector::new()),
         }
     }
 

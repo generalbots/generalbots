@@ -19,12 +19,21 @@ use axum::{
 use botcore::WorkClass;
 use docx_rs::{AlignmentType, Docx, Paragraph, Run, RunFonts, Table, TableCell, TableRow};
 use std::sync::Arc;
+use std::time::Instant;
+
+/// #2459 — emit export duration under a sanitized format token.
+async fn record_export(state: &DocState, format: &str, started: Instant) {
+    let duration_ms = started.elapsed().as_secs_f64() * 1000.0;
+    botcore::shared::analytics::track_office_export(&state.metrics_collector, format, duration_ms)
+        .await;
+}
 
 pub async fn handle_export_pdf(
     State(state): State<Arc<DocState>>,
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     // #2530 — hold the export gate across the renderer; RAII releases it.
     let tenant = user.id().to_string();
@@ -34,11 +43,9 @@ pub async fn handle_export_pdf(
         Some(&tenant),
     )
     .await?;
-    log::debug!(
-        "docs pdf export admitted: class={}",
-        permit.class().as_str()
-    );
+    log::debug!("docs pdf export admitted: {}", permit.class().as_str());
     let pdf_bytes = html_to_pdf(&doc.content);
+    record_export(&state, "pdf", started).await;
 
     Ok((
         [(axum::http::header::CONTENT_TYPE, "application/pdf")],
@@ -51,6 +58,7 @@ pub async fn handle_export_docx(
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     // #2530 — hold the export gate across the package rebuild; RAII releases it.
     let tenant = user.id().to_string();
@@ -60,10 +68,7 @@ pub async fn handle_export_docx(
         Some(&tenant),
     )
     .await?;
-    log::debug!(
-        "docs docx export admitted: class={}",
-        permit.class().as_str()
-    );
+    log::debug!("docs docx export admitted: {}", permit.class().as_str());
     // #2042 — export honours the preserved package, like save does. Rebuilding
     // from HTML drops styles, headers/footers, tables and images.
     let user_id = user.id().to_string();
@@ -102,6 +107,7 @@ pub async fn handle_export_docx(
         "x-gb-docx-fidelity",
         axum::http::HeaderValue::from_static(fidelity.as_str()),
     );
+    record_export(&state, "docx", started).await;
     Ok((headers, docx_bytes))
 }
 
@@ -110,6 +116,7 @@ pub async fn handle_export_odt(
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     // #2530 — hold the export gate across the ODT builder; RAII releases it.
     let tenant = user.id().to_string();
@@ -119,13 +126,11 @@ pub async fn handle_export_odt(
         Some(&tenant),
     )
     .await?;
-    log::debug!(
-        "docs odt export admitted: class={}",
-        permit.class().as_str()
-    );
+    log::debug!("docs odt export admitted: {}", permit.class().as_str());
     let odt_bytes = html_to_odt_zip(&doc.title, &doc.content)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}))))?;
 
+    record_export(&state, "odt", started).await;
     Ok((
         [(
             axum::http::header::CONTENT_TYPE,
@@ -359,6 +364,7 @@ pub async fn handle_export_md(
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     // #2530 — same gate for every export format, not just the heavy ones.
     let tenant = user.id().to_string();
@@ -368,11 +374,12 @@ pub async fn handle_export_md(
         Some(&tenant),
     )
     .await?;
-    log::debug!("docs md export admitted: class={}", permit.class().as_str());
+    log::debug!("docs md export admitted: {}", permit.class().as_str());
     let markdown = html_to_markdown(&doc.content);
 
     // A download, not a page: `attachment` keeps the browser from rendering it
     // on the suite origin (#2124 follow-up).
+    record_export(&state, "md", started).await;
     Ok((
         text_export_headers(&doc.title, "md", "text/markdown; charset=utf-8"),
         markdown,
@@ -389,6 +396,7 @@ pub async fn handle_export_html(
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     let tenant = user.id().to_string();
     let permit = admit(
@@ -397,10 +405,8 @@ pub async fn handle_export_html(
         Some(&tenant),
     )
     .await?;
-    log::debug!(
-        "docs html export admitted: class={}",
-        permit.class().as_str()
-    );
+    log::debug!("docs html export admitted: {}", permit.class().as_str());
+    record_export(&state, "html", started).await;
 
     Ok((
         html_export_headers(&doc.title),
@@ -413,6 +419,7 @@ pub async fn handle_export_txt(
     user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let started = Instant::now();
     let doc = load_export_document(&state, &user, &query).await?;
     let tenant = user.id().to_string();
     let permit = admit(
@@ -421,11 +428,9 @@ pub async fn handle_export_txt(
         Some(&tenant),
     )
     .await?;
-    log::debug!(
-        "docs txt export admitted: class={}",
-        permit.class().as_str()
-    );
+    log::debug!("docs txt export admitted: {}", permit.class().as_str());
     let plain_text = strip_html(&doc.content);
+    record_export(&state, "txt", started).await;
 
     Ok((
         text_export_headers(&doc.title, "txt", "text/plain; charset=utf-8"),

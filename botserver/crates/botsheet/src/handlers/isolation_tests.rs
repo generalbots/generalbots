@@ -95,6 +95,7 @@ fn state() -> (Arc<SheetState>, Arc<MemDrive>) {
         drive: Some(drive.clone()),
         on_save: None,
         sessions: SessionStore::default(),
+        metrics_collector: Arc::new(botcore::shared::analytics::MetricsCollector::new()),
     });
     (state, drive)
 }

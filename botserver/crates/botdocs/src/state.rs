@@ -1,10 +1,22 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use botcore::kb::structured::UpsertPoint;
+use botcore::shared::analytics::MetricsCollector;
 use botlib::traits::DriveRepository;
 
 use crate::Document;
 pub use botlib::db_pool::DbPool;
+
+/// #2459 — runtime-wide metrics handle. The runtime sets it once at boot with
+/// the collector the exporter scrapes, so every DocState shares it.
+static METRICS: OnceLock<MetricsCollector> = OnceLock::new();
+
+/// Install the shared office-metrics collector (idempotent, called at boot).
+pub fn set_metrics_collector(collector: MetricsCollector) {
+    if METRICS.set(collector).is_err() {
+        log::warn!("botdocs: metrics collector already initialized");
+    }
+}
 
 /// #2499 — seam between a successful Docs save and the runtime KB/vector
 /// indexer. It is storage-agnostic: the runtime maps each [`UpsertPoint`] onto
@@ -86,6 +98,8 @@ pub struct DocState {
     /// #2499 — optional projection of a saved document into the KB/vector
     /// index. Defaults to a no-op so saves never depend on index availability.
     pub kb_indexer: KbIndexer,
+    /// #2459 — shared office metrics (export duration).
+    pub metrics_collector: Arc<MetricsCollector>,
 }
 
 impl DocState {

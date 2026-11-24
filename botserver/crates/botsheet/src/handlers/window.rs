@@ -1,9 +1,5 @@
-//! #2435 — Server-side windowed reads for large workbooks.
-//!
-//! `GET /api/sheet/:id/window?range=A1:Z200` returns only the populated cells
-//! of a bounded A1 rectangle, together with the workbook version and an ETag.
-//! The range parser is pure and caps both the requested span and the absolute
-//! A1 coordinates, so a hostile query cannot allocate an unbounded grid.
+//! #2435 — Bounded windowed reads: populated A1 cells plus version/ETag; the
+//! parser caps spans so hostile queries cannot allocate an unbounded grid.
 
 use crate::auth::{resolve_user_id, SheetError, SheetUser};
 use crate::scale::{
@@ -247,6 +243,13 @@ pub async fn handle_sheet_window(
 
     let locale = Lang::from_headers(&headers).number_locale();
     let sheet = session.sheet.read().await;
+    // #2459 — workbook memory gauge; the hook hashes sheet_id to an opaque label.
+    botcore::shared::analytics::track_office_workbook_memory(
+        state.metrics_collector.as_ref(),
+        &sheet_id,
+        crate::handlers::admission::sheet_payload_bytes(&sheet),
+    )
+    .await;
     let sheet_index = query.sheet.unwrap_or(0);
     let worksheet = sheet.worksheets.get(sheet_index).ok_or_else(|| {
         (

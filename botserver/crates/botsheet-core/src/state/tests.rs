@@ -70,6 +70,7 @@ async fn save_writes_sidecar_and_list_uses_it() {
         drive: Some(drive.clone()),
         on_save: None,
         sessions: SessionStore::default(),
+        metrics_collector: Arc::new(botcore::shared::analytics::MetricsCollector::new()),
     };
     let sheet = sample_sheet("alice");
     save_sheet_to_drive(&state, "alice", &sheet).await.unwrap();
@@ -97,6 +98,7 @@ async fn list_loads_legacy_documents_without_sidecar() {
         drive: Some(drive.clone()),
         on_save: None,
         sessions: SessionStore::default(),
+        metrics_collector: Arc::new(botcore::shared::analytics::MetricsCollector::new()),
     };
     let sheet = sample_sheet("alice");
     let path = format!("{}/{}.json", get_user_sheets_path("alice"), sheet.id);
@@ -118,6 +120,7 @@ async fn delete_removes_sidecar() {
         drive: Some(drive.clone()),
         on_save: None,
         sessions: SessionStore::default(),
+        metrics_collector: Arc::new(botcore::shared::analytics::MetricsCollector::new()),
     };
     let sheet = sample_sheet("alice");
     save_sheet_to_drive(&state, "alice", &sheet).await.unwrap();

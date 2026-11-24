@@ -155,6 +155,8 @@ pub(super) async fn merge_office_sub_routes(
             // tenant or citation. Wiring a real indexer requires editing
             // botcore/botlib (out of this slice's ownership).
             kb_indexer: botdocs::state::noop_kb_indexer(),
+            // #2459 — shared collector published at boot by state_builder.
+            metrics_collector: Arc::new(app_state.metrics_collector.clone()),
         });
 
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace

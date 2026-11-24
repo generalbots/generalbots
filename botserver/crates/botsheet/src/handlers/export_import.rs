@@ -41,6 +41,24 @@ pub async fn handle_export_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ExportRequest>,
 ) -> Result<(axum::http::HeaderMap, Vec<u8>), (StatusCode, Json<serde_json::Value>)> {
+    let format = req.format.clone();
+    let started = std::time::Instant::now();
+    let result = export_sheet_inner(State(state.clone()), user, Json(req)).await;
+    // #2459 — export duration per sanitized format token.
+    botcore::shared::analytics::track_office_export(
+        state.metrics_collector.as_ref(),
+        &format,
+        started.elapsed().as_secs_f64() * 1000.0,
+    )
+    .await;
+    result
+}
+
+async fn export_sheet_inner(
+    State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
+    Json(req): Json<ExportRequest>,
+) -> Result<(axum::http::HeaderMap, Vec<u8>), (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state

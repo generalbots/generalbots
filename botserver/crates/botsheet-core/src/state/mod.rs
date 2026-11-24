@@ -1,9 +1,21 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use async_trait::async_trait;
+use botcore::shared::analytics::MetricsCollector;
 
 use crate::sessions::SessionStore;
 use crate::types::{Spreadsheet, SpreadsheetMetadata};
+
+/// #2459 — runtime-wide metrics handle. The runtime sets it once at boot with
+/// the very collector the exporter scrapes, so states built here share it.
+static METRICS: OnceLock<MetricsCollector> = OnceLock::new();
+
+/// Install the shared office-metrics collector (idempotent, called at boot).
+pub fn set_metrics_collector(collector: MetricsCollector) {
+    if METRICS.set(collector).is_err() {
+        log::warn!("botsheet-core: metrics collector already initialized");
+    }
+}
 
 /// Post-save hook that runs after `save_sheet_to_drive` persists the JSON.
 /// Used by the `botsheet` crate to export back to the original xlsx in Drive.
@@ -16,6 +28,8 @@ pub struct SheetState {
     /// Live in-memory document sessions (#789): shared state, oplog,
     /// versioning, debounced persistence and idle eviction.
     pub sessions: SessionStore,
+    /// #2459 — shared office metrics (workbook memory, export duration).
+    pub metrics_collector: Arc<MetricsCollector>,
 }
 
 impl SheetState {
@@ -24,6 +38,7 @@ impl SheetState {
             drive,
             on_save: None,
             sessions: SessionStore::default(),
+            metrics_collector: Arc::new(METRICS.get_or_init(MetricsCollector::new).clone()),
         }
     }
 }
