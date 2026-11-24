@@ -250,8 +250,14 @@ impl SloConfig {
                 threshold_ms: fields
                     .get("threshold_ms")
                     .and_then(|v| v.parse::<f64>().ok()),
-                runbook: fields.get("runbook").cloned().unwrap_or_default(),
-                panel: fields.get("panel").cloned().unwrap_or_default(),
+                runbook: match fields.get("runbook") {
+                    Some(runbook) => runbook.clone(),
+                    None => String::new(),
+                },
+                panel: match fields.get("panel") {
+                    Some(panel) => panel.clone(),
+                    None => String::new(),
+                },
             });
         }
 

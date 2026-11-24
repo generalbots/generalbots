@@ -47,8 +47,17 @@ pub async fn list_templates(
     let templates: Vec<GoalTemplate> = result.into_iter().map(|t| {
         let objective_template: ObjectiveTemplate = serde_json::from_value(t.objective_template)
             .unwrap_or(ObjectiveTemplate { title: String::new(), description: String::new() });
-        let key_result_templates: Vec<KeyResultTemplate> = serde_json::from_value(t.key_result_templates)
-            .unwrap_or_default();
+        let key_result_templates: Vec<KeyResultTemplate> =
+            match serde_json::from_value(t.key_result_templates) {
+                Ok(templates) => templates,
+                Err(error) => {
+                    log::warn!(
+                        "template {} has invalid key_result_templates: {error}",
+                        t.id
+                    );
+                    Vec::new()
+                }
+            };
 
         GoalTemplate {
             id: t.id,

@@ -122,7 +122,7 @@ impl InsightsService {
                 }).collect());
             }
 
-            let activity_rows: Vec<ActivityAggRow> = diesel::sql_query(
+            let activity_rows: Vec<ActivityAggRow> = match diesel::sql_query(
                 "SELECT DATE(created_at) as activity_date,
                  SUM(CASE WHEN activity_type = 'focus' THEN duration_seconds ELSE 0 END) as focus_time,
                  SUM(CASE WHEN activity_type = 'meeting' THEN duration_seconds ELSE 0 END) as meeting_time,
@@ -139,7 +139,13 @@ impl InsightsService {
             .bind::<Date, _>(start_date)
             .bind::<Date, _>(end_date)
             .load(&mut conn)
-            .unwrap_or_default();
+            {
+                Ok(rows) => rows,
+                Err(error) => {
+                    log::warn!("activity aggregation query failed: {error}");
+                    Vec::new()
+                }
+            };
 
             let mut insights = Vec::new();
 

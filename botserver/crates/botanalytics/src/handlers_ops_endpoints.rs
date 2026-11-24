@@ -143,7 +143,7 @@ pub async fn handle_ops_endpoints(
 ) -> impl IntoResponse {
     let minutes = window_minutes(query.window);
     let conn = pool.clone();
-    let rows = tokio::task::spawn_blocking(move || {
+    let rows = match tokio::task::spawn_blocking(move || {
         let Ok(mut db_conn) = conn.get() else {
             log::error!("ops endpoints panel: no DB connection");
             return Vec::new();
@@ -157,7 +157,13 @@ pub async fn handle_ops_endpoints(
             })
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("ops endpoints task failed: {error}");
+            Vec::new()
+        }
+    };
 
     Html(render_endpoints(&rows, minutes))
 }

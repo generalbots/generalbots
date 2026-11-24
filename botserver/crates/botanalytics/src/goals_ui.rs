@@ -288,7 +288,7 @@ pub async fn dashboard_stats(
 pub async fn new_objective_form(
     State((pool, _)): State<(Arc<DbPool>, GetDefaultBotFn)>,
 ) -> Html<String> {
-    let users_list = tokio::task::spawn_blocking(move || {
+    let users_list = match tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
         users::table
             .select((users::id, users::username))
@@ -299,7 +299,13 @@ pub async fn new_objective_form(
     .await
     .ok()
     .flatten()
-    .unwrap_or_default();
+    {
+        Some(users) => users,
+        None => {
+            log::warn!("new objective form: unable to load users list");
+            Vec::new()
+        }
+    };
 
     let owner_options: String = users_list
         .iter()

@@ -172,14 +172,20 @@ pub async fn handle_metric_chart(
             count: i64,
         }
 
-        let data = diesel::sql_query(
+        let data = match diesel::sql_query(
             "SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as count
              FROM message_history
              WHERE created_at > NOW() - INTERVAL '24 hours'
              GROUP BY hour ORDER BY hour",
         )
         .load::<HourlyCount>(&mut db_conn)
-        .unwrap_or_default();
+        {
+            Ok(rows) => rows,
+            Err(error) => {
+                log::warn!("hourly message counts query failed: {error}");
+                Vec::new()
+            }
+        };
 
         let mut counts = vec![0i64; 24];
         for row in data {
@@ -259,7 +265,7 @@ pub async fn handle_metric_chart(
 pub async fn handle_metrics_list(State(pool): State<Arc<DbPool>>) -> impl IntoResponse {
     let conn = pool.clone();
 
-    let stats = tokio::task::spawn_blocking(move || {
+    let stats = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -296,7 +302,13 @@ pub async fn handle_metrics_list(State(pool): State<Arc<DbPool>>) -> impl IntoRe
         rows
     })
     .await
-    .unwrap_or_default();
+    {
+        Ok(stats) => stats,
+        Err(error) => {
+            log::warn!("metrics list task failed: {error}");
+            Vec::new()
+        }
+    };
 
     if stats.is_empty() {
         return Html(

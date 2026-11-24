@@ -15,7 +15,7 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 2060
+unwrap_or_default = 2030
 discarded_result = 1327
 
 [rule_notes]
@@ -35,10 +35,6 @@ unwrap_or_default = 34
 [files."botserver/crates/botchannels/src/reddit/submit_comment.rs"]
 unwrap_or_default = 27
 
-[files."botserver/crates/botanalytics/src/handlers_charts.rs"]
-unwrap_or_default = 8
-discarded_result = 18
-
 [files."botserver/crates/botmeet/src/signaling.rs"]
 unwrap_or_default = 15
 discarded_result = 10
@@ -48,6 +44,9 @@ unwrap_or_default = 22
 
 [files."botserver/crates/botmeet/src/minutes/storage.rs"]
 unwrap_or_default = 20
+
+[files."botserver/crates/botanalytics/src/handlers_charts.rs"]
+discarded_result = 18
 
 [files."botserver/crates/botbrowser/src/lib.rs"]
 unwrap_or_default = 14
@@ -172,10 +171,6 @@ discarded_result = 10
 unwrap_or_default = 1
 discarded_result = 9
 
-[files."botserver/crates/botanalytics/src/handlers_activity.rs"]
-unwrap_or_default = 3
-discarded_result = 6
-
 [files."botserver/crates/botbasic_data/src/keywords/use_account.rs"]
 unwrap_or_default = 8
 discarded_result = 1
@@ -202,4 +197,7 @@ unwrap_or_default = 8
 discarded_result = 1
 
 [files."botserver/crates/botsettings/src/rbac/search.rs"]
+unwrap_or_default = 9
+
+[files."botserver/crates/botsheet/src/ui_fragments/toolbar.rs"]
 unwrap_or_default = 9

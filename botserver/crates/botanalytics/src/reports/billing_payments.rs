@@ -21,7 +21,7 @@ pub async fn billing_payments(
         paid_at: chrono::DateTime<Utc>,
     }
 
-    let payments: Vec<PaymentRow> = diesel::sql_query(
+    let payments: Vec<PaymentRow> = match diesel::sql_query(
         "SELECT COALESCE(payer_name, payer_email, '—') AS payer,
                 COALESCE(payment_method, '—') AS method, amount, paid_at
          FROM billing_payments WHERE branch_id = $1 AND paid_at IS NOT NULL
@@ -29,7 +29,13 @@ pub async fn billing_payments(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    {
+        Ok(payments) => payments,
+        Err(error) => {
+            log::warn!("recent payments query failed: {error}");
+            Vec::new()
+        }
+    };
 
     let mut rows = String::new();
     for p in payments {

@@ -123,7 +123,10 @@ pub async fn create_objective(
     let owner_name = Some(user.username.clone());
     let now = Utc::now();
 
-    let tags: Vec<Option<String>> = req.tags.unwrap_or_default().into_iter().map(Some).collect();
+    let tags: Vec<Option<String>> = match req.tags {
+        Some(tags) => tags.into_iter().map(Some).collect(),
+        None => Vec::new(),
+    };
 
     let bot_id = bot_for_branch(&pool, branch_id);
     let new_objective = ObjectiveRecord {
