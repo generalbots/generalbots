@@ -430,21 +430,12 @@ mod tests {
         let range = parse_window_range("A1:Z200").expect("valid range");
         let tiles = bounded_window_tiles(range).expect("in-budget range");
         assert_eq!(tiles.len(), 1);
-        let expected = CellRect {
-            first_row: 0,
-            first_col: 0,
-            last_row: 199,
-            last_col: 25,
-        };
+        let expected = CellRect { first_row: 0, first_col: 0, last_row: 199, last_col: 25 };
         assert_eq!(tiles[0].rect, expected);
         let rects: Vec<CellRect> = tiles.iter().map(|tile| tile.rect).collect();
-        // CellData has no PartialEq; compare the rendered display values the
-        // handler actually returns to the client.
+        // CellData has no PartialEq; compare rendered display values instead.
         let display = |cells: HashMap<String, CellData>| {
-            let mut pairs: Vec<(String, Option<String>)> = cells
-                .into_iter()
-                .map(|(key, cell)| (key, cell.value))
-                .collect();
+            let mut pairs: Vec<_> = cells.into_iter().map(|(k, c)| (k, c.value)).collect();
             pairs.sort();
             pairs
         };
