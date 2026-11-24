@@ -1,9 +1,10 @@
-# officestress — synthetic Office load corpus (#2531)
+# officestress — synthetic Office load corpus + stress harness (#2531)
 
 Test-only generator of deterministic, synthetic large files for the Office
-large-file memory/load-stress lab. It is **not** the measurement harness and
-**not** the cgroup/soak runner — those need a running server and live outside
-this offline slice. This tool only mints the corpus and an auditable manifest.
+large-file memory/load-stress lab, plus the measurement harness that drives a
+workload over that corpus, records peak RSS and enforces a CI gate. The
+generator is stdlib-only and always works offline; the harness degrades to an
+explicit `SKIP` when no runtime is available, so it can never fabricate a PASS.
 
 ## Why it exists
 
@@ -115,3 +116,60 @@ sizes. Each case carries:
 | `os_matrix.py` | policy constants, feature matrix, config resolution |
 | `os_builders.py` | content builders + feature-marker verification |
 | `os_zip.py` | deterministic ZIP writer, sizing, SHA-256 |
+
+## Measurement harness (`os_measure.py`)
+
+```bash
+# Offline logic checks (47 checks, no server/binary/network).
+python3 bottest/tools/officestress/os_measure.py --self-test
+
+# No runtime: emits an explicit SKIP report (exit 0, never PASS).
+python3 bottest/tools/officestress/os_measure.py --run \
+  --report /tmp/opencode/officestress-measure/report.json
+
+# Hardware job: drive a real import/export and measure the server process.
+python3 bottest/tools/officestress/os_measure.py --run --server-pid 1234 \
+  --workload-cmd 'curl -s -X POST http://localhost:8080/api/import -F file={file}' \
+  --profile laptop-4gb --report /tmp/opencode/officestress-measure/report.json
+
+# Bounded leak soak (20 open/edit/save/close cycles by policy).
+python3 bottest/tools/officestress/os_measure.py --run --soak --cycles 20 \
+  --workload-cmd '<path to your workload script> {file}'
+
+# Re-evaluate a stored report; fails closed (exit 1) on any breach.
+python3 bottest/tools/officestress/os_measure.py --gate \
+  --report /tmp/opencode/officestress-measure/report.json \
+  --baseline /tmp/opencode/officestress-measure/baseline.json
+```
+
+`--workload-cmd` is a shell-free command template with `{file}`, `{id}`,
+`{kind}`, `{size_mb}`, `{mode}` and `{iteration}` fields (parsed with `shlex`,
+never a shell). Peak RSS is read from `/proc/<pid>/status` `VmHWM` when
+`--server-pid` is given, otherwise from `/usr/bin/time -v` or `os.wait4`'s
+`ru_maxrss`. The report records server RSS, browser heap and wire bytes in
+separate fields; browser figures are only merged from a validated
+`--observations` JSON (`{"cases": {"docs-large": {"browser_heap_mb": 1.5,
+"wire_bytes": 2}}}`). Content/PII keys are rejected. No document text is ever
+captured — workload stdout/stderr go to `DEVNULL`.
+
+### Profiles and gate
+
+| Profile | cgroup limit | Docs ceiling | Sheets ceiling | Slides ceiling |
+|---------|-------------:|-------------:|---------------:|---------------:|
+| `laptop-2gb` | 2048 MB | 450 | 600 | 550 |
+| `laptop-4gb` | 4096 MB | 900 | 1200 | 1100 |
+| `laptop-8gb` | 8192 MB | 1800 | 2400 | 2200 |
+
+The gate fails on a per-case ceiling breach, a cgroup-limit breach, a workload
+error/nonzero exit, document content in events, a short soak (fewer than 20
+cycles), RSS not returning to baseline within 10%, session-cache growth over
+16 MB, or a peak regression over 10% versus `--baseline`. With no baseline the
+regression is reported `UNVERIFIED`, not PASS. A `SKIP` report always yields a
+`SKIP` gate verdict; `--require-runtime` turns a SKIP into exit 2.
+
+### What still needs hardware
+
+The harness is infrastructure: the 2/4/8 GB cgroup run, a real server PID,
+browser heap/wire observations and the full import/export workloads must be
+supplied by a hardware/UAT lane. This repo lane only proves the harness logic,
+the SKIP path and the gate's fail-closed behaviour.

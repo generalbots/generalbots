@@ -1621,6 +1621,18 @@ jobs:
           python3 scripts/office_largefile_corpus.py --self-test
           python3 scripts/check_office_memory.py --self-test
           python3 scripts/check_office_memory.py --check
+      # #2531 — the load-stress harness validates its own logic offline and emits
+      # an explicit SKIP here (a shared runner has no server or writable cgroup).
+      # On a hardware job a measured report is supplied to --gate, which then
+      # fails closed on ceilings, cgroup limits, soak drift and 10% regressions.
+      - name: "Guard: Office large-file load-stress harness (#2531)"
+        run: |
+          set -euo pipefail
+          python3 bottest/tools/officestress/os_measure.py --self-test
+          python3 bottest/tools/officestress/os_measure.py --run \
+            --report /tmp/opencode/officestress-measure/report.json
+          python3 bottest/tools/officestress/os_measure.py --gate \
+            --report /tmp/opencode/officestress-measure/report.json
       - name: Committed baseline satisfies every budget
         run: |
           set -euo pipefail

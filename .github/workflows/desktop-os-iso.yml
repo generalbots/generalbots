@@ -63,13 +63,56 @@ on:
         description: "Optional extra pin: expected SHA-256 of generalbots-linux-x86_64.tar.gz"
         required: false
         type: string
+  pull_request:
+    # #2471 — a change to the image recipe, the shell UI (tray, power menu,
+    # lock screen) or botsettings can invalidate laptop acceptance. The offline
+    # harness below must run on such PRs; the release-blocking `needs` on the
+    # image job makes the same gate mandatory before an ISO is published.
+    paths:
+      - 'desktop/os/**'
+      - 'botui/ui/suite/desktop-inline/**'
+      - 'botui/ui/suite/js/power-menu.js'
+      - 'botui/ui/suite/js/lock-screen.js'
+      - 'botui/ui/suite/settings/settings-os-appliance.js'
+      - 'botserver/crates/botsettings/**'
+      - '.github/workflows/desktop-os-iso.yml'
 
 permissions:
   contents: read
 
 jobs:
+  laptop-acceptance-offline:
+    name: Laptop/shell offline acceptance gate (#2471)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 1
+
+      - name: Run offline laptop/shell acceptance harness
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/tests/laptop-acceptance.sh ]; then
+            echo "::warning::checked-out tree predates the laptop acceptance harness (#2471); skipping"
+            exit 0
+          fi
+          bash desktop/os/tests/laptop-acceptance.sh
+
+      - name: Upload offline acceptance results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generalbots-os-laptop-acceptance
+          path: /tmp/opencode/uat-laptop/results.tsv
+          if-no-files-found: warn
+          retention-days: 7
+
   image:
     name: Build the appliance image (mkosi on Debian trixie)
+    needs: laptop-acceptance-offline
+    # PR events run only the gate above: a PR has no pinned release payload.
+    if: ${{ github.event_name != 'pull_request' }}
     # No github.server_url condition: GitHub and ALM both build the same
     # pinned image. The pin is required and validated below, not inferred
     # from "the newest release that has a tarball".
