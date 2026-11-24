@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 1218
+discarded_result = 1115
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -27,9 +27,6 @@ discarded_result = ".ok(); statements and let _ = ...; bindings"
 
 [files."botserver/crates/botanalytics/src/handlers_charts.rs"]
 discarded_result = 18
-
-[files."botserver/crates/botbasic_ai/src/keywords/web_data/static_selector.rs"]
-discarded_result = 12
 
 [files."botserver/crates/botcoresecrets/src/tenant.rs"]
 discarded_result = 12
@@ -61,9 +58,6 @@ discarded_result = 10
 [files."botserver/src/core/bot/pipeline/llm/attempt.rs"]
 discarded_result = 10
 
-[files."botserver/crates/botbasic_ai/src/keywords/learn.rs"]
-discarded_result = 9
-
 [files."botserver/crates/botbrowser/src/api/handle_agent_ws_stream.rs"]
 discarded_result = 9
 
@@ -73,13 +67,7 @@ discarded_result = 9
 [files."botserver/src/main_body.rs"]
 discarded_result = 9
 
-[files."botserver/crates/botbasic_ai/src/keywords/ai_tools.rs"]
-discarded_result = 8
-
-[files."botserver/crates/botbasic_ai/src/keywords/use_website/register_use_website_function.rs"]
-discarded_result = 8
-
-[files."botserver/crates/botbasic_comms/src/keywords/add_bot/register_bot_keywords.rs"]
+[files."botserver/crates/botbasic_ai/src/keywords/learn.rs"]
 discarded_result = 8
 
 [files."botserver/crates/botcore/src/product/appearance.rs"]
@@ -121,15 +109,6 @@ discarded_result = 7
 [files."botserver/crates/botanalytics/src/handlers_activity.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botbasic_ai/src/keywords/chatbot_handoff.rs"]
-discarded_result = 6
-
-[files."botserver/crates/botbasic_comms/src/keywords/add_bot/list_bots_keyword.rs"]
-discarded_result = 6
-
-[files."botserver/crates/botbasic_comms/src/keywords/play/play_keyword.rs"]
-discarded_result = 6
-
 [files."botserver/crates/botcoredirectory/src/provisioning.rs"]
 discarded_result = 6
 
@@ -148,13 +127,7 @@ discarded_result = 6
 [files."botserver/src/core/bot/ws/stream/tool_call.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botbasic_ai/src/keywords/agent_reflection/register_reflection_keywords.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botbasic_comms/src/keywords/transfer_to_human/register_transfer_to_human_keyword.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/register_universal_messaging.rs"]
+[files."botserver/crates/botbasic_ai/src/keywords/chatbot_handoff.rs"]
 discarded_result = 5
 
 [files."botserver/crates/botcore/src/dns/mod.rs"]
@@ -173,4 +146,31 @@ discarded_result = 5
 discarded_result = 5
 
 [files."botserver/crates/botemail/src/handlers/htmx/list_templates_htmx.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botllm/src/kimi.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botllm/src/kiro/emit_stream.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botllm/src/openai_stream_sse.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botplan/src/collaboration.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botsources/src/handlers/sources_handlers/handle_models.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botworkspaces/src/collaboration.rs"]
+discarded_result = 5
+
+[files."botserver/src/basic/mod.rs"]
+discarded_result = 5
+
+[files."botserver/src/core/bot/pipeline/vibe_route.rs"]
+discarded_result = 5
+
+[files."botserver/src/core/bot/ws/stream.rs"]
 discarded_result = 5

@@ -63,7 +63,9 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
             std::thread::spawn(move || {
                 let result =
                     associate_tool_with_session(&state_clone_1, &user_clone_1, &tool_name_1);
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("USE_TOOL keyword: result channel send failed: {e}");
+                }
             });
             let result = rx
                 .recv()
@@ -101,7 +103,9 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
         let tool_name_2 = tool_name.clone();
         std::thread::spawn(move || {
             let result = associate_tool_with_session(&state_clone_2, &user_clone_2, &tool_name_2);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_TOOL keyword: result channel send failed: {e}");
+            }
         });
         let result = rx
             .recv()
@@ -133,7 +137,9 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
         let tool_name_3 = tool_name.clone();
         std::thread::spawn(move || {
             let result = associate_tool_with_session(&state_clone_3, &user_clone_3, &tool_name_3);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_TOOL keyword: result channel send failed: {e}");
+            }
         });
         let result = rx
             .recv()

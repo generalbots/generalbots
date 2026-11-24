@@ -255,7 +255,9 @@ pub async fn publish_now(
             Ok(id)
         }
         Err(error) => {
-            let _ = mark_failed(state, id, &error);
+            if let Err(e) = mark_failed(state, id, &error) {
+                log::warn!("social publish: failed to mark post as failed: {e}");
+            }
             Err(error)
         }
     }
@@ -324,7 +326,9 @@ pub async fn publish_due(state: &dyn BasicRuntime) -> usize {
                 }
             }
             Err(error) => {
-                let _ = mark_failed(state, row.id, &error);
+                if let Err(e) = mark_failed(state, row.id, &error) {
+                    log::warn!("social publish: failed to mark post as failed: {e}");
+                }
             }
         }
     }

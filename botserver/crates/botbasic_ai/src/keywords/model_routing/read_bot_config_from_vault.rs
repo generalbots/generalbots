@@ -18,7 +18,9 @@ pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<std::collectio
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("model routing config read: result channel send failed: {e}");
+        }
     });
     rx.recv().ok().flatten()
 }

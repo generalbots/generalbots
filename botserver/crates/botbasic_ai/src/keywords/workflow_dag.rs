@@ -155,7 +155,9 @@ fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                         },
                         Err(e) => Err(format!("spawn: {e}").into()),
                     };
-                    let _ = tx.send(outcome);
+                    if let Err(e) = tx.send(outcome) {
+                        log::warn!("workflow DAG keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(std::time::Duration::from_secs(15)) {
                     Ok(Ok(())) => Ok(Dynamic::UNIT),
@@ -214,7 +216,9 @@ fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                         },
                         Err(e) => Err(format!("spawn: {e}").into()),
                     };
-                    let _ = tx.send(outcome);
+                    if let Err(e) = tx.send(outcome) {
+                        log::warn!("workflow DAG keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(std::time::Duration::from_secs(15)) {
                     Ok(Ok(())) => Ok(Dynamic::UNIT),
@@ -270,7 +274,9 @@ fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                         },
                         Err(e) => Err(format!("spawn: {e}").into()),
                     };
-                    let _ = tx.send(outcome);
+                    if let Err(e) = tx.send(outcome) {
+                        log::warn!("workflow DAG keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(std::time::Duration::from_secs(15)) {
                     Ok(Ok(())) => Ok(Dynamic::UNIT),
@@ -327,7 +333,9 @@ fn register_error_handler(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                         },
                         Err(e) => Err(format!("spawn: {e}").into()),
                     };
-                    let _ = tx.send(outcome);
+                    if let Err(e) = tx.send(outcome) {
+                        log::warn!("workflow DAG keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(std::time::Duration::from_secs(15)) {
                     Ok(Ok(())) => Ok(Dynamic::UNIT),

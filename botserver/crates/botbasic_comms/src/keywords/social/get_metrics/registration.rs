@@ -31,7 +31,9 @@ pub fn get_instagram_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
                             fetch_instagram_metrics(&*state_for_task, &user_for_task, &post_id_owned)
                                 .await
                         });
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("GET_METRICS keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 
@@ -86,7 +88,9 @@ pub fn get_facebook_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                             fetch_facebook_metrics(&*state_for_task, &user_for_task, &post_id_owned)
                                 .await
                         });
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("GET_METRICS keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 
@@ -141,7 +145,9 @@ pub fn get_linkedin_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                             fetch_linkedin_metrics(&*state_for_task, &user_for_task, &post_id_owned)
                                 .await
                         });
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("GET_METRICS keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 
@@ -196,7 +202,9 @@ pub fn get_twitter_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSessi
                             fetch_twitter_metrics(&*state_for_task, &user_for_task, &post_id_owned)
                                 .await
                         });
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("GET_METRICS keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 

@@ -123,7 +123,9 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("BOOK keyword: result channel send failed: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to create runtime".into()));
 
@@ -177,7 +179,9 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("BOOK keyword: result channel send failed: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to create runtime".into()));
 

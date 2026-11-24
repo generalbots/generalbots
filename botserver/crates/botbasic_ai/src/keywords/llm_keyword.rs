@@ -46,7 +46,9 @@ pub fn llm_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
                         },
                         Err(e) => Err(format!("Failed to spawn LLM worker: {e}").into()),
                     };
-                    let _ = tx.send(outcome);
+                    if let Err(e) = tx.send(outcome) {
+                        log::warn!("LLM keyword: result channel send failed: {e}");
+                    }
                 })
             {
                 log::error!("Failed to spawn LLM dispatcher thread: {e}");

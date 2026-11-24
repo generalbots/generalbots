@@ -100,7 +100,9 @@ impl CodeSandbox {
         // could never fire, and never reaped the child.
         let outcome = cmd.execute_async_with_timeout(timeout_duration).await;
 
-        let _ = std::fs::remove_file(&code_file);
+        if let Err(e) = std::fs::remove_file(&code_file) {
+            log::warn!("sandbox file cleanup: failed to remove temp code file: {e}");
+        }
 
         match outcome {
             Ok(Some(output)) => {
@@ -251,7 +253,9 @@ impl CodeSandbox {
         // no longer races a still-running interpreter holding the code file.
         let outcome = cmd.execute_async_with_timeout(timeout_duration).await;
 
-        let _ = std::fs::remove_dir_all(&temp_dir);
+        if let Err(e) = std::fs::remove_dir_all(&temp_dir) {
+            log::warn!("sandbox dir cleanup: failed to remove temp directory: {e}");
+        }
 
         match outcome {
             Ok(Some(output)) => {

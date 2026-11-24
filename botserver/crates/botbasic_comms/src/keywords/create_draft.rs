@@ -30,7 +30,9 @@ pub fn create_draft_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, e
                         }),
                         Err(e) => Err(format!("Runtime creation failed: {e}")),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("CREATE_DRAFT keyword: result channel send failed: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".to_string()))
                         .map_err(|e| format!("Draft creation failed: {e}"))?;

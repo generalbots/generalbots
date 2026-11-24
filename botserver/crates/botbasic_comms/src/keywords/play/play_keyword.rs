@@ -61,7 +61,9 @@ pub(super) fn preview_keyword(
             };
 
             let result = send_play_to_client(&state_for_task, session_id, &response);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(10)) {
@@ -102,7 +104,9 @@ pub(super) fn play_simple_keyword(
 
         std::thread::spawn(move || {
             let result = execute_play(&state_for_task, session_id, &source, PlayOptions::default());
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -159,7 +163,9 @@ pub(super) fn play_with_options_keyword(
 
         std::thread::spawn(move || {
             let result = execute_play(&state_for_task, session_id, &source, options);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -198,7 +204,9 @@ pub(super) fn stop_keyword(
 
         std::thread::spawn(move || {
             let result = send_player_command(&state_for_task, session_id, "stop");
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(10)) {
@@ -233,7 +241,9 @@ pub(super) fn pause_keyword(
 
         std::thread::spawn(move || {
             let result = send_player_command(&state_for_task, session_id, "pause");
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(10)) {
@@ -268,7 +278,9 @@ pub(super) fn resume_keyword(
 
         std::thread::spawn(move || {
             let result = send_player_command(&state_for_task, session_id, "resume");
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("PLAY keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(10)) {

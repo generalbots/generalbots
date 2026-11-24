@@ -20,12 +20,16 @@ pub(super) fn list_bots_keyword(
             let rt = match tokio::runtime::Runtime::new() {
                 Ok(rt) => rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                    if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                        log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+                    }
                     return;
                 }
             };
             let result = rt.block_on(async { get_session_bots(&*state_for_task, session_id) });
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -94,14 +98,18 @@ pub(super) fn set_bot_priority_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async {
                     set_bot_priority(&*state_for_task, session_id, &bot_name, priority)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -148,13 +156,17 @@ pub(super) fn delegate_to_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result =
                     rt.block_on(async { delegate_to_bot(&*state_for_task, session_id, &bot_name) });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("LIST_BOTS keyword: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(60)) {
