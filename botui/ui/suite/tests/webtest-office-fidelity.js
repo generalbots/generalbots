@@ -31,6 +31,8 @@ require("./webtest-office-fidelity/25_recent_fixes");
 require("./webtest-office-fidelity/26_kb_citation");
 require("./webtest-office-fidelity/27_kb_backfill");
 require("./webtest-office-fidelity/28_agent_undo");
+require("./webtest-office-fidelity/29_sheet_scale_guard");
+require("./webtest-office-fidelity/30_kb_edit_eviction");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
