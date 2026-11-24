@@ -27,6 +27,15 @@
     --sentient-accent: var(--palette-3b82f6);
     --sentient-accent-hover: var(--palette-2563eb);
     --sentient-accent-light: var(--palette-1e3a8a);
+    /* #theme — suite.css paints the office toolbars with
+     * `background: var(--surface-raised, ...) !important`. Scope the same
+     * tokens Docs uses to the app so the toolbar and its first row follow the
+     * office skin instead of the light product theme's near-white surface. */
+    --surface: var(--palette-0f172a);
+    --surface-raised: var(--palette-111827);
+    --surface-hover: var(--palette-1e293b);
+    --border: var(--palette-1f2937);
+    --border-color: var(--palette-1f2937);
     background: var(--palette-0f172a);
     color: var(--palette-e5e7eb);
 }
@@ -34,6 +43,10 @@
     background: var(--palette-111827);
     border-bottom: 1px solid var(--palette-1f2937);
     box-shadow: none;
+}
+.sheet-app.sheet-app .sheet-toolbar-row-main,
+.sheet-app.sheet-app .sheet-toolbar-row-format {
+    background: var(--surface-raised, var(--palette-111827));
 }
 .sheet-app.sheet-app .sheet-name-input {
     color: var(--palette-f8fafc);
