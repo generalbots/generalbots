@@ -33,9 +33,9 @@ var metrics = require("./10_scan").metrics;
  * a11y fixture was dropped; the four documented gaps stay explicitly reported.
  */
 var EXPECTED = {
-  filesScanned: 1575,
+  filesScanned: 1576,
   htmlFiles: 215,
-  jsFiles: 1360,
+  jsFiles: 1361,
   vendorFiles: 290,
   topSegments: 94,
   ariaLiveMentions: 715,
