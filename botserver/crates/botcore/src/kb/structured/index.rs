@@ -231,13 +231,15 @@ mod tests {
     }
 
     fn private_doc(id: &str, tenant_id: &str, text: &str) -> IndexDocument {
+        // A private ACL with no allowed_users denies everyone (fail-closed), so
+        // the fixture must grant the test user explicitly for retrieve() tests.
         IndexDocument::new(
             id,
             tenant_id,
             "contract.docx",
             "3",
             text,
-            AclMetadata::private(tenant_id),
+            AclMetadata::private(tenant_id).with_users(vec![USER_ID.to_string()]),
         )
     }
 
