@@ -339,7 +339,13 @@ pub async fn handle_list_named_ranges(
     user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListNamedRangesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
+    let sheet_id = match params.get("sheet_id") {
+        Some(sheet_id) => sheet_id.clone(),
+        None => {
+            log::warn!("list named ranges request is missing the sheet_id query parameter");
+            String::new()
+        }
+    };
     let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
@@ -352,6 +358,9 @@ pub async fn handle_list_named_ranges(
             )
         })?;
     let sheet = session.sheet.read().await;
-    let ranges = sheet.named_ranges.clone().unwrap_or_default();
+    let ranges = match &sheet.named_ranges {
+        Some(ranges) => ranges.clone(),
+        None => Vec::new(),
+    };
     Ok(Json(ListNamedRangesResponse { ranges }))
 }

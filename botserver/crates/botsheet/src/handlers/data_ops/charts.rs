@@ -53,24 +53,23 @@ pub async fn handle_create_chart(
         req.worksheet_index,
         &sheet.worksheets,
     );
-    let labels = req
-        .label_range
-        .as_deref()
-        .map(|range| {
-            crate::storage::chart_read::resolve_chart_labels(
-                range,
-                req.worksheet_index,
-                &sheet.worksheets,
-            )
-        })
-        .unwrap_or_default();
+    let labels = req.label_range.as_deref().map_or_else(Vec::new, |range| {
+        crate::storage::chart_read::resolve_chart_labels(
+            range,
+            req.worksheet_index,
+            &sheet.worksheets,
+        )
+    });
     let worksheet = &mut sheet.worksheets[req.worksheet_index];
     let chart = ChartConfig {
         id: Uuid::new_v4().to_string(),
         chart_type: req.chart_type,
         title: req.title.unwrap_or_else(|| "Chart".to_string()),
         data_range: req.data_range,
-        label_range: req.label_range.unwrap_or_default(),
+        label_range: match req.label_range {
+            Some(range) => range,
+            None => String::new(),
+        },
         position: req.position.unwrap_or_else(|| {
             let (row, col) = req
                 .anchor
@@ -225,17 +224,13 @@ pub async fn handle_update_chart(
             req.worksheet_index,
             &sheet.worksheets,
         );
-        let labels = req
-            .label_range
-            .as_deref()
-            .map(|labels| {
-                crate::storage::chart_read::resolve_chart_labels(
-                    labels,
-                    req.worksheet_index,
-                    &sheet.worksheets,
-                )
-            })
-            .unwrap_or_default();
+        let labels = req.label_range.as_deref().map_or_else(Vec::new, |range| {
+            crate::storage::chart_read::resolve_chart_labels(
+                range,
+                req.worksheet_index,
+                &sheet.worksheets,
+            )
+        });
         (values, labels)
     });
 

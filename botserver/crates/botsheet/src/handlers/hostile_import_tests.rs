@@ -207,7 +207,10 @@ fn a_password_protected_workbook_gets_an_actionable_refusal() {
         Err((status, Json(body))) => {
             assert_eq!(status, StatusCode::BAD_REQUEST);
             assert_eq!(body["action"], "remove-password");
-            let message = body["message"].as_str().unwrap_or_default();
+            let message = match body["message"].as_str() {
+                Some(message) => message,
+                None => "",
+            };
             assert!(
                 message.contains("remove the password"),
                 "actionable message: {message}"
