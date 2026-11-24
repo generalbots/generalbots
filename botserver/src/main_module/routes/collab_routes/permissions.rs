@@ -282,10 +282,25 @@ pub async fn create_link(
         uuid::Uuid::new_v4().simple(),
         uuid::Uuid::new_v4().simple()
     );
-    let expires_at = req
-        .expires_in_hours
-        .filter(|h| *h > 0)
-        .map(|h| chrono::Utc::now() + chrono::Duration::hours(h));
+    // #2452 — an explicit RFC3339 deadline wins over the legacy hours field.
+    // Refuse a malformed or past deadline with the same localized validation
+    // error the Docs dialog uses, so no link can be minted already expired.
+    let expires_at = match req.expires_at.as_deref() {
+        Some(raw) => {
+            let parsed = chrono::DateTime::parse_from_rfc3339(raw).map_err(|_| {
+                err(locale, StatusCode::BAD_REQUEST, "error-validation-date-future")
+            })?;
+            let deadline = parsed.with_timezone(&chrono::Utc);
+            if deadline <= chrono::Utc::now() {
+                return Err(err(locale, StatusCode::BAD_REQUEST, "error-validation-date-future"));
+            }
+            Some(deadline)
+        }
+        None => req
+            .expires_in_hours
+            .filter(|h| *h > 0)
+            .map(|h| chrono::Utc::now() + chrono::Duration::hours(h)),
+    };
     let created_at = chrono::Utc::now();
     // #2253 — `owner_id` is what makes a docs link redeemable without a
     // session; see `link_owner_id`.

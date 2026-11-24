@@ -108,3 +108,151 @@ function refreshDocsShareState() {
     btn.setAttribute("aria-label", btn.title);
   });
 }
+
+/* #2452 criterion 1 — optional expiry on a Docs share link.
+ *
+ * The share dialog itself is the shared GBCollabShare component (owned by the
+ * shell, not by Docs), so this Docs adapter extends that dialog rather than
+ * duplicating it. The chosen instant is sent as `expires_at` (RFC3339) and,
+ * for the current API which predates that field, as `expires_in_hours`.
+ * Leaving the input empty keeps the original no-expiry behaviour.
+ *
+ * There is no docs-share-specific expiry key in the catalogs. The two keys
+ * below are existing generic "optional expiration" strings present in all
+ * eight locales; no new user-facing literal is introduced.
+ */
+var DOCS_EXPIRY_LABEL_KEY = "admin-roles-expiration-optional";
+var DOCS_EXPIRY_LABEL_FALLBACK = "Expiration (Optional)";
+var DOCS_EXPIRY_HINT_KEY = "admin-roles-expiration-help";
+var DOCS_EXPIRY_HINT_FALLBACK = "Leave empty for permanent assignment";
+var docsShareExpiryInstalled = false;
+var docsShareExpiryPending = "";
+
+function docsShareExpiryInput() {
+  return document.getElementById("gbs-docs-expiry");
+}
+
+function docsShareExpiryError(message) {
+  var el = document.getElementById("gbs-error");
+  if (!el) return;
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+  el.textContent = message;
+  el.style.display = message ? "block" : "none";
+}
+
+/** RFC3339 instant from the input, or "" when empty/unparseable. */
+function docsShareExpiryIso() {
+  var input = docsShareExpiryInput();
+  var raw = input && input.value ? String(input.value).trim() : "";
+  if (!raw) return "";
+  var when = new Date(raw);
+  return isFinite(when.getTime()) ? when.toISOString() : "";
+}
+
+function docsInstallShareExpiry() {
+  if (docsShareExpiryInstalled) return;
+  var shared = window.GBCollabShare;
+  if (!shared || typeof shared.open !== "function") return;
+  docsShareExpiryInstalled = true;
+
+  var originalOpen = shared.open;
+  var originalFetch = window.fetch;
+  var current = null;
+
+  // Capture phase runs before the dialog's own create-link listener, so an
+  // invalid date can stop the request entirely instead of minting a link
+  // without the expiry the user asked for.
+  function onShareClick(event) {
+    var target = event.target;
+    if (!current || current.resourceType !== "docs") return;
+    if (!target || target.id !== "gbs-create-link") return;
+    var input = docsShareExpiryInput();
+    var raw = input && input.value ? String(input.value).trim() : "";
+    docsShareExpiryPending = "";
+    if (!raw) return;
+    var iso = docsShareExpiryIso();
+    if (!iso) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      docsShareExpiryError(
+        docsT("error-invalid-value", "The supplied value could not be parsed.")
+      );
+      return;
+    }
+    if (Date.parse(iso) <= Date.now()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      docsShareExpiryError(
+        docsT("error-validation-date-future", "{ $field } must be in the future.", {
+          field: docsT(DOCS_EXPIRY_LABEL_KEY, DOCS_EXPIRY_LABEL_FALLBACK),
+        })
+      );
+      return;
+    }
+    docsShareExpiryPending = iso;
+  }
+
+  // The shared dialog owns `api()` and the POST body; this wrapper only adds
+  // the expiry to that one request and consumes the one-shot value at once.
+  function linkFetch(input, init) {
+    var url = typeof input === "string" ? input : ((input && input.url) || "");
+    var isLinkPost = !!(init && init.method === "POST" && url.indexOf("/api/collab/links") !== -1);
+    if (!isLinkPost) return originalFetch(input, init);
+    var iso = docsShareExpiryPending;
+    docsShareExpiryPending = "";
+    if (iso && typeof init.body === "string") {
+      var body = null;
+      try {
+        body = JSON.parse(init.body);
+      } catch (error) {
+        if (window.gbLogError) window.gbLogError(error, "docsShareExpiry");
+        else console.error("docsShareExpiry", error);
+      }
+      if (body && body.resource_type === "docs") {
+        if (!body.expires_at) body.expires_at = iso;
+        if (!body.expires_in_hours) {
+          var hours = Math.ceil((Date.parse(iso) - Date.now()) / 3600000);
+          if (hours > 0) body.expires_in_hours = hours;
+        }
+        init = Object.assign({}, init, { body: JSON.stringify(body) });
+      }
+    }
+    return originalFetch(input, init);
+  }
+
+  shared.open = function (opts) {
+    current = opts || {};
+    originalOpen.call(shared, opts);
+    if (current.resourceType !== "docs") return;
+    var dialog = document.getElementById("gb-share-dialog");
+    if (!dialog || docsShareExpiryInput()) return;
+    var create = dialog.querySelector("#gbs-create-link");
+    if (!create || !create.parentNode) return;
+
+    var row = document.createElement("div");
+    row.className = "gbs-row";
+    var label = document.createElement("label");
+    label.setAttribute("for", "gbs-docs-expiry");
+    label.setAttribute("data-i18n", DOCS_EXPIRY_LABEL_KEY);
+    label.textContent = docsT(DOCS_EXPIRY_LABEL_KEY, DOCS_EXPIRY_LABEL_FALLBACK);
+    var input = document.createElement("input");
+    input.id = "gbs-docs-expiry";
+    input.type = "datetime-local";
+    input.setAttribute("aria-describedby", "gbs-docs-expiry-hint");
+    var hint = document.createElement("span");
+    hint.id = "gbs-docs-expiry-hint";
+    hint.className = "gbs-hint";
+    hint.setAttribute("data-i18n", DOCS_EXPIRY_HINT_KEY);
+    hint.textContent = docsT(DOCS_EXPIRY_HINT_KEY, DOCS_EXPIRY_HINT_FALLBACK);
+    row.appendChild(label);
+    row.appendChild(input);
+    row.appendChild(hint);
+    create.parentNode.insertBefore(row, create);
+    dialog.addEventListener("click", onShareClick, true);
+  };
+
+  window.fetch = linkFetch;
+}
+
+docsInstallShareExpiry();

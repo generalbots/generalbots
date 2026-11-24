@@ -321,6 +321,10 @@ pub struct LinkBody {
     pub role: String,
     #[serde(default)]
     pub expires_in_hours: Option<i64>,
+    /// #2452 — optional RFC3339 deadline. Preferred over `expires_in_hours`
+    /// when present; `None` keeps the legacy permanent-link behavior.
+    #[serde(default)]
+    pub expires_at: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
