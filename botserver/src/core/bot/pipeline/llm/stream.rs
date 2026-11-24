@@ -16,11 +16,8 @@ pub async fn stream_llm_response(
     user_text: &str,
     model_preference: &str,
 ) -> PipelineResult<()> {
-    stream_llm_response_inner(identity, rx, messages, user_text, model_preference, 0).await
+    stream_llm_response_inner(identity, rx, messages, user_text, model_preference, 0, false).await
 }
-
-/// Bounded tool loop: tool results are fed back for a final answer.
-const MAX_TOOL_FOLLOWUPS: usize = 2;
 
 async fn stream_llm_response_inner(
     identity: &SessionIdentity<'_>,
@@ -29,6 +26,7 @@ async fn stream_llm_response_inner(
     user_text: &str,
     model_preference: &str,
     tool_depth: usize,
+    final_round: bool,
 ) -> PipelineResult<()> {
     let SessionIdentity {
         sink,
@@ -115,11 +113,8 @@ async fn stream_llm_response_inner(
                 session_tools.extend(super::super::surface_catalog::llm_tools());
             }
 
-            let tools_arg = if session_tools.is_empty() {
-                None
-            } else {
-                Some(session_tools)
-            };
+            // The bounded tool loop's last round offers no tools (turn_end).
+            let tools_arg = super::turn_end::tools_for_round(session_tools, final_round);
 
             // #1696 — per-run caps gate the web chat stream path.
             let caps =
@@ -179,7 +174,7 @@ async fn stream_llm_response_inner(
                         ).await {
                             super::free_model_fallback::FallbackResult::Replaced => {
                                 return Box::pin(stream_llm_response_inner(
-                                    identity, rx, messages, user_text, model_preference, tool_depth,
+                                    identity, rx, messages, user_text, model_preference, tool_depth, final_round,
                                 )).await;
                             }
                             super::free_model_fallback::FallbackResult::Unavailable => {
@@ -211,12 +206,13 @@ async fn stream_llm_response_inner(
                     } => (full_response, content_buffer, reasoning),
                 };
 
-                let has_tool_call = full_response.contains("\"__tool_call__\":");
+                let has_tool_call = super::turn_end::runs_tools(&full_response, final_round);
+                content_buffer = super::turn_end::answer_text(&content_buffer, final_round);
                 let has_ui_plan =
                     full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
                 let has_api_call =
                     crate::core::bot::api_catalog::is_api_call_trigger(&full_response);
-                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
+                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}, final_round={final_round}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
 
                 let llm_target = LlmTarget {
                     provider: Some(llm),
@@ -279,7 +275,8 @@ async fn stream_llm_response_inner(
                 }
 
                 if !has_tool_call && content_buffer.is_empty() {
-                    if attempt < LLM_RETRY_MAX {
+                    // A last round that only called a tool again is not retried.
+                    if attempt < LLM_RETRY_MAX && !full_response.contains("\"__tool_call__\":") {
                         log::warn!(
                             "LLM empty response on attempt {}/{}, retrying in {}s",
                             attempt + 1,
@@ -293,10 +290,15 @@ async fn stream_llm_response_inner(
                         "LLM empty response after {} retries, sending fallback",
                         LLM_RETRY_MAX
                     );
-                    super::stream_errors::send_empty_response_error(sink, identity).await;
+                    let saved = if final_round {
+                        super::turn_end::send_unfinished(identity).await.to_string()
+                    } else {
+                        super::stream_errors::send_empty_response_error(sink, identity).await;
+                        full_response.clone()
+                    };
                     {
                         let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                        let _ = sm.save_message(session_id, user_id, 2, &saved, 2);
                         let _ = sm.record_message_model(session_id, llm_model);
                         if let (Some(et), Some(ref ep)) = (engine_type, &engine_provider) {
                             let _ = sm.record_message_engine(session_id, et, ep);
@@ -311,30 +313,7 @@ async fn stream_llm_response_inner(
                         super::super::system_prompt::wants_drawing(user_text);
                     let content =
                         super::svg_contract::enforce(&content_buffer, drawing_turn);
-                    let converted = for_shell(&content);
-                    let final_resp = botlib::models::BotResponse {
-                        bot_id: bot_uuid_s.clone(),
-                        user_id: user_id.to_string(),
-                        session_id: session_id_s.clone(),
-                        channel: "web".to_string(),
-                        content: converted,
-                        message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-                        stream_token: None,
-                        is_complete: true,
-                        suggestions: Vec::new(),
-                        switchers: Vec::new(),
-                        context_name: None,
-                        context_length: 0,
-                        context_max_length: 0,
-                        reasoning: reasoning_accumulated.trim().to_string(),
-                    };
-                    // #2084 — deliver the reply; a transport error is logged.
-                    if let Err(error) = sink.send_bot_response(&final_resp).await {
-                        log::error!(
-                            "final LLM reply not delivered ({} bytes): {error}",
-                            final_resp.content.len()
-                        );
-                    }
+                    super::turn_end::send_text(identity, for_shell(&content), &reasoning_accumulated).await;
                 }
 
                 if has_tool_call {
@@ -382,14 +361,13 @@ async fn stream_llm_response_inner(
                             user_text,
                             messages,
                             tool_depth,
-                            MAX_TOOL_FOLLOWUPS,
                         )
                         .await?
                         {
-                            Some(follow_messages) => {
+                            Some((follow_messages, next_final)) => {
                                 return Box::pin(stream_llm_response_inner(
                                     identity, rx, &follow_messages,
-                                    user_text, model_preference, tool_depth + 1,
+                                    user_text, model_preference, tool_depth + 1, next_final,
                                 )).await;
                             }
                             None => {}

@@ -19,10 +19,9 @@ pub struct WebSearchOutcome {
 /// Provider chain used by every web-search caller.
 ///
 /// TinyFish first when configured; otherwise — or on timeout, HTTP error,
-/// rate limit or empty results — DuckDuckGo is tried, then Google News RSS for
-/// news-like queries or when DDG yields no usable results (#2146: the UAT needs
-/// dated article URLs, not encyclopedia/topic pages), then Wikipedia, then
-/// Mojeek.
+/// rate limit or empty results — Google News RSS for news-like queries only
+/// (#2146: dated article URLs), then DuckDuckGo (HTML form, then lite), then
+/// Wikipedia, then Mojeek.
 pub async fn search_web_with_source(
     query: &str,
     max_results: usize,
@@ -46,30 +45,25 @@ pub async fn search_web_with_source(
         }
     }
 
+    // #2146 — Google News RSS returns dated article URLs: it answers news
+    // queries first, and only those; a factual question answered with news
+    // headlines cites nothing useful.
+    if news_intent {
+        match search_google_news(&cleaned, max_results).await {
+            Ok(results) if !results.is_empty() => {
+                return Ok(WebSearchOutcome {
+                    results,
+                    provider: "google_news".to_string(),
+                });
+            }
+            Ok(_) => info!("web search: Google News returned no results (query_chars={})", cleaned.chars().count()),
+            Err(reason) => info!("web search: Google News unavailable ({reason})"),
+        }
+    }
+
     let ddg = search_duckduckgo(&cleaned, max_results, region)
         .await
         .unwrap_or_default();
-    if !ddg.is_empty() && !news_intent {
-        return Ok(WebSearchOutcome {
-            results: ddg,
-            provider: "duckduckgo".to_string(),
-        });
-    }
-
-    // #2146 — Google News RSS returns dated article URLs; prefer it for news
-    // queries and as a fallback when DDG produced nothing, so "notícias do Lula"
-    // yields citable items instead of undated Wikipedia/topic pages.
-    match search_google_news(&cleaned, max_results).await {
-        Ok(results) if !results.is_empty() => {
-            return Ok(WebSearchOutcome {
-                results,
-                provider: "google_news".to_string(),
-            });
-        }
-        Ok(_) => info!("web search: Google News returned no results (query_chars={})", cleaned.chars().count()),
-        Err(reason) => info!("web search: Google News unavailable ({reason})"),
-    }
-
     if !ddg.is_empty() {
         return Ok(WebSearchOutcome {
             results: ddg,
@@ -92,6 +86,8 @@ pub async fn search_web_with_source(
     })
 }
 
+/// News wording only: "latest" alone is not news ("latest Python version" is
+/// a fact to look up, and news headlines would not answer it).
 fn is_news_query(query: &str) -> bool {
     let lower = query.to_lowercase();
     [
@@ -101,7 +97,6 @@ fn is_news_query(query: &str) -> bool {
         "noticias",
         "notícias",
         "breaking",
-        "latest",
         "headline",
         "headlines",
         "últimas",
@@ -125,4 +120,17 @@ pub async fn search_web(
     search_web_with_source(query, max_results, region)
         .await
         .map(|outcome| outcome.results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_news_query;
+
+    #[test]
+    fn news_intent_needs_news_words() {
+        assert!(is_news_query("notícias do Senado hoje"));
+        assert!(is_news_query("breaking news earthquake"));
+        assert!(!is_news_query("latest stable Python version"));
+        assert!(!is_news_query("versão estável mais recente do Python"));
+    }
 }

@@ -7,8 +7,9 @@ use super::super::types::{PipelineResult, SessionIdentity};
 /// Executes tool calls from the LLM response and optionally returns a follow-up
 /// messages array for a recursive `stream_llm_response_inner` call.
 ///
-/// Returns `Some(messages)` when a follow-up is needed (the caller should
-/// recurse), `None` when the tool execution is done (the caller should break).
+/// Returns `Some((messages, final_round))` when a follow-up is needed (the
+/// caller should recurse; a final round offers no tools), `None` when the tool
+/// execution is done (the caller should break).
 pub(super) async fn execute_and_prepare_followup(
     identity: &SessionIdentity<'_>,
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
@@ -16,8 +17,7 @@ pub(super) async fn execute_and_prepare_followup(
     user_text: &str,
     messages: &serde_json::Value,
     tool_depth: usize,
-    max_tool_followups: usize,
-) -> PipelineResult<Option<serde_json::Value>> {
+) -> PipelineResult<Option<(serde_json::Value, bool)>> {
     let SessionIdentity {
         sink,
         session_id, ..
@@ -44,11 +44,11 @@ pub(super) async fn execute_and_prepare_followup(
 
     // A stopped or replaced turn makes no follow-up model call: it would only
     // answer "Stopped." between the person's new question and its answer.
-    if tool_depth < max_tool_followups
-        && !tool_output.trim().is_empty()
+    if !tool_output.trim().is_empty()
         && !crate::core::bot::runs::bus::bus().is_cancelled(&session_id_s)
     {
         let follow_output: String = tool_output.chars().take(12_000).collect();
+        let final_round = super::turn_end::next_is_final(tool_depth, full_response);
         let mut follow_messages = messages.clone();
 
         if let Some(steer) = crate::core::bot::runs::bus::bus().take_steering(&session_id_s) {
@@ -77,18 +77,17 @@ pub(super) async fn execute_and_prepare_followup(
             }));
             items.push(serde_json::json!({
                 "role": "user",
-                "content": format!(
-                    "The tool finished with this result:\n\n{follow_output}\n\nAnswer the user's original request now using this result. Do not call another tool unless it is strictly necessary."
-                ),
+                "content": super::turn_end::followup_instruction(&follow_output, final_round),
             }));
         }
         log::info!(
-            "tool follow-up: depth {}/{} after {} bytes of tool output",
+            "tool follow-up: depth {}/{} after {} bytes of tool output, final={}",
             tool_depth + 1,
-            max_tool_followups,
-            tool_output.len()
+            super::turn_end::max_followups(full_response),
+            tool_output.len(),
+            final_round
         );
-        return Ok(Some(follow_messages));
+        return Ok(Some((follow_messages, final_round)));
     }
     Ok(None)
 }

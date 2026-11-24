@@ -99,7 +99,9 @@ pub struct SearchHistoryQuery {
 mod configure_web_search_routes;
 mod handle_search_history;
 mod parse_duckduckgo_html;
+mod parse_duckduckgo_lite;
 
 pub use configure_web_search_routes::*;
 pub use handle_search_history::*;
 use parse_duckduckgo_html::*;
+use parse_duckduckgo_lite::*;
