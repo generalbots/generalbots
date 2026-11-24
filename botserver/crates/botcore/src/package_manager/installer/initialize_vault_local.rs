@@ -190,7 +190,9 @@ impl PackageManager {
         // Migration: remove the legacy plaintext unseal-key file.
         let legacy_keys = self.base_path.join("vault-unseal-keys");
         if legacy_keys.exists() {
-            let _ = std::fs::remove_file(&legacy_keys);
+            if let Err(e) = std::fs::remove_file(&legacy_keys) {
+                log::warn!("Could not remove legacy unseal-key file {}: {e}", legacy_keys.display());
+            }
         }
 
         // Unseal Vault (need 3 keys from the private store)

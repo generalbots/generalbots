@@ -73,7 +73,9 @@ pub async fn run() -> Result<()> {
             let components = get_all_components();
             for component in components {
                 if pm.is_installed(component.name) {
-                    let _ = pm.start(component.name);
+                    if let Err(e) = pm.start(component.name) {
+                        log::warn!("Could not restart installed component {}: {e}", component.name);
+                    }
                 }
             }
             println!("* {}", t("cli-restart-done"));

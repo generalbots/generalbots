@@ -19,7 +19,9 @@ impl VaultConfigProvider for SecretsManagerVaultProvider {
                 Ok(rt) => rt.block_on(async move { sm.get_secret(&normalized).await.ok() }),
                 Err(_) => None,
             };
-            let _ = tx.send(out);
+            if let Err(e) = tx.send(out) {
+                log::warn!("Could not deliver Vault secret result to caller: {e}");
+            }
         });
         if let Ok(Some(secret)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
             for field in ["key", "master_key", "value", "secret"] {
@@ -101,7 +103,9 @@ pub fn get_database_url_sync() -> anyhow::Result<String> {
                 Ok(rt) => rt.block_on(manager.get_database_url()),
                 Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("Could not deliver database URL result to caller: {e}");
+            }
         });
         if let Ok(Ok(url)) = rx.recv_timeout(std::time::Duration::from_secs(10)) {
             std::env::set_var("DATABASE_URL", &url);

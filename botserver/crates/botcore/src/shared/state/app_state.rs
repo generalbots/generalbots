@@ -122,7 +122,9 @@ impl AppState {
     pub fn emit_llm_stream(&self, task_id: &str, text: &str) {
         let event = TaskProgressEvent::llm_stream(task_id, text);
         if let Some(tx) = &self.task_progress_broadcast {
-            let _ = tx.send(event);
+            if let Err(e) = tx.send(event) {
+                log::warn!("Could not broadcast LLM stream task progress: {e}");
+            }
         }
     }
 }

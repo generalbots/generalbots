@@ -67,7 +67,9 @@ impl ConfigManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { sm_clone.get_value(&path_owned, &key_owned).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("Could not deliver Vault lookup result to caller: {e}");
+            }
         });
         rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten()
     }
@@ -83,7 +85,9 @@ impl ConfigManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { sm_clone.get_secret(&path_owned).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("Could not deliver Vault lookup result to caller: {e}");
+            }
         });
         rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten()
     }
@@ -111,7 +115,9 @@ impl ConfigManager {
                     sm_clone.put_secret(&path_owned, data).await.ok()
                 })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("Could not deliver Vault lookup result to caller: {e}");
+            }
         });
         rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
     }

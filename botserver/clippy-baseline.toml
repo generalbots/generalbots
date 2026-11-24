@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 1327
+discarded_result = 1288
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -142,9 +142,6 @@ discarded_result = 6
 [files."botserver/crates/botbasic_comms/src/keywords/play/play_keyword.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botcore/src/config/resolve_bot_identity.rs"]
-discarded_result = 6
-
 [files."botserver/crates/botcoredirectory/src/provisioning.rs"]
 discarded_result = 6
 
@@ -173,4 +170,7 @@ discarded_result = 5
 discarded_result = 5
 
 [files."botserver/crates/botcore/src/dns/mod.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botcorepkg/src/facade.rs"]
 discarded_result = 5

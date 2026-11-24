@@ -21,9 +21,13 @@ pub(super) fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result
                 }
             };
             let dst = bin_path.join(name);
-            let _ = std::fs::rename(&src, &dst);
+            if let Err(e) = std::fs::rename(&src, &dst) {
+                log::warn!("Could not move {} to {}: {e}", src.display(), dst.display());
+            }
         }
-        let _ = std::fs::remove_dir(&sub);
+        if let Err(e) = std::fs::remove_dir(&sub) {
+            log::warn!("Could not remove collapsed subdirectory {}: {e}", sub.display());
+        }
         trace!("Collapsed single subdirectory {:?} in {:?}", sub, bin_path);
     }
     Ok(())

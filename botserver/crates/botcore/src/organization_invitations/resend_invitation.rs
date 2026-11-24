@@ -170,7 +170,7 @@ impl InvitationService {
 
     pub async fn cleanup_expired_invitations(&self) {
         let pool = self.pool.clone();
-        let _ = tokio::task::spawn_blocking(move || {
+        let cleanup = tokio::task::spawn_blocking(move || {
             use diesel::sql_query;
             use diesel::RunQueryDsl;
             let mut conn = pool.get().ok()?;
@@ -184,6 +184,9 @@ impl InvitationService {
             .ok()
         })
         .await;
+        if let Err(e) = cleanup {
+            log::warn!("Expired-invitation cleanup task failed: {e}");
+        }
     }
 
     pub(crate) async fn find_pending_invitation(

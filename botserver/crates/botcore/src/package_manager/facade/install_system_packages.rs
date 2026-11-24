@@ -200,7 +200,9 @@ impl PackageManager {
                 Err(e) => {
                     warn!("Download attempt {} failed: {}", attempt + 1, e);
                     last_error = Some(e);
-                    let _ = std::fs::remove_file(target_file);
+                    if let Err(e) = std::fs::remove_file(target_file) {
+                        warn!("Could not remove partial download {}: {e}", target_file.display());
+                    }
                 }
             }
         }
@@ -342,7 +344,9 @@ impl PackageManager {
                     if !symlink_target_is_contained(bin_path, entry_dir, link) {
                         warn!("skipping symlink escaping destination: {name} -> {link}");
                     } else {
-                        let _ = std::fs::remove_file(&target);
+                        if let Err(e) = std::fs::remove_file(&target) {
+                            warn!("Could not replace symlink target {}: {e}", target.display());
+                        }
                         if let Err(e) = std::os::unix::fs::symlink(link, &target) {
                             warn!(
                                 "could not create symlink {} -> {}: {e}",
@@ -373,8 +377,11 @@ impl PackageManager {
             {
                 if let Some(mode) = entry.unix_mode() {
                     if mode & 0o111 != 0 {
-                        let _ = botlib::os::fs::get_permissions_manager()
-                            .set_executable(&target);
+                        if let Err(e) = botlib::os::fs::get_permissions_manager()
+                            .set_executable(&target)
+                        {
+                            warn!("Could not make {} executable: {e}", target.display());
+                        }
                     }
                 }
             }
@@ -389,8 +396,11 @@ impl PackageManager {
                         if let Ok(_metadata) = std::fs::metadata(&path) {
                             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                             if ext.is_empty() || ext == "sh" || ext == "bash" {
-                                let _ = botlib::os::fs::get_permissions_manager().set_executable(&path);
-                                trace!("Made executable: {}", path.display());
+                                if let Err(e) = botlib::os::fs::get_permissions_manager().set_executable(&path) {
+                                    warn!("Could not make {} executable: {e}", path.display());
+                                } else {
+                                    trace!("Made executable: {}", path.display());
+                                }
                             }
                         }
                     }
@@ -401,49 +411,13 @@ impl PackageManager {
         collapse_single_subdirectory(bin_path)?;
 
         if !temp_file.to_string_lossy().contains("botserver-installers") {
-            let _ = std::fs::remove_file(temp_file);
+            if let Err(e) = std::fs::remove_file(temp_file) {
+                warn!("Could not remove archive {}: {e}", temp_file.display());
+            }
         }
         Ok(())
     }
 }
 
 #[cfg(test)]
-mod containment_tests {
-    use super::symlink_target_is_contained;
-    use std::path::Path;
-
-    #[test]
-    fn symlink_targets_staying_in_base_are_allowed() {
-        let base = Path::new("/opt/gbo/bin");
-        assert!(symlink_target_is_contained(base, base, "libggml.so.0"));
-        let sub = base.join("lib");
-        assert!(symlink_target_is_contained(base, &sub, "libggml.so"));
-        assert!(symlink_target_is_contained(base, &sub, "../lib/libggml.so.0"));
-    }
-    #[test]
-    fn symlink_targets_escaping_base_are_refused() {
-        let base = Path::new("/opt/gbo/bin");
-        assert!(!symlink_target_is_contained(base, base, "/etc/passwd"));
-        assert!(!symlink_target_is_contained(base, base, "../../etc/passwd"));
-        let sub = base.join("a/b");
-        assert!(!symlink_target_is_contained(base, &sub, "../../../outside"));
-    }
-    #[test]
-    fn enclosed_name_never_escapes_the_destination() {
-        // enclosed_name() returns None for `../`; absolute names normalise
-        // inside the base — both stay contained by the starts_with guard.
-        let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
-        use zip::write::SimpleFileOptions;
-        archive.start_file("../escape.txt", SimpleFileOptions::default()).unwrap();
-        archive.start_file("/absolute.txt", SimpleFileOptions::default()).unwrap();
-        archive.start_file("safe/lib.so", SimpleFileOptions::default()).unwrap();
-        let bytes = archive.finish().unwrap().into_inner();
-        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
-        let names: Vec<_> = (0..zip.len()).map(|i| zip.by_index(i).unwrap().enclosed_name().map(|p| p.to_path_buf())).collect();
-        assert_eq!(names.len(), 3);
-        assert!(names[0].is_none(), "traversal entry must be refused");
-        // Absolute entries are refused or normalised inside the base.
-        if let Some(p) = &names[1] { assert!(p.is_relative(), "absolute entry must not stay absolute"); }
-        assert_eq!(names[2].as_deref(), Some(Path::new("safe/lib.so")));
-    }
-}
+mod containment_tests;

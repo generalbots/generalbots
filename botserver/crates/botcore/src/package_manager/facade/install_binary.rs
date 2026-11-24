@@ -28,7 +28,9 @@ impl PackageManager {
     pub fn make_executable(&self, path: &std::path::Path) -> Result<()> {
         #[cfg(unix)]
         {
-            let _ = botlib::os::fs::get_permissions_manager().set_executable(path);
+            if let Err(e) = botlib::os::fs::get_permissions_manager().set_executable(path) {
+                log::warn!("Could not make {} executable: {e}", path.display());
+            }
         }
         #[cfg(windows)]
         {

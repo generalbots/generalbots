@@ -78,7 +78,9 @@ impl PackageManager {
             .map_err(|e| anyhow::anyhow!("could not run initdb: {e}"))?
             .execute()
             .map_err(|e| anyhow::anyhow!("could not run initdb: {e}"))?;
-        let _ = std::fs::remove_file(&pwfile);
+        if let Err(e) = std::fs::remove_file(&pwfile) {
+            log::warn!("Could not remove temporary password file {}: {e}", pwfile.display());
+        }
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
