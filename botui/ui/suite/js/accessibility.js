@@ -68,6 +68,11 @@
       }
 
       if (e.key === "?" && e.shiftKey) {
+        // #2439 — the shell's window-manager owns shortcut help and binds on
+        // window-bubble. Do not consume the event when it is installed, so the
+        // shell handler can toggle its single help dialog. Legacy fallback
+        // only when the shell module is absent.
+        if (window.GBWindowKeyboardShortcuts && typeof window.GBWindowKeyboardShortcuts.help === "function") return;
         e.preventDefault();
         showKeyboardHelp();
       }
