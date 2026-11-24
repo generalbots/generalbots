@@ -437,9 +437,20 @@ mod tests {
             last_col: 25,
         };
         assert_eq!(tiles[0].rect, expected);
+        let rects: Vec<CellRect> = tiles.iter().map(|tile| tile.rect).collect();
+        // CellData has no PartialEq; compare the rendered display values the
+        // handler actually returns to the client.
+        let display = |cells: HashMap<String, CellData>| {
+            let mut pairs: Vec<(String, Option<String>)> = cells
+                .into_iter()
+                .map(|(key, cell)| (key, cell.value))
+                .collect();
+            pairs.sort();
+            pairs
+        };
         assert_eq!(
-            collect_tile_cells(&worksheet, &tiles, NumberLocale::EN),
-            collect_window_cells(&worksheet, range, NumberLocale::EN),
+            display(collect_tile_cells(&worksheet, &rects, NumberLocale::EN)),
+            display(collect_window_cells(&worksheet, range, NumberLocale::EN)),
         );
     }
 }
