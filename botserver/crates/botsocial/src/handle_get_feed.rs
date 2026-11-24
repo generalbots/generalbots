@@ -204,9 +204,12 @@ pub async fn handle_create_post(
             .map_err(|e| SocialError::Database(e.to_string()))?;
 
         if let Some(cid) = community_id {
-            let _ = diesel::update(social_communities::table.filter(social_communities::id.eq(cid)))
+            if let Err(e) = diesel::update(social_communities::table.filter(social_communities::id.eq(cid)))
                 .set(social_communities::post_count.eq(social_communities::post_count + 1))
-                .execute(&mut conn);
+                .execute(&mut conn)
+            {
+                eprintln!("botsocial: failed to increment post_count for community {cid}: {e}");
+            }
         }
 
         Ok::<_, SocialError>(db_post_to_post(db_post))

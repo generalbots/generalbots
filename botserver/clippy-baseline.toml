@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 885
+discarded_result = 882
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"

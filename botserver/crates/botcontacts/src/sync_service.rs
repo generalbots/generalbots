@@ -118,10 +118,16 @@ impl ExternalSyncService {
         match provider {
             ExternalProvider::Google => {
                 if let Some(gc) = self.google_contacts_client() {
-                    let _ = gc.revoke_token(&access_token).await;
+                    if let Err(e) = gc.revoke_token(&access_token).await {
+                        log::warn!("Failed to revoke Google token during account disconnect: {e}");
+                    }
                 }
             }
-            ExternalProvider::Microsoft => { let _ = self.microsoft_client.revoke_token(&access_token).await; }
+            ExternalProvider::Microsoft => {
+                if let Err(e) = self.microsoft_client.revoke_token(&access_token).await {
+                    log::warn!("Failed to revoke Microsoft token during account disconnect: {e}");
+                }
+            }
             _ => {}
         }
 
