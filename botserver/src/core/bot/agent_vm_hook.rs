@@ -206,6 +206,7 @@ pub async fn ensure_agent_vm(
 /// Delete the conversation folder when the user deletes the conversation
 /// from history. Best-effort: a missing VM or service is not an error.
 pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::Uuid) {
+    botagent::warm::forget_conversation(&session_id.to_string());
     let Some(service) = SERVICE.get() else { return };
     if let Err((code, err)) =
         botagent::vm::delete_conversation_folder(service, &user_id, &session_id.to_string()).await

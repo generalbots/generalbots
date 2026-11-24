@@ -26,7 +26,7 @@ fn peer_path() -> &'static std::path::Path {
     })
 }
 
-fn start(mode: &str) -> (RpcClient, RpcInbox) {
+pub(super) fn start(mode: &str) -> (RpcClient, RpcInbox) {
     let program = if cfg!(windows) { "python" } else { "python3" };
     let command = SafeCommand::new(program)
         .and_then(|command| command.path_arg(peer_path()))

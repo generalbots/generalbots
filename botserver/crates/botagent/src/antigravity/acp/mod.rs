@@ -16,22 +16,28 @@ mod check;
 mod proto;
 mod trace;
 mod turn;
+mod warm;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod warm_tests;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use axum::http::StatusCode;
 
 use crate::cli_turn::cli_model;
 use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcError, RpcInbox, RpcOptions};
+use crate::warm::observe::TurnClock;
+use crate::warm::{Warm, WarmKey};
 use crate::{vm, AgentService};
 
 use super::paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER};
 
 pub use proto::{actions_of, agent_info, safe_id, AcpAction, AgentInfo, ImagePart, TextResource};
 pub use turn::{AcpGate, QUIET_LIMIT};
+pub use warm::{warm_pool, AcpWarm};
 
 /// Whole-turn limit: the person's thinking time on cards counts too.
 pub const BRIDGE_DEADLINE: Duration = Duration::from_secs(30 * 60);
@@ -124,6 +130,9 @@ fn rpc_failure(step: &str, error: &RpcError) -> AcpError {
 }
 
 /// Runs one chat turn through `agy acp` and returns the agent's answer.
+/// The conversation's warm process takes the turn when there is one
+/// ([`warm`]); a fresh one does otherwise, or when the warm one failed
+/// before the agent said anything.
 pub async fn run_acp_turn<H: AcpGate>(
     state: &AgentService,
     vm_name: &str,
@@ -134,26 +143,43 @@ pub async fn run_acp_turn<H: AcpGate>(
         return Err(AcpError::Failed(StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
     }
     let conversation = vm::sanitize_id(turn.conversation).map_err(|(code, message)| AcpError::Failed(code, message))?;
-    let options = DuplexOptions { deadline: BRIDGE_DEADLINE, ..DuplexOptions::default() };
+    let key = WarmKey::new(vm_name, &conversation);
+    if let Some(answer) = warm::run_warm(vm_name, &key, &turn, handler).await {
+        return answer;
+    }
+    let clock = TurnClock::start("antigravity", false);
+    let options = DuplexOptions { deadline: warm::LIFETIME, ..DuplexOptions::default() };
     let session = vm::exec_in_vm_duplex(state, vm_name, &["sh".into(), "-c".into(), launch_script(&conversation)], options)
         .await
         .map_err(|(_, message)| AcpError::NoAcp(message))?;
+    let born = Instant::now();
     let (client, mut inbox) = RpcClient::start(session, RpcOptions::accepting(proto::HANDLED_REQUESTS));
-    let outcome = drive(state, vm_name, &conversation, &turn, &client, &mut inbox, handler).await;
-    let end = client.close().await;
-    tracing::debug!("antigravity bridge: session ended ({:?}) after {} ms", end.reason, end.elapsed.as_millis());
-    outcome
+    let (session_id, info, new_session) = match open(state, vm_name, &conversation, &turn, &client, &mut inbox).await {
+        Ok(opened) => opened,
+        Err(error) => {
+            let end = client.close().await;
+            tracing::debug!("antigravity bridge: session ended ({:?}) after {} ms", end.reason, end.elapsed.as_millis());
+            return Err(error);
+        }
+    };
+    clock.ready();
+    let text = if new_session || turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
+    let mut process = AcpWarm { client, inbox, session_id, info };
+    let end = warm::prompt(&mut process, text, &turn, handler, &clock).await;
+    warm::settle(end, Warm { process, born }, key, warm::fingerprint(&turn), vm_name)
 }
 
-async fn drive<H: AcpGate>(
+/// `initialize`, the checks and the conversation's session on a fresh
+/// process. Returns the session id, what the agent can do, and whether the
+/// session is new.
+async fn open(
     state: &AgentService,
     vm_name: &str,
     conversation: &str,
     turn: &AcpTurn<'_>,
     client: &RpcClient,
     inbox: &mut RpcInbox,
-    handler: &H,
-) -> Result<String, AcpError> {
+) -> Result<(String, AgentInfo, bool), AcpError> {
     let init = client
         .request("initialize", proto::initialize_params(), INITIALIZE_WAIT)
         .await
@@ -170,7 +196,6 @@ async fn drive<H: AcpGate>(
     if new_session {
         store_session(state, vm_name, conversation, &session_id).await;
     }
-    let text = if new_session || turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
     tracing::info!(
         "antigravity bridge: acp {} session, {} images, {} files, agy {}",
         if new_session { "new" } else { "resumed" },
@@ -178,20 +203,7 @@ async fn drive<H: AcpGate>(
         if info.embedded_context { turn.resources.len() } else { 0 },
         info.version
     );
-    let input = turn::PromptInput {
-        session_id: &session_id,
-        text,
-        images: turn.images,
-        resources: turn.resources,
-        info: &info,
-    };
-    match turn::run_prompt(client, inbox, input, handler).await {
-        Err(AcpError::Unasked) => {
-            check::mark_unsafe(vm_name, &info.version);
-            Err(AcpError::Unsafe { version: info.version })
-        }
-        other => other,
-    }
+    Ok((session_id, info, new_session))
 }
 
 /// Resumes or loads `stored` when the CLI still has it, else starts a

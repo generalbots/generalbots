@@ -13,8 +13,10 @@
 //! its open request (`control_cancel_request`) and ends with a `result`.
 //! See [`command`] for the flags that make every tool ask.
 //!
-//! The process lives for one turn: it ends after its `result`, on Stop, at
-//! the 30 minute deadline, or when the turn's future is dropped.
+//! The process is kept warm after a turn that ended well with its `result`,
+//! for the conversation's next message ([`warm`]); it ends on Stop, on any
+//! failure, at the 30 minute turn deadline, after 10 idle minutes, or when
+//! the turn's future is dropped.
 
 mod actions;
 mod command;
@@ -22,11 +24,11 @@ mod drive;
 mod protocol;
 mod selfcheck;
 mod sessions;
+mod warm;
 
 use axum::http::StatusCode;
 
 use crate::cli_turn::{plan_limit, spent_answer};
-use crate::duplex::DuplexOptions;
 use crate::AgentService;
 
 pub use actions::{exit_code, output_text, ClaudeAction};
@@ -35,6 +37,7 @@ pub use drive::{drive, drive_with, BridgeGate, DriveReport, GateAnswer, ToolOutc
 pub use protocol::{Attachment, ToolRequest, TurnResult};
 pub use selfcheck::UNSAFE_VERSION_MARKER;
 pub use sessions::{store_session, stored_session};
+pub use warm::{warm_pool, ClaudeWarm};
 
 /// One chat turn.
 #[derive(Debug, Clone, Copy)]
@@ -123,22 +126,6 @@ pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, Stri
     Ok(answer)
 }
 
-async fn session(
-    state: &AgentService,
-    vm_name: &str,
-    turn: &BridgedTurn<'_>,
-    resume: Option<&str>,
-    prompt: &str,
-    gate: &impl BridgeGate,
-) -> Result<DriveReport, (StatusCode, String)> {
-    let script = command::turn_script(turn.model, resume, turn.conversation);
-    let args = ["sh".to_string(), "-c".to_string(), script];
-    let session = crate::vm::exec_in_vm_duplex(state, vm_name, &args, DuplexOptions::default()).await?;
-    let report = drive_with(session, prompt, turn.attachments, gate).await;
-    crate::plan_usage::record_claude(vm_name, &report.rate_limits);
-    Ok(report)
-}
-
 /// Runs one chat turn in `vm_name` through the bridge. The workspace must
 /// first pass the permission self-check. A stored session that the CLI no
 /// longer has is replaced by a fresh one with the whole transcript.
@@ -155,13 +142,16 @@ pub async fn run_bridged_turn(
     let fresh = format!("{DELIVERY_DIRECTIVE}\n\n{}", turn.transcript);
     if let Some(id) = turn.resume.and_then(command::clean_session_id) {
         let message = if turn.message.trim().is_empty() { turn.transcript } else { turn.message };
-        let report = session(state, vm_name, &turn, Some(id), message, gate).await?;
+        if let Some(report) = warm::run_warm(vm_name, &turn, message, gate).await {
+            return interpret(report);
+        }
+        let report = warm::run_fresh(state, vm_name, &turn, Some(id), message, gate).await?;
         if !is_missing_session(&report) {
             return interpret(report);
         }
         tracing::info!("claude bridge: session to resume is gone; starting a fresh one");
     }
-    let report = session(state, vm_name, &turn, None, &fresh, gate).await?;
+    let report = warm::run_fresh(state, vm_name, &turn, None, &fresh, gate).await?;
     interpret(report)
 }
 
@@ -173,3 +163,6 @@ mod tests_drive;
 
 #[cfg(test)]
 mod live_tests;
+
+#[cfg(test)]
+mod tests_warm;

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::time::{Duration, Instant};
 
-use crate::duplex::{DuplexEvent, DuplexSession, SessionEnd};
+use crate::duplex::{DuplexEvent, DuplexEvents, DuplexSender, DuplexSession, SessionEnd};
 
 use super::actions::{exit_code, output_text, ClaudeAction};
 use super::protocol::{self, Attachment, Incoming, ToolRequest, TurnResult};
@@ -47,6 +47,11 @@ pub trait BridgeGate: Sync {
     fn finished(&self, tool_use_id: &str, outcome: &ToolOutcome) -> impl Future<Output = ()> + Send;
     /// Model text for the answer; `false` when nobody reads it any more.
     fn text(&self, chunk: &str) -> impl Future<Output = bool> + Send;
+    /// The model's thinking, shown while it works.
+    fn thinking(&self, chunk: &str) -> impl Future<Output = ()> + Send {
+        let _ = chunk;
+        async {}
+    }
     /// Whether the person pressed Stop.
     fn stopped(&self) -> bool;
 }
@@ -69,6 +74,11 @@ pub struct DriveReport {
     pub stopped: bool,
     /// The `rate_limit_info` objects the CLI printed, in order.
     pub rate_limits: Vec<serde_json::Value>,
+    /// The CLI wrote at least one line during this turn.
+    pub heard: bool,
+    /// The turn ended with its `result` and the process is still open for
+    /// another message ([`drive_on`] with `keep`).
+    pub kept: bool,
 }
 
 /// A name the CLI sent, safe for a log line.
@@ -157,6 +167,32 @@ pub async fn drive_with<G: BridgeGate>(
     gate: &G,
 ) -> DriveReport {
     let (sender, mut events) = session.into_parts();
+    let open = OpenSession { sender: &sender, events: &mut events, initialize: true, keep: false };
+    drive_on(open, prompt, attachments, gate, None).await
+}
+
+/// A session a turn runs on.
+pub(crate) struct OpenSession<'s> {
+    pub(crate) sender: &'s DuplexSender,
+    pub(crate) events: &'s mut DuplexEvents,
+    /// Send the `initialize` control request first (the process's first turn).
+    pub(crate) initialize: bool,
+    /// Leave the process open after the turn's `result`, for the next message.
+    pub(crate) keep: bool,
+}
+
+/// One turn on `open`. Without `keep`, or when the turn did not end with
+/// its `result`, the process is closed here. After `deadline` the process is
+/// closed and the turn ends as if it had died.
+pub(crate) async fn drive_on<G: BridgeGate>(
+    open: OpenSession<'_>,
+    prompt: &str,
+    attachments: &[Attachment],
+    gate: &G,
+    deadline: Option<Duration>,
+) -> DriveReport {
+    let OpenSession { sender, events, initialize, keep } = open;
+    let began = Instant::now();
     let mut turn = Turn {
         gate,
         report: DriveReport::default(),
@@ -165,9 +201,8 @@ pub async fn drive_with<G: BridgeGate>(
         asked_ids: Vec::new(),
         reader_gone: false,
     };
-    let sent = sender
-        .send_json(&protocol::initialize())
-        .and_then(|()| sender.send_json(&protocol::user_message(prompt, attachments)));
+    let initialized = if initialize { sender.send_json(&protocol::initialize()) } else { Ok(()) };
+    let sent = initialized.and_then(|()| sender.send_json(&protocol::user_message(prompt, attachments)));
     if sent.is_err() {
         sender.close();
     }
@@ -183,7 +218,9 @@ pub async fn drive_with<G: BridgeGate>(
                     if sender.send_json(&protocol::interrupt()).is_err() {
                         sender.close();
                     }
-                } else if stop_sent.is_some_and(|at| at.elapsed() > STOP_GRACE) {
+                } else if stop_sent.is_some_and(|at| at.elapsed() > STOP_GRACE)
+                    || deadline.is_some_and(|limit| began.elapsed() > limit)
+                {
                     sender.close();
                 }
                 continue;
@@ -197,6 +234,7 @@ pub async fn drive_with<G: BridgeGate>(
             }
             None => break,
         };
+        turn.report.heard = true;
         turn.report.rate_limits.extend(crate::plan_usage::claude_rate_limit(&line));
         for incoming in protocol::parse(&line) {
             match incoming {
@@ -205,6 +243,7 @@ pub async fn drive_with<G: BridgeGate>(
                     turn.report.cwd = cwd;
                 }
                 Incoming::Text(text) => turn.text(&text).await,
+                Incoming::Thinking(text) => gate.thinking(&text).await,
                 Incoming::CliText(text) => {
                     if !turn.report.cli_text.is_empty() {
                         turn.report.cli_text.push('\n');
@@ -230,13 +269,22 @@ pub async fn drive_with<G: BridgeGate>(
                         turn.report.session_id.clone_from(&result.session_id);
                     }
                     turn.report.result = Some(result);
-                    sender.close_stdin();
+                    if keep && stop_sent.is_none() {
+                        turn.report.kept = true;
+                    } else {
+                        sender.close_stdin();
+                    }
                 }
                 Incoming::Ignored => {}
             }
         }
+        if turn.report.kept {
+            break;
+        }
     }
-    sender.close();
+    if !turn.report.kept {
+        sender.close();
+    }
     let unfinished: Vec<String> = turn.pending.drain().map(|(id, _)| id).collect();
     for id in unfinished {
         let outcome = ToolOutcome {

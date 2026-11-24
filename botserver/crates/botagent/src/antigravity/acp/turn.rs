@@ -80,11 +80,45 @@ fn failed(message: impl Into<String>) -> AcpError {
 }
 
 /// Runs one prompt and returns the answer.
+#[cfg(test)]
 pub(super) async fn run_prompt<H: AcpGate>(
     client: &RpcClient,
     inbox: &mut RpcInbox,
     input: PromptInput<'_>,
     handler: &H,
+) -> Result<String, AcpError> {
+    run_prompt_tracked(client, inbox, input, handler).await.result
+}
+
+/// How a prompt ended on its process.
+pub(super) struct PromptEnd {
+    pub(super) result: Result<String, AcpError>,
+    /// The agent sent something during this prompt.
+    pub(super) heard: bool,
+    /// `session/prompt` answered: the session may take another prompt.
+    pub(super) answered: bool,
+}
+
+/// [`run_prompt`], telling whether the session is ready for another prompt.
+pub(super) async fn run_prompt_tracked<H: AcpGate>(
+    client: &RpcClient,
+    inbox: &mut RpcInbox,
+    input: PromptInput<'_>,
+    handler: &H,
+) -> PromptEnd {
+    let mut heard = false;
+    let mut answered = false;
+    let result = prompt_loop(client, inbox, input, handler, &mut heard, &mut answered).await;
+    PromptEnd { result, heard, answered }
+}
+
+async fn prompt_loop<H: AcpGate>(
+    client: &RpcClient,
+    inbox: &mut RpcInbox,
+    input: PromptInput<'_>,
+    handler: &H,
+    heard: &mut bool,
+    clean: &mut bool,
 ) -> Result<String, AcpError> {
     let params = proto::prompt_params(input.session_id, input.text, input.images, input.resources, input.info);
     let prompt = client.request("session/prompt", params, super::BRIDGE_DEADLINE);
@@ -108,6 +142,7 @@ pub(super) async fn run_prompt<H: AcpGate>(
         tokio::select! {
             biased;
             next = inbox.next() => {
+                *heard |= !matches!(next, None | Some(Incoming::Ended(_)));
                 match next {
                     None | Some(Incoming::Ended(_)) => return Err(failed("agy acp ended before the answer was complete")),
                     Some(Incoming::Unparsed(_)) => {}
@@ -125,6 +160,7 @@ pub(super) async fn run_prompt<H: AcpGate>(
                 last_heard = tokio::time::Instant::now();
             }
             answered = &mut prompt => {
+                *clean = answered.is_ok();
                 while let Some(message) = inbox.try_next() {
                     if let Incoming::Notification { method, params } = message {
                         if method == "session/update" {

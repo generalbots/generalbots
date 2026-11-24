@@ -29,6 +29,7 @@ pub mod state;
 pub mod stream;
 pub mod transfer;
 pub mod vm;
+pub mod warm;
 
 use std::sync::Arc;
 

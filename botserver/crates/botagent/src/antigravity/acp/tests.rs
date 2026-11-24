@@ -16,7 +16,7 @@ use super::turn::{run_prompt, PromptInput};
 use super::*;
 
 /// `initialize` as `agy acp` 1.5.14 answers it before any sign-in.
-fn agy_initialize() -> Value {
+pub(super) fn agy_initialize() -> Value {
     json!({"protocolVersion":1,"agentCapabilities":{"loadSession":true,"load_session":true,
         "promptCapabilities":{"image":true,"audio":false,"embeddedContext":true},
         "sessionCapabilities":{"resume":{},"close":{},"load":{},"list":{},"additionalDirectories":{}}},
@@ -181,7 +181,7 @@ fn peer_path() -> &'static std::path::Path {
     })
 }
 
-fn start(mode: &str) -> (RpcClient, RpcInbox) {
+pub(super) fn start(mode: &str) -> (RpcClient, RpcInbox) {
     let program = if cfg!(windows) { "python" } else { "python3" };
     let command = SafeCommand::new(program)
         .and_then(|command| command.path_arg(peer_path()))
@@ -193,18 +193,18 @@ fn start(mode: &str) -> (RpcClient, RpcInbox) {
 
 /// A gate that answers from a script and records what happened.
 #[derive(Default)]
-struct Script {
+pub(super) struct Script {
     verdicts: Mutex<VecDeque<&'static str>>,
     log: Mutex<Vec<String>>,
     thoughts: Mutex<String>,
 }
 
 impl Script {
-    fn with(verdicts: &[&'static str]) -> Self {
+    pub(super) fn with(verdicts: &[&'static str]) -> Self {
         Self { verdicts: Mutex::new(verdicts.iter().copied().collect()), ..Self::default() }
     }
 
-    fn log(&self) -> Vec<String> {
+    pub(super) fn log(&self) -> Vec<String> {
         self.log.lock().map(|log| log.clone()).unwrap_or_default()
     }
 }

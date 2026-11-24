@@ -45,6 +45,8 @@ pub async fn shutdown_signal() {
     }
 
     info!("Shutdown signal received - server will stop accepting new connections");
+    #[cfg(feature = "agent-vm")]
+    botagent::warm::shut_down_all();
     warn!("Graceful shutdown timeout is 10s for HTTPS, after which process will exit");
 
     print_shutdown_message();

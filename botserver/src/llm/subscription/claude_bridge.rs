@@ -257,6 +257,12 @@ impl BridgeGate for Gate<'_> {
         }
     }
 
+    async fn thinking(&self, chunk: &str) {
+        if let Some(tx) = self.tx {
+            let _ = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await;
+        }
+    }
+
     fn stopped(&self) -> bool {
         if self.tx.is_some_and(mpsc::Sender::is_closed) {
             return true;

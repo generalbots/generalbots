@@ -156,6 +156,22 @@ impl DuplexEvents {
         }
         Some(event)
     }
+
+    /// The next stdout line if one is already queued; `None` when none is
+    /// (or the session ended: see [`DuplexSender::ended`]).
+    pub fn try_recv_line(&mut self) -> Option<String> {
+        if self.done {
+            return None;
+        }
+        match self.events.try_recv() {
+            Ok(DuplexEvent::Line(line)) => Some(line),
+            Ok(DuplexEvent::Ended(_)) => {
+                self.done = true;
+                None
+            }
+            Err(_) => None,
+        }
+    }
 }
 
 /// A child process with piped stdin, stdout and stderr. Dropping every

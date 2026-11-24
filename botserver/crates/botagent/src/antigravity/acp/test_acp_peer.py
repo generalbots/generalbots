@@ -2,13 +2,17 @@
 
 Modes: plain (thought and text chunks), ask (asks to run a command, then
 reports it), unasked (runs a command without asking), edit (asks for one
-file edit). Prints the permission outcome it received as text.
+file edit), stray (asks for permission after its answer, between prompts,
+and tells the next prompt what it was answered). Prints the permission
+outcome it received as text.
 """
 import json
 import sys
+import time
 
 MODE = sys.argv[1] if len(sys.argv) > 1 else "plain"
 NEXT_ID = [100]
+STRAY = [None]
 
 
 def send(message):
@@ -75,7 +79,18 @@ def prompt(request):
                          "kind": "search", "status": "in_progress", "rawInput": {"query": "rust 2026"}})
         update(session, {"sessionUpdate": "tool_call_update", "toolCallId": "s1", "status": "completed"})
         chunk(session, "agent_message_chunk", "achei")
+    elif MODE == "stray":
+        chunk(session, "agent_message_chunk", "stray=%s" % STRAY[0])
     send({"jsonrpc": "2.0", "id": request["id"], "result": {"stopReason": "end_turn"}})
+    if MODE == "stray":
+        # Only once the bridge is done with this prompt: between prompts.
+        time.sleep(0.2)
+        send({"jsonrpc": "2.0", "id": 900, "method": "session/request_permission", "params": {
+            "sessionId": session,
+            "toolCall": {"toolCallId": "t7", "title": "rm -rf /", "kind": "execute", "status": "pending",
+                         "rawInput": {"command": "rm -rf /"}},
+            "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}],
+        }})
 
 
 for line in sys.stdin:
@@ -85,5 +100,7 @@ for line in sys.stdin:
         prompt(message)
     elif method == "session/cancel":
         pass
+    elif message.get("id") == 900 and not method:
+        STRAY[0] = message.get("error", {}).get("code")
     elif "id" in message and method:
         send({"jsonrpc": "2.0", "id": message["id"], "result": {}})

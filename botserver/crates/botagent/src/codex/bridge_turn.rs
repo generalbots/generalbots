@@ -1,20 +1,25 @@
-//! A bridged Codex chat turn inside the person's workspace: one
-//! `codex app-server` process per turn over the duplex transport, the
-//! conversation's Codex thread resumed when Codex still has it.
+//! A bridged Codex chat turn inside the person's workspace: a
+//! `codex app-server` process over the duplex transport, kept warm for the
+//! conversation's next turn ([`super::warm`]), the conversation's Codex
+//! thread resumed when Codex still has it.
 //!
 //! The thread id of each conversation is kept next to Codex's own thread
 //! store (`~codex/.codex/gb-threads/<conversation>`), so a recreated
 //! workspace loses both together. The prompt travels over the session
 //! itself, never through a file in `/tmp`.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::cli_turn::cli_model;
 use crate::duplex::{DuplexOptions, Incoming, RpcClient, RpcInbox, RpcOptions};
+use crate::warm::observe::TurnClock;
+use crate::warm::{self, Warm, WarmKey, WarmProcess};
 use crate::{vm, AgentService};
 
 use super::app_server::{safe_id, HANDLED_REQUESTS};
-use super::bridge::{check_account, handshake, open_thread, run_turn_with_images, Approvals, BridgeError};
+use super::bridge::{check_account, handshake, open_thread, Approvals, BridgeError};
+use super::turn_loop::{run_turn_tracked, TurnEnd};
+use super::warm::{refuse_idle, warm_pool, CodexWarm, Observed, LIFETIME};
 use super::paths::{CODEX_HOME, CODEX_USER};
 use super::selfcheck;
 
@@ -84,6 +89,8 @@ async fn store_thread(state: &AgentService, vm_name: &str, conversation: &str, t
 }
 
 /// Runs one chat turn through the bridge and returns the agent's answer.
+/// The conversation's warm app server takes the turn when there is one;
+/// when it fails before Codex accepted the prompt, a fresh one does.
 pub async fn run_bridged<H: Approvals>(
     state: &AgentService,
     vm_name: &str,
@@ -94,7 +101,26 @@ pub async fn run_bridged<H: Approvals>(
         return Err(BridgeError::Failed(axum::http::StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
     }
     let conversation = vm::sanitize_id(turn.conversation).map_err(|(code, message)| BridgeError::Failed(code, message))?;
-    let options = DuplexOptions { deadline: BRIDGE_DEADLINE, ..DuplexOptions::default() };
+    let model = cli_model(turn.model);
+    let key = WarmKey::new(vm_name, &conversation);
+    let fingerprint = warm::fingerprint(&[&model, turn.instructions.unwrap_or("")]);
+    if let Some(mut process) = warm_pool().take(&key, &fingerprint, Instant::now()) {
+        if refuse_idle(&mut process.process.inbox) {
+            let clock = TurnClock::start("codex", true);
+            selfcheck::ensure(state, vm_name, &process.process.version).await?;
+            let prompt = if turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
+            let thread_id = process.process.thread_id.clone();
+            let version = process.process.version.clone();
+            let end = timed_turn(&mut process.process, &thread_id, prompt, &turn, &model, handler, &clock).await;
+            if end.started || clock.touched() {
+                return settle(end, process, key, fingerprint, vm_name, &version);
+            }
+            tracing::info!("codex bridge: the warm process failed before the turn began; starting a fresh one");
+        }
+        process.process.shut_down();
+    }
+    let clock = TurnClock::start("codex", false);
+    let options = DuplexOptions { deadline: LIFETIME, ..DuplexOptions::default() };
     let session = vm::exec_in_vm_duplex(
         state,
         vm_name,
@@ -103,39 +129,95 @@ pub async fn run_bridged<H: Approvals>(
     )
     .await
     .map_err(|(code, message)| BridgeError::Failed(code, message))?;
-    let (client, mut inbox) = RpcClient::start(session, RpcOptions::accepting(HANDLED_REQUESTS));
-    let outcome = drive(state, vm_name, &conversation, &turn, &client, &mut inbox, handler).await;
-    let end = client.close().await;
-    tracing::debug!("codex bridge: session ended ({:?}) after {} ms", end.reason, end.elapsed.as_millis());
-    outcome
+    let born = Instant::now();
+    let (client, inbox) = RpcClient::start(session, RpcOptions::accepting(HANDLED_REQUESTS));
+    let mut process = CodexWarm { client, inbox, thread_id: String::new(), version: String::new() };
+    let end = match open(state, vm_name, &conversation, &turn, &model, &mut process).await {
+        Ok(new_thread) => {
+            clock.ready();
+            let prompt = if new_thread || turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
+            let thread_id = process.thread_id.clone();
+            timed_turn(&mut process, &thread_id, prompt, &turn, &model, handler, &clock).await
+        }
+        Err(error) => TurnEnd { result: Err(error), started: false, completed: false },
+    };
+    let version = process.version.clone();
+    settle(end, Warm { process, born }, key, fingerprint, vm_name, &version)
 }
 
-async fn drive<H: Approvals>(
+/// Keeps the process for the next turn when this one completed well, ends
+/// it otherwise; an action that ran unasked marks the version unsafe.
+fn settle(
+    end: TurnEnd,
+    process: Warm<CodexWarm>,
+    key: WarmKey,
+    fingerprint: String,
+    vm_name: &str,
+    version: &str,
+) -> Result<String, BridgeError> {
+    match end.result {
+        Ok(text) if end.completed => {
+            warm_pool().put(key, fingerprint, process, Instant::now());
+            warm::keep_reaped(warm_pool());
+            Ok(text)
+        }
+        Err(BridgeError::Unasked) => {
+            process.process.shut_down();
+            selfcheck::mark_unsafe(vm_name, version);
+            Err(BridgeError::Unsafe { version: version.to_string() })
+        }
+        other => {
+            process.process.shut_down();
+            other
+        }
+    }
+}
+
+/// One turn on an open thread, within [`BRIDGE_DEADLINE`].
+async fn timed_turn<H: Approvals>(
+    process: &mut CodexWarm,
+    thread_id: &str,
+    prompt: &str,
+    turn: &CodexTurn<'_>,
+    model: &str,
+    handler: &H,
+    clock: &TurnClock,
+) -> TurnEnd {
+    let observed = Observed { inner: handler, clock };
+    clock.prompted();
+    let run = run_turn_tracked(&process.client, &mut process.inbox, thread_id, prompt, turn.images, model, &observed);
+    match tokio::time::timeout(BRIDGE_DEADLINE, run).await {
+        Ok(end) => end,
+        Err(_) => TurnEnd {
+            result: Err(BridgeError::failed("codex turn passed its time limit")),
+            started: true,
+            completed: false,
+        },
+    }
+}
+
+/// Handshake, account, self-check and the conversation's thread on a fresh
+/// process. Returns whether the thread is new.
+async fn open(
     state: &AgentService,
     vm_name: &str,
     conversation: &str,
     turn: &CodexTurn<'_>,
-    client: &RpcClient,
-    inbox: &mut RpcInbox,
-    handler: &H,
-) -> Result<String, BridgeError> {
-    let version = handshake(client).await?;
-    let stored = stored_thread(inbox);
-    check_account(client).await?;
+    model: &str,
+    process: &mut CodexWarm,
+) -> Result<bool, BridgeError> {
+    let version = handshake(&process.client).await?;
+    process.version.clone_from(&version);
+    let stored = stored_thread(&mut process.inbox);
+    check_account(&process.client).await?;
     selfcheck::ensure(state, vm_name, &version).await?;
-    let model = cli_model(turn.model);
-    let (thread_id, new_thread) = open_thread(client, stored.as_deref(), CODEX_HOME, &model, turn.instructions).await?;
+    let (thread_id, new_thread) =
+        open_thread(&process.client, stored.as_deref(), CODEX_HOME, model, turn.instructions).await?;
     if new_thread {
         store_thread(state, vm_name, conversation, &thread_id).await;
     }
-    let prompt = if new_thread || turn.latest.trim().is_empty() { turn.transcript } else { turn.latest };
-    match run_turn_with_images(client, inbox, &thread_id, prompt, turn.images, &model, handler).await {
-        Err(BridgeError::Unasked) => {
-            selfcheck::mark_unsafe(vm_name, &version);
-            Err(BridgeError::Unsafe { version })
-        }
-        other => other,
-    }
+    process.thread_id = thread_id;
+    Ok(new_thread)
 }
 
 #[cfg(test)]

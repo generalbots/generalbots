@@ -1,5 +1,6 @@
 import json, sys
 mode = sys.argv[1]
+STATE = {}
 def send(o):
     sys.stdout.write(json.dumps(o) + "\n")
     sys.stdout.flush()
@@ -61,6 +62,10 @@ def turn(params):
     elif mode == "unasked":
         note("item/started", {"item": CMD})
         note("item/completed", {"item": dict(CMD, status="completed", exitCode=0, aggregatedOutput="")})
+    elif mode == "stray":
+        message("got=%s stray=%s" % (text, STATE.get("stray")))
+        completed("completed")
+        send({"id": 300, "method": "item/commandExecution/requestApproval", "params": {"itemId": "call_9", "threadId": "t", "turnId": "turn-1", "command": "/bin/bash -lc 'rm -rf x'", "cwd": "/home/codex", "startedAtMs": 1}})
     else:
         message("got=%s" % text)
         completed("completed")
@@ -92,3 +97,5 @@ while True:
     m = read()
     if "method" in m and "id" in m:
         answer(m)
+    elif m.get("id") == 300:
+        STATE["stray"] = m.get("error", {}).get("code")

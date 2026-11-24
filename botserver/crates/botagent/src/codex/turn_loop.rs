@@ -70,10 +70,37 @@ pub async fn run_turn_with_images<H: Approvals>(
     model: &str,
     handler: &H,
 ) -> Result<String, BridgeError> {
-    let started = client
+    run_turn_tracked(client, inbox, thread_id, prompt, images, model, handler).await.result
+}
+
+/// How a turn ended on its process.
+pub(crate) struct TurnEnd {
+    pub(crate) result: Result<String, BridgeError>,
+    /// Codex accepted `turn/start`: the prompt is in the thread.
+    pub(crate) started: bool,
+    /// `turn/completed` arrived: the process may take another turn.
+    pub(crate) completed: bool,
+}
+
+/// [`run_turn_with_images`], telling whether the process is ready for
+/// another turn.
+pub(crate) async fn run_turn_tracked<H: Approvals>(
+    client: &RpcClient,
+    inbox: &mut RpcInbox,
+    thread_id: &str,
+    prompt: &str,
+    images: &[String],
+    model: &str,
+    handler: &H,
+) -> TurnEnd {
+    let started = match client
         .request("turn/start", proto::turn_start_with_images(thread_id, prompt, images, model), REQUEST_WAIT)
         .await
-        .map_err(|e| rpc_failure("turn/start", &e))?;
+    {
+        Ok(started) => started,
+        Err(error) => return TurnEnd { result: Err(rpc_failure("turn/start", &error)), started: false, completed: false },
+    };
+    let ended = |result, completed| TurnEnd { result, started: true, completed };
     let mut turn: Turn<H::Ticket> = Turn {
         thread_id: thread_id.to_string(),
         turn_id: proto::turn_id_of(&started).unwrap_or_default(),
@@ -92,7 +119,7 @@ pub async fn run_turn_with_images<H: Approvals>(
             _ = stop_tick.tick() => {
                 if let Some(at) = interrupted {
                     if at.elapsed() > INTERRUPT_GRACE {
-                        return Ok(turn.text);
+                        return ended(Ok(turn.text), false);
                     }
                 } else if handler.stopped() {
                     interrupt(client, &turn).await;
@@ -103,13 +130,18 @@ pub async fn run_turn_with_images<H: Approvals>(
         };
         match next {
             None | Some(Incoming::Ended(_)) => {
-                return Err(BridgeError::failed("codex app-server ended before the turn completed"))
+                return ended(Err(BridgeError::failed("codex app-server ended before the turn completed")), false)
             }
             Some(Incoming::Unparsed(_)) => {}
-            Some(Incoming::Request(request)) => approve(client, request, &mut turn, handler).await?,
+            Some(Incoming::Request(request)) => {
+                if let Err(error) = approve(client, request, &mut turn, handler).await {
+                    return ended(Err(error), false);
+                }
+            }
             Some(Incoming::Notification { method, params }) => {
                 if let Some(done) = notified(client, &method, &params, &mut turn, handler, interrupted.is_some()).await {
-                    return done;
+                    let completed = method == "turn/completed";
+                    return ended(done, completed);
                 }
             }
         }
@@ -229,6 +261,11 @@ async fn notified<H: Approvals>(
             let id = params.get("itemId").and_then(Value::as_str).unwrap_or("").to_string();
             let delta = params.get("delta").and_then(Value::as_str).unwrap_or("");
             turn.push_text(handler, &id, delta, true).await;
+        }
+        "item/reasoning/summaryTextDelta" | "item/reasoning/textDelta" => {
+            if let Some(delta) = params.get("delta").and_then(Value::as_str).filter(|d| !d.is_empty()) {
+                handler.reasoning(delta).await;
+            }
         }
         "item/completed" if item.get("type").and_then(Value::as_str) == Some("agentMessage") => {
             if !turn.streamed.contains(&item_id) {

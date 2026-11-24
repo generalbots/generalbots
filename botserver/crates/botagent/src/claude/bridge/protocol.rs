@@ -38,6 +38,8 @@ pub(super) enum Incoming {
     Init { session_id: String, cwd: Option<String> },
     /// Model text for the answer.
     Text(String),
+    /// The model's thinking, for the reasoning card only.
+    Thinking(String),
     /// Text the CLI wrote itself (`model: "<synthetic>"`): sign-in and plan
     /// messages, never streamed into the answer.
     CliText(String),
@@ -94,6 +96,12 @@ fn assistant(message: &Value) -> Vec<Incoming> {
                     continue;
                 }
                 out.push(if synthetic { Incoming::CliText(text) } else { Incoming::Text(text) });
+            }
+            Some("thinking") if !nested && !synthetic => {
+                let text = text_of(block.get("thinking"));
+                if !text.trim().is_empty() {
+                    out.push(Incoming::Thinking(text));
+                }
             }
             Some("tool_use") => out.push(Incoming::ToolUse {
                 id: text_of(block.get("id")),

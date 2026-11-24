@@ -18,11 +18,14 @@ mod selfcheck;
 mod status;
 mod turn_loop;
 mod unasked;
+mod warm;
 
 #[cfg(test)]
 mod bridge_tests;
 #[cfg(test)]
 mod bridge_live_tests;
+#[cfg(test)]
+mod warm_tests;
 
 use axum::http::StatusCode;
 use base64::Engine;
@@ -33,6 +36,7 @@ pub use login::{logout, start_login, submit_code};
 pub use paths::{CODEX_HOME, CODEX_USER, CREDENTIALS_PATH};
 pub use bridge::{Approvals, BridgeError, Verdict};
 pub use bridge_turn::{run_bridged, CodexTurn, BRIDGE_DEADLINE};
+pub use warm::{warm_pool, CodexWarm};
 pub use prompt::run_prompt;
 pub use status::{extract_device_code, extract_device_url, status, CodexStatus};
 

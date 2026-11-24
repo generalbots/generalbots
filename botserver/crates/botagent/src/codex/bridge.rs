@@ -51,6 +51,11 @@ pub trait Approvals: Send + Sync {
     /// A step Codex took without asking (`web_search`, `web_fetch`, `mcp_tool`), shown
     /// in the steps block.
     fn noted(&self, kind: &str, text: &str, ok: bool) -> impl Future<Output = ()> + Send;
+    /// A piece of the model's reasoning summary, shown while it thinks.
+    fn reasoning(&self, chunk: &str) -> impl Future<Output = ()> + Send {
+        let _ = chunk;
+        async {}
+    }
     /// The person stopped the turn (or nobody reads the answer any more).
     fn stopped(&self) -> bool;
 }
