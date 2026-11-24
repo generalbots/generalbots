@@ -230,7 +230,7 @@ pub(crate) async fn create_run(
             // shows the queued turn; timeout fails it explicitly instead of
             // dropping it (the #1275 lesson).
             if needs_edit_lock {
-                let pid = run.config.project_id.clone().unwrap_or_default();
+                let pid = run.config.project_id.clone().unwrap_or_else(String::new);
                 let wait = tokio::time::timeout(
                     crate::project_locks::LOCK_WAIT_TIMEOUT,
                     api_clone.project_locks.acquire(&pid, run_id),

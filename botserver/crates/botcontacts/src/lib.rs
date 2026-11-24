@@ -1,4 +1,5 @@
 use diesel::PgConnection;
+use std::fmt::Display;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -11,6 +12,27 @@ pub type GetDefaultBotFn = Arc<dyn Fn(&mut PgConnection) -> Uuid + Send + Sync>;
 pub type TriggerContactChangeFn = Arc<dyn Fn(&mut PgConnection, Uuid, &str, Uuid) + Send + Sync>;
 
 pub type TriggerDealStageChangeFn = Arc<dyn Fn(&mut PgConnection, Uuid, &str, &str, Uuid) + Send + Sync>;
+
+/// Explicit `Option<T>` -> `T::default()` for optional request fields and
+/// nullable columns (the absence itself is expected, so no log entry).
+pub(crate) fn value_or_default<T: Default>(value: Option<T>) -> T {
+    match value {
+        Some(value) => value,
+        None => T::default(),
+    }
+}
+
+/// Explicit `Result<T, E>` -> `T::default()` for queries and provider bodies.
+/// A failure is unexpected and is logged with its context before falling back.
+pub(crate) fn default_on_error<E: Display, T: Default>(result: Result<T, E>, context: &str) -> T {
+    match result {
+        Ok(value) => value,
+        Err(error) => {
+            log::warn!("CRM {context} failed, using default value: {error}");
+            T::default()
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct CrateState {

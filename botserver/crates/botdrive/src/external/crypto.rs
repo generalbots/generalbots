@@ -35,7 +35,14 @@ pub fn decrypt_or_empty(encrypted: &str) -> String {
         return String::new();
     }
     let key = botsecurity_crypto::encryption::load_master_encryption_key();
-    botsecurity_crypto::encryption::decrypt_field(encrypted, &key).unwrap_or_default()
+    match botsecurity_crypto::encryption::decrypt_field(encrypted, &key) {
+        Ok(value) => value,
+        Err(e) => {
+            // Expected after a key rotation: callers treat "" as "reconnect".
+            log::warn!("Stored token could not be decrypted: {:?}", e);
+            String::new()
+        }
+    }
 }
 
 /// Monotonic counter mixed into the state so two tokens minted in the same
@@ -71,9 +78,13 @@ pub fn state_token_with_verifier(
     // Signing cannot fail (the key is a fixed-size slice), so an empty
     // signature would only ever mean a bug; leaving the payload unsigned
     // would be the dangerous outcome, hence the empty second half.
-    let sig = sign(encoded.as_bytes())
-        .map(|s| b64(&s))
-        .unwrap_or_default();
+    let sig = match sign(encoded.as_bytes()) {
+        Ok(s) => b64(&s),
+        Err(e) => {
+            log::warn!("State token signing failed: {:?}", e);
+            String::new()
+        }
+    };
     format!("{encoded}.{sig}")
 }
 

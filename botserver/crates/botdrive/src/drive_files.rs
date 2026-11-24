@@ -151,10 +151,16 @@ impl DriveFileRepository {
             Err(_) => return vec![],
         };
 
-        drive_files::table
+        match drive_files::table
             .filter(drive_files::indexed.eq(false))
             .load(&mut conn)
-            .unwrap_or_default()
+        {
+            Ok(files) => files,
+            Err(e) => {
+                log::warn!("Failed to list files pending indexing: {:?}", e);
+                Vec::new()
+            }
+        }
     }
 
     pub fn delete_file(&self, file_path: &str) -> Result<(), String> {
@@ -174,7 +180,13 @@ impl DriveFileRepository {
             Err(_) => return vec![],
         };
 
-        drive_files::table.load(&mut conn).unwrap_or_default()
+        match drive_files::table.load(&mut conn) {
+            Ok(files) => files,
+            Err(e) => {
+                log::warn!("Failed to list all drive files: {:?}", e);
+                Vec::new()
+            }
+        }
     }
 
     pub fn get_files_by_type(&self, file_type: &str) -> Vec<DriveFile> {
@@ -183,10 +195,16 @@ impl DriveFileRepository {
             Err(_) => return vec![],
         };
 
-        drive_files::table
+        match drive_files::table
             .filter(drive_files::file_type.eq(file_type))
             .load(&mut conn)
-            .unwrap_or_default()
+        {
+            Ok(files) => files,
+            Err(e) => {
+                log::warn!("Failed to list drive files by type: {:?}", e);
+                Vec::new()
+            }
+        }
     }
 
     /// Check if a file exists for the given bot and path
@@ -294,10 +312,16 @@ impl DriveFileRepository {
             Err(_) => return vec![],
         };
 
-        drive_files::table
+        match drive_files::table
             .filter(drive_files::file_path.like(format!("{prefix}%")))
             .load(&mut conn)
-            .unwrap_or_default()
+        {
+            Ok(files) => files,
+            Err(e) => {
+                log::warn!("Failed to list drive files by prefix: {:?}", e);
+                Vec::new()
+            }
+        }
     }
 
     /// Delete all files for a bot whose path starts with the given prefix

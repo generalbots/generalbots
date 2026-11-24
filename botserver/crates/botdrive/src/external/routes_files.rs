@@ -63,7 +63,7 @@ pub async fn list_connections(
         // offers "grant write access" instead of a button that would fail.
         let recorded_scopes = status
             .and_then(|s| s.scopes.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let can_read = connected;
         let can_write = connected && provider.granted_scopes_allow_write(&recorded_scopes);
         providers.push(serde_json::json!({
@@ -89,7 +89,7 @@ pub async fn list_connections(
                         .map(|scope| scope.to_string())
                         .collect::<Vec<_>>()
                 })
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
             "visibility": status
                 .and_then(|s| s.visibility.clone())
                 .unwrap_or_else(|| "private".to_string()),

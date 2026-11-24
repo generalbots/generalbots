@@ -52,7 +52,11 @@ pub fn deploy_revision(project: &Project, rev: Option<&str>) -> Result<Option<St
     match rev {
         Some(r) if !r.trim().is_empty() => Ok(Some(r.trim().to_string())),
         _ => {
-            let head = git_run(&cwd, &["rev-parse", "HEAD"]).unwrap_or_default();
+            let head = git_run(&cwd, &["rev-parse", "HEAD"])
+                .unwrap_or_else(|e| {
+                    log::warn!("git rev-parse HEAD failed: {e}");
+                    String::new()
+                });
             if head.is_empty() {
                 Ok(None)
             } else {

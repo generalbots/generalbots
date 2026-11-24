@@ -45,7 +45,7 @@ pub(crate) fn preferred_source_path(entries: &[String], intent: &str) -> Option<
             let extension = std::path::Path::new(path)
                 .extension()
                 .and_then(|value| value.to_str())
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_ascii_lowercase();
             let mut score: u16 = match extension.as_str() {
                 "html" | "htm" => 160,
@@ -63,7 +63,7 @@ pub(crate) fn preferred_source_path(entries: &[String], intent: &str) -> Option<
             let stem = std::path::Path::new(path)
                 .file_stem()
                 .and_then(|value| value.to_str())
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_ascii_lowercase();
             if matches!(stem.as_str(), "index" | "app" | "main") {
                 score += 100;

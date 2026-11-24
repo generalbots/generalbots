@@ -142,7 +142,7 @@ impl ProviderAdapter for BlueskyAdapter {
                 "bluesky.posts.search" => (
                     reqwest::Method::GET,
                     format!("{ORIGIN}/xrpc/app.bsky.feed.searchPosts?q={}",
-                        urlencoding::encode(params.get("query").and_then(Value::as_str).unwrap_or_default())),
+                        urlencoding::encode(params.get("query").and_then(Value::as_str).unwrap_or(""))),
                     None,
                 ),
                 "bluesky.posts.create" => (

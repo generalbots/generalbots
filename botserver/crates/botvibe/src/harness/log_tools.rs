@@ -20,8 +20,8 @@ pub fn logs_read() -> ToolHandler {
     Arc::new(move |args: serde_json::Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let max_lines = args.get("lines").and_then(|v| v.as_u64()).unwrap_or(200).clamp(1, 2000) as usize;
             match read_rel_file(&project, &path, 512 * 1024) {
                 Ok(bytes) => {
@@ -46,7 +46,7 @@ pub fn logs_list() -> ToolHandler {
     Arc::new(move |args: serde_json::Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or("").to_string();
             match crate::harness::list_rel(&project, "logs", 0) {
                 Ok(mut entries) => {
                     entries.sort();

@@ -75,9 +75,9 @@ pub(crate) async fn objects_list(
         .iter()
         .map(|block| {
             json!({
-                "key": block.get("Key").cloned().unwrap_or_default(),
+                "key": block.get("Key").cloned().unwrap_or_else(String::new),
                 "size": number_or_null(block.get("Size")),
-                "last_modified": block.get("LastModified").cloned().unwrap_or_default(),
+                "last_modified": block.get("LastModified").cloned().unwrap_or_else(String::new),
             })
         })
         .collect();
@@ -132,7 +132,7 @@ pub(crate) async fn objects_search(
                 matches.push(json!({
                     "key": key.clone(),
                     "size": number_or_null(block.get("Size")),
-                    "last_modified": block.get("LastModified").cloned().unwrap_or_default(),
+                    "last_modified": block.get("LastModified").cloned().unwrap_or_else(String::new),
                 }));
             }
         }

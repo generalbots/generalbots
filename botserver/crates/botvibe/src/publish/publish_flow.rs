@@ -90,7 +90,7 @@ impl SitePublish<'_> {
             "container": "proxy",
             "deploy_target": "proxy-websites",
             "caddy_route": route,
-            "domain": domain.clone().unwrap_or_default(),
+            "domain": domain.clone().unwrap_or_else(String::new),
             "track": "ok",
         });
     registry
@@ -136,7 +136,7 @@ impl SitePublish<'_> {
     let note = if requested_production && !approved {
         format!(
             "release published to the test site ({}) — the public site ({}) is only updated by the Deploy action",
-            deployment["url"].as_str().unwrap_or_default(),
+            deployment["url"].as_str().unwrap_or(""),
             public_url,
         )
     } else {

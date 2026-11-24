@@ -29,7 +29,13 @@ pub(super) async fn create_default_organization(client: &ZitadelClient) -> Resul
 
         Ok(org_id)
     } else {
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = match response.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("Failed to read organization error response body: {:?}", e);
+                String::new()
+            }
+        };
         Err(anyhow::anyhow!(
             "Failed to create organization: {}",
             error_text

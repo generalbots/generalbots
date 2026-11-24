@@ -76,11 +76,11 @@ fn run_prepared(
     let stdout = stdout_join
         .map(|j| j.join().map_err(|_| GuardError::Io("stdout thread".into())))
         .transpose()?
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let stderr = stderr_join
         .map(|j| j.join().map_err(|_| GuardError::Io("stderr thread".into())))
         .transpose()?
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     if timed_out {
         return Err(GuardError::Timeout);

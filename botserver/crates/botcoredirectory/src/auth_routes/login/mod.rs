@@ -90,7 +90,13 @@ pub async fn login(
                 }
                 Ok(resp) => {
                     let status = resp.status();
-                    let err = resp.text().await.unwrap_or_default();
+                    let err = match resp.text().await {
+                        Ok(t) => t,
+                        Err(e) => {
+                            log::warn!("Zitadel sessions error body unreadable: {:?}", e);
+                            String::new()
+                        }
+                    };
                     botlog::safe_warn!(
                         "Zitadel sessions API returned {} for loginName '{}': {}",
                         status,
@@ -149,7 +155,13 @@ pub async fn login(
                     }
                     Ok(resp) => {
                         let status = resp.status();
-                        let err = resp.text().await.unwrap_or_default();
+                        let err = match resp.text().await {
+                            Ok(t) => t,
+                            Err(e) => {
+                                log::warn!("Zitadel sessions error body unreadable: {:?}", e);
+                                String::new()
+                            }
+                        };
                         log::warn!(
                             "Zitadel sessions API returned {} for the user resolved from '{}': {}",
                             status,
@@ -296,7 +308,7 @@ pub async fn login(
             log::warn!(
                 "Zitadel sessions API failed for {}: {} — falling back to local credential check",
                 req.email,
-                session_error.unwrap_or_default()
+                session_error.unwrap_or_else(String::new)
             );
         }
     } else {

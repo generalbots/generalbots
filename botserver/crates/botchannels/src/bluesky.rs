@@ -34,7 +34,7 @@ impl BlueskyProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::AuthenticationFailed(error_text));
         }
 
@@ -104,7 +104,7 @@ impl BlueskyProvider {
 
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
 
             if status.as_u16() == 429 {
                 return Err(ChannelError::RateLimited { retry_after: None });

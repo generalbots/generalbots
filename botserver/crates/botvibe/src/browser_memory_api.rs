@@ -86,7 +86,7 @@ async fn chips(
     Extension(_user): Extension<AuthenticatedUser>,
     Query(q): Query<ChipsQuery>,
 ) -> ApiResult {
-    let domains = q.domain.as_ref().map(|d| vec![d.clone()]).unwrap_or_default();
+    let domains = q.domain.as_ref().map(|d| vec![d.clone()]).unwrap_or_else(Vec::new);
     ok_chips(memory.chips(&domains).await)
 }
 

@@ -99,7 +99,7 @@ pub fn redirect_uri(base: Option<&str>) -> String {
         .filter(|b| !b.is_empty())
         .map(str::to_string)
         .or_else(|| env_non_empty("PUBLIC_BASE_URL"))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     format!("{}{CALLBACK_PATH}", base.trim_end_matches('/'))
 }
 

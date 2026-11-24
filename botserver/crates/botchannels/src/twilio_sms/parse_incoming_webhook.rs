@@ -22,7 +22,7 @@ impl TwilioSmsChannel {
             .ok_or_else(|| TwilioError::ParseError("Missing To".to_string()))?
             .clone();
 
-        let body = params.get("Body").cloned().unwrap_or_default();
+        let body = crate::string_or_empty(params.get("Body").cloned());
 
         let num_media = params
             .get("NumMedia")
@@ -81,8 +81,8 @@ impl TwilioSmsChannel {
             .ok_or_else(|| TwilioError::ParseError("Missing AccountSid".to_string()))?
             .clone();
 
-        let from = params.get("From").cloned().unwrap_or_default();
-        let to = params.get("To").cloned().unwrap_or_default();
+        let from = crate::string_or_empty(params.get("From").cloned());
+        let to = crate::string_or_empty(params.get("To").cloned());
 
         let error_code = params
             .get("ErrorCode")
@@ -285,11 +285,11 @@ impl TwilioSmsChannel {
         SmsMessage {
             sid: response.sid,
             account_sid: response.account_sid,
-            from: response.from.unwrap_or_default(),
+            from: crate::string_or_empty(response.from),
             to: response.to,
-            body: response.body.unwrap_or_default(),
+            body: crate::string_or_empty(response.body),
             status: parse_message_status(&response.status).unwrap_or(MessageStatus::Queued),
-            direction: parse_direction(&response.direction.unwrap_or_default()),
+            direction: parse_direction(&crate::string_or_empty(response.direction)),
             date_created: response.date_created.and_then(|d| DateTime::parse_from_rfc2822(&d).ok().map(|dt| dt.with_timezone(&Utc))),
             date_sent: response.date_sent.and_then(|d| DateTime::parse_from_rfc2822(&d).ok().map(|dt| dt.with_timezone(&Utc))),
             date_updated: response.date_updated.and_then(|d| DateTime::parse_from_rfc2822(&d).ok().map(|dt| dt.with_timezone(&Utc))),

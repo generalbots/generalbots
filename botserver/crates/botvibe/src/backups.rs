@@ -305,8 +305,14 @@ struct BackupRow {
 impl BackupRow {
     fn into_record(self) -> BackupRecord {
         BackupRecord {
-            id: Uuid::parse_str(&self.id).unwrap_or_default(),
-            project_id: Uuid::parse_str(&self.project_id).unwrap_or_default(),
+            id: Uuid::parse_str(&self.id).unwrap_or_else(|e| {
+                log::warn!("backup id is not a UUID: {e}");
+                Uuid::nil()
+            }),
+            project_id: Uuid::parse_str(&self.project_id).unwrap_or_else(|e| {
+                log::warn!("backup project_id is not a UUID: {e}");
+                Uuid::nil()
+            }),
             env: self.env,
             container_name: self.container_name,
             tag: self.tag,

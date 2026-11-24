@@ -153,13 +153,13 @@ pub fn issue_tools(store: Arc<IssueStore>) -> Vec<(String, ToolSchema, ToolHandl
     let create_handler: ToolHandler = Arc::new(move |args: Value, _state: &dyn VibeState| {
         let store = Arc::clone(&create);
         Box::pin(async move {
-            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let body = args.get("body").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let body = args.get("body").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let labels: Vec<String> = args
                 .get("labels")
                 .and_then(|v| v.as_array())
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             let assignee = args.get("assignee").and_then(|v| v.as_str()).map(String::from);
             if title.is_empty() {
                 return err("title is required".into());
@@ -326,8 +326,8 @@ async fn create_task(
     let issue = store
         .create(
             req.title,
-            req.body.unwrap_or_default(),
-            req.labels.unwrap_or_default(),
+            req.body.unwrap_or_else(String::new),
+            req.labels.unwrap_or_else(Vec::new),
             req.assignee,
         )
         .await;
@@ -354,8 +354,8 @@ async fn create_issue(
     let issue = store
         .create(
             req.title,
-            req.body.unwrap_or_default(),
-            req.labels.unwrap_or_default(),
+            req.body.unwrap_or_else(String::new),
+            req.labels.unwrap_or_else(Vec::new),
             req.assignee,
         )
         .await;

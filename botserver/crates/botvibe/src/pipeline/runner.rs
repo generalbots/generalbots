@@ -268,7 +268,7 @@ impl PipelineEngine {
                 StageStatus::TimedOut => TraceStatus::TimedOut,
                 StageStatus::Failed | StageStatus::Skipped => TraceStatus::Error,
             };
-            let finish_detail = error.clone().unwrap_or_default();
+            let finish_detail = error.clone().unwrap_or_else(String::new);
             let _ = trace.finish(&stage.name, trace_status, &finish_detail);
             state.broadcast_progress(trace.progress_event(
                 &stage.id,

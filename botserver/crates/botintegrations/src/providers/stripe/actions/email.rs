@@ -17,7 +17,7 @@ pub(super) async fn customers_create(creds: &StripeCreds, params: &Value) -> Res
     let response = client::post_form(creds, "/customers", fields).await?;
     response.require_success("customers.create")?;
     let document = response.json("customers.create")?;
-    let id = document.get("id").cloned().unwrap_or_default();
+    let id = document.get("id").cloned().unwrap_or(Value::Null);
     Ok(outcome(
         format!("Created customer {id}"),
         json!({ "customer": project_customer(&document) }),
@@ -46,7 +46,7 @@ pub(super) async fn payment_intents_get(creds: &StripeCreds, params: &Value) -> 
     let response = client::get(creds, &format!("/payment_intents/{id}")).await?;
     response.require_success("payment_intents.get")?;
     let document = response.json("payment_intents.get")?;
-    let status = document.get("status").cloned().unwrap_or_default();
+    let status = document.get("status").cloned().unwrap_or(Value::Null);
     Ok(outcome(
         format!("Read payment {id} ({status})"),
         json!({ "payment": project_payment_intent(&document) }),
@@ -64,8 +64,8 @@ pub(super) async fn payment_intents_create(
     let response = client::post_form(creds, "/payment_intents", fields).await?;
     response.require_success("payment_intents.create")?;
     let document = response.json("payment_intents.create")?;
-    let id = document.get("id").cloned().unwrap_or_default();
-    let status = document.get("status").cloned().unwrap_or_default();
+    let id = document.get("id").cloned().unwrap_or(Value::Null);
+    let status = document.get("status").cloned().unwrap_or(Value::Null);
     Ok(outcome(
         format!("Created payment intent {id} ({status})"),
         json!({ "payment": project_payment_intent(&document) }),
@@ -117,9 +117,9 @@ pub(super) async fn refunds_create(creds: &StripeCreds, params: &Value) -> Resul
     let response = client::post_form(creds, "/refunds", fields).await?;
     response.require_success("refunds.create")?;
     let document = response.json("refunds.create")?;
-    let refund_id = document.get("id").cloned().unwrap_or_default();
-    let refund_amount = document.get("amount").cloned().unwrap_or_default();
-    let status = document.get("status").cloned().unwrap_or_default();
+    let refund_id = document.get("id").cloned().unwrap_or(Value::Null);
+    let refund_amount = document.get("amount").cloned().unwrap_or(Value::Null);
+    let status = document.get("status").cloned().unwrap_or(Value::Null);
     Ok(outcome(
         format!("Refunded {refund_amount} from {intent} (refund {refund_id}, {status})"),
         json!({

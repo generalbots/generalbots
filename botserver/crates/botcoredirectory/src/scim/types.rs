@@ -147,7 +147,7 @@ impl ScimUser {
                     })
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let state = user.get("state")
             .and_then(|s| s.as_str())

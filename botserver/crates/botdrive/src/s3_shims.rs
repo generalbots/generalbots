@@ -197,7 +197,7 @@ impl S3ListObjectsBuilder {
         self
     }
     pub async fn send(self) -> Result<S3ListObjectsResponse> {
-        let prefix_str = self.prefix.unwrap_or_default();
+        let prefix_str = self.prefix.unwrap_or_else(String::new);
         let results = self.bucket.list(prefix_str, Some("/".to_string())).await?;
         let contents: Vec<S3Object> = results
             .iter()

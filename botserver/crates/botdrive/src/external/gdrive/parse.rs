@@ -92,7 +92,7 @@ pub fn parse_page(json: &Value) -> DeltaPage {
 /// Parse one file entry, or `None` when it carries nothing usable.
 fn parse_file(file: &Value) -> Option<ExternalFile> {
     let id = file.get("id").and_then(Value::as_str)?;
-    let name = file.get("name").and_then(Value::as_str).unwrap_or_default();
+    let name = file.get("name").and_then(Value::as_str).unwrap_or("");
     if name.is_empty() {
         return None;
     }

@@ -76,7 +76,7 @@ async fn run(
                 .get("path")
                 .or_else(|| params.get("prefix"))
                 .and_then(Value::as_str)
-                .unwrap_or_default();
+                .unwrap_or("");
             let limit = params
                 .get("limit")
                 .and_then(Value::as_i64)

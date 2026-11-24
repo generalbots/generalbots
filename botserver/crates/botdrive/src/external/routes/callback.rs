@@ -10,7 +10,7 @@ pub async fn oauth_callback(
     headers: HeaderMap,
     Query(params): Query<CallbackQuery>,
 ) -> Response {
-    let base = config::base_from_headers(&headers, None, None).unwrap_or_default();
+    let base = config::base_from_headers(&headers, None, None).unwrap_or_else(String::new);
     let back = |query: &str| {
         let prefix = if base.is_empty() {
             "/drive".to_string()

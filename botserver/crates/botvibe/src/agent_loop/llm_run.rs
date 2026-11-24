@@ -104,7 +104,7 @@ impl AgentLoop {
             // #923 — record real provider usage so the budget meter and cost
             // accounting reflect actual spend instead of a hardcoded 0.0.
             if let Some(usage) = llm_usage {
-                let model = run.config.model.clone().unwrap_or_default();
+                let model = run.config.model.clone().unwrap_or_else(String::new);
                 let cost = estimate_llm_cost(&model, usage.prompt_tokens, usage.completion_tokens);
                 let mut meta = std::collections::HashMap::new();
                 meta.insert("input_tokens".to_string(), usage.prompt_tokens.to_string());
@@ -319,7 +319,7 @@ impl AgentLoop {
             .clone()
             .or_else(|| llm.as_ref().map(|l| l.key.clone()))
             .or_else(|| std::env::var("LLM_KEY").ok())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let api_url = run
             .config
             .llm_url

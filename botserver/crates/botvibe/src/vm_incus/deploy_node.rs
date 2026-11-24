@@ -81,7 +81,7 @@ impl VmLifecycle {
             let service = temp.join("vibe-app.service");
             let db_line = database_url
                 .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
-                .unwrap_or_default();
+                .unwrap_or_else(String::new);
             std::fs::write(
                 &service,
                 format!(

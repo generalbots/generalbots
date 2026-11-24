@@ -45,7 +45,7 @@ pub async fn upload_file_to_drive(
         return Err(err(StatusCode::UNAUTHORIZED, "Authentication required"));
     }
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,
@@ -104,7 +104,7 @@ pub async fn upload_file_to_drive(
     let parent = normalized
         .rsplit_once('/')
         .map(|(dir, _)| dir)
-        .unwrap_or_default();
+        .unwrap_or("");
     let stored_path = if parent.is_empty() {
         upload.filename.clone()
     } else {
@@ -152,7 +152,7 @@ pub async fn read_file(
             .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
     } else {
         let drive = get_drive(&state)?;
-        let scope = req.scope.unwrap_or_default();
+        let scope = req.scope.unwrap_or_else(FileScope::default);
         let uid = effective_uid(&state, &user, req.user_id.as_deref());
         let bucket = resolve_bucket(
             &state,
@@ -185,7 +185,7 @@ pub async fn download_file(
             .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
     } else {
         let drive = get_drive(&state)?;
-        let scope = req.scope.unwrap_or_default();
+        let scope = req.scope.unwrap_or_else(FileScope::default);
         let uid = effective_uid(&state, &user, req.user_id.as_deref());
         let bucket = resolve_bucket(
             &state,
@@ -225,7 +225,7 @@ pub async fn download_file_binary(
             .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
     } else {
         let drive = get_drive(&state)?;
-        let scope = req.scope.unwrap_or_default();
+        let scope = req.scope.unwrap_or_else(FileScope::default);
         let uid = effective_uid(&state, &user, req.user_id.as_deref());
         let bucket = resolve_bucket(
             &state,
@@ -282,7 +282,7 @@ pub async fn download_file_inline(
             .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
     } else {
         let drive = get_drive(&state)?;
-        let scope = req.scope.unwrap_or_default();
+        let scope = req.scope.unwrap_or_else(FileScope::default);
         let uid = effective_uid(&state, &user, req.user_id.as_deref());
         let bucket = resolve_bucket(
             &state,

@@ -50,7 +50,7 @@ impl ThreadsProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::ApiError {
                 code: None,
                 message: error_text,
@@ -93,7 +93,7 @@ impl ThreadsProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::ApiError {
                 code: None,
                 message: error_text,
@@ -129,7 +129,7 @@ impl ThreadsProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::AuthenticationFailed(error_text));
         }
 
@@ -258,7 +258,7 @@ impl ChannelProvider for ThreadsProvider {
             .map_err(|e| ChannelError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(ChannelError::ApiError {
                 code: None,
                 message: error_text,

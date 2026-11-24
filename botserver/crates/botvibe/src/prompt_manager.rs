@@ -187,7 +187,7 @@ impl VibePromptManager {
         // inline prompt.
         self.template(use_case, lang)
             .map(|t| t.build_system_prompt())
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     }
 
     pub fn compose_prompt(&self, context: &VibeContext, user_message: &str) -> String {
@@ -354,7 +354,7 @@ mod tests {
         let long = vec![format!("snippet {}", "x".repeat(3000))];
         let section = render_grounding(&long);
         assert!(section.contains('…'), "oversized reference is truncated");
-        let body = section.lines().find(|l| l.starts_with("[1]")).unwrap_or_default();
+        let body = section.lines().find(|l| l.starts_with("[1]")).unwrap_or("");
         assert!(body.chars().count() <= MAX_GROUNDING_REF_CHARS + 8);
     }
 

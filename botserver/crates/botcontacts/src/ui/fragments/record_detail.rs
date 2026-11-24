@@ -113,13 +113,15 @@ fn activities_for(
     entity: &str,
     id: Uuid,
 ) -> Vec<CrmActivity> {
-    crm_activities::table
-        .filter(crm_activities::branch_id.eq(branch_id))
-        .order(crm_activities::created_at.desc())
-        .limit(200)
-        .load(conn)
-        .unwrap_or_default()
-        .into_iter()
+    crate::default_on_error(
+        crm_activities::table
+            .filter(crm_activities::branch_id.eq(branch_id))
+            .order(crm_activities::created_at.desc())
+            .limit(200)
+            .load(conn),
+        "record activity timeline",
+    )
+    .into_iter()
         .filter(|a| activity_matches(a, entity, id))
         .take(20)
         .collect()
@@ -135,13 +137,15 @@ fn contact_detail(conn: &mut diesel::PgConnection, branch_id: Uuid, id: Uuid) ->
         Err(_) => return not_found("contact"),
     };
 
-    let deals: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::contact_id.eq(id))
-        .order(crm_deals::created_at.desc())
-        .limit(20)
-        .load(conn)
-        .unwrap_or_default();
+    let deals: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::contact_id.eq(id))
+            .order(crm_deals::created_at.desc())
+            .limit(20)
+            .load(conn),
+        "contact detail deals",
+    );
 
     let mut fields = String::new();
     fields.push_str(&field("Email", &html_escape(contact.email.as_deref().unwrap_or("-"))));
@@ -198,19 +202,23 @@ fn account_detail(conn: &mut diesel::PgConnection, branch_id: Uuid, id: Uuid) ->
         Err(_) => return not_found("account"),
     };
 
-    let deals: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::account_id.eq(id))
-        .order(crm_deals::created_at.desc())
-        .limit(20)
-        .load(conn)
-        .unwrap_or_default();
-    let contacts: Vec<CrmContact> = crm_contacts::table
-        .filter(crm_contacts::branch_id.eq(branch_id))
-        .filter(crm_contacts::company.eq(&account.name))
-        .limit(20)
-        .load(conn)
-        .unwrap_or_default();
+    let deals: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::account_id.eq(id))
+            .order(crm_deals::created_at.desc())
+            .limit(20)
+            .load(conn),
+        "account detail deals",
+    );
+    let contacts: Vec<CrmContact> = crate::default_on_error(
+        crm_contacts::table
+            .filter(crm_contacts::branch_id.eq(branch_id))
+            .filter(crm_contacts::company.eq(&account.name))
+            .limit(20)
+            .load(conn),
+        "account detail contacts",
+    );
 
     let mut fields = String::new();
     fields.push_str(&field("Industry", &html_escape(account.industry.as_deref().unwrap_or("-"))));
@@ -305,7 +313,7 @@ fn deal_detail(
                 .ok()
         });
 
-    let label = deal.title.clone().or(deal.name.clone()).unwrap_or_default();
+    let label = crate::value_or_default(deal.title.clone().or(deal.name.clone()));
     let mut fields = String::new();
     fields.push_str(&field(
         "Value",

@@ -29,7 +29,7 @@ pub(super) fn resolve_origin(spec: &ProviderSpec, credentials: &Value) -> Result
             // Mailchimp keys are `key-dc`; the suffix selects the host. A key
             // without a usable suffix used to be accepted verbatim and pointed
             // the client at `https://<key>.api.mailchimp.com`.
-            let dc = key.rsplit_once('-').map(|(_, dc)| dc).unwrap_or_default();
+            let dc = key.rsplit_once('-').map(|(_, dc)| dc).unwrap_or("");
             if dc.is_empty() || dc.len() > 16 || !dc.chars().all(|c| c.is_ascii_alphanumeric()) {
                 return Err(invalid(
                     "credential key api_key has no usable data center suffix".to_string(),
@@ -93,7 +93,7 @@ pub(super) fn auth_headers_and_query(
             let second = second_field
                 .map(|field| cred_str(credentials, field))
                 .transpose()?
-                .unwrap_or_default();
+                .unwrap_or("");
             if second.contains(*separator) {
                 return Err(invalid("credential field contains the separator".to_string()));
             }

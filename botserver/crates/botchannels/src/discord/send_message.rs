@@ -146,7 +146,7 @@ impl DiscordProvider {
         }
 
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(provider_api_error(status, &error_text, "message send"));
         }
 
@@ -187,7 +187,7 @@ impl DiscordProvider {
         }
 
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(provider_api_error(status, &error_text, "webhook delivery"));
         }
 
@@ -208,7 +208,7 @@ impl DiscordProvider {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = crate::response_error_text(response).await;
             return Err(provider_auth_error(status, &error_text));
         }
 

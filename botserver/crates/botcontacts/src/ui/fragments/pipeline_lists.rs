@@ -54,12 +54,14 @@ pub async fn handle_crm_deals(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut rows: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .order(crm_deals::created_at.desc())
-        .limit(SORT_WINDOW)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut rows: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .order(crm_deals::created_at.desc())
+            .limit(SORT_WINDOW)
+            .load(&mut conn),
+        "deals grid query",
+    );
 
     if let Some(stage) = query.stage.as_deref().filter(|s| !s.is_empty() && *s != "all") {
         rows.retain(|d| d.stage.as_deref() == Some(stage));
@@ -161,12 +163,14 @@ pub async fn handle_crm_opportunities(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut rows: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .order(crm_deals::created_at.desc())
-        .limit(SORT_WINDOW)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut rows: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .order(crm_deals::created_at.desc())
+            .limit(SORT_WINDOW)
+            .load(&mut conn),
+        "deals grid query",
+    );
 
     if let Some(stage) = query.stage.as_deref().filter(|s| !s.is_empty() && *s != "all") {
         rows.retain(|d| d.stage.as_deref() == Some(stage));

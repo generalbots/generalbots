@@ -223,7 +223,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
                 .json(&serde_json::json!({}))
                 .send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-            let orgs = data.get("result").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+            let orgs = data.get("result").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
             Ok(serde_json::json!(orgs))
         })
     }
@@ -311,7 +311,13 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
             if resp.status().is_success() {
                 Ok(serde_json::Value::Null)
             } else {
-                let text = resp.text().await.unwrap_or_default();
+                let text = match resp.text().await {
+                    Ok(t) => t,
+                    Err(e) => {
+                        log::warn!("DELETE error response body unreadable: {:?}", e);
+                        String::new()
+                    }
+                };
                 Err(format!("DELETE failed: {}", text))
             }
         })

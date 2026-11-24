@@ -168,12 +168,14 @@ pub async fn handle_crm_stats_forecast(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let rows: Vec<(Option<String>, Option<f64>)> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::closed_at.is_null())
-        .select((crm_deals::stage, crm_deals::value))
-        .load(&mut conn)
-        .unwrap_or_default();
+    let rows: Vec<(Option<String>, Option<f64>)> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::closed_at.is_null())
+            .select((crm_deals::stage, crm_deals::value))
+            .load(&mut conn),
+        "forecast stages",
+    );
 
     let currency = dominant_currency(&mut conn, branch_id);
     let mut open_value = 0.0;
@@ -217,7 +219,7 @@ pub async fn handle_crm_stats_funnel(
         #[diesel(sql_type = diesel::sql_types::BigInt)]
         won: i64,
     }
-    let rows: Vec<Row> = diesel::sql_query(
+    let rows: Vec<Row> = match diesel::sql_query(
         "SELECT source, COUNT(*) AS total, \
                 COUNT(*) FILTER (WHERE won = true) AS won \
          FROM crm_deals WHERE branch_id = $1 \
@@ -225,7 +227,13 @@ pub async fn handle_crm_stats_funnel(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("CRM funnel query failed, using default value: {error}");
+            Vec::new()
+        }
+    };
 
     if rows.is_empty() {
         return Html(r#"<div class="report-empty">No funnel data yet</div>"#.to_string());
@@ -293,13 +301,15 @@ pub async fn handle_crm_pipeline(
     let branch_id = branch_ctx(&state, &headers, &mut conn);
     let stage = query.stage.unwrap_or_else(|| "new".to_string());
 
-    let leads: Vec<crate::models::CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::stage.eq(&stage))
-        .order(crm_deals::created_at.desc())
-        .limit(20)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let leads: Vec<crate::models::CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::stage.eq(&stage))
+            .order(crm_deals::created_at.desc())
+            .limit(20)
+            .load(&mut conn),
+        "pipeline items",
+    );
 
     if leads.is_empty() {
         return Html(format!(

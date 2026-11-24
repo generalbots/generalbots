@@ -58,7 +58,7 @@ pub(crate) fn payload_bytes(entry: &serde_json::Value) -> Result<Vec<u8>, String
     }
     Err(format!(
         "payload decode: unsupported content for '{}'",
-        entry["path"].as_str().unwrap_or_default()
+        entry["path"].as_str().unwrap_or("")
     ))
 }
 

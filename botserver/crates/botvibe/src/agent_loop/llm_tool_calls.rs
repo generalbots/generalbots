@@ -305,7 +305,7 @@ pub(crate) fn project_scoped_arguments(run: &VibeRun, extracted: &ExtractedToolC
     let Some(project) = run.config.project_name.as_deref() else {
         return extracted.arguments.clone();
     };
-    let mut args = extracted.arguments.as_object().cloned().unwrap_or_default();
+    let mut args = extracted.arguments.as_object().cloned().unwrap_or_else(serde_json::Map::new);
     let tool = extracted.tool_name.as_str();
     if tool.starts_with("file/")
         || tool.starts_with("shell/")

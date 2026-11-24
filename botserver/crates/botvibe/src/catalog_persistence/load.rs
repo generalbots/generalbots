@@ -76,7 +76,11 @@ pub fn load_issues(pool: &DbPool) -> Result<Vec<VibeIssue>, String> {
             issue_id: r.issue_id,
             title: r.title,
             body: r.body,
-            labels: serde_json::from_value(r.labels).unwrap_or_default(),
+            labels: serde_json::from_value(r.labels)
+                .unwrap_or_else(|e| {
+                    log::warn!("issue labels decode failed: {e}");
+                    Vec::new()
+                }),
             state: match r.state.as_str() {
                 "closed" => IssueState::Closed,
                 _ => IssueState::Open,
@@ -172,8 +176,16 @@ pub fn load_teams(pool: &DbPool) -> Result<Vec<VibeTeam>, String> {
             team_id: r.team_id,
             name: r.name,
             objective: r.objective,
-            members: serde_json::from_value::<Vec<TeamMember>>(r.members).unwrap_or_default(),
-            shared_tasks: serde_json::from_value::<Vec<String>>(r.shared_tasks).unwrap_or_default(),
+            members: serde_json::from_value::<Vec<TeamMember>>(r.members)
+                .unwrap_or_else(|e| {
+                    log::warn!("team members decode failed: {e}");
+                    Vec::new()
+                }),
+            shared_tasks: serde_json::from_value::<Vec<String>>(r.shared_tasks)
+                .unwrap_or_else(|e| {
+                    log::warn!("shared tasks decode failed: {e}");
+                    Vec::new()
+                }),
             status: r.status,
             created_at: r.created_at,
             completed_at: r.completed_at,
@@ -309,7 +321,11 @@ pub fn load_telemetry_events(pool: &DbPool, limit: i64) -> Result<Vec<VibeTeleme
             success: r.success,
             error: r.error,
             timestamp: r.timestamp,
-            metadata: serde_json::from_value(r.metadata).unwrap_or_default(),
+            metadata: serde_json::from_value(r.metadata)
+                .unwrap_or_else(|e| {
+                    log::warn!("telemetry metadata decode failed: {e}");
+                    std::collections::HashMap::new()
+                }),
         })
         .collect())
 }

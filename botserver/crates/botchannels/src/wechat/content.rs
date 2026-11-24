@@ -42,7 +42,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }
@@ -90,7 +90,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }
@@ -140,7 +140,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }

@@ -76,7 +76,11 @@ pub fn load_skills(pool: &DbPool) -> Result<Vec<VibeSkill>, String> {
             name: r.name,
             description: r.description,
             content: r.content,
-            triggers: serde_json::from_value(r.triggers).unwrap_or_default(),
+            triggers: serde_json::from_value(r.triggers)
+                .unwrap_or_else(|e| {
+                    log::warn!("skill triggers decode failed: {e}");
+                    Vec::new()
+                }),
             enabled: r.enabled,
         })
         .collect())

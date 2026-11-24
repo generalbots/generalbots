@@ -33,7 +33,7 @@ fn convert_ms_token(t: MsTokenResponse) -> TokenResponse {
     TokenResponse {
         access_token: t.access_token, refresh_token: t.refresh_token, expires_in: t.expires_in,
         expires_at: Some(Utc::now() + chrono::Duration::seconds(t.expires_in)),
-        scopes: t.scope.map(|s| s.split(' ').map(String::from).collect()).unwrap_or_default(),
+        scopes: crate::value_or_default(t.scope.map(|s| s.split(' ').map(String::from).collect())),
     }
 }
 
@@ -74,7 +74,7 @@ impl ExternalSyncService {
             ExternalProvider::Microsoft => {
                 let mc = self.microsoft_contacts_client().ok_or_else(|| ExternalSyncError { kind: ExternalSyncErrorKind::UnsupportedProvider, message: "Microsoft not configured".into() })?;
                 let ui = mc.get_user_info(&tokens.access_token).await?;
-                UserInfo { id: ui.id, email: ui.email.unwrap_or_default(), name: ui.display_name }
+                UserInfo { id: ui.id, email: crate::value_or_default(ui.email), name: ui.display_name }
             }
             _ => return Err(ExternalSyncError { kind: ExternalSyncErrorKind::UnsupportedProvider, message: request.provider.to_string() }),
         };
@@ -97,7 +97,7 @@ impl ExternalSyncService {
             external_account_id: user_info.id, email: user_info.email, display_name: user_info.name,
             access_token: tokens.access_token, refresh_token: tokens.refresh_token,
             token_expires_at: tokens.expires_at, scopes: tokens.scopes,
-            sync_enabled: true, sync_direction: request.sync_direction.clone().unwrap_or_default(),
+            sync_enabled: true, sync_direction: crate::value_or_default(request.sync_direction.clone()),
             last_sync_at: None, last_sync_status: None, sync_cursor: None,
             created_at: now, updated_at: now,
         };
@@ -197,7 +197,7 @@ impl ExternalSyncService {
             ConflictResolution::KeepInternal | ConflictResolution::KeepLocal => mapping.local_data.clone(),
             ConflictResolution::KeepExternal | ConflictResolution::KeepRemote => mapping.remote_data.clone(),
             ConflictResolution::Merge => {
-                let mut merged = mapping.local_data.clone().unwrap_or_default();
+                let mut merged = crate::value_or_default(mapping.local_data.clone());
                 if let Some(remote) = &mapping.remote_data { merged = remote.clone(); }
                 if let Some(m) = &request.merged_data {
                     merged.first_name = m.first_name.clone().or(merged.first_name.take());

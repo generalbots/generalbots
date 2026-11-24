@@ -25,7 +25,7 @@ pub(crate) fn csv_opt(value: &Option<String>) -> String {
 
 /// Renders an optional number, emitting an empty field for `None`.
 pub(crate) fn csv_number(value: Option<f64>) -> String {
-    value.map(|v| format!("{v}")).unwrap_or_default()
+    crate::value_or_default(value.map(|v| format!("{v}")))
 }
 
 /// Parses an amount written in any of the formats spreadsheets produce:

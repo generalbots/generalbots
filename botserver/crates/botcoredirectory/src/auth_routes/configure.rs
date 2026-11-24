@@ -21,8 +21,14 @@ pub(super) async fn get_directory_config(State(state): State<Arc<AppState>>) -> 
     let api_url = state
         .auth_service
         .as_ref()
-        .map(|svc| svc.try_lock().map(|svc| svc.api_url()).unwrap_or_default())
-        .unwrap_or_default();
+        .map(|svc| match svc.try_lock() {
+            Ok(svc) => svc.api_url(),
+            Err(e) => {
+                log::warn!("Directory service lock unavailable: {:?}", e);
+                String::new()
+            }
+        })
+        .unwrap_or_else(String::new);
     Json(serde_json::json!({
         "issuer_url": api_url,
         "provider": "zitadel",

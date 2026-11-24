@@ -119,7 +119,7 @@ pub async fn create_public_link(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreatePublicLinkBody>,
 ) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,
@@ -169,22 +169,34 @@ pub async fn list_public_links(
 
     let path_filter = params.path.as_deref().unwrap_or("").trim();
     let rows = if path_filter.is_empty() {
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT bucket, key, path, share_token, created_at, expires_at, revoked \
              FROM drive_public_links WHERE owner_id = $1 ORDER BY created_at DESC",
         )
         .bind::<Text, _>(&uid)
         .load::<PublicLinkRow>(&mut conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::warn!("Failed to list public links: {:?}", e);
+                Vec::new()
+            }
+        }
     } else {
-        diesel::sql_query(
+        match diesel::sql_query(
             "SELECT bucket, key, path, share_token, created_at, expires_at, revoked \
              FROM drive_public_links WHERE owner_id = $1 AND path = $2 ORDER BY created_at DESC",
         )
         .bind::<Text, _>(&uid)
         .bind::<Text, _>(path_filter)
         .load::<PublicLinkRow>(&mut conn)
-        .unwrap_or_default()
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::warn!("Failed to list public links by path: {:?}", e);
+                Vec::new()
+            }
+        }
     };
 
     let items: Vec<PublicLinkItem> = rows
@@ -194,7 +206,7 @@ pub async fn list_public_links(
             token: r.share_token,
             bucket: r.bucket,
             path: r.path,
-            created_at: format_link_time(r.created_at).unwrap_or_default(),
+            created_at: format_link_time(r.created_at).unwrap_or_else(String::new),
             expires_at: format_link_time(r.expires_at),
             revoked: r.revoked,
         })
@@ -427,23 +439,4 @@ pub(super) fn revoke_links_for_key(
         )
     })?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn revoke_bucket_comes_from_record_and_fails_closed_on_blank() {
-        // Creation binds the record's bucket from the caller's scope; revoke
-        // must use it, never the client param or the workspace default (#2797).
-        let personal = "user-11111111-1111-1111-1111-111111111111.gbai";
-        assert_eq!(revoke_bucket_from_record(personal), Some(personal));
-        assert_eq!(
-            revoke_bucket_from_record("  acme.gborg  "),
-            Some("acme.gborg")
-        );
-        assert_eq!(revoke_bucket_from_record(""), None);
-        assert_eq!(revoke_bucket_from_record("   "), None);
-    }
 }

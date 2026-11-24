@@ -74,7 +74,13 @@ pub(super) fn load_users_rows(state: &Arc<DirectoryApiState>, query: &SearchQuer
             .load::<UserRow>(&mut conn)
     };
 
-    let rows: Vec<UserRow> = rows.unwrap_or_default();
+    let rows: Vec<UserRow> = match rows {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("Failed to load users rows: {:?}", e);
+            Vec::new()
+        }
+    };
 
     if rows.is_empty() {
         return empty_rows();
@@ -200,7 +206,13 @@ pub(super) fn load_groups_rows(state: &Arc<DirectoryApiState>, search: Option<&s
             .load::<GroupRow>(&mut conn)
     };
 
-    let rows: Vec<GroupRow> = rows.unwrap_or_default();
+    let rows: Vec<GroupRow> = match rows {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("Failed to load groups rows: {:?}", e);
+            Vec::new()
+        }
+    };
 
     if rows.is_empty() {
         return empty_rows();

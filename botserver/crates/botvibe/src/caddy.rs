@@ -120,7 +120,10 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
         .map_err(|e| format!("caddy upsert failed: {e}"))?;
     let status = resp.status();
     if !status.is_success() {
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            log::warn!("caddy response body unreadable: {e}");
+            String::new()
+        });
         return Err(format!("caddy upsert returned {status}: {text}"));
     }
     // #1302 — persist the route into the proxy's Caddyfile so a manual
@@ -337,7 +340,10 @@ mod tests {
     #[test]
     fn route_body_targets_container_dial() {
         let body = route_payload("app.example.com", "proj-prod.incus:80", "gbd-app.example.com", "public");
-        let text = serde_json::to_string(&body).unwrap_or_default();
+        let text = serde_json::to_string(&body).unwrap_or_else(|e| {
+            log::warn!("route body serialize failed: {e}");
+            String::new()
+        });
         assert!(text.contains("proj-prod.incus:80"));
         assert!(text.contains("app.example.com"));
         assert!(!text.contains("forward_auth"));
@@ -361,7 +367,10 @@ mod tests {
     #[test]
     fn access_controlled_route_installs_forward_auth() {
         let body = route_payload("app.example.com", "proj-prod.incus:80", "gbd-app.example.com", "rbac");
-        let text = serde_json::to_string(&body).unwrap_or_default();
+        let text = serde_json::to_string(&body).unwrap_or_else(|e| {
+            log::warn!("route body serialize failed: {e}");
+            String::new()
+        });
         assert!(text.contains("forward_auth"));
         assert!(text.contains("/api/vibe/domain-auth?domain=app.example.com"));
         assert!(text.contains("proj-prod.incus:80"));

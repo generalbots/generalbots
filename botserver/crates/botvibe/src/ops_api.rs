@@ -135,7 +135,10 @@ async fn preview(
                 deployments = routes
                     .registry
                     .list_deployments(pid, Some(canonical.as_str()))
-                    .unwrap_or_default();
+                    .unwrap_or_else(|e| {
+                        log::warn!("list_deployments failed: {e}");
+                        Vec::new()
+                    });
             }
         }
     }

@@ -37,14 +37,14 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }
 
         Ok(WeChatUser {
             subscribe: result.subscribe.unwrap_or(0),
-            openid: result.openid.unwrap_or_default(),
+            openid: crate::required_string(result.openid, "user openid"),
             nickname: result.nickname,
             sex: result.sex,
             language: result.language,
@@ -99,7 +99,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }
@@ -107,10 +107,7 @@ impl WeChatProvider {
         Ok(FollowerList {
             total: result.total.unwrap_or(0),
             count: result.count.unwrap_or(0),
-            openids: result
-                .data
-                .and_then(|d| d.openid)
-                .unwrap_or_default(),
+            openids: result.data.and_then(|d| d.openid).unwrap_or_else(Vec::new),
             next_openid: result.next_openid,
         })
     }

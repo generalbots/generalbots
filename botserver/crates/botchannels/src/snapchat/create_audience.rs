@@ -196,7 +196,7 @@ impl SnapchatProvider {
             return ChannelError::RateLimited { retry_after };
         }
 
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = crate::response_error_text(response).await;
 
         if let Ok(error_response) = serde_json::from_str::<SnapchatErrorResponse>(&error_text) {
             return ChannelError::ApiError {
@@ -204,7 +204,7 @@ impl SnapchatProvider {
                 message: error_response
                     .debug_message
                     .or(error_response.display_message)
-                    .unwrap_or_else(|| error_response.request_status.unwrap_or_default()),
+                    .unwrap_or_else(|| crate::string_or_empty(error_response.request_status)),
             };
         }
 

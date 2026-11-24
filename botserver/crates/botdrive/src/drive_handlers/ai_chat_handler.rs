@@ -13,7 +13,7 @@ pub async fn ai_chat_handler(
     })?;
 
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,

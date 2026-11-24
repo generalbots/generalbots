@@ -83,9 +83,9 @@ async fn authorize(
         .authenticate(token)
         .await
         .map_err(|e| format!("invalid token: {e:?}"))?;
-    let email = user.email.unwrap_or_default();
+    let email = user.email.unwrap_or_else(String::new);
     if bind.access == "rbac" {
-        let allowed = bind.allowed_emails.as_deref().unwrap_or_default();
+        let allowed = bind.allowed_emails.as_deref().unwrap_or("");
         if allowed.is_empty() || !email_allowed(allowed, &email) {
             return Err(format!(
                 "rbac denied: '{email}' is not in the allowlist for {}",

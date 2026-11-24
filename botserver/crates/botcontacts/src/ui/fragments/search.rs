@@ -21,7 +21,7 @@ pub async fn handle_crm_search(
         return Html(r#"<div class="search-empty"><p>Search unavailable</p></div>"#.to_string());
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
-    let q = query.q.unwrap_or_default().trim().to_lowercase();
+    let q = crate::value_or_default(query.q).trim().to_lowercase();
     if q.is_empty() {
         return Html(
             r#"<div class="search-empty"><p>Type to search deals, contacts and accounts</p></div>"#
@@ -30,34 +30,40 @@ pub async fn handle_crm_search(
     }
     let pattern = format!("%{q}%");
 
-    let deals: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::title.like(&pattern).or(crm_deals::name.like(&pattern)))
-        .order(crm_deals::updated_at.desc())
-        .limit(8)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let deals: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::title.like(&pattern).or(crm_deals::name.like(&pattern)))
+            .order(crm_deals::updated_at.desc())
+            .limit(8)
+            .load(&mut conn),
+        "search deals",
+    );
 
-    let contacts: Vec<crate::models::CrmContact> = crm_contacts::table
-        .filter(crm_contacts::branch_id.eq(branch_id))
-        .filter(
-            crm_contacts::first_name
-                .like(&pattern)
-                .or(crm_contacts::last_name.like(&pattern))
-                .or(crm_contacts::email.like(&pattern)),
-        )
-        .order(crm_contacts::updated_at.desc())
-        .limit(8)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let contacts: Vec<crate::models::CrmContact> = crate::default_on_error(
+        crm_contacts::table
+            .filter(crm_contacts::branch_id.eq(branch_id))
+            .filter(
+                crm_contacts::first_name
+                    .like(&pattern)
+                    .or(crm_contacts::last_name.like(&pattern))
+                    .or(crm_contacts::email.like(&pattern)),
+            )
+            .order(crm_contacts::updated_at.desc())
+            .limit(8)
+            .load(&mut conn),
+        "search contacts",
+    );
 
-    let accounts: Vec<crate::models::CrmAccount> = crm_accounts::table
-        .filter(crm_accounts::branch_id.eq(branch_id))
-        .filter(crm_accounts::name.like(&pattern))
-        .order(crm_accounts::updated_at.desc())
-        .limit(8)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let accounts: Vec<crate::models::CrmAccount> = crate::default_on_error(
+        crm_accounts::table
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .filter(crm_accounts::name.like(&pattern))
+            .order(crm_accounts::updated_at.desc())
+            .limit(8)
+            .load(&mut conn),
+        "search accounts",
+    );
 
     if deals.is_empty() && contacts.is_empty() && accounts.is_empty() {
         return Html(format!(
@@ -70,10 +76,9 @@ pub async fn handle_crm_search(
         html.push_str(r#"<div class="search-group"><div class="search-group-title">Deals</div>"#);
         for deal in deals {
             let title = deal.title.as_deref().or(deal.name.as_deref()).unwrap_or("");
-            let meta = deal
-                .value
-                .map(|v| format_money(v, deal.currency.as_deref()))
-                .unwrap_or_default();
+            let meta = crate::value_or_default(
+                deal.value.map(|v| format_money(v, deal.currency.as_deref())),
+            );
             html.push_str(&result_link("lead", deal.id, title, &meta));
         }
         html.push_str("</div>");
@@ -128,12 +133,14 @@ pub async fn handle_crm_accounts_search(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut accounts: Vec<crate::models::CrmAccount> = crm_accounts::table
-        .filter(crm_accounts::branch_id.eq(branch_id))
-        .order(crm_accounts::name)
-        .limit(200)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut accounts: Vec<crate::models::CrmAccount> = crate::default_on_error(
+        crm_accounts::table
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .order(crm_accounts::name)
+            .limit(200)
+            .load(&mut conn),
+        "account picker lookup",
+    );
 
     if let Some(term) = query.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         let needle = term.to_lowercase();
@@ -165,17 +172,19 @@ pub async fn handle_crm_contacts_search(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut contacts: Vec<crate::models::CrmContact> = crm_contacts::table
-        .filter(crm_contacts::branch_id.eq(branch_id))
-        .order(crm_contacts::created_at.desc())
-        .limit(200)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut contacts: Vec<crate::models::CrmContact> = crate::default_on_error(
+        crm_contacts::table
+            .filter(crm_contacts::branch_id.eq(branch_id))
+            .order(crm_contacts::created_at.desc())
+            .limit(200)
+            .load(&mut conn),
+        "contact picker lookup",
+    );
 
     if let Some(term) = query.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         let needle = term.to_lowercase();
         contacts.retain(|c| {
-            [full_name(c), c.email.clone().unwrap_or_default()]
+            [full_name(c), crate::value_or_default(c.email.clone())]
                 .iter()
                 .any(|v| v.to_lowercase().contains(&needle))
         });
@@ -189,7 +198,7 @@ pub async fn handle_crm_contacts_search(
         let label = format!(
             "{} · {}",
             full_name(&contact),
-            contact.email.clone().unwrap_or_default()
+            crate::value_or_default(contact.email.clone())
         );
         html.push_str(&format!(
             r#"<option value="{id}">{label}</option>"#,
@@ -211,13 +220,15 @@ pub async fn handle_crm_opportunities_search(
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
 
-    let mut opportunities: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::lead_id.is_not_null())
-        .order(crm_deals::created_at.desc())
-        .limit(200)
-        .load(&mut conn)
-        .unwrap_or_default();
+    let mut opportunities: Vec<CrmDeal> = crate::default_on_error(
+        crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::lead_id.is_not_null())
+            .order(crm_deals::created_at.desc())
+            .limit(200)
+            .load(&mut conn),
+        "opportunity picker lookup",
+    );
 
     if let Some(term) = query.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         let needle = term.to_lowercase();

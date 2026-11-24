@@ -123,14 +123,20 @@ pub(super) async fn list_users(
     let users = match filter {
         Some(f) if f.starts_with("userName eq ") => {
             let query = f.trim_start_matches("userName eq ").trim_matches('"');
-            auth_service.search_users(query).await.unwrap_or_default()
+            match auth_service.search_users(query).await {
+                Ok(v) => v,
+                Err(e) => {
+                    log::warn!("SCIM list_users: user search failed: {:?}", e);
+                    Vec::new()
+                }
+            }
         }
         _ => {
             match auth_service.list_users(count as i64, (start_index - 1) as i64).await {
                 Ok(data) => data
                     .as_array()
                     .cloned()
-                    .unwrap_or_default(),
+                    .unwrap_or_else(Vec::new),
                 Err(_) => vec![],
             }
         }
@@ -138,7 +144,13 @@ pub(super) async fn list_users(
 
     let total = users.len() as u32;
     let resources: Vec<serde_json::Value> = users.iter()
-        .map(|u| serde_json::to_value(ScimUser::from_zitadel_user(u, vec![])).unwrap_or_default())
+        .map(|u| match serde_json::to_value(ScimUser::from_zitadel_user(u, vec![])) {
+            Ok(v) => v,
+            Err(e) => {
+                log::warn!("SCIM list_users: SCIM user serialization failed: {:?}", e);
+                serde_json::Value::Null
+            }
+        })
         .collect();
 
     Ok(Json(ScimListResponse {
@@ -179,8 +191,13 @@ pub(super) async fn get_user(
         }))
     })?;
 
-    let memberships = auth_service.get_user_memberships(&user_key, 0, 100).await
-        .unwrap_or_default();
+    let memberships = match auth_service.get_user_memberships(&user_key, 0, 100).await {
+        Ok(v) => v,
+        Err(e) => {
+            log::warn!("SCIM get_user: memberships fetch failed: {:?}", e);
+            serde_json::Value::Null
+        }
+    };
     let groups: Vec<ScimGroupRef> = memberships.get("result")
         .and_then(|r| r.as_array())
         .map(|arr| {
@@ -196,7 +213,7 @@ pub(super) async fn get_user(
                 })
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     Ok(Json(ScimUser::from_zitadel_user(&user_data, groups)))
 }

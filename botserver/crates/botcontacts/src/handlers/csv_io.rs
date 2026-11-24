@@ -83,15 +83,23 @@ pub async fn export_leads_csv(
                 .ok(),
             None => None,
         };
-        let (first, last, email, phone, job) = contact
-            .map(|(f, l, e, p, j)| (f.unwrap_or_default(), l.unwrap_or_default(), e, p, j))
-            .unwrap_or_default();
+        let (first, last, email, phone, job) = crate::value_or_default(contact.map(|(f, l, e, p, j)| {
+            (
+                crate::value_or_default(f),
+                crate::value_or_default(l),
+                e,
+                p,
+                j,
+            )
+        }));
         let company = match row.account_id {
-            Some(aid) => crm_accounts::table
-                .filter(crm_accounts::id.eq(aid))
-                .select(crm_accounts::name)
-                .first::<String>(&mut conn)
-                .unwrap_or_default(),
+            Some(aid) => crate::default_on_error(
+                crm_accounts::table
+                    .filter(crm_accounts::id.eq(aid))
+                    .select(crm_accounts::name)
+                    .first::<String>(&mut conn),
+                "account name lookup for CSV export",
+            ),
             None => String::new(),
         };
         out.push_str(&format!(
@@ -211,12 +219,14 @@ pub async fn import_leads_csv(
                 report.skipped_duplicates += 1;
                 continue;
             }
-            let match_ids: Vec<Uuid> = crm_contacts::table
-                .filter(crm_contacts::branch_id.eq(branch_id))
-                .filter(crm_contacts::email.ilike(mail))
-                .select(crm_contacts::id)
-                .load(&mut conn)
-                .unwrap_or_default();
+            let match_ids: Vec<Uuid> = crate::default_on_error(
+                crm_contacts::table
+                    .filter(crm_contacts::branch_id.eq(branch_id))
+                    .filter(crm_contacts::email.ilike(mail))
+                    .select(crm_contacts::id)
+                    .load(&mut conn),
+                "dedupe lookup for CSV import",
+            );
             let exists = if match_ids.is_empty() {
                 0
             } else {

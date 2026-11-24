@@ -222,7 +222,7 @@ pub fn llm_safe_actions(provider: &str) -> Vec<LlmSafeAction> {
         .into_iter()
         .find(|adapter| adapter.provider() == provider)
         .map(|adapter| adapter.safe_action_catalog())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 /// Resolves the active connection, loads its credentials strictly from Vault
 /// and executes `provider.action` through the registered adapter.

@@ -229,12 +229,18 @@ pub async fn list_favorites(
             #[diesel(sql_type = Text)]
             created_at: String,
         }
-        let rows = diesel::sql_query(
+        let rows = match diesel::sql_query(
             "SELECT id::text, bucket, path, created_at::text FROM drive_stars WHERE user_id = $1 ORDER BY created_at DESC"
         )
         .bind::<Text, _>(uid)
         .load::<Row>(&mut conn)
-        .unwrap_or_default();
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::warn!("Failed to list starred files: {:?}", e);
+                Vec::new()
+            }
+        };
 
         let items: Vec<StarItem> = rows
             .into_iter()
@@ -316,12 +322,18 @@ pub async fn list_shared(
             #[diesel(sql_type = Text)]
             created_at: String,
         }
-        let rows = diesel::sql_query(
+        let rows = match diesel::sql_query(
             "SELECT id::text, owner_id, recipient_id, bucket, path, permissions, created_at::text FROM drive_shares WHERE recipient_id = $1 ORDER BY created_at DESC"
         )
         .bind::<Text, _>(uid)
         .load::<Row>(&mut conn)
-        .unwrap_or_default();
+        {
+            Ok(rows) => rows,
+            Err(e) => {
+                log::warn!("Failed to list shared files: {:?}", e);
+                Vec::new()
+            }
+        };
 
         let items: Vec<ShareItem> = rows
             .into_iter()
@@ -343,7 +355,7 @@ pub async fn list_shared(
 /// share row must be the authenticated caller: a client `user_id` is accepted
 /// only when it equals the caller's id, or for a platform admin acting for
 /// support tooling (the delegation `effective_uid` already allows). Fail closed.
-fn share_owner_allowed(
+pub(super) fn share_owner_allowed(
     caller_id: &str,
     requested_owner: Option<&str>,
     platform_admin: bool,
@@ -376,7 +388,7 @@ pub async fn share_folder(
     }
     let owner_id = effective_uid(&state, &user, req.user_id.as_deref());
 
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     // #2668 — validate bucket against the caller's tenant membership like
     // every other write handler, and pin user scope to the verified owner.
     let bucket = resolve_bucket(
@@ -417,32 +429,4 @@ pub async fn share_folder(
     })?;
 
     Ok(Json(SuccessResponse { success: true }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::share_owner_allowed;
-
-    #[test]
-    fn share_owner_allowed_no_requested_id_uses_caller() {
-        assert!(share_owner_allowed("victim", None, false));
-    }
-
-    #[test]
-    fn share_owner_allowed_same_user() {
-        assert!(share_owner_allowed("alice", Some("alice"), false));
-    }
-
-    #[test]
-    fn share_owner_allowed_rejects_forged_owner() {
-        // The #2668 attack: attacker names a victim as owner.
-        assert!(!share_owner_allowed("attacker", Some("victim"), false));
-        assert!(!share_owner_allowed("alice", Some(""), false));
-    }
-
-    #[test]
-    fn share_owner_allowed_platform_admin_delegation() {
-        // Platform admins may act for another user (support tooling).
-        assert!(share_owner_allowed("admin", Some("victim"), true));
-    }
 }

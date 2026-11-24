@@ -42,7 +42,7 @@ use super::*;
         let files = collect_workspace_files(&project).expect("collect files");
         let paths: Vec<String> = files
             .iter()
-            .map(|f| f["path"].as_str().unwrap_or_default().to_string())
+            .map(|f| f["path"].as_str().unwrap_or("").to_string())
             .collect();
         assert!(paths.contains(&"README.md".to_string()), "paths: {paths:?}");
         assert!(

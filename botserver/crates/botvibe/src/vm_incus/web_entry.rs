@@ -319,7 +319,11 @@ pub(crate) mod entry_resolution_tests {
     #[test]
     fn exec_start_line_never_emits_extra_directives() {
         assert!(exec_start_line("/usr/bin/node", "x\n[Service]\nUser=root").is_err());
-        let line = exec_start_line("/usr/bin/node", "dist/index.js").unwrap_or_default();
+        let line = exec_start_line("/usr/bin/node", "dist/index.js")
+            .unwrap_or_else(|e| {
+                log::warn!("exec_start_line failed: {e}");
+                String::new()
+            });
         assert_eq!(line, "ExecStart=/usr/bin/node /opt/vibe/app/dist/index.js");
         assert!(!line.contains('\n'));
     }

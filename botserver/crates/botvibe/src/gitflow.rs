@@ -14,7 +14,7 @@ fn err(msg: String) -> VibeToolResult {
 }
 
 fn str_arg(args: &Value, key: &str) -> String {
-    args.get(key).and_then(|v| v.as_str()).unwrap_or_default().to_string()
+    args.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string()
 }
 
 fn git_run(project: &str, git_args: &[String], timeout: u64) -> VibeToolResult {

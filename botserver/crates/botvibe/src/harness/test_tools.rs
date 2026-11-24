@@ -22,12 +22,12 @@ pub fn test_run() -> ToolHandler {
     Arc::new(move |args: serde_json::Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let command = args.get("command").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let command = args.get("command").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let argv: Vec<String> = args.get("args")
                 .and_then(|v| v.as_array())
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             let timeout = args.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(300);
             let cwd = match ensure_workspace(&project) {
                 Ok(p) => p,
@@ -81,7 +81,7 @@ pub fn test_run() -> ToolHandler {
             {
                 let mut parts = command.split_whitespace();
                 (
-                    parts.next().unwrap_or_default().to_string(),
+                    parts.next().unwrap_or("").to_string(),
                     parts.map(str::to_string).collect(),
                 )
             } else {
@@ -111,7 +111,7 @@ pub fn test_list() -> ToolHandler {
     Arc::new(move |args: serde_json::Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let project = args.get("project").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let cwd = match ensure_workspace(&project) {
                 Ok(p) => p,
                 Err(e) => return err(e),

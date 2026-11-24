@@ -12,7 +12,7 @@ pub async fn create_group(
     let metadata_value = serde_json::json!({
         "name": req.name,
         "description": req.description,
-        "members": req.members.unwrap_or_default(),
+        "members": req.members.unwrap_or_else(Vec::new),
         "created_at": chrono::Utc::now().to_rfc3339()
     })
     .to_string();
@@ -154,7 +154,7 @@ pub async fn list_groups(
         Ok(data) => {
             let metadata: Vec<serde_json::Value> = data.as_array()
                 .cloned()
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
 
             let groups: Vec<GroupInfo> = metadata
                 .iter()
@@ -281,7 +281,7 @@ pub async fn get_group_permissions(
         .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
         .and_then(|group_data| group_data.get("permissions").cloned())
         .and_then(|p| p.as_array().cloned())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     Ok(Json(serde_json::json!({
         "group_id": group_id,

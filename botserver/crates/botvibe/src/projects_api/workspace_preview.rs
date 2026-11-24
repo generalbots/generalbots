@@ -23,7 +23,7 @@ pub(crate) async fn run_website_via_proxy(
             let url = data
                 .get("url")
                 .and_then(serde_json::Value::as_str)
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_string();
             let env = data
                 .get("env")
@@ -33,7 +33,7 @@ pub(crate) async fn run_website_via_proxy(
             let note = data
                 .get("note")
                 .and_then(serde_json::Value::as_str)
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_string();
             (
                 StatusCode::OK,

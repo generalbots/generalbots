@@ -13,7 +13,7 @@ impl ProjectDomains {
         let env = env.trim().to_lowercase();
         let mut conn = self.conn()?;
         let row = self.select_by_domain_env(&mut conn, &domain, &env)?;
-        let expected = row.verify_token.clone().unwrap_or_default();
+        let expected = row.verify_token.clone().unwrap_or_else(String::new);
 
         // #1268 — platform-subdomain hosts ({app}.{published_domain()}) sit
         // on the platform's own wildcard zone: ownership is platform-managed

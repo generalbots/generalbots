@@ -107,8 +107,8 @@ impl ProjectRegistry {
             req.project_type.as_deref().unwrap_or("bot"),
         )?;
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
-        let framework = req.framework.clone().unwrap_or_default();
-        let custom_domain = req.custom_domain.clone().unwrap_or_default();
+        let framework = req.framework.clone().unwrap_or_else(String::new);
+        let custom_domain = req.custom_domain.clone().unwrap_or_else(String::new);
         // #1503 — git is the default source control (github = external
         // import, native = legacy rows only).
         let source_control = match req.source_control.as_deref() {
@@ -297,8 +297,7 @@ impl ProjectRegistry {
             .payload
             .get("deployments")
             .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default();
+            .cloned().unwrap_or_else(Vec::new);
         let mut rows: Vec<serde_json::Value> = arr
             .into_iter()
             .filter(|d| {

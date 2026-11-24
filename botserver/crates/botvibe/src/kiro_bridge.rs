@@ -64,7 +64,7 @@ pub async fn call_kiro(
         }
         if let Ok(event) = serde_json::from_str::<Value>(&chunk) {
             if event.get("__tool_call__").is_some() {
-                let name = event.get("name").and_then(|n| n.as_str()).unwrap_or_default();
+                let name = event.get("name").and_then(|n| n.as_str()).unwrap_or("");
                 let arguments = event
                     .get("arguments")
                     .and_then(|a| a.as_str())

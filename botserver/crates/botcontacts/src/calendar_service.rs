@@ -30,7 +30,7 @@ impl CalendarIntegrationService {
 
         let id = Uuid::new_v4();
         let now = Utc::now();
-        let role = request.role.clone().unwrap_or_default();
+        let role = crate::value_or_default(request.role.clone());
 
         self.create_event_contact_link(id, event_id, request.contact_id, &role, now)
             .await?;

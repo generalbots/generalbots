@@ -38,7 +38,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }
@@ -51,7 +51,7 @@ impl WeChatProvider {
         Ok(QRCodeResult {
             ticket: ticket.clone(),
             expire_seconds: result.expire_seconds,
-            url: result.url.unwrap_or_default(),
+            url: crate::string_or_empty(result.url),
             qrcode_url: format!(
                 "https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket={}",
                 urlencoding::encode(&ticket)
@@ -97,7 +97,7 @@ impl WeChatProvider {
             if errcode != 0 {
                 return Err(ChannelError::ApiError {
                     code: Some(errcode.to_string()),
-                    message: result.errmsg.unwrap_or_default(),
+                    message: crate::string_or_empty(result.errmsg),
                 });
             }
         }

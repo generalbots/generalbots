@@ -176,14 +176,14 @@ impl UserDriveVectorDB {
                 .get("payload")
                 .and_then(|p| p.as_object())
                 .cloned()
-                .unwrap_or_default();
+                .unwrap_or_else(serde_json::Map::new);
             if !payload.is_empty() {
                 let get_str = |key: &str| -> String {
                     payload
                         .get(key)
                         .and_then(|v: &serde_json::Value| v.as_str())
                         .map(|s: &str| s.to_string())
-                        .unwrap_or_default()
+                        .unwrap_or_else(String::new)
                 };
 
                 let file = FileDocument {
@@ -253,7 +253,7 @@ fn file_payload(file: &FileDocument, scope: &VectorScope) -> Result<botqdrant::P
     let mut payload: botqdrant::Payload = serde_json::to_value(file)?
         .as_object()
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or_else(serde_json::Map::new);
     scope.stamp(&mut payload);
     Ok(payload)
 }

@@ -1,7 +1,7 @@
 //! Pure unit tests for the Drive public-link helpers (#2797, #2799, #2843).
 //! No DB, drive or server is involved — these pin string/URL logic offline.
 
-use super::public_link_url::mutation_invalidates_link;
+use super::public_link_url::{mutation_invalidates_link, revoke_bucket_from_record};
 use botsecurity_core::content_disposition::{attachment_disposition, inline_disposition};
 
 #[test]
@@ -81,4 +81,18 @@ fn overwriting_a_key_revokes_its_link_but_not_a_sibling_or_other_bucket() {
         .map(|(_, link_key)| *link_key)
         .collect();
     assert_eq!(revoked, vec![key]);
+}
+
+#[test]
+fn revoke_bucket_comes_from_record_and_fails_closed_on_blank() {
+    // Creation binds the record's bucket from the caller's scope; revoke
+    // must use it, never the client param or the workspace default (#2797).
+    let personal = "user-11111111-1111-1111-1111-111111111111.gbai";
+    assert_eq!(revoke_bucket_from_record(personal), Some(personal));
+    assert_eq!(
+        revoke_bucket_from_record("  acme.gborg  "),
+        Some("acme.gborg")
+    );
+    assert_eq!(revoke_bucket_from_record(""), None);
+    assert_eq!(revoke_bucket_from_record("   "), None);
 }

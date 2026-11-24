@@ -211,12 +211,12 @@ pub(crate) fn deploy_app_handler(
             let app_name = args
                 .get("app_name")
                 .and_then(|v| v.as_str())
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_string();
             let org = args
                 .get("org")
                 .and_then(|v| v.as_str())
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_string();
             let project_type = args
                 .get("project_type")

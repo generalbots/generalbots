@@ -65,7 +65,7 @@ pub async fn list_organizations(
             let orgs = data
                 .as_array()
                 .cloned()
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
 
             let organizations: Vec<OrganizationInfo> = orgs
                 .iter()

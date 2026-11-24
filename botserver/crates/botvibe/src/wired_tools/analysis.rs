@@ -66,7 +66,7 @@ fn render_report(title: &str, metrics: &Value, summary: &str) -> String {
         out.push_str("| Metric | Value |\n|---|---|\n");
         for row in rows {
             let label = row.get("label").and_then(|v| v.as_str()).unwrap_or("");
-            let value = row.get("value").map(|v| v.to_string()).unwrap_or_default();
+            let value = row.get("value").map(|v| v.to_string()).unwrap_or_else(String::new);
             out.push_str(&format!("| {label} | {value} |\n"));
         }
     }
@@ -123,7 +123,10 @@ fn fetch_market_data() -> ToolHandler {
         };
         match client.get(&url).send().await {
             Ok(resp) if resp.status().is_success() => {
-                let text = resp.text().await.unwrap_or_default();
+                let text = resp.text().await.unwrap_or_else(|e| {
+                    log::warn!("stooq response body unreadable: {e}");
+                    String::new()
+                });
                 let rows = parse_stooq_csv(&text);
                 if rows.is_empty() {
                     return ok(json!({

@@ -26,7 +26,14 @@ pub(super) fn save_bootstrap_state(state: &BootstrapState) {
             return;
         }
     }
-    match fs::write(&path, serde_json::to_string_pretty(state).unwrap_or_default()) {
+    let serialized = match serde_json::to_string_pretty(state) {
+        Ok(s) => s,
+        Err(e) => {
+            log::warn!("Failed to serialize bootstrap state: {:?}", e);
+            String::new()
+        }
+    };
+    match fs::write(&path, serialized) {
         Ok(_) => info!("Bootstrap state saved to {}", path.display()),
         Err(e) => log::error!("Failed to save bootstrap state: {}", e),
     }
@@ -268,15 +275,34 @@ pub(super) fn create_password_change_reminder(user_id: &str) {
     });
 
     let reminders = if reminder_file.exists() {
-        let content = fs::read_to_string(&reminder_file).unwrap_or_default();
-        let mut arr: Vec<serde_json::Value> = serde_json::from_str(&content).unwrap_or_default();
+        let content = match fs::read_to_string(&reminder_file) {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!("Failed to read password change reminders: {:?}", e);
+                String::new()
+            }
+        };
+        let mut arr: Vec<serde_json::Value> = match serde_json::from_str(&content) {
+            Ok(a) => a,
+            Err(e) => {
+                log::warn!("Failed to parse password change reminders: {:?}", e);
+                Vec::new()
+            }
+        };
         arr.push(reminder);
         arr
     } else {
         vec![reminder]
     };
 
-    if let Err(e) = fs::write(&reminder_file, serde_json::to_string_pretty(&reminders).unwrap_or_default()) {
+    let serialized = match serde_json::to_string_pretty(&reminders) {
+        Ok(s) => s,
+        Err(e) => {
+            log::warn!("Failed to serialize password change reminders: {:?}", e);
+            String::new()
+        }
+    };
+    if let Err(e) = fs::write(&reminder_file, serialized) {
         warn!("Failed to save password change reminder: {}", e);
     } else {
         info!("Created security reminder: Change initial admin password");

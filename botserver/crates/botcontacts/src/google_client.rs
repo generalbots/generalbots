@@ -60,7 +60,7 @@ impl GoogleContactsClient {
             refresh_token: token_data.refresh_token,
             expires_in: token_data.expires_in,
             expires_at: Some(Utc::now() + chrono::Duration::seconds(token_data.expires_in)),
-            scopes: token_data.scope.map(|s| s.split(' ').map(String::from).collect()).unwrap_or_default(),
+            scopes: crate::value_or_default(token_data.scope.map(|s| s.split(' ').map(String::from).collect())),
         })
     }
 
@@ -142,7 +142,7 @@ impl GoogleClient {
         let data: GoogleResponse = response.json().await
             .map_err(|e| GoogleError::ParseError(e.to_string()))?;
 
-        let contacts = data.connections.unwrap_or_default().into_iter().map(|person| {
+        let contacts = crate::value_or_default(data.connections).into_iter().map(|person| {
         let first_name = person.names.as_ref().and_then(|n| n.first().map(|n| n.given_name.clone()));
         let last_name = person.names.as_ref().and_then(|n| n.first().map(|n| n.family_name.clone()));
         let display_name = person.names.as_ref().and_then(|n| n.first().and_then(|n| n.display_name.clone()));
@@ -157,17 +157,17 @@ impl GoogleClient {
 
         let phone = person.phone_numbers.as_ref().and_then(|phones| {
             phones.first().map(|p| ExternalPhone {
-                number: p.value.clone().unwrap_or_default(),
+                number: crate::value_or_default(p.value.clone()),
                 label: None,
                 primary: p.metadata.as_ref().and_then(|m| m.primary).unwrap_or(false),
             })
         });
 
             ExternalContact {
-                id: person.resource_name.unwrap_or_default(), etag: person.etag,
+                id: crate::value_or_default(person.resource_name), etag: person.etag,
                 first_name, last_name, display_name,
-                email_addresses: email.map(|e| vec![e]).unwrap_or_default(),
-                phone_numbers: phone.map(|p| vec![p]).unwrap_or_default(),
+                email_addresses: crate::value_or_default(email.map(|e| vec![e])),
+                phone_numbers: crate::value_or_default(phone.map(|p| vec![p])),
                 addresses: vec![],
                 company: person.organizations.as_ref().and_then(|o| o.first().and_then(|org| org.name.clone())),
                 job_title: person.organizations.as_ref().and_then(|o| o.first().and_then(|org| org.title.clone())),

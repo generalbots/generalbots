@@ -162,7 +162,7 @@ pub fn skill_tools(store: Arc<SkillStore>) -> Vec<(String, ToolSchema, ToolHandl
                 .get("skills")
                 .and_then(|v| v.as_array())
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             let stacked = store.apply(&names).await;
             if stacked.is_empty() {
                 VibeToolResultOk::err("No enabled skills matched the requested names".into())
@@ -175,14 +175,14 @@ pub fn skill_tools(store: Arc<SkillStore>) -> Vec<(String, ToolSchema, ToolHandl
     let create_handler: ToolHandler = Arc::new(move |args: Value, _state: &dyn VibeState| {
         let store = Arc::clone(&create);
         Box::pin(async move {
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let description = args.get("description").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let description = args.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let content = args.get("content").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let triggers: Vec<String> = args
                 .get("triggers")
                 .and_then(|v| v.as_array())
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             if name.is_empty() || content.is_empty() {
                 return VibeToolResultOk::err("name and content are required".into());
             }
@@ -288,9 +288,9 @@ async fn create_skill(
     let skill = store
         .register(
             req.name,
-            req.description.unwrap_or_default(),
+            req.description.unwrap_or_else(String::new),
             req.content,
-            req.triggers.unwrap_or_default(),
+            req.triggers.unwrap_or_else(Vec::new),
         )
         .await;
     Json(SkillResponse {

@@ -172,7 +172,7 @@ pub async fn list_users(
         auth_service.search_users(search_term).await
     } else {
         let offset = (page - 1) * per_page;
-        auth_service.list_users(per_page as i64, offset as i64).await.map(|v| v.as_array().cloned().unwrap_or_default())
+        auth_service.list_users(per_page as i64, offset as i64).await.map(|v| v.as_array().cloned().unwrap_or_else(Vec::new))
     };
 
     match users_result {
@@ -225,7 +225,7 @@ pub async fn list_users(
                                 .filter_map(|r| r.as_str().map(String::from))
                                 .collect()
                         })
-                        .unwrap_or_default();
+                        .unwrap_or_else(Vec::new);
 
                     Some(UserResponse {
                         id,

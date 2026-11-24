@@ -27,7 +27,7 @@ pub async fn export_archive(
     Json(req): Json<ExportArchiveBody>,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
+    let scope = req.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(
         &state,
@@ -61,7 +61,7 @@ pub async fn export_archive(
             entries.push(format!("{folder}/{relative}"));
         }
     }
-    for path in req.paths.unwrap_or_default() {
+    for path in req.paths.unwrap_or_else(Vec::new) {
         let path = normalize_path(&path);
         if !path.is_empty() && !path.ends_with('/') {
             entries.push(path);

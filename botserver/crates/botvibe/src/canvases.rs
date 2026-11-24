@@ -141,7 +141,7 @@ pub fn canvas_tools(store: Arc<CanvasStore>) -> Vec<(String, ToolSchema, ToolHan
     let create_handler: ToolHandler = Arc::new(move |args: Value, _state: &dyn VibeState| {
         let store = Arc::clone(&create);
         Box::pin(async move {
-            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let project = args.get("project").and_then(|v| v.as_str()).map(String::from);
             let content = args.get("content").cloned().unwrap_or(json!({}));
             if title.is_empty() {

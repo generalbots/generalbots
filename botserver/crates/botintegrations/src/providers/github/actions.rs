@@ -112,45 +112,45 @@ fn issue_update_changes(changes: &Value) -> Result<Value, String> {
 
 fn project_repository(item: &Value) -> Value {
     json!({
-        "full_name": item.get("full_name").cloned().unwrap_or_default(),
+        "full_name": item.get("full_name").cloned().unwrap_or(Value::Null),
         "private": item.get("private").cloned().unwrap_or(Value::Bool(false)),
-        "html_url": item.get("html_url").cloned().unwrap_or_default(),
-        "description": item.get("description").cloned().unwrap_or_default(),
-        "pushed_at": item.get("pushed_at").cloned().unwrap_or_default(),
+        "html_url": item.get("html_url").cloned().unwrap_or(Value::Null),
+        "description": item.get("description").cloned().unwrap_or(Value::Null),
+        "pushed_at": item.get("pushed_at").cloned().unwrap_or(Value::Null),
     })
 }
 
 fn project_issue(item: &Value) -> Value {
     json!({
-        "number": item.get("number").cloned().unwrap_or_default(),
-        "title": item.get("title").cloned().unwrap_or_default(),
-        "state": item.get("state").cloned().unwrap_or_default(),
-        "user": item.pointer("/user/login").cloned().unwrap_or_default(),
-        "created_at": item.get("created_at").cloned().unwrap_or_default(),
-        "html_url": item.get("html_url").cloned().unwrap_or_default(),
+        "number": item.get("number").cloned().unwrap_or(Value::Null),
+        "title": item.get("title").cloned().unwrap_or(Value::Null),
+        "state": item.get("state").cloned().unwrap_or(Value::Null),
+        "user": item.pointer("/user/login").cloned().unwrap_or(Value::Null),
+        "created_at": item.get("created_at").cloned().unwrap_or(Value::Null),
+        "html_url": item.get("html_url").cloned().unwrap_or(Value::Null),
     })
 }
 
 fn project_pull_request(item: &Value) -> Value {
     json!({
-        "number": item.get("number").cloned().unwrap_or_default(),
-        "title": item.get("title").cloned().unwrap_or_default(),
+        "number": item.get("number").cloned().unwrap_or(Value::Null),
+        "title": item.get("title").cloned().unwrap_or(Value::Null),
         "draft": item.get("draft").cloned().unwrap_or(Value::Bool(false)),
-        "user": item.pointer("/user/login").cloned().unwrap_or_default(),
-        "created_at": item.get("created_at").cloned().unwrap_or_default(),
-        "html_url": item.get("html_url").cloned().unwrap_or_default(),
+        "user": item.pointer("/user/login").cloned().unwrap_or(Value::Null),
+        "created_at": item.get("created_at").cloned().unwrap_or(Value::Null),
+        "html_url": item.get("html_url").cloned().unwrap_or(Value::Null),
     })
 }
 
 fn project_workflow_run(item: &Value) -> Value {
     json!({
-        "id": item.get("id").cloned().unwrap_or_default(),
-        "name": item.get("name").cloned().unwrap_or_default(),
-        "status": item.get("status").cloned().unwrap_or_default(),
-        "conclusion": item.get("conclusion").cloned().unwrap_or_default(),
-        "event": item.get("event").cloned().unwrap_or_default(),
-        "created_at": item.get("created_at").cloned().unwrap_or_default(),
-        "html_url": item.get("html_url").cloned().unwrap_or_default(),
+        "id": item.get("id").cloned().unwrap_or(Value::Null),
+        "name": item.get("name").cloned().unwrap_or(Value::Null),
+        "status": item.get("status").cloned().unwrap_or(Value::Null),
+        "conclusion": item.get("conclusion").cloned().unwrap_or(Value::Null),
+        "event": item.get("event").cloned().unwrap_or(Value::Null),
+        "created_at": item.get("created_at").cloned().unwrap_or(Value::Null),
+        "html_url": item.get("html_url").cloned().unwrap_or(Value::Null),
     })
 }
 
@@ -162,7 +162,7 @@ async fn repositories_list(creds: &GithubCreds, params: &Value) -> Result<Action
     let items = document
         .as_array()
         .map(|items| items.iter().map(project_repository).collect::<Vec<_>>())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Listed {count} accessible repositories"),
@@ -184,7 +184,7 @@ async fn repositories_search(creds: &GithubCreds, params: &Value) -> Result<Acti
         .get("items")
         .and_then(Value::as_array)
         .map(|items| items.iter().map(project_repository).collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Found {count} repositories matching '{query}'"),
@@ -206,9 +206,9 @@ async fn repositories_get(creds: &GithubCreds, params: &Value) -> Result<ActionO
         format!("Read repository {name}"),
         json!({
             "repository": project_repository(&document),
-            "default_branch": document.get("default_branch").cloned().unwrap_or_default(),
-            "stargazers_count": document.get("stargazers_count").cloned().unwrap_or_default(),
-            "open_issues_count": document.get("open_issues_count").cloned().unwrap_or_default(),
+            "default_branch": document.get("default_branch").cloned().unwrap_or(Value::Null),
+            "stargazers_count": document.get("stargazers_count").cloned().unwrap_or(Value::Null),
+            "open_issues_count": document.get("open_issues_count").cloned().unwrap_or(Value::Null),
         }),
     ))
 }
@@ -233,7 +233,7 @@ async fn issues_list(creds: &GithubCreds, params: &Value) -> Result<ActionOutcom
                 .map(project_issue)
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Listed {count} open issues in {owner}/{repository}"),
@@ -262,7 +262,7 @@ async fn issues_search(creds: &GithubCreds, params: &Value) -> Result<ActionOutc
         .get("items")
         .and_then(Value::as_array)
         .map(|items| items.iter().map(project_issue).collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Found {count} issues matching '{query}'"),
@@ -285,8 +285,8 @@ async fn issues_create(creds: &GithubCreds, params: &Value) -> Result<ActionOutc
     .await?;
     response.require_success("issues.create")?;
     let document = response.json("issues.create")?;
-    let number = document.get("number").cloned().unwrap_or_default();
-    let url = document.get("html_url").cloned().unwrap_or_default();
+    let number = document.get("number").cloned().unwrap_or(Value::Null);
+    let url = document.get("html_url").cloned().unwrap_or(Value::Null);
     Ok(outcome(
         format!("Created issue #{number} in {owner}/{repository}"),
         json!({ "number": number, "html_url": url }),
@@ -313,7 +313,7 @@ async fn issues_update(creds: &GithubCreds, params: &Value) -> Result<ActionOutc
         .json("issues.update")?
         .get("state")
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or(Value::Null);
     Ok(outcome(
         format!("Updated issue #{number} in {owner}/{repository}"),
         json!({ "number": number, "state": state }),
@@ -332,7 +332,7 @@ async fn pull_requests_list(creds: &GithubCreds, params: &Value) -> Result<Actio
     let items: Vec<Value> = document
         .as_array()
         .map(|items| items.iter().map(project_pull_request).collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Listed {count} open pull requests in {owner}/{repository}"),
@@ -354,7 +354,7 @@ async fn actions_runs_list(creds: &GithubCreds, params: &Value) -> Result<Action
         .pointer("/workflow_runs")
         .and_then(Value::as_array)
         .map(|items| items.iter().map(project_workflow_run).collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let count = items.len();
     Ok(outcome(
         format!("Listed {count} workflow runs in {owner}/{repository}"),
@@ -404,7 +404,10 @@ mod tests {
         assert!(issue_create_payload(&json!({ "title": 5 })).is_err());
         assert!(issue_create_payload(&json!({ "title": "Bug" })).is_ok());
         let payload = issue_create_payload(&json!({ "title": "Bug", "body": "Steps..." }))
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("issue_create_payload failed: {e}");
+                Value::Null
+            });
         assert_eq!(payload["title"], json!("Bug"));
         assert_eq!(payload["body"], json!("Steps..."));
         let long_body = "x".repeat(MAX_BODY_LEN + 1);
@@ -414,7 +417,11 @@ mod tests {
     #[test]
     fn issue_update_changes_are_whitelisted_and_validated() {
         let patch =
-            issue_update_changes(&json!({ "state": "closed", "junk": "x" })).unwrap_or_default();
+            issue_update_changes(&json!({ "state": "closed", "junk": "x" }))
+                .unwrap_or_else(|e| {
+                    log::warn!("issue_update_changes failed: {e}");
+                    Value::Null
+                });
         assert_eq!(patch["state"], json!("closed"));
         assert!(patch.get("junk").is_none());
         assert!(issue_update_changes(&json!({ "state": "detonate" })).is_err());

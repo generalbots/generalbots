@@ -35,7 +35,7 @@ impl AgentLoop {
             // "Agent loop timed out".
             let remaining = deadline
                 .checked_duration_since(tokio::time::Instant::now())
-                .unwrap_or_default();
+                .unwrap_or(Duration::ZERO);
             if remaining <= Duration::from_secs(LLM_REQUEST_TIMEOUT_SECS) {
                 break;
             }
@@ -202,7 +202,10 @@ impl AgentLoop {
 
         if !resp.status().is_success() {
             let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                log::warn!("LLM response body unreadable: {e}");
+                String::new()
+            });
             // Some providers reject the `tools` field; retry without it so
             // the plain chat path keeps working (fallback per issue #794).
             if text.contains("tool") || text.contains("function") {
@@ -320,7 +323,10 @@ impl AgentLoop {
             .map_err(|e| format!("HTTP request failed: {e}"))?;
         if !resp.status().is_success() {
             let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                log::warn!("LLM response body unreadable: {e}");
+                String::new()
+            });
             return Err(format!("LLM returned status {status}: {text}"));
         }
         let payload = self.read_body(resp).await?;
@@ -357,8 +363,8 @@ impl AgentLoop {
         if let Some(calls) = payload["choices"][0]["message"]["tool_calls"].as_array() {
             let mut has_call = false;
             for tc in calls {
-                let name = tc["function"]["name"].as_str().unwrap_or_default();
-                let args_raw = tc["function"]["arguments"].as_str().unwrap_or_default();
+                let name = tc["function"]["name"].as_str().unwrap_or("");
+                let args_raw = tc["function"]["arguments"].as_str().unwrap_or("");
                 if name.is_empty() && args_raw.is_empty() {
                     continue;
                 }

@@ -97,14 +97,14 @@ async fn callback_inner(
         )
     })?;
 
-    let user_id = Uuid::parse_str(payload.get("u").and_then(Value::as_str).unwrap_or_default())
+    let user_id = Uuid::parse_str(payload.get("u").and_then(Value::as_str).unwrap_or(""))
         .map_err(|_| {
             error_response(
                 StatusCode::BAD_REQUEST,
                 IntegrationError::Validation("invalid state user".to_string()),
             )
         })?;
-    let org_id = Uuid::parse_str(payload.get("o").and_then(Value::as_str).unwrap_or_default())
+    let org_id = Uuid::parse_str(payload.get("o").and_then(Value::as_str).unwrap_or(""))
         .map_err(|_| {
             error_response(
                 StatusCode::BAD_REQUEST,
@@ -115,7 +115,7 @@ async fn callback_inner(
         payload
             .get("br")
             .and_then(Value::as_str)
-            .unwrap_or_default(),
+            .unwrap_or(""),
     )
     .map_err(|_| {
         error_response(
@@ -123,7 +123,7 @@ async fn callback_inner(
             IntegrationError::Validation("invalid state branch".to_string()),
         )
     })?;
-    let bot_uuid = Uuid::parse_str(payload.get("b").and_then(Value::as_str).unwrap_or_default())
+    let bot_uuid = Uuid::parse_str(payload.get("b").and_then(Value::as_str).unwrap_or(""))
         .map_err(|_| {
             error_response(
                 StatusCode::BAD_REQUEST,
@@ -246,7 +246,7 @@ async fn callback_inner(
     }
     let mut outgoing = http.post(config.token_url).form(&form);
     if config.basic_client_auth {
-        let secret = client_secret.as_deref().unwrap_or_default();
+        let secret = client_secret.as_deref().unwrap_or("");
         let basic =
             base64::engine::general_purpose::STANDARD.encode(format!("{client_id}:{secret}"));
         outgoing = outgoing.header(header::AUTHORIZATION, format!("Basic {basic}"));
@@ -279,7 +279,7 @@ async fn callback_inner(
             &http,
             &config,
             &client_id,
-            client_secret.as_deref().unwrap_or_default(),
+            client_secret.as_deref().unwrap_or(""),
             &short_lived,
         )
         .await

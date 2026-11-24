@@ -169,11 +169,13 @@ pub(crate) fn get_assigned_contact_ids_db(
             .flatten();
 
         if let Some(email) = person_email {
-            let contact_ids: Vec<Uuid> = crm_contacts::table
-                .filter(crm_contacts::email.eq(&email))
-                .select(crm_contacts::id)
-                .load(&mut conn)
-                .unwrap_or_default();
+            let contact_ids: Vec<Uuid> = crate::default_on_error(
+                crm_contacts::table
+                    .filter(crm_contacts::email.eq(&email))
+                    .select(crm_contacts::id)
+                    .load(&mut conn),
+                "contact ids by email lookup",
+            );
             return Ok(contact_ids);
         }
     }
@@ -213,8 +215,8 @@ pub(crate) fn query_contacts_for_suggestions(
 
     Ok(rows.into_iter().map(|row| {
         ContactSummary {
-            id: row.id, first_name: row.first_name.unwrap_or_default(),
-            last_name: row.last_name.unwrap_or_default(), email: row.email,
+            id: row.id, first_name: crate::value_or_default(row.first_name),
+            last_name: crate::value_or_default(row.last_name), email: row.email,
             phone: None, company: row.company, job_title: row.job_title, avatar_url: None,
         }
     }).collect())

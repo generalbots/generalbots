@@ -10,7 +10,7 @@ pub async fn create_group(
     Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Form(form): axum::extract::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let name = form.get("name").cloned().unwrap_or_default();
+    let name = form.get("name").cloned().unwrap_or_else(String::new);
     let display_name = form.get("display_name").cloned().unwrap_or_else(|| name.clone());
     if name.trim().is_empty() {
         return (StatusCode::BAD_REQUEST, Html("Group name is required".to_string()));
@@ -160,12 +160,18 @@ pub async fn user_activity(
         created_at: DateTime<Utc>,
     }
 
-    let sessions: Vec<SessionRow> = diesel::sql_query(
+    let sessions: Vec<SessionRow> = match diesel::sql_query(
         "SELECT created_at FROM user_sessions WHERE user_id = $1::text ORDER BY created_at DESC LIMIT 10",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .load::<SessionRow>(&mut conn)
-    .unwrap_or_default();
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("Failed to load user activity sessions: {:?}", e);
+            Vec::new()
+        }
+    };
 
     if sessions.is_empty() {
         return Html(r#"<p class="text-muted">No recent activity</p>"#.to_string());

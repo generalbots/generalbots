@@ -114,7 +114,10 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
          WHERE cw.branch_id <> '00000000-0000-0000-0000-000000000000'",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("backfill query failed: {e}");
+        Vec::new()
+    });
     // The inner JOIN drops workspaces whose org was deleted (bots.org_id has
     // an FK to organizations) — creating bot rows for them would violate
     // `bots_org_id_fkey`. Stale rows are the drive-monitor's responsibility
@@ -153,7 +156,10 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
          WHERE vp.project_type = 'bot'",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("backfill query failed: {e}");
+        Vec::new()
+    });
     // Per-project tolerance: one broken row must never abort the whole
     // backfill (a warn keeps the rest converging on the next boot).
     for p in &bot_projects {

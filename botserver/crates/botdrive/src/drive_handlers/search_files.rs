@@ -13,14 +13,14 @@ pub async fn search_files(
     // though the files were visible in the listing.
     if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {
         let root = crate::local_fs::requested_root(params.root.as_deref(), params.bucket.as_deref());
-        let query = params.query.clone().unwrap_or_default();
+        let query = params.query.clone().unwrap_or_else(String::new);
         let items = crate::local_fs::search_local_files(root, None, &query)
             .await
             .map_err(|e| err(StatusCode::BAD_REQUEST, &e))?;
         return Ok(Json(items));
     }
     let drive = get_drive(&state)?;
-    let scope = params.scope.unwrap_or_default();
+    let scope = params.scope.unwrap_or_else(FileScope::default);
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let current_bucket = resolve_bucket(
         &state,
@@ -31,7 +31,7 @@ pub async fn search_files(
         &user,
     )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let query = params.query.unwrap_or_default();
+    let query = params.query.unwrap_or_else(String::new);
     let query_lower = query.trim().to_lowercase();
     if query_lower.is_empty() {
         return Ok(Json(Vec::new()));
@@ -156,7 +156,13 @@ fn is_text_like(ext: &str) -> bool {
 
 #[cfg(feature = "drive")]
 fn extract_pdf(path: &std::path::Path) -> String {
-    crate::vectordb::extract_pdf_text_sync(path).unwrap_or_default()
+    match crate::vectordb::extract_pdf_text_sync(path) {
+        Ok(text) => text,
+        Err(e) => {
+            log::warn!("PDF text extraction failed: {:?}", e);
+            String::new()
+        }
+    }
 }
 #[cfg(not(feature = "drive"))]
 fn extract_pdf(path: &std::path::Path) -> String {
@@ -166,7 +172,13 @@ fn extract_pdf(path: &std::path::Path) -> String {
 
 #[cfg(feature = "drive")]
 fn extract_docx(path: &std::path::Path) -> String {
-    crate::vectordb::extract_docx_text_sync(path).unwrap_or_default()
+    match crate::vectordb::extract_docx_text_sync(path) {
+        Ok(text) => text,
+        Err(e) => {
+            log::warn!("DOCX text extraction failed: {:?}", e);
+            String::new()
+        }
+    }
 }
 #[cfg(not(feature = "drive"))]
 fn extract_docx(path: &std::path::Path) -> String {
@@ -176,7 +188,13 @@ fn extract_docx(path: &std::path::Path) -> String {
 
 #[cfg(feature = "sheet")]
 fn extract_xlsx(path: &std::path::Path) -> String {
-    crate::vectordb::extract_xlsx_text_sync(path).unwrap_or_default()
+    match crate::vectordb::extract_xlsx_text_sync(path) {
+        Ok(text) => text,
+        Err(e) => {
+            log::warn!("XLSX text extraction failed: {:?}", e);
+            String::new()
+        }
+    }
 }
 #[cfg(not(feature = "sheet"))]
 fn extract_xlsx(path: &std::path::Path) -> String {
@@ -221,7 +239,7 @@ async fn object_contains_query(
         return false;
     }
     let path = tmp.clone();
-    let text = tokio::task::spawn_blocking(move || {
+    let extracted = tokio::task::spawn_blocking(move || {
         let text = match ext.as_str() {
             "pdf" => extract_pdf(&path),
             "docx" => extract_docx(&path),
@@ -231,8 +249,14 @@ async fn object_contains_query(
         let _ = std::fs::remove_file(&path);
         text
     })
-    .await
-    .unwrap_or_default();
+    .await;
+    let text = match extracted {
+        Ok(text) => text,
+        Err(e) => {
+            log::warn!("Background text extraction task failed: {:?}", e);
+            String::new()
+        }
+    };
     text.to_lowercase().contains(query_lower)
 }
 

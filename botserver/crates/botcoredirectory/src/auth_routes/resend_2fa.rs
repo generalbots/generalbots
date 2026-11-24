@@ -19,7 +19,10 @@ pub async fn bootstrap_admin(
 ) -> Result<Json<BootstrapResponse>, (StatusCode, Json<ErrorResponse>)> {
     info!("Bootstrap admin request received");
 
-    let expected_secret = std::env::var(BOOTSTRAP_SECRET_ENV).unwrap_or_default();
+    let expected_secret = match std::env::var(BOOTSTRAP_SECRET_ENV) {
+        Ok(s) => s,
+        Err(_) => String::new(),
+    };
 
     if expected_secret.is_empty() {
         warn!("Bootstrap endpoint called but GB_BOOTSTRAP_SECRET not set");
@@ -240,11 +243,19 @@ pub(super) async fn resolve_session_user_id(
         .ok()?;
 
     if !response.status().is_success() {
+        let status = response.status();
+        let body = match response.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("Session error response body unreadable: {:?}", e);
+                String::new()
+            }
+        };
         botlog::safe_warn!(
             "Session read failed for {}: {} {}",
             session_id,
-            response.status(),
-            response.text().await.unwrap_or_default()
+            status,
+            body
         );
         return None;
     }
@@ -283,11 +294,15 @@ pub(super) async fn resolve_user_id_by_email(
         .ok()?;
 
     if !response.status().is_success() {
-        log::warn!(
-            "User lookup by email failed: {} {}",
-            response.status(),
-            response.text().await.unwrap_or_default()
-        );
+        let status = response.status();
+        let body = match response.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("User lookup error response body unreadable: {:?}", e);
+                String::new()
+            }
+        };
+        log::warn!("User lookup by email failed: {} {}", status, body);
         return None;
     }
 

@@ -31,7 +31,7 @@ struct MentionConnectionRow {
 /// Strips LIKE wildcards so a crafted `q` cannot widen the match beyond the
 /// intended provider-slug prefix; results stay owner-scoped either way.
 fn mention_prefix_pattern(q: Option<String>) -> String {
-    let prefix = q.unwrap_or_default().trim().to_lowercase();
+    let prefix = q.unwrap_or_else(String::new).trim().to_lowercase();
     let escaped: String = prefix.chars().filter(|c| *c != '%' && *c != '_').collect();
     format!("{escaped}%")
 }
