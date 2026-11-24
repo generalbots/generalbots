@@ -54,6 +54,23 @@ function syncPreviewToggle() {
 }
 window.addEventListener("gb-preview-changed", syncPreviewToggle);
 
+// Switch from the windowed suite back to the chat-first assistant shell.
+// The product default is unchanged; this is only this browser's choice.
+function openAssistantShell() {
+  try { localStorage.setItem("gb-shell-override", "assistant"); }
+  catch (e) { /* storage disabled: the destination URL still applies */ }
+  window.location.replace("/suite/assistant/assistant.html");
+}
+function bindShellSwitch() {
+  var button = document.getElementById("settings-shell-assistant-btn");
+  if (!button || button.dataset.shellBound === "1") { return; }
+  button.dataset.shellBound = "1";
+  button.addEventListener("click", openAssistantShell);
+}
+document.addEventListener("htmx:load", bindShellSwitch);
+document.addEventListener("htmx:afterSwap", bindShellSwitch);
+bindShellSwitch();
+
 // #1545/#1813: Drive-as-KB setting, persisted locally and sent by the chat
 // client as `index_all_drive`. Default is on; only an explicit "false" disables
 // it, matching chat-send.js.

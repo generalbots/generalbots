@@ -99,8 +99,14 @@
             }
             /* Editions on the assistant shell go straight to it after the
                sign-in: the legacy desktop page would paint first and only
-               then hand over. */
-            if (p && p.shell === "assistant" && !explicitTarget) {
+               then hand over. A per-browser shell choice from Settings wins
+               over the product default so the preview survives re-login. */
+            var shellChoice = "";
+            try { shellChoice = localStorage.getItem("gb-shell-override") || ""; } catch (e) { /* storage disabled */ }
+            if (!explicitTarget && (shellChoice === "assistant" || shellChoice === "desktop")) {
+                target = shellChoice === "assistant"
+                    ? "/suite/assistant/assistant.html" : "/suite/desktop.html";
+            } else if (p && p.shell === "assistant" && !explicitTarget) {
                 target = "/suite/assistant/assistant.html";
             }
         }).catch(function () { /* keep defaults */ });

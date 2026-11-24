@@ -21,6 +21,9 @@ pub const SUITE_DIRS: &[&str] = &[
     // Core & Support
     "settings",
     "about",
+    // Chat-first shell (product shell=assistant). Must be embedded so the
+    // hand-off from desktop.html can serve it in release builds.
+    "assistant",
     // Core Apps (feature-gated to match botui Cargo.toml features)
     #[cfg(feature = "drive")]
     "drive",

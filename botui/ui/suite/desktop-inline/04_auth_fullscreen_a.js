@@ -93,11 +93,18 @@
                     const resp = await fetch("/api/product");
                     if (resp.ok) {
                         window.productConfig = await resp.json();
-                        // Assistant shell redirect: when the product declares
-                        // shell=assistant, the desktop hands off to the new
-                        // assistant shell. This is a no-op until the server
-                        // returns the field.
-                        if (window.productConfig && window.productConfig.shell === "assistant") {
+                        // Shell hand-off. The product still decides the default
+                        // (shell=assistant), but a per-browser choice stored by
+                        // Settings or an explicit ?shell= parameter can open the
+                        // classic window manager instead. This keeps one product
+                        // file for both modes.
+                        var shellQuery = new URLSearchParams(location.search).get("shell");
+                        var storedShell = "";
+                        try { storedShell = localStorage.getItem("gb-shell-override") || ""; } catch (e) { /* storage disabled */ }
+                        var requestedShell = (shellQuery === "desktop" || shellQuery === "assistant") ? shellQuery : storedShell;
+                        var productShell = (window.productConfig && window.productConfig.shell === "assistant") ? "assistant" : "desktop";
+                        var activeShell = (requestedShell === "desktop" || requestedShell === "assistant") ? requestedShell : productShell;
+                        if (activeShell === "assistant") {
                             location.replace("/suite/assistant/assistant.html" + location.search);
                             return;
                         }

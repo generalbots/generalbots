@@ -7,6 +7,8 @@
 (function () {
     var A = window.GBAssistant;
     var currentSection = "account";
+    var EXTRA_SECTIONS = [];
+    A.registerSettingsSection = function (section) { EXTRA_SECTIONS.push(section); };
 
     function esc(s) {
         return String(s == null ? "" : s)
@@ -28,7 +30,7 @@
             { id: "model",        icon: "cpu",      key: "settings.model" },
             { id: "shortcuts",    icon: "keyboard", key: "shortcut.title" },
             { id: "about",        icon: "info",     key: "settings.about" },
-        ];
+        ].concat(EXTRA_SECTIONS);
         var nav = '<nav class="gb-set-nav" role="tablist">';
         nav += '<button class="gb-set-back" id="gbSetBack" aria-label="' +
             esc(A.t("settings.back", "Back to conversation")) + '">' +
@@ -98,6 +100,7 @@
             shortcuts: renderShortcuts,
             about: renderAbout,
         };
+        EXTRA_SECTIONS.forEach(function (s) { renderers[s.id] = s.render; });
         var fn = renderers[id];
         if (fn) {
             /* Show a loading indicator; the renderer replaces it. */
