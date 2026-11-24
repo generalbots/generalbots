@@ -158,8 +158,10 @@ pub async fn track_api_call(
 
 pub async fn track_message(collector: &MetricsCollector, channel: String, user_id: String) {
     let mut labels = HashMap::new();
-    labels.insert("channel".to_string(), channel);
-    labels.insert("user_id".to_string(), user_id);
+    // #2459 — a raw user id in a label is both PII and unbounded cardinality.
+    // Keep the bounded channel token and hash the user into an opaque id.
+    labels.insert("channel".to_string(), sanitize_label(&channel));
+    labels.insert("user".to_string(), opaque_token("u", &user_id));
 
     collector
         .increment("messages.total".to_string(), labels)

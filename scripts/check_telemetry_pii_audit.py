@@ -231,6 +231,17 @@ def main() -> int:
                     "B5", f"{fn}() labels are sanitized via {needle}",
                     f"{COLLECT_REL}:{at}" if at else "")
 
+    # B6: the legacy track_message used to insert a raw user_id label.
+    msg_body, msg_at = block_after(collect, r"pub async fn track_message\s*\(")
+    require(
+        msg_body is not None
+        and 'opaque_token("u"' in msg_body
+        and 'labels.insert("user_id"'.replace('"','') not in msg_body.replace('"',''),
+        "B6",
+        "track_message() hashes the user id and never emits a raw user_id label",
+        f"{COLLECT_REL}:{msg_at}" if msg_at else "",
+    )
+
     # --- C. failures are logged or surfaced, never silently swallowed ---------
     if perf is not None:
         mark_catch = re.search(r"perf\.mark\(name\);[\s\S]{0,60}?catch", perf)
