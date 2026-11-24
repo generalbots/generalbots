@@ -196,7 +196,7 @@ test("toNumber treats a trailing decimal comma as the decimal mark (regression #
   equal(C.toNumber("1.234,50"), 1234.5);
 });
 
-test("columnTypes reads the saved mapping and falls back per column", function () {
+test("[UAT:DB-02] columnTypes reads the saved mapping and falls back per column (partial: column type mapping only)", function () {
   g.reset();
   g.seed();
   deep(C.columnTypes(C.state(), "stmt"),

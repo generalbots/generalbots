@@ -6,7 +6,7 @@ h.test("NOTES: files exist", function () {
   h.assert(h.fileExists("notes/notes.html"), "notes.html missing");
 });
 
-h.test("NOTES: mounts after load (readyState complete)", function () {
+h.test("[UAT:NOTE-01] NOTES: mounts after load (readyState complete) (partial: notes board mounts only)", function () {
   var src = h.readFile("notes/notes.js");
   h.assert(/readyState/.test(src), "notes.js missing readyState guard");
   var doc = h.makeDocument({ readyState: "complete", ids: ["gb-notes", "notesAdd", "notesCount", "notesBoard"] });

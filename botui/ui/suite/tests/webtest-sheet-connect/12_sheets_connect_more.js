@@ -88,7 +88,7 @@ test("params reset restores every default through its shipped button", function 
 });
 
 // ----------------------------------------------------------------- refresh
-test("refresh time and status formatting are deterministic", function () {
+test("[UAT:CODE-10] refresh time and status formatting are deterministic (partial: schedule frequency and next-run time only)", function () {
   deep(R.FREQUENCIES.map(function (f) { return f.value; }), ["daily", "weekly", "monthly"]);
   equal(R.shortTime("2026-03-01T06:00:00.000Z"), "2026-03-01 06:00");
   equal(R.shortTime(null), "");

@@ -160,7 +160,7 @@ test("RUNTIME #2485: tab activation swaps sections and renders pages/results", f
   assert(sections[2].innerHTML.indexOf("[comments] second hit") >= 0, "scope label shown for comments");
 });
 
-test("RUNTIME #2485: heading rows carry indentation, stable targets and click-to-jump", function () {
+test("[UAT:DOC-04] RUNTIME #2485: heading rows carry indentation, stable targets and click-to-jump (partial: heading-list click-to-jump step only)", function () {
   var fx = fixture();
   var NS = fx.NS;
   var art = article(fx, "<rows>");
