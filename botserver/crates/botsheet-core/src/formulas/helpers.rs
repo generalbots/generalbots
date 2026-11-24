@@ -20,11 +20,11 @@ pub fn format_number(num: f64) -> String {
 pub fn resolve_cell_value(value: &str, worksheet: &Worksheet) -> String {
     if let Some((row, col)) = parse_cell_ref(value) {
         let key = format!("{},{}", row, col);
-        worksheet
-            .data
-            .get(&key)
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default()
+        // Unset cell or empty value is an ordinary blank cell.
+        match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
+            Some(value) => value,
+            None => String::new(),
+        }
     } else {
         value.to_string()
     }

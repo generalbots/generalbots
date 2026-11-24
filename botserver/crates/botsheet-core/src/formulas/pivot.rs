@@ -28,7 +28,13 @@ pub fn evaluate_groupby(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let mut out: Vec<String> = Vec::new();
     for (key, indices) in &groups {
         let vals: Vec<f64> = indices.iter().filter_map(|&i| {
-            let nums: Vec<f64> = row_data.chunks(2).nth(i).map(|c| c.iter().filter_map(|s| s.parse().ok()).collect()).unwrap_or_default();
+            let nums: Vec<f64> = match row_data.chunks(2).nth(i) {
+                Some(c) => c.iter().filter_map(|s| s.parse().ok()).collect(),
+                None => {
+                    log::warn!("GROUPBY group index {i} is outside the row data");
+                    Vec::new()
+                }
+            };
             nums.first().copied()
         }).collect();
         let agg_val = match agg.as_str() {

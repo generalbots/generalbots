@@ -66,12 +66,16 @@ fn value_to_string_vec(v: &serde_json::Value) -> Vec<String> {
             .iter()
             .flat_map(|item| value_to_string_vec(item))
             .collect(),
-        serde_json::Value::Object(map) => map
-            .get("field")
-            .or_else(|| map.get("name"))
-            .and_then(|x| x.as_str())
-            .map(|s| vec![s.trim().to_string()])
-            .unwrap_or_default(),
+        serde_json::Value::Object(map) => {
+            match map
+                .get("field")
+                .or_else(|| map.get("name"))
+                .and_then(|x| x.as_str())
+            {
+                Some(s) => vec![s.trim().to_string()],
+                None => Vec::new(),
+            }
+        }
         _ => Vec::new(),
     }
 }

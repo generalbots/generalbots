@@ -284,7 +284,11 @@ fn collect_rows(range: &str, worksheet: &Worksheet) -> Vec<Vec<String>> {
             for c in start.1..=end.1 {
                 let key = format!("{},{}", r, c);
                 if let Some(cell) = worksheet.data.get(&key) {
-                    row.push(cell.value.clone().unwrap_or_default());
+                    let value = match cell.value.as_deref() {
+                        Some(value) => value.to_string(),
+                        None => String::new(),
+                    };
+                    row.push(value);
                 } else {
                     row.push(String::new());
                 }
@@ -305,7 +309,11 @@ fn collect_cols(range: &str, worksheet: &Worksheet) -> Vec<Vec<String>> {
             for r in start.0..=end.0 {
                 let key = format!("{},{}", r, c);
                 if let Some(cell) = worksheet.data.get(&key) {
-                    col.push(cell.value.clone().unwrap_or_default());
+                    let value = match cell.value.as_deref() {
+                        Some(value) => value.to_string(),
+                        None => String::new(),
+                    };
+                    col.push(value);
                 } else {
                     col.push(String::new());
                 }

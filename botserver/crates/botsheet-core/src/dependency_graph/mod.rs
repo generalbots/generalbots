@@ -121,6 +121,16 @@ mod tests {
     use crate::types::CellData;
     use std::collections::HashMap;
 
+    fn serialized(w: &Worksheet) -> String {
+        match serde_json::to_string(w) {
+            Ok(json) => json,
+            Err(e) => {
+                log::warn!("worksheet serialization failed in audit test: {e}");
+                String::new()
+            }
+        }
+    }
+
     fn cell(formula: Option<&str>) -> CellData {
         CellData {
             value: None,
@@ -413,7 +423,7 @@ mod tests {
     #[test]
     fn audit_queries_are_read_only_on_shared_worksheet() {
         let w = ws(&[("0,0", "=5"), ("0,1", "=A1+1"), ("0,2", "=B1+1")]);
-        let before = serde_json::to_string(&w).unwrap_or_default();
+        let before = serialized(&w);
         let sheet: &Worksheet = &w;
         let graph = build_dependency_graph(sheet);
         let cycles = find_cycles(sheet);
@@ -422,7 +432,7 @@ mod tests {
         assert_eq!(order.len(), 3);
         assert!(cycles.is_empty());
         assert_eq!(refs.len(), 2);
-        assert_eq!(serde_json::to_string(&w).unwrap_or_default(), before);
+        assert_eq!(serialized(&w), before);
         assert_eq!(
             w.data.get("0,1").and_then(|c| c.formula.as_deref()),
             Some("=A1+1")

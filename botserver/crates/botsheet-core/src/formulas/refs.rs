@@ -263,11 +263,10 @@ pub fn get_range_string_values(range: &str, worksheet: &Worksheet) -> Vec<String
         for col in start.1..=end.1 {
             key.clear();
             let _ = write!(&mut key, "{},{}", row, col);
-            let value = worksheet
-                .data
-                .get(&key)
-                .and_then(|c| c.value.clone())
-                .unwrap_or_default();
+            let value = match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
+                Some(value) => value,
+                None => String::new(),
+            };
             values.push(value);
         }
     }

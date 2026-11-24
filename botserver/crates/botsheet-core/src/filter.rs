@@ -67,7 +67,11 @@ fn is_inert(config: &FilterConfig) -> bool {
 
 /// Whether a row's cell passes every clause of one column filter.
 fn row_passes(config: &FilterConfig, cell: Option<CellValue>) -> bool {
-    let display = cell.as_ref().map(|c| c.display()).unwrap_or_default();
+    // A missing cell is an ordinary blank cell: stay silent, but explicit.
+    let display = match cell.as_ref() {
+        Some(c) => c.display(),
+        None => String::new(),
+    };
 
     if !config.values.is_empty() {
         let matched = config
@@ -155,12 +159,13 @@ fn compare_by_value(
     };
     let cell_num = match cell {
         Some(CellValue::Number(n)) => Some(*n),
-        _ => cell
-            .map(|c| c.display())
-            .unwrap_or_default()
-            .trim()
-            .parse::<f64>()
-            .ok(),
+        _ => {
+            let text = match cell {
+                Some(c) => c.display(),
+                None => String::new(),
+            };
+            text.trim().parse::<f64>().ok()
+        }
     };
     if let (Some(a), Some(b)) = (cell_num, expected.trim().parse::<f64>().ok()) {
         return match mode {
@@ -170,11 +175,11 @@ fn compare_by_value(
             NumericCompare::Lte => a <= b,
         };
     }
-    let a = cell
-        .map(|c| c.display())
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase();
+    let text = match cell {
+        Some(c) => c.display(),
+        None => String::new(),
+    };
+    let a = text.trim().to_ascii_lowercase();
     let b = expected.trim().to_ascii_lowercase();
     match mode {
         NumericCompare::Gt => a > b,

@@ -21,24 +21,21 @@ pub fn evaluate_vlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let (start, end) = parse_range(table_range).map(|(s, e)| clamp_range(s, e, worksheet))?;
     for row in start.0..=end.0 {
         let key = format!("{},{}", row, start.1);
-        let cell_value = worksheet
-            .data
-            .get(&key)
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default();
+        let cell_value = match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
+            Some(value) => value,
+            None => String::new(),
+        };
         if cell_value.eq_ignore_ascii_case(lookup_value) {
             let result_col = start.1.checked_add(col_offset)?;
             if result_col > end.1 {
                 return Some("#REF!".to_string());
             }
             let result_key = format!("{},{}", row, result_col);
-            return Some(
-                worksheet
-                    .data
-                    .get(&result_key)
-                    .and_then(|c| c.value.clone())
-                    .unwrap_or_default(),
-            );
+            let result = match worksheet.data.get(&result_key).and_then(|c| c.value.clone()) {
+                Some(value) => value,
+                None => String::new(),
+            };
+            return Some(result);
         }
     }
     Some("#N/A".to_string())
@@ -62,24 +59,21 @@ pub fn evaluate_hlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let (start, end) = parse_range(table_range).map(|(s, e)| clamp_range(s, e, worksheet))?;
     for col in start.1..=end.1 {
         let key = format!("{},{}", start.0, col);
-        let cell_value = worksheet
-            .data
-            .get(&key)
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default();
+        let cell_value = match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
+            Some(value) => value,
+            None => String::new(),
+        };
         if cell_value.eq_ignore_ascii_case(lookup_value) {
             let result_row = start.0.checked_add(row_offset)?;
             if result_row > end.0 {
                 return Some("#REF!".to_string());
             }
             let result_key = format!("{},{}", result_row, col);
-            return Some(
-                worksheet
-                    .data
-                    .get(&result_key)
-                    .and_then(|c| c.value.clone())
-                    .unwrap_or_default(),
-            );
+            let result = match worksheet.data.get(&result_key).and_then(|c| c.value.clone()) {
+                Some(value) => value,
+                None => String::new(),
+            };
+            return Some(result);
         }
     }
     Some("#N/A".to_string())
@@ -107,13 +101,11 @@ pub fn evaluate_index_match(expr: &str, worksheet: &Worksheet) -> Option<String>
     let target_row = start.0.checked_add(row_num.checked_sub(1)?)?;
     let target_col = start.1.checked_add(col_num.checked_sub(1)?)?;
     let key = format!("{target_row},{target_col}");
-    Some(
-        worksheet
-            .data
-            .get(&key)
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default(),
-    )
+    let result = match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
+        Some(value) => value,
+        None => String::new(),
+    };
+    Some(result)
 }
 
 

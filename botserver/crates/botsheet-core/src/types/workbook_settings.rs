@@ -265,11 +265,16 @@ fn settings_from_value(value: serde_json::Value) -> WorkbookSettings {
     let Some(object) = value.as_object() else {
         return WorkbookSettings::default();
     };
-    object
+    // Older documents have no `settings` key; defaults are the documented fallback.
+    let fallback = WorkbookSettings::default();
+    let settings = match object
         .get("settings")
         .and_then(|raw| serde_json::from_value::<WorkbookSettings>(raw.clone()).ok())
-        .unwrap_or_default()
-        .normalized()
+    {
+        Some(settings) => settings,
+        None => fallback,
+    };
+    settings.normalized()
 }
 
 /// Writes `settings` into a persisted workbook JSON document without changing
@@ -296,7 +301,13 @@ mod tests {
 
     #[test]
     fn wire_shape_matches_the_preview() {
-        let json = serde_json::to_string(&WorkbookSettings::default()).unwrap_or_default();
+        let json = match serde_json::to_string(&WorkbookSettings::default()) {
+            Ok(json) => json,
+            Err(e) => {
+                log::warn!("serializing default workbook settings failed: {e}");
+                String::new()
+            }
+        };
         for key in [
             "version",
             "localOnly",
@@ -323,8 +334,20 @@ mod tests {
                 separators: locale.separators(),
                 ..WorkbookSettings::default()
             };
-            let json = serde_json::to_string(&settings).unwrap_or_default();
-            let back: WorkbookSettings = serde_json::from_str(&json).unwrap_or_default();
+            let json = match serde_json::to_string(&settings) {
+                Ok(json) => json,
+                Err(e) => {
+                    log::warn!("serializing workbook settings failed: {e}");
+                    String::new()
+                }
+            };
+            let back: WorkbookSettings = match serde_json::from_str(&json) {
+                Ok(settings) => settings,
+                Err(e) => {
+                    log::warn!("deserializing workbook settings failed: {e}");
+                    WorkbookSettings::default()
+                }
+            };
             assert_eq!(back.locale, locale);
             assert_eq!(back.separators, locale.separators());
             assert_eq!(back.locale.as_str(), locale.as_str());
@@ -350,9 +373,16 @@ mod tests {
             },
             ..WorkbookSettings::default()
         };
-        let embedded =
-            embed_settings_in_workbook_json(r#"{"id":"s1","name":"Book"}"#, &settings)
-                .unwrap_or_default();
+        let embedded = match embed_settings_in_workbook_json(
+            r#"{"id":"s1","name":"Book"}"#,
+            &settings,
+        ) {
+            Ok(json) => json,
+            Err(e) => {
+                log::warn!("embedding workbook settings failed: {e}");
+                String::new()
+            }
+        };
         let restored = settings_from_workbook_json(&embedded);
         assert_eq!(restored, settings);
         assert_eq!(restored.date_system.as_str(), "1904");

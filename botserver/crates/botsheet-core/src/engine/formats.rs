@@ -221,10 +221,15 @@ fn split_currency(code: &str) -> Option<(String, String)> {
     }
     for sym in ["R$ ", "R$", "$ ", "$", "€ ", "€", "£ ", "£"] {
         if code.starts_with(sym) {
-            return Some((
-                sym.trim_end().to_string(),
-                code.strip_prefix(sym).unwrap_or_default().to_string(),
-            ));
+            // `starts_with` guarantees the prefix: absence here is unexpected.
+            let rest = match code.strip_prefix(sym) {
+                Some(rest) => rest,
+                None => {
+                    log::warn!("currency prefix {sym} vanished after starts_with check");
+                    ""
+                }
+            };
+            return Some((sym.trim_end().to_string(), rest.to_string()));
         }
     }
     None

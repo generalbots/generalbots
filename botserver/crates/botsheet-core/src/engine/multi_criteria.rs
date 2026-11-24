@@ -105,7 +105,10 @@ fn range_cells(
                 cells.push((String::new(), None));
                 continue;
             };
-            let text = cell.value.clone().unwrap_or_default();
+            let text = match cell.value.as_deref() {
+                Some(value) => value.to_string(),
+                None => String::new(),
+            };
             let number = cell
                 .typed
                 .as_ref()
@@ -139,7 +142,10 @@ fn criterion_text(worksheets: &[Worksheet], arg: &str, current: usize) -> String
         if let Some(worksheet) = worksheet_for(worksheets, sheet.as_deref(), current) {
             let key = format!("{row},{col}");
             if let Some(cell) = worksheet.data.get(&key) {
-                return cell.value.clone().unwrap_or_default();
+                return match cell.value.as_deref() {
+                    Some(value) => value.to_string(),
+                    None => String::new(),
+                };
             }
         }
     }

@@ -85,8 +85,15 @@ fn filter_matches(values: &[String], cond: &str, worksheet: &Worksheet) -> Vec<b
         };
         return (0..n)
             .map(|i| {
-                let l = lefts.get(i).cloned().unwrap_or_default();
-                let r = rights.get(i).cloned().unwrap_or_default();
+                // A criterion range may be shorter than the filtered range.
+                let l = match lefts.get(i) {
+                    Some(value) => value.clone(),
+                    None => String::new(),
+                };
+                let r = match rights.get(i) {
+                    Some(value) => value.clone(),
+                    None => String::new(),
+                };
                 compare_text(&l, op, &r)
             })
             .collect();

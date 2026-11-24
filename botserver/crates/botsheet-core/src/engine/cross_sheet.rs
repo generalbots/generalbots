@@ -94,13 +94,12 @@ fn resolve_sheet_token(
     }
     let (row, col) = parse_cell_ref(cell_tok)?;
     let key = format!("{row},{col}");
-    Some(
-        target
-            .data
-            .get(&key)
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default(),
-    )
+    // A blank target cell is normal; keep the empty-text fallback explicit.
+    let text = match target.data.get(&key).and_then(|c| c.value.clone()) {
+        Some(value) => value,
+        None => String::new(),
+    };
+    Some(text)
 }
 
 /// Pre-aggregates a rectangular range on the target worksheet to a single

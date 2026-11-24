@@ -160,7 +160,11 @@ fn resolve_labels(
         for col in c0..=c1 {
             let key = format!("{row},{col}");
             if let Some(cell) = worksheet.data.get(&key) {
-                labels.push(cell.value.clone().unwrap_or_default());
+                let label = match cell.value.as_deref() {
+                    Some(value) => value.to_string(),
+                    None => String::new(),
+                };
+                labels.push(label);
             }
         }
     }
@@ -179,11 +183,15 @@ fn resolve_chart(worksheets: &[Worksheet], chart: &ChartConfig, fallback: usize)
         .filter_map(|token| parse_range_token(token))
         .map(|(sheet, r0, c0, r1, c1)| resolve_numbers(worksheets, &sheet, (r0, c0, r1, c1), fallback))
         .collect();
-    let labels = split_range_tokens(&chart.label_range)
+    let resolved = split_range_tokens(&chart.label_range)
         .first()
         .and_then(|token| parse_range_token(token))
-        .map(|(sheet, r0, c0, r1, c1)| resolve_labels(worksheets, &sheet, (r0, c0, r1, c1), fallback))
-        .unwrap_or_default();
+        .map(|(sheet, r0, c0, r1, c1)| resolve_labels(worksheets, &sheet, (r0, c0, r1, c1), fallback));
+    // A chart without a label range legitimately has no labels.
+    let labels = match resolved {
+        Some(labels) => labels,
+        None => Vec::new(),
+    };
     ResolvedChart { series, labels }
 }
 

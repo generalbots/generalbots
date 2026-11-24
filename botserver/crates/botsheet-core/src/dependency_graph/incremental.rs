@@ -344,7 +344,13 @@ mod tests {
     #[test]
     fn cached_graph_queries_do_not_mutate_worksheet_or_graph() {
         let w: Worksheet = ws(&[("0,0", "=5"), ("0,1", "=A1+1"), ("0,2", "=B1+1")]);
-        let before = serde_json::to_string(&w).unwrap_or_default();
+        let before = match serde_json::to_string(&w) {
+            Ok(json) => json,
+            Err(e) => {
+                log::warn!("worksheet serialization failed before graph build: {e}");
+                String::new()
+            }
+        };
         let built = DepGraph::build(&w);
         let g: &DepGraph = &built;
         let order = collect_dependents(&[(0, 0)], &g.dependents);
@@ -352,6 +358,13 @@ mod tests {
         assert_eq!(order, vec![(0, 0), (0, 1), (0, 2)]);
         assert!(cycles.is_empty());
         assert!(g.cycles().is_empty());
-        assert_eq!(serde_json::to_string(&w).unwrap_or_default(), before);
+        let after = match serde_json::to_string(&w) {
+            Ok(json) => json,
+            Err(e) => {
+                log::warn!("worksheet serialization failed after graph queries: {e}");
+                String::new()
+            }
+        };
+        assert_eq!(after, before);
     }
 }

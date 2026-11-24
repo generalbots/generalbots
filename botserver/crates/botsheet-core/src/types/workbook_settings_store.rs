@@ -29,13 +29,17 @@ pub fn set_workbook_settings(sheet_id: &str, settings: WorkbookSettings) {
 
 /// Returns cached settings, or the defaults for a workbook never opened here.
 pub fn workbook_settings(sheet_id: &str) -> WorkbookSettings {
+    // A workbook never opened here legitimately has no cached settings.
+    let fallback = WorkbookSettings::default();
     match settings_store().read() {
-        Ok(store) => store.get(sheet_id).copied().unwrap_or_default(),
-        Err(poisoned) => poisoned
-            .into_inner()
-            .get(sheet_id)
-            .copied()
-            .unwrap_or_default(),
+        Ok(store) => match store.get(sheet_id) {
+            Some(settings) => *settings,
+            None => fallback,
+        },
+        Err(poisoned) => match poisoned.into_inner().get(sheet_id) {
+            Some(settings) => *settings,
+            None => fallback,
+        },
     }
 }
 
