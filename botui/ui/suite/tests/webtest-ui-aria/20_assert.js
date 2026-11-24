@@ -22,6 +22,10 @@ var metrics = require("./10_scan").metrics;
  * silently:
  *   +1 HTML / +3 JS (+4 files): Protection tab, docs dark-skin and sheet/docs VM
  *     fixes plus security-hardening modules landed after the prior lock.
+ * #2448/assistant-parity + OS settings relock: upstream added 7 files
+ * (+7 JS, 0 HTML) with new announcement/status regions, i18n attrs and gbT
+ * calls. EVERY counter increased or stayed equal; none decreased, so no
+ * a11y fixture or announcement was removed. The four documented gaps stay.
  *   +3 aria-live mentions/declarations (+3 polite), +3 role=status, +1 file:
  *     new status/announcement regions in the events/approvals/protection code.
  *   +10 data-i18n attrs / +1 HTML: localized Protection tab partial.
@@ -33,29 +37,29 @@ var metrics = require("./10_scan").metrics;
  * a11y fixture was dropped; the four documented gaps stay explicitly reported.
  */
 var EXPECTED = {
-  filesScanned: 1576,
+  filesScanned: 1583,
   htmlFiles: 215,
-  jsFiles: 1361,
+  jsFiles: 1368,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 717,
-  ariaLiveFiles: 247,
-  ariaLiveDeclarations: 671,
-  livePolite: 601,
+  ariaLiveMentions: 722,
+  ariaLiveFiles: 251,
+  ariaLiveDeclarations: 676,
+  livePolite: 606,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 538,
+  roleStatus: 542,
   roleAlert: 106,
   roleLog: 12,
-  roleStatusAlertFiles: 248,
-  dataI18nAttrs: 5865,
+  roleStatusAlertFiles: 252,
+  dataI18nAttrs: 5872,
   htmlWithI18n: 204,
-  gbTCalls: 378, // relock note above: -1 from prior lock, see e216103e1
-  jsWithGbt: 123,
-  dynamicWrites: 4290,
-  writesInRegionFiles: 1222,
-  writesOutsideRegionFiles: 3068,
-  filesWithWritesNoRegion: 612,
+  gbTCalls: 387, // relock note above: -1 from prior lock, see e216103e1
+  jsWithGbt: 124,
+  dynamicWrites: 4324,
+  writesInRegionFiles: 1249,
+  writesOutsideRegionFiles: 3075,
+  filesWithWritesNoRegion: 614,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
