@@ -37,13 +37,14 @@
                 '<span class="gb-drv-tab-label">' + esc(label) + '</span>' + (icon ? "" : '<span class="gb-drv-count"></span>') + '</button>';
         }
         var myFiles = t("drive.my-files", "My files"), attachments = t("drive.chat-attachments", "Conversation attachments");
+        var convFiles = t("drive.conversation-files", "Conversation files");
         var colLabel = function (key, fallback) { return esc(t(key, fallback).toUpperCase()); };
         var sortArrow = '<span class="gb-drv-sort-arrow">' + D.svg(P.sort, 10, 3, "square") + '</span>';
         container.innerHTML =
             '<div class="gb-drv-header">' +
                 '<div class="gb-drv-heading"><span class="gb-drv-eyebrow"><span class="gb-drv-slash">//</span>DRIVE</span>' +
                 '<h1 class="gb-drv-title">' + (portuguese ? "Seus arquivos, neste computador." : "Your files, on this computer.") + '</h1></div>' +
-                '<div class="gb-drv-tabs" id="gbDrvTabs">' + tab("files", myFiles) + tab("inbox", attachments) + '</div>' +
+                '<div class="gb-drv-tabs" id="gbDrvTabs">' + tab("files", myFiles) + tab("inbox", attachments) + tab("conversations", convFiles) + '</div>' +
             '</div>' +
             '<div class="gb-drv-panel">' +
             '<div class="gb-drv-toolbar" id="gbDrvToolbar">' +
@@ -77,7 +78,7 @@
 
         var rail = document.getElementById("gbDriveNav");
         if (rail) {
-            rail.innerHTML = '<span class="gb-strip">DRIVE</span>' + tab("files", myFiles, P.folder) + tab("inbox", attachments, P.clip) +
+            rail.innerHTML = '<span class="gb-strip">DRIVE</span>' + tab("files", myFiles, P.folder) + tab("inbox", attachments, P.clip) + tab("conversations", convFiles, P.folder) +
                 '<div class="gb-drv-rail-folders" id="gbDrvRailFolders" hidden></div>';
             rail.onclick = switchTab;
         }
@@ -87,12 +88,15 @@
             var tab = event.target.closest("[data-tab]");
             if (!tab || tab.getAttribute("aria-pressed") === "true") return;
             var inbox = tab.dataset.tab === "inbox";
+            var convs = tab.dataset.tab === "conversations";
+            D.convMode = convs;
             clearTimeout(debounce);
             searchInput.value = "";
             D.searching = false;
             D.selected = null;
             D.path = "";
-            container.classList.toggle("gb-drv-inbox", inbox);
+            container.classList.toggle("gb-drv-inbox", inbox || convs);
+            container.classList.toggle("gb-drv-convs", convs);
             [tabsEl, rail].filter(Boolean).forEach(function (group) {
                 group.querySelectorAll("[data-tab]").forEach(function (button) {
                     var active = button.dataset.tab === tab.dataset.tab;
@@ -100,7 +104,9 @@
                     button.setAttribute("aria-pressed", String(active));
                 });
             });
-            if (inbox) {
+            if (convs) {
+                D.loadConversationFiles();
+            } else if (inbox) {
                 D.loadInboxFiles();
             } else {
                 D.inboxMode = false;

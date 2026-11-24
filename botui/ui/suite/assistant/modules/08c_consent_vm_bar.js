@@ -107,19 +107,24 @@
     /* ---- Conversations with a card waiting ---- */
     function markRows() {
         var waiting = A.pendingConsentThreads ? A.pendingConsentThreads() : {};
-        var label = A.t("assistant.vm-waiting-row", "Aguardando sua permissão");
+        var labels = {
+            wait: A.t("assistant.vm-waiting-row", "Aguardando sua permissão"),
+            open: A.t("assistant.consent-open-row", "Pedido em aberto")
+        };
         document.querySelectorAll("#gbConversations .gb-conv-item[data-session-id]").forEach(function (row) {
-            var on = !!waiting[row.getAttribute("data-session-id")];
+            var state = waiting[row.getAttribute("data-session-id")];
+            var label = state ? labels[state] || labels.wait : "";
             var mark = row.querySelector(".gb-conv-wait");
-            if (on === !!mark && row.classList.contains("gb-conv-item--waiting") === on) { return; }
-            row.classList.toggle("gb-conv-item--waiting", on);
-            if (!on) { if (mark) { mark.remove(); } return; }
+            row.classList.toggle("gb-conv-item--waiting", state === "wait");
+            row.classList.toggle("gb-conv-item--open-request", state === "open");
+            if (!state) { if (mark) { mark.remove(); } return; }
             if (!mark) {
                 mark = document.createElement("span");
                 mark.className = "gb-conv-wait";
-                mark.textContent = label;
                 (row.querySelector(".gb-conv-item-text") || row).appendChild(mark);
             }
+            if (mark.textContent !== label) { mark.textContent = label; }
+            mark.dataset.state = state;
         });
     }
 

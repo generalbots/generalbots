@@ -211,8 +211,19 @@ function showRun(run) {
         var slot = slots.length ? slots[slots.length - 1] : null;
         if (slot && slot.parentNode) { slot.parentNode.insertBefore(run.el, slot); } else { place(run.el); }
     }
+    run.el._gbRun = run;
     paintRun(run);
 }
+
+/* A finished run whose answer arrives later with a file link: the header
+   is read again once (18_file_panel.js calls this). */
+A.repaintRunsIn = function (root) {
+    (root || document).querySelectorAll(".gb-block[data-run-id]").forEach(function (el) {
+        if (!el._gbRun || el.dataset.fileSeen === "1" || !answerHasFile(el)) { return; }
+        el.dataset.fileSeen = "1";
+        paintRun(el._gbRun);
+    });
+};
 
 function shown(run) { return run.steps.filter(function (s) { return !s.quiet; }); }
 
@@ -223,10 +234,40 @@ function wakeStep(run, step) {
     run.vm = true;
 }
 
+/* A step that failed and was followed by a later action that worked was
+   corrected within the run (a retried command, a repaired program). */
+var ACTION_STEPS = { vm_action: 1, execute: 1, repair: 1, package_install: 1, save: 1, publish: 1 };
+function fixedSteps(steps) {
+    var fixed = {};
+    steps.forEach(function (s, i) {
+        if (s.state !== "failed" || s.denied) { return; }
+        for (var j = i + 1; j < steps.length; j++) {
+            if (steps[j].state === "ok" && ACTION_STEPS[steps[j].key]) { fixed[s.id] = true; return; }
+        }
+    });
+    return fixed;
+}
+
+/* The answer of this run links a file it made. */
+function answerHasFile(el) {
+    var node = el.closest(".gb-msg-assistant") || el.closest(".gb-block-stack");
+    var sel = 'a[href^="vmfile:"]';
+    if (!node) { return false; }
+    if (node.querySelector(sel)) { return true; }
+    for (var n = node.nextElementSibling; n && !n.classList.contains("gb-msg-user"); n = n.nextElementSibling) {
+        if (n.querySelector(sel)) { return true; }
+    }
+    return false;
+}
+
 function paintRun(run) {
     var steps = shown(run);
     var done = steps.filter(function (s) { return s.state !== "running"; }).length;
-    var failed = steps.some(function (s) { return s.state === "failed"; }) || run.ok === false;
+    var fixed = fixedSteps(steps);
+    var saved = steps.some(function (s) { return s.state === "ok" && s.files && s.files.length; }) || answerHasFile(run.el);
+    /* The header tells the outcome: a run that recovered and saved its file
+       succeeded; the corrected step keeps its own mark in the list. */
+    var failed = steps.some(function (s) { return s.state === "failed" && !fixed[s.id]; }) || (run.ok === false && !saved);
     var current = steps.filter(function (s) { return s.waiting && s.state === "running"; })[0] ||
         steps.filter(function (s) { return s.state === "running"; })[0];
     var status = failed ? "failed" : (!current && run.ok !== null ? "done" : "running");
@@ -263,8 +304,10 @@ function paintRun(run) {
     var pct = steps.length ? Math.round(done * 100 / steps.length) : 0;
     el.querySelector(".gb-block-body").innerHTML = '<div class="gb-block-list">' + steps.map(function (s) {
         var mark = s.state === "ok" ? "✓" : (s.state === "failed" ? "✕" : "");
-        return '<div class="gb-run-step gb-run-step--' + s.state + '"><span class="gb-run-mark" aria-hidden="true">' + mark + '</span>' +
-            '<span class="gb-run-label">' + esc(stepLabel(s)) + '</span>' +
+        return '<div class="gb-run-step gb-run-step--' + s.state + (fixed[s.id] ? " gb-run-step--fixed" : "") +
+            '"><span class="gb-run-mark" aria-hidden="true">' + mark + '</span>' +
+            '<span class="gb-run-label">' + esc(stepLabel(s)) +
+            (fixed[s.id] ? ' <span class="gb-run-fixed">' + esc(t("corrigido", "fixed")) + '</span>' : '') + '</span>' +
             '<span class="gb-run-time">' + (s.ms != null ? esc(Math.max(1, Math.round(s.ms / 1000)) + " s") : "") + '</span></div>' + vm().extra(s);
     }).join("") +
         '<div class="gb-run-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="' +

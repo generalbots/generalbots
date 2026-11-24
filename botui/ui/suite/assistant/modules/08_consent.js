@@ -303,11 +303,14 @@
         drop(id);
     };
 
-    /* Conversations with a card still waiting for an answer. */
+    /* Conversations with a card still waiting for an answer, and how. */
     A.pendingConsentThreads = function () {
         var threads = {};
         cards.forEach(function (card) {
-            if (!card.classList.contains("gb-consent-resolved")) { threads[card.dataset.threadId] = true; }
+            if (card.classList.contains("gb-consent-resolved")) { return; }
+            /* "wait": a turn is paused on it; "open": an offer after the turn. */
+            var id = card.dataset.threadId;
+            threads[id] = card.dataset.blocking === "1" || threads[id] === "wait" ? "wait" : "open";
         });
         return threads;
     };

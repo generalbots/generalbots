@@ -1,0 +1,73 @@
+/* assistant-files.css - Generated-file links, the file panel (18_file_panel.js),
+   the Drive tab "Arquivos das conversas" (06d) and the corrected run step. */
+
+/* == A generated file in an answer reads as a file, not a web link == */
+a.gb-file-link, a[href^="vmfile:"] {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+    padding: 2px 9px 2px 7px; border: 1px solid var(--id-line); border-radius: var(--id-radius-control);
+    background: var(--id-surface-solid); color: var(--id-ink); text-decoration: none;
+    font-weight: 600; font-size: .92em; line-height: 1.6; vertical-align: baseline; cursor: pointer;
+    overflow-wrap: anywhere;
+}
+a.gb-file-link::before, a[href^="vmfile:"]::before {
+    content: ""; flex: none; width: 12px; height: 14px; border: 1.5px solid var(--id-accent-text);
+    border-radius: 2px 5px 2px 2px; opacity: .85;
+}
+a.gb-file-link:hover, a[href^="vmfile:"]:hover { border-color: var(--id-accent); background: var(--id-accent-soft); }
+a.gb-file-link:focus-visible, a[href^="vmfile:"]:focus-visible { outline: 2px solid var(--id-focus, var(--id-accent)); outline-offset: 2px; }
+
+/* == File panel == */
+.gb-file-panel { width: 420px; }
+.gb-file-panel-open .gb-chat-view { margin-right: 420px; }
+.gb-file-panel-open .gb-drive-view, .gb-file-panel-open #gbDriveView { margin-right: 420px; }
+.gb-file-panel .gb-attach-panel-header { align-items: flex-start; padding: 12px 14px; }
+.gb-file-icon { flex: none; display: inline-flex; padding-top: 2px; color: var(--id-accent-text); }
+.gb-file-head { flex: 1; min-width: 0; }
+.gb-file-panel .gb-attach-panel-title { display: block; margin: 0; font-size: var(--id-text-sm); line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.gb-file-meta { margin: 3px 0 0; font-size: var(--id-text-xs); color: var(--id-muted); line-height: 1.4; }
+.gb-file-preview { flex: 1; min-height: 0; overflow: auto; padding: 12px; background: var(--id-paper, var(--id-surface-solid)); }
+.gb-file-preview--pdf, .gb-file-preview--office { padding: 0; display: flex; }
+.gb-file-frame { flex: 1; width: 100%; height: 100%; min-height: 320px; border: 0; background: var(--id-surface-solid); }
+.gb-file-img { display: block; max-width: 100%; margin: 0 auto; border-radius: var(--id-radius-control); }
+.gb-file-text { margin: 0; font: 12px/1.6 var(--id-font-mono, monospace); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--id-ink); }
+.gb-file-md { font-size: var(--id-text-sm); line-height: 1.6; color: var(--id-ink); }
+.gb-file-preview--notice { display: flex; align-items: center; justify-content: center; }
+.gb-file-notice { max-width: 300px; text-align: center; color: var(--id-muted); font-size: var(--id-text-sm); line-height: 1.55; }
+.gb-file-notice p { margin: 10px 0 0; }
+.gb-file-actions { flex: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--id-line); }
+.gb-file-actions .gb-block-btn { display: inline-flex; align-items: center; gap: 6px; }
+.gb-file-actions .gb-block-btn:disabled { cursor: default; opacity: .6; }
+.gb-file-actions .gb-file-saved:disabled { opacity: 1; color: var(--id-success-text); border-color: var(--id-success-line); background: var(--id-success-soft); }
+.gb-file-status { flex: none; margin: 0; padding: 0 14px 10px; font-size: var(--id-text-xs); color: var(--id-muted); overflow-wrap: anywhere; }
+.gb-file-status:empty { display: none; }
+.gb-file-status[data-kind="error"] { color: var(--id-danger-text); }
+@media (max-width: 900px) {
+    .gb-file-panel { width: 100%; }
+    .gb-file-panel-open .gb-chat-view, .gb-file-panel-open #gbDriveView { margin-right: 0; }
+}
+
+/* == Drive: conversation files, grouped == */
+.gb-drv-tabs { grid-template-columns: repeat(3, auto); }
+@media (max-width: 1100px) { .gb-file-panel-open .gb-drv-tabs { grid-template-columns: auto; } }
+@media (max-width: 640px) { .gb-drv-tabs { grid-template-columns: auto; } }
+.gb-drv-convs #gbDrvNewFolder, .gb-drv-convs #gbDrvUploadBtn, .gb-drv-convs #gbDrvColHeader [data-col="modified"] { display: none; }
+.gb-drv-group {
+    display: flex; align-items: baseline; gap: 10px; padding: 14px 14px 6px;
+    border-bottom: 1px solid var(--id-line-soft, var(--id-line));
+}
+.gb-drv-group:first-child { padding-top: 8px; }
+.gb-drv-group-title { flex: 1; min-width: 0; font-weight: 600; font-size: var(--id-text-sm); color: var(--id-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-drv-group-count { flex: none; font: 500 10.5px/1 var(--id-font-mono, monospace); letter-spacing: .05em; text-transform: uppercase; color: var(--id-muted); }
+
+/* == Sidebar: an offer left open after the turn is not a paused turn == */
+.gb-rail-chat .gb-conv-item.gb-conv-item--open-request { height: auto; min-height: 46px; }
+.gb-conv-item--open-request .gb-conv-item-text { overflow: hidden; text-overflow: ellipsis; padding-block: 6px; }
+.gb-conv-wait[data-state="open"] { color: var(--id-muted); }
+
+/* == Run: a step that failed and was corrected later in the same run == */
+.gb-run-step--fixed .gb-run-mark { color: var(--id-muted); }
+.gb-run-fixed {
+    display: inline-block; margin-inline-start: 6px; padding: 0 6px; border-radius: var(--id-radius-pill, 999px);
+    background: var(--id-fill); color: var(--id-muted); font: 500 10px/1.7 var(--id-font-mono, monospace);
+    letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px;
+}

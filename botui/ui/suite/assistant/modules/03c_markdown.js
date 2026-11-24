@@ -41,7 +41,10 @@
                     el.removeAttribute(attrs[k].name);
                 }
             }
-            if (el.tagName && el.tagName.toLowerCase() === "a") {
+            /* Generated-file links open the file panel (18_file_panel.js). */
+            if (el.tagName && el.tagName.toLowerCase() === "a" && /^vmfile:/i.test(el.getAttribute("href") || "")) {
+                el.classList.add("gb-file-link");
+            } else if (el.tagName && el.tagName.toLowerCase() === "a") {
                 el.setAttribute("rel", "noopener noreferrer");
                 el.setAttribute("target", "_blank");
             }

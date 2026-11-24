@@ -134,8 +134,12 @@
         text = (text || "").trim();
         var files = A.pendingFiles.slice();
         if (!text && files.length === 0) { return; }
-        /* Block sends while streaming (message would be lost). */
+        /* Not while streaming (the message would be lost): 05g asks first. */
         if (A.isStreaming) {
+            if (typeof A.onSendWhileBusy === "function") {
+                A.onSendWhileBusy(function () { doSend(text, messageType); });
+                return;
+            }
             A.announce(A.t("assistant.wait-response",
                 "Aguarde a resposta terminar"));
             return;
