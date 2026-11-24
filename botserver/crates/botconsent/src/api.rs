@@ -20,79 +20,28 @@ use crate::enforce::{self, PendingRequest};
 use crate::models::{Decision, ResolveBody};
 use crate::store;
 use crate::ConsentService;
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt, VerifiedJwt};
 
-
-fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
-    let mut normalized = String::with_capacity(input.len());
-    for c in input.trim().chars() {
-        match c {
-            '-' => normalized.push('+'),
-            '_' => normalized.push('/'),
-            c if !c.is_whitespace() => normalized.push(c),
-            _ => {}
-        }
-    }
-    if normalized.len() % 4 == 1 {
+/// User id named by a **verified** token subject, mapped the same way the auth
+/// middleware maps a session subject: a UUID is used as-is, any other subject
+/// becomes the stable `UUIDv5("zitadel:{sub}")`. No claim is read until
+/// `verify_saas_jwt` has checked the HS256 signature and expiry, so a forged
+/// `user_id`/`sub`/`role` payload can never name another caller (#2773).
+fn user_id_from_verified(claims: &VerifiedJwt) -> Option<Uuid> {
+    let raw = claims.sub.trim();
+    if raw.is_empty() {
         return None;
     }
-    let mut out = Vec::with_capacity(normalized.len() / 4 * 3);
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    for b in normalized.bytes() {
-        if b == b'=' {
-            break;
-        }
-        let v = match b {
-            b'A'..=b'Z' => (b - b'A') as u32,
-            b'a'..=b'z' => (b - b'a' + 26) as u32,
-            b'0'..=b'9' => (b - b'0' + 52) as u32,
-            b'+' => 62,
-            b'/' => 63,
-            _ => return None,
-        };
-        acc = (acc << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push(((acc >> bits) & 0xFF) as u8);
-        }
-    }
-    Some(out)
+    Some(Uuid::parse_str(raw).unwrap_or_else(|_| {
+        Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{raw}").as_bytes())
+    }))
 }
 
-fn jwt_claims(headers: &HeaderMap) -> Option<serde_json::Value> {
-    let token = headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")?
-        .trim();
-    let payload = token.split('.').nth(1)?;
-    let decoded = b64_decode_flexible(payload)?;
-    serde_json::from_slice(&decoded).ok()
-}
-
-fn jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
-    let claims = jwt_claims(headers)?;
-    for key in ["user_id", "sub", "uid"] {
-        if let Some(raw) = claims.get(key).and_then(|v| v.as_str()) {
-            if !raw.is_empty() {
-                return Some(Uuid::parse_str(raw).unwrap_or_else(|_| {
-                    Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{raw}").as_bytes())
-                }));
-            }
-        }
-    }
-    None
-}
-
-fn bearer_token(headers: &HeaderMap) -> Option<&str> {
-    headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")
-        .map(str::trim)
+/// Verified caller id of the request, or `None` for an absent, unsigned,
+/// tampered, foreign-key or expired token.
+fn verified_jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
+    let claims = verify_saas_jwt(bearer_token(headers)?).ok()?;
+    user_id_from_verified(&claims)
 }
 
 /// Resolves the owner of a suite `gb_<uuid>_<ts>` token from the persisted
@@ -135,7 +84,7 @@ pub(crate) fn require_consent_user(
     headers: &HeaderMap,
     pool: &crate::DbPool,
 ) -> Result<Uuid, (StatusCode, String)> {
-    if let Some(user_id) = jwt_user_id(headers) {
+    if let Some(user_id) = verified_jwt_user_id(headers) {
         return Ok(user_id);
     }
     if let Some(token) = bearer_token(headers) {
@@ -377,23 +326,53 @@ mod tests {
         assert_eq!(decode_percent("a%20b+c"), "a b c");
     }
 
+    fn verified_claims(sub: &str) -> VerifiedJwt {
+        VerifiedJwt {
+            sub: sub.to_string(),
+            email: None,
+            org_id: None,
+            branch_id: None,
+            roles: Vec::new(),
+            exp: chrono::Utc::now().timestamp() + 3600,
+            jti: None,
+        }
+    }
+
     #[test]
-    fn jwt_user_from_sub_claim() {
-        let header = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEifQ.sig";
-        let mut map = HeaderMap::new();
-        map.insert(
-            "authorization",
-            axum::http::HeaderValue::from_static(header),
-        );
+    fn verified_subject_maps_to_consent_user_id() {
+        let id = "00000000-0000-0000-0000-000000000001";
         assert_eq!(
-            jwt_user_id(&map),
-            Some(Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid uuid"))
+            user_id_from_verified(&verified_claims(id)),
+            Some(Uuid::parse_str(id).expect("valid uuid"))
         );
     }
 
     #[test]
-    fn missing_token_is_unauthorized() {
-        let map = HeaderMap::new();
-        assert!(jwt_user_id(&map).is_none());
+    fn non_uuid_subject_uses_stable_zitadel_mapping() {
+        assert_eq!(
+            user_id_from_verified(&verified_claims("123456789")),
+            Some(Uuid::new_v5(
+                &Uuid::NAMESPACE_DNS,
+                b"zitadel:123456789"
+            ))
+        );
+    }
+
+    #[test]
+    fn forged_claim_token_never_yields_a_caller() {
+        // `alg:none` payload claiming another user's `sub`/`user_id` and the
+        // `admin` role. The old hand-rolled decoder accepted it (#2773).
+        let forged = "eyJhbGciOiJub25lIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VyX2lkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo0MTAyNDQ0ODAwfQ.";
+        let mut map = HeaderMap::new();
+        map.insert(
+            "authorization",
+            axum::http::HeaderValue::from_str(&format!("Bearer {forged}")).expect("header"),
+        );
+        assert!(verified_jwt_user_id(&map).is_none());
+    }
+
+    #[test]
+    fn missing_token_never_yields_a_caller() {
+        assert!(verified_jwt_user_id(&HeaderMap::new()).is_none());
     }
 }

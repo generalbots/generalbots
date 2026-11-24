@@ -123,19 +123,6 @@ pub(super) static DOCS_AND_SHEET_CRUD: &[AppCommand] = &[
     ),
     cmd(
         "docs",
-        "docs.comment.add",
-        "Add comment",
-        "Add a comment to a passage.",
-        &[
-            ("file_id", "document id"),
-            ("text", "comment text"),
-            ("quote", "optional quoted text"),
-        ],
-        None,
-        false,
-    ),
-    cmd(
-        "docs",
         "docs.track_changes.enable",
         "Track changes",
         "Turn track-changes mode on or off.",

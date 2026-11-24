@@ -7,6 +7,7 @@ from ....schemas.generation import (
 )
 from ....services.video_service import get_video_service
 from ...dependencies import verify_api_key
+from .uploads import read_upload
 
 router = APIRouter(prefix="/video", tags=["Video"])
 
@@ -58,6 +59,6 @@ async def describe_video(
     Returns:
         VideoDescribeResponse with description and frame count
     """
-    video_data = await file.read()
+    video_data = await read_upload(file)
     result = await service.describe(video_data)
     return VideoDescribeResponse(**result)

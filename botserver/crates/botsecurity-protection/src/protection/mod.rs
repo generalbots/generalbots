@@ -3,6 +3,7 @@ pub mod caddy_hardener;
 pub mod chkrootkit;
 pub mod clamav;
 pub mod script_guard;
+pub(crate) mod secure_staging;
 pub mod dns_hardener;
 pub mod fail2ban;
 pub mod firewall;

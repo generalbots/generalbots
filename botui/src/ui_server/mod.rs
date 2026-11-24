@@ -59,6 +59,11 @@ use botsecurity_core::headers::with_security_headers;
 /// output (report-only CSP, TLS-gated HSTS).
 fn harden(router: Router) -> Router {
     with_security_headers(router, security_headers::ui_security_headers_config())
+        // #2777 — cap bodies before any extractor runs (the default axum cap
+        // is only 2 MiB). `proxy_api` reads the body itself with a path-aware
+        // cap: the Drive and video upload routes it serves keep their larger
+        // backend budgets, so no route needs a `DefaultBodyLimit::disable()`.
+        .layer(DefaultBodyLimit::max(proxy_body_limit_bytes()))
         .layer(CompressionLayer::new())
         .layer(axum::middleware::from_fn(security_headers::ui_header_policy))
 }
@@ -235,7 +240,7 @@ pub fn configure_router() -> Router {
         router
             .fallback(get(index))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 
@@ -263,7 +268,7 @@ pub fn configure_cloud_router() -> Router {
             // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
             .fallback(get(serve_cloud_fallback))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 
@@ -282,7 +287,7 @@ pub fn configure_login_router() -> Router {
             .nest("/ws", create_ws_router())
             .fallback(get(serve_login_index))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(proxy::MAX_PROXY_BODY_BYTES)),
+            .layer(DefaultBodyLimit::max(proxy_body_limit_bytes())),
     )
 }
 

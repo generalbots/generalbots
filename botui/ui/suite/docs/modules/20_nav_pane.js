@@ -7,6 +7,7 @@
   var NS = window.DocsNav;
   if (!NS) return;
   var tr = NS.tr;
+  var searchMatches = []; // #2457 — search result rows jump to the matched text node.
 
   function host() {
     return document.getElementById("docs-nav-pane");
@@ -79,9 +80,19 @@
   }
 
   function resolveJump(row) {
+    var article = NS.getArticle();
+    // #2457 — search rows carry the match index. Jump to the matched text node
+    // itself; the old path used `list[-1]` (no headingIndex) -> undefined, so
+    // search results were dead rows.
+    var matchIndex = parseInt(row.getAttribute("data-nav-match"), 10);
+    if (!isNaN(matchIndex) && searchMatches[matchIndex]) {
+      var match = searchMatches[matchIndex];
+      // Return an Element (text nodes have no scrollIntoView/flash support).
+      var target = (match.node && match.node.parentElement) || match.block;
+      return target;
+    }
     var id = row.getAttribute("data-nav-target") || "";
     if (id) {
-      var article = NS.getArticle();
       var node = article && article.querySelector('[id="' + id + '"]');
       if (node) return node;
     }
@@ -170,6 +181,9 @@
   }
 
   function renderResults(section) {
+    // #2457 — clear stale matches on every render so a prior query's rows
+    // can never jump to the wrong text after an empty/no-results render.
+    searchMatches = [];
     var query = NS.currentQuery || "";
     if (!query) {
       section.innerHTML = emptyRow("docs-nav-search-hint", "Find something first");
@@ -180,10 +194,16 @@
       section.innerHTML = emptyRow("docs-nav-no-results", "No matches");
       return;
     }
+    searchMatches = matches.slice(0, 200);
     var html = [];
-    matches.slice(0, 200).forEach(function (match) {
-      var label = match.scope + ": " + match.text.slice(0, 90);
-      html.push('<div class="gb-nav-row" data-nav-target="' + NS.escapeHtml(match.id || "") +
+    searchMatches.forEach(function (match, i) {
+      // #2457 — show a real context snippet (and scope) rather than the raw
+      // `body:/footnotes:` internal scope path the UAT flagged.
+      var blockText = (match.block && match.block.textContent || "").replace(/\s+/g, " ").trim();
+      var snippet = blockText.slice(0, 120) || String(match.text || "").slice(0, 90);
+      var label = (match.scope ? "[" + match.scope + "] " : "") + snippet;
+      html.push('<div class="gb-nav-row" data-nav-match="' + i +
+        '" data-nav-target="' + NS.escapeHtml(match.id || "") +
         '" data-nav-index="' + (match.headingIndex == null ? -1 : match.headingIndex) +
         '" data-nav-jump="1">' + NS.escapeHtml(label) + "</div>");
     });

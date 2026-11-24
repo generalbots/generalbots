@@ -311,6 +311,7 @@ GET /api/canvas/{canvas_id}/elements | endpoint-inventory
 PUT /api/canvas/{canvas_id}/elements/{element_id} | endpoint-inventory
 GET /api/canvas/{canvas_id}/versions | endpoint-inventory
 POST /api/security/protection/clamav/quarantine/{id} | endpoint-inventory
+POST /api/security/protection/lmd/quarantine/{id} | endpoint-inventory
 POST /api/security/protection/{tool}/disable | endpoint-inventory
 POST /api/security/protection/{tool}/enable | endpoint-inventory
 GET /api/security/protection/{tool}/status | endpoint-inventory

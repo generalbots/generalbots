@@ -1,4 +1,5 @@
 use crate::types::Spreadsheet;
+use botcore::{ImportSize, WorkClass};
 use std::collections::HashMap;
 
 pub fn parse_csv_to_worksheets(
@@ -6,9 +7,25 @@ pub fn parse_csv_to_worksheets(
     delimiter: u8,
     sheet_name: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
+    let budget = crate::handlers::admission::import_budget(WorkClass::SheetsImport);
+    if let Err(error) = budget.check(ImportSize {
+        bytes: bytes.len() as u64,
+        ..ImportSize::default()
+    }) {
+        return Err(error.message());
+    }
+
     let content = String::from_utf8_lossy(bytes);
     let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
     for (row_idx, line) in content.lines().enumerate() {
+        // #2530 — enforce the shared row budget *before* this line's cells
+        // allocate heap keys, so a huge CSV fails closed like a huge XLSX.
+        if let Err(error) = budget.check(ImportSize {
+            rows: row_idx as u64 + 1,
+            ..ImportSize::default()
+        }) {
+            return Err(error.message());
+        }
         let cols: Vec<&str> = if delimiter == b'\t' {
             line.split('\t').collect()
         } else {

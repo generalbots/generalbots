@@ -208,7 +208,12 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/system/**", "GET", ""),
         RoutePermission::new("/api/system/**", "POST", ""),
         RoutePermission::new("/api/governance/**", "GET", ""),
-        RoutePermission::new("/api/governance/**", "POST", ""),
+        // #2775 — POST /api/governance/sessions/kill reaches
+        // botmonitoring::governance::handle_kill_session, an admin-shaped stub
+        // with no role check of its own. Without roles here manager.rs returns
+        // on the first match and any authenticated session may call it.
+        RoutePermission::new("/api/governance/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         // #2854 — /api/ops/** exposes operational status, metrics, traces and
         // error logs. Without roles the first matching route lets any
         // authenticated user through (manager.rs returns on first match).

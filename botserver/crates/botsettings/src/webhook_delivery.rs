@@ -44,10 +44,10 @@ pub fn validate_webhook_url(url: &str) -> Result<(), &'static str> {
     if trimmed.is_empty() {
         return Err("Webhook URL is required");
     }
-    let is_prod = std::env::var("GB_ENV")
-        .map(|v| v == "production")
-        .unwrap_or(false);
-    if is_prod && !trimmed.starts_with("https://") {
+    // #2639 — HTTPS is the default everywhere; only an explicit development
+    // posture may lower the guard (same rule as the rest of the server, #2615).
+    let is_dev = botsecurity::botsecurity_core::jwt_secret::is_development_env();
+    if !is_dev && !trimmed.starts_with("https://") {
         return Err("Webhook URL must use HTTPS in production");
     }
     botsecurity::validation::validate_url_ssrf_strict(trimmed)
@@ -263,6 +263,19 @@ async fn read_capped_body(resp: &mut reqwest::Response) -> String {
     cap_body(text.as_ref(), MAX_RESPONSE_BODY_BYTES).to_string()
 }
 
+/// #2639 — revalidate the stored target immediately before every delivery
+/// attempt. The string guard can pass while DNS now points at loopback or a
+/// metadata address; `resolve_checked` refuses any non-global answer set.
+async fn validate_delivery_target(url: &str) -> Result<(), &'static str> {
+    validate_webhook_url(url)?;
+    let parsed = botsecurity::validation::validate_url_ssrf_strict(url.trim())
+        .map_err(|_| "Webhook URL cannot point to localhost or private networks")?;
+    botsecurity::validation::resolve_checked(&parsed)
+        .await
+        .map_err(|_| "Webhook URL resolves to a disallowed address")?;
+    Ok(())
+}
+
 /// Delivers a payload with exponential backoff retries, recording every
 /// attempt in `webhook_deliveries`. Runs in a background task.
 ///
@@ -301,6 +314,12 @@ pub async fn deliver_with_retries(
 
     loop {
         attempt += 1;
+        // #2639 — no signed body is sent unless the target is still safe.
+        if let Err(reason) = validate_delivery_target(&url).await {
+            log::warn!("webhook deliver: refusing to send to a disallowed target");
+            mark_delivery(&state, delivery_id, "failed", None, None, attempt, Some(reason));
+            return;
+        }
         let result = client
             .post(&url)
             .header("Content-Type", "application/json")

@@ -224,6 +224,7 @@ pub const SERVICE_MAP: &[(&str, &str, &str, u16, u16)] = &[
 ];
 
 mod configure_iptables_nat;
+mod nat_rule_guard;
 mod bootstrap_container_inner;
 mod bootstrap_tenant;
 

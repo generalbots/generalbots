@@ -22,6 +22,9 @@ impl VmLifecycle {
         host_port: u16,
         database_url: Option<&str>,
     ) -> Result<String, String> {
+        // #2655 — refuse a hostile package.json entry BEFORE provisioning:
+        // never write an unvalidated value into the systemd unit.
+        validate_manifest_entries(files)?;
         self.skip_if_unavailable()?;
         if !self.linux_running(name)? {
             self.linux_start(name)?;
@@ -70,7 +73,11 @@ impl VmLifecycle {
                 "    const html='<!doctype html><html><head><meta charset=\"utf-8\"><title>No web app yet</title><style>body{font:16px system-ui;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:560px;padding:28px;border:1px solid #30363d;border-radius:16px;background:#161b22}h1{color:#84d669}p{color:#8b949e}code{background:#0d1117;padding:2px 6px;border-radius:6px}ul{color:#8b949e}</style></head><body><main><h1>No web app in this project yet</h1><p>This project has no <code>index.html</code> entry point. Ask the Vibe agent in Chat to build one, then press Run again.</p><ul>'+ents+'</ul></main></body></html>';\n",
                 "    res.writeHead(404,{'Content-Type':'text/html; charset=utf-8'});res.end(html);return;} \n",
                 "    res.writeHead(200,{'Content-Type':mime[path.extname(p)]||'application/octet-stream'});res.end(d);});\n",
-                "}).listen(3000);\n",
+                // #2653 — bind the generated server to loopback only. The host
+                // proxy device connects to 127.0.0.1:3000 inside the container,
+                // so no bridge listener is needed; the isolation ACL on eth0 is
+                // the authoritative guard for user apps that bind 0.0.0.0.
+                "}).listen(3000, '127.0.0.1');\n",
             );
             self.push_run_files(name, files, &temp)?;
 
@@ -94,9 +101,12 @@ impl VmLifecycle {
             let db_line = database_url
                 .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
                 .unwrap_or_default();
+            let exec_start = exec_start_line(
+                if is_python { "/usr/bin/python3" } else { "/usr/bin/node" },
+                &entry,
+            )?;
             let unit = format!(
-                "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\nExecStart={} /opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n",
-                if is_python { "/usr/bin/python3" } else { "/usr/bin/node" }
+                "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\n{exec_start}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
             );
             self.push_run_unit(name, &temp, &unit)?;
 
@@ -150,10 +160,11 @@ impl VmLifecycle {
             // IP:3000). Attaching a device with the previous default of 80
             // failed with `bind: address already in use` on prod.
             self.attach_run_proxy_device(name, host_port)?;
+            // host_port == 0 (prod publish) skips the device and returns the
+            // in-container URL; every other value is allowlisted by the
+            // bind-site guard before a proxy device is attached.
             if host_port == 0 {
                 Ok("http://localhost:3000".to_string())
-            } else if host_port == 80 {
-                Ok("http://localhost".to_string())
             } else {
                 Ok(format!("http://localhost:{host_port}"))
             }
@@ -302,6 +313,14 @@ impl VmLifecycle {
         }
         if host_port == 0 {
             return Ok(());
+        }
+        // #2651 — fail closed at the bind site: a caller that bypasses the
+        // Run API (e.g. a misconfigured VIBE_PROD_APP_PORT) must never make
+        // Incus expose a privileged or arbitrary host port on 0.0.0.0.
+        if !(crate::projects_api::DEV_VM_PORT_MIN..crate::projects_api::DEV_VM_PORT_MAX)
+            .contains(&host_port)
+        {
+            return Err(format!("refusing to bind dev-vm host port {host_port}"));
         }
         self.incus_run(
             &[

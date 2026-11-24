@@ -15,15 +15,15 @@ use botsecurity::auth::AuthenticatedUser;
 
 pub use crate::conversation_types::*;
 
-use crate::{
-    conversation_calls, conversation_messages, conversation_store,
-};
+use crate::{conversation_calls, conversation_messages, conversation_store};
 
 fn db_err(e: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
     log::error!("Conversation store error: {e}");
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Json(serde_json::json!({ "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::conversations", None) })),
+        Json(
+            serde_json::json!({ "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e.to_string(), "botmeet::conversations", None) }),
+        ),
     )
 }
 
@@ -110,9 +110,19 @@ pub async fn send_message(
     Json(req): Json<SendMessageRequest>,
 ) -> Result<Json<MessageResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = state.conn.clone();
-    let sender_id = if user.user_id == Uuid::nil() { None } else { Some(user.user_id) };
-    let sender_name = if user.username.is_empty() { None } else { Some(user.username.as_str()) };
-    match conversation_messages::send_message(&pool, conversation_id, &req, sender_id, sender_name).await {
+    let sender_id = if user.user_id == Uuid::nil() {
+        None
+    } else {
+        Some(user.user_id)
+    };
+    let sender_name = if user.username.is_empty() {
+        None
+    } else {
+        Some(user.username.as_str())
+    };
+    match conversation_messages::send_message(&pool, conversation_id, &req, sender_id, sender_name)
+        .await
+    {
         Ok(m) => Ok(Json(m)),
         Err(e) => Err(db_err(e)),
     }
@@ -148,8 +158,20 @@ pub async fn react_to_message(
     Json(req): Json<ReactToMessageRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = state.conn.clone();
-    let user_id = if user.user_id == Uuid::nil() { Uuid::new_v4() } else { user.user_id };
-    match conversation_messages::react_to_message(&pool, conversation_id, message_id, user_id, &req.reaction).await {
+    let user_id = if user.user_id == Uuid::nil() {
+        Uuid::new_v4()
+    } else {
+        user.user_id
+    };
+    match conversation_messages::react_to_message(
+        &pool,
+        conversation_id,
+        message_id,
+        user_id,
+        &req.reaction,
+    )
+    .await
+    {
         Ok(r) => Ok(Json(r)),
         Err(e) => Err(db_err(e)),
     }
@@ -196,7 +218,11 @@ pub async fn join_call(
     Path(conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = state.conn.clone();
-    let user_id = if user.user_id == Uuid::nil() { None } else { Some(user.user_id) };
+    let user_id = if user.user_id == Uuid::nil() {
+        None
+    } else {
+        Some(user.user_id)
+    };
     match conversation_calls::join_call(&pool, conversation_id, user_id).await {
         Ok(r) => Ok(Json(r)),
         Err(e) => Err(db_err(e)),
@@ -209,7 +235,11 @@ pub async fn leave_call(
     Path(conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = state.conn.clone();
-    let user_id = if user.user_id == Uuid::nil() { None } else { Some(user.user_id) };
+    let user_id = if user.user_id == Uuid::nil() {
+        None
+    } else {
+        Some(user.user_id)
+    };
     match conversation_calls::leave_call(&pool, conversation_id, user_id).await {
         Ok(r) => Ok(Json(r)),
         Err(e) => Err(db_err(e)),

@@ -12,6 +12,10 @@ use diesel::prelude::*;
 use crate::api::{get_branch_id_from_jwt, is_super_admin};
 use crate::SaasService;
 
+#[path = "domains_auth.rs"]
+mod domains_auth;
+use domains_auth::ensure_write_allowed;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema_ext::bot_domains)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -144,6 +148,8 @@ pub async fn update_domain(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
     let (admin, user_branch) = get_scope_filter(&headers, &mut conn)?;
+    // #2677: authorize the target row first — NULL-branch rows are admin-only.
+    ensure_write_allowed(&mut conn, domain_id, admin, user_branch)?;
 
     let now = Utc::now();
 
@@ -158,7 +164,7 @@ pub async fn update_domain(
                     .execute(&mut conn)
                     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update domain: {e}")))?;
             } else if let Some(bid) = user_branch {
-                diesel::sql_query("UPDATE bot_domains SET domain = $1, updated_at = $2 WHERE id = $3 AND (branch_id = $4 OR branch_id IS NULL)")
+                diesel::sql_query("UPDATE bot_domains SET domain = $1, updated_at = $2 WHERE id = $3 AND branch_id = $4")
                     .bind::<diesel::sql_types::Text, _>(&d)
                     .bind::<diesel::sql_types::Timestamptz, _>(now)
                     .bind::<diesel::sql_types::Uuid, _>(domain_id)
@@ -180,7 +186,7 @@ pub async fn update_domain(
                 .execute(&mut conn)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update bot_id: {e}")))?;
         } else if let Some(bid) = user_branch {
-            diesel::sql_query("UPDATE bot_domains SET bot_id = $1, updated_at = $2 WHERE id = $3 AND (branch_id = $4 OR branch_id IS NULL)")
+            diesel::sql_query("UPDATE bot_domains SET bot_id = $1, updated_at = $2 WHERE id = $3 AND branch_id = $4")
                 .bind::<diesel::sql_types::Uuid, _>(b)
                 .bind::<diesel::sql_types::Timestamptz, _>(now)
                 .bind::<diesel::sql_types::Uuid, _>(domain_id)
@@ -205,6 +211,8 @@ pub async fn delete_domain(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
     let (admin, user_branch) = get_scope_filter(&headers, &mut conn)?;
+    // #2677: authorize the target row first — NULL-branch rows are admin-only.
+    ensure_write_allowed(&mut conn, domain_id, admin, user_branch)?;
 
     let deleted = if admin {
         diesel::sql_query("DELETE FROM bot_domains WHERE id = $1")
@@ -212,7 +220,7 @@ pub async fn delete_domain(
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?
     } else if let Some(bid) = user_branch {
-        diesel::sql_query("DELETE FROM bot_domains WHERE id = $1 AND (branch_id = $2 OR branch_id IS NULL)")
+        diesel::sql_query("DELETE FROM bot_domains WHERE id = $1 AND branch_id = $2")
             .bind::<diesel::sql_types::Uuid, _>(domain_id)
             .bind::<diesel::sql_types::Uuid, _>(bid)
             .execute(&mut conn)

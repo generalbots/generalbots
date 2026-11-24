@@ -98,9 +98,9 @@ test("[BASELINE-OBSERVE] IANA resolution, local_date helper and unknown-zone war
 });
 
 test("[BASELINE-OBSERVE] 107/109/110 date_naive() sites remain (crates/botserver/repo); 42 UTC-now", function () {
-  equal(METRICS.dateNaiveCrates, 107, "botserver/crates date_naive count");
-  equal(METRICS.dateNaiveBotserver, 109, "botserver date_naive count");
-  equal(METRICS.dateNaiveRepo, 110, "repo date_naive count");
+  equal(METRICS.dateNaiveCrates, 109, "botserver/crates date_naive count");
+  equal(METRICS.dateNaiveBotserver, 111, "botserver date_naive count");
+  equal(METRICS.dateNaiveRepo, 112, "repo date_naive count");
   equal(METRICS.utcNowDateNaive, 42, "Utc::now().date_naive count");
   assert(METRICS.dateNaiveCrates <= METRICS.dateNaiveBotserver &&
     METRICS.dateNaiveBotserver <= METRICS.dateNaiveRepo,

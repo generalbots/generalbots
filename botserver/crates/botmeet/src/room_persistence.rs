@@ -1,7 +1,9 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{Bool, Float8, Int4, Int8, Nullable, Text, Timestamptz, Uuid as DieselUuid};
+use diesel::sql_types::{
+    Bool, Float8, Int4, Int8, Nullable, Text, Timestamptz, Uuid as DieselUuid,
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -73,6 +75,38 @@ impl MeetingScope {
             org_id: org_id.unwrap_or_else(Uuid::nil),
         }
     }
+}
+
+/// #2736 — before minting a room-scoped credential, prove that the verified
+/// caller actually owns or participates in the room. Client-supplied room
+/// strings are untrusted: an unknown/non-UUID room fails closed.
+pub async fn user_can_access_room(
+    state: &AppState,
+    room_id: &str,
+    user_id: Uuid,
+) -> Result<bool, String> {
+    let room_uuid = Uuid::parse_str(room_id).map_err(|_| "invalid room id".to_string())?;
+    if user_id.is_nil() {
+        return Ok(false);
+    }
+    let pool = state.conn.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut conn = pool
+            .get()
+            .map_err(|e| format!("Failed to get DB connection: {e}"))?;
+        let row = sql_query(
+            "SELECT COUNT(*)::bigint AS count FROM meeting_rooms r \
+             LEFT JOIN meeting_participants p ON p.room_id = r.id AND p.user_id = $2 \
+             WHERE r.id = $1 AND (r.created_by = $2 OR p.id IS NOT NULL)",
+        )
+        .bind::<DieselUuid, _>(room_uuid)
+        .bind::<DieselUuid, _>(user_id)
+        .get_result::<CountRow>(&mut conn)
+        .map_err(|e| format!("Failed to check room membership: {e}"))?;
+        Ok(row.count > 0)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
 #[derive(Debug, Serialize)]

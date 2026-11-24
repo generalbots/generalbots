@@ -50,7 +50,7 @@ General Bots implements controls across all five criteria to ensure enterprise-g
 
 | Control | Implementation |
 |---------|---------------|
-| C1.1 - Confidential Information | Data classification, encryption at rest |
+| C1.1 - Confidential Information | Data classification, TLS in transit and field-level encryption of selected sensitive values (no platform-wide encryption at rest) |
 | C1.2 - Disposal | Secure deletion, data retention policies |
 
 ### Privacy
@@ -163,9 +163,8 @@ Query parameters:
 
 **Data at Rest**
 
-- AES-256 encryption for all stored data
-- Encrypted database columns for PII
-- Encrypted file storage (MinIO with server-side encryption)
+- The platform does not encrypt all stored data, database columns or MinIO objects at rest; operators must provide that control at the storage layer
+- Field-level encryption via `encrypt_field` is applied to attendance content, external Drive content and session content
 
 **Data in Transit**
 

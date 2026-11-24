@@ -178,12 +178,12 @@ cd botapp
 cargo tauri dev --features desktop-local
 ```
 
-`beforeDevCommand` serves `../botui/ui` on `:3000`
-(`npx serve@14.2.7`, pinned so a dev run never executes an unreviewed npm
-release), so botui does
-not need a server of its own. The command passes `--no-port-switching`: if
-something already owns port 3000 the dev server fails loudly instead of
-quietly moving to 3001 while the window still loads `:3000`.
+`beforeDevCommand` runs the checked-in `dev-static-server.py`, a stdlib-only
+static server that serves `../botui/ui` on `127.0.0.1:3000`, so botui does not
+need a server of its own. It needs only Python 3 (no npm/npx, no network fetch,
+no CDN), keeping dev mode fully offline-first (#2695). It binds loopback only
+and exits non-zero if port 3000 is already in use, so the dev run fails loudly
+instead of quietly loading a stale server while the window still loads `:3000`.
 
 The window stays hidden until `http://localhost:8080/api/product` answers, so
 start the sidecar first from the repository root:

@@ -6,6 +6,8 @@ use uuid::Uuid;
 use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 
+mod user_search;
+
 pub const PROJECT_MEMBERS_SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS project_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -281,36 +283,6 @@ impl ProjectRbac {
                 role: ProjectRole::parse(&r.role).unwrap_or(ProjectRole::Viewer),
                 added_at: r.added_at,
             })
-            .collect())
-    }
-
-    /// Search the local `users` table by username or email so the members UI
-    /// can offer a typeahead picker instead of asking for a raw UUID.
-    pub fn search_users(&self, query: &str, limit: i64) -> Result<Vec<(Uuid, String, String)>, String> {
-        let mut conn = self.conn()?;
-        #[derive(QueryableByName)]
-        struct Row {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            username: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            email: String,
-        }
-        let like = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
-        let rows = diesel::sql_query(
-            "SELECT id, username, email FROM users \
-             WHERE is_active = true \
-               AND (username ILIKE $1 OR email ILIKE $1) \
-             ORDER BY username LIMIT $2",
-        )
-        .bind::<diesel::sql_types::Text, _>(&like)
-        .bind::<diesel::sql_types::BigInt, _>(limit)
-        .load::<Row>(&mut conn)
-        .map_err(|e| format!("search users: {e}"))?;
-        Ok(rows
-            .into_iter()
-            .map(|r| (r.id, r.username, r.email))
             .collect())
     }
 

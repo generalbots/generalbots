@@ -187,10 +187,24 @@ impl WhiteboardExportService {
 
         match shape.shape_type {
             ShapeType::Rectangle | ShapeType::Sticky => {
-                pdf.draw_rect(x, y, w, h, shape.fill_color.is_some(), shape.stroke_color.is_some());
+                pdf.draw_rect(
+                    x,
+                    y,
+                    w,
+                    h,
+                    shape.fill_color.is_some(),
+                    shape.stroke_color.is_some(),
+                );
             }
             ShapeType::Ellipse => {
-                pdf.draw_ellipse(x + w / 2.0, y + h / 2.0, w / 2.0, h / 2.0, shape.fill_color.is_some(), shape.stroke_color.is_some());
+                pdf.draw_ellipse(
+                    x + w / 2.0,
+                    y + h / 2.0,
+                    w / 2.0,
+                    h / 2.0,
+                    shape.fill_color.is_some(),
+                    shape.stroke_color.is_some(),
+                );
             }
             ShapeType::Line | ShapeType::Arrow | ShapeType::Freehand => {
                 if !shape.points.is_empty() {
@@ -198,7 +212,10 @@ impl WhiteboardExportService {
                         .points
                         .iter()
                         .map(|p| {
-                            (((p.x - bounds.min_x) * scale) as f32, ((p.y - bounds.min_y) * scale) as f32)
+                            (
+                                ((p.x - bounds.min_x) * scale) as f32,
+                                ((p.y - bounds.min_y) * scale) as f32,
+                            )
                         })
                         .collect();
                     pdf.draw_path(&points);
@@ -206,7 +223,7 @@ impl WhiteboardExportService {
             }
             ShapeType::Text => {
                 if let Some(text) = &shape.text {
-                    let font_size = shape.font_size.unwrap_or(12.0) * options.scale ;
+                    let font_size = shape.font_size.unwrap_or(12.0) * options.scale;
                     pdf.draw_text(text, x, y, font_size);
                 }
             }
@@ -230,7 +247,14 @@ impl WhiteboardExportService {
                 pdf.draw_path(&points);
             }
             _ => {
-                pdf.draw_rect(x, y, w, h, shape.fill_color.is_some(), shape.stroke_color.is_some());
+                pdf.draw_rect(
+                    x,
+                    y,
+                    w,
+                    h,
+                    shape.fill_color.is_some(),
+                    shape.stroke_color.is_some(),
+                );
             }
         }
     }
@@ -251,13 +275,15 @@ impl WhiteboardExportService {
             width, height, width, height
         ));
 
-        svg.push_str(r#"
+        svg.push_str(
+            r#"
 <defs>
     <style>
         .shape { transition: all 0.2s ease; }
         .shape:hover { filter: brightness(1.1); }
     </style>
-</defs>"#);
+</defs>"#,
+        );
 
         if let Some(bg_color) = &options.background_color {
             svg.push_str(&format!(

@@ -94,6 +94,11 @@ impl ChannelProvider for DiscordProvider {
                         "Webhook URL required".to_string(),
                     ))?;
 
+                // #2641 — custom credentials are caller-supplied. Pin the host
+                // here as well as at send time so a bad target is rejected before
+                // any request payload is assembled.
+                super::send_message::parse_webhook_url(webhook_url)?;
+
                 let username = data.get("username").cloned();
                 let avatar_url = data.get("avatar_url").cloned();
 
@@ -133,10 +138,9 @@ impl ChannelProvider for DiscordProvider {
                     Err(e) => Err(e),
                 }
             }
-            ChannelCredentials::Custom { data } => {
-                let webhook_url = data.get("webhook_url");
-                Ok(webhook_url.is_some())
-            }
+            ChannelCredentials::Custom { data } => Ok(data
+                .get("webhook_url")
+                .is_some_and(|url| super::send_message::parse_webhook_url(url).is_ok())),
             _ => Ok(false),
         }
     }

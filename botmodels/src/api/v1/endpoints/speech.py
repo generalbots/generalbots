@@ -17,6 +17,7 @@ from ....utils.error_codes import text as error_text
 from ....services.realtime_audio_service import get_realtime_audio_service
 from ....services.speech_service import get_speech_service
 from ...dependencies import verify_api_key
+from .uploads import read_upload
 
 router = APIRouter(prefix="/speech", tags=["Speech"])
 
@@ -62,18 +63,13 @@ def _write_temp(data: bytes, suffix: str) -> Path:
 
 
 async def _read_audio(file: UploadFile) -> bytes:
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail=error_text("botmodels-speech-empty-upload"))
-    if len(data) > MAX_AUDIO_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=error_text(
-                "botmodels-speech-audio-too-large",
-                mib=MAX_AUDIO_BYTES // (1024 * 1024),
-            ),
-        )
-    return data
+    """Bounded audio read — shared chunked reader (#2802)."""
+    return await read_upload(
+        file,
+        max_bytes=MAX_AUDIO_BYTES,
+        empty_detail_key="botmodels-speech-empty-upload",
+        too_large_key="botmodels-speech-audio-too-large",
+    )
 
 
 @router.post("/generate", response_model=GenerationResponse)

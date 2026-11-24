@@ -33,16 +33,6 @@
         });
     }
 
-    function currentUserId() {
-        var el = document.getElementById('current-user-id');
-        if (el && el.value) return el.value;
-        try {
-            var auth = JSON.parse(sessionStorage.getItem('gb_auth_user') || localStorage.getItem('gb_auth_user') || 'null');
-            if (auth && auth.id) return auth.id;
-        } catch (e) { /* ignore */ }
-        return null;
-    }
-
     function formatElapsed(ms) {
         var total = Math.floor(ms / 1000);
         var h = Math.floor(total / 3600);
@@ -87,14 +77,12 @@
             window.showNotification('Join a meeting to record');
             return;
         }
-        var userId = currentUserId();
 
         if (!recording.active) {
             try {
                 var result = await apiFetch('/api/meet/rooms/' + roomId + '/recording/start', {
                     method: 'POST',
                     body: JSON.stringify({
-                        user_id: userId,
                         webinar_id: roomId,
                         enable_transcription: true,
                         transcription_language: 'en-US'
@@ -113,7 +101,6 @@
                 await apiFetch('/api/meet/rooms/' + roomId + '/recording/stop', {
                     method: 'POST',
                     body: JSON.stringify({
-                        user_id: userId,
                         recording_id: recording.recordingId
                     })
                 });

@@ -1,6 +1,7 @@
 
 
 pub mod account_deletion;
+pub mod esign;
 
 use axum::{
     extract::{Path, Query, State},
@@ -23,6 +24,7 @@ mod handle_request_data_deletion;
 mod handle_legal_list_page;
 mod handle_legal_detail_page;
 mod handle_legal_new_page;
+mod handle_esign;
 
 pub use db_legal_document::*;
 pub use cookie_info::*;
@@ -31,3 +33,4 @@ pub use handle_request_data_deletion::*;
 pub use handle_legal_list_page::*;
 pub use handle_legal_detail_page::*;
 pub use handle_legal_new_page::*;
+pub use handle_esign::*;

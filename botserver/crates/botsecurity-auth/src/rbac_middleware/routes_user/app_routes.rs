@@ -42,6 +42,11 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         // catalogue, so authenticated users got 403 before reaching it.
         // Read-only and scoped to a caller-known resource id: never anonymous.
         RoutePermission::new("/api/sandbox/status/**", "GET", ""),
+        // #2760 — revocation is a state-changing management operation. It used
+        // to be reachable only through the unauthenticated sandbox listener;
+        // after moving it behind the main router it needs an authenticated
+        // catalogue entry or default-deny would break the #2798 feature.
+        RoutePermission::new("/api/sandbox/revoke/**", "POST", ""),
         // Tool manifests for the native surface tools (#1678)
         RoutePermission::new("/api/runs/tools", "GET", ""),
 
@@ -340,53 +345,5 @@ mod approvals_tests {
 }
 
 #[cfg(test)]
-mod sandbox_status_tests {
-    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
-    use crate::{AuthenticatedUser, Role};
-    use uuid::Uuid;
-
-    /// Sandbox status is a read-only status of a published resource: it must be
-    /// in the authenticated catalogue with anonymous access disabled, or the
-    /// default-deny gate 403s the handler before it can report the truth.
-    #[test]
-    fn sandbox_status_prefix_is_in_authenticated_catalogue_without_anonymous() {
-        let routes = super::routes();
-        assert!(
-            routes.iter().any(|r| {
-                r.path_pattern == "/api/sandbox/status/**"
-                    && r.method == "GET"
-                    && !r.allow_anonymous
-            }),
-            "/api/sandbox/status/** GET must be in the authenticated catalogue with anonymous disabled"
-        );
-    }
-
-    /// The mounted route is `/api/sandbox/status/:hash`, so a real hash path
-    /// must be admitted for an authenticated user and denied for an anonymous
-    /// caller through the full default-deny catalogue.
-    #[tokio::test]
-    async fn sandbox_status_admits_authenticated_and_denies_anonymous() {
-        let manager = RbacManager::with_defaults();
-        manager
-            .register_routes(build_default_route_permissions())
-            .await;
-        let user = AuthenticatedUser::new(Uuid::new_v4(), "viewer@example.com".to_string())
-            .with_role(Role::User);
-        let anonymous = AuthenticatedUser::anonymous();
-        let hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-        let path = format!("/api/sandbox/status/{hash}");
-
-        let allowed = manager.check_route_access(&path, "GET", &user).await;
-        assert!(
-            allowed.is_allowed(),
-            "GET {path} must be allowed for an authenticated user: {}",
-            allowed.reason
-        );
-        let denied = manager.check_route_access(&path, "GET", &anonymous).await;
-        assert!(
-            !denied.is_allowed(),
-            "GET {path} must be denied for an anonymous caller: {}",
-            denied.reason
-        );
-    }
-}
+#[path = "app_routes_sandbox_tests.rs"]
+mod sandbox_status_tests;

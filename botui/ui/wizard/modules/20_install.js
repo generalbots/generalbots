@@ -332,13 +332,19 @@
     openModal({
       title: t("nav.reset-title"),
       text: t("nav.reset-text", { path: state.context.stack_path }),
-      fieldLabel: t("nav.reset-field"),
       confirmLabel: t("nav.reset-confirm"),
-      onConfirm: function (v) {
-        B.resetStack(v).then(function () {
+      onConfirm: function () {
+        // #2689 — the typed folder name used to be the whole "confirmation".
+        // The native dialog now mints a single-use receipt bound to this window;
+        // without it the backend refuses to touch the stack.
+        B.requestResetStackConfirmation().then(function (token) {
+          return B.resetStack(token);
+        }).then(function () {
           state.provisioning.ready = false;
           state.provisioning.components = [];
           render(); say(t("nav.reset-done"));
+        }).catch(function (err) {
+          say(String(err));
         });
       }
     });

@@ -173,6 +173,7 @@ sheet-untitled = Untitled Spreadsheet
 # Docs & CRM runtime strings (#2091 #2092)
 # ============================================================================
 docs-export-replacements = Replacements applied: {count}
+docs-export-degraded = Exported without tables/charts: source data was unavailable ({count} dropped)
 docs-compare-ids-required = Both document ids are required.
 docs-compare-running = Comparing…
 docs-compare-no-differences = No differences found.

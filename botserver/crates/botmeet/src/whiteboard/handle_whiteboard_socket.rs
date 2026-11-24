@@ -1,10 +1,32 @@
 use super::*;
 
+/// The identity a client claims in a whiteboard message, if the variant carries
+/// one. Such claims are untrusted and are checked against the handshake
+/// identity before the message is applied (#2740).
+fn claimed_user_id(message: &WhiteboardMessage) -> Option<Uuid> {
+    match message {
+        WhiteboardMessage::Join { user_id, .. }
+        | WhiteboardMessage::Leave { user_id }
+        | WhiteboardMessage::Operation { user_id, .. }
+        | WhiteboardMessage::Undo { user_id }
+        | WhiteboardMessage::Redo { user_id }
+        | WhiteboardMessage::Deselect { user_id } => Some(*user_id),
+        WhiteboardMessage::CursorMove { cursor } => Some(cursor.user_id),
+        WhiteboardMessage::Select { selection } => Some(selection.user_id),
+        _ => None,
+    }
+}
+
 pub(super) async fn handle_whiteboard_socket(
     socket: WebSocket,
     state: Arc<AppState>,
     whiteboard_id: Uuid,
+    principal: WhiteboardPrincipal,
 ) {
+    // The socket identity is bound to the authenticated handshake identity;
+    // never generate a fresh random user id here (#2740).
+    let user_id = principal.user_id;
+    let username = principal.username.clone();
     let manager = state
         .extensions
         .get::<WhiteboardManager>()
@@ -22,8 +44,6 @@ pub(super) async fn handle_whiteboard_socket(
     let (mut sender, mut ws_receiver) = socket.split();
     let mut broadcast_receiver = receiver;
 
-    let user_id = Uuid::new_v4();
-    let username = format!("User-{}", &user_id.to_string()[..8]);
     let user_color = Color {
         r: (user_id.as_u128() % 200 + 55) as u8,
         g: ((user_id.as_u128() >> 8) % 200 + 55) as u8,
@@ -32,7 +52,12 @@ pub(super) async fn handle_whiteboard_socket(
     };
 
     manager
-        .user_join(&whiteboard_id, user_id, username.clone(), user_color.clone())
+        .user_join(
+            &whiteboard_id,
+            user_id,
+            username.clone(),
+            user_color.clone(),
+        )
         .await;
 
     if let Some(whiteboard) = manager.get_whiteboard(&whiteboard_id).await {
@@ -60,6 +85,15 @@ pub(super) async fn handle_whiteboard_socket(
             match result {
                 Ok(Message::Text(text)) => {
                     if let Ok(msg) = serde_json::from_str::<WhiteboardMessage>(&text) {
+                        if let Some(claimed) = claimed_user_id(&msg) {
+                            if !socket_identity_matches(claimed, user_id) {
+                                log::warn!(
+                                    "Ignoring whiteboard message with spoofed identity on {}",
+                                    whiteboard_id
+                                );
+                                continue;
+                            }
+                        }
                         match msg {
                             WhiteboardMessage::Operation { operation, .. } => {
                                 let _ = manager_clone
@@ -71,10 +105,14 @@ pub(super) async fn handle_whiteboard_socket(
                                 cursor.username = username.clone();
                                 cursor.color = user_color.clone();
                                 cursor.last_update = Utc::now();
-                                manager_clone.update_cursor(&whiteboard_id_clone, cursor).await;
+                                manager_clone
+                                    .update_cursor(&whiteboard_id_clone, cursor)
+                                    .await;
                             }
                             WhiteboardMessage::Undo { .. } => {
-                                if let Some(op) = manager_clone.undo(&whiteboard_id_clone, user_id).await {
+                                if let Some(op) =
+                                    manager_clone.undo(&whiteboard_id_clone, user_id).await
+                                {
                                     manager_clone
                                         .broadcast(
                                             &whiteboard_id_clone,
@@ -87,7 +125,9 @@ pub(super) async fn handle_whiteboard_socket(
                                 }
                             }
                             WhiteboardMessage::Redo { .. } => {
-                                if let Some(op) = manager_clone.redo(&whiteboard_id_clone, user_id).await {
+                                if let Some(op) =
+                                    manager_clone.redo(&whiteboard_id_clone, user_id).await
+                                {
                                     manager_clone
                                         .broadcast(
                                             &whiteboard_id_clone,
@@ -121,7 +161,10 @@ pub(super) async fn handle_whiteboard_socket(
                                     manager_clone.get_whiteboard(&whiteboard_id_clone).await
                                 {
                                     manager_clone
-                                        .broadcast(&whiteboard_id_clone, whiteboard.to_sync_message())
+                                        .broadcast(
+                                            &whiteboard_id_clone,
+                                            whiteboard.to_sync_message(),
+                                        )
                                         .await;
                                 }
                             }
@@ -143,7 +186,5 @@ pub(super) async fn handle_whiteboard_socket(
 
     let _ = tokio::join!(send_task, receive_task);
 
-    manager
-        .user_leave(&whiteboard_id, user_id)
-        .await;
+    manager.user_leave(&whiteboard_id, user_id).await;
 }

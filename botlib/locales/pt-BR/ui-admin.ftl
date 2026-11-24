@@ -866,3 +866,4 @@ protection-action-failed = A ação falhou.
 protection-load-error = O estado do verificador não está disponível.
 protection-clamav = ClamAV
 protection-lmd = LMD
+protection-quarantined-count = {count} em quarentena

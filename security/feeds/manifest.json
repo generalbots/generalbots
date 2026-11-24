@@ -1,0 +1,20 @@
+{
+  "counts": {
+    "advisories.atom": 3,
+    "advisories.rss": 3,
+    "product-botserver.atom": 2,
+    "product-botserver.rss": 2,
+    "product-botui.atom": 1,
+    "product-botui.rss": 1
+  },
+  "feeds": [
+    "advisories.atom",
+    "advisories.rss",
+    "product-botserver.atom",
+    "product-botserver.rss",
+    "product-botui.atom",
+    "product-botui.rss"
+  ],
+  "schema": 1,
+  "source": "botlib/src/security/advisory/data/advisories.json"
+}

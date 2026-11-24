@@ -212,7 +212,7 @@ The authentication process follows a secure sequence. Users provide credentials 
 
 ### Data Protection
 
-Data protection operates at multiple layers. Encryption at rest protects data stored in the database and files. Encryption in transit using TLS/SSL protects data during transmission. Sensitive data masking prevents exposure in logs and displays. PII detection identifies and protects personal information. Secure key management protects cryptographic keys from exposure.
+Data protection operates at multiple layers. The platform does not encrypt data at rest in the database, files or backups; only a small set of sensitive fields is encrypted through `encrypt_field` (attendance content, external Drive content and session content). Encryption in transit using TLS/SSL protects data during transmission. Sensitive data masking prevents exposure in logs and displays. PII detection identifies and protects personal information. Secure key management protects cryptographic keys from exposure.
 
 ### Access Control
 

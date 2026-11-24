@@ -9,6 +9,7 @@ mod import_notice;
 mod import_security;
 pub mod pdf;
 pub mod routes;
+pub mod scale;
 pub mod state {
     pub use botsheet_core::state::*;
 }

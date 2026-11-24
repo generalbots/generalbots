@@ -37,6 +37,19 @@ pub struct StorePurchaseBody {
     pub org_id: Option<Uuid>,
 }
 
+/// Pure tenant-scope predicate for store purchases (#2666).
+///
+/// The client-supplied `org_id` is never used to choose the write target: it
+/// is accepted only when absent or exactly equal to the caller's trusted
+/// branch id (resolved server-side by `get_bot_context`). A different value is
+/// a cross-tenant forgery and is rejected with 403 so the write fails closed.
+fn tenant_scope_allows(caller_branch_id: Uuid, requested_org_id: Option<Uuid>) -> bool {
+    match requested_org_id {
+        None => true,
+        Some(requested) => requested == caller_branch_id,
+    }
+}
+
 /// `POST /api/cloud/store/purchase`
 pub(crate) async fn handle_store_purchase(
     State(service): State<Arc<SaasService>>,
@@ -46,12 +59,20 @@ pub(crate) async fn handle_store_purchase(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
     let branch_id = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
-    let effective_branch_id = body.org_id.unwrap_or(branch_id);
+    // #2666: a request body must never redirect the write into another tenant.
+    // A forged `org_id` is rejected; the invoice always uses the trusted,
+    // server-resolved branch.
+    if !tenant_scope_allows(branch_id, body.org_id) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Target organization is outside the authenticated tenant scope".to_string(),
+        ));
+    }
     let now = chrono::Utc::now();
     let zero = bigdecimal::BigDecimal::from(0);
 
     let invoice_id = Uuid::new_v4();
-    let invoice_num = botbilling::api_models::generate_invoice_number(&mut conn, effective_branch_id);
+    let invoice_num = botbilling::api_models::generate_invoice_number(&mut conn, branch_id);
 
     use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, first_name, last_name};
     let contact_name = crm_contacts
@@ -65,7 +86,7 @@ pub(crate) async fn handle_store_purchase(
     diesel::insert_into(botbilling::schema::billing_invoices::table)
         .values((
             botbilling::schema::billing_invoices::id.eq(invoice_id),
-            botbilling::schema::billing_invoices::branch_id.eq(effective_branch_id),
+            botbilling::schema::billing_invoices::branch_id.eq(branch_id),
             botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
             botbilling::schema::billing_invoices::customer_name.eq(&contact_name),
             botbilling::schema::billing_invoices::customer_email.eq(Some(body.email)),
@@ -288,4 +309,34 @@ pub(crate) async fn list_offers() -> Result<Json<serde_json::Value>, (StatusCode
 
     ]);
     Ok(Json(serde_json::json!({ "offers": offers })))
+}
+
+#[cfg(test)]
+mod store_purchase_tenant_scope_tests {
+    use super::*;
+
+    #[test]
+    fn no_explicit_target_is_allowed() {
+        assert!(tenant_scope_allows(Uuid::new_v4(), None));
+    }
+
+    #[test]
+    fn target_equal_to_caller_branch_is_allowed() {
+        let branch = Uuid::new_v4();
+        assert!(tenant_scope_allows(branch, Some(branch)));
+    }
+
+    #[test]
+    fn forged_foreign_branch_is_rejected() {
+        // Two-tenant case: attacker branch must not write into victim branch.
+        let attacker_branch = Uuid::new_v4();
+        let victim_branch = Uuid::new_v4();
+        assert!(!tenant_scope_allows(attacker_branch, Some(victim_branch)));
+    }
+
+    #[test]
+    fn explicit_target_is_rejected_when_caller_is_unresolved() {
+        // Fail closed: an unresolved (nil) caller scope accepts no target.
+        assert!(!tenant_scope_allows(Uuid::nil(), Some(Uuid::new_v4())));
+    }
 }

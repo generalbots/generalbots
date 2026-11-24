@@ -1,0 +1,218 @@
+name: Bulletin Mirror (immutable advisories)
+
+# Issue #2726: the security bulletin must survive a DDoS, a hosting failure or
+# a compromise of the main site. It is a static tree with no server-side code
+# and no admin panel; this workflow turns a pinned commit of the website repo
+# into a content-addressed, signed bundle and publishes it to two independent
+# hosting providers. The daily job re-verifies the tree digest and signature
+# from a GitHub-hosted runner (outside the primary provider) and fails on drift.
+#
+# Required configuration (repository variables/secrets, never in this file):
+#   vars.BULLETIN_SURFACE_A      base URL, `<PREFIX>` placeholder (primary)
+#   vars.BULLETIN_SURFACE_B      base URL, `<PREFIX>` placeholder (second host)
+#   vars.BULLETIN_REVISION       the 40-hex website commit currently published
+#   vars.BULLETIN_TREE_DIGEST     tree digest of that revision (64 hex; its
+#                                first 16 characters are the <PREFIX>)
+#   secrets.BULLETIN_PUBLISH_TOKEN   write access to generalbots/website
+#   secrets.BULLETIN_MIRROR_REPO     git URL of the second-host mirror repo
+#   secrets.BULLETIN_MIRROR_TOKEN    push access to that mirror repo
+#   vars.BULLETIN_STATUS_URL     public status page for the uptime probe
+#
+# The self-test and the drift checks need no secrets and run on every trigger.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      website_ref:
+        description: "Full 40-character commit SHA of generalbots/website to publish"
+        required: true
+        type: string
+  schedule:
+    - cron: "17 5 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bulletin-mirror-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COSIGN_VERSION: "3.1.4"
+  COSIGN_SHA256: "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+
+jobs:
+  selftest:
+    name: Integrity self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Prove the checksum gate fails closed
+        run: python3 scripts/bulletin_mirror.py --self-test
+
+  publish:
+    name: Build, sign and publish immutable mirror
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: selftest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      WEBSITE_REF: ${{ inputs.website_ref }}
+      SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+      SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+      MIRROR_REPO: ${{ secrets.BULLETIN_MIRROR_REPO }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Require an immutable commit and both surfaces
+        run: |
+          set -euo pipefail
+          if ! [[ "$WEBSITE_REF" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::website_ref must be a full 40-character commit SHA"
+            exit 1
+          fi
+          if [[ -z "$SURFACE_A" || -z "$SURFACE_B" || -z "$MIRROR_REPO" ]]; then
+            echo "::error::BULLETIN_SURFACE_A/B and BULLETIN_MIRROR_REPO must be configured"
+            exit 1
+          fi
+          if [[ "$SURFACE_A" != *"<PREFIX>"* || "$SURFACE_B" != *"<PREFIX>"* ]]; then
+            echo "::error::both surface URLs must contain the <PREFIX> placeholder"
+            exit 1
+          fi
+      - name: Check out the advisory site at the pinned commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: generalbots/website
+          ref: ${{ inputs.website_ref }}
+          path: website
+          persist-credentials: false
+          token: ${{ secrets.BULLETIN_PUBLISH_TOKEN || github.token }}
+      - name: Build and verify content-addressed bundle
+        run: |
+          set -euo pipefail
+          python3 scripts/bulletin_mirror.py build \
+            --source website --revision "$WEBSITE_REF" --out /tmp/bulletin
+          python3 scripts/bulletin_mirror.py verify --bundle /tmp/bulletin
+          prefix=$(python3 -c 'import json; print(json.load(open("/tmp/bulletin/manifest.json"))["tree_digest"][:16])')
+          echo "BULLETIN_PREFIX=$prefix" >> "$GITHUB_ENV"
+          {
+            echo "### Bulletin mirror"
+            echo "- revision: \`$WEBSITE_REF\`"
+            echo "- tree prefix: \`$prefix\`"
+            echo "- surfaces: two independent hosting providers"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Install cosign (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          curl -fsSL --retry 3 -o /tmp/cosign "$url"
+          echo "${COSIGN_SHA256}  /tmp/cosign" | sha256sum -c -
+          sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
+      - name: Sign the tree manifest and verify the signature in CI
+        env:
+          COSIGN_IDENTITY: https://github.com/generalbots/BotServer/.github/workflows/bulletin-mirror.yml@${{ github.ref }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --bundle /tmp/bulletin/SHA256SUMS.bundle \
+            --output-signature /tmp/bulletin/SHA256SUMS.sig \
+            /tmp/bulletin/SHA256SUMS
+          cosign verify-blob \
+            --bundle /tmp/bulletin/SHA256SUMS.bundle \
+            --certificate-identity-regexp "^${COSIGN_IDENTITY}$" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            /tmp/bulletin/SHA256SUMS
+      - name: Publish to primary surface (immutable release tag)
+        env:
+          GH_TOKEN: ${{ secrets.BULLETIN_PUBLISH_TOKEN }}
+          GH_REPO: generalbots/website
+        run: |
+          set -euo pipefail
+          tag="bulletin-${BULLETIN_PREFIX}"
+          gh release create "$tag" /tmp/bulletin/* \
+            --repo "$GH_REPO" --title "Security bulletin $tag" \
+            --notes "Immutable advisory tree, revision $WEBSITE_REF. Verify with scripts/bulletin_mirror.py."
+          echo "published $tag to $GH_REPO"
+      - name: Publish to independent second surface
+        env:
+          MIRROR_TOKEN: ${{ secrets.BULLETIN_MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Credential helper keeps the token out of the remote URL and logs.
+          git_auth=(-c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$MIRROR_TOKEN"; }; f')
+          git "${git_auth[@]}" clone --depth 1 "$MIRROR_REPO" /tmp/mirror-repo
+          mkdir -p "/tmp/mirror-repo/$BULLETIN_PREFIX"
+          cp /tmp/bulletin/* "/tmp/mirror-repo/$BULLETIN_PREFIX/"
+          git -C /tmp/mirror-repo add "$BULLETIN_PREFIX"
+          git -C /tmp/mirror-repo -c user.name="General Bots CI" -c user.email="ci@generalbots.org" \
+            commit -m "bulletin: mirror $BULLETIN_PREFIX ($WEBSITE_REF)"
+          git -C /tmp/mirror-repo tag -a "bulletin-$BULLETIN_PREFIX" -m "Immutable bulletin $BULLETIN_PREFIX"
+          git "${git_auth[@]}" -C /tmp/mirror-repo push origin HEAD:main
+          git "${git_auth[@]}" -C /tmp/mirror-repo push origin "bulletin-$BULLETIN_PREFIX"
+      - name: Assert both surfaces agree at the same revision
+        env:
+          SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+          SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+        run: |
+          set -euo pipefail
+          url_a="${SURFACE_A/<PREFIX>/$BULLETIN_PREFIX}"
+          url_b="${SURFACE_B/<PREFIX>/$BULLETIN_PREFIX}"
+          python3 scripts/bulletin_mirror.py check-mirrors \
+            --url "$url_a" --url "$url_b" --expected-revision "$WEBSITE_REF"
+
+  verify:
+    name: External drift and uptime check
+    if: ${{ always() && needs.selftest.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    needs: [selftest, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Configure published revision and surfaces
+        id: config
+        env:
+          SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+          SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+          REVISION: ${{ vars.BULLETIN_REVISION }}
+          TREE: ${{ vars.BULLETIN_TREE_DIGEST }}
+        run: |
+          if [[ -z "${SURFACE_A:-}" || -z "${SURFACE_B:-}" || -z "${REVISION:-}" || -z "${TREE:-}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Mirror variables not configured yet (#2726); skipping drift check"
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "prefix=${TREE:0:16}" >> "$GITHUB_OUTPUT"
+      - name: Verify two surfaces serve one immutable revision
+        if: ${{ steps.config.outputs.configured == 'true' }}
+        env:
+          SURFACE_A: ${{ vars.BULLETIN_SURFACE_A }}
+          SURFACE_B: ${{ vars.BULLETIN_SURFACE_B }}
+          REVISION: ${{ steps.config.outputs.revision }}
+          PREFIX: ${{ steps.config.outputs.prefix }}
+        run: |
+          set -euo pipefail
+          url_a="${SURFACE_A/<PREFIX>/$PREFIX}"
+          url_b="${SURFACE_B/<PREFIX>/$PREFIX}"
+          python3 scripts/bulletin_mirror.py check-mirrors \
+            --url "$url_a" --url "$url_b" --expected-revision "$REVISION"
+      - name: Uptime probe from outside the primary provider
+        env:
+          STATUS_URL: ${{ vars.BULLETIN_STATUS_URL }}
+        run: |
+          set -uo pipefail
+          if [[ -z "${STATUS_URL:-}" ]]; then
+            echo "::warning::BULLETIN_STATUS_URL not configured; skipping uptime probe"
+            exit 0
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$STATUS_URL" || true)
+          echo "external probe $STATUS_URL -> HTTP $code"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::bulletin status page unreachable from external runner (HTTP $code)"
+            exit 1
+          fi

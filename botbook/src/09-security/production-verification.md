@@ -30,7 +30,7 @@ in the repository's `SECURITY.md` and the security report.
 | Database | PostgreSQL no longer trusts `0.0.0.0/0`; external 5432 blocked |
 | Containers | No `security.privileged`; Incus socket and Chromium CDP proxies restricted to their client containers |
 | OS packages | All security updates applied; only held Incus packages (bot) and the kernel package (desktops, reboot pending) remain |
-| Service binaries | Caddy **2.11.9**, Forgejo **17.0.1**, Zitadel **4.20.1**, Vault **2.2.1**, LiveKit **1.13.11** and MinIO **2025-10-15** deployed and verified (MinIO built from the official source tag) |
+| Service binaries | Caddy **2.11.9**, Forgejo **17.0.1**, Zitadel **4.20.1**, Vault **2.2.1**, LiveKit **1.13.11** and MinIO **RELEASE.2025-10-15T17-29-55Z** deployed and verified (MinIO built from the official source tag; `minio --version` checked) |
 
 ## Fixes applied during the verification
 
@@ -49,8 +49,9 @@ in the repository's `SECURITY.md` and the security report.
   Caddy 2.11.9 (and synced the serving Caddyfile), Forgejo 17.0.1,
   Zitadel 4.20.1 (running `zitadel setup` for the schema migration),
   Vault 2.2.1 (file-storage migration, unsealed), LiveKit 1.13.11 and
-  MinIO 2025-10-15 (built from the official source tag with
-  `scripts/build-minio-fixed.sh`).
+  MinIO RELEASE.2025-10-15T17-29-55Z (built from the official source tag with
+  `scripts/build-minio-fixed.sh`, pinned by its source archive SHA-256; fixes
+  CVE-2025-62506, which the last published binary still carries).
 - Ran authenticated cross-tenant probes with two disposable DB-only tenants
   and tokens minted from the persisted SaaS secret. Drive isolation, bucket
   discovery, RBAC and path traversal all held. Found and fixed a medium

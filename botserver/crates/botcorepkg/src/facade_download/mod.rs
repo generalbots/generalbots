@@ -2,7 +2,9 @@
 
 pub(crate) use crate::cache::{CacheResult, DownloadCache};
 pub(crate) use crate::component::ComponentConfig;
-pub(crate) use crate::db_utils::{get_database_url_sync, parse_database_url};
+pub(crate) use crate::db_utils::{
+    get_database_url_sync, parse_database_url, zitadel_db_password, ZITADEL_PASSWORD_PLACEHOLDER,
+};
 pub(crate) use crate::OsType;
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use botlib::security::SafeCommand;

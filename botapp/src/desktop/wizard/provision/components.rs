@@ -1,5 +1,6 @@
 //! Provisioning child process: spawn, progress forwarding and assistant start.
 
+use super::super::system::resolve_workspace;
 use super::super::{
     installers_path, log_path, stack_path, workspace_path, ProgressEvent, ProvisionRequest,
     WizardState,
@@ -98,21 +99,26 @@ pub(super) async fn run_components(
     state: &WizardState,
     request: &ProvisionRequest,
 ) -> Result<(), String> {
-    let binary = Sidecar::botserver_path()?;
+    // #2694 — validated, handle-pinned binary: this exact open handle is exec'd
+    // on Linux, so a swap of the on-disk path cannot change the provisioner.
+    let binary = Sidecar::botserver_binary()?;
 
     let resource_dir = app.path().resource_dir().ok();
     let installers = installers_path(resource_dir.as_deref());
     let stack = stack_path();
+    // #2693 — the workspace string crosses the webview boundary: resolve it
+    // inside the desktop scope before `create_dir_all` or the provisioner env.
     let workspace = if request.workspace.path.trim().is_empty() {
         workspace_path()
     } else {
-        std::path::PathBuf::from(request.workspace.path.trim())
+        resolve_workspace(&request.workspace.path)
+            .map_err(|e| format!("invalid workspace location: {e}"))?
     };
     std::fs::create_dir_all(&workspace)
         .map_err(|e| format!("could not create the workspace folder: {e}"))?;
     std::fs::create_dir_all(log_path()).map_err(|e| format!("could not create logs: {e}"))?;
 
-    let mut command = tokio::process::Command::new(&binary);
+    let mut command = tokio::process::Command::new(binary.program());
     command.no_console_window();
     #[cfg(target_os = "windows")]
     command.env("PATH", Sidecar::prepare_windows_runtime(&installers)
@@ -156,7 +162,7 @@ pub(super) async fn run_components(
     info!(
         "wizard: provisioning stack at {} with {}",
         stack.display(),
-        binary.display()
+        binary.path().display()
     );
 
     let mut child = command

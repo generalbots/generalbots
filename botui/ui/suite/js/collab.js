@@ -383,10 +383,12 @@
     // A1 addressing (#791): send row/col when the caller supplies them; the
     // position encoding is kept for backwards compatibility with text apps.
     if (opts.row !== undefined && opts.col !== undefined) {
-      const payload = { row: opts.row, col: opts.col, content: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength };
+      // #2447 — send both `content` (legacy) and `value` (server CollabMessage
+      // field) so an edit is never dropped by the WS envelope.
+      const payload = { row: opts.row, col: opts.col, content: opts.content, value: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength };
       return this.send("edit", payload);
     }
-    return this.send("edit", { position: opts.position, content: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength });
+    return this.send("edit", { position: opts.position, content: opts.content, value: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength });
   };
 
   GBCollab.prototype.disconnect = function () {

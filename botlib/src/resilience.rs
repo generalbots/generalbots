@@ -312,7 +312,10 @@ mod tests {
         let result: Result<(), ResilienceError> =
             retry(&fast_config(2), || async { Err("timeout".to_string()) }).await;
         match result {
-            Err(ResilienceError::RetriesExhausted { attempts, last_error }) => {
+            Err(ResilienceError::RetriesExhausted {
+                attempts,
+                last_error,
+            }) => {
                 assert_eq!(attempts, 2);
                 assert_eq!(last_error, "timeout");
             }

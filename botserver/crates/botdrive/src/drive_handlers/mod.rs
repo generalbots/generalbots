@@ -94,6 +94,9 @@ mod version_list_body;
 #[cfg(test)]
 #[path = "keys_tests.rs"]
 mod keys_tests;
+#[cfg(test)]
+#[path = "public_link_tests.rs"]
+mod public_link_tests;
 
 pub use ai_chat_handler::*;
 use cached_quota::*;

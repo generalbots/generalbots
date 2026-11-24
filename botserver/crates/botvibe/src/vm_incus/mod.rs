@@ -10,6 +10,8 @@
 //! `GBO_WSL_DISTRO` to select another installed distro.
 
 mod health;
+mod isolation;
+mod isolation_host;
 mod linux;
 mod web_entry;
 mod windows;
@@ -26,6 +28,8 @@ use crate::harness::cmd::spawn_persistent;
 use crate::vm_lifecycle::VmLifecycle;
 
 pub(crate) use health::{HEALTH_PROBE_JS, checked_run};
-pub(crate) use web_entry::{HEALTH_PROBE_PYTHON, resolve_web_entry};
+pub(crate) use web_entry::{
+    HEALTH_PROBE_PYTHON, exec_start_line, resolve_web_entry, validate_manifest_entries,
+};
 #[cfg(target_os = "windows")]
 pub(crate) use windows::{ensure_wsl_keepalive, windows_path_to_wsl, wsl_distro, wsl_exec_args};

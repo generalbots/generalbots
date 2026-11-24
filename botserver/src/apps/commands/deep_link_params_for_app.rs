@@ -82,9 +82,9 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("tax", "tax.documents.list", "List tax documents", "List Brazilian tax documents (NF-e, NFS-e, CT-e).", &[], Some("app://tax?doc_id={doc_id?}"), false),
     cmd("compliance", "compliance.audit.list", "List audit log", "List compliance scans, audit log and evidence.", &[], Some("app://compliance?audit_id={audit_id?}"), false),
     cmd("compliance", "compliance.framework.list", "List frameworks", "List compliance frameworks with their controls and coverage.", &[], Some("app://compliance?framework_id={framework_id?}"), false),
-    cmd("compliance", "compliance.framework.create", "Create framework", "Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS or custom) with name, version and description.", &[("name", "framework name"), ("version", "framework version (optional)")], Some("app://compliance?framework_id={framework_id?}"), false),
-    cmd("compliance", "compliance.control.add", "Add control", "Add a control (id, title, category, mandatory) to a compliance framework.", &[("framework_id", "framework uuid"), ("control_id", "control identifier"), ("title", "control title")], None, false),
-    cmd("compliance", "compliance.evidence.attach", "Attach evidence", "Attach a drive artifact as evidence to a compliance control.", &[("control_id", "control uuid"), ("file_path", "drive path")], None, false),
+    cmd("compliance", "compliance.framework.create", "Create framework", "Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS or custom) with name, version and description.", &[("name", "framework name"), ("version", "framework version (optional)")], Some("app://compliance?framework_id={framework_id?}"), true),
+    cmd("compliance", "compliance.control.add", "Add control", "Add a control (id, title, category, mandatory) to a compliance framework.", &[("framework_id", "framework uuid"), ("control_id", "control identifier"), ("title", "control title")], None, true),
+    cmd("compliance", "compliance.evidence.attach", "Attach evidence", "Attach a drive artifact as evidence to a compliance control.", &[("control_id", "control uuid"), ("file_path", "drive path")], None, true),
     cmd("compliance", "compliance.report.export", "Export scorecard", "Export an audit-ready compliance scorecard (CSV) for a framework.", &[("framework_id", "framework uuid")], Some("app://compliance?framework_id={framework_id}"), false),
     cmd("kyc", "kyc.verifications.list", "List verifications", "List KYC identity verifications.", &[], Some("app://kyc?verification_id={verification_id?}"), false),
     cmd("fraud", "fraud.cases.list", "List cases", "List anti-fraud cases and assessments.", &[], Some("app://fraud?case_id={case_id?}"), false),
@@ -103,16 +103,19 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("designer", "bas.script.open", "Open script", "Open a BASIC script for editing.", &[("script", "script name")], Some("app://designer?script_id={script}"), false),
     cmd("database", "database.tables.list", "List tables", "List database tables.", &[], Some("app://database?table={table?}"), false),
     cmd("database", "database.query", "Run read-only query", "Run a read-only SQL query against a table.", &[("table", "table name"), ("limit", "optional")], None, true),
-    cmd("database", "database.connections.create", "Create database connection", "Create or update an external database connection (conn-*) used by the TABLE keyword; the password is a sensitive key and is vaulted, never written to config.csv.", &[("name", "connection name"), ("server", "database host"), ("database", "database name"), ("username", "optional user"), ("password", "optional password (vaulted)"), ("port", "optional port"), ("driver", "optional postgres/mysql/mariadb/mssql")], None, false),
+    // #2752 — stores credentials and changes TABLE scope: admin-only.
+    cmd("database", "database.connections.create", "Create database connection", "Create or update an external database connection (conn-*) used by the TABLE keyword; the password is a sensitive key and is vaulted, never written to config.csv.", &[("name", "connection name"), ("server", "database host"), ("database", "database name"), ("username", "optional user"), ("password", "optional password (vaulted)"), ("port", "optional port"), ("driver", "optional postgres/mysql/mariadb/mssql")], None, true),
     // #2034 — the REST surface has always supported writes; the catalogue was
     // read-only, so a model following it could list and query but never add or
-    // delete a row. These verbs describe the existing endpoints; api.exec is
-    // what runs them. Destructive verbs are admin-only at the catalogue level.
-    cmd("database", "database.rows.insert", "Add row", "Insert a row into a table; values is a JSON object of column names to values. Returns the created row with its id.", &[("table", "table name"), ("values", "JSON object of column values")], None, false),
-    cmd("database", "database.rows.update", "Update row", "Update one row by primary key; values is a JSON object of the columns to change.", &[("table", "table name"), ("id", "row id"), ("values", "JSON object of columns to change")], None, false),
+    // delete a row. These verbs describe the existing endpoints; the chat
+    // dispatcher in api_catalog runs them directly, with no HTTP RBAC layer.
+    // #2752 — EVERY state-changing verb is admin-only at the catalogue level:
+    // `execute_command`'s role gate is the only authorization for chat commands.
+    cmd("database", "database.rows.insert", "Add row", "Insert a row into a table; values is a JSON object of column names to values. Returns the created row with its id.", &[("table", "table name"), ("values", "JSON object of column values")], None, true),
+    cmd("database", "database.rows.update", "Update row", "Update one row by primary key; values is a JSON object of the columns to change.", &[("table", "table name"), ("id", "row id"), ("values", "JSON object of columns to change")], None, true),
     cmd("database", "database.rows.delete", "Delete row", "Delete one row by primary key. List the row and ask the user to confirm before calling this.", &[("table", "table name"), ("id", "row id")], None, true),
     cmd("database", "database.rows.batch_delete", "Delete rows", "Delete several rows by id in one call. List them and ask the user to confirm first.", &[("table", "table name"), ("ids", "JSON array of row ids")], None, true),
-    cmd("database", "database.rows.import", "Import rows", "Import rows into a table from CSV text (header row required) or a JSON array of objects; creates the table when asked.", &[("table", "table name"), ("csv", "CSV text, header row required"), ("json", "JSON array of objects"), ("create", "optional true to create the table first")], None, false),
+    cmd("database", "database.rows.import", "Import rows", "Import rows into a table from CSV text (header row required) or a JSON array of objects; creates the table when asked.", &[("table", "table name"), ("csv", "CSV text, header row required"), ("json", "JSON array of objects"), ("create", "optional true to create the table first")], None, true),
     cmd("database", "database.table.create", "Create table", "Create a table from a column list; columns is a JSON array of {name, type} definitions.", &[("name", "table name"), ("columns", "JSON array of column definitions")], None, true),
     cmd("database", "database.column.add", "Add column", "Add a column to an existing table.", &[("table", "table name"), ("name", "column name"), ("type", "column type")], None, true),
     cmd("browser", "browser.session.open", "Open browser", "Open an embedded browser session to a URL.", &[("url", "the url")], Some("app://browser?url={url}"), false),
@@ -131,10 +134,10 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("integrations", "integrations.connectors.sync", "Sync connector", "Trigger an immediate sync for a configured connector.", &[("connector_id", "connector uuid")], None, false),
     cmd("integrations", "integrations.connectors.create", "Create connector", "Create a provider connection after its secure adapter is available.", &[("provider", "provider catalog id"), ("name", "connection name")], None, false),
     cmd("integrations", "integrations.api-keys.list", "List API keys", "List API keys with scopes, expiry and last-used time.", &[], None, false),
-    cmd("integrations", "integrations.api-keys.create", "Create API key", "Create an API key with name, optional comma-separated scopes and optional expiry in days.", &[("name", "key name"), ("scopes", "optional comma-separated scopes"), ("expires_in_days", "optional expiry in days")], None, false),
+    cmd("integrations", "integrations.api-keys.create", "Create API key", "Create an API key with name, optional comma-separated scopes and optional expiry in days.", &[("name", "key name"), ("scopes", "optional comma-separated scopes"), ("expires_in_days", "optional expiry in days")], None, true),
     cmd("integrations", "integrations.api-keys.revoke", "Revoke API key", "Revoke an API key by id.", &[("key_id", "api key uuid")], None, true),
     cmd("integrations", "integrations.webhooks.list", "List webhooks", "List webhook endpoints with their events and status.", &[], None, false),
-    cmd("integrations", "integrations.webhooks.create", "Add webhook", "Register a webhook endpoint with URL and optional comma-separated events.", &[("url", "https endpoint"), ("events", "optional comma-separated events")], None, false),
+    cmd("integrations", "integrations.webhooks.create", "Add webhook", "Register a webhook endpoint with URL and optional comma-separated events.", &[("url", "https endpoint"), ("events", "optional comma-separated events")], None, true),
     cmd("integrations", "integrations.webhooks.test", "Test webhook", "Send a signed test event to a webhook endpoint.", &[("webhook_id", "webhook uuid")], None, false),
     cmd("integrations", "integrations.webhooks.deliveries", "Webhook deliveries", "List the delivery history of a webhook endpoint.", &[("webhook_id", "webhook uuid")], None, false),
     cmd("desktop", "vdi.list", "List remote desktops", "List saved remote desktop (VNC/RDP) connections for the user.", &[], None, false),
@@ -295,6 +298,21 @@ pub fn ui_sequence_hint_for(app_id: &str) -> &'static str {
 mod database_verb_tests {
     use super::*;
 
+    /// #2475 — the office `app://` contract emits `file` for every surface.
+    /// The chat renderer's catalog gate drops links whose keys are all absent
+    /// from the declared params, so a missing `file` key silently degrades a
+    /// canonical Docs/Sheet/Slides link to plain text.
+    #[test]
+    fn office_apps_declare_the_contract_file_key() {
+        for app in ["docs", "sheet", "slides"] {
+            let params = deep_link_params_for_app(app);
+            assert!(
+                params.iter().any(|p| p.key == "file"),
+                "{app} must declare the `file` deep-link key"
+            );
+        }
+    }
+
     #[test]
     fn database_exposes_write_verbs() {
         let names: Vec<&str> = all_commands().iter().map(|command| command.name).collect();
@@ -311,13 +329,18 @@ mod database_verb_tests {
         }
     }
 
+    /// #2752 — the catalogue flag is the only RBAC layer for chat writes.
     #[test]
-    fn destructive_database_verbs_are_admin_only() {
+    fn state_changing_database_verbs_are_admin_only() {
         for name in [
+            "database.rows.insert",
+            "database.rows.update",
+            "database.rows.import",
             "database.rows.delete",
             "database.rows.batch_delete",
             "database.table.create",
             "database.column.add",
+            "database.connections.create",
         ] {
             let command = all_commands()
                 .iter()

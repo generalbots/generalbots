@@ -77,7 +77,9 @@ impl VmLifecycle {
         req: &CreateVmRequest,
     ) -> Result<VmInstance, String> {
         let (env, tier) = Self::validate(req)?;
-        let container = Self::container_name(project_name, &env, req.runner_enabled);
+        // #2648 — the container name embeds the tenant tag, so two branches
+        // with an identically named project provision distinct instances.
+        let container = Self::container_name(project_name, &env, req.runner_enabled, branch_id);
         if Self::is_protected_container_name(project_name) {
             return Err(format!(
                 "project name '{}' resolves to a protected platform container name; choose another name",
@@ -85,9 +87,9 @@ impl VmLifecycle {
             ));
         }
 
-        // #2648 — a container name is derived from project name + env only.
-        // Before touching an existing Incus instance, prove that the row that
-        // owns this name belongs to the requesting project AND branch.
+        // #2648 — defense in depth: even though the name is now tenant-scoped,
+        // prove that the row owning this name belongs to the requesting
+        // project AND branch before touching an existing Incus instance.
         if let Some(owner) = self.lookup_by_container_name(&container)? {
             if owner.project_id != project_id || owner.branch_id != branch_id {
                 return Err(format!(

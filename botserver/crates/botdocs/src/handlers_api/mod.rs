@@ -1,9 +1,11 @@
 pub mod admission;
 pub mod ai;
+pub mod ast;
 pub mod comments;
 pub mod crud;
 pub mod export;
 pub mod import;
+pub mod kb_index;
 pub mod notes;
 pub mod review_pair;
 pub mod structure;
@@ -13,10 +15,12 @@ pub mod toc;
 pub mod track_changes;
 
 pub use ai::*;
+pub use ast::*;
 pub use comments::*;
 pub use crud::*;
 pub use export::*;
 pub use import::*;
+pub use kb_index::*;
 pub use notes::*;
 pub use review_pair::*;
 pub use structure::*;

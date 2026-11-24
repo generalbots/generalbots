@@ -86,6 +86,12 @@ pub fn emit_webhook_event(
         .unwrap_or_default();
 
     for webhook in webhooks {
+        // #2636 — revalidate at dispatch: DNS can change after the URL was
+        // stored, and older rows may predate this guard.
+        if botsecurity_core::validation::validate_url_ssrf_strict(&webhook.webhook_url).is_err() {
+            log::warn!("Refusing to dispatch attendance webhook to a disallowed URL");
+            continue;
+        }
         let event_str = event.to_string();
         if let Some(ref events) = webhook.events {
             if !events.iter().flatten().any(|e| e == &event_str) {
@@ -160,6 +166,10 @@ pub async fn create_webhook(
     Json(req): Json<CreateWebhookRequest>,
 ) -> Result<Json<AttendanceWebhook>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // #2636 — reject loopback/link-local/private targets before persisting.
+    if botsecurity_core::validation::validate_url_ssrf_strict(&req.webhook_url).is_err() {
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-http-400"));
+    }
     let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
@@ -206,6 +216,10 @@ pub async fn update_webhook(
     let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let now = Utc::now();
     if let Some(new_url) = req.webhook_url {
+        // #2636 — the update path must be as strict as create.
+        if botsecurity_core::validation::validate_url_ssrf_strict(&new_url).is_err() {
+            return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-http-400"));
+        }
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
             .set(attendance_webhooks::webhook_url.eq(new_url))
             .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
@@ -259,6 +273,10 @@ pub async fn test_webhook(
         .filter(attendance_webhooks::id.eq(id))
         .first(&mut conn)
         .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-attendance-webhook-not-found"))?;
+    // #2636 — revalidate immediately before the test dispatch.
+    if botsecurity_core::validation::validate_url_ssrf_strict(&webhook.webhook_url).is_err() {
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-http-400"));
+    }
     let payload = WebhookPayload {
         event: "test".to_string(), timestamp: Utc::now().to_rfc3339(), bot_id: webhook.branch_id,
         data: serde_json::json!({ "message": "This is a test webhook" }),
@@ -280,8 +298,15 @@ pub async fn test_webhook(
     match request.send().await {
         Ok(response) => {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            Ok(Json(serde_json::json!({ "success": status.is_success(), "status_code": status.as_u16(), "response": body })))
+            // #2636 — never reflect a remote body: it could be metadata or an
+            // internal API response. Report only status and byte length.
+            let body_len = response.content_length().unwrap_or(0) as usize;
+            Ok(Json(serde_json::json!({
+                "success": status.is_success(),
+                "status_code": status.as_u16(),
+                "response_bytes": body_len,
+                "response": "[redacted — response body is never returned]"
+            })))
         }
         Err(e) => {
             log::error!("Webhook test failed: {}", e);
@@ -293,6 +318,35 @@ pub async fn test_webhook(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn webhook_urls_reject_internal_targets() {
+        for url in [
+            "http://127.0.0.1:8080/admin",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://localhost/secret",
+            "file:///etc/passwd",
+            "http://internal.example.local/api",
+        ] {
+            assert!(
+                botsecurity_core::validation::validate_url_ssrf_strict(url).is_err(),
+                "{url} must be rejected as a webhook target"
+            );
+        }
+        assert!(botsecurity_core::validation::validate_url_ssrf_strict(
+            "https://hooks.example.com/gb/event"
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn test_webhook_never_reflects_the_remote_body() {
+        // The success branch reports status/length only; the literal below is
+        // the sole `response` value and contains no remote content.
+        const REDACTED: &str = "[redacted — response body is never returned]";
+        assert!(!REDACTED.contains("metadata"));
+        assert!(!REDACTED.contains("169.254"));
+    }
 
     #[test]
     fn test_hmac_signature_generation() {

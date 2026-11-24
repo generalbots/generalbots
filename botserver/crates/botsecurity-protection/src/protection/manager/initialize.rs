@@ -1,5 +1,32 @@
 use super::*;
 
+/// Concrete scan engine a protection tool resolves to. This decision is kept
+/// pure so the ClamAV route can be asserted offline without invoking a scanner
+/// (#2599). The mapping is exhaustive: adding a tool forces a compile error
+/// here rather than silently falling through to Lynis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ScanEngine {
+    Lynis,
+    RKHunter,
+    Chkrootkit,
+    Suricata,
+    Lmd,
+    ClamAV,
+}
+
+/// Resolve a tool to its engine. `ClamAV` maps only to `ScanEngine::ClamAV`;
+/// it must never resolve to the Lynis hardening audit.
+pub(crate) fn engine_for_tool(tool: ProtectionTool) -> ScanEngine {
+    match tool {
+        ProtectionTool::Lynis => ScanEngine::Lynis,
+        ProtectionTool::RKHunter => ScanEngine::RKHunter,
+        ProtectionTool::Chkrootkit => ScanEngine::Chkrootkit,
+        ProtectionTool::Suricata => ScanEngine::Suricata,
+        ProtectionTool::LMD => ScanEngine::Lmd,
+        ProtectionTool::ClamAV => ScanEngine::ClamAV,
+    }
+}
+
 impl ProtectionManager {
     pub fn new(config: ProtectionConfig) -> Self {
         Self {
@@ -229,13 +256,14 @@ impl ProtectionManager {
 
         self.active_scans.write().await.insert(scan_id.clone(), result.clone());
 
-        let scan_output = match tool {
-            ProtectionTool::Lynis => super::lynis::run_scan().await,
-            ProtectionTool::RKHunter => super::rkhunter::run_scan().await,
-            ProtectionTool::Chkrootkit => super::chkrootkit::run_scan().await,
-            ProtectionTool::Suricata => super::suricata::get_alerts().await,
-            ProtectionTool::LMD => super::lmd::run_scan(None).await,
-            ProtectionTool::ClamAV => super::clamav::run_scan().await,
+        let engine = engine_for_tool(tool);
+        let scan_output = match engine {
+            ScanEngine::Lynis => super::lynis::run_scan().await,
+            ScanEngine::RKHunter => super::rkhunter::run_scan().await,
+            ScanEngine::Chkrootkit => super::chkrootkit::run_scan().await,
+            ScanEngine::Suricata => super::suricata::get_alerts().await,
+            ScanEngine::Lmd => super::lmd::run_scan(None).await,
+            ScanEngine::ClamAV => super::clamav::run_scan().await,
         };
 
         result.completed_at = Some(Utc::now());
@@ -268,5 +296,25 @@ impl ProtectionManager {
         self.scan_history.write().await.push(result.clone());
 
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clamav_routes_to_clamav_engine_not_lynis() {
+        assert_eq!(engine_for_tool(ProtectionTool::ClamAV), ScanEngine::ClamAV);
+        assert_ne!(engine_for_tool(ProtectionTool::ClamAV), ScanEngine::Lynis);
+    }
+
+    #[test]
+    fn every_tool_resolves_to_its_own_engine() {
+        assert_eq!(engine_for_tool(ProtectionTool::Lynis), ScanEngine::Lynis);
+        assert_eq!(engine_for_tool(ProtectionTool::RKHunter), ScanEngine::RKHunter);
+        assert_eq!(engine_for_tool(ProtectionTool::Chkrootkit), ScanEngine::Chkrootkit);
+        assert_eq!(engine_for_tool(ProtectionTool::Suricata), ScanEngine::Suricata);
+        assert_eq!(engine_for_tool(ProtectionTool::LMD), ScanEngine::Lmd);
     }
 }

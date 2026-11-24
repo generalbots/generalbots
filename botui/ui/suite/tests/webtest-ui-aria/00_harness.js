@@ -12,6 +12,8 @@ var fs = require("fs");
 var path = require("path");
 
 var SUITE_ROOT = path.resolve(__dirname, "..", "..");
+var REPO_ROOT = path.resolve(SUITE_ROOT, "..", "..", "..");
+var LOCALES = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
 var SOURCE_EXT = { ".html": true, ".js": true };
 
 var PASS = 0;
@@ -39,6 +41,11 @@ function assert(condition, msg) {
 
 function readSource(relPath) {
   return fs.readFileSync(path.join(SUITE_ROOT, relPath), "utf8");
+}
+
+/** Read a file rooted at the repository root (locale catalogs live in botlib). */
+function readRepo(relPath) {
+  return fs.readFileSync(path.join(REPO_ROOT, relPath), "utf8");
 }
 
 function walk(absDir, relDir, out) {
@@ -111,6 +118,7 @@ function report() {
   gbLog.debug("SCOPE: botui/ui/suite HTML and JS; tests subtree excluded");
   gbLog.debug("NOTES: literal values only; computed values and template keys are not resolved.");
   gbLog.debug("NOTES: writesOutsideRegionFiles is a file-level upper bound (cross-file helpers not attributed).");
+  gbLog.debug("NOTES: 30_wcag checks are source-level proxies; computed style, AX-tree and axe evidence need a browser.");
   gbLog.debug("");
   observedLines().forEach(function (line) { gbLog.debug(line); });
   gbLog.debug("");
@@ -142,9 +150,12 @@ function finish() {
 
 module.exports = {
   SUITE_ROOT: SUITE_ROOT,
+  REPO_ROOT: REPO_ROOT,
+  LOCALES: LOCALES,
   test: test,
   assert: assert,
   readSource: readSource,
+  readRepo: readRepo,
   readTree: readTree,
   gap: gap,
   setMetrics: setMetrics,

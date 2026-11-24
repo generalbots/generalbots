@@ -5,10 +5,10 @@
 //! that thread receives them. Closing the tab cannot cancel the work, and a
 //! reconnect replays the persisted frames from the requested `seq`.
 
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
+use crate::core::bot::bounded::{self, BoundedMap};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -199,17 +199,43 @@ impl ThreadChannel {
             Err(poisoned) => poisoned.into_inner().len(),
         }
     }
+
+    /// #2541 — true while this thread still has a live run, a listener or a
+    /// queued steering message. Used as the eviction veto so a bounded bus can
+    /// never drop in-flight work; terminal frames stay in the durable log.
+    #[must_use]
+    pub fn is_active(&self) -> bool {
+        let meta = self.lock_meta();
+        let live_run = !meta.run_id.is_empty() && !meta.state.is_terminal();
+        live_run || !self.lock_subscribers().is_empty() || self.steering_len() > 0
+    }
 }
 
-#[derive(Debug, Default)]
+/// #2541 — thread entries are bounded by an LRU/TTL cache. Active runs, open
+/// subscriptions and queued steering messages are protected from eviction;
+/// idle/terminal threads are reclaimed on the next insertion.
 pub struct RunBus {
-    threads: Mutex<HashMap<String, Arc<ThreadChannel>>>,
+    threads: Mutex<BoundedMap<String, Arc<ThreadChannel>>>,
+}
+
+impl Default for RunBus {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RunBus {
     #[must_use]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            threads: Mutex::new(
+                BoundedMap::new(
+                    bounded::cap_from_env("GB_RUN_BUS_THREAD_CAP", 4096),
+                    bounded::ttl_from_env("GB_RUN_BUS_THREAD_TTL_MS", 3_600_000),
+                )
+                .protecting(|_, channel: &Arc<ThreadChannel>| channel.is_active()),
+            ),
+        }
     }
 
     #[must_use]
@@ -218,10 +244,7 @@ impl RunBus {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner(),
         };
-        threads
-            .entry(thread_id.to_string())
-            .or_insert_with(|| Arc::new(ThreadChannel::default()))
-            .clone()
+        threads.get_or_insert_default(thread_id.to_string()).clone()
     }
 
     /// Marks a new run as the owner of the thread. A cancelled flag from a

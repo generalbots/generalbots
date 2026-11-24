@@ -210,7 +210,7 @@ pub(super) async fn run(
                             cap_breach = Some(breach);
                             break;
                         }
-                        let chunk_resp = frames::chunk(turn, chunk);
+                        let chunk_resp = frames::chunk(turn, chunk).await;
                         if ws_sender.send(Message::Text(chunk_resp.to_string())).await.is_err() {
                             break;
                         }

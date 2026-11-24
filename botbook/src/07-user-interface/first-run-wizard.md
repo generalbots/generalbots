@@ -115,6 +115,14 @@ llama.cpp (when the local model is selected) are downloaded once on first run.
 The MSI/NSIS packages get the same `installers/` resources from
 `botserver/botserver-installers`.
 
+An offline install that needs the malware gate must also stage the ClamAV 1.5.5
+archives from `[components.clamav]` in `3rdparty.toml` into that same cache:
+`clamav-1.5.5.linux.x86_64.deb` or `clamav-1.5.5.linux.aarch64.deb` on Linux,
+`clamav-1.5.5.win.x64.zip` on Windows. Each has a GitHub-verified SHA-256 pin
+enforced by `scripts/check_component_checksums.py`. Without the matching archive
+the packaged scanner is unavailable and malware scans fail closed; desktop-local
+never falls back to a network download.
+
 ## Detection
 
 The wizard opens only when **both** are true:

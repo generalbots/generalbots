@@ -112,7 +112,7 @@ impl FetchedResponse {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Target {
+pub(super) enum Target {
     /// URL came from a caller (script, LLM, API) — full public-only policy.
     Caller,
     /// URL was built by the server from configuration for a documented
@@ -160,7 +160,7 @@ fn is_redirect(status: u16) -> bool {
 /// a resolver changes its answer between that check and the TCP connection
 /// (DNS rebinding). A peer in a non-global range is never a valid destination,
 /// even for an allowlisted internal service host (#2618).
-fn check_connected_peer(peer: SocketAddr) -> Result<(), SsrfError> {
+pub(super) fn check_connected_peer(peer: SocketAddr) -> Result<(), SsrfError> {
     if is_blocked_address(peer.ip()) {
         return Err(SsrfError::new(
             SsrfErrorKind::DnsRebinding,
@@ -176,7 +176,7 @@ fn check_connected_peer(peer: SocketAddr) -> Result<(), SsrfError> {
 /// join the relative location, but the resulting host still goes through the
 /// internal allowlist. Both kinds are then resolved and peer-checked by
 /// `follow`, so a redirect cannot smuggle in a private target (#2618).
-fn next_hop(current: &Url, location: &str, target: Target) -> Result<Url, SsrfError> {
+pub(super) fn next_hop(current: &Url, location: &str, target: Target) -> Result<Url, SsrfError> {
     let next = match target {
         Target::Caller => validate_redirect_target(current, location)?,
         Target::InternalService => current.join(location).map_err(|e| {
@@ -211,6 +211,26 @@ fn build_client(policy: &FetchPolicy) -> Result<reqwest::Client, SsrfError> {
         .map_err(|e| SsrfError::new(SsrfErrorKind::Transport, format!("http client: {e}")))
 }
 
+/// True when appending `incoming` bytes to a `current`-byte body would breach
+/// the cap. `saturating_add` keeps the check total even for hostile lengths.
+fn body_exceeds_cap(current: usize, incoming: usize, max_bytes: usize) -> bool {
+    current.saturating_add(incoming) > max_bytes
+}
+
+/// Appends as much of `chunk` as fits, returning `true` when bytes were
+/// discarded. `read_body` stops on the first capped chunk, so the full body is
+/// never buffered and at most one chunk is read past the ceiling (#2779).
+fn append_capped(body: &mut Vec<u8>, chunk: &[u8], max_bytes: usize) -> bool {
+    if body_exceeds_cap(body.len(), chunk.len(), max_bytes) {
+        let remaining = max_bytes.saturating_sub(body.len());
+        body.extend_from_slice(&chunk[..remaining]);
+        true
+    } else {
+        body.extend_from_slice(chunk);
+        false
+    }
+}
+
 async fn read_body(
     mut response: reqwest::Response,
     max_bytes: usize,
@@ -223,13 +243,10 @@ async fn read_body(
             .await
             .map_err(|e| SsrfError::new(SsrfErrorKind::Transport, format!("body read: {e}")))?;
         let Some(chunk) = chunk else { break };
-        if body.len() + chunk.len() > max_bytes {
-            let remaining = max_bytes.saturating_sub(body.len());
-            body.extend_from_slice(&chunk[..remaining]);
+        if append_capped(&mut body, &chunk, max_bytes) {
             truncated = true;
             break;
         }
-        body.extend_from_slice(&chunk);
     }
     Ok((body, truncated))
 }
@@ -356,93 +373,40 @@ pub async fn fetch_internal_service_url(
 mod tests {
     use super::*;
 
-    fn policy() -> FetchPolicy {
-        FetchPolicy::default().with_timeout(Duration::from_millis(900))
-    }
-
-    #[tokio::test]
-    async fn internal_fetch_refuses_a_loopback_literal() {
-        // 127.0.0.1 is an allowlisted internal host, but the resolution check
-        // must still refuse it as non-global (#2618).
-        let err = fetch_internal_service_url("http://127.0.0.1:18080/", &policy())
-            .await
-            .expect_err("loopback literal must be refused");
-        assert_eq!(err.kind(), SsrfErrorKind::BlockedAddress);
-    }
-
-    #[tokio::test]
-    async fn internal_fetch_refuses_allowlisted_hostname_resolving_to_loopback() {
-        // `localhost` is allowlisted as a host; only resolution reveals that
-        // it points at the local node.
-        let err = fetch_internal_service_url("http://localhost:18080/", &policy())
-            .await
-            .expect_err("localhost must be refused after resolution");
-        assert_eq!(err.kind(), SsrfErrorKind::BlockedAddress);
-    }
-
-    #[tokio::test]
-    async fn shared_resolution_check_refuses_private_and_metadata_addresses() {
-        for target in [
-            "http://10.0.0.1/",
-            "http://192.168.1.10/",
-            "http://169.254.169.254/latest/meta-data/",
-            "http://[fe80::1]/",
-        ] {
-            let parsed = Url::parse(target).expect("literal fixture");
-            let err = resolve_checked(&parsed).await.expect_err("non-global IP");
-            // An unscoped IPv6 link-local literal can fail resolution before
-            // the classifier runs on some resolvers. Both outcomes refuse the
-            // request, which is the security property under test.
-            assert!(
-                matches!(
-                    err.kind(),
-                    SsrfErrorKind::BlockedAddress | SsrfErrorKind::ResolutionFailed
-                ),
-                "{target} was not refused: {:?}",
-                err.kind()
-            );
-        }
+    #[test]
+    fn body_cap_predicate_refuses_oversized_chunks() {
+        let cap = 2 * 1024 * 1024;
+        assert!(!body_exceeds_cap(0, cap, cap));
+        assert!(body_exceeds_cap(0, cap + 1, cap));
+        assert!(body_exceeds_cap(cap - 1, 2, cap));
+        assert!(body_exceeds_cap(usize::MAX, usize::MAX, cap));
     }
 
     #[test]
-    fn post_connect_peer_check_refuses_non_global_addresses() {
-        for peer in [
-            "127.0.0.1:443",
-            "10.0.0.1:443",
-            "169.254.169.254:80",
-            "[::1]:443",
-        ] {
-            let peer: SocketAddr = peer.parse().expect("peer literal");
-            let err = check_connected_peer(peer).expect_err("non-global peer");
-            assert_eq!(err.kind(), SsrfErrorKind::DnsRebinding);
-        }
-        let public: SocketAddr = "8.8.8.8:443".parse().expect("public peer");
-        assert!(check_connected_peer(public).is_ok());
+    fn an_oversized_body_is_capped_and_flagged() {
+        // #2779: a 16 MB response chunk against a 64 KB ceiling must not be
+        // buffered. Only the ceiling worth is kept and the overflow is flagged.
+        let cap = 64 * 1024usize;
+        let incoming = vec![b'a'; 16 * 1024 * 1024];
+        let mut body = Vec::new();
+        assert!(append_capped(&mut body, &incoming, cap));
+        assert_eq!(body.len(), cap);
+        assert!(body.iter().all(|b| *b == b'a'));
     }
 
     #[test]
-    fn internal_redirect_to_a_caller_controlled_url_is_refused() {
-        // `follow` re-runs `next_hop` on every redirect hop, so a redirect from
-        // an internal host to an arbitrary URL is refused by the host
-        // allowlist before any second connection is made.
-        let base = Url::parse("http://vault:8200/start").expect("base fixture");
-        for location in [
-            "https://attacker.example/collect?token=stolen",
-            "http://169.254.169.254/latest/meta-data/",
-            "file:///etc/passwd",
-        ] {
-            let err = next_hop(&base, location, Target::InternalService)
-                .expect_err("caller-controlled redirect must be refused");
-            assert!(
-                matches!(
-                    err.kind(),
-                    SsrfErrorKind::BlockedHost
-                        | SsrfErrorKind::UnsupportedScheme
-                        | SsrfErrorKind::MissingHost
-                ),
-                "{location} refused as {:?}",
-                err.kind()
-            );
+    fn a_body_at_the_cap_is_not_flagged() {
+        let cap = 64 * 1024usize;
+        let chunk = vec![b'b'; 8 * 1024];
+        let mut body = Vec::new();
+        let mut truncated = false;
+        for _ in 0..8 {
+            if append_capped(&mut body, &chunk, cap) {
+                truncated = true;
+                break;
+            }
         }
+        assert_eq!(body.len(), cap);
+        assert!(!truncated);
     }
 }

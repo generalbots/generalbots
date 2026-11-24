@@ -4,7 +4,7 @@
   "version": "7.1.0",
   "identifier": "org.generalbots.botapp",
   "build": {
-    "beforeDevCommand": "python3 -m http.server 3000 --bind 127.0.0.1 --directory ../botui/ui",
+    "beforeDevCommand": "python3 dev-static-server.py",
     "beforeBuildCommand": "",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../botui/ui"

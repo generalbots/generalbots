@@ -93,7 +93,7 @@ pub(super) async fn main() -> std::io::Result<()> {
         let command = &args[1];
         match command.as_str() {
             "install" | "remove" | "list" | "status" | "start" | "stop" | "restart"
-            | "rotate-secret" | "rotate-secrets" | "vault"
+            | "rotate-secret" | "rotate-secrets" | "vault" | "audit"
             | "--version" | "-v" | "--help" | "-h" => match crate::core::package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
@@ -148,6 +148,11 @@ pub(super) async fn main() -> std::io::Result<()> {
             info!("Using custom stack path: {}", path);
         }
     }
+
+    // #2590 — Initialize internal service mTLS before any internal HTTP client
+    // is built; desktop-local / localhost installs stay on plain loopback.
+    #[cfg(feature = "security")]
+    main_module::init_tls::init_internal_tls(&install_mode, is_remote_vault);
 
     let cfg = run_bootstrap(install_mode, tenant, &progress_tx).await?;
 

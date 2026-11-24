@@ -4,8 +4,12 @@ use std::sync::OnceLock;
 mod browser_video_and_photos;
 mod docs_and_sheet_crud;
 mod office_create_and_utilities;
+mod office_review_ops;
 mod sheet_slides_and_canvas;
 mod system_store_and_media;
+
+#[cfg(test)]
+mod office_parity_tests;
 
 static ALL: OnceLock<Vec<AppCommand>> = OnceLock::new();
 
@@ -18,13 +22,15 @@ pub fn all() -> &'static [AppCommand] {
                 + system_store_and_media::SYSTEM_STORE_AND_MEDIA.len()
                 + browser_video_and_photos::BROWSER_VIDEO_AND_PHOTOS.len()
                 + docs_and_sheet_crud::DOCS_AND_SHEET_CRUD.len()
-                + sheet_slides_and_canvas::SHEET_SLIDES_AND_CANVAS.len(),
+                + sheet_slides_and_canvas::SHEET_SLIDES_AND_CANVAS.len()
+                + office_review_ops::OFFICE_REVIEW_OPS.len(),
         );
         v.extend_from_slice(office_create_and_utilities::OFFICE_CREATE_AND_UTILITIES);
         v.extend_from_slice(system_store_and_media::SYSTEM_STORE_AND_MEDIA);
         v.extend_from_slice(browser_video_and_photos::BROWSER_VIDEO_AND_PHOTOS);
         v.extend_from_slice(docs_and_sheet_crud::DOCS_AND_SHEET_CRUD);
         v.extend_from_slice(sheet_slides_and_canvas::SHEET_SLIDES_AND_CANVAS);
+        v.extend_from_slice(office_review_ops::OFFICE_REVIEW_OPS);
         v
     })
     .as_slice()

@@ -27,7 +27,8 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.read("/api/product");
     routes.read("/api/whats-new");
     routes.read("/api/manifest");
-    routes.read("/api/setup/status");
+    // #2767 — `/api/setup/status` is NOT anonymous: it fingerprints a fresh
+    // install. The setup wizard calls it only after authentication.
     // Public bot profile: the chat shell asks whether a bot exists before the
     // visitor has an account.
     routes.read("/api/bot/public");
@@ -406,6 +407,13 @@ mod tests {
         assert!(!is_public(Method::GET, "/api/bots/access"));
         assert!(is_public(Method::GET, "/api/files/public/abc"));
         assert!(!is_public(Method::GET, "/api/files/public/abc/extra"));
+    }
+
+    #[test]
+    fn setup_status_requires_authentication() {
+        // #2767 — must never be reachable anonymously (fingerprints fresh installs).
+        assert!(!is_public(Method::GET, "/api/setup/status"));
+        assert!(!is_public(Method::HEAD, "/api/setup/status"));
     }
 
     #[test]

@@ -39,15 +39,18 @@ pub use botschema::canvas_comments;
 // macros and the route tables stay here so the schema module and public
 // routes keep their existing paths.
 mod api;
+mod auth;
 mod collaboration;
 mod export;
 mod models;
+mod tenant_scope;
 mod ui;
 mod ui_views;
 mod websocket;
 mod ws_auth;
 
 pub(crate) use api::*;
+pub use auth::*;
 pub use collaboration::*;
 pub(crate) use export::*;
 pub use models::*;

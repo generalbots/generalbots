@@ -85,6 +85,14 @@ impl VmLifecycle {
             "large" => ("4", "4GiB"),
             _ => ("1", "1GiB"),
         };
+
+        // #2653 — resolve the bridge and provision the tenant-isolation ACL
+        // BEFORE launching the container. If either step fails we return Err
+        // and no VM is created, so a container can never end up attached to
+        // the shared bridge without an ACL (fail closed).
+        let bridge = self.vibe_bridge()?;
+        let isolation_acl = self.ensure_isolation_acl(&bridge)?;
+
         // `incus launch` takes config as `--config key=value` flags; passing
         // bare `key=value` positionals is rejected ("Invalid number of
         // arguments"), which silently left VMs marked running without a
@@ -102,47 +110,11 @@ impl VmLifecycle {
         ];
         self.incus_run(&args, 120)
             .map_err(|e| format!("incus launch {name} (tier {tier}): {e}"))?;
-        // Attach the container to the managed bridge. `incus launch` only
-        // applies the default profile, which typically carries a root disk
-        // but no NIC — leaving the VM with loopback only and no DNS, so the
-        // deployment API (bot.incus) is unreachable from inside the VM.
-        // Prefer the default managed bridge (Incus names it `incusbr0`);
-        // fall back to `incusbr0` when detection yields nothing.
-        let bridge = self
-            .incus_run(
-                &[
-                    "network".to_string(),
-                    "list".to_string(),
-                    "--format".to_string(),
-                    "csv".to_string(),
-                ],
-                30,
-            )
-            .ok()
-            .and_then(|out| {
-                let rows: Vec<Vec<String>> = out
-                    .stdout
-                    .lines()
-                    .filter(|line| !line.trim().is_empty())
-                    .map(|line| {
-                        line.split(',')
-                            .map(|col| col.trim().to_string())
-                            .collect::<Vec<_>>()
-                    })
-                    .collect();
-                // CSV columns: name,type,managed,ipv4,ipv6,description,usedby,state
-                // Prefer the default managed bridge (`incusbr0`), then any
-                // managed bridge; never a physical NIC (`type=physical`).
-                rows.iter()
-                    .find(|r| r.first().map(String::as_str) == Some("incusbr0"))
-                    .or_else(|| {
-                        rows.iter().find(|r| {
-                            r.get(1).map(String::as_str) == Some("bridge")
-                        })
-                    })
-                    .and_then(|r| r.first().cloned())
-            })
-            .unwrap_or_else(|| "incusbr0".to_string());
+        // Attach the container to the managed bridge, but ONLY as an isolated
+        // NIC: `security.acls` is applied in the same `device add` call, so
+        // there is no window where the VM can reach other tenants. `incus
+        // launch` itself applies only the default profile (root disk, no
+        // NIC), leaving the VM with loopback until this device exists.
         let nic_args = [
             "config".to_string(),
             "device".to_string(),
@@ -151,10 +123,11 @@ impl VmLifecycle {
             "eth0".to_string(),
             "nic".to_string(),
             format!("network={bridge}"),
+            format!("security.acls={isolation_acl}"),
             "name=eth0".to_string(),
         ];
         self.incus_run(&nic_args, 30).map_err(|e| {
-            format!("incus config device add eth0 to {name} (bridge {bridge}): {e}")
+            format!("incus config device add isolated eth0 to {name} (bridge {bridge}): {e}")
         })?;
         // Pre-create the app working directory so the project terminal
         // (`incus exec --cwd /opt/vibe/app`) and the publish flow never hit a
@@ -269,6 +242,9 @@ impl VmLifecycle {
 
     pub(crate) fn linux_start(&self, name: &str) -> Result<(), String> {
         self.skip_if_unavailable()?;
+        // #2653 — retrofit the isolation ACL on pre-existing VMs and on any
+        // NIC that lost it after a bridge change. No start without isolation.
+        self.ensure_nic_isolation(name)?;
         self.incus_run(&["start".to_string(), name.to_string()], 60)
             .map_err(|e| format!("incus start {name}: {e}"))?;
         Ok(())

@@ -1,0 +1,12 @@
+[Unit]
+Description=General Bots OS - Export my data (full encrypted archive, #2470)
+After=gb-data-provision.service
+Requires=gb-data-provision.service
+ConditionPathExists=/usr/local/libexec/gb-data/export.sh
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/libexec/gb-data/export.sh --now
+TimeoutStartSec=900
+StandardOutput=journal
+StandardError=journal

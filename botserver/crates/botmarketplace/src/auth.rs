@@ -130,6 +130,11 @@ pub fn jwt_org_id(headers: &HeaderMap) -> Option<Uuid> {
     jwt_claims(headers)?.org_id
 }
 
+/// The verified workspace branch of the caller, when the token carries one.
+pub fn jwt_branch_id(headers: &HeaderMap) -> Option<Uuid> {
+    jwt_claims(headers)?.branch_id
+}
+
 /// The verified subject as a UUID.
 ///
 /// Marketplace tables store `installed_by` as a UUID, so a numeric Zitadel

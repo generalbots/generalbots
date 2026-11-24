@@ -3,6 +3,38 @@ use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use rhai::{Dynamic, Engine};
+
+/// #2685 — a single, safe path component.
+///
+/// Bot/tool names are interpolated into work-tree paths. Anything that is not
+/// a plain component (traversal, separators, control characters, a leading dot
+/// or a doubled dot) must be rejected: the old code fell back to the original
+/// operand, so a crafted name such as `bot.gbdialog/../../secret` survived.
+fn is_safe_name_component(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 255
+        && !name.starts_with('.')
+        && !name.contains("..")
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
+
+/// Normalizes a `USE TOOL` operand into a bare tool name.
+///
+/// The `.bas` suffix is stripped from the *sliced* operand, never from the
+/// original string — returning the original was the fallback that let unsafe
+/// names through. `None` means "reject"; callers must not fabricate a name.
+fn normalize_tool_name(raw: &str) -> Option<&str> {
+    let trimmed = raw.trim();
+    let after_prefix = match trimmed.find(".gbdialog/") {
+        Some(idx) => &trimmed[idx + ".gbdialog/".len()..],
+        None => trimmed,
+    };
+    let name = after_prefix.strip_suffix(".bas").unwrap_or(after_prefix);
+    is_safe_name_component(name).then_some(name)
+}
+
 pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -16,21 +48,14 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 tool_path_str,
                 user_clone.id
             );
-            // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
-            let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
-                &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
-            } else {
-                tool_path_str.as_str()
-            }
-            .strip_suffix(".bas")
-            .unwrap_or(tool_path_str.as_str())
-            .to_string();
-            if tool_name.is_empty() {
+            let Some(tool_name) = normalize_tool_name(&tool_path_str) else {
                 return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    "Invalid tool name".into(),
+                    "Invalid tool name: expected a single component (letters, digits, '-', '_' or '.')"
+                        .into(),
                     rhai::Position::NONE,
                 )));
-            }
+            };
+            let tool_name = tool_name.to_string();
             let (tx, rx) = std::sync::mpsc::channel();
             let state_clone_1 = Arc::clone(&state_clone);
             let user_clone_1 = user_clone.clone();
@@ -66,18 +91,10 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
             tool_path_str,
             user_clone2.id
         );
-        // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
-        let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
-            &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
-        } else {
-            &tool_path_str
-        }
-        .strip_suffix(".bas")
-        .unwrap_or_else(|| &tool_path_str)
-        .to_string();
-        if tool_name.is_empty() {
+        let Some(tool_name) = normalize_tool_name(&tool_path_str) else {
             return Dynamic::from("ERROR: Invalid tool name");
-        }
+        };
+        let tool_name = tool_name.to_string();
         let (tx, rx) = std::sync::mpsc::channel();
         let state_clone_2 = Arc::clone(&state_clone2);
         let user_clone_2 = user_clone2.clone();
@@ -106,18 +123,10 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
             tool_path_str,
             user_clone3.id
         );
-        // Strip {bot_name}.gbdialog/ or .gbdialog/ prefix, and .bas suffix
-        let tool_name = if let Some(idx) = tool_path_str.find(".gbdialog/") {
-            &tool_path_str[idx + 10..] // Skip past ".gbdialog/"
-        } else {
-            &tool_path_str
-        }
-        .strip_suffix(".bas")
-        .unwrap_or_else(|| &tool_path_str)
-        .to_string();
-        if tool_name.is_empty() {
+        let Some(tool_name) = normalize_tool_name(&tool_path_str) else {
             return Dynamic::from("ERROR: Invalid tool name");
-        }
+        };
+        let tool_name = tool_name.to_string();
         let (tx, rx) = std::sync::mpsc::channel();
         let state_clone_3 = Arc::clone(&state_clone3);
         let user_clone_3 = user_clone3.clone();
@@ -138,42 +147,36 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
 
 /// Locates a tool's manifest inside the materialized work tree.
 ///
-/// The org directory is named after the org id (`<uuid>.gborg`) while this
-/// lookup used to assume `{bot}.gborg`, so every `USE TOOL` on a desktop
-/// install failed with ".mcp.json not found" and the tool was never associated
-/// with the session (the button was registered but did nothing).
+/// The org directory is named after the org id (`<uuid>.gborg`) while older
+/// installs used `{bot}.gborg`. The lookup used to scan *every* `.gborg` tree
+/// and return the first hit; with colliding bot names across tenants that hit
+/// could belong to another org. Resolution is now ordered and deterministic:
+/// the session's org directory, then the historical name directory. The
+/// last-resort scan is sorted and only accepted when it yields one match.
 ///
 /// The manifest is written by the compiler; when only the source is present it
 /// is generated here so a shipped `.bas` tool is usable on a fresh install.
 fn resolve_tool_manifest(
     work_root: &Path,
+    org_id: Option<Uuid>,
     bot_name: &str,
     tool_name: &str,
 ) -> Option<std::path::PathBuf> {
+    if !is_safe_name_component(bot_name) || !is_safe_name_component(tool_name) {
+        warn!("Refusing tool lookup for an unsafe bot/tool name");
+        return None;
+    }
     let dialog_rel = format!("{bot_name}.gbai/{bot_name}.gbdialog");
     let manifest = format!("{tool_name}.mcp.json");
     let source = format!("{tool_name}.bas");
 
-    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
-    // Historical layout: the org directory carried the bot name.
-    candidates.push(work_root.join(format!("{bot_name}.gborg")).join(&dialog_rel));
-    // Actual layout: one directory per org id.
-    if let Ok(entries) = std::fs::read_dir(work_root) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir()
-                && path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .map(|name| name.ends_with(".gborg"))
-                    .unwrap_or(false)
-            {
-                candidates.push(path.join(&dialog_rel));
-            }
-        }
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    if let Some(org_id) = org_id {
+        dirs.push(work_root.join(format!("{org_id}.gborg")).join(&dialog_rel));
     }
+    dirs.push(work_root.join(format!("{bot_name}.gborg")).join(&dialog_rel));
 
-    for dir in candidates {
+    for dir in dirs {
         let manifest_path = dir.join(&manifest);
         if manifest_path.exists() {
             return Some(manifest_path);
@@ -199,7 +202,40 @@ fn resolve_tool_manifest(
             }
         }
     }
-    None
+
+    // Last resort only: `read_dir` order is arbitrary, so sort and require a
+    // unique answer rather than silently picking another tenant's script.
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(work_root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name| name.ends_with(".gborg"))
+                    .unwrap_or(false)
+            {
+                candidates.push(path.join(&dialog_rel).join(&manifest));
+            }
+        }
+    }
+    candidates.sort();
+    candidates.dedup();
+    let matches: Vec<_> = candidates.into_iter().filter(|path| path.exists()).collect();
+    match matches.len() {
+        1 => matches.into_iter().next(),
+        0 => None,
+        _ => {
+            warn!(
+                "Ambiguous tool '{}' for bot '{}': {} manifests; refusing to choose",
+                tool_name,
+                bot_name,
+                matches.len()
+            );
+            None
+        }
+    }
 }
 
 fn associate_tool_with_session(
@@ -215,7 +251,7 @@ fn associate_tool_with_session(
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
     let Some(mcp_path) =
-        resolve_tool_manifest(Path::new(&work_root), &bot_name, tool_name)
+        resolve_tool_manifest(Path::new(&work_root), user.org_id(), &bot_name, tool_name)
     else {
         warn!(
             "Tool '{}' .mcp.json file not found under {:?} for bot '{}'",
@@ -325,3 +361,80 @@ fn get_bot_name_from_id(state: &Arc<dyn BasicRuntime>, bot_id: &uuid::Uuid) -> R
 use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
+
+#[cfg(test)]
+mod tests {
+    use super::{is_safe_name_component, normalize_tool_name};
+
+    #[test]
+    fn normalizes_prefix_and_suffix_from_the_sliced_operand() {
+        assert_eq!(normalize_tool_name("foo"), Some("foo"));
+        assert_eq!(normalize_tool_name("foo.bas"), Some("foo"));
+        assert_eq!(normalize_tool_name("bot.gbdialog/foo.bas"), Some("foo"));
+        // The old `.unwrap_or(tool_path_str)` fallback returned this whole
+        // string when `.bas` was absent — the unsafe name that reached disk.
+        assert_eq!(normalize_tool_name("bot.gbdialog/foo"), Some("foo"));
+        assert_eq!(normalize_tool_name(".gbdialog/foo.bas"), Some("foo"));
+        assert_eq!(normalize_tool_name("  foo.bas  "), Some("foo"));
+    }
+
+    #[test]
+    fn rejects_traversal_and_odd_names() {
+        let too_long = "x".repeat(256);
+        for raw in [
+            "",
+            " ",
+            ".",
+            "..",
+            ".hidden",
+            "foo..bar",
+            "../secret",
+            "bot.gbdialog/../../secret.bas",
+            "bot.gbdialog/../secret",
+            "foo/bar",
+            "foo\\bar",
+            "foo bar",
+            "foo\nbas",
+            &too_long,
+        ] {
+            assert_eq!(normalize_tool_name(raw), None, "accepted {raw:?}");
+            assert!(!is_safe_name_component(raw), "accepted {raw:?}");
+        }
+    }
+
+    #[test]
+    fn issue_2664_full_path_never_returns_the_original_operand() {
+        // #2664: the old `.unwrap_or(tool_path_str)` fallback returned the
+        // *whole* operand when `.bas` was absent, so a full path reached the
+        // manifest/script joins. Every full-path spelling must collapse to
+        // the bare leaf, never to the operand or any slice containing a
+        // separator or the `.gbdialog` prefix.
+        for raw in [
+            "bot.gbdialog/foo.bas",
+            "bot.gbdialog/foo",
+            "work/bot.gbai/bot.gbdialog/foo.bas",
+            "work/bot.gbai/bot.gbdialog/foo",
+        ] {
+            let normalized = normalize_tool_name(raw);
+            assert_eq!(normalized, Some("foo"), "wrong normalization of {raw:?}");
+            if let Some(name) = normalized {
+                assert!(!name.contains('/'), "separator leaked: {raw:?}");
+                assert!(!name.contains('\\'), "separator leaked: {raw:?}");
+                assert!(!name.contains(".gbdialog"), "prefix leaked: {raw:?}");
+            }
+        }
+
+        // Slicing at the first prefix must still fail closed when what remains
+        // is a nested prefix, a separator or an empty leaf: the guard rejects
+        // these rather than fabricating a name from the unsafe remainder.
+        for raw in [
+            "bot.gbdialog/a.gbdialog/foo.bas",
+            "bot.gbdialog/foo/bar.bas",
+            "bot.gbdialog/.hidden.bas",
+            "bot.gbdialog/foo..bar.bas",
+            "bot.gbdialog/",
+        ] {
+            assert_eq!(normalize_tool_name(raw), None, "accepted {raw:?}");
+        }
+    }
+}

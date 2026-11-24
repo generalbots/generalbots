@@ -5,6 +5,7 @@
   "download-invalid-destination": "Invalid destination: {error}",
   "download-provide-source": "Provide either a download URL or the file bytes.",
   "download-too-large": "The file is too large to save.",
+  "download-url-not-allowed": "This download URL is not allowed.",
   "download-unsupported-scheme": "Only http(s) downloads are supported.",
   "download-write-failed": "Could not write {path}: {error}",
   "folder-open-failed": "Could not open the folder: {error}",

@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -185,6 +186,15 @@ def osv_allowlist(tmp: Path) -> Case:
         "unknown", VIOLATION,
         _gate("check_osv_allowlist.py", ["--report", str(report), "--allowlist", str(other)]),
     )
+    # #2742 — the npm baseline starts empty (--allow-empty) but a synthetic
+    # advisory must still fail it: the gate is blocking, not decorative.
+    empty = tmp / "npm-baseline.txt"
+    empty.write_text("# baseline: no known npm advisories\n", encoding="utf-8")
+    no_findings = tmp / "osv-npm-empty.json"
+    no_findings.write_text(json.dumps({"results": []}), encoding="utf-8")
+    baseline = ["--allowlist", str(empty), "--allow-empty"]
+    case.expect("npm-baseline-clean", CLEAN, _gate("check_osv_allowlist.py", ["--report", str(no_findings), *baseline]))
+    case.expect("npm-new-advisory", VIOLATION, _gate("check_osv_allowlist.py", ["--report", str(report), *baseline]))
     return case
 
 
@@ -213,14 +223,38 @@ def component_checksums(tmp: Path) -> Case:
         "plaintext-url", VIOLATION,
         _gate("check_component_checksums.py", ["--toml", str(plain), "--allowlist", str(acknowledged)]),
     )
-    # #2708 — an unpinned [models] entry is just as dangerous as an unpinned
-    # component: model files are downloaded and fed to the inference engine.
-    model = tmp / "3rdparty-model.toml"
-    model.write_text('[models.llm]\nversion = "1"\nurl = "https://example.invalid/m.gguf"\nsha256 = ""\n', encoding="utf-8")
-    case.expect(
-        "unhashed-model", VIOLATION,
-        _gate("check_component_checksums.py", ["--toml", str(model), "--allowlist", str(empty)]),
+    # #2708 — models are part of the gate: empty hash fails, pin passes,
+    # plaintext URL fails. Fixtures stay in tmp; the repo is untouched.
+    gate = "check_component_checksums.py"
+    m = tmp / "3rdparty-model.toml"
+    m.write_text('[models.demo]\nurl = "https://example.invalid/m.gguf"\nsha256 = ""\n', encoding="utf-8")
+    case.expect("empty-model-hash", VIOLATION, _gate(gate, ["--toml", str(m), "--allowlist", str(acknowledged)]))
+    p = tmp / "pinned.toml"
+    p.write_text(m.read_text(encoding="utf-8").replace('sha256 = ""', f'sha256 = "{SHA}"'), encoding="utf-8")
+    case.expect("pinned-model-hash", CLEAN, _gate(gate, ["--toml", str(p), "--allowlist", str(empty)]))
+    q = tmp / "plain-model.toml"
+    q.write_text(p.read_text(encoding="utf-8").replace("https://", "http://"), encoding="utf-8")
+    case.expect("plaintext-model-url", VIOLATION, _gate(gate, ["--toml", str(q), "--allowlist", str(empty)]))
+    # #2742 — vendored JS integrity: a clean tree passes, a tampered file and
+    # a new unlisted bundle both fail the manifest gate.
+    vendor = tmp / "vendor"
+    vendor.mkdir()
+    asset = vendor / "marked.min.js"
+    asset.write_text("v15.0.12", encoding="utf-8")
+    digest = hashlib.sha256(asset.read_bytes()).hexdigest()
+    js_manifest = tmp / "vendored-js.toml"
+    js_manifest.write_text(
+        '[assets.marked]\npath = "marked.min.js"\nversion = "15.0.12"\n'
+        f'url = "https://example.invalid/marked"\nsha256 = "{digest}"\n',
+        encoding="utf-8",
     )
+    js_args = ["--js-manifest", str(js_manifest), "--vendor-dir", str(vendor)]
+    case.expect("js-clean", CLEAN, _gate("check_component_checksums.py", js_args))
+    asset.write_text("tampered", encoding="utf-8")
+    case.expect("js-tampered", VIOLATION, _gate("check_component_checksums.py", js_args))
+    asset.write_text("v15.0.12", encoding="utf-8")
+    (vendor / "new.min.js").write_text("x", encoding="utf-8")
+    case.expect("js-untracked", VIOLATION, _gate("check_component_checksums.py", js_args))
     return case
 
 

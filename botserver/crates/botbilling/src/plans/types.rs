@@ -20,10 +20,18 @@ impl LimitCheckResult {
 
     pub fn is_warning_threshold(&self, threshold: f64) -> bool {
         match self {
+            // Strict comparison: 0 % usage against a 0 % threshold is not a
+            // warning, which is what an unlimited metric reports.
             Self::Allowed {
                 percentage_used, ..
-            } => *percentage_used >= threshold,
-            Self::Exceeded { .. } => true,
+            } => *percentage_used > threshold,
+            Self::Exceeded { limit, current } => {
+                if *limit == 0 {
+                    return *current > 0;
+                }
+                let percentage = (*current as f64 / *limit as f64) * 100.0;
+                percentage >= threshold
+            }
         }
     }
 }

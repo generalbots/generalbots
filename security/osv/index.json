@@ -1,0 +1,14 @@
+{
+  "base_url": "https://generalbots.org/security/osv/",
+  "count": 3,
+  "format": "OSV",
+  "ids": [
+    "GBSA-2026-0001",
+    "GBSA-2026-0002",
+    "GBSA-2026-0003"
+  ],
+  "modified": "2026-11-22",
+  "schema": 1,
+  "schema_version": "1.4.0",
+  "source": "botlib/src/security/advisory/data/advisories.json"
+}

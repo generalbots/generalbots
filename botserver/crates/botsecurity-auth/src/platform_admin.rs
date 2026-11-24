@@ -13,7 +13,7 @@
 //! - `botbrowserpolicy` — policy admin gates
 
 use axum::http::HeaderMap;
-use base64::Engine as _;
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt};
 use diesel::prelude::*;
 
 /// Reserved root org slug — the first/default account every instance seeds.
@@ -22,40 +22,24 @@ pub const ROOT_ORG_SLUG: &str = "default";
 /// Dev-mode escape hatch: `admin@localhost` is always a platform admin.
 pub const DEV_ADMIN_EMAIL: &str = "admin@localhost";
 
-/// Extract the caller's email claim from a Bearer JWT in the
+/// Extract the caller's email claim from a **verified** Bearer JWT in the
 /// `Authorization` header.
 ///
-/// **Unverified**: the payload is decoded without checking the signature, so a
-/// forged `alg:none` token can name any email. Callers that make an
-/// authorization decision must first verify the token
-/// (`botsecurity_core::verified_jwt`) and use [`is_platform_admin_for_email`]
-/// with the verified claim; only callers whose request was already
-/// authenticated upstream may use this helper directly.
+/// `verify_saas_jwt` pins HS256 and checks the signature, expiry and subject
+/// before the email is exposed. An absent, forged (`alg:none`), tampered,
+/// foreign-key or expired token yields `None`, so this helper can safely feed
+/// the cross-tenant admin decision in [`is_platform_admin`] (#2773).
 pub fn email_from_bearer(headers: &HeaderMap) -> Option<String> {
-    let token = headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")?;
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(parts[1])
-        .ok()?;
-    let claims: serde_json::Value = serde_json::from_slice(&payload).ok()?;
-    claims
-        .get("email")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    let claims = verify_saas_jwt(bearer_token(headers)?).ok()?;
+    claims.email
 }
 
 /// Is this caller a PLATFORM admin (may cross tenants)? DB-backed:
 /// explicit membership in the root org, or the dev-mode admin email.
 ///
-/// #2112 — the email is read from an unverified payload. Admin gates must use
-/// [`is_platform_admin_for_email`] with a signature-verified claim instead.
+/// The email comes from a signature-verified claim, so a forged token cannot
+/// promote itself to admin: the decision is delegated to
+/// [`is_platform_admin_for_email`] (#2112/#2773).
 pub fn is_platform_admin(
     conn: &mut diesel::PgConnection,
     headers: &HeaderMap,
@@ -119,6 +103,19 @@ mod tests {
     fn test_email_extraction_rejects_non_jwt() {
         let mut headers = HeaderMap::new();
         headers.insert("authorization", "Bearer not-a-jwt".parse().unwrap());
+        assert_eq!(email_from_bearer(&headers), None);
+    }
+
+    #[test]
+    fn forged_admin_email_claim_is_denied() {
+        // `alg:none` payload naming the dev admin and the admin role. The old
+        // decoder returned `admin@localhost` and granted platform admin (#2773).
+        let forged = "eyJhbGciOiJub25lIn0.eyJlbWFpbCI6ImFkbWluQGxvY2FsaG9zdCIsInJvbGUiOiJhZG1pbiIsInN1YiI6IngiLCJleHAiOjQxMDI0NDQ4MDB9.";
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "authorization",
+            format!("Bearer {forged}").parse().expect("header"),
+        );
         assert_eq!(email_from_bearer(&headers), None);
     }
 }

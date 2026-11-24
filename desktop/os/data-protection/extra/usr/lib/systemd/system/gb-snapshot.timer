@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily encrypted snapshot of General Bots user data (#2470)
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+Unit=gb-snapshot.service
+
+[Install]
+WantedBy=timers.target

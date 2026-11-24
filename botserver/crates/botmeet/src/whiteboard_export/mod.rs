@@ -1,11 +1,11 @@
+pub(crate) use botcore::shared::utils::parse_hex_color;
+pub(crate) use botsecurity::path_guard::sanitize_filename;
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::RwLock;
 pub(crate) use uuid::Uuid;
-pub(crate) use botsecurity::path_guard::sanitize_filename;
-pub(crate) use botcore::shared::utils::parse_hex_color;
 
 pub struct PdfDocument {
     name: String,
@@ -34,6 +34,7 @@ pub enum ExportError {
     IoError(String),
     EmptyCanvas,
     InvalidDimensions,
+    NotAuthorized(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -172,9 +173,9 @@ pub struct WhiteboardExportService {
 }
 
 mod add_page;
+mod export;
 mod export_error;
 mod export_options;
-mod whiteboard_export_service;
-mod export;
 mod fill_ellipse;
 mod generate_svg_grid;
+mod whiteboard_export_service;

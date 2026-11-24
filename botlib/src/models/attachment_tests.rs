@@ -94,5 +94,8 @@ fn a_full_attachment_round_trips_including_u64_max() {
 #[test]
 fn unset_optional_fields_are_omitted_from_json() {
     let json = serde_json::to_value(Attachment::document("u")).expect("serializable");
-    assert_eq!(json, serde_json::json!({"attachment_type": "document", "url": "u"}));
+    assert_eq!(
+        json,
+        serde_json::json!({"attachment_type": "document", "url": "u"})
+    );
 }

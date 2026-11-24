@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://generalbots.org/security/schema/advisory-1.0.json",
+  "title": "General Bots canonical advisory record",
+  "description": "Single canonical advisory shape consumed by the advisory API, gb audit, CSAF and OSV generators. Generated from the YAML front matter of security/advisories/*.md.",
+  "type": "object",
+  "required": ["id", "title", "severity", "product", "component", "published", "affected_versions", "remediation"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^GBSA-[0-9]{4}-[0-9]{4}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" },
+    "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
+    "product": { "type": "string", "minLength": 1 },
+    "component": { "type": "string", "minLength": 1 },
+    "published": { "type": "string", "format": "date" },
+    "updated": { "type": "string", "format": "date" },
+    "affected_versions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "anyOf": [
+          { "required": ["introduced"] },
+          { "required": ["fixed"] },
+          { "required": ["range"] }
+        ],
+        "properties": {
+          "introduced": { "type": "string" },
+          "fixed": { "type": "string" },
+          "range": { "type": "string" }
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "required": ["recommended_version", "text"],
+      "properties": {
+        "recommended_version": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 }
+      }
+    },
+    "cvss": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["version", "vector", "score"],
+        "properties": {
+          "version": { "type": "string", "enum": ["3.1", "4.0"] },
+          "vector": { "type": "string", "minLength": 1 },
+          "score": { "type": "number", "minimum": 0, "maximum": 10 }
+        }
+      }
+    },
+    "cwe": { "type": "array", "items": { "type": "string", "pattern": "^CWE-[0-9]+$" } },
+    "references": { "type": "array", "items": { "type": "string" } },
+    "revisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "summary"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "summary": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

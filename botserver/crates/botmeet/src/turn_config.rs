@@ -35,7 +35,10 @@ pub fn generate_ice_servers(config: &TurnConfig) -> Value {
         }
     }
 
-    let stun = config.stun_url.as_deref().unwrap_or("stun:stun.l.google.com:19302");
+    let stun = config
+        .stun_url
+        .as_deref()
+        .unwrap_or("stun:stun.l.google.com:19302");
     servers.push(json!({
         "urls": [stun],
     }));
@@ -53,7 +56,10 @@ mod tests {
         let value = generate_ice_servers(&config);
         let servers = value["iceServers"].as_array().unwrap();
         assert!(!servers.is_empty());
-        assert!(servers.last().unwrap()["urls"][0].as_str().unwrap().contains("stun"));
+        assert!(servers.last().unwrap()["urls"][0]
+            .as_str()
+            .unwrap()
+            .contains("stun"));
     }
 
     #[test]

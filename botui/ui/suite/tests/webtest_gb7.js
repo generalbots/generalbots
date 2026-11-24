@@ -20,6 +20,7 @@ require("./webtest-gb7/20_features");
 require("./webtest-gb7/30_syntax");
 require("./webtest-gb7/40_behaviour");
 require("./webtest-gb7/50_issues");
-require("./webtest-gb7/60_sanitizer_corpus");
+require("./webtest-gb7/55_sanitize_xss");
+require("./webtest-gb7/57_multichat_failclosed");
 
 harness.finish();

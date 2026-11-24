@@ -250,11 +250,22 @@ pub async fn handle_get_range(
                 // Apply the stored number format to the display value while the
                 // raw typed value stays available for arithmetic (#785).
                 if let (Some(typed), Some(code)) = (c.typed.as_ref(), c.format.as_deref()) {
-                    c.value = Some(botsheet_core::engine::formats::display_cell_locale(
+                    let formatted = botsheet_core::engine::formats::display_cell_locale(
                         typed,
                         Some(code),
                         locale,
-                    ));
+                    );
+                    // A number format with an empty section (e.g. the common
+                    // "hide zeros" code `#,##0;-#,##0;;@`) renders "" for a
+                    // zero. Never ship an empty display for a cell that really
+                    // holds a value: the grid would paint a blank cell and the
+                    // user reports "the numbers did not appear".
+                    let plain = typed.display();
+                    c.value = Some(if formatted.trim().is_empty() && !plain.is_empty() {
+                        plain
+                    } else {
+                        formatted
+                    });
                 }
                 cells.insert(key, c);
             }

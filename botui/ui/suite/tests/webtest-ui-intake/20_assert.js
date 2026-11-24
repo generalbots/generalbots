@@ -19,7 +19,7 @@ var m = require("./10_scan").metrics;
 h.baseline("drive.html exposes three file inputs at 287/288/289", function () {
   h.equal(m.drive.fileInputs, 3, "file input count");
   h.equal(m.drive.ids.join(","), "file-input,camera-input,folder-input", "input ids");
-  h.equal(m.drive.lines.join(","), "file-input:287,camera-input:288,folder-input:289", "input lines");
+  h.equal(m.drive.lines.join(","), "file-input:288,camera-input:289,folder-input:290", "input lines");
 });
 h.baseline("accept on two inputs, capture on one, webkitdirectory on one", function () {
   h.equal(m.drive.withAccept, 2, "inputs with accept");

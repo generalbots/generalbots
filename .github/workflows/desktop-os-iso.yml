@@ -63,13 +63,56 @@ on:
         description: "Optional extra pin: expected SHA-256 of generalbots-linux-x86_64.tar.gz"
         required: false
         type: string
+  pull_request:
+    # #2471 — a change to the image recipe, the shell UI (tray, power menu,
+    # lock screen) or botsettings can invalidate laptop acceptance. The offline
+    # harness below must run on such PRs; the release-blocking `needs` on the
+    # image job makes the same gate mandatory before an ISO is published.
+    paths:
+      - 'desktop/os/**'
+      - 'botui/ui/suite/desktop-inline/**'
+      - 'botui/ui/suite/js/power-menu.js'
+      - 'botui/ui/suite/js/lock-screen.js'
+      - 'botui/ui/suite/settings/settings-os-appliance.js'
+      - 'botserver/crates/botsettings/**'
+      - '.github/workflows/desktop-os-iso.yml'
 
 permissions:
   contents: read
 
 jobs:
+  laptop-acceptance-offline:
+    name: Laptop/shell offline acceptance gate (#2471)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 1
+
+      - name: Run offline laptop/shell acceptance harness
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/tests/laptop-acceptance.sh ]; then
+            echo "::warning::checked-out tree predates the laptop acceptance harness (#2471); skipping"
+            exit 0
+          fi
+          bash desktop/os/tests/laptop-acceptance.sh
+
+      - name: Upload offline acceptance results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generalbots-os-laptop-acceptance
+          path: /tmp/opencode/uat-laptop/results.tsv
+          if-no-files-found: warn
+          retention-days: 7
+
   image:
     name: Build the appliance image (mkosi on Debian trixie)
+    needs: laptop-acceptance-offline
+    # PR events run only the gate above: a PR has no pinned release payload.
+    if: ${{ github.event_name != 'pull_request' }}
     # No github.server_url condition: GitHub and ALM both build the same
     # pinned image. The pin is required and validated below, not inferred
     # from "the newest release that has a tarball".
@@ -186,6 +229,39 @@ jobs:
           test -d desktop/os/mkosi.extra/opt/general-bots/ui/suite
           du -sh desktop/os/mkosi.extra/opt/general-bots
 
+      # #2441 — an appliance must provision itself from the medium: a laptop
+      # has no wired port and the image cannot join Wi-Fi, so the ~2.5 GB of
+      # component archives must already be in the image before first boot.
+      # The cache itself is NOT in git (binaries, no CDN links in the recipe):
+      # a self-hosted runner exposes it via GB_OS_PAYLOAD_CACHE. Absent cache
+      # is an explicit SKIP (older/online images still build); a present cache
+      # fails closed on a missing or tampered artifact. The 1.8 GB model group
+      # is a separate, size-disclosed opt-in (GB_OS_INCLUDE_MODEL=1).
+      - name: Stage offline provisioner payload in the image (#2441)
+        env:
+          PAYLOAD_CACHE: ${{ vars.GB_OS_PAYLOAD_CACHE || '' }}
+          INCLUDE_MODEL: ${{ vars.GB_OS_INCLUDE_MODEL || '0' }}
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/provision/stage-offline-payload.sh ] \
+             || [ ! -f desktop/os/provision/offline-payload.toml ]; then
+            echo "::warning::pinned tag predates the offline payload slice (#2441); SKIP"
+            exit 0
+          fi
+          if [ -z "${PAYLOAD_CACHE:-}" ] || [ ! -d "$PAYLOAD_CACHE" ]; then
+            echo "::warning::GB_OS_PAYLOAD_CACHE is unset or absent; SKIP offline payload staging (#2441)"
+            exit 0
+          fi
+          args=(--cache-dir "$PAYLOAD_CACHE")
+          if [ "${INCLUDE_MODEL:-0}" = "1" ]; then
+            args+=(--include-model)
+          fi
+          bash desktop/os/provision/stage-offline-payload.sh "${args[@]}"
+          du -sh desktop/os/mkosi.extra/opt/general-bots/installers
+          if [ "${INCLUDE_MODEL:-0}" != "1" ]; then
+            echo "::notice::local model group not bundled (~1.8 GB); set GB_OS_INCLUDE_MODEL=1 to opt in"
+          fi
+
       - name: Build the image, REQUIRED boot smoke, assert the appliance
         # No continue-on-error: the QEMU smoke and the in-image assertions
         # gate the release together with the mkosi build itself.
@@ -267,6 +343,88 @@ jobs:
               # are read from inside the root filesystem of the image.
               /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
             '
+
+      - name: Deterministic OS release packaging (#2440)
+        # #2440 — data-driven re-verification before the final name is blessed.
+        # Guards SKIP when the pinned tag lacks the package or has no image;
+        # verification failure is fatal, so a carrier is never published as OS.
+        env:
+          RELEASE_TAG: ${{ inputs.release || github.event.inputs.release }}
+        run: |
+          set -euo pipefail
+          for f in build-release-image.sh verify-image.sh appliance-manifest.tsv; do
+            [ -f "desktop/os/release/$f" ] || { echo "::warning::pinned tag lacks $f (#2440); SKIP"; exit 0; }
+          done
+          [ -s dist/generalbots-os.iso ] || { echo "::warning::no image input; SKIP deterministic packaging (#2440)"; exit 0; }
+          docker run --privileged --rm -e "GB_OS_RELEASE_TAG=${RELEASE_TAG}" \
+            -v "$PWD/desktop/os/release:/release:ro" -v "$PWD/dist:/dist" -w /release \
+            debian:sid bash -c '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
+              apt-get update
+              apt-get install -y --no-install-recommends libguestfs-tools linux-image-amd64
+              bash /release/build-release-image.sh --image /dist/generalbots-os.iso \
+                --manifest /release/appliance-manifest.tsv --out-dir /dist/verified \
+                --release "${GB_OS_RELEASE_TAG}"
+              cat /dist/verified/generalbots-os.manifest.txt
+            '
+          for f in generalbots-os.iso SHA256SUMS-os generalbots-os.manifest.txt; do
+            cp -f "dist/verified/$f" "dist/$f"
+          done
+
+      # #2478 — prove the signed boot path on firmware that behaves like a
+      # shipping laptop (Secure Boot on, Microsoft keys enrolled). Kept beside
+      # the unsigned published image: a production signing key is not shipped
+      # in the repo, so the throwaway MOK certificate is uploaded as evidence
+      # instead of being enrolled on real hardware here.
+      - name: Signed UKI / OVMF Secure Boot smoke (#2478)
+        run: |
+          set -euo pipefail
+          if [ ! -f desktop/os/build-image.sh ] \
+             || [ ! -f desktop/os/generate-secure-boot-keys.sh ] \
+             || [ ! -f desktop/os/mkosi.profiles/secure-boot-release.conf ]; then
+            echo "::warning::pinned tag predates the Secure Boot signing slice (#2478); skipping signed OVMF smoke"
+            exit 0
+          fi
+          keys=/tmp/gb-sb-keys
+          rm -rf "$keys"
+          desktop/os/generate-secure-boot-keys.sh --output-dir "$keys" \
+            --common-name "General Bots OS CI"
+          mkdir -p dist/sb
+          docker run --privileged --rm \
+            -v "$PWD/desktop/os:/work" \
+            -v "$PWD/dist/sb:/out" \
+            -v "$PWD:/repo:ro" \
+            -v "$keys:/keys:ro" \
+            -w /work \
+            debian:sid bash -c '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
+              apt-get update
+              # virt-firmware supplies virt-fw-vars for FirmwareVariables=microsoft-mok;
+              # ovmf supplies the Secure Boot enabled firmware used by mkosi vm.
+              apt-get install -y --no-install-recommends \
+                mkosi openssl ovmf virt-firmware linux-image-amd64
+              /repo/desktop/os/build-image.sh \
+                --mode release \
+                --key /keys/db.key --cert /keys/db.crt \
+                --output-dir /out --smoke
+            '
+          cp "$keys/db.cer" dist/generalbots-os-MOK.cer
+          ls -l dist/sb dist/generalbots-os-MOK.cer
+
+      - name: Upload Secure Boot evidence (#2478)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generalbots-os-secure-boot
+          path: |
+            dist/generalbots-os-MOK.cer
+            dist/sb/secure-boot-smoke.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Checksums
         run: |

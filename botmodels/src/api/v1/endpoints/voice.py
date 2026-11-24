@@ -29,6 +29,29 @@ logger = get_logger("voice")
 
 router = APIRouter(prefix="/v1/audio", tags=["Voice"])
 
+# #2804 — inbound audio is bounded on three axes: accepted sample rate, the
+# accumulated PCM buffer, and the timed transcription window.
+MIN_SAMPLE_RATE = 8000
+MAX_SAMPLE_RATE = 48000
+MAX_BUFFER_BYTES = TARGET_SAMPLE_RATE * 2 * 10  # 10 s of 16-bit mono PCM
+
+
+def _bounded_sample_rate(value, current: int) -> int:
+    """Clamp a client-supplied sample rate into the engine's supported range."""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return current
+    return max(MIN_SAMPLE_RATE, min(MAX_SAMPLE_RATE, parsed))
+
+
+def _append_frame(buffer: bytearray, frame: bytes) -> None:
+    """Append a frame while keeping the buffer under its hard ceiling."""
+    buffer.extend(frame)
+    overflow = len(buffer) - MAX_BUFFER_BYTES
+    if overflow > 0:
+        del buffer[:overflow]
+
 
 async def _close_with_error(socket: WebSocket, message: str) -> None:
     """Send one JSON error frame and close the socket politely."""
@@ -100,7 +123,9 @@ async def stt_stream(socket: WebSocket) -> None:
                 event = json.loads(text)
                 kind = event.get("type")
                 if kind == "config":
-                    sample_rate = int(event.get("sample_rate") or sample_rate)
+                    sample_rate = _bounded_sample_rate(
+                        event.get("sample_rate"), sample_rate
+                    )
                 elif kind == "flush":
                     transcript = await _transcribe(engine, bytes(buffer), sample_rate)
                     buffer.clear()
@@ -111,7 +136,7 @@ async def stt_stream(socket: WebSocket) -> None:
             frame = message.get("bytes") or b""
             if not frame:
                 continue
-            buffer.extend(frame)
+            _append_frame(buffer, frame)
             buffered_seconds += frame_duration_ms(frame, sample_rate) / 1000.0
             if rms_energy(frame) < ENERGY_GATE:
                 silence_ms += frame_duration_ms(frame, sample_rate)
@@ -120,6 +145,9 @@ async def stt_stream(socket: WebSocket) -> None:
             if buffered_seconds >= WINDOW_SECONDS:
                 buffered_seconds = 0.0
                 transcript = await _transcribe(engine, bytes(buffer), sample_rate)
+                # #2804 — without this clear, continuous audio re-transcribed
+                # the whole session buffer every window (quadratic CPU).
+                buffer.clear()
                 if transcript:
                     await socket.send_json({"type": "partial", "text": transcript})
             if silence_ms >= SILENCE_THRESHOLD_MS and buffer:
@@ -273,7 +301,9 @@ async def duplex_stream(socket: WebSocket) -> None:
                     continue
                 kind = event.get("type")
                 if kind == "config":
-                    sample_rate = int(event.get("sample_rate") or sample_rate)
+                    sample_rate = _bounded_sample_rate(
+                        event.get("sample_rate"), sample_rate
+                    )
                 elif kind == "say":
                     cancel_speech()
                     speech_task = asyncio.create_task(
@@ -300,7 +330,7 @@ async def duplex_stream(socket: WebSocket) -> None:
                 cancel_speech()
                 await send_json({"type": "barge_in"})
 
-            buffer.extend(frame)
+            _append_frame(buffer, frame)
             buffered_seconds += frame_duration_ms(frame, sample_rate) / 1000.0
             if rms_energy(frame) < ENERGY_GATE:
                 silence_ms += frame_duration_ms(frame, sample_rate)
@@ -310,6 +340,8 @@ async def duplex_stream(socket: WebSocket) -> None:
             if buffered_seconds >= WINDOW_SECONDS:
                 buffered_seconds = 0.0
                 transcript = await _transcribe(stt, bytes(buffer), sample_rate)
+                # #2804 — bound both memory and per-window CPU.
+                buffer.clear()
                 if transcript:
                     await send_json({"type": "partial", "text": transcript})
             if silence_ms >= SILENCE_THRESHOLD_MS and buffer:

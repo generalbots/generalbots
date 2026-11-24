@@ -8,8 +8,10 @@ use tokio::sync::Mutex;
 
 use crate::BrowserSession;
 
-/// Hard cap for the browser agent loop (#2883). A caller can never drive more
-/// steps than this, regardless of the requested budget.
+mod log_safety;
+use log_safety::{log_safe_fill, log_safe_url};
+
+/// Hard cap for the browser agent loop (#2883), regardless of requested budget.
 pub const MAX_AGENT_STEPS: usize = 20;
 /// Budget used when a caller does not specify one.
 const DEFAULT_AGENT_STEPS: usize = 10;
@@ -397,7 +399,9 @@ pub async fn execute_action(
 
     match action {
         AgentAction::Navigate { url } => {
-            log::info!("Agent navigating to {url}");
+            // #2678 — never log query strings/fragments/userinfo: they carry
+            // tokens and identifiers. Scheme + host is all an operator needs.
+            log::info!("Agent navigating to {}", log_safe_url(url));
             session.navigate(url).await?;
         }
         AgentAction::Click { selector } => {
@@ -405,7 +409,9 @@ pub async fn execute_action(
             session.click(selector).await?;
         }
         AgentAction::Fill { selector, text } => {
-            log::info!("Agent filling {selector} with '{text}'");
+            // #2678 — form values are secrets/PII (passwords, tokens, personal
+            // data). Log the target and the size only, never the content.
+            log::info!("Agent filling {}", log_safe_fill(selector, text));
             session.fill(selector, text).await?;
         }
         AgentAction::ExtractText => {

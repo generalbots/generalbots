@@ -14,7 +14,7 @@ diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "serde_json
 axum = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["full"], default-features = true }
 log = { workspace = true }
-base64 = { workspace = true }
+botsecurity-core = { workspace = true }
 rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
 reqwest = { workspace = true, features = ["json"], optional = true, default-features = true }
 

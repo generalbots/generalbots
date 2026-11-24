@@ -9,25 +9,46 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::MEET_ROOM_BY_ID, get(get_room))
         .route(ApiUrls::MEET_JOIN, post(join_room))
         .route(ApiUrls::MEET_TRANSCRIPTION, post(start_transcription))
-        .route(ApiUrls::MEET_RECORDING_START, post(recording_routes::start_recording))
-        .route(ApiUrls::MEET_RECORDING_STOP, post(recording_routes::stop_recording))
-        .route(ApiUrls::MEET_RECORDING_PAUSE, post(recording_routes::pause_recording))
-        .route(ApiUrls::MEET_RECORDING_RESUME, post(recording_routes::resume_recording))
-        .route(ApiUrls::MEET_RECORDINGS_LIST, get(recording_routes::list_recordings))
-        .route(ApiUrls::MEET_RECORDING_GET, get(recording_routes::get_recording))
-        .route(ApiUrls::MEET_RECORDING_FILE, get(recording_routes::get_recording_file))
-        .route(ApiUrls::MEET_RECORDING_DELETE, delete(recording_routes::delete_recording))
+        .route(
+            ApiUrls::MEET_RECORDING_START,
+            post(recording_routes::start_recording),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_STOP,
+            post(recording_routes::stop_recording),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_PAUSE,
+            post(recording_routes::pause_recording),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_RESUME,
+            post(recording_routes::resume_recording),
+        )
+        .route(
+            ApiUrls::MEET_RECORDINGS_LIST,
+            get(recording_routes::list_recordings),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_GET,
+            get(recording_routes::get_recording),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_FILE,
+            get(recording_routes::get_recording_file),
+        )
+        .route(
+            ApiUrls::MEET_RECORDING_DELETE,
+            delete(recording_routes::delete_recording),
+        )
         .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))
         .route(ApiUrls::MEET_INVITE, post(send_meeting_invites))
         .route(ApiUrls::WS_MEET, get(meeting_websocket))
         .route(
             ApiUrls::WS_MEET_SIGNALING,
-            get(signaling_websocket),
+            get(signaling::authenticated_signaling_websocket),
         )
-        .route(
-            ApiUrls::MEET_TURN_CREDENTIALS,
-            get(turn_credentials),
-        )
+        .route(ApiUrls::MEET_TURN_CREDENTIALS, get(turn_credentials))
         .route(ApiUrls::MEET_SCHEDULE, post(schedule_meeting_handler))
         .route(ApiUrls::MEET_DASHBOARD_STATS, get(dashboard_stats))
         .route(ApiUrls::MEET_LEAVE, post(leave_room))

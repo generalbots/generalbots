@@ -139,6 +139,10 @@ pub struct CollabMessage {
     pub row: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub col: Option<u32>,
+    /// Cell value. The web client has historically sent this key as `content`
+    /// (`collab.js::sendEdit`); accept both so an edit is not silently dropped
+    /// when the `value` key is absent (#2447).
+    #[serde(alias = "content")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -9,6 +9,7 @@ pub mod schema;
 mod publish;
 pub mod seed;
 mod seed_data;
+mod verify;
 
 use serde_json::Value;
 use std::future::Future;

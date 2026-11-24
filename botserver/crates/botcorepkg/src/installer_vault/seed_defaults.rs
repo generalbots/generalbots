@@ -17,6 +17,10 @@ pub fn seed_vault_defaults(
     let drive_pass = generate_random_string(32);
     let cache_pass = generate_random_string(32);
     let db_pass = generate_random_string(32);
+    // #2763 — the Zitadel DB role gets its own random password, never the
+    // legacy fixed `zitadel` literal. Seeded once per install so the role
+    // creation and the ZITADEL_* service environment always agree.
+    let directory_db_pass = generate_random_string(32);
     let master_key = generate_random_string(64);
     let meet_app_id = generate_random_string(24);
     let meet_app_secret = generate_random_string(48);
@@ -86,7 +90,7 @@ pub fn seed_vault_defaults(
         (
             "secret/gbo/directory",
             vec![
-                ("db_password".to_string(), directory_db_pass),
+                ("password".to_string(), directory_db_pass),
                 ("url".to_string(), "".to_string()),
                 ("host".to_string(), "localhost".to_string()),
                 ("port".to_string(), "8300".to_string()),

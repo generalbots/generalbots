@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api.dependencies import is_valid_api_key
+from .api.max_body_size import MaxBodySizeMiddleware
 from .api.v1.endpoints import (
     anomaly,
     image,
@@ -126,6 +127,10 @@ ALLOWED_ORIGINS = [
     for origin in settings.allowed_origins.split(",")
     if origin.strip()
 ]
+
+# #2802 — declared bodies above the media ceiling are refused before they
+# reach a route (multipart overhead included).
+app.add_middleware(MaxBodySizeMiddleware, max_bytes=58 * 1024 * 1024)
 
 app.add_middleware(
     CORSMiddleware,

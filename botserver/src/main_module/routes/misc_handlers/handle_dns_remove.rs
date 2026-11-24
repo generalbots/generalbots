@@ -174,12 +174,48 @@ pub async fn handle_user_current_org(
         )),
     }
 }
+/// Pure membership-scope predicate (#2794): an organization may appear in the
+/// caller's dropdown only when its id is in the caller's verified
+/// `user_organizations` membership set. No I/O, so it is unit-tested with two
+/// independent tenants.
+fn org_in_caller_membership(member_org_ids: &[Uuid], org_id: Uuid) -> bool {
+    member_org_ids.contains(&org_id)
+}
+
 pub async fn handle_user_organizations(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Html<String>, (StatusCode, String)> {
     use diesel::prelude::*;
 
+    // #2794: the caller identity comes only from the auth-middleware principal
+    // (never from a query string or header). Membership is resolved by user_id,
+    // so an anonymous/nil principal has an empty set and sees nothing.
+    let caller_id = user.user_id;
+
     let mut conn = pool_conn(&state)?;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct OrgIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+
+    let member_org_ids: Vec<Uuid> =
+        diesel::sql_query("SELECT org_id FROM user_organizations WHERE user_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(caller_id)
+            .load::<OrgIdRow>(&mut conn)
+            .map_err(|e| {
+                log::error!("user organizations: membership lookup failed: {e}");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Unable to load organizations".to_string(),
+                )
+            })?
+            .into_iter()
+            .map(|r| r.org_id)
+            .collect();
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -190,19 +226,29 @@ pub async fn handle_user_organizations(
         name: String,
     }
 
+    // Scope at the SQL boundary as well: only member organizations are ever
+    // read, so a foreign org cannot be enumerated even if the in-Rust check
+    // regresses. No LIMIT before the scope check for the same reason.
     let rows: Vec<OrgRow> = diesel::sql_query(
-        "SELECT org_id AS id, name FROM organizations ORDER BY created_at ASC LIMIT 50",
+        "SELECT org_id AS id, name FROM organizations \
+         WHERE org_id = ANY($1) ORDER BY created_at ASC",
     )
+    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(member_org_ids.clone())
     .load(&mut conn)
     .map_err(|e| {
+        log::error!("user organizations: organization lookup failed: {e}");
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Query error: {e}"),
+            "Unable to load organizations".to_string(),
         )
     })?;
 
     let mut items = String::new();
-    for r in rows {
+    for r in rows
+        .into_iter()
+        .filter(|r| org_in_caller_membership(&member_org_ids, r.id))
+        .take(50)
+    {
         items.push_str(&format!(
             r##"<div class="org-dropdown-item" onclick="selectOrganization('{id}', '{name}', 'Member')">
     <span class="org-item-name">{name}</span>
@@ -311,4 +357,30 @@ pub fn configure_misc_routes() -> Router<Arc<AppState>> {
             "/api/v2/sandbox/connection-details",
             get(handle_sandbox_connection_details),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_tenants_only_see_their_own_organizations() {
+        let tenant_a_org = Uuid::new_v4();
+        let tenant_b_org = Uuid::new_v4();
+        let member_org_ids = vec![tenant_a_org];
+
+        assert!(org_in_caller_membership(&member_org_ids, tenant_a_org));
+        // Tenant B's org is foreign: it is never listed for tenant A.
+        assert!(!org_in_caller_membership(&member_org_ids, tenant_b_org));
+        // The same check from tenant B's side keeps the boundary symmetric.
+        assert!(org_in_caller_membership(&[tenant_b_org], tenant_b_org));
+        assert!(!org_in_caller_membership(&[tenant_b_org], tenant_a_org));
+    }
+
+    #[test]
+    fn empty_membership_lists_nothing() {
+        // Anonymous / nil principals have no membership rows: fail closed.
+        assert!(!org_in_caller_membership(&[], Uuid::new_v4()));
+        assert!(!org_in_caller_membership(&[], Uuid::nil()));
+    }
 }

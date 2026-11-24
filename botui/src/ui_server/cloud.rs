@@ -9,7 +9,7 @@ use log::info;
 use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
-use crate::ui_server::js_escape::js_string;
+use crate::ui_server::js_escape::js_window_script;
 use crate::ui_server::safe_path::{is_safe_relative_path, resolve_static_path};
 
 fn get_login_url() -> String {
@@ -69,15 +69,19 @@ fn inject_banner_into_html(bytes: &[u8], banner: &str) -> Vec<u8> {
     bytes.to_vec()
 }
 
+fn build_html_injection_script(login_url: &str, chat_url: &str, platform_domain: &str) -> String {
+    js_window_script(&[
+        ("GB_LOGIN_URL", login_url),
+        ("GB_CHAT_URL", chat_url),
+        ("GB_PLATFORM_DOMAIN", platform_domain),
+    ])
+}
+
 fn get_html_injection_script() -> String {
-    let login_url = get_login_url();
-    let chat_url = get_chat_url();
-    let platform_domain = get_platform_domain();
-    format!(
-        r#"<script>window.GB_LOGIN_URL = "{}";window.GB_CHAT_URL = "{}";window.GB_PLATFORM_DOMAIN = "{}";</script>"#,
-        js_string(&login_url),
-        js_string(&chat_url),
-        js_string(&platform_domain)
+    build_html_injection_script(
+        &get_login_url(),
+        &get_chat_url(),
+        &get_platform_domain(),
     )
 }
 
@@ -218,13 +222,92 @@ mod tests {
             "/etc/passwd",
             "js\\..\\..\\.env",
         ] {
-            assert!(
-                !is_safe_relative_path(path),
-                "must reject: {path}"
-            );
+            assert!(!is_safe_relative_path(path), "must reject: {path}");
         }
         for path in ["store.html", "js/cloud.js", "css/site.css", "plans"] {
             assert!(is_safe_relative_path(path), "must accept: {path}");
         }
+    }
+
+    #[test]
+    fn hostile_env_values_cannot_break_out_of_the_injected_script() {
+        // #2702: each value below can come from LOGIN_URL / CHAT_URL /
+        // GB_PLATFORM_DOMAIN. None may close the string or the <script> tag.
+        let hostile = "</script><img src=x onerror=alert(1)>\";\u{2028}&";
+        let script = build_html_injection_script(hostile, hostile, hostile);
+        assert_eq!(script.matches("</script>").count(), 1, "{script}");
+        assert!(!script.contains("<img"), "{script}");
+        assert!(!script.contains('\u{2028}'), "{script}");
+        assert!(script.contains("\\u003c/script\\u003e"), "{script}");
+        assert!(script.contains("\\\""), "{script}");
+        assert!(script.contains("\\u0026"), "{script}");
+    }
+
+    #[tokio::test]
+    async fn cloud_handler_rejects_traversal_payloads() {
+        // Exercise the real handler, not only the string gate: a payload that
+        // slipped past `is_safe_relative_path` must still fail containment and
+        // never return file bytes from outside the UI root.
+        for payload in [
+            "../.env",
+            "js/../../../.env",
+            "%2e%2e%2f.env",
+            "%252e%252e%2f.env",
+            "/etc/passwd",
+            "//etc/passwd",
+            "js\\..\\..\\.env",
+            "C:\\Windows\\win.ini",
+            "js/%00/../../etc/passwd",
+        ] {
+            let response = resolve_and_serve_cloud(payload).await;
+            assert_eq!(
+                response.status(),
+                StatusCode::NOT_FOUND,
+                "must reject: {payload}"
+            );
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap_or_default();
+            assert!(body.is_empty(), "no bytes may leak for: {payload}");
+        }
+    }
+
+    #[tokio::test]
+    async fn cloud_handler_serves_legitimate_asset() {
+        let response = resolve_and_serve_cloud("js/cloud.js").await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap_or_default();
+        assert!(!body.is_empty(), "legitimate asset must be served");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn cloud_handler_rejects_symlink_outside_ui_root() {
+        use std::os::unix::fs::symlink;
+
+        let base = std::env::temp_dir().join(format!(
+            "gb-cloud-link-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let outside = base.join("outside");
+        std::fs::create_dir_all(&outside).expect("create temp dir");
+        std::fs::write(outside.join("secret.txt"), b"TOP SECRET").expect("write secret");
+        let link = base.join("escape.txt");
+        symlink(outside.join("secret.txt"), &link).expect("create symlink");
+
+        let response = serve_cloud_file(link).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap_or_default();
+        assert!(!String::from_utf8_lossy(&body).contains("TOP SECRET"));
+
+        std::fs::remove_dir_all(&base).ok();
     }
 }

@@ -87,7 +87,10 @@ mod tests {
         // Prefixes shorter than ~8 chars are common substrings of any URL
         // (`g` appears in `git`/`org`), so assert on identifying prefixes.
         for n in 8..=SENTINEL.len() {
-            assert!(!redacted.contains(&SENTINEL[..n]), "prefix of len {n} leaked");
+            assert!(
+                !redacted.contains(&SENTINEL[..n]),
+                "prefix of len {n} leaked"
+            );
         }
     }
 

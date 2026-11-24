@@ -12,6 +12,7 @@ botlib = { workspace = true, features = ["database"] }
 base64 = { workspace = true }
 botschema = { workspace = true, features = ["project"] }
 botcoresecrets = { workspace = true }
+botcorepkg = { workspace = true }
 axum = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }

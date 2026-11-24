@@ -131,6 +131,16 @@ pub struct McpServer {
     pub last_health_check: Option<DateTime<Utc>>,
 
     pub health_status: HealthStatus,
+
+    /// Server-wide risk floor applied to every tool declared by this server
+    /// (populated from the `risk_level` column of mcp.csv).
+    #[serde(default)]
+    pub risk_level: ToolRiskLevel,
+
+    /// Server-wide consent requirement applied to every tool declared here
+    /// (populated from the `requires_approval` column of mcp.csv).
+    #[serde(default)]
+    pub requires_approval: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -183,8 +193,6 @@ pub enum ConnectionType {
 
     Tcp,
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
     pub enabled: bool,
@@ -213,8 +221,6 @@ pub enum McpAuthType {
     Certificate,
     Custom(String),
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[derive(Default)]
 pub enum McpCredentials {
@@ -243,8 +249,6 @@ pub enum McpCredentials {
     },
     Custom(HashMap<String, String>),
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpTool {
     pub name: String,
@@ -274,7 +278,7 @@ pub struct McpTool {
     pub timeout_seconds: Option<i32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Default)]
 pub enum ToolRiskLevel {
     Safe,
@@ -284,8 +288,6 @@ pub enum ToolRiskLevel {
     High,
     Critical,
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpCapabilities {
     pub tools: bool,
@@ -314,8 +316,6 @@ pub enum McpServerStatus {
     Maintenance,
     Unknown,
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[derive(Default)]
 pub struct HealthStatus {
@@ -325,8 +325,6 @@ pub struct HealthStatus {
     pub error_message: Option<String>,
     pub consecutive_failures: i32,
 }
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequest {
     pub id: String,
@@ -350,6 +348,23 @@ pub struct McpRequestContext {
     pub task_id: Option<String>,
     pub step_id: Option<String>,
     pub correlation_id: Option<String>,
+
+    /// Caller role, populated from `resolve_user_role` by trusted server code.
+    /// Empty / unknown values fail closed (non-admin).
+    #[serde(default)]
+    pub role: String,
+
+    /// Capability grants held by the caller (e.g. `filesystem.write`).
+    #[serde(default)]
+    pub granted_permissions: Vec<String>,
+
+    /// True only after the user approved this exact invocation.
+    #[serde(default)]
+    pub approval_granted: bool,
+
+    /// True only after explicit consent for a destructive invocation.
+    #[serde(default)]
+    pub destructive_consent_granted: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -420,5 +435,6 @@ mod mcp_server_type;
 mod mcp_connection;
 mod mcp_auth;
 mod mcp_client_config;
+mod tool_authorization;
 mod with_config;
 mod validate_stdio_command;

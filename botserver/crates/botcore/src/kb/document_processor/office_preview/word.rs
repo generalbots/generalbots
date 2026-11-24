@@ -9,6 +9,21 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Cursor, Read};
 use zip::ZipArchive;
 
+/// True when an HTML fragment contains something a reader can actually see.
+/// Used to detect a DOCX whose body converted to empty markup.
+fn html_has_text(html: &str) -> bool {
+    let mut tag_depth = 0usize;
+    for character in html.chars() {
+        match character {
+            '<' => tag_depth = tag_depth.saturating_add(1),
+            '>' => tag_depth = tag_depth.saturating_sub(1),
+            text if tag_depth == 0 && !text.is_whitespace() => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
 pub(super) fn word_html(file_name: &str, bytes: &[u8]) -> Result<String, String> {
     let mut archive = ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Failed to open DOCX as ZIP: {error}"))?;
@@ -16,6 +31,29 @@ pub(super) fn word_html(file_name: &str, bytes: &[u8]) -> Result<String, String>
     let images = document_images(bytes);
     let mut used = HashSet::new();
     let mut body = docx_flow_html(&xml, &images, &mut used);
+    // #chat-office — a letter can be written entirely in a header/footer or a
+    // content control. If the main document converted to nothing, look in the
+    // other text parts instead of shipping an empty editor to the user.
+    if !html_has_text(&body) {
+        let parts: Vec<String> = archive
+            .file_names()
+            .filter_map(|name| name.ok())
+            .filter(|name| {
+                (name.starts_with("word/header") || name.starts_with("word/footer"))
+                    && name.ends_with(".xml")
+            })
+            .map(|name| name.into_owned())
+            .collect();
+        for part in parts {
+            let Ok(part_xml) = zip_entry_text(&mut archive, &part) else {
+                continue;
+            };
+            let extra = docx_flow_html(&part_xml, &images, &mut used);
+            if html_has_text(&extra) {
+                body.push_str(&extra);
+            }
+        }
+    }
     body.push_str(&media_gallery_filtered(bytes, "word/media/", &used));
     Ok(document_shell(file_name, &body))
 }
@@ -312,8 +350,36 @@ fn collect_drawing(
 
 #[cfg(test)]
 mod tests {
-    use super::docx_flow_html;
+    use super::{docx_flow_html, word_html};
     use std::collections::{HashMap, HashSet};
+    use std::io::{Cursor, Write};
+    use zip::write::FileOptions;
+    use zip::ZipWriter;
+
+    #[test]
+    fn letter_text_in_a_header_is_not_lost_when_the_body_is_empty() {
+        let mut buffer = Cursor::new(Vec::new());
+        {
+            let mut zip = ZipWriter::new(&mut buffer);
+            zip.start_file("word/document.xml", <FileOptions<()>>::default())
+                .expect("document part");
+            zip.write_all(
+                br#"<w:document xmlns:w="w"><w:body></w:body></w:document>"#,
+            )
+            .expect("empty body");
+            zip.start_file("word/header1.xml", <FileOptions<()>>::default())
+                .expect("header part");
+            zip.write_all(
+                br#"<w:hdr xmlns:w="w"><w:p><w:r><w:t>Dear Sir or Madam</w:t></w:r></w:p></w:hdr>"#,
+            )
+            .expect("header text");
+        }
+        let html = word_html("letter.docx", &buffer.into_inner()).expect("preview");
+        assert!(
+            html.contains("Dear Sir or Madam"),
+            "header-only letter must render its text: {html}"
+        );
+    }
 
     fn flow(xml: &str) -> String {
         docx_flow_html(xml, &HashMap::new(), &mut HashSet::new())

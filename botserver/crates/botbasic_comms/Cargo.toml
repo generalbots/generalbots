@@ -37,6 +37,7 @@ icalendar = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
 redis = { workspace = true, features = ["r2d2", "cluster"] }
 base64 = { workspace = true }
+url = { workspace = true }
 urlencoding = { workspace = true }
 num-format = { workspace = true }
 bigdecimal = { workspace = true }

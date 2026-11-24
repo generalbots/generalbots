@@ -12,12 +12,12 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
+use super::error::WebinarError;
 use super::service::WebinarService;
 use super::types::{
-    AnswerQuestionRequest, RegisterRequest, SubmitQuestionRequest, Webinar, WebinarParticipant,
-    WebinarRegistration, QAQuestion,
+    AnswerQuestionRequest, QAQuestion, RegisterRequest, SubmitQuestionRequest, Webinar,
+    WebinarParticipant, WebinarRegistration,
 };
-use super::error::WebinarError;
 
 pub fn webinar_routes(_state: Arc<AppState>) -> axum::Router<Arc<AppState>> {
     axum::routing::Router::new()
@@ -32,8 +32,14 @@ pub fn webinar_routes(_state: Arc<AppState>) -> axum::Router<Arc<AppState>> {
         .route("/:id/hands", get(get_raised_hands_handler))
         .route("/:id/questions", get(get_questions_handler))
         .route("/:id/questions", post(submit_question_handler))
-        .route("/:id/questions/:question_id/answer", post(answer_question_handler))
-        .route("/:id/questions/:question_id/upvote", post(upvote_question_handler))
+        .route(
+            "/:id/questions/:question_id/answer",
+            post(answer_question_handler),
+        )
+        .route(
+            "/:id/questions/:question_id/upvote",
+            post(upvote_question_handler),
+        )
         // Recording and transcription routes
         .route("/:id/recording/start", post(start_recording_handler))
         .route("/:id/recording/stop", post(stop_recording_handler))
@@ -54,7 +60,7 @@ async fn start_recording_handler(
         diesel::sql_query(
             "INSERT INTO meeting_recordings (id, room_id, status, started_at, created_at)
              VALUES ($1, $2, 'recording', $3, NOW())
-             ON CONFLICT (room_id) WHERE status = 'recording' DO NOTHING"
+             ON CONFLICT (room_id) WHERE status = 'recording' DO NOTHING",
         )
         .bind::<sql_types::Uuid, _>(recording_id)
         .bind::<sql_types::Uuid, _>(webinar_id)
@@ -99,7 +105,7 @@ async fn stop_recording_handler(
         let recording: Result<(Uuid, chrono::DateTime<chrono::Utc>), _> = diesel::sql_query(
             "SELECT id, started_at FROM meeting_recordings
              WHERE room_id = $1 AND status = 'recording'
-             LIMIT 1"
+             LIMIT 1",
         )
         .bind::<sql_types::Uuid, _>(webinar_id)
         .get_result::<RecordingRow>(&mut conn)
@@ -111,7 +117,7 @@ async fn stop_recording_handler(
             diesel::sql_query(
                 "UPDATE meeting_recordings
                  SET status = 'stopped', stopped_at = $1, duration_seconds = $2, updated_at = NOW()
-                 WHERE id = $3"
+                 WHERE id = $3",
             )
             .bind::<sql_types::Timestamptz, _>(stopped_at)
             .bind::<sql_types::BigInt, _>(duration_secs)
@@ -160,7 +166,9 @@ async fn create_webinar_handler(
     let service = WebinarService::new(Arc::new(state.conn.clone()));
     let organization_id = Uuid::nil();
     let host_id = Uuid::nil();
-    let webinar = service.create_webinar(organization_id, host_id, request).await?;
+    let webinar = service
+        .create_webinar(organization_id, host_id, request)
+        .await?;
     Ok(Json(webinar))
 }
 
@@ -258,7 +266,9 @@ async fn submit_question_handler(
 ) -> Result<Json<QAQuestion>, WebinarError> {
     let service = WebinarService::new(Arc::new(state.conn.clone()));
     let asker_id: Option<Uuid> = None;
-    let question = service.submit_question(webinar_id, asker_id, "Anonymous".to_string(), request).await?;
+    let question = service
+        .submit_question(webinar_id, asker_id, "Anonymous".to_string(), request)
+        .await?;
     Ok(Json(question))
 }
 
@@ -270,7 +280,9 @@ async fn answer_question_handler(
     log::debug!("Answering question {question_id} in webinar {webinar_id}");
     let service = WebinarService::new(Arc::new(state.conn.clone()));
     let answerer_id = Uuid::nil();
-    let question = service.answer_question(question_id, answerer_id, request).await?;
+    let question = service
+        .answer_question(question_id, answerer_id, request)
+        .await?;
     Ok(Json(question))
 }
 

@@ -1,0 +1,236 @@
+# Supply-chain audits on the ALM/Forgejo mirror (#2744).
+#
+# `.github/workflows/security.yml` used to gate every audit job behind
+# `github.server_url == 'https://github.com'`, and the README in this directory
+# made Forgejo ignore the whole `.github/workflows` tree. The result: a
+# dependency/advisory regression could pass ALM CI and be deployed by alm-ci
+# without cargo-deny, OSV, gitleaks or pip-audit ever running.
+#
+# This workflow is the ALM half of the gate. It runs the SAME blocking audits
+# as the GitHub workflow (the tools are checksum-pinned static binaries and the
+# checks are plain scripts, so they are host-independent). Only SARIF / Security
+# tab uploads, the SBOM artifact upload and the advisory header probe stay on
+# GitHub. `scripts/check_supply_chain_gates.py` enforces this parity and runs in
+# the workflow-lint job of BOTH manifests.
+#
+# Runs on `gbo`, the host executor the deploy repo already uses. No secrets,
+# no network build, no `gh release`, no windows/macOS runners.
+
+name: Security (supply-chain audits)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-alm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  supply-chain:
+    name: cargo-deny (advisories, bans, licenses, sources)
+    runs-on: gbo
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin RustSec advisory DB (checkout + record commit)
+        run: |
+          set -euo pipefail
+          adb_commit="074ea9a7ed619f511b5b7374c7a97e98d1e98be4"
+          git clone https://github.com/RustSec/advisory-db /tmp/advisory-db
+          git -C /tmp/advisory-db checkout "$adb_commit"
+          echo "RUSTSEC_ADVISORY_DB_PATH=/tmp/advisory-db" >> "$GITHUB_ENV"
+          echo "ADVISORY_DB_COMMIT=$adb_commit" >> "$GITHUB_ENV"
+      - name: Install cargo-deny 0.20.2 (checksum verified)
+        run: |
+          set -euo pipefail
+          version=0.20.2
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${version}/cargo-deny-${version}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/cargo-deny.tar.gz "$url"
+          tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
+          echo "b329e25933d01c36dd7c47d84ea5716694f9b7caf53a5003d45674703a8ed54a  /tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" | sha256sum -c -
+          sudo install -m 0755 "/tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+      - name: Audit report (stale ignores + advisory DB record)
+        run: |
+          set -euo pipefail
+          python3 scripts/audit-report.py --advisory-db-path "${RUSTSEC_ADVISORY_DB_PATH}" --skip-cargo-deny
+      - name: Evaluate deny.toml
+        # --all-features audits the union of every shipping graph.
+        # Accepted risks live in deny.toml with a date; a new advisory fails here.
+        run: cargo-deny --all-features check advisories bans licenses sources
+      - name: Public key material must never be a licensed dependency
+        run: |
+          set -euo pipefail
+          if cargo-deny --all-features check licenses 2>&1 | grep -Ei "AGPL|GPL-3"; then
+            echo "A GPL-family crate entered the dependency graph; see deny.toml license policy."
+            exit 1
+          fi
+          echo "license policy: no GPL-family crate linked"
+
+  osv:
+    name: OSV allowlist gate (Cargo.lock)
+    runs-on: gbo
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install osv-scanner 2.7.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/google/osv-scanner/releases/download/v2.7.0/osv-scanner_linux_amd64"
+          curl -fsSL --retry 3 -o /tmp/osv-scanner "$url"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+      # The SARIF scan is GitHub-only (Security tab). The JSON scan + dated
+      # allowlist below is the BLOCKING gate and runs here too (#2744).
+      - name: Scan Cargo.lock as JSON (allowlist gate input)
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile Cargo.lock \
+            --format json \
+            --output-file /tmp/osv.json \
+            || true
+          test -s /tmp/osv.json
+      - name: Fail on advisories outside the dated allowlist
+        run: python3 scripts/check_osv_allowlist.py --report /tmp/osv.json --allowlist scripts/osv_allowlist.txt
+      - name: Scan npm lockfiles as JSON (allowlist gate input)
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --format json \
+            --output-file /tmp/osv-npm.json \
+            || true
+          test -s /tmp/osv-npm.json
+      - name: Fail on npm advisories outside the baseline
+        # The SARIF upload for these lockfiles is GitHub-only; the blocking
+        # baseline gate runs here too so ALM cannot deploy an npm advisory.
+        run: |
+          python3 scripts/check_osv_allowlist.py \
+            --report /tmp/osv-npm.json \
+            --allowlist scripts/osv_allowlist_npm.txt \
+            --allow-empty
+
+  secrets:
+    name: Secret scan (full history)
+    runs-on: gbo
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks 8.30.1 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/gitleaks.tar.gz "$url"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          echo "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509  /tmp/gitleaks" | sha256sum -c -
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+      - name: Scan every commit on every branch
+        # Suppressions live in .gitleaks.toml; the SARIF upload is GitHub-only
+        # but the scan itself is the gate and must fail this run (#2744).
+        run: |
+          set -euo pipefail
+          gitleaks git \
+            --config .gitleaks.toml \
+            --redact \
+            --no-banner \
+            --report-format sarif \
+            --report-path /tmp/gitleaks.sarif \
+            --log-opts="--all"
+
+  python:
+    name: Python dependencies (botmodels)
+    runs-on: gbo
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit all runtime requirements (#2675)
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/audit-venv
+          /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
+          # Whole requirements file, no grep for '==' and no --no-deps:
+          # pip-audit must resolve every >= / ~= / unpinned line to what pip
+          # would actually install, or an advisory escapes the audit.
+          /tmp/audit-venv/bin/pip-audit \
+            --requirement botmodels/requirements.txt \
+            --progress-spinner off \
+            --ignore-vuln GHSA-4j2p-28q2-5m79 \
+            --ignore-vuln PYSEC-2026-3804
+
+  sbom:
+    name: SBOM (SPDX)
+    runs-on: gbo
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install syft 1.57.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/syft.tar.gz "$url"
+          tar -xzf /tmp/syft.tar.gz -C /tmp syft
+          echo "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e  /tmp/syft" | sha256sum -c -
+          sudo install -m 0755 /tmp/syft /usr/local/bin/syft
+      - name: Generate SPDX inventory
+        # The artifact upload stays on GitHub; generating + validating the
+        # inventory is host-independent and runs here too.
+        run: |
+          set -euo pipefail
+          syft dir:. \
+            --exclude './target/**' \
+            --exclude './.git/**' \
+            --exclude '**/node_modules/**' \
+            --exclude './.wwebjs_cache/**' \
+            -o "spdx-json=/tmp/sbom.spdx.json"
+          python3 -c "import json; d=json.load(open('/tmp/sbom.spdx.json')); print('packages:', len(d.get('packages', [])))"
+
+  workflow-lint:
+    name: Workflow pinning and syntax
+    runs-on: gbo
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actionlint 1.7.12 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/actionlint.tar.gz "$url"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          echo "c872d6db8c6bf83a8eaa704fc93999f027d55dffbc63b8a6abdccb47df5f4cd4  /tmp/actionlint" | sha256sum -c -
+          sudo install -m 0755 /tmp/actionlint /usr/local/bin/actionlint
+      - name: Lint workflows
+        run: actionlint
+      - name: pip-audit covers every runtime requirement (#2675)
+        run: |
+          python3 scripts/check_pip_audit_coverage.py --self-test
+          python3 scripts/check_pip_audit_coverage.py
+      - name: Every `uses:` must be a commit SHA
+        run: python3 scripts/check_workflow_pinning.py
+      - name: Component checksums are pinned
+        run: python3 scripts/check_component_checksums.py
+      - name: Vendored JavaScript assets are hash-pinned (#2742)
+        run: python3 scripts/check_component_checksums.py --js-manifest botui/ui/suite/js/vendor/vendored-js.toml
+      - name: Every bundled component has a license entry
+        run: python3 scripts/check_third_party_licenses.py
+      - name: Every workflow download is verified
+        run: python3 scripts/check_workflow_downloads.py
+      - name: Supply-chain audits are not skipped on non-GitHub CI (#2744)
+        # Guards the GitHub manifest AND this mirror: fails if a job is
+        # server_url-gated, a SARIF upload loses its GitHub-only guard, or the
+        # two manifests drift apart in the audit set they enforce.
+        run: python3 scripts/check_supply_chain_gates.py

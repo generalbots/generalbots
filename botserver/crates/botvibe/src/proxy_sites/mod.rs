@@ -48,7 +48,7 @@ use std::sync::LazyLock;
 use crate::site_env::{SiteEnv, SiteTarget};
 
 pub use caddy::{python_port, validate_slug};
-pub(crate) use caddy::{PROXY_CADDY_CONFIG, check_python_runtime, check_serveability, dir_is_vibe_owned, must_run, proxy_exec, python_port_for, rotate_release, stage_payload, tls_directive, tls_internal_from_env};
+pub(crate) use caddy::{PROXY_CADDY_CONFIG, check_python_runtime, check_serveability, dir_is_vibe_owned, must_run, proxy_exec, python_port_for, rotate_release, stage_payload, tls_directive, tls_internal_from_env, validate_project_site_name};
 #[cfg(test)]
 pub(crate) use caddy::{PROXY_SITES_ROOT, site_block_with_mode};
 pub(crate) use caddy_config::{remove_site_config, site_block_for_target, upsert_site_config};

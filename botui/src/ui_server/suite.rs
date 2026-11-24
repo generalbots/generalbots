@@ -11,7 +11,6 @@ use crate::shared::AppState;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
 use crate::ui_server::constants::get_ui_root;
-use crate::ui_server::js_escape::js_string;
 use crate::ui_server::suite_ops::remove_section;
 
 /// Bot names are safe-to-embed identifiers: letters, digits, `-`, `_` and `.`,

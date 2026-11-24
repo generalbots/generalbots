@@ -8,8 +8,7 @@ use diesel::sql_types::{Bool, Int8, Nullable, Text, Timestamptz, Uuid as DieselU
 use uuid::Uuid;
 
 use crate::conversations::{
-    EditMessageRequest, MessageResponse, SearchMessagesQuery,
-    SendMessageRequest, SuccessResponse,
+    EditMessageRequest, MessageResponse, SearchMessagesQuery, SendMessageRequest, SuccessResponse,
 };
 
 use crate::conversation_store::{DbPool, PgConnection};
@@ -75,7 +74,10 @@ fn row_to_response(row: MessageRow, conversation_id: Uuid) -> MessageResponse {
     msg
 }
 
-pub async fn get_conversation_messages(pool: &DbPool, conversation_id: Uuid) -> Result<Vec<MessageResponse>> {
+pub async fn get_conversation_messages(
+    pool: &DbPool,
+    conversation_id: Uuid,
+) -> Result<Vec<MessageResponse>> {
     let mut conn = pool.get()?;
     let rows: Vec<MessageRow> = sql_query(format!(
         "{MESSAGE_SELECT} WHERE m.conversation_id = $1 GROUP BY m.id ORDER BY m.created_at"
@@ -83,7 +85,10 @@ pub async fn get_conversation_messages(pool: &DbPool, conversation_id: Uuid) -> 
     .bind::<DieselUuid, _>(conversation_id)
     .get_results(&mut conn)?;
 
-    Ok(rows.into_iter().map(|r| row_to_response(r, conversation_id)).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| row_to_response(r, conversation_id))
+        .collect())
 }
 
 pub async fn send_message(
@@ -101,7 +106,10 @@ pub async fn send_message(
         (Some(sid), _) => sid.to_string(),
         _ => "User".to_string(),
     };
-    let message_type = req.message_type.clone().unwrap_or_else(|| "text".to_string());
+    let message_type = req
+        .message_type
+        .clone()
+        .unwrap_or_else(|| "text".to_string());
     let attachments = serde_json::to_value(req.attachments.clone().unwrap_or_default())?;
 
     sql_query(
@@ -162,7 +170,11 @@ pub async fn edit_message(
     Ok(msg)
 }
 
-pub async fn delete_message(pool: &DbPool, conversation_id: Uuid, message_id: Uuid) -> Result<SuccessResponse> {
+pub async fn delete_message(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    message_id: Uuid,
+) -> Result<SuccessResponse> {
     let mut conn = pool.get()?;
     sql_query("DELETE FROM meet_conversation_messages WHERE id = $1 AND conversation_id = $2")
         .bind::<DieselUuid, _>(message_id)
@@ -203,11 +215,18 @@ pub async fn react_to_message(
     .execute(&mut conn)?;
     Ok(SuccessResponse {
         success: true,
-        message: Some(format!("Reaction '{}' added to message {}", reaction, message_id)),
+        message: Some(format!(
+            "Reaction '{}' added to message {}",
+            reaction, message_id
+        )),
     })
 }
 
-pub async fn pin_message(pool: &DbPool, conversation_id: Uuid, message_id: Uuid) -> Result<SuccessResponse> {
+pub async fn pin_message(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    message_id: Uuid,
+) -> Result<SuccessResponse> {
     let mut conn = pool.get()?;
     sql_query("UPDATE meet_conversation_messages SET is_pinned = TRUE WHERE id = $1 AND conversation_id = $2")
         .bind::<DieselUuid, _>(message_id)
@@ -219,7 +238,11 @@ pub async fn pin_message(pool: &DbPool, conversation_id: Uuid, message_id: Uuid)
     })
 }
 
-pub async fn search_messages(pool: &DbPool, conversation_id: Uuid, params: &SearchMessagesQuery) -> Result<Vec<MessageResponse>> {
+pub async fn search_messages(
+    pool: &DbPool,
+    conversation_id: Uuid,
+    params: &SearchMessagesQuery,
+) -> Result<Vec<MessageResponse>> {
     let mut conn = pool.get()?;
     let pattern = format!("%{}%", params.query);
     let rows: Vec<MessageRow> = sql_query(format!(
@@ -230,7 +253,10 @@ pub async fn search_messages(pool: &DbPool, conversation_id: Uuid, params: &Sear
     .bind::<Text, _>(&pattern)
     .get_results(&mut conn)?;
 
-    Ok(rows.into_iter().map(|r| row_to_response(r, conversation_id)).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| row_to_response(r, conversation_id))
+        .collect())
 }
 
 #[derive(diesel::QueryableByName)]
@@ -239,7 +265,11 @@ struct CountRow {
     c: i64,
 }
 
-fn load_message(conn: &mut PgConnection, message_id: Uuid, conversation_id: Uuid) -> Result<MessageResponse> {
+fn load_message(
+    conn: &mut PgConnection,
+    message_id: Uuid,
+    conversation_id: Uuid,
+) -> Result<MessageResponse> {
     let row: MessageRow = sql_query(format!(
         "{MESSAGE_SELECT} WHERE m.id = $1 AND m.conversation_id = $2 GROUP BY m.id"
     ))

@@ -1,0 +1,14 @@
+# npm advisory baseline for the botui lockfiles (#2742).
+#
+# `scripts/check_osv_allowlist.py --allow-empty` accepts this file with no IDs:
+# the baseline is "no known advisories" for the exact versions pinned in
+# botui/package-lock.json and botui/ui/suite/js/vendor/package-lock.json as of
+# 2026-11-23. The osv job feeds the npm scan report to the same gate, so any
+# advisory reported from either lockfile is NEW and fails CI.
+#
+# To accept one, add its advisory ID here with the date and a written
+# reachability argument — the same rule as scripts/osv_allowlist.txt for Rust.
+# For example:
+#   GHSA-xxxx-xxxx-xxxx  # dev-only monaco-editor 0.45.0, not shipped 2026-11-24
+#
+# Format: one advisory ID per line; everything after `#` is a comment.

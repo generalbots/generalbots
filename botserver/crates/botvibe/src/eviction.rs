@@ -42,7 +42,7 @@ pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<
 
     // 2. Unpublish + purge the published proxy site, if any (removes payload,
     //    systemd unit for python sites, Caddy route and release history).
-    let slug = VmLifecycle::alm_repo(&p.name);
+    let slug = crate::proxy_sites::site_slug(&p.name, p.branch_id);
     if !slug.is_empty() {
         if let Err(e) = crate::proxy_sites::unpublish_site(&slug, true).await {
             errors.push(format!("site unpublish: {e}"));

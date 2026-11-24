@@ -1,0 +1,16 @@
+# Laptop/shell acceptance hardware matrix (#2471) — data, not documentation prose.
+# Pipe-separated: case_id|class|cpu|ram_gb|firmware|gpu|wifi|external_display|display|input|model_masked|fw_version_masked|expected_evidence|status
+# One row per physical configuration. "masked" fields identify the machine class
+# without exposing serial numbers, MACs, internal IPs or asset tags. No secrets.
+# status=PENDING until a real run appends screenshots + serial log to the issue;
+# the offline harness never upgrades a physical case above SKIP (no fabricated PASS).
+#
+# Minimum coverage required by #2471: Intel laptop, AMD laptop, Wi-Fi-only
+# machine, machine with an external display. HW-RAM-4G-01 pins the 4 GiB smoke
+# RAM floor; the other cases pin the 16 GiB image budget in mkosi.conf.
+case_id|class|cpu|ram_gb|firmware|gpu|wifi|external_display|display|input|model_masked|fw_version_masked|expected_evidence|status
+HW-INTEL-01|Intel laptop|Intel Core / Core Ultra (x86-64)|16|UEFI 2.x, Secure Boot capable|Intel iGPU (Iris Xe / UHD)|Intel AX200/AX210 Wi-Fi 6|optional|internal >=1080p|mouse+keyboard only|INTEL-LAPTOP-01 (S/N masked)|UEFI 2.8 / BIOS 1.xx (masked)|screenshots + serial log|PENDING
+HW-AMD-01|AMD laptop|AMD Ryzen 5/7 (x86-64)|16|UEFI 2.x, Secure Boot capable|AMD Radeon Vega/RDNA|MediaTek/Intel Wi-Fi 6|optional|internal >=1080p|mouse+keyboard only|AMD-LAPTOP-01 (S/N masked)|UEFI 2.8 / BIOS 1.xx (masked)|screenshots + serial log|PENDING
+HW-WIFI-ONLY-01|Wi-Fi-only machine|any low-power x86-64|8|UEFI 2.x|integrated iGPU|Wi-Fi only (no Ethernet)|no|internal >=720p|mouse+keyboard only|WIFI-ONLY-01 (S/N masked)|UEFI 2.8 (masked)|screenshots + serial log|PENDING
+HW-EXTDISP-01|External-display machine|any x86-64|16|UEFI 2.x|iGPU or dock GPU|Wi-Fi|yes (HDMI/DP/USB-C DP Alt)|external >=1440p|mouse+keyboard only|EXTDISP-01 (S/N masked)|UEFI 2.8 / dock FW (masked)|screenshots + serial log|PENDING
+HW-RAM-4G-01|4 GiB RAM floor|x86-64 low-power CPU|4|UEFI 2.x, Secure Boot capable|integrated iGPU|Wi-Fi|no|internal >=720p|mouse+keyboard only|RAM4G-01 (S/N masked)|UEFI 2.8 (masked)|screenshots + serial log|PENDING

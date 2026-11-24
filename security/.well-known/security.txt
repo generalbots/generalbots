@@ -1,15 +1,16 @@
 # Canonical security contact for General Bots
 
 Contact: https://github.com/generalbots/generalbots/security/advisories/new
-Contact: mailto:security@pragmatismo.com.br
+Contact: mailto:security@generalbots.org
 Expires: 2027-12-31T00:00:00Z
 Encryption: https://generalbots.org/.well-known/pgp-key.txt
-Acknowledgments: https://generalbots.org/security/pages/hall-of-fame.html
-Policy: https://generalbots.org/security/SECURITY.md
+Acknowledgments: https://generalbots.org/security/hall-of-fame.html
+Policy: https://generalbots.org/SECURITY.md
 Canonical: https://generalbots.org/.well-known/security.txt
 Preferred-Languages: pt-BR, en
 
-The encryption URL above is a publication placeholder: the fingerprint must be
-published by the security owner before this file is deployed. No PGP key or
-fingerprint is stored in this repository. There is no paid reporting programme;
-public credit is the only incentive.
+The Encryption URL is a publication placeholder, not an invented key. Before
+this record is deployed the security owner must publish the key at that URL and
+its stable fingerprint in SECURITY.md; rotate only with an overlapping validity
+window. No PGP key or fingerprint is stored in this repository. There is no paid
+reporting programme; public credit is the only incentive.

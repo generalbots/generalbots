@@ -1,0 +1,85 @@
+{
+  "schema": "https://generalbots.org/security/schema/advisory-1.0.json",
+  "advisories": [
+    {
+      "id": "GBSA-2026-0001",
+      "title": "Example: unauthenticated read of bot configuration",
+      "summary": "Example record shipped with the advisory API so operators can verify the schema end to end. It does not describe a real vulnerability.",
+      "severity": "high",
+      "product": "botserver",
+      "component": "botserver",
+      "published": "2026-11-20",
+      "updated": "2026-11-21",
+      "affected_versions": [
+        { "introduced": "1.0.0", "fixed": "2.3.1", "range": ">= 1.0.0, < 2.3.1" }
+      ],
+      "remediation": {
+        "recommended_version": "2.3.1",
+        "text": "Upgrade to BotServer 2.3.1 or later. There is no configuration-only workaround."
+      },
+      "cvss": [
+        { "version": "4.0", "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N", "score": 8.7 }
+      ],
+      "cwe": ["CWE-200"],
+      "references": [
+        "https://generalbots.org/security/advisories/GBSA-2026-0001"
+      ],
+      "revisions": [
+        { "date": "2026-11-20", "summary": "Initial publication" },
+        { "date": "2026-11-21", "summary": "Clarified affected range" }
+      ]
+    },
+    {
+      "id": "GBSA-2026-0002",
+      "title": "Example: suite fragment reflected a query parameter",
+      "summary": "Example record for the botui component. Clearly marked as an example, not a real vulnerability.",
+      "severity": "medium",
+      "product": "botserver",
+      "component": "botui",
+      "published": "2026-11-21",
+      "affected_versions": [
+        { "introduced": "2.0.0", "fixed": "2.4.0", "range": ">= 2.0.0, < 2.4.0" }
+      ],
+      "remediation": {
+        "recommended_version": "2.4.0",
+        "text": "Upgrade the suite to 2.4.0 or later."
+      },
+      "cvss": [
+        { "version": "3.1", "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N", "score": 6.1 }
+      ],
+      "cwe": ["CWE-79"],
+      "references": [
+        "https://generalbots.org/security/advisories/GBSA-2026-0002"
+      ],
+      "revisions": [
+        { "date": "2026-11-21", "summary": "Initial publication" }
+      ]
+    },
+    {
+      "id": "GBSA-2026-0003",
+      "title": "Example: desktop bundle path traversal on import",
+      "summary": "Example record for the botui product. Clearly marked as an example, not a real vulnerability.",
+      "severity": "critical",
+      "product": "botui",
+      "component": "botui",
+      "published": "2026-11-22",
+      "affected_versions": [
+        { "introduced": "3.1.0", "fixed": "3.1.4", "range": ">= 3.1.0, < 3.1.4" }
+      ],
+      "remediation": {
+        "recommended_version": "3.1.4",
+        "text": "Upgrade the desktop client to 3.1.4 or later."
+      },
+      "cvss": [
+        { "version": "4.0", "vector": "CVSS:4.0/AV:L/AC:L/AT:N/PR:N/UI:A/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", "score": 9.2 }
+      ],
+      "cwe": ["CWE-22"],
+      "references": [
+        "https://generalbots.org/security/advisories/GBSA-2026-0003"
+      ],
+      "revisions": [
+        { "date": "2026-11-22", "summary": "Initial publication" }
+      ]
+    }
+  ]
+}

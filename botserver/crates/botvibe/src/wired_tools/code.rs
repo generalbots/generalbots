@@ -14,6 +14,7 @@ use crate::harness::{cmd, ensure_workspace};
 use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeUseCase, VibeState};
 use serde_json::{json, Value};
+use uuid::Uuid;
 
 /// Hard ceiling on what a single tool call may return to the agent. A code
 /// graph can produce a very large answer, and an unbounded payload is a context
@@ -56,11 +57,19 @@ fn vm_unavailable(detail: &str) -> bool {
 /// Returns the trimmed stdout on success; a non-zero exit becomes an error
 /// carrying the tool's own stderr, because a missing index and a bad query
 /// must not look alike.
-fn run_codegraph(project: &str, args: &[String], timeout: u64) -> Result<String, String> {
+fn run_codegraph(
+    project: &str,
+    branch_id: Uuid,
+    args: &[String],
+    timeout: u64,
+) -> Result<String, String> {
     // Containment first: `project` is attacker-influenced and must resolve
     // inside the workspaces root before it is turned into a container name.
     let cwd = ensure_workspace(project)?;
-    let container = crate::vm_lifecycle::VmLifecycle::container_name(project, VM_ENV, false);
+    // #2648 — include the tenant so two branches with the same project name
+    // never target each other's dev VM.
+    let container =
+        crate::vm_lifecycle::VmLifecycle::container_name(project, VM_ENV, false, branch_id);
     let mut argv: Vec<String> = Vec::with_capacity(args.len() + 6);
     argv.push("exec".to_string());
     argv.push(container.clone());
@@ -122,72 +131,89 @@ fn timeout_of(args: &Value) -> u64 {
 /// out. This is the tool that replaces the discovery crawl, so it is the one the
 /// prompt should reach for first.
 fn code_explore() -> ToolHandler {
-    handler(|args, _state: &dyn VibeState| async move {
-        let project = match require_str(&args, "project") {
-            Ok(v) => v.trim().to_string(),
-            Err(e) => return err(e),
-        };
-        let query = match require_str(&args, "query") {
-            Ok(v) => v.to_string(),
-            Err(e) => return err(e),
-        };
-        let timeout = timeout_of(&args);
-        let out = match run_codegraph(&project, &["explore".to_string(), query.clone()], timeout) {
-            Ok(v) => v,
-            Err(e) => return err(e),
-        };
-        wrap(bounded(out), project, query)
+    handler(|args, state: &dyn VibeState| {
+        let pool = state.db_pool().clone();
+        async move {
+            let project = match require_str(&args, "project") {
+                Ok(v) => v.trim().to_string(),
+                Err(e) => return err(e),
+            };
+            let query = match require_str(&args, "query") {
+                Ok(v) => v.to_string(),
+                Err(e) => return err(e),
+            };
+            let timeout = timeout_of(&args);
+            let branch_id = crate::projects::branch_id_for_name(&pool, &project);
+            let out = match run_codegraph(
+                &project,
+                branch_id,
+                &["explore".to_string(), query.clone()],
+                timeout,
+            ) {
+                Ok(v) => v,
+                Err(e) => return err(e),
+            };
+            wrap(bounded(out), project, query)
+        }
     })
 }
 
 /// `code/search` — find a symbol by name across the whole index.
 fn code_search() -> ToolHandler {
-    handler(|args, _state: &dyn VibeState| async move {
-        let project = match require_str(&args, "project") {
-            Ok(v) => v.trim().to_string(),
-            Err(e) => return err(e),
-        };
-        let query = match require_str(&args, "query") {
-            Ok(v) => v.to_string(),
-            Err(e) => return err(e),
-        };
-        let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20);
-        let mut argv = vec!["query".to_string(), query.clone(), "--limit".to_string()];
-        argv.push(limit.clamp(1, 200).to_string());
-        argv.push("--json".to_string());
-        let out = match run_codegraph(&project, &argv, timeout_of(&args)) {
-            Ok(v) => v,
-            Err(e) => return err(e),
-        };
-        wrap(bounded(out), project, query)
+    handler(|args, state: &dyn VibeState| {
+        let pool = state.db_pool().clone();
+        async move {
+            let project = match require_str(&args, "project") {
+                Ok(v) => v.trim().to_string(),
+                Err(e) => return err(e),
+            };
+            let query = match require_str(&args, "query") {
+                Ok(v) => v.to_string(),
+                Err(e) => return err(e),
+            };
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20);
+            let mut argv = vec!["query".to_string(), query.clone(), "--limit".to_string()];
+            argv.push(limit.clamp(1, 200).to_string());
+            argv.push("--json".to_string());
+            let branch_id = crate::projects::branch_id_for_name(&pool, &project);
+            let out = match run_codegraph(&project, branch_id, &argv, timeout_of(&args)) {
+                Ok(v) => v,
+                Err(e) => return err(e),
+            };
+            wrap(bounded(out), project, query)
+        }
     })
 }
 
 /// `code/impact` — what a change to this symbol would reach.
 fn code_impact() -> ToolHandler {
-    handler(|args, _state: &dyn VibeState| async move {
-        let project = match require_str(&args, "project") {
-            Ok(v) => v.trim().to_string(),
-            Err(e) => return err(e),
-        };
-        let symbol = match require_str(&args, "symbol") {
-            Ok(v) => v.to_string(),
-            Err(e) => return err(e),
-        };
-        let mut argv = vec![
-            "impact".to_string(),
-            symbol.clone(),
-            "--json".to_string(),
-        ];
-        if let Some(depth) = args.get("depth").and_then(|v| v.as_u64()) {
-            argv.push("--depth".to_string());
-            argv.push(depth.clamp(1, 10).to_string());
+    handler(|args, state: &dyn VibeState| {
+        let pool = state.db_pool().clone();
+        async move {
+            let project = match require_str(&args, "project") {
+                Ok(v) => v.trim().to_string(),
+                Err(e) => return err(e),
+            };
+            let symbol = match require_str(&args, "symbol") {
+                Ok(v) => v.to_string(),
+                Err(e) => return err(e),
+            };
+            let mut argv = vec![
+                "impact".to_string(),
+                symbol.clone(),
+                "--json".to_string(),
+            ];
+            if let Some(depth) = args.get("depth").and_then(|v| v.as_u64()) {
+                argv.push("--depth".to_string());
+                argv.push(depth.clamp(1, 10).to_string());
+            }
+            let branch_id = crate::projects::branch_id_for_name(&pool, &project);
+            let out = match run_codegraph(&project, branch_id, &argv, timeout_of(&args)) {
+                Ok(v) => v,
+                Err(e) => return err(e),
+            };
+            wrap(bounded(out), project, symbol)
         }
-        let out = match run_codegraph(&project, &argv, timeout_of(&args)) {
-            Ok(v) => v,
-            Err(e) => return err(e),
-        };
-        wrap(bounded(out), project, symbol)
     })
 }
 
@@ -343,7 +369,7 @@ mod tests {
         std::fs::create_dir_all(&tmp).expect("create workspace root");
         let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
-        let outcome = run_codegraph("proj", &["explore".to_string(), "anything".to_string()], 10);
+        let outcome = run_codegraph("proj", Uuid::nil(), &["explore".to_string(), "anything".to_string()], 10);
         if let Some(previous) = previous {
             std::env::set_var("VIBE_WORKSPACE_ROOT", previous);
         } else {
@@ -365,7 +391,7 @@ mod tests {
     /// reject traversal rather than reading outside the workspaces root.
     #[test]
     fn project_traversal_is_refused() {
-        assert!(run_codegraph("../etc", &["explore".to_string(), "x".to_string()], 5).is_err());
-        assert!(run_codegraph("", &["explore".to_string(), "x".to_string()], 5).is_err());
+        assert!(run_codegraph("../etc", Uuid::nil(), &["explore".to_string(), "x".to_string()], 5).is_err());
+        assert!(run_codegraph("", Uuid::nil(), &["explore".to_string(), "x".to_string()], 5).is_err());
     }
 }

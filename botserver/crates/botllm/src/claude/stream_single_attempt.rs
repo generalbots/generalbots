@@ -23,7 +23,7 @@ impl ClaudeClient {
         // Build client matching Node.js httpsAgent configuration
         // IMPORTANT: NO timeout() here - it causes premature stream closure!
         // Node.js doesn't set a timeout on the response body, only on connect/headers
-        let client = reqwest::Client::builder()
+        let client = crate::pinned_http::pinned_builder()
             .connect_timeout(Duration::from_millis(TIMEOUT_MS))
             .pool_idle_timeout(Duration::from_secs(30)) // keepAliveMsecs: 30000
             .pool_max_idle_per_host(10) // maxFreeSockets: 10

@@ -80,7 +80,10 @@ mod tests {
         let parts = ["suggestions", &bot.to_string(), &session.to_string()];
         let org_a = uuid::Uuid::from_u128(1);
         let org_b = uuid::Uuid::from_u128(2);
-        assert_ne!(scoped_key(Some(org_a), &parts), scoped_key(Some(org_b), &parts));
+        assert_ne!(
+            scoped_key(Some(org_a), &parts),
+            scoped_key(Some(org_b), &parts)
+        );
         assert_eq!(scoped_key(None, &parts), legacy_key(&parts));
     }
 }

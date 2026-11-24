@@ -1,6 +1,7 @@
 //! Split from `tool_executor.rs` per #1443 (AGENTS.md 450-line rule).
 
 mod executor;
+mod project_admin;
 mod registry;
 
 use crate::types::{VibeState, VibeToolCall, VibeToolResult, VibeUseCase};
@@ -10,5 +11,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub use executor::{ToolHandler, VibeToolExecutor};
-pub(crate) use executor::{RegisteredTool};
+pub(crate) use executor::RegisteredTool;
+pub(crate) use project_admin::stamp_acting_user;
 pub use registry::{ToolCategory, ToolDescriptor, ToolFuture, ToolRegistry, ToolSchema, ToolSchemaExt};

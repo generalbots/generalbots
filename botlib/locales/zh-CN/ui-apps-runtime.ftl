@@ -617,3 +617,5 @@ tasks-intent-open-app = 打开应用 →
 tasks-intent-task-id = 任务 ID：
 tasks-intent-error = 出错了
 tasks-intent-failed = 处理响应失败
+
+docs-export-degraded = 导出时未包含表格/图表：源数据不可用（已跳过 {count} 项）

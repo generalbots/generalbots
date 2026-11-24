@@ -29,6 +29,14 @@ pub async fn export_document(
         )
     })?;
 
+    // #2624 — exported documents are an outbound surface: never let a stored
+    // secret leave through pdf/docx/html/xml without the shared DLP gate.
+    let content = botsecurity_core::dlp::redact_text(
+        &content,
+        botsecurity_core::dlp::ScanDirection::Outbound,
+        None,
+    )
+    .await;
     let exported_content = match req.format.as_str() {
         "pdf" => {
             format!("PDF Export:\n{}", content)

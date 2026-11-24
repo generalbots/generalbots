@@ -1,0 +1,25 @@
+[Unit]
+Description=General Bots OS - GPU/VA-API profile detection and WebKit acceleration (#2481)
+Documentation=man:environment.d(5)
+# Must run before the kiosk shell so the WebKit environment is in place when
+# the user session manager starts. The base mkosi.conf already pins the
+# union of all graphics packages, so in the shipped image this is normally a
+# no-op that only writes the environment.d drop-in.
+Before=generalbots-shell.service
+After=local-fs.target
+ConditionPathExists=/usr/local/libexec/gb-graphics/detect-graphics.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# To disable on non-target hosts without editing the unit:
+#   systemctl edit gb-graphics-detect.service
+#   [Service]
+#   Environment=GB_GRAPHICS_SKIP=1
+ExecStart=/bin/bash /usr/local/libexec/gb-graphics/detect-graphics.sh
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

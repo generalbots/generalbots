@@ -19,8 +19,9 @@
 //!
 //! The generated secret is persisted atomically so the minter and every
 //! verifier agree across restarts. When persistence is impossible the
-//! resolution **fails closed** in production (`BOTSERVER_ENV=production`), so
-//! the server refuses to start instead of serving tokens nobody can verify.
+//! resolution **fails closed** in production (the default; only an explicit
+//! `BOTSERVER_ENV=development` lowers the guard, #2615), so the server refuses
+//! to start instead of serving tokens nobody can verify.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -159,11 +160,35 @@ fn env_flag(name: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// `BOTSERVER_ENV=production` (or `prod`).
-pub fn is_production_env() -> bool {
-    std::env::var(ENVIRONMENT_ENV)
-        .map(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "production" | "prod"))
+/// Pure posture decision (#2615). Production is the default: only an explicit
+/// development marker lowers the guard. Unknown/unset values fail closed to
+/// production so a deployment that forgets the flag never gets ephemeral
+/// secrets, a development panic handler or a permissive CORS policy.
+pub fn is_development_env_value(value: Option<&str>) -> bool {
+    value
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "development" | "dev" | "local" | "test"
+            )
+        })
         .unwrap_or(false)
+}
+
+/// Pure form of [`is_production_env`] for tests and embedded config.
+pub fn is_production_env_value(value: Option<&str>) -> bool {
+    !is_development_env_value(value)
+}
+
+/// Whether the process was explicitly started in a development posture.
+pub fn is_development_env() -> bool {
+    let value = std::env::var(ENVIRONMENT_ENV).ok();
+    is_development_env_value(value.as_deref())
+}
+
+/// Production unless explicitly opted into development mode (#2615).
+pub fn is_production_env() -> bool {
+    is_production_env_value(std::env::var(ENVIRONMENT_ENV).ok().as_deref())
 }
 
 /// A configured value, or `None` when it is absent, blank or a placeholder.

@@ -1,5 +1,6 @@
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::{Query, State};
+use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use botcore::shared::state::AppState;
 use log::{error, warn};
@@ -11,6 +12,7 @@ use uuid::Uuid;
 use crate::security::code_scan_fixes::is_safe_path;
 
 use super::super::{check_bot_access_typed, BotAccessDenial};
+use super::origin_guard::origin_allowed;
 
 /// 401 for a private bot the caller cannot reach. The browser WebSocket API
 /// hides the handshake response, so the client mirrors this by preflighting
@@ -129,16 +131,10 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
     result
 }
 
-pub async fn websocket_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<WsQuery>,
-    headers: axum::http::HeaderMap,
-) -> axum::response::Response {
-    let session_id = params
-        .session_id
-        .and_then(|s| Uuid::parse_str(&s).ok())
-        .unwrap_or_else(Uuid::new_v4);
+/// Resolve the authenticated identity from the `gb-access-token` cookie or the
+/// `access_token` query parameter. A verified token is a credential held by the
+/// caller, so it also exempts non-browser clients from the Origin check below.
+fn resolve_ws_token_user(headers: &HeaderMap, params: &WsQuery) -> Option<String> {
     let cookie_token = headers
         .get(axum::http::header::COOKIE)
         .and_then(|value| value.to_str().ok())
@@ -147,18 +143,54 @@ pub async fn websocket_handler(
                 let mut parts = pair.trim().splitn(2, '=');
                 let name = parts.next()?;
                 let value = parts.next()?;
-                if name == "gb-access-token" {
-                    Some(value.to_string())
-                } else {
-                    None
-                }
+                (name == "gb-access-token").then(|| value.to_string())
             })
         });
-    let token_user = cookie_token
+    cookie_token
         .as_deref()
         .or(params.access_token.as_deref())
         .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
-        .map(|(id, _)| id);
+        .map(|(id, _)| id)
+}
+
+pub async fn websocket_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<WsQuery>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    let token_user = resolve_ws_token_user(&headers, &params);
+    websocket_handler_inner(ws, state, params, headers, token_user).await
+}
+
+async fn websocket_handler_inner(
+    ws: WebSocketUpgrade,
+    state: Arc<AppState>,
+    params: WsQuery,
+    headers: HeaderMap,
+    token_user: Option<String>,
+) -> axum::response::Response {
+    let origin = headers
+        .get(axum::http::header::ORIGIN)
+        .and_then(|value| value.to_str().ok());
+    let host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|value| value.to_str().ok());
+    let configured_origins = botsecurity::cors::get_cors_allowed_origins();
+    // A verified Bearer/cookie token is an explicit credential, not ambient
+    // browser state, so cross-site CSRF via a socket gains the attacker nothing.
+    if token_user.is_none() && !origin_allowed(origin, host, &configured_origins) {
+        botlog::safe_warn!(
+            "WS: rejected cross-origin handshake (origin {:?}, host {:?})",
+            origin,
+            host
+        );
+        return (axum::http::StatusCode::FORBIDDEN, "Forbidden origin").into_response();
+    }
+    let session_id = params
+        .session_id
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::new_v4);
     let user_id = token_user
         .as_deref()
         .or(params.user_id.as_deref())
@@ -249,26 +281,7 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
-    let cookie_token = headers
-        .get(axum::http::header::COOKIE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|cookies| {
-            cookies.split(';').find_map(|pair| {
-                let mut parts = pair.trim().splitn(2, '=');
-                let name = parts.next()?;
-                let value = parts.next()?;
-                if name == "gb-access-token" {
-                    Some(value.to_string())
-                } else {
-                    None
-                }
-            })
-        });
-    let token_user = cookie_token
-        .as_deref()
-        .or(params.access_token.as_deref())
-        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
-        .map(|(id, _)| id);
+    let token_user = resolve_ws_token_user(&headers, &params);
     let user_id = token_user
         .as_deref()
         .or(params.user_id.as_deref())
@@ -312,5 +325,5 @@ pub async fn websocket_handler_with_bot(
         }
     }
 
-    websocket_handler(ws, State(state), Query(params), headers).await
+    websocket_handler_inner(ws, state, params, headers, token_user).await
 }

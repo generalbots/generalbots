@@ -4,7 +4,7 @@ use super::*;
 /// concurrent ops awaiting a resolution decision.
 pub async fn list_conflicts(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
@@ -16,6 +16,9 @@ pub async fn list_conflicts(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     #[derive(QueryableByName)]
     struct Row {
@@ -80,7 +83,7 @@ pub async fn list_conflicts(
 /// top of the converged state (advancing the resource version).
 pub async fn resolve_conflict(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
     request_locale: botcore::i18n::RequestLocale,
     Json(body): Json<ResolveBody>,
@@ -122,6 +125,13 @@ pub async fn resolve_conflict(
     let Some(op) = op else {
         return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-operation-not-found"));
     };
+
+    // #2731 — the op id is bare, so derive the access scope from the stored
+    // resource address and the caller's verified claims. A foreign tenant gets
+    // the same 404 as an unknown id: op ids must not be enumerable.
+    if !has_collab_access(&mut conn, &user, &op.resource_type, &op.resource_id) {
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-operation-not-found"));
+    }
 
     let updated = diesel::sql_query(
         "UPDATE collab_ops SET resolved = TRUE, resolution = $2 \
@@ -168,7 +178,7 @@ pub async fn resolve_conflict(
 /// op count, so a client can render who (or which AI) edited concurrently.
 pub async fn list_actors(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
@@ -180,6 +190,9 @@ pub async fn list_actors(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     #[derive(QueryableByName)]
     struct Row {
@@ -229,7 +242,7 @@ pub async fn list_actors(
 /// version + version vector, so a client can base its next op correctly.
 pub async fn ops_state(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
@@ -241,6 +254,9 @@ pub async fn ops_state(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     let current =
         read_current_version(&mut conn, &params.resource_type, &params.resource_id).unwrap_or(0);

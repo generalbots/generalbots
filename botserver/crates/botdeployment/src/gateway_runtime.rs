@@ -15,33 +15,109 @@ use botlib::security::SafeCommand;
 
 use super::gateway_server::GatewayState;
 
+/// Strict allowlist for a per-deployment PostgreSQL URL (#2652).
+///
+/// The gateway handler validates the same value, but the script boundary must
+/// fail closed on its own: a caller that bypasses the HTTP handler must never
+/// get a hostile value encoded into a root-written systemd unit (a decoded
+/// `\nExecStartPre=…` would run as root when the service starts). Error
+/// messages stay generic so no credential material is logged.
+fn validate_database_url(url: &str) -> Result<(), String> {
+    if url.is_empty()
+        || url.len() > 512
+        || (!url.starts_with("postgres://") && !url.starts_with("postgresql://"))
+        || url.contains("UNIT")
+        || url.chars().any(|c| {
+            !(c.is_ascii_alphanumeric()
+                || matches!(
+                    c,
+                    ':' | '/' | '@' | '?' | '=' | '.' | '_' | '+' | '~' | '%' | '-'
+                ))
+        })
+    {
+        return Err("invalid database_url: rejected at script boundary".to_string());
+    }
+    Ok(())
+}
+
+/// Quote a shell word safely: wrap in single quotes and escape each embedded
+/// `'` as `'\''`, so the value cannot break out of its argument (#2652).
+fn shell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
 /// Bootstrap script executed inside the container via `incus exec bash -c`.
 ///
 /// #1386/#2652 — the caller-supplied URL is never written verbatim into the
-/// heredoc. It is base64-encoded (a strict `[A-Za-z0-9+/=]` alphabet) and
-/// decoded by the shell while the unit file is created, so a newline or heredoc
-/// terminator in the request cannot add commands to the root shell script.
-fn bootstrap_script(database_url: Option<&str>) -> String {
-    let db_env_line = database_url
-        .map(|url| {
+/// heredoc. It is validated first (fail closed), then base64-encoded (a strict
+/// `[A-Za-z0-9+/=]` alphabet) and decoded by the shell while the unit file is
+/// created, so a newline or heredoc terminator in the request cannot add
+/// commands or systemd directives to the root shell script/unit. The encoded
+/// payload is additionally single-quoted with embedded-quote escaping.
+fn bootstrap_script(database_url: Option<&str>) -> Result<String, String> {
+    let db_env_line = match database_url {
+        None => String::new(),
+        Some(url) => {
+            validate_database_url(url)?;
             let encoded = base64::engine::general_purpose::STANDARD.encode(url.as_bytes());
-            format!("Environment=DATABASE_URL=$(printf '%s' '{encoded}' | base64 -d)")
-        })
-        .unwrap_or_default();
-    BOOTSTRAP_SCRIPT.replace("{DB_ENV_LINE}", &db_env_line)
+            format!(
+                "Environment=DATABASE_URL=$(printf '%s' {} | base64 -d)",
+                shell_single_quote(&encoded)
+            )
+        }
+    };
+    Ok(BOOTSTRAP_SCRIPT.replace("{DB_ENV_LINE}", &db_env_line))
 }
 
 #[cfg(test)]
 mod db_env_tests {
-    use super::bootstrap_script;
+    use super::{bootstrap_script, shell_single_quote, validate_database_url};
 
     #[test]
     fn url_never_appears_verbatim_in_generated_script() {
         let url = "postgresql://gb:secret@db.example:5432/app";
-        let script = bootstrap_script(Some(url));
-        assert!(!script.contains(url), "raw URL must not reach the shell script");
+        let script = bootstrap_script(Some(url)).expect("legitimate URL");
+        assert!(
+            !script.contains(url),
+            "raw URL must not reach the shell script"
+        );
         assert!(script.contains("base64 -d"));
-        assert!(!bootstrap_script(None).contains("{DB_ENV_LINE}"));
+        assert!(!bootstrap_script(None)
+            .expect("no URL")
+            .contains("{DB_ENV_LINE}"));
+    }
+
+    #[test]
+    fn hostile_urls_fail_closed() {
+        for url in [
+            "postgresql://u:p@db:5432/app\nUNIT\nid",
+            "postgresql://u:p@db:5432/app\r\nExecStartPre=/bin/sh -c 'id'",
+            "postgresql://u:p@db:5432/app\0id",
+            "postgresql://u:p@db:5432/app$HOME",
+            "postgresql://u:p@db:5432/app`id`",
+            "postgresql://u:p@db:5432/app;id",
+            "postgresql://u:p@db:5432/app&id",
+            "postgresql://u:p@db:5432/app|id",
+            "postgresql://u:p@db:5432/app'quoted'",
+            "postgresql://u:p@db:5432/app with space",
+            "mysql://db/app",
+        ] {
+            assert!(
+                validate_database_url(url).is_err(),
+                "hostile URL must be rejected: {url:?}"
+            );
+            assert!(
+                bootstrap_script(Some(url)).is_err(),
+                "hostile URL must never produce a script: {url:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn shell_single_quote_escapes_embedded_quotes() {
+        assert_eq!(shell_single_quote("plain"), "'plain'");
+        assert_eq!(shell_single_quote("a'b"), "'a'\\''b'");
+        assert_eq!(shell_single_quote(""), "''");
     }
 }
 
@@ -171,10 +247,8 @@ pub async fn bootstrap_app_runtime(
     container_name: &str,
     database_url: Option<&str>,
 ) -> Result<String, String> {
-    let output = run_incus_exec(state, container_name, &bootstrap_script(database_url)).await?;
-    log::info!(
-        "Runtime bootstrap ({container_name}): {}",
-        output.trim()
-    );
+    let script = bootstrap_script(database_url)?;
+    let output = run_incus_exec(state, container_name, &script).await?;
+    log::info!("Runtime bootstrap ({container_name}): {}", output.trim());
     Ok(output)
 }

@@ -332,7 +332,7 @@ bucket/
 - File types are validated
 - Presigned URLs expire automatically
 - Access control per bucket
-- Encryption at rest
+- Uploaded files are not encrypted at rest by the platform; provide it at the storage layer
 - SSL/TLS for transfers
 
 ## Related APIs

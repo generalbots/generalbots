@@ -1,4 +1,4 @@
-use super::{bind, VerbEndpoint};
+use super::{VerbEndpoint, bind};
 
 pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
     // ——— #2037 — Docs (crates/botdocs) ———
@@ -67,6 +67,45 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         &[("file_id", "doc_id"), ("instruction", "command")],
         &[],
     ),
+    // #2448 — anchored comment add. `AddCommentRequest` takes `doc_id`,
+    // `content`, `position` and `length`; the verb uses the uniform `file_id`
+    // targeting key, so only that rename is needed.
+    bind(
+        "docs.comment.add",
+        "POST",
+        "/api/docs/comment",
+        &[("file_id", "doc_id")],
+        &[],
+    ),
+    // ——— #2448 — Docs utility verbs whose curated params map 1:1 onto the
+    // registered handler fields. No new routes and no numeric bounds needed.
+    // CompareDocumentsRequest { original_doc_id, modified_doc_id }.
+    bind(
+        "docs.compare",
+        "POST",
+        "/api/docs/compare",
+        &[
+            ("file_id", "original_doc_id"),
+            ("version_id", "modified_doc_id"),
+        ],
+        &[],
+    ),
+    // EnableTrackChangesRequest { doc_id, enabled } — `enabled` passes through.
+    bind(
+        "docs.track_changes.enable",
+        "POST",
+        "/api/docs/track-changes/enable",
+        &[("file_id", "doc_id")],
+        &[],
+    ),
+    // OpenFromDriveRequest { bucket, path } — both pass through unchanged.
+    bind(
+        "docs.open_from_drive",
+        "POST",
+        "/api/docs/open-from-drive",
+        &[],
+        &[],
+    ),
     // ——— #2037 — Sheet (crates/botsheet) ———
     bind("sheet.list", "GET", "/api/sheet/list", &[], &[]),
     bind("sheet.create", "POST", "/api/sheet/new", &[], &[]),
@@ -130,6 +169,24 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         "POST",
         "/api/sheet/pivot",
         &[("file_id", "sheet_id"), ("range", "source_range")],
+        &[],
+    ),
+    // ——— #2448 — WorksheetActionRequest { id, name }: the generic targeting
+    // key fills the required `id`; the sheet name passes through.
+    bind(
+        "sheet.worksheets.add",
+        "POST",
+        "/api/sheet/worksheets/add",
+        &[("file_id", "id")],
+        &[],
+    ),
+    // EvaluateAiPromptRequest { prompt, cell_ref?, sheet_id? }: the verb's
+    // `instruction` is the prompt and `range` is the optional cell reference.
+    bind(
+        "sheet.ai.evaluate",
+        "POST",
+        "/api/sheet/ai/evaluate-prompt",
+        &[("instruction", "prompt"), ("range", "cell_ref")],
         &[],
     ),
     // ——— #2037 — Slides (crates/botslides) ———
@@ -226,6 +283,44 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         "POST",
         "/api/slides/theme",
         &[("file_id", "presentation_id"), ("theme", "theme_name")],
+        &[],
+    ),
+    // ——— #2448 — Slides verbs whose curated params map onto the registered
+    // handler fields with string-only renames. ———
+    // SavePresentationRequest { id?, name?, slides?, theme? }: a partial save.
+    bind(
+        "slides.save",
+        "POST",
+        "/api/slides/save",
+        &[("file_id", "id")],
+        &[],
+    ),
+    // StartPresenterRequest { presentation_id, settings? (default) }.
+    bind(
+        "slides.presenter.start",
+        "POST",
+        "/api/slides/presenter/start",
+        &[("file_id", "presentation_id")],
+        &[],
+    ),
+    // SlidesAiRequest { command (alias prompt), presentation_id?, slide_index? }.
+    bind(
+        "slides.ai",
+        "POST",
+        "/api/slides/ai",
+        &[("file_id", "presentation_id"), ("instruction", "command")],
+        &[],
+    ),
+    // SetTransitionRequest { presentation_id, slide_index (defaults to 0),
+    // transition_type? } — the verb's transition name is the flat toolbar field.
+    bind(
+        "slides.transition.set",
+        "POST",
+        "/api/slides/transition",
+        &[
+            ("file_id", "presentation_id"),
+            ("transition", "transition_type"),
+        ],
         &[],
     ),
     // ——— #2037 — Canvas (crates/botcanvas) ———

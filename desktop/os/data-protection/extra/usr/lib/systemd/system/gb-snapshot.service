@@ -1,0 +1,12 @@
+[Unit]
+Description=General Bots OS - encrypted snapshot of user data (#2470)
+After=gb-data-provision.service
+Requires=gb-data-provision.service
+ConditionPathExists=/usr/local/libexec/gb-data/snapshot.sh
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/libexec/gb-data/snapshot.sh --now
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal

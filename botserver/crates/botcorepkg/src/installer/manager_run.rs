@@ -1,4 +1,5 @@
 use super::*;
+use crate::db_utils::ZITADEL_PASSWORD_PLACEHOLDER;
 use crate::generate_random_string;
 use std::net::IpAddr;
 use std::path::Path;
@@ -182,12 +183,33 @@ impl PackageManager {
                     .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e));
             }
 
+            // #2763 — the Zitadel service command/environment may embed the
+            // DB role password placeholder. Resolve it from Vault before the
+            // process is spawned; a Vault error must abort the start.
+            let zitadel_password = if component
+                .effective_exec_cmd()
+                .contains(ZITADEL_PASSWORD_PLACEHOLDER)
+                || component
+                    .env_vars
+                    .values()
+                    .any(|value| value.contains(ZITADEL_PASSWORD_PLACEHOLDER))
+            {
+                crate::db_utils::zitadel_db_password().map_err(|error| {
+                    anyhow::anyhow!(
+                        "Cannot resolve Zitadel DB password for '{}' (Vault failure is fatal): {error}",
+                        component.name
+                    )
+                })?
+            } else {
+                String::new()
+            };
             let rendered_cmd = component
                 .effective_exec_cmd()
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
+                .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
 
             if let Err(e) = std::fs::create_dir_all(&logs_path) {
                 warn!("Failed to create log directory {}: {}", logs_path.display(), e);
@@ -214,7 +236,10 @@ impl PackageManager {
                         .unwrap_or_default();
                     evaluated_envs.insert(k.clone(), value);
                 } else {
-                    evaluated_envs.insert(k.clone(), v.clone());
+                    evaluated_envs.insert(
+                        k.clone(),
+                        v.replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password),
+                    );
                 }
             }
 

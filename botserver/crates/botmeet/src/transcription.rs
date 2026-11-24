@@ -57,7 +57,11 @@ pub struct SpeakerRatio {
 #[async_trait]
 pub trait AudioTranscriber: Send + Sync {
     async fn transcribe(&self, audio_data: &[u8]) -> Result<Vec<TranscriptionSegment>>;
-    async fn transcribe_stream(&self, audio_chunk: &[u8], meeting_id: &str) -> Result<Option<TranscriptionSegment>>;
+    async fn transcribe_stream(
+        &self,
+        audio_chunk: &[u8],
+        meeting_id: &str,
+    ) -> Result<Option<TranscriptionSegment>>;
 }
 
 pub struct SttTranscriber;
@@ -105,7 +109,11 @@ impl AudioTranscriber for SttTranscriber {
         audio_chunk: &[u8],
         meeting_id: &str,
     ) -> Result<Option<TranscriptionSegment>> {
-        info!("Stream transcribe: {} bytes for meeting {}", audio_chunk.len(), meeting_id);
+        info!(
+            "Stream transcribe: {} bytes for meeting {}",
+            audio_chunk.len(),
+            meeting_id
+        );
 
         if audio_chunk.len() < 160 {
             return Ok(None);
@@ -151,19 +159,33 @@ impl TranscriptionService {
         }
     }
 
-    pub async fn process_audio(&mut self, audio_data: &[u8], meeting_id: &str) -> Result<Vec<TranscriptionSegment>> {
+    pub async fn process_audio(
+        &mut self,
+        audio_data: &[u8],
+        meeting_id: &str,
+    ) -> Result<Vec<TranscriptionSegment>> {
         let mut segments = self.transcriber.transcribe(audio_data).await?;
         for seg in &mut segments {
             seg.meeting_id = meeting_id.to_string();
         }
         let count = segments.len();
         self.segments.extend(segments.clone());
-        info!("Processed {} transcription segments for meeting {}", count, meeting_id);
+        info!(
+            "Processed {} transcription segments for meeting {}",
+            count, meeting_id
+        );
         Ok(segments)
     }
 
-    pub async fn process_audio_chunk(&mut self, chunk: &[u8], meeting_id: &str) -> Result<Option<TranscriptionSegment>> {
-        let segment = self.transcriber.transcribe_stream(chunk, meeting_id).await?;
+    pub async fn process_audio_chunk(
+        &mut self,
+        chunk: &[u8],
+        meeting_id: &str,
+    ) -> Result<Option<TranscriptionSegment>> {
+        let segment = self
+            .transcriber
+            .transcribe_stream(chunk, meeting_id)
+            .await?;
         if let Some(ref seg) = segment {
             self.segments.push(seg.clone());
         }
@@ -174,7 +196,9 @@ impl TranscriptionService {
         let mut speakers: Vec<SpeakerInfo> = Vec::new();
 
         for (i, seg) in self.segments.iter().enumerate() {
-            let existing = speakers.iter_mut().find(|s: &&mut SpeakerInfo| s.speaker_id == seg.speaker);
+            let existing = speakers
+                .iter_mut()
+                .find(|s: &&mut SpeakerInfo| s.speaker_id == seg.speaker);
             if let Some(speaker) = existing {
                 speaker.segments.push(i);
                 speaker.total_duration += seg.end_time - seg.start_time;
@@ -192,7 +216,11 @@ impl TranscriptionService {
     }
 
     pub fn generate_full_transcript(&mut self) -> FullTranscript {
-        let meeting_id = self.segments.first().map(|s| s.meeting_id.clone()).unwrap_or_default();
+        let meeting_id = self
+            .segments
+            .first()
+            .map(|s| s.meeting_id.clone())
+            .unwrap_or_default();
         let speakers = self.speaker_diarization();
         let total_duration = speakers.iter().map(|s| s.total_duration).sum();
 
@@ -210,7 +238,11 @@ impl TranscriptionService {
         let total_segments = self.segments.len();
         let total_duration: f64 = speakers.iter().map(|s| s.total_duration).sum();
 
-        let total_words: usize = self.segments.iter().map(|s| s.text.split_whitespace().count()).sum();
+        let total_words: usize = self
+            .segments
+            .iter()
+            .map(|s| s.text.split_whitespace().count())
+            .sum();
         let speaker_ratios: Vec<SpeakerRatio> = speakers
             .iter()
             .map(|s| {
@@ -233,7 +265,11 @@ impl TranscriptionService {
             })
             .collect();
 
-        let meeting_id = self.segments.first().map(|s| s.meeting_id.clone()).unwrap_or_default();
+        let meeting_id = self
+            .segments
+            .first()
+            .map(|s| s.meeting_id.clone())
+            .unwrap_or_default();
 
         TranscriptSummary {
             meeting_id,

@@ -24,10 +24,12 @@ pub mod conversation_messages;
 pub mod conversation_calls;
 pub mod dashboard;
 pub mod recording;
+pub(crate) mod recording_access;
 pub mod recording_routes;
 pub mod room_persistence;
 pub mod service;
 pub mod signaling;
+pub mod token;
 pub mod turn;
 pub mod turn_config;
 pub mod ui;
@@ -60,10 +62,16 @@ pub struct LeaveRoomRequest {
     pub participant_id: String,
 }
 
+/// `#2736`: the room is client-supplied but checked against the caller's
+/// membership; the user is never taken from the request body.
 #[derive(Debug, Deserialize)]
 pub struct GetTokenRequest {
     pub room_id: String,
-    pub user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TurnCredentialsQuery {
+    pub room_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

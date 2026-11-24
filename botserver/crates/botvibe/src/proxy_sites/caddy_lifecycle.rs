@@ -12,7 +12,7 @@ pub async fn promote_site_test_to_prod(
     python: bool,
     pool: &crate::types::DbPool,
 ) -> Result<String, String> {
-    let slug = site_slug(&project.name);
+    let slug = site_slug(&project.name, project.branch_id);
     let domain = crate::publish::published_domain();
     let (prod, test) = crate::site_env::both_targets(&slug, &domain);
     let pool = pool.clone();
@@ -20,6 +20,7 @@ pub async fn promote_site_test_to_prod(
     let promote: Result<String, String> = tokio::task::spawn_blocking(move || {
         let _guard = lock_publish();
         validate_slug(&slug)?;
+        validate_project_site_name(&project.name)?;
         // The test payload must exist and be vibe-owned.
         let marker = proxy_exec(
             &["test".to_string(), "-f".to_string(), format!("{dir}/{MARKER_FILE}", dir = test.dir)],

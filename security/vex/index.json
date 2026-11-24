@@ -1,0 +1,13 @@
+{
+  "base_url": "https://generalbots.org/security/vex/",
+  "context": "https://openvex.dev/ns/v0.2.0",
+  "count": 1,
+  "cves": [
+    "CVE-2021-44228"
+  ],
+  "format": "OpenVEX",
+  "ids": [
+    "GBVEX-2026-0001"
+  ],
+  "schema": 1
+}

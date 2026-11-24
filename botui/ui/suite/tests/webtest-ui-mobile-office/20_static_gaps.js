@@ -36,6 +36,25 @@ staticTest("#2515: both real mobile IIFEs exist and are wired last in their frag
   assert(docsHtml.indexOf("19_mobile.js") > docsHtml.indexOf("99_init.js"), "docs module loads after init");
 });
 
+staticTest("#empty-letter: the UI-hint fill target is locale-independent", function () {
+  has("docs/modules/03_editor.js", 'data-gb-field-alias", "document body"',
+    "Docs publishes a canonical English alias on the editable article");
+  has("js/ui-orchestrator/01_overlay.js", 'data-gb-field-alias\\"\\)\\)',
+    "the field resolver reads that alias before falling back to localized labels");
+});
+
+staticTest("#docs-theme: Docs keeps its dark editor skin under any product theme", function () {
+  var docsHtml = read("docs/docs.html");
+  assert(docsHtml.indexOf("/suite/docs/docs-theme.css") >= 0, "docs.html loads the theme overlay");
+  assert(
+    docsHtml.lastIndexOf("docs-theme.css") > docsHtml.lastIndexOf("docs-large.css"),
+    "the overlay loads last so it beats suite.css"
+  );
+  has("docs/docs-theme.css", "#docs-app\\.docs-app \\.docs-toolbar", "toolbar is scoped to Docs");
+  has("docs/docs-theme.css", "background: #111827 !important", "toolbar wins over suite.css");
+  has("docs/docs-theme.css", "article\\.docs-doc-view", "paper surface stays white");
+});
+
 staticTest("#2515: Sheets ships a drawer, tap edit, long-press menu and pinch zoom", function () {
   has(SHEET_MOBILE, '"sheet-app"', "sheet mobile module targets the real app root");
   has(SHEET_MOBILE, "sheetSidebarToggle", "drawer toggle is wired");

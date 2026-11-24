@@ -3,7 +3,8 @@
 
 use super::{
     cap_body, create_signature_headers, escape_html, format_audit_signature, hmac_hex,
-    parse_audit_signature, parse_events, sign_payload_at, truncate, validate_webhook_url,
+    parse_audit_signature, parse_events, sign_payload_at, truncate, validate_delivery_target,
+    validate_webhook_url,
     webhook_vault_path, WebhookSignatureVerifier, CLOCK_SKEW_TOLERANCE_SECONDS,
     MAX_RESPONSE_BODY_BYTES,
 };
@@ -58,6 +59,22 @@ fn localhost_and_private_networks_are_rejected() {
             validate_webhook_url(url),
             Err("Webhook URL cannot point to localhost or private networks"),
             "{url}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn delivery_target_is_revalidated_before_any_body_is_signed() {
+    // A target that resolves to the local node is refused at delivery time
+    // even though it is a syntactically valid http(s) URL (#2639).
+    for url in [
+        "https://localhost/hook",
+        "https://127.0.0.1/hook",
+        "https://169.254.169.254/latest/meta-data",
+    ] {
+        assert!(
+            validate_delivery_target(url).await.is_err(),
+            "{url} must not be delivered to"
         );
     }
 }

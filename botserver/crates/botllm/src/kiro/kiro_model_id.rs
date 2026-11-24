@@ -10,7 +10,7 @@ impl KiroClient {
         } else {
             base_url.trim_end_matches('/').to_string() + "/"
         };
-        let http = reqwest::Client::builder()
+        let http = crate::pinned_http::pinned_builder()
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
             .connect_timeout(Duration::from_secs(30))
             .build()

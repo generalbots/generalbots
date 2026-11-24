@@ -19,6 +19,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use botcore::shared::state::AppState;
+use botsecurity_core::error_sanitizer::log_and_sanitize_json;
 
 #[derive(Clone)]
 struct Entry {
@@ -173,10 +174,16 @@ pub async fn chat_completions(
         &resolved,
     )
     .await
+    // #2753 — provider errors carry keys, endpoints and account internals;
+    // log the cause server-side and return the generic sanitized envelope.
     .map_err(|message| {
         (
             StatusCode::BAD_GATEWAY,
-            Json(json!({ "error": { "message": message } })),
+            Json(log_and_sanitize_json(
+                &message,
+                "subscription_llm::build",
+                None,
+            )),
         )
     })?;
     let text = provider
@@ -185,7 +192,11 @@ pub async fn chat_completions(
         .map_err(|error| {
             (
                 StatusCode::BAD_GATEWAY,
-                Json(json!({ "error": { "message": error.to_string() } })),
+                Json(log_and_sanitize_json(
+                    &error,
+                    "subscription_llm::generate",
+                    None,
+                )),
             )
         })?;
     Ok(Json(json!({

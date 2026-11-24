@@ -277,29 +277,85 @@ pub async fn storage_check_middleware(
 
     response
 }
+/// Resolve the tenant that owns a request for quota/metering purposes (#2755).
+///
+/// The organization id is security-sensitive: it decides which tenant's quota
+/// is charged and whose usage is metered. It must therefore come exclusively
+/// from the `OrganizationContext` extension, which an authenticated upstream
+/// middleware populates from verified credentials.
+///
+/// Client-controlled sources (`X-Organization-Id`, `?org_id=`,
+/// `?organization_id=`) are deliberately NOT consulted. Otherwise an attacker
+/// could attribute traffic to a victim org (quota DoS / skewed metering) or
+/// bill usage to a forged org to evade their own quota.
 pub(super) fn extract_organization_id(request: &Request<Body>) -> Option<Uuid> {
-    if let Some(org_header) = request.headers().get("X-Organization-Id") {
-        if let Ok(org_str) = org_header.to_str() {
-            if let Ok(org_id) = Uuid::parse_str(org_str) {
-                return Some(org_id);
-            }
-        }
-    }
-
-    if let Some(query) = request.uri().query() {
-        for pair in query.split('&') {
-            if let Some((key, value)) = pair.split_once('=') {
-                if key == "org_id" || key == "organization_id" {
-                    if let Ok(org_id) = Uuid::parse_str(value) {
-                        return Some(org_id);
-                    }
-                }
-            }
-        }
-    }
-
     request
         .extensions()
         .get::<OrganizationContext>()
         .map(|ctx| ctx.organization_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn authenticated_org() -> Uuid {
+        Uuid::parse_str("11111111-1111-4111-8111-111111111111").unwrap_or_else(|_| Uuid::nil())
+    }
+
+    fn forged_org() -> Uuid {
+        Uuid::parse_str("22222222-2222-4222-8222-222222222222").unwrap_or_else(|_| Uuid::nil())
+    }
+
+    fn request_with_forged_org() -> Request<Body> {
+        Request::builder()
+            .uri(format!(
+                "/api/usage?org_id={}&organization_id={}",
+                forged_org(),
+                forged_org()
+            ))
+            .header("X-Organization-Id", forged_org().to_string())
+            .body(Body::empty())
+            .unwrap_or_else(|_| Request::new(Body::empty()))
+    }
+
+    /// A forged header/query must never override the authenticated extension.
+    /// This is the core regression test for #2755.
+    #[test]
+    fn forged_org_id_is_ignored_in_favor_of_authenticated_context() {
+        let mut request = request_with_forged_org();
+        request.extensions_mut().insert(OrganizationContext {
+            organization_id: authenticated_org(),
+            user_id: None,
+            plan_id: None,
+        });
+
+        assert_eq!(extract_organization_id(&request), Some(authenticated_org()));
+    }
+
+    #[test]
+    fn forged_header_without_context_is_ignored() {
+        let request = Request::builder()
+            .header("X-Organization-Id", forged_org().to_string())
+            .body(Body::empty())
+            .unwrap_or_else(|_| Request::new(Body::empty()));
+
+        assert_eq!(extract_organization_id(&request), None);
+    }
+
+    #[test]
+    fn forged_query_without_context_is_ignored() {
+        let request = Request::builder()
+            .uri(format!("/api/usage?org_id={}", forged_org()))
+            .body(Body::empty())
+            .unwrap_or_else(|_| Request::new(Body::empty()));
+
+        assert_eq!(extract_organization_id(&request), None);
+    }
+
+    #[test]
+    fn missing_context_returns_none() {
+        let request = Request::new(Body::empty());
+        assert_eq!(extract_organization_id(&request), None);
+    }
 }

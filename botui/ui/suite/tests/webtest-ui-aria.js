@@ -12,6 +12,7 @@
  *   00_harness.js  counters, file walk, assertions, report
  *   10_scan.js     scanner + [OBSERVE] invariants
  *   20_assert.js   [BASELINE-OBSERVE] locks + [STATIC] criteria and gaps
+ *   30_wcag.js     [STATIC][WCAG-*] source-level WCAG 2.2 AA proxies
  *
  * Nothing here patches production code, guard files or baselines. Screen-reader
  * and browser UAT remain the driver's job; see [STATIC][GAP] in the report.
@@ -22,5 +23,6 @@ var harness = require("./webtest-ui-aria/00_harness");
 
 require("./webtest-ui-aria/10_scan");
 require("./webtest-ui-aria/20_assert");
+require("./webtest-ui-aria/30_wcag");
 
 harness.finish();

@@ -280,9 +280,23 @@ fn pgrep_process(pattern: &str) -> Result<std::process::Output, anyhow::Error> {
         .map_err(|e| anyhow::anyhow!("{e}"))
 }
 
-/// Execute shell command safely (platform-aware)
+/// Execute shell command safely (platform-aware).
+///
+/// `command` becomes the `sh -c` argv element, so it must never contain
+/// credentials. Use [`safe_sh_command_with_env`] for secrets (#2754).
 pub fn safe_sh_command(command: &str) -> String {
-    match sh_exec(command) {
+    safe_sh_command_with_env(command, &[])
+}
+
+/// Execute a shell command with extra variables passed through the child's
+/// environment (#2754). Values are never embedded in the shell text or argv,
+/// so a local user running `ps` cannot read a token during bootstrap.
+///
+/// `SafeCommand` clears the inherited environment, so values must be attached
+/// explicitly; `trusted_env` is used because credentials may contain shell
+/// metacharacters that the ordinary argument validator rejects.
+pub fn safe_sh_command_with_env(command: &str, envs: &[(&str, &str)]) -> String {
+    match sh_exec_with_env(command, envs) {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
         Err(e) => {
             error!("Shell command not available (expected on some platforms): {e}");
@@ -292,19 +306,33 @@ pub fn safe_sh_command(command: &str) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn sh_exec(command: &str) -> Result<std::process::Output, anyhow::Error> {
-    SafeCommand::new("cmd")
+fn sh_exec_with_env(
+    command: &str,
+    envs: &[(&str, &str)],
+) -> Result<std::process::Output, anyhow::Error> {
+    let mut builder = SafeCommand::new("cmd")
         .and_then(|c| c.arg("/C"))
-        .and_then(|c| c.arg(command))
+        .and_then(|c| c.trusted_shell_script_arg(command));
+    for (key, value) in envs {
+        builder = builder.and_then(|c| c.trusted_env(key, value));
+    }
+    builder
         .and_then(|c| c.execute())
         .map_err(|e| anyhow::anyhow!("{e}"))
 }
 
 #[cfg(not(target_os = "windows"))]
-fn sh_exec(command: &str) -> Result<std::process::Output, anyhow::Error> {
-    SafeCommand::new("sh")
+fn sh_exec_with_env(
+    command: &str,
+    envs: &[(&str, &str)],
+) -> Result<std::process::Output, anyhow::Error> {
+    let mut builder = SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.arg(command))
+        .and_then(|c| c.trusted_shell_script_arg(command));
+    for (key, value) in envs {
+        builder = builder.and_then(|c| c.trusted_env(key, value));
+    }
+    builder
         .and_then(|c| c.execute())
         .map_err(|e| anyhow::anyhow!("{e}"))
 }

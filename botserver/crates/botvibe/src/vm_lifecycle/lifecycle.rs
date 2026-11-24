@@ -135,6 +135,20 @@ impl VmLifecycle {
         sanitize_part(project_name)
     }
 
+    /// #2648 — deterministic tenant discriminator for names shared across
+    /// tenants (Incus containers, proxy sites, systemd units, ports). The
+    /// tenant boundary for Vibe is `branch_id` (the unique index on
+    /// `vibe_projects` is `(branch_id, name)`), so two branches may legally
+    /// own a project with the same name. The first 8 hex characters of the
+    /// branch UUID are already a lowercase alphanumeric DNS/Incus label
+    /// fragment — no further sanitizing is needed, and the result is stable
+    /// across restarts and hosts. A nil branch falls back to a fixed tag so
+    /// legacy global rows keep a deterministic (shared) name.
+    pub fn tenant_tag(branch_id: Uuid) -> String {
+        let simple = branch_id.simple().to_string();
+        simple[..8].to_string()
+    }
+
     /// #1397 — container names that Vibe projects must never claim: they host
     /// platform services (botserver, database, drive, proxy, vault, ALM…).
     /// A malicious/accidental project name like "tables" or "system" would
@@ -149,13 +163,24 @@ impl VmLifecycle {
         PROTECTED.contains(&lower.as_str())
     }
 
-    pub fn container_name(project_name: &str, env: &str, runner: bool) -> String {
+    /// #2648 — container names carry the tenant tag so two branches with the
+    /// same project name never resolve to the same Incus instance. Format:
+    /// `{project}-{tenant}-{env}[-runner]`. `sanitize_part` caps the project
+    /// component at 32 chars; with an 8-char tag and the longest env/runner
+    /// suffix the total stays under 64, so the name is a legal DNS label.
+    pub fn container_name(project_name: &str, env: &str, runner: bool, branch_id: Uuid) -> String {
         let env = match env {
             "production" => "prod",
             other => other,
         };
         let suffix = if runner { "-runner" } else { "" };
-        format!("{}-{}{}", sanitize_part(project_name), env, suffix)
+        format!(
+            "{}-{}-{}{}",
+            sanitize_part(project_name),
+            Self::tenant_tag(branch_id),
+            env,
+            suffix
+        )
     }
 
     /// Creates and starts the container if it does not already exist/run.

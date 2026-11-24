@@ -28,6 +28,21 @@
     return value === null || value === undefined || value === "" ? fallback : String(value);
   }
 
+  // The API serialises the tool enum in lowercase; show a localized label while
+  // keeping the raw value for the action endpoints.
+  function toolName(tool) {
+    var name = String(tool || "").toLowerCase();
+    if (name === "clamav") return t("protection-clamav", "ClamAV");
+    if (name === "lmd") return t("protection-lmd", "LMD");
+    return dataText(tool, t("protection-unknown-tool", "unknown tool"));
+  }
+
+  function quarantined(metrics) {
+    var count = metrics && metrics.quarantined_count;
+    var value = typeof count === "number" ? count : 0;
+    return t("protection-quarantined-count", value + " quarantined").replace("{count}", String(value));
+  }
+
   function signatureAge(lastUpdate) {
     if (!lastUpdate) return t("protection-unknown", "unknown");
     var elapsed = Date.now() - Date.parse(lastUpdate);
@@ -41,7 +56,7 @@
     wrapper.className = "protection-card";
     var running = tool.service_running === true && tool.installed === true;
     var title = document.createElement("h3");
-    title.textContent = dataText(tool.tool, t("protection-unknown-tool", "unknown tool"));
+    title.textContent = toolName(tool.tool);
     var state = document.createElement("p");
     state.className = "protection-state " + (running ? "protection-state--on" : "protection-state--off");
     state.textContent = running
@@ -51,7 +66,8 @@
     details.textContent = [
       t("protection-version", "Version") + ": " + dataText(tool.version, t("protection-unknown", "unknown")),
       t("protection-signature-age", "Signature age") + ": " + signatureAge(tool.last_update),
-      t("protection-last-scan", "Last scan") + ": " + dataText(tool.last_scan, t("protection-never", "never"))
+      t("protection-last-scan", "Last scan") + ": " + dataText(tool.last_scan, t("protection-never", "never")),
+      quarantined(tool.metrics)
     ].join(" · ");
     var actions = document.createElement("div");
     var scan = document.createElement("button");
@@ -152,5 +168,20 @@
   }
 
   window.GBProtection = { refresh: refresh, scan: scan, loadQuarantine: loadQuarantine, restore: restore };
+
+  // The panel is injected by HTMX, so DOMContentLoaded can fire before its
+  // container exists. Refresh on section activation (sidebar/deep link/UI plan)
+  // and again once the partial is actually swapped in.
+  var previousHook = window.GBSettingsOnSection;
+  window.GBSettingsOnSection = function (section) {
+    if (typeof previousHook === "function") {
+      try { previousHook(section); } catch (e) { /* an earlier hook is optional */ }
+    }
+    if (section === "protection") refresh();
+  };
+  document.addEventListener("htmx:afterSwap", function (event) {
+    var target = event && (event.target || (event.detail && event.detail.target));
+    if (target && target.id === "protection-section") refresh();
+  });
   document.addEventListener("DOMContentLoaded", refresh);
 })(window);

@@ -149,16 +149,25 @@ enforced one.
 
 ## Certificate pinning
 
-`cert_pinning` supports leaf, intermediate and root pins with a per-host map, a
-validation cache (`cache_ttl_secs`, default 3600), backup pins, a
-`require_pins` switch and a `report_only` mode that logs instead of failing.
-`create_pinned_client(hostname)` builds a `reqwest::Client` that validates
-against the pin set.
+`botsecurity-crypto/src/cert_pinning` supports leaf, intermediate and root pins
+with a per-host map, backup pins, a `require_pins` switch and a `report_only`
+mode that logs instead of failing. Since #2626 the pin set is **enforced during
+the TLS handshake**: `tls_verifier.rs` installs a rustls `ServerCertVerifier`
+that runs the normal webpki chain check and then applies the pure `pin_decision`
+predicate to the leaf's SPKI fingerprint. Every outbound LLM client in `botllm`
+starts from `pinned_http::pinned_builder()`, so a wrong pin aborts the
+connection in strict mode. The old `create_pinned_client` built a plain client
+and verified nothing; it now installs the verifying TLS config when pinning is
+enabled.
 
-The configuration defaults to `enabled: true` with an **empty pin map** and
-`require_pins: false`, which is equivalent to "no pins configured". No caller
-outside the crate builds a pinned client, so outbound TLS uses the system trust
-store.
+Pinning is **opt-in per deployment**. Point `GB_CERT_PINNING_CONFIG` at a JSON
+pin-config file (see `CertPinningConfig::load_from_file`) to enable it;
+`GB_CERT_PINNING_DISABLED=1` forces it off. With no config file the manager is
+disabled and outbound TLS uses the system trust store — the default that keeps
+local/dev working. A config with `require_pins: true` fails closed: a host with
+no pins, or a certificate that matches no pin (including backup pins), is
+rejected with a sanitized handshake error. `report_only: true` logs the
+violation and accepts instead.
 
 ## Practical reading
 
@@ -168,7 +177,7 @@ store.
 | Is inbound prompt text scanned for injection? | No |
 | Is outbound model output scanned for secrets? | No |
 | Are uploaded bytes checked against their extension? | Yes — `upload_policy.rs` enforces declared MIME + magic bytes on Office imports (#2522) |
-| Is TLS pinned for outbound calls? | No |
+| Is TLS pinned for outbound calls? | Only when `GB_CERT_PINNING_CONFIG` is set; strict mode (`require_pins`) fails closed |
 | Are SQL identifiers and shell commands constrained? | Yes, via `sql_guard` and `SafeCommand` |
 
 ## Related pages

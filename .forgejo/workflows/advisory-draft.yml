@@ -1,0 +1,96 @@
+# ALM/Forgejo half of the advisory drafter (#2725).
+#
+# Mirrors .github/workflows/advisory-draft.yml on the `gbo` host executor: same
+# scanners, same offline drafter, same expiring waivers and dedup rules. The
+# only differences are the runner and the tracker the DRAFT issues are opened
+# against (this Forgejo repo's own issue tracker). No artifact upload — Forgejo
+# has no Security tab and only partial upload-artifact support; the report is
+# printed in the job log and every draft is an issue here.
+#
+# This workflow opens DRAFT issues only. It never publishes a CSAF/OSV/CVE
+# advisory — that stays a manual, two-person-reviewed step (#2724).
+
+name: Dependency advisory drafts
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: advisory-draft-alm-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  draft-advisories:
+    name: Draft advisories from scheduled scans (ALM)
+    runs-on: gbo
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osv-scanner 2.7.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/google/osv-scanner/releases/download/v2.7.0/osv-scanner_linux_amd64"
+          curl -fsSL --retry 3 -o /tmp/osv-scanner "$url"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+
+      - name: Install cargo-deny 0.20.2 (checksum verified)
+        run: |
+          set -euo pipefail
+          version=0.20.2
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${version}/cargo-deny-${version}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/cargo-deny.tar.gz "$url"
+          tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
+          echo "b329e25933d01c36dd7c47d84ea5716694f9b7caf53a5003d45674703a8ed54a  /tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" | sha256sum -c -
+          sudo install -m 0755 "/tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+
+      - name: Scan all dependency lines into JSON reports
+        run: |
+          set -euo pipefail
+          osv-scanner scan source --lockfile Cargo.lock --format json --output-file /tmp/osv-rust.json || true
+          osv-scanner scan source \
+            --lockfile botui/package-lock.json \
+            --lockfile botui/ui/suite/js/vendor/package-lock.json \
+            --format json --output-file /tmp/osv-npm.json || true
+          python3 -m venv /tmp/audit-venv
+          /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
+          /tmp/audit-venv/bin/pip-audit \
+            --requirement botmodels/requirements.txt \
+            --format json --output /tmp/pip-audit.json \
+            --progress-spinner off || true
+          cargo-deny --all-features --format json check advisories > /tmp/deny.json || true
+          test -s /tmp/osv-rust.json
+          test -s /tmp/osv-npm.json
+          test -s /tmp/pip-audit.json
+          test -s /tmp/deny.json
+
+      - name: Generate report and draft advisory issues
+        env:
+          ADVISORY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 scripts/draft_advisories.py --self-test
+          python3 scripts/draft_advisories.py \
+            --osv-report /tmp/osv-rust.json \
+            --osv-report /tmp/osv-npm.json \
+            --pip-audit-report /tmp/pip-audit.json \
+            --deny-report /tmp/deny.json \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --report /tmp/advisory-draft-report.md \
+            --drafts-dir /tmp/advisory-drafts \
+            --state /tmp/advisory_drafts_state.json \
+            --create-issues \
+            --api-url "${{ github.server_url }}/api/v1" \
+            --repo "${{ github.repository }}"
+          # Keep the report in the job log (no artifact upload on ALM).
+          cat /tmp/advisory-draft-report.md

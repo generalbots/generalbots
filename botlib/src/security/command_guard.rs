@@ -1,8 +1,10 @@
-pub use super::command_validation::CommandGuardError;
 use super::command_allowlist::ALLOWED_COMMANDS;
 #[cfg(windows)]
 use super::command_allowlist::WINDOWS_ONLY_COMMANDS;
-use super::command_validation::{normalise_command_name, validate_argument, validate_path};
+pub use super::command_validation::CommandGuardError;
+use super::command_validation::{
+    find_forbidden_script_char, normalise_command_name, validate_argument, validate_path,
+};
 use super::utils::get_stack_path;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -106,14 +108,21 @@ impl SafeCommand {
                 "Script too long".to_string(),
             ));
         }
-        let forbidden_patterns = ["$(", "`", ".."];
-        for pattern in forbidden_patterns {
-            if script.contains(pattern) {
-                return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                    "Dangerous pattern '{}' in shell script",
-                    pattern
-                )));
-            }
+        // #2621 — the untrusted shell path must reject the full metacharacter
+        // set, not just command substitution and traversal. A caller-supplied
+        // argument that reaches `sh -c` with any of these can change the
+        // command structure or inject a new line of shell script. Control
+        // characters (including NUL) are covered by `find_forbidden_script_char`.
+        if let Some(c) = find_forbidden_script_char(script) {
+            return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                "Forbidden character '{}' in shell script",
+                c.escape_default()
+            )));
+        }
+        if script.contains("..") {
+            return Err(CommandGuardError::ShellInjectionAttempt(
+                "Dangerous pattern '..' in shell script".to_string(),
+            ));
         }
         self.args.push(script.to_string());
         Ok(self)
@@ -160,6 +169,13 @@ impl SafeCommand {
                 "Empty script".to_string(),
             ));
         }
+        // #2621 — NUL truncates argv at the OS boundary even for trusted
+        // script strings; reject it unconditionally.
+        if script.contains('\0') {
+            return Err(CommandGuardError::InvalidArgument(
+                "NUL byte in script".to_string(),
+            ));
+        }
         let limit = if trusted { 16384 } else { 8192 };
         if script.len() > limit {
             return Err(CommandGuardError::InvalidArgument(
@@ -167,14 +183,21 @@ impl SafeCommand {
             ));
         }
         if !trusted {
-            let forbidden_patterns = ["$(", "`", ".."];
-            for pattern in forbidden_patterns {
-                if script.contains(pattern) {
-                    return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                        "Dangerous pattern '{}' in shell script",
-                        pattern
-                    )));
-                }
+            // #2621 — full metacharacter rejection on the untrusted path.
+            // `&&` is tolerated by `find_forbidden_script_char` because shipped
+            // installer scripts (`cd <dir> && ./install.sh`) are constructed
+            // server-side; a bare `&` is still rejected. Traversal is checked
+            // separately because `..` is not a single shell metacharacter.
+            if let Some(c) = find_forbidden_script_char(script) {
+                return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                    "Forbidden character '{}' in shell script",
+                    c.escape_default()
+                )));
+            }
+            if script.contains("..") {
+                return Err(CommandGuardError::ShellInjectionAttempt(
+                    "Dangerous pattern '..' in shell script".to_string(),
+                ));
             }
         }
         self.args.push(script.to_string());

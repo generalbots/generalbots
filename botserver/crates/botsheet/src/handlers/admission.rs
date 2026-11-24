@@ -7,7 +7,7 @@
 
 use axum::{http::StatusCode, Json};
 use botcore::{
-    AdmissionError, AdmissionPermit, AdmissionSnapshot, CgroupMemory, CgroupSource,
+    AdmissionError, AdmissionPermit, AdmissionSnapshot, CgroupMemory, CgroupSource, ImportBudget,
     MemoryAdmission, MemoryPolicy, WorkClass,
 };
 use botsheet_core::types::Spreadsheet;
@@ -61,6 +61,14 @@ pub async fn admit(
     tenant: Option<&str>,
 ) -> Result<AdmissionPermit, Rejection> {
     admit_on(admission(), class, payload_bytes, tenant).await
+}
+
+/// Resolves the shared, env-configurable import budget for `class` (#2530).
+/// The byte cap starts from the endpoint's own upload limit and can only be
+/// tightened by configuration, so the default preserves existing behaviour.
+#[must_use]
+pub fn import_budget(class: WorkClass) -> ImportBudget {
+    ImportBudget::from_env(admission().policy().for_class(class).max_input_bytes)
 }
 
 #[cfg(test)]

@@ -130,7 +130,7 @@ impl SitePublish<'_> {
     // so the agent (and the user) never assume the live page changed.
     let public_url = format!(
         "https://{}.{}",
-        crate::proxy_sites::site_slug(&project.name),
+        crate::proxy_sites::site_slug(&project.name, project.branch_id),
         crate::publish::published_domain()
     );
     let note = if requested_production && !approved {

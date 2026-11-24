@@ -245,6 +245,19 @@ impl DlpManager {
         }
     }
 
+    /// Direction-aware scan for callers without a user id (#2624).
+    pub async fn scan_direction(&self, content: &str, direction: ScanDirection) -> DlpScanResult {
+        if !self.config.enabled {
+            return DlpScanResult::clean();
+        }
+        match direction {
+            ScanDirection::Inbound if !self.config.scan_inbound => return DlpScanResult::clean(),
+            ScanDirection::Outbound if !self.config.scan_outbound => return DlpScanResult::clean(),
+            _ => {}
+        }
+        self.scan(content).await
+    }
+
     pub async fn scan_with_user(
         &self,
         content: &str,

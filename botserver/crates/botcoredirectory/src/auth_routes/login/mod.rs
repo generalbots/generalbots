@@ -1,6 +1,9 @@
 use super::*;
 
 pub(super) mod local_admin;
+mod resolve_role;
+
+use resolve_role::resolve_login_roles;
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
@@ -247,6 +250,10 @@ pub async fn login(
                 chrono::Utc::now().timestamp()
             );
 
+            // #2808 — roles come from the database, never from a constant.
+            // Every Zitadel-authenticated user used to become an admin here,
+            // which short-circuited the entire RBAC matrix.
+            let roles = resolve_login_roles(&state, &user_id_str, &req.email);
             let session_user = SessionUserData {
                 user_id: user_id_str.clone(),
                 email: req.email.clone(),
@@ -255,7 +262,7 @@ pub async fn login(
                 last_name: None,
                 display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
                 organization_id: None,
-                roles: vec!["admin".to_string()],
+                roles,
                 bucket: None,
                 created_at: chrono::Utc::now().timestamp(),
             };

@@ -116,6 +116,22 @@ Container and virtualization management is handled by [Incus](https://github.com
 
 ---
 
+## Software Bill of Materials (SBOM)
+
+The exact machine-readable inventory of every third-party component — vendored
+Rust crates, JavaScript packages and Python modules included — is published
+with each product release as a CycloneDX document:
+
+- [Download the latest SBOM (sbom-source.cdx.json)](https://github.com/generalbots/generalbots/releases/latest/download/sbom-source.cdx.json)
+- [Download the latest SLSA provenance](https://github.com/generalbots/generalbots/releases/latest/download/provenance.slsa.json)
+- [Download the combined checksums](https://github.com/generalbots/generalbots/releases/latest/download/SHA256SUMS)
+
+Every release asset is signed with keyless Sigstore/cosign; the one-line
+operator verification command is documented in
+[Signed Releases, SBOM and SLSA Provenance](../09-security/signed-releases-provenance.md).
+
+---
+
 ## Summary
 
 Every component integrated into GeneralBots is fully open-source, ensuring that users have complete transparency into the system's operation. This commitment to open-source software provides security through community review, extensibility through standard interfaces, and freedom from vendor lock-in. Together, these components form a cohesive ecosystem that supports AI automation, secure communication, persistent storage, and seamless collaboration.

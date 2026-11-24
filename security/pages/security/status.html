@@ -1,0 +1,111 @@
+<!doctype html>
+<!--
+  Public trust page (#2721): status/history and reporter hall of fame.
+  Same IA contract as the bulletin pages (#2716): PT-BR-first inline
+  fallback, every string a data-i18n key in all eight lang/*.json catalogues.
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="status-document-title">Status e histórico de segurança | General Bots</title>
+  <link rel="stylesheet" href="security.css">
+  <script src="../i18n.js" data-i18n-loader defer></script>
+</head>
+<body>
+  <a href="#main" data-i18n="skip-to-content" class="skip-link">Ir para o conteúdo principal</a>
+
+  <header class="site-header">
+    <p data-i18n="site-name" class="site-name">General Bots</p>
+    <nav class="language-switcher" aria-label="Idioma" data-i18n-aria-label="language-label">
+      <a href="?lang=pt-BR" hreflang="pt-BR" lang="pt-BR" data-locale="pt-BR" data-i18n="locale-name-pt-br" aria-current="true">Português (Brasil)</a>
+      <a href="?lang=en" hreflang="en" lang="en" data-locale="en" data-i18n="locale-name-en">English</a>
+      <a href="?lang=es" hreflang="es" lang="es" data-locale="es" data-i18n="locale-name-es">Español</a>
+      <a href="?lang=fr" hreflang="fr" lang="fr" data-locale="fr" data-i18n="locale-name-fr">Français</a>
+      <a href="?lang=de" hreflang="de" lang="de" data-locale="de" data-i18n="locale-name-de">Deutsch</a>
+      <a href="?lang=ja" hreflang="ja" lang="ja" data-locale="ja" data-i18n="locale-name-ja">日本語</a>
+      <a href="?lang=ko" hreflang="ko" lang="ko" data-locale="ko" data-i18n="locale-name-ko">한국어</a>
+      <a href="?lang=zh-CN" hreflang="zh-CN" lang="zh-CN" data-locale="zh-CN" data-i18n="locale-name-zh-cn">中文（简体）</a>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <p class="authoritative" data-authoritative-locale="pt-BR">
+      <span data-i18n="authoritative-badge" class="badge" lang="pt-BR">PT-BR</span>
+      <span data-i18n="authoritative-note">Versão autoritativa: português (Brasil). Em caso de divergência entre traduções, esta versão prevalece.</span>
+    </p>
+
+    <h1 data-i18n="status-title">Status e histórico de segurança</h1>
+
+    <nav class="on-this-page" aria-labelledby="on-this-page-heading">
+      <h2 data-i18n="on-this-page" class="visually-hidden" id="on-this-page-heading">Nesta página</h2>
+      <ul>
+        <li><a href="./" data-i18n="status-nav-title">Status e histórico</a></li>
+        <li><a href="#history" data-i18n="status-nav-history">Histórico</a></li>
+        <li><a href="#credits" data-i18n="status-nav-credits">Créditos</a></li>
+        <li><a href="hall-of-fame.html" data-i18n="hof-nav-title">Hall of fame</a></li>
+        <li><a href="#report" data-i18n="nav-report">Como relatar uma vulnerabilidade</a></li>
+      </ul>
+    </nav>
+
+    <p class="lead"><span data-i18n="status-lead">Avisos resolvidos, com data, gravidade e versões afetadas. Detalhes de exploração nunca são publicados aqui: o aviso canônico é a única fonte técnica.</span></p>
+    <p class="meta"><span data-i18n="status-summary">3 avisos resolvidos · atualizado em 2026-11-22 · nenhum sob embargo</span></p>
+
+    <section id="resolved" aria-labelledby="resolved-heading">
+      <h2 data-i18n="status-list-title" id="resolved-heading">Avisos resolvidos</h2>
+      <p><span data-i18n="status-list-intro">Registros públicos ilustrativos: apenas avisos revisados, publicados e corrigidos. A marca EXEMPLO indica esquema, não uma vulnerabilidade real.</span></p>
+      <div class="table-wrap">
+        <table>
+          <caption><span data-i18n="status-table-caption">Registros públicos de avisos resolvidos</span></caption>
+          <thead><tr>
+            <th scope="col"><span data-i18n="hof-col-advisory">Aviso</span></th>
+            <th scope="col"><span data-i18n="status-col-details">Detalhes</span></th>
+            <th scope="col"><span data-i18n="status-col-versions">Versões</span></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><a href="https://generalbots.org/security/advisories/GBSA-2026-0001" data-i18n="status-row-1-link">GBSA-2026-0001</a></td>
+              <td><span data-i18n="status-row-1-meta">Alta · publicado em 2026-11-20 · botserver / botserver</span></td>
+              <td><span data-i18n="status-row-1-versions">Versões afetadas: &gt;= 1.0.0, &lt; 2.3.1 · corrigido em 2.3.1</span></td>
+            </tr>
+            <tr>
+              <td><a href="https://generalbots.org/security/advisories/GBSA-2026-0002" data-i18n="status-row-2-link">GBSA-2026-0002</a></td>
+              <td><span data-i18n="status-row-2-meta">Média · publicado em 2026-11-21 · botserver / botui</span></td>
+              <td><span data-i18n="status-row-2-versions">Versões afetadas: &gt;= 2.0.0, &lt; 2.4.0 · corrigido em 2.4.0</span></td>
+            </tr>
+            <tr>
+              <td><a href="https://generalbots.org/security/advisories/GBSA-2026-0003" data-i18n="status-row-3-link">GBSA-2026-0003</a></td>
+              <td><span data-i18n="status-row-3-meta">Crítica · publicado em 2026-11-22 · botui / botui</span></td>
+              <td><span data-i18n="status-row-3-versions">Versões afetadas: &gt;= 3.1.0, &lt; 3.1.4 · corrigido em 3.1.4</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note"><span data-i18n="status-example-note">EXEMPLO identifica registros ilustrativos do esquema, não vulnerabilidades reais. Substituídos apenas pelo pipeline revisado de publicação.</span></p>
+    </section>
+
+    <section id="history" aria-labelledby="history-heading">
+      <h2 data-i18n="status-history-title" id="history-heading">Histórico de incidentes</h2>
+      <p><span data-i18n="status-history-text">Cada linha vem de incidents/index.json, gerado a partir da fonte canônica do aviso; as regras de publicação estão em incidents/README.md.</span></p>
+      <details>
+        <summary><span data-i18n="status-embargo-title">O que nunca aparece nesta página</span></summary>
+        <p><span data-i18n="status-embargo-text">Achados sob embargo (TLP:AMBER) não são listados. Nunca publicamos passos de exploração, provas de conceito, e-mails de reportantes, IPs internos ou credenciais. Avisos críticos e altos em implantações governamentais recebem aviso prévio ao CTIR Gov e ao CERT.br/NIC.br ao menos 30 dias antes da divulgação.</span></p>
+      </details>
+      <details>
+        <summary><span data-i18n="status-credit-title">Créditos e reconhecimento</span></summary>
+        <p><span data-i18n="status-credit-text">Não há programa de recompensas. Orçamento de recompensas = 0. Reconhecimento público é o único incentivo; veja o hall of fame. A inclusão é opt-in e a remoção pode ser solicitada a qualquer momento.</span></p>
+      </details>
+    </section>
+    <section id="report">
+      <h2 data-i18n="report-heading" id="report-heading">Relatar uma vulnerabilidade</h2>
+      <p><a href="mailto:security@generalbots.org" data-i18n="report-link">Enviar relatório confidencial por email para a equipe de segurança (security@generalbots.org)</a></p>
+      <p><a href="/.well-known/security.txt" data-i18n="report-policy">Ler a política de divulgação coordenada e os canais de contato (security.txt)</a></p>
+      <p><a href="/SECURITY.md" data-i18n="report-policy-md">Ler a política de divulgação coordenada no repositório (SECURITY.md)</a></p>
+    </section>
+
+    <footer>
+      <p><span data-i18n="footer-note">General Bots — Boletim de segurança. Não há programa de recompensas; o reconhecimento público é a única forma de agradecimento.</span></p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -163,28 +163,27 @@ impl CertPinningManager {
         ca_cert: Option<&Certificate>,
         timeout: Duration,
     ) -> Result<Client> {
-        let config = self
-            .config
-            .read()
-            .map_err(|_| anyhow!("Failed to acquire read lock"))?;
+        let enabled = self.is_enabled();
 
         let mut builder = ClientBuilder::new()
             .timeout(timeout)
             .connect_timeout(Duration::from_secs(10))
-            .use_rustls_tls()
-            .https_only(true)
-            .tls_built_in_root_certs(true);
+            .use_rustls_tls();
 
         if let Some(cert) = ca_cert {
             builder = builder.add_root_certificate(cert.clone());
         }
 
-        if config.enabled && config.get_pins(hostname).is_some() {
-            debug!(
-                "Creating pinned client for {} with {} pins",
-                hostname,
-                config.get_pins(hostname).map(|p| p.len()).unwrap_or(0)
-            );
+        if enabled {
+            debug!("Creating TLS-pinned client (host hint: {hostname})");
+            // Install a verifier that checks the pin set on *every* handshake.
+            // Without this the client was indistinguishable from a plain
+            // reqwest client and the pin map protected nothing (issue #2626).
+            let tls = self.build_pinned_tls_config()?;
+            builder = builder.use_preconfigured_tls(tls);
+        } else {
+            // Pinning off: normal system trust store, local/dev friendly.
+            builder = builder.https_only(true).tls_built_in_root_certs(true);
         }
 
         builder.build().context("Failed to build HTTP client")

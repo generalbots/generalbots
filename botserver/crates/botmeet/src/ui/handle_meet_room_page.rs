@@ -5,7 +5,8 @@ pub async fn handle_meet_room_page(
     Path(room_id): Path<Uuid>,
 ) -> Html<String> {
     let room_id_safe = room_id;
-    let html = format!(r#"<!DOCTYPE html>
+    let html = format!(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -227,6 +228,7 @@ pub async fn handle_meet_room_page(
         initMedia();
     </script>
 </body>
-</html>"#);
+</html>"#
+    );
     Html(html)
 }

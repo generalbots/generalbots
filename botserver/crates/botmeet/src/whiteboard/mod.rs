@@ -1,4 +1,21 @@
-pub(crate) use axum::{ extract::{ ws::{Message, WebSocket, WebSocketUpgrade}, Path, State, }, response::IntoResponse, routing::get, Router, };
+//! Whiteboard collaboration service (#2740).
+//!
+//! The router built by [`create_whiteboard::configure`] is intentionally NOT
+//! mounted anywhere yet. Keep it unmounted until the membership/identity
+//! guards in [`access_control`] are exercised by a real-DB integration test in
+//! addition to the inline unit tests; mounting an unguarded router would make
+//! every conversation id and socket identity forgeable.
+
+pub(crate) use axum::{
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, State,
+    },
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
+pub(crate) use botcore::shared::state::AppState;
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use futures::{SinkExt, StreamExt};
 pub(crate) use serde::{Deserialize, Serialize};
@@ -6,7 +23,6 @@ pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::{broadcast, RwLock};
 pub(crate) use uuid::Uuid;
-pub(crate) use botcore::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ShapeType {
@@ -90,18 +106,46 @@ pub struct Selection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WhiteboardOperation {
-    AddShape { shape: Shape },
-    UpdateShape { shape: Shape },
-    DeleteShape { shape_id: Uuid },
-    MoveShapes { shape_ids: Vec<Uuid>, delta: Point },
-    ResizeShape { shape_id: Uuid, bounds: ShapeBounds },
-    RotateShape { shape_id: Uuid, angle: f64 },
-    BringToFront { shape_id: Uuid },
-    SendToBack { shape_id: Uuid },
-    LockShape { shape_id: Uuid },
-    UnlockShape { shape_id: Uuid },
-    GroupShapes { shape_ids: Vec<Uuid>, group_id: Uuid },
-    UngroupShapes { group_id: Uuid },
+    AddShape {
+        shape: Shape,
+    },
+    UpdateShape {
+        shape: Shape,
+    },
+    DeleteShape {
+        shape_id: Uuid,
+    },
+    MoveShapes {
+        shape_ids: Vec<Uuid>,
+        delta: Point,
+    },
+    ResizeShape {
+        shape_id: Uuid,
+        bounds: ShapeBounds,
+    },
+    RotateShape {
+        shape_id: Uuid,
+        angle: f64,
+    },
+    BringToFront {
+        shape_id: Uuid,
+    },
+    SendToBack {
+        shape_id: Uuid,
+    },
+    LockShape {
+        shape_id: Uuid,
+    },
+    UnlockShape {
+        shape_id: Uuid,
+    },
+    GroupShapes {
+        shape_ids: Vec<Uuid>,
+        group_id: Uuid,
+    },
+    UngroupShapes {
+        group_id: Uuid,
+    },
     Clear,
 }
 
@@ -194,11 +238,13 @@ pub struct WhiteboardManager {
     broadcast_channels: Arc<RwLock<HashMap<Uuid, broadcast::Sender<WhiteboardMessage>>>>,
 }
 
-mod to_rgba;
-mod shape_style;
+pub(crate) mod access_control;
 mod apply_operation;
 mod create_whiteboard;
 mod handle_whiteboard_socket;
+mod shape_style;
+mod to_rgba;
 
+pub use access_control::{socket_identity_matches, WhiteboardPrincipal};
 pub use create_whiteboard::*;
 use handle_whiteboard_socket::*;

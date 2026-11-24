@@ -117,3 +117,7 @@ mod send_message;
 mod channel_type;
 mod send_dm;
 mod is_text_channel;
+
+#[cfg(test)]
+#[path = "webhook_tests.rs"]
+mod webhook_tests;

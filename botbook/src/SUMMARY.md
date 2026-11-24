@@ -643,6 +643,14 @@
    - [Browser Policy and Budgets](./09-security/browser-policy.md)
    - [Input Guardrails: SSRF, DLP, Injection, Files](./09-security/input-guardrails.md)
    - [Security Policy](./09-security/security-policy.md)
+   - [Immutable Bulletin Mirrors and Always-Available Hosting](./09-security/immutable-bulletin-mirrors.md)
+   - [Incident Response and Publication Authority](./09-security/incident-response.md)
+   - [Signed Offline Advisory Bundle (air-gapped deployments)](./09-security/offline-advisory-bundle.md)
+   - [Forum vs. Authoritative Advisory Channel](./09-security/forum-advisory-boundary.md)
+   - [CVE Issuance Strategy — Decision Record](./09-security/cve-issuance-strategy.md)
+   - [OSV, VEX and NVD advisory sync](./09-security/advisory-feeds-osv-nvd.md)
+   - [Advisory Subscriptions (Feeds, Digest, Webhooks)](./09-security/advisory-subscriptions.md)
+   - [Signed Releases, SBOM and SLSA Provenance](./09-security/signed-releases-provenance.md)
    - [Production Security Verification (2026-11-06)](./09-security/production-verification.md)
    - [Production Penetration Test — Results (2026-11-06)](./09-security/production-pentest-results.md)
    - [Compliance Requirements](./09-security/compliance-requirements.md)
@@ -849,6 +857,15 @@
    - [Unified Settings App](./13-ai-os/unified-settings.md)
    - [Peer Network (P2P), Privacy and Data Retention](./13-ai-os/peer-network.md)
    - [Laptop Appliance](./13-ai-os/appliance.md)
+
+---
+
+# Part XIV: Office
+
+- [Chapter 14: Office in the Suite](./14-office/README.md)
+   - [Creating office files from chat](./14-office/from-chat.md)
+   - [Working in the editors](./14-office/editors.md)
+   - [Current limitations](./14-office/current-limitations.md)
 
 ---
 

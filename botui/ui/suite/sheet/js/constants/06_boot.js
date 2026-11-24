@@ -265,6 +265,11 @@
           msg.col = pl.col !== undefined ? pl.col : msg.col;
           msg.content = pl.value !== undefined ? pl.value : msg.content;
         }
+        // #2447 — the server broadcasts the cell value under `value`; older
+        // peers used `content`. Accept either so a co-edited cell renders.
+        if (msg.content === undefined || msg.content === null) {
+          msg.content = msg.value !== undefined ? msg.value : msg.content;
+        }
         let row, col;
         if (msg.row !== undefined && msg.col !== undefined) {
           row = msg.row; col = msg.col;
@@ -276,13 +281,14 @@
         }
         const key = row + "," + col;
         const existing = grid.cells.get(key) || {};
-        grid.cells.set(key, Object.assign({}, existing, { value: msg.content }));
+        const incoming = msg.content === null || msg.content === undefined ? "" : String(msg.content);
+        grid.cells.set(key, Object.assign({}, existing, { value: incoming }));
         if (grid.lastRenderedRange) {
           const parts = String(grid.lastRenderedRange).split("|")[0].split(":");
           const start = parseInt(parts[0], 10), end = parseInt(parts[1], 10);
           if (row >= start && row < end) {
             const el = grid.bodyInner && grid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
-            if (el) el.textContent = msg.content || "";
+            if (el) el.textContent = incoming;
           }
         }
       }

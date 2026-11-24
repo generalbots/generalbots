@@ -13,9 +13,10 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         // App catalog drives every launcher — must be reachable by any user
         RoutePermission::new("/api/apps/catalog", "GET", "").with_anonymous(true),
         // Sandbox resources are protected by their own short-lived signed
-        // token, not the suite session (#1674).
+        // token, not the suite session (#1674). Only the resource route is
+        // public (#2760): config/status/revoke are management surfaces registered
+        // in the authenticated catalogue (routes_user/app_routes.rs).
         RoutePermission::new("/sandbox/ui/**", "GET", "").with_anonymous(true),
-        RoutePermission::new("/api/sandbox/config", "GET", "").with_anonymous(true),
 
         // WhatsApp webhook - anonymous for Meta verification and message delivery
         RoutePermission::new("/webhook/whatsapp/{bot_id}", "GET", "").with_anonymous(true),
@@ -78,6 +79,12 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/cloud/tenant/settings/**", "GET", ""),
         RoutePermission::new("/api/cloud/tenant/settings/**", "POST", ""),
         RoutePermission::new("/api/cloud/tenant/settings/**", "PUT", ""),
+
+        // #2723 — the advisory API is public, read-only and contains no
+        // personal data. Operators and air-gapped CLIs must be able to query
+        // it without a suite session.
+        RoutePermission::new("/api/advisories", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/advisories/{id}", "GET", "").with_anonymous(true),
 
         // Client error reporting - anonymous to catch all JS errors
         RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),

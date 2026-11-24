@@ -104,43 +104,210 @@ pub fn resolve_user_role_with_email(pool: &DbPool, user_id: Uuid, email: Option<
     }
 }
 
+/// #2671 — code-level baseline of the default-deny admin matrix. The
+/// state-changing billing/store/voucher/organization/product surfaces used to
+/// rely on the coarse bearer check only, so the LLM api-command catalog could
+/// propose and execute them for ordinary users. The same prefixes are seeded
+/// in migration `6.9.4-rbac-billing-store` and enforced by the HTTP middleware
+/// route table (`rbac_middleware::routes_user::rest_routes`); this constant
+/// keeps the catalog gate effective even when a deployment has not applied the
+/// DB row. Keep all three in sync. Reads (GET) are deliberately absent.
+const DEFAULT_DENY_ADMIN_ROUTES: &[(&str, &str)] = &[
+    ("POST", "/api/billing"),
+    ("PUT", "/api/billing"),
+    ("DELETE", "/api/billing"),
+    ("POST", "/api/products"),
+    ("PUT", "/api/products"),
+    ("DELETE", "/api/products"),
+    ("POST", "/api/cloud/store"),
+    ("POST", "/api/cloud/vouchers"),
+    ("PUT", "/api/cloud/vouchers"),
+    ("DELETE", "/api/cloud/vouchers"),
+    ("POST", "/api/cloud/organizations"),
+    ("PUT", "/api/cloud/organizations"),
+    ("DELETE", "/api/cloud/organizations"),
+    ("POST", "/api/ui/billing"),
+    ("PUT", "/api/ui/billing"),
+];
+
 /// Whether a (method, path) endpoint is denied to non-admin users, per the
-/// `rbac_api_permissions` matrix. Admins are never denied.
+/// `rbac_api_permissions` matrix plus the code-level baseline above. Admins are
+/// never denied.
 pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: &str) -> bool {
-    if resolve_user_role(pool, user_id) == ROLE_ADMIN {
+    let role = resolve_user_role(pool, user_id);
+    if role == ROLE_ADMIN {
         return false;
     }
     let mut conn = match pool.get() {
         Ok(c) => c,
         Err(e) => {
-            debug!("is_admin_only_endpoint: DB pool error: {e}");
-            return false;
+            // #2632 — fail CLOSED. `true` means "admin-only", so a database
+            // outage denies non-admins instead of silently disabling the
+            // admin-only gate for the command catalog and every caller.
+            log::error!("is_admin_only_endpoint: DB pool error, denying: {e}");
+            return true;
         }
     };
-    let patterns: Vec<String> = match diesel::sql_query(
+    let patterns = diesel::sql_query(
         "SELECT path_pattern FROM rbac_api_permissions \
          WHERE group_name = 'admin' AND (method = '*' OR method = $1)",
     )
     .bind::<diesel::sql_types::Text, _>(method.to_uppercase())
     .load::<PatternRow>(&mut conn)
-    {
-        Ok(rows) => rows.into_iter().map(|r| r.path_pattern).collect(),
+    .map(|rows| {
+        rows.into_iter()
+            .map(|r| r.path_pattern)
+            .collect::<Vec<String>>()
+    })
+    .map_err(|e| e.to_string());
+
+    admin_only_decision_for_role(patterns, &role, method, path)
+}
+
+/// Pure decision table for [`is_admin_only_endpoint`], combining the DB matrix
+/// rows with the code-level baseline. `Err` is the fail-closed case: a matrix
+/// lookup that could not be completed denies non-admins instead of silently
+/// disabling the gate (#2632). Admins are never denied (#2671).
+fn admin_only_decision_for_role(
+    patterns: Result<Vec<String>, String>,
+    role: &str,
+    method: &str,
+    path: &str,
+) -> bool {
+    if role == ROLE_ADMIN {
+        return false;
+    }
+    admin_only_decision(patterns, path) || static_admin_only_route(method, path)
+}
+
+/// Pure decision table for the DB rows of the `rbac_api_permissions` matrix.
+fn admin_only_decision(patterns: Result<Vec<String>, String>, path: &str) -> bool {
+    match patterns {
+        Ok(patterns) => patterns.iter().any(|pattern| {
+            let base = pattern.trim_end_matches('%');
+            path.starts_with(base)
+        }),
         Err(e) => {
-            debug!("is_admin_only_endpoint: query error: {e}");
-            return false;
-        }
-    };
-    for pattern in &patterns {
-        let base = pattern.trim_end_matches('%');
-        if path.starts_with(base) {
-            return true;
+            log::error!("is_admin_only_endpoint: query error, denying: {e}");
+            true
         }
     }
-    false
+}
+
+/// Matches the code-level default-deny baseline for a (method, path) pair.
+fn static_admin_only_route(method: &str, path: &str) -> bool {
+    DEFAULT_DENY_ADMIN_ROUTES
+        .iter()
+        .any(|(m, base)| m.eq_ignore_ascii_case(method) && path.starts_with(base))
 }
 
 #[derive(diesel::QueryableByName)]
 struct PatternRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     path_pattern: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        admin_only_decision, admin_only_decision_for_role, static_admin_only_route,
+        DEFAULT_DENY_ADMIN_ROUTES, ROLE_ADMIN, ROLE_USER,
+    };
+
+    #[test]
+    fn matrix_lookup_failure_denies() {
+        assert!(admin_only_decision(
+            Err("pool closed".to_string()),
+            "/api/admin/x"
+        ));
+    }
+
+    #[test]
+    fn empty_matrix_allows_non_admin_routes() {
+        assert!(!admin_only_decision(Ok(Vec::new()), "/api/chat/messages"));
+    }
+
+    #[test]
+    fn matching_prefix_denies() {
+        let patterns = Ok(vec!["/api/billing%".to_string()]);
+        assert!(admin_only_decision(patterns, "/api/billing/invoices"));
+        assert!(!admin_only_decision(
+            Ok(vec!["/api/billing%".to_string()]),
+            "/api/chat/messages"
+        ));
+    }
+
+    /// #2671 — every state-changing billing/store/voucher/organization/product
+    /// prefix is denied for a non-admin even with an empty DB matrix, and stays
+    /// allowed for an admin. This is the code-level mirror of migration 6.9.4.
+    #[test]
+    fn default_deny_prefixes_cover_both_roles() {
+        const CASES: &[(&str, &str)] = &[
+            ("POST", "/api/billing/invoices"),
+            ("PUT", "/api/billing/invoices/abc/void"),
+            ("DELETE", "/api/billing/invoices/abc"),
+            ("POST", "/api/billing/payments"),
+            ("POST", "/api/products/items"),
+            ("PUT", "/api/products/items/abc"),
+            ("DELETE", "/api/products/items/abc"),
+            ("POST", "/api/cloud/store/purchase"),
+            ("POST", "/api/cloud/vouchers"),
+            ("PUT", "/api/cloud/vouchers/redeem"),
+            ("DELETE", "/api/cloud/vouchers/redeem"),
+            ("POST", "/api/cloud/organizations"),
+            ("PUT", "/api/cloud/organizations/org/branches/b"),
+            (
+                "DELETE",
+                "/api/cloud/organizations/org/workspaces/w/resources/r",
+            ),
+            ("POST", "/api/ui/billing/subscription/upgrade"),
+            ("PUT", "/api/ui/billing/subscription/cancel"),
+        ];
+        for (method, path) in CASES {
+            assert!(
+                admin_only_decision_for_role(Ok(Vec::new()), ROLE_USER, method, path),
+                "{method} {path} must be denied for a non-admin user"
+            );
+            assert!(
+                !admin_only_decision_for_role(Ok(Vec::new()), ROLE_ADMIN, method, path),
+                "{method} {path} must stay allowed for an admin"
+            );
+        }
+    }
+
+    /// The baseline must stay write-only: reads and unrelated surfaces remain
+    /// reachable by tenant users.
+    #[test]
+    fn baseline_keeps_reads_and_unrelated_writes_open() {
+        for path in [
+            "/api/billing/invoices",
+            "/api/products/items",
+            "/api/cloud/store",
+        ] {
+            assert!(
+                !static_admin_only_route("GET", path),
+                "GET {path} must stay readable for tenant users"
+            );
+        }
+        assert!(!static_admin_only_route("POST", "/api/chat/messages"));
+        assert!(!admin_only_decision_for_role(
+            Ok(Vec::new()),
+            ROLE_USER,
+            "GET",
+            "/api/billing/invoices"
+        ));
+    }
+
+    /// Guard the matrix itself: only POST/PUT/DELETE prefixes under /api/ may
+    /// be added, so a future edit cannot accidentally lock out read traffic.
+    #[test]
+    fn baseline_is_write_only_api_prefixes() {
+        for (method, base) in DEFAULT_DENY_ADMIN_ROUTES {
+            assert!(
+                matches!(*method, "POST" | "PUT" | "DELETE"),
+                "{method} {base} is not a state-changing method"
+            );
+            assert!(base.starts_with("/api/"), "{base} is not an API prefix");
+        }
+    }
 }

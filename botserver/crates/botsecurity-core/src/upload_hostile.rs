@@ -15,9 +15,9 @@
 //!   policy used for outbound fetches, so `file://` and loopback/link-local
 //!   targets are rejected;
 //! * a malware-scan hook whose default decision is `NotConfigured`, never a
-//!   fabricated `Clean`; the shared default *requires* a scanner, so an
-//!   unscanned package is refused (fail-closed) unless an operator explicitly
-//!   opts out — see [`opt_out`].
+//!   fabricated `Clean`; the policy always *requires* a scanner, so an
+//!   unscanned package is refused (fail-closed). There is no opt-out: a
+//!   registered scanner is the only way an import can be accepted.
 //!
 //! Entry bodies are read only in bounded slices (4 bytes for nested-container
 //! magic, 1 MiB for relationships and XML headers). The only disk writes are
@@ -34,13 +34,9 @@ pub mod clamav_scanner;
 pub mod corpus;
 pub mod macro_strip;
 pub mod malware;
-pub mod opt_out;
 pub mod password;
 
 pub use clamav_scanner::register_default_malware_scanner;
-pub use opt_out::{
-    malware_scanner_required, malware_scanner_required_from, UNCHECKED_IMPORT_OPT_OUT_ENV,
-};
 
 /// Compressed payload cap for the standalone gate (matches the largest
 /// `UploadClass` budget; handlers may tighten it through their own limits).
@@ -61,9 +57,10 @@ pub struct HostileFilePolicy {
     pub max_uncompressed_bytes: u64,
     pub max_entries: usize,
     pub max_compression_ratio: u64,
-    /// When true, a missing scanner is a typed error instead of a recorded
-    /// `NotConfigured` decision. The shared default is fail-closed: this is
-    /// `true` unless [`opt_out`] records an explicit operator opt-out.
+    /// A missing scanner is a typed error instead of a recorded `NotConfigured`
+    /// decision. [`HostileFilePolicy::default`] always sets this to `true`, so
+    /// no deployment can accept an unscanned package; the field remains a
+    /// code-level seam for isolated structural tests.
     pub require_malware_scanner: bool,
 }
 
@@ -74,7 +71,7 @@ impl Default for HostileFilePolicy {
             max_uncompressed_bytes: DEFAULT_MAX_UNCOMPRESSED_BYTES,
             max_entries: DEFAULT_MAX_ENTRIES,
             max_compression_ratio: DEFAULT_MAX_COMPRESSION_RATIO,
-            require_malware_scanner: opt_out::malware_scanner_required(),
+            require_malware_scanner: true,
         }
     }
 }

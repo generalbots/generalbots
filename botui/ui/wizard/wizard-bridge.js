@@ -207,6 +207,9 @@
       };
     },
     resetStack: function () { mock.completed = []; return Promise.resolve(); },
+    requestResetStackConfirmation: function () {
+      return Promise.resolve("000000000000000000000000");
+    },
     openFolder: function () { return Promise.resolve(); },
     openUrl: function (url) {
       if (isDesktop) { return invoke("wizard_open_url", { url: url }); }
@@ -322,6 +325,14 @@
 
     resetStack: function (confirmation) {
       return isDesktop ? invoke("wizard_reset_stack", { confirmation: confirmation }) : mock.resetStack();
+    },
+
+    // #2689 — the opaque receipt is minted only after the native dialog, so
+    // clicking the button can never supply the confirmation itself.
+    requestResetStackConfirmation: function () {
+      return isDesktop
+        ? invoke("request_reset_stack_confirmation")
+        : mock.requestResetStackConfirmation();
     },
 
     openFolder: function (kind) {

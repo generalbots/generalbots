@@ -3,8 +3,10 @@ use super::*;
 impl Default for SandboxConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
-            runtime: SandboxRuntime::Process,
+            // Fail closed: untrusted code execution is opt-in per bot, and an
+            // opt-in still selects an isolated runtime unless overridden.
+            enabled: false,
+            runtime: SandboxRuntime::default(),
             timeout_seconds: 30,
             memory_limit_mb: 256,
             cpu_limit_percent: 50,

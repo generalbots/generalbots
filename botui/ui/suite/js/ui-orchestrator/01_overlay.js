@@ -102,6 +102,10 @@
     var t = normalize(target);
     var label = normalize(el.getAttribute("data-gb-field"));
     if (label && (label === t || label.indexOf(t) !== -1)) return true;
+    // Locale-independent automation alias: visible labels/aria-labels may be
+    // translated, but chat-driven UI plans use one stable English field name.
+    var alias = normalize(el.getAttribute("data-gb-field-alias"));
+    if (alias && (alias === t || alias.indexOf(t) !== -1)) return true;
     var aria = normalize(el.getAttribute("aria-label"));
     if (aria && (aria === t || aria.indexOf(t) !== -1)) return true;
     var name = normalize(el.getAttribute("name"));

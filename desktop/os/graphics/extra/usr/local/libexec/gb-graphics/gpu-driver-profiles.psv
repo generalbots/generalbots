@@ -1,0 +1,47 @@
+# General Bots OS — GPU / VA-API driver package profiles (#2481).
+#
+# This is a DATA FILE consumed by detect-graphics.sh (pure bash, no jq/yq).
+# It is deliberately declarative and dependency-free so the runtime detector
+# can pick a package set without parsing HTML, JSON or calling an LLM.
+#
+# FORMAT — pipe-separated values, one profile per non-comment line:
+#
+#   ARCH|DRIVER|VENDOR_IDS|KMODS|MESA_PKGS|VA_PKGS|FW_PKGS|LIBGL_SW|LIBVA_DRIVER|DESC
+#
+#   ARCH          uname -m normalised to x86_64 / aarch64, or "any" (last-resort fallback).
+#   DRIVER        driver class chosen by the detector: intel, amd, nvidia, virt, software.
+#   VENDOR_IDS    comma-separated PCI vendor IDs (no 0x prefix, lower hex) for sysfs matching.
+#                 Empty for "software" (matched only as an explicit fallback).
+#   KMODS         comma-separated kernel driver names as reported by sysfs
+#                 (/sys/bus/pci/devices/*/driver, /sys/class/drm/card*/device/driver).
+#   MESA_PKGS     Mesa userspace for GL/EGL/GBM (the rendering path WebKitGTK uses).
+#   VA_PKGS       VA-API / VDPAU userspace + libva plumbing (the media decode path).
+#   FW_PKGS       non-free firmware blobs required by the hardware (may be empty).
+#   LIBGL_SW      0 = let Mesa pick a hardware/virtio driver; 1 = force llvmpipe/swrast.
+#   LIBVA_DRIVER  value written to LIBVA_DRIVER_NAME, or "-" to leave VA auto-detection alone.
+#   DESC          human-readable label (last field; may contain spaces, never a "|").
+#
+# Matching order in the detector:
+#   1. exact "$ARCH|$DRIVER" from sysfs evidence (PCI vendor id or loaded kmod);
+#   2. "$ARCH|software"  — no usable GPU/driver on this architecture;
+#   3. "any|software"    — architecture-independent last resort.
+#
+# The image already pins the union of these packages in mkosi.conf (the
+# offline image slice of #2481). This file is the *runtime* split: on a host
+# with a package manager the detector installs ONLY the set that matches the
+# hardware actually present, instead of all of them.
+#
+# llvmpipe/swrast is the documented QEMU/software fallback — never claim
+# hardware compositing from these profiles alone; verify with vainfo/glxinfo
+# on real hardware (see desktop/os/graphics/README.md).
+#
+#ARCH|DRIVER|VENDOR_IDS|KMODS|MESA_PKGS|VA_PKGS|FW_PKGS|LIBGL_SW|LIBVA_DRIVER|DESC
+x86_64|intel|8086|i915|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2 libva-wayland2 intel-media-va-driver i965-va-driver|firmware-misc-nonfree|0|iHD|Intel Gen8+ (iHD) with legacy i965 VA fallback; Mesa DRI/EGL/GBM
+x86_64|amd|1002|amdgpu,radeon|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers mesa-vdpau-drivers libva2 libva-drm2 libva-wayland2|firmware-amd-graphics|0|radeonsi|AMD GCN/RDNA (amdgpu/radeon) Mesa + VA-API/VDPAU
+x86_64|nvidia|10de|nvidia,nouveau|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2|firmware-misc-nonfree|0|-|NVIDIA open-kernel-module userspace path + Nouveau Mesa fallback; no proprietary blob shipped
+x86_64|virt|1af4,1234,15ad,80ee|virtio_gpu,qxl,vmwgfx|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2||0|-|virtio-gpu/QXL/VMware: Mesa uses virgl/virtio when the host exposes it, otherwise swrast; VA decode stays host-side
+x86_64|software||-|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2||1|-|No GPU / no driver — llvmpipe/swrast QEMU fallback
+aarch64|amd|1002|amdgpu|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2|firmware-amd-graphics|0|radeonsi|AMD on ARM64 (rare) Mesa + VA-API
+aarch64|virt|1af4,1234,15ad|virtio_gpu|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2||0|-|virtio-gpu on ARM64 VMs; host accelerated when available, swrast otherwise
+aarch64|software||-|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2||1|-|No GPU / no driver — llvmpipe/swrast ARM64 fallback
+any|software||-|libgl1-mesa-dri libegl-mesa0 libgbm1|mesa-va-drivers libva2 libva-drm2||1|-|Architecture-independent software fallback (last resort)

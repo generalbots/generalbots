@@ -72,7 +72,7 @@ PostgreSQL backups capture the authoritative state of all structured data. Daily
 
 Drive storage benefits from built-in replication and versioning capabilities. S3-compatible storage systems maintain multiple copies across availability zones. Object versioning preserves previous states even after modifications. Cross-region replication protects against regional failures for critical deployments.
 
-Configuration versioning through source control provides another protection layer. Environment-specific configurations store separately from shared defaults. Secret encryption protects sensitive values in backups.
+Configuration versioning through source control provides another protection layer. Environment-specific configurations store separately from shared defaults. Secrets are read from Vault at runtime rather than stored encrypted in backups.
 
 Retention policies balance storage costs against recovery needs. Message history might retain for 90 days before archival. Session data expires after 30 days of inactivity. Temporary files clean up within 24 hours. Log retention follows regulatory requirements and debugging needs. Backup retention provides sufficient history for recovery scenarios.
 
@@ -84,11 +84,11 @@ These abstractions allow script authors to work with storage without understandi
 
 ## Security and Access Control
 
-Data security spans all storage layers with appropriate protections for each. Encryption at rest protects stored data from unauthorized physical access. Database encryption covers PostgreSQL storage. Object storage encryption protects Drive contents. Transport encryption using TLS secures all network communication between components.
+Data security spans all storage layers with appropriate protections for each. The platform does not encrypt databases, Drive objects or backups at rest; operators requiring that control must provide it at the storage layer. Field-level encryption is applied to a small set of sensitive values through `encrypt_field` (attendance content, external Drive content and session content). Transport encryption using TLS secures all network communication between components.
 
 Access control ensures users and processes only reach data they're authorized to access. Role-based permissions govern database operations. Bucket policies control object storage access. Bot isolation prevents cross-bot data leakage. Audit logging creates accountability trails for sensitive operations.
 
-Sensitive data receives additional protection. Passwords never store in botserver systems since Zitadel handles authentication. API keys and secrets encrypt with AES-GCM before storage. Personally identifiable information follows data protection regulations applicable to the deployment jurisdiction.
+Sensitive data receives additional protection. Passwords never store in botserver systems since Zitadel handles authentication. Service credentials and API keys live in Vault; a small set of sensitive content fields is encrypted with `encrypt_field` before storage. Personally identifiable information follows data protection regulations applicable to the deployment jurisdiction.
 
 ## Monitoring and Maintenance
 

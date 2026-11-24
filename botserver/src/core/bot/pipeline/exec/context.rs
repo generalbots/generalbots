@@ -273,3 +273,72 @@ pub(super) async fn prepare_messages_and_maybe_finish(
 
     Ok(false)
 }
+
+/// #2624 — redact secrets before the user text reaches the prompt, history or
+/// tools. Kept here so `mod.rs` stays under the file-size limit.
+pub(super) async fn redact_inbound(user_text: &str, user_id: uuid::Uuid) -> String {
+    botsecurity_core::dlp::redact_text(
+        user_text,
+        botsecurity_core::dlp::ScanDirection::Inbound,
+        Some(user_id),
+    )
+    .await
+}
+
+/// #2625 — emit the typed, telemetry-safe "blocked by policy" frame and report
+/// whether the caller should stop processing this turn.
+pub(super) async fn emit_injection_blocked(
+    sink: &dyn crate::core::bot::pipeline::sink::ChannelSink,
+    bot_uuid: uuid::Uuid,
+    user_id: uuid::Uuid,
+    session_id: &str,
+    threat_level: &botsecurity_core::prompt_security::ThreatLevel,
+) -> bool {
+    let frame = serde_json::json!({
+        "bot_id": bot_uuid.to_string(),
+        "user_id": user_id.to_string(),
+        "session_id": session_id.to_string(),
+        "channel": "web",
+        "content": "Your message was blocked by a security policy. Please rephrase it.",
+        "message_type": 2,
+        "is_complete": true,
+        "is_error": true,
+        "status": "blocked",
+        "security_signal": format!("{threat_level:?}"),
+        "suggestions": [],
+        "context_length": 0,
+        "context_max_length": 0,
+    });
+    let _ = sink.send_raw_json(&frame).await;
+    true
+}
+
+/// #939/#939-D — parse the optional switcher list and project-context mention
+/// from the inbound payload. Kept out of `mod.rs` for the file-size budget.
+pub(super) fn parse_switchers_and_project(
+    parsed: &serde_json::Value,
+) -> (Vec<String>, Option<serde_json::Value>) {
+    let active_switchers: Vec<String> = parsed
+        .get("active_switchers")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let project_context = parsed.get("project_context").cloned().or_else(|| {
+        parsed.get("mentions").and_then(|value| {
+            value.as_array()?.iter().find_map(|mention| {
+                if mention.get("kind").and_then(|v| v.as_str()) != Some("project") {
+                    return None;
+                }
+                Some(serde_json::json!({
+                    "project_id": mention.get("project_id").or_else(|| mention.get("id")),
+                    "project_name": mention.get("label").or_else(|| mention.get("name")),
+                }))
+            })
+        })
+    });
+    (active_switchers, project_context)
+}

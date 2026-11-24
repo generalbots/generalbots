@@ -456,6 +456,15 @@ jobs:
           python3 scripts/check_jwt_hardening.py --check
           python3 scripts/check_jwt_hardening.py --self-test
 
+      # #2759 — no build may accept the hardcoded admin@localhost / "dev"
+      # credential via BOTSERVER_DEV_MODE. Admin credential resolution must
+      # verify a salted digest from admin-credentials.json only.
+      - name: Dev-login backdoor guard (#2759)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_dev_login_backdoor.py --check
+          python3 scripts/check_dev_login_backdoor.py --self-test
+
       # #2131 — every server-side fetch of a caller-supplied URL must go
       # through botsecurity_core::validation::fetch_user_url. The gate lists
       # each fetch site, fails on an unguarded variable URL and treats the
@@ -661,6 +670,16 @@ jobs:
           set -euo pipefail
           python3 scripts/check_upload_validation.py --self-test
           python3 scripts/check_upload_validation.py --check
+
+      # #2674 — documentation must not commit real production IP literals.
+      # The self-test proves the gate fails on an added literal (and accepts
+      # the documented placeholder ranges); the scan then covers every tracked
+      # *.md, including INFRA.md. Pure Python, no network, no extra action.
+      - name: "Guard: no real IP literals in documentation (#2674)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_doc_ips.py --self-test
+          python3 scripts/check_doc_ips.py
 
   # #2543 — the three error-handling lints stay `warn` in Cargo.toml because
   # workspace lints cannot express a per-file baseline exclusion. This is the
@@ -891,6 +910,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/restore_drill_checks.py --self-test
+          scripts/restore_drill.sh --self-test
           scripts/restore_drill.sh --dsn "$DATABASE_URL" --report /tmp/gb-restore-drill.md
           cat /tmp/gb-restore-drill.md
 
@@ -955,9 +975,20 @@ jobs:
           python3 scripts/check_app_transport.py
           python3 scripts/check_suite_js_size.py
           node botui/ui/suite/tests/webtest-ui-bootbudget.js
+          node botui/ui/suite/tests/webtest-sanitize-xss.js
           node botui/ui/suite/tests/webtest-ui-aria.js
           node botui/ui/suite/tests/webtest-route-contract.js
           node botui/ui/suite/tests/webtest-ui-mobile-office.js
+
+      # #2457 — Office fidelity gate. The harness scores the docx/pptx/xlsx
+      # corpus and prints a per-app fidelity matrix on every PR. It exits
+      # non-zero on any FAIL (a regression in a previously passing corpus file)
+      # but tolerates deliberately documented DEGRADED results. No server,
+      # browser or cargo: the shipped export/preview IIFEs run in a Node vm.
+      - name: "Guard: Office fidelity score and corpus regression (#2457)"
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-office-fidelity.js
 
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
@@ -1552,17 +1583,30 @@ jobs:
           sudo systemctl stop clamav-freshclam || true
           sudo freshclam
           clamscan --version
-      - name: ClamAV upload gate detects EICAR and accepts clean bytes
+      - name: Prove clamscan detects EICAR (all artifacts under /tmp only)
         run: |
           set -euo pipefail
-          cargo test -p botsecurity-core --lib -- --ignored clamav_detects_eicar_and_accepts_clean_payload --nocapture
+          printf '%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > /tmp/gb-eicar.txt
+          set +e
+          clamscan --no-summary --infected /tmp/gb-eicar.txt | tee /tmp/gb-clamscan-eicar.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 1
+          grep -q 'Eicar-Test-Signature FOUND' /tmp/gb-clamscan-eicar.log
+          rm -f /tmp/gb-eicar.txt /tmp/gb-clamscan-eicar.log
+      - name: ClamAV upload gate (real handler, typed MalwareDetected verdict)
+        run: |
+          set -euo pipefail
+          cargo test -p botsecurity-core --lib -- --ignored clamav_upload_gate_detects_eicar_and_accepts_clean_file --nocapture
           cargo test -p botsecurity-core --lib antivirus::byte_scan
       - name: Hostile-file corpus for Docs, Sheets and Slides
         run: |
           set -euo pipefail
-          cargo test -p botdocs --lib hostile_
-          cargo test -p botsheet --lib hostile_
+          cargo test -p botdocs --lib hostile_corpus
+          cargo test -p botsheet --lib hostile_import_tests
           cargo test -p botslides --lib hostile_corpus
+      - name: Both CI hosts carry the identical, ungated malware gate
+        run: python3 scripts/check_malware_clamav_gates.py
 
   # #2115 — performance budgets. The numbers live in `ops/slo.yaml`, the table
   # in `botbook/src/11-hardware-scaling/slo.md`; this job proves the gate fails
@@ -1587,6 +1631,18 @@ jobs:
           python3 scripts/office_largefile_corpus.py --self-test
           python3 scripts/check_office_memory.py --self-test
           python3 scripts/check_office_memory.py --check
+      # #2531 — the load-stress harness validates its own logic offline and emits
+      # an explicit SKIP here (a shared runner has no server or writable cgroup).
+      # On a hardware job a measured report is supplied to --gate, which then
+      # fails closed on ceilings, cgroup limits, soak drift and 10% regressions.
+      - name: "Guard: Office large-file load-stress harness (#2531)"
+        run: |
+          set -euo pipefail
+          python3 bottest/tools/officestress/os_measure.py --self-test
+          python3 bottest/tools/officestress/os_measure.py --run \
+            --report /tmp/opencode/officestress-measure/report.json
+          python3 bottest/tools/officestress/os_measure.py --gate \
+            --report /tmp/opencode/officestress-measure/report.json
       - name: Committed baseline satisfies every budget
         run: |
           set -euo pipefail

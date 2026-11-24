@@ -106,7 +106,8 @@ pub async fn process_llm_response(
                 result.final_content.clone(),
                 result.reasoning.trim(),
                 citations,
-            );
+            )
+            .await;
             if ws_sender
                 .send(Message::Text(final_resp.to_string()))
                 .await
@@ -189,7 +190,7 @@ pub async fn process_llm_response(
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
             }
-            let resp = frames::fallback(turn, fallback);
+            let resp = frames::fallback(turn, fallback).await;
             let _ = ws_sender.send(Message::Text(resp.to_string())).await;
         }
     }

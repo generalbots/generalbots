@@ -8,7 +8,7 @@ use super::*;
 /// (top-level comments with inline replies), excluding soft-deleted rows.
 pub async fn list_comments(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<CommentQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
@@ -20,6 +20,10 @@ pub async fn list_comments(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — scope from verified claims before exposing any comment content.
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     // When children are not requested, the LIKE patterns bind as the empty
     // string (which matches nothing — resource_type/resource_id are never
@@ -344,6 +348,11 @@ pub async fn create_comment(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — identity is bound from verified claims (actor id above); a
+    // writer must also have a grant on the target resource.
+    if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     #[derive(QueryableByName)]
     struct CreatedRow {

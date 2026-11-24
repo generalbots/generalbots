@@ -91,7 +91,7 @@ SEND MAIL "team@company.com", "Daily Report", report
 | Feature | Implementation |
 |---------|----------------|
 | Password Storage | Argon2 |
-| Data at Rest | AES-GCM |
+| Data at Rest | Not provided platform-wide; selected sensitive fields only (`encrypt_field`) |
 | Sessions | Cryptographic tokens |
 | API Access | Token-based auth |
 | Transport | TLS via proxy |

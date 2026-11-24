@@ -15,8 +15,8 @@ file is the policy they enforce.
 ## Reporting a Vulnerability
 
 Open a private security advisory on GitHub, or write to
-**security@pragmatismo.com.br**. Do not open a public issue for an unpatched
-vulnerability. We aim to acknowledge within two business days.
+**security@generalbots.org**. Do not open a public issue for an unpatched
+vulnerability. We aim to acknowledge within three business days.
 
 Include the affected component, a reproduction and the observed impact. Do not
 test against customer tenants or third-party hosts; tests against our own
@@ -299,7 +299,7 @@ with that lens in mind. The rules of engagement:
 
 1. Read this file first; report through the private channel above, never in a
    public issue.
-2. Findings are acknowledged within two business days and triaged against the
+2. Findings are acknowledged within three business days and triaged against the
    `#1717` report and the residual-risk register in this file.
 3. Reproduction artifacts stay private until a fix ships; a fix and its test
    land before any public write-up.
@@ -351,6 +351,16 @@ Extensions are granted for fixes that need coordinated deployment across
 government estates; record the new date in the advisory timeline. Reporters are
 credited in the advisory and in the hall of fame. There is no paid reporting
 programme: recognition is the only incentive.
+
+### Encrypted reporting
+
+The `Encryption` entry in `security.txt` names the key-publication URL. Before
+the record is deployed, the security owner publishes one stable OpenPGP key at
+that URL and records its fingerprint in this section; no key or fingerprint is
+invented in the repository. A rotation keeps the old key valid for an
+overlapping window and updates the fingerprint here at the same time, so a
+report encrypted to either key stays readable. Until the key is published, use
+the private GitHub advisory or the mailbox above.
 
 ### Bulletin feed
 

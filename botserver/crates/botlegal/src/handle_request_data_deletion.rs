@@ -130,6 +130,7 @@ pub fn configure_legal_routes() -> Router<Arc<DbPool>> {
         .route("/api/legal/documents/:slug", get(handle_get_document).put(handle_update_document))
         .route("/api/legal/gdpr/delete/:user_id", post(handle_request_data_deletion))
         .route("/api/legal/gdpr/export/:user_id", post(handle_export_user_data))
+        .route("/api/legal/approvals/:document_id/transition", post(handle_esign_transition))
 }
 pub(super) fn get_branch_id(conn: &mut diesel::PgConnection) -> Uuid {
     use diesel::dsl::exists;

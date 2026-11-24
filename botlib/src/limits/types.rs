@@ -263,7 +263,9 @@ mod tests {
     fn recursion_limit_rejects_at_the_boundary() {
         assert!(check_recursion_limit(0, 1).is_ok());
         assert_eq!(
-            check_recursion_limit(1, 1).expect_err("must fail").limit_type,
+            check_recursion_limit(1, 1)
+                .expect_err("must fail")
+                .limit_type,
             LimitType::RecursionDepth
         );
     }
@@ -280,12 +282,16 @@ mod tests {
     fn string_and_array_limits_allow_the_maximum() {
         assert!(check_string_length_limit(5, 5).is_ok());
         assert_eq!(
-            check_string_length_limit(6, 5).expect_err("must fail").limit_type,
+            check_string_length_limit(6, 5)
+                .expect_err("must fail")
+                .limit_type,
             LimitType::StringLength
         );
         assert!(check_array_length_limit(3, 3).is_ok());
         assert_eq!(
-            check_array_length_limit(4, 3).expect_err("must fail").limit_type,
+            check_array_length_limit(4, 3)
+                .expect_err("must fail")
+                .limit_type,
             LimitType::ArrayLength
         );
     }

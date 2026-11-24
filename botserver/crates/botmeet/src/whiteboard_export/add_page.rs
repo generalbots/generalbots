@@ -12,8 +12,7 @@ impl PdfDocument {
 
     pub fn add_page(&mut self, width: f32, height: f32) {
         let _ = (width, height);
-        self.pages.push(PdfPage {
-        });
+        self.pages.push(PdfPage {});
     }
 
     pub fn set_fill_color(&mut self, color: &str) {
@@ -28,7 +27,16 @@ impl PdfDocument {
 
     pub fn draw_rect(&mut self, _x: f32, _y: f32, _w: f32, _h: f32, _fill: bool, _stroke: bool) {}
 
-    pub fn draw_ellipse(&mut self, _cx: f32, _cy: f32, _rx: f32, _ry: f32, _fill: bool, _stroke: bool) {}
+    pub fn draw_ellipse(
+        &mut self,
+        _cx: f32,
+        _cy: f32,
+        _rx: f32,
+        _ry: f32,
+        _fill: bool,
+        _stroke: bool,
+    ) {
+    }
 
     pub fn draw_line(&mut self, _x1: f32, _y1: f32, _x2: f32, _y2: f32) {}
 

@@ -211,7 +211,9 @@ fn readiness_decision(ready: Option<u16>, health: Option<u16>, product: Option<u
     if is_success_code(ready) {
         return true;
     }
-    if ready == Some(503) {
+    // An explicit 503 from any probe is authoritative: a sidecar that reports
+    // itself unavailable must never be masked by another endpoint's 200.
+    if ready == Some(503) || health == Some(503) || product == Some(503) {
         return false;
     }
     is_success_code(health) || is_success_code(product)

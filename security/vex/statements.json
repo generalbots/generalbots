@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "source": "security/vex/statements.json",
+  "note": "Hand-authored VEX claims. One statement per (CVE, product set) pair. Generated OpenVEX documents live next to this file and are never edited by hand.",
+  "statements": [
+    {
+      "id": "GBVEX-2026-0001",
+      "cve": "CVE-2021-44228",
+      "title": "Apache Log4j2 JNDI lookup (Log4Shell) is not present in any General Bots product",
+      "description": "CVE-2021-44228 affects Apache Log4j2 2.0-beta9 through 2.15.0. No General Bots product ships Java or Log4j2, so the vulnerable component is not present in any supported configuration.",
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "reason": "General Bots Server, the Suite/botui and the desktop client are Rust and TypeScript builds. The SPDX inventory produced by the security workflow contains no Java runtime and no log4j-core package in any edition: SaaS, private cloud or desktop-local. There is therefore no code path in which an attacker-supplied lookup string could reach a Log4j JNDI resolution.",
+      "revision": 1,
+      "published": "2026-11-23",
+      "updated": "2026-11-23",
+      "products": [
+        {
+          "name": "botserver",
+          "purl": "pkg:generic/generalbots/botserver",
+          "version_range": ">= 1.0.0"
+        },
+        {
+          "name": "botui",
+          "purl": "pkg:generic/generalbots/botui",
+          "version_range": ">= 1.0.0"
+        },
+        {
+          "name": "botapp (desktop client)",
+          "purl": "pkg:generic/generalbots/botapp",
+          "version_range": ">= 1.0.0"
+        }
+      ],
+      "references": [
+        "https://generalbots.org/security/vex/GBVEX-2026-0001",
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+      ]
+    }
+  ]
+}

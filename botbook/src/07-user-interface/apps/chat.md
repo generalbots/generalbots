@@ -260,15 +260,25 @@ bubble therefore passes the parsed markdown through one sanitizer
 (`botui/ui/suite/chat/chat-sanitize.js`, `window.GBSanitize`) **before** it
 reaches the page:
 
-- `<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<form>` and their
-  controls are removed; so is `<foreignObject>`, which could smuggle HTML into
-  inline SVG
-- every `on*` attribute (`onerror`, `onload`, …) is removed
-- `javascript:`, `vbscript:` and `data:text/html` URLs are dropped from `href`,
-  `src`, `action`, `formaction`, `poster`, `srcset` and `srcdoc`; inert image
-  payloads (`data:image/png|jpeg|gif|webp|bmp`) are kept
+- the policy is an **allowlist** with a recorded version (`GBSanitize.VERSION`,
+  mirrored and SHA-256-checked in `chat/sanitize-manifest.json`). Every tag and
+  attribute must be on the list; unknown elements are unwrapped, and raw-text
+  or foreign-content elements (including SVG) are removed with their subtree
+- namespace confusion is rejected by checking `namespaceURI` as well as the
+  local name: only XHTML and the MathML tags KaTeX needs survive
+- every `on*` attribute (`onerror`, `onload`, …) is removed, as are `id` and
+  `name` (DOM-clobbering gadgets)
+- `javascript:`, `vbscript:`, `data:text/html`, `blob:` and `about:` URLs are
+  dropped from URI attributes; inert raster image payloads
+  (`data:image/png|jpeg|gif|webp|bmp`) are kept
+- `parse → clean → serialize → re-parse` is repeated until the string is a
+  fixed point of the parser; payloads that never converge fail closed to
+  escaped text
 - model-authored `<script>` elements are **never** executed — the chat no
   longer builds functions from reply text
+
+The 16-payload XSS/mXSS corpus runs in CI (`webtest-sanitize-xss.js`) against
+the same policy; `GBSanitize.selfTest()` runs it in a real DOM.
 
 The same rule applies while a reply is still streaming. Interactive code the
 model writes belongs in the artifact preview, which runs in a sandboxed iframe

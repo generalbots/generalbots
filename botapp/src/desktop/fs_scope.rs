@@ -208,7 +208,20 @@ mod tests {
     fn rejects_secret_store_names() {
         assert!(check_not_protected(Path::new("/var/lib/gbdesk/.env")).is_err());
         assert!(check_not_protected(Path::new("/var/lib/gbdesk/vault-unseal-keys")).is_err());
+        assert!(check_not_protected(Path::new("/var/lib/gbdesk/admin-credentials.json")).is_err());
+        assert!(check_not_protected(Path::new("/var/lib/gbdesk/desktop-session.json")).is_err());
         assert!(check_not_protected(Path::new("/var/lib/gbdesk/notes.txt")).is_ok());
+    }
+
+    #[test]
+    fn ipc_refuses_the_admin_token_even_inside_a_configured_scope() {
+        // /var/lib/gbdesk is a built-in scope, but the protected-name check runs
+        // first so generic read/write/delete IPC can never reach the JWT.
+        assert!(resolve("/var/lib/gbdesk/desktop-session.json").is_err());
+        // The positive control for non-secret names is covered by
+        // `rejects_secret_store_names`; here the built-in appliance scope
+        // directory may not exist on the test host, so `resolve` can fail for
+        // that reason alone and would give a false negative.
     }
 
     #[test]

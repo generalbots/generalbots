@@ -1,5 +1,19 @@
 use super::*;
 
+/// #2640 — string-level validation that runs before any request (and therefore
+/// before the provider Bearer key is attached). Kept separate so the adversarial
+/// cases are testable without a running bot or contacting a network.
+fn validate_custom_webhook_url(url: &str) -> Result<url::Url, String> {
+    let parsed = botsecurity::validation::validate_url_ssrf_strict(url)
+        .map_err(|_| "Custom SMS webhook URL is not an allowed destination".to_string())?;
+    if parsed.scheme() != "https"
+        && !botsecurity::botsecurity_core::jwt_secret::is_development_env()
+    {
+        return Err("Custom SMS webhook URL must use HTTPS".to_string());
+    }
+    Ok(parsed)
+}
+
 pub(super) async fn send_via_twilio(
     state: &dyn BasicRuntime,
     bot_id: &Uuid,
@@ -259,6 +273,14 @@ pub(super) async fn send_via_custom_webhook(
         .get_config(bot_id, &format!("{}-api-key", webhook_name), None)
         .ok();
 
+    // #2640 — validate the destination BEFORE a client or request carrying
+    // the provider key exists. HTTPS is required everywhere except an explicit
+    // development posture; DNS is re-resolved immediately before the send.
+    let parsed = validate_custom_webhook_url(&webhook_url)?;
+    botsecurity::validation::resolve_checked(&parsed)
+        .await
+        .map_err(|_| "Custom SMS webhook URL resolves to a disallowed address")?;
+
     let client = reqwest::Client::new();
 
     let payload = serde_json::json!({
@@ -288,5 +310,26 @@ pub(super) async fn send_via_custom_webhook(
     } else {
         let error_text = response.text().await?;
         Err(format!("Custom webhook error: {}", error_text).into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn custom_sms_webhook_rejects_internal_targets_before_building_a_request() {
+        // The provider key is only attached after these guards pass; a bad
+        // target must produce an error with no client/header construction.
+        for url in [
+            "http://127.0.0.1:8080/collect",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://localhost/hook",
+            "file:///etc/passwd",
+        ] {
+            assert!(
+                super::validate_custom_webhook_url(url).is_err(),
+                "{url} must be refused before any Bearer header is built"
+            );
+        }
+        assert!(super::validate_custom_webhook_url("https://hooks.example.com/sms").is_ok());
     }
 }

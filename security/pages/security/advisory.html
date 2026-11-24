@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  Advisory detail page template (#2716). Generated pages keep this structure:
+  one h1, sequential h2/h3, a skip link, <details>/<summary> for FAQs and a
+  keyboard-reachable reporting contact. Replace the front-matter-derived text
+  through the data-i18n keys; never hand-edit a generated catalogue value.
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="detail-document-title">GBSA-2026-0001 — Boletim de segurança | General Bots</title>
+  <link rel="stylesheet" href="security.css">
+  <script src="../i18n.js" data-i18n-loader defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip-to-content">Ir para o conteúdo principal</a>
+
+  <header class="site-header">
+    <p class="site-name" data-i18n="site-name">General Bots</p>
+    <nav class="language-switcher" aria-label="Idioma" data-i18n-aria-label="language-label">
+      <a href="?lang=pt-BR" hreflang="pt-BR" lang="pt-BR" data-locale="pt-BR" data-i18n="locale-name-pt-br" aria-current="true">Português (Brasil)</a>
+      <a href="?lang=en" hreflang="en" lang="en" data-locale="en" data-i18n="locale-name-en">English</a>
+      <a href="?lang=es" hreflang="es" lang="es" data-locale="es" data-i18n="locale-name-es">Español</a>
+      <a href="?lang=fr" hreflang="fr" lang="fr" data-locale="fr" data-i18n="locale-name-fr">Français</a>
+      <a href="?lang=de" hreflang="de" lang="de" data-locale="de" data-i18n="locale-name-de">Deutsch</a>
+      <a href="?lang=ja" hreflang="ja" lang="ja" data-locale="ja" data-i18n="locale-name-ja">日本語</a>
+      <a href="?lang=ko" hreflang="ko" lang="ko" data-locale="ko" data-i18n="locale-name-ko">한국어</a>
+      <a href="?lang=zh-CN" hreflang="zh-CN" lang="zh-CN" data-locale="zh-CN" data-i18n="locale-name-zh-cn">中文（简体）</a>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <nav class="breadcrumb" aria-label="Navegação estrutural" data-i18n-aria-label="breadcrumb-label">
+      <a href="./" data-i18n="back-to-bulletin">Voltar ao boletim de segurança</a>
+    </nav>
+
+    <h1 data-i18n="detail-title">GBSA-2026-0001 — Injeção de HTML na edição de documentos e planilhas</h1>
+
+    <p class="authoritative" data-authoritative-locale="pt-BR">
+      <span class="badge" lang="pt-BR" data-i18n="authoritative-badge">PT-BR</span>
+      <span data-i18n="authoritative-note">Versão autoritativa: português (Brasil). Em caso de divergência entre traduções, esta versão prevalece.</span>
+    </p>
+
+    <section aria-labelledby="detail-summary-heading">
+      <h2 id="detail-summary-heading" data-i18n="detail-summary-heading">Resumo</h2>
+      <p data-i18n="detail-summary">Um usuário autenticado pode injetar HTML em títulos de documentos e planilhas, afetando outros participantes da sessão de colaboração. A versão 6.8.12 corrige o problema.</p>
+    </section>
+
+    <section aria-labelledby="detail-impact-heading">
+      <h2 id="detail-impact-heading" data-i18n="detail-impact-heading">Impacto e versões afetadas</h2>
+      <p data-i18n="detail-impact">Confidencialidade e integridade: scripts arbitrários podem ser executados no navegador de outros usuários. Versões 6.8.0 a 6.8.11 são afetadas; outras plataformas não são.</p>
+      <h3 data-i18n="detail-severity-heading">Gravidade</h3>
+      <p data-i18n="detail-severity">Crítica — CVSS 4.0, pontuação base 9.3 (AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N).</p>
+    </section>
+
+    <section aria-labelledby="detail-remediation-heading">
+      <h2 id="detail-remediation-heading" data-i18n="detail-remediation-heading">Correção</h2>
+      <p data-i18n="detail-remediation">Atualize para a versão 6.8.12 ou superior. Não existe solução alternativa validada; a atualização é a única medida recomendada.</p>
+    </section>
+
+    <section aria-labelledby="detail-faq-heading">
+      <h2 id="detail-faq-heading" data-i18n="detail-faq-heading">Perguntas sobre este aviso</h2>
+      <details>
+        <summary data-i18n="detail-exploit-q">Este problema está sendo explorado?</summary>
+        <p data-i18n="detail-exploit-a">Não há evidência de exploração ativa no momento da publicação. Novas evidências atualizam o aviso e exigem uma nova revisão.</p>
+      </details>
+      <details>
+        <summary data-i18n="detail-versions-q">Como verifico a versão instalada?</summary>
+        <p data-i18n="detail-versions-a">Consulte a tela de configurações do servidor ou execute o comando de versão na interface de linha de comando antes de aplicar a atualização.</p>
+      </details>
+    </section>
+
+    <section id="report" aria-labelledby="report-heading">
+      <h2 id="report-heading" data-i18n="report-heading">Relatar uma vulnerabilidade</h2>
+      <p><a href="mailto:security@generalbots.org" data-i18n="report-link">Enviar relatório confidencial por email para a equipe de segurança (security@generalbots.org)</a></p>
+      <p><a href="/.well-known/security.txt" data-i18n="report-policy">Ler a política de divulgação coordenada e os canais de contato (security.txt)</a></p>
+      <p><a href="/SECURITY.md" data-i18n="report-policy-md">Ler a política de divulgação coordenada no repositório (SECURITY.md)</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <p data-i18n="footer-note">General Bots — Boletim de segurança. Não há programa de recompensas; o reconhecimento público é a única forma de agradecimento.</p>
+  </footer>
+</body>
+</html>

@@ -68,7 +68,6 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
         );
     }
     let dir = stack_path().join("conf").join("directory");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create directory config: {e}"))?;
     let user_id = resolve_user_id(&admin.user_id, &admin.email);
     let (salt, hash) = password_record(&admin.password)?;
     let payload = serde_json::json!({
@@ -80,16 +79,8 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     let raw = serde_json::to_string_pretty(&payload)
         .map_err(|e| format!("serialize administrator credentials: {e}"))?;
     let path = dir.join("admin-credentials.json");
-    std::fs::write(&path, raw).map_err(|e| format!("write administrator credentials: {e}"))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if let Ok(metadata) = std::fs::metadata(&path) {
-            let mut permissions = metadata.permissions();
-            permissions.set_mode(0o600);
-            let _ = std::fs::set_permissions(&path, permissions);
-        }
-    }
+    super::private_file::write_private_file(&path, raw.as_bytes())
+        .map_err(|e| format!("write administrator credentials: {e}"))?;
     info!(
         "wizard: administrator credentials written to {}",
         path.display()
@@ -141,23 +132,15 @@ fn merge_env_line(existing: &str, key: &str, value: &str) -> String {
 /// (`{BOTSERVER_STACK_PATH}/.env`); the previous `conf/.env` path was never
 /// read, so the first-run answer had no effect.
 fn write_network_mode(mode: &str) -> Result<(), String> {
-    let dir = stack_path();
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create stack dir for .env: {e}"))?;
-    let env_path = dir.join(".env");
+    let env_path = stack_path().join(".env");
     let existing = std::fs::read_to_string(&env_path).unwrap_or_default();
     let updated = merge_env_line(&existing, "GB_NETWORK_MODE", mode);
-    std::fs::write(&env_path, &updated)
+    super::private_file::write_private_file(&env_path, updated.as_bytes())
         .map_err(|e| format!("write network mode to .env: {e}"))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if let Ok(metadata) = std::fs::metadata(&env_path) {
-            let mut permissions = metadata.permissions();
-            permissions.set_mode(0o600);
-            let _ = std::fs::set_permissions(&env_path, permissions);
-        }
-    }
-    info!("wizard: GB_NETWORK_MODE={mode} written to {}", env_path.display());
+    info!(
+        "wizard: GB_NETWORK_MODE={mode} written to {}",
+        env_path.display()
+    );
     Ok(())
 }
 
@@ -240,7 +223,11 @@ mod tests {
 
     #[test]
     fn an_existing_assignment_is_replaced_in_place() {
-        let updated = merge_env_line("A=1\nGB_NETWORK_MODE=offline\nB=2\n", "GB_NETWORK_MODE", "p2p");
+        let updated = merge_env_line(
+            "A=1\nGB_NETWORK_MODE=offline\nB=2\n",
+            "GB_NETWORK_MODE",
+            "p2p",
+        );
         assert_eq!(updated, "A=1\nGB_NETWORK_MODE=p2p\nB=2\n");
     }
 
@@ -268,7 +255,10 @@ mod tests {
 
     #[test]
     fn the_administrator_id_defaults_to_the_email() {
-        assert_eq!(resolve_user_id("", " admin@example.com "), "local-admin@example.com");
+        assert_eq!(
+            resolve_user_id("", " admin@example.com "),
+            "local-admin@example.com"
+        );
         assert_eq!(resolve_user_id("   ", "a@b.c"), "local-a@b.c");
         assert_eq!(resolve_user_id(" 42 ", "a@b.c"), "42");
         assert_eq!(resolve_user_id("local-x@y.z", "a@b.c"), "local-x@y.z");

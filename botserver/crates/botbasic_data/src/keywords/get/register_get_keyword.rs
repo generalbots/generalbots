@@ -13,6 +13,16 @@ pub(super) fn register_get_file_fn(state: Arc<dyn BasicRuntime>, user_session: U
     engine.register_fn("get_file", move |file_path: String| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
         let state_for_blocking = Arc::clone(&state_fn);
         let path_str = file_path;
+        // #2619 — the function form must share the exact same screen as the
+        // `GET $expr$` custom-syntax form; without this the two paths could
+        // drift apart (leading `/`, `..`, encoded/private endpoints).
+        if !super::execute_get_from::is_safe_path(&path_str) {
+            botbasic_core::keywords::errors::set_last_error("Invalid file path", 1);
+            return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                "Invalid file path".into(),
+                rhai::Position::NONE,
+            )));
+        }
         let bot_id = user_fn.bot_id;
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {

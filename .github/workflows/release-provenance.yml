@@ -1,0 +1,232 @@
+name: Release supply chain (signing, SBOM, SLSA provenance)
+
+# #2717 — software identity for published product releases.
+#
+# Every asset published by release.yml is downloaded, inventoried with a
+# CycloneDX SBOM (Rust Cargo.lock + JS package-lock.json + Python requirements,
+# including the vendored trees), described by an in-toto SLSA v1.0 provenance
+# statement that names the exact source commit, workflow and CI run, and signed
+# with Sigstore/cosign. Keyless OIDC is used: there is NO signing key, token or
+# certificate checked into this repository and nothing is fetched from a CDN
+# key server. The cosign and syft binaries themselves are pinned by SHA-256.
+#
+# The verify step is the gate: if any checksum, signature, SBOM or provenance
+# field disagrees, the job fails CLOSED and immediately returns the release to
+# draft (unpublishes it) so a broken chain can never be handed to operators.
+# Only after the gate passes are .sig / .pem / .bundle / SBOM / provenance
+# uploaded next to the assets and a one-line verification command added to the
+# release notes.
+#
+# Runs on `release: published` (right after release.yml publishes), on demand,
+# or as a reusable workflow. It never builds or replaces binaries.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing product tag to sign (for example v7.0.0)"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        description: "Existing product tag to sign"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-provenance-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  COSIGN_VERSION: "3.1.4"
+  COSIGN_SHA256: "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+  SYFT_VERSION: "1.57.0"
+  SYFT_SHA256: "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e"
+
+jobs:
+  selftest:
+    name: Integrity self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the gate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Prove the chain check fails closed
+        run: python3 scripts/release_supply_chain.py --self-test
+
+  supply-chain:
+    name: Sign, inventory, attest and verify
+    needs: selftest
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Check out the released commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Resolve the release tag and commit
+        id: release
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          set -euo pipefail
+          [ -n "$TAG" ] || { echo "::error::no release tag was supplied"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          curl -fsSL --retry 3 -o /tmp/cosign "$url"
+          echo "${COSIGN_SHA256}  /tmp/cosign" | sha256sum -c -
+          sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
+          cosign version
+
+      - name: Install syft (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/syft.tar.gz "$url"
+          tar -xzf /tmp/syft.tar.gz -C /tmp syft
+          echo "${SYFT_SHA256}  /tmp/syft" | sha256sum -c -
+          sudo install -m 0755 /tmp/syft /usr/local/bin/syft
+          syft version
+
+      - name: Download the published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release
+          (cd release && sha256sum -c SHA256SUMS >/dev/null)
+          test -s release/MANIFEST.json
+          echo "downloaded $(find release -maxdepth 1 -type f | wc -l) assets for $TAG"
+
+      - name: Generate CycloneDX SBOM (Rust, JS, Python and vendored trees)
+        run: |
+          set -euo pipefail
+          syft dir:. \
+            --exclude '**/target/**' \
+            --exclude './.git/**' \
+            --exclude '**/node_modules/**' \
+            --exclude './release/**' \
+            -o cyclonedx-json=release/sbom-source.cdx.json
+          python3 -c "import json; d=json.load(open('release/sbom-source.cdx.json')); print('SBOM components:', len(d.get('components', [])))"
+
+      - name: Generate SLSA v1.0 provenance
+        run: |
+          set -euo pipefail
+          python3 scripts/release_supply_chain.py provenance \
+            --manifest release/MANIFEST.json \
+            --out release/provenance.slsa.json
+          python3 -c "import json; d=json.load(open('release/provenance.slsa.json')); print('builder:', d['predicate']['runDetails']['builder']['id']); print('invocation:', d['predicate']['runDetails']['metadata']['invocationId'])"
+
+      - name: Sign every asset, checksum file, SBOM and provenance (keyless)
+        run: |
+          set -euo pipefail
+          {
+            echo SHA256SUMS
+            echo MANIFEST.json
+            python3 scripts/release_supply_chain.py list-assets --dir release
+            echo sbom-source.cdx.json
+            echo provenance.slsa.json
+          } > /tmp/gb-sign-list
+          while IFS= read -r name; do
+            [ -s "release/$name" ] || { echo "::error::cannot sign missing $name"; exit 1; }
+            cosign sign-blob --yes \
+              --bundle "release/$name.bundle" \
+              --output-signature "release/$name.sig" \
+              --output-certificate "release/$name.pem" \
+              "release/$name"
+          done < /tmp/gb-sign-list
+          echo "signed $(wc -l < /tmp/gb-sign-list) files"
+
+      - name: Verify the checksum and signature chain (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          CERT_IDENTITY="https://github.com/${GITHUB_WORKFLOW_REF}"
+          fail_closed() {
+            echo "::error::supply-chain verification failed; unpublishing $TAG"
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft >/dev/null 2>&1 || true
+            exit 1
+          }
+          if ! {
+            (cd release && sha256sum -c SHA256SUMS >/dev/null)
+            python3 scripts/release_supply_chain.py verify --dir release
+            while IFS= read -r name; do
+              cosign verify-blob \
+                --bundle "release/$name.bundle" \
+                --certificate-identity "$CERT_IDENTITY" \
+                --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+                "release/$name"
+            done < /tmp/gb-sign-list
+          }; then
+            fail_closed
+          fi
+          echo "chain verified for $TAG"
+
+      - name: Upload signatures, SBOM and provenance to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t uploads < <(find release -maxdepth 1 -type f \
+            \( -name '*.sig' -o -name '*.pem' -o -name '*.bundle' \
+               -o -name 'sbom-source.cdx.json' -o -name 'provenance.slsa.json' \) \
+            -printf 'release/%f\n' | sort)
+          [ "${#uploads[@]}" -gt 0 ] || { echo "::error::no trust artifacts to upload"; exit 1; }
+          gh release upload "$TAG" "${uploads[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "uploaded ${#uploads[@]} trust artifacts"
+
+      - name: Add the one-line verification command to the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          DOCS_URL: https://github.com/generalbots/generalbots/blob/main/botbook/src/09-security/signed-releases-provenance.md
+        run: |
+          set -euo pipefail
+          body="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
+          if printf '%s' "$body" | grep -qF '## Supply chain identity (#2717)'; then
+            echo "release notes already carry the supply-chain section"
+            exit 0
+          fi
+          cat > /tmp/gb-verify-one-liner.txt <<'EOF'
+          sha256sum -c SHA256SUMS && for f in $(awk '{print $2}' SHA256SUMS); do cosign verify-blob --bundle "$f.bundle" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp '^https://github.com/generalbots/generalbots/\.github/workflows/release-provenance\.yml@refs/tags/.*$' "$f" || exit 1; done && echo VERIFIED
+          EOF
+          {
+            printf '%s\n\n' "$body"
+            echo '---'
+            echo '## Supply chain identity (#2717)'
+            echo
+            echo '- SBOM (CycloneDX; Rust, JS, Python and vendored trees): `sbom-source.cdx.json`.'
+            echo '- SLSA v1.0 provenance: `provenance.slsa.json` (exact source commit, workflow and CI run).'
+            echo '- Every asset has `<asset>.sig`, `<asset>.pem` and `<asset>.bundle` (keyless Sigstore; no repository key).'
+            echo '- Verify every downloaded asset with one command:'
+            echo
+            echo '```sh'
+            cat /tmp/gb-verify-one-liner.txt
+            echo '```'
+            echo
+            echo "Operator guide: $DOCS_URL"
+          } > /tmp/gb-release-notes.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file /tmp/gb-release-notes.md

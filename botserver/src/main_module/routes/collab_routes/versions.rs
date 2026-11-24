@@ -26,6 +26,11 @@ pub async fn snapshot_version(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — a snapshot write is only allowed on a resource the caller can
+    // access; the actor id is bound from verified claims, never the payload.
+    if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     #[derive(QueryableByName)]
     struct LatestHash {
@@ -90,7 +95,7 @@ pub async fn snapshot_version(
 /// metadata (no content), newest first.
 pub async fn list_versions(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<VersionsQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<VersionItem>>, (StatusCode, Json<serde_json::Value>)> {
@@ -103,6 +108,10 @@ pub async fn list_versions(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // #2768 — version metadata must not leak for a foreign resource.
+    if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+    }
 
     let rows = diesel::sql_query(
         "SELECT id::text, actor_id, actor_name, content_hash, name, \
@@ -136,7 +145,7 @@ pub async fn list_versions(
 /// `GET /api/collab/versions/:id` — full content of a single snapshot.
 pub async fn get_version(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<VersionDetail>, (StatusCode, Json<serde_json::Value>)> {
@@ -145,6 +154,16 @@ pub async fn get_version(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // #2768 — derive the scope from the stored row, never from the caller's
+    // query. A foreign or unknown id is reported identically as 404 so the
+    // endpoint cannot be used to enumerate other tenants' snapshots.
+    let scope = version_resource(&mut conn, id).ok_or_else(|| {
+        err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+    })?;
+    if !has_collab_access(&mut conn, &user, &scope.0, &scope.1) {
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+    }
 
     let row = diesel::sql_query(
         "SELECT id::text, actor_id, actor_name, content, content_hash, name, created_at \
@@ -199,6 +218,12 @@ pub async fn restore_version(
         }
         other => err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, other),
     })?;
+
+    // #2768 — the target snapshot's own resource is the authorization scope;
+    // a foreign id must not become a new version under the caller's identity.
+    if !has_collab_access(&mut conn, &user, &old.resource_type, &old.resource_id) {
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+    }
 
     #[derive(QueryableByName)]
     struct CreatedVersion {
@@ -264,6 +289,15 @@ pub async fn name_version(
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // #2768 — resolve the row's resource scope before mutating it; foreign or
+    // unknown ids are reported as 404 and never modified.
+    let scope = version_resource(&mut conn, id).ok_or_else(|| {
+        err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+    })?;
+    if !has_collab_access(&mut conn, &user, &scope.0, &scope.1) {
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+    }
 
     let changed = diesel::sql_query("UPDATE collab_versions SET name = $1 WHERE id = $2")
         .bind::<Text, _>(&name)

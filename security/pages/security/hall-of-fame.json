@@ -1,0 +1,15 @@
+{
+  "schema": "generalbots.security.hall-of-fame/1.0",
+  "policy": "Opt-in only. A reporter appears only after explicit, recorded consent to be named. Handles only — no email addresses, internal IPs, tokens or other private data are ever published.",
+  "incentive": "There is no bug bounty program. Reward budget is 0. Public recognition is the only incentive.",
+  "removal": "Send a removal request to security@generalbots.org stating the handle or advisory ID. Acknowledgement within 3 business days; the credit is withdrawn from the live site within 5 business days and omitted from the next signed mirror publication. Previously published content-addressed bundles cannot be edited; see the incident-response runbook for the retirement path. No explanation is required.",
+  "entry_schema": {
+    "handle": "Public handle or name the reporter chose to be shown",
+    "advisory": "Canonical GBSA advisory ID",
+    "date": "ISO YYYY-MM-DD date credit was granted",
+    "role": "reporter | researcher | internal",
+    "opt_in": "true — recorded consent to be named; false entries must never be published",
+    "example": "true for illustrative records that are not real people"
+  },
+  "entries": []
+}

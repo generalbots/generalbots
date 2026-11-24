@@ -10,11 +10,11 @@
                     const protocol =
                         window.location.protocol === "https:" ? "wss:" : "ws:";
                     // Backend route: /api/attendance/ws (NOT /ws/attendant).
-                    // Token required for the WS upgrade handshake.
-                    const wsToken =
-                        localStorage.getItem("gb-access-token") || "";
+                    // #2703 — no credential in the URL: the attendance WS
+                    // handler only reads attendant_id, and a JWT in a query
+                    // string would be copied into proxy/access logs.
                     ws = new WebSocket(
-                        `${protocol}//${window.location.host}/api/attendance/ws?attendant_id=${encodeURIComponent(currentAttendantId)}&token=${encodeURIComponent(wsToken)}`,
+                        `${protocol}//${window.location.host}/api/attendance/ws?attendant_id=${encodeURIComponent(currentAttendantId)}`,
                     );
 
                     ws.onopen = () => {

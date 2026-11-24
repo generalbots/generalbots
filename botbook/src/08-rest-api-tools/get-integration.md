@@ -50,7 +50,7 @@ let webpage = GET "http://example.com/page.html"
 
 ### Path Validation
 
-The `is_safe_path` function prevents directory traversal attacks by blocking paths containing `..` sequences and rejecting absolute paths. Character sets are validated to ensure only safe characters appear in paths, and sandbox isolation ensures scripts cannot escape their designated storage areas.
+The `is_safe_path` function prevents directory traversal attacks by blocking paths containing `..` sequences and rejecting absolute paths. Character sets are validated to ensure only safe characters appear in paths, and sandbox isolation ensures scripts cannot escape their designated storage areas. Both BASIC spellings of GET — the `get_file(path)` function form and the `GET $expr$` custom-syntax form — call this same `is_safe_path` predicate before any HTTP or bucket dispatch, so the two forms accept and reject the same paths.
 
 ### Access Control
 

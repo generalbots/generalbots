@@ -1,5 +1,44 @@
 use super::*;
 
+/// Page-size ceiling: one request must never dump the whole trail (#2749).
+const MAX_AUDIT_LOG_LIMIT: i64 = 500;
+const DEFAULT_AUDIT_LOG_LIMIT: i64 = 100;
+
+/// Effective tenant filter. `None` means "no filter" and is only ever produced
+/// for an administrator who explicitly asked for `all_tenants`.
+struct AuditLogScope {
+    branch_id: Option<Uuid>,
+    org_id: Option<Uuid>,
+}
+
+/// Pure scope decision (#2749): always the caller's verified tenant, widened
+/// only for an authenticated admin who explicitly requests `all_tenants`.
+fn audit_log_scope(
+    is_admin: bool,
+    all_tenants: bool,
+    verified_org: Option<Uuid>,
+    verified_branch: Uuid,
+) -> AuditLogScope {
+    if is_admin && all_tenants {
+        AuditLogScope {
+            branch_id: None,
+            org_id: None,
+        }
+    } else {
+        AuditLogScope {
+            branch_id: Some(verified_branch),
+            org_id: verified_org,
+        }
+    }
+}
+
+/// Pure page-size clamp: positive and capped.
+fn audit_log_limit(requested: Option<i64>) -> i64 {
+    requested
+        .unwrap_or(DEFAULT_AUDIT_LOG_LIMIT)
+        .clamp(1, MAX_AUDIT_LOG_LIMIT)
+}
+
 /// Whether the caller is trusted to append to the compliance audit trail.
 ///
 /// Audit events are compliance evidence, so only platform administrators and
@@ -24,20 +63,38 @@ fn audit_actor_id(user: &AuthenticatedUser) -> Uuid {
 pub async fn handle_list_audit_logs(
     State(pool): State<Arc<crate::DbPool>>,
     headers: HeaderMap,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(query): Query<ListAuditLogsQuery>,
 ) -> Result<Json<Vec<AuditLogEntry>>, ComplianceError> {
+    // Tenant comes from verified JWT claims / the principal, never from a
+    // client parameter; `all_tenants` only widens it for an authenticated admin.
+    let verified_org = botsecurity_core::tenant::org_from_claims(&headers).or(user.organization_id);
+    let is_admin = user.is_admin();
+    let all_tenants = query.all_tenants.unwrap_or(false);
+
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
-        let limit = query.limit.unwrap_or(100);
-        let offset = query.offset.unwrap_or(0);
-        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
+        let limit = audit_log_limit(query.limit);
+        let offset = query.offset.unwrap_or(0).max(0);
+        let verified_branch = crate::branch_scope::resolve_branch(&headers, &pool);
+        let scope = audit_log_scope(is_admin, all_tenants, verified_org, verified_branch);
 
-        let mut db_query = compliance_audit_log::table
-            .filter(compliance_audit_log::branch_id.eq(branch_id))
-            .into_boxed();
+        let mut db_query = compliance_audit_log::table.into_boxed();
+
+        if let Some(branch_id) = scope.branch_id {
+            db_query = db_query.filter(compliance_audit_log::branch_id.eq(branch_id));
+        }
+
+        // Internal writer rows carry nil org_id (framework_handlers/audit.rs);
+        // keep them alongside the caller's org. The branch filter still excludes
+        // nil-org rows belonging to other tenants.
+        if let Some(org_id) = scope.org_id {
+            db_query =
+                db_query.filter(compliance_audit_log::org_id.eq_any(vec![org_id, Uuid::nil()]));
+        }
 
         if let Some(action) = query.action {
             db_query = db_query.filter(compliance_audit_log::action.eq(action));
@@ -100,7 +157,8 @@ pub async fn handle_create_audit_log(
         let now = Utc::now();
         let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        let metadata = serde_json::to_value(req.metadata.unwrap_or_default()).unwrap_or(serde_json::json!({}));
+        let metadata =
+            serde_json::to_value(req.metadata.unwrap_or_default()).unwrap_or(serde_json::json!({}));
 
         let db_log = DbAuditLog {
             id: Uuid::new_v4(),
@@ -205,7 +263,10 @@ pub async fn handle_list_training(
             .map(|r| TrainingRecord {
                 id: r.id,
                 user_id: r.user_id,
-                training_type: r.training_type.parse().unwrap_or(TrainingType::SecurityAwareness),
+                training_type: r
+                    .training_type
+                    .parse()
+                    .unwrap_or(TrainingType::SecurityAwareness),
                 training_name: r.training_name,
                 provider: r.provider,
                 score: r.score,
@@ -322,5 +383,48 @@ mod tests {
 
         assert_eq!(audit_actor_id(&user), user_id);
         assert_eq!(audit_actor_id(&AuthenticatedUser::anonymous()), Uuid::nil());
+    }
+
+    #[test]
+    fn non_admin_cannot_widen_scope_with_all_tenants_flag() {
+        let org = Uuid::new_v4();
+        let branch = Uuid::new_v4();
+        let regular = AuthenticatedUser::new(Uuid::new_v4(), "alice".to_string());
+        let moderator =
+            AuthenticatedUser::new(Uuid::new_v4(), "mod".to_string()).with_role(Role::Moderator);
+
+        for user in [&regular, &moderator] {
+            let scope = audit_log_scope(user.is_admin(), true, Some(org), branch);
+            assert_eq!((scope.branch_id, scope.org_id), (Some(branch), Some(org)));
+        }
+
+        // No org claim still leaves the verified branch as a hard boundary.
+        let scope = audit_log_scope(regular.is_admin(), true, None, branch);
+        assert_eq!((scope.branch_id, scope.org_id), (Some(branch), None));
+    }
+
+    #[test]
+    fn admin_is_tenant_scoped_unless_broad_scope_is_explicit() {
+        let org = Uuid::new_v4();
+        let branch = Uuid::new_v4();
+        let admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
+
+        let scoped = audit_log_scope(admin.is_admin(), false, Some(org), branch);
+        assert_eq!((scoped.branch_id, scoped.org_id), (Some(branch), Some(org)));
+
+        let super_admin =
+            AuthenticatedUser::new(Uuid::new_v4(), "root".to_string()).with_role(Role::SuperAdmin);
+        let broad = audit_log_scope(super_admin.is_admin(), true, Some(org), branch);
+        assert_eq!((broad.branch_id, broad.org_id), (None, None));
+    }
+
+    #[test]
+    fn page_size_is_capped_and_always_positive() {
+        assert_eq!(audit_log_limit(None), DEFAULT_AUDIT_LOG_LIMIT);
+        assert_eq!(audit_log_limit(Some(i64::MAX)), MAX_AUDIT_LOG_LIMIT);
+        assert_eq!(audit_log_limit(Some(0)), 1);
+        assert_eq!(audit_log_limit(Some(-25)), 1);
+        assert_eq!(audit_log_limit(Some(50)), 50);
     }
 }

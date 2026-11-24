@@ -131,9 +131,11 @@ fn a_macro_deck_is_stripped_and_noticed_before_conversion() {
 }
 
 #[test]
-fn fail_closed_policy_requires_a_scanner_unless_opted_out() {
-    assert!(policy_for_opt_out(false).require_malware_scanner);
-    assert!(!policy_for_opt_out(true).require_malware_scanner);
+fn the_default_policy_requires_a_scanner_with_no_opt_out() {
+    assert!(
+        upload_policy::HostileFilePolicy::default().require_malware_scanner,
+        "Slides imports must never be accepted unscanned"
+    );
 }
 
 #[test]
@@ -144,7 +146,7 @@ fn a_missing_scanner_refuses_a_clean_deck_under_fail_closed_policy() {
         "clean.pptx",
         &axum::http::HeaderMap::new(),
         "test",
-        &policy_for_opt_out(false),
+        &upload_policy::HostileFilePolicy::default(),
     );
     assert!(is_sanitized_rejection(result, "error-file-upload-failed"));
 }

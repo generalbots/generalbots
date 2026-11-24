@@ -1,0 +1,67 @@
+{
+  "affected": [
+    {
+      "database_specific": {
+        "product": "botserver",
+        "severity": "high"
+      },
+      "package": {
+        "ecosystem": "GeneralBots",
+        "name": "botserver"
+      },
+      "ranges": [
+        {
+          "database_specific": {
+            "authored_range": ">= 1.0.0, < 2.3.1"
+          },
+          "events": [
+            {
+              "introduced": "1.0.0"
+            },
+            {
+              "fixed": "2.3.1"
+            }
+          ],
+          "type": "SEMVER"
+        }
+      ],
+      "versions": []
+    }
+  ],
+  "database_specific": {
+    "canonical": "https://generalbots.org/security/advisories/GBSA-2026-0001",
+    "cwe": [
+      "CWE-200"
+    ],
+    "remediation": "2.3.1",
+    "revisions": [
+      {
+        "date": "2026-11-20",
+        "summary": "Initial publication"
+      },
+      {
+        "date": "2026-11-21",
+        "summary": "Clarified affected range"
+      }
+    ],
+    "source": "General Bots Security Bulletin"
+  },
+  "details": "Example record shipped with the advisory API so operators can verify the schema end to end. It does not describe a real vulnerability.",
+  "id": "GBSA-2026-0001",
+  "modified": "2026-11-21T00:00:00Z",
+  "published": "2026-11-20T00:00:00Z",
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://generalbots.org/security/advisories/GBSA-2026-0001"
+    }
+  ],
+  "schema_version": "1.4.0",
+  "severity": [
+    {
+      "score": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N",
+      "type": "CVSS_V4"
+    }
+  ],
+  "summary": "Example: unauthenticated read of bot configuration"
+}

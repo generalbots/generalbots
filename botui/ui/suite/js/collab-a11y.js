@@ -40,14 +40,21 @@
   }
 
   // Escape closes whichever collab panel is open; each close() is idempotent.
+  // #2439 — only consume Escape when a panel was ACTUALLY open. The old code
+  // set handled=true whenever the globals existed, so it swallowed every
+  // Escape at document-bubble and the window-manager's close-focused-window
+  // shortcut never saw it. Detect openness from the DOM before closing.
   document.addEventListener("keydown", function (e) {
-    if (e.key !== "Escape") return;
-    var handled = false;
-    if (window.GBCollabComments) { window.GBCollabComments.close(); handled = true; }
-    if (window.GBCollabActivity) { window.GBCollabActivity.close(); handled = true; }
-    if (window.GBCollabVersions) { window.GBCollabVersions.close(); handled = true; }
-    if (window.GBCollabFollow) { window.GBCollabFollow.hide(); handled = true; }
-    if (handled) e.stopPropagation();
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    var wasOpen = !!(document.querySelector(".gbc-open, .gba-open, .gbv-open, .gbs-open") ||
+      (window.GBCollabFollow && document.querySelector("#gb-follow-panel") &&
+       document.querySelector("#gb-follow-panel").style.display === "block"));
+    if (!wasOpen) return;
+    if (window.GBCollabComments) window.GBCollabComments.close();
+    if (window.GBCollabActivity) window.GBCollabActivity.close();
+    if (window.GBCollabVersions) window.GBCollabVersions.close();
+    if (window.GBCollabFollow) window.GBCollabFollow.hide();
+    e.stopPropagation();
   });
 
   window.GBCollabA11y = { announce: announce, ensureLive: ensureLive };

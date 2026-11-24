@@ -184,6 +184,7 @@ window.CLOUD_CONFIG = {
 </script>
 <script src="/js/i18n-lite.js"></script>
 <script src="/js/i18n-switcher.js"></script>
+<script src="/js/sso-handoff.js"></script>
 <script src="/js/cloud-auth.js"></script>
 <script>
 (async function(){if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')return;
@@ -192,7 +193,9 @@ var e=localStorage.getItem('management_email'),t=localStorage.getItem('managemen
 if(t){try{var r=await fetch('/api/cloud/auth/login',{method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({email:e||'admin@localhost',password:'dev'})});
-if(r.ok)window.location.href=(window.GB_CLOUD_URL||'http://localhost:4000')+'/dashboard?token='+encodeURIComponent(t)+'&email='+encodeURIComponent(e||'admin@localhost')}catch(_){}}else if(e){document.getElementById('login-email').value=e}})();
+if(r.ok){var h=GB_SSO_HANDOFF.create({_host:location.hostname,_secure:location.protocol==='https:'});
+var d=new URL('/dashboard',(window.GB_CLOUD_URL||'http://localhost:4000'));
+window.location.href=GB_SSO_HANDOFF.destination(d,{token:t,email:e||'admin@localhost',name:''},h,location.origin)}catch(_){}}else if(e){document.getElementById('login-email').value=e}})();
 function onLoginSubmit(e){sessionStorage.removeItem('gb-signed-out');handleLogin(e)}
 </script>
 </body>

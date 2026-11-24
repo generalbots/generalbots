@@ -15,9 +15,21 @@ pub(crate) use super::types::*;
 pub struct GatewayState {
     #[serde(default)]
     deploy_keys: Vec<String>,
+    /// True only when the key came from Vault/env. An ephemeral fail-closed
+    /// key must never justify exposing the listener beyond loopback (#2613).
+    #[serde(default)]
+    key_from_config: bool,
     pub(crate) incus_socket: String,
     caddy_api_url: String,
     sites_root: String,
+}
+
+impl GatewayState {
+    /// Whether a real per-deployment secret was configured (as opposed to the
+    /// ephemeral key generated when nothing usable was supplied).
+    pub fn deploy_key_is_configured(&self) -> bool {
+        self.key_from_config
+    }
 }
 
 #[derive(Debug)]
@@ -35,6 +47,7 @@ pub struct ContainerInfo {
 }
 
 mod published_domain;
+mod gateway_key;
 mod gateway_state;
 mod container_registry;
 mod configure_gateway_routes;
@@ -42,6 +55,7 @@ mod deploy_to_caddy;
 mod rate_limit;
 
 pub(crate) use published_domain::*;
+pub(crate) use gateway_key::*;
 pub use configure_gateway_routes::*;
 use deploy_to_caddy::*;
 use rate_limit::*;

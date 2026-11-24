@@ -268,12 +268,14 @@ jobs:
       - name: Fetch vendored drive binaries
         run: |
           set -euo pipefail
-          # MinIO archived the OSS server/client and removed the binaries from
-          # dl.min.io (HTTP 410). The last working Linux build is vendored in a
-          # release and pinned by checksum, so a first run always has a drive.
-          # Replace with a maintained S3 server when the drive component moves.
+          # #2612 — MinIO publishes no binary for the CVE-2025-62506 fix
+          # (RELEASE.2025-10-15T17-29-55Z): dl.min.io is gone and the fixed
+          # GitHub release has source archives only. The source-built binaries
+          # are vendored in an internal release and pinned by checksum, so a
+          # first run always gets the patched server and never downloads the
+          # last published, vulnerable build.
           mkdir -p dist/installers
-          BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v3"
+          BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v4"
           for f in minio mc SHA256SUMS-drive-bin; do
             for attempt in 1 2 3 4 5; do
               if curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o "dist/installers/$f" "$BASE/$f"; then
@@ -286,6 +288,14 @@ jobs:
           done
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
+          # Fail the build instead of shipping a vulnerable drive: the vendored
+          # binary must report the source-built tag that carries the fix.
+          minio_version="$(dist/installers/minio --version 2>&1 | head -1)"
+          echo "vendored MinIO: $minio_version"
+          case "$minio_version" in
+            *RELEASE.2025-10-15T17-29-55Z*) ;;
+            *) echo "vendored MinIO is not the CVE-2025-62506 fixed build" >&2; exit 1 ;;
+          esac
 
       - name: Bundle llama.cpp and local models for offline installer
         run: |
@@ -734,10 +744,10 @@ jobs:
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
       # #1793 — the payload must carry the services that have a Windows build,
-      # not just the executables. `drive-bin-v3` only publishes the Linux MinIO
-      # binaries, so the Windows pair comes from the same pinned upstream
-      # MinIO/mc releases listed in botserver/3rdparty.toml (url_win) and is
-      # verified against their published .sha256sum files. Zitadel publishes
+      # not just the executables. #2612 — the Windows MinIO binary comes from
+      # the same source-built `drive-bin-v4` release as the Linux one (there is
+      # no upstream binary for the CVE fix); its digest is verified against
+      # that release's SHA256SUMS file. Zitadel publishes
       # checksums.txt and Caddy's checksums.txt is SHA-512. Redis and Qdrant
       # publish no checksum asset; their digests were recorded from the pinned
       # release downloads (size-verified against the GitHub asset metadata)
@@ -748,10 +758,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $stage = 'dist\installers'
           $resources = 'botserver\botserver-installers'
+          $driveBase = 'https://github.com/generalbots/generalbots/releases/download/drive-bin-v4'
           New-Item -ItemType Directory -Force $stage, $resources | Out-Null
 
           $downloads = @(
-            @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
+            @{ Name = 'minio.exe'; Url = "$driveBase/minio.exe"; Algo = 'SHA256'; Hash = '' },
             @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
             @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = 'SHA256'; Hash = '5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e' },
             @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = 'SHA256'; Hash = '6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be' },
@@ -774,6 +785,19 @@ jobs:
               Write-Host "::warning::no upstream checksum for $($item.Name); recording the downloaded digest"
             }
           }
+
+          # #2612 — minio.exe has no upstream checksum; the source-built
+          # artifact is pinned by the internal release's SHA256SUMS file.
+          $minioSums = Join-Path $stage 'SHA256SUMS-drive-bin'
+          Invoke-WebRequest -Uri "$driveBase/SHA256SUMS-drive-bin" -OutFile $minioSums -UseBasicParsing
+          $minioLine = Select-String -Path $minioSums -Pattern '\s+minio\.exe$' | Select-Object -First 1
+          if (-not $minioLine) { throw 'drive-bin-v4 SHA256SUMS has no minio.exe entry' }
+          $minioExpected = ($minioLine.Line -split '\s+')[0].ToLowerInvariant()
+          $minioActual = (Get-FileHash (Join-Path $stage 'minio.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($minioActual -ne $minioExpected) {
+            throw "checksum mismatch for minio.exe: expected $minioExpected, got $minioActual"
+          }
+          Write-Host 'verified minio.exe (SHA256, drive-bin-v4)'
 
           Get-ChildItem $stage -File |
             Where-Object { $_.Name -ne 'SHA256SUMS-windows-installers' } |

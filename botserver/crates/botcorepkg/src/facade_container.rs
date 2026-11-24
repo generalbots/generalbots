@@ -1,5 +1,5 @@
 use crate::component::{ComponentConfig, InstallResult};
-use crate::db_utils::{get_database_url_sync, parse_database_url};
+use crate::db_utils::{get_database_url_sync, parse_database_url, ZITADEL_PASSWORD_PLACEHOLDER};
 use crate::OsType;
 use anyhow::Result;
 use botlib::security::SafeCommand;
@@ -23,6 +23,21 @@ pub(crate) fn safe_incus_admin(args: &[&str]) -> Option<std::process::Output> {
     let mut all = vec!["admin"];
     all.extend_from_slice(args);
     safe_incus(&all)
+}
+
+/// Pure policy verdict for the container download path (#2710).
+///
+/// `checksum_for_url` yields `None` both for an unknown URL and for an empty
+/// pin. Collapsing that to `""` made an unverified download look verified.
+/// Keeping the verdict pure makes it unit-testable without reading
+/// `3rdparty.toml` or touching the process environment.
+fn required_pin(url: &str, pin: Option<String>) -> Result<String> {
+    match pin {
+        Some(hash) if !hash.trim().is_empty() => Ok(hash),
+        _ => Err(anyhow::anyhow!(
+            "No pinned sha256 for '{url}' in 3rdparty.toml — refusing an unverified container install"
+        )),
+    }
 }
 
 pub fn install_container(
@@ -94,7 +109,10 @@ pub fn install_container(
     if let Some(url) = &component.download_url {
         // #2001 — the pinned digest travels with the URL, so the container
         // installer can verify the asset it just fetched.
-        let expected = crate::installer::checksum_for_url(url).unwrap_or_default();
+        // #2710 — propagate a missing pinned digest instead of silently
+        // installing unverified (the runtime path in
+        // botcore/package_manager/install_binary.rs already does this).
+        let expected = required_pin(url, crate::installer::checksum_for_url(url))?;
         crate::facade_download::download_in_container(
             &container_name,
             url,
@@ -250,22 +268,28 @@ pub fn create_container_service(
             String::new()
         }
     };
+    // #2763 — resolve the Zitadel role password for both the service command
+    // and its environment. A Vault error is fatal; no fixed fallback.
+    let zitadel_password = if exec_cmd.contains(ZITADEL_PASSWORD_PLACEHOLDER)
+        || env_vars
+            .values()
+            .any(|value| value.contains(ZITADEL_PASSWORD_PLACEHOLDER))
+    {
+        crate::db_utils::zitadel_db_password().map_err(|error| {
+            anyhow::anyhow!(
+                "Cannot resolve Zitadel DB password for container service '{component}' (Vault failure is fatal): {error}"
+            )
+        })?
+    } else {
+        String::new()
+    };
     let rendered_cmd = exec_cmd
         .replace("{{DB_PASSWORD}}", &db_password)
         .replace("{{BIN_PATH}}", "/opt/gbo/bin")
         .replace("{{DATA_PATH}}", "/opt/gbo/data")
         .replace("{{CONF_PATH}}", "/opt/gbo/conf")
-        .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
-    // #2763 — resolve the Zitadel role password once per install (Vault seed
-    // or explicit env), never leave the fixed installer literal in the unit.
-    let zitadel_password = if env_vars.values().any(|value| value.contains("{{ZITADEL_PASSWORD}}")) {
-        std::env::var("ZITADEL_DB_PASSWORD").ok()
-            .filter(|value| !value.is_empty())
-            .or_else(|| crate::db_utils::get_secret_value_sync("secret/gbo/directory", "db_password").ok())
-            .unwrap_or_else(|| crate::generate_random_string(32))
-    } else {
-        String::new()
-    };
+        .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
+        .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
     let mut env_section = String::new();
     for (key, value) in env_vars {
         let rendered_value = value
@@ -273,25 +297,23 @@ pub fn create_container_service(
             .replace("{{BIN_PATH}}", "/opt/gbo/bin")
             .replace("{{CONF_PATH}}", "/opt/gbo/conf")
             .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
-            .replace("{{ZITADEL_PASSWORD}}", &zitadel_password);
+            .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
         let _ = writeln!(env_section, "Environment={key}={rendered_value}");
     }
     let service_content = format!(
         "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
         component, env_section, rendered_cmd
     );
-    // #2789 — never stage a root-owned systemd unit at a predictable /tmp
-    // path; a local user could pre-create or symlink it and substitute a unit.
-    let staged = crate::safe_staging::StagedFile::create(
-        &format!("{component}.service"),
-        service_content.as_bytes(),
-    )?;
-    if std::fs::read(staged.as_path())? != service_content.as_bytes() {
-        return Err(anyhow::anyhow!("staged systemd unit differs from the generated template"));
-    }
-    let service_file = staged.as_path().to_string_lossy().to_string();
+    // #2789 — stage the unit atomically in a private, unpredictable directory
+    // instead of writing to the predictable, world-writable /tmp path. The
+    // staged bytes are verified against the generated template by
+    // `StagedFile::create`, and `Drop` removes the directory on every path.
+    let unit_name = format!("{component}.service");
+    let staged = crate::safe_staging::StagedFile::create(&unit_name, service_content.as_bytes())
+        .map_err(|e| anyhow::anyhow!("Failed to stage service template: {e}"))?;
+    let staged_path = staged.as_path().to_string_lossy().to_string();
     let dest = format!("{container}/etc/systemd/system/{component}.service");
-    let output = safe_incus(&["file", "push", &service_file, &dest])
+    let output = safe_incus(&["file", "push", staged_path.as_str(), &dest])
         .ok_or_else(|| anyhow::anyhow!("Failed to execute incus file push command"))?;
     if !output.status.success() {
         warn!("Failed to push service file to container");
@@ -321,4 +343,28 @@ pub fn setup_port_forwarding(container: &str, ports: &[u16]) -> Result<()> {
         trace!("Port forwarding configured: {} -> container {}", port, container);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod required_pin_tests {
+    use super::required_pin;
+
+    #[test]
+    fn accepts_a_pinned_digest() {
+        let hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        let resolved = required_pin("https://example.invalid/bin", Some(hash.to_string()))
+            .expect("a pinned digest must be accepted");
+        assert_eq!(resolved, hash);
+    }
+
+    #[test]
+    fn rejects_missing_and_blank_pins() {
+        for pin in [None, Some(String::new()), Some("   ".to_string())] {
+            let error = required_pin("https://example.invalid/bin", pin)
+                .expect_err("an unpinned container download must fail closed");
+            let message = error.to_string();
+            assert!(message.contains("https://example.invalid/bin"));
+            assert!(message.contains("refusing an unverified container install"));
+        }
+    }
 }

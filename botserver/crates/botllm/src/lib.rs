@@ -20,6 +20,7 @@ pub mod observability;
 pub mod pipeline;
 pub mod openai_client;
 pub mod openai_responses;
+pub mod pinned_http;
 pub mod openai_stream;
 pub(crate) mod openai_stream_generate;
 pub(crate) mod openai_stream_sse;

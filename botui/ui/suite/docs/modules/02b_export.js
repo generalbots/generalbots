@@ -1,7 +1,12 @@
 "use strict";
 /* Docs export menu. GBDocsExport (docs.html) existed with no caller, so a
    stored document could not be downloaded from the UI at all. The menu is
-   built here to keep docs.html from growing another inline block. */
+   built here to keep docs.html from growing another inline block.
+
+   #2457 — export no longer degrades silently: when the document being exported
+   actually contains structured elements the format cannot preserve (tables
+   flattened, chart placeholders dropped), a "degraded" status is announced in
+   a polite live region. The warning is tied to real detected elements only. */
 
 (function () {
   var FORMATS = [
@@ -13,11 +18,77 @@
     ["Text", "txt"]
   ];
   var menu = null;
+  var STATUS_ID = "docsExportStatus";
+  var DEGRADED_FALLBACK = "Exported without tables/charts: source data was unavailable";
+
+  function activeArticle() {
+    return document.querySelector("#docs-content article[contenteditable]") ||
+      document.querySelector("[id^=window-body-docs] #doc-content") ||
+      document.querySelector("#doc-content");
+  }
 
   function activeDocId() {
-    var article = document.querySelector("#docs-content article[contenteditable]") ||
-      document.querySelector("[id^=window-body-docs] #doc-content");
+    var article = activeArticle();
     return (article && article.dataset && article.dataset.docId) || "current";
+  }
+
+  /* Real detection, not a guess: mirrors the exporter's drop condition — a
+     table/chart element that is present but has no source data is skipped,
+     never faked (see modules-export/04_docx_pptx_md.js noteLoss()). */
+  function droppedStructured(article) {
+    if (!article || typeof article.querySelectorAll !== "function") return 0;
+    var dropped = 0;
+    var tables = article.querySelectorAll("table");
+    for (var i = 0; i < tables.length; i++) {
+      var cells = tables[i].querySelectorAll ? tables[i].querySelectorAll("td, th") : [];
+      if (!cells.length) dropped++;
+    }
+    var charts = article.querySelectorAll("[data-element-type='chart'], canvas[data-chart]");
+    for (var j = 0; j < charts.length; j++) {
+      var data = charts[j].getAttribute && charts[j].getAttribute("data-chart-data");
+      if (!data) dropped++;
+    }
+    return dropped;
+  }
+
+  /* Idempotent live region. Reuses the docs status bar rather than adding a
+     floating overlay, and keeps the ARIA contract role=status/aria-live=polite. */
+  function statusRegion() {
+    var bar = document.querySelector(".docs-status-bar");
+    if (!bar) return null;
+    var node = document.getElementById(STATUS_ID);
+    if (!node) {
+      node = document.createElement("span");
+      node.id = STATUS_ID;
+      node.setAttribute("role", "status");
+      node.setAttribute("aria-live", "polite");
+      node.setAttribute("aria-atomic", "true");
+      node.style.color = "var(--palette-fbbf24, #fbbf24)";
+      node.style.marginLeft = "12px";
+      bar.insertBefore(node, bar.firstChild);
+    }
+    return node;
+  }
+
+  function clearStatus() {
+    var node = document.getElementById(STATUS_ID);
+    if (node) node.textContent = "";
+  }
+
+  function announceDegraded(dropped) {
+    if (!dropped) return;
+    var msg = typeof docsT === "function"
+      ? docsT("docs-export-degraded", DEGRADED_FALLBACK, { count: dropped })
+      : DEGRADED_FALLBACK;
+    var region = statusRegion();
+    if (region) region.textContent = msg;
+    if (window.GBToasts && typeof window.GBToasts.show === "function") {
+      window.GBToasts.show(
+        typeof docsT === "function" ? docsT("docs-export-title", "Export") : "Export",
+        msg,
+        "warn"
+      );
+    }
   }
 
   function close() {
@@ -28,9 +99,11 @@
   }
 
   function exportAs(format) {
-    if (typeof window.GBDocsExport === "function") {
-      window.GBDocsExport(format, activeDocId());
-    }
+    if (typeof window.GBDocsExport !== "function") return;
+    var dropped = droppedStructured(activeArticle());
+    clearStatus();
+    window.GBDocsExport(format, activeDocId());
+    announceDegraded(dropped);
   }
 
   function open(anchor) {

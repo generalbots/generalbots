@@ -1,6 +1,7 @@
-use std::io::{Cursor, Read};
-use std::collections::HashMap;
 use base64::Engine;
+use botcore::{ImportSize, WorkClass};
+use std::collections::HashMap;
+use std::io::{Cursor, Read};
 use zip::ZipArchive;
 
 use crate::ooxml::{paragraph_texts, shape_blocks};
@@ -19,6 +20,18 @@ pub fn load_pptx(bytes: &[u8]) -> Result<Presentation, String> {
     let mut archive = ZipArchive::new(reader).map_err(|e| format!("open pptx: {e}"))?;
 
     let slide_names = super::order::slide_part_names(bytes)?;
+
+    // #2530 — shared pure budget gate, applied before any slide part is read
+    // into a String. The slide count is available cheaply from the presentation
+    // order, so both dimensions are known before the heap-heavy loop below.
+    let budget = crate::handlers::admission::import_budget(WorkClass::SlidesImport);
+    if let Err(error) = budget.check(ImportSize {
+        bytes: bytes.len() as u64,
+        pages: slide_names.len() as u64,
+        ..ImportSize::default()
+    }) {
+        return Err(error.message());
+    }
 
     let theme = crate::utils::create_default_theme();
     let mut slides = Vec::new();

@@ -89,7 +89,7 @@ Secure document management for verification:
 - **Upload** — Accept documents via drag-and-drop or file picker
 - **Formats** — PDF, JPEG, PNG, TIFF
 - **Validation** — Automatic format and size checks
-- **Encryption** — Documents encrypted at rest and in transit
+- **Encryption** — TLS in transit; documents are not encrypted at rest by the platform
 - **Retention** — Configurable retention policies per document type
 
 ### Status Tracking

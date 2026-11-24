@@ -1165,6 +1165,7 @@ dependencies = [
  "botcore",
  "botlog",
  "botsecurity",
+ "botsecurity-auth",
  "chrono",
  "diesel",
  "futures-util",
@@ -1181,6 +1182,7 @@ name = "botapp"
 version = "7.1.0"
 dependencies = [
  "anyhow",
+ "argon2",
  "botlib",
  "botvideo",
  "chrono",
@@ -1388,6 +1390,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
  "urlencoding",
  "uuid",
 ]
@@ -1663,6 +1666,7 @@ dependencies = [
  "axum 0.7.9",
  "botlib",
  "botschema",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "r2d2",
@@ -1818,6 +1822,7 @@ dependencies = [
  "axum 0.7.9",
  "botlib",
  "botschema",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "r2d2",
@@ -2100,6 +2105,8 @@ name = "botdeployment"
 version = "7.1.0"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
+ "botcorepkg",
  "botcoresecrets",
  "botlib",
  "botschema",
@@ -2346,8 +2353,8 @@ name = "botfraud"
 version = "7.1.0"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
  "botlib",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2528,9 +2535,9 @@ name = "botlearn"
 version = "7.1.0"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
  "botlib",
  "botschema",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "serde",
@@ -2628,6 +2635,7 @@ dependencies = [
  "axum 0.7.9",
  "botcore",
  "botdrive",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2691,6 +2699,7 @@ dependencies = [
  "botsecurity",
  "chrono",
  "diesel",
+ "hex",
  "hmac 0.12.1",
  "r2d2",
  "serde",
@@ -2713,6 +2722,7 @@ dependencies = [
  "botlog",
  "botschema",
  "botsecurity",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "futures",
@@ -3251,6 +3261,7 @@ version = "7.1.0"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "botsecurity-auth",
  "botsecurity-core",
  "chrono",
  "log",
@@ -3555,6 +3566,7 @@ dependencies = [
  "axum 0.7.9",
  "base64 0.22.1",
  "botbasic_core",
+ "botcore",
  "botlib",
  "botsecurity-auth",
  "botsecurity-core",

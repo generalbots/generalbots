@@ -8,14 +8,17 @@
 //!
 //! Split by responsibility: `types` (payloads), `paths` (filesystem locations),
 //! `progress` (resume marker and context), `session` (desktop sign-in),
-//! `window` (wizard/suite windows) and `handoff` (credentials + completion).
+//! `window` (wizard/suite windows), `handoff` (credentials + completion) and
+//! `private_file` (owner-only writes for every credential).
 
 mod appearance;
 mod commands;
 mod handoff;
 mod hostcheck;
 mod media;
+mod origin;
 mod paths;
+mod private_file;
 mod progress;
 mod provision;
 mod session;
@@ -32,6 +35,7 @@ pub use types::*;
 pub use window::{ensure_suite_window, open_window, reveal_suite};
 
 pub(crate) use handoff::write_admin_credentials_draft;
+pub(crate) use origin::navigation_guard;
 pub(crate) use paths::{
     draft_path, installers_path, log_path, progress_path, stack_path, workspace_path,
 };

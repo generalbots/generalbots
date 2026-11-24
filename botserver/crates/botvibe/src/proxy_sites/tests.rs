@@ -7,9 +7,60 @@ use super::*;
     use crate::vm_lifecycle::VmLifecycle;
 
     #[test]
-    fn site_slug_matches_alm_repo_slug() {
-        assert_eq!(site_slug("My Web App"), VmLifecycle::alm_repo("My Web App"));
-        assert_eq!(site_slug("site1276"), "site1276");
+    fn site_slug_carries_the_tenant_tag() {
+        let branch = uuid::Uuid::nil();
+        let tag = VmLifecycle::tenant_tag(branch);
+        assert_eq!(
+            site_slug("My Web App", branch),
+            format!("my-web-app-{tag}")
+        );
+        assert_eq!(site_slug("site1276", branch), format!("site1276-{tag}"));
+    }
+
+    /// #2648 — two tenants with the same project slug must publish to distinct
+    /// directories, hosts and python ports; otherwise one tenant's payload
+    /// (and its `DATABASE_URL`) overwrites the other's.
+    #[test]
+    fn site_names_are_tenant_scoped() {
+        use crate::site_env::{both_targets, SiteEnv};
+        // Fixed branches keep the derived python port assertion deterministic.
+        let branch_a = uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111")
+            .expect("valid test UUID");
+        let branch_b = uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222")
+            .expect("valid test UUID");
+        assert_ne!(branch_a, branch_b);
+        let slug_a = site_slug("storefront", branch_a);
+        let slug_b = site_slug("storefront", branch_b);
+        assert_ne!(slug_a, slug_b, "two tenants must never share a site slug");
+        assert_eq!(slug_a, site_slug("storefront", branch_a));
+
+        let domain = "generalbots.org";
+        let (prod_a, test_a) = both_targets(&slug_a, domain);
+        let (prod_b, test_b) = both_targets(&slug_b, domain);
+        assert_ne!(prod_a.dir, prod_b.dir);
+        assert_ne!(prod_a.host, prod_b.host);
+        assert_ne!(test_a.dir, test_b.dir);
+        assert_ne!(test_a.host, test_b.host);
+        // Validation accepts the tagged slugs and their -test twins.
+        for slug in [&slug_a, &slug_b] {
+            assert!(validate_slug(slug).is_ok());
+            assert!(validate_slug(&format!("{slug}-test")).is_ok());
+            assert!(crate::site_env::SiteTarget::new(slug, SiteEnv::Production, domain)
+                .host
+                .ends_with(domain));
+        }
+        // The python service port is derived from the slug, so it is scoped too.
+        assert_ne!(python_port(&slug_a), python_port(&slug_b));
+    }
+
+    #[test]
+    fn reserved_base_names_are_rejected_after_tagging() {
+        let branch = uuid::Uuid::new_v4();
+        assert!(validate_project_site_name("admin").is_err());
+        assert!(validate_project_site_name("proxy").is_err());
+        assert!(validate_project_site_name("storefront").is_ok());
+        let tagged = site_slug("admin", branch);
+        assert!(validate_slug(&tagged).is_ok());
     }
 
     #[test]

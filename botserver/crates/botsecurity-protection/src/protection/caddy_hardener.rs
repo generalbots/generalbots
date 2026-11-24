@@ -3,6 +3,8 @@ use tracing::info;
 
 use botsecurity_core::command_guard::SafeCommand;
 
+use super::secure_staging::{random_suffix, verify_pushed, SecureStaging};
+
 /// Security headers and rate_limit snippet to inject into every vhost
 /// that uses `import tls_config` in the Caddyfile.
 const RATE_LIMIT_SNIPPET: &str = r#"
@@ -115,22 +117,25 @@ impl CaddyHardener {
     }
 
     async fn write_config(content: &str) -> Result<()> {
-        // Write to /tmp inside container then move to final path
-        let tmp = "/tmp/gb-caddy-config";
-        let staged = super::private_staging::StagedConfig::create("gb-caddy-host", content.as_bytes())
-            .context("failed to stage caddy config privately")?;
+        // Stage the payload in a random 0700 dir with a 0600 file (#2790).
+        let staging = SecureStaging::new()?;
+        let host_tmp_path = staging.stage(content.as_bytes())?;
+        let host_tmp = host_tmp_path.to_string_lossy().into_owned();
 
-        // Push file into container
+        // Use an unguessable path inside the container as well, then move it
+        // into place. Never reuse a fixed /tmp name that could be pre-created.
+        let tmp = format!("/tmp/gb-caddy-config-{}", random_suffix());
+
         SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
-            .arg(staged.as_path().to_string_lossy().as_ref())?
+            .arg(&host_tmp)?
             .arg(format!("{CADDY_CONTAINER}{tmp}"))?
             .execute()
             .context("incus file push failed")?;
 
-        // Move to final location inside container
-        Self::incus_exec(&["mv", tmp, CADDY_CONFIG_PATH]).await?;
+        Self::incus_exec(&["mv", tmp.as_str(), CADDY_CONFIG_PATH]).await?;
+        verify_pushed(CADDY_CONTAINER, CADDY_CONFIG_PATH, content.as_bytes())?;
         Ok(())
     }
 

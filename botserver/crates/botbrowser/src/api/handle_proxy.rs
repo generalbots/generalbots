@@ -1,82 +1,66 @@
 use super::*;
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
+use std::time::Duration;
+
+/// Body ceiling for one proxied page. The shared fetch helper caps the body
+/// while streaming it, so a hostile page cannot exhaust server memory even on
+/// a fast link (#2779).
+const PROXY_MAX_BYTES: usize = 2 * 1024 * 1024;
 
 /// Proxies an external URL for the in-app browser (srcdoc iframe). Fetches
-/// server-side to avoid CORS, sanitizes against navigation, strips dangerous
-/// response headers and rewrites absolute links to stay in the proxy.
-/// Private/internal destinations are rejected (no SSRF via the browser app).
+/// server-side to avoid CORS, strips dangerous response headers and rewrites
+/// absolute links to stay in the proxy. Private/internal destinations are
+/// rejected (no SSRF via the browser app) and every redirect hop is validated.
 pub(super) async fn handle_proxy(
     Query(params): Query<ProxyParams>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let target = &params.url;
-    // #2131 — the shared guard replaces the local `is_private_host` helper:
-    // scheme, credentials, obfuscated IPv4, ports and the full non-global
-    // address matrix are checked here, and the redirect policy below runs the
-    // same validator on every hop (#1535).
-    let parsed = botsecurity_core::validation::validate_url_ssrf_strict(target)
+    // Keep the BAD_REQUEST mapping for malformed/private URLs. The shared
+    // fetch re-validates every hop (#2131) and, unlike the raw reqwest path
+    // used here before, caps both body bytes and wall time (#2779).
+    botsecurity_core::validation::validate_url_ssrf_strict(target)
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        // #1535: validate every redirect hop, not only the first URL, so a
-        // public URL cannot bounce the proxy into a private/metadata address.
-        .redirect(reqwest::redirect::Policy::custom(|attempt| {
-            let allowed = botsecurity_core::validation::validate_url_ssrf_strict(
-                attempt.url().as_str(),
-            )
-            .is_ok();
-            if attempt.previous().len() >= 5 || !allowed {
-                attempt.stop()
-            } else {
-                attempt.follow()
-            }
-        }))
-        .build()
-        .map_err(|e| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("proxy client: {e}"),
-            )
-        })?;
-
-    match client.get(parsed.as_str()).send().await {
-        Ok(resp) => {
-            let status = resp.status().as_u16();
-            let final_url = resp.url().to_string();
-            let content_type = resp
-                .headers()
-                .get(reqwest::header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("application/octet-stream")
-                .to_string();
-            let bytes = match resp.bytes().await {
-                Ok(b) => b,
-                Err(e) => {
-                    return Err((
-                        axum::http::StatusCode::BAD_GATEWAY,
-                        format!("read response: {e}"),
-                    ))
-                }
-            };
-            let body = String::from_utf8_lossy(&bytes).into_owned();
-            let html = if content_type.to_lowercase().contains("html") {
-                rewrite_html(&body)
-            } else {
-                body
-            };
-            Ok(Json(serde_json::json!({
-                "url": final_url,
-                "title": extract_title(&html),
-                "content": html,
-                "status": status,
-                "content_type": content_type,
-            })))
+    let policy = FetchPolicy::default()
+        .with_timeout(Duration::from_secs(15))
+        .with_max_bytes(PROXY_MAX_BYTES)
+        .with_user_agent("GeneralBots-BrowserProxy/1.0");
+    let response = match fetch_user_url(target, &policy).await {
+        Ok(response) => response,
+        Err(err) => {
+            log::warn!(
+                "browser proxy: refused or failed page fetch ({}): {}",
+                err.kind().as_str(),
+                err.detail()
+            );
+            return Err((axum::http::StatusCode::BAD_GATEWAY, err.to_string()));
         }
-        Err(e) => Err((
-            axum::http::StatusCode::BAD_GATEWAY,
-            format!("fetch failed: {e}"),
-        )),
-    }
+    };
+
+    // Read the body first: `text()` borrows the response, while taking
+    // `final_url` / `content_type` below moves fields out.
+    let body = response.text();
+    let status = response.status;
+    let final_url = response.final_url;
+    let content_type = response
+        .content_type
+        .as_deref()
+        .unwrap_or("application/octet-stream")
+        .to_string();
+    let html = if content_type.to_lowercase().contains("html") {
+        rewrite_html(&body)
+    } else {
+        body
+    };
+    Ok(Json(serde_json::json!({
+        "url": final_url,
+        "title": extract_title(&html),
+        "content": html,
+        "status": status,
+        "content_type": content_type,
+    })))
 }
+
 /// Rewrites absolute links (<a href>, <link href>, <img src>, <script src>,
 /// <form action>) so they route back through the proxy; relative links are
 /// left alone (the srcdoc base is the current URL). Currently a passthrough:

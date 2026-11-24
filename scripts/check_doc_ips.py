@@ -7,6 +7,7 @@ repository. Run from the repo root with no arguments to scan all git-tracked
 
     python3 scripts/check_doc_ips.py
     python3 scripts/check_doc_ips.py INFRA.md
+    python3 scripts/check_doc_ips.py --self-test
 
 Allowlisted values are documentation placeholders only: loopback, the null
 address, broadcast, netmasks, the well-known public DNS resolvers used in
@@ -19,6 +20,7 @@ import ipaddress
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 IPV4 = re.compile(r"(?<![\w.])((?:\d{1,3}\.){3}\d{1,3})(?![\w.])")
@@ -94,7 +96,53 @@ def scan(path: Path) -> list[tuple[int, str]]:
     return findings
 
 
+# A public literal outside every allowlisted network/version/range below.
+# RFC 5737 reserves 203.0.113.0/24 (not .114), so this is a realistic address
+# the guard must reject — exactly the kind of value that leaked in #2674.
+SELFTEST_LITERAL = "203.0.114.7"
+
+
+def self_test() -> int:
+    """Prove the guard rejects an added literal IP and accepts placeholders."""
+    with tempfile.TemporaryDirectory(prefix="check-doc-ips-") as tmp:
+        bad = Path(tmp) / "bad.md"
+        good = Path(tmp) / "good.md"
+        bad.write_text(f"mail A record: {SELFTEST_LITERAL}\n", encoding="utf-8")
+        good.write_text(
+            "mail A record: <srv1-public-ip>\n"
+            "container IP: <email-container-ip>\n"
+            "generic: 10.x.x.x and 203.0.113.7\n"
+            "netmask 255.255.255.0, resolver 8.8.8.8, null 0.0.0.0\n",
+            encoding="utf-8",
+        )
+        bad_findings = scan(bad)
+        good_findings = scan(good)
+
+    ok = True
+    if not any(ip == SELFTEST_LITERAL for _, ip in bad_findings):
+        print(
+            f"check_doc_ips --self-test: FAIL — added literal {SELFTEST_LITERAL} was not detected",
+            file=sys.stderr,
+        )
+        ok = False
+    if good_findings:
+        print(
+            f"check_doc_ips --self-test: FAIL — placeholder(s) rejected: {good_findings}",
+            file=sys.stderr,
+        )
+        ok = False
+    if not ok:
+        return 1
+    print("check_doc_ips --self-test: OK — literal IP rejected, placeholders accepted")
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        return self_test()
+    if any(arg.startswith("--") for arg in argv):
+        print(__doc__, file=sys.stderr)
+        return 2
     paths = [Path(arg) for arg in argv] if argv else tracked_markdown()
     failures = 0
     for path in paths:

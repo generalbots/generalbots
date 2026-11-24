@@ -1,18 +1,19 @@
 {
-  "metadata_version": "2.0.0",
-  "url": "https://generalbots.org/security/csaf/",
+  "canonical_url": "https://generalbots.org/.well-known/csaf/provider-metadata.json",
+  "distributions": [
+    {
+      "directory_url": "https://generalbots.org/security/csaf/"
+    }
+  ],
+  "last_updated": "2026-11-22T00:00:00Z",
+  "list_on_CSAF_aggregators": true,
+  "metadata_version": "2.0",
+  "mirror_on_CSAF_aggregators": true,
   "publisher": {
     "category": "vendor",
+    "contact_details": "security@generalbots.org",
     "name": "General Bots",
-    "namespace": "https://generalbots.org",
-    "contact_details": "security@pragmatismo.com.br"
+    "namespace": "https://generalbots.org"
   },
-  "distribution": {
-    "tlp": {
-      "label": "WHITE"
-    }
-  },
-  "categories": [
-    "csaf_security_advisory"
-  ]
+  "role": "csaf_provider"
 }

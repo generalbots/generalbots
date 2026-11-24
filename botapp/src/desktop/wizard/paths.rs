@@ -65,7 +65,14 @@ fn safe_workspace_dir(value: &Path) -> bool {
     if !value.is_absolute() || value.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
         return false;
     }
-    if value.parent().is_none() || value.file_name().is_none() {
+    // Reject root-level directories (e.g. `/home`, `C:\Users`); a workspace
+    // must have at least one named parent so an override cannot retarget a
+    // top-level system directory.
+    match value.parent() {
+        Some(parent) if parent.file_name().is_some() => {}
+        _ => return false,
+    }
+    if value.file_name().is_none() {
         return false;
     }
     crate::desktop::fs_scope::check_not_protected(value).is_ok()

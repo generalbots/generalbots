@@ -6,38 +6,12 @@ use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
 use axum::{extract::State, http::StatusCode, Json};
-use botsecurity_core::upload_hostile::{
-    macro_strip, malware_scanner_required_from, password as password_guard,
-    UNCHECKED_IMPORT_OPT_OUT_ENV,
-};
+use botcore::{ImportSize, WorkClass};
+use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
-
-fn policy_for_opt_out(opted_out: bool) -> upload_policy::HostileFilePolicy {
-    upload_policy::HostileFilePolicy {
-        require_malware_scanner: !opted_out,
-        ..upload_policy::HostileFilePolicy::default()
-    }
-}
-
-/// #2522/#2606 — resolve the opt-out from the single shared switch. The
-/// deprecated Slides-only alias was removed after its one-release window; the
-/// shared grammar (`1`/`true`/`yes`/`on`, trimmed, case-insensitive) is used by
-/// every zip-based import boundary.
-fn is_import_opted_out(shared: Option<&str>) -> bool {
-    !malware_scanner_required_from(shared)
-}
-
-/// #2522 — presentations fail closed: without a registered malware scanner the
-/// import is refused. A deployment that deliberately accepts unscanned decks
-/// sets the shared `GB_ALLOW_UNSCANNED_IMPORT=1`; every such skip is audited by
-/// the central upload gate. The scan decision is recorded as `NotConfigured`.
-pub(crate) fn slides_hostile_policy() -> upload_policy::HostileFilePolicy {
-    let shared = std::env::var(UNCHECKED_IMPORT_OPT_OUT_ENV).ok();
-    policy_for_opt_out(is_import_opted_out(shared.as_deref()))
-}
 
 /// #2522 — run the hostile-file gate explicitly at this import boundary and
 /// audit its report before any parser (PPTX/JSON/markdown) touches the payload.
@@ -149,6 +123,19 @@ pub async fn handle_import_presentation<D: DriveOps>(
         )
     })?;
 
+    // #2530 — pure, env-configurable budget check before any converter
+    // materialises the deck. Only the byte length is known at this point; the
+    // slide count is checked again inside `load_pptx` once the package order
+    // has been read.
+    let budget = crate::handlers::admission::import_budget(WorkClass::SlidesImport);
+    if let Err(error) = budget.check(ImportSize {
+        bytes: bytes.len() as u64,
+        ..ImportSize::default()
+    }) {
+        log::warn!("botslides::import: budget refused: {}", error.code());
+        return Err((error.status_code(), Json(error.json_body())));
+    }
+
     // #2522 — strip executable parts *before* the shared gate so a
     // macro-enabled deck imports with macros removed and the caller receives a
     // machine-readable notice. The original bytes are never modified.
@@ -199,16 +186,27 @@ pub async fn handle_import_presentation<D: DriveOps>(
     };
     let filename = upload.filename;
 
-    // #2522 — inspect and audit before any parser runs. Fail closed when no
-    // malware scanner is registered (documented opt-out in slides_hostile_policy).
-    // The helper skips Markdown/JSON decks, which are plain text.
+    // #2522 — inspect and audit before any parser runs. The shared default
+    // requires a malware scanner, so a deck is refused when none is registered;
+    // there is no opt-out. The helper skips Markdown/JSON decks, which are
+    // plain text and are scanned by the central upload gate instead.
     audit_hostile_upload(
         effective,
         &filename,
         &headers,
         "botslides::import",
-        &slides_hostile_policy(),
+        &upload_policy::HostileFilePolicy::default(),
     )?;
+
+    // #2530 — admit before any format parser materialises the deck. The permit
+    // is held for the parse below and released by RAII on every exit.
+    let permit = crate::handlers::admission::admit(
+        WorkClass::SlidesImport,
+        effective.len() as u64,
+        Some(user.id.as_str()),
+    )
+    .await?;
+    log::debug!("slides import admitted: class={}", permit.class().as_str());
 
     let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     let theme = create_default_theme();
@@ -343,22 +341,3 @@ pub async fn handle_import_presentation<D: DriveOps>(
 #[cfg(test)]
 #[path = "import_tests.rs"]
 mod hostile_import_tests;
-
-#[cfg(test)]
-mod opt_out_resolution_tests {
-    use super::is_import_opted_out;
-
-    #[test]
-    fn the_shared_switch_drives_the_opt_out() {
-        assert!(is_import_opted_out(Some("1")));
-        assert!(is_import_opted_out(Some(" yes ")));
-        assert!(is_import_opted_out(Some("On")));
-    }
-
-    #[test]
-    fn unrecognised_or_unset_shared_values_fail_closed() {
-        assert!(!is_import_opted_out(None));
-        assert!(!is_import_opted_out(Some("0")));
-        assert!(!is_import_opted_out(Some("off")));
-    }
-}

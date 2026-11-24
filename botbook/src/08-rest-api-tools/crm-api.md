@@ -1030,7 +1030,7 @@ Creates a new external system sync configuration.
 |-----------|------|----------|-------------|
 | `provider` | string | Yes | Provider name |
 | `name` | string | Yes | Configuration name |
-| `credentials` | object | Yes | API credentials (encrypted at rest) |
+| `credentials` | object | Yes | API credentials |
 | `sync_direction` | string | No | `push`, `pull`, `bidirectional` (default: `bidirectional`) |
 | `field_mappings` | object | No | Custom field mappings |
 

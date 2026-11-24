@@ -261,6 +261,9 @@ pub struct ListAuditLogsQuery {
     pub to_date: Option<DateTime<Utc>>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+    /// #2749: explicit request for cross-tenant visibility. Honoured only for
+    /// an authenticated administrator; ignored for every other principal.
+    pub all_tenants: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

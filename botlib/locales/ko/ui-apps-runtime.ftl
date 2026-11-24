@@ -617,3 +617,5 @@ tasks-intent-open-app = 앱 열기 →
 tasks-intent-task-id = 작업 ID:
 tasks-intent-error = 문제가 발생했습니다
 tasks-intent-failed = 응답을 처리하지 못했습니다
+
+docs-export-degraded = 표/차트 없이 내보냄: 원본 데이터를 사용할 수 없음 ({count}개 건너뜀)

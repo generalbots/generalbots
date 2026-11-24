@@ -99,7 +99,7 @@ app.example.com {
 
 | Status | Requirement | Component | Standard | Implementation |
 |--------|-------------|-----------|----------|----------------|
-| ✅ | Encryption at Rest | PostgreSQL | All | File-system level encryption (LUKS) |
+| ❌ | Encryption at Rest | PostgreSQL | All | Not implemented: no PostgreSQL TDE and no LUKS mapping; provide it at the storage layer |
 | ✅ | Encryption in Transit | PostgreSQL | All | TLS/SSL connections enforced |
 | ✅ | Access Control | PostgreSQL | All | Role-based database permissions |
 | ✅ | Audit Logging | PostgreSQL | All | pgAudit extension for detailed logging |
@@ -140,7 +140,7 @@ log_statement = 'all'
 
 | Status | Requirement | Component | Standard | Implementation |
 |--------|-------------|-----------|----------|----------------|
-| ✅ | Encryption at Rest | Drive | All | Server-side encryption (SSE-S3) |
+| ❌ | Encryption at Rest | Drive | All | Not implemented: no MinIO SSE/KMS registration; provide it at the storage layer |
 | ✅ | Encryption in Transit | Drive | All | TLS for all connections |
 | ✅ | Bucket Policies | Drive | All | Fine-grained access control policies |
 | ✅ | Object Versioning | Drive | HIPAA | Version control for data recovery |
@@ -267,7 +267,7 @@ save 300 10
 | ✅ | API Authentication | Qdrant | All | API key authentication |
 | ✅ | TLS Support | Qdrant | All | HTTPS enabled |
 | ✅ | Access Control | Qdrant | All | Collection-level permissions |
-| ⚠️ | Data Encryption | Qdrant | HIPAA | File-system level encryption |
+| ❌ | Data Encryption | Qdrant | HIPAA | Not implemented: no file-system level encryption configured by the platform |
 | 🔄 | Backup Support | Qdrant | All | Snapshot-based backups |
 | 📝 | Data Retention | Qdrant | GDPR | Implement collection cleanup policies |
 
@@ -301,7 +301,7 @@ telemetry:
 | ✅ | Automatic Updates | Ubuntu | All | Unattended-upgrades for security patches |
 | ⚠️ | Audit Daemon | Ubuntu | All | Configure auditd for system events |
 | ✅ | Firewall Rules | Ubuntu | All | UFW configured with restrictive rules |
-| ⚠️ | Disk Encryption | Ubuntu | All | LUKS full-disk encryption |
+| ❌ | Disk Encryption | Ubuntu | All | Not implemented: no LUKS mapping in the shipped image |
 | ⚠️ | AppArmor | Ubuntu | All | Enable mandatory access control |
 | 📝 | User Management | Ubuntu | All | Disable root login, use sudo |
 | 📝 | SSH Hardening | Ubuntu | All | Key-based auth only, disable password auth |
@@ -363,7 +363,7 @@ Unattended-Upgrade::Automatic-Reboot-Time "03:00";
 | Status | Requirement | Implementation | Standard |
 |--------|-------------|----------------|----------|
 | 🔄 | Automated Backups | Daily automated backups | All |
-| ✅ | Backup Encryption | AES-256 encrypted backups | All |
+| ❌ | Backup Encryption | Not implemented: no AES-256 backup encryption; provide it at the storage layer | All |
 | ✅ | Off-site Storage | Drive replication to secondary site | HIPAA |
 | 📝 | Backup Testing | Quarterly restore tests | All |
 | ✅ | Retention Policy | 90 days for full, 30 for incremental | All |
@@ -420,7 +420,7 @@ curl -X POST "http://localhost:6333/collections/botserver/snapshots"
 | ✅ | Change Management | Version control and deployment procedures |
 | ✅ | Monitoring | Real-time monitoring with Prometheus |
 | 📝 | Risk Assessment | Annual risk assessment required |
-| ✅ | Encryption | Data encrypted at rest and in transit |
+| ⚠️ | Encryption | Field-level encryption of selected sensitive values and TLS in transit; no database/file/backup encryption at rest |
 
 ### ISO 27001
 
@@ -438,7 +438,7 @@ curl -X POST "http://localhost:6333/collections/botserver/snapshots"
 
 | Status | Requirement | Implementation |
 |--------|-------------|----------------|
-| ✅ | Encryption | PHI encrypted at rest and in transit |
+| ⚠️ | Encryption | TLS in transit and field-level encryption of selected sensitive values; no PHI-wide encryption at rest by the platform |
 | ✅ | Access Controls | Role-based access with MFA |
 | ✅ | Audit Controls | Comprehensive audit logging |
 | ⚠️ | Integrity Controls | Checksums and versioning |
@@ -466,7 +466,7 @@ curl -X POST "http://localhost:6333/collections/botserver/snapshots"
 2. ✅ MFA for all admin accounts (Zitadel)
 3. ✅ Firewall configuration (UFW)
 4. ✅ Automated security updates (unattended-upgrades)
-5. 🔄 Automated encrypted backups
+5. 🔄 Automated backups (not encrypted at rest by the platform)
 
 ### Medium Priority (Required for Compliance)
 6. ⚠️ Disk encryption (LUKS)

@@ -11,6 +11,19 @@ General Bots implements a comprehensive security model designed for enterprise d
 - **Knowledge Base Security**: Folder-level permissions with Qdrant vector search integration
 - **SOC 2 Type II Compliance**: Enterprise-grade security controls and audit logging
 
+## Security bulletin program
+
+The authoritative advisory channel is the [security bulletin](https://generalbots.org/security/),
+not the community forum. For the public track record and recognition:
+
+- [RFC 9116 security.txt](https://generalbots.org/.well-known/security.txt) — canonical machine-readable reporting contact; `Preferred-Languages: pt-BR, en`.
+- [SECURITY.md](https://generalbots.org/SECURITY.md) — scope, acknowledgement in ≤ 3 business days, triage in ≤ 10, 90-day embargo and supported versions.
+- [Status and incident history](https://generalbots.org/security/status.html) — resolved advisories with dates, severity and affected versions.
+- [Hall of fame](https://generalbots.org/security/hall-of-fame.html) — opt-in credit for reporters; no bug bounty, reward budget 0.
+
+Process, roles, approval authority and escalation to CTIR Gov / CERT.br are in
+[Incident Response and Publication Authority](./incident-response.md).
+
 ## Security Layers
 
 ```
@@ -206,7 +219,7 @@ count is ratcheted down by `scripts/check_raw_error_strings.py`, a blocking CI
 guard. This envelope is the contract referenced by the API command catalog for
 LLM-driven calls.
 
-## Office imports fail closed without a malware scanner (#2522)
+## Office imports fail closed without a malware scanner (#2522, #2606)
 
 The shared hostile-file gate in `botsecurity-core` protects every zip-based
 Office import (Docs `.docx`/`.odt`, Sheets `.xlsx`, Slides `.pptx`). It checks
@@ -220,59 +233,18 @@ Since #2522 the shared `HostileFilePolicy::default()` sets
 the typed `MalwareScannerMissing` error when no scanner has been installed,
 instead of being accepted unscanned. This applies both to the central
 `validate_upload` gate and to the explicit import-boundary audits in Docs,
-Sheets and Slides. Every zip import boundary, including Slides, now reads the
-single shared `GB_ALLOW_UNSCANNED_IMPORT` switch below; Slides' former own
-switch is a deprecated alias kept for one release.
+Sheets and Slides; all three use the same default policy.
 
-### Opt-out and rollback path
-
-A deployment that cannot deploy a scanner yet can temporarily restore the
-permissive behaviour with one explicit environment switch:
-
-```sh
-GB_ALLOW_UNSCANNED_IMPORT=1   # also accepts true / yes / on, case-insensitive
-```
-
-Only `1`, `true`, `yes` or `on` (whitespace trimmed, case-insensitive) opt out;
-an unset variable or any other value keeps the fail-closed default. The switch
-is read by `HostileFilePolicy::default()` through
-`botsecurity_core::upload_hostile::opt_out`. The scan decision is still recorded
-as `NotConfigured` — the opt-out lowers the *requirement*, it does not claim a
-clean scan. To roll back the change, unset every opt-out variable you set and
-restart botserver; imports then fail closed again. The deprecated Slides alias
-below counts too — clearing only the shared switch leaves Slides opted out.
-
-Slides reads this same shared switch, so `GB_ALLOW_UNSCANNED_IMPORT=1` governs
-its override too. For one release the old Slides-only variable
-`GB_ALLOW_UNSCANNED_SLIDES_IMPORT` is still accepted as a deprecated alias: it
-is honored only when the shared variable is unset, logs a warning when present,
-and is removed in the next release. When both are set the shared switch wins.
-Deployments should migrate to the shared name now. Both variables use the same
-grammar and keep the decision honest (`NotConfigured`, never a fabricated
-`Clean`). Because the alias is consulted only when the shared variable is unset,
-restoring fail-closed at the Slides boundary requires clearing **both** variables
-before the botserver restart; removing only `GB_ALLOW_UNSCANNED_IMPORT` hands
-control back to the alias.
-
-The switch is an environment variable so it can be injected by the deployment,
-including from Vault-backed configuration. A caller that reads the same flag
-from Vault (or another configuration store) reaches the identical decision by
-passing the value to `botsecurity_core::upload_hostile::malware_scanner_required_from`,
-which interprets env- and Vault-sourced values with the same grammar:
-
-```rust
-use botsecurity_core::upload_hostile::{HostileFilePolicy, malware_scanner_required_from};
-
-let vault_value = std::env::var("GB_ALLOW_UNSCANNED_IMPORT").ok(); // or a Vault read
-let policy = HostileFilePolicy {
-    require_malware_scanner: malware_scanner_required_from(vault_value.as_deref()),
-    ..HostileFilePolicy::default()
-};
-```
-
-Leaving the opt-out enabled in a production deployment accepts unscanned Office
-packages; it is intended only as a temporary rollback and should be removed as
-soon as a scanner is registered with `set_malware_scanner`.
+#2606 removed the temporary escape hatches: no environment variable or
+configuration path can lower the scanner requirement or skip a scan. At boot
+botserver installs the real ClamAV byte scanner once, before any route can
+accept an upload, and refuses to start if registration fails
+(`run_axum_server_malware_scanner.rs::install_scanner_at_boot`). Every Office
+import therefore runs through a registered scanner; with none installed the
+gate fails closed with the typed `MalwareScannerMissing` error rather than
+treating the package as clean. The verdict is recorded on the import report as
+`NotConfigured`, `Clean`, `Infected` or `Failed` — never fabricated as `Clean`
+by the gate itself.
 
 ## Data-protection honesty on the OS appliance (#2470)
 

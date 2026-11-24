@@ -1,0 +1,144 @@
+{
+  "document": {
+    "category": "csaf_security_advisory",
+    "csaf_version": "2.0",
+    "distribution": {
+      "tlp": {
+        "label": "WHITE"
+      }
+    },
+    "publisher": {
+      "category": "vendor",
+      "contact_details": "security@generalbots.org",
+      "name": "General Bots",
+      "namespace": "https://generalbots.org"
+    },
+    "references": [
+      {
+        "category": "self",
+        "summary": "Canonical advisory",
+        "url": "https://generalbots.org/security/advisories/GBSA-2026-0002"
+      }
+    ],
+    "title": "Example: suite fragment reflected a query parameter",
+    "tracking": {
+      "current_release_date": "2026-11-21T00:00:00Z",
+      "id": "GBSA-2026-0002",
+      "initial_release_date": "2026-11-21T00:00:00Z",
+      "revision_history": [
+        {
+          "date": "2026-11-21T00:00:00Z",
+          "number": "1",
+          "summary": "Initial publication"
+        }
+      ],
+      "status": "final",
+      "version": "1"
+    }
+  },
+  "product_tree": {
+    "branches": [
+      {
+        "branches": [
+          {
+            "category": "product_version_range",
+            "name": ">= 2.0.0, < 2.4.0",
+            "product": {
+              "name": "botserver >= 2.0.0, < 2.4.0",
+              "product_id": "CSAFPID-0001"
+            }
+          }
+        ],
+        "category": "product_name",
+        "name": "botserver"
+      },
+      {
+        "branches": [
+          {
+            "category": "product_version",
+            "name": "2.4.0",
+            "product": {
+              "name": "botserver 2.4.0",
+              "product_id": "CSAFPID-0002"
+            }
+          }
+        ],
+        "category": "product_name",
+        "name": "botserver"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "cwe": {
+        "id": "CWE-79",
+        "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      },
+      "ids": [
+        {
+          "system_name": "General Bots Security Advisory",
+          "text": "GBSA-2026-0002"
+        }
+      ],
+      "notes": [
+        {
+          "category": "description",
+          "text": "Example record for the botui component. Clearly marked as an example, not a real vulnerability.",
+          "title": "Summary"
+        },
+        {
+          "category": "details",
+          "text": "CVSS v3.1 vector CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N (base score 6.1, MEDIUM). Base metrics: AV:N, AC:L, PR:N, UI:R.",
+          "title": "CVSS vector"
+        }
+      ],
+      "product_status": {
+        "known_affected": [
+          "CSAFPID-0001"
+        ],
+        "recommended": [
+          "CSAFPID-0002"
+        ]
+      },
+      "remediations": [
+        {
+          "category": "vendor_fix",
+          "details": "Upgrade the suite to 2.4.0 or later.",
+          "product_ids": [
+            "CSAFPID-0001"
+          ]
+        }
+      ],
+      "scores": [
+        {
+          "cvss_v3": {
+            "attackComplexity": "LOW",
+            "attackVector": "NETWORK",
+            "availabilityImpact": "NONE",
+            "baseScore": 6.1,
+            "baseSeverity": "MEDIUM",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "privilegesRequired": "NONE",
+            "scope": "CHANGED",
+            "userInteraction": "REQUIRED",
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+            "version": "3.1"
+          },
+          "products": [
+            "CSAFPID-0001"
+          ]
+        }
+      ],
+      "threats": [
+        {
+          "category": "exploit_status",
+          "details": "CVSS v3.1 vector CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N (base score 6.1, MEDIUM). Base metrics: AV:N, AC:L, PR:N, UI:R.",
+          "product_ids": [
+            "CSAFPID-0001"
+          ]
+        }
+      ]
+    }
+  ]
+}

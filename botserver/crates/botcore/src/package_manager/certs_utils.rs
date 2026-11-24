@@ -1,8 +1,10 @@
 use crate::package_manager::container::SERVICE_MAP;
-use botlib::security::command_guard::SafeCommand;
+use crate::package_manager::generate_random_string;
 use anyhow::Result;
+use botlib::security::command_guard::SafeCommand;
 use log::{info, warn};
-use std::path::PathBuf;
+use sha2::{Digest, Sha256};
+use std::path::{Path, PathBuf};
 
 /// #2791 — an unpredictable, non-world-writable remote staging directory.
 fn remote_cert_staging_dir(container: &str) -> String {
@@ -31,13 +33,18 @@ pub struct ServiceCert {
 }
 
 pub fn get_service_list() -> Vec<ServiceCert> {
-    SERVICE_MAP.iter().map(|(name, _container, ip, _port, mtls_port)| {
-        ServiceCert { name, ip, mtls_port: *mtls_port }
-    }).collect()
+    SERVICE_MAP
+        .iter()
+        .map(|(name, _container, ip, _port, mtls_port)| ServiceCert {
+            name,
+            ip,
+            mtls_port: *mtls_port,
+        })
+        .collect()
 }
 
 /// Generate CA if not exists, then generate certs for all services
-pub fn generate_all_certs(base_path: &std::path::Path) -> Result<()> {
+pub fn generate_all_certs(base_path: &Path) -> Result<()> {
     let cert_base = base_path.join("conf/system/certificates");
     let ca_key = cert_base.join("ca/ca.key");
     let ca_crt = cert_base.join("ca/ca.crt");
@@ -128,12 +135,89 @@ pub fn generate_all_certs(base_path: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-/// Push all certs to their respective containers via SSH to incus host
-pub fn push_all_certs_ssh(base_path: &std::path::Path, ssh_host: &str) -> Result<()> {
+/// Fresh, unpredictable `mktemp` template for a private staging directory on
+/// the remote host. The alphanumeric prefix comes from the process CSPRNG;
+/// the trailing X's make `mktemp` create the directory with O_EXCL semantics,
+/// so two concurrent pushes can never share a staging path.
+fn staging_dir_template() -> String {
+    format!("/tmp/gbo-certs.{}.XXXXXXXXXX", generate_random_string(16))
+}
+
+/// Wrap a value in single quotes for the local shell so arbitrary path/host
+/// text stays one argument and cannot break out of its quoting context.
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+/// SHA-256 of a local file, used to verify the staged and pushed bytes.
+fn file_sha256(path: &Path) -> Result<String> {
+    let bytes = std::fs::read(path)?;
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    Ok(hex::encode(hasher.finalize()))
+}
+
+/// Build one SSH command that stages a single cert file in a private,
+/// random remote directory and pushes it into the container. The local file
+/// bytes travel over stdin (never in argv), the staging directory is created
+/// with `mktemp -d` (0700, O_EXCL), the staged file with `mktemp` (0600,
+/// O_EXCL) and an atomic rename, and an EXIT trap removes everything on all
+/// paths. Bytes are verified both before and after the push.
+fn build_remote_push_script(
+    ssh_host: &str,
+    container: &str,
+    name: &str,
+    fname: &str,
+    expected_sha256: &str,
+    local_path: &str,
+) -> String {
+    let target_dir = format!("/opt/gbo/conf/system/certificates/{name}");
+    let template = staging_dir_template();
+    let remote_script = format!(
+        concat!(
+            "set -eu\n",
+            "stage_dir=$(mktemp -d {template})\n",
+            "cleanup() {{ rm -rf \"$stage_dir\"; }}\n",
+            "trap cleanup EXIT\n",
+            "umask 077\n",
+            "tmp=$(mktemp \"$stage_dir/staged.XXXXXXXX\")\n",
+            "cat > \"$tmp\"\n",
+            "expected={expected}\n",
+            "actual=$(sha256sum \"$tmp\" | cut -d \" \" -f1)\n",
+            "if [ \"$actual\" != \"$expected\" ]; then echo 'staged byte mismatch' >&2; exit 1; fi\n",
+            "stage=\"$stage_dir/staged\"\n",
+            "mv -f \"$tmp\" \"$stage\"\n",
+            "sudo incus exec {container} -- mkdir -p {target}\n",
+            "sudo incus file push \"$stage\" {dest}\n",
+            "pushed=$(sudo incus exec {container} -- sha256sum {target_file} | cut -d \" \" -f1)\n",
+            "if [ \"$pushed\" != \"$expected\" ]; then echo 'pushed byte mismatch' >&2; exit 1; fi\n",
+        ),
+        template = shell_quote(&template),
+        expected = shell_quote(expected_sha256),
+        container = shell_quote(container),
+        target = shell_quote(&target_dir),
+        dest = shell_quote(&format!("{container}:{target_dir}/{fname}")),
+        target_file = shell_quote(&format!("{target_dir}/{fname}")),
+    );
+    format!(
+        "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 {host} {script} < {path}",
+        host = shell_quote(ssh_host),
+        script = shell_quote(&remote_script),
+        path = shell_quote(local_path),
+    )
+}
+
+/// Push all certs to their respective containers via SSH to incus host.
+/// Staging happens in a fresh private directory per file — never at a
+/// predictable `/tmp/{container}-{fname}` path.
+pub fn push_all_certs_ssh(base_path: &Path, ssh_host: &str) -> Result<()> {
     let cert_base = base_path.join("conf/system/certificates");
     let ca_crt = cert_base.join("ca/ca.crt");
     if !ca_crt.exists() {
-        return Err(anyhow::anyhow!("CA not found at {:?}. Run generate first.", ca_crt));
+        return Err(anyhow::anyhow!(
+            "CA not found at {:?}. Run generate first.",
+            ca_crt
+        ));
     }
 
     for (name, container, _ip, _port, _mtls_port) in SERVICE_MAP {
@@ -179,14 +263,16 @@ pub fn push_all_certs_ssh(base_path: &std::path::Path, ssh_host: &str) -> Result
             Ok(())
         })();
 
-        // Cleanup runs on success and on failure; the next provisioning run
-        // uses a different UUID even if this cleanup could not complete.
-        let cleanup = safe_sh(&format!(
-            "ssh {ssh_host} -o StrictHostKeyChecking=accept-new 'rm -rf {staging_dir}'"
-        ));
-        push_result?;
-        if cleanup.is_err() {
-            warn!("remote cert staging cleanup failed: {staging_dir}");
+            let expected = file_sha256(fpath)?;
+            let script = build_remote_push_script(
+                ssh_host,
+                container,
+                name,
+                fname,
+                &expected,
+                &fpath.to_string_lossy(),
+            );
+            safe_sh(&script)?;
         }
 
         info!("Certificates pushed for {} -> {}", name, container);
@@ -202,4 +288,72 @@ fn safe_sh(script: &str) -> Result<std::process::Output> {
         .map_err(|e| anyhow::anyhow!("{e}"))?
         .execute()
         .map_err(|e| anyhow::anyhow!("Command failed: {e}\nScript: {script}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_staging_dir_template_is_unique_and_unpredictable() {
+        let a = staging_dir_template();
+        let b = staging_dir_template();
+        assert_ne!(a, b, "each staging dir must get a fresh random prefix");
+        for template in [&a, &b] {
+            assert!(template.starts_with("/tmp/gbo-certs."));
+            assert!(template.ends_with(".XXXXXXXXXX"));
+            let random = &template["/tmp/gbo-certs.".len()..template.len() - ".XXXXXXXXXX".len()];
+            assert_eq!(random.len(), 16);
+            assert!(
+                random.chars().all(|c| c.is_ascii_alphanumeric()),
+                "unsafe char in staging path"
+            );
+        }
+    }
+
+    #[test]
+    fn test_remote_push_script_never_uses_predictable_tmp_path() {
+        let script = build_remote_push_script(
+            "prod-host",
+            "cache",
+            "cache",
+            "server.key",
+            "abc123",
+            "/local/server.key",
+        );
+        assert!(
+            !script.contains("/tmp/cache-server.key"),
+            "old predictable path must be gone"
+        );
+        assert!(!script.contains("scp "), "scp staging must be gone");
+        assert!(
+            script.contains("mktemp -d "),
+            "staging dir must be random and O_EXCL"
+        );
+        assert!(script.contains("XXXXXXXXXX"));
+        assert!(script.contains("umask 077"));
+        assert!(script.contains("trap cleanup EXIT"), "cleanup on all paths");
+        assert!(
+            script.contains("mktemp \"$stage_dir/staged.XXXXXXXX\""),
+            "0600 O_EXCL staged file"
+        );
+        assert!(
+            script.contains("mv -f \"$tmp\" \"$stage\""),
+            "atomic rename"
+        );
+        assert!(script.contains("sha256sum"), "verify bytes");
+        assert!(script.contains("staged byte mismatch"));
+        assert!(script.contains("pushed byte mismatch"));
+        assert!(script.contains("incus file push"));
+        assert!(
+            script.contains("< '/local/server.key'"),
+            "secret bytes travel on stdin"
+        );
+    }
+
+    #[test]
+    fn test_shell_quote_escapes_embedded_single_quotes() {
+        assert_eq!(shell_quote("plain"), "'plain'");
+        assert_eq!(shell_quote("it's"), "'it'\\''s'");
+    }
 }

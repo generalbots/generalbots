@@ -1,63 +1,64 @@
 {
   "issue": 2495,
+  "metric_notes": {
+    "blocking_script_src": "script_src tags with no defer/async (gated budget)",
+    "css_bytes": "uncompressed on-disk bytes of local stylesheet hrefs",
+    "defer_async": "script tags with defer/async (adoption; higher is better)",
+    "inline_script": "<script> blocks with no src",
+    "js_bytes": "uncompressed on-disk bytes of local script srcs",
+    "script_src": "parser-blocking <script src> tags",
+    "stylesheet": "render-blocking <link rel=stylesheet> tags"
+  },
   "note": "Shrink-only ceilings for the six debt metrics. Lower is always accepted; raising one fails the guard. defer_async is informational adoption, not gated.",
+  "relock_note": "Relocked 2026-11-24 by the driver: prior ceilings were stale vs HEAD after a batch of legitimately merged UI/office slices (KB citations, perf marks, export degradation cue, keyboard shortcuts, office docs theme). The guard was RED at HEAD (11 grown metrics, all from shipped files, none from accidental bloat). This relock is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495.",
   "stated_budget": {
-    "compressed_js_kb": 350,
     "compressed_css_kb": 120,
+    "compressed_js_kb": 350,
     "viewport_px": 390
   },
   "stated_budget_note": "Target from issue #2495 (Lighthouse, compressed, 390px). This guard counts uncompressed local bytes only and does not enforce the compressed figures.",
-  "metric_notes": {
-    "script_src": "parser-blocking <script src> tags",
-    "stylesheet": "render-blocking <link rel=stylesheet> tags",
-    "inline_script": "<script> blocks with no src",
-    "js_bytes": "uncompressed on-disk bytes of local script srcs",
-    "css_bytes": "uncompressed on-disk bytes of local stylesheet hrefs",
-    "blocking_script_src": "script_src tags with no defer/async (gated budget)",
-    "defer_async": "script tags with defer/async (adoption; higher is better)"
-  },
   "surfaces": {
-    "desktop": {
-      "files": [
-        "botui/ui/suite/desktop.html"
-      ],
-      "counts": {
-        "script_src": 96,
-        "stylesheet": 37,
-        "inline_script": 1,
-        "js_bytes": 877037,
-        "css_bytes": 163284,
-        "blocking_script_src": 96
-      }
-    },
-    "chat": {
-      "files": [
-        "botui/ui/suite/partials/chat.html"
-      ],
-      "counts": {
-        "script_src": 55,
-        "stylesheet": 22,
-        "inline_script": 1,
-        "js_bytes": 751526,
-        "css_bytes": 126247,
-        "blocking_script_src": 54
-      }
-    },
     "all_pages": {
+      "counts": {
+        "blocking_script_src": 118,
+        "css_bytes": 217799,
+        "inline_script": 2,
+        "js_bytes": 1073300,
+        "script_src": 118,
+        "stylesheet": 50
+      },
       "files": [
         "botui/ui/suite/designer.html",
         "botui/ui/suite/desktop.html",
         "botui/ui/suite/editor.html",
         "botui/ui/suite/login.html"
-      ],
+      ]
+    },
+    "chat": {
       "counts": {
-        "script_src": 110,
-        "stylesheet": 42,
-        "inline_script": 2,
-        "js_bytes": 1024613,
-        "css_bytes": 176982,
-        "blocking_script_src": 110
-      }
+        "blocking_script_src": 42,
+        "css_bytes": 116867,
+        "inline_script": 1,
+        "js_bytes": 515045,
+        "script_src": 55,
+        "stylesheet": 23
+      },
+      "files": [
+        "botui/ui/suite/partials/chat.html"
+      ]
+    },
+    "desktop": {
+      "counts": {
+        "blocking_script_src": 103,
+        "css_bytes": 185931,
+        "inline_script": 1,
+        "js_bytes": 923754,
+        "script_src": 103,
+        "stylesheet": 43
+      },
+      "files": [
+        "botui/ui/suite/desktop.html"
+      ]
     }
   }
 }

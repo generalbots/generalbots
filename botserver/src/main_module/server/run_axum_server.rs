@@ -2,6 +2,25 @@ use super::*;
 #[cfg(feature = "deployment")]
 use std::net::SocketAddr;
 
+// #2683 — the exemption list lives in a pure, unit-tested sibling module.
+#[path = "run_axum_server_csrf_config.rs"]
+mod csrf_config;
+use csrf_config::build_csrf_config;
+
+// #2597 — the boot-time malware scanner decision is a pure, unit-tested
+// sibling module; the one-shot ClamAV registration runs before any route can
+// accept an upload.
+#[path = "run_axum_server_malware_scanner.rs"]
+mod malware_scanner_boot;
+
+// #2613 — deploy-gateway bind policy: loopback unless explicitly opted in
+// with a configured per-deployment secret. Pure helpers + inline tests.
+#[cfg(feature = "deployment")]
+#[path = "run_axum_server_gateway_bind.rs"]
+mod gateway_bind;
+#[cfg(feature = "deployment")]
+use gateway_bind::{external_bind_enabled, gateway_bind_addr, EXTERNAL_BIND_ENV};
+
 pub async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -64,6 +83,21 @@ pub async fn run_axum_server(
     {
         tokio::spawn(async {
             let gateway_state = std::sync::Arc::new(crate::deployment::GatewayState::default());
+            // #2613 — loopback by default. External binding needs an explicit
+            // opt-in AND a real per-deployment secret (never the ephemeral
+            // fail-closed key). See gateway_bind_addr for the threat model.
+            let external_opt_in =
+                external_bind_enabled(std::env::var(EXTERNAL_BIND_ENV).ok().as_deref());
+            let gateway_addr = gateway_bind_addr(
+                external_opt_in,
+                gateway_state.deploy_key_is_configured(),
+            );
+            if gateway_addr.ip().is_unspecified() {
+                log::warn!(
+                    "Deploy Gateway EXTERNALLY exposed on {gateway_addr} — explicit \
+                     opt-in and a configured per-deployment secret are both required (#2613)"
+                );
+            }
             let gateway_router = crate::deployment::configure_gateway_routes(gateway_state);
             // IMP-09: this listener is a separate `axum::serve`, so it needs
             // the layer explicitly — the main router's layer never reaches it.
@@ -71,10 +105,9 @@ pub async fn run_axum_server(
                 gateway_router,
                 SecurityHeadersConfig::from_env(),
             );
-            let gateway_addr = SocketAddr::from(([0, 0, 0, 0], 5860));
             match tokio::net::TcpListener::bind(gateway_addr).await {
                 Ok(listener) => {
-                    log::info!("Deploy Gateway Server listening on http://0.0.0.0:5860");
+                    log::info!("Deploy Gateway Server listening on http://{gateway_addr}");
                     // IMP-07 — the gateway's rate limiter keys its per-client
                     // budget on `ConnectInfo<SocketAddr>`, which axum only
                     // inserts for this make-service flavour.
@@ -86,7 +119,7 @@ pub async fn run_axum_server(
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to bind Deploy Gateway Server to port 5860: {}", e);
+                    log::error!("Failed to bind Deploy Gateway Server to {gateway_addr}: {e}");
                 }
             }
         });
@@ -113,86 +146,24 @@ pub async fn run_axum_server(
     // `botsecurity_core::headers::HSTS_ENV`).
     let security_headers_config = SecurityHeadersConfig::from_env();
 
-    let is_production = std::env::var("BOTSERVER_ENV")
-        .map(|v| v == "production" || v == "prod")
-        .unwrap_or(false);
+    // #2615 — production is the default posture; only an explicit development
+    // mode may lower the guard. Never infer "production" from a positive marker.
+    let is_production = botsecurity_core::jwt_secret::is_production_env();
+    info!(
+        "Security posture: {} (BOTSERVER_ENV={})",
+        if is_production { "production" } else { "development" },
+        std::env::var(botsecurity_core::jwt_secret::ENVIRONMENT_ENV)
+            .unwrap_or_else(|_| "<unset>".to_string())
+    );
     let panic_config = if is_production {
         PanicHandlerConfig::production()
     } else {
         PanicHandlerConfig::development()
     };
 
-    let csrf_config = CsrfConfig {
-        // Keep CSRF active in all modes. In single-user desktop (`no_security`),
-        // the middleware enforces loopback Origin/Referer checks so a cross-site
-        // page cannot drive the localhost API, while trusted loopback origins
-        // (the desktop WebView) can proceed without a double-submit token pair.
-        enabled: true,
-        no_security_mode: sec.no_security,
-        exempt_paths: vec![
-            "/api/health".into(),
-            "/api/auth".into(),
-            "/api/auth/login".into(),
-            "/api/auth/refresh".into(),
-            "/api/auth/bootstrap".into(),
-            "/api/setup/status".into(),
-            "/api/product".into(),
-            "/api/manifest".into(),
-            "/api/i18n".into(),
-            "/api/client-errors".into(),
-            // Peer machine-to-machine routes (#2141): a peer presents the shared
-            // node token, not a CSRF cookie, so only these exact routes are
-            // exempt. `enable`/`disable` are admin controls and stay under the
-            // normal CSRF check.
-            "/api/peer/status".into(),
-            "/api/peer/register".into(),
-            "/api/peer/heartbeat".into(),
-            "/api/peer/home-site".into(),
-            "/api/peer/payloads".into(),
-            // #2815 — login/signup stay exempt from the double-submit token
-            // (the JS forms post JSON), but the middleware now requires a
-            // same-origin Origin/Referer on these two paths before honouring
-            // the exemption. Bearer/other API paths keep the exemption.
-            "/api/cloud/auth*".into(),
-            "/api/sheet*".into(),
-            "/suite/sheet*".into(),
-            "/api/auth/cloud-sso".into(),
-            "/api/auth/suite-sso".into(),
-            "/api/auth/unified-login".into(),
-            "/api/catalog".into(),
-            "/ws".into(),
-            "/ws/".into(),
-            "/webhook/whatsapp".into(),
-            "/api/whatsapp/webhook".into(),
-            "/api/facebook/webhook".into(),
-            "/webhook".into(),
-            // Inbound channel webhooks arrive from the provider, which cannot
-            // hold a CSRF token; each handler proves the call itself (#1327).
-            "/webhook/telegram*".into(),
-            "/api/instagram/webhook".into(),
-            "/api/msteams/messages".into(),
-            // #2538 — published-site forms are anonymous by design; the
-            // handler enforces a honeypot, per-e-mail rate limit and field
-            // validation instead of a session cookie. The slug addresses one
-            // published site, never a tenant namespace.
-            "/forms/*".into(),
-            // CalDAV clients (Thunderbird, Apple Calendar, DAVx5) authenticate
-            // with HTTP Basic and their write verbs — PROPFIND, REPORT, PUT,
-            // DELETE — are not in the exempt method list, so a CSRF check
-            // rejected every discovery request and no client could sync. The
-            // DAV router authenticates and authorizes each request itself
-            // (#1335).
-            "/caldav*".into(),
-            "/.well-known/caldav".into(),
-        ],
-        // #2815: enforce same-origin Origin/Referer on the two anonymous auth
-        // POSTs instead of leaving them wholly unprotected by the exemption.
-        origin_check_paths: vec![
-            "/api/cloud/auth/login".into(),
-            "/api/cloud/auth/signup".into(),
-        ],
-        ..Default::default()
-    };
+    // #2683 — built by a pure helper so the exemption list is unit-testable
+    // and every entry carries an inline auth-model justification.
+    let csrf_config = build_csrf_config(sec.no_security);
     // #2141 — the CSRF signing secret must never be a public constant: anyone
     // who can read the repository could then mint a valid token/header pair.
     // Resolution order is env → Vault → ephemeral (development only); in
@@ -211,6 +182,7 @@ pub async fn run_axum_server(
                 return Err(std::io::Error::other(format!("CSRF init failed: {error}")));
             }
         };
+        info!("CSRF secret source: {}", resolved.source().as_str());
         if resolved.source() == CsrfSecretSource::Ephemeral {
             log::warn!(
                 "CSRF_SECRET is not configured; signing tokens with an ephemeral \
@@ -289,6 +261,15 @@ pub async fn run_axum_server(
     );
 
     let no_security = sec.no_security;
+
+    // #2597 — install the real ClamAV byte scanner once, before any route can
+    // accept an upload. Registration fails closed: a hook that cannot be
+    // installed aborts startup instead of serving uploads unscanned. #2606
+    // removed the rollback switch, so there is no opt-out path.
+    if let Err(error) = malware_scanner_boot::install_scanner_at_boot() {
+        error!("Refusing to start: {error}");
+        return Err(std::io::Error::other(error));
+    }
 
     let app = apply_middleware(
         base_router,

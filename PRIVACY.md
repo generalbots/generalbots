@@ -71,6 +71,16 @@ explicitly configures them:
   keep prompts on the machine. This is a model-inference choice, not
   analytics, and the wizard states the destination before install.
 
+## Security reporting (LGPD notice)
+
+Personal data submitted through the private vulnerability reporting channel is
+handled under a dedicated notice:
+[Security reporting — privacy notice and reporter data policy](security/policy/REPORTER-DATA-POLICY.md).
+That notice defines the minimum fields we ask for, the lawful basis and purpose,
+retention and deletion deadlines, who may access a report, encryption at rest,
+and how to exercise LGPD rights. The reporting page does not log IP addresses
+or user agents, set tracking cookies, or load third-party analytics.
+
 ## How to verify
 
 ```bash

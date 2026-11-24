@@ -69,7 +69,10 @@ pub async fn create_conversation(
     let conversation_id = Uuid::new_v4();
     let creator_id = Uuid::new_v4();
 
-    let conversation_type = req.conversation_type.clone().unwrap_or_else(|| "group".to_string());
+    let conversation_type = req
+        .conversation_type
+        .clone()
+        .unwrap_or_else(|| "group".to_string());
     let is_private = req.is_private.unwrap_or(false);
 
     let mut conn = pool.get()?;
@@ -130,7 +133,10 @@ pub async fn join_conversation(
 
     Ok(SuccessResponse {
         success: true,
-        message: Some(format!("User {} joined conversation {}", req.user_id, conversation_id)),
+        message: Some(format!(
+            "User {} joined conversation {}",
+            req.user_id, conversation_id
+        )),
     })
 }
 
@@ -150,7 +156,10 @@ pub async fn leave_conversation(
 
     Ok(SuccessResponse {
         success: true,
-        message: Some(format!("User {} left conversation {}", req.user_id, conversation_id)),
+        message: Some(format!(
+            "User {} left conversation {}",
+            req.user_id, conversation_id
+        )),
     })
 }
 
@@ -168,7 +177,10 @@ struct MemberRow {
     joined_at: DateTime<Utc>,
 }
 
-pub async fn get_conversation_members(pool: &DbPool, conversation_id: Uuid) -> Result<Vec<ParticipantResponse>> {
+pub async fn get_conversation_members(
+    pool: &DbPool,
+    conversation_id: Uuid,
+) -> Result<Vec<ParticipantResponse>> {
     let mut conn = pool.get()?;
     let rows: Vec<MemberRow> = sql_query(
         "SELECT user_id, display_name, role, status, joined_at FROM meet_conversation_members
@@ -181,7 +193,10 @@ pub async fn get_conversation_members(pool: &DbPool, conversation_id: Uuid) -> R
         .into_iter()
         .map(|r| ParticipantResponse {
             user_id: r.user_id,
-            username: r.display_name.clone().unwrap_or_else(|| r.user_id.to_string()),
+            username: r
+                .display_name
+                .clone()
+                .unwrap_or_else(|| r.user_id.to_string()),
             display_name: r.display_name,
             role: r.role,
             status: r.status,

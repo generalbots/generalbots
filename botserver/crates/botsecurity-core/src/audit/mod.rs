@@ -357,5 +357,7 @@ mod audit_config;
 mod with_time_range;
 mod store;
 mod audit_logger;
+mod security_decision;
 
 pub use audit_logger::*;
+pub use security_decision::*;

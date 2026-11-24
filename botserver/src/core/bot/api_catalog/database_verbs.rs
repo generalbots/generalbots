@@ -7,18 +7,35 @@
 
 use super::*;
 
+/// #2752 — the complete set of database verbs this module may execute. Kept as
+/// one explicit list so the dispatcher gate and the execution arms cannot drift:
+/// a caller-supplied verb is accepted only when it is declared here, verbatim.
+const DATABASE_VERBS: &[&str] = &[
+    "database.rows.insert",
+    "database.rows.update",
+    "database.rows.delete",
+    "database.rows.batch_delete",
+    "database.table.create",
+    "database.column.add",
+    "database.rows.import",
+];
+
+/// The declared verbs, exposed for the catalog/RBAC consistency test.
+pub(super) fn declared_verbs() -> &'static [&'static str] {
+    DATABASE_VERBS
+}
+
 /// True when `name` is one of the database verbs this module executes.
 pub(super) fn handles(name: &str) -> bool {
-    matches!(
-        name,
-        "database.rows.insert"
-            | "database.rows.update"
-            | "database.rows.delete"
-            | "database.rows.batch_delete"
-            | "database.table.create"
-            | "database.column.add"
-            | "database.rows.import"
-    )
+    is_declared_database_verb(name)
+}
+
+/// #2752 — strict, case-sensitive allowlist check. There is deliberately no
+/// trimming, lower-casing, prefix or substring matching: a hostile verb such as
+/// `"database.rows.insert; DROP TABLE users"` must be rejected exactly as sent
+/// and never reach a database handler.
+pub(super) fn is_declared_database_verb(name: &str) -> bool {
+    declared_verbs().contains(&name)
 }
 
 /// Executes one database verb with the caller's bot scope.
@@ -28,6 +45,11 @@ pub(super) async fn execute(
     name: &str,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
+    // #2752 — defence in depth: even if a caller reaches this function without
+    // going through `handles()`, nothing outside the declared allowlist runs.
+    if !is_declared_database_verb(name) {
+        return Err(format!("unknown database command '{name}'"));
+    }
     let obj = params;
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
@@ -320,5 +342,60 @@ mod database_import_tests {
     #[test]
     fn csv_split_trims_and_keeps_empty_fields() {
         assert_eq!(split_csv_line(" a , ,c "), vec!["a", "", "c"]);
+    }
+}
+
+#[cfg(test)]
+mod database_verb_allowlist_tests {
+    use super::{declared_verbs, handles, is_declared_database_verb};
+
+    /// The allowlist is the single source of truth for both the dispatcher gate
+    /// and the execution arms; every declared verb must be dispatchable.
+    #[test]
+    fn every_declared_verb_is_dispatchable() {
+        let verbs = declared_verbs();
+        assert_eq!(verbs.len(), 7);
+        for name in verbs {
+            assert!(is_declared_database_verb(name), "{name} not in allowlist");
+            assert!(handles(name), "{name} not dispatched");
+        }
+    }
+
+    /// #2752 — hostile verb payloads must never be accepted. Casing tricks,
+    /// trailing SQL, whitespace, path traversal and NUL bytes are all rejected
+    /// verbatim: the gate is equality against a fixed set, not a SQL parser.
+    #[test]
+    fn hostile_verb_payloads_are_rejected() {
+        for hostile in [
+            "",
+            " ",
+            "DROP TABLE users",
+            "DELETE FROM users",
+            "database.rows.insert; DROP TABLE users",
+            "database.rows.insert\nDELETE FROM users",
+            "database.rows.insert--",
+            "database.rows.insert /* DROP TABLE users */",
+            "database.rows.insert ",
+            " database.rows.insert",
+            "DATABASE.ROWS.INSERT",
+            "Database.Rows.Insert",
+            "database.rows",
+            "database.rows.drop",
+            "database.rows.insert.extra",
+            "database.query",
+            "database.tables.list",
+            "api.exec",
+            "../database.rows.insert",
+            "database.rows.\u{0000}insert",
+        ] {
+            assert!(
+                !is_declared_database_verb(hostile),
+                "hostile verb passed the allowlist: {hostile:?}"
+            );
+            assert!(
+                !handles(hostile),
+                "hostile verb reached the dispatcher: {hostile:?}"
+            );
+        }
     }
 }

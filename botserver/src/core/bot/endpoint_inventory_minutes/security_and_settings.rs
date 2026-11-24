@@ -97,12 +97,22 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint {
         method: "GET",
         path: "/api/security/protection/clamav/quarantine",
-        summary: "registered in crates/botsecurity-protection/src/protection/api.rs",
+        summary: "registered in crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs; admin-only: list the canonical hostile-file quarantine (upload gate + ClamAV records), scoped to the caller's tenant",
     },
     ApiEndpoint {
         method: "POST",
         path: "/api/security/protection/clamav/quarantine/{id}",
-        summary: "registered in crates/botsecurity-protection/src/protection/api.rs",
+        summary: "registered in crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs; admin-only: re-scan then restore a quarantined file, refusing infected payloads, scoped to the caller's tenant",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/security/protection/lmd/quarantine",
+        summary: "registered in crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs; admin-only: list LMD's own quarantine store (#2600)",
+    },
+    ApiEndpoint {
+        method: "POST",
+        path: "/api/security/protection/lmd/quarantine/{id}",
+        summary: "registered in crates/botsecurity-protection/src/protection/api/configure_protection_routes.rs; admin-only: restore a file from LMD's quarantine store (#2600)",
     },
     ApiEndpoint {
         method: "GET",

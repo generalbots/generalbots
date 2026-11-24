@@ -35,7 +35,7 @@ impl AzureGPT5Client {
     pub fn new(base_url: String, api_version: Option<String>) -> Self {
         let api_version = api_version.unwrap_or_else(|| "2025-04-01-preview".to_string());
         let rate_limiter = Arc::new(ApiRateLimiter::unlimited());
-        let client = reqwest::Client::builder()
+        let client = crate::pinned_http::pinned_builder()
             .timeout(std::time::Duration::from_secs(180))
             .connect_timeout(std::time::Duration::from_secs(30))
             .build()
@@ -336,7 +336,7 @@ impl OpenAIClient {
         // exchange, so a total timeout cut every generation at 180 s no matter
         // how steadily tokens were arriving. The overall cap is the pipeline's
         // turn timeout (`LLM_TURN_TIMEOUT_SECS`).
-        let client = reqwest::Client::builder()
+        let client = crate::pinned_http::pinned_builder()
             .read_timeout(std::time::Duration::from_secs(180))
             .connect_timeout(std::time::Duration::from_secs(30))
             .build()

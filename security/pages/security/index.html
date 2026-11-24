@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  Security bulletin landing page (#2716).
+  PT-BR is authored first: the inline text below is the authoritative,
+  no-JavaScript fallback and is mirrored key-for-key in every lang/*.json
+  catalog. All user-visible strings are resolved at runtime through data-i18n.
+  The catalogue loader lives in ../i18n.js; the contract is checked offline by
+  scripts/check_security_pages.py.
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="document-title">Boletim de segurança | General Bots</title>
+  <link rel="stylesheet" href="security.css">
+  <script src="../i18n.js" data-i18n-loader defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip-to-content">Ir para o conteúdo principal</a>
+
+  <header class="site-header">
+    <p class="site-name" data-i18n="site-name">General Bots</p>
+    <nav class="language-switcher" aria-label="Idioma" data-i18n-aria-label="language-label">
+      <a href="?lang=pt-BR" hreflang="pt-BR" lang="pt-BR" data-locale="pt-BR" data-i18n="locale-name-pt-br" aria-current="true">Português (Brasil)</a>
+      <a href="?lang=en" hreflang="en" lang="en" data-locale="en" data-i18n="locale-name-en">English</a>
+      <a href="?lang=es" hreflang="es" lang="es" data-locale="es" data-i18n="locale-name-es">Español</a>
+      <a href="?lang=fr" hreflang="fr" lang="fr" data-locale="fr" data-i18n="locale-name-fr">Français</a>
+      <a href="?lang=de" hreflang="de" lang="de" data-locale="de" data-i18n="locale-name-de">Deutsch</a>
+      <a href="?lang=ja" hreflang="ja" lang="ja" data-locale="ja" data-i18n="locale-name-ja">日本語</a>
+      <a href="?lang=ko" hreflang="ko" lang="ko" data-locale="ko" data-i18n="locale-name-ko">한국어</a>
+      <a href="?lang=zh-CN" hreflang="zh-CN" lang="zh-CN" data-locale="zh-CN" data-i18n="locale-name-zh-cn">中文（简体）</a>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <h1 data-i18n="page-title">Boletim de segurança</h1>
+    <p class="lead" data-i18n="page-intro">Avisos oficiais de segurança da General Bots para implantações governamentais. Este boletim é a fonte autoritativa; fóruns e listas de discussão não publicam avisos.</p>
+
+    <p class="authoritative" data-authoritative-locale="pt-BR">
+      <span class="badge" lang="pt-BR" data-i18n="authoritative-badge">PT-BR</span>
+      <span data-i18n="authoritative-note">Versão autoritativa: português (Brasil). Em caso de divergência entre traduções, esta versão prevalece.</span>
+    </p>
+
+    <nav class="on-this-page" aria-labelledby="on-this-page-heading">
+      <h2 class="visually-hidden" id="on-this-page-heading" data-i18n="on-this-page">Nesta página</h2>
+      <ul>
+        <li><a href="#advisories" data-i18n="nav-advisories">Avisos publicados</a></li>
+        <li><a href="#faq" data-i18n="nav-faq">Perguntas frequentes</a></li>
+        <li><a href="#report" data-i18n="nav-report">Como relatar uma vulnerabilidade</a></li>
+      </ul>
+    </nav>
+
+    <section id="advisories" aria-labelledby="advisories-heading">
+      <h2 id="advisories-heading" data-i18n="advisories-heading">Avisos publicados</h2>
+      <ul class="advisory-list">
+        <li>
+          <a href="GBSA-2026-0001/" data-i18n="advisory-1-title">GBSA-2026-0001 — Injeção de HTML na edição de documentos e planilhas</a>
+          <p class="meta" data-i18n="advisory-1-meta">Crítica · publicado em 2026-11-23 · versões 6.8.0 a 6.8.11 afetadas</p>
+        </li>
+        <li>
+          <a href="GBSA-2026-0002/" data-i18n="advisory-2-title">GBSA-2026-0002 — Leitura de arquivos arbitrários no monitor de drive</a>
+          <p class="meta" data-i18n="advisory-2-meta">Alta · publicado em 2026-11-22 · versões 6.8.0 a 6.8.11 afetadas</p>
+        </li>
+      </ul>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-heading">
+      <h2 id="faq-heading" data-i18n="faq-heading">Perguntas frequentes</h2>
+
+      <details>
+        <summary data-i18n="faq-1-q">Este boletim substitui o fórum da comunidade?</summary>
+        <p data-i18n="faq-1-a">Sim, para avisos oficiais. O fórum serve apenas para discussão; a versão publicada aqui e no feed CSAF é a única fonte autoritativa.</p>
+      </details>
+
+      <details>
+        <summary data-i18n="faq-2-q">Como sei qual versão corrigiu um problema?</summary>
+        <p data-i18n="faq-2-a">Cada aviso lista o intervalo exato de versões afetadas e a primeira versão corrigida. Confirme sempre o número da versão antes de atualizar.</p>
+      </details>
+    </section>
+
+    <section id="report" aria-labelledby="report-heading">
+      <h2 id="report-heading" data-i18n="report-heading">Relatar uma vulnerabilidade</h2>
+      <p><a href="mailto:security@generalbots.org" data-i18n="report-link">Enviar relatório confidencial por email para a equipe de segurança (security@generalbots.org)</a></p>
+      <p><a href="/.well-known/security.txt" data-i18n="report-policy">Ler a política de divulgação coordenada e os canais de contato (security.txt)</a></p>
+      <p><a href="/SECURITY.md" data-i18n="report-policy-md">Ler a política de divulgação coordenada no repositório (SECURITY.md)</a></p>
+    </section>
+
+    <section id="feeds" aria-labelledby="feeds-heading">
+      <h2 id="feeds-heading" data-i18n="feeds-heading">Fontes legíveis por máquina</h2>
+      <p><a href="/security/csaf/changes.csv" data-i18n="csaf-link">Abrir o índice de alterações do feed CSAF 2.0</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <p data-i18n="footer-note">General Bots — Boletim de segurança. Não há programa de recompensas; o reconhecimento público é a única forma de agradecimento.</p>
+    <nav aria-label="Status e histórico" data-i18n-aria-label="status-nav-title">
+      <ul>
+        <li><a href="status.html" data-i18n="status-nav-title">Status e histórico</a></li>
+        <li><a href="hall-of-fame.html" data-i18n="hof-nav-title">Hall of fame</a></li>
+      </ul>
+    </nav>
+  </footer>
+</body>
+</html>

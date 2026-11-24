@@ -15,6 +15,8 @@ pub mod event_dispatcher;
 pub mod git_bot_monitor;
 mod health;
 mod init;
+#[cfg(feature = "security")]
+pub mod init_tls;
 pub mod init_tasks;
 pub mod listen_impl;
 pub mod llm_setup;
@@ -27,6 +29,7 @@ mod server;
 pub mod settings_digest;
 mod shutdown;
 mod staged_model_choice;
+mod tls_state;
 pub mod state_builder;
 mod types;
 pub mod ui_plan;

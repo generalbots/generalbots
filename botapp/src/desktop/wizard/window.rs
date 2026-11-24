@@ -3,60 +3,10 @@
 use log::{info, warn};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
+use super::origin::{
+    is_allowed_main_navigation, is_allowed_suite_url, parse_suite_url, use_dev_server,
+};
 use super::session::{suite_url_with_token, wait_for_desktop_session, wait_for_wizard_session};
-
-/// Whether the Tauri `devUrl` (the dev server, usually port 3000) should be
-/// used instead of the embedded frontend.
-///
-/// Only a debug build that does **not** embed the frontend may follow `devUrl`.
-/// A `custom-protocol` build carries the bundled assets, so even a debug binary
-/// built with it must serve them directly — otherwise it opens whatever
-/// unrelated server happens to hold port 3000 on the developer's machine.
-fn use_dev_server() -> bool {
-    cfg!(debug_assertions) && !cfg!(feature = "custom-protocol")
-}
-
-/// #2697 — `GB_DESKTOP_SUITE_URL` and subsequent navigations must stay on the
-/// local sidecar origin. An attacker-controlled value must not turn the main
-/// WebView into a browser for an external origin with privileged IPC.
-fn is_allowed_suite_url(url: &tauri::Url) -> bool {
-    if !matches!(url.scheme(), "http" | "https") {
-        return false;
-    }
-    if !matches!(url.host_str(), Some("localhost") | Some("127.0.0.1")) {
-        return false;
-    }
-    let port = url.port_or_known_default().unwrap_or_default();
-    port == crate::desktop::sidecar::probe::sidecar_port()
-        || (use_dev_server() && port == 3000)
-}
-
-fn parse_suite_url(raw: &str) -> Option<tauri::Url> {
-    let url = tauri::Url::parse(raw.trim()).ok()?;
-    is_allowed_suite_url(&url).then_some(url)
-}
-
-#[cfg(test)]
-mod origin_tests {
-    use super::{is_allowed_suite_url, parse_suite_url};
-
-    #[test]
-    fn hostile_suite_urls_are_refused() {
-        for hostile in [
-            "https://evil.example/suite/desktop.html",
-            "file:///etc/passwd",
-            "http://localhost:9999/suite/desktop.html",
-            "http://user@127.0.0.1:8080/suite/desktop.html",
-            "javascript:alert(1)",
-        ] {
-            assert!(parse_suite_url(hostile).is_none(), "accepted {hostile}");
-        }
-        let port = crate::desktop::sidecar::probe::sidecar_port();
-        let good = tauri::Url::parse(&format!("http://127.0.0.1:{port}/suite/desktop.html"))
-            .expect("valid URL");
-        assert!(is_allowed_suite_url(&good));
-    }
-}
 
 /// Design size of the wizard window and the margin kept around it.
 const WIZARD_WIDTH: f64 = 1040.0;
@@ -225,11 +175,18 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
             if !use_dev_server() {
                 return None;
             }
-            app.config().build.dev_url.clone().map(|mut url| {
-                url.set_path("/suite/desktop.html");
-                url.set_query(None);
-                url
-            })
+            app.config()
+                .build
+                .dev_url
+                .clone()
+                .map(|mut url| {
+                    url.set_path("/suite/desktop.html");
+                    url.set_query(None);
+                    url
+                })
+                // #2697 — never navigate on a configured value that fails the
+                // origin policy, even when it comes from the Tauri config.
+                .filter(is_allowed_suite_url)
         })
         .or_else(sidecar_suite_url);
 
@@ -315,11 +272,17 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
                 if !use_dev_server() {
                     return None;
                 }
-                handle.config().build.dev_url.clone().map(|mut url| {
-                    url.set_path("/suite/desktop.html");
-                    url.set_query(None);
-                    url
-                })
+                handle
+                    .config()
+                    .build
+                    .dev_url
+                    .clone()
+                    .map(|mut url| {
+                        url.set_path("/suite/desktop.html");
+                        url.set_query(None);
+                        url
+                    })
+                    .filter(is_allowed_suite_url)
             })
             .or_else(sidecar_suite_url);
         let Some(url) = target else {
@@ -336,7 +299,9 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         .min_inner_size(900.0, 560.0)
         .resizable(true)
         // #2697 — refuse any in-page navigation away from the sidecar origin.
-        .on_navigation(|_window, url| is_allowed_suite_url(url));
+        // The global hook in `origin::navigation_guard` covers the config-created
+        // window; this builder-level one also covers this recreated window.
+        .on_navigation(|url| is_allowed_main_navigation(url));
         // gbgov: page-drawn header; shadow gives edge resize + rounded corners.
         let builder = if CUSTOM_HEADER {
             builder.decorations(false).shadow(true)

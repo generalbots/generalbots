@@ -74,6 +74,7 @@ pub(crate) async fn list_canvases(
 
 pub(crate) async fn create_canvas(
     State(state): State<Arc<CanvasState>>,
+    caller: crate::auth::CanvasUser,
     Json(req): Json<CreateCanvasRequest>,
 ) -> Result<Json<Canvas>, (StatusCode, String)> {
     let mut conn = state
@@ -85,7 +86,9 @@ pub(crate) async fn create_canvas(
     let branch_id = branch_for_bot(&mut conn, bot_id);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let user_id = Uuid::nil();
+    // #2735: the owner must be the verified principal, otherwise no row can
+    // ever satisfy the owner/editor predicate on collaboration mutations.
+    let user_id = caller.user_id;
 
     let db_canvas = DbCanvas {
         id,

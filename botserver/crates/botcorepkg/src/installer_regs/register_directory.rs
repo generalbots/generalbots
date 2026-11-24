@@ -110,7 +110,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 ("ZITADEL_DATABASE_POSTGRES_PORT".to_string(), "5432".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_DATABASE".to_string(), "zitadel".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_USER_USERNAME".to_string(), "zitadel".to_string()),
-                ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "zitadel".to_string()),
+                ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "{{ZITADEL_PASSWORD}}".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE".to_string(), "disable".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME".to_string(), "gbuser".to_string()),
                 ("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD".to_string(), "$DB_PASSWORD".to_string()),
@@ -277,4 +277,42 @@ pub fn register_meeting(components: &mut HashMap<String, ComponentConfig>) {
             container: None,
         },
     );
+}
+
+#[cfg(test)]
+mod zitadel_password_tests {
+    use super::*;
+
+    #[test]
+    fn directory_installer_never_embeds_a_fixed_db_password() {
+        let mut components = HashMap::new();
+        register_directory(&mut components);
+        assert!(components.contains_key("directory"));
+        let Some(directory) = components.get("directory") else {
+            return;
+        };
+        let mut commands = Vec::new();
+        commands.extend(directory.pre_install_cmds_linux.iter());
+        commands.extend(directory.post_install_cmds_linux.iter());
+        commands.extend(directory.pre_install_cmds_windows.iter());
+        commands.extend(directory.post_install_cmds_windows.iter());
+        commands.extend(directory.env_vars.values());
+        commands.push(&directory.exec_cmd);
+        commands.extend(directory.exec_cmd_windows.iter());
+        for command in commands {
+            assert!(
+                !command.contains("PASSWORD 'zitadel'")
+                    && !command.contains("USER_PASSWORD=zitadel"),
+                "fixed DB password leaked into installer command: {command}"
+            );
+        }
+        assert!(
+            directory.post_install_cmds_linux[0].contains("{{ZITADEL_PASSWORD}}"),
+            "Linux role creation must use the resolved random password"
+        );
+        assert!(
+            directory.post_install_cmds_windows[0].contains("{{ZITADEL_PASSWORD}}"),
+            "Windows role creation must use the resolved random password"
+        );
+    }
 }

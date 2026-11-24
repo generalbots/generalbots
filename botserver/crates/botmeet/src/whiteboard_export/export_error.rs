@@ -9,6 +9,7 @@ impl std::fmt::Display for ExportError {
             Self::IoError(s) => write!(f, "IO error: {s}"),
             Self::EmptyCanvas => write!(f, "Empty canvas"),
             Self::InvalidDimensions => write!(f, "Invalid dimensions"),
+            Self::NotAuthorized(s) => write!(f, "Not authorized: {s}"),
         }
     }
 }

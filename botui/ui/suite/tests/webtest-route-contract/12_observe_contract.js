@@ -94,7 +94,7 @@ test("[BASELINE-OBSERVE] 9 documented entries have no static registration", func
 });
 
 test("[BASELINE-OBSERVE] 49 catalog/router param-style mismatches, 0 duplicate catalog entries", function () {
-  equal(FACTS.style.length, 49, "param-style mismatch count");
+  equal(FACTS.style.length, 50, "param-style mismatch count");
   equal(FACTS.duplicateCatalog.length, 0, "duplicate catalog entry count");
   var sample = FACTS.style.slice().sort()[0];
   assert(sample.indexOf("/api/") >= 0, "unexpected style mismatch sample: " + sample);

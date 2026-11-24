@@ -617,3 +617,5 @@ tasks-intent-open-app = App öffnen →
 tasks-intent-task-id = Aufgaben-ID:
 tasks-intent-error = Etwas ist schiefgelaufen
 tasks-intent-failed = Antwort konnte nicht verarbeitet werden
+
+docs-export-degraded = Exportiert ohne Tabellen/Diagramme: Quelldaten nicht verfügbar ({count} übersprungen)

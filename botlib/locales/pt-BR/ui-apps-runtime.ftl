@@ -172,6 +172,7 @@ sheet-untitled = Planilha sem título
 # Docs & CRM runtime strings (#2091 #2092)
 # ============================================================================
 docs-export-replacements = Substituições aplicadas: {count}
+docs-export-degraded = Exportado sem tabelas/gráficos: dados de origem indisponíveis ({count} ignorados)
 docs-compare-ids-required = Os dois IDs de documento são obrigatórios.
 docs-compare-running = Comparando…
 docs-compare-no-differences = Nenhuma diferença encontrada.

@@ -1,0 +1,50 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://generalbots.org/security/vex/GBVEX-2026-0001",
+  "author": "General Bots Security Team <security@generalbots.org>",
+  "last_updated": "2026-11-23T00:00:00Z",
+  "statements": [
+    {
+      "@id": "https://generalbots.org/security/vex/GBVEX-2026-0001#CVE-2021-44228",
+      "database_specific": {
+        "products": [
+          {
+            "name": "botserver",
+            "purl": "pkg:generic/generalbots/botserver",
+            "version_range": ">= 1.0.0"
+          },
+          {
+            "name": "botui",
+            "purl": "pkg:generic/generalbots/botui",
+            "version_range": ">= 1.0.0"
+          },
+          {
+            "name": "botapp (desktop client)",
+            "purl": "pkg:generic/generalbots/botapp",
+            "version_range": ">= 1.0.0"
+          }
+        ],
+        "references": [
+          "https://generalbots.org/security/vex/GBVEX-2026-0001",
+          "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+        ],
+        "title": "Apache Log4j2 JNDI lookup (Log4Shell) is not present in any General Bots product"
+      },
+      "impact_statement": "General Bots Server, the Suite/botui and the desktop client are Rust and TypeScript builds. The SPDX inventory produced by the security workflow contains no Java runtime and no log4j-core package in any edition: SaaS, private cloud or desktop-local. There is therefore no code path in which an attacker-supplied lookup string could reach a Log4j JNDI resolution. Precise scope: botserver >= 1.0.0 (pkg:generic/generalbots/botserver); botui >= 1.0.0 (pkg:generic/generalbots/botui); botapp (desktop client) >= 1.0.0 (pkg:generic/generalbots/botapp).",
+      "justification": "component_not_present",
+      "products": [
+        "pkg:generic/generalbots/botserver",
+        "pkg:generic/generalbots/botui",
+        "pkg:generic/generalbots/botapp"
+      ],
+      "status": "not_affected",
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+        "description": "CVE-2021-44228 affects Apache Log4j2 2.0-beta9 through 2.15.0. No General Bots product ships Java or Log4j2, so the vulnerable component is not present in any supported configuration.",
+        "name": "CVE-2021-44228"
+      }
+    }
+  ],
+  "timestamp": "2026-11-23T00:00:00Z",
+  "version": 1
+}

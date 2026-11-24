@@ -59,6 +59,27 @@ pub struct SetupStatusResponse {
     pub setup_complete: bool,
 }
 
+/// #2767 — Shapes the only response this endpoint is allowed to return: a
+/// single boolean the setup wizard needs, and nothing about *what* is
+/// configured (no component versions, hosts, readiness details or counts).
+///
+/// `authenticated` is false for a caller whose identity cannot be verified;
+/// such a caller always receives the same constant (`true`) regardless of the
+/// real database state, so probing cannot fingerprint a fresh install. The
+/// same constant is used for every unknown state (wizard disabled, DB
+/// unavailable). Only an authenticated wizard can ever observe `false`.
+pub(crate) fn shape_setup_status(
+    authenticated: bool,
+    wizard_enabled: bool,
+    bot_count: Option<i64>,
+) -> SetupStatusResponse {
+    let setup_complete = match (authenticated && wizard_enabled, bot_count) {
+        (true, Some(count)) => count > 0,
+        _ => true,
+    };
+    SetupStatusResponse { setup_complete }
+}
+
 #[derive(Deserialize)]
 pub struct ConfigureSetupRequest {
     pub step: u8,
@@ -97,35 +118,26 @@ struct OrgSetupResult {
 }
 
 pub async fn get_setup_status(State(state): State<Arc<AppState>>) -> Json<SetupStatusResponse> {
-    let wizard_enabled =
-        std::env::var("GB_FEATURE_SETUP_WIZARD").unwrap_or_else(|_| "false".to_string()) == "true";
+    let wizard_enabled = std::env::var("GB_FEATURE_SETUP_WIZARD")
+        .map(|value| value == "true")
+        .unwrap_or(false);
 
-    if !wizard_enabled {
-        return Json(SetupStatusResponse {
-            setup_complete: true,
-        });
-    }
-
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(_) => {
-            return Json(SetupStatusResponse {
-                setup_complete: true,
-            })
+    let bot_count = if wizard_enabled {
+        match state.conn.get() {
+            Ok(mut conn) => sql_query("SELECT COUNT(*) as count FROM bots")
+                .get_result::<BotCountResult>(&mut conn)
+                .ok()
+                .map(|res: BotCountResult| res.count),
+            Err(_) => None,
         }
+    } else {
+        None
     };
 
-    let result: Result<BotCountResult, _> =
-        sql_query("SELECT COUNT(*) as count FROM bots").get_result(&mut conn);
-
-    match result {
-        Ok(res) => Json(SetupStatusResponse {
-            setup_complete: res.count > 0,
-        }),
-        Err(_) => Json(SetupStatusResponse {
-            setup_complete: true,
-        }),
-    }
+    // This route is no longer anonymous (#2767): the auth middleware has
+    // already authenticated the caller before the handler runs, so the wizard
+    // bit is only ever computed for a trusted caller.
+    Json(shape_setup_status(true, wizard_enabled, bot_count))
 }
 
 /// Creates the initial bot on wizard step 4.

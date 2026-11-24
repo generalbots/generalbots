@@ -3,8 +3,8 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::SinkExt;
 
-use botcore::shared::utils::DbPool;
 use crate::security::auth_api::types::AuthenticatedUser;
+use botcore::shared::utils::DbPool;
 use uuid::Uuid;
 
 /// SECURITY gate for container attachment: the requested container must be a
@@ -75,8 +75,8 @@ fn project_role_at_least_viewer(
     .get_result::<RoleCell>(conn)
     .optional()
     .map_err(|e| format!("project role lookup: {e}"))?;
-    if let Some(role) = direct {
-        return Ok(is_viewer_or_above(&role.value));
+    if let Some(role) = &direct {
+        return Ok(has_project_vm_access(user_id, Some(&role.value), &[]));
     }
     let groups: Vec<RoleCell> = diesel::sql_query(
         "SELECT g.name AS value FROM rbac_user_groups ug \
@@ -86,6 +86,7 @@ fn project_role_at_least_viewer(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load::<RoleCell>(conn)
     .map_err(|e| format!("user groups lookup: {e}"))?;
+    let mut group_roles = Vec::with_capacity(groups.len());
     for group in groups {
         let group_role: Option<RoleCell> = diesel::sql_query(
             "SELECT role AS value FROM project_members \
@@ -97,19 +98,30 @@ fn project_role_at_least_viewer(
         .optional()
         .map_err(|e| format!("group role lookup: {e}"))?;
         if let Some(role) = group_role {
-            if is_viewer_or_above(&role.value) {
-                return Ok(true);
-            }
+            group_roles.push(role.value);
         }
     }
-    // Mirror the Vibe project RBAC semantics: an authenticated user with no
-    // explicit membership on the project is treated as a viewer there (the
-    // run/files endpoints resolve to the default `Viewer` role), so the
-    // Terminal must grant the same access — otherwise a user who can already
-    // Run a project's VM gets a 403 from its own companion terminal. The
-    // container is still restricted to `vm_instances` rows, so infra
-    // containers (tables, vault, system) remain unreachable.
-    Ok(true)
+    // #2730 — no direct or group membership means NO access. The single
+    // decision point is the pure predicate below, shared by this DB path and
+    // its inline tests, so the fail-closed rule cannot drift between them.
+    Ok(has_project_vm_access(user_id, None, &group_roles))
+}
+
+/// Pure, DB-free ownership predicate for a project VM (#2730).
+///
+/// The caller must be a real (non-nil) principal and hold a `viewer+` role on
+/// the project that owns the VM, either directly or through one of their
+/// active groups. A user from another tenant has no role rows on this project
+/// and therefore fails closed. Kept pure so the two-tenant / foreign-VM case
+/// is unit-testable without a database.
+fn has_project_vm_access(user_id: Uuid, direct_role: Option<&str>, group_roles: &[String]) -> bool {
+    if user_id.is_nil() {
+        return false;
+    }
+    if let Some(role) = direct_role {
+        return is_viewer_or_above(role);
+    }
+    group_roles.iter().any(|role| is_viewer_or_above(role))
 }
 
 fn is_viewer_or_above(role: &str) -> bool {
@@ -301,5 +313,53 @@ mod tests {
         let mut other_tenant = owner.clone();
         other_tenant.organization_id = Some(Uuid::new_v4());
         assert!(verify_session_access(&scope, &cap, Some(&other_tenant), &cap).is_err());
+    }
+
+    #[test]
+    fn is_viewer_or_above_maps_project_roles_and_fails_closed() {
+        for role in ["viewer", "developer", "admin", "owner", "OWNER", "Viewer"] {
+            assert!(is_viewer_or_above(role), "role {role} must grant viewer+");
+        }
+        for role in ["guest", "none", "banned", "", " viewer", "viewer_extra"] {
+            assert!(
+                !is_viewer_or_above(role),
+                "role {role} must not grant access"
+            );
+        }
+    }
+
+    #[test]
+    fn has_project_vm_access_fails_closed_for_foreign_tenant() {
+        // #2730 — an authenticated user from tenant A with no membership on
+        // tenant B's project (foreign VM id) gets no terminal access.
+        let caller = Uuid::new_v4();
+        assert!(!has_project_vm_access(caller, None, &[]));
+        assert!(!has_project_vm_access(caller, None, &["guest".to_string()]));
+        assert!(!has_project_vm_access(caller, Some("guest"), &[]));
+        assert!(!has_project_vm_access(caller, Some(""), &[]));
+
+        // The nil principal is never a project member.
+        assert!(!has_project_vm_access(Uuid::nil(), Some("owner"), &[]));
+
+        // Legitimate direct membership grants access.
+        for role in ["viewer", "developer", "admin", "owner"] {
+            assert!(
+                has_project_vm_access(caller, Some(role), &[]),
+                "direct role {role} must grant access"
+            );
+        }
+
+        // Active-group membership grants access even with no direct role.
+        assert!(has_project_vm_access(
+            caller,
+            None,
+            &["guest".to_string(), "developer".to_string()]
+        ));
+        // Groups without a viewer+ role still fail closed.
+        assert!(!has_project_vm_access(
+            caller,
+            None,
+            &["guest".to_string(), String::new()]
+        ));
     }
 }

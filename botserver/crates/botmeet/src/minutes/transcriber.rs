@@ -1,8 +1,8 @@
+use crate::minutes::types::{SpeakerEntry, Transcription, TranscriptionSegment};
 use anyhow::Result;
-use log::{error, info};
-use crate::minutes::types::{Transcription, TranscriptionSegment, SpeakerEntry};
-use uuid::Uuid;
 use chrono::Utc;
+use log::{error, info};
+use uuid::Uuid;
 
 pub struct RealSttTranscriber;
 
@@ -39,24 +39,30 @@ impl RealSttTranscriber {
             return Err(anyhow::anyhow!("STT API error {status}: {body}"));
         }
 
-        let stt_result: serde_json::Value = resp.json().await
+        let stt_result: serde_json::Value = resp
+            .json()
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to parse STT response: {e}"))?;
 
         let segments: Vec<TranscriptionSegment> = stt_result["segments"]
             .as_array()
             .map(|arr| {
-                arr.iter().map(|s| {
-                    TranscriptionSegment {
+                arr.iter()
+                    .map(|s| TranscriptionSegment {
                         start: s["start"].as_f64().unwrap_or(0.0),
                         end: s["end"].as_f64().unwrap_or(0.0),
                         speaker: s["speaker"].as_str().unwrap_or("unknown").to_string(),
                         text: s["text"].as_str().unwrap_or("").to_string(),
-                    }
-                }).collect()
+                    })
+                    .collect()
             })
             .unwrap_or_default();
 
-        let full_text: String = segments.iter().map(|s| s.text.as_str()).collect::<Vec<&str>>().join(" ");
+        let full_text: String = segments
+            .iter()
+            .map(|s| s.text.as_str())
+            .collect::<Vec<&str>>()
+            .join(" ");
 
         let speaker_map: std::collections::BTreeMap<String, usize> = {
             let mut m = std::collections::BTreeMap::new();
@@ -66,15 +72,21 @@ impl RealSttTranscriber {
             m
         };
 
-        let speakers: Vec<SpeakerEntry> = speaker_map.into_iter().enumerate().map(|(i, (id, count))| {
-            SpeakerEntry {
+        let speakers: Vec<SpeakerEntry> = speaker_map
+            .into_iter()
+            .enumerate()
+            .map(|(i, (id, count))| SpeakerEntry {
                 id: id.clone(),
                 name: format!("Speaker {}", i + 1),
                 segments_count: count,
-            }
-        }).collect();
+            })
+            .collect();
 
-        info!("Transcription complete: {} segments, {} speakers", segments.len(), speakers.len());
+        info!(
+            "Transcription complete: {} segments, {} speakers",
+            segments.len(),
+            speakers.len()
+        );
 
         Ok(Transcription {
             id: Uuid::new_v4(),

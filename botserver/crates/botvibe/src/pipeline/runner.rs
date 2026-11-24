@@ -224,6 +224,10 @@ impl PipelineEngine {
                 arguments,
                 false,
             );
+            // #2751 — every project-admin stage (publish, domain/bind,
+            // domain/tls) carries the authenticated acting user so the tool's
+            // project-Admin RBAC check can authorize it.
+            crate::tool_executor::stamp_acting_user(tool_name, &mut tool_call.arguments, user_id);
             // Approval gate removed — all stages run automatically; decisions
             // and failures surface in the Vibe chat instead of blocking.
             // The engine is the authorized orchestrator: approval policy is

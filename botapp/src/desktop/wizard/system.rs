@@ -4,7 +4,7 @@
 
 use super::{log_path, stack_path, workspace_path, ModelRequest};
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkspaceCheck {
@@ -20,17 +20,43 @@ pub struct ModelTestResult {
     pub latency_ms: u64,
 }
 
-pub fn check_workspace(path: &str) -> WorkspaceCheck {
-    let trimmed = path.trim();
-    if trimmed.is_empty() {
-        return WorkspaceCheck {
-            writable: false,
-            free_bytes: 0,
-            reason: "Choose a folder for the workspace.".to_string(),
-        };
+/// #2693 — resolve a webview-supplied workspace directory before any disk
+/// operation. The string arrives from the sidecar origin, so it is hostile:
+/// `fs_scope::resolve` canonicalises it (defeating `..` and symlinks) and
+/// confines it to the desktop's configured roots. The subdirectory rule keeps
+/// filesystem roots such as `/` or `C:\` from becoming the workspace itself.
+/// Both the workspace probe and the provisioner call this before touching disk.
+pub(crate) fn resolve_workspace(raw: &str) -> Result<PathBuf, String> {
+    if raw.trim().is_empty() {
+        return Err("Choose a folder for the workspace.".to_string());
     }
-    let dir = Path::new(trimmed);
-    if let Err(e) = std::fs::create_dir_all(dir) {
+    if raw.contains('\0') {
+        return Err("A workspace path cannot contain a NUL byte.".to_string());
+    }
+    let resolved = crate::desktop::fs_scope::resolve(raw)?;
+    if resolved.parent().and_then(|parent| parent.file_name()).is_none()
+        || resolved.file_name().is_none()
+    {
+        return Err("Choose a workspace folder below a named directory.".to_string());
+    }
+    // `fs_scope::resolve` checks protected names on the *input*; canonicalising
+    // may have exposed one through a symlink, so check the result as well.
+    crate::desktop::fs_scope::check_not_protected(&resolved)?;
+    Ok(resolved)
+}
+
+pub fn check_workspace(path: &str) -> WorkspaceCheck {
+    let dir = match resolve_workspace(path) {
+        Ok(dir) => dir,
+        Err(reason) => {
+            return WorkspaceCheck {
+                writable: false,
+                free_bytes: 0,
+                reason,
+            };
+        }
+    };
+    if let Err(e) = std::fs::create_dir_all(&dir) {
         return WorkspaceCheck {
             writable: false,
             free_bytes: 0,
@@ -41,14 +67,14 @@ pub fn check_workspace(path: &str) -> WorkspaceCheck {
     if let Err(e) = std::fs::write(&probe, b"ok") {
         return WorkspaceCheck {
             writable: false,
-            free_bytes: free_bytes(dir),
+            free_bytes: free_bytes(&dir),
             reason: format!("The folder is not writable: {e}"),
         };
     }
     let _ = std::fs::remove_file(&probe);
     WorkspaceCheck {
         writable: true,
-        free_bytes: free_bytes(dir),
+        free_bytes: free_bytes(&dir),
         reason: String::new(),
     }
 }
@@ -233,28 +259,73 @@ fn installers_have_llm() -> bool {
     })
 }
 
-/// Empties exactly the stack folder. The caller must type the folder name.
-pub fn reset_stack(confirmation: &str) -> Result<(), String> {
+/// #2689 — pure target guard. A reset may only act on the exact directory
+/// configured for this install. Both paths are canonicalized, so a symlink
+/// alias or a `..` override cannot authorize a different directory; anything
+/// that cannot be resolved is refused (fail closed).
+pub(crate) fn reset_target_is_exact(configured: &Path, target: &Path) -> bool {
+    let Ok(configured) = std::fs::canonicalize(configured) else {
+        return false;
+    };
+    let Ok(target) = std::fs::canonicalize(target) else {
+        return false;
+    };
+    // `starts_with` in both directions is equality on canonical paths: a
+    // child, a parent or a different symlink alias never authorizes a reset.
+    target.starts_with(&configured) && configured.starts_with(&target)
+}
+
+/// #2689 — pure per-entry guard. After symlinks are resolved, every path a
+/// reset removes must stay inside the canonical stack directory.
+pub(crate) fn entry_is_inside_stack(stack: &Path, entry: &Path) -> bool {
+    let Ok(stack) = std::fs::canonicalize(stack) else {
+        return false;
+    };
+    let Ok(entry) = std::fs::canonicalize(entry) else {
+        return false;
+    };
+    entry.starts_with(stack)
+}
+
+/// Empties exactly the stack folder configured for this install. The caller
+/// must have consumed a native, single-use confirmation grant first (#2689);
+/// the old guessable folder-name check is gone with the vulnerable command.
+pub fn reset_stack() -> Result<(), String> {
     let stack = stack_path();
-    let name = stack
-        .file_name()
-        .map(|value| value.to_string_lossy().to_string())
-        .unwrap_or_default();
-    if name.is_empty() || stack.parent().is_none() {
+    if stack.file_name().is_none() || stack.parent().is_none() {
         return Err("Refusing to reset an unsafe stack path.".to_string());
     }
-    if confirmation.trim() != name {
-        return Err(format!(
-            "Type the folder name ({name}) to confirm the reset."
-        ));
+    if !reset_target_is_exact(&stack, &stack) {
+        return Err("Refusing to reset an unverified stack path.".to_string());
     }
     #[cfg(windows)]
     stop_windows_stack(&stack)?;
-    let entries = std::fs::read_dir(&stack).map_err(|e| format!("read stack folder: {e}"))?;
+    empty_stack_dir(&stack)?;
+    crate::desktop::payload::extract_if_present()
+        .map_err(|e| format!("could not restore the bundled programs after reset: {e}"))?;
+    Ok(())
+}
+
+/// Removes only entries proven to be inside `stack`. Kept separate so the
+/// deletion itself can be exercised against a temporary stack in tests.
+fn empty_stack_dir(stack: &Path) -> Result<(), String> {
+    let canonical = std::fs::canonicalize(stack).map_err(|e| format!("read stack folder: {e}"))?;
+    let entries = std::fs::read_dir(stack).map_err(|e| format!("read stack folder: {e}"))?;
     for entry in entries {
         let entry = entry.map_err(|e| format!("read stack entry: {e}"))?;
         let path = entry.path();
-        let result = if path.is_dir() {
+        if !entry_is_inside_stack(&canonical, &path) {
+            return Err(format!(
+                "Refusing to remove an entry outside the stack: {}",
+                path.display()
+            ));
+        }
+        // `file_type` does not follow symlinks: a link is always removed as a
+        // file, never as a directory tree, even when it points inside the stack.
+        let file_type = entry
+            .file_type()
+            .map_err(|e| format!("read stack entry: {e}"))?;
+        let result = if file_type.is_dir() {
             std::fs::remove_dir_all(&path)
         } else {
             std::fs::remove_file(&path)
@@ -263,10 +334,12 @@ pub fn reset_stack(confirmation: &str) -> Result<(), String> {
             return Err(format!("Reset could not remove {}: {e}", path.display()));
         }
     }
-    crate::desktop::payload::extract_if_present()
-        .map_err(|e| format!("could not restore the bundled programs after reset: {e}"))?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "system/reset_tests.rs"]
+mod reset_tests;
 
 #[cfg(windows)]
 fn stop_windows_stack(stack: &Path) -> Result<(), String> {
@@ -337,3 +410,7 @@ pub fn pick_folder(app: &tauri::AppHandle) -> Option<String> {
         None => None,
     }
 }
+
+#[cfg(test)]
+#[path = "system/tests.rs"]
+mod tests;

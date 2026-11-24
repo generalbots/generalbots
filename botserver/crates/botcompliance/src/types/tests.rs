@@ -34,7 +34,10 @@ where
             "serde label for {value:?}"
         );
         let decoded: T = serde_json::from_value(encoded).expect("serialized enum must deserialize");
-        assert_eq!(&decoded, value, "{label} must deserialize back to {value:?}");
+        assert_eq!(
+            &decoded, value,
+            "{label} must deserialize back to {value:?}"
+        );
     }
 }
 
@@ -66,7 +69,12 @@ fn severity_labels_round_trip_and_serialize_as_snake_case() {
 
 #[test]
 fn severity_is_ordered_from_low_to_critical() {
-    let ladder = [Severity::Low, Severity::Medium, Severity::High, Severity::Critical];
+    let ladder = [
+        Severity::Low,
+        Severity::Medium,
+        Severity::High,
+        Severity::Critical,
+    ];
     for window in ladder.windows(2) {
         assert!(
             window[0] < window[1],
@@ -241,5 +249,9 @@ fn every_display_label_is_unique_within_its_enum() {
     .map(ToString::to_string)
     .collect();
     let unique: std::collections::HashSet<_> = statuses.iter().collect();
-    assert_eq!(unique.len(), statuses.len(), "risk status labels must be unique");
+    assert_eq!(
+        unique.len(),
+        statuses.len(),
+        "risk status labels must be unique"
+    );
 }

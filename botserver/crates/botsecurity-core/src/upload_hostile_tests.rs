@@ -24,8 +24,8 @@ fn docx() -> Vec<u8> {
 }
 
 /// Tests that exercise a non-malware guard state the scanner requirement
-/// explicitly, so they stay deterministic whatever the process environment
-/// says about the fail-closed opt-out.
+/// explicitly, so they stay deterministic and independent of any process-wide
+/// scanner registration. The shared default never allows unscanned uploads.
 fn policy_allowing_unscanned() -> HostileFilePolicy {
     HostileFilePolicy {
         require_malware_scanner: false,
@@ -210,12 +210,12 @@ fn the_default_malware_hook_reports_not_configured() {
 }
 
 #[test]
-fn the_shared_default_is_tied_to_the_opt_out_resolver() {
-    // The policy may be permissive only through the documented opt-out; the
-    // field must always reflect the resolver rather than a hardcoded value.
-    assert_eq!(
+fn the_shared_default_is_always_fail_closed() {
+    // No environment switch can lower the requirement: a deployment either
+    // registers a scanner or every zip import is refused.
+    assert!(
         HostileFilePolicy::default().require_malware_scanner,
-        malware_scanner_required()
+        "the default policy must never accept an unscanned package"
     );
 }
 

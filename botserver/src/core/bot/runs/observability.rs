@@ -17,15 +17,17 @@
 //!   retention task in `main_body.rs`.
 //! - The [`traces`] map is the in-memory buffer of *in-flight* spans only. It
 //!   is flushed on [`finish_run`] and is intentionally volatile: a restart
-//!   loses the buffer but not the durable rows.
+//!   loses the buffer but not the durable rows. #2541 bounds it with an LRU/TTL
+//!   cache (`GB_RUN_TRACE_CAP` = 1024, `GB_RUN_TRACE_TTL_MS` = 30 min); an
+//!   evicted trace loses telemetry only, never user-visible state.
 //! - A run left `running` by a restart is reconciled to `interrupted` lazily
 //!   on the next run start by [`reconcile_once`], within
 //!   `GB_STALE_RUN_MINUTES` (default 15). No daemon loop is started.
 
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
+use crate::core::bot::bounded::{self, BoundedMap};
 use diesel::prelude::*;
 use diesel::PgConnection;
 use serde::Serialize;
@@ -62,12 +64,20 @@ struct RunTrace {
     finished: Vec<FinishedSpan>,
 }
 
-fn traces() -> &'static Mutex<HashMap<String, RunTrace>> {
-    static TRACES: OnceLock<Mutex<HashMap<String, RunTrace>>> = OnceLock::new();
-    TRACES.get_or_init(|| Mutex::new(HashMap::new()))
+/// #2541 — in-flight traces are diagnostic only; durable rows live in
+/// `agent_runs`/`agent_spans`. The buffer is capped and TTL-bounded so an
+/// abandoned run cannot grow it without limit. Defaults: 1024 runs / 30 min.
+fn traces() -> &'static Mutex<BoundedMap<String, RunTrace>> {
+    static TRACES: OnceLock<Mutex<BoundedMap<String, RunTrace>>> = OnceLock::new();
+    TRACES.get_or_init(|| {
+        Mutex::new(BoundedMap::new(
+            bounded::cap_from_env("GB_RUN_TRACE_CAP", 1024),
+            bounded::ttl_from_env("GB_RUN_TRACE_TTL_MS", 30 * 60 * 1000),
+        ))
+    })
 }
 
-fn lock_traces() -> std::sync::MutexGuard<'static, HashMap<String, RunTrace>> {
+fn lock_traces() -> std::sync::MutexGuard<'static, BoundedMap<String, RunTrace>> {
     match traces().lock() {
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
@@ -226,7 +236,7 @@ pub fn finish_run_row(pool: &botlib::db_pool::DbPool, run_id: &str, status: &str
 pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {
     let trace_id = trace_hex(&format!("{thread_id}|{run_id}"));
     let mut guard = lock_traces();
-    let entry = guard.entry(run_id.to_string()).or_default();
+    let entry = guard.get_or_insert_default(run_id.to_string());
     entry.trace_id = trace_id;
     entry.spans.push(OpenSpan {
         span_id: hex_id(&format!("{run_id}|run")),
@@ -241,7 +251,7 @@ pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {
 
 pub fn start_span(run_id: &str, kind: &'static str, name: &str, attributes: Vec<(String, String)>) {
     let mut guard = lock_traces();
-    let entry = guard.entry(run_id.to_string()).or_default();
+    let entry = guard.get_or_insert_default(run_id.to_string());
     let key = format!("{run_id}|{kind}|{name}|{}", entry.spans.len());
     entry.spans.push(OpenSpan {
         span_id: hex_id(&key),
@@ -254,7 +264,7 @@ pub fn start_span(run_id: &str, kind: &'static str, name: &str, attributes: Vec<
 
 pub fn finish_span(run_id: &str, kind: &'static str, name: &str, extra: Vec<(String, String)>) {
     let mut guard = lock_traces();
-    let Some(entry) = guard.get_mut(run_id) else {
+    let Some(entry) = guard.get_mut(&run_id.to_string()) else {
         return;
     };
     let trace_id = entry.trace_id.clone();
@@ -283,7 +293,7 @@ pub fn finish_span(run_id: &str, kind: &'static str, name: &str, extra: Vec<(Str
 /// Ends the run span, exports the trace and removes it from memory.
 pub fn finish_run(run_id: &str, state: &str, pool: Option<&botlib::db_pool::DbPool>) {
     let mut guard = lock_traces();
-    let Some(mut entry) = guard.remove(run_id) else {
+    let Some(mut entry) = guard.remove(&run_id.to_string()) else {
         return;
     };
     let trace_id = entry.trace_id.clone();

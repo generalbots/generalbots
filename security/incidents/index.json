@@ -1,0 +1,46 @@
+{
+  "schema": "generalbots.security.incident-index/1.0",
+  "source": "botlib/src/security/advisory/data/advisories.json",
+  "policy": "Resolved, publicly released advisories only. Embargoed or unfixed findings are never listed, and no exploit detail is stored here.",
+  "incidents": [
+    {
+      "advisory": "GBSA-2026-0001",
+      "date": "2026-11-20",
+      "severity": "high",
+      "product": "botserver",
+      "component": "botserver",
+      "affected_versions": [">= 1.0.0, < 2.3.1"],
+      "fixed_version": "2.3.1",
+      "status": "resolved",
+      "embargo": "ended",
+      "example": true,
+      "advisory_url": "https://generalbots.org/security/advisories/GBSA-2026-0001"
+    },
+    {
+      "advisory": "GBSA-2026-0002",
+      "date": "2026-11-21",
+      "severity": "medium",
+      "product": "botserver",
+      "component": "botui",
+      "affected_versions": [">= 2.0.0, < 2.4.0"],
+      "fixed_version": "2.4.0",
+      "status": "resolved",
+      "embargo": "ended",
+      "example": true,
+      "advisory_url": "https://generalbots.org/security/advisories/GBSA-2026-0002"
+    },
+    {
+      "advisory": "GBSA-2026-0003",
+      "date": "2026-11-22",
+      "severity": "critical",
+      "product": "botui",
+      "component": "botui",
+      "affected_versions": [">= 3.1.0, < 3.1.4"],
+      "fixed_version": "3.1.4",
+      "status": "resolved",
+      "embargo": "ended",
+      "example": true,
+      "advisory_url": "https://generalbots.org/security/advisories/GBSA-2026-0003"
+    }
+  ]
+}

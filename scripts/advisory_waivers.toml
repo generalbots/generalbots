@@ -1,0 +1,96 @@
+# Advisory suppression / waiver register (#2725).
+#
+# The scheduled dependency scan drafts an advisory issue for every NEW finding.
+# An entry here suppresses that draft, but only with:
+#   id       - the advisory ID (RUSTSEC / GHSA / PYSEC / CVE)
+#   reason   - a written reachability or acceptance argument
+#   approver - who accepted the risk (team alias, NOT a credential)
+#   expires  - ISO date; on/after this date the waiver stops suppressing and
+#              the finding is drafted again (visible in the report as expired)
+#
+# Every skip is audited in the report: waived entries show approver + expiry,
+# expired entries are listed under "Expired waivers" and re-drafted.
+# The blocking CI gates in .github/workflows/security.yml keep their own
+# dated allowlists (scripts/osv_allowlist*.txt, deny.toml, --ignore-vuln);
+# this file carries the SAME accepted IDs so the drafter does not re-open a
+# triage issue for a risk the team has already accepted.
+#
+# Re-validate every entry at the annual SECURITY.md residual-risk review and
+# on any new bulletin naming a pinned component.
+
+[[waiver]]
+id = "RUSTSEC-2024-0370"
+package = "proc-macro-error"
+reason = "Unmaintained, build-time only; not in the shipping runtime graph."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2024-0429"
+package = "glib"
+reason = "Iterator unsoundness; Tauri Linux desktop surface only, no untrusted input."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "GHSA-wrw7-89jp-8q8g"
+package = "glib"
+reason = "Alias of RUSTSEC-2024-0429; same reachability argument."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0249"
+package = "smartstring"
+reason = "Unmaintained; office write path, no attacker-controlled allocation."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0370"
+package = "zvariant"
+reason = "Unmaintained D-Bus crate; Tauri Linux IPC, not reachable from untrusted peers."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0371"
+package = "zbus_names"
+reason = "Unmaintained D-Bus crate; Tauri Linux IPC only."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0372"
+package = "zvariant_derive"
+reason = "Unmaintained derive macro; compile-time only."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0543"
+package = "chrono"
+reason = "Unmaintained, no vulnerability; migration to jiff/time pending."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "RUSTSEC-2026-0555"
+package = "chrono-tz"
+reason = "Unmaintained IANA data paired with chrono; no vulnerability."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "GHSA-4j2p-28q2-5m79"
+package = "accelerate"
+reason = "Documented Python accelerate exception; residual risk accepted in security.yml."
+approver = "@security-team"
+expires = "2027-11-19"
+
+[[waiver]]
+id = "PYSEC-2026-3804"
+package = "accelerate"
+reason = "Documented Python accelerate exception; residual risk accepted in security.yml."
+approver = "@security-team"
+expires = "2027-11-19"

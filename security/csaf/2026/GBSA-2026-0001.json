@@ -1,0 +1,141 @@
+{
+  "document": {
+    "category": "csaf_security_advisory",
+    "csaf_version": "2.0",
+    "distribution": {
+      "tlp": {
+        "label": "WHITE"
+      }
+    },
+    "publisher": {
+      "category": "vendor",
+      "contact_details": "security@generalbots.org",
+      "name": "General Bots",
+      "namespace": "https://generalbots.org"
+    },
+    "references": [
+      {
+        "category": "self",
+        "summary": "Canonical advisory",
+        "url": "https://generalbots.org/security/advisories/GBSA-2026-0001"
+      }
+    ],
+    "title": "Example: unauthenticated read of bot configuration",
+    "tracking": {
+      "current_release_date": "2026-11-21T00:00:00Z",
+      "id": "GBSA-2026-0001",
+      "initial_release_date": "2026-11-20T00:00:00Z",
+      "revision_history": [
+        {
+          "date": "2026-11-20T00:00:00Z",
+          "number": "1",
+          "summary": "Initial publication"
+        },
+        {
+          "date": "2026-11-21T00:00:00Z",
+          "number": "2",
+          "summary": "Clarified affected range"
+        }
+      ],
+      "status": "final",
+      "version": "2"
+    }
+  },
+  "product_tree": {
+    "branches": [
+      {
+        "branches": [
+          {
+            "category": "product_version_range",
+            "name": ">= 1.0.0, < 2.3.1",
+            "product": {
+              "name": "botserver >= 1.0.0, < 2.3.1",
+              "product_id": "CSAFPID-0001"
+            }
+          }
+        ],
+        "category": "product_name",
+        "name": "botserver"
+      },
+      {
+        "branches": [
+          {
+            "category": "product_version",
+            "name": "2.3.1",
+            "product": {
+              "name": "botserver 2.3.1",
+              "product_id": "CSAFPID-0002"
+            }
+          }
+        ],
+        "category": "product_name",
+        "name": "botserver"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "cwe": {
+        "id": "CWE-200",
+        "name": "Exposure of Sensitive Information to an Unauthorized Actor"
+      },
+      "ids": [
+        {
+          "system_name": "General Bots Security Advisory",
+          "text": "GBSA-2026-0001"
+        }
+      ],
+      "notes": [
+        {
+          "category": "description",
+          "text": "Example record shipped with the advisory API so operators can verify the schema end to end. It does not describe a real vulnerability.",
+          "title": "Summary"
+        },
+        {
+          "category": "details",
+          "text": "CVSS v4.0 vector CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N (base score 8.7, HIGH). Base metrics: AV:N, AC:L, AT:N, PR:N, UI:N, VC:H, VI:N, VA:N.",
+          "title": "CVSS vector"
+        }
+      ],
+      "product_status": {
+        "known_affected": [
+          "CSAFPID-0001"
+        ],
+        "recommended": [
+          "CSAFPID-0002"
+        ]
+      },
+      "remediations": [
+        {
+          "category": "vendor_fix",
+          "details": "Upgrade to BotServer 2.3.1 or later. There is no configuration-only workaround.",
+          "product_ids": [
+            "CSAFPID-0001"
+          ]
+        }
+      ],
+      "scores": [
+        {
+          "cvss_v4_0": {
+            "baseScore": 8.7,
+            "baseSeverity": "HIGH",
+            "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N",
+            "version": "4.0"
+          },
+          "products": [
+            "CSAFPID-0001"
+          ]
+        }
+      ],
+      "threats": [
+        {
+          "category": "exploit_status",
+          "details": "CVSS v4.0 vector CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N (base score 8.7, HIGH). Base metrics: AV:N, AC:L, AT:N, PR:N, UI:N, VC:H, VI:N, VA:N.",
+          "product_ids": [
+            "CSAFPID-0001"
+          ]
+        }
+      ]
+    }
+  ]
+}

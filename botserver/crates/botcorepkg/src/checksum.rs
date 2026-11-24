@@ -87,6 +87,21 @@ pub fn verify_download(path: &Path, expected: &str, component: &str) -> Result<(
     verify_with_policy(path, expected, component, require_checksums())
 }
 
+/// Resolves a checksum lookup into the empty-string sentinel understood by
+/// [`verify_download`] (#2710).
+///
+/// Centralising the "no pin" representation keeps call sites from collapsing a
+/// failed lookup with an implicit default, which used to blur the boundary
+/// between "not pinned" and "verified". The policy decision stays in
+/// [`verify_with_policy`].
+#[must_use]
+pub fn pin_or_empty(pin: Option<String>) -> String {
+    match pin {
+        Some(value) => value,
+        None => String::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +156,56 @@ mod tests {
             .expect_err("strict mode must refuse");
         assert!(error.to_string().contains("no SHA-256"));
         std::fs::remove_file(path).ok();
+    }
+
+    /// #2710 — source-level guard: no checksum lookup may silently turn a
+    /// missing pin into an empty hash. Scanning text (not invoking cargo)
+    /// keeps the duplicate download paths from drifting back to the bug.
+    /// Needles are assembled from fragments so this test cannot flag itself.
+    #[test]
+    fn no_checksum_lookup_silently_defaults_a_pin() {
+        fn windows(dir: &std::path::Path, needle: &str) -> Vec<String> {
+            let mut found = Vec::new();
+            let Ok(entries) = std::fs::read_dir(dir) else {
+                return found;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    found.extend(windows(&path, needle));
+                } else if path.extension().is_some_and(|extension| extension == "rs") {
+                    let Ok(text) = std::fs::read_to_string(&path) else {
+                        continue;
+                    };
+                    let mut offset = 0;
+                    while let Some(index) = text[offset..].find(needle) {
+                        let start = offset + index + needle.len();
+                        let mut end = (start + 320).min(text.len());
+                        while !text.is_char_boundary(end) {
+                            end -= 1;
+                        }
+                        found.push(text[start..end].to_string());
+                        offset = start;
+                    }
+                }
+            }
+            found
+        }
+
+        let lookup = format!("checksum_for_{}", "url");
+        let silent_default = format!("unwrap_or_{}", "default");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut all = windows(&root.join("src"), &lookup);
+        all.extend(windows(
+            &root.join("../botcore/src/package_manager"),
+            &lookup,
+        ));
+        assert!(!all.is_empty(), "guard must scan real checksum lookups");
+        for window in all {
+            assert!(
+                !window.contains(&silent_default),
+                "checksum lookup silently defaults a missing pin: {window}"
+            );
+        }
     }
 }

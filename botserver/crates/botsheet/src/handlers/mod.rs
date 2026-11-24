@@ -17,6 +17,7 @@ pub mod named_ranges_csv;
 pub mod paste_html;
 pub mod pivot;
 pub mod validation;
+pub mod window;
 pub mod worksheets;
 
 #[cfg(test)]
