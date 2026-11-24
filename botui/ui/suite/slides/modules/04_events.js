@@ -131,6 +131,7 @@ window.refreshSlideView = function (slideIndex) {
     ? String(slideIndex)
     : ((canvas && canvas.dataset.slideId) || "0");
   var deck = window.__SLIDES_PRESENTATION_ID || "current";
+  if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("slides", "slide");
   if (!window.htmx) return;
   htmx.ajax(
     "GET",

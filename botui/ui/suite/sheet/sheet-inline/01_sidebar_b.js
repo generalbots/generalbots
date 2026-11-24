@@ -32,6 +32,7 @@ function saveSheet(arg) {
             window.__SHEET_INITIAL_ID = j.id;
             if (window.__LOADED_SHEET) window.__LOADED_SHEET.id = j.id;
         }
+        if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("sheet", "save");
         var notif = document.createElement('div');
         notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:var(--z-system);box-shadow:0 4px 12px rgba(0,0,0,0.3);';
         notif.textContent = (typeof window.gbT === "function" ? window.gbT("sheet-saved", "✓ Sheet saved") : "✓ Sheet saved");
