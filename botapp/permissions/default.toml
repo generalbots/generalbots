@@ -2,6 +2,7 @@
 description = "Default permissions for app commands (wizard, tray, sync, drive)"
 permissions = [
     "allow-save-download",
+    "allow-open-download",
     "allow-list-files",
     "allow-upload-file",
     "allow-create-folder",
@@ -63,6 +64,11 @@ permissions = [
 identifier = "allow-save-download"
 description = "Allow the save_download command"
 commands.allow = ["save_download"]
+
+[[permission]]
+identifier = "allow-open-download"
+description = "Allow the open_download command"
+commands.allow = ["open_download"]
 
 [[permission]]
 identifier = "allow-list-files"

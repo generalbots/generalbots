@@ -240,6 +240,7 @@ fn main() {
     #[cfg(feature = "desktop-local")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         desktop::download::save_download,
+        desktop::open_download::open_download,
         desktop::drive::list_files,
         desktop::drive::upload_file,
         desktop::drive::create_folder,

@@ -3,6 +3,8 @@ pub mod activity;
 pub mod download;
 pub mod drive;
 pub mod i18n;
+#[cfg(feature = "desktop-local")]
+pub mod open_download;
 pub mod payload;
 pub(crate) mod no_window;
 pub mod safe_command;

@@ -289,6 +289,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route(
                 "/api/files/public/:token",
                 axum_get(crate::drive::drive_handlers::public_link_download),
+            )
+            .route(
+                "/api/agent/drive/conversations",
+                axum_get(super::agent_drive_files::list_conversation_folders),
+            )
+            .route(
+                "/api/agent/drive/file",
+                axum_get(super::agent_drive_files::conversation_file),
             );
         #[cfg(feature = "agent-vm")]
         {

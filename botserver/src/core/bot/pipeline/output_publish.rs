@@ -4,11 +4,13 @@
 //! only reached Drive when the user clicked Save/Open or the model remembered
 //! to call `drive_save`. Closing the conversation threw the artifact away.
 //!
-//! At the end of a turn that produced files, this module publishes the new or
-//! changed ones through [`drive_bridge::save_object`] (the same bridge the
-//! Save button uses) and attaches the resulting `vmfile:` link to the turn, so
-//! the chat shows the attachment card for a file that now outlives the
-//! session folder.
+//! When a step leaves new or changed files in `output/`, the person is asked
+//! inside the turn ([`offer_in_turn`]); allowed files go through
+//! [`drive_bridge::save_object`] (the same bridge the Save button uses). At
+//! the end of the turn the resulting `vmfile:` links are attached, so the chat
+//! shows the attachment card for a file that now outlives the session folder.
+//! The turn's end never asks: it copies only on a stored conversation grant
+//! and lists the other new files as not saved (see `offer`).
 //!
 //! Rules:
 //! - **Bounded.** At most [`MAX_PUBLISH_FILES`] files, [`MAX_PUBLISH_FILE_BYTES`]
@@ -38,11 +40,13 @@ use super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 mod ledger;
+mod offer;
 use ledger::{snapshot, store};
 pub use ledger::{
-    candidates, digest, is_unchanged, OutputFile, PublishReport, PublishedArtifact, PublishedFile,
-    MAX_PUBLISH_FILES, MAX_PUBLISH_FILE_BYTES, MAX_PUBLISH_TURN_BYTES,
+    candidates, digest, is_unchanged, output_link, OutputFile, PublishReport, PublishedArtifact,
+    PublishedFile, MAX_PUBLISH_FILES, MAX_PUBLISH_FILE_BYTES, MAX_PUBLISH_TURN_BYTES,
 };
+use super::vm_consent::{self, VmAction, VmActionKind, VmDecision, VmDenial, VmOutcome, VmReceipt};
 
 /// Workspace IO and Drive upload, split out so tests can drive the publisher
 /// without a VM or an object store.
@@ -157,32 +161,34 @@ impl ArtifactPublisher for DrivePublisher {
     }
 }
 
-/// Publishes `output/` for the turn. Never returns an error: a Drive outage
-/// leaves the artifacts in the VM and they are retried on the next turn.
-pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishReport {
+/// New or changed files of `output/` nobody declined; `None` when the
+/// workspace cannot be listed.
+async fn fresh_output(identity: &SessionIdentity<'_>) -> Option<Vec<OutputFile>> {
+    let SessionIdentity { user_id, session_id, .. } = *identity;
+    let listing: Vec<OutputFile> = agent_vm_hook::list_session_folder_meta(user_id, session_id, "output")
+        .await?
+        .into_iter()
+        .map(|(name, size, modified)| OutputFile { name, size, modified })
+        .collect();
+    let seen = snapshot(session_id);
+    Some(offer::fresh(session_id, candidates(&listing, &seen)))
+}
+
+fn drive_save_action(files: &[OutputFile]) -> VmAction {
+    let names = files.iter().map(|file| file.name.clone()).collect();
+    VmAction::native(VmActionKind::DriveSave { files: names, folder: None })
+}
+
+/// Copies `files` to Drive, advances the ledger and closes the step of
+/// `receipt`. Returns the conversation folder and what reached Drive.
+async fn copy_to_drive(
+    identity: &SessionIdentity<'_>,
+    receipt: &VmReceipt,
+    files: Vec<OutputFile>,
+) -> (String, Vec<PublishedArtifact>) {
     let SessionIdentity { state, bot_uuid, user_id, session_id, .. } = *identity;
-    let listing: Vec<OutputFile> =
-        match agent_vm_hook::list_session_folder_meta(user_id, session_id, "output").await {
-            Some(files) => files
-                .into_iter()
-                .map(|(name, size, modified)| OutputFile {
-                    name,
-                    size,
-                    modified,
-                })
-                .collect(),
-            None => return PublishReport::default(),
-        };
+    let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
     let mut seen = snapshot(session_id);
-    let selected = candidates(&listing, &seen);
-    if selected.is_empty() {
-        return PublishReport::default();
-    }
-    // Copying to Drive leaves the VM: it waits for the person's decision.
-    let names: Vec<String> = selected.iter().map(|file| file.name.clone()).collect();
-    let Some(receipt) = super::vm_consent::tools::allow_turn_publish(identity, names.clone()).await else {
-        return PublishReport::default();
-    };
     let folder = drive_bridge::conversation_title(state, session_id).await;
     let publisher = DrivePublisher {
         state: state.clone(),
@@ -191,13 +197,85 @@ pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishRepor
         session_id,
         folder: folder.clone(),
     };
-    let published = publish_candidates(session_id, selected, &mut seen, &publisher).await;
+    let published = publish_candidates(session_id, files, &mut seen, &publisher).await;
     // Store even when every upload failed: successful and identical files
     // advanced, failed ones kept their old stamp and stay candidates.
     store(session_id, seen);
-    let outcome = super::vm_consent::VmOutcome { ok: !published.is_empty(), files: names, ..Default::default() };
-    super::vm_consent::report(identity, &receipt, &outcome).await;
-    PublishReport { folder, published }
+    let outcome = VmOutcome { ok: !published.is_empty(), files: names, ..Default::default() };
+    vm_consent::report(identity, receipt, &outcome).await;
+    (folder, published)
+}
+
+/// What the model reads when the person declined copying files to Drive.
+const DECLINED_FOR_MODEL: &str = "The person did not allow copying the new files of output/ to \
+    Drive. They stay in this conversation; do not save them another way. Tell the person, in \
+    their language, that the files can be saved with the \"Save to Drive\" button of the file \
+    panel (\"Salvar no Drive\" in Portuguese).";
+
+/// Asks, inside the turn, whether the new files a step just left in
+/// `output/` may be copied to Drive. Called when a `vm_exec` step closes; a
+/// stored grant answers without a card. Allowed files are copied now and
+/// linked at the end of the turn; declined ones stay in the conversation.
+pub async fn offer_in_turn(identity: &SessionIdentity<'_>) {
+    let Some(files) = fresh_output(identity).await else {
+        return;
+    };
+    if files.is_empty() {
+        return;
+    }
+    let session_id = identity.session_id;
+    match vm_consent::ask(identity, &drive_save_action(&files)).await {
+        VmDecision::Allowed(ticket) => {
+            let receipt = ticket.receipt();
+            let (folder, published) = copy_to_drive(identity, &receipt, files).await;
+            offer::keep_published(session_id, folder, published);
+        }
+        VmDecision::Denied(VmDenial::ByPerson) => {
+            offer::hold_back(session_id, &files, true);
+            super::native_tools::tell_model(session_id, DECLINED_FOR_MODEL);
+        }
+        // Undecided (stopped turn, no answer): the turn's end lists them.
+        VmDecision::Denied(_) => {}
+    }
+}
+
+/// The turn's end: what was copied during the turn, plus the new files not
+/// asked about yet. Those are copied only on a grant this conversation
+/// already holds; this never raises a card and never waits on the person.
+/// Without a grant they stay in `output/` and are listed as not saved.
+pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishReport {
+    let session_id = identity.session_id;
+    let kept = offer::take_turn(session_id);
+    let mut report = PublishReport {
+        folder: kept.folder.unwrap_or_default(),
+        published: kept.published,
+        unsaved: kept.unsaved.iter().map(|name| output_link(name, session_id)).collect(),
+    };
+    let Some(files) = fresh_output(identity).await else {
+        return report;
+    };
+    if files.is_empty() {
+        return report;
+    }
+    let receipt = vm_consent::ask_if_granted(identity, &drive_save_action(&files))
+        .await
+        .map(|ticket| ticket.receipt());
+    let SessionIdentity { state, bot_uuid, user_id, .. } = *identity;
+    let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
+    let mut seen = snapshot(session_id);
+    let folder = drive_bridge::conversation_title(state, session_id).await;
+    let publisher = DrivePublisher { state: state.clone(), bot_uuid, user_id, session_id, folder: folder.clone() };
+    let (published, unsaved) =
+        offer::settle_turn_end(session_id, files, receipt.is_some(), &mut seen, &publisher).await;
+    if let Some(receipt) = receipt {
+        store(session_id, seen);
+        let outcome = VmOutcome { ok: !published.is_empty(), files: names, ..Default::default() };
+        vm_consent::report(identity, &receipt, &outcome).await;
+        report.folder = folder;
+    }
+    report.published.extend(published);
+    report.unsaved.extend(unsaved.iter().map(|name| output_link(name, session_id)));
+    report
 }
 
 /// Ceiling on one turn's publishing work (listing + reads + uploads). The
@@ -261,7 +339,7 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
         ..
     } = *identity;
     let report = match tokio::time::timeout(
-        PUBLISH_TIMEOUT + super::vm_consent::DECISION_WAIT,
+        PUBLISH_TIMEOUT,
         publish_turn_output(identity),
     )
     .await

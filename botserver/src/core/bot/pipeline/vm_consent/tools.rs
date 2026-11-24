@@ -137,17 +137,8 @@ pub fn outside_action(name: &str, args: &str) -> Option<VmAction> {
     Some(VmAction::native(kind))
 }
 
-/// The turn's automatic copy of new `output/` files to Drive.
-pub async fn allow_turn_publish(identity: &SessionIdentity<'_>, names: Vec<String>) -> Option<VmReceipt> {
-    let action = VmAction::native(VmActionKind::DriveSave { files: names, folder: None });
-    match ask(identity, &action).await {
-        VmDecision::Allowed(ticket) => Some(ticket.receipt()),
-        VmDecision::Denied(_) => None,
-    }
-}
-
 /// Closes a `vm_exec` step with the run's result and the files now in
-/// `output/`.
+/// `output/`, then offers the new ones for Drive.
 pub async fn report_run(
     identity: &SessionIdentity<'_>,
     receipt: &VmReceipt,
@@ -167,6 +158,11 @@ pub async fn report_run(
         }
     }
     report(identity, receipt, &outcome).await;
+    // New files are offered for Drive now, inside the turn, not after the answer.
+    #[cfg(feature = "drive")]
+    if outcome.ok && !outcome.files.is_empty() {
+        crate::core::bot::pipeline::output_publish::offer_in_turn(identity).await;
+    }
 }
 
 /// `drive_fetch`, `drive_save` and `save_to_external_drive` behind the gate.

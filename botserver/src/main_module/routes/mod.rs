@@ -1,5 +1,7 @@
 #[cfg(feature = "agent-vm")]
 pub mod agent_drive;
+#[cfg(feature = "drive")]
+pub mod agent_drive_files;
 #[cfg(feature = "agent-vm")]
 pub mod ai_accounts;
 pub mod anonymous_auth;

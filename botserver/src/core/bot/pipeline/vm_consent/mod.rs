@@ -35,7 +35,7 @@ pub use action::{VmAction, VmActionKind, VmAgent};
 pub use bridge::BridgeIdentity;
 #[cfg(feature = "consent")]
 pub use forget::forget_conversation;
-pub use gate::ask;
+pub use gate::{ask, ask_if_granted};
 pub use steps::{noted, report, VmOutcome};
 
 /// How long the person has to answer a card (the consent request TTL).

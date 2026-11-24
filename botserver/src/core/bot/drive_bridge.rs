@@ -147,7 +147,7 @@ pub async fn read_object(state: &Arc<AppState>, scope: &DriveScope, key: &str) -
     }
 }
 
-fn content_type(name: &str) -> &'static str {
+pub fn content_type(name: &str) -> &'static str {
     match name
         .rsplit('.')
         .next()
@@ -237,7 +237,7 @@ pub async fn conversation_title(state: &Arc<AppState>, session_id: Uuid) -> Stri
 
 /// [`slug`] that keeps accented letters (`Relatório-de-março`), for folder
 /// names the person reads in Drive.
-fn readable_slug(text: &str) -> String {
+pub fn readable_slug(text: &str) -> String {
     let mut out = String::new();
     for ch in text.trim().chars() {
         if ch.is_alphanumeric() {

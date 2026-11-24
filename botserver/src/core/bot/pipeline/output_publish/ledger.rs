@@ -48,7 +48,7 @@ impl PublishedArtifact {
     pub fn new(name: impl Into<String>, drive_key: impl Into<String>, conversation: Uuid) -> Self {
         let name = name.into();
         let drive_key = drive_key.into();
-        let link = format!("[{name}](vmfile:{conversation}/output/{name})");
+        let link = output_link(&name, conversation);
         Self {
             name,
             drive_key,
@@ -68,24 +68,43 @@ impl PublishedArtifact {
 pub struct PublishReport {
     pub folder: String,
     pub published: Vec<PublishedArtifact>,
+    /// Links to new files that stay in the conversation, not in Drive.
+    pub unsaved: Vec<String>,
+}
+
+/// Chat link to a file of the conversation's `output/`.
+#[must_use]
+pub fn output_link(name: &str, conversation: Uuid) -> String {
+    format!("[{name}](vmfile:{conversation}/output/{name})")
 }
 
 impl PublishReport {
     pub fn is_empty(&self) -> bool {
-        self.published.is_empty()
+        self.published.is_empty() && self.unsaved.is_empty()
     }
 
     /// Chat message the person reads (pt-BR). Empty when nothing was
-    /// published, so the caller never sends an empty bubble.
+    /// published or held back, so the caller never sends an empty bubble.
     pub fn message(&self) -> String {
-        if self.published.is_empty() {
-            return String::new();
+        let mut message = String::new();
+        if !self.published.is_empty() {
+            let folder = self.folder.as_str();
+            message.push_str(&format!("**Arquivos salvos no seu Drive** (`conversations/{folder}/`)\n"));
+            for artifact in &self.published {
+                let link = artifact.link.as_str();
+                message.push_str(&format!("- {link}\n"));
+            }
         }
-        let folder = self.folder.as_str();
-        let mut message = format!("**Arquivos salvos no seu Drive** (`conversations/{folder}/`)\n");
-        for artifact in &self.published {
-            let link = artifact.link.as_str();
-            message.push_str(&format!("- {link}\n"));
+        if !self.unsaved.is_empty() {
+            if !message.is_empty() {
+                message.push('\n');
+            }
+            message.push_str(
+                "**Arquivos desta conversa, não salvos no Drive** (use «Salvar no Drive» no painel de arquivos)\n",
+            );
+            for link in &self.unsaved {
+                message.push_str(&format!("- {link}\n"));
+            }
         }
         message.trim_end().to_string()
     }

@@ -39,9 +39,6 @@ pub(super) fn app_id(agent: super::VmAgent, thread_id: &str) -> String {
 
 #[cfg(feature = "consent")]
 async fn decide(identity: &SessionIdentity<'_>, action: &VmAction) -> Result<AllowSource, VmDenial> {
-    use botconsent::models::VM_ALL_CLASS;
-    use botconsent::store;
-
     let Some(service) = crate::core::bot::consent_gate::shared_service() else {
         botlog::safe_warn!("vm consent: service not initialised; action refused");
         return Err(VmDenial::Unavailable);
@@ -54,28 +51,8 @@ async fn decide(identity: &SessionIdentity<'_>, action: &VmAction) -> Result<All
         run_id: crate::core::bot::runs::bus::bus().current_run_id(&thread),
         workspace_id: None,
     };
-    if !action.protected() {
-        match service.pool.get() {
-            Ok(mut conn) => {
-                let mut classes = vec![(class, AllowSource::Conversation)];
-                if !action.outside_vm() {
-                    classes.push((VM_ALL_CLASS, AllowSource::AllowAll));
-                }
-                for (grant_class, source) in classes {
-                    if let Ok(Some(row)) =
-                        store::effective_grant_for(&mut conn, identity.user_id, &app, grant_class, &context)
-                    {
-                        let audit = serde_json::json!({
-                            "app_id": app, "action_class": class, "thread_id": thread,
-                            "detail": action.audit_detail(), "source": source.as_str(),
-                        });
-                        store::audit(&mut conn, Some(row.id), Some(identity.user_id), &audit, store::OUTCOME_GRANTED, None);
-                        return Ok(source);
-                    }
-                }
-            }
-            Err(e) => botlog::safe_warn!("vm consent: grant lookup unavailable: {e}"),
-        }
+    if let Some(source) = stored_grant(&service, identity, action, &context) {
+        return Ok(source);
     }
     let (request, answer) = match botconsent::raise_blocking(
         &service,
@@ -98,6 +75,80 @@ async fn decide(identity: &SessionIdentity<'_>, action: &VmAction) -> Result<All
         super::wait::wait(&service, &request.request_id, &thread, context.run_id.as_deref(), answer).await;
     steps::card_closed(identity, card, action, &request.request_id, outcome).await;
     outcome
+}
+
+/// A grant this conversation already holds for `action`, audited; never
+/// raises a card.
+#[cfg(feature = "consent")]
+fn stored_grant(
+    service: &botconsent::ConsentService,
+    identity: &SessionIdentity<'_>,
+    action: &VmAction,
+    context: &botconsent::ConsentContext,
+) -> Option<AllowSource> {
+    use botconsent::models::VM_ALL_CLASS;
+    use botconsent::store;
+
+    if action.protected() {
+        return None;
+    }
+    let thread = identity.session_id.to_string();
+    let app = app_id(action.agent, &thread);
+    let class = action.class();
+    let mut conn = match service.pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            botlog::safe_warn!("vm consent: grant lookup unavailable: {e}");
+            return None;
+        }
+    };
+    let mut classes = vec![(class, AllowSource::Conversation)];
+    if !action.outside_vm() {
+        classes.push((VM_ALL_CLASS, AllowSource::AllowAll));
+    }
+    for (grant_class, source) in classes {
+        if let Ok(Some(row)) = store::effective_grant_for(&mut conn, identity.user_id, &app, grant_class, context) {
+            let audit = serde_json::json!({
+                "app_id": app, "action_class": class, "thread_id": thread,
+                "detail": action.audit_detail(), "source": source.as_str(),
+            });
+            store::audit(&mut conn, Some(row.id), Some(identity.user_id), &audit, store::OUTCOME_GRANTED, None);
+            return Some(source);
+        }
+    }
+    None
+}
+
+/// Runs `action` only on a grant this conversation already holds: no card is
+/// raised and nothing waits on the person. With a grant the action gets its
+/// step and ticket like [`ask`]; without one, `None` and no step.
+#[cfg(feature = "consent")]
+pub async fn ask_if_granted(identity: &SessionIdentity<'_>, action: &VmAction) -> Option<VmConsent> {
+    let service = crate::core::bot::consent_gate::shared_service()?;
+    let thread = identity.session_id.to_string();
+    let context = botconsent::ConsentContext {
+        thread_id: Some(thread.clone()),
+        run_id: crate::core::bot::runs::bus::bus().current_run_id(&thread),
+        workspace_id: None,
+    };
+    let source = stored_grant(&service, identity, action, &context)?;
+    let hash = action.hash();
+    let step_id = steps::begin(identity, action, &hash).await;
+    steps::decided(identity, action, &step_id, Ok(source)).await;
+    botlog::safe_info!(
+        "vm consent: thread={thread} agent={} kind={} decision=allow source={} arg_sha256={}",
+        action.agent.as_str(),
+        action.kind_key(),
+        source.as_str(),
+        &hash[..8]
+    );
+    Some(VmConsent::issue(identity.session_id, source, hash, step_id))
+}
+
+/// Without the consent service there are no stored grants.
+#[cfg(not(feature = "consent"))]
+pub async fn ask_if_granted(_: &SessionIdentity<'_>, _: &VmAction) -> Option<VmConsent> {
+    None
 }
 
 #[cfg(not(feature = "consent"))]
