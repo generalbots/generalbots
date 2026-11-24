@@ -47,7 +47,7 @@ test("[RUNTIME] notes workspace renders an empty state and a local badge", funct
   assert(doc.querySelector(".slides-notes-list .slides-tools-empty"), "empty state missing");
 });
 
-test("[RUNTIME] add note stores it under the current slide index and is undoable", function () {
+test("[UAT:SLIDE-04][RUNTIME] add note stores it under the current slide index and is undoable", function () {
   h.resetUndo();
   h.clearStorage();
   canvasDeck(3);

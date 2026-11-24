@@ -60,7 +60,7 @@ test("checker exposes the panel/format entry points", function () {
 });
 
 // ── Merged cells ─────────────────────────────────────────────────────
-test("merged range is listed with sheet name and A1 address", function () {
+test("[UAT:SHEET-09] merged range is listed with sheet name and A1 address", function () {
   var results = collect(book([sheet("Merged", {
     merged_cells: [merge(0, 0, 2, 3)],
   })]));

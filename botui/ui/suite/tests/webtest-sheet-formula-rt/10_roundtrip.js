@@ -56,7 +56,7 @@ Object.keys(C.ALIASES).forEach(function (locale) {
   var sumAlias = Object.keys(C.ALIASES[locale]).filter(function (key) {
     return C.ALIASES[locale][key] === "SUM";
   })[0];
-  h.test("locale function names resolve to canonical SUM: " + locale, function () {
+  h.test("[UAT:SHEET-04] locale function names resolve to canonical SUM: " + locale, function () {
     if (!sumAlias) {
       assert(locale === "en", "unexpected locale without a SUM alias: " + locale);
       assert(C.resolve("SUM", locale).name === "SUM", "en canonical name changed");

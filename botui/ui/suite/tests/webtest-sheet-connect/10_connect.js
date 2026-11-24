@@ -375,7 +375,7 @@ test("steps unpivot expands columns and records per-cell lineage", function () {
   equal(out.lineage[0][4].sourceField, "amount");
 });
 
-test("steps group aggregates sums and counts with parallel lineage", function () {
+test("[UAT:SHEET-05] steps group aggregates sums and counts with parallel lineage", function () {
   var table = F.simulatedFeed(null);
   var sum = S.applyStep(table, { id: "gr", type: "group", config: { by: "region", aggField: "amount", agg: "sum" } });
   deep(sum.columns, ["region", "total"]);
