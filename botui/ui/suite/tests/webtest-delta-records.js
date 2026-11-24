@@ -125,7 +125,7 @@ test("patch_field on an unknown id is a no-op", function () {
   assertEqual(c.children.length, 0);
 });
 
-test("delete_record removes the row", function () {
+test("[UAT:DB-07] delete_record removes the row", function () {
   var r = row("d1", { title: "Gone" });
   R.applyToContainer(r.container, { ops: [{ op: "delete_record", id: "d1" }] });
   assert(r.container.querySelector('[data-record-id="d1"]') === null);

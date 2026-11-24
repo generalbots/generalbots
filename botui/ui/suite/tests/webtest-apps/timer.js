@@ -6,7 +6,7 @@ h.test("TIMER: files exist", function () {
   h.assert(h.fileExists("timer/timer.html"), "timer.html missing");
 });
 
-h.test("TIMER: mounts after load (readyState complete)", function () {
+h.test("[UAT:TIMER-01] TIMER: mounts after load (readyState complete)", function () {
   var src = h.readFile("timer/timer.js");
   h.assert(/readyState/.test(src), "timer.js missing readyState guard");
   var doc = h.makeDocument({ readyState: "complete", ids: ["timerDisplay", "timerStart", "timerReset", "timerLabel", "timerSessions"] });

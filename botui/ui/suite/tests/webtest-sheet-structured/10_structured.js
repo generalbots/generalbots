@@ -196,7 +196,7 @@ test("slicer supports multi-select across distinct values", function () {
 });
 
 // ── Sparklines ─────────────────────────────────────────────────────────
-test("sparkline svg is deterministic and encodes a numeric series", function () {
+test("[UAT:DB-04] sparkline svg is deterministic and encodes a numeric series", function () {
   var first = Spark.svg([1, 2, 3], "line", "series");
   assert(first === Spark.svg([1, 2, 3], "line", "series"), "svg is not deterministic");
   assert(first !== Spark.svg([1, 3, 2], "line", "series"), "different series produced identical svg");
