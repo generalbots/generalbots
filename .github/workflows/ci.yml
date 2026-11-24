@@ -539,11 +539,21 @@ jobs:
       # #2543 — error-handling ratchet: unwrap/expect/panic and swallowed
       # Results only move down. The self-test proves a raised count fails;
       # the check enforces the committed baseline over production Rust.
+      # The integrity half compares the committed ceilings to the pre-change
+      # revision: --update refuses raises only relative to the file it reads,
+      # so hand-raising a number in that file used to pass silently.
       - name: Rust error-handling ratchet (#2543)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
           python3 scripts/check_rust_error_ratchet.py --self-test
           python3 scripts/check_rust_error_ratchet.py
+          if [ -n "${BASE_SHA:-}" ] && git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            python3 scripts/check_rust_error_ratchet.py --check-baseline-diff --base "$BASE_SHA"
+          else
+            echo "no usable base commit; skipping baseline history check"
+          fi
 
       # #2333 — empty promise `.catch(...) {}` handlers discard rejections
       # with no log, UI feedback or recovery (the promise-shaped half of the
