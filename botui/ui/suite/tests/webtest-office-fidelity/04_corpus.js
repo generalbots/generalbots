@@ -83,6 +83,44 @@ function pptParts() {
   };
 }
 
+/**
+ * Structured slide fixture for the #2457 table/chart regression: a real table
+ * grid and a chart with cached series. This is the shape the server sends and
+ * the browser exporter (04_docx_pptx_md.js) must turn into native OOXML nodes.
+ */
+function structuredPptxSlides() {
+  return [
+    {
+      title: "Quarterly results",
+      body: "Regional performance",
+      elements: [{
+        element_type: "table",
+        x: 0, y: 1500000, width: 800, height: 160,
+        table_data: {
+          cells: [
+            ["Region", "Q1", "Q2"],
+            ["North", "12", "15"],
+            ["South", "8", "11"],
+          ],
+        },
+      }],
+    },
+    {
+      title: "Margin trend",
+      body: "Quarterly margin",
+      elements: [{
+        element_type: "chart",
+        x: 0, y: 1500000, width: 800, height: 480, title: "Margin trend",
+        chart_data: {
+          chart_type: "line",
+          labels: ["Q1", "Q2", "Q3", "Q4"],
+          datasets: [{ label: "Margin", data: [10, 14, 13, 18] }],
+        },
+      }],
+    },
+  ];
+}
+
 function xlsxParts() {
   var sheet = decl('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' +
     '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row>' +
@@ -151,6 +189,14 @@ function buildAll(ctx) {
       counts: { slides: 2 }, textHas: ["Q3 Results", "Q4 Plan"],
     }));
 
+  corpus.push(fromGenerated(ctx, "gen-pptx-table-chart", "pptx",
+    ["slides", "tables", "charts"],
+    ctx.Docs.exportPPTX(structuredPptxSlides(), { filename: "gen-pptx-table-chart.pptx" }), {
+      parts: ["ppt/presentation.xml", "ppt/slides/slide1.xml", "ppt/slides/slide2.xml",
+        "ppt/charts/chart1.xml"],
+      counts: { slides: 2, tables: 1, charts: 2 }, textHas: ["Quarterly results", "North"],
+    }));
+
   corpus.push(packageFixture(ctx, "hb-docx-tables", "docx",
     ["tables", "bold", "italic", "underline", "hyperlinks", "numbering", "tracked_changes", "comments"],
     "handbuilt", docParts(), {
@@ -183,4 +229,8 @@ function buildAll(ctx) {
   return corpus;
 }
 
-module.exports = { buildAll: buildAll, decl: decl, docParts: docParts, pptParts: pptParts, xlsxParts: xlsxParts };
+module.exports = {
+  buildAll: buildAll, decl: decl,
+  docParts: docParts, pptParts: pptParts, xlsxParts: xlsxParts,
+  structuredPptxSlides: structuredPptxSlides,
+};

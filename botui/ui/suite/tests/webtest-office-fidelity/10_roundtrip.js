@@ -74,11 +74,45 @@ h.test("structural score detects a dropped feature [docx:tables]", function () {
   h.assert(score.overall < 1, "overall score must fall below 1.0");
 });
 
-h.knownBug("shipped PPTX export flattens tables/charts to text [pptx:tables] [pptx:charts]", function () {
+// #2457 used to live here as a DEGRADED known bug: the browser exporter only
+// wrote slide title/body text, so table/chart structure was flattened away.
+// 068a5ac4d added native a:tbl / graphicFrame / chart-part writers. The two
+// tests below keep both halves honest: structured input MUST round-trip as
+// native OOXML (a FAIL, never a silent pass, if it regresses), while flat text
+// input MUST stay flat instead of being dressed up as fake structure.
+h.test("shipped PPTX exporter round-trips structured tables/charts [pptx:tables] [pptx:charts]", function () {
   var source = fixtures.filter(function (f) { return f.id === "hb-pptx-table-chart"; })[0];
   var before = features.featureVector("pptx", source.archive);
-  // Mirrors botslides/src/pptx/export.rs: table/chart elements are rewritten
-  // as text shapes. Feed the preserved text back through the REAL exporter.
+  // Real server-style slide.elements[]: a table_data grid + chart_data series.
+  var blob = ctx.Docs.exportPPTX(corpus.structuredPptxSlides(), { filename: "structured.pptx" });
+  var archive = zip.readStoredZipLocal(host.blobBytes(blob));
+  var after = features.featureVector("pptx", archive);
+  var score = features.scoreVectors(before, after, "pptx");
+  var tables = score.rows.filter(function (r) { return r.feature === "tables"; })[0];
+  var charts = score.rows.filter(function (r) { return r.feature === "charts"; })[0];
+
+  // Native structure is mandatory — these are FAILs if the exporter falls back.
+  h.assertGreater(after.tables, 0, "structured export must contain a native a:tbl");
+  h.assertGreater(after.charts, 0, "structured export must contain a native chart");
+  h.assertEqual(tables.status, "kept", "table structure must survive the round trip");
+  h.assertEqual(charts.status, "kept", "chart structure must survive the round trip");
+  h.assert(zip.readXml(archive.files, "ppt/slides/slide1.xml").indexOf("<a:tbl>") >= 0,
+    "slide1 must carry a native DrawingML table");
+  h.assert(zip.readXml(archive.files, "ppt/slides/slide2.xml").indexOf("<c:chart") >= 0,
+    "slide2 must carry a native chart graphic frame");
+  h.assert(zip.readXml(archive.files, "ppt/charts/chart1.xml").indexOf("<c:v>") >= 0,
+    "chart part must carry cached c:v values");
+  h.assert(after.text.indexOf("Quarterly results") >= 0, "title survives the round trip");
+  h.assert(after.text.indexOf("North") >= 0, "table cell text survives the round trip");
+  h.assert(after.text.indexOf(" | ") < 0, "no pipe-joined flattened data fallback may appear");
+});
+
+h.test("flat PPTX text input stays flat instead of faking structure [pptx:tables] [pptx:charts]", function () {
+  var source = fixtures.filter(function (f) { return f.id === "hb-pptx-table-chart"; })[0];
+  var before = features.featureVector("pptx", source.archive);
+  // Legacy feed: only the extracted text is preserved, so there is no
+  // structured data to recover. The honest result is zero native tables/charts
+  // — never a fake shape invented from pipe-joined prose.
   var flattenedBlob = ctx.Docs.exportPPTX([
     { title: "Quarterly results", body: before.text },
     { title: "Margin trend", body: before.text },
@@ -87,12 +121,12 @@ h.knownBug("shipped PPTX export flattens tables/charts to text [pptx:tables] [pp
   var score = features.scoreVectors(before, after, "pptx");
   var tables = score.rows.filter(function (r) { return r.feature === "tables"; })[0];
   var charts = score.rows.filter(function (r) { return r.feature === "charts"; })[0];
-  h.assertEqual(after.tables, 0, "flattened export has no native table");
-  h.assertEqual(after.charts, 0, "flattened export has no native chart");
+  h.assertEqual(after.tables, 0, "flat input must not be dressed up as a native table");
+  h.assertEqual(after.charts, 0, "flat input must not be dressed up as a native chart");
   h.assertEqual(tables.status, "dropped", "table loss must be scored, not hidden");
   h.assertEqual(charts.status, "dropped", "chart loss must be scored, not hidden");
-  h.assert(after.text.indexOf("Quarterly results") >= 0, "data survives as text");
-  h.assert(score.overall < 1, "degradation lowers the overall score");
+  h.assert(after.text.indexOf("Quarterly results") >= 0, "flat text data survives the round trip");
+  h.assert(score.overall < 1, "structure loss must lower the overall score");
 });
 
 h.test("shipped makeZipStored writes a readable multi-part XLSX [xlsx:container]", function () {
