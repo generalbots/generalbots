@@ -12,6 +12,7 @@ use tokio::sync::mpsc;
 
 mod acp_notes;
 mod antigravity_bridge;
+mod claude_attached;
 mod claude_bridge;
 mod codex_bridge;
 mod plan_limit;

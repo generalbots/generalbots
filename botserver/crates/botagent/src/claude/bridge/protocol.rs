@@ -173,8 +173,44 @@ pub(super) fn initialize() -> Value {
            "request": {"subtype": "initialize", "hooks": null}})
 }
 
-pub(super) fn user_message(text: &str) -> Value {
-    json!({"type": "user", "message": {"role": "user", "content": text},
+/// A file the person attached, sent inside the user message so the model
+/// sees it without opening anything in the workspace.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Attachment {
+    /// A picture, already shrunk to the API's per-image cap; `data` is base64.
+    Image { media_type: String, data: String },
+    /// A PDF; `data` is base64.
+    Pdf { data: String },
+    /// A text file whose text the message does not already quote.
+    Text { path: String, text: String },
+}
+
+impl Attachment {
+    fn block(&self) -> Value {
+        match self {
+            Self::Image { media_type, data } => {
+                json!({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}})
+            }
+            Self::Pdf { data } => {
+                json!({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": data}})
+            }
+            Self::Text { path, text } => json!({"type": "text", "text": format!(
+                "--- BEGIN ATTACHMENT {path} ---\n{text}\n--- END ATTACHMENT {path} ---"
+            )}),
+        }
+    }
+}
+
+/// The user message: plain text, or the attachments' blocks then the text.
+pub(super) fn user_message(text: &str, attachments: &[Attachment]) -> Value {
+    let content = if attachments.is_empty() {
+        Value::String(text.to_string())
+    } else {
+        let mut blocks: Vec<Value> = attachments.iter().map(Attachment::block).collect();
+        blocks.push(json!({"type": "text", "text": text}));
+        Value::Array(blocks)
+    };
+    json!({"type": "user", "message": {"role": "user", "content": content},
            "parent_tool_use_id": null, "session_id": ""})
 }
 

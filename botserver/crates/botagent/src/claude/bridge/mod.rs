@@ -31,8 +31,8 @@ use crate::AgentService;
 
 pub use actions::{exit_code, output_text, ClaudeAction};
 pub use command::CLAUDE_CODE_VERSION;
-pub use drive::{drive, BridgeGate, DriveReport, GateAnswer, ToolOutcome, STOPPED, UNKNOWN_TOOL};
-pub use protocol::{ToolRequest, TurnResult};
+pub use drive::{drive, drive_with, BridgeGate, DriveReport, GateAnswer, ToolOutcome, STOPPED, UNKNOWN_TOOL};
+pub use protocol::{Attachment, ToolRequest, TurnResult};
 pub use selfcheck::UNSAFE_VERSION_MARKER;
 pub use sessions::{store_session, stored_session};
 
@@ -46,6 +46,10 @@ pub struct BridgedTurn<'a> {
     pub model: &'a str,
     /// Claude's session id from this conversation's previous turn.
     pub resume: Option<&'a str>,
+    /// The conversation whose workspace folder the file tools may reach.
+    pub conversation: Option<&'a str>,
+    /// The files the person attached to this message, sent with it.
+    pub attachments: &'a [Attachment],
 }
 
 /// How a turn ended well.
@@ -122,14 +126,15 @@ pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, Stri
 async fn session(
     state: &AgentService,
     vm_name: &str,
-    model: &str,
+    turn: &BridgedTurn<'_>,
     resume: Option<&str>,
     prompt: &str,
     gate: &impl BridgeGate,
 ) -> Result<DriveReport, (StatusCode, String)> {
-    let args = ["sh".to_string(), "-c".to_string(), command::turn_script(model, resume)];
+    let script = command::turn_script(turn.model, resume, turn.conversation);
+    let args = ["sh".to_string(), "-c".to_string(), script];
     let session = crate::vm::exec_in_vm_duplex(state, vm_name, &args, DuplexOptions::default()).await?;
-    let report = drive(session, prompt, gate).await;
+    let report = drive_with(session, prompt, turn.attachments, gate).await;
     crate::plan_usage::record_claude(vm_name, &report.rate_limits);
     Ok(report)
 }
@@ -150,13 +155,13 @@ pub async fn run_bridged_turn(
     let fresh = format!("{DELIVERY_DIRECTIVE}\n\n{}", turn.transcript);
     if let Some(id) = turn.resume.and_then(command::clean_session_id) {
         let message = if turn.message.trim().is_empty() { turn.transcript } else { turn.message };
-        let report = session(state, vm_name, turn.model, Some(id), message, gate).await?;
+        let report = session(state, vm_name, &turn, Some(id), message, gate).await?;
         if !is_missing_session(&report) {
             return interpret(report);
         }
         tracing::info!("claude bridge: session to resume is gone; starting a fresh one");
     }
-    let report = session(state, vm_name, turn.model, None, &fresh, gate).await?;
+    let report = session(state, vm_name, &turn, None, &fresh, gate).await?;
     interpret(report)
 }
 

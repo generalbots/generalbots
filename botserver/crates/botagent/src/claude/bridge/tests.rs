@@ -38,7 +38,7 @@ fn answers_have_the_shape_the_cli_accepted() {
     assert_eq!(protocol::deny("r1", "no")["response"]["response"], json!({"behavior": "deny", "message": "no"}));
     assert_eq!(protocol::unsupported("h1")["response"]["subtype"], "error");
     assert_eq!(protocol::interrupt()["request"]["subtype"], "interrupt");
-    assert_eq!(protocol::user_message("oi")["message"], json!({"role": "user", "content": "oi"}));
+    assert_eq!(protocol::user_message("oi", &[])["message"], json!({"role": "user", "content": "oi"}));
 }
 
 #[test]
@@ -118,4 +118,27 @@ fn a_good_turn_keeps_its_session_id_and_an_empty_one_fails() {
     assert_eq!(interpret(report("", "", ok)).map(|_| ()).unwrap_err().0, StatusCode::INTERNAL_SERVER_ERROR);
     let failed = TurnResult { subtype: "error_max_turns".into(), is_error: true, ..TurnResult::default() };
     assert_eq!(interpret(report("partial", "", failed)).map(|_| ()).unwrap_err().1, "Claude Code failed to answer.");
+}
+
+#[test]
+fn attachments_go_before_the_text_as_the_blocks_the_cli_passes_on() {
+    use super::protocol::Attachment;
+    let files = [
+        Attachment::Image { media_type: "image/png".into(), data: "iVBO".into() },
+        Attachment::Pdf { data: "JVBE".into() },
+        Attachment::Text { path: "/opt/vibe/conversations/c1/data/notes.txt".into(), text: "hello".into() },
+    ];
+    let content = &protocol::user_message("Describe them.", &files)["message"]["content"];
+    assert_eq!(
+        content[0],
+        json!({"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "iVBO"}})
+    );
+    assert_eq!(
+        content[1],
+        json!({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": "JVBE"}})
+    );
+    let quoted = content[2]["text"].as_str().unwrap_or_default();
+    assert!(quoted.starts_with("--- BEGIN ATTACHMENT /opt/vibe/conversations/c1/data/notes.txt ---\nhello\n"));
+    assert_eq!(content[3], json!({"type": "text", "text": "Describe them."}));
+    assert_eq!(content.as_array().map(Vec::len), Some(4));
 }

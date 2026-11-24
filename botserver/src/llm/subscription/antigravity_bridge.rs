@@ -30,12 +30,12 @@ use crate::core::bot::runs::bus;
 type ProviderError = Box<dyn std::error::Error + Send + Sync>;
 
 /// Largest picture sent after shrinking (the providers' per-image cap).
-const MAX_IMAGE_BYTES: usize = 5 * 1024 * 1024;
+pub(super) const MAX_IMAGE_BYTES: usize = 5 * 1024 * 1024;
 /// Largest picture read from the workspace to be shrunk.
-const MAX_IMAGE_SOURCE: usize = 25 * 1024 * 1024;
+pub(super) const MAX_IMAGE_SOURCE: usize = 25 * 1024 * 1024;
 /// Largest text file embedded whole.
-const MAX_TEXT_BYTES: usize = 1024 * 1024;
-const QUOTED_MARKER: &str = "--- BEGIN ATTACHMENT ";
+pub(super) const MAX_TEXT_BYTES: usize = 1024 * 1024;
+pub(super) const QUOTED_MARKER: &str = "--- BEGIN ATTACHMENT ";
 
 /// Runs chat turns through the Antigravity CLI in the person's workspace.
 pub struct AntigravityBridgeProvider {
@@ -173,18 +173,18 @@ impl AntigravityBridgeProvider {
 }
 
 /// The path of a workspace copy relative to the conversation folder.
-fn relative_path(vm_path: &str, conversation: &str) -> Option<String> {
+pub(super) fn relative_path(vm_path: &str, conversation: &str) -> Option<String> {
     vm_path
         .strip_prefix(&format!("/opt/vibe/conversations/{conversation}/"))
         .filter(|rel| !rel.is_empty())
         .map(str::to_string)
 }
 
-fn extension(name: &str) -> String {
+pub(super) fn extension(name: &str) -> String {
     name.rsplit('.').next().unwrap_or("").to_ascii_lowercase()
 }
 
-fn image_mime(name: &str) -> Option<&'static str> {
+pub(super) fn image_mime(name: &str) -> Option<&'static str> {
     match extension(name).as_str() {
         "png" => Some("image/png"),
         "jpg" | "jpeg" => Some("image/jpeg"),
@@ -195,7 +195,7 @@ fn image_mime(name: &str) -> Option<&'static str> {
     }
 }
 
-fn is_text(name: &str) -> bool {
+pub(super) fn is_text(name: &str) -> bool {
     matches!(extension(name).as_str(), "txt" | "md" | "csv" | "tsv" | "json" | "xml" | "yaml" | "yml" | "log" | "html" | "htm")
 }
 

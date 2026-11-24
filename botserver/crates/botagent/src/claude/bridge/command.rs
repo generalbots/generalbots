@@ -79,9 +79,21 @@ pub(super) fn session_script(root: &str, env: &str, before: &str, invocation: &s
     )
 }
 
-/// The script of one chat turn.
-pub(super) fn turn_script(model: &str, resume: Option<&str>) -> String {
-    session_script("", "", "", &claude_invocation(model, resume))
+/// The script of one chat turn. With `conversation`, its workspace folder
+/// (where the person's attachments are copied) is added to the folders the
+/// file tools may reach (`--add-dir`, when it exists): `--restricted`
+/// otherwise refuses a `Read` there without asking, and the model falls back
+/// to a shell copy. Every tool there still asks.
+pub(super) fn turn_script(model: &str, resume: Option<&str>, conversation: Option<&str>) -> String {
+    let invocation = claude_invocation(model, resume);
+    match conversation.and_then(|id| crate::vm::sanitize_id(id).ok()) {
+        Some(id) => {
+            let dir = format!("/opt/vibe/conversations/{id}");
+            let before = format!("set --; [ -d {dir} ] && set -- --add-dir {dir}; ");
+            session_script("", "", &before, &format!("{invocation} \"$@\""))
+        }
+        None => session_script("", "", "", &invocation),
+    }
 }
 
 #[cfg(test)]
@@ -90,7 +102,7 @@ mod tests {
 
     #[test]
     fn turn_script_runs_the_cli_as_claude_with_every_tool_asking() {
-        let script = turn_script("claude-sonnet-4-5", Some("2f25aa59-31f0-40d5-82a5-b2e43226ab98"));
+        let script = turn_script("claude-sonnet-4-5", Some("2f25aa59-31f0-40d5-82a5-b2e43226ab98"), None);
         assert!(script.contains("su claude -s /bin/sh -c '"));
         assert!(!script.contains("su -"));
         assert!(script.contains("--permission-prompt-tool stdio --permission-mode manual --restricted"));
@@ -103,8 +115,20 @@ mod tests {
     }
 
     #[test]
+    fn the_conversation_folder_is_reachable_by_the_file_tools_and_still_asks() {
+        let id = "be226895-1007-4041-abd2-f6ee0b1a06eb";
+        let script = turn_script("default", None, Some(id));
+        let dir = format!("/opt/vibe/conversations/{id}");
+        assert!(script.contains(&format!("set --; [ -d {dir} ] && set -- --add-dir {dir}; exec claude -p")));
+        assert!(script.contains(&format!("--settings {SETTINGS_PATH} \"$@\"'")));
+        assert!(script.contains("--permission-mode manual --restricted"));
+        assert!(!turn_script("default", None, None).contains("--add-dir"));
+    }
+
+    #[test]
     fn nothing_but_a_uuid_is_resumed_and_placeholder_models_are_dropped() {
-        let script = turn_script("default", Some("x; rm -rf /"));
+        let script = turn_script("default", Some("x; rm -rf /"), Some("c1'; id; '"));
+        assert!(script.contains("[ -d /opt/vibe/conversations/c1id ] && set -- --add-dir /opt/vibe/conversations/c1id;"));
         assert!(!script.contains("--resume"));
         assert!(!script.contains("--model"));
         assert_eq!(clean_session_id("abc-123"), Some("abc-123"));

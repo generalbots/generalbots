@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use crate::duplex::{DuplexEvent, DuplexSession, SessionEnd};
 
 use super::actions::{exit_code, output_text, ClaudeAction};
-use super::protocol::{self, Incoming, ToolRequest, TurnResult};
+use super::protocol::{self, Attachment, Incoming, ToolRequest, TurnResult};
 
 /// How often Stop is looked at while the model works.
 const STOP_POLL: Duration = Duration::from_millis(500);
@@ -146,6 +146,16 @@ impl<'g, G: BridgeGate> Turn<'g, G> {
 /// its `result`, then lets the process end. Every way out leaves no process
 /// behind (the session is closed, or dropped, here).
 pub async fn drive<G: BridgeGate>(session: DuplexSession, prompt: &str, gate: &G) -> DriveReport {
+    drive_with(session, prompt, &[], gate).await
+}
+
+/// [`drive`] with the person's attachments sent inside the user message.
+pub async fn drive_with<G: BridgeGate>(
+    session: DuplexSession,
+    prompt: &str,
+    attachments: &[Attachment],
+    gate: &G,
+) -> DriveReport {
     let (sender, mut events) = session.into_parts();
     let mut turn = Turn {
         gate,
@@ -157,7 +167,7 @@ pub async fn drive<G: BridgeGate>(session: DuplexSession, prompt: &str, gate: &G
     };
     let sent = sender
         .send_json(&protocol::initialize())
-        .and_then(|()| sender.send_json(&protocol::user_message(prompt)));
+        .and_then(|()| sender.send_json(&protocol::user_message(prompt, attachments)));
     if sent.is_err() {
         sender.close();
     }

@@ -318,6 +318,26 @@ pub(super) fn permission_tool_id(params: &Value) -> String {
         .to_string()
 }
 
+/// The code agy's own status line states (`Command exited with code N.`).
+fn stated_exit_code(line: &str) -> Option<i32> {
+    line.trim().strip_prefix("Command exited with code ")?.trim_end_matches('.').trim().parse().ok()
+}
+
+/// The tool's own output without the lines agy adds around it: the
+/// `Created At: … Completed At: …` timestamps and the exit-code sentence
+/// (the step row shows the code on its own).
+fn without_metadata(text: &str) -> String {
+    text.lines()
+        .filter(|line| {
+            let line = line.trim_start();
+            !line.starts_with("Created At:") && !line.starts_with("Completed At:") && stated_exit_code(line).is_none()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_matches('\n')
+        .to_string()
+}
+
 /// The result of a finished tool call, for its step row.
 #[must_use]
 pub(super) fn outcome_of(call: &Value, status: &str, files: Vec<String>) -> ActionOutcome {
@@ -339,7 +359,9 @@ pub(super) fn outcome_of(call: &Value, status: &str, files: Vec<String>) -> Acti
     let exit_code = ["exitCode", "exit_code"]
         .iter()
         .find_map(|key| raw.get(*key).and_then(Value::as_i64))
-        .and_then(|code| i32::try_from(code).ok());
+        .and_then(|code| i32::try_from(code).ok())
+        .or_else(|| output.lines().find_map(stated_exit_code));
+    let output = without_metadata(&output);
     let ok = status == "completed" && exit_code.map_or(true, |code| code == 0);
     ActionOutcome {
         ok,

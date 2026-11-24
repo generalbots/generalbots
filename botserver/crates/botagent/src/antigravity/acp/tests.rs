@@ -121,6 +121,19 @@ fn a_finished_tool_call_reports_its_output_and_files() {
 }
 
 #[test]
+fn a_command_step_keeps_its_output_without_agys_timestamps() {
+    let text = "Created At: 2026-11-24T00:58:09Z\nCompleted At: 2026-11-24T00:58:09Z\nCommand exited with code 0.\n\
+                Linux ag 6.6.87.2-microsoft-standard-WSL2 x86_64 GNU/Linux\n";
+    let call = json!({"content":[{"type":"content","content":{"type":"text","text":text}}]});
+    let outcome = proto::outcome_of(&call, "completed", Vec::new());
+    assert_eq!(outcome.output, "Linux ag 6.6.87.2-microsoft-standard-WSL2 x86_64 GNU/Linux");
+    assert_eq!((outcome.ok, outcome.exit_code), (true, Some(0)));
+    let failed = json!({"rawOutput":{"output":"Created At: x | Completed At: y\nCommand exited with code 2.\nno such file"}});
+    let outcome = proto::outcome_of(&failed, "completed", Vec::new());
+    assert_eq!((outcome.ok, outcome.exit_code, outcome.output.as_str()), (false, Some(2), "no such file"));
+}
+
+#[test]
 fn the_launch_script_announces_the_session_and_keeps_the_tag() {
     let script = launch_script("abc-123");
     assert!(script.starts_with("printf 'GB-SESSION '; head -c 130 /home/antigravity/.gemini/gb-sessions/abc-123"));

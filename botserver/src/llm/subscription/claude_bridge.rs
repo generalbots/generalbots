@@ -5,7 +5,8 @@
 //! card, the conversation's grants and "Permitir tudo" live there, and each
 //! action is a step of the answer with its result. The model's text streams
 //! into the answer. Claude's session id is kept per conversation, so the
-//! next turn resumes it.
+//! next turn resumes it. The files the person attached travel inside the
+//! message (`claude_attached`).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
@@ -91,14 +92,25 @@ impl ClaudeBridgeProvider {
             cancelled_at_start: run_bus.is_cancelled(&thread),
             thread,
             open: Mutex::default(),
+            staged: super::claude_attached::staged_paths(self.session_id),
         };
+        let quoted = transcript.contains(super::antigravity_bridge::QUOTED_MARKER);
+        let attachments =
+            super::claude_attached::attachments(&self.service, &self.vm_name, self.session_id, quoted).await;
         let conversation = self.session_id.to_string();
         let remembered = sessions().get(&self.session_id).cloned();
         let resume = match remembered {
             Some(id) => Some(id),
             None => bridge::stored_session(&self.service, &self.vm_name, &conversation).await,
         };
-        let turn = BridgedTurn { message: &latest, transcript: &transcript, model: selected, resume: resume.as_deref() };
+        let turn = BridgedTurn {
+            message: &latest,
+            transcript: &transcript,
+            model: selected,
+            resume: resume.as_deref(),
+            conversation: Some(&conversation),
+            attachments: &attachments,
+        };
         match bridge::run_bridged_turn(&self.service, &self.vm_name, turn, &gate).await {
             Ok(answer) => {
                 if let Some(id) = answer.session_id {
@@ -161,10 +173,18 @@ struct Gate<'a> {
     cancelled_at_start: bool,
     /// Allowed tool uses waiting for their result: id → receipt, files.
     open: Mutex<HashMap<String, (VmReceipt, Vec<String>)>>,
+    /// The workspace copies of the files attached to this message.
+    staged: Vec<String>,
 }
 
 impl BridgeGate for Gate<'_> {
     async fn decide(&self, request: &ToolRequest, action: &ClaudeAction) -> GateAnswer {
+        if let ClaudeAction::ReadFile { path } = action {
+            if super::claude_attached::is_own_attachment(path, &self.staged) {
+                botlog::safe_info!("claude bridge: read of an attachment of this message, allowed by the message");
+                return GateAnswer::Allow;
+            }
+        }
         let vm = vm_action(action);
         match vm_consent::ask(&self.turn.identity(), &vm).await {
             VmDecision::Allowed(ticket) => {
