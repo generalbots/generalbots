@@ -92,7 +92,11 @@ pub fn parse_xlsx_to_worksheets(
     ext: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
     if ext == "ods" {
-        return super::super::import_ods::parse_ods_to_worksheets(bytes);
+        // #2463 — route the drive-open path through the hardened ODF parser
+        // too. The legacy `storage/import_ods.rs` ignores repeated
+        // columns/rows, has no mimetype check and no embedded-object/XXE
+        // refusal; the UI import path already uses this hardened parser.
+        return super::odf::parse_ods_to_worksheets(bytes);
     }
 
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
