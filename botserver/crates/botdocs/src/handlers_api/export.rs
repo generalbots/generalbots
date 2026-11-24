@@ -46,6 +46,7 @@ pub async fn handle_export_pdf(
     log::debug!("docs pdf export admitted: {}", permit.class().as_str());
     let pdf_bytes = html_to_pdf(&doc.content);
     record_export(&state, "pdf", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "pdf");
 
     Ok((
         [(axum::http::header::CONTENT_TYPE, "application/pdf")],
@@ -108,6 +109,7 @@ pub async fn handle_export_docx(
         axum::http::HeaderValue::from_static(fidelity.as_str()),
     );
     record_export(&state, "docx", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "docx");
     Ok((headers, docx_bytes))
 }
 
@@ -131,6 +133,7 @@ pub async fn handle_export_odt(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}))))?;
 
     record_export(&state, "odt", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "odt");
     Ok((
         [(
             axum::http::header::CONTENT_TYPE,
@@ -380,6 +383,7 @@ pub async fn handle_export_md(
     // A download, not a page: `attachment` keeps the browser from rendering it
     // on the suite origin (#2124 follow-up).
     record_export(&state, "md", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "md");
     Ok((
         text_export_headers(&doc.title, "md", "text/markdown; charset=utf-8"),
         markdown,
@@ -407,6 +411,7 @@ pub async fn handle_export_html(
     .await?;
     log::debug!("docs html export admitted: {}", permit.class().as_str());
     record_export(&state, "html", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "html");
 
     Ok((
         html_export_headers(&doc.title),
@@ -431,6 +436,7 @@ pub async fn handle_export_txt(
     log::debug!("docs txt export admitted: {}", permit.class().as_str());
     let plain_text = strip_html(&doc.content);
     record_export(&state, "txt", started).await;
+    crate::access_audit::record_export_access(&state, &user, &doc.id, "txt");
 
     Ok((
         text_export_headers(&doc.title, "txt", "text/plain; charset=utf-8"),

@@ -131,6 +131,10 @@ pub async fn handle_shared_document(
         .map_err(|e| internal(&e, "botdocs::shared_link"))?
         .ok_or_else(not_found)?;
 
+    // #2452 — only a link that actually resolved to a document is a "view".
+    // The token and the body stay out of the audit payload.
+    crate::access_audit::record_shared_view(&state, &link.resource_id);
+
     Ok(Json(SharedDocument {
         id: document.id,
         title: document.title,
