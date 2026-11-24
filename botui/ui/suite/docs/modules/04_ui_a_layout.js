@@ -131,11 +131,18 @@ function renderPageGuides(article) {
   var rect = article.getBoundingClientRect();
   var left = rect.left - hostRect.left + (host.scrollLeft || 0);
   var top = rect.top - hostRect.top + (host.scrollTop || 0);
+  // #2031 — fitPageToWidth() zooms the article (e.g. 0.85). getBoundingClientRect
+  // is in host (visual) pixels, but pageH/scrollHeight are in unscaled layout
+  // pixels. Spacing guides by raw pageH makes them drift further on every page
+  // (observed ~840px by page 6). Scale the step into host coordinates.
+  var zoom = parseFloat(article.style.zoom);
+  if (!isFinite(zoom) || zoom <= 0) zoom = 1;
+  var guideStep = pageH * zoom;
   var pages = Math.max(1, Math.ceil((article.scrollHeight || rect.height) / pageH));
   var width = Math.round(rect.width);
   var html = "";
   for (var i = 1; i < pages; i++) {
-    var y = Math.round(top + i * pageH);
+    var y = Math.round(top + i * guideStep);
     // A dashed rule alone was easy to miss on a dark shell; the band plus the
     // zebra gap makes the boundary read as a real page edge (#2184).
     html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + width + 'px;top:' + y + 'px;height:0;border-top:2px dashed #94a3b8;box-shadow:0 6px 12px -8px rgba(15,23,42,.45);"></div>';
