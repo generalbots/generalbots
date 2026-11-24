@@ -6,6 +6,9 @@
 //! A1 coordinates, so a hostile query cannot allocate an unbounded grid.
 
 use crate::auth::{resolve_user_id, SheetError, SheetUser};
+use crate::scale::{
+    CellRect, FetchTile, MemoryBudget, WindowPlanRequest, WorkbookTier, plan_window,
+};
 use crate::state::SheetState;
 use crate::ui_fragments::Lang;
 use axum::{
@@ -105,27 +108,80 @@ pub fn is_valid_window_range(input: &str) -> bool {
     parse_window_range(input).is_some()
 }
 
-/// Collects the populated cells of `range` in canonical `"row,col"` key form,
-/// applying the stored number formats for display (`typed` stays raw).
+/// Collect populated cells of planner-produced tiles in `"row,col"` key form,
+/// applying number formats for display (`typed` stays raw).
+fn collect_tile_cells(
+    worksheet: &Worksheet,
+    tiles: &[CellRect],
+    locale: NumberLocale,
+) -> HashMap<String, CellData> {
+    let mut cells: HashMap<String, CellData> = HashMap::new();
+    for rect in tiles {
+        for row in rect.first_row..=rect.last_row {
+            for col in rect.first_col..=rect.last_col {
+                let key = format!("{row},{col}");
+                if let Some(cell) = worksheet.data.get(&key) {
+                    let mut cell = cell.clone();
+                    if let (Some(typed), Some(code)) = (cell.typed.as_ref(), cell.format.as_deref())
+                    {
+                        cell.value = Some(formats::display_cell_locale(typed, Some(code), locale));
+                    }
+                    cells.insert(key, cell);
+                }
+            }
+        }
+    }
+    cells
+}
+
+/// Single-rectangle form used by the pure range tests.
+#[cfg(test)]
 fn collect_window_cells(
     worksheet: &Worksheet,
     range: WindowRange,
     locale: NumberLocale,
 ) -> HashMap<String, CellData> {
-    let mut cells: HashMap<String, CellData> = HashMap::new();
-    for row in range.start_row..=range.end_row {
-        for col in range.start_col..=range.end_col {
-            let key = format!("{row},{col}");
-            if let Some(cell) = worksheet.data.get(&key) {
-                let mut cell = cell.clone();
-                if let (Some(typed), Some(code)) = (cell.typed.as_ref(), cell.format.as_deref()) {
-                    cell.value = Some(formats::display_cell_locale(typed, Some(code), locale));
-                }
-                cells.insert(key, cell);
-            }
-        }
-    }
-    cells
+    let rect = CellRect {
+        first_row: range.start_row,
+        first_col: range.start_col,
+        last_row: range.end_row,
+        last_col: range.end_col,
+    };
+    collect_tile_cells(worksheet, &[rect], locale)
+}
+
+/// Partition a validated range into budgeted fetch tiles. A worksheet has no
+/// dimension record, so its bounds are Excel's limits and clamping drops no
+/// requested cell; the planner still enforces tile geometry and the tile cap.
+fn bounded_window_tiles(range: WindowRange) -> Result<Vec<FetchTile>, SheetError> {
+    let rect = CellRect {
+        first_row: range.start_row,
+        first_col: range.start_col,
+        last_row: range.end_row,
+        last_col: range.end_col,
+    };
+    // Large tier's 1000x256 tile matches the handler caps: one tile per valid
+    // range, so collected cells stay identical to the previous direct scan.
+    let budget = MemoryBudget::for_tier(WorkbookTier::Large);
+    let request = WindowPlanRequest {
+        requested: rect,
+        viewport: rect,
+        sheet_bounds: CellRect {
+            first_row: 0,
+            first_col: 0,
+            last_row: MAX_EXCEL_ROW - 1,
+            last_col: MAX_EXCEL_COL - 1,
+        },
+    };
+    plan_window(&request, &budget).map_err(|error| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "Window range exceeds the sheet window budget",
+                "detail": error.to_string(),
+            })),
+        )
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -212,7 +268,9 @@ pub async fn handle_sheet_window(
         }
     }
 
-    let cells = collect_window_cells(worksheet, range, locale);
+    let tiles = bounded_window_tiles(range)?;
+    let rects: Vec<CellRect> = tiles.iter().map(|tile| tile.rect).collect();
+    let cells = collect_tile_cells(worksheet, &rects, locale);
     let body = serde_json::json!({
         "id": sheet_id,
         "worksheet": sheet_index,
@@ -354,6 +412,34 @@ mod tests {
         assert_eq!(
             cells.get("0,0").and_then(|cell| cell.value.as_deref()),
             Some("1.234,50")
+        );
+    }
+
+    #[test]
+    fn planned_window_collects_the_same_cells_as_a_direct_scan() {
+        let mut worksheet = Worksheet::default();
+        for (key, value) in [("0,0", "in"), ("3,0", "out"), ("199,25", "edge")] {
+            worksheet.data.insert(
+                key.to_string(),
+                CellData {
+                    value: Some(value.to_string()),
+                    ..Default::default()
+                },
+            );
+        }
+        let range = parse_window_range("A1:Z200").expect("valid range");
+        let tiles = bounded_window_tiles(range).expect("in-budget range");
+        assert_eq!(tiles.len(), 1);
+        let expected = CellRect {
+            first_row: 0,
+            first_col: 0,
+            last_row: 199,
+            last_col: 25,
+        };
+        assert_eq!(tiles[0].rect, expected);
+        assert_eq!(
+            collect_tile_cells(&worksheet, &tiles, NumberLocale::EN),
+            collect_window_cells(&worksheet, range, NumberLocale::EN),
         );
     }
 }
