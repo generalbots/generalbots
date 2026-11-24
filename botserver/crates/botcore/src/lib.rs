@@ -6,6 +6,7 @@ pub mod tracing;
 pub mod urls;
 pub mod kb;
 pub mod bot;
+pub mod error_budget;
 
 // Modules moved from botserver/src/core/
 pub mod automation;
