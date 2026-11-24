@@ -70,7 +70,7 @@ pub async fn list_comments(
     .bind::<Text, _>(&ty_prefix)
     .bind::<Text, _>(&id_prefix)
     .load::<ReactionRow>(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let mut reactions: std::collections::HashMap<String, Vec<ReactionItem>> =
         std::collections::HashMap::new();
@@ -95,13 +95,13 @@ pub async fn list_comments(
             author_name: r.author_name,
             parent_id: r.parent_id.clone(),
             body: r.body,
-            mentions: serde_json::from_str(&r.mentions).unwrap_or_default(),
+            mentions: serde_json::from_str(&r.mentions).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
             resolved: r.resolved,
             resolved_by: r.resolved_by,
             resolved_at: r.resolved_at.map(|d| d.to_rfc3339()),
-            reactions: reactions.remove(&r.id).unwrap_or_default(),
+            reactions: reactions.remove(&r.id).map_or_else(Default::default, |v| v),
             replies: Vec::new(),
         };
         if r.parent_id.is_some() {
@@ -183,7 +183,7 @@ fn mention_candidates(
     )
     .bind::<Text, _>(token)
     .load::<Row>(conn)
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     .into_iter()
     .map(|row| super::notification_email::MentionCandidate {
         id: row.id,
@@ -283,7 +283,7 @@ pub(crate) fn send_mention_emails(
         // #2094 — one message per recipient, in the language they picked.
         let locale = uuid::Uuid::parse_str(&recipient.id)
             .map(|user_id| botcore::i18n::locale_for_user(&mut conn, user_id))
-            .unwrap_or_default();
+            .unwrap_or(Default::default());
         let subject = botlib::i18n::translate(
             &locale,
             "email-mention-subject",

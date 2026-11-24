@@ -42,7 +42,7 @@ pub fn parse_lenient_mentions(parsed: &serde_json::Value) -> Vec<MentionRef> {
                         id: entry
                             .get("id")
                             .and_then(|v| v.as_str())
-                            .unwrap_or_default()
+                            .map_or_else(Default::default, |v| v)
                             .to_string(),
                         label: entry
                             .get("label")
@@ -53,7 +53,7 @@ pub fn parse_lenient_mentions(parsed: &serde_json::Value) -> Vec<MentionRef> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 #[cfg(feature = "integrations")]

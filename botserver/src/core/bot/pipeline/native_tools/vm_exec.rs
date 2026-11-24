@@ -79,7 +79,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 .filter_map(|v| v.as_str().map(str::to_string))
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     let SessionIdentity {
         state,
@@ -132,7 +132,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let progress_thread = session_id.to_string();
     let progress_run = crate::core::bot::runs::bus::bus()
         .current_run_id(&progress_thread)
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     if !progress_run.is_empty() {
         crate::core::bot::runs::bus::bus().publish(
             &progress_thread,

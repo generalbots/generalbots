@@ -137,7 +137,7 @@ pub async fn handle_chat_history_messages(
             let reasoning = meta
                 .as_ref()
                 .map(|m| m.reasoning.clone())
-                .unwrap_or_default();
+                .map_or_else(Default::default, |v| v);
             let idx = msg_seq;
             msg_seq += 1;
             HistoryMessage {

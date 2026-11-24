@@ -5,7 +5,7 @@ use super::*;
 /// heuristic (no LLM round-trip) so it is instant and offline; the executor
 /// may enrich steps with the LLM later.
 pub async fn agent_plan_handler(Json(body): Json<AgentPlanBody>) -> Json<serde_json::Value> {
-    let goal = body.goal.unwrap_or_default();
+    let goal = body.goal.unwrap_or(Default::default());
     let steps = build_plan(&goal, body.app.as_deref());
     Json(json!({
         "goal": goal,
@@ -104,7 +104,7 @@ pub(super) fn build_plan(goal: &str, app_hint: Option<&str>) -> Vec<serde_json::
         let id = s
             .get("app")
             .and_then(|v| v.as_str())
-            .unwrap_or_default()
+            .map_or_else(Default::default, |v| v)
             .to_string();
         if seen.contains(&id) {
             false
@@ -126,7 +126,7 @@ pub(super) fn step(
         "app": app,
         "title": title,
         "action": action,
-        "params": params.map(|p| p.to_string()).unwrap_or_default(),
+        "params": params.map(|p| p.to_string()).map_or_else(Default::default, |v| v),
     })
 }
 /// Returns the complete application catalog with per-app `enabled` and

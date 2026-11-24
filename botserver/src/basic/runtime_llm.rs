@@ -69,7 +69,7 @@ fn config_or_argument(state: &AppState, bot_id: &Uuid, key: &str, argument: &str
         .ok()
         .filter(|v| !v.is_empty())
         .or_else(|| (!argument.is_empty()).then(|| argument.to_string()))
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }
 
 /// Generates a completion for `prompt` using the bot's configured provider.

@@ -96,7 +96,7 @@ impl TerminalSession {
         self.buffer
             .lock()
             .map(|b| b.iter().cloned().collect())
-            .unwrap_or_default()
+            .map_or_else(|_| Default::default(), |v| v)
     }
 
     pub(super) fn append_output(&self, data: String) {

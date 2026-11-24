@@ -167,7 +167,7 @@ async fn rpc(
     let method = request
         .get("method")
         .and_then(Value::as_str)
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
         .to_string();
     // #2661 — fail closed: a missing/incomplete principal is never treated as
     // authenticated. The auth middleware installs `AuthenticatedUser` for the

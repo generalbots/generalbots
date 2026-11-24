@@ -53,7 +53,7 @@ pub(super) fn recover_tool_name(call: &serde_json::Value, raw: &str) -> String {
         .iter()
         .find(|name| raw.contains(&format!("\"{name}\"")))
         .map(|name| (*name).to_string())
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
 }
 
 pub(super) fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {

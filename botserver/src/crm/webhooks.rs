@@ -106,7 +106,7 @@ impl WebhookEvent {
             Ok(())
         } else {
             let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
             Err(format!("Webhook delivery failed ({}): {}", status, text))
         }
     }

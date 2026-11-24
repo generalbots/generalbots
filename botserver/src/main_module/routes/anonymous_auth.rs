@@ -10,7 +10,7 @@ pub async fn anonymous_auth_handler(
     axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
     request: axum::extract::Request,
 ) -> impl IntoResponse {
-    let bot_name = params.get("bot_name").cloned().unwrap_or_default();
+    let bot_name = params.get("bot_name").cloned().map_or_else(Default::default, |v| v);
     let existing_session_id = params.get("session_id").cloned();
     let had_session_id = existing_session_id.is_some();
     let existing_user_id = params.get("user_id").cloned();
@@ -68,7 +68,7 @@ pub async fn anonymous_auth_handler(
     // so two browsers land on the same conversation and sync via the bus.
     let resolved_session_id = if is_authenticated && !had_session_id && !force_new && found_bot_id != uuid::Uuid::nil() {
         let mut sm = state.session_manager.lock().await;
-        let sessions = sm.get_user_sessions(user_uuid).ok().unwrap_or_default();
+        let sessions = sm.get_user_sessions(user_uuid).ok().map_or_else(Default::default, |v| v);
         // Filter to this bot and find the most recent one updated within 2 hours.
         let two_hours_ago = chrono::Utc::now() - chrono::Duration::hours(2);
         let recent = sessions

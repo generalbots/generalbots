@@ -37,7 +37,7 @@ pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
         .filter(rbac_user_groups::user_id.eq(user_id))
         .select(rbac_user_groups::group_id)
         .load::<Uuid>(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     if group_ids.is_empty() {
         debug!("resolve_user_role: user {user_id} has no groups, role=user");
@@ -49,7 +49,7 @@ pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
         .filter(rbac_groups::is_active.eq(true))
         .select(rbac_groups::name)
         .load::<String>(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     for name in &group_names {
         if is_admin_group_name(name) {

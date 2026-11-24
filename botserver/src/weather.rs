@@ -111,7 +111,7 @@ pub async fn weather(Query(query): Query<WeatherQuery>) -> impl IntoResponse {
             (latitude, longitude, "My location".to_string())
         }
         _ => {
-            let city = query.city.map(|value| value.trim().to_string()).unwrap_or_default();
+            let city = query.city.map(|value| value.trim().to_string()).map_or_else(Default::default, |v| v);
             if city.is_empty() || city.len() > 120 {
                 return (
                     StatusCode::BAD_REQUEST,

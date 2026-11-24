@@ -159,7 +159,7 @@ fn post_to_multiple_impl(
         let _ = tx.send(results);
     });
 
-    let results = rx.recv().unwrap_or_default();
+    let results = rx.recv().unwrap_or(Default::default());
 
     let mut total = 0;
     let mut successful = 0;
@@ -231,7 +231,7 @@ fn post_to_advanced_impl(
     let message = options
         .get("message")
         .and_then(|v| v.clone().into_string().ok())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
 
     let mut content = PostContent::text(message);
 

@@ -15,7 +15,7 @@ pub(super) async fn graph_search(
         debug!("Graph RAG: no entities found, falling back to standard search");
         return kb_context_search::search_qdrant(collection, query, limit, bot_id, db_pool)
             .await
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     }
 
     let mut all_results: Vec<KbSearchResult> = Vec::new();
@@ -31,7 +31,7 @@ pub(super) async fn graph_search(
 
     let original = kb_context_search::search_qdrant(collection, query, limit, bot_id, db_pool)
         .await
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     all_results.extend(original);
 
     all_results.sort_by(|a, b| {
@@ -142,7 +142,7 @@ pub(super) async fn agentic_search(
     for sub in &sub_queries {
         let results = kb_context_search::search_qdrant(collection, sub, limit, bot_id, db_pool)
             .await
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         all_results.extend(results);
     }
 
@@ -237,7 +237,7 @@ pub(super) async fn multimodal_search(
     for variant in &variants {
         let results = kb_context_search::search_qdrant(collection, variant, limit, bot_id, db_pool)
             .await
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         all_results.extend(results);
     }
 

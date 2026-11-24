@@ -176,8 +176,8 @@ async fn create(
         state.llm_provider.clone().map(|provider| {
             (
                 provider,
-                std::env::var("LLM_MODEL").unwrap_or_default(),
-                std::env::var("LLM_KEY").unwrap_or_default(),
+                std::env::var("LLM_MODEL").unwrap_or(Default::default()),
+                std::env::var("LLM_KEY").unwrap_or(Default::default()),
             )
         })
     });

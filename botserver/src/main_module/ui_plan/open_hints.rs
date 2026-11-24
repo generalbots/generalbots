@@ -86,7 +86,7 @@ mod tests {
             plan_with_open("tax"),
             "Open the tax app and show the NFS-e documents",
         );
-        let params = plan.steps[0].params.clone().unwrap_or_default();
+        let params = plan.steps[0].params.clone().unwrap_or(Default::default());
         assert_eq!(params.get("tab").and_then(|v| v.as_str()), Some("nfse"));
     }
 

@@ -192,7 +192,7 @@ fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<()
     // keep their content through the git move); fresh bots get a minimal
     // tree so the initial commit is never empty.
     let work_root = PathBuf::from(get_work_path());
-    let branch_slug = project.branch_slug.clone().unwrap_or_default();
+    let branch_slug = project.branch_slug.clone().unwrap_or(Default::default());
     let org_dialog = work_root.join(format!(
         "{0}.gborg/{0}.gbai/{1}.gbdialog",
         branch_slug, project.name

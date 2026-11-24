@@ -159,7 +159,7 @@ fn capability_for(provider_id: &str, tokens: &[String]) -> String {
         }
     }
     best.map(|(_, summary)| truncate(summary, MAX_CAPABILITY_CHARS))
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
 }
 
 /// Adds the auth method and least privilege the offer must state (#2061).
@@ -170,11 +170,11 @@ pub(super) fn describe(summary: LlmProviderSummary, tokens: &[String]) -> Connec
         .as_ref()
         .and_then(|item| serde_json::to_value(item.auth.method).ok())
         .and_then(|value| value.as_str().map(str::to_string))
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let least_privilege = item
         .as_ref()
         .map(|item| truncate(item.auth.least_privilege, MAX_SCOPE_CHARS))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let capability = capability_for(summary.id, tokens);
     ConnectorMatch {
         summary,

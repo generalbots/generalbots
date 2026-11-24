@@ -102,7 +102,7 @@ pub(super) async fn prepare_messages_and_maybe_finish(
         let sm = state.session_manager.lock().await;
         sm.get_session_context_data(&session_id, &user_id)
             .ok()
-            .unwrap_or_default()
+            .map_or_else(Default::default, |v| v)
     };
 
     *messages = vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
@@ -326,7 +326,7 @@ pub(super) fn parse_switchers_and_project(
                 .filter_map(|v| v.as_str().map(|s| s.to_string()))
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let project_context = parsed.get("project_context").cloned().or_else(|| {
         parsed.get("mentions").and_then(|value| {
             value.as_array()?.iter().find_map(|mention| {

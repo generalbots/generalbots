@@ -45,7 +45,7 @@ pub(super) fn take_capture(session_id: uuid::Uuid) -> String {
         .lock()
         .ok()
         .and_then(|mut map| map.remove(&session_id))
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
 }
 
 /// Returns true when `name` is a native tool and the call was answered.

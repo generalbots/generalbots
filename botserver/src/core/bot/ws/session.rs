@@ -279,7 +279,7 @@ pub async fn handle_ws(
                         let client_id = parsed_msg
                             .as_ref()
                             .and_then(|v| v.get("client_id").and_then(|c| c.as_str()).map(String::from))
-                            .unwrap_or_default();
+                            .map_or_else(Default::default, |v| v);
                         let user_frame = serde_json::json!({
                             "content": msg_text,
                             "message_type": 1,

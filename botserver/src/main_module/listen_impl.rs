@@ -13,7 +13,7 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
     // In single-user desktop/no_security mode the API must not be reachable
     // from the network. Bind to loopback only and refuse explicit non-loopback
     // host configuration to avoid exposing an unauthenticated surface.
-    let host = std::env::var("BOTSERVER_HOST").unwrap_or_default();
+    let host = std::env::var("BOTSERVER_HOST").unwrap_or(Default::default());
     if no_security && !host.is_empty() {
         let host_trimmed = host.trim();
         let is_loopback_host = matches!(

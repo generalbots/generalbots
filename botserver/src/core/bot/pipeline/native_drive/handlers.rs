@@ -72,7 +72,7 @@ pub(super) async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) 
         Ok(size) => {
             let listing = agent_vm_hook::list_session_folder(user_id, session_id, "data")
                 .await
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             let names: Vec<String> = listing
                 .iter()
                 .map(|(name, size)| format!("{name} ({})", human_size(*size)))
@@ -209,7 +209,7 @@ pub(super) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
                 .filter_map(|v| v.as_str().map(sanitize_name))
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let folder = parsed
         .get("folder")
         .and_then(|v| v.as_str())
@@ -219,7 +219,7 @@ pub(super) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
 
     let files = agent_vm_hook::list_session_folder(user_id, session_id, "output")
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     if files.is_empty() {
         send(
             identity,

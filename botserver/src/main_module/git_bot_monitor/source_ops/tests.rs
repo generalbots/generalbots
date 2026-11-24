@@ -3,11 +3,11 @@ use super::{flatten, tables::split_table_blocks};
 #[test]
 fn flatten_strips_generated_subdirectories() {
     assert_eq!(
-        flatten("tools/classify_media.bas").unwrap_or_default(),
+        flatten("tools/classify_media.bas").unwrap_or(Default::default()),
         "classify_media.bas"
     );
     assert_eq!(
-        flatten("classify_media.bas").unwrap_or_default(),
+        flatten("classify_media.bas").unwrap_or(Default::default()),
         "classify_media.bas"
     );
 }

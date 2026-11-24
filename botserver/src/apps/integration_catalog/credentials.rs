@@ -191,7 +191,7 @@ mod tests {
         for id in [
             "github", "slack", "aws", "stripe", "openai", "zendesk", "telegram", "trello",
         ] {
-            let url = credential_page(id).unwrap_or_default();
+            let url = credential_page(id).map_or_else(Default::default, |v| v);
             assert!(
                 url.starts_with("https://"),
                 "{id} must point at an https credential page"

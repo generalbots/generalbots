@@ -355,7 +355,7 @@ pub async fn my_mentions(
             author_name: r.author_name,
             parent_id: r.parent_id,
             body: r.body,
-            mentions: serde_json::from_str(&r.mentions).unwrap_or_default(),
+            mentions: serde_json::from_str(&r.mentions).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
             resolved: r.resolved,

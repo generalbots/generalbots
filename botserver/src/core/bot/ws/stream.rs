@@ -72,8 +72,8 @@ pub async fn process_llm_response(
         return;
     }
 
-    let env_key = std::env::var("LLM_KEY").unwrap_or_default();
-    let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
+    let env_key = std::env::var("LLM_KEY").unwrap_or(Default::default());
+    let env_model = std::env::var("LLM_MODEL").unwrap_or(Default::default());
     info!(
         "stream: bot_llm_provider.is_some={}, fallback_key_len={}",
         bot_llm_provider.is_some(),
@@ -98,7 +98,7 @@ pub async fn process_llm_response(
             // here means the answer was produced without live sources.
             let citations = {
                 let mut pending = state.pending_citations.lock().await;
-                pending.remove(&session_id.to_string()).unwrap_or_default()
+                pending.remove(&session_id.to_string()).map_or_else(Default::default, |v| v)
             };
 
             let final_resp = frames::final_frame(

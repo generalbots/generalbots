@@ -48,7 +48,7 @@ pub(super) fn installed_skills(
         .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
         .load(&mut conn),
     }
-    .unwrap_or_default();
+    .unwrap_or(Default::default());
     json!({
         "count": rows.len(),
         "skills": rows

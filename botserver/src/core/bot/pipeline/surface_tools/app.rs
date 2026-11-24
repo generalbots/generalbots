@@ -58,7 +58,7 @@ pub(super) async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let csp_value = parsed.get("csp").cloned().unwrap_or(Value::Null);
     let csp = crate::core::bot::sandbox::UiCsp {
         connect_domains: string_domains(csp_value.get("connectDomains")),
@@ -141,5 +141,5 @@ fn string_domains(value: Option<&Value>) -> Vec<String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
 }

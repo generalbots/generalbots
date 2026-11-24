@@ -56,7 +56,7 @@ pub(super) async fn run_terminal_run(identity: &SessionIdentity<'_>, args: &str)
     let thread_id = session_id.to_string();
     let run_id = crate::core::bot::runs::bus::bus()
         .current_run_id(&thread_id)
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     let vm_for_task = vm_name.clone();
     let thread_for_task = thread_id.clone();
     let run_for_task = run_id.clone();

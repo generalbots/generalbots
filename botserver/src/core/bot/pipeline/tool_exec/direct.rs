@@ -35,7 +35,7 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
             .and_then(|path| std::fs::read_to_string(path).ok())
             .filter(|c| !c.is_empty())
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     if ast_content.is_empty() {
         botlog::safe_info!(

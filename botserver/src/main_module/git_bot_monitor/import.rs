@@ -48,7 +48,7 @@ fn list_import_targets(pool: &DbPool) -> Vec<ImportTarget> {
            AND (vp.payload->>'source_imported_at') IS NULL",
     )
     .load::<Row>(&mut conn)
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     .into_iter()
     .map(|row| ImportTarget {
         repo_slug: alm_repo(&row.name),

@@ -49,7 +49,7 @@ pub(super) fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> 
             );
             h
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let org_filter = botsecurity_core::tenant::org_from_claims(&headers);
     let branch_filter = botsecurity_core::tenant::branch_from_claims(&headers);
     // #1386 follow-up — vibe-origin bots (`bots.origin = 'vibe'`, bot-kind
@@ -66,7 +66,7 @@ pub(super) fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> 
         .bind::<diesel::sql_types::Uuid, _>(org_id)
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load(&mut conn)
-        .unwrap_or_default(),
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
         (Some(org_id), None) => {
             // Branch-less tokens see only this org's DEFAULT bots — every
             // other org's bots stay invisible even when 30 rows worldwide
@@ -79,7 +79,7 @@ pub(super) fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> 
             )
             .bind::<diesel::sql_types::Uuid, _>(org_id)
             .load(&mut conn)
-            .unwrap_or_default()
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         }
         (None, _) => diesel::sql_query(
             "SELECT name, description FROM bots \
@@ -87,7 +87,7 @@ pub(super) fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> 
              ORDER BY created_at DESC LIMIT 40",
         )
         .load(&mut conn)
-        .unwrap_or_default(),
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
     };
     rows.into_iter()
         .map(|b| {
@@ -175,7 +175,7 @@ pub(super) fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_jso
             );
             h
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let org_filter = botsecurity_core::tenant::org_from_claims(&headers);
     let branch_filter = botsecurity_core::tenant::branch_from_claims(&headers);
     let nil = Uuid::nil();
@@ -193,7 +193,7 @@ pub(super) fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_jso
     .bind::<diesel::sql_types::Uuid, _>(org_filter.unwrap_or(nil))
     .bind::<diesel::sql_types::Uuid, _>(branch_filter.unwrap_or(nil))
     .load(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     rows.into_iter()
         .map(|a| {
             let slug = a

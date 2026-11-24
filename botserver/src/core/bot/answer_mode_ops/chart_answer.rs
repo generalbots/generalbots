@@ -80,7 +80,7 @@ pub async fn generate_chart_response(
         .map_err(|e| format!("Bot DB connection error: {e}"))?;
     let results = execute_sql_query(&mut bot_conn, &sql)?;
     let results_json = serde_json::to_value(&results).unwrap_or(json!([]));
-    let results_str = serde_json::to_string_pretty(&results_json).unwrap_or_default();
+    let results_str = serde_json::to_string_pretty(&results_json).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let chart_prompt = format!(
         "You are a Chart.js v4 configuration generator.\n\n\

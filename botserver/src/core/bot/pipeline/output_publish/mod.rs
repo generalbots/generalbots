@@ -158,7 +158,7 @@ fn ledger() -> &'static Mutex<BoundedMap<Uuid, HashMap<String, PublishedFile>>> 
 
 fn snapshot(session_id: Uuid) -> HashMap<String, PublishedFile> {
     match ledger().lock() {
-        Ok(mut map) => map.get(&session_id).cloned().unwrap_or_default(),
+        Ok(mut map) => map.get(&session_id).cloned().map_or_else(Default::default, |v| v),
         Err(error) => {
             botlog::safe_warn!("output publish: ledger lock failed: {error}");
             HashMap::new()

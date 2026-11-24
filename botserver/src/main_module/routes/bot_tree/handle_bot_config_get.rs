@@ -141,7 +141,7 @@ pub async fn handle_bot_config_get(
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .load::<CfgRow>(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
     let mut config = serde_json::Map::new();
     for c in cfgs {
@@ -193,7 +193,7 @@ pub async fn handle_bot_config_put(
             .into_response();
     };
 
-    let name = form.get("name").cloned().unwrap_or_default();
+    let name = form.get("name").cloned().map_or_else(Default::default, |v| v);
     let description = form.get("description").cloned();
     let llm_provider = form
         .get("llm_provider")
@@ -264,7 +264,7 @@ pub async fn handle_bot_config_put(
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .bind::<diesel::sql_types::Text, _>(key)
-        .bind::<diesel::sql_types::Text, _>(value.unwrap_or_default())
+        .bind::<diesel::sql_types::Text, _>(value.unwrap_or(Default::default()))
         .execute(&mut conn);
     }
 
@@ -282,7 +282,7 @@ pub async fn handle_bot_config_put(
         if let Err(e) = config_manager.set_config_with_branch(
             &bot_id,
             key,
-            value.as_deref().unwrap_or_default(),
+            value.as_deref().unwrap_or(Default::default()),
             None,
         ) {
             log::error!("platform credential '{key}' persist for bot {bot_id} failed: {e}");
@@ -303,7 +303,7 @@ pub async fn handle_bot_create(
         Err(e) => return e.into_response(),
     };
 
-    let name = form.get("name").cloned().unwrap_or_default();
+    let name = form.get("name").cloned().map_or_else(Default::default, |v| v);
     if name.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,

@@ -350,5 +350,5 @@ fn test_script_contains_basic_keywords() {
 #[test]
 fn test_runner_config_working_dir() {
     let config = BotRunnerConfig::default();
-    assert!(config.working_dir.to_str().unwrap_or_default().contains("bottest"));
+    assert!(config.working_dir.to_str().map_or_else(Default::default, |v| v).contains("bottest"));
 }

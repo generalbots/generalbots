@@ -42,7 +42,7 @@ pub fn format_results_as_html_table(results: &[serde_json::Value]) -> String {
                         serde_json::Value::String(s) => escape_html(s),
                         other => escape_html(&other.to_string()),
                     })
-                    .unwrap_or_default();
+                    .unwrap_or(Default::default());
                 html.push_str(&format!(
                     "<td style=\"padding:8px 12px;border-bottom:1px solid #eee;\">{val}</td>"
                 ));

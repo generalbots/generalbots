@@ -162,7 +162,7 @@ async fn search_docs(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<D
                 continue;
             }
         }
-        let id = meta.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let id = meta.get("id").and_then(|v| v.as_str()).map_or_else(Default::default, |v| v).to_string();
         if id.is_empty() {
             continue;
         }

@@ -6,7 +6,7 @@ pub async fn handle_create_organization(
     axum::extract::Form(form): axum::extract::Form<CreateOrgRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let locale = botcore::i18n::locale_from_headers(&headers);
-    let name = form.name.unwrap_or_default().trim().to_string();
+    let name = form.name.unwrap_or(Default::default()).trim().to_string();
     if name.is_empty() {
         return Err((
             axum::http::StatusCode::BAD_REQUEST,

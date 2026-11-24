@@ -252,8 +252,8 @@ pub async fn handle_unified_login(
         "email": email,
         "exp": chrono::Utc::now().timestamp() + 3600,
     });
-    let header_b64 = base64_url_encode(&serde_json::to_vec(&header).unwrap_or_default());
-    let payload_b64 = base64_url_encode(&serde_json::to_vec(&payload).unwrap_or_default());
+    let header_b64 = base64_url_encode(&serde_json::to_vec(&header).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v));
+    let payload_b64 = base64_url_encode(&serde_json::to_vec(&payload).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v));
     let sig = jwt_sign_inner(&format!("{}.{}", header_b64, payload_b64), jwt_secret.as_bytes())
         .map_err(|e| {
             (

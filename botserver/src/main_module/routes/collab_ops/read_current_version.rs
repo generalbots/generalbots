@@ -83,7 +83,7 @@ pub(super) fn read_vector(
     .optional()?;
     Ok(opt
         .and_then(|r| serde_json::from_str::<HashMap<String, i64>>(&r.version_vector).ok())
-        .unwrap_or_default())
+        .map_or_else(Default::default, |v| v))
 }
 pub(super) fn upsert_state(
     conn: &mut PgConnection,

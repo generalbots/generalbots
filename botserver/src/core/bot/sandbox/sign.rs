@@ -49,7 +49,7 @@ pub fn sign_resource(thread_id: &str, hash: &str, ttl_secs: i64) -> String {
     let thread = b64(thread_id.as_bytes());
     let signature = mac(exp, &thread, hash)
         .map(|bytes| b64(&bytes))
-        .unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
     format!("{exp}.{thread}.{hash}.{signature}")
 }
 

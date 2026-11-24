@@ -225,7 +225,7 @@ pub fn list_accounts(pool: &DbPool, user_id: Uuid) -> Vec<Value> {
         )
         .bind::<DieselUuid, _>(user_id)
         .load::<Row>(&mut conn)
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         for row in loaded {
             rows.push(json!({
                 "provider": row.provider,
@@ -308,7 +308,7 @@ pub fn is_linked(pool: &DbPool, user_id: Uuid, provider: &str) -> bool {
         .bind::<DieselUuid, _>(user_id)
         .bind::<Text, _>(provider)
         .load::<Row>(&mut conn)
-        .unwrap_or_default()
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         .into_iter()
         .next();
         return status_for(row.as_ref().map(|r| json!({ "status": r.status })).as_ref())

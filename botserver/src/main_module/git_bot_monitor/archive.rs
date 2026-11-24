@@ -41,7 +41,7 @@ fn list_archive_targets(pool: &DbPool) -> Vec<ArchiveTarget> {
          WHERE vp.project_type = 'bot' AND vp.source_control = 'git'",
     )
     .load::<Row>(&mut conn)
-    .unwrap_or_default()
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
     .into_iter()
     .map(|row| ArchiveTarget {
         branch_slug: row.branch_slug,

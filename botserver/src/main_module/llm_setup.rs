@@ -17,7 +17,7 @@ pub(crate) fn init_llm_provider(
     };
 
     if let Some(ref cache) = redis_client {
-        let bot_id = Uuid::parse_str(default_bot_id).unwrap_or_default();
+        let bot_id = Uuid::parse_str(default_bot_id).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         let embedding_url = config_manager
             .get_config(&bot_id, "embedding-url", Some(""))
             .unwrap_or_else(|_| "".to_string());

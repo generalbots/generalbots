@@ -98,11 +98,11 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
                 .filter_map(|v| v.as_str().map(sanitize_name))
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
 
     let files = agent_vm_hook::list_session_folder(user_id, session_id, "output")
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let selected: Vec<(String, u64)> = files
         .into_iter()
         .filter(|(name, _)| requested.is_empty() || requested.contains(name))
@@ -151,7 +151,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
         let granted = connection
             .as_ref()
             .and_then(|c| c.scopes.clone())
-            .unwrap_or_default();
+            .map_or_else(Default::default, |v| v);
         (branch_id, connection, granted)
     };
     let Some(connection) = connection.filter(|c| c.status != "disconnected") else {

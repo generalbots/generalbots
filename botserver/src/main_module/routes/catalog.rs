@@ -73,7 +73,7 @@ impl From<CatalogProduct> for CatalogProductResponse {
         let price_f64 = p.price.to_f64().unwrap_or(0.0);
         Self {
             id: p.id,
-            sku: p.sku.unwrap_or_default(),
+            sku: p.sku.unwrap_or(Default::default()),
             name: p.name,
             description: p.description,
             price_cents: (price_f64 * 100.0).round() as i64,
@@ -247,8 +247,8 @@ pub async fn prices_json(
                 item: JsonLdProduct {
                     json_type: "Product".to_string(),
                     name: p.name,
-                    description: p.description.unwrap_or_default(),
-                    sku: p.sku.unwrap_or_default(),
+                    description: p.description.unwrap_or(Default::default()),
+                    sku: p.sku.unwrap_or(Default::default()),
                     offers: JsonLdOffer {
                         json_type: "Offer".to_string(),
                         price: format!("{:.2}", price_usd),

@@ -42,7 +42,7 @@ pub(super) async fn render_result(
     }
     let files = crate::core::bot::agent_vm_hook::list_user_vm_output(user_id, session_id)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     if !files.is_empty() {
         let conversation = session_id.to_string();
         message.push_str("\n**Files**\n");

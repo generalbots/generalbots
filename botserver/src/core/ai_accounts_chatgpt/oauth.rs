@@ -110,7 +110,7 @@ pub(crate) async fn access_token(user_id: Uuid) -> Result<(String, Option<String
         .get_secret(&path)
         .await
         .map_err(|error| format!("could not read the ChatGPT token: {error}"))?;
-    let access = secret.get("access_token").cloned().unwrap_or_default();
+    let access = secret.get("access_token").cloned().map_or_else(Default::default, |v| v);
     let expires_at = secret
         .get("expires_at")
         .and_then(|value| value.parse::<u64>().ok())
@@ -119,7 +119,7 @@ pub(crate) async fn access_token(user_id: Uuid) -> Result<(String, Option<String
     if !access.is_empty() && expires_at > now_secs() + 60 {
         return Ok((access, account));
     }
-    let refresh = secret.get("refresh_token").cloned().unwrap_or_default();
+    let refresh = secret.get("refresh_token").cloned().map_or_else(Default::default, |v| v);
     if refresh.is_empty() {
         return Err("The ChatGPT plan token expired; connect the account again.".to_string());
     }

@@ -45,7 +45,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     let env_path_early = std::path::Path::new("./.env");
     let stack = botcore::shared::utils::get_stack_path();
     let vault_init_path_early = std::path::PathBuf::from(format!("{}/conf/vault/init.json", stack));
-    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or(Default::default());
     let is_remote_vault = !vault_addr.is_empty()
         && !vault_addr.contains("localhost")
         && !vault_addr.contains("127.0.0.1");

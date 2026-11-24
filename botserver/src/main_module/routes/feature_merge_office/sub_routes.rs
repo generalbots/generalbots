@@ -194,6 +194,13 @@ pub(super) async fn merge_office_sub_routes(
                     botdocs::legacy::audit_legacy_namespace(&legacy_state).await;
                 }
             }
+            // #2499 — the in-memory KB index is empty after every restart.
+            // Replay persisted documents into it so chat/search finds them
+            // again without waiting for a re-save. Best effort, never fatal.
+            let reindexed = legacy_state.reindex_persisted_documents().await;
+            if reindexed > 0 {
+                log::info!("botdocs: reindexed {reindexed} persisted documents into KB");
+            }
         });
 
         *sub_router = sub_router.clone().merge(

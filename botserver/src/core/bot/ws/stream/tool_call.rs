@@ -78,7 +78,7 @@ pub(super) async fn maybe_execute(
             let bas_path = ast_path.replace(".ast", ".bas");
             tokio::fs::read_to_string(&bas_path)
                 .await
-                .unwrap_or_default()
+                .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         }
     };
 

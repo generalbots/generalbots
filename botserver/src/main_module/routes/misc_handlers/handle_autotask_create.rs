@@ -8,7 +8,7 @@ pub async fn handle_autotask_create(
     Form(payload): Form<AutotaskRequest>,
 ) -> impl IntoResponse {
     let locale = botcore::i18n::locale_from_headers(&headers);
-    let intent = payload.intent.unwrap_or_default().trim().to_string();
+    let intent = payload.intent.unwrap_or(Default::default()).trim().to_string();
     if intent.is_empty() {
         return Json(serde_json::json!({
             "ok": false,
@@ -156,7 +156,7 @@ pub async fn handle_contacts_search(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     use diesel::prelude::*;
 
-    let q = params.get("q").cloned().unwrap_or_default();
+    let q = params.get("q").cloned().map_or_else(Default::default, |v| v);
     let mut conn = pool_conn(&state)?;
 
     #[cfg(feature = "contacts")]
@@ -299,7 +299,7 @@ pub async fn handle_dns_list(
         "SELECT id, hostname, record_type, target, ttl, status FROM dns_records ORDER BY hostname ASC",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let rows: Vec<DnsRow> = rows
         .into_iter()
         .filter(|r| hostname_visible_in(&r.hostname, &scope))

@@ -10,13 +10,13 @@ pub(super) fn component_plan() -> Vec<Component> {
     // provider: never install the ~1.8 GB local runtime in that case. The old
     // `unwrap_or("local")` treated a missing value as "local", so the Kilo flow
     // still downloaded and started llama.cpp (and failed on slow links).
-    let model_mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
+    let model_mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or(Default::default());
     let remote_model = !std::env::var("GB_WIZARD_LLM_URL")
-        .unwrap_or_default()
+        .unwrap_or(Default::default())
         .trim()
         .is_empty()
         && !std::env::var("GB_WIZARD_LLM_MODEL")
-            .unwrap_or_default()
+            .unwrap_or(Default::default())
             .trim()
             .is_empty();
     let wants_local = if model_mode.trim().is_empty() {
@@ -93,7 +93,7 @@ pub(super) fn component_plan() -> Vec<Component> {
     // GB_WIZARD_WITH_BOTMODELS=0 opts out entirely. Linux x86_64 and Windows
     // x86_64 have published boxes; Linux arm64 and Windows arm64 get an
     // explicit reason instead of a download that cannot succeed.
-    let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
+    let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or(Default::default());
     if with_botmodels.trim() != "0" {
         plan.push(Component {
             id: "botmodels",

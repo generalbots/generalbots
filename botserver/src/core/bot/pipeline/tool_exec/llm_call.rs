@@ -71,7 +71,7 @@ pub async fn run_llm_tool_call(
             Some(serde_json::Value::Object(_)) => tool_call
                 .get("arguments")
                 .map(serde_json::Value::to_string)
-                .unwrap_or_default(),
+                .map_or_else(Default::default, |v| v),
             _ => String::new(),
         };
         if raw_tool_name.is_empty() {
@@ -222,7 +222,7 @@ pub async fn run_llm_tool_call(
                     let bas_path = path.with_extension("bas");
                     tokio::fs::read_to_string(&bas_path)
                         .await
-                        .unwrap_or_default()
+                        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
                 }
             },
             None => String::new(),

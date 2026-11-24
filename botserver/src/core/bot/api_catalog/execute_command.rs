@@ -109,7 +109,7 @@ pub async fn execute_command(
             }))
         }
         "apps.find" => {
-            Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) }))
+            Ok(json!({ "apps": find_apps(str_of("query").map_or_else(Default::default, |v| v).as_str()) }))
         }
         // #2063 — the prompt advertises `name: description`; the body is on demand.
         #[cfg(feature = "sources")]
@@ -118,10 +118,10 @@ pub async fn execute_command(
         "skills.find" => super::skills::find_skills(
             state,
             bot_uuid,
-            str_of("query").unwrap_or_default().as_str(),
+            str_of("query").map_or_else(Default::default, |v| v).as_str(),
         ),
         "api.find" => Ok(
-            json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) }),
+            json!({ "matches": find_api_entries(state, user_id, str_of("query").map_or_else(Default::default, |v| v).as_str()) }),
         ),
         // Without the `sources` build the source-backed arms above are not
         // compiled, so the installed-skill listing is the reachable one.
@@ -163,9 +163,9 @@ pub async fn execute_command(
             let entries: Vec<(&str, String)> = vec![
                 ("Server", server),
                 ("Name", database),
-                ("Username", str_of("username").unwrap_or_default()),
-                ("Password", str_of("password").unwrap_or_default()),
-                ("Port", str_of("port").unwrap_or_default()),
+                ("Username", str_of("username").map_or_else(Default::default, |v| v)),
+                ("Password", str_of("password").map_or_else(Default::default, |v| v)),
+                ("Port", str_of("port").map_or_else(Default::default, |v| v)),
                 (
                     "Driver",
                     str_of("driver").unwrap_or_else(|| "postgres".to_string()),
@@ -200,9 +200,9 @@ pub async fn execute_command(
             // Without step 2 the fallback silently landed the edit in whichever
             // project was created last (e.g. an accidental "deploy-the-selected"
             // auto-project) instead of the project the user typed.
-            let intent_text = str_of("intent").unwrap_or_default();
+            let intent_text = str_of("intent").map_or_else(Default::default, |v| v);
             let (project_id, project_name) = match str_of("project_id") {
-                Some(pid) => (pid, str_of("project_name").unwrap_or_default()),
+                Some(pid) => (pid, str_of("project_name").map_or_else(Default::default, |v| v)),
                 None => match mentioned_project(state, &bot_uuid, &intent_text)? {
                     Some((pid, name)) => (pid, name),
                     None => {
@@ -278,7 +278,7 @@ pub async fn execute_command(
         }
         "crm.people.list" | "people.list" => list_people(state, &bot_uuid, None).await,
         "crm.people.search" | "people.search" => {
-            let query = str_of("query").unwrap_or_default();
+            let query = str_of("query").map_or_else(Default::default, |v| v);
             list_people(state, &bot_uuid, Some(&query)).await
         }
         // #1441 P3 — CRM pipeline/forecast/report from chat, no suite needed.
@@ -329,7 +329,7 @@ pub async fn execute_command(
             .await
         }
         "drive.archive" => {
-            let source = str_of("source").unwrap_or_default();
+            let source = str_of("source").map_or_else(Default::default, |v| v);
             let dest = str_of("destination")
                 .ok_or_else(|| "params.destination is required".to_string())?;
             archive_drive_files(state, &bot_uuid, &source, &dest).await
@@ -344,7 +344,7 @@ pub async fn execute_command(
         | "tasks.autotask.run"
         | "automations.create"
         | "automations.run" => {
-            let intent = str_of("intent").unwrap_or_default();
+            let intent = str_of("intent").map_or_else(Default::default, |v| v);
             if intent.trim().is_empty() {
                 return Err(
                     "the 'intent' parameter is required (what should be automated)".to_string(),

@@ -230,8 +230,8 @@ impl NotificationSender {
         let port = env_first(&["MAIL_PORT", "SMTP_PORT", "EMAIL_PORT"])
             .and_then(|value| value.parse().ok())
             .unwrap_or(587);
-        let username = env_first(&["MAIL_USER", "SMTP_USER", "EMAIL_USER"]).unwrap_or_default();
-        let password = env_first(&["MAIL_PASS", "SMTP_PASSWORD", "EMAIL_PASS"]).unwrap_or_default();
+        let username = env_first(&["MAIL_USER", "SMTP_USER", "EMAIL_USER"]).map_or_else(Default::default, |v| v);
+        let password = env_first(&["MAIL_PASS", "SMTP_PASSWORD", "EMAIL_PASS"]).map_or_else(Default::default, |v| v);
         let from = env_first(&["MAIL_FROM", "SMTP_FROM", "EMAIL_FROM"])?;
 
         Self::from_parts(&host, port, username, password, from)

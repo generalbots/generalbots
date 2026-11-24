@@ -93,10 +93,10 @@ pub(crate) fn bot_llm_credentials(
     let cfg = ConfigManager::new(conn.clone());
     let mut key = cfg
         .get_config(&bot_id, "llm-key", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     let mut model = cfg
         .get_config(&bot_id, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     if let Ok(v) = std::env::var("LLM_KEY") {
         if !v.is_empty() {
             key = v;

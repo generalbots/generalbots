@@ -23,7 +23,7 @@ pub(crate) async fn crm_create_lead_command(
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
     };
-    let title = str_p("title").unwrap_or_default();
+    let title = str_p("title").unwrap_or(Default::default());
     let email = str_p("email").filter(|e| !e.trim().is_empty());
     let first = str_p("first_name");
     let last = str_p("last_name");

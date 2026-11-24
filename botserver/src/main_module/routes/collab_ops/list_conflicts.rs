@@ -155,7 +155,7 @@ pub async fn resolve_conflict(
             read_current_version(&mut conn, &op.resource_type, &op.resource_id).unwrap_or(0);
         let new_version = current.max(op.lamport_ts);
         let mut vector =
-            read_vector(&mut conn, &op.resource_type, &op.resource_id).unwrap_or_default();
+            read_vector(&mut conn, &op.resource_type, &op.resource_id).unwrap_or(Default::default());
         vector.insert(op.actor_id.clone(), op.lamport_ts);
         let vector_json = serde_json::to_string(&vector).unwrap_or_else(|_| "{}".to_string());
         if let Err(e) = upsert_state(
@@ -261,7 +261,7 @@ pub async fn ops_state(
     let current =
         read_current_version(&mut conn, &params.resource_type, &params.resource_id).unwrap_or(0);
     let vector =
-        read_vector(&mut conn, &params.resource_type, &params.resource_id).unwrap_or_default();
+        read_vector(&mut conn, &params.resource_type, &params.resource_id).unwrap_or(Default::default());
 
     Ok(Json(serde_json::json!({
         "resource_type": params.resource_type,

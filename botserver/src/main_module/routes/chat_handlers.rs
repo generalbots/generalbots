@@ -53,8 +53,8 @@ pub async fn handle_chat_message(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ChatMessageRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let message = req.message.unwrap_or_default();
-    let context = req.context.unwrap_or_default();
+    let message = req.message.unwrap_or(Default::default());
+    let context = req.context.unwrap_or(Default::default());
 
     let trimmed = message.trim().to_string();
     if trimmed.is_empty() {
@@ -117,7 +117,7 @@ pub async fn handle_chat_message_htmx(
     let message = payload
         .content
         .or(payload.message)
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
         .trim()
         .to_string();
 
@@ -163,7 +163,7 @@ pub async fn handle_chat_message_htmx(
 pub async fn handle_chat_context(
     Form(payload): Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let context_id = payload.get("context_id").cloned().unwrap_or_default();
+    let context_id = payload.get("context_id").cloned().map_or_else(Default::default, |v| v);
     Html(format!(
         "<span class=\"context-active\" data-context-id=\"{}\">Context set</span>",
         html_escape(&context_id)
@@ -193,7 +193,7 @@ pub async fn handle_sessions_current_message(
     let message = payload
         .content
         .or(payload.message)
-        .unwrap_or_default()
+        .map_or_else(Default::default, |v| v)
         .trim()
         .to_string();
 
@@ -265,7 +265,7 @@ pub async fn handle_chat_models(
     use botcore::shared::schema::{bots, user_organizations};
     use diesel::prelude::*;
 
-    let requested = query.bot.unwrap_or_default().trim().to_string();
+    let requested = query.bot.unwrap_or(Default::default()).trim().to_string();
 
     let bot_uuid = if requested.is_empty() {
         // No selector: the global default bot, which carries no org boundary.
@@ -313,7 +313,7 @@ pub async fn handle_chat_models(
                 .filter(user_organizations::user_id.eq(u.user_id))
                 .select(user_organizations::org_id)
                 .load::<Uuid>(&mut conn)
-                .unwrap_or_default(),
+                .unwrap_or(Default::default()),
             _ => Vec::new(),
         };
 
@@ -326,9 +326,9 @@ pub async fn handle_chat_models(
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
     let mut default_model = cfg
         .get_config(&bot_uuid, "llm-model", Some(""))
-        .unwrap_or_default();
+        .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     if default_model.is_empty() {
-        default_model = std::env::var("LLM_MODEL").unwrap_or_default();
+        default_model = std::env::var("LLM_MODEL").unwrap_or(Default::default());
     }
 
     // The endpoint the turn will use: the environment overrides the bot's
@@ -338,7 +338,7 @@ pub async fn handle_chat_models(
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| {
             cfg.get_config(&bot_uuid, "llm-url", Some(""))
-                .unwrap_or_default()
+                .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v)
         });
     let destination = super::chat_destination::destination_json(&endpoint);
 
@@ -346,7 +346,7 @@ pub async fn handle_chat_models(
         let key = format!("llm-model-{id}");
         let tier_model = cfg
             .get_config(&bot_uuid, &key, Some(""))
-            .unwrap_or_default();
+            .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
         let inherits_default = tier_model.trim().is_empty();
         let model = if inherits_default {
             default_model.clone()

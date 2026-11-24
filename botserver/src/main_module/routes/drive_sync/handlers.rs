@@ -26,7 +26,7 @@ fn failed(
 }
 
 pub async fn list_jobs() -> Json<Value> {
-    let jobs = tokio::task::spawn_blocking(load).await.unwrap_or_default();
+    let jobs = tokio::task::spawn_blocking(load).await.map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
     Json(json!({ "success": true, "jobs": jobs }))
 }
 

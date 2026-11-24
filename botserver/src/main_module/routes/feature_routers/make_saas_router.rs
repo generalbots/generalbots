@@ -24,7 +24,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     // Resolve the real MinIO client: bare `mc` may be GNU Midnight Commander,
     // whose invocation silently broke bucket provisioning at signup (#1371).
     let mc_path = {
-        let configured = std::env::var("MC_PATH").unwrap_or_default();
+        let configured = std::env::var("MC_PATH").unwrap_or(Default::default());
         let from_config = botcloud::integration::resolve_mc_binary(&configured);
         // resolve_mc_binary falls back to `configured` when nothing exists on
         // disk; keep /tmp/mc as the last-resort legacy default in that case.
@@ -109,7 +109,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                         let configured_token = j("service_token");
                         let api_url = j("base_url");
                         let service_token = resolve_directory_service_token(
-                            api_url.as_deref().unwrap_or_default(),
+                            api_url.as_deref().unwrap_or(Default::default()),
                             configured_token.clone(),
                         );
                         if service_token != configured_token {
@@ -127,7 +127,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                             }
                         }
                         (
-                            j("saas_base_url").unwrap_or_default(),
+                            j("saas_base_url").unwrap_or(Default::default()),
                             saas_jwt_secret.clone(),
                             j("bot_templates_dir")
                                 .unwrap_or_else(|| "work/templates/bots".to_string()),

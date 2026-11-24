@@ -40,7 +40,7 @@ pub(in crate::core::bot::api_catalog) async fn list_products(
         .map(|r| {
             json!({
                 "product_id": r.product_id,
-                "sku": r.sku.unwrap_or_default(),
+                "sku": r.sku.unwrap_or(Default::default()),
                 "name": r.name,
                 "price": r.price.to_string(),
                 "product_type": r.product_type,

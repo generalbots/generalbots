@@ -41,11 +41,11 @@ pub fn desktop_local_owner_id() -> String {
     let install = std::env::current_exe()
         .ok()
         .and_then(|path| path.parent().map(|dir| dir.display().to_string()))
-        .unwrap_or_default();
-    let stack = std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default();
+        .map_or_else(Default::default, |v| v);
+    let stack = std::env::var("BOTSERVER_STACK_PATH").unwrap_or(Default::default());
     let os_user = std::env::var("USER")
         .or_else(|_| std::env::var("USERNAME"))
-        .unwrap_or_default();
+        .unwrap_or(Default::default());
     let seed = format!("generalbots-desktop-local|{install}|{stack}|{os_user}");
     Uuid::new_v5(&Uuid::NAMESPACE_OID, seed.as_bytes()).to_string()
 }
