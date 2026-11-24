@@ -15,7 +15,7 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 1731
+unwrap_or_default = 1727
 discarded_result = 1327
 
 [rule_notes]
