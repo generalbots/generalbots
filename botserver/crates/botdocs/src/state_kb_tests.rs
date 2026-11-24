@@ -89,6 +89,18 @@
     }
 
     #[test]
+    fn clause_only_paragraph_stays_searchable() {
+        let state = state_with_bucket(TENANT);
+        let owner = UserContext::authenticated(uuid(OWNER), None, Some(uuid(TENANT)));
+        let html = "<h1>Contract</h1><h2>Termination</h2>\
+                    <p>Clause 7.3: the notice period is ninety days and ZORBLAXKEY applies.</p>";
+        state.project_to_kb(OWNER, "doc-clause-only", "Chat KB UAT", html);
+        let hits = state.search_text("ZORBLAXKEY", &owner, 5);
+        assert_eq!(hits.len(), 1, "clause-like paragraph must remain searchable");
+        assert_eq!(state.citation_meta(&hits[0].id).document_id, "doc-clause-only");
+    }
+
+    #[test]
     fn projected_hits_expose_document_identity_from_citation() {
         let state = state_with_bucket(TENANT);
         state.project_to_kb(OWNER, "doc-meta", "Employment", HTML);

@@ -2,7 +2,8 @@ use std::sync::{Arc, OnceLock};
 
 use botcore::kb::permissions::UserContext;
 use botcore::kb::structured::{
-    InMemoryKbIndex, SearchHit, UpsertPoint, VectorSlot, DEFAULT_VECTOR_DIMENSION,
+    stable_id, InMemoryKbIndex, SearchHit, SourceRef, StructuredChunk, UpsertPoint, VectorSlot,
+    DEFAULT_VECTOR_DIMENSION,
 };
 use botcore::shared::analytics::MetricsCollector;
 use botlib::traits::DriveRepository;
@@ -347,9 +348,26 @@ impl DocState {
             tenant_id: &tenant,
             owner_id: user_id,
         };
-        let points = crate::handlers_api::kb_index::build_upsert_points(&input);
+        let mut points = crate::handlers_api::kb_index::build_upsert_points(&input);
         if points.is_empty() {
-            return;
+            // A single "Clause 7.3: ..." paragraph is consumed as a heading by
+            // the chunker; keep such non-empty documents searchable (#2499).
+            let d = crate::handlers_api::kb_index::build_index_document(&input);
+            if !d.text.trim().is_empty() {
+                let id = stable_id(&[&d.tenant_id, &d.document_id, &d.version, "all", &d.text]);
+                let chunk = StructuredChunk {
+                    id,
+                    document_id: d.document_id,
+                    file: d.file,
+                    version: d.version,
+                    tenant_id: d.tenant_id,
+                    heading_path: Vec::new(),
+                    source: SourceRef::page(1),
+                    content: d.text,
+                    acl: d.acl,
+                };
+                points.push(chunk.to_upsert_point(DEFAULT_VECTOR_DIMENSION));
+            }
         }
         if let Err(e) = (self.kb_indexer)(points) {
             log::warn!("botdocs: KB index projection for document {doc_id} failed: {e}");
