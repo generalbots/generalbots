@@ -157,7 +157,7 @@ test("RUNTIME #2485: tab activation swaps sections and renders pages/results", f
   NS.navSetQuery("<needle>");
   assertEqual(tabs[2].classList.contains("is-active"), true, "navSetQuery activates results");
   assertEqual(sections[2].querySelectorAll("[data-nav-jump]").length, 2, "results rows rendered");
-  assert(sections[2].innerHTML.indexOf("comments: second hit") >= 0, "scope label shown for comments");
+  assert(sections[2].innerHTML.indexOf("[comments] second hit") >= 0, "scope label shown for comments");
 });
 
 test("RUNTIME #2485: heading rows carry indentation, stable targets and click-to-jump", function () {

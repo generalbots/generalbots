@@ -308,7 +308,7 @@ test("RUNTIME #2426: renderNumbering writes deterministic labels and spans", fun
   assert(span.getAttribute("contenteditable") === "false", "label span must be non-editable");
 });
 
-test("RUNTIME #2426: renderNumbering renumbers in place after an insert", function () {
+test("[UAT:DOC-03] RUNTIME #2426: renderNumbering renumbers in place after an insert", function () {
   var f = loadStructure();
   var root = f.doc.createElement("article");
   var intro = heading(f.doc, "h1", "Introduction", "sec-intro");
