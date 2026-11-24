@@ -10,7 +10,7 @@
     "stylesheet": "render-blocking <link rel=stylesheet> tags"
   },
   "note": "Shrink-only ceilings for the six debt metrics. Lower is always accepted; raising one fails the guard. defer_async is informational adoption, not gated.",
-  "relock_note": "Relocked 2026-11-24 by the driver: prior ceilings were stale vs HEAD after a batch of legitimately merged UI/office slices (KB citations, perf marks, export degradation cue, keyboard shortcuts, office docs theme). The guard was RED at HEAD (11 grown metrics, all from shipped files, none from accidental bloat). This relock is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495.",
+  "relock_note": "Relocked 2026-11-24 by the driver after an upstream merge added the assistant-parity app modules, OS settings partials and related suite JS: 7 gated metrics grew (chat.js_bytes +141029, chat.css_bytes +29079, desktop.js_bytes +735, all_pages.js_bytes +1247, chat.script_src +6, chat.stylesheet +1, chat.blocking_script_src +6). All increases come from legitimately merged, shipped suite files; no accidental bloat. This is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495.",
   "stated_budget": {
     "compressed_css_kb": 120,
     "compressed_js_kb": 350,
