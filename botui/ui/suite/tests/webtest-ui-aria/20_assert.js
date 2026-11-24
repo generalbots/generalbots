@@ -15,30 +15,47 @@
 var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
+/*
+ * Relocked 2026-11-24 (issue #2454 offline slice). The 2026-11-22
+ * characterization predates legitimate production growth; every drifted value
+ * below was re-measured from the shipped tree (two identical runs), not accepted
+ * silently:
+ *   +1 HTML / +3 JS (+4 files): Protection tab, docs dark-skin and sheet/docs VM
+ *     fixes plus security-hardening modules landed after the prior lock.
+ *   +3 aria-live mentions/declarations (+3 polite), +3 role=status, +1 file:
+ *     new status/announcement regions in the events/approvals/protection code.
+ *   +10 data-i18n attrs / +1 HTML: localized Protection tab partial.
+ *   -1 gbT call: e216103e1 replaced the `docs-vm-open-failed` gbT error branch
+ *     with a Drive-copy recovery call — not a hardcoded-string regression.
+ *   +20 dynamic writes (all in files without a local region), +2 such files:
+ *     new production JS, not removed announcements.
+ * The "did not decrease" invariant still holds (665 -> 668 declarations). No
+ * a11y fixture was dropped; the four documented gaps stay explicitly reported.
+ */
 var EXPECTED = {
-  filesScanned: 1566,
-  htmlFiles: 214,
-  jsFiles: 1352,
+  filesScanned: 1570,
+  htmlFiles: 215,
+  jsFiles: 1355,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 710,
-  ariaLiveFiles: 243,
-  ariaLiveDeclarations: 665,
-  livePolite: 595,
+  ariaLiveMentions: 713,
+  ariaLiveFiles: 244,
+  ariaLiveDeclarations: 668,
+  livePolite: 598,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 532,
+  roleStatus: 535,
   roleAlert: 106,
   roleLog: 12,
-  roleStatusAlertFiles: 244,
-  dataI18nAttrs: 5848,
-  htmlWithI18n: 203,
-  gbTCalls: 379, // +10: #2511 localized the translate modal's 10 raw labels via gbT
+  roleStatusAlertFiles: 245,
+  dataI18nAttrs: 5858,
+  htmlWithI18n: 204,
+  gbTCalls: 378, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 123,
-  dynamicWrites: 4238,
+  dynamicWrites: 4258,
   writesInRegionFiles: 1211,
-  writesOutsideRegionFiles: 3027,
-  filesWithWritesNoRegion: 607,
+  writesOutsideRegionFiles: 3047,
+  filesWithWritesNoRegion: 609,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
