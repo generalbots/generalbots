@@ -208,6 +208,6 @@ window.GBAssistantLocales["en"] = {
     "blocks.unit-sources":     "sources",
     "settings.preview.windowed": "Windowed suite",
     "settings.preview.windowed-title": "Windowed suite (Preview)",
-    "settings.preview.windowed-desc": "Open the classic suite window manager with Chat in a window. The assistant stays your default.",
+    "settings.preview.windowed-desc": "Open the classic suite window manager with Chat in a window and every app available. The assistant stays your default.",
     "settings.preview.windowed-open": "Open windowed suite"
 };

@@ -817,6 +817,17 @@ lives in `localStorage` under `gb-text-size` and is the same key the assistant
 shell uses, so it carries across both shells; `Ctrl+=`, `Ctrl+-` and `Ctrl+0`
 also work.
 
+**Two shells, one chat.** The government desktop profile
+(`botserver/.product.gbgov`) selects `shell=assistant`, a chat-first page;
+other profiles use the windowed desktop shell. Both remain selectable: the
+suite Settings action sets `gb-shell-override=assistant`, while the assistant
+Settings action sets it back to `desktop` and opens
+`/suite/desktop.html?app=chat&shell=desktop&preview=all`. The `preview=all`
+parameter turns Preview mode on and bypasses that profile's `hidden_apps`
+list for the windowed session, so every app is available in its launchers.
+Chat keeps the suite window chrome; the assistant look is carried to every app
+by `css/assistant-skin.css` and to chat by `chat/chat-assistant-look.css`.
+
 ---
 
 ## Part XV: Keyboard Shortcuts Reference

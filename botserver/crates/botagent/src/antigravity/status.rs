@@ -57,7 +57,9 @@ pub fn extract_auth_code(log: &str) -> Option<String> {
     let re = Regex::new(r"(?i)(?:code|enter)[:\s]+([A-Za-z0-9_-]{6,})").ok()?;
     if let Some(cap) = re.captures(log) {
         let code = cap.get(1)?.as_str().to_string();
-        if code.len() >= 6 {
+        // A real code carries digits; this also skips menu words such as
+        // "enter Select" in the login-method menu.
+        if code.len() >= 6 && code.chars().any(|c| c.is_ascii_digit()) {
             return Some(code);
         }
     }

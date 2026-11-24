@@ -19,9 +19,14 @@
     }
 
     function openWindowedSuite() {
-        try { localStorage.setItem("gb-shell-override", "desktop"); }
-        catch (e) { /* storage disabled: the URL parameter still applies */ }
-        window.location.replace("/suite/desktop.html?app=chat&shell=desktop");
+        try {
+            localStorage.setItem("gb-shell-override", "desktop");
+            // The windowed suite is a full preview: every app, including the
+            // ones this edition hides, must be reachable from its launchers.
+            localStorage.setItem("gb-preview-mode", "1");
+        }
+        catch (e) { /* storage disabled: the URL parameters still apply */ }
+        window.location.replace("/suite/desktop.html?app=chat&shell=desktop&preview=all");
     }
 
     A.registerSettingsSection({
