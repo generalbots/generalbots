@@ -89,6 +89,28 @@
     }
 
     #[test]
+    fn projected_hits_expose_document_identity_from_citation() {
+        let state = state_with_bucket(TENANT);
+        state.project_to_kb(OWNER, "doc-meta", "Employment", HTML);
+
+        let owner = UserContext::authenticated(uuid(OWNER), None, Some(uuid(TENANT)));
+        let hits = state.search_text("ZANZIBARCLAUSE notice", &owner, 5);
+        assert_eq!(hits.len(), 1, "saved clause must be searchable");
+
+        // The projection's Citation carries document_id/file/version into the
+        // payload; the side map must surface them without exposing content.
+        let meta = state.citation_meta(&hits[0].id);
+        assert_eq!(meta.document_id, "doc-meta");
+        assert_eq!(meta.file, "doc-meta.html");
+        assert_eq!(meta.version, "1");
+        let debug = format!("{meta:?}");
+        assert!(
+            !debug.contains("ninety days"),
+            "citation metadata leaked content: {debug}"
+        );
+    }
+
+    #[test]
     fn deleted_document_is_removed_from_index() {
         let state = state_with_bucket(TENANT);
         let owner = UserContext::authenticated(uuid(OWNER), None, Some(uuid(TENANT)));
