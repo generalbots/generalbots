@@ -79,7 +79,7 @@ fn demo_dead_letter_is_seeded_and_privacy_safe() {
         let mut keys: Vec<&str> = value
             .as_object()
             .map(|map| map.keys().map(String::as_str).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         keys.sort_unstable();
         assert_eq!(
             keys,
@@ -95,7 +95,10 @@ fn demo_dead_letter_is_seeded_and_privacy_safe() {
             ],
             "no body/payload/content field exists on a dead-letter view"
         );
-        let text = serde_json::to_string(letter).unwrap_or_default();
+        let text = serde_json::to_string(letter).unwrap_or_else(|e| {
+            eprintln!("dead letter serialization failed: {e}");
+            String::new()
+        });
         assert!(
             !text.contains("Quarterly report"),
             "event metadata must not leak through the DLQ view"
@@ -190,7 +193,10 @@ fn a_5xx_publish_dead_letters_then_replay_delivers_once_and_dedups() {
             .as_deref()
             .map_or(false, |error| error.contains("5xx")));
     }
-    let dlq_text = serde_json::to_string(&runtime.dead_letters()).unwrap_or_default();
+    let dlq_text = serde_json::to_string(&runtime.dead_letters()).unwrap_or_else(|e| {
+        eprintln!("DLQ serialization failed: {e}");
+        String::new()
+    });
     assert!(
         !dlq_text.contains("Secret body") && !dlq_text.contains("Secret title"),
         "the admin DLQ surface never exposes document content"
@@ -280,7 +286,10 @@ fn native_stream_is_push_only_and_private() {
         fresh[0].payload.get("content").is_none(),
         "content is excluded from the native payload"
     );
-    let text = serde_json::to_string(&fresh[0]).unwrap_or_default();
+    let text = serde_json::to_string(&fresh[0]).unwrap_or_else(|e| {
+        eprintln!("stream envelope serialization failed: {e}");
+        String::new()
+    });
     assert!(!text.contains("Secret body") && !text.contains("Secret title"));
 
     let after = runtime.stream().since(0);

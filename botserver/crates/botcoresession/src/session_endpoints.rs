@@ -16,8 +16,10 @@ pub struct SessionState {
 
 pub async fn create_session(Extension(state): Extension<Arc<SessionState>>) -> impl IntoResponse {
     let temp_session_id = Uuid::new_v4();
-    let user_id =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_else(|e| {
+        log::warn!("Failed to parse placeholder user UUID: {e}");
+        Uuid::nil()
+    });
     let bot_id = Uuid::nil();
 
     let mut sm = SessionManager::new(
@@ -49,8 +51,10 @@ pub async fn create_session(Extension(state): Extension<Arc<SessionState>>) -> i
 }
 
 pub async fn get_sessions(Extension(state): Extension<Arc<SessionState>>) -> impl IntoResponse {
-    let user_id =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_else(|e| {
+        log::warn!("Failed to parse placeholder user UUID: {e}");
+        Uuid::nil()
+    });
 
     let mut sm = SessionManager::new(
         state.conn.clone(),
@@ -105,8 +109,10 @@ pub async fn get_session_history(
     Extension(state): Extension<Arc<SessionState>>,
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
-    let user_id =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_else(|e| {
+        log::warn!("Failed to parse placeholder user UUID: {e}");
+        Uuid::nil()
+    });
 
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {

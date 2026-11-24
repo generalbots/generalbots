@@ -101,7 +101,10 @@ impl M365Request {
     pub fn to_json_string(&self) -> String {
         serde_json::to_value(self)
             .map(|value| value.to_string())
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("failed to serialize intent to JSON: {e}");
+                String::new()
+            })
     }
 }
 

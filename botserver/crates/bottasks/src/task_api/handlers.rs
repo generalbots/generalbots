@@ -86,7 +86,7 @@ pub async fn handle_create_task(
     let branch_id = resolve_branch(&state, &headers);
 
     let bot_id = match (state.get_config)("default_bot_id") {
-        Ok(id) => id.parse::<Uuid>().unwrap_or_default(),
+        Ok(id) => id.parse::<Uuid>().unwrap_or_else(|_| Uuid::nil()),
         Err(_) => Uuid::nil(),
     };
 

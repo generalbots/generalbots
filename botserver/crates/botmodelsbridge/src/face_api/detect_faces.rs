@@ -119,7 +119,10 @@ impl FaceApiService {
         let processing_time = start.elapsed().as_millis() as u64;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read face API error body: {e}");
+                String::new()
+            });
             return Err(FaceApiError::ApiError(error_text));
         }
 

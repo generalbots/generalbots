@@ -108,7 +108,7 @@ pub fn parse_extractions(raw: &str) -> Vec<ExtractedMemory> {
             .get("memories")
             .and_then(|v| v.as_array())
             .map(|items| finalize(items.clone()))
-            .unwrap_or_default(),
+            .unwrap_or_else(Vec::new),
         Err(_) => Vec::new(),
     }
 }

@@ -220,7 +220,9 @@ impl WhiteboardExportService {
             encoder.set_depth(png::BitDepth::Eight);
 
             if let Ok(mut writer) = encoder.write_header() {
-                let _ = writer.write_image_data(&pixels);
+                if let Err(e) = writer.write_image_data(&pixels) {
+                    log::warn!("Whiteboard PNG export: failed to write image data: {e}");
+                }
             }
         }
 

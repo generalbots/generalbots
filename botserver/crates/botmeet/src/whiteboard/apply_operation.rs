@@ -213,7 +213,9 @@ impl WhiteboardState {
         if let Some(&last_idx) = user_entries.last() {
             let entry = self.undo_stack.remove(last_idx);
             let inverse = entry.inverse_operation.clone();
-            let _ = self.apply_operation_without_history(inverse.clone());
+            if let Err(e) = self.apply_operation_without_history(inverse.clone()) {
+                log::warn!("Whiteboard undo failed for user {user_id}: {e}");
+            }
             self.redo_stack.push(entry);
             Some(inverse)
         } else {
@@ -233,7 +235,9 @@ impl WhiteboardState {
         if let Some(&last_idx) = user_entries.last() {
             let entry = self.redo_stack.remove(last_idx);
             let operation = entry.operation.clone();
-            let _ = self.apply_operation_without_history(operation.clone());
+            if let Err(e) = self.apply_operation_without_history(operation.clone()) {
+                log::warn!("Whiteboard redo failed for user {user_id}: {e}");
+            }
             self.undo_stack.push(entry);
             Some(operation)
         } else {

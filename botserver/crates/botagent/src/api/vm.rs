@@ -88,7 +88,10 @@ pub async fn vm_exec(
 
     let files = vm::list_conversation_output(&state, &session.vm_name, &body.conversation_id)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::warn!("list_conversation_output failed: {e:?}");
+            Vec::new()
+        });
     let attachments: Vec<serde_json::Value> = files
         .iter()
         .map(|name| {

@@ -57,7 +57,7 @@ pub(crate) async fn create_element(
         .flatten();
 
     let z_index = req.z_index.unwrap_or_else(|| max_z.unwrap_or(0) + 1);
-    let properties = req.properties.unwrap_or_default();
+    let properties = req.properties.unwrap_or_else(|| ElementProperties::default());
     let properties_json =
         serde_json::to_value(&properties).unwrap_or_else(|_| serde_json::json!({}));
 

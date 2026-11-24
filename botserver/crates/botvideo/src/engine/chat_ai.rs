@@ -126,7 +126,7 @@ impl VideoEngine {
         let clips = self.get_clips(project_id).await?;
         let clip = clips.iter().find(|c| c.id == clip_id).ok_or("Clip not found")?;
 
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -139,7 +139,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("Background removal failed: {error}").into());
         }
 
@@ -159,7 +159,7 @@ impl VideoEngine {
         let clips = self.get_clips(project_id).await?;
         let clip = clips.iter().find(|c| c.id == req.clip_id).ok_or("Clip not found")?;
 
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -175,7 +175,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("Enhancement failed: {error}").into());
         }
 
@@ -186,7 +186,7 @@ impl VideoEngine {
             enhancements_applied: result["enhancements"]
                 .as_array()
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
         })
     }
 
@@ -199,7 +199,7 @@ impl VideoEngine {
         let tracks = self.get_audio_tracks(project_id).await?;
         let track = tracks.iter().find(|t| t.id == audio_track_id).ok_or("Audio track not found")?;
 
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -212,7 +212,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("Beat detection failed: {error}").into());
         }
 
@@ -244,7 +244,7 @@ impl VideoEngine {
         let tracks = self.get_audio_tracks(project_id).await?;
         let track = tracks.iter().find(|t| t.id == audio_track_id).ok_or("Audio track not found")?;
 
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -257,7 +257,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("Waveform generation failed: {error}").into());
         }
 
@@ -267,7 +267,7 @@ impl VideoEngine {
             samples: result["samples"]
                 .as_array()
                 .map(|a| a.iter().filter_map(|v| v.as_f64().map(|f| f as f32)).collect())
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
             duration_ms: result["duration_ms"].as_i64().unwrap_or(0),
             sample_rate: result["sample_rate"].as_i64().unwrap_or(10) as i32,
         })

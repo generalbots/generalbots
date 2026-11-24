@@ -21,7 +21,7 @@ impl std::fmt::Display for PythonBridgeError {
 impl std::error::Error for PythonBridgeError {}
 pub async fn create_python_bridge(model: Option<PythonModel>) -> Result<PythonFaceBridge, PythonBridgeError> {
     let config = PythonBridgeConfig {
-        model: model.unwrap_or_default(),
+        model: model.unwrap_or_else(PythonModel::default),
         ..Default::default()
     };
 

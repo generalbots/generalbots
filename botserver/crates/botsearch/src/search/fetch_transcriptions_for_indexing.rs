@@ -33,7 +33,7 @@ impl SearchService {
         let rows: Vec<TranscriptionRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -90,7 +90,7 @@ impl SearchService {
         let rows: Vec<ChatRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -156,7 +156,7 @@ impl SearchService {
         let rows: Vec<ContactRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -225,7 +225,7 @@ impl SearchService {
         let rows: Vec<NoteRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()

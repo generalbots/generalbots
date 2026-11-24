@@ -62,7 +62,9 @@ impl KbIndexer {
                     );
                     let delete_url =
                         format!("{}/collections/{}", self.qdrant_config.url, collection_name);
-                    let _ = self.http_client.delete(&delete_url).send().await;
+                    if let Err(e) = self.http_client.delete(&delete_url).send().await {
+                        log::warn!("Could not delete stale collection {collection_name} at {delete_url}: {e}");
+                    }
                 }
             }
         }

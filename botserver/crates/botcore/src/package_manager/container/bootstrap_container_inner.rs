@@ -60,11 +60,14 @@ impl PackageManager {
 
     pub(crate) async fn cleanup_existing_inner(&self, container: &str) -> Result<()> {
         // Remove socat processes
-        let _ = SafeCommand::new("pkill")
+        if let Err(e) = SafeCommand::new("pkill")
             .and_then(|c| c.arg("-9"))
             .and_then(|c| c.arg("-f"))
             .and_then(|c| c.arg("socat"))
-            .and_then(|cmd| cmd.execute());
+            .and_then(|cmd| cmd.execute())
+        {
+            log::warn!("Could not kill leftover socat processes: {e}");
+        }
 
         // Remove proxy devices from container
         let output = SafeCommand::new("incus")
@@ -79,13 +82,16 @@ impl PackageManager {
             if line.contains("proxy") || line.contains("port") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if let Some(name) = parts.first() {
-                    let _ = SafeCommand::new("incus")
+                    if let Err(e) = SafeCommand::new("incus")
                         .and_then(|c| c.arg("config"))
                         .and_then(|c| c.arg("device"))
                         .and_then(|c| c.arg("remove"))
                         .and_then(|c| c.arg(container))
                         .and_then(|c| c.arg(name))
-                        .and_then(|cmd| cmd.execute());
+                        .and_then(|cmd| cmd.execute())
+                    {
+                        log::warn!("Could not remove stale Incus device {name}: {e}");
+                    }
                 }
             }
         }

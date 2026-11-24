@@ -45,7 +45,7 @@ fn validate_generic_sql(query: &str) -> Result<(), String> {
     let first = single
         .split_whitespace()
         .next()
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_ascii_uppercase();
     const ALLOWED_STARTS: &[&str] = &["SELECT", "WITH", "VALUES", "EXPLAIN", "SHOW", "INSERT", "UPDATE", "DELETE"];
     if !ALLOWED_STARTS.contains(&first.as_str()) {

@@ -258,7 +258,9 @@ mod tests {
         const SECRET_CELL: &str = "employee-salary-cell-value";
 
         let gate = make_gate(4096);
-        let _ = gate.try_admit_for(WorkClass::SheetsImport, 4 * MIB, Some(SECRET_TENANT));
+        if let Err(e) = gate.try_admit_for(WorkClass::SheetsImport, 4 * MIB, Some(SECRET_TENANT)) {
+            log::warn!("Admission snapshot test: sheet import admission refused: {e}");
+        }
         let serialized = serde_json::to_value(&gate.snapshot()).expect("snapshot serializes");
         let text = serialized.to_string();
         for secret in [SECRET_FILENAME, SECRET_TENANT, SECRET_CELL] {

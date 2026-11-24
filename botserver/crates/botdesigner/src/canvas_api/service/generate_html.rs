@@ -138,7 +138,7 @@ impl CanvasService {
 
         let rows: Vec<TemplateRow> = diesel::sql_query(&sql)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let templates = rows
             .into_iter()

@@ -181,7 +181,7 @@ pub(super) async fn wait_for_running_within(
         last_error
             .as_deref()
             .map(|detail| format!("; last error: {detail}"))
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     );
     Err((StatusCode::SERVICE_UNAVAILABLE, message))
 }
@@ -328,11 +328,17 @@ pub async fn exec_in_vm_streaming(
     let stdout = stdout_capture
         .lock()
         .map(|buffer| buffer.clone())
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::warn!("failed to lock stdout capture: {e:?}");
+            String::new()
+        });
     let stderr = stderr_capture
         .lock()
         .map(|buffer| buffer.clone())
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::warn!("failed to lock stderr capture: {e:?}");
+            String::new()
+        });
 
     if let Some(sender) = &events {
         let _ = sender.send(ExecEvent::Finished {

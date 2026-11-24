@@ -40,7 +40,7 @@ pub(super) async fn create_app(
         name: req.name,
         slug,
         description: req.description,
-        template: req.template.unwrap_or_default(),
+        template: req.template.unwrap_or_else(WebAppTemplate::default),
         status: WebAppStatus::Draft,
         config: WebAppConfig::default(),
         created_at: now,

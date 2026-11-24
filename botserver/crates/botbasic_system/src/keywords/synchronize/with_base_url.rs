@@ -33,7 +33,7 @@ impl SynchronizeService {
         let conflict_resolution = config
             .conflict_resolution
             .clone()
-            .unwrap_or_default();
+            .unwrap_or_else(ConflictResolution::default);
         let dry_run = config.dry_run.unwrap_or(false);
 
         let mut current_page = 1u32;

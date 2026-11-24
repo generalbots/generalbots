@@ -131,7 +131,7 @@ fn an_invalid_row_is_reported_with_its_reason() {
     assert!(
         bad_date["reason"]
             .as_str()
-            .unwrap_or_default()
+            .unwrap_or("")
             .contains("invalid date"),
         "{bad_date}"
     );
@@ -140,7 +140,7 @@ fn an_invalid_row_is_reported_with_its_reason() {
     assert!(
         bad_amount["reason"]
             .as_str()
-            .unwrap_or_default()
+            .unwrap_or("")
             .contains("invalid amount"),
         "{bad_amount}"
     );

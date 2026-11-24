@@ -11,7 +11,7 @@ pub(super) fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSes
             move |context, inputs| {
                 let proc_name = inputs[0]
                     .get_string_value()
-                    .unwrap_or_default()
+                    .unwrap_or("")
                     .to_uppercase();
                 let _args = context.eval_expression_tree(&inputs[1])?;
 
@@ -40,7 +40,7 @@ pub(super) fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSes
         .register_custom_syntax(["CALL", "$ident$"], false, move |_context, inputs| {
             let proc_name = inputs[0]
                 .get_string_value()
-                .unwrap_or_default()
+                .unwrap_or("")
                 .to_uppercase();
 
             trace!("CALL {} (no args)", proc_name);

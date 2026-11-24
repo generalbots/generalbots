@@ -164,10 +164,12 @@ pub(super) fn send_player_command(
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {e}"))?;
 
-    let _ = state.web_adapter().send_message_to_session(
+    if let Err(e) = state.web_adapter().send_message_to_session(
         &session_id.to_string(),
         &message_str,
-    );
+    ) {
+        log::warn!("player command delivery: failed to send to session: {e}");
+    }
 
     Ok(())
 }

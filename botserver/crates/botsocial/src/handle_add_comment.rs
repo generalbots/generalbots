@@ -18,7 +18,10 @@ pub async fn handle_add_comment(
             parent_comment_id: req.parent_comment_id,
             author_id: user_id,
             content: req.content,
-            mentions: serde_json::to_value(req.mentions.unwrap_or_default()).unwrap_or_default(),
+            mentions: serde_json::to_value(req.mentions.unwrap_or_else(Vec::new)).unwrap_or_else(|e| {
+                eprintln!("social: failed to serialize comment mentions: {e}");
+                serde_json::Value::Null
+            }),
             reaction_counts: serde_json::json!({}),
             reply_count: 0,
             created_at: now,
@@ -179,10 +182,16 @@ pub(super) async fn handle_get_suggested_communities_html(
             .order(social_communities::member_count.desc())
             .limit(5)
             .load::<DbCommunity>(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                eprintln!("social: failed to load suggested communities: {e}");
+                Vec::new()
+            })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        eprintln!("social: community suggestions task failed: {e}");
+        Vec::new()
+    });
 
     if communities.is_empty() {
         return Html(r#"<div class="empty-suggestions"><p>No communities available</p></div>"#.to_string());

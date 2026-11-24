@@ -252,7 +252,7 @@ pub(super) fn get_bot_pool_for_env(
     let base = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
     let url = match base.rfind('/') {
-        Some(pos) => format!("{}/{}{}", &base[..pos], dev_db, base[pos..].split('?').nth(1).map(|q| format!("?{q}")).unwrap_or_default()),
+        Some(pos) => format!("{}/{}{}", &base[..pos], dev_db, base[pos..].split('?').nth(1).map(|q| format!("?{q}")).unwrap_or_else(String::new)),
         None => format!("{base}/{dev_db}"),
     };
     let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(url);

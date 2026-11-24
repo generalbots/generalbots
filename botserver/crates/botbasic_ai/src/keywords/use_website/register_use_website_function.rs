@@ -37,7 +37,9 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
             {
                 Ok(_rt) => _rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    if let Err(e) = tx.send(Err(format!("Failed to build tokio runtime: {}", e))) {
+                        log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+                    }
                     return;
                 }
             };
@@ -47,7 +49,9 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
                 &url_for_task,
                 &refresh_for_task,
             );
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {
@@ -91,7 +95,9 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
             {
                 Ok(_rt) => _rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    if let Err(e) = tx.send(Err(format!("Failed to build tokio runtime: {}", e))) {
+                        log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+                    }
                     return;
                 }
             };
@@ -101,7 +107,9 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
                 &url_for_task,
                 &refresh_for_task,
             );
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {
@@ -143,13 +151,17 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
             {
                 Ok(_rt) => _rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    if let Err(e) = tx.send(Err(format!("Failed to build tokio runtime: {}", e))) {
+                        log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+                    }
                     return;
                 }
             };
             let result =
                 associate_website_with_session(&*state_for_task, &user_for_task, &url_for_task);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {
@@ -191,13 +203,17 @@ pub fn register_use_website_function(state: Arc<dyn BasicRuntime>, user: UserSes
             {
                 Ok(_rt) => _rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("Failed to build tokio runtime: {}", e)));
+                    if let Err(e) = tx.send(Err(format!("Failed to build tokio runtime: {}", e))) {
+                        log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+                    }
                     return;
                 }
             };
             let result =
                 associate_website_with_session(&*state_for_task, &user_for_task, &url_for_task);
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("USE_WEBSITE keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(3)) {

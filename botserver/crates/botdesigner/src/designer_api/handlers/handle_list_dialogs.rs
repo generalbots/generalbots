@@ -16,10 +16,10 @@ pub async fn handle_list_dialogs(State(state): State<Arc<DesignerState>>) -> imp
             "SELECT id, name, content, updated_at FROM designer_dialogs ORDER BY updated_at DESC LIMIT 50",
         )
         .load::<DialogRow>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|_| Vec::new())
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|_| Vec::new());
 
     let mut html = String::new();
     html.push_str("<div class=\"dialogs-list\">");

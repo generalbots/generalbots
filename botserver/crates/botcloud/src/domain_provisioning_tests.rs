@@ -63,7 +63,7 @@ fn the_hostname_label_never_leaks_the_tenant_id() {
         !host.contains(&org.simple().to_string()),
         "{host} exposes the organization id"
     );
-    let label = host.trim_start_matches("gb-").split('.').next().unwrap_or_default();
+    let label = host.trim_start_matches("gb-").split('.').next().unwrap_or("");
     assert!(label.len() == 10, "expected a fixed-width label, got {label}");
     assert!(label.chars().all(|c| c.is_ascii_alphanumeric()));
 }

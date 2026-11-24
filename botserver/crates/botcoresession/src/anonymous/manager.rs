@@ -156,7 +156,10 @@ impl AnonymousSessionManager {
 
     pub async fn get_messages(&self, session_id: Uuid) -> Vec<SessionMessage> {
         let messages = self.messages.read().await;
-        messages.get(&session_id).cloned().unwrap_or_default()
+        messages
+            .get(&session_id)
+            .cloned()
+            .unwrap_or_else(Vec::new)
     }
 
     pub async fn upgrade_session(

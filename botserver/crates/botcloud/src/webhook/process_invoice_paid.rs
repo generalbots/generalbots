@@ -229,7 +229,7 @@ pub(super) async fn process_subscription_lifecycle(
     let account_email = metadata
         .get("account_email")
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     if status == "cancelled" || status == "past_due" || status == "paused" {
         let _ = diesel::update(

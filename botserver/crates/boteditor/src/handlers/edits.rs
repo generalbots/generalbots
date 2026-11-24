@@ -12,7 +12,7 @@ pub async fn handle_undo(
         undo_stack: Vec::new(),
         redo_stack: Vec::new(),
     });
-    let current = payload.content.unwrap_or_default();
+    let current = payload.content.unwrap_or_else(String::new);
     session.redo_stack.push(current.clone());
     if session.undo_stack.is_empty() {
         session.undo_stack.push(current.clone());
@@ -34,14 +34,14 @@ pub async fn handle_redo(
         undo_stack: Vec::new(),
         redo_stack: Vec::new(),
     });
-    let current = payload.content.unwrap_or_default();
+    let current = payload.content.unwrap_or_else(String::new);
     session.undo_stack.push(current.clone());
     let restored = session.redo_stack.pop().unwrap_or(current);
     Html(html_escape(&restored))
 }
 
 pub async fn handle_format(Form(payload): Form<FormContent>) -> impl IntoResponse {
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let trimmed = content.trim().to_string();
 
     if trimmed.starts_with('{') || trimmed.starts_with('[') {

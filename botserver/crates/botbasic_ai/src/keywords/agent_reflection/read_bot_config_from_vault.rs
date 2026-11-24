@@ -18,7 +18,9 @@ pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("reflection config read: result channel send failed: {e}");
+        }
     });
     rx.recv().ok().flatten()
 }
@@ -50,7 +52,9 @@ pub(super) fn write_bot_config_to_vault(bot_id: &Uuid, key: &str, value: &str) -
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("reflection config read: result channel send failed: {e}");
+        }
     });
     rx.recv().ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
 }

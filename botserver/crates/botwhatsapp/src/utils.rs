@@ -172,11 +172,11 @@ pub fn extract_message_text(message: &crate::models::WhatsAppMessage) -> Option<
         Some("interactive") => message.interactive.as_ref().and_then(|i| {
             i.button_reply
                 .as_ref()
-                .map(|b| b.title.clone().unwrap_or_default())
+                .map(|b| b.title.clone().unwrap_or_else(String::new))
                 .or_else(|| {
                     i.list_reply
                         .as_ref()
-                        .map(|l| l.title.clone().unwrap_or_default())
+                        .map(|l| l.title.clone().unwrap_or_else(String::new))
                 })
         }),
         Some("button") => message.button.as_ref().and_then(|b| b.text.clone()),

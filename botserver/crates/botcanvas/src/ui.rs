@@ -24,7 +24,7 @@ pub(crate) fn render_canvas_card(canvas: &DbCanvas, element_count: i64) -> Strin
         .description
         .as_deref()
         .map(html_escape)
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let bg_color = canvas.background_color.as_deref().unwrap_or("#ffffff");
     let updated = canvas.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let id = canvas.id;

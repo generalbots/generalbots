@@ -25,7 +25,7 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                             .enable_all()
                             .build();
 
-                        let _ = if let Ok(rt) = rt {
+                        if let Err(e) = if let Ok(rt) = rt {
                             let result = rt.block_on(async move {
                                 let client = reqwest::Client::new();
                                 client
@@ -41,7 +41,9 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                             tx.send(result)
                         } else {
                             tx.send(Err("Failed to build runtime".to_string()))
-                        };
+                        } {
+                            log::warn!("DELETE HTTP worker: failed to send result over channel: {e}");
+                        }
                     });
 
                     match rx.recv_timeout(std::time::Duration::from_secs(60)) {
@@ -106,7 +108,7 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                         .enable_all()
                         .build();
 
-                    let _ = if let Ok(rt) = rt {
+                    if let Err(e) = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
                             let client = reqwest::Client::new();
                             client
@@ -122,7 +124,9 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                         tx.send(result)
                     } else {
                         tx.send(Err("Failed to build runtime".to_string()))
-                    };
+                    } {
+                        log::warn!("DELETE HTTP worker: failed to send result over channel: {e}");
+                    }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {

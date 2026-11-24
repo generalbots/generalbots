@@ -14,30 +14,7 @@ fn unpinned_checksum_error(url: &str, strict: bool) -> Option<String> {
 }
 
 #[cfg(test)]
-mod unpinned_checksum_tests {
-    use super::unpinned_checksum_error;
-
-    #[test]
-    fn unpinned_is_fatal_in_strict_mode() {
-        assert!(unpinned_checksum_error("https://example.invalid/bin", true).is_some());
-        assert!(unpinned_checksum_error("https://example.invalid/bin", false).is_none());
-    }
-
-    #[test]
-    fn refusal_names_the_url_and_the_policy() {
-        let message = unpinned_checksum_error("https://example.invalid/pinned.bin", true)
-            .expect("strict mode must refuse an unpinned binary");
-        assert!(message.contains("https://example.invalid/pinned.bin"));
-        assert!(message.contains("GB_REQUIRE_CHECKSUMS"));
-    }
-
-    #[test]
-    fn lenient_mode_only_warns_for_any_unpinned_url() {
-        for url in ["https://example.invalid/bin", "", "not-a-url"] {
-            assert!(unpinned_checksum_error(url, false).is_none(), "{url}");
-        }
-    }
-}
+mod unpinned_checksum_tests;
 
 impl ContainerOperations for PackageManager {
     async fn configure_iptables_nat(&self, container: &str) -> Result<()> {
@@ -56,11 +33,14 @@ impl ContainerOperations for PackageManager {
         }
 
         // Scope route_localnet to that interface, never to the global namespace.
-        let _ = SafeCommand::new("sudo")
+        if let Err(e) = SafeCommand::new("sudo")
             .and_then(|c| c.arg("sysctl"))
             .and_then(|c| c.arg("-w"))
             .and_then(|c| c.arg(format!("net.ipv4.conf.{iface}.route_localnet=1")))
-            .and_then(|cmd| cmd.execute());
+            .and_then(|cmd| cmd.execute())
+        {
+            log::warn!("Could not scope route_localnet to {iface}: {e}");
+        }
 
         for rule in &settings.nat_rules {
             // Pre-allocate strings to satisfy lifetime requirements
@@ -136,11 +116,14 @@ impl ContainerOperations for PackageManager {
             .and_then(|cmd| cmd.execute())?;
 
         // Save rules
-        let _ = SafeCommand::new("sudo")
+        if let Err(e) = SafeCommand::new("sudo")
             .and_then(|c| c.arg("sh"))
             .and_then(|c| c.arg("-c"))
             .and_then(|c| c.arg("iptables-save > /etc/iptables/rules.v4"))
-            .and_then(|cmd| cmd.execute());
+            .and_then(|cmd| cmd.execute())
+        {
+            log::warn!("Could not persist iptables rules: {e}");
+        }
 
         Ok(())
     }
@@ -162,14 +145,17 @@ impl ContainerOperations for PackageManager {
 
     async fn reload_dns_zones(&self) -> Result<()> {
         // Update zone files to point to new IP
-        let _ = SafeCommand::new("incus")
+        if let Err(e) = SafeCommand::new("incus")
             .and_then(|c| c.arg("exec"))
             .and_then(|c| c.arg("dns"))
             .and_then(|c| c.arg("--"))
             .and_then(|c| c.arg("sh"))
             .and_then(|c| c.arg("-c"))
             .and_then(|c| c.arg("sed -i 's/OLD_IP/NEW_IP/g' /opt/gbo/data/*.zone"))
-            .and_then(|cmd| cmd.execute());
+            .and_then(|cmd| cmd.execute())
+        {
+            log::warn!("Could not rewrite DNS zone IPs: {e}");
+        }
 
         // Restart coredns
         self.start_coredns("dns").await?;

@@ -106,7 +106,7 @@ impl ProjectImportService {
                     id: task_id,
                     project_id: project.id,
                     parent_id: None,
-                    name: ms_task.name.clone().unwrap_or_default(),
+                    name: ms_task.name.clone().unwrap_or_else(String::new),
                     description: None,
                     task_type,
                     start_date: task_start,
@@ -127,7 +127,7 @@ impl ProjectImportService {
                     actual_hours: None,
                     cost: ms_task.cost,
                     notes: ms_task.notes.clone(),
-                    wbs: ms_task.wbs.clone().unwrap_or_default(),
+                    wbs: ms_task.wbs.clone().unwrap_or_else(String::new),
                     outline_level: ms_task.outline_level.unwrap_or(1) as u32,
                     is_milestone: ms_task.milestone.unwrap_or(false),
                     is_summary: ms_task.summary.unwrap_or(false),
@@ -215,7 +215,7 @@ impl ProjectImportService {
                             .map_users
                             .get(ms_resource.name.as_ref().unwrap_or(&String::new()))
                             .copied(),
-                        name: ms_resource.name.clone().unwrap_or_default(),
+                        name: ms_resource.name.clone().unwrap_or_else(String::new),
                         resource_type,
                         email: ms_resource.email_address.clone(),
                         max_units: ms_resource.max_units.unwrap_or(1.0) as f32,

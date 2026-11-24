@@ -169,7 +169,9 @@ async fn delete_vm(
     }
     match lifecycle.delete(vm_id) {
         Ok(()) => {
-            let _ = metering.accrue_vm_hours(vm.project_id, &vm.env, vm.created_at);
+            if let Err(e) = metering.accrue_vm_hours(vm.project_id, &vm.env, vm.created_at) {
+                log::warn!("Vibe vm metering: accrue VM hours failed: {e}");
+            }
             ok_deleted()
         }
         Err(e) => err(e),
@@ -193,7 +195,9 @@ async fn stop_vm(
     }
     match lifecycle.stop(vm_id) {
         Ok(vm) => {
-            let _ = metering.accrue_vm_hours(vm.project_id, &vm.env, vm.created_at);
+            if let Err(e) = metering.accrue_vm_hours(vm.project_id, &vm.env, vm.created_at) {
+                log::warn!("Vibe vm metering: accrue VM hours failed: {e}");
+            }
             ok(vm)
         }
         Err(e) => err(e),

@@ -81,8 +81,8 @@ impl OrgDomainSettings {
         if let Some(map) = config.get("registrar_keys").and_then(Value::as_object) {
             for (name, value) in map {
                 if let Some(entry) = value.as_object() {
-                    let key = entry.get("api_key").and_then(Value::as_str).unwrap_or_default();
-                    let secret = entry.get("api_secret").and_then(Value::as_str).unwrap_or_default();
+                    let key = entry.get("api_key").and_then(Value::as_str).unwrap_or("");
+                    let secret = entry.get("api_secret").and_then(Value::as_str).unwrap_or("");
                     if !key.trim().is_empty() {
                         settings
                             .keys
@@ -201,7 +201,7 @@ fn to_base36(mut value: u64, width: usize) -> String {
         *slot = DIGITS[(value % 36) as usize];
         value /= 36;
     }
-    String::from_utf8(buffer).unwrap_or_default()
+    String::from_utf8(buffer).unwrap_or_else(|_| String::new())
 }
 
 /// Outcome of a successful registration.

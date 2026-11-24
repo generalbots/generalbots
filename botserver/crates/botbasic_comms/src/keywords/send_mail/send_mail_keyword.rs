@@ -303,7 +303,9 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Err("Failed to build tokio runtime".to_string())
             };
 
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("SEND_MAIL keyword: result channel send failed: {e}");
+            }
         });
 
         match rx.recv_timeout(std::time::Duration::from_secs(30)) {

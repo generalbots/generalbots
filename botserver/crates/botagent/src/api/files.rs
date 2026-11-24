@@ -102,9 +102,12 @@ pub async fn vm_file(
             }
         }
     }
-    let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    let conversation_id = params
+        .get("conversation_id")
+        .cloned()
+        .unwrap_or_else(String::new);
     let vm_name = resolve_vm_name(&state, &headers, &conversation_id)?;
-    let rel_path = params.get("path").cloned().unwrap_or_default();
+    let rel_path = params.get("path").cloned().unwrap_or_else(String::new);
     if conversation_id.is_empty() || rel_path.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -266,7 +269,10 @@ pub async fn vm_files(
     headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    let conversation_id = params
+        .get("conversation_id")
+        .cloned()
+        .unwrap_or_else(String::new);
     let vm_name = resolve_vm_name(&state, &headers, &conversation_id)?;
     if conversation_id.is_empty() {
         return Err((

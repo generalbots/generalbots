@@ -61,6 +61,9 @@ impl From<String> for SecretString {
 }
 impl From<&str> for SecretString {
     fn from(s: &str) -> Self {
-        s.parse().unwrap_or_default()
+        s.parse().unwrap_or_else(|e| {
+            tracing::warn!("SecretString parse failed: {e}");
+            SecretString::default()
+        })
     }
 }

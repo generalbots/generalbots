@@ -105,7 +105,7 @@ fn str_array(value: Option<&serde_json::Value>) -> Vec<&str> {
     value
         .and_then(|v| v.as_array())
         .map(|items| items.iter().filter_map(|v| v.as_str()).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 /// Deterministic bytes covered by the MAC. Sorted lists make the signature

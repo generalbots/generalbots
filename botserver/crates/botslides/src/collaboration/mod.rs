@@ -242,7 +242,9 @@ pub async fn broadcast_slide_change(
             data,
             timestamp: Utc::now(),
         };
-        let _ = tx.send(msg);
+        if let Err(e) = tx.send(msg) {
+            log::warn!("Slides collaboration: failed to broadcast slide event: {e}");
+        }
     }
 }
 

@@ -188,8 +188,14 @@ pub(super) fn validate_hour(input: &str) -> ValidationResult {
         return ValidationResult::invalid("internal validation error".to_string());
     };
     if let Some(caps) = time_24_regex.captures(input) {
-        let hour: u32 = caps[1].parse().unwrap_or_default();
-        let minute: u32 = caps[2].parse().unwrap_or_default();
+        let hour: u32 = caps[1].parse().unwrap_or_else(|e| {
+            log::warn!("Invalid hour component in time input: {e}");
+            0
+        });
+        let minute: u32 = caps[2].parse().unwrap_or_else(|e| {
+            log::warn!("Invalid minute component in time input: {e}");
+            0
+        });
         return ValidationResult::valid_with_metadata(
             format!("{:02}:{:02}", hour, minute),
             serde_json::json!({ "hour": hour, "minute": minute }),
@@ -200,8 +206,14 @@ pub(super) fn validate_hour(input: &str) -> ValidationResult {
         cached_re!(r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$")
             .and_then(|re| re.captures(input))
     {
-        let mut hour: u32 = caps[1].parse().unwrap_or_default();
-        let minute: u32 = caps[2].parse().unwrap_or_default();
+        let mut hour: u32 = caps[1].parse().unwrap_or_else(|e| {
+            log::warn!("Invalid hour component in 12-hour input: {e}");
+            0
+        });
+        let minute: u32 = caps[2].parse().unwrap_or_else(|e| {
+            log::warn!("Invalid minute component in 12-hour input: {e}");
+            0
+        });
         let period = caps[3].to_uppercase();
 
         if period.starts_with('P') && hour != 12 {

@@ -27,7 +27,10 @@ pub async fn handle_plan_ai_assist(
                 .into_response();
         }
     };
-    let key = std::env::var("LLM_KEY").unwrap_or_default();
+    let key = std::env::var("LLM_KEY").unwrap_or_else(|e| {
+        log::warn!("LLM_KEY unavailable ({e}); using an empty API key");
+        String::new()
+    });
     let model = match std::env::var("LLM_MODEL") {
         Ok(v) if !v.is_empty() => v,
         _ => {

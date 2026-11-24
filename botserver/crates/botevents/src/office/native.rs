@@ -203,7 +203,10 @@ mod tests {
 
         // The serialization surface never leaks the document text, even though
         // the source DomainEvent carried a full EventContent.
-        let text = serde_json::to_string(envelope).unwrap_or_default();
+        let text = serde_json::to_string(envelope).unwrap_or_else(|e| {
+            eprintln!("envelope serialization failed: {e}");
+            String::new()
+        });
         assert!(!text.contains("secret body text"));
         assert!(!text.contains("Confidential quarterly report"));
         assert!(!text.contains("a secret excerpt"));
@@ -259,7 +262,7 @@ mod tests {
         let mut keys: Vec<&str> = value
             .as_object()
             .map(|map| map.keys().map(String::as_str).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         keys.sort_unstable();
         assert_eq!(
             keys,
@@ -275,7 +278,10 @@ mod tests {
             ]
         );
 
-        let text = serde_json::to_string(&view).unwrap_or_default();
+        let text = serde_json::to_string(&view).unwrap_or_else(|e| {
+            eprintln!("dead-letter view serialization failed: {e}");
+            String::new()
+        });
         assert!(!text.contains("body"));
         assert!(!text.contains("payload"));
         assert!(!text.contains("content"));

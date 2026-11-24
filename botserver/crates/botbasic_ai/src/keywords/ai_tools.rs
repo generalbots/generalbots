@@ -1,5 +1,4 @@
-use botbasic_types::UserSession;
-use botbasic_types::BasicRuntime;
+use botbasic_types::{BasicRuntime, UserSession};
 use botcore::InternalUrls as Urls;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
@@ -26,12 +25,16 @@ fn register_translate_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("AI tools keyword: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { translate_text(&text, &target_lang).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("AI tools keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(60)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -64,12 +67,16 @@ fn register_ocr_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engin
                     Ok(rt) => rt,
                     Err(e) => {
                         let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                        let _ = tx.send(Err(err));
+                        if let Err(e) = tx.send(Err(err)) {
+                            log::warn!("AI tools keyword: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async { perform_ocr(&image_path).await });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("AI tools keyword: result channel send failed: {e}");
+                }
             });
             match rx.recv_timeout(Duration::from_secs(60)) {
                 Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -102,12 +109,16 @@ fn register_sentiment_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
                     Ok(rt) => rt,
                     Err(e) => {
                         let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                        let _ = tx.send(Err(err));
+                        if let Err(e) = tx.send(Err(err)) {
+                            log::warn!("AI tools keyword: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async { analyze_sentiment(&text_clone).await });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("AI tools keyword: result channel send failed: {e}");
+                }
             });
             match rx.recv_timeout(Duration::from_secs(30)) {
                 Ok(Ok(result)) => Ok(result),
@@ -165,12 +176,16 @@ fn register_classify_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, 
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("AI tools keyword: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { classify_text(&text, &cat_list).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("AI tools keyword: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(result),

@@ -179,7 +179,9 @@ where
                 },
                 Err(e) => Err(format!("Failed to spawn multimodal worker: {e}").into()),
             };
-            let _ = tx.send(outcome);
+            if let Err(e) = tx.send(outcome) {
+                log::warn!("multimodal keyword: result channel send failed: {e}");
+            }
         });
 
     if join.is_err() {

@@ -57,7 +57,9 @@ pub fn register_find_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                         .map_err(|e| format!("DB error: {e}")),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("FIND worker: failed to send result over channel: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 

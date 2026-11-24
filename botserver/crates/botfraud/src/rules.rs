@@ -9,7 +9,10 @@ pub fn load_active_rules(conn: &mut PgConnection, branch: uuid::Uuid) -> Vec<Fra
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load::<RuleDbRow>(conn)
-    .unwrap_or_default()
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to load active fraud rules: {e}");
+        Vec::new()
+    })
     .into_iter()
     .map(|r| FraudRule {
         id: r.id,

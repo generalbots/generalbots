@@ -41,7 +41,7 @@ fn every_header_field_is_projected() {
 fn a_root_run_has_no_parent_key() {
     let projected = to_agui(&envelope(EventType::RunStarted, serde_json::json!({})));
     assert!(projected.get("parentRunId").is_none());
-    assert!(!projected["type"].as_str().unwrap_or_default().is_empty());
+    assert!(!projected["type"].as_str().unwrap_or("").is_empty());
 }
 
 #[test]

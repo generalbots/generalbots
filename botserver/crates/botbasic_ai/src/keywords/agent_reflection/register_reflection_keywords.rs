@@ -35,12 +35,16 @@ pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                     let _rt = match tokio::runtime::Runtime::new() {
                         Ok(rt) => rt,
                         Err(e) => {
-                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            if let Err(e) = tx.send(Err(format!("Failed to create runtime: {}", e))) {
+                                log::warn!("reflection keyword registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = set_reflection_enabled(bot_id, enabled);
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("reflection keyword registration: result channel send failed: {e}");
+                    }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(10)) {
@@ -93,7 +97,9 @@ pub fn reflect_on_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     let rt = match tokio::runtime::Runtime::new() {
                         Ok(rt) => rt,
                         Err(e) => {
-                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            if let Err(e) = tx.send(Err(format!("Failed to create runtime: {}", e))) {
+                                log::warn!("reflection keyword registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
@@ -101,7 +107,9 @@ pub fn reflect_on_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                         let engine = ReflectionEngine::new(state_for_task, bot_id);
                         engine.reflect(session_id, reflection_type).await
                     });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("reflection keyword registration: result channel send failed: {e}");
+                    }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {

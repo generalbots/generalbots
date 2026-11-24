@@ -279,8 +279,8 @@ pub(crate) async fn update_profile(
     // Stub: update name/org in DB associated with the authenticated user's JWT
     Ok(Json(serde_json::json!({
         "status": "ok",
-        "name": body.name.unwrap_or_default(),
-        "organization": body.organization.unwrap_or_default(),
+        "name": body.name.unwrap_or_else(String::new),
+        "organization": body.organization.unwrap_or_else(String::new),
     })))
 }
 

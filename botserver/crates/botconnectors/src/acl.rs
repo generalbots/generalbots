@@ -72,7 +72,7 @@ pub fn search_visible(
     let prefilter_limit = (effective_limit * 4).max(1);
     let pattern = format!("%{}%", q.trim());
 
-    let kinds = sources.unwrap_or_default();
+    let kinds = sources.unwrap_or_else(Vec::new);
     let sql = build_search_sql(&kinds);
     let query = diesel::sql_query(sql)
         .bind::<diesel::sql_types::Text, _>(&pattern)

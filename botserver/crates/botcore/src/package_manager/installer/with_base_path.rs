@@ -84,8 +84,12 @@ impl PackageManager {
                 if !qdrant_conf.exists() {
                     let storage = data_path.join("storage");
                     let snapshots = data_path.join("snapshots");
-                    let _ = std::fs::create_dir_all(&storage);
-                    let _ = std::fs::create_dir_all(&snapshots);
+                    if let Err(e) = std::fs::create_dir_all(&storage) {
+                        log::warn!("Could not create qdrant storage dir {}: {e}", storage.display());
+                    }
+                    if let Err(e) = std::fs::create_dir_all(&snapshots) {
+                        log::warn!("Could not create qdrant snapshots dir {}: {e}", snapshots.display());
+                    }
                     let yaml = format!(
                         "storage:\n  storage_path: {}\n  snapshots_path: {}\n\nservice:\n  host: 0.0.0.0\n  http_port: 6333\n  grpc_port: 6334\n  enable_tls: false\n\nlog_level: INFO\n",
                         storage.display(),
@@ -93,8 +97,7 @@ impl PackageManager {
                     );
                     if let Err(e) = std::fs::write(&qdrant_conf, yaml) {
                         warn!("Failed to write qdrant config: {}", e);
-                    }
- else {
+                    } else {
                         info!("Generated qdrant config at {}", qdrant_conf.display());
                     }
                 }
@@ -261,7 +264,9 @@ impl PackageManager {
                     {
                         trace!("Component {} may already be running", component.name);
                         if component.name == "vault" && self.mode == InstallMode::Local {
-                            let _ = self.ensure_env_file_exists();
+                            if let Err(e) = self.ensure_env_file_exists() {
+                                log::warn!("Could not recreate .env for an already-running Vault: {e}");
+                            }
                         }
                         
                         Err(anyhow::anyhow!("Already running"))

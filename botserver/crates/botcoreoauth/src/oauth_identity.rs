@@ -146,7 +146,7 @@ impl NewOAuthAccount {
         display_name: Option<&str>,
     ) -> Self {
         let sanitized: String = display_name
-            .unwrap_or_default()
+            .unwrap_or("")
             .chars()
             .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
             .take(20)

@@ -104,7 +104,7 @@ pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSes
 
     if let Err(e) = engine
         .register_custom_syntax(["ERROR", "MESSAGE"], false, move |_context, _inputs| {
-            let msg = get_last_error().unwrap_or_default();
+            let msg = get_last_error().unwrap_or_else(String::new);
             Ok(Dynamic::from(msg))
         })
     {
@@ -116,7 +116,7 @@ pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSes
     engine.register_fn("ERR_NUMBER", || -> i64 { get_error_number() });
 
     engine.register_fn("ERR_DESCRIPTION", || -> String {
-        get_last_error().unwrap_or_default()
+        get_last_error().unwrap_or_else(String::new)
     });
 
     engine.register_fn("ERR_CLEAR", || {

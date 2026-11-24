@@ -60,7 +60,10 @@ pub async fn load_conversation_history(
             .order(message_history::created_at.asc())
             .limit(50)
             .load(&mut db_conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load message history: {e}");
+                Vec::new()
+            });
 
         let bot_id: Uuid = user_sessions::table
             .filter(user_sessions::id.eq(session_id))
@@ -93,7 +96,10 @@ pub async fn load_conversation_history(
             .collect()
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Conversation history task failed: {e}");
+        Vec::new()
+    });
 
     result
 }

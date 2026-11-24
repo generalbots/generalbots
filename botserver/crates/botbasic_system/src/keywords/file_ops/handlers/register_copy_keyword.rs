@@ -197,7 +197,10 @@ pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 let file_list: Vec<String> = if files.is_array() {
                     files
                         .into_array()
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            log::warn!("Failed to read COMPRESS file list: {e}");
+                            Vec::new()
+                        })
                         .iter()
                         .map(|f| f.to_string())
                         .collect()

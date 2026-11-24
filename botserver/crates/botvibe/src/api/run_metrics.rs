@@ -35,7 +35,9 @@ pub(crate) async fn cancel_run(
     Json(_req): Json<CancelRunRequest>,
 ) -> impl IntoResponse {
     if let Some(tx) = api.state.run_signal_sender() {
-        let _ = tx.send(crate::types::VibeRunSignal::Cancelled(run_id));
+        if let Err(e) = tx.send(crate::types::VibeRunSignal::Cancelled(run_id)) {
+            log::warn!("Vibe run {run_id}: cancel signal channel closed: {e}");
+        }
     }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {

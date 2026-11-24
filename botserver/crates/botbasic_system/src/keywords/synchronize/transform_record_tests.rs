@@ -176,7 +176,7 @@ fn the_now_and_uuid_expressions_are_case_insensitive() {
     let now = service.compute_field(&record, &field("now()")).expect("now");
     assert!(now.as_str().is_some_and(|value| value.contains('T')));
     let uuid = service.compute_field(&record, &field("uuid()")).expect("uuid");
-    assert!(Uuid::parse_str(uuid.as_str().unwrap_or_default()).is_ok());
+    assert!(Uuid::parse_str(uuid.as_str().unwrap_or("")).is_ok());
 }
 
 /// The stub loaders never reach a database, so a record is always "new" and

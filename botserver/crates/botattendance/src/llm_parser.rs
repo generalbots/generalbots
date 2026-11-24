@@ -62,7 +62,7 @@ pub fn parse_polish_response(response: &str, original: &str) -> (String, Vec<Str
         let suggestions: Vec<String> = value["suggestions"]
             .as_array()
             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         return (polished, suggestions);
     }
     (response.to_string(), Vec::new())

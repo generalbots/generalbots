@@ -20,9 +20,18 @@ pub struct TeamsAdapter {
 
 impl TeamsAdapter {
     pub fn new(_pool: Arc<DbPool>, bot_id: Uuid, get_config: GetConfigFn) -> Self {
-        let app_id = get_config(&bot_id, "teams-app-id", None).unwrap_or_default();
-        let app_password = get_config(&bot_id, "teams-app-password", None).unwrap_or_default();
-        let tenant_id = get_config(&bot_id, "teams-tenant-id", None).unwrap_or_default();
+        let app_id = get_config(&bot_id, "teams-app-id", None).unwrap_or_else(|e| {
+            log::warn!("teams: cannot read teams-app-id: {e}");
+            String::new()
+        });
+        let app_password = get_config(&bot_id, "teams-app-password", None).unwrap_or_else(|e| {
+            log::warn!("teams: cannot read teams-app-password: {e}");
+            String::new()
+        });
+        let tenant_id = get_config(&bot_id, "teams-tenant-id", None).unwrap_or_else(|e| {
+            log::warn!("teams: cannot read teams-tenant-id: {e}");
+            String::new()
+        });
 
         let service_url = get_config(
             &bot_id,

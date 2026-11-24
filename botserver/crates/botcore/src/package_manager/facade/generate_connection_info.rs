@@ -198,7 +198,9 @@ Store credentials in Vault:
     }
     pub fn remove_local(&self, component: &ComponentConfig) -> Result<()> {
         let bin_path = self.base_path.join("bin").join(&component.name);
-        let _ = std::fs::remove_dir_all(bin_path);
+        if let Err(e) = std::fs::remove_dir_all(&bin_path) {
+            warn!("Could not remove {}: {e}", bin_path.display());
+        }
         Ok(())
     }
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {

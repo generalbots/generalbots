@@ -46,7 +46,10 @@ pub fn register_create_shortcut_keyword(
                     "target": { "path": target },
                     "created_at": chrono::Utc::now().to_rfc3339(),
                 });
-                let content = serde_json::to_string_pretty(&payload).unwrap_or_default();
+                let content = serde_json::to_string_pretty(&payload).unwrap_or_else(|e| {
+                    log::warn!("Failed to serialize shortcut payload: {e}");
+                    String::new()
+                });
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();

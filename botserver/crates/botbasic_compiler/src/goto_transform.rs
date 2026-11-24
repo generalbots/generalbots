@@ -46,7 +46,7 @@ fn is_label_line(line: &str) -> bool {
         return false;
     }
 
-    let first_char = label_part.chars().next().unwrap_or_default();
+    let first_char = label_part.chars().next().unwrap_or('\0');
     if !first_char.is_alphabetic() && first_char != '_' {
         return false;
     }

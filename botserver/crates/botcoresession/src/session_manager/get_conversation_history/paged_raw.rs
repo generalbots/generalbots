@@ -258,7 +258,11 @@ impl SessionManager {
         let today = chrono::Utc::now().date_naive();
         let today_start = today
             .and_hms_opt(0, 0, 0)
-            .unwrap_or_else(|| today.and_hms_opt(0, 0, 1).unwrap_or_default())
+            .unwrap_or_else(|| {
+                today
+                    .and_hms_opt(0, 0, 1)
+                    .unwrap_or_else(|| chrono::NaiveDateTime::default())
+            })
             .and_utc();
         let today_count = user_sessions::table
             .filter(user_sessions::created_at.ge(today_start))

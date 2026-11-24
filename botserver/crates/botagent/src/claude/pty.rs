@@ -131,7 +131,10 @@ mod tests {
         let path = format!(
             "{}:{}",
             bin.display(),
-            std::env::var("PATH").unwrap_or_default()
+            std::env::var("PATH").unwrap_or_else(|e| {
+                tracing::warn!("Failed to read PATH environment variable: {e}");
+                String::new()
+            })
         );
         let mut child = std::process::Command::new("python3")
             .arg(&script)

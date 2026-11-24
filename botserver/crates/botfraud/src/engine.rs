@@ -170,7 +170,10 @@ impl FraudEngine {
         } = event;
         let id = Uuid::new_v4();
         let rules_json: serde_json::Value =
-            serde_json::to_value(triggered).unwrap_or_default();
+            serde_json::to_value(triggered).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize triggered fraud rules: {e}");
+                serde_json::Value::Null
+            });
         diesel::sql_query(
             "INSERT INTO fraud_events (id, branch_id, event_type, entity_type, entity_id, \
              risk_score, risk_level, triggered_rules, action_taken, details) \

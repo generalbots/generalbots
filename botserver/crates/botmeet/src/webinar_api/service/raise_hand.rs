@@ -376,6 +376,8 @@ impl WebinarService {
             data,
             timestamp: Utc::now(),
         };
-        let _ = self.event_sender.send(event);
+        if let Err(e) = self.event_sender.send(event) {
+            log::warn!("Webinar broadcast: failed to send event: {e}");
+        }
     }
 }

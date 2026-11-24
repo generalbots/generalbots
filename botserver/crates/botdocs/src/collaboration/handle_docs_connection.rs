@@ -252,7 +252,9 @@ pub async fn broadcast_doc_change(
             format: None,
             timestamp: Utc::now(),
         };
-        let _ = tx.send(msg);
+        if let Err(e) = tx.send(msg) {
+            log::warn!("Docs collaboration: failed to broadcast doc change: {e}");
+        }
     }
 }
 pub async fn mark_mention_read(user_id: &str, mention_id: &str) {

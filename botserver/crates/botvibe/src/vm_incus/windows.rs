@@ -189,7 +189,9 @@ impl VmLifecycle {
         {
             static WSL_INCUS_READY: OnceLock<bool> = OnceLock::new();
             *WSL_INCUS_READY.get_or_init(|| {
-                let _ = self.ensure_incus_wsl();
+                if let Err(e) = self.ensure_incus_wsl() {
+                    log::warn!("Vibe incus: ensure WSL failed: {e}");
+                }
                 checked_run(
                     "wsl",
                     &wsl_exec_args(&["incus".to_string(), "version".to_string()]),

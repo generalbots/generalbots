@@ -135,9 +135,9 @@ fn encode(value: &str) -> String {
 fn record_from(node: &Value) -> Option<DnsRecord> {
     let record_type = RecordType::parse(node["type"].as_str()?)?;
     Some(DnsRecord {
-        host: node["name"].as_str().unwrap_or_default().to_string(),
+        host: node["name"].as_str().unwrap_or("").to_string(),
         record_type,
-        value: node["content"].as_str().unwrap_or_default().to_string(),
+        value: node["content"].as_str().unwrap_or("").to_string(),
         ttl: node["ttl"].as_u64().unwrap_or(crate::DEFAULT_TTL as u64) as u32,
         record_id: node["id"].as_str().map(str::to_string),
     })

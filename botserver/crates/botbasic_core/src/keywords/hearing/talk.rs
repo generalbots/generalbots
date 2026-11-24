@@ -71,7 +71,7 @@ fn reply_recipient(user_session: &UserSession, channel: &str) -> String {
             .context_data
             .get("phone")
             .and_then(|value| value.as_str())
-            .unwrap_or_default()
+            .unwrap_or("")
             .to_string();
     }
     user_session.user_id.to_string()

@@ -66,7 +66,9 @@ impl VmLifecycle {
                 // refuse system installs; --break-system-packages keeps a
                 // few-line python app running on Ubuntu 24.04 VMs.
                 args.push("--break-system-packages".to_string());
-                let _ = self.incus_run(&args, 300);
+                if let Err(e) = self.incus_run(&args, 300) {
+                    log::warn!("Vibe {name}: pip requirements install failed: {e}");
+                }
             }
         } else if self
             .incus_run(
@@ -159,7 +161,7 @@ impl VmLifecycle {
                 } else {
                     // Record the hash only after a successful install so a
                     // failed attempt retries on the next Run.
-                    let _ = self.incus_run(
+                    if let Err(e) = self.incus_run(
                         &[
                             "exec".to_string(),
                             name.to_string(),
@@ -169,7 +171,9 @@ impl VmLifecycle {
                             format!("printf %s {} > /opt/vibe/app/.vibe-deps-hash", deps_hash),
                         ],
                         15,
-                    );
+                    ) {
+                        log::warn!("Vibe {name}: write dependency hash failed: {e}");
+                    }
                 }
             }
         }

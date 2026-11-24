@@ -64,7 +64,7 @@ pub async fn export_pix_history(headers: HeaderMap) -> Result<(HeaderMap, String
             "{},{},{},{},{},{},{},{}\n",
             r.created_at.format("%Y-%m-%dT%H:%M:%S"),
             r.direction, r.key_type, r.key_value, r.counterparty,
-            r.amount, r.status, r.end_to_end_id.unwrap_or_default(),
+            r.amount, r.status, r.end_to_end_id.unwrap_or_else(String::new),
         ));
     }
     let mut headers = HeaderMap::new();

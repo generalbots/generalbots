@@ -146,7 +146,7 @@ pub(crate) fn authorize_delivery(
     if secret.is_empty() {
         return DeliveryAuth::Unconfigured;
     }
-    if verify_webhook_signature(body, signature.unwrap_or_default(), secret) {
+    if verify_webhook_signature(body, signature.unwrap_or(""), secret) {
         DeliveryAuth::Verified
     } else {
         DeliveryAuth::Mismatch
@@ -233,7 +233,10 @@ pub async fn handle_webhook(
     // The signature binds the exact bytes Meta sent, so the body is read raw
     // and parsed only after the gate: `Json` would discard the original
     // serialization and no digest would ever match.
-    let app_secret = (state.secrets)(APP_SECRET_KEY).unwrap_or_default();
+    let app_secret = (state.secrets)(APP_SECRET_KEY).unwrap_or_else(|e| {
+        log::warn!("Failed to read {APP_SECRET_KEY}: {e}");
+        String::new()
+    });
     let signature = headers
         .get(SIGNATURE_HEADER)
         .and_then(|value| value.to_str().ok());

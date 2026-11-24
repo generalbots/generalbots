@@ -201,7 +201,9 @@ pub fn register_get_from_fn(
                 }),
                 Err(e) => Err(format!("Failed to create runtime: {e}")),
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("GET worker: failed to send result over channel: {e}");
+            }
         });
         let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
         let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
@@ -227,7 +229,9 @@ pub fn register_get_from_fn(
                 }),
                 Err(e) => Err(format!("Failed to create runtime: {e}")),
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("GET worker: failed to send result over channel: {e}");
+            }
         });
         let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
         let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
@@ -265,7 +269,9 @@ pub fn register_get_from_keyword(
                         }),
                         Err(e) => Err(format!("Failed to create runtime: {e}")),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("GET worker: failed to send result over channel: {e}");
+                    }
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 

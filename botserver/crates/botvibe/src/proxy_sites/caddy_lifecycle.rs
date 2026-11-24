@@ -41,7 +41,9 @@ pub async fn promote_site_test_to_prod(
         // Stage: archive the test payload inside the proxy, extract into the
         // production staging dir, then reuse the standard swap.
         let arch = format!("/tmp/gb-promote-{}.tar", std::process::id());
-        let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 15);
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 15) {
+            log::warn!("Vibe promote: remove stale archive failed: {e}");
+        }
         must_run(
             "archive test payload",
             &[
@@ -55,24 +57,36 @@ pub async fn promote_site_test_to_prod(
             120,
         )?;
         let new_dir = format!("{}.new", prod.dir);
-        let _ = must_run("cleanup promote staging", &["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30);
+        if let Err(e) = must_run("cleanup promote staging", &["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30) {
+            log::warn!("Vibe promote: clean staging dir failed: {e}");
+        }
         must_run("mkdir promote staging", &["mkdir".to_string(), "-p".to_string(), new_dir.clone()], 20)?;
         let extract = must_run(
             "extract promote staging",
             &["tar".to_string(), "-xf".to_string(), arch.clone(), "-C".to_string(), new_dir.clone()],
             120,
         );
-        let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 20);
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 20) {
+            log::warn!("Vibe promote: remove promote archive failed: {e}");
+        }
         extract?;
         // The marker must survive the copy; add it if the archive missed it.
-        let _ = proxy_exec(&["touch".to_string(), format!("{new_dir}/{MARKER_FILE}")], 15);
+        if let Err(e) = proxy_exec(&["touch".to_string(), format!("{new_dir}/{MARKER_FILE}")], 15) {
+            log::warn!("Vibe promote: write ownership marker failed: {e}");
+        }
         // Refresh the prod release ring and swap payloads.
         rotate_release(&prod.dir)?;
         let old_dir = format!("{}.old", prod.dir);
-        let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30);
-        let _ = proxy_exec(&["mv".to_string(), prod.dir.clone(), old_dir.clone()], 20);
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30) {
+            log::warn!("Vibe promote: remove stale old dir failed: {e}");
+        }
+        if let Err(e) = proxy_exec(&["mv".to_string(), prod.dir.clone(), old_dir.clone()], 20) {
+            log::warn!("Vibe promote: move current payload to old dir failed: {e}");
+        }
         must_run("promote test→prod", &["mv".to_string(), new_dir, prod.dir.clone()], 20)?;
-        let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir], 30);
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir], 30) {
+            log::warn!("Vibe promote: remove retired old dir failed: {e}");
+        }
         // Service + route refresh identical to a direct prod deploy: the
         // caller's python flag decides the mode (the promoted payload carries
         // app.py exactly when the test site is python).
@@ -120,10 +134,16 @@ pub(crate) fn rollback_site_for_sync(slug: &str, target: &SiteTarget, env: SiteE
     }
     // Current payload becomes .prev-1 (the target) → swap through .old.
     let old_dir = format!("{site_dir}.old");
-    let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30);
-    let _ = proxy_exec(&["mv".to_string(), site_dir.to_string(), old_dir.clone()], 20);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30) {
+        log::warn!("Vibe rollback: remove stale old dir failed: {e}");
+    }
+    if let Err(e) = proxy_exec(&["mv".to_string(), site_dir.to_string(), old_dir.clone()], 20) {
+        log::warn!("Vibe rollback: move current payload to old dir failed: {e}");
+    }
     must_run("promote previous", &["mv".to_string(), prev.clone(), site_dir.to_string()], 20)?;
-    let _ = proxy_exec(&["mv".to_string(), old_dir, prev], 20);
+    if let Err(e) = proxy_exec(&["mv".to_string(), old_dir, prev], 20) {
+        log::warn!("Vibe rollback: restore previous release ring failed: {e}");
+    }
     // Determine whether the payload is python (app.py present) and refresh
     // the service + route accordingly.
     let py = proxy_exec(
@@ -199,41 +219,53 @@ pub(crate) fn unpublish_site_for_sync(slug: &str, purge: bool, target: &SiteTarg
     let unit = format!("/etc/systemd/system/gb-vibe-{unit_name}.service");
     let has_unit = proxy_exec(&["test".to_string(), "-f".to_string(), unit.clone()], 15)?;
     if has_unit.exit_code == Some(0) {
-        let _ = proxy_exec(
+        if let Err(e) = proxy_exec(
             &[
                 "systemctl".to_string(),
                 "stop".to_string(),
                 format!("gb-vibe-{unit_name}"),
             ],
             30,
-        );
-        let _ = proxy_exec(
+        ) {
+            log::warn!("Vibe unpublish: stop python service failed: {e}");
+        }
+        if let Err(e) = proxy_exec(
             &[
                 "systemctl".to_string(),
                 "disable".to_string(),
                 format!("gb-vibe-{unit_name}"),
             ],
             30,
-        );
-        let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), unit], 15);
-        let _ = proxy_exec(&["systemctl".to_string(), "daemon-reload".to_string()], 30);
+        ) {
+            log::warn!("Vibe unpublish: disable python service failed: {e}");
+        }
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), unit], 15) {
+            log::warn!("Vibe unpublish: remove python unit failed: {e}");
+        }
+        if let Err(e) = proxy_exec(&["systemctl".to_string(), "daemon-reload".to_string()], 30) {
+            log::warn!("Vibe unpublish: systemd daemon-reload failed: {e}");
+        }
     }
     // 3. Payload: keep `.prev-*` history by default, purge everything on
     //    explicit request.
     if purge {
-        let _ = proxy_exec(
+        if let Err(e) = proxy_exec(
             &["rm".to_string(), "-rf".to_string(), format!("{site_dir}.prev-*")],
             120,
-        );
+        ) {
+            log::warn!("Vibe unpublish: purge release history failed: {e}");
+        }
     }
-    let _ = proxy_exec(
+    if let Err(e) = proxy_exec(
         &[
             "mv".to_string(),
             site_dir.clone(),
             format!("{site_dir}.unpublished"),
         ],
         20,
-    );
+    ) {
+        log::warn!("Vibe unpublish: retire payload dir failed: {e}");
+    }
     log::info!("Vibe unpublish {slug} ({}): route removed, payload retired (purge={purge})", env.as_str());
     Ok(())
 }

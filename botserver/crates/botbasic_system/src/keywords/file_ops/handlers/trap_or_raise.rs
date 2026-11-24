@@ -103,7 +103,10 @@ pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 let data_str = if data.is_string() {
                     data.to_string()
                 } else {
-                    serde_json::to_string(&crate::keywords::file_ops::utils::dynamic_to_json(&data)).unwrap_or_default()
+                    serde_json::to_string(&crate::keywords::file_ops::utils::dynamic_to_json(&data)).unwrap_or_else(|e| {
+                        log::warn!("Failed to serialize WRITE data: {e}");
+                        String::new()
+                    })
                 };
 
                 let (tx, rx) = std::sync::mpsc::channel();

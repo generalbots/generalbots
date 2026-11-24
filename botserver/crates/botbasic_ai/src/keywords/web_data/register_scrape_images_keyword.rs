@@ -14,12 +14,16 @@ pub(super) fn register_scrape_images_keyword(_state: Arc<dyn BasicRuntime>, _use
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE_IMAGES registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { scrape_images(&url).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE_IMAGES registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),

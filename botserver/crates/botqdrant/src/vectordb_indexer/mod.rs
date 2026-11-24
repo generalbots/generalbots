@@ -138,13 +138,13 @@ mod email_types {
                         .get("payload")
                         .and_then(|p| p.as_object())
                         .cloned()
-                        .unwrap_or_default();
+                        .unwrap_or_else(serde_json::Map::new);
                     let get_str = |key: &str| -> String {
                         payload
                             .get(key)
                             .and_then(|v| v.as_str())
                             .map(|s| s.to_string())
-                            .unwrap_or_default()
+                            .unwrap_or_else(String::new)
                     };
                     let email = EmailDocument {
                         id: get_str("id"),

@@ -219,7 +219,10 @@ mod tests {
             let name = event_type.as_str();
             assert_eq!(OfficeEventType::from_name(name), Some(event_type));
             assert_eq!(name.parse::<OfficeEventType>().ok(), Some(event_type));
-            let json = serde_json::to_string(&event_type).unwrap_or_default();
+            let json = serde_json::to_string(&event_type).unwrap_or_else(|e| {
+                eprintln!("event type serialization failed: {e}");
+                String::new()
+            });
             assert_eq!(json, format!("\"{name}\""));
         }
     }

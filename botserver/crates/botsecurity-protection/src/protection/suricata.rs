@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{info, warn};
 
 use botsecurity_core::command_guard::SafeCommand;
 use super::manager::{Finding, FindingSeverity, ScanResultStatus};
@@ -12,11 +12,17 @@ const SURICATA_RULES_DIR: &str = "/var/lib/suricata/rules";
 pub async fn get_alerts() -> Result<(ScanResultStatus, Vec<Finding>, String)> {
     info!("Retrieving Suricata alerts");
 
-    let alerts = parse_eve_log(100).await.unwrap_or_default();
+    let alerts = parse_eve_log(100).await.unwrap_or_else(|e| {
+        warn!("Failed to parse Suricata EVE log for alerts: {e}");
+        Vec::new()
+    });
     let findings = alerts_to_findings(&alerts);
     let status = determine_result_status(&findings);
 
-    let raw_output = serde_json::to_string_pretty(&alerts).unwrap_or_default();
+    let raw_output = serde_json::to_string_pretty(&alerts).unwrap_or_else(|e| {
+        warn!("Failed to serialize Suricata alerts: {e}");
+        String::new()
+    });
 
     Ok((status, findings, raw_output))
 }
@@ -120,7 +126,10 @@ pub async fn get_rule_count() -> Result<u32> {
 }
 
 pub async fn get_stats() -> Result<SuricataStats> {
-    let alerts = parse_eve_log(1000).await.unwrap_or_default();
+    let alerts = parse_eve_log(1000).await.unwrap_or_else(|e| {
+        warn!("Failed to parse Suricata EVE log for stats: {e}");
+        Vec::new()
+    });
     let today = Utc::now().date_naive();
 
     let alerts_today = alerts
@@ -155,11 +164,11 @@ pub async fn parse_eve_log(limit: usize) -> Result<Vec<SuricataAlert>> {
                 if let Some(alert_data) = event.alert {
                     let alert = SuricataAlert {
                         timestamp: event.timestamp,
-                        src_ip: event.src_ip.unwrap_or_default(),
+                        src_ip: event.src_ip.unwrap_or_else(String::new),
                         src_port: event.src_port.unwrap_or(0),
-                        dest_ip: event.dest_ip.unwrap_or_default(),
+                        dest_ip: event.dest_ip.unwrap_or_else(String::new),
                         dest_port: event.dest_port.unwrap_or(0),
-                        protocol: event.proto.unwrap_or_default(),
+                        protocol: event.proto.unwrap_or_else(String::new),
                         signature: alert_data.signature,
                         signature_id: alert_data.signature_id,
                         severity: alert_data.severity,

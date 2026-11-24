@@ -42,7 +42,16 @@ pub async fn analyze_image(headers: HeaderMap, Json(req): Json<AnalysisRequest>)
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let params_json = req.parameters.as_ref().map(|p| serde_json::to_value(p).unwrap_or_default()).unwrap_or(serde_json::Value::Null);
+    let params_json = req
+        .parameters
+        .as_ref()
+        .map(|p| {
+            serde_json::to_value(p).unwrap_or_else(|e| {
+                log::warn!("failed to serialize analysis parameters: {e}");
+                serde_json::Value::Null
+            })
+        })
+        .unwrap_or(serde_json::Value::Null);
     let labels = serde_json::json!(["detected"]);
     let confidence = Decimal::new(95, 2);
     diesel::sql_query(

@@ -164,7 +164,10 @@ impl FaceApiService {
             .map_err(|e| FaceApiError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             return Err(FaceApiError::ApiError(error_text));
         }
 
@@ -209,7 +212,10 @@ impl FaceApiService {
             .map_err(|e| FaceApiError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             return Err(FaceApiError::ApiError(error_text));
         }
 

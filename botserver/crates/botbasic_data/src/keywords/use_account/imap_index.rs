@@ -135,7 +135,9 @@ pub(super) async fn index_imap_account_emails(
                 }
             }
         }
-        let _ = session.logout();
+        if let Err(e) = session.logout() {
+            log::warn!("IMAP logout failed: {e}");
+        }
         emails
     }).await.unwrap_or_else(|e| {
         log::warn!("IMAP email indexing task failed: {e}");

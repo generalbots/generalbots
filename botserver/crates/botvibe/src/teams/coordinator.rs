@@ -212,7 +212,9 @@ pub(crate) async fn create_team(
             }));
         }
         for handle in handles {
-            let _ = handle.await;
+            if let Err(e) = handle.await {
+                log::warn!("Vibe team member task failed: {e}");
+            }
         }
     });
 

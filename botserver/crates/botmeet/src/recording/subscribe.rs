@@ -66,10 +66,12 @@ impl RecordingService {
             .await?;
 
         // Broadcast event
-        let _ = self.event_sender.send(RecordingEvent::Started {
+        if let Err(e) = self.event_sender.send(RecordingEvent::Started {
             recording_id,
             webinar_id: request.webinar_id,
-        });
+        }) {
+            log::warn!("Recording: failed to broadcast Started event: {e}");
+        }
 
         Ok(WebinarRecording {
             id: recording_id,
@@ -107,9 +109,12 @@ impl RecordingService {
 
         session.paused_at = Some(Utc::now());
 
-        let _ = self
+        if let Err(e) = self
             .event_sender
-            .send(RecordingEvent::Paused { recording_id });
+            .send(RecordingEvent::Paused { recording_id })
+        {
+            log::warn!("Recording: failed to broadcast Paused event: {e}");
+        }
 
         Ok(())
     }
@@ -126,9 +131,12 @@ impl RecordingService {
             session.paused_at = None;
         }
 
-        let _ = self
+        if let Err(e) = self
             .event_sender
-            .send(RecordingEvent::Resumed { recording_id });
+            .send(RecordingEvent::Resumed { recording_id })
+        {
+            log::warn!("Recording: failed to broadcast Resumed event: {e}");
+        }
 
         Ok(())
     }
@@ -158,10 +166,12 @@ impl RecordingService {
         .await?;
 
         // Broadcast stop event
-        let _ = self.event_sender.send(RecordingEvent::Stopped {
+        if let Err(e) = self.event_sender.send(RecordingEvent::Stopped {
             recording_id: request.recording_id,
             duration_seconds,
-        });
+        }) {
+            log::warn!("Recording: failed to broadcast Stopped event: {e}");
+        }
 
         // Start processing
         self.process_recording(request.recording_id).await?;
@@ -198,9 +208,12 @@ impl RecordingService {
     }
 
     async fn process_recording(&self, recording_id: Uuid) -> Result<(), RecordingError> {
-        let _ = self
+        if let Err(e) = self
             .event_sender
-            .send(RecordingEvent::ProcessingStarted { recording_id });
+            .send(RecordingEvent::ProcessingStarted { recording_id })
+        {
+            log::warn!("Recording: failed to broadcast ProcessingStarted event: {e}");
+        }
 
         // In production, this would:
         // 1. Convert raw recording to final format (MP4/WebM)
@@ -218,10 +231,12 @@ impl RecordingService {
         self.update_recording_processed(recording_id, &file_url, &download_url)
             .await?;
 
-        let _ = self.event_sender.send(RecordingEvent::ProcessingCompleted {
+        if let Err(e) = self.event_sender.send(RecordingEvent::ProcessingCompleted {
             recording_id,
             file_url,
-        });
+        }) {
+            log::warn!("Recording: failed to broadcast ProcessingCompleted event: {e}");
+        }
 
         Ok(())
     }
@@ -274,12 +289,15 @@ impl RecordingService {
                 .await
         });
 
-        let _ = self
+        if let Err(e) = self
             .event_sender
             .send(RecordingEvent::TranscriptionStarted {
                 transcription_id,
                 recording_id,
-            });
+            })
+        {
+            log::warn!("Recording: failed to broadcast TranscriptionStarted event: {e}");
+        }
 
         Ok(WebinarTranscription {
             id: transcription_id,

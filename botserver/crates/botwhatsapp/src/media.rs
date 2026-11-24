@@ -42,7 +42,7 @@ pub async fn message_content(
     message: &WhatsAppMessage,
 ) -> String {
     let Some(media) = select_media(message) else {
-        return extract_message_text(message).unwrap_or_default();
+        return extract_message_text(message).unwrap_or_else(String::new);
     };
 
     let caption = media.caption.as_deref().unwrap_or("").trim();

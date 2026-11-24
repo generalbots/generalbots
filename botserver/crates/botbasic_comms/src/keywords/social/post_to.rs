@@ -44,7 +44,9 @@ pub fn post_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                             &media_owned,
                             &caption_owned,
                         ));
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("POST_TO keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 
@@ -107,7 +109,9 @@ fn register_platform_shortcuts(state: Arc<dyn BasicRuntime>, user: UserSession, 
                                 &media_owned,
                                 &caption_owned,
                             ));
-                            let _ = tx.send(result);
+                            if let Err(e) = tx.send(result) {
+                                log::warn!("POST_TO keyword: result channel send failed: {e}");
+                            }
                         }
                     });
 

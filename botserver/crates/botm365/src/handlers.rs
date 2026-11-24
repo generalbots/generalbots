@@ -119,7 +119,7 @@ pub async fn list_calendar(headers: HeaderMap) -> Result<Json<Vec<CalendarEvent>
     Ok(Json(rows.into_iter().map(|r| CalendarEvent {
         id: r.id, subject: r.subject, start: r.start_time, end: r.end_time,
         location: r.location,
-        attendees: r.attendees.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
+        attendees: r.attendees.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_else(Vec::new),
         status: r.status,
     }).collect()))
 }

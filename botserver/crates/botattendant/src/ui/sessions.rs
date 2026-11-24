@@ -274,7 +274,7 @@ pub async fn queues_list(State(config): State<Arc<AttendantConfig>>) -> Html<Str
             let items: String = queues
                 .iter()
                 .map(|(id, name, desc, priority)| {
-                    let description = desc.clone().unwrap_or_default();
+                    let description = desc.clone().unwrap_or_else(String::new);
                     format!(
                         r##"<div class="queue-item" data-id="{}">
 <div class="queue-header">

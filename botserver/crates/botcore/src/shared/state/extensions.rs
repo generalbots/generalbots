@@ -26,9 +26,13 @@ impl Extensions {
                     guard.insert(std::any::TypeId::of::<T>(), Arc::new(value));
                 });
             }
-            let _ = tx.send(());
+            if let Err(e) = tx.send(()) {
+                log::warn!("Could not signal Extensions insert completion: {e}");
+            }
         });
-        let _ = rx.recv();
+        if let Err(e) = rx.recv() {
+            log::warn!("Extensions insert worker stopped before acknowledging: {e}");
+        }
     }
 
     pub async fn get<T: Send + Sync + 'static>(&self) -> Option<Arc<T>> {

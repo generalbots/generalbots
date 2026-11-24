@@ -144,7 +144,9 @@ impl VmOps {
                 Ok(()) => report = self.probe(&vm).await?,
                 Err(e) => report.error = Some(format!("restart: {e}")),
             }
-            let _ = lifecycle.sync_status(vm.id);
+            if let Err(e) = lifecycle.sync_status(vm.id) {
+                log::warn!("Vibe ops: sync status for VM {} failed: {e}", vm.id);
+            }
         }
         Ok(report)
     }

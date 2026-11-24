@@ -61,7 +61,7 @@ pub(crate) fn validate_bearer_token_sync(
     let sub = claims
         .get("sub")
         .and_then(|value| value.as_str())
-        .unwrap_or_default();
+        .unwrap_or("");
     if sub.is_empty() {
         return Err(AuthError::InvalidToken);
     }
@@ -70,7 +70,7 @@ pub(crate) fn validate_bearer_token_sync(
     let email = claims
         .get("email")
         .and_then(|value| value.as_str())
-        .unwrap_or_default();
+        .unwrap_or("");
     let username = claims
         .get("username")
         .and_then(|value| value.as_str())

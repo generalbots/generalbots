@@ -142,7 +142,7 @@ impl ReplayState {
                         let id = message
                             .get("id")
                             .and_then(Value::as_str)
-                            .unwrap_or_default()
+                            .unwrap_or("")
                             .to_string();
                         if id.is_empty() {
                             continue;
@@ -159,7 +159,7 @@ impl ReplayState {
                                 content: message
                                     .get("content")
                                     .and_then(Value::as_str)
-                                    .unwrap_or_default()
+                                    .unwrap_or("")
                                     .to_string(),
                             },
                         );
@@ -207,7 +207,7 @@ impl ReplayState {
                     name: data
                         .get("name")
                         .and_then(Value::as_str)
-                        .unwrap_or_default()
+                        .unwrap_or("")
                         .to_string(),
                     payload: data.get("payload").cloned().unwrap_or(Value::Null),
                 });

@@ -250,7 +250,9 @@ impl PackageManager {
             };
             if !keys.is_empty() {
                 secrets::write(secrets::UNSEAL_KEYS_SECRET, &keys.join("\n"))?;
-                let _ = std::fs::remove_file(&legacy);
+                if let Err(e) = std::fs::remove_file(&legacy) {
+                    warn!("Could not remove legacy unseal-key file {}: {e}", legacy.display());
+                }
                 info!("Migrated unseal keys out of the user-owned stack");
             }
             keys
@@ -298,7 +300,9 @@ impl PackageManager {
                 if self.vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
                     info!("Vault credentials already exist, skipping seed on recovery");
                 } else {
-                    let _ = self.seed_vault_defaults(&vault_addr, &token, &ca_cert, &vault_bin);
+                    if let Err(e) = self.seed_vault_defaults(&vault_addr, &token, &ca_cert, &vault_bin) {
+                        warn!("Could not seed Vault defaults during recovery: {e}");
+                    }
                 }
             }
             Err(_) => warn!("No scoped Vault token in the credential store — re-run first-run provisioning"),

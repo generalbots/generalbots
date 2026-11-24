@@ -5,7 +5,7 @@ impl ImageGeneratorConfig {
         Self {
             model: provider
                 .get_config(bot_id, "image-generator-model", None)
-                .unwrap_or_default(),
+                .unwrap_or_else(String::new),
             steps: provider
                 .get_config(bot_id, "image-generator-steps", Some("4"))
                 .unwrap_or( "4".to_string())

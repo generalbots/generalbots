@@ -218,14 +218,22 @@ fn persist_route_block(container: &str, domain: &str, dial: &str) {
             "--adapter", "caddyfile", "--config", candidate,
         ]);
         if validate.is_err() {
-            let _ = run(&["exec", container, "--", "rm", "-f", candidate]);
+            if let Err(e) = run(&["exec", container, "--", "rm", "-f", candidate]) {
+                log::warn!("Vibe caddy: remove rejected candidate failed: {e}");
+            }
             return Err("candidate Caddyfile rejected by caddy validate".to_string());
         }
         run(&["exec", container, "--", "cp", conf, backup])?;
         run(&["file", "push", edited.to_str().ok_or("edited path")?, &format!("{container}{conf}")])?;
-        let _ = run(&["exec", container, "--", "rm", "-f", candidate]);
-        let _ = std::fs::remove_file(&tmp);
-        let _ = std::fs::remove_file(&edited);
+        if let Err(e) = run(&["exec", container, "--", "rm", "-f", candidate]) {
+            log::warn!("Vibe caddy: remove used candidate failed: {e}");
+        }
+        if let Err(e) = std::fs::remove_file(&tmp) {
+            log::warn!("Vibe caddy: remove temp config failed: {e}");
+        }
+        if let Err(e) = std::fs::remove_file(&edited) {
+            log::warn!("Vibe caddy: remove edited config failed: {e}");
+        }
         Ok(())
     })();
     if let Err(e) = result {

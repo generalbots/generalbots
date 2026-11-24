@@ -113,9 +113,11 @@ where
         let runtime = match tokio::runtime::Runtime::new() {
             Ok(runtime) => runtime,
             Err(e) => {
-                let _ = tx.send(ExecutionResult::error(&format!(
+                if let Err(e) = tx.send(ExecutionResult::error(&format!(
                     "Failed to create runtime: {e}"
-                )));
+                ))) {
+                    log::warn!("RUN_PYTHON keyword: result channel send failed: {e}");
+                }
                 return;
             }
         };
@@ -125,7 +127,9 @@ where
                 Err(_) => ExecutionResult::timeout(),
             }
         });
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("RUN_PYTHON keyword: result channel send failed: {e}");
+        }
     });
 
     match rx.recv_timeout(CALLER_DEADLINE + Duration::from_secs(CALLER_MARGIN_SECS)) {

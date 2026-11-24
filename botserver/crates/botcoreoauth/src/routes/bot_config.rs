@@ -21,7 +21,10 @@ pub(super) async fn get_bot_config(state: &OAuthState_) -> HashMap<String, Strin
         _ => return HashMap::new(),
     };
 
-    read_bot_config_from_vault(&active_bot_id).unwrap_or_default()
+    read_bot_config_from_vault(&active_bot_id).unwrap_or_else(|| {
+        log::warn!("Bot OAuth configuration is unavailable; keeping all providers disabled");
+        HashMap::new()
+    })
 }
 
 pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {

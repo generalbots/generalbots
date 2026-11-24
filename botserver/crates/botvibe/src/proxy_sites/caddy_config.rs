@@ -97,7 +97,9 @@ pub(crate) fn validate_candidate(candidate: &Path) -> Result<(), String> {
         ],
         60,
     );
-    let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_tmp], 20);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_tmp], 20) {
+        log::warn!("Vibe caddy config: remove staged candidate failed: {e}");
+    }
     let out = res?;
     if out.exit_code != Some(0) {
         return Err(format!(
@@ -136,14 +138,20 @@ pub(crate) fn reload_caddy() -> Result<(), String> {
 /// (`.prev-1` = most recent), oldest dropped.
 pub(crate) fn backup_proxy_config() -> Result<(), String> {
     let oldest = format!("{PROXY_CADDY_CONFIG}.prev-{RELEASE_RETENTION}");
-    let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), oldest], 30);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), oldest], 30) {
+        log::warn!("Vibe caddy config: drop oldest config backup failed: {e}");
+    }
     for n in (1..RELEASE_RETENTION).rev() {
         let from = format!("{PROXY_CADDY_CONFIG}.prev-{n}");
         let to = format!("{PROXY_CADDY_CONFIG}.prev-{}", n + 1);
         let has = proxy_exec(&["test".to_string(), "-f".to_string(), from.clone()], 15)?;
         if has.exit_code == Some(0) {
-            let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), to.clone()], 30);
-            let _ = proxy_exec(&["mv".to_string(), from, to], 20);
+            if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), to.clone()], 30) {
+                log::warn!("Vibe caddy config: remove config backup slot failed: {e}");
+            }
+            if let Err(e) = proxy_exec(&["mv".to_string(), from, to], 20) {
+                log::warn!("Vibe caddy config: rotate config backup slot failed: {e}");
+            }
         }
     }
     let _ = proxy_exec(
@@ -291,16 +299,24 @@ pub(crate) fn upsert_site_config(site_host: &str, block: &str) -> Result<(), Str
             );
             if let Ok(g) = got {
                 if g.exit_code == Some(0) {
-                    let _ = push_proxy_config(&restore);
-                    let _ = reload_caddy();
+                    if let Err(e) = push_proxy_config(&restore) {
+                        log::warn!("Vibe caddy config: restore backup config push failed: {e}");
+                    }
+                    if let Err(e) = reload_caddy() {
+                        log::warn!("Vibe caddy config: caddy reload after restore failed: {e}");
+                    }
                 }
             }
-            let _ = std::fs::remove_file(&restore);
+            if let Err(e) = std::fs::remove_file(&restore) {
+                log::warn!("Vibe caddy config: remove local backup temp failed: {e}");
+            }
             return Err(format!("caddy reload failed (config restored): {e}"));
         }
         Ok(())
     })();
-    let _ = std::fs::remove_file(&tmp_pull);
+    if let Err(e) = std::fs::remove_file(&tmp_pull) {
+        log::warn!("Vibe caddy config: remove local pulled config failed: {e}");
+    }
     result
 }
 
@@ -329,6 +345,8 @@ pub(crate) fn remove_site_config(site_host: &str) -> Result<(), String> {
         reload_caddy()?;
         Ok(())
     })();
-    let _ = std::fs::remove_file(&tmp_pull);
+    if let Err(e) = std::fs::remove_file(&tmp_pull) {
+        log::warn!("Vibe caddy config: remove local pulled config failed: {e}");
+    }
     result
 }

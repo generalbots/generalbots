@@ -42,7 +42,7 @@ async fn upcoming() -> Result<Html<String>, (StatusCode, String)> {
                     let parts: Vec<String> = m.get("participants")
                         .and_then(|v| v.as_array())
                         .map(|a| a.iter().filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(String::from)).collect())
-                        .unwrap_or_default();
+                        .unwrap_or_else(Vec::new);
                     Some(render_meeting_card(&MeetingCard {
                         id: &id,
                         title: &title,
@@ -174,7 +174,7 @@ async fn transcripts() -> Result<Html<String>, (StatusCode, String)> {
     match minutes::list_transcripts(HeaderMap::new()).await {
         Ok(Json(value)) => {
             let items = value.get("items").cloned().unwrap_or(serde_json::Value::Array(vec![]));
-            let arr = items.as_array().cloned().unwrap_or_default();
+            let arr = items.as_array().cloned().unwrap_or_else(Vec::new);
             if arr.is_empty() {
                 return Ok(Html(r#"<div class="gb-empty">Nenhuma transcrição disponível.</div>"#.to_string()));
             }
@@ -214,7 +214,7 @@ async fn documents() -> Result<Html<String>, (StatusCode, String)> {
     match minutes::list_documents(HeaderMap::new()).await {
         Ok(Json(value)) => {
             let items = value.get("items").cloned().unwrap_or(serde_json::Value::Array(vec![]));
-            let arr = items.as_array().cloned().unwrap_or_default();
+            let arr = items.as_array().cloned().unwrap_or_else(Vec::new);
             if arr.is_empty() {
                 return Ok(Html(r#"<div class="gb-empty">Nenhuma ata gerada.</div>"#.to_string()));
             }

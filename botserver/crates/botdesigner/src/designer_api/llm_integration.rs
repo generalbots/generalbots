@@ -234,9 +234,10 @@ fn build_designer_prompt(state: &DesignerState, request: &DesignerModifyRequest)
             }
             info
         })
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
-    let error_context = (state.get_designer_error_context)(&request.app_name).unwrap_or_default();
+    let error_context =
+        (state.get_designer_error_context)(&request.app_name).unwrap_or_else(String::new);
 
     format!(
         r#"You are a Designer AI assistant helping modify an HTMX-based application.
@@ -289,7 +290,7 @@ fn call_designer_llm(
         .unwrap_or_else(|_| "claude-sonnet-4-20250514".to_string());
 
     let api_key = (state.get_config)(&Uuid::nil().to_string(), "llm-key", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| String::new());
 
     let messages = serde_json::json!({
         "model": model,
@@ -397,7 +398,7 @@ async fn parse_and_apply_changes(
         }
     });
 
-    let suggestions = parsed.suggestions.unwrap_or_default();
+    let suggestions = parsed.suggestions.unwrap_or_else(Vec::new);
 
     Ok((applied_changes, message, suggestions))
 }

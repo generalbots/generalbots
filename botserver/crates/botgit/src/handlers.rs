@@ -151,7 +151,10 @@ pub async fn git_diff(
     let out = run_git(&repo, &["diff", "HEAD", "--", file]);
     let diff = match out {
         Ok(d) => d,
-        Err(_) => run_git(&repo, &["diff", "--cached", "--", file]).unwrap_or_default(),
+        Err(_) => run_git(&repo, &["diff", "--cached", "--", file]).unwrap_or_else(|e| {
+            log::warn!("git diff --cached failed for {repo} {file}: {e}");
+            String::new()
+        }),
     };
     Ok(Json(serde_json::json!({ "file": file, "diff": diff })))
 }
@@ -234,9 +237,15 @@ pub async fn git_branches(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let repo = resolve_repo(params.repo.as_deref());
     let out = run_git(&repo, &["branch", "--format=%(refname:short)"]);
-    let current = run_git(&repo, &["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_default();
+    let current = run_git(&repo, &["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|e| {
+        log::warn!("git rev-parse HEAD failed for {repo}: {e}");
+        String::new()
+    });
     let branches: Vec<GitBranch> = out
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("git branch listing failed for {repo}: {e}");
+            String::new()
+        })
         .lines()
         .map(|b| b.trim().to_string())
         .filter(|b| !b.is_empty())
@@ -281,7 +290,10 @@ pub async fn git_log(
         &["log", "-20", "--pretty=format:%H%x00%s%x00%an%x00%ad", "--date=short"],
     );
     let commits: Vec<GitLogEntry> = out
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("git log failed for {repo}: {e}");
+            String::new()
+        })
         .lines()
         .filter_map(|line| {
             let mut parts = line.splitn(4, '\x00');
@@ -316,9 +328,15 @@ pub async fn git_tree(
     if !dir.is_empty() {
         ls_args.push(dir);
     }
-    let listing = run_git(&repo, &ls_args).unwrap_or_default();
+    let listing = run_git(&repo, &ls_args).unwrap_or_else(|e| {
+        log::warn!("git ls-files failed for {repo}: {e}");
+        String::new()
+    });
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-    let status_out = run_git(&repo, &["status", "--porcelain=v1", "-z"]).unwrap_or_default();
+    let status_out = run_git(&repo, &["status", "--porcelain=v1", "-z"]).unwrap_or_else(|e| {
+        log::warn!("git status failed for {repo}: {e}");
+        String::new()
+    });
     let mut status_by_path: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
     for record in status_out.split('\0').filter(|r| r.len() > 3) {
@@ -361,7 +379,7 @@ pub async fn git_tree(
             let full = if dir.is_empty() { rest.clone() } else { format!("{dir}/{rest}") };
             if seen.insert(format!("f:{full}")) {
                 entries.push(GitTreeEntry {
-                    status: status_by_path.get(&full).cloned().unwrap_or_default(),
+                    status: status_by_path.get(&full).cloned().unwrap_or_else(String::new),
                     path: full,
                     is_dir: false,
                 });

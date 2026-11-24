@@ -208,7 +208,7 @@ pub async fn delete_document_from_drive(
         .is_ok();
     let named_keys = (state.s3_list)(&state.bucket_name, &named_prefix)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
     if !current_exists && named_keys.is_empty() {
         return Err("Document not found".to_string());
     }

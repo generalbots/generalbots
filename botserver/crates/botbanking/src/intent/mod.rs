@@ -159,7 +159,7 @@ impl BankingRequest {
     /// `GET UNMATCHED DELIVERIES <reconciled ids>`.
     pub fn unmatched_deliveries(reconciled_ids_json: &str) -> Self {
         let exclude_ids: Vec<String> =
-            serde_json::from_str(reconciled_ids_json).unwrap_or_default();
+            serde_json::from_str(reconciled_ids_json).unwrap_or_else(|_| Vec::new());
         Self::UnmatchedQuery(UnmatchedDeliveriesQuery {
             kind: BankingRequestKind::UnmatchedQuery,
             filter: UnmatchedFilter {
@@ -195,7 +195,7 @@ impl BankingRequest {
     pub fn to_json_string(&self) -> String {
         serde_json::to_value(self)
             .map(|value| value.to_string())
-            .unwrap_or_default()
+            .unwrap_or_else(|_| String::new())
     }
 }
 

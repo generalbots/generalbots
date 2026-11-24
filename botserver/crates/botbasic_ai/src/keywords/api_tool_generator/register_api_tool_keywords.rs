@@ -19,7 +19,9 @@ pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("API tool keyword registration: result channel send failed: {e}");
+        }
     });
     rx.recv().ok().flatten()
 }

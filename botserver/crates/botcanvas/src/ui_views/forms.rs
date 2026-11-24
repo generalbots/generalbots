@@ -27,7 +27,7 @@ pub async fn canvas_settings(
         .description
         .as_deref()
         .map(html_escape)
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let bg_color = canvas.background_color.as_deref().unwrap_or("#ffffff");
     let is_public_checked = if canvas.is_public { "checked" } else { "" };
     let is_template_checked = if canvas.is_template { "checked" } else { "" };

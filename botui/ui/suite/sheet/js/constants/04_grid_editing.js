@@ -133,7 +133,9 @@
     D.SheetAPI.updateCell(ref, val, self.instance || self).then(function (res) {
       if (res && res.success) {
         self.lastRenderedRange = null;
-        self.requestRange();
+        // #2459 — the edit's dependents are recalculated server-side and arrive
+        // in the range response; mark completion once they are on screen.
+        self.requestRange(D.markSheetRecalc);
         if (typeof self.onCellValueChanged === "function") {
           var dstRow = parseInt(cell.dataset.row, 10);
           var dstCol = parseInt(cell.dataset.col, 10);

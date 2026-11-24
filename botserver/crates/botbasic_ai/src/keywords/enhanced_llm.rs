@@ -32,7 +32,9 @@ pub fn register_enhanced_llm_keyword(state: Arc<AppState>, _user: UserSession, e
                         )
                         .await
                     });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("enhanced LLM keyword: result channel send failed: {e}");
+                    }
                 }
             });
             

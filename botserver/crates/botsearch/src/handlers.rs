@@ -134,7 +134,7 @@ pub async fn reindex_all(
     let org = resolve_org(&headers);
     let sources = payload
         .sources
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
         .iter()
         .filter_map(|s| parse_source(s))
         .collect::<Vec<_>>();
@@ -190,8 +190,8 @@ pub async fn search_entities(
     Query(query): Query<EntityQuery>,
 ) -> Result<Json<Vec<EntityResult>>, (StatusCode, String)> {
     let org = resolve_org(&headers);
-    let entity_type = query.type_.unwrap_or_default();
-    let term = query.q.unwrap_or_default();
+    let entity_type = query.type_.unwrap_or_else(String::new);
+    let term = query.q.unwrap_or_else(String::new);
     let mut entities = Vec::new();
 
     // #1437 — CRM person mentions: `@contact:<name>` (and friends) resolve
@@ -252,8 +252,8 @@ pub async fn search_entity(
     Query(query): Query<EntityQuery>,
 ) -> Result<Json<EntityResult>, (StatusCode, String)> {
     let org = resolve_org(&headers);
-    let entity_type = query.type_.unwrap_or_default();
-    let name = query.name.unwrap_or_default();
+    let entity_type = query.type_.unwrap_or_else(String::new);
+    let name = query.name.unwrap_or_else(String::new);
 
     let source = parse_source(&entity_type).unwrap_or(SearchSource::Drive);
     let response = service

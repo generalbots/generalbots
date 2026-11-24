@@ -5,9 +5,12 @@ use super::*;
 pub(super) fn drain_reader<R: std::io::Read>(reader: R) -> Vec<u8> {
     use std::io::Read;
     let mut buf = Vec::new();
-    let _ = reader
+    if let Err(e) = reader
         .take(MAX_OUTPUT_BYTES as u64 + 1)
-        .read_to_end(&mut buf);
+        .read_to_end(&mut buf)
+    {
+        log::warn!("Vibe command output drain failed: {e}");
+    }
     buf.truncate(MAX_OUTPUT_BYTES);
     buf
 }

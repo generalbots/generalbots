@@ -56,7 +56,7 @@ pub async fn save_settings(
     let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    let auto = current.auto_approve_under.parse::<Decimal>().unwrap_or_default();
+    let auto = current.auto_approve_under.parse::<Decimal>().unwrap_or_else(|_| Decimal::default());
     let now = Utc::now();
     let n = diesel::sql_query(
         "UPDATE banking_settings SET tolerance_cents=$2, date_window_days=$3, auto_approve_under=$4, notify_on_unmatched=$5, webhook=$6, updated_at=$7 WHERE branch_id=$1",
@@ -92,7 +92,7 @@ pub async fn reset_settings(headers: HeaderMap) -> Result<Json<BankingSettings>,
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let def = default_settings();
-    let auto = def.auto_approve_under.parse::<Decimal>().unwrap_or_default();
+    let auto = def.auto_approve_under.parse::<Decimal>().unwrap_or_else(|_| Decimal::default());
     let now = Utc::now();
     diesel::sql_query(
         "DELETE FROM banking_settings WHERE branch_id = $1",

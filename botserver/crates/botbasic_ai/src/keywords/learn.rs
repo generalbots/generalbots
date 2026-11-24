@@ -53,7 +53,9 @@ where
         .name("learn-worker".into())
         .spawn(move || {
             let outcome = work();
-            let _ = tx.send(outcome);
+            if let Err(e) = tx.send(outcome) {
+                log::warn!("LEARN keyword: result channel send failed: {e}");
+            }
         })
         .map_err(|e| format!("Spawn: {e}"))?;
     rx.recv_timeout(Duration::from_secs(45))

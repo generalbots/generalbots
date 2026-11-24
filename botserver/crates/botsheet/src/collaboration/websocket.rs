@@ -428,8 +428,9 @@ pub async fn handle_sheet_connection(
             sels.retain(|s| s.user_id != user_id_leave);
         }
     }
-
-    let _ = broadcast_tx.send(leave_msg);
+    if let Err(e) = broadcast_tx.send(leave_msg) {
+        log::warn!("Sheet collaboration: failed to broadcast leave: {e}");
+    }
 }
 
 #[cfg(test)]

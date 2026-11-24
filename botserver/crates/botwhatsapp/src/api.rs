@@ -20,7 +20,10 @@ pub async fn handle_send_message(
     let formatted_phone = format_phone_number(&payload.to);
 
     let bot_id = match payload.bot_id {
-        Some(ref id) => id.parse::<Uuid>().unwrap_or_default(),
+        Some(ref id) => id.parse::<Uuid>().unwrap_or_else(|e| {
+            log::warn!("Invalid WhatsApp bot_id {id:?}: {e}");
+            Uuid::nil()
+        }),
         None => {
             match get_bot_for_phone(&state, &formatted_phone) {
                 Ok((id, _)) => id,

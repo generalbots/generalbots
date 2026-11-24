@@ -44,7 +44,9 @@ pub(super) fn register_send_file_to(state: Arc<AppState>, user: UserSession, eng
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("universal messaging keyword: result channel send failed: {e}");
+                    }
                 });
                 rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send file: {}", e))?;
@@ -91,7 +93,9 @@ pub(super) fn register_send_file_to(state: Arc<AppState>, user: UserSession, eng
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("universal messaging keyword: result channel send failed: {e}");
+                    }
                 });
                 rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send file with caption: {}", e))?;
@@ -132,7 +136,9 @@ pub(super) fn register_send_to(state: Arc<AppState>, user: UserSession, engine: 
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("universal messaging keyword: result channel send failed: {e}");
+                    }
                 });
                 rx.recv().unwrap_or(Err("Failed to receive result".into()))
                 .map_err(|e| format!("Failed to send: {}", e))?;
@@ -167,7 +173,9 @@ pub(super) fn register_send_to(state: Arc<AppState>, user: UserSession, engine: 
                 }),
                 Err(_) => Err("Failed to create runtime".into()),
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("universal messaging keyword: result channel send failed: {e}");
+            }
         });
         match rx.recv() {
             Ok(Ok(())) => Dynamic::UNIT,
@@ -205,7 +213,9 @@ pub(super) fn register_broadcast(state: Arc<AppState>, user: UserSession, engine
                         }),
                         Err(_) => Err("Failed to create runtime".into()),
                     };
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("universal messaging keyword: result channel send failed: {e}");
+                    }
                 });
                 let results = rx.recv().unwrap_or(Err("Failed to receive result".into()))
                     .map_err(|e| format!("Failed to broadcast: {}", e))?;

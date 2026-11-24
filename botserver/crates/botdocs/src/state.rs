@@ -2,10 +2,12 @@ use std::sync::{Arc, OnceLock};
 
 use botcore::kb::permissions::UserContext;
 use botcore::kb::structured::{
-    InMemoryKbIndex, SearchHit, UpsertPoint, VectorSlot, DEFAULT_VECTOR_DIMENSION,
+    stable_id, InMemoryKbIndex, SearchHit, SourceRef, StructuredChunk, UpsertPoint, VectorSlot,
+    DEFAULT_VECTOR_DIMENSION,
 };
 use botcore::shared::analytics::MetricsCollector;
 use botlib::traits::DriveRepository;
+use serde::Deserialize;
 
 use crate::Document;
 pub use botlib::db_pool::DbPool;
@@ -32,6 +34,62 @@ pub type KbIndexer = Arc<dyn Fn(Vec<UpsertPoint>) -> Result<(), String> + Send +
 /// [`in_memory_kb_indexer`] so saves are actually searchable (#2499).
 pub fn noop_kb_indexer() -> KbIndexer {
     Arc::new(|_points| Ok(()))
+}
+
+/// #2499 — the document identity a citation points at: `Citation.document_id`,
+/// `Citation.file` and `Citation.version`. `SearchHit` deliberately drops these
+/// three fields, so retrieval reads them from the projection-time map instead.
+/// Only metadata is kept here — document bytes never enter this struct.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct KbCitationMeta {
+    pub document_id: String,
+    pub file: String,
+    pub version: String,
+}
+
+/// Deserialized only from `payload["citation"]`; unknown keys (including the
+/// full `source`/`heading_path`) are ignored, and the sibling `payload["content"]`
+/// is never read. This is what keeps the metadata map citation-only.
+#[derive(Debug, Deserialize)]
+struct CitationFields {
+    document_id: String,
+    file: String,
+    version: String,
+}
+
+impl KbCitationMeta {
+    fn from_payload(payload: &std::collections::HashMap<String, serde_json::Value>) -> Option<Self> {
+        let citation = payload.get("citation")?;
+        let fields: CitationFields = serde_json::from_value(citation.clone()).ok()?;
+        if fields.document_id.trim().is_empty()
+            || fields.file.trim().is_empty()
+            || fields.version.trim().is_empty()
+        {
+            return None;
+        }
+        Some(Self {
+            document_id: fields.document_id,
+            file: fields.file,
+            version: fields.version,
+        })
+    }
+}
+
+/// Per-index citation identity, keyed by stable point id. It is keyed by the
+/// shared index's `Arc` address so two `DocState`s (e.g. two tenants in tests)
+/// can never read each other's metadata, without changing `DocState`'s public
+/// fields — an external integration test constructs it with a literal.
+static KB_CITATIONS: OnceLock<std::sync::RwLock<std::collections::HashMap<usize, CitationMap>>> =
+    OnceLock::new();
+
+type CitationMap = std::collections::HashMap<String, KbCitationMeta>;
+
+fn citation_map() -> &'static std::sync::RwLock<std::collections::HashMap<usize, CitationMap>> {
+    KB_CITATIONS.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
+}
+
+fn index_key(index: &Arc<tokio::sync::RwLock<InMemoryKbIndex>>) -> usize {
+    Arc::as_ptr(index) as usize
 }
 
 /// Dependency-free lexical embedding used to fill the reserved vector slot of
@@ -72,7 +130,20 @@ fn fnv1a(text: &str) -> u64 {
 /// async runtime instead of dropping the projection, and a validation failure
 /// is reported to `project_to_kb` (which logs and swallows it).
 pub fn in_memory_kb_indexer(kb_index: Arc<tokio::sync::RwLock<InMemoryKbIndex>>) -> KbIndexer {
+    let key = index_key(&kb_index);
     Arc::new(move |points| {
+        // Capture the citation identity from the payload BEFORE the index
+        // consumes the point. `InMemoryKbIndex` keeps only `file` (as a private
+        // removal key) and drops `document_id`/`version` from every `SearchHit`.
+        for point in &points {
+            if let Some(meta) = KbCitationMeta::from_payload(&point.payload) {
+                let mut all = match citation_map().write() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => poisoned.into_inner(),
+                };
+                all.entry(key).or_default().insert(point.id.clone(), meta);
+            }
+        }
         let mut filled = Vec::with_capacity(points.len());
         for mut point in points {
             if !point.vector.is_ready() {
@@ -231,6 +302,25 @@ impl DocState {
         )
     }
 
+    /// #2499 — document identity for an already permission-filtered hit, keyed
+    /// by the stable point id. Missing metadata yields empty strings: never a
+    /// guess, never document bytes, never another tenant's data. The caller
+    /// reaches this only for hits the tenant/ACL filter already released.
+    pub fn citation_meta(&self, id: &str) -> KbCitationMeta {
+        let all = match citation_map().read() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        let map = match all.get(&index_key(&self.kb_index)) {
+            Some(map) => map,
+            None => return KbCitationMeta::default(),
+        };
+        match map.get(id) {
+            Some(meta) => meta.clone(),
+            None => KbCitationMeta::default(),
+        }
+    }
+
     /// #2499 — stable tenant UUID for a Drive bucket, so writer and reader
     /// always agree on named buckets (`default.gbai`) and real UUIDs.
     pub fn tenant_uuid(bucket: &str) -> uuid::Uuid {
@@ -258,9 +348,26 @@ impl DocState {
             tenant_id: &tenant,
             owner_id: user_id,
         };
-        let points = crate::handlers_api::kb_index::build_upsert_points(&input);
+        let mut points = crate::handlers_api::kb_index::build_upsert_points(&input);
         if points.is_empty() {
-            return;
+            // A single "Clause 7.3: ..." paragraph is consumed as a heading by
+            // the chunker; keep such non-empty documents searchable (#2499).
+            let d = crate::handlers_api::kb_index::build_index_document(&input);
+            if !d.text.trim().is_empty() {
+                let id = stable_id(&[&d.tenant_id, &d.document_id, &d.version, "all", &d.text]);
+                let chunk = StructuredChunk {
+                    id,
+                    document_id: d.document_id,
+                    file: d.file,
+                    version: d.version,
+                    tenant_id: d.tenant_id,
+                    heading_path: Vec::new(),
+                    source: SourceRef::page(1),
+                    content: d.text,
+                    acl: d.acl,
+                };
+                points.push(chunk.to_upsert_point(DEFAULT_VECTOR_DIMENSION));
+            }
         }
         if let Err(e) = (self.kb_indexer)(points) {
             log::warn!("botdocs: KB index projection for document {doc_id} failed: {e}");
@@ -279,6 +386,15 @@ impl DocState {
                 log::debug!("botdocs: removed {removed} KB points for {doc_id}");
             }
             Err(_) => log::warn!("botdocs: KB index busy; removal for {doc_id} skipped"),
+        }
+        // Drop stale citation identity too; a re-projected document gets fresh
+        // ids, so old entries would otherwise be unreachable but retained.
+        let mut all = match citation_map().write() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        if let Some(map) = all.get_mut(&index_key(&self.kb_index)) {
+            map.retain(|_, meta| meta.file != source_prefix);
         }
     }
 

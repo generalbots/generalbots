@@ -53,7 +53,7 @@ pub async fn get_schema(
         table_list.join(",")
     ))
     .get_results(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|_| Vec::new());
 
     let fk_cols: Vec<FkInfo> = sql_query(format!(
         "SELECT kcu.table_name::text, kcu.column_name::text
@@ -66,7 +66,7 @@ pub async fn get_schema(
         table_list.join(",")
     ))
     .get_results(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|_| Vec::new());
 
     let pk_set: std::collections::HashSet<(String, String)> = pk_cols
         .iter()

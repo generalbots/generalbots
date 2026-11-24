@@ -63,7 +63,9 @@ pub(super) async fn handle_whiteboard_socket(
     if let Some(whiteboard) = manager.get_whiteboard(&whiteboard_id).await {
         let sync_msg = whiteboard.to_sync_message();
         if let Ok(json) = serde_json::to_string(&sync_msg) {
-            let _ = sender.send(Message::Text(json)).await;
+            if let Err(e) = sender.send(Message::Text(json)).await {
+                log::warn!("Whiteboard {whiteboard_id}: failed to send initial sync: {e}");
+            }
         }
     }
 
@@ -96,9 +98,14 @@ pub(super) async fn handle_whiteboard_socket(
                         }
                         match msg {
                             WhiteboardMessage::Operation { operation, .. } => {
-                                let _ = manager_clone
+                                if let Err(e) = manager_clone
                                     .apply_operation(&whiteboard_id_clone, operation, user_id)
-                                    .await;
+                                    .await
+                                {
+                                    log::warn!(
+                                        "Whiteboard {whiteboard_id_clone}: failed to apply operation for user {user_id}: {e}"
+                                    );
+                                }
                             }
                             WhiteboardMessage::CursorMove { mut cursor } => {
                                 cursor.user_id = user_id;

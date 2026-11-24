@@ -69,7 +69,7 @@ fn try_send_email(to: &str, subject: &str, body: &str) -> Result<(), String> {
 #[must_use]
 pub fn recipient_locale(raw: Option<&str>) -> Locale {
     raw.and_then(|value| Locale::new(value.trim()))
-        .unwrap_or_default()
+        .unwrap_or_else(Locale::default)
 }
 
 pub struct EmailVars {

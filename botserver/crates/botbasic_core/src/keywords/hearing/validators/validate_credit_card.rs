@@ -158,7 +158,7 @@ mod credit_card_tests {
         assert!(result
             .error_message
             .as_deref()
-            .unwrap_or_default()
+            .unwrap_or("")
             .contains("Invalid card number"));
     }
 

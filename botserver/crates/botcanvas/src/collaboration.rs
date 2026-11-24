@@ -345,7 +345,10 @@ pub(crate) async fn create_version(
         .filter(canvas_elements::canvas_id.eq(canvas_id))
         .order(canvas_elements::z_index.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("canvas: failed to load version elements: {e}");
+            Vec::new()
+        });
 
     let max_version: Option<i32> = canvas_versions::table
         .filter(canvas_versions::canvas_id.eq(canvas_id))

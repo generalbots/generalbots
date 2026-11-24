@@ -37,7 +37,7 @@ pub async fn create_account(
     if req.bank.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "bank name is required".to_string()));
     }
-    let balance = req.balance.parse::<Decimal>().unwrap_or_default();
+    let balance = req.balance.parse::<Decimal>().unwrap_or_else(|_| Decimal::default());
     let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;

@@ -153,7 +153,7 @@ pub fn authenticate_key(
                     .filter_map(|v| v.as_str().map(str::to_string))
                     .collect()
             })
-            .unwrap_or_default(),
+            .unwrap_or_else(Vec::new),
     };
 
     // Best-effort usage stamping — never fail the request over it.

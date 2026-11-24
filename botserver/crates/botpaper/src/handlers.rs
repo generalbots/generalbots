@@ -115,11 +115,11 @@ pub async fn handle_search_documents(
 ) -> impl IntoResponse {
     let user_identifier = user.owner_id().to_string();
 
-    let query = params.q.unwrap_or_default().to_lowercase();
+    let query = params.q.unwrap_or_else(String::new).to_lowercase();
 
     let documents = list_documents_from_drive(&state, &user_identifier)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let filtered: Vec<_> = if query.is_empty() {
         documents
@@ -185,7 +185,7 @@ pub async fn handle_save_document(
 
     let doc_id = payload.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let is_named = payload.save_as_named.unwrap_or(false);
 
     match save_document_to_drive(
@@ -218,7 +218,7 @@ pub async fn handle_paper_import(
 
     let doc_id = Uuid::new_v4().to_string();
     let title = payload.title.unwrap_or_else(|| "Imported from Research".to_string());
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
 
     match save_document_to_drive(
         &state, &user_identifier, &doc_id, &title, &content, false,
@@ -253,7 +253,7 @@ pub async fn handle_autosave(
 
     let doc_id = payload.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
 
     if let Err(e) =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await

@@ -153,7 +153,7 @@ pub(crate) async fn handle_login(
     // Generate JWT (HMAC-SHA256 with configured secret)
     let exp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
+        .unwrap_or_else(|_| std::time::Duration::default())
         .as_secs() + 86400 * 7; // 7 days
 
     let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");

@@ -326,7 +326,10 @@ fn auto_assign_task(state: &Arc<dyn BasicRuntime>, project_id: Option<&str>) -> 
         assignee: String,
     }
 
-    let team: Vec<TeamMember> = team_query.load(&mut *conn).unwrap_or_default();
+    let team: Vec<TeamMember> = team_query.load(&mut *conn).unwrap_or_else(|e| {
+        log::warn!("Failed to load team members: {e}");
+        Vec::new()
+    });
 
     if team.is_empty() {
         return Ok("unassigned".to_string());

@@ -190,7 +190,9 @@ pub(super) fn execute_merge(
                     sanitize_identifier(key_field),
                     sanitize_sql_value(&key_value)
                 );
-                let _ = sql_query(&update_query).execute(conn);
+                if let Err(e) = sql_query(&update_query).execute(conn) {
+                    log::warn!("MERGE UPDATE failed for table {table}: {e}");
+                }
                 updated += 1;
             }
         } else {
@@ -208,7 +210,9 @@ pub(super) fn execute_merge(
                 columns.join(", "),
                 values.join(", ")
             );
-            let _ = sql_query(&insert_query).execute(conn);
+            if let Err(e) = sql_query(&insert_query).execute(conn) {
+                log::warn!("MERGE INSERT failed for table {table}: {e}");
+            }
             inserted += 1;
         }
     }

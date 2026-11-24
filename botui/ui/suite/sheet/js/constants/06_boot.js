@@ -201,7 +201,9 @@
         SheetAPI.updateCell(ref, val, inst || g).then(function (res) {
           if (res && res.success) {
             g.lastRenderedRange = null;
-            if (g.requestRange) g.requestRange();
+            // #2459 — formula-bar edits recalculate dependents server-side;
+            // signal completion after the range response is rendered.
+            if (g.requestRange) g.requestRange(D.markSheetRecalc);
             if (typeof g.onCellValueChanged === "function") {
               g.onCellValueChanged(g.selectedRow, g.selectedCol, val);
             }

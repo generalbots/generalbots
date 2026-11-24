@@ -23,7 +23,10 @@ fn headers_with(token: &str) -> HeaderMap {
 }
 
 fn uuid_of(raw: &str) -> Uuid {
-    Uuid::parse_str(raw).unwrap_or_default()
+    Uuid::parse_str(raw).unwrap_or_else(|e| {
+        tracing::warn!("invalid test UUID '{raw}': {e}");
+        Uuid::nil()
+    })
 }
 
 /// Test adapter for the pre-#2877 SSE identity helper: the production path now

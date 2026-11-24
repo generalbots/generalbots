@@ -280,7 +280,9 @@ impl MeetingService {
     async fn broadcast_to_room(&self, room_id: &str, message: MeetingMessage) {
         let connections = self.connections.read().await;
         if let Some(tx) = connections.get(room_id) {
-            let _ = tx.send(message).await;
+            if let Err(e) = tx.send(message).await {
+                log::warn!("Meeting room {room_id}: failed to broadcast message: {e}");
+            }
         }
     }
 

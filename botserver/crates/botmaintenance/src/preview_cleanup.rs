@@ -57,7 +57,10 @@ impl CleanupService {
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .bind::<Timestamptz, _>(cutoff_date)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to count preview rows in {table}: {e}");
+                Vec::new()
+            });
 
         let record_count = count_result.first().map(|r| r.count).unwrap_or(0);
 
@@ -71,7 +74,10 @@ impl CleanupService {
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .bind::<Timestamptz, _>(cutoff_date)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to preview size in {table}: {e}");
+                Vec::new()
+            });
 
         let estimated_bytes = size_result.first().map(|r| r.size_bytes).unwrap_or(0);
 

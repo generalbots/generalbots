@@ -256,7 +256,7 @@ impl RbacManager {
 
     pub async fn get_user_groups(&self, user_id: Uuid) -> Vec<String> {
         let user_groups = self.user_groups.read().await;
-        user_groups.get(&user_id).cloned().unwrap_or_default()
+        user_groups.get(&user_id).cloned().unwrap_or_else(Vec::new)
     }
 
     pub async fn invalidate_user_cache(&self, user_id: Uuid) {

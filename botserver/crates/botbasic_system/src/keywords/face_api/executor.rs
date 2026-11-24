@@ -16,7 +16,7 @@ pub async fn execute_detect_faces(
     options: Option<DetectionOptions>,
 ) -> Result<FaceDetectionResult, super::error::FaceApiError> {
     let image = super::types::ImageSource::Url(image_url.to_string());
-    let opts = options.unwrap_or_default();
+    let opts = options.unwrap_or_else(DetectionOptions::default);
     service.detect_faces(&image, &opts).await
 }
 
@@ -29,7 +29,7 @@ pub async fn execute_verify_face(
 ) -> Result<FaceVerificationResult, super::error::FaceApiError> {
     let face1 = super::types::FaceSource::Image(super::types::ImageSource::Url(face1_url.to_string()));
     let face2 = super::types::FaceSource::Image(super::types::ImageSource::Url(face2_url.to_string()));
-    let opts = options.unwrap_or_default();
+    let opts = options.unwrap_or_else(VerificationOptions::default);
     service.verify_faces(&face1, &face2, &opts).await
 }
 
@@ -47,7 +47,7 @@ pub async fn execute_analyze_face(
         FaceAttributeType::Emotion,
         FaceAttributeType::Smile,
     ]);
-    let opts: AnalysisOptions = options.unwrap_or_default();
+    let opts: AnalysisOptions = options.unwrap_or_else(AnalysisOptions::default);
     service.analyze_face(&source, &attrs, &opts).await
 }
 

@@ -113,7 +113,7 @@ pub async fn list_events(
         entity_id: r.entity_id,
         risk_score: r.risk_score,
         risk_level: r.risk_level,
-        triggered_rules: r.triggered_rules.as_array().cloned().unwrap_or_default(),
+        triggered_rules: r.triggered_rules.as_array().cloned().unwrap_or_else(Vec::new),
         ml_score: r.ml_score,
         action_taken: r.action_taken,
         details: r.details,

@@ -72,7 +72,7 @@ impl ProtectionManager {
             last_update: existing.and_then(|s| s.last_update),
             auto_update: existing.map(|s| s.auto_update).unwrap_or(false),
             auto_remediate: existing.map(|s| s.auto_remediate).unwrap_or(false),
-            metrics: existing.map(|s| s.metrics.clone()).unwrap_or_default(),
+            metrics: existing.map(|s| s.metrics.clone()).unwrap_or_else(ToolMetrics::default),
         })
     }
 

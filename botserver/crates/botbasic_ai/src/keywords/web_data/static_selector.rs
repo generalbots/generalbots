@@ -25,12 +25,16 @@ pub(super) fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSes
                     Ok(rt) => rt,
                     Err(e) => {
                         let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                        let _ = tx.send(Err(err));
+                        if let Err(e) = tx.send(Err(err)) {
+                            log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async { fetch_rss(&url, 100).await });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                }
             });
             match rx.recv_timeout(Duration::from_secs(30)) {
                 Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -65,12 +69,16 @@ pub(super) fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSes
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { fetch_rss(&url, limit).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -154,12 +162,16 @@ pub(super) fn register_scrape_keyword(_state: Arc<dyn BasicRuntime>, _user: User
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { scrape_first(&url, &selector).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -195,12 +207,16 @@ pub(super) fn register_scrape_all_keyword(_state: Arc<dyn BasicRuntime>, _user: 
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { scrape_all(&url, &selector).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -236,12 +252,16 @@ pub(super) fn register_scrape_table_keyword(_state: Arc<dyn BasicRuntime>, _user
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { scrape_table(&url, &selector).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -276,12 +296,16 @@ pub(super) fn register_scrape_links_keyword(_state: Arc<dyn BasicRuntime>, _user
                         Ok(rt) => rt,
                         Err(e) => {
                             let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
-                            let _ = tx.send(Err(err));
+                            if let Err(e) = tx.send(Err(err)) {
+                                log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                            }
                             return;
                         }
                     };
                     let result = rt.block_on(async { scrape_links(&url).await });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("SCRAPE selector registration: result channel send failed: {e}");
+                    }
                 });
                 match rx.recv_timeout(Duration::from_secs(30)) {
                     Ok(Ok(result)) => Ok(Dynamic::from(result)),

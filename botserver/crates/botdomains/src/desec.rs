@@ -85,7 +85,10 @@ impl Desec {
             .map_err(|e| RegistrarError::Transport(SERVICE.into(), e.to_string()))?;
         let status = resp.status();
         if !status.is_success() {
-            let text = http::body(SERVICE, resp).await.unwrap_or_default();
+            let text = http::body(SERVICE, resp).await.unwrap_or_else(|e| {
+                log::warn!("Failed to read deSEC error response body: {e}");
+                String::new()
+            });
             return Err(http::classify(SERVICE, status, &Default::default(), &text));
         }
 
@@ -148,7 +151,7 @@ fn parse_rrset(node: &Value, record_type: RecordType) -> Option<DnsRecord> {
             .filter_map(|v| v.as_str())
             .collect::<Vec<_>>()
             .join(" "),
-        _ => values.first().and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+        _ => values.first().and_then(|v| v.as_str()).unwrap_or("").to_string(),
     };
     Some(DnsRecord {
         host: String::new(),

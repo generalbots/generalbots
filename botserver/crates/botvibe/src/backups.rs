@@ -191,7 +191,9 @@ impl Backups {
                     String::new()
                 }
             );
-            let _ = self.update_status(backup_id, "failed", Some(why.clone()), 0);
+            if let Err(e) = self.update_status(backup_id, "failed", Some(why.clone()), 0) {
+                log::warn!("Vibe backup {backup_id}: mark restored-but-unhealthy failed: {e}");
+            }
             return Err(why);
         }
         Ok((record, probe))

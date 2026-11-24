@@ -30,7 +30,8 @@
 //!    ```text
 //!    let structs: Vec<botqdrant::PointStruct> = records.into_iter().map(|r| {
 //!        let map: serde_json::Map<String, serde_json::Value> =
-//!            serde_json::to_value(r.payload)?.as_object().cloned().unwrap_or_default();
+//!            serde_json::to_value(r.payload)?.as_object().cloned()
+//!                .unwrap_or_else(|| serde_json::Map::new());
 //!        botqdrant::PointStruct::new(r.id, r.vector, map)
 //!    }).collect();
 //!    botqdrant::UpsertPointsBuilder::new(COLLECTION, structs).build(&client).await?;

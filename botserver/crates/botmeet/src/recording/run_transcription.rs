@@ -31,12 +31,15 @@ impl RecordingService {
                 }
             }
 
-            let _ = self
+            if let Err(e) = self
                 .event_sender
                 .send(RecordingEvent::TranscriptionProgress {
                     transcription_id,
                     progress_percent: progress as u8,
-                });
+                })
+            {
+                log::warn!("Transcription {transcription_id}: failed to broadcast progress event: {e}");
+            }
 
             // Emit segment at 50%
             if progress == 50 {
@@ -82,12 +85,15 @@ impl RecordingService {
                     ],
                 };
 
-                let _ = self
+                if let Err(e) = self
                     .event_sender
                     .send(RecordingEvent::TranscriptionSegmentReady {
                         transcription_id,
                         segment,
-                    });
+                    })
+                {
+                    log::warn!("Transcription {transcription_id}: failed to broadcast segment event: {e}");
+                }
             }
         }
 
@@ -106,16 +112,22 @@ impl RecordingService {
         let segments: Vec<TranscriptionSegment> = vec![];
 
         // Update database
-        let _ = self
+        if let Err(e) = self
             .update_transcription_completed(transcription_id, &full_text, &segments)
-            .await;
+            .await
+        {
+            log::warn!("Transcription {transcription_id}: failed to persist completion: {e}");
+        }
 
-        let _ = self
+        if let Err(e) = self
             .event_sender
             .send(RecordingEvent::TranscriptionCompleted {
                 transcription_id,
                 word_count: 1500,
-            });
+            })
+        {
+            log::warn!("Transcription {transcription_id}: failed to broadcast completion event: {e}");
+        }
     }
 
     pub async fn get_recording(

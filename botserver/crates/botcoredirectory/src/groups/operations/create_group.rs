@@ -204,7 +204,9 @@ pub async fn update_group_member_roles(
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
-    let _ = auth_service.remove_org_member(&group_id, &req.user_id).await;
+    if let Err(e) = auth_service.remove_org_member(&group_id, &req.user_id).await {
+        log::warn!("Could not remove existing org membership before role update: {e}");
+    }
 
     match auth_service.add_org_member(&group_id, &req.user_id, req.roles.clone()).await {
         Ok(_) => {

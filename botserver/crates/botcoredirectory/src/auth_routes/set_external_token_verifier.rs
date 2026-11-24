@@ -1,7 +1,9 @@
 use super::*;
 
 pub fn set_external_token_verifier(f: fn(&str) -> Option<SessionUserData>) {
-    let _ = EXTERNAL_TOKEN_VERIFIER.set(f);
+    if let Err(e) = EXTERNAL_TOKEN_VERIFIER.set(f) {
+        log::warn!("External token verifier already initialized: {e:?}");
+    }
 }
 /// Resolve an arbitrary bearer token to a session user: suite session cache,
 /// then persisted sessions, then the wired external verifier (cloud JWT).

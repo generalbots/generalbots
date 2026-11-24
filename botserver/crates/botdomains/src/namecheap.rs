@@ -165,9 +165,9 @@ fn records_from(parsed: &xml::Response) -> Vec<DnsRecord> {
         .filter_map(|(_, block)| {
             let record_type = RecordType::parse(&xml::leaf_in(&block, "Type")?)?;
             Some(DnsRecord {
-                host: xml::leaf_in(&block, "Host").unwrap_or_default(),
+                host: xml::leaf_in(&block, "Host").unwrap_or_else(String::new),
                 record_type,
-                value: xml::leaf_in(&block, "Address").unwrap_or_default(),
+                value: xml::leaf_in(&block, "Address").unwrap_or_else(String::new),
                 ttl: xml::leaf_in(&block, "TTL")
                     .and_then(|ttl| ttl.parse().ok())
                     .unwrap_or(1800),

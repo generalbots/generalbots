@@ -28,7 +28,9 @@ impl PackageManager {
     pub fn make_executable(&self, path: &std::path::Path) -> Result<()> {
         #[cfg(unix)]
         {
-            let _ = botlib::os::fs::get_permissions_manager().set_executable(path);
+            if let Err(e) = botlib::os::fs::get_permissions_manager().set_executable(path) {
+                log::warn!("Could not make {} executable: {e}", path.display());
+            }
         }
         #[cfg(windows)]
         {
@@ -213,7 +215,7 @@ impl PackageManager {
         self.exec_in_container(container, &download_cmd)?;
         // #2001 — verify the fetched asset before unpacking it into
         // /opt/gbo/bin (the container path had no checksum at all).
-        // #2622 — handle the missing pin explicitly. `.unwrap_or_default()`
+        // #2622 — handle the missing pin explicitly. A default fallback
         // silently turned "no pin configured" into an empty expected hash,
         // blurring the policy boundary with the cache path which refuses to
         // treat an empty sha256 as verified. Now the unpinned case is an

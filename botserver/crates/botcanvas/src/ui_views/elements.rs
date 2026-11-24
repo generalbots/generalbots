@@ -12,7 +12,10 @@ pub async fn canvas_elements_svg(
         .filter(canvas_elements::canvas_id.eq(canvas_id))
         .order(canvas_elements::z_index.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("canvas svg: failed to load elements: {e}");
+            Vec::new()
+        });
 
     let mut svg_elements = String::new();
     for el in &elements {

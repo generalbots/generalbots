@@ -46,7 +46,7 @@ pub async fn save_file(
     Path(path): Path<String>,
     Json(payload): Json<SaveFileRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let full = match resolve_path(&state, &path).await {
         Ok(full) => full,
         Err(e) => return Err(reject_path("boteditor::save_file", &path, &e)),
@@ -101,7 +101,7 @@ pub async fn save_file_alt(
     Form(payload): Form<FormContent>,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let path = query.path.unwrap_or_else(|| "untitled.txt".to_string());
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let full = match resolve_path(&state, &path).await {
         Ok(full) => full,
         Err(e) => return Err(reject_path("boteditor::save_file_alt", &path, &e)),

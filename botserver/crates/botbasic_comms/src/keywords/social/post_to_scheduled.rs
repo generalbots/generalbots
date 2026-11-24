@@ -58,7 +58,9 @@ pub fn post_to_at_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                             &caption_owned,
                             scheduled_at,
                         );
-                        let _ = tx.send(result);
+                        if let Err(e) = tx.send(result) {
+                            log::warn!("POST_TO_SCHEDULED keyword: result channel send failed: {e}");
+                        }
                     }
                 });
 

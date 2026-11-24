@@ -69,8 +69,8 @@ impl VideoRenderWorker {
         };
 
         let job: serde_json::Value = serde_json::from_str(&job_str)?;
-        let export_id = Uuid::parse_str(job["export_id"].as_str().unwrap_or_default())?;
-        let project_id = Uuid::parse_str(job["project_id"].as_str().unwrap_or_default())?;
+        let export_id = Uuid::parse_str(job["export_id"].as_str().unwrap_or(""))?;
+        let project_id = Uuid::parse_str(job["project_id"].as_str().unwrap_or(""))?;
         let format = job["format"].as_str().unwrap_or("mp4");
         let quality = job["quality"].as_str().unwrap_or("high");
         let save_to_library = job["save_to_library"].as_bool().unwrap_or(true);

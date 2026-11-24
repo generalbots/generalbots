@@ -141,7 +141,10 @@ pub fn register_merge_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                 let file_list: Vec<String> = if files.is_array() {
                     files
                         .into_array()
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            log::warn!("Failed to read MERGE PDF file list: {e}");
+                            Vec::new()
+                        })
                         .iter()
                         .map(|f| f.to_string())
                         .collect()

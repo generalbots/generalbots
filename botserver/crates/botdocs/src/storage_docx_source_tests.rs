@@ -74,7 +74,7 @@ fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
     let mut out = Vec::new();
     for index in 0..archive.len() {
         let mut file = archive.by_index(index).expect("zip entry");
-        let name = file.name().map(|name| name.to_string()).unwrap_or_else(String::new);
+        let name = file.name().map(|name| name.to_string()).unwrap_or_else(|_| String::new());
         let mut content = Vec::new();
         file.read_to_end(&mut content).expect("read zip entry");
         out.push((name, content));

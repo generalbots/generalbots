@@ -92,7 +92,10 @@ pub async fn handle_ws_connection(ws: WebSocket, session: DesktopSession, sessio
         target_port: session.target_port,
         connected_at: chrono::Utc::now(),
     });
-    let meta_json = serde_json::to_string(&meta).unwrap_or_default();
+    let meta_json = serde_json::to_string(&meta).unwrap_or_else(|e| {
+        tracing::warn!("failed to serialize connection metadata: {e}");
+        String::new()
+    });
     // We'll send after split below
 
     // -- Split streams for bidirectional relay -----------------------------

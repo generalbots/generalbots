@@ -89,7 +89,7 @@ impl SearchService {
         let rows: Vec<EmailRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -149,7 +149,7 @@ impl SearchService {
         let rows: Vec<DriveRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -208,7 +208,7 @@ impl SearchService {
         let rows: Vec<CalendarRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -274,7 +274,7 @@ impl SearchService {
         let rows: Vec<TaskRow> = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let documents = rows
             .into_iter()
@@ -290,7 +290,7 @@ impl SearchService {
                     source: SearchSource::Tasks,
                     organization_id,
                     title: row.title,
-                    content: row.description.unwrap_or_default(),
+                    content: row.description.unwrap_or_else(String::new),
                     url: None,
                     metadata,
                     created_at: row.created_at,

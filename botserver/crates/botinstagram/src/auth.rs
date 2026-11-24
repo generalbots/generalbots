@@ -66,7 +66,7 @@ pub fn authorize_delivery(app_secret: &str, signature: Option<&str>, body: &[u8]
         return DeliveryAuth::Unconfigured;
     }
 
-    let signature = signature.unwrap_or_default().trim();
+    let signature = signature.unwrap_or("").trim();
     let provided = match signature.strip_prefix("sha256=") {
         Some(hex_digest) if !hex_digest.is_empty() => hex_digest,
         _ => return DeliveryAuth::Mismatch,
@@ -134,7 +134,7 @@ pub fn authorize_handshake(
         return Err(HandshakeError::InvalidMode);
     }
 
-    let provided = provided_token.unwrap_or_default().trim();
+    let provided = provided_token.unwrap_or("").trim();
     if provided.is_empty() || !constant_time::eq_str(expected, provided) {
         return Err(HandshakeError::InvalidToken);
     }

@@ -125,13 +125,19 @@ window.afterSlideInsert = function (element) {
   if (window.refreshSlideView) window.refreshSlideView(insertedAt);
 };
 
+// #2459 — the one normalized slide-transition signal. gbPerfSignal only emits
+// the app label ("slides"); no deck id, slide content or user data is carried.
+function gbSlidesMarkTransition() {
+  if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("slides", "slide");
+}
+
 window.refreshSlideView = function (slideIndex) {
   var canvas = document.getElementById("slide-canvas");
   var index = (slideIndex !== undefined && slideIndex !== null)
     ? String(slideIndex)
     : ((canvas && canvas.dataset.slideId) || "0");
   var deck = window.__SLIDES_PRESENTATION_ID || "current";
-  if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("slides", "slide");
+  gbSlidesMarkTransition();
   if (!window.htmx) return;
   htmx.ajax(
     "GET",
@@ -386,6 +392,9 @@ document.addEventListener("htmx:afterSwap", function (e) {
         var slideId = thumb.dataset.slide;
         var view = document.getElementById("slides-content");
         if (view && slideId) {
+          // Thumbnails are the real slide-navigation control: this handler, not
+          // refreshSlideView, loads the next visible slide (#2459).
+          gbSlidesMarkTransition();
           htmx.ajax("GET", "/suite/slides/fragments/presentation-view", {
             target: "#slides-content",
             swap: "innerHTML",

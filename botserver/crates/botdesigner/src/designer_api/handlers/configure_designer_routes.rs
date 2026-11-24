@@ -163,7 +163,7 @@ pub async fn handle_save(
     let conn = state.conn.clone();
     let now = Utc::now();
     let name = payload.name.unwrap_or_else(|| "Untitled".to_string());
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let dialog_id = Uuid::new_v4().to_string();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -219,7 +219,7 @@ pub async fn handle_validate(
     State(_state): State<Arc<DesignerState>>,
     Json(payload): Json<ValidateRequest>,
 ) -> impl IntoResponse {
-    let content = payload.content.unwrap_or_default();
+    let content = payload.content.unwrap_or_else(String::new);
     let validation = validate_basic_code(&content);
 
     let mut html = String::new();

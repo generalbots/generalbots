@@ -12,7 +12,9 @@ pub(crate) struct BotExistsResult {
 /// Safe wrapper around pkill command
 pub fn safe_pkill(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
-        let _ = cmd.execute();
+        if let Err(e) = cmd.execute() {
+            warn!("pkill execution failed: {e}");
+        }
     }
 }
 
@@ -176,7 +178,9 @@ pub fn vault_health_check() -> bool {
 /// Safe wrapper around fuser command
 pub fn safe_fuser(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("fuser").and_then(|c| c.args(args)) {
-        let _ = cmd.execute();
+        if let Err(e) = cmd.execute() {
+            warn!("fuser execution failed: {e}");
+        }
     }
 }
 

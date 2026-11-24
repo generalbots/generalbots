@@ -258,7 +258,9 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                     let result = rt.block_on(async move {
                         scan_barcode(state_for_task, &bot_id, &image_path).await
                     });
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("Barcode scan worker: failed to send result over channel: {e}");
+                    }
                 }
             });
 

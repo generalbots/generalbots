@@ -48,7 +48,9 @@ impl StagedFile {
 
 impl Drop for StagedFile {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.dir);
+        if let Err(e) = std::fs::remove_dir_all(&self.dir) {
+            log::warn!("Could not remove staged directory {}: {e}", self.dir.display());
+        }
     }
 }
 

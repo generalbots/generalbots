@@ -66,8 +66,8 @@ pub struct TemplateRow {
 
 pub fn row_to_canvas(row: CanvasRow) -> Canvas {
     let elements: Vec<CanvasElement> =
-        serde_json::from_str(&row.elements_json).unwrap_or_default();
-    let layers: Vec<Layer> = serde_json::from_str(&row.layers_json).unwrap_or_default();
+        serde_json::from_str(&row.elements_json).unwrap_or_else(|_| Vec::new());
+    let layers: Vec<Layer> = serde_json::from_str(&row.layers_json).unwrap_or_else(|_| Vec::new());
 
     Canvas {
         id: row.id,

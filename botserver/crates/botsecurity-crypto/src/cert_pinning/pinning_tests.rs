@@ -188,7 +188,7 @@ fn manager_fails_when_no_pin_matches() {
         .expect("validate");
 
     assert!(!result.valid);
-    assert!(result.error.as_deref().unwrap_or_default().contains("does not match"));
+    assert!(result.error.as_deref().unwrap_or("").contains("does not match"));
 }
 
 #[test]
@@ -254,7 +254,7 @@ fn manager_imports_pins_from_a_file() {
         .expect("validate");
 
     assert!(!result.valid);
-    assert!(result.error.as_deref().unwrap_or_default().contains("does not match"));
+    assert!(result.error.as_deref().unwrap_or("").contains("does not match"));
 }
 
 #[test]

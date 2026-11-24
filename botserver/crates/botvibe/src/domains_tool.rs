@@ -215,12 +215,14 @@ async fn do_domain_bind(args: Value, pool: crate::types::DbPool) -> Result<Value
         allowed_emails,
     };
     let bind = domains.bind(project_id, &req).await?;
-    let _ = metering.add_for_project(
+    if let Err(e) = metering.add_for_project(
         project_id,
         &bind.env,
         crate::metering::MeterKind::DomainBindings,
         1.0,
-    );
+    ) {
+        log::warn!("Vibe domains_tool: metering domain binding for {project_id} failed: {e}");
+    }
     Ok(serde_json::json!({
         "bound": true,
         "id": bind.id,

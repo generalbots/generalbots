@@ -4,7 +4,7 @@ impl BotModelsConfig {
     pub fn from_provider(provider: &dyn ConfigProvider, bot_id: &Uuid) -> Self {
         let enabled = provider
             .get_config(bot_id, "botmodels-enabled", Some("false"))
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
             .to_lowercase()
             == "true";
 
@@ -20,11 +20,11 @@ impl BotModelsConfig {
 
         let api_key = provider
             .get_config(bot_id, "botmodels-api-key", Some(""))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         let use_https = provider
             .get_config(bot_id, "botmodels-https", Some("false"))
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
             .to_lowercase()
             == "true";
 

@@ -25,7 +25,7 @@ impl OAuthState {
 
     pub fn encode(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-        let json = serde_json::to_string(self).unwrap_or_default();
+        let json = serde_json::to_string(self).unwrap_or_else(|_| String::new());
         URL_SAFE_NO_PAD.encode(json.as_bytes())
     }
 

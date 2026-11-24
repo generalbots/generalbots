@@ -164,12 +164,16 @@ pub fn use_model_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 let _rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {}", e))) {
+                            log::warn!("model routing config: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = set_session_model(&state_for_task, session_id, &model_name_clone);
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("model routing config: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(10)) {
@@ -225,7 +229,9 @@ pub fn set_model_routing_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 std::thread::spawn(move || {
                     let result =
                         set_session_routing_strategy(&state_for_task, session_id, strategy_clone);
-                    let _ = tx.send(result);
+                    if let Err(e) = tx.send(result) {
+                        log::warn!("model routing config: result channel send failed: {e}");
+                    }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(10)) {

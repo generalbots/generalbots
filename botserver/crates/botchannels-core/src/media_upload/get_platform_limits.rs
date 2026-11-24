@@ -19,7 +19,7 @@ impl MediaUploadService {
             .ok_or_else(|| MediaUploadError::UnsupportedPlatform(platform.as_str().to_string()))?;
 
         let media_type = self.detect_media_type(&content_type);
-        let extension = self.get_extension(&filename).unwrap_or_default();
+        let extension = self.get_extension(&filename).unwrap_or_else(String::new);
 
         self.validate_format(&media_type, &extension, limits)?;
         self.validate_size(&media_type, data.len() as u64, limits)?;

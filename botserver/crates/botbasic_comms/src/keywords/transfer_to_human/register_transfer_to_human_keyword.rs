@@ -41,7 +41,9 @@ pub fn register_transfer_to_human_keyword(
                     message: "Failed to create runtime".to_string(),
                 },
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("TRANSFER_TO_HUMAN keyword: result channel send failed: {e}");
+            }
         });
         let result = rx.recv().unwrap_or_else(|_| TransferResult {
             success: false,
@@ -92,7 +94,9 @@ pub fn register_transfer_to_human_keyword(
                     message: "Failed to create runtime".to_string(),
                 },
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("TRANSFER_TO_HUMAN keyword: result channel send failed: {e}");
+            }
         });
         let result = rx.recv().unwrap_or_else(|_| TransferResult {
             success: false,
@@ -146,7 +150,9 @@ pub fn register_transfer_to_human_keyword(
                         message: "Failed to create runtime".to_string(),
                     },
                 };
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("TRANSFER_TO_HUMAN keyword: result channel send failed: {e}");
+                }
             });
             let result = rx.recv().unwrap_or_else(|_| TransferResult {
                 success: false,
@@ -202,7 +208,9 @@ pub fn register_transfer_to_human_keyword(
                         message: "Failed to create runtime".to_string(),
                     },
                 };
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("TRANSFER_TO_HUMAN keyword: result channel send failed: {e}");
+                }
             });
             let result = rx.recv().unwrap_or_else(|_| TransferResult {
                 success: false,
@@ -269,7 +277,9 @@ pub fn register_transfer_to_human_keyword(
                     message: "Failed to create runtime".to_string(),
                 },
             };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) {
+                log::warn!("TRANSFER_TO_HUMAN keyword: result channel send failed: {e}");
+            }
         });
         let result = rx.recv().unwrap_or_else(|_| TransferResult {
             success: false,

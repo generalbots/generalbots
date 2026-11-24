@@ -6,7 +6,7 @@
 //! neither can this response.
 
 use crate::auth::DocUser;
-use crate::state::DocState;
+use crate::state::{DocState, KbCitationMeta};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -14,7 +14,7 @@ use axum::{
     Json,
 };
 use botcore::kb::permissions::UserContext;
-use botcore::kb::structured::SourceRef;
+use botcore::kb::structured::{SearchHit, SourceRef};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -104,6 +104,12 @@ fn principal_for(state: &DocState, user: &DocUser) -> Result<UserContext, KbSear
 #[derive(Debug, Serialize)]
 pub struct KbSearchHitDto {
     pub id: String,
+    /// `Citation.document_id`: the document this hit belongs to.
+    pub document_id: String,
+    /// `Citation.file`: the document's source path, mirrored as `document_path`.
+    pub file: String,
+    /// `Citation.version`: the exact indexed document version.
+    pub version: String,
     pub source_ref: SourceRef,
     pub section: Option<String>,
     pub score: f32,
@@ -112,6 +118,21 @@ pub struct KbSearchHitDto {
 #[derive(Debug, Serialize)]
 pub struct KbSearchResponse {
     pub hits: Vec<KbSearchHitDto>,
+}
+
+/// Pure mapping shared by the handler and the serialization tests. Identity
+/// fields come from `KbCitationMeta` (captured from `Citation` at projection
+/// time); the rest come from the already permission-filtered `SearchHit`.
+fn hit_to_dto(hit: SearchHit, meta: KbCitationMeta) -> KbSearchHitDto {
+    KbSearchHitDto {
+        id: hit.id,
+        document_id: meta.document_id,
+        file: meta.file,
+        version: meta.version,
+        source_ref: hit.source,
+        section: hit.section,
+        score: hit.score,
+    }
 }
 
 /// `GET /api/docs/kb/search?q=<text>&limit=<n>`
@@ -126,11 +147,9 @@ pub async fn handle_kb_search(
     Ok(Json(KbSearchResponse {
         hits: hits
             .into_iter()
-            .map(|hit| KbSearchHitDto {
-                id: hit.id,
-                source_ref: hit.source,
-                section: hit.section,
-                score: hit.score,
+            .map(|hit| {
+                let meta = state.citation_meta(&hit.id);
+                hit_to_dto(hit, meta)
             })
             .collect(),
     }))
@@ -184,6 +203,72 @@ mod tests {
         if let Ok(valid) = maximum {
             assert_eq!(valid.limit, MAX_LIMIT);
             assert_eq!(valid.text, "clause");
+        }
+    }
+
+    fn sample_hit() -> SearchHit {
+        SearchHit {
+            id: "0123456789abcdef".to_string(),
+            source: SourceRef::clause("7.3").with_page(12),
+            section: Some("Termination".to_string()),
+            score: 0.75,
+        }
+    }
+
+    fn sample_meta() -> KbCitationMeta {
+        KbCitationMeta {
+            document_id: "contract".to_string(),
+            file: "contract.docx".to_string(),
+            version: "3".to_string(),
+        }
+    }
+
+    #[test]
+    fn dto_maps_citation_identity_from_internal_fields() {
+        let dto = hit_to_dto(sample_hit(), sample_meta());
+        assert_eq!(dto.id, "0123456789abcdef");
+        assert_eq!(dto.document_id, "contract");
+        assert_eq!(dto.file, "contract.docx");
+        assert_eq!(dto.version, "3");
+        assert_eq!(dto.source_ref, SourceRef::clause("7.3").with_page(12));
+        assert_eq!(dto.section.as_deref(), Some("Termination"));
+        assert_eq!(dto.score, 0.75);
+    }
+
+    #[test]
+    fn dto_serialization_is_citation_only_without_content() {
+        let dto = hit_to_dto(sample_hit(), sample_meta());
+        let encoded = serde_json::to_value(&dto);
+        assert!(encoded.is_ok());
+        if let Ok(value) = encoded {
+            let object = value.as_object();
+            assert!(object.is_some());
+            if let Some(object) = object {
+                assert_eq!(object.get("document_id"), Some(&serde_json::json!("contract")));
+                assert_eq!(object.get("file"), Some(&serde_json::json!("contract.docx")));
+                assert_eq!(object.get("version"), Some(&serde_json::json!("3")));
+                for forbidden in ["content", "text", "body", "payload", "document_bytes"] {
+                    assert!(
+                        !object.contains_key(forbidden),
+                        "serialized hit must not expose {forbidden}"
+                    );
+                }
+                assert_eq!(
+                    object.len(),
+                    7,
+                    "serialized hit has exactly the seven citation fields"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn empty_response_serializes_to_empty_hits_array() {
+        let response = KbSearchResponse { hits: Vec::new() };
+        let encoded = serde_json::to_string(&response);
+        assert!(encoded.is_ok());
+        if let Ok(encoded) = encoded {
+            assert_eq!(encoded, r#"{"hits":[]}"#);
         }
     }
 }

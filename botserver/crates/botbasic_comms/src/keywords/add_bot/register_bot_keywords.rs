@@ -68,14 +68,18 @@ pub(super) fn add_bot_with_trigger_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&*state_for_task, session_id, bot_id, &bot_name, trigger)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -138,14 +142,18 @@ pub(super) fn add_bot_with_tools_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&*state_for_task, session_id, bot_id, &bot_name, trigger)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -202,14 +210,18 @@ pub(super) fn add_bot_with_schedule_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&*state_for_task, session_id, bot_id, &bot_name, trigger)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -256,14 +268,18 @@ pub(super) fn remove_bot_keyword(
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(e) => {
-                        let _ = tx.send(Err(format!("Failed to create runtime: {e}")));
+                        if let Err(e) = tx.send(Err(format!("Failed to create runtime: {e}"))) {
+                            log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                        }
                         return;
                     }
                 };
                 let result = rt.block_on(async {
                     remove_bot_from_session(&*state_for_task, session_id, &bot_name)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("ADD_BOT keyword registration: result channel send failed: {e}");
+                }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {

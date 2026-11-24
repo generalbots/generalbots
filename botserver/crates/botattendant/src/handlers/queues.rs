@@ -133,7 +133,7 @@ pub async fn add_queue_agent(
         agent_id: req.agent_id,
         max_concurrent: req.max_concurrent.unwrap_or(3),
         priority: req.priority.unwrap_or(0),
-        skills: req.skills.unwrap_or_default(),
+        skills: req.skills.unwrap_or_else(Vec::new),
         is_active: true,
         created_at: now,
     };

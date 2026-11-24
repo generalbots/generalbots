@@ -41,7 +41,10 @@ fn document_number(prefix: &str, explicit: &str, timestamp: i64) -> String {
 
 /// Malformed money input becomes zero instead of aborting the request.
 fn amount_or_zero(raw: &str) -> Decimal {
-    raw.parse::<Decimal>().unwrap_or_default()
+    raw.parse::<Decimal>().unwrap_or_else(|e| {
+        log::warn!("invalid decimal amount '{raw}': {e}");
+        Decimal::ZERO
+    })
 }
 
 // ---------------------------------------------------------------------------

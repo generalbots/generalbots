@@ -61,7 +61,9 @@ impl WhiteboardManager {
     pub async fn broadcast(&self, whiteboard_id: &Uuid, message: WhiteboardMessage) {
         let channels = self.broadcast_channels.read().await;
         if let Some(tx) = channels.get(whiteboard_id) {
-            let _ = tx.send(message);
+            if let Err(e) = tx.send(message) {
+                log::warn!("Whiteboard {whiteboard_id}: failed to broadcast message: {e}");
+            }
         }
     }
 

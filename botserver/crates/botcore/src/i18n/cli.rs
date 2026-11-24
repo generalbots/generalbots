@@ -26,7 +26,9 @@ pub fn resolve_locale(args: &[String]) -> Locale {
 /// Records the CLI locale once, at the start of `main`.
 pub fn init_from_args(args: &[String]) -> Locale {
     let locale = resolve_locale(args);
-    let _ = CLI_LOCALE.set(locale.clone());
+    if let Err(previous) = CLI_LOCALE.set(locale.clone()) {
+        log::warn!("CLI locale already initialized to {previous}; ignoring later init");
+    }
     locale
 }
 

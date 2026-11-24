@@ -206,7 +206,7 @@ pub async fn redeem_voucher(
                             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Lookup user contact: {e}")))?;
 
                         let name = format!("{} {}", c.2.as_deref().unwrap_or(""), c.3.as_deref().unwrap_or("")).trim().to_string();
-                        (c.0, c.1, if name.is_empty() { "SaaS User".to_string() } else { name }, c.4.unwrap_or_default())
+                        (c.0, c.1, if name.is_empty() { "SaaS User".to_string() } else { name }, c.4.unwrap_or_else(String::new))
                     } else { return Err((StatusCode::UNAUTHORIZED, "Invalid claims".to_string())); }
                 } else { return Err((StatusCode::UNAUTHORIZED, "Invalid JWT".to_string())); }
             } else { return Err((StatusCode::UNAUTHORIZED, "Invalid payload encoding".to_string())); }

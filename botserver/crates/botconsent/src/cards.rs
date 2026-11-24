@@ -28,7 +28,7 @@ fn detail_lines(detail: &serde_json::Value) -> String {
             .iter()
             .map(|(k, v)| {
                 let value = if v.is_string() {
-                    v.as_str().unwrap_or_default().to_string()
+                    v.as_str().unwrap_or("").to_string()
                 } else {
                     v.to_string()
                 };

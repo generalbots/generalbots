@@ -284,7 +284,7 @@ fn route_matches(pattern: &str, path: &str) -> bool {
 /// live under the same prefix — e.g. `/suite/sheet/fragments/sheet-list` —
 /// authenticated.
 fn looks_like_asset(path: &str) -> bool {
-    let last = path.rsplit('/').next().unwrap_or_default();
+    let last = path.rsplit('/').next().unwrap_or("");
     !last.is_empty()
         && last != "."
         && last != ".."

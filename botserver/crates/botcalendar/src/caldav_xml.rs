@@ -115,7 +115,7 @@ fn find_element(body: &str, name: &str) -> Option<String> {
         let tag_end_offset = body[tag_start..].find('>')?;
         let tag_end = tag_start + tag_end_offset;
         let tag = &body[tag_start..tag_end];
-        let qualified = tag.split_whitespace().next().unwrap_or_default();
+        let qualified = tag.split_whitespace().next().unwrap_or("");
         if qualified.rsplit(':').next() == Some(name) {
             return Some(tag.to_string());
         }
