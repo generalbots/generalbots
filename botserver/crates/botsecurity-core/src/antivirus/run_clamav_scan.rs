@@ -77,11 +77,16 @@ impl AntivirusManager {
             return Err(anyhow::anyhow!("File not found: {}", file_path.display()));
         }
 
-        let file_name = file_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let file_name = match file_path.file_name() {
+            Some(name) => name.to_string_lossy().to_string(),
+            None => {
+                log::warn!(
+                    "quarantine: {} has no final path component, using an empty file name",
+                    file_path.display()
+                );
+                String::new()
+            }
+        };
 
         let quarantine_path = self.config.quarantine_dir.join(format!(
             "{}_{}",

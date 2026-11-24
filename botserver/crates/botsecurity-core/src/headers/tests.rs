@@ -65,10 +65,13 @@ fn assert_all_six(headers: &axum::http::HeaderMap, context: &str) {
             headers.contains_key(name),
             "{name} missing from {context}: {headers:?}"
         );
-        let value = headers
-            .get(name)
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default();
+        let value = match headers.get(name).and_then(|value| value.to_str().ok()) {
+            Some(value) => value,
+            None => {
+                log::warn!("{name} header is missing or not UTF-8 on {context}");
+                ""
+            }
+        };
         assert!(!value.is_empty(), "{name} is empty on {context}");
     }
 }

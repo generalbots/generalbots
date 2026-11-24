@@ -47,15 +47,14 @@ impl SecurityMonitor {
             &format!(
                 "{} event detected{}{}",
                 event.event_type.as_str(),
-                event
-                    .user_id
-                    .map(|id| format!(" for user {}", id))
-                    .unwrap_or_default(),
-                event
-                    .ip_address
-                    .as_ref()
-                    .map(|ip| format!(" from IP {}", ip))
-                    .unwrap_or_default()
+                match event.user_id {
+                    Some(id) => format!(" for user {}", id),
+                    None => String::new(),
+                },
+                match event.ip_address.as_ref() {
+                    Some(ip) => format!(" from IP {}", ip),
+                    None => String::new(),
+                }
             ),
         )
         .with_event(event.id);

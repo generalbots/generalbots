@@ -5,11 +5,13 @@ pub(super) fn final_extension(filename: &str) -> &str {
 }
 
 pub(super) fn normalize_mime(raw: &str) -> String {
-    raw.split(';')
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase()
+    match raw.split(';').next() {
+        Some(part) => part.trim().to_ascii_lowercase(),
+        None => {
+            log::warn!("empty MIME declaration; normalizing to an empty string");
+            String::new()
+        }
+    }
 }
 
 pub(super) fn declared_matches(declared: &str, expected: &str) -> bool {

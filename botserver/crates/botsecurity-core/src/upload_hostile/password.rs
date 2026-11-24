@@ -84,7 +84,13 @@ mod tests {
         let (status, Json(body)) = actionable_rejection(&error, &HeaderMap::new());
         assert_eq!(status, StatusCode::BAD_REQUEST);
         assert_eq!(body["action"], "remove-password");
-        let message = body["message"].as_str().unwrap_or_default();
+        let message = match body["message"].as_str() {
+            Some(message) => message,
+            None => {
+                log::warn!("actionable rejection has no string message field");
+                ""
+            }
+        };
         assert!(
             message.contains("remove the password"),
             "actionable message: {message}"

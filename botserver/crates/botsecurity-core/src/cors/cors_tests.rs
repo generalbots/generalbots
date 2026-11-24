@@ -113,9 +113,10 @@ async fn preflight_does_not_grant_x_user_id() -> TestResult {
         Some(APP_ORIGIN)
     );
 
-    let allowed_headers = header_value(&response, header::ACCESS_CONTROL_ALLOW_HEADERS)
-        .unwrap_or_default()
-        .to_ascii_lowercase();
+    let allowed_headers = match header_value(&response, header::ACCESS_CONTROL_ALLOW_HEADERS) {
+        Some(value) => value.to_ascii_lowercase(),
+        None => String::new(),
+    };
 
     assert!(
         !allowed_headers.contains("x-user-id"),
