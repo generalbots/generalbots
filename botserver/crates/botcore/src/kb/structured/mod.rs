@@ -8,18 +8,20 @@
 //! produced [`StructuredChunk`] values onto vector points by passing
 //! [`Citation`] and ACL fields into the point payload.
 
-mod citation;
 mod chunk;
 mod chunker;
+mod citation;
 mod index;
 mod index_types;
 mod upsert;
+mod vector_index;
 
-pub use citation::{Citation, SourceKind, SourceRef};
 pub use chunk::{stable_id, AclMetadata, StructuredChunk};
 pub use chunker::{ChunkOptions, StructureAwareChunker};
+pub use citation::{Citation, SourceKind, SourceRef};
 pub use index::{retrieve_with_citations, StructuredKbIndex};
 pub use index_types::{
     BackfillEntry, BackfillReport, DocumentRecord, IndexDocument, IndexStatus, RetrievedChunk,
 };
 pub use upsert::{UpsertPoint, VectorSlot, DEFAULT_VECTOR_DIMENSION};
+pub use vector_index::{InMemoryKbIndex, IndexError, SearchHit};

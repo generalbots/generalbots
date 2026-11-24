@@ -65,6 +65,26 @@ manifest_all() {
     awk -F '\t' -v key="$1" '$1 == key { print $2 }' "$MANIFEST"
 }
 
+# --- manifest contract -----------------------------------------------------
+# The schema line in appliance-manifest.tsv is the version of this contract.
+# An image may only be verified against the schema this verifier understands.
+EXPECTED_SCHEMA="gb-os-appliance/1"
+actual_schema=$(manifest_get schema)
+[ "$actual_schema" = "$EXPECTED_SCHEMA" ] \
+    || die "manifest schema mismatch: expected '${EXPECTED_SCHEMA}', got '${actual_schema:-<missing>}' ($MANIFEST)"
+
+# Guard against a vacuous pass: an empty or truncated manifest must not satisfy
+# the "all markers present" loops below simply because they iterated zero rows.
+# Today's manifest carries 15 marker/path rows (3 identity, 3 unit, 3 boot,
+# 6 required.path); 10 is a conservative floor that rejects empty manifests
+# while leaving headroom for future edits that merge a few rows.
+MIN_MARKERS=10
+marker_count=$(awk -F '\t' \
+    '$1 == "identity.marker" || $1 == "unit.marker" || $1 == "boot.marker" || $1 == "required.path" { n++ } END { print n + 0 }' \
+    "$MANIFEST")
+[ "$marker_count" -ge "$MIN_MARKERS" ] \
+    || die "manifest has too few marker/path rows (${marker_count}, expected >= ${MIN_MARKERS}): $MANIFEST"
+
 # --- result recording ------------------------------------------------------
 checks=0
 failed=0
@@ -123,12 +143,19 @@ root_label=$(manifest_get root.label)
 inspect_output="$(gf_run run : findfs-label "$root_label" 2>&1)" \
     || die "cannot find root label '${root_label}': $(tr '\n' ' ' <<<"$inspect_output" | cut -c1-160)"
 root_dev="$inspect_output"
+root_ok=0
 case "$root_dev" in
-    /dev/sd*|/dev/vd*) pass root.mount "found ${root_label} on ${root_dev}" ;;
-    *) die "unexpected root device for ${root_label}: ${root_dev}" ;;
+    /dev/sd*|/dev/vd*) pass root.mount "found ${root_label} on ${root_dev}"; root_ok=1 ;;
+    *) fail root.mount "unexpected root device for ${root_label}: ${root_dev}" ;;
 esac
 
 # --- in-image paths --------------------------------------------------------
+# Record a SKIP for each root-dependent group when the root device is not
+# mountable, so the root.mount FAIL reaches the final aggregation gate instead
+# of an early die further down.
+if [ "$root_ok" -ne 1 ]; then
+    skip required.paths "skipped: root filesystem not mountable (see root.mount FAIL)"
+else
 while IFS= read -r path; do
     [ -n "$path" ] || continue
     answer="$(gf_root exists "$path" 2>&1)" \
@@ -136,8 +163,13 @@ while IFS= read -r path; do
         && pass "path$(printf '%s' "$path" | tr '/ ' '__')" "$path" \
         || fail "path$(printf '%s' "$path" | tr '/ ' '__')" "missing ${path} (${answer:-no answer})"
 done < <(manifest_all required.path)
+fi
 
 # --- identity, shell unit and their markers --------------------------------
+if [ "$root_ok" -ne 1 ]; then
+    skip identity.markers "skipped: root filesystem not mountable (see root.mount FAIL)"
+    skip unit.markers "skipped: root filesystem not mountable (see root.mount FAIL)"
+else
 identity_file=$(manifest_get identity.file)
 unit_file=$(manifest_get unit.file)
 [ -n "$identity_file" ] && [ -n "$unit_file" ] \
@@ -160,6 +192,7 @@ while IFS= read -r marker; do
         && pass "unit$(printf '%s' "$marker" | tr -cd '[:alnum:]' | cut -c1-24)" "$marker" \
         || fail "unit$(printf '%s' "$marker" | tr -cd '[:alnum:]' | cut -c1-24)" "missing '${marker}' in ${unit_file}"
 done < <(manifest_all unit.marker)
+fi
 
 # --- El Torito boot records (optional tool) --------------------------------
 if command -v xorriso >/dev/null 2>&1; then

@@ -1,5 +1,62 @@
 use super::*;
 
+// Canonical office metric family names (no PII, stable for Prometheus scraping).
+pub const OFFICE_RECALC_DURATION_MS: &str = "office_recalc_duration_ms";
+pub const OFFICE_WORKBOOK_MEMORY_BYTES: &str = "office_workbook_memory_bytes";
+pub const OFFICE_EXPORT_DURATION_MS: &str = "office_export_duration_ms";
+pub const HTTP_REQUEST_DURATION_MS: &str = "http_request_duration_ms";
+
+/// Reduce an arbitrary label to a bounded `[a-z0-9_]` token. Used for app,
+/// format and route labels; never pass file names, user or tenant ids here.
+fn sanitize_label(raw: &str) -> String {
+    let normalized: String = raw
+        .chars()
+        .map(|c| match c {
+            'a'..='z' | '0'..='9' => c,
+            'A'..='Z' => c.to_ascii_lowercase(),
+            _ => '_',
+        })
+        .collect();
+    let trimmed = normalized.trim_matches('_');
+    let token: String = trimmed.chars().take(32).collect();
+    if token.is_empty() {
+        "unknown".to_string()
+    } else {
+        token
+    }
+}
+
+/// One-way opaque token for an identifier (workbook/branch). The raw id is
+/// hashed so no file name, user id or tenant id can ever reach the exporter.
+fn opaque_token(prefix: &str, raw: &str) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    raw.hash(&mut hasher);
+    format!("{prefix}{:016x}", hasher.finish())
+}
+
+/// Emit a count + sum + max ("histogram-ish") distribution for a duration.
+/// `scope` is the shared, sanitized label set; it must contain no raw ids.
+async fn record_duration_distribution(
+    collector: &MetricsCollector,
+    family: &str,
+    scope: HashMap<String, String>,
+    duration_ms: f64,
+) {
+    if !duration_ms.is_finite() || duration_ms < 0.0 {
+        return;
+    }
+    collector
+        .increment(format!("{family}_count"), scope.clone())
+        .await;
+    collector
+        .record(format!("{family}_sum"), duration_ms, scope.clone())
+        .await;
+    collector
+        .observe_max(format!("{family}_max"), duration_ms, scope)
+        .await;
+}
+
 pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
     let mut conn = match state.conn.get() {
         Ok(c) => c,
@@ -128,4 +185,72 @@ pub async fn track_file_operation(
             .record("files.bytes".to_string(), size_bytes as f64, labels)
             .await;
     }
+}
+
+/// #2459 — recalculation time per sheet/app and branch scope.
+///
+/// `app` is a sheet/app token (e.g. "sheet"); `branch` is hashed into an
+/// opaque label so no tenant/branch id is exposed. File names and user ids
+/// are never accepted. Exposes `_count`, `_sum` and `_max` milliseconds.
+pub async fn track_office_recalc(
+    collector: &MetricsCollector,
+    app: &str,
+    branch: Option<&str>,
+    duration_ms: f64,
+) {
+    let mut scope = HashMap::new();
+    scope.insert("app".to_string(), sanitize_label(app));
+    if let Some(branch) = branch {
+        scope.insert("branch".to_string(), opaque_token("br", branch));
+    }
+    record_duration_distribution(collector, OFFICE_RECALC_DURATION_MS, scope, duration_ms).await;
+}
+
+/// #2459 — measured resident memory for a single workbook, in bytes.
+///
+/// `workbook_id` is hashed to an opaque `wb*` label; the raw id (which could
+/// be a file name or user id) never reaches the exporter.
+pub async fn track_office_workbook_memory(
+    collector: &MetricsCollector,
+    workbook_id: &str,
+    bytes: u64,
+) {
+    let mut labels = HashMap::new();
+    labels.insert(
+        "workbook".to_string(),
+        opaque_token("wb", workbook_id),
+    );
+    collector
+        .gauge(
+            OFFICE_WORKBOOK_MEMORY_BYTES.to_string(),
+            bytes as f64,
+            labels,
+        )
+        .await;
+}
+
+/// #2459 — export duration per (sanitized) output format, e.g. "pdf"/"docx".
+/// Exposes `_count`, `_sum` and `_max` milliseconds.
+pub async fn track_office_export(
+    collector: &MetricsCollector,
+    format: &str,
+    duration_ms: f64,
+) {
+    let mut scope = HashMap::new();
+    scope.insert("format".to_string(), sanitize_label(format));
+    record_duration_distribution(collector, OFFICE_EXPORT_DURATION_MS, scope, duration_ms).await;
+}
+
+/// #2459 — request latency per route template (and status), replacing the
+/// per-class-only histogram. `route` is sanitized to a bounded token.
+pub async fn track_route_latency(
+    collector: &MetricsCollector,
+    route: &str,
+    status: u16,
+    duration_ms: f64,
+) {
+    let mut scope = HashMap::new();
+    scope.insert("route".to_string(), sanitize_label(route));
+    scope.insert("status".to_string(), status.to_string());
+    record_duration_distribution(collector, HTTP_REQUEST_DURATION_MS, scope, duration_ms).await;
 }

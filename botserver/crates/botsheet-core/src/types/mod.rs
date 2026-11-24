@@ -1,3 +1,4 @@
+pub mod collab_message;
 pub mod core;
 pub mod media;
 pub mod print_setup;

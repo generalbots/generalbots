@@ -14,10 +14,9 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             binary_name: Some("minio".to_string()),
             pre_install_cmds_linux: Vec::new(),
             post_install_cmds_linux: vec![
-                // `data_download_list` saves the download under the URL's
-                // basename, i.e. `mc.linux-amd64.<release>`; the old command
-                // copied `data/drive/mc` and failed silently for every fresh
-                // install. Use the actual file and keep the step idempotent.
+                // The mc data file is cached under its configured filename
+                // (`mc`, from 3rdparty.toml), not the upstream URL basename;
+                // copy it to BIN_PATH/mc and keep the glob idempotent.
                 "mc_src=$(ls {{DATA_PATH}}/mc* 2>/dev/null | head -1); if [ -n \"$mc_src\" ]; then cp \"$mc_src\" {{BIN_PATH}}/mc && chmod +x {{BIN_PATH}}/mc; fi".to_string(),
             ],
             pre_install_cmds_macos: Vec::new(),

@@ -92,7 +92,13 @@ pub fn extract_pptx_text_from_zip(bytes: &[u8]) -> Result<String, String> {
             .by_index(i)
             .map_err(|e| format!("Failed to read ZIP entry: {e}"))?;
 
-        let name = file.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = match file.name() {
+            Ok(n) => n.to_string(),
+            Err(e) => {
+                log::warn!("Failed to read ZIP entry name at index {i}: {e}");
+                String::new()
+            }
+        };
         if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") {
             let mut content = String::new();
             file.read_to_string(&mut content)

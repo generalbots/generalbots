@@ -234,6 +234,7 @@ pub async fn broadcast_sheet_change(
             row: Some(row),
             col: Some(col),
             value: Some(value.to_string()),
+            content: None,
             worksheet_index: Some(worksheet_index),
             seq: None,
             timestamp: Utc::now(),

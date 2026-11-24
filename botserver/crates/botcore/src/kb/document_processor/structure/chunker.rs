@@ -198,7 +198,10 @@ impl<'a> ChunkSink<'a> {
             self.doc.file,
             path.join("/"),
             page.map_or_else(String::new, |number| format!("p{number}")),
-            clause.unwrap_or_default()
+            match clause {
+                Some(value) => value,
+                None => "",
+            }
         );
         let ordinal = self.ordinals.entry(address.clone()).or_insert(0);
         let id = stable_id(&[

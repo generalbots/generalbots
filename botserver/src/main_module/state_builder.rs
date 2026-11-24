@@ -263,6 +263,14 @@ pub async fn create_app_state(
 
     let metrics_collector = botcore::shared::analytics::MetricsCollector::new();
 
+    // #2459 — the Sheet/Doc states are built later, in their feature routers;
+    // publish the very collector the exporter scrapes so their hooks record
+    // into the same metric family.
+    #[cfg(feature = "sheet")]
+    crate::sheet::state::set_metrics_collector(metrics_collector.clone());
+    #[cfg(feature = "docs")]
+    botdocs::state::set_metrics_collector(metrics_collector.clone());
+
     #[cfg(feature = "monitoring")]
     let tracing_service = botmonitoring::DistributedTracingService::new();
 

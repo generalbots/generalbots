@@ -16,6 +16,13 @@ var assertEqual = h.assertEqual;
 var readFile = h.readFile;
 var fileExists = h.fileExists;
 
+// #2457 — strip // and /* */ comments before scanning for feature-claim tokens.
+// Honesty fixes add explanatory comments containing words like "accept"; a
+// comment is not a claim of shipped support and must not trip these guards.
+function stripComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
+
 var DOC_TRANSLATE = "docs/modules/17_translate.js";
 var GLOSSARY_PANEL = "docs/modules/31_lang_panels_b.js";
 
@@ -44,7 +51,7 @@ var DOCS_REVIEW_JS = walkJs("docs").filter(function (relPath) {
 
 test("[STATIC] #2511: docs translation ships text apply + server-history undo only", function () {
   assert(fileExists(DOC_TRANSLATE), "the shipped docs translation module must exist");
-  var src = readFile(DOC_TRANSLATE);
+  var src = stripComments(readFile(DOC_TRANSLATE));
   assert(src.indexOf("/api/docs/ai/translate") >= 0, "docs translation endpoint must be present");
   assert(src.indexOf("/api/docs/autosave") >= 0, "autosave-based undo seeding must be present");
   assert(/GBCollabVersions/.test(src), "collaboration snapshot must be present");
@@ -92,7 +99,7 @@ test("[STATIC] #2511: per-segment review/accept workflow for translations is NOT
   var review = joined(DOCS_REVIEW_JS);
   assert(!/translateSegment|translationMemory|sideBySide|bilingual|acceptTranslation|rejectTranslation/i.test(review),
     "existing review modules are not wired to translation segments");
-  var src = readFile(DOC_TRANSLATE);
+  var src = stripComments(readFile(DOC_TRANSLATE));
   assert(!/accept|reject|approve|segment|review/i.test(src),
     "translate apply contains no accept/reject/approve review step");
 });

@@ -18,7 +18,13 @@ impl KbIndexer {
                     status: "not_found".to_string(),
                 });
             }
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = match response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    log::warn!("Failed to read collection-info error body: {e}");
+                    String::new()
+                }
+            };
             return Err(anyhow::anyhow!(
                 "Failed to get collection info: {}",
                 error_text

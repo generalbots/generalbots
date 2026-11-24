@@ -128,32 +128,9 @@ pub struct NamedRange {
     pub comment: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CollabMessage {
-    pub msg_type: String,
-    pub sheet_id: String,
-    pub user_id: String,
-    pub user_name: String,
-    pub user_color: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub row: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub col: Option<u32>,
-    /// Cell value. The web client has historically sent this key as `content`
-    /// (`collab.js::sendEdit`); accept both so an edit is not silently dropped
-    /// when the `value` key is absent (#2447).
-    #[serde(alias = "content")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub worksheet_index: Option<usize>,
-    /// Server-assigned monotonic sequence for the sheet session (#791). Every
-    /// state-changing message carries it; clients apply in order and use it as
-    /// the `since` argument of the ops catch-up endpoint on reconnect.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seq: Option<u64>,
-    pub timestamp: DateTime<Utc>,
-}
+// #2447 — the WS envelope lives in its own module so this file stays
+// under the 450-line limit and the browser-frame deserializers are testable.
+pub use super::collab_message::CollabMessage;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Collaborator {

@@ -304,10 +304,14 @@ mod tests {
             payload["acl"]["allowed_groups"],
             serde_json::json!(["contracts"])
         );
-        assert_eq!(
-            payload["acl"],
-            serde_json::to_value(&acl).unwrap_or_default()
-        );
+        let expected_acl = match serde_json::to_value(&acl) {
+            Ok(value) => value,
+            Err(e) => {
+                log::warn!("Failed to serialize ACL for assertion: {e}");
+                serde_json::Value::Null
+            }
+        };
+        assert_eq!(payload["acl"], expected_acl);
     }
 
     #[test]

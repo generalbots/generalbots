@@ -23,6 +23,9 @@ pub struct Metric {
 pub struct MetricsCollector {
     metrics: Arc<RwLock<Vec<Metric>>>,
     aggregates: Arc<RwLock<HashMap<String, f64>>>,
+    // Last emitted maximum per (name + sorted labels). Used by `observe_max` so
+    // `_max` series behave as gauges instead of being summed by `record()`.
+    max_state: Arc<RwLock<HashMap<String, f64>>>,
 }
 
 impl Default for MetricsCollector {

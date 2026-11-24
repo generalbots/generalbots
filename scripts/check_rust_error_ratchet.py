@@ -43,6 +43,15 @@ Usage:
     python3 scripts/check_rust_error_ratchet.py
     python3 scripts/check_rust_error_ratchet.py --update
     python3 scripts/check_rust_error_ratchet.py --self-test
+    python3 scripts/check_rust_error_ratchet.py --check-baseline-diff --base <ref>
+
+The history mode is the integrity half of the ratchet. --update refuses raises
+only relative to the baseline file it reads, so hand-raising a ceiling in that
+committed file would otherwise silently become the accepted normal. History
+mode compares every shrink-only ceiling table ([rules] and [clippy]) in the
+working-tree baseline with the same file at <ref> (or with the offline copy
+named by GB_RATCHET_BASE_FILE) and fails when any ceiling increased. Keys added
+or removed between the two revisions are reported, not failed.
 
 The only unwrap/expect/panic text in this file is inside the self-test fixture
 string; no such call is ever executed by the guard.
@@ -55,6 +64,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import tomllib
 
@@ -69,6 +79,13 @@ SKIP_DIRS = {
 }
 SKIP_FILE_STEMS = {"test", "tests"}
 RULES = ("unwrap", "expect", "panic", "unwrap_or_default", "discarded_result")
+# Every shrink-only ceiling table in clippy-baseline.toml. [files.*] is an
+# informational hotspot snapshot (counts move between files on a rename), so it
+# is deliberately not a ceiling table and must never gate the history check.
+CEILING_KEYS = {
+    "rules": RULES,
+    "clippy": ("unwrap_used", "expect_used", "panic"),
+}
 HOTSPOT_LIMIT = 50
 RULE_NOTES = {
     "unwrap": "calls to .unwrap(...)",
@@ -226,6 +243,11 @@ def load_baseline(path: str) -> dict | None:
     return {"totals": totals, "per_file": data.get("files", {})}
 
 
+from ratchet_baseline_history import (  # noqa: E402
+    parse_ceilings, read_git_file, ceiling_raises, check_baseline_history, self_test_history,
+)
+
+
 def write_baseline(path: str, totals: dict[str, int], per_file: dict[str, dict[str, int]]) -> None:
     """Write a deterministic, shrink-only baseline with per-file hotspots."""
     lines = [HEADER.rstrip("\n"), "", "issue = 2543", "scope = [", ]
@@ -258,10 +280,12 @@ def show_top(per_file: dict[str, dict[str, int]], rule: str, limit: int = 10) ->
 
 
 def self_test() -> int:
-    """Prove counting, test exclusion and shrink-only logic on synthetic input."""
+    """Prove counting, exclusion, shrink-only and history logic on synthetic input."""
     failures: list[str] = []
+    checks: list[str] = []
 
     def check(name: str, condition: bool) -> None:
+        checks.append(name)
         if condition:
             print(f"  ok: {name}")
         else:
@@ -309,10 +333,12 @@ pub fn production() -> u8 {
     raised = ceilings.copy()
     raised["expect"] = 4
     check("raised count is growth", growth_rules(raised, ceilings) == ["expect"])
+    self_test_history(check)
+
     if failures:
         print(f"check_rust_error_ratchet: self-test FAIL — {len(failures)} check(s)")
         return 1
-    print("check_rust_error_ratchet: self-test OK — 5 checks passed")
+    print(f"check_rust_error_ratchet: self-test OK — {len(checks)} checks passed")
     return 0
 
 
@@ -327,10 +353,21 @@ def main() -> int:
         "--self-test", action="store_true",
         help="check counting and shrink-only logic on synthetic strings",
     )
+    parser.add_argument(
+        "--check-baseline-diff", action="store_true",
+        help="fail if a committed ceiling rose relative to the base revision",
+    )
+    parser.add_argument(
+        "--base", default=None,
+        help="git ref to compare the baseline against (or GB_RATCHET_BASE)",
+    )
     args = parser.parse_args()
 
     if args.self_test:
         return self_test()
+
+    if args.check_baseline_diff:
+        return check_baseline_history(args.baseline, args.base or os.environ.get("GB_RATCHET_BASE"))
 
     try:
         totals, per_file = count_sites()

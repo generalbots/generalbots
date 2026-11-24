@@ -80,8 +80,15 @@ impl SourceRef {
     /// Stable, locale-neutral text used for point IDs, logs and tests.
     pub fn address(&self) -> String {
         let mut value = format!("{}={}", self.kind.as_str(), self.locator);
+        // SourceRef::page(4) sets locator="4" and page=Some(4); appending
+        // ` p4` would duplicate it. But page(4).with_page(12) intentionally
+        // overrides the physical page, so append when the values differ.
         if let Some(page) = self.page {
-            value.push_str(&format!(" p{}", page));
+            let duplicates = self.kind == SourceKind::Page
+                && self.locator.parse::<usize>() == Ok(page);
+            if !duplicates {
+                value.push_str(&format!(" p{}", page));
+            }
         }
         value
     }

@@ -223,4 +223,77 @@ mod tests {
         assert_eq!(forward, reverse);
         assert!(forward.len() <= 8);
     }
+
+    /// WebSocket delivery is at-least-once, so the same edit can arrive twice.
+    /// A redelivered op must be a true no-op: `apply` reports no state change
+    /// and the winner (value and revision) is left untouched.
+    #[test]
+    fn duplicate_delivery_is_idempotent() {
+        let cell = CellKey::new(0, 3, 3);
+        let original = op("alice", 5, cell, "v1");
+        let mut state = CellState::new();
+
+        assert!(state.apply(original.clone()));
+        assert!(!state.apply(original.clone()));
+        assert_eq!(state.len(), 1);
+        assert_eq!(state.value(&cell), Some("v1"));
+
+        // Same revision (actor:clock) but a different payload: the rank is
+        // equal, so it is rejected deterministically instead of flipping the
+        // cell depending on which copy happened to arrive first.
+        let conflicting = op("alice", 5, cell, "v2");
+        assert!(!state.apply(conflicting));
+        assert_eq!(state.value(&cell), Some("v1"));
+    }
+
+    /// `value: None` is a real mutation (clearing a cell), not "no event".
+    /// It must join the same total order as any other edit: a stale clear
+    /// cannot erase a newer value, but a newer clear wins and is observable.
+    #[test]
+    fn clear_and_set_on_same_cell_resolve_by_clock() {
+        let cell = CellKey::new(0, 7, 1);
+        let mut state = CellState::new();
+
+        assert!(state.apply(op("alice", 10, cell, "typed")));
+        assert!(!state.apply(CellOp::new("bob", 3, cell, None)));
+        assert_eq!(state.value(&cell), Some("typed"));
+
+        assert!(state.apply(CellOp::new("bob", 11, cell, None)));
+        assert_eq!(state.value(&cell), None);
+        // A cleared cell is still a tracked winner, not an absent cell.
+        assert!(state.op(&cell).is_some());
+    }
+
+    /// Out-of-order revisions of one cell settle on the highest clock no
+    /// matter the delivery order, and `apply` flags every superseded arrival.
+    #[test]
+    fn out_of_order_revisions_have_a_deterministic_winner() {
+        let cell = CellKey::new(0, 1, 8);
+        let revisions = [
+            op("alice", 2, cell, "r2"),
+            op("bob", 5, cell, "r5"),
+            op("alice", 1, cell, "r1"),
+            op("bob", 4, cell, "r4"),
+            op("carol", 9, cell, "r9"),
+        ];
+
+        let mut forward = CellState::new();
+        let mut accepted = 0;
+        for edit in &revisions {
+            if forward.apply(edit.clone()) {
+                accepted += 1;
+            }
+        }
+        let mut shuffled = CellState::new();
+        for edit in revisions.iter().rev() {
+            shuffled.apply(edit.clone());
+        }
+
+        assert_eq!(forward, shuffled);
+        assert_eq!(forward.value(&cell), Some("r9"));
+        assert_eq!(forward.len(), 1);
+        // r2 -> r5 -> r9 are the only strictly newer arrivals; r1 and r4 are
+        // stale and must be reported as such.
+        assert_eq!(accepted, 3);
+    }
 }

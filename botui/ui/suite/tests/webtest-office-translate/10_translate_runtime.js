@@ -61,17 +61,28 @@ test("RUNTIME #2511: HTML translation is applied verbatim with inline formatting
   assertEqual(f.snapshots[0].content, translated, "snapshot must capture the translated markup");
 });
 
-test("RUNTIME #2511: every documented response field (content/response/text/result) is accepted", async function () {
-  var fields = ["content", "response", "text", "result"];
+test("RUNTIME #2511: content/response/text with a success status are applied", async function () {
+  var fields = ["content", "response", "text"];
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
-    var payload = {};
+    var payload = { result: "success" };
     payload[field] = "<p>" + field + "</p>";
     var f = makeTranslateFixture({ translateResponse: payload });
     var ok = await f.ctx.translateDocument("Spanish");
     assertEqual(ok, true, field + " payload must translate successfully");
     assertEqual(f.article.innerHTML, "<p>" + field + "</p>", field + " payload must be applied");
   }
+});
+
+test("RUNTIME #2457: an unavailable/error response is refused, not applied", async function () {
+  var initial = "<p>Hello <strong>world</strong></p>";
+  var f = makeTranslateFixture({
+    translateResponse: { result: "unavailable", content: "<p>fake translation</p>", error: "LLM 429" }
+  });
+  assertEqual(f.article.innerHTML, initial, "fixture starts with original content");
+  var ok = await f.ctx.translateDocument("Spanish");
+  assertEqual(ok, false, "unavailable result must not report success");
+  assertEqual(f.article.innerHTML, initial, "unavailable result must not overwrite content");
 });
 
 test("RUNTIME #2511: plain text is routed through docsRenderBlocks when the renderer is present", async function () {

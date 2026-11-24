@@ -177,6 +177,9 @@ impl ApiUrls {
     pub const ANALYTICS_DASHBOARD: &'static str = "/api/analytics/dashboard";
     pub const ANALYTICS_METRIC: &'static str = "/api/analytics/metric";
     pub const METRICS: &'static str = "/api/metrics";
+    /// Canonical Prometheus scrape endpoint (#2459). Registered via
+    /// `shared::analytics::configure_canonical()`.
+    pub const METRICS_CANONICAL: &'static str = "/metrics";
 
     // Analytics - HTMX/HTML APIs
     pub const ANALYTICS_MESSAGES_COUNT: &'static str = "/api/ui/analytics/messages/count";

@@ -236,4 +236,28 @@ mod tests {
 
         assert_eq!(applied_twice, result.state);
     }
+
+    /// An offline edit on one cell and a missed remote edit on a *different*
+    /// cell are independent: reconnect must keep both. Naive "last message
+    /// wins" replay trades one for the other, which is the common real-world
+    /// co-editing case this queue exists to prevent.
+    #[test]
+    fn offline_and_remote_edits_on_different_cells_are_both_retained() {
+        let local_cell = CellKey::new(0, 4, 4);
+        let remote_cell = CellKey::new(0, 9, 9);
+
+        let mut queue = OfflineQueue::new("alice");
+        queue.observe(2);
+        queue.edit(local_cell, Some("alice offline".to_string()));
+
+        let remote = vec![op("bob", 20, remote_cell, "bob online")];
+        let result = super::reconcile(&CellState::new(), &queue, &remote);
+
+        assert_eq!(result.state.value(&local_cell), Some("alice offline"));
+        assert_eq!(result.state.value(&remote_cell), Some("bob online"));
+        assert_eq!(result.state.len(), 2);
+        assert_eq!(result.replay.len(), 1);
+        assert_eq!(result.replay[0].cell, local_cell);
+        assert_eq!(result.dropped, 0);
+    }
 }

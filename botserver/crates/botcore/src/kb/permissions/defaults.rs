@@ -67,7 +67,13 @@ pub fn build_qdrant_permission_filter(user: &UserContext) -> serde_json::Value {
     }
 
     let user_id = user.user_id.to_string();
-    let email = user.email.clone().unwrap_or_default();
+    let email = user.email.clone().unwrap_or_else(|| {
+        log::warn!(
+            "Authenticated user {} has no email; using an empty value in the permission filter",
+            user.user_id
+        );
+        String::new()
+    });
 
     let mut should_conditions = vec![
         serde_json::json!({ "key": "is_public", "match": { "value": true } }),
