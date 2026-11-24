@@ -87,7 +87,13 @@ pub fn get_db_password_from_vault() -> Option<String> {
     use crate::bootstrap::bootstrap_utils::safe_sh_command_with_env;
 
     let vault_addr = env::var("VAULT_ADDR").unwrap_or_default();
-    if env::var("VAULT_TOKEN").ok().is_none() || vault_addr.is_empty() {
+    // #2754 — keep the root token out of argv: bind it from the environment
+    // once here and pass it only through the child's environment.
+    let vault_token = match env::var("VAULT_TOKEN") {
+        Ok(token) => token,
+        Err(_) => return None,
+    };
+    if vault_addr.is_empty() {
         return None;
     }
     let vault_cacert = env::var("VAULT_CACERT")
