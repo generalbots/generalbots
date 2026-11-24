@@ -116,7 +116,9 @@ pub fn create_bot_bucket(
         }
         if src.is_dir() {
             let tmpdir = format!("/tmp/gbtemplate_{bot_slug}");
-            let _ = std::fs::remove_dir_all(&tmpdir);
+            if let Err(e) = std::fs::remove_dir_all(&tmpdir) {
+                tracing::warn!("create_bot_bucket: template temp dir cleanup failed: {e}");
+            }
             if let Err(e) = copy_dir_all(&src, Path::new(&tmpdir)) {
                 tracing::warn!("Failed to copy template {template_path}: {e}");
             } else {
@@ -130,7 +132,9 @@ pub fn create_bot_bucket(
                     let old = format!("{tmpdir}/{template_name}.{ext}");
                     let new = format!("{tmpdir}/{bot_slug}.{ext}");
                     if Path::new(&old).exists() {
-                        let _ = std::fs::rename(&old, &new);
+                        if let Err(e) = std::fs::rename(&old, &new) {
+                            tracing::warn!("create_bot_bucket: template dir rename failed: {e}");
+                        }
                     }
                 }
                 // Upload recursively via mc cp
@@ -142,7 +146,9 @@ pub fn create_bot_bucket(
                     .map_err(|e| format!("mc cp guard: {e}"))?
                     .execute()
                     .map_err(|e| format!("mc cp failed: {e}"))?;
-                let _ = std::fs::remove_dir_all(&tmpdir);
+                if let Err(e) = std::fs::remove_dir_all(&tmpdir) {
+                    tracing::warn!("create_bot_bucket: template temp dir cleanup failed: {e}");
+                }
                 if cp.status.success() {
                     return Ok(());
                 }
@@ -173,7 +179,9 @@ pub fn create_bot_bucket(
         .execute()
         .map_err(|e| format!("mc cp failed: {e}"))?;
 
-    let _ = std::fs::remove_file(&tmpfile);
+    if let Err(e) = std::fs::remove_file(&tmpfile) {
+        tracing::warn!("create_bot_bucket: temp start.bas cleanup failed: {e}");
+    }
 
     if !cp.status.success() {
         let stderr = String::from_utf8_lossy(&cp.stderr);

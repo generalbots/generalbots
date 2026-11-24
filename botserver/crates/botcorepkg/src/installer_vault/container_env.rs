@@ -104,7 +104,9 @@ fn scoped_token(
     // `vault policy write` needs a file inside the container; stream it with
     // `incus file push` through the helper below, then remove it immediately.
     push_transient_file(container_name, &policy, "/tmp/gb-sidecar-policy.hcl")?;
-    let _ = std::fs::remove_file(&policy);
+    if let Err(e) = std::fs::remove_file(&policy) {
+        log::warn!("Failed to remove temporary policy file {}: {e}", policy.display());
+    }
 
     let write = vault_in_container(
         container_name,
@@ -166,7 +168,9 @@ fn push_transient_file(container_name: &str, source: &Path, destination: &str) -
 
 fn delete_in_container(container_name: &str, path: &str) {
     let script = format!("rm -f {path}");
-    let _ = incus_exec(container_name, &script);
+    if let Err(e) = incus_exec(container_name, &script) {
+        log::warn!("Failed to delete {path} in container {container_name}: {e}");
+    }
 }
 
 /// Initialize a container-hosted Vault, unseal it, and persist only a scoped
@@ -234,7 +238,9 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
     // Migration: earlier releases left unseal keys in the user-owned stack.
     let legacy_keys = PathBuf::from("vault-unseal-keys");
     if legacy_keys.exists() {
-        let _ = std::fs::remove_file(&legacy_keys);
+        if let Err(e) = std::fs::remove_file(&legacy_keys) {
+            log::warn!("Failed to remove legacy keys {}: {e}", legacy_keys.display());
+        }
     }
     secrets::write_env_file(&PathBuf::from(".env"), &vault_addr, ca_cert.as_deref())?;
 

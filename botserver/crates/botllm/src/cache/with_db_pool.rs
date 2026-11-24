@@ -168,13 +168,16 @@ impl CachedLLMProvider {
         if let Ok(cached_json) = conn.get::<_, String>(&cache_key).await {
             if let Ok(mut cached) = serde_json::from_str::<CachedResponse>(&cached_json) {
                 cached.hit_count += 1;
-                let _ = conn
+                if let Err(e) = conn
                     .set_ex::<_, _, ()>(
                         &cache_key,
                         serde_json::to_string(&cached).unwrap_or_else(|e| { log::warn!("cache serialization failed: {e}"); String::new() }),
                         self.config.ttl,
                     )
-                    .await;
+                    .await
+                {
+                    log::warn!("llm cache: exact set_ex failed: {e}");
+                }
 
                 info!(
                     "Cache hit (exact match) for prompt: ~{} tokens",

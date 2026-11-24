@@ -96,7 +96,9 @@ impl S3Repository {
         let target_bucket = self.bucket_for(bucket)?;
         let keys_count = keys.len();
         for key in keys {
-            let _ = target_bucket.delete_object(&key).await;
+            if let Err(e) = target_bucket.delete_object(&key).await {
+                log::warn!("Failed to delete object {key} from bucket {bucket}: {e}");
+            }
         }
         info!("Deleted {} objects from S3: {}", keys_count, bucket);
         Ok(())

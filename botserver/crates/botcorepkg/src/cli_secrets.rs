@@ -9,20 +9,24 @@ fn empty_vault_secrets(e: anyhow::Error) -> HashMap<String, String> {
     HashMap::new()
 }
 
-fn confirm_action(prompt: &str) -> bool {
+fn read_confirmation(prompt: &str) -> String {
     print!("{prompt}");
-    let _ = std::io::Write::flush(&mut std::io::stdout());
+    if let Err(e) = std::io::Write::flush(&mut std::io::stdout()) {
+        log::warn!("Failed to flush stdout: {e}");
+    }
     let mut input = String::new();
-    let _ = std::io::stdin().read_line(&mut input);
-    input.trim().to_lowercase() == "y"
+    if let Err(e) = std::io::stdin().read_line(&mut input) {
+        log::warn!("Failed to read confirmation input: {e}");
+    }
+    input.trim().to_string()
+}
+
+fn confirm_action(prompt: &str) -> bool {
+    read_confirmation(prompt).to_lowercase() == "y"
 }
 
 fn confirm_exact(prompt: &str, expected: &str) -> bool {
-    print!("{prompt}");
-    let _ = std::io::Write::flush(&mut std::io::stdout());
-    let mut input = String::new();
-    let _ = std::io::stdin().read_line(&mut input);
-    input.trim() == expected
+    read_confirmation(prompt) == expected
 }
 
 pub async fn rotate_secret(component: &str) -> Result<()> {

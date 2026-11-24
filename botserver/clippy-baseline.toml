@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 1036
+discarded_result = 932
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -70,9 +70,6 @@ discarded_result = 8
 [files."botserver/crates/botcore/src/product/appearance.rs"]
 discarded_result = 8
 
-[files."botserver/crates/botdrive/src/drive_monitor/types/index_kb_file.rs"]
-discarded_result = 8
-
 [files."botserver/crates/botpaper/src/templates.rs"]
 discarded_result = 8
 
@@ -83,12 +80,6 @@ discarded_result = 8
 discarded_result = 8
 
 [files."botserver/crates/botagent/src/stream.rs"]
-discarded_result = 7
-
-[files."botserver/crates/botdrive/src/drive_handlers/list_trash.rs"]
-discarded_result = 7
-
-[files."botserver/crates/botllm/src/glm.rs"]
 discarded_result = 7
 
 [files."botserver/src/console/wizard/wizard_core.rs"]
@@ -127,28 +118,13 @@ discarded_result = 5
 [files."botserver/crates/botcore/src/dns/mod.rs"]
 discarded_result = 5
 
-[files."botserver/crates/botcorepkg/src/facade.rs"]
-discarded_result = 5
-
 [files."botserver/crates/botcorepkg/src/facade_container.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botcorepkg/src/installer_vault/secret_store.rs"]
 discarded_result = 5
 
 [files."botserver/crates/botdesktop/src/proxy.rs"]
 discarded_result = 5
 
 [files."botserver/crates/botemail/src/handlers/htmx/list_templates_htmx.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botllm/src/kimi.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botllm/src/kiro/emit_stream.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botllm/src/openai_stream_sse.rs"]
 discarded_result = 5
 
 [files."botserver/crates/botplan/src/collaboration.rs"]
@@ -173,4 +149,28 @@ discarded_result = 5
 discarded_result = 5
 
 [files."botserver/crates/botapi/src/terminal/terminal_ws.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botautotask/src/app_logs/app_log_store.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/send_file_to_recipient.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/send_web_message.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botbasic_compiler/src/goto_transform.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcanvas/src/api/canvases.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcore/src/os_abstraction/linux.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcore/src/os_abstraction/macos.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcore/src/os_abstraction/windows.rs"]
 discarded_result = 4

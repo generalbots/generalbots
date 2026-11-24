@@ -39,17 +39,24 @@ pub async fn empty_trash(
                 if let Ok(keys) = drive.list_objects(&row.bucket, Some(&prefix)).await {
                     for key in keys {
                         revoke_links_for_key(&state, &row.bucket, &key)?;
-                        let _ = drive.delete_object(&row.bucket, &key).await;
+                        if let Err(e) = drive.delete_object(&row.bucket, &key).await {
+                            log::warn!("Failed to delete trashed object {}/{}: {e}", row.bucket, key);
+                        }
                     }
                 }
             }
             revoke_links_for_key(&state, &row.bucket, &row.path)?;
-            let _ = drive.delete_object(&row.bucket, &row.path).await;
+            if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
+                log::warn!("Failed to delete trashed object {}/{}: {e}", row.bucket, row.path);
+            }
         }
 
-        let _ = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
+        if let Err(e) = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
             .bind::<Text, _>(&uid)
-            .execute(&mut conn);
+            .execute(&mut conn)
+        {
+            log::warn!("Failed to clear trash rows for user {uid}: {e}");
+        }
     }
 
     Ok(Json(SuccessResponse { success: true }))

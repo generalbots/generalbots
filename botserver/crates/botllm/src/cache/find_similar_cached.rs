@@ -102,13 +102,16 @@ impl CachedLLMProvider {
             cached.hit_count += 1;
             let cache_key =
                 self.generate_cache_key(&cached.prompt, &cached.messages, &cached.model, bot_id);
-            let _ = conn
+            if let Err(e) = conn
                 .set_ex::<_, _, ()>(
                     &cache_key,
                     serde_json::to_string(&cached).unwrap_or_else(|e| { log::warn!("cache serialization failed: {e}"); String::new() }),
                     self.config.ttl,
                 )
-                .await;
+                .await
+            {
+                log::warn!("llm cache: semantic set_ex failed: {e}");
+            }
             return Some(cached);
         }
 

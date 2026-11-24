@@ -40,12 +40,17 @@ impl KiroClient {
                     if let Some(content) = parsed.get("content").and_then(|c| c.as_str()) {
                         let processed = handler.process_content_streaming(content, &mut state_buffer);
                         if !processed.content.is_empty() {
-                            let _ = tx.send(processed.content).await;
+                            if let Err(e) = tx.send(processed.content).await {
+                                log::warn!("kiro: content chunk send failed: {e}");
+                            }
                         }
                         if !processed.reasoning.is_empty() {
-                            let _ = tx
+                            if let Err(e) = tx
                                 .send(serde_json::json!({"__reasoning__": processed.reasoning}).to_string())
-                                .await;
+                                .await
+                            {
+                                log::warn!("kiro: reasoning send failed: {e}");
+                            }
                         }
                     } else if let Some(tool) = parsed.get("toolUseId").cloned() {
                         // toolUse events: {"toolUseId":…,"name":…,"input":…}
@@ -59,16 +64,21 @@ impl KiroClient {
                                 v => v.to_string(),
                             };
                             let msg = json!({"__tool_call__": true, "name": name, "arguments": args});
-                            let _ = tx.send(msg.to_string()).await;
+                            if let Err(e) = tx.send(msg.to_string()).await {
+                                log::warn!("kiro: tool call send failed: {e}");
+                            }
                         }
                     } else if let Some(err) = parsed.get("error").or_else(|| parsed.get("Error")) {
                         let msg = match err.as_str() {
                             Some(s) => s.to_string(),
                             None => err.to_string(),
                         };
-                        let _ = tx
+                        if let Err(e) = tx
                             .send(format!("__kiro_error__{msg}"))
-                            .await;
+                            .await
+                        {
+                            log::warn!("kiro: error marker send failed: {e}");
+                        }
                     }
                 }
             }

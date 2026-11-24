@@ -125,12 +125,9 @@ pub async fn move_file(
         })?;
 
     revoke_links_for_key(&state, &src_bucket, &from_key)?;
-    let _ = drive
-        .delete_object(&src_bucket, &from_key)
-        .await
-        .map_err(|e| {
-            warn!("Move: failed to delete source {from_key}: {e}");
-        });
+    if let Err(e) = drive.delete_object(&src_bucket, &from_key).await {
+        warn!("Move: failed to delete source {from_key}: {e}");
+    }
 
     botlog::safe_info!("Moved {from_key} -> {to_key}");
     Ok(Json(SuccessResponse { success: true }))

@@ -167,14 +167,17 @@ pub(crate) async fn checkout_success(
         .unwrap_or("unknown");
 
     let deal_name = format!("Assinatura - {}", invoice.customer_name.as_str());
-    let _ = integration::win_crm_deal(service.pool(), invoice.branch_id, &deal_name)
-        .map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
+    if let Err(e) = integration::win_crm_deal(service.pool(), invoice.branch_id, &deal_name) {
+        tracing::warn!("CRM win deal failed: {e}");
+    }
 
-    let _ = integration::create_gl_entry_for_invoice(
+    if let Err(e) = integration::create_gl_entry_for_invoice(
         service.pool(), invoice_id, total, invoice.customer_name.as_str(),
-    ).map_err(|e| tracing::warn!("GL entry creation failed: {e}"));
+    ) {
+        tracing::warn!("GL entry creation failed: {e}");
+    }
 
-    let _ = integration::create_billing_subscription(integration::NewSubscription {
+    if let Err(e) = integration::create_billing_subscription(integration::NewSubscription {
         pool: service.pool(),
         branch_id: invoice.branch_id,
         customer_name: invoice.customer_name.as_str(),
@@ -184,8 +187,9 @@ pub(crate) async fn checkout_success(
         currency: invoice.currency.as_str(),
         invoice_id,
         period: "monthly",
-    })
-    .map_err(|e| tracing::warn!("Subscription creation failed: {e}"));
+    }) {
+        tracing::warn!("Subscription creation failed: {e}");
+    }
 
     let mut vars = notifier::EmailVars::new(
         invoice.customer_name.as_str(),

@@ -32,7 +32,9 @@ pub fn get_all_components() -> Vec<ComponentInfo> {
 
 fn safe_pkill(args: &[&str]) {
     if let Ok(cmd) = SafeCommand::new("pkill").and_then(|c| c.args(args)) {
-        let _ = cmd.execute();
+        if let Err(e) = cmd.execute() {
+            log::warn!("pkill command failed: {e}");
+        }
     }
 }
 
@@ -98,7 +100,9 @@ pub async fn run() -> Result<()> {
             let components = get_all_components();
             for component in components {
                 if pm.is_installed(component.name) {
-                    let _ = pm.start(component.name);
+                    if let Err(e) = pm.start(component.name) {
+                        log::warn!("Failed to restart {}: {e}", component.name);
+                    }
                 }
             }
             println!("* BotServer restarted");

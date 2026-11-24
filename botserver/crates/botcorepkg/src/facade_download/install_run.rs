@@ -149,7 +149,9 @@ pub async fn download_with_reqwest(url: &str, target_file: &std::path::Path, com
             Err(e) => {
                 warn!("Download attempt {} failed: {}", attempt + 1, e);
                 last_error = Some(e);
-                let _ = std::fs::remove_file(target_file);
+                if let Err(e) = std::fs::remove_file(target_file) {
+                    log::warn!("Failed to remove partial download {}: {e}", target_file.display());
+                }
             }
         }
     }

@@ -233,7 +233,9 @@ impl PackageManager {
 
     pub fn remove_local(&self, component: &ComponentConfig) -> Result<()> {
         let bin_path = self.base_path.join("bin").join(&component.name);
-        let _ = std::fs::remove_dir_all(bin_path);
+        if let Err(e) = std::fs::remove_dir_all(bin_path) {
+            log::warn!("Failed to remove install directory for {}: {e}", component.name);
+        }
         Ok(())
     }
 

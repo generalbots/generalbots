@@ -105,7 +105,9 @@ pub async fn trash_file(
         // #2799 — moving the object out of `key` changes what that key serves
         // on restore; revoke its links while the object is still present.
         revoke_links_for_key(&state, &bucket, &key)?;
-        let _ = drive.delete_object(&bucket, &key).await;
+        if let Err(e) = drive.delete_object(&bucket, &key).await {
+            log::warn!("Failed to delete trashed object {bucket}/{key}: {e}");
+        }
         diesel::sql_query(
             "INSERT INTO drive_trash (user_id, bucket, path, original_path, is_dir, size) \
              VALUES ($1, $2, $3, $4, false, $5)",
@@ -141,7 +143,9 @@ pub async fn trash_file(
             // Directory markers carry no content but keep the empty folder
             // visible after the files are gone.
             revoke_links_for_key(&state, &bucket, &child)?;
-            let _ = drive.delete_object(&bucket, &child).await;
+            if let Err(e) = drive.delete_object(&bucket, &child).await {
+                log::warn!("Failed to delete trashed child {bucket}/{child}: {e}");
+            }
             continue;
         }
         let relative_child = child
@@ -155,7 +159,9 @@ pub async fn trash_file(
         let dest = format!("{trash_base}/{relative_child}");
         if drive.put_object(&bucket, &dest, data, None).await.is_ok() {
             revoke_links_for_key(&state, &bucket, &child)?;
-            let _ = drive.delete_object(&bucket, &child).await;
+            if let Err(e) = drive.delete_object(&bucket, &child).await {
+                log::warn!("Failed to delete trashed child {bucket}/{child}: {e}");
+            }
         }
     }
     diesel::sql_query(
@@ -268,7 +274,9 @@ pub async fn restore_trash(
                     )
                 })?;
             revoke_links_for_key(&state, &row.bucket, &child)?;
-            let _ = drive.delete_object(&row.bucket, &child).await;
+            if let Err(e) = drive.delete_object(&row.bucket, &child).await {
+                log::warn!("Failed to delete restored trashed child {}/{}: {e}", row.bucket, child);
+            }
             restored += 1;
         }
     } else if let Ok(data) = drive.get_object(&row.bucket, &row.path).await {
@@ -286,7 +294,9 @@ pub async fn restore_trash(
                 )
             })?;
         revoke_links_for_key(&state, &row.bucket, &row.path)?;
-        let _ = drive.delete_object(&row.bucket, &row.path).await;
+        if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
+            log::warn!("Failed to delete restored trashed object {}/{}: {e}", row.bucket, row.path);
+        }
         restored = 1;
     }
     if restored == 0 {
@@ -359,14 +369,18 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
                     revoke_links_for_key(state, &row.bucket, &key).map_err(|_| {
                         "Failed to revoke public links for expired trashed object".to_string()
                     })?;
-                    let _ = drive.delete_object(&row.bucket, &key).await;
+                    if let Err(e) = drive.delete_object(&row.bucket, &key).await {
+                        log::warn!("Failed to delete expired trashed object {}/{}: {e}", row.bucket, key);
+                    }
                 }
             }
         } else {
             revoke_links_for_key(state, &row.bucket, &row.path).map_err(|_| {
                 "Failed to revoke public links for expired trashed object".to_string()
             })?;
-            let _ = drive.delete_object(&row.bucket, &row.path).await;
+            if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
+                log::warn!("Failed to delete expired trashed object {}/{}: {e}", row.bucket, row.path);
+            }
         }
         let deleted = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1")
             .bind::<Text, _>(&row.id)

@@ -112,7 +112,9 @@ pub(crate) async fn consume_sse_stream(
                                 let reasoning_chunk = serde_json::json!({
                                     "__reasoning__": reasoning
                                 }).to_string();
-                                let _ = tx.send(reasoning_chunk).await;
+                                if let Err(e) = tx.send(reasoning_chunk).await {
+                                    log::warn!("openai_stream_sse: reasoning chunk send failed: {e}");
+                                }
                             }
                         }
 
@@ -122,7 +124,9 @@ pub(crate) async fn consume_sse_stream(
                                 let processed = handler.process_content_streaming(content, &mut stream_state);
                                 if !processed.content.is_empty() {
                                     content_sent += processed.content.len();
-                                    let _ = tx.send(processed.content).await;
+                                    if let Err(e) = tx.send(processed.content).await {
+                                        log::warn!("openai_stream_sse: content chunk send failed: {e}");
+                                    }
                                 }
                                 if !processed.reasoning.is_empty() {
                                     reasoning_from_content.push_str(&processed.reasoning);
@@ -132,7 +136,9 @@ pub(crate) async fn consume_sse_stream(
                                     let reasoning_chunk = serde_json::json!({
                                         "__reasoning__": processed.reasoning
                                     }).to_string();
-                                    let _ = tx.send(reasoning_chunk).await;
+                                    if let Err(e) = tx.send(reasoning_chunk).await {
+                                        log::warn!("openai_stream_sse: reasoning chunk send failed: {e}");
+                                    }
                                 }
                             }
                         }
@@ -210,7 +216,9 @@ pub(crate) async fn consume_sse_stream(
                 "name": name,
                 "arguments": args
             });
-            let _ = tx.send(tool_call_msg.to_string()).await;
+            if let Err(e) = tx.send(tool_call_msg.to_string()).await {
+                log::warn!("openai_stream_sse: tool call send failed: {e}");
+            }
             tokio::task::yield_now().await;
         }
         if !legacy_tool_call_name.is_empty() && !legacy_tool_call_args.is_empty() {
@@ -219,7 +227,9 @@ pub(crate) async fn consume_sse_stream(
                 "name": legacy_tool_call_name,
                 "arguments": legacy_tool_call_args
             });
-            let _ = tx.send(tool_call_msg.to_string()).await;
+            if let Err(e) = tx.send(tool_call_msg.to_string()).await {
+                log::warn!("openai_stream_sse: tool call send failed: {e}");
+            }
             tokio::task::yield_now().await;
             info!("LLM legacy function_call accumulated: {} with {} bytes args", legacy_tool_call_name, legacy_tool_call_args.len());
         }

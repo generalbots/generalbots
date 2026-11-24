@@ -50,7 +50,9 @@ pub async fn list_files(
             // Ensures a personal bucket that has never been written to still
             // renders as an empty folder instead of erroring.
             botlog::safe_warn!("drive: listing '{full_prefix}' failed ({list_err}); ensuring bucket '{bucket}' exists");
-            let _ = drive.create_bucket_if_not_exists(&bucket).await;
+            if let Err(e) = drive.create_bucket_if_not_exists(&bucket).await {
+                log::warn!("Failed to ensure bucket '{bucket}' exists: {e}");
+            }
             drive
                 .list_objects_with_metadata(&bucket, Some(&full_prefix))
                 .await

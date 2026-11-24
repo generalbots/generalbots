@@ -338,13 +338,14 @@ pub(crate) async fn handle_signup(
                                     }
                                 };
                                 if !pw_ok {
-                                    let _ = client
-                                        .delete(format!(
-                                            "{dir_url}/management/v1/users/{user_id}"
-                                        ))
+                                    if let Err(e) = client
+                                        .delete(format!("{dir_url}/management/v1/users/{user_id}"))
                                         .header("Authorization", format!("Bearer {dir_token}"))
                                         .send()
-                                        .await;
+                                        .await
+                                    {
+                                        tracing::warn!("signup: rollback delete failed: {e}");
+                                    }
                                     return Err((
                                         StatusCode::BAD_GATEWAY,
                                         serde_json::json!({

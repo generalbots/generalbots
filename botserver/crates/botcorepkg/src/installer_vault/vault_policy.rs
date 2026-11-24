@@ -72,7 +72,9 @@ pub fn create_scoped_token(
     let result = command
         .args(&["policy", "write", SIDECAR_POLICY, &policy_arg])?
         .execute();
-    let _ = std::fs::remove_file(&policy_path);
+    if let Err(e) = std::fs::remove_file(&policy_path) {
+        log::warn!("Failed to remove temporary policy file {}: {e}", policy_path.display());
+    }
     match result {
         Ok(output) if output.status.success() => {}
         Ok(output) => {

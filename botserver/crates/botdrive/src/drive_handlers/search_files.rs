@@ -246,7 +246,9 @@ async fn object_contains_query(
             "xlsx" => extract_xlsx(&path),
             _ => String::new(),
         };
-        let _ = std::fs::remove_file(&path);
+        if let Err(e) = std::fs::remove_file(&path) {
+            log::warn!("Failed to remove temporary search file {}: {e}", path.display());
+        }
         text
     })
     .await;
