@@ -74,6 +74,8 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
             get(shared_link::handle_shared_document),
         )
         .route("/api/docs/search", get(handle_search_documents))
+        // #2499 — citation-only read side of the in-memory KB projection.
+        .route("/api/docs/kb/search", get(handle_kb_search))
         .route("/api/docs/load", get(handle_get_document))
         .route(
             "/api/docs/save",
