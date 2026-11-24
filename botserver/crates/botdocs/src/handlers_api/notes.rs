@@ -161,7 +161,13 @@ pub async fn handle_list_footnotes(
     user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListFootnotesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let doc_id = match params.get("doc_id") {
+        Some(value) => value.clone(),
+        None => {
+            log::warn!("[docs] footnotes list request without doc_id");
+            String::new()
+        }
+    };
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
@@ -181,7 +187,10 @@ pub async fn handle_list_footnotes(
         }
     };
 
-    let footnotes = doc.footnotes.unwrap_or_default();
+    let footnotes = match doc.footnotes {
+        Some(footnotes) => footnotes,
+        None => Vec::new(),
+    };
     Ok(Json(ListFootnotesResponse { footnotes }))
 }
 
@@ -358,7 +367,13 @@ pub async fn handle_list_endnotes(
     user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListEndnotesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let doc_id = match params.get("doc_id") {
+        Some(value) => value.clone(),
+        None => {
+            log::warn!("[docs] endnotes list request without doc_id");
+            String::new()
+        }
+    };
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
@@ -378,6 +393,9 @@ pub async fn handle_list_endnotes(
         }
     };
 
-    let endnotes = doc.endnotes.unwrap_or_default();
+    let endnotes = match doc.endnotes {
+        Some(endnotes) => endnotes,
+        None => Vec::new(),
+    };
     Ok(Json(ListEndnotesResponse { endnotes }))
 }

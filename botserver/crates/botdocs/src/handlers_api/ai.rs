@@ -10,9 +10,18 @@ use crate::state::DocState;
 /// system + user prompt and returns the assistant text. Returns `Err(None)`
 /// when the LLM is not configured so callers can fall back to local logic.
 async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, Option<String>> {
-    let llm_url = std::env::var("LLM_URL").unwrap_or_default();
-    let llm_key = std::env::var("LLM_KEY").unwrap_or_default();
-    let llm_model = std::env::var("LLM_MODEL").unwrap_or_default();
+    let llm_url = match std::env::var("LLM_URL") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
+    let llm_key = match std::env::var("LLM_KEY") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
+    let llm_model = match std::env::var("LLM_MODEL") {
+        Ok(value) => value,
+        Err(_) => String::new(),
+    };
     if llm_url.is_empty() || llm_key.is_empty() {
         return Err(None); // LLM not configured — caller falls back
     }
@@ -48,7 +57,13 @@ async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, 
 
     if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = match resp.text().await {
+            Ok(text) => text,
+            Err(e) => {
+                log::warn!("Docs AI: could not read LLM error response body: {e}");
+                String::new()
+            }
+        };
         return Err(Some(format!("LLM API returned {status}: {text}")));
     }
 
@@ -63,7 +78,10 @@ async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, 
         .ok_or_else(|| Some("No content in LLM response".to_string()))?;
 
     // Some providers return JSON-wrapped text; unwrap the common shapes.
-    let parsed: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+    let parsed: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(value) => value,
+        Err(_) => serde_json::Value::Null,
+    };
     if let Some(text) = parsed["response"].as_str() {
         return Ok(text.to_string());
     }
@@ -114,14 +132,23 @@ pub async fn handle_docs_ai(
 ) -> impl IntoResponse {
     // The editor sends `{id, action, prompt}`; the natural-language `command`
     // is optional. Prefer the action when present so both payloads work.
-    let command = req
-        .command
-        .clone()
-        .unwrap_or_else(|| req.action.clone().unwrap_or_default())
-        .to_lowercase();
-    let selected = req.selected_text.clone().unwrap_or_default();
+    let command = match req.command.clone() {
+        Some(command) => command,
+        None => match req.action.clone() {
+            Some(action) => action,
+            None => String::new(),
+        },
+    }
+    .to_lowercase();
+    let selected = match req.selected_text.clone() {
+        Some(text) => text,
+        None => String::new(),
+    };
     let text = req.text.clone().unwrap_or(selected);
-    let prompt = req.prompt.clone().unwrap_or_default();
+    let prompt = match req.prompt.clone() {
+        Some(prompt) => prompt,
+        None => String::new(),
+    };
 
     if (!text.trim().is_empty() || !prompt.trim().is_empty()) && !command.contains("help") {
         let is_translate = command.contains("translate");
@@ -169,7 +196,10 @@ fn fallback_ai(req: &AiRequest) -> AiResponse {
     // Without an LLM the only honest local operation is an extractive excerpt;
     // everything else must leave the text untouched and say so instead of
     // returning a fake rewrite/translation.
-    let text = req.selected_text.clone().unwrap_or_default();
+    let text = match req.selected_text.clone() {
+        Some(text) => text,
+        None => String::new(),
+    };
     let (content, note) = match req.action.as_str() {
         "summarize" if text.len() > 200 => (
             format!(
@@ -213,7 +243,10 @@ async fn ai_action(req: &AiRequest, system_prompt: &str, user_prompt: &str) -> A
 }
 
 fn text_or_selected(req: &AiRequest) -> String {
-    req.selected_text.clone().unwrap_or_default()
+    match req.selected_text.clone() {
+        Some(text) => text,
+        None => String::new(),
+    }
 }
 
 pub async fn handle_ai_summarize(
@@ -288,7 +321,10 @@ pub async fn handle_ai_custom(
 pub async fn handle_ai_spellcheck(
     Json(req): Json<AiRequest>,
 ) -> Result<Json<SpellcheckResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let text = req.selected_text.clone().unwrap_or_default();
+    let text = match req.selected_text.clone() {
+        Some(text) => text,
+        None => String::new(),
+    };
     let text = if text.trim().is_empty() {
         req.prompt.clone()
     } else {
@@ -307,7 +343,10 @@ pub async fn handle_ai_spellcheck(
     let user = format!("Check this text:\n\n{}", text);
     match llm_complete(system, &user).await {
         Ok(content) => {
-            let parsed: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+            let parsed: serde_json::Value = match serde_json::from_str(&content) {
+                Ok(value) => value,
+                Err(_) => serde_json::Value::Null,
+            };
             let mut corrections = Vec::new();
             if let Some(arr) = parsed.get("corrections").and_then(|v| v.as_array()) {
                 for item in arr {

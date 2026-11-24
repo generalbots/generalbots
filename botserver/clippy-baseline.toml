@@ -15,7 +15,7 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 2189
+unwrap_or_default = 2119
 discarded_result = 1327
 
 [rule_notes]
@@ -96,9 +96,6 @@ discarded_result = 12
 
 [files."botserver/crates/botbasic_ai/src/keywords/web_data/static_selector.rs"]
 discarded_result = 12
-
-[files."botserver/crates/botdocs/src/handlers_api/ai.rs"]
-unwrap_or_default = 12
 
 [files."botserver/crates/botvibe/src/proxy_sites/caddy_config.rs"]
 unwrap_or_default = 2
@@ -203,3 +200,6 @@ unwrap_or_default = 9
 [files."botserver/crates/botresearch/src/handle_search.rs"]
 unwrap_or_default = 8
 discarded_result = 1
+
+[files."botserver/crates/botsettings/src/rbac/search.rs"]
+unwrap_or_default = 9

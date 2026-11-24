@@ -149,7 +149,13 @@ pub async fn handle_list_track_changes(
     user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListTrackChangesResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let doc_id = params.get("doc_id").cloned().unwrap_or_default();
+    let doc_id = match params.get("doc_id") {
+        Some(value) => value.clone(),
+        None => {
+            log::warn!("[docs] track-changes list request without doc_id");
+            String::new()
+        }
+    };
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
@@ -169,7 +175,10 @@ pub async fn handle_list_track_changes(
         }
     };
 
-    let changes = doc.track_changes.unwrap_or_default();
+    let changes = match doc.track_changes {
+        Some(changes) => changes,
+        None => Vec::new(),
+    };
     Ok(Json(ListTrackChangesResponse {
         changes,
         enabled: doc.track_changes_enabled,
