@@ -28,13 +28,27 @@
     return Object.prototype.hasOwnProperty.call(object, key);
   }
 
-  /* Reduce an arbitrary id to a short, aggregate app label. Instance/record
-   * suffixes (-/:) are dropped; only [a-z0-9] survives. */
+  /* #2459 — only KNOWN app ids may enter a mark name; anything else is
+   * `unknown`. This is a closed allowlist (mirrors window-manager app ids) so
+   * no tenant, filename, email, path or arbitrary suffix can ever leak into a
+   * performance mark or a report() key, in any context (browser or test). */
+  var KNOWN_APPS = ("settings about vibe crm campaigns events approvals analytics attendant lists " +
+    "templates tasks automations chat terminal preview memory drive editor designer browser canvas " +
+    "database desktop player mail meet docs slides paper plan goals project calendar billing products " +
+    "research people tickets social compliance tax video jukebox vision fraud integrations plugins hr " +
+    "banking pos retail handoff kyc clock clock-widget timeclock o365 learn minutes sheet calculator " +
+    "notepad store concierge notes photos timer weather recycle workspace monitoring").split(" ");
   function label(value, maxLength) {
     if (typeof value !== "string" && typeof value !== "number") return NO_LABEL;
-    var raw = String(value).split(/[-:]/, 1)[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (!raw) return NO_LABEL;
-    return raw.slice(0, maxLength || 32);
+    var lower = String(value).trim().toLowerCase();
+    if (KNOWN_APPS.indexOf(lower) !== -1) return lower.slice(0, maxLength || 32);
+    return NO_LABEL;
+  }
+  var KNOWN_FORMATS = ("pdf docx xlsx pptx odt ods odp csv html md txt json doc xls ppt rtf epub").split(" ");
+  function formatLabel(value) {
+    if (typeof value !== "string") return NO_LABEL;
+    var lower = value.trim().toLowerCase().replace(/^\./, "");
+    return KNOWN_FORMATS.indexOf(lower) !== -1 ? lower : NO_LABEL;
   }
 
   function sweep(now) {
@@ -120,7 +134,7 @@
     markFirstContent: function (appId) { return addMark(appId, "first-content"); },
     markSave: function (appId) { return addMark(appId, "save"); },
     markExport: function (appId, format) {
-      return addMark(appId, "export." + label(format, 16));
+      return addMark(appId, "export." + formatLabel(format));
     },
     report: report
   };
