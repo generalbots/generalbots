@@ -15,8 +15,8 @@ var equal = h.equal;
 var all = h.all;
 
 var ZERO = [
-  "botchannelbindings", "botchannels-core", "botcoresession", "bothandoff",
-  "bothr", "botitsm", "botmultimodal", "botnvidia", "botpublic", "bottasks",
+  "botchannels-core", "botcoresession", "bothandoff",
+  "bothr", "botitsm", "botmultimodal", "botnvidia", "botpublic",
 ];
 var UNEXEMPTED = [];
 
@@ -30,12 +30,12 @@ test("[BASELINE-OBSERVE] 119 crates scanned across botserver/crates/*, botserver
 
 test("[BASELINE-OBSERVE] 109 crates carry >=1 test attribute, 10 carry zero", function () {
   var m = all();
-  equal(m.tested.length, 109, "crates with tests");
-  equal(m.zero.length, 10, "zero-test crates");
+  equal(m.tested.length, 111, "crates with tests");
+  equal(m.zero.length, 8, "zero-test crates");
   equal(m.tested.length + m.zero.length, m.crates.length, "partition is not exhaustive");
 });
 
-test("[BASELINE-OBSERVE] the zero-test set is exactly the 10 observed crates", function () {
+test("[BASELINE-OBSERVE] the zero-test set is exactly the 8 observed crates", function () {
   equal(all().zero.join(","), ZERO.join(","), "zero-test crate list");
 });
 
@@ -57,11 +57,11 @@ test("[BASELINE-OBSERVE] 0 zero-test crates have no exemption entry", function (
   equal(all().unexempted.join(","), UNEXEMPTED.join(","), "unexempted zero-test list");
 });
 
-test("[BASELINE-OBSERVE] integration surface: 31 .rs files, 5 CRM-mention, 2 Campaign-mention", function () {
+test("[BASELINE-OBSERVE] integration surface: 36 .rs files, 7 CRM-mention, 3 Campaign-mention", function () {
   var i = all().integration;
-  equal(i.rsFiles, 31, "integration .rs files");
-  equal(i.crmMention.length, 5, "CRM-mention files carrying a test attribute");
-  equal(i.campaignMention.length, 2, "Campaign-mention files carrying a test attribute");
+  equal(i.rsFiles, 36, "integration .rs files");
+  equal(i.crmMention.length, 7, "CRM-mention files carrying a test attribute");
+  equal(i.campaignMention.length, 3, "Campaign-mention files carrying a test attribute");
 });
 
 test("[BASELINE-OBSERVE] CRM/Campaign integration files are named and present", function () {

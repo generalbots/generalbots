@@ -1,0 +1,30 @@
+/**
+ * Offline verification for #2457 Office-fidelity harness and QA lab slice.
+ * Run with: node botui/ui/suite/tests/webtest-office-fidelity.js
+ *
+ * Ordered modules under ./webtest-office-fidelity/:
+ *   00_harness.js      counters, assertions, shared-vm loader, coverage print
+ *   01_host.js         deterministic Node host; real export IIFEs loaded once
+ *   02_zip.js          independent store-only ZIP reader + OOXML primitives
+ *   03_features.js     fixed feature schema + deterministic scoring
+ *   04_corpus.js       generated + hand-built OOXML corpus fixtures
+ *   10_roundtrip.js    structural feature checks + known degradations
+ *   11_helpers.js      real render/export/preview helper runtime checks
+ *   12_fuzz.js         malformed ZIP and resource-cap checks
+ *   20_static.js       [STATIC] production-source assertions
+ *   30_coverage.js     matrix derived from recorded results
+ *
+ * No server, browser, cargo, CDN or i18n change is involved. Nothing is
+ * committed by this suite; the driver owns issue closure and deployment.
+ */
+"use strict";
+
+var harness = require("./webtest-office-fidelity/00_harness");
+
+require("./webtest-office-fidelity/10_roundtrip");
+require("./webtest-office-fidelity/11_helpers");
+require("./webtest-office-fidelity/12_fuzz");
+require("./webtest-office-fidelity/20_static");
+require("./webtest-office-fidelity/30_coverage");
+
+harness.finish();

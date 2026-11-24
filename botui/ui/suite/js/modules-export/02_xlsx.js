@@ -187,7 +187,11 @@
       cdv.setUint32(42, offset, true);
       central.set(nameBytes, 46);
       centralParts.push(central);
-      offset += local.length;
+      // The local file header AND its data are written before the next entry:
+      // omitting data.length made every central-directory offset (and the
+      // central directory itself) point into the middle of a file, so standard
+      // ZIP readers rejected generated XLSX/DOCX/PPTX packages.
+      offset += local.length + data.length;
     });
 
     const centralStart = offset;
