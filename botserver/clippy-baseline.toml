@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 932
+discarded_result = 905
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -78,9 +78,6 @@ discarded_result = 8
 
 [files."botserver/src/main_module/routes/speech_duplex.rs"]
 discarded_result = 8
-
-[files."botserver/crates/botagent/src/stream.rs"]
-discarded_result = 7
 
 [files."botserver/src/console/wizard/wizard_core.rs"]
 discarded_result = 7
@@ -173,4 +170,7 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botcore/src/os_abstraction/windows.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcore/src/shared/analytics/endpoints.rs"]
 discarded_result = 4

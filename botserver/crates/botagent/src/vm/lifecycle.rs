@@ -139,7 +139,9 @@ pub async fn ensure_vm(
     }
 
     if let Some(cid) = conversation_id {
-        let _ = ensure_conversation_folder(state, &row, cid).await;
+        if let Err(e) = ensure_conversation_folder(state, &row, cid).await {
+            tracing::warn!("failed to ensure conversation folder for {cid}: {e:?}");
+        }
     }
 
     Ok(row)
@@ -216,17 +218,22 @@ async fn provision(
             .pool()
             .get()
             .map_err(|e| internal(format!("DB pool: {e}")))?;
-        let _ = set_status(&mut conn, row_id, STATUS_ERROR);
+        if let Err(e) = set_status(&mut conn, row_id, STATUS_ERROR) {
+            tracing::warn!("failed to set error status for session {row_id}: {e:?}");
+        }
         return Err(e);
     }
 
     // Bootstrap the conversations root inside the VM.
-    let _ = exec_in_vm(
+    if let Err(e) = exec_in_vm(
         state,
         &vm_name,
         &["mkdir".into(), "-p".into(), CONVERSATIONS_ROOT.into()],
     )
-    .await;
+    .await
+    {
+        tracing::warn!("failed to create conversations root in {vm_name}: {e:?}");
+    }
 
     let mut conn = state
         .pool()

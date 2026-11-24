@@ -264,7 +264,9 @@ fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Re
         inserted += 1;
     }
 
-    let _ = session.logout();
+    if let Err(e) = session.logout() {
+        log::warn!("IMAP logout failed after sync pass: {e:?}");
+    }
     Ok(inserted)
 }
 

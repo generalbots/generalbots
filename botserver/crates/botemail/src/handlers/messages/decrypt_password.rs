@@ -235,7 +235,7 @@ pub async fn send_email(
         let bcc_clone = request.bcc.clone();
         let from_email_clone = from_email.clone();
 
-        let _ = tokio::task::spawn_blocking(move || {
+        if let Err(e) = tokio::task::spawn_blocking(move || {
             tracking::save_email_tracking_record(
                 pool,
                 EmailTrackingParams {
@@ -245,7 +245,10 @@ pub async fn send_email(
                 },
             )
         })
-        .await;
+        .await
+        {
+            log::warn!("Email tracking record task failed for {tracking_id}: {e}");
+        }
     }
 
     botlog::safe_info!("Email sent successfully from account {account_uuid} with tracking_id {tracking_id}");

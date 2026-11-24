@@ -74,7 +74,9 @@ pub(crate) fn pump_lines<R: std::io::Read + Send + 'static>(
                     } else {
                         ExecEvent::Stdout { line: text.clone() }
                     };
-                    let _ = sender.send(event);
+                    if let Err(e) = sender.send(event) {
+                        tracing::warn!("failed to send exec event: {e}");
+                    }
                 }
                 if let Ok(mut buffer) = capture.lock() {
                     if buffer.len() < MAX_CAPTURE_BYTES {
@@ -107,8 +109,12 @@ pub(crate) fn wait_for_child(
             Ok(Some(status)) => return (status.code(), cancelled, timed_out),
             Ok(None) => {}
             Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
+                if let Err(e) = child.kill() {
+                    tracing::warn!("failed to kill child process: {e}");
+                }
+                if let Err(e) = child.wait() {
+                    tracing::warn!("failed to reap child process: {e}");
+                }
                 return (None, cancelled, timed_out);
             }
         }
@@ -117,14 +123,22 @@ pub(crate) fn wait_for_child(
             .is_some_and(|flag| flag.load(Ordering::SeqCst))
         {
             cancelled = true;
-            let _ = child.kill();
-            let _ = child.wait();
+            if let Err(e) = child.kill() {
+                tracing::warn!("failed to kill child process: {e}");
+            }
+            if let Err(e) = child.wait() {
+                tracing::warn!("failed to reap child process: {e}");
+            }
             return (None, cancelled, timed_out);
         }
         if deadline.is_some_and(|value| Instant::now() >= value) {
             timed_out = true;
-            let _ = child.kill();
-            let _ = child.wait();
+            if let Err(e) = child.kill() {
+                tracing::warn!("failed to kill child process: {e}");
+            }
+            if let Err(e) = child.wait() {
+                tracing::warn!("failed to reap child process: {e}");
+            }
             return (None, cancelled, timed_out);
         }
         std::thread::sleep(Duration::from_millis(25));

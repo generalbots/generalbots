@@ -78,7 +78,7 @@ pub(super) async fn launch_and_wait(
 
     // Attach the managed bridge. The default profile often ships no NIC;
     // ignore the error when a NIC already exists (idempotent provisioning).
-    let _ = run_incus(
+    if let Err(e) = run_incus(
         state,
         vec![
             "config".into(),
@@ -91,7 +91,10 @@ pub(super) async fn launch_and_wait(
             "name=eth0".into(),
         ],
     )
-    .await;
+    .await
+    {
+        tracing::warn!("failed to attach bridge NIC to {vm_name}: {e:?}");
+    }
 
     // The first launch of a fresh image can download/unpack for minutes; use
     // the cold budget before declaring the workspace unavailable.
