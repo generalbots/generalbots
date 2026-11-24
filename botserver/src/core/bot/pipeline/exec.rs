@@ -179,34 +179,24 @@ pub async fn process_message_internal(
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
 
-    // #1642 — the assistant finally has a writer. An explicit "remember …"
-    // turn is persisted to chat_preferences; the prompt already reads that
-    // table, so the next session starts knowing the preference.
-    if msg_type == 1 {
-        let memory_reply = crate::core::user_memory::capture_from_message(
-            &state.conn,
-            user_id,
-            Some(bot_uuid),
-            &user_text,
+    // #1642 — a "remember …" turn (or a lasting preference) is stored for the
+    // person; #1790 — a forget turn answers with the real outcome instead of
+    // letting the model claim it removed something.
+    let memory_turn = if msg_type == 1 {
+        crate::core::user_memory::capture_from_message(&state.conn, user_id, Some(bot_uuid), &user_text)
+    } else {
+        crate::core::user_memory::MemoryTurn::Untouched
+    };
+    if let Some(reply) = crate::core::user_memory::forget_reply(&state.conn, user_id, &memory_turn) {
+        let resp = botlib::models::BotResponse::new(
+            bot_uuid.to_string(),
+            session_id.to_string(),
+            user_id.to_string(),
+            format!("<p>{reply}</p>"),
+            "web",
         );
-        // #1790 — a forget turn must answer with the real outcome (including
-        // "no stored memory matched") instead of letting the LLM claim it
-        // removed something. Remember turns keep the normal LLM path.
-        if crate::core::user_memory::extract_forget_directive(&user_text).is_some() {
-            let reply = memory_reply.unwrap_or_else(|| {
-                let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
-                botcore::i18n::t(&locale, "error-memory-not-updated")
-            });
-            let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(),
-                session_id.to_string(),
-                user_id.to_string(),
-                format!("<p>{reply}</p>"),
-                "web",
-            );
-            let _ = sink.send_bot_response(&resp).await;
-            return Ok(());
-        }
+        let _ = sink.send_bot_response(&resp).await;
+        return Ok(());
     }
 
     // #1644/#1645 — an explicit URL or command request becomes a consent card.
@@ -267,6 +257,12 @@ pub async fn process_message_internal(
     messages.push(serde_json::json!({
         "role": "system",
         "content": format!("{turn_instruction} {}", super::turn_record::RECORDS_ARE_FACTS)
+    }));
+    // What the person asked the assistant to keep, on every engine: bridges
+    // carry the system notes before the history into every resumed turn.
+    messages.push(serde_json::json!({
+        "role": "system",
+        "content": crate::core::user_memory::turn_note(&state.conn, user_id, Some(bot_uuid), &memory_turn)
     }));
 
     // #1670 — structured answers and approved plans shape this turn's prompt.

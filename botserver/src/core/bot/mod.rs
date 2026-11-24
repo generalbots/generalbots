@@ -145,6 +145,7 @@ pub mod channels {
 
 #[cfg(feature = "agent-vm")]
 pub mod agent_vm_hook;
+pub mod engine_precheck;
 pub mod answer_mode;
 pub mod answer_mode_config;
 pub mod answer_mode_ops;

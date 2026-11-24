@@ -35,7 +35,7 @@ pub use actions::{exit_code, output_text, ClaudeAction};
 pub use command::CLAUDE_CODE_VERSION;
 pub use drive::{drive, drive_with, BridgeGate, DriveReport, GateAnswer, ToolOutcome, STOPPED, UNKNOWN_TOOL};
 pub use protocol::{Attachment, ToolRequest, TurnResult};
-pub use selfcheck::UNSAFE_VERSION_MARKER;
+pub use selfcheck::{precheck, UNSAFE_VERSION_MARKER};
 pub use sessions::{store_session, stored_session};
 pub use warm::{warm_pool, ClaudeWarm};
 

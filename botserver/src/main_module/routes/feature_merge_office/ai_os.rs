@@ -19,6 +19,7 @@ pub(super) async fn merge_office_ai_os(
         });
         let agent_state = Arc::new(botagent::AgentService::new(app_state.conn.clone()));
         crate::core::bot::agent_vm_hook::init_with(agent_state.clone());
+        crate::core::bot::engine_precheck::after_start(app_state.conn.clone());
         *api_router = api_router
             .clone()
             .merge(botagent::configure_routes().with_state(agent_state));

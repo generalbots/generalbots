@@ -423,7 +423,7 @@ pub(crate) async fn handle_api_call(
         }
         Err(e) => {
             // #2562 — failed activity.
-            let fail = cmd_act.failed(&e.to_string());
+            let fail = cmd_act.failed(&super::humanize::failure_text(&state.conn, user_id));
             crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &fail).await;
 
             let keys = params
@@ -435,7 +435,7 @@ pub(crate) async fn handle_api_call(
                 bot_uuid.to_string(),
                 session_id.to_string(),
                 user_id.to_string(),
-                format!("Falha ao executar {name}: {e}"),
+                super::humanize::failure_text(&state.conn, user_id),
                 &channel,
             );
             let _ = sink.send_bot_response(&resp).await;

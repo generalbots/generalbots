@@ -355,6 +355,10 @@ error-attachment-not-read = Não foi possível guardar ou ler o arquivo.
 
 # Respostas do chat dadas sem o modelo
 error-memory-not-updated = Não consegui atualizar a sua memória guardada. Tente novamente.
+memory-forgot-none = Nada na sua memória correspondia a isso, então nada foi removido.
+memory-forgot-one = Pronto: removi 1 item da sua memória.
+memory-forgot-many = Pronto: removi { $count } itens da sua memória.
+error-command-failed = Não consegui concluir essa ação. Tente de novo ou peça de outra forma.
 error-tool-invalid-name = Nome de ferramenta inválido: { $name }
 error-tool-not-available = A ferramenta “{ $name }” não está disponível aqui.
 

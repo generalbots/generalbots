@@ -38,6 +38,7 @@ pub use bridge::{Approvals, BridgeError, Verdict};
 pub use bridge_turn::{run_bridged, CodexTurn, BRIDGE_DEADLINE};
 pub use warm::{warm_pool, CodexWarm};
 pub use prompt::run_prompt;
+pub use selfcheck::precheck;
 pub use status::{extract_device_code, extract_device_url, status, CodexStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {

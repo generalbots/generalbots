@@ -187,7 +187,13 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
         )
         .route(
             "/api/user/memory",
-            get(crate::settings_memory::list).put(crate::settings_memory::upsert),
+            get(crate::settings_memory::list)
+                .put(crate::settings_memory::upsert)
+                .delete(crate::settings_memory::clear),
+        )
+        .route(
+            "/api/user/memory-settings",
+            get(crate::settings_memory::get_switch).put(crate::settings_memory::put_switch),
         )
         .route(
             "/api/user/memory/:key",

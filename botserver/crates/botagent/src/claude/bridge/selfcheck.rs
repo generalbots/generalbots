@@ -117,13 +117,12 @@ async fn run_check(state: &AgentService, vm_name: &str) -> Result<bool, (StatusC
 /// once per workspace and server run (again after [`RETRY_AFTER`] when it
 /// failed).
 pub(super) async fn ensure(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    if let Some((safe, at)) = checks().get(vm_name).copied() {
-        if safe {
-            return Ok(());
-        }
-        if at.elapsed() < RETRY_AFTER {
-            return Err(unsafe_error());
-        }
+    if let Some(known) = known_verdict(vm_name) {
+        return known;
+    }
+    let _one_at_a_time = running().lock().await;
+    if let Some(known) = known_verdict(vm_name) {
+        return known;
     }
     let safe = run_check(state, vm_name).await?;
     checks().insert(vm_name.to_string(), (safe, Instant::now()));
@@ -135,6 +134,32 @@ pub(super) async fn ensure(state: &AgentService, vm_name: &str) -> Result<(), (S
     }
 }
 
+/// The kept verdict for `vm_name`, None when it must be checked (never, or a
+/// failure older than [`RETRY_AFTER`]).
+fn known_verdict(vm_name: &str) -> Option<Result<(), (StatusCode, String)>> {
+    let (safe, at) = checks().get(vm_name).copied()?;
+    if safe {
+        Some(Ok(()))
+    } else {
+        (at.elapsed() < RETRY_AFTER).then(|| Err(unsafe_error()))
+    }
+}
+
+fn running() -> &'static tokio::sync::Mutex<()> {
+    static RUNNING: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+    RUNNING.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
+/// Runs the check ahead of the first turn (after a server start or a
+/// sign-in), so that turn finds the verdict kept. Does nothing when this
+/// workspace already has one.
+pub async fn precheck(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
+    if checks().contains_key(vm_name) {
+        return Ok(());
+    }
+    ensure(state, vm_name).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,6 +169,15 @@ mod tests {
         assert!(verdict(true, &[]));
         assert!(!verdict(false, &[]));
         assert!(!verdict(true, &["Bash".to_string()]));
+    }
+
+    #[test]
+    fn a_kept_verdict_spares_the_next_check() {
+        assert!(known_verdict("vm-precheck-none").is_none());
+        checks().insert("vm-precheck-safe".to_string(), (true, Instant::now()));
+        checks().insert("vm-precheck-unsafe".to_string(), (false, Instant::now()));
+        assert!(matches!(known_verdict("vm-precheck-safe"), Some(Ok(()))));
+        assert!(matches!(known_verdict("vm-precheck-unsafe"), Some(Err(_))));
     }
 
     #[test]

@@ -353,6 +353,10 @@ error-attachment-not-read = The file could not be stored or read.
 
 # Chat answers given without the model
 error-memory-not-updated = I could not update your stored memory. Try again.
+memory-forgot-none = Nothing in your memory matched that, so nothing was removed.
+memory-forgot-one = Done: I removed 1 item from your memory.
+memory-forgot-many = Done: I removed { $count } items from your memory.
+error-command-failed = I could not complete that action. Try again, or ask in other words.
 error-tool-invalid-name = Invalid tool name: { $name }
 error-tool-not-available = The tool “{ $name }” is not available here.
 

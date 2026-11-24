@@ -1,75 +1,78 @@
-use diesel::prelude::*;
 use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
-use botschema::chat_preferences;
+use botsettings::memory_store;
 
 /// Entries the prompt may carry. Keeps the injected block small and bounded.
 const MAX_PROMPT_ENTRIES: i64 = 24;
 pub(super) const MAX_PROMPT_CHARS: usize = 2000;
 
-#[derive(Queryable)]
+#[derive(Debug, Clone)]
 pub struct UserMemoryRow {
     pub memory_key: String,
     pub memory_value: String,
-    pub bot_id: Option<Uuid>,
 }
 
-/// Memories that apply to this bot: its own entries plus the global ones.
+/// Memories that apply to this bot (its own entries plus the global ones),
+/// opened with the person's key, newest first.
 pub fn load_for_user(
     pool: &DbPool,
     user_id: Uuid,
     bot_id: Option<Uuid>,
 ) -> Result<Vec<UserMemoryRow>, String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
-    let mut query = chat_preferences::table
-        .filter(chat_preferences::user_id.eq(user_id))
-        .into_boxed();
-    if let Some(bot_id) = bot_id {
-        query = query.filter(
-            chat_preferences::bot_id
-                .eq(bot_id)
-                .or(chat_preferences::bot_id.is_null()),
-        );
-    }
-    query
-        .order(chat_preferences::bot_id.asc())
-        .then_order_by(chat_preferences::updated_at.desc())
-        .limit(MAX_PROMPT_ENTRIES)
-        .select((
-            chat_preferences::memory_key,
-            chat_preferences::memory_value,
-            chat_preferences::bot_id,
-        ))
-        .load::<UserMemoryRow>(&mut conn)
+    memory_store::list(&mut conn, user_id, bot_id, MAX_PROMPT_ENTRIES)
+        .map(|entries| {
+            entries
+                .into_iter()
+                .map(|entry| UserMemoryRow {
+                    memory_key: entry.key,
+                    memory_value: entry.value,
+                })
+                .collect()
+        })
         .map_err(|error| error.to_string())
 }
 
-/// Prompt block for the assistant, or an empty string when nothing is stored.
+/// Whether memory is on for this person; on when the setting cannot be read.
+pub fn is_enabled(pool: &DbPool, user_id: Uuid) -> bool {
+    match pool.get() {
+        Ok(mut conn) => memory_store::is_enabled(&mut conn, user_id),
+        Err(error) => {
+            log::warn!("memory switch could not be read: {error}");
+            true
+        }
+    }
+}
+
+/// The stored entries as prompt lines, or an empty string when nothing is
+/// stored or memory is switched off.
 pub fn render_for_prompt(pool: &DbPool, user_id: Uuid, bot_id: Option<Uuid>) -> String {
-    let rows = match load_for_user(pool, user_id, bot_id) {
-        Ok(rows) => rows,
+    if !is_enabled(pool, user_id) {
+        return String::new();
+    }
+    match load_for_user(pool, user_id, bot_id) {
+        Ok(rows) => render_rows(rows),
         Err(error) => {
             log::warn!("user memory could not be read for the prompt: {error}");
-            return String::new();
+            String::new()
         }
-    };
-    render_rows(rows)
+    }
 }
 
 /// Renders already-loaded rows, bounded by `MAX_PROMPT_CHARS`. Split out from
 /// the database read so the prompt contract can be tested without a pool.
+/// Keys the assistant made carry no meaning, so only the fact is shown.
 pub fn render_rows(rows: Vec<UserMemoryRow>) -> String {
-    if rows.is_empty() {
-        return String::new();
-    }
-    let mut block = String::from(
-        "\n\n---\nPersisted user memory (the user can edit it in Settings → Memory):\n",
-    );
+    let mut block = String::new();
     for row in rows {
-        let line = format!("- {}: {}\n", row.memory_key, row.memory_value);
+        let line = if memory_store::is_entry_key(&row.memory_key) {
+            format!("- {}\n", row.memory_value)
+        } else {
+            format!("- {}: {}\n", row.memory_key, row.memory_value)
+        };
         if block.len() + line.len() > MAX_PROMPT_CHARS {
-            block.push_str("- (more entries available in Settings)\n");
+            block.push_str("- (more entries available in Settings › Memory)\n");
             break;
         }
         block.push_str(&line);
@@ -77,42 +80,16 @@ pub fn render_rows(rows: Vec<UserMemoryRow>) -> String {
     block
 }
 
-/// Persists the fact for this user/bot. UPDATE-then-INSERT works with the
-/// COALESCE expression index from migration 6.8.2 (a plain ON CONFLICT cannot
-/// target it).
+/// Persists the fact for this person, sealed, under its opaque key.
 pub(super) fn store_memory(
     pool: &DbPool,
     user_id: Uuid,
     bot_id: Option<Uuid>,
-    key: &str,
-    value: &str,
+    fact: &str,
 ) -> Result<(), String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
-    let updated = diesel::sql_query(
-        "UPDATE chat_preferences SET memory_value = $3, updated_at = NOW() \
-         WHERE user_id = $1 AND memory_key = $4 \
-           AND ((bot_id IS NULL AND $2::uuid IS NULL) OR bot_id = $2::uuid)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(value)
-    .bind::<diesel::sql_types::Text, _>(key)
-    .execute(&mut conn)
-    .map_err(|error| error.to_string())?;
-    if updated > 0 {
-        return Ok(());
-    }
-    diesel::sql_query(
-        "INSERT INTO chat_preferences (user_id, bot_id, memory_key, memory_value) \
-         VALUES ($1, $2, $3, $4)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(key)
-    .bind::<diesel::sql_types::Text, _>(value)
-    .execute(&mut conn)
-    .map_err(|error| error.to_string())?;
-    Ok(())
+    let key = memory_store::fact_key(user_id, fact);
+    memory_store::save(&mut conn, user_id, bot_id, &key, fact)
 }
 
 #[cfg(test)]
@@ -123,7 +100,6 @@ mod tests {
         UserMemoryRow {
             memory_key: key.to_string(),
             memory_value: value.to_string(),
-            bot_id: None,
         }
     }
 
@@ -136,11 +112,11 @@ mod tests {
     fn stored_preferences_are_rendered_as_readable_lines() {
         let block = render_rows(vec![
             row("language", "Portuguese"),
-            row("timezone", "America/Sao_Paulo"),
+            row("m-0123456789abcdef01234567", "Trabalho na Secretaria de Saúde"),
         ]);
         assert!(block.contains("- language: Portuguese"));
-        assert!(block.contains("- timezone: America/Sao_Paulo"));
-        assert!(block.contains("Settings → Memory"));
+        assert!(block.contains("- Trabalho na Secretaria de Saúde\n"));
+        assert!(!block.contains("m-0123"));
     }
 
     #[test]
@@ -152,6 +128,6 @@ mod tests {
             block.len() <= MAX_PROMPT_CHARS + 80,
             "block must stay near the cap"
         );
-        assert!(block.contains("(more entries available in Settings)"));
+        assert!(block.contains("(more entries available in Settings › Memory)"));
     }
 }

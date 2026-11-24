@@ -120,32 +120,6 @@ pub fn extract_remember_directive(text: &str) -> Option<String> {
     Some(fact)
 }
 
-/// Stable, readable key derived from the fact so repeating it updates the same
-/// row instead of piling up near-duplicates.
-pub fn memory_key_for(fact: &str) -> String {
-    let mut key = String::with_capacity(48);
-    let mut last_dash = false;
-    for ch in fact.chars() {
-        let ch = ch.to_ascii_lowercase();
-        if ch.is_ascii_alphanumeric() {
-            key.push(ch);
-            last_dash = false;
-        } else if !last_dash {
-            key.push('-');
-            last_dash = true;
-        }
-        if key.len() >= 48 {
-            break;
-        }
-    }
-    let trimmed = key.trim_matches('-').to_string();
-    if trimmed.is_empty() {
-        "note".to_string()
-    } else {
-        trimmed
-    }
-}
-
 /// Turns an explicit "forget …" turn into the text to match against stored
 /// memories (#1708). Returns None when the message is not a forget request.
 pub fn extract_forget_directive(text: &str) -> Option<String> {
@@ -237,7 +211,7 @@ pub(super) fn select_forget_keys(rows: &[UserMemoryRow], needle: &str) -> Vec<St
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_forget_directive, extract_remember_directive, memory_key_for, select_forget_keys,
+        extract_forget_directive, extract_remember_directive, select_forget_keys,
     };
     use crate::core::user_memory::store::UserMemoryRow;
 
@@ -245,7 +219,6 @@ mod tests {
         UserMemoryRow {
             memory_key: key.to_string(),
             memory_value: value.to_string(),
-            bot_id: None,
         }
     }
 
@@ -414,14 +387,5 @@ mod tests {
         assert!(extract_remember_directive("do you remember my name?").is_none());
         assert!(extract_remember_directive("remember").is_none());
         assert!(extract_remember_directive("what is the weather?").is_none());
-    }
-
-    #[test]
-    fn keys_are_stable_and_readable() {
-        assert_eq!(
-            memory_key_for("I prefer invoices as PDF"),
-            "i-prefer-invoices-as-pdf"
-        );
-        assert_eq!(memory_key_for("   "), "note");
     }
 }

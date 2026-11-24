@@ -1,17 +1,19 @@
 //! Persisted user memory (GB7-16).
 //!
-//! Preferences edited in Settings → Memory live in `chat_preferences`; this module
-//! is the server-side reader that puts them into the conversation prompt, so a
-//! new session starts with what the user already taught the assistant instead
-//! of repeating it.
+//! What the person asked the assistant to keep lives, sealed per person, in
+//! `chat_preferences` (`botsettings::memory_store`), which Settings → Memory
+//! lists and edits. Every chat turn carries it as a system note, so a new
+//! conversation, on any engine, starts with what the person already taught.
 //!
-//! Split by responsibility: [`store`] reads and renders the prompt block,
-//! [`directives`] parses remember/forget turns and [`forget`] applies them.
+//! Split by responsibility: [`store`] reads and renders the entries,
+//! [`directives`] parses remember/forget turns, [`forget`] applies a forget
+//! request and [`capture`] decides what a turn does and what the model is told.
 
+mod capture;
+#[cfg(test)]
+mod capture_tests;
 mod directives;
 mod forget;
 mod store;
 
-pub use directives::{extract_forget_directive, extract_remember_directive, memory_key_for};
-pub use forget::{capture_from_message, forget_memories};
-pub use store::{load_for_user, render_for_prompt, render_rows, UserMemoryRow};
+pub use capture::{capture_from_message, forget_reply, turn_note, MemoryTurn};

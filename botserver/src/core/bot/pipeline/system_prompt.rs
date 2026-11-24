@@ -2,7 +2,7 @@
 //!
 //! Split out of `exec.rs` so the pipeline entry point stays readable and every
 //! pipeline file honors the repository's 450-line limit. Behaviour is
-//! unchanged: the channel prompt, active switchers, persisted user memory, the
+//! unchanged: the channel prompt, active switchers, the
 //! role resolved from RBAC and the channel-specific action surface are
 //! composed in the same order as before.
 
@@ -43,15 +43,6 @@ pub(super) fn build(
         }
     } else {
         base_system_prompt
-    };
-    // GB7-16 — persisted user preferences are part of the system prompt, so a
-    // fresh conversation starts with what the user already taught the bot.
-    let memory_block =
-        crate::core::user_memory::render_for_prompt(&state.conn, user_id, Some(bot_uuid));
-    let system_prompt = if memory_block.is_empty() {
-        system_prompt
-    } else {
-        format!("{system_prompt}{memory_block}")
     };
     // #2561 — per-user custom instructions ("Instruções personalizadas").
     let custom_block = crate::main_module::routes::custom_instructions::render_for_prompt(

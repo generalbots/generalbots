@@ -136,6 +136,7 @@ struct TicketRow {
 
 mod archive_drive_files;
 mod branch_scope;
+mod chat_executable;
 mod commands_list;
 #[cfg(feature = "database")]
 mod database_verbs;

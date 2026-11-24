@@ -36,6 +36,7 @@ pub(super) async fn connect_claude(
             None,
         )
         .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        crate::core::bot::engine_precheck::after_sign_in(user_id, ai_accounts::CLAUDE_CODE, row.vm_name.clone());
     } else {
         ai_accounts::update_status(
             &state.conn,
@@ -88,6 +89,7 @@ pub async fn claude_code(
             None,
         )
         .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        crate::core::bot::engine_precheck::after_sign_in(user.user_id, ai_accounts::CLAUDE_CODE, row.vm_name.clone());
     } else {
         ai_accounts::update_status(
             &state.conn,

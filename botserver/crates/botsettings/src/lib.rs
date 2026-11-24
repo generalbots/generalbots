@@ -1,5 +1,6 @@
 pub mod admin_dashboard;
 pub mod audit_log;
+pub mod memory_store;
 pub mod menu_config;
 pub mod model_config;
 pub mod on_device_ai;

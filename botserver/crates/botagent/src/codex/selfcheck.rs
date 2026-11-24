@@ -90,6 +90,40 @@ pub async fn ensure(state: &AgentService, vm_name: &str, version: &str) -> Resul
     if let Some(asks) = cached(vm_name, version) {
         return verdict(asks, version);
     }
+    let (checked, asks) = run_check(state, vm_name).await?;
+    if checked != version && asks {
+        return Err(inconclusive(&format!("checked {checked}, session runs {version}")));
+    }
+    remember(vm_name, version, asks);
+    verdict(asks, version)
+}
+
+/// Runs the check ahead of the first turn (after a server start or a sign-in)
+/// and keeps the verdict for the version it found, so that turn does not wait
+/// for it. Does nothing when this workspace was already checked.
+pub async fn precheck(state: &AgentService, vm_name: &str) -> Result<(), BridgeError> {
+    if checked_any(vm_name) {
+        return Ok(());
+    }
+    let _one_at_a_time = running().lock().await;
+    if checked_any(vm_name) {
+        return Ok(());
+    }
+    let (checked, asks) = run_check(state, vm_name).await?;
+    remember(vm_name, &checked, asks);
+    verdict(asks, &checked)
+}
+
+fn checked_any(vm_name: &str) -> bool {
+    results()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .contains_key(vm_name)
+}
+
+/// One run of the check: the version the scratch session reported and
+/// whether it asked before running the probe command.
+async fn run_check(state: &AgentService, vm_name: &str) -> Result<(String, bool), BridgeError> {
     stage(state, vm_name).await?;
     let options = DuplexOptions { deadline: PROBE_WAIT + Duration::from_secs(30), ..DuplexOptions::default() };
     let session = vm::exec_in_vm_duplex(state, vm_name, &["sh".into(), "-c".into(), session_script()], options)
@@ -99,12 +133,10 @@ pub async fn ensure(state: &AgentService, vm_name: &str, version: &str) -> Resul
     let probed = tokio::time::timeout(PROBE_WAIT, probe(&client, &mut inbox)).await;
     client.close().await;
     match probed {
-        Ok(Ok((checked, asks))) if checked == version || !asks => {
-            tracing::info!("codex self-check: version {version} asks before acting: {asks}");
-            remember(vm_name, version, asks);
-            verdict(asks, version)
+        Ok(Ok((checked, asks))) => {
+            tracing::info!("codex self-check: version {checked} asks before acting: {asks}");
+            Ok((checked, asks))
         }
-        Ok(Ok((checked, _))) => Err(inconclusive(&format!("checked {checked}, session runs {version}"))),
         Ok(Err(why)) => Err(inconclusive(&why)),
         Err(_) => Err(inconclusive("no result in time")),
     }
@@ -201,6 +233,8 @@ mod tests {
         mark_unsafe("vm-test-a", "9.9.9");
         assert_eq!(cached("vm-test-a", "9.9.9"), Some(false));
         assert_eq!(cached("vm-test-a", "9.9.10"), None);
+        assert!(checked_any("vm-test-a"));
+        assert!(!checked_any("vm-test-never-checked"));
         assert_eq!(verdict(false, "9.9.9"), Err(BridgeError::Unsafe { version: "9.9.9".to_string() }));
     }
 }

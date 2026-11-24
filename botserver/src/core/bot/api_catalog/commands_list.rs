@@ -910,7 +910,6 @@ pub fn api_command_instructions(role: &str) -> String {
             "api.exec",
             "drive.list",
             "drive.search",
-            "settings.read",
         ]
     } else {
         &[
@@ -948,7 +947,7 @@ pub fn api_command_instructions(role: &str) -> String {
     let rules = if cfg!(feature = "gbgov") {
         "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
          commands to the user. Discovery: api.find matches command NAMES and SUMMARIES by keyword, not \
-         free-form intent, so search with domain words such as 'drive', 'files', 'settings' \
+         free-form intent, so search with domain words such as 'drive', 'files', 'folder' \
          rather than the user's own phrasing. When the command is listed above, call it directly by name \
          instead of searching."
     } else {
