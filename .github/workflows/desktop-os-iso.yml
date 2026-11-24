@@ -344,6 +344,35 @@ jobs:
               /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
             '
 
+      - name: Deterministic OS release packaging (#2440)
+        # #2440 — data-driven re-verification before the final name is blessed.
+        # Guards SKIP when the pinned tag lacks the package or has no image;
+        # verification failure is fatal, so a carrier is never published as OS.
+        env:
+          RELEASE_TAG: ${{ inputs.release || github.event.inputs.release }}
+        run: |
+          set -euo pipefail
+          for f in build-release-image.sh verify-image.sh appliance-manifest.tsv; do
+            [ -f "desktop/os/release/$f" ] || { echo "::warning::pinned tag lacks $f (#2440); SKIP"; exit 0; }
+          done
+          [ -s dist/generalbots-os.iso ] || { echo "::warning::no image input; SKIP deterministic packaging (#2440)"; exit 0; }
+          docker run --privileged --rm -e "GB_OS_RELEASE_TAG=${RELEASE_TAG}" \
+            -v "$PWD/desktop/os/release:/release:ro" -v "$PWD/dist:/dist" -w /release \
+            debian:sid bash -c '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
+              apt-get update
+              apt-get install -y --no-install-recommends libguestfs-tools linux-image-amd64
+              bash /release/build-release-image.sh --image /dist/generalbots-os.iso \
+                --manifest /release/appliance-manifest.tsv --out-dir /dist/verified \
+                --release "${GB_OS_RELEASE_TAG}"
+              cat /dist/verified/generalbots-os.manifest.txt
+            '
+          for f in generalbots-os.iso SHA256SUMS-os generalbots-os.manifest.txt; do
+            cp -f "dist/verified/$f" "dist/$f"
+          done
+
       # #2478 — prove the signed boot path on firmware that behaves like a
       # shipping laptop (Secure Boot on, Microsoft keys enrolled). Kept beside
       # the unsigned published image: a production signing key is not shipped

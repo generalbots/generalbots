@@ -1,0 +1,27 @@
+# General Bots OS — expected appliance identity and boot markers (#2440).
+# Tab-separated data file read by verify-image.sh. One key per line; repeat a
+# key to list several values. Comments and blank lines are ignored.
+# Keep this data deterministic: no timestamps, no absolute host paths, no
+# build-specific values. This is the contract a mkosi image must satisfy before
+# it may be published under the name generalbots-os.iso.
+schema	gb-os-appliance/1
+root.label	root-x86-64
+boot.partitions_min	2
+boot.filesystem	vfat
+identity.file	/etc/os-release
+identity.marker	ID=general-bots-os
+identity.marker	IMAGE_ID=generalbots-os
+identity.marker	VERSION_CODENAME=trixie
+unit.file	/usr/lib/systemd/system/generalbots-shell.service
+unit.marker	Description=General Bots kiosk shell
+unit.marker	/opt/general-bots/start.sh
+unit.marker	Conflicts=getty@tty1.service
+required.path	/etc/os-release
+required.path	/opt/general-bots/start.sh
+required.path	/opt/general-bots/generalbots
+required.path	/opt/general-bots/ui/suite
+required.path	/usr/lib/systemd/system/generalbots-shell.service
+required.path	/usr/lib/systemd/system/multi-user.target.wants/generalbots-shell.service
+boot.marker	El Torito
+boot.marker	BIOS
+boot.marker	UEFI
