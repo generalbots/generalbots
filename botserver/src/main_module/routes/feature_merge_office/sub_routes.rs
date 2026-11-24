@@ -160,6 +160,11 @@ pub(super) async fn merge_office_sub_routes(
             Arc::new(app_state.metrics_collector.clone()),
         ));
 
+        // #2499 — publish the Docs state (and its permission-filtered in-memory
+        // KB index) so the chat pipeline can inject citation-only context for
+        // an authenticated principal. Never expose document content here.
+        app_state.extensions.insert_blocking(docs_state.clone());
+
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace
         // every account shared. On a single-user install the install owner is
         // provably the only account that wrote them, so they are copied into its

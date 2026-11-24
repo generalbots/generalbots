@@ -143,6 +143,19 @@ pub(super) async fn build_and_stream(
         super::activity::emit_activity(identity.sink, &pre_run, &done).await;
     }
 
+    // #2499 — answers about a saved document must cite it, never quote it.
+    // Runs right after KB injection so the identity-only lines land in the same
+    // system message; fails closed for anonymous turns or unpublished Docs state.
+    #[cfg(feature = "docs")]
+    citation_inject::inject_saved_doc_citations(
+        &state.extensions,
+        &state.bucket_name,
+        user_id,
+        &user_query,
+        &mut messages_val,
+    )
+    .await;
+
     #[cfg(feature = "memory-os")]
     crate::core::bot::memory_hook::inject_recall(state, user_id, &user_query, &mut messages_val);
 
@@ -308,6 +321,8 @@ pub(super) async fn build_and_stream(
     Ok(())
 }
 
+#[cfg(feature = "docs")]
+mod citation_inject;
 mod helpers;
 pub(crate) use helpers::resolve_bot_llm_provider;
 pub(crate) use helpers::respond_in_answer_mode;
