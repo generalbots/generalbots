@@ -80,7 +80,7 @@ h.test("structural score detects a dropped feature [docx:tables]", function () {
 // tests below keep both halves honest: structured input MUST round-trip as
 // native OOXML (a FAIL, never a silent pass, if it regresses), while flat text
 // input MUST stay flat instead of being dressed up as fake structure.
-h.test("shipped PPTX exporter round-trips structured tables/charts [pptx:tables] [pptx:charts]", function () {
+h.test("[UAT:SLIDE-05] shipped PPTX exporter round-trips structured tables/charts [pptx:tables] [pptx:charts]", function () {
   var source = fixtures.filter(function (f) { return f.id === "hb-pptx-table-chart"; })[0];
   var before = features.featureVector("pptx", source.archive);
   // Real server-style slide.elements[]: a table_data grid + chart_data series.

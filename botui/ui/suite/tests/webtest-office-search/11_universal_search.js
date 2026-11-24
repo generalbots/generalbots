@@ -61,7 +61,7 @@ test("#2505: results are grouped by app with shipped labels and rendered", funct
   equal(clickableItems(panel).length, 2, "one clickable result per returned row");
 });
 
-test("#2505: person results deep-link straight to the record id", function () {
+test("[UAT:BIZ-01] #2505: person results deep-link straight to the record id", function () {
   var f = fx.create();
   f.mountSearch();
   f.searchQuery("ada");

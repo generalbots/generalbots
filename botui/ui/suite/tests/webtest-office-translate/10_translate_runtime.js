@@ -23,7 +23,7 @@ test("RUNTIME #2511: shipped translation module loads and binds its window expor
   });
 });
 
-test("RUNTIME #2511: undo history is seeded by autosaving the ORIGINAL html before translate", async function () {
+test("[UAT:DOC-07] RUNTIME #2511: undo history is seeded by autosaving the ORIGINAL html before translate", async function () {
   var original = "<h1>Contrato</h1><p>As partes <strong> concordam </strong>.</p>";
   var f = makeTranslateFixture({ html: original });
   var ok = await f.ctx.translateDocument("Portuguese");
@@ -39,7 +39,7 @@ test("RUNTIME #2511: undo history is seeded by autosaving the ORIGINAL html befo
   assertEqual(f.calls[1].body.selected_text, original, "the original html must be sent for translation");
 });
 
-test("RUNTIME #2511: HTML translation is applied verbatim with inline formatting intact", async function () {
+test("[UAT:DOC-07] RUNTIME #2511: HTML translation is applied verbatim with inline formatting intact", async function () {
   var translated = "<p>Titulo <strong>mundo</strong> e <em>estilo</em></p>";
   var f = makeTranslateFixture({ translateResponse: { content: translated } });
   var ok = await f.ctx.translateDocument("Portuguese");

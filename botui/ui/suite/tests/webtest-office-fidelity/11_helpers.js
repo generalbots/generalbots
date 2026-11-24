@@ -33,7 +33,7 @@ h.test("column helpers agree [xlsx:cells]", function () {
   h.assertEqual(ctx.XLSX.colToIdx("AA"), 26, "AA round trip");
 });
 
-h.test("buildXLSX emits non-empty workbook parts and deduped strings [xlsx:shared_strings]", function () {
+h.test("[UAT:SHEET-01] buildXLSX emits non-empty workbook parts and deduped strings [xlsx:shared_strings]", function () {
   var grid = host.makeGrid([["Name", "Value"], ["alpha", "1"], ["beta", "2"]]);
   var blob = ctx.XLSX.buildXLSX(grid);
   var parsed = zip.readStoredZipLocal(host.blobBytes(blob));
@@ -67,7 +67,7 @@ h.test("exportDOC fallback produces non-empty HTML [docx:text]", function () {
   h.assert(html.indexOf("Fallback") >= 0, "content present");
 });
 
-h.test("exportPPTX writes one slide part per slide [pptx:slides]", function () {
+h.test("[UAT:SLIDE-01] exportPPTX writes one slide part per slide [pptx:slides]", function () {
   var blob = ctx.Docs.exportPPTX([{ title: "One", body: "First" }, { title: "Two", body: "Second" }], {});
   var parsed = zip.readStoredZipLocal(host.blobBytes(blob));
   h.assert(parsed.names.indexOf("ppt/presentation.xml") >= 0, "presentation part");
