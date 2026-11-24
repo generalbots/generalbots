@@ -10,6 +10,8 @@
 //! (`Dashboard!B6 = Indicators!B4`, `Indicators!B4 = SUM(Monthly!...)`) need a
 //! handful of passes, and evaluation stops as soon as a pass changes nothing.
 
+use std::time::Instant;
+
 use crate::engine::evaluate_typed_in;
 use crate::types::Worksheet;
 
@@ -39,6 +41,7 @@ pub fn needs_recalculation(worksheets: &[Worksheet]) -> bool {
 /// Evaluates every formula cell against the whole workbook and writes the
 /// result into `value`/`typed`. Returns the number of cells updated.
 pub fn recalculate_workbook(worksheets: &mut [Worksheet]) -> usize {
+    let started = Instant::now();
     let mut updated = 0;
     for _ in 0..MAX_PASSES {
         // Evaluation reads the whole workbook while cells are being written,
@@ -67,6 +70,9 @@ pub fn recalculate_workbook(worksheets: &mut [Worksheet]) -> usize {
             break;
         }
     }
+    // #2459 — one recalculation measurement per invocation. The bridge uses
+    // the collector published at boot by state_builder, with an opaque scope.
+    crate::state::record_recalc_duration(started.elapsed().as_secs_f64() * 1000.0);
     updated
 }
 

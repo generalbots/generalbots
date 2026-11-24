@@ -17,6 +17,33 @@ pub fn set_metrics_collector(collector: MetricsCollector) {
     }
 }
 
+/// #2459 — record one workbook recalculation duration into the shared
+/// collector. `recalculate_workbook` is synchronous and is called from both
+/// async handlers and plain code, so the async hook is driven without ever
+/// blocking a live runtime: a running runtime gets a detached task, and plain
+/// code gets a tiny current-thread runtime. No file name or user id is passed;
+/// the hook only sees the opaque `app="sheet"` scope.
+pub(crate) fn record_recalc_duration(duration_ms: f64) {
+    if !duration_ms.is_finite() || duration_ms < 0.0 {
+        return;
+    }
+    let collector = METRICS.get_or_init(MetricsCollector::new).clone();
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        handle.spawn(async move {
+            botcore::shared::analytics::track_office_recalc(&collector, "sheet", None, duration_ms)
+                .await;
+        });
+        return;
+    }
+    match tokio::runtime::Builder::new_current_thread().build() {
+        Ok(runtime) => runtime.block_on(async {
+            botcore::shared::analytics::track_office_recalc(&collector, "sheet", None, duration_ms)
+                .await;
+        }),
+        Err(e) => log::warn!("botsheet-core: cannot record recalc duration: {e}"),
+    }
+}
+
 /// Post-save hook that runs after `save_sheet_to_drive` persists the JSON.
 /// Used by the `botsheet` crate to export back to the original xlsx in Drive.
 pub type SheetSaveHook = Arc<dyn Fn(&Spreadsheet) -> Result<(), String> + Send + Sync>;
