@@ -1113,7 +1113,7 @@ name = "botagent"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlib",
  "botschema",
@@ -1137,7 +1137,7 @@ name = "botanalytics"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bigdecimal",
  "botlib",
  "botlog",
@@ -1161,7 +1161,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlog",
  "botsecurity",
@@ -1327,7 +1327,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbanking",
  "botbasic_core",
  "botbasic_types",
@@ -1368,7 +1368,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bigdecimal",
  "botbasic_core",
  "botbasic_data",
@@ -1446,7 +1446,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_core",
  "botbasic_types",
  "botcore",
@@ -1482,7 +1482,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_core",
  "botbasic_data",
  "botbasic_types",
@@ -1582,7 +1582,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botsecurity-core",
  "chromiumoxide",
  "chrono",
@@ -1602,7 +1602,7 @@ version = "7.1.2"
 dependencies = [
  "async-stream",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botschema",
  "botsecurity-auth",
@@ -1682,7 +1682,7 @@ version = "7.1.2"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botchannels-core",
  "botsecurity-core",
  "chrono",
@@ -1707,7 +1707,7 @@ dependencies = [
 name = "botchannels-core"
 version = "7.1.2"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "reqwest 0.12.28",
  "serde",
@@ -1735,7 +1735,7 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bigdecimal",
  "botbilling",
  "botcoredirectory",
@@ -1795,7 +1795,7 @@ name = "botconnectors"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botcoresecrets",
  "botlib",
@@ -1866,7 +1866,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_types",
  "botcorepkg",
  "botcoresecrets",
@@ -1922,7 +1922,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botschema",
  "chrono",
@@ -1978,7 +1978,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcoresecrets",
  "botlib",
  "botlog",
@@ -2004,7 +2004,7 @@ name = "botcorepkg"
 version = "7.1.2"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcoresecrets",
  "botlib",
  "chrono",
@@ -2088,7 +2088,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "chrono",
  "diesel",
@@ -2105,7 +2105,7 @@ name = "botdeployment"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcorepkg",
  "botcoresecrets",
  "botlib",
@@ -2170,7 +2170,7 @@ name = "botdocs"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlib",
  "botsecurity-core",
@@ -2217,7 +2217,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_core",
  "botcore",
  "botcoresecrets",
@@ -2258,7 +2258,7 @@ name = "boteditor"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botsecurity-core",
  "diesel",
@@ -2275,7 +2275,7 @@ dependencies = [
  "anyhow",
  "axum 0.7.9",
  "axum-extra",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botlog",
  "botschema",
@@ -2455,7 +2455,7 @@ dependencies = [
  "aws-credential-types",
  "aws-sigv4",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botcoresecrets",
  "botdrive",
@@ -2693,7 +2693,7 @@ name = "botmarketplace"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botschema",
  "botsecurity",
@@ -2716,7 +2716,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlib",
  "botlog",
@@ -2746,7 +2746,7 @@ name = "botmemory"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botschema",
  "botsecurity-core",
@@ -2781,7 +2781,7 @@ dependencies = [
 name = "botmodelsbridge"
 version = "7.1.2"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "botsecurity",
  "chrono",
  "log",
@@ -2817,7 +2817,7 @@ version = "7.1.2"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botschema",
  "botsecurity-core",
@@ -2899,7 +2899,7 @@ name = "botplan"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botllm",
  "botsecurity-core",
@@ -2955,7 +2955,7 @@ name = "botproducts"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bigdecimal",
  "botlib",
  "botschema",
@@ -2997,7 +2997,7 @@ name = "botproviders"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "hex",
  "hmac 0.12.1",
@@ -3133,7 +3133,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botschema",
  "botsecurity-auth",
  "botsecurity-core",
@@ -3161,7 +3161,7 @@ dependencies = [
  "argon2",
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcoresecrets",
  "botlib",
  "botsecurity-core",
@@ -3197,7 +3197,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "chrono",
  "diesel",
@@ -3231,7 +3231,7 @@ version = "7.1.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botlib",
  "botsecurity-core",
  "chrono",
@@ -3284,7 +3284,7 @@ dependencies = [
  "async-trait",
  "axum 0.7.9",
  "axum-server",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bigdecimal",
  "botagent",
  "botanalytics",
@@ -3515,7 +3515,7 @@ version = "7.1.2"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlib",
  "botsecurity-core",
@@ -3547,7 +3547,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcore",
  "botlib",
  "chrono",
@@ -3565,7 +3565,7 @@ name = "botslides"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_core",
  "botcore",
  "botlib",
@@ -3611,7 +3611,7 @@ name = "botsources"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botcoresecrets",
  "botemail",
  "botlib",
@@ -3712,7 +3712,7 @@ version = "7.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botbasic_compiler",
  "botbasic_types",
  "botbilling",
@@ -3851,7 +3851,7 @@ name = "botvibe"
 version = "7.1.2"
 dependencies = [
  "axum 0.7.9",
- "base64 0.22.1",
+ "base64 0.23.1",
  "botautotask",
  "botcontacts",
  "botcore",
