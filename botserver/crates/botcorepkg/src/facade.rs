@@ -9,6 +9,25 @@ use std::collections::HashMap;
 
 use crate::facade_container::{safe_incus, safe_incus_admin};
 
+/// #2708 — verify data files (models) with the same policy as component archives.
+fn verify_data_file(path: &std::path::Path, url: &str, component: &str) -> Result<()> {
+    match crate::installer::checksum_for_url(url) {
+        Some(expected) if !expected.trim().is_empty() => {
+            crate::checksum::verify_download(path, &expected, component)
+        }
+        _ => {
+            if crate::checksum::require_checksums() {
+                Err(anyhow::anyhow!(
+                    "no SHA-256 pin for data file '{url}' and GB_REQUIRE_CHECKSUMS is on"
+                ))
+            } else {
+                warn!("No SHA-256 pin for data file '{url}'; it is NOT verified");
+                Ok(())
+            }
+        }
+    }
+}
+
 impl PackageManager {
     pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {
         let component = self

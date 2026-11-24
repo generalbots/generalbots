@@ -87,8 +87,7 @@ pub fn get_db_password_from_vault() -> Option<String> {
     use crate::bootstrap::bootstrap_utils::safe_sh_command_with_env;
 
     let vault_addr = env::var("VAULT_ADDR").unwrap_or_default();
-    let vault_token = env::var("VAULT_TOKEN").ok()?;
-    if vault_addr.is_empty() {
+    if env::var("VAULT_TOKEN").ok().is_none() || vault_addr.is_empty() {
         return None;
     }
     let vault_cacert = env::var("VAULT_CACERT")

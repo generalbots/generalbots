@@ -11,6 +11,7 @@ pub mod installer;
 pub mod lmd;
 pub mod lynis;
 pub mod manager;
+pub mod private_staging;
 pub mod rkhunter;
 pub mod security_fix;
 pub mod sudoers;

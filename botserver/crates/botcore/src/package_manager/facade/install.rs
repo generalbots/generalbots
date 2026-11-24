@@ -1,5 +1,25 @@
 use super::*;
 
+/// #2708 — data files (including inference models) must be verified before
+/// they are copied into the stack, with the same policy as component archives.
+fn verify_data_file(path: &std::path::Path, url: &str, component: &str) -> Result<()> {
+    match botcorepkg::installer::checksum_for_url(url) {
+        Some(expected) if !expected.trim().is_empty() => {
+            botcorepkg::checksum::verify_download(path, &expected, component)
+        }
+        _ => {
+            if botcorepkg::checksum::require_checksums() {
+                Err(anyhow::anyhow!(
+                    "no SHA-256 pin for data file '{url}' and GB_REQUIRE_CHECKSUMS is on"
+                ))
+            } else {
+                log::warn!("No SHA-256 pin for data file '{url}'; it is NOT verified");
+                Ok(())
+            }
+        }
+    }
+}
+
 impl PackageManager {
     #[cfg(windows)]
     pub fn prepare_installed_windows_component(&self, name: &str) -> Result<()> {

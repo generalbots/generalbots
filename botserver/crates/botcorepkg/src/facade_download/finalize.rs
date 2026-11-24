@@ -1,5 +1,35 @@
 use super::*;
 
+/// #2763 — resolve the Zitadel role password: explicit operator env, else the
+/// random value seeded in Vault, else a fresh random value for this run.
+fn resolve_zitadel_password(from_env: Option<String>, from_vault: Option<String>) -> String {
+    from_env
+        .filter(|value| !value.is_empty())
+        .or_else(|| from_vault.filter(|value| !value.is_empty()))
+        .unwrap_or_else(|| crate::generate_random_string(32))
+}
+
+#[cfg(test)]
+mod zitadel_password_tests {
+    use super::resolve_zitadel_password;
+
+    #[test]
+    fn never_uses_a_fixed_literal() {
+        assert_eq!(
+            resolve_zitadel_password(Some("from-env".to_string()), Some("from-vault".to_string())),
+            "from-env"
+        );
+        assert_eq!(
+            resolve_zitadel_password(None, Some("from-vault".to_string())),
+            "from-vault"
+        );
+        let first = resolve_zitadel_password(None, None);
+        let second = resolve_zitadel_password(None, None);
+        assert_ne!(first, second);
+        assert_ne!(first, "zitadel");
+    }
+}
+
 pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, name: &str) -> Result<()> {
     #[cfg(target_os = "windows")]
     let name = if !name.ends_with(".exe") {

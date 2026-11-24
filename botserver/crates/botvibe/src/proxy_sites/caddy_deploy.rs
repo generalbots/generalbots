@@ -96,8 +96,7 @@ pub(crate) fn ensure_python_service_for(
     let unit = format!(
         "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nEnvironmentFile=-{env_file}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
     );
-    let unit_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.service"));
-    std::fs::write(&unit_tmp, unit).map_err(|e| format!("write unit: {e}"))?;
+    let unit_tmp = PrivateTemp::create(&format!("{unit_name}.service"), unit.as_bytes())?;
     let unit_target = format!("proxy/etc/systemd/system/gb-vibe-{unit_name}.service");
     // Pre-delete the unit: `incus file push` cannot overwrite a file owned
     // by another uid (EACCES) — seen when a previous botserver ran as a
@@ -111,7 +110,7 @@ pub(crate) fn ensure_python_service_for(
         &[
             "file".to_string(),
             "push".to_string(),
-            unit_tmp.to_string_lossy().to_string(),
+            unit_tmp.path.to_string_lossy().to_string(),
             // no-colon form — see stage_payload.
             unit_target,
         ],
@@ -119,7 +118,6 @@ pub(crate) fn ensure_python_service_for(
         30,
     )
     .map_err(|e| format!("incus file push unit: {e}"))?;
-    let _ = std::fs::remove_file(&unit_tmp);
     if pushed.exit_code != Some(0) {
         return Err(format!("unit push failed: {}", pushed.stderr.trim()));
     }

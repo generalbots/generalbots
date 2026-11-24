@@ -49,6 +49,9 @@ impl VmLifecycle {
             // #1276 — entry resolution (node/python/static precedence) is
             // extracted into `resolve_web_entry` so the clobber rules stay
             // unit-tested without a container.
+            // #2655 — refuse a project manifest whose entry could inject
+            // directives into the generated systemd unit.
+            super::web_entry::validate_manifest_entries(files)?;
             let resolved = resolve_web_entry(files);
             let has_node_entry = !resolved.is_python && !resolved.needs_static_fallback;
             let has_python_entry = resolved.is_python;

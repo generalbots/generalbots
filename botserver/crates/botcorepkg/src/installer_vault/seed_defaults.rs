@@ -25,11 +25,14 @@ pub fn seed_vault_defaults(
     let meet_app_id = generate_random_string(24);
     let meet_app_secret = generate_random_string(48);
     let alm_token = generate_random_string(40);
+    // #2763 — the Zitadel DB role gets its own random password, persisted in
+    // secret/gbo/directory rather than the hardcoded 'zitadel' installer value.
+    let directory_db_pass = generate_random_string(32);
     // #2817 — the Qdrant data plane must never run with a placeholder key.
     let vectordb_api_key = generate_random_string(48);
 
     info!(
-        "Generated strong random credentials for: drive, cache, tables, encryption, meet, alm, vectordb"
+        "Generated strong random credentials for: drive, cache, tables, directory, encryption, meet, alm, vectordb"
     );
 
     let defaults: Vec<(&str, Vec<(String, String)>)> = vec![
