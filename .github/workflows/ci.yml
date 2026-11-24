@@ -990,6 +990,24 @@ jobs:
           set -euo pipefail
           node botui/ui/suite/tests/webtest-office-fidelity.js
 
+      # #2457 — Office search (#2505) and office translation (#2511) offline
+      # harnesses currently run only ad-hoc. Wire both into every PR: they
+      # execute the shipped suite modules in a Node vm with stubbed browser
+      # globals — no server, browser or cargo — and fail on any regression.
+      - name: "Guard: Office search and translation static harnesses (#2457)"
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-office-search.js
+          node botui/ui/suite/tests/webtest-office-translate.js
+
+      # #2470 — data-protection safety guards (pre-restore snapshot + path
+      # validation) must not regress silently. Static source audit + bash -n;
+      # no destructive commands run in CI.
+      - name: "Guard: Data-protection restore safety (#2470)"
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-data-protection.js
+
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
       # is a documented manual/nightly run:
