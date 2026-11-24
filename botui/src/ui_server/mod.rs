@@ -9,6 +9,7 @@ pub mod security_headers;
 pub mod suite;
 pub mod suite_ops;
 pub mod tls_policy;
+mod ws_proxy_loop;
 pub mod ws;
 
 pub use self::assets::serve_favicon;
