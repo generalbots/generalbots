@@ -154,7 +154,10 @@ mod tests {
     fn recalculates_cross_sheet_chain() {
         let mut sheets = vec![
             worksheet("Dashboard", vec![("0,0", formula_cell("=Indicators!A1"))]),
-            worksheet("Indicators", vec![("0,0", formula_cell("=SUM(Data!A1:A2)"))]),
+            worksheet(
+                "Indicators",
+                vec![("0,0", formula_cell("=SUM(Data!A1:A2)"))],
+            ),
             worksheet(
                 "Data",
                 vec![("0,0", number_cell(10.0)), ("1,0", number_cell(5.0))],
@@ -182,5 +185,63 @@ mod tests {
         )];
         assert!(!needs_recalculation(&sheets));
         assert_eq!(recalculate_if_needed(&mut sheets), 0);
+    }
+
+    /// #2459 — proves the recalc metric hook actually records a sample.
+    ///
+    /// `recalculate_workbook` ends with `record_recalc_duration`, which emits one
+    /// `office_recalc_duration_ms_{count,sum,max}` observation into the shared
+    /// collector. We read that same collector back through `metrics_collector()`
+    /// (a clone that shares the underlying storage) and assert the sample exists
+    /// with a sane value.
+    ///
+    /// This is a plain `#[test]` on purpose: with no current tokio runtime the
+    /// hook takes its synchronous `block_on` path, so the sample is visible as
+    /// soon as `recalculate_workbook` returns — no detached task, no sleep.
+    #[test]
+    fn recalc_hook_records_duration_sample() {
+        let collector = crate::state::metrics_collector();
+
+        let mut sheets = vec![worksheet(
+            "Sheet1",
+            vec![
+                ("0,0", number_cell(1.0)),
+                ("1,0", number_cell(2.0)),
+                ("2,0", formula_cell("=SUM(A1:A2)")),
+            ],
+        )];
+        assert!(needs_recalculation(&sheets));
+        assert!(recalculate_workbook(&mut sheets) > 0);
+
+        // `get_metrics` is async; drive it on a tiny current-thread runtime. It
+        // only touches the tokio RwLock, so no `enable_all` is required.
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("build current-thread runtime");
+        let metrics = runtime.block_on(collector.get_metrics());
+
+        // `increment` always records 1.0, so count is the strongest proof that a
+        // sample landed. The shared collector may also hold samples from sibling
+        // tests (which call recalculate_workbook in parallel) — that only raises
+        // these totals, never lowers them.
+        let count: f64 = metrics
+            .iter()
+            .filter(|m| m.name == "office_recalc_duration_ms_count")
+            .map(|m| m.value)
+            .sum();
+        let sum: f64 = metrics
+            .iter()
+            .filter(|m| m.name == "office_recalc_duration_ms_sum")
+            .map(|m| m.value)
+            .sum();
+
+        assert!(
+            count >= 1.0,
+            "expected at least one recalc sample, got {count}"
+        );
+        assert!(
+            sum > 0.0 && sum.is_finite(),
+            "expected a finite, positive recalc duration sum, got {sum}"
+        );
     }
 }
