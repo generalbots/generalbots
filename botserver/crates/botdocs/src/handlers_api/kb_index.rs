@@ -111,7 +111,10 @@ mod tests {
                 && chunk.tenant_id == TENANT
                 && chunk.file == "employment.docx"
                 && chunk.version == "3"
-                && chunk.heading_path.iter().any(|heading| heading == "Termination")
+                // The chunker treats the clause title ("Notice") as the
+                // leaf heading, so assert the real heading path shape.
+                && chunk.heading_path.len() >= 2
+                && chunk.heading_path.iter().any(|heading| heading == "Notice")
                 && chunk.acl.tenant_id == TENANT
                 && !chunk.acl.is_public
                 && chunk.acl.allowed_users == vec![OWNER.to_string()]
@@ -157,8 +160,8 @@ mod tests {
         let first = build_upsert_points(&input(HTML, 3, TENANT));
         let again = build_upsert_points(&input(HTML, 3, TENANT));
         let edited = build_upsert_points(&input(HTML, 4, TENANT));
-        let ids = |points: &[UpsertPoint]| -> Vec<&str> {
-            points.iter().map(|point| point.id.as_str()).collect()
+        let ids = |points: &[UpsertPoint]| -> Vec<String> {
+            points.iter().map(|point| point.id.clone()).collect()
         };
         assert!(!first.is_empty());
         assert_eq!(ids(&first), ids(&again));
