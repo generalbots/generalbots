@@ -16,6 +16,9 @@
         pt: {
             loading: "Verificando…", running: "Ligada", stopped: "Desligada", provisioning: "Preparando",
             error: "Atenção", full: "Disco cheio", unavailable: "Indisponível", restoring: "Restaurando", starting: "Iniciando",
+            service_restarting: "Reiniciando o serviço", service_failed: "Serviço sem resposta",
+            subServiceRestarting: "Reiniciando o serviço da Máquina Virtual…",
+            subServiceFailed: "O serviço da Máquina Virtual não respondeu. Reinicie o computador ou o WSL.",
             machine: "Máquina Virtual", failed: "Falha na operação",
             title: "Um computador só seu, onde os agentes trabalham.",
             lead: "Os agentes por assinatura e o modo Agente rodam aqui: executam comandos, instalam ferramentas e geram arquivos, separados do seu Windows.",
@@ -51,6 +54,9 @@
         en: {
             loading: "Checking…", running: "Running", stopped: "Off", provisioning: "Preparing",
             error: "Needs attention", full: "Disk full", unavailable: "Unavailable", restoring: "Restoring", starting: "Starting",
+            service_restarting: "Restarting the service", service_failed: "Service not responding",
+            subServiceRestarting: "Restarting the Virtual Machine service…",
+            subServiceFailed: "The Virtual Machine service did not respond. Restart the computer or WSL.",
             machine: "Virtual machine", failed: "Operation failed",
             title: "A computer of your own, where agents work.",
             lead: "Subscription agents and Agent mode run here: they run commands, install tools and create files, apart from your Windows.",
@@ -180,6 +186,7 @@
                 var vm = await request("/api/agent/sessions/current");
                 next.row = vm.found && vm.item;
                 next.status = vm.status && !vm.item ? vm.status : next.row ? String(next.row.status).toLowerCase() : "stopped";
+                if (A.vmServiceState(vm)) next.status = A.vmServiceState(vm);
                 if (next.row && detail) {
                     var targets = [
                         "/api/agent/vm/resources",
@@ -195,6 +202,7 @@
                     next.accounts = results[2] && results[2].accounts;
                     var r = next.resources;
                     if (r.status) next.status = String(r.status).toLowerCase() === "frozen" ? "error" : String(r.status).toLowerCase();
+                    if (A.vmServiceState(r)) next.status = A.vmServiceState(r);
                     if (r.disk_total_bytes > 0 && r.disk_bytes >= r.disk_total_bytes * FULL_RATIO) next.status = "full";
                     if (typeof r.cpu_ns === "number") {
                         var now = performance.now();
@@ -220,7 +228,7 @@
         if (!state || M.busy || refreshing) return;
         var s = String(state).toLowerCase() === "frozen" ? "error" : String(state).toLowerCase();
         if (!T.en[s] || s === M.model.status) return;
-        if (s === "running" && ["stopped", "starting", "unavailable", "loading"].indexOf(M.model.status) < 0) return;
+        if (s === "running" && ["stopped", "starting", "unavailable", "loading", "service_restarting", "service_failed"].indexOf(M.model.status) < 0) return;
         M.model.status = s;
         if (s !== "running") M.model.cpu = null;
         footer();

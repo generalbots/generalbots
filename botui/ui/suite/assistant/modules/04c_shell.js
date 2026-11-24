@@ -73,7 +73,7 @@
         }
         if (state || !data || typeof data.cpu_ns !== "number") {
             clearCpu();
-            return state === "starting" ? CPU_WAIT : CPU_IDLE;
+            return state === "starting" || state === "service_restarting" ? CPU_WAIT : CPU_IDLE;
         }
         if (cpu.last && data.cpu_ns >= cpu.last.ns && at > cpu.last.at) {
             var share = (data.cpu_ns - cpu.last.ns) / ((at - cpu.last.at) * 1e6 * cpuCores(data.cpu_limit)) * 100;

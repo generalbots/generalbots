@@ -33,7 +33,7 @@ pub async fn exec_in_vm_duplex(
     options: DuplexOptions,
 ) -> Result<DuplexSession, (StatusCode, String)> {
     open_duplex(
-        incus_command(state)?,
+        super::incus_ready::ready_command(state).await?,
         incus_command(state)?,
         vm_name,
         cmd_args,

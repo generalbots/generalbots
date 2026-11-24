@@ -14,6 +14,7 @@ use crate::AgentService;
 
 use super::internal;
 use super::incus_errors::{incus_setup_error, INCUS_MISSING_MESSAGE};
+use super::incus_ready::{note_answered, note_timed_out, ready_command};
 use super::incus_run::{capped, deadline_for, output_within, timeout_error, RunFailure, EXEC_DEADLINE};
 use super::retry::{cold_start_timeout_message, retry_incus};
 
@@ -49,7 +50,7 @@ pub(super) async fn run_incus(
     state: &AgentService,
     args: Vec<String>,
 ) -> Result<std::process::Output, (StatusCode, String)> {
-    let mut cmd = incus_command(state)?;
+    let mut cmd = ready_command(state).await?;
     for arg in &args {
         cmd = cmd
             .arg(arg)
@@ -60,11 +61,14 @@ pub(super) async fn run_incus(
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
         .map_err(|failure| match failure {
-            RunFailure::TimedOut { orphaned } => timeout_error(
-                args.first().map(String::as_str).unwrap_or("call"),
-                deadline,
-                orphaned,
-            ),
+            RunFailure::TimedOut { orphaned } => {
+                note_timed_out();
+                timeout_error(
+                    args.first().map(String::as_str).unwrap_or("call"),
+                    deadline,
+                    orphaned,
+                )
+            }
             RunFailure::Spawn(e) => match incus_setup_error(&e) {
                 Some(err) => err,
                 None => internal(format!("incus execution: {e}")),
@@ -80,6 +84,7 @@ pub(super) async fn run_incus(
             return Err(err);
         }
     }
+    note_answered();
     Ok(output)
 }
 
@@ -274,7 +279,7 @@ pub async fn exec_in_vm_streaming(
     cancel: Option<Arc<AtomicBool>>,
     events: Option<mpsc::UnboundedSender<ExecEvent>>,
 ) -> Result<ExecOutcome, (StatusCode, String)> {
-    let mut cmd = incus_command(state)?;
+    let mut cmd = ready_command(state).await?;
     cmd = cmd
         .arg("exec")
         .map_err(|error| internal(format!("incus arg: {error}")))?;

@@ -14,6 +14,8 @@
     var POLL_TIMEOUT = 8000, POLL_SLOTS = 2, POLL_BACKOFF = 30000;
     var LIST_TIMEOUT = 15000, PAGE = 50, PAGE_CAP = 200;
     var VM_STATES = ["stopped", "starting", "unavailable"];
+    /* The virtual machine service itself restarting, or not answering. */
+    var VM_SERVICE = { incus_service_restarting: "service_restarting", incus_service_failed: "service_failed" };
 
     /** JSON request with a deadline: resolves {ok, status, data}, rejects on
         network error or timeout (err.timeout). The body is read inside the
@@ -42,9 +44,17 @@
         whose body is {"status": "stopped" | "starting" | "unavailable"}. */
     A.vmState = function (res) {
         if (!res || res.skipped) { return null; }
+        var service = A.vmServiceState(res.data);
+        if (service) { return service; }
         if (res.status === 503) { return "unavailable"; }
         var s = res.data && typeof res.data.status === "string" ? res.data.status.toLowerCase() : "";
         return VM_STATES.indexOf(s) >= 0 ? s : null;
+    };
+
+    /** "service_restarting" or "service_failed" from a body's "code". */
+    A.vmServiceState = function (data) {
+        var code = data && typeof data.code === "string" ? data.code : "";
+        return Object.prototype.hasOwnProperty.call(VM_SERVICE, code) ? VM_SERVICE[code] : null;
     };
 
     var inflight = {}, busy = 0;

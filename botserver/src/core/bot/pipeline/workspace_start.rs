@@ -290,6 +290,17 @@ fn workspace_refusal(
         .param("label", label)
 }
 
+/// The message key for a failure of the virtual machine service itself
+/// (restarting, or not answering), which the person can act on.
+fn service_message_key(error: &WorkspaceError) -> Option<&'static str> {
+    let status = axum::http::StatusCode::from_u16(error.0).ok()?;
+    match botagent::vm::service_code(&(status, error.1.clone()))? {
+        botagent::vm::SERVICE_RESTARTING_CODE => Some("error-workspace-service-restarting"),
+        botagent::vm::SERVICE_FAILED_CODE => Some("error-workspace-service-failed"),
+        _ => None,
+    }
+}
+
 /// The timeout already carries the user's message; any other failure keeps
 /// its detail in the log and gives the user a plain one.
 fn user_message(error: &WorkspaceError, locale: &botcore::i18n::Locale) -> String {
@@ -298,7 +309,8 @@ fn user_message(error: &WorkspaceError, locale: &botcore::i18n::Locale) -> Strin
         return detail.clone();
     }
     botlog::safe_warn!("workspace start before a subscription turn failed ({code}): {detail}");
-    botcore::i18n::t(locale, "error-workspace-start-failed")
+    let key = service_message_key(error).unwrap_or("error-workspace-start-failed");
+    botcore::i18n::t(locale, key)
 }
 
 #[cfg(test)]
@@ -330,6 +342,27 @@ mod tests {
         assert_eq!(START_BUDGET, Duration::from_secs(180));
         assert!(QUIET_START < Duration::from_secs(5));
         assert!(QUIET_START < QUIET_CHECK && QUIET_CHECK < Duration::from_secs(10));
+    }
+
+    #[test]
+    fn a_service_failure_gets_its_own_message() {
+        let restarting = (503, format!("{}: restarting", botagent::vm::SERVICE_RESTARTING_CODE));
+        let failed = (503, format!("{}: no answer", botagent::vm::SERVICE_FAILED_CODE));
+        assert_eq!(service_message_key(&restarting), Some("error-workspace-service-restarting"));
+        assert_eq!(service_message_key(&failed), Some("error-workspace-service-failed"));
+        assert_eq!(service_message_key(&(500, "incus_service_failed".to_string())), None);
+        assert_eq!(service_message_key(&(503, "other".to_string())), None);
+        botcore::i18n::ensure_initialized();
+        let en = botcore::i18n::Locale::new("en").unwrap_or_default();
+        let pt = botcore::i18n::Locale::new("pt-BR").unwrap_or_default();
+        assert_eq!(
+            user_message(&restarting, &en),
+            "Restarting the Virtual Machine service…"
+        );
+        assert_eq!(
+            user_message(&failed, &pt),
+            "O serviço da Máquina Virtual não respondeu. Reinicie o computador ou o WSL."
+        );
     }
 
     #[tokio::test]

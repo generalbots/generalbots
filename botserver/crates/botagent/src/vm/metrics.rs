@@ -53,6 +53,11 @@ async fn probe_instance(service: &AgentService, name: &str) -> Result<Value, Wor
         Some(Err(error)) if is_timeout(&error) => {
             return Err(WorkspaceState::Unavailable(INCUS_TIMEOUT_CODE))
         }
+        Some(Err(error)) if super::service_code(&error).is_some() => {
+            return Err(WorkspaceState::Unavailable(
+                super::service_code(&error).unwrap_or("incus_error"),
+            ))
+        }
         Some(Err((code, detail))) => {
             tracing::warn!("workspace probe for {name} failed ({code}): {detail}");
             return Err(WorkspaceState::Unavailable("incus_error"));

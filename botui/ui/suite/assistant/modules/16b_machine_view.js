@@ -12,7 +12,7 @@
     var SUBTITLE = {
         running: "subRunning", stopped: "subStopped", provisioning: "subProvisioning", error: "subError",
         full: "subFull", unavailable: "subUnavailable", loading: "subLoading", restoring: "subProvisioning",
-        starting: "subStarting"
+        starting: "subStarting", service_restarting: "subServiceRestarting", service_failed: "subServiceFailed"
     };
     /* One rail row each. A "live" section keeps the 5 s poll going while it
        is on screen; the others refresh once when they open. */

@@ -15,6 +15,8 @@ mod identity;
 mod incus;
 mod incus_errors;
 mod incus_duplex;
+mod incus_ready;
+pub use incus_ready::{service_code, SERVICE_FAILED_CODE, SERVICE_RESTARTING_CODE};
 mod incus_stdin;
 pub(crate) mod incus_run;
 mod launch;

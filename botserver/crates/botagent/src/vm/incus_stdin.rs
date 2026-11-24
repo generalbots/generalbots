@@ -13,7 +13,7 @@ use botlib::security::command_guard::{CommandGuardError, SafeCommand};
 
 use crate::AgentService;
 
-use super::incus::incus_command;
+use super::incus_ready::ready_command;
 use super::incus_errors::incus_setup_error;
 use super::incus_run::{capped, output_with_input, timeout_error, RunFailure};
 use super::internal;
@@ -41,7 +41,7 @@ pub async fn exec_in_vm_with_input(
     limit: Duration,
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     let limit = capped(limit);
-    let cmd = stdin_command(incus_command(state)?, vm_name, script)
+    let cmd = stdin_command(ready_command(state).await?, vm_name, script)
         .map_err(|error| internal(format!("incus script: {error}")))?;
     let finished = tokio::task::spawn_blocking(move || output_with_input(&cmd, input, limit))
         .await
