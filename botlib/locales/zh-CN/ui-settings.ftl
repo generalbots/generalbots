@@ -977,3 +977,8 @@ weba-published = Site published.
 weba-unpublished = Site unpublished.
 weba-error = Could not load sites: 
 theme-high-contrast = 高对比度
+
+# Shell switching (assistant / windowed suite)
+settings-shell-assistant = 助手模式
+settings-shell-assistant-desc = 返回以聊天为主的助手。您的对话仍保留在此处。
+settings-shell-assistant-open = 打开助手

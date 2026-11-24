@@ -977,3 +977,8 @@ weba-published = Site published.
 weba-unpublished = Site unpublished.
 weba-error = Could not load sites: 
 theme-high-contrast = Alto contraste
+
+# Shell switching (assistant / windowed suite)
+settings-shell-assistant = Modo asistente
+settings-shell-assistant-desc = Vuelve al asistente centrado en el chat. Tus conversaciones siguen aquí.
+settings-shell-assistant-open = Abrir asistente
