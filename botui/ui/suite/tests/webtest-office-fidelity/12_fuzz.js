@@ -1,8 +1,16 @@
 /**
- * Offline importer/container fuzzing: malformed ZIPs, hostile names, CRC
+ * Offline container-reader fuzzing: malformed ZIPs, hostile names, CRC
  * corruption and resource caps must fail deterministically, never crash.
- * A real 24h fuzz run against the Rust importers remains a CI/hardware gate;
- * this is the browser-side, deterministic subset of that work.
+ *
+ * Scope (honest, #2457 audit): these cases exercise the HARNESS ZIP reader
+ * (`02_zip.js:readStoredZip`/`readStoredZipLocal`), not a shipped product
+ * parser — the browser JS surface has no OOXML import/unzip path. They do not
+ * cover corrupt [Content_Types].xml, XXE/entity expansion, repeated-cell bombs
+ * or wrong mimetypes. Those, plus a real 24h run, belong to the Rust
+ * `fuzz/fuzz_targets/office_import.rs` target (cargo fuzz) and the
+ * `botsheet::storage::import` hardened parser. This is a deterministic
+ * regression guard on the reader only, NOT evidence that shipped parsers
+ * reject malformed OOXML.
  */
 "use strict";
 
