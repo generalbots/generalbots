@@ -4,6 +4,10 @@ use super::super::RoutePermission;
 
 pub(super) fn routes() -> Vec<RoutePermission> {
     vec![
+        // #2459 — Prometheus scrape endpoints (canonical /metrics and the
+        // legacy /api/metrics). Read-only, PII-free numeric series only.
+        RoutePermission::new("/metrics", "GET", ""),
+        RoutePermission::new("/api/metrics", "GET", ""),
         // Chat history: authenticated users manage their own conversations.
         // PUT was missing, so renaming a conversation was rejected by the
         // default-deny catalogue with 403 before reaching the handler.
