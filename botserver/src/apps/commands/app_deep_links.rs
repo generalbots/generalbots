@@ -104,21 +104,21 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
             },
         ],
     ),
+    // #2475 — the office contract emits `file` for every surface; the chat
+    // renderer's catalog gate drops links whose keys are all undeclared.
     (
         "sheet",
-        &[DeepLinkParam {
-            key: "file_id",
-            description: "spreadsheet id",
-            example: "fluxo-2026-08",
-        }],
+        &[
+            DeepLinkParam { key: "file_id", description: "spreadsheet id", example: "fluxo-2026-08" },
+            DeepLinkParam { key: "file", description: "spreadsheet file path or id", example: "fluxo-2026-08.xlsx" },
+        ],
     ),
     (
         "slides",
-        &[DeepLinkParam {
-            key: "deck_id",
-            description: "presentation id",
-            example: "deck-12",
-        }],
+        &[
+            DeepLinkParam { key: "deck_id", description: "presentation id", example: "deck-12" },
+            DeepLinkParam { key: "file", description: "presentation file path or id", example: "deck-12.pptx" },
+        ],
     ),
     (
         "paper",
@@ -446,3 +446,4 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
         }],
     ),
 ];
+

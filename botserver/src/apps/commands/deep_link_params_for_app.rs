@@ -33,10 +33,6 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("docs", "docs.search", "Search documents", "Search documents by title or topic and return matching document ids.", &[("query", "search text, e.g. Q3 report")], Some("app://docs?id={id?}"), false),
     cmd("docs", "docs.open", "Open document", "Open a document by id in the Docs app.", &[("id", "document id")], Some("app://docs?id={id}"), false),
     cmd("sheet", "sheet.open", "Open spreadsheet", "Open a spreadsheet and read cells.", &[("file_id", "spreadsheet id"), ("cell", "optional A1 cell")], Some("app://sheet?file_id={file_id}&cell={cell?}"), false),
-    // #2475 — the office deep-link contract emits `file`; declare it so the
-    // chat renderer's catalog gate does not treat canonical app://sheet links
-    // as hallucinations. The sheet app already accepts `file` as well.
-    cmd("sheet", "sheet.open_file", "Open spreadsheet file", "Open a spreadsheet by file path or id.", &[("file", "spreadsheet file path or id")], Some("app://sheet?file={file}"), false),
     cmd("tasks", "tasks.list", "List tasks", "List tasks and their status.", &[("filter", "all/active/completed")], Some("app://tasks?task_id={task_id?}"), false),
     cmd("tasks", "tasks.autotask.create", "Create automated task", "Turn a plain-language request into an automated task and run it (classify, plan, generate BASIC script, execute).", &[("intent", "what should be automated")], Some("app://tasks"), true),
     cmd("tasks", "tasks.autotask.list", "List automated tasks", "List AutoTask runs, their status and pending approvals.", &[("filter", "all/active/completed")], Some("app://tasks?task_id={task_id?}"), false),
@@ -52,9 +48,6 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("canvas", "canvas.open", "Open canvas", "Open a creative canvas or whiteboard.", &[("id", "canvas id")], Some("app://canvas?canvas_id={id}"), false),
     cmd("paper", "paper.notes.list", "List notes", "List rich notes and documents.", &[], Some("app://paper?note_id={note_id?}"), false),
     cmd("slides", "slides.list", "List presentations", "List presentation decks.", &[], Some("app://slides?deck_id={deck_id?}"), false),
-    // #2475 — the slides app accepts both `deck_id` and `file`; declare the
-    // contract's `file` key so canonical app://slides links render as buttons.
-    cmd("slides", "slides.open_file", "Open presentation file", "Open a presentation deck by file path or id.", &[("file", "deck file path or id")], Some("app://slides?file={file}"), false),
     cmd("preview", "preview.open", "Preview a file", "Open the preview app on a generated file or document (finalize-only: no record ops).", &[("file", "file name or path"), ("bucket", "optional bucket")], Some("app://preview?file={file}&bucket={bucket?}"), false),
     cmd("notepad", "notepad.open", "Open notepad", "Open the plain text notepad.", &[], Some("app://notepad"), false),
     // ——— Business ———
@@ -304,6 +297,21 @@ pub fn ui_sequence_hint_for(app_id: &str) -> &'static str {
 #[cfg(test)]
 mod database_verb_tests {
     use super::*;
+
+    /// #2475 — the office `app://` contract emits `file` for every surface.
+    /// The chat renderer's catalog gate drops links whose keys are all absent
+    /// from the declared params, so a missing `file` key silently degrades a
+    /// canonical Docs/Sheet/Slides link to plain text.
+    #[test]
+    fn office_apps_declare_the_contract_file_key() {
+        for app in ["docs", "sheet", "slides"] {
+            let params = deep_link_params_for_app(app);
+            assert!(
+                params.iter().any(|p| p.key == "file"),
+                "{app} must declare the `file` deep-link key"
+            );
+        }
+    }
 
     #[test]
     fn database_exposes_write_verbs() {
