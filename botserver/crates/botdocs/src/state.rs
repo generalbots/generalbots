@@ -235,18 +235,31 @@ impl DocState {
     /// structure-aware addressing, the derived ACL and the bucket-scoped
     /// tenant all travel with the points.
     ///
+    /// Stable tenant UUID for a Drive bucket. Real buckets are often names
+    /// (`default.gbai`), while `UserContext::organization_id` is a `Uuid` and
+    /// `AclMetadata::allows` compares its string form to the projected tenant.
+    /// Parse UUID buckets directly; derive all others deterministically so
+    /// writer (project_to_kb) and reader (KB search) always agree (#2499).
+    pub fn tenant_uuid(bucket: &str) -> uuid::Uuid {
+        match uuid::Uuid::parse_str(bucket) {
+            Ok(id) => id,
+            Err(_) => uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, bucket.as_bytes()),
+        }
+    }
+
     /// Strictly best-effort: the document is already durable when this runs,
     /// so a projection or index failure is logged and swallowed — it must
     /// never turn a successful save into an HTTP error.
     pub fn project_to_kb(&self, user_id: &str, doc_id: &str, title: &str, content: &str) {
         let source_ref = format!("{doc_id}.html");
+        let tenant = Self::tenant_uuid(&self.bucket_name).to_string();
         let input = crate::handlers_api::kb_index::DocumentIndexInput {
             document_id: doc_id,
             title,
             source_ref: &source_ref,
             version: 1,
             content,
-            tenant_id: &self.bucket_name,
+            tenant_id: &tenant,
             owner_id: user_id,
         };
         let points = crate::handlers_api::kb_index::build_upsert_points(&input);
@@ -400,6 +413,26 @@ mod kb_index_tests {
             !debug.contains("ninety days"),
             "citation-only hit leaked content: {debug}"
         );
+    }
+
+    #[test]
+    fn named_bucket_is_searchable_via_deterministic_tenant_uuid() {
+        let state = DocState::with_in_memory_kb_index(
+            Arc::new(diesel::r2d2::Pool::builder().max_size(1).build_unchecked(
+                diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(
+                    "postgres://unused:unused@127.0.0.1:1/unused",
+                ),
+            )),
+            Arc::new(TestDrive),
+            "default.gbai".to_string(),
+            Arc::new(MetricsCollector::default()),
+        );
+        state.project_to_kb(OWNER, "doc-named", "Employment", HTML);
+        let tenant = DocState::tenant_uuid("default.gbai");
+        let owner = UserContext::authenticated(uuid(OWNER), None, Some(tenant));
+        let hits = state.search_text("ZANZIBARCLAUSE notice", &owner, 5);
+        assert_eq!(hits.len(), 1, "named bucket must map to the projected tenant");
+        assert_eq!(hits[0].source.locator, "7.3");
     }
 
     #[test]

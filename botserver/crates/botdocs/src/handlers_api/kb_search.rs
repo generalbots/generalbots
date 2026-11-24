@@ -94,10 +94,9 @@ fn principal_for(state: &DocState, user: &DocUser) -> Result<UserContext, KbSear
     let owner_id = Some(user.id().to_string());
     // A non-UUID bucket cannot match any projected tenant, so failing to parse
     // it leaves `organization_id` empty and the index returns no hits.
-    let organization_id = match Uuid::parse_str(&state.bucket_name) {
-        Ok(id) => Some(id),
-        Err(_) => None,
-    };
+    // Same deterministic mapping the projector uses: a named bucket
+    // (`default.gbai`) must still match the tenant stamped on every point.
+    let organization_id = Some(crate::state::DocState::tenant_uuid(&state.bucket_name));
     Ok(UserContext::authenticated(user_id, owner_id, organization_id))
 }
 
