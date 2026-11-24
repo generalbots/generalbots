@@ -21,6 +21,19 @@ partition when rolling back the live data volume. Never run on protected disks.
 EOF
 }
 
+# #2470 — user-supplied names/paths reach run_sh() as shell fragments. Reject
+# any shell metacharacter so a crafted argument cannot break out of the single
+# quotes and inject a command (these actions are root + --confirm gated, but
+# defense in depth belongs here, not only in the caller).
+validate_path_arg() {
+    local label="$1" value="$2"
+    case "$value" in
+        *"'"*|*'"'*|*'$'*|*'`'*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*'!'*|*$'\n'*)
+            die "$label contains a shell metacharacter (refusing to run)"
+            ;;
+    esac
+}
+
 ensure_volume() {
     if ! mapping_exists && ! is_dry; then
         die "LUKS mapping /dev/mapper/$MAPPER_NAME not open — run provision.sh --boot first"
@@ -56,13 +69,23 @@ rollback_snapshot() {
 }
 
 restore_archive() {
-    local archive="$1"
+    local archive="$1" stamp
     if ! is_dry && [ ! -f "$archive" ]; then
         die "archive '$archive' not found"
     fi
+    if ! is_dry && [ ! -d "$STAGE_MOUNT/$SUBVOLUME" ]; then
+        die "subvolume $SUBVOLUME not mounted at $STAGE_MOUNT — refusing blind restore"
+    fi
+    # #2470 — an archive restore overwrites files in place with no rollback
+    # point. Take the same safety snapshot the snapshot-rollback path takes
+    # BEFORE decrypting, so a corrupt/wrong archive can be undone.
+    stamp="$(date -u '+%Y%m%dT%H%M%SZ')"
+    log "safety snapshot of current $SUBVOLUME before archive restore"
+    run btrfs subvolume snapshot -r "$STAGE_MOUNT/$SUBVOLUME" "$STAGE_MOUNT/${SUBVOLUME}.pre-restore.${stamp}" \
+        || die "pre-restore snapshot failed — refusing to overwrite data"
     log "decrypting $archive with private key $ARCHIVE_KEY_FILE into $SUBVOLUME"
     run_sh "gpg --batch --yes --decrypt --passphrase-file '$ARCHIVE_KEY_FILE' '$archive' | tar -C '$STAGE_MOUNT/$SUBVOLUME' -xzf -"
-    log "archive restored — restart the desktop stack to pick up the data"
+    log "archive restored — safety snapshot at ${SUBVOLUME}.pre-restore.${stamp}; restart the desktop stack to pick up the data"
 }
 
 main() {
@@ -81,8 +104,8 @@ main() {
 
     case "$action" in
         list)    ;;
-        snapshot) [ -n "$name" ] || die "--snapshot needs a NAME" ;;
-        archive)  [ -n "$archive" ] || die "--archive needs a FILE" ;;
+        snapshot) [ -n "$name" ] || die "--snapshot needs a NAME"; validate_path_arg "--snapshot" "$name" ;;
+        archive)  [ -n "$archive" ] || die "--archive needs a FILE"; validate_path_arg "--archive" "$archive" ;;
         "") die "no action given (try --help)" ;;
     esac
 
