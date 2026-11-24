@@ -26,6 +26,8 @@ function count(text, regex) {
   return matches ? matches.length : 0;
 }
 
+// Re-locked for malware/tests.rs (extracted from malware.rs to keep it under
+// 450 lines) — one extra Rust file, no route changes.
 // Re-locked for the upstream security merge: botsecurity-protection adds
 // private_staging.rs (one more Rust file, no route changes). Today's slices
 // also added vector_index*, collab_message.rs and GET /metrics as documented
@@ -46,7 +48,7 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4677, "shipped router .rs file count");
+  equal(files.length, 4678, "shipped router .rs file count");
   equal(routeCalls, 2449, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");
