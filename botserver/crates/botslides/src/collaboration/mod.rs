@@ -138,10 +138,11 @@ pub fn get_presenter_control() -> &'static PresenterControlMap {
 
 pub async fn handle_get_collaborators(Path(presentation_id): Path<String>) -> impl IntoResponse {
     let presence = get_presence().read().await;
-    let users: Vec<&UserPresence> = presence
-        .get(&presentation_id)
-        .map(|v| v.iter().collect())
-        .unwrap_or_default();
+    // No presence recorded for a deck is the normal, empty case.
+    let users: Vec<&UserPresence> = match presence.get(&presentation_id) {
+        Some(v) => v.iter().collect(),
+        None => Vec::new(),
+    };
 
     Json(serde_json::json!({
         "count": users.len(),
@@ -153,7 +154,10 @@ pub async fn handle_get_presence(
     Path(presentation_id): Path<String>,
 ) -> impl IntoResponse {
     let presence = get_presence().read().await;
-    let users = presence.get(&presentation_id).cloned().unwrap_or_default();
+    let users = match presence.get(&presentation_id) {
+        Some(users) => users.clone(),
+        None => Vec::new(),
+    };
     Json(serde_json::json!({ "users": users }))
 }
 
@@ -161,7 +165,10 @@ pub async fn handle_get_typing(
     Path(presentation_id): Path<String>,
 ) -> impl IntoResponse {
     let typing = get_typing().read().await;
-    let indicators = typing.get(&presentation_id).cloned().unwrap_or_default();
+    let indicators = match typing.get(&presentation_id) {
+        Some(indicators) => indicators.clone(),
+        None => Vec::new(),
+    };
 
     let now = Utc::now();
     let active: Vec<&TypingIndicator> = indicators
@@ -176,7 +183,10 @@ pub async fn handle_get_selections(
     Path(presentation_id): Path<String>,
 ) -> impl IntoResponse {
     let selections = get_selections().read().await;
-    let sels = selections.get(&presentation_id).cloned().unwrap_or_default();
+    let sels = match selections.get(&presentation_id) {
+        Some(sels) => sels.clone(),
+        None => Vec::new(),
+    };
     Json(serde_json::json!({ "selections": sels }))
 }
 
@@ -184,7 +194,10 @@ pub async fn handle_get_mentions(
     Path(user_id): Path<String>,
 ) -> impl IntoResponse {
     let mentions = get_mentions().read().await;
-    let user_mentions = mentions.get(&user_id).cloned().unwrap_or_default();
+    let user_mentions = match mentions.get(&user_id) {
+        Some(mentions) => mentions.clone(),
+        None => Vec::new(),
+    };
     Json(serde_json::json!({ "mentions": user_mentions }))
 }
 
@@ -192,7 +205,10 @@ pub async fn handle_get_questions(
     Path(presentation_id): Path<String>,
 ) -> impl IntoResponse {
     let questions = get_questions().read().await;
-    let list = questions.get(&presentation_id).cloned().unwrap_or_default();
+    let list = match questions.get(&presentation_id) {
+        Some(list) => list.clone(),
+        None => Vec::new(),
+    };
     Json(serde_json::json!({ "questions": list }))
 }
 

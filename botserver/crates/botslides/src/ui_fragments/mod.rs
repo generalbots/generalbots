@@ -53,13 +53,15 @@ pub fn err_fragment(msg: &str) -> String {
 /// return an empty string so callers fail explicitly instead of targeting the
 /// retired shared `current` sentinel.
 pub(crate) fn deck_id(payload: &serde_json::Value) -> String {
-    ["presentation_id", "id"]
+    match ["presentation_id", "id"]
         .iter()
         .filter_map(|key| payload.get(*key).and_then(|value| value.as_str()))
         .map(str::trim)
         .find(|value| !value.is_empty())
-        .map(str::to_string)
-        .unwrap_or_default()
+    {
+        Some(id) => id.to_string(),
+        None => String::new(),
+    }
 }
 
 /// 0-based index of the slide the action was started from. The shell sends
@@ -91,11 +93,13 @@ async fn sidebar_presentations<D: DriveOps + Send + Sync + 'static>(
     user_id: &str,
 ) -> Vec<PresentationMetadata> {
     match state.drive.as_ref() {
-        Some(drive) => {
-            crate::storage::list_presentations_from_drive(drive, user_id)
-                .await
-                .unwrap_or_default()
-        }
+        Some(drive) => match crate::storage::list_presentations_from_drive(drive, user_id).await {
+            Ok(items) => items,
+            Err(e) => {
+                log::warn!("slides sidebar: failed to list presentations: {e}");
+                Vec::new()
+            }
+        },
         None => Vec::new(),
     }
 }
@@ -120,7 +124,10 @@ async fn get_search_sidebar<D: DriveOps + Send + Sync + 'static>(
     user: SlidesUser,
     Query(params): Query<SidebarQuery>,
 ) -> Result<Html<String>, SlidesUnauthorized> {
-    let needle = params.q.unwrap_or_default().to_lowercase();
+    let needle = match params.q {
+        Some(q) => q.to_lowercase(),
+        None => String::new(),
+    };
     let items: Vec<PresentationMetadata> = sidebar_presentations(&state, user.owner_id())
         .await
         .into_iter()

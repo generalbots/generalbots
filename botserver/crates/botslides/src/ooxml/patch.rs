@@ -31,7 +31,13 @@ pub fn rewrite_package(
             let mut file = archive
                 .by_index(index)
                 .map_err(|e| format!("read archive entry: {e}"))?;
-            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
+            let name = match file.name() {
+                Ok(name) => name.to_string(),
+                Err(error) => {
+                    log::warn!("slides rewrite: archive entry {index} has no readable name ({error}); copying unnamed");
+                    String::new()
+                }
+            };
 
             if !targets.iter().any(|target| target == &name) {
                 writer

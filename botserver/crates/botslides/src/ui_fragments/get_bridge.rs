@@ -237,7 +237,11 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         .unwrap_or(false);
     let html = match path.as_str() {
         "fragments/presentation-view" => {
-            let id = query.get("id").cloned().unwrap_or_default();
+            // A missing id means "new blank deck" to `load_or_blank`; no warning.
+            let id = match query.get("id") {
+                Some(id) => id.clone(),
+                None => String::new(),
+            };
             let requested_slide = query
                 .get("slide_index")
                 .or_else(|| query.get("slide"))
@@ -252,7 +256,10 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
             }
         }
         "fragments/slide-thumbnails" => {
-            let id = query.get("id").cloned().unwrap_or_default();
+            let id = match query.get("id") {
+                Some(id) => id.clone(),
+                None => String::new(),
+            };
             match load_or_blank(&state, user_id, &id, transient_new).await {
                 Ok(pres) => thumbnails_html(&pres),
                 Err(message) => Html(super::err_fragment(&message)),
@@ -260,9 +267,15 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         }
         "fragments/presentation-list" => {
             let items = match state.drive.as_ref() {
-                Some(drive) => crate::storage::list_presentations_from_drive(drive, user_id)
-                    .await
-                    .unwrap_or_default(),
+                Some(drive) => {
+                    match crate::storage::list_presentations_from_drive(drive, user_id).await {
+                        Ok(items) => items,
+                        Err(e) => {
+                            log::warn!("slides bridge: failed to list presentations: {e}");
+                            Vec::new()
+                        }
+                    }
+                }
                 None => Vec::new(),
             };
             super::sidebars::handle_presentation_list_sidebar(Json(items)).await

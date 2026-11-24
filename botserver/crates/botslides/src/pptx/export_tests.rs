@@ -57,6 +57,29 @@ fn part(bytes: &[u8], name: &str) -> Option<String> {
     Some(text)
 }
 
+/// An export error is unexpected in these tests: log it and hand back an
+/// empty stream so the assertions below still fail with a clear message.
+fn exported(elements: Vec<SlideElement>) -> Vec<u8> {
+    match export_to_pptx(&deck(elements)) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            log::warn!("slides export test: export failed: {e}");
+            Vec::new()
+        }
+    }
+}
+
+/// A named part must exist in a generated package; absence is a test failure.
+fn part_text(bytes: &[u8], name: &str) -> String {
+    match part(bytes, name) {
+        Some(text) => text,
+        None => {
+            log::warn!("slides export test: missing part {name}");
+            String::new()
+        }
+    }
+}
+
 fn chart_data() -> ChartData {
     ChartData {
         chart_type: "bar".to_string(),
@@ -94,9 +117,9 @@ fn table_exports_as_native_graphic_frame_without_flattened_text() {
         },
     );
 
-    let bytes = export_to_pptx(&deck(vec![table])).unwrap_or_default();
+    let bytes = exported(vec![table]);
     assert!(!bytes.is_empty(), "export must produce a pptx stream");
-    let slide = part(&bytes, "ppt/slides/slide1.xml").unwrap_or_default();
+    let slide = part_text(&bytes, "ppt/slides/slide1.xml");
     assert!(slide.contains("<p:graphicFrame>"), "table must be a graphic frame");
     assert!(slide.contains("http://schemas.openxmlformats.org/drawingml/2006/table"));
     assert!(slide.contains("<a:tbl>"), "native a:tbl must be present");
@@ -120,14 +143,14 @@ fn chart_exports_as_native_chart_part_without_flattened_text() {
         },
     );
 
-    let bytes = export_to_pptx(&deck(vec![chart])).unwrap_or_default();
-    let slide = part(&bytes, "ppt/slides/slide1.xml").unwrap_or_default();
+    let bytes = exported(vec![chart]);
+    let slide = part_text(&bytes, "ppt/slides/slide1.xml");
     assert!(slide.contains("<p:graphicFrame>"), "chart must be a graphic frame");
     assert!(slide.contains("<c:chart r:id=\"rIdC1\"/>"), "frame must reference chart rel");
     assert!(!slide.contains("Q1: 10"), "no label/value text fallback");
     assert!(!slide.contains("<p:sp>"), "no text-box fallback shape for a chart");
 
-    let chart_part = part(&bytes, "ppt/charts/chart1.xml").unwrap_or_default();
+    let chart_part = part_text(&bytes, "ppt/charts/chart1.xml");
     assert!(chart_part.contains("<c:barChart>"), "native bar chart part");
     assert!(chart_part.contains("<c:strCache>"), "category cache");
     assert!(chart_part.contains("<c:numCache>"), "value cache");
@@ -135,10 +158,10 @@ fn chart_exports_as_native_chart_part_without_flattened_text() {
     assert!(chart_part.contains("<c:v>10</c:v>"), "cached value survives");
     assert!(chart_part.contains("Revenue"), "chart title survives");
 
-    let rels = part(&bytes, "ppt/slides/_rels/slide1.xml.rels").unwrap_or_default();
+    let rels = part_text(&bytes, "ppt/slides/_rels/slide1.xml.rels");
     assert!(rels.contains("Id=\"rIdC1\""), "chart relationship id");
     assert!(rels.contains("Target=\"../charts/chart1.xml\""), "chart relationship target");
-    let types = part(&bytes, "[Content_Types].xml").unwrap_or_default();
+    let types = part_text(&bytes, "[Content_Types].xml");
     assert!(types.contains("/ppt/charts/chart1.xml"), "chart content type override");
     assert!(types.contains("drawingml.chart+xml"), "chart content type");
 }
@@ -156,12 +179,12 @@ fn multiple_charts_get_distinct_parts_and_relationship_ids() {
             ..Default::default()
         },
     );
-    let bytes = export_to_pptx(&deck(vec![first, second])).unwrap_or_default();
-    let slide = part(&bytes, "ppt/slides/slide1.xml").unwrap_or_default();
+    let bytes = exported(vec![first, second]);
+    let slide = part_text(&bytes, "ppt/slides/slide1.xml");
     assert!(slide.contains("rIdC1") && slide.contains("rIdC2"), "distinct chart rel ids");
     assert!(part(&bytes, "ppt/charts/chart1.xml").is_some(), "first chart part");
     assert!(part(&bytes, "ppt/charts/chart2.xml").is_some(), "second chart part");
-    let rels = part(&bytes, "ppt/slides/_rels/slide1.xml.rels").unwrap_or_default();
+    let rels = part_text(&bytes, "ppt/slides/_rels/slide1.xml.rels");
     assert!(rels.contains("Target=\"../charts/chart2.xml\""), "second chart target");
 }
 
@@ -189,8 +212,8 @@ fn table_merges_and_hostile_sizes_are_bounded() {
             ..Default::default()
         },
     );
-    let bytes = export_to_pptx(&deck(vec![table])).unwrap_or_default();
-    let slide = part(&bytes, "ppt/slides/slide1.xml").unwrap_or_default();
+    let bytes = exported(vec![table]);
+    let slide = part_text(&bytes, "ppt/slides/slide1.xml");
     assert_eq!(slide.matches("<a:tr ").count(), 50, "rows are capped");
     assert_eq!(slide.matches("<a:gridCol ").count(), 20, "columns are capped");
     assert!(slide.contains("gridSpan=\"3\""), "horizontal span survives");
@@ -218,8 +241,8 @@ fn non_finite_chart_values_are_written_as_zero() {
             ..Default::default()
         },
     );
-    let bytes = export_to_pptx(&deck(vec![chart])).unwrap_or_default();
-    let chart_part = part(&bytes, "ppt/charts/chart1.xml").unwrap_or_default();
+    let bytes = exported(vec![chart]);
+    let chart_part = part_text(&bytes, "ppt/charts/chart1.xml");
     assert!(chart_part.contains("<c:v>0</c:v>"), "NaN/inf become 0");
     assert!(!chart_part.contains("NaN") && !chart_part.contains("inf"), "no invalid numbers");
     assert!(chart_part.contains("val=\"4F81BD\""), "invalid colour falls back");

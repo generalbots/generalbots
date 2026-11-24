@@ -118,7 +118,13 @@ fn by_file_name<R: Read + Seek>(archive: &mut ZipArchive<R>) -> Vec<String> {
         let Ok(file) = archive.by_index(index) else {
             continue;
         };
-        let name = file.name().map(|name| name.to_string()).unwrap_or_default();
+        let name = match file.name() {
+            Ok(name) => name.to_string(),
+            Err(error) => {
+                log::warn!("slides order: archive entry {index} has no readable name ({error}); skipping");
+                String::new()
+            }
+        };
         if name.starts_with("ppt/slides/slide")
             && name.ends_with(".xml")
             && !name.contains("_rels")

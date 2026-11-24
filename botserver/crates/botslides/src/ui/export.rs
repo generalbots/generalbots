@@ -65,15 +65,18 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             );
 
             let content = match element.element_type.as_str() {
-                "table" => element
+                "table" => match element
                     .content
                     .table_data
                     .as_ref()
                     .map(table_html)
                     .or_else(|| element.content.html.clone())
                     .or_else(|| element.content.text.clone())
-                    .unwrap_or_default(),
-                "chart" => element
+                {
+                    Some(content) => content,
+                    None => String::new(),
+                },
+                "chart" => match element
                     .content
                     .chart_data
                     .as_ref()
@@ -85,7 +88,10 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                     })
                     .or_else(|| element.content.html.clone())
                     .or_else(|| element.content.text.clone())
-                    .unwrap_or_default(),
+                {
+                    Some(content) => content,
+                    None => String::new(),
+                },
                 _ => element
                     .content
                     .html
@@ -237,14 +243,16 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                         element.y + 16.0,
                         xml_escape(title)
                     ));
-                    let values = data
-                        .datasets
-                        .first()
-                        .map(|dataset| dataset.data.clone())
-                        .unwrap_or_default();
+                    let values = match data.datasets.first() {
+                        Some(dataset) => dataset.data.clone(),
+                        None => Vec::new(),
+                    };
                     let mut line_y = element.y + 36.0;
                     for (index, value) in values.iter().enumerate().take(12) {
-                        let label = data.labels.get(index).cloned().unwrap_or_default();
+                        let label = match data.labels.get(index) {
+                            Some(label) => label.clone(),
+                            None => String::new(),
+                        };
                         svg.push_str(&format!(
                             r##" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#334155">{}: {}</text>
 "##,
@@ -308,7 +316,13 @@ pub fn export_slide_to_png_placeholder(slide: &Slide, width: u32, height: u32) -
 }
 
 pub fn export_to_json(presentation: &Presentation) -> String {
-    serde_json::to_string_pretty(presentation).unwrap_or_default()
+    match serde_json::to_string_pretty(presentation) {
+        Ok(json) => json,
+        Err(e) => {
+            log::warn!("slides JSON export failed: {e}");
+            String::new()
+        }
+    }
 }
 
 pub fn export_to_markdown(presentation: &Presentation) -> String {

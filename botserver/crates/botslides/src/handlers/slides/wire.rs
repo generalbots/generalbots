@@ -127,26 +127,23 @@ pub(super) fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> 
             }
         });
         parsed.map(|value| {
-            let mut labels: Vec<String> = value
-                .get("labels")
-                .and_then(|items| items.as_array())
-                .map(|items| {
-                    items
-                        .iter()
-                        .filter_map(|item| item.as_str().map(str::to_string))
-                        .collect()
-                })
-                .unwrap_or_default();
-            let mut datasets: Vec<ChartDataset> = value
-                .get("datasets")
-                .and_then(|items| items.as_array())
-                .map(|items| {
-                    items
+            // An empty form (`{}`) legitimately has neither field; the demo
+            // series below keeps the inserted chart visible. No warning here.
+            let mut labels: Vec<String> = match value.get("labels").and_then(|items| items.as_array()) {
+                Some(items) => items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect(),
+                None => Vec::new(),
+            };
+            let mut datasets: Vec<ChartDataset> =
+                match value.get("datasets").and_then(|items| items.as_array()) {
+                    Some(items) => items
                         .iter()
                         .filter_map(|item| serde_json::from_value::<ChartDataset>(item.clone()).ok())
-                        .collect()
-                })
-                .unwrap_or_default();
+                        .collect(),
+                    None => Vec::new(),
+                };
             // The form starts with `{}`; a demo series keeps the inserted
             // chart visible instead of saving an empty box.
             if datasets.is_empty() {

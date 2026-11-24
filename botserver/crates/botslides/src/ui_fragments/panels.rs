@@ -123,13 +123,18 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
         .or_else(|| payload.get("id"))
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let mut slides: Vec<Slide> = serde_json::from_value(
+    let mut slides: Vec<Slide> = match serde_json::from_value(
         payload
             .get("slides")
             .cloned()
             .unwrap_or(serde_json::Value::Null),
-    )
-    .unwrap_or_default();
+    ) {
+        Ok(slides) => slides,
+        Err(e) => {
+            log::warn!("slides sorter: invalid slides payload: {e}");
+            Vec::new()
+        }
+    };
     if slides.is_empty() {
         match super::get_bridge::load_or_blank(&state, user.owner_id(), pid, false).await {
             Ok(pres) => slides = pres.slides,
@@ -154,11 +159,12 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
             .color
             .clone()
             .unwrap_or_else(|| "#0f172a".to_string());
-        let text = slide
-            .elements
-            .iter()
-            .find_map(|e| e.content.text.clone())
-            .unwrap_or_default();
+        // A slide with no text elements is normal; the empty label is
+        // rendered as-is and needs no warning.
+        let text = match slide.elements.iter().find_map(|e| e.content.text.clone()) {
+            Some(text) => text,
+            None => String::new(),
+        };
         let truncated = text.chars().take(60).collect::<String>();
         html.push_str(&format!(
             r##"<div class="sl-sorter-item" draggable="true" data-index="{i}" style="padding:8px;background:{bg};border:1px solid #334155;border-radius:6px;cursor:grab;">
