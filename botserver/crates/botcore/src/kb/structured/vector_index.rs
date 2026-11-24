@@ -344,5 +344,7 @@ fn cosine(left: &[f32], right: &[f32]) -> f32 {
     (dot / (left_norm.sqrt() * right_norm.sqrt())) as f32
 }
 
+pub mod adapter;
+
 #[cfg(test)]
 mod tests;
