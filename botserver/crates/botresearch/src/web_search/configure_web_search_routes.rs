@@ -140,7 +140,10 @@ pub async fn handle_deep_research<S: ResearchState>(
 
     let initial_results = search_web(&payload.query, max_sources, "wt-wt")
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Initial web search failed: {e}");
+            Vec::new()
+        });
 
     for result in initial_results {
         if !seen_urls.contains(&result.url) {

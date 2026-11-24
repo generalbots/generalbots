@@ -49,7 +49,7 @@ pub fn export_to_markdown(sheet: &Spreadsheet) -> String {
                     .data
                     .get(&key)
                     .and_then(|c| c.value.clone())
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let escaped = value.replace('|', "\\|");
                 md.push_str(&format!(" {escaped} |"));
             }

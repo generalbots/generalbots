@@ -138,7 +138,7 @@ pub fn get_bot_webhooks(
 
     Ok(results
         .into_iter()
-        .map(|r| (r.target.unwrap_or_default(), r.param, r.is_active))
+        .map(|r| (r.target.unwrap_or_else(String::new), r.param, r.is_active))
         .collect())
 }
 

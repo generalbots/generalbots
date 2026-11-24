@@ -24,7 +24,10 @@ fn tiles_cover_requested_region_without_gaps_or_overlaps() {
         viewport: rect(0, 0, 1, 1),
         sheet_bounds: rect(0, 0, 1_000, 1_000),
     };
-    let tiles = plan_window(&request, &budget).unwrap_or_default();
+    let tiles = plan_window(&request, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    });
 
     let mut visits: HashMap<(u32, u32), u32> = HashMap::new();
     for tile in &tiles {
@@ -50,7 +53,10 @@ fn boundary_clamping_handles_partial_and_outside_requests() {
         viewport: sheet,
         sheet_bounds: sheet,
     };
-    let tiles = plan_window(&oversized, &budget).unwrap_or_default();
+    let tiles = plan_window(&oversized, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    });
     assert_eq!(tiles.len(), 1);
     assert_eq!(tiles[0].rect, sheet);
 
@@ -59,7 +65,10 @@ fn boundary_clamping_handles_partial_and_outside_requests() {
         viewport: sheet,
         sheet_bounds: sheet,
     };
-    let tiles = plan_window(&partial, &budget).unwrap_or_default();
+    let tiles = plan_window(&partial, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    });
     assert_eq!(tiles.len(), 1);
     assert_eq!(tiles[0].rect, rect(8, 18, 9, 19));
 
@@ -70,7 +79,10 @@ fn boundary_clamping_handles_partial_and_outside_requests() {
     };
     assert!(
         plan_window(&outside, &budget)
-            .unwrap_or_default()
+            .unwrap_or_else(|error| {
+                log::warn!("scale: window plan refused: {error}");
+                Vec::new()
+            })
             .is_empty()
     );
 }
@@ -120,7 +132,10 @@ fn large_workbook_plan_stays_under_cap_and_is_deterministic() {
         viewport: rect(500_000, 0, 500_039, 9),
         sheet_bounds: rect(0, 0, 999_999, 9),
     };
-    let tiles = plan_window(&request, &budget).unwrap_or_default();
+    let tiles = plan_window(&request, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    });
 
     assert_eq!(tiles.len(), 1);
     assert!(tiles.len() as u32 <= budget.max_window_tiles);
@@ -133,7 +148,10 @@ fn large_workbook_plan_stays_under_cap_and_is_deterministic() {
         .saturating_mul(u64::from(budget.tile_rows))
         .saturating_mul(u64::from(budget.tile_cols));
     assert!(total_cells(&tiles) <= cap);
-    assert_eq!(tiles, plan_window(&request, &budget).unwrap_or_default());
+    assert_eq!(tiles, plan_window(&request, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    }));
 }
 
 #[test]
@@ -149,7 +167,10 @@ fn viewport_tiles_are_ranked_first() {
         viewport: rect(4, 4, 5, 5),
         sheet_bounds: sheet,
     };
-    let tiles = plan_window(&request, &budget).unwrap_or_default();
+    let tiles = plan_window(&request, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: window plan refused: {error}");
+        Vec::new()
+    });
 
     assert_eq!(tiles.len(), 9);
     assert!(tiles[0].intersects_viewport);
@@ -169,7 +190,10 @@ fn incremental_estimate_prices_only_the_affected_cells() {
         total_formulas: 200_000,
         bytes_per_cell: 64,
     };
-    let estimate = estimate_recalc(&request, &budget).unwrap_or_default();
+    let estimate = estimate_recalc(&request, &budget).unwrap_or_else(|error| {
+        log::warn!("scale: recalc estimate refused: {error}");
+        RecalcEstimate::default()
+    });
 
     assert_eq!(estimate.cells_to_evaluate, 100);
     assert_eq!(estimate.estimated_bytes, 6_400);

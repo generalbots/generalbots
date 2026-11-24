@@ -19,7 +19,7 @@ pub fn extract_external_links(bytes: &[u8]) -> Option<Vec<ExternalLink>> {
     let rels = files
         .get("xl/_rels/workbook.xml.rels")
         .map(|r| parse_rels(r))
-        .unwrap_or_default();
+        .unwrap_or_else(HashMap::new);
 
     let mut links = Vec::new();
     for rid in find_external_refs(workbook_xml) {
@@ -38,7 +38,7 @@ pub fn extract_external_links(bytes: &[u8]) -> Option<Vec<ExternalLink>> {
         let source_path = files
             .get(&format!("xl/externalLinks/_rels/{part_name}.rels"))
             .and_then(|x| external_target(x))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         links.push(ExternalLink {
             id: Uuid::new_v4().to_string(),
@@ -66,7 +66,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry {i}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut data = Vec::new();
         std::io::Read::read_to_end(&mut entry, &mut data)
             .map_err(|e| format!("Failed to read zip entry {name}: {e}"))?;

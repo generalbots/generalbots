@@ -25,7 +25,7 @@ impl WebinarService {
 
         let id = Uuid::new_v4();
         let meeting_id = Uuid::new_v4();
-        let settings = request.settings.unwrap_or_default();
+        let settings = request.settings.unwrap_or_else(WebinarSettings::default);
         let settings_json = serde_json::to_string(&settings).unwrap_or_else(|_| "{}".to_string());
 
         let registration_url = if request.registration_required {
@@ -216,7 +216,10 @@ impl WebinarService {
         .bind::<DieselUuid, _>(webinar_id)
         .bind::<Text, _>(&request.email)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to check existing webinar registration: {e}");
+            Vec::new()
+        });
 
         if existing.first().map(|r| r.count > 0).unwrap_or(false) {
             return Err(WebinarError::AlreadyRegistered);
@@ -224,7 +227,7 @@ impl WebinarService {
 
         let id = Uuid::new_v4();
         let join_link = format!("/webinar/{}/join?token={}", webinar_id, Uuid::new_v4());
-        let custom_fields = request.custom_fields.clone().unwrap_or_default();
+        let custom_fields = request.custom_fields.clone().unwrap_or_else(HashMap::new);
         let custom_fields_json =
             serde_json::to_string(&custom_fields).unwrap_or_else(|_| "{}".to_string());
 

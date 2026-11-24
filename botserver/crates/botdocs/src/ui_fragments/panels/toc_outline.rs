@@ -21,7 +21,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
                 .get("content")
                 .and_then(|value| value.as_str())
                 .map(heading_items)
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             if items.is_empty() {
                 None
             } else {
@@ -64,7 +64,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
                             "<span style=\"color:#94a3b8;font-size:11px;float:right;\">p. {p}</span>"
                         )
                     })
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let marker = if t.use_hyperlinks { r##"🔗 "## } else { "" };
                 html.push_str(&format!(
                     r##"<div class="dc-toc-entry" style="padding:4px 4px 4px {indent}px;border-bottom:1px solid #33415520;">
@@ -93,13 +93,16 @@ pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Htm
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: outline panel payload unreadable: {error}");
+        Vec::new()
+    });
     if outline.is_empty() {
         outline = payload
             .get("content")
             .and_then(|value| value.as_str())
             .map(heading_items)
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
     }
     if outline.is_empty() {
         return Html(empty_fragment(

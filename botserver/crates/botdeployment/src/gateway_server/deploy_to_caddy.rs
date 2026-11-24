@@ -37,7 +37,7 @@ pub(super) async fn deploy_to_caddy(
     let site_dir = canon_site.display().to_string();
 
     if !request.artifact_url.is_empty() && request.artifact_url.starts_with("file://") {
-        let artifact_path = request.artifact_url.strip_prefix("file://").unwrap_or_default();
+        let artifact_path = request.artifact_url.strip_prefix("file://").unwrap_or("");
         // The artifact path is likewise request-controlled: refuse traversal
         // before handing it to `tar -C`.
         if artifact_path.contains("..") || artifact_path.contains('\0') {

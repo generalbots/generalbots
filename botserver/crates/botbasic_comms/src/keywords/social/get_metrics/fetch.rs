@@ -168,7 +168,7 @@ pub(super) async fn fetch_twitter_metrics(
         .get("data")
         .and_then(|d| d.get("public_metrics"))
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or_else(|| serde_json::Value::Null);
 
     Ok(PostEngagement {
         likes: metrics

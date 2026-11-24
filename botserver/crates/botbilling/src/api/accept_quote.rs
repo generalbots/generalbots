@@ -79,7 +79,10 @@ pub async fn get_billing_stats(
     let invoices: Vec<BillingInvoice> = billing_invoices::table
         .filter(billing_invoices::branch_id.eq(branch_id))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to load invoices for billing stats ({e}); using empty list");
+            Vec::new()
+        });
 
     let mut total_revenue = 0.0;
     let mut pending_amount = 0.0;
@@ -103,7 +106,10 @@ pub async fn get_billing_stats(
         .filter(billing_payments::branch_id.eq(branch_id))
         .filter(billing_payments::status.eq("completed"))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to load payments for billing stats ({e}); using empty list");
+            Vec::new()
+        });
 
     let paid_this_month: f64 = payments
         .iter()

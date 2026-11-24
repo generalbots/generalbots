@@ -252,7 +252,7 @@ async fn send_campaign_email_scoped(
         .execute(&mut conn)
         .map_err(|e| format!("Failed to create tracking record: {}", e))?;
 
-    let body = body_html.unwrap_or_else(|| payload.body_text.unwrap_or_default());
+    let body = body_html.unwrap_or_else(|| payload.body_text.unwrap_or_else(String::new));
 
     // #2536 — every marketing email carries a signed one-click unsubscribe
     // header. A safe first-party base URL is used when `server-url` is absent;

@@ -38,8 +38,8 @@ impl HeaderFooter {
                 .replace("{pages}", &pages.to_string())
         };
         (
-            self.header.as_deref().map(replace).unwrap_or_default(),
-            self.footer.as_deref().map(replace).unwrap_or_default(),
+            self.header.as_deref().map(replace).unwrap_or_else(String::new),
+            self.footer.as_deref().map(replace).unwrap_or_else(String::new),
         )
     }
 }

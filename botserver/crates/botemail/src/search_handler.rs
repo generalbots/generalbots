@@ -109,7 +109,7 @@ pub async fn search_emails(
     headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Html<String>, SearchError> {
-    let query = params.get("q").cloned().unwrap_or_default();
+    let query = params.get("q").cloned().unwrap_or_else(String::new);
     if query.trim().is_empty() {
         return Ok(axum::response::Html(
             r#"<div class="empty-state"><p>Enter a search term to find emails</p></div>"#.into(),

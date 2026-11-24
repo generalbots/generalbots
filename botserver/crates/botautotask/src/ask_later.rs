@@ -119,7 +119,7 @@ pub fn ask_later_keyword(
                         map.insert("id".into(), Dynamic::from(item.id));
                         map.insert("label".into(), Dynamic::from(item.field_label));
                         map.insert("config_key".into(), Dynamic::from(item.config_key));
-                        map.insert("reason".into(), Dynamic::from(item.reason.unwrap_or_default()));
+                        map.insert("reason".into(), Dynamic::from(item.reason.unwrap_or_else(String::new)));
                         map.insert("field_type".into(), Dynamic::from(item.field_type));
                         Dynamic::from(map)
                     })

@@ -204,7 +204,7 @@ pub fn register_get_from_fn(
             let _ = tx.send(result);
         });
         let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
-        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
         let results_value = serde_json::Value::Array(results);
         Ok(botbasic_core::utils::json_value_to_dynamic(&results_value))
     });
@@ -230,7 +230,7 @@ pub fn register_get_from_fn(
             let _ = tx.send(result);
         });
         let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
-        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
         let results_value = serde_json::Value::Array(results);
         Ok(botbasic_core::utils::json_value_to_dynamic(&results_value))
     });
@@ -269,7 +269,7 @@ pub fn register_get_from_keyword(
                 });
                 let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
 
-                let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+                let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_else(Vec::new);
                 let first = results.into_iter().next().unwrap_or(Value::Null);
                 let dynamic = botbasic_core::utils::json_value_to_dynamic(&first);
                 Ok(dynamic)

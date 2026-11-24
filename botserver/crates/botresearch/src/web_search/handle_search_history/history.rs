@@ -53,10 +53,16 @@ pub async fn handle_search_history<S: ResearchState>(
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load search history: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Search history task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
     html.push_str("<div class=\"search-history\">");

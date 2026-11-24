@@ -41,7 +41,7 @@ pub async fn list_tasks(
     .await
     .ok()
     .flatten()
-    .unwrap_or_default();
+    .unwrap_or_else(Vec::new);
     Json(rows.into_iter().map(|r| r.into_json()).collect())
 }
 pub async fn get_stats(

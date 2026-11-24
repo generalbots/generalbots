@@ -4,7 +4,7 @@ pub async fn handle_instant_answer<S: ResearchState>(
     State(_state): State<Arc<S>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let query = params.get("q").cloned().unwrap_or_default();
+    let query = params.get("q").cloned().unwrap_or_else(String::new);
 
     if query.is_empty() {
         return Json(serde_json::json!({

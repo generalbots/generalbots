@@ -149,7 +149,7 @@ struct TokenResponse {
 impl TokenResponse {
     fn into_token_set(self) -> Result<TokenSet, String> {
         if let Some(error) = self.error {
-            let detail = self.error_description.unwrap_or_default();
+            let detail = self.error_description.unwrap_or_else(String::new);
             return Err(format!("OAuth2 error: {error} {detail}").trim().to_string());
         }
         let access_token = self
@@ -291,7 +291,7 @@ pub fn resolve_credentials(
         });
     }
 
-    let provider_name = account.oauth_provider.clone().unwrap_or_default();
+    let provider_name = account.oauth_provider.clone().unwrap_or_else(String::new);
     let provider = MailOAuthProvider::parse(&provider_name)
         .ok_or_else(|| format!("Unknown OAuth2 provider '{provider_name}'"))?;
 

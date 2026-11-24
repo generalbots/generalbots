@@ -15,7 +15,10 @@ pub async fn handle_list_api_keys(State(state): State<Arc<AppState>>) -> impl In
 
     let mut keys = Vec::new();
 
-    let llm_key = config_manager.get_config(&default_bot_id, "llm-key", None).unwrap_or_default();
+    let llm_key = config_manager.get_config(&default_bot_id, "llm-key", None).unwrap_or_else(|e| {
+        log::warn!("Failed to read llm-key config: {e}");
+        String::new()
+    });
     if !llm_key.is_empty() {
         keys.push(ApiKeyInfo {
             id: "llm-key".to_string(),
@@ -27,7 +30,10 @@ pub async fn handle_list_api_keys(State(state): State<Arc<AppState>>) -> impl In
         });
     }
 
-    let openai_key = config_manager.get_config(&default_bot_id, "openai-key", None).unwrap_or_default();
+    let openai_key = config_manager.get_config(&default_bot_id, "openai-key", None).unwrap_or_else(|e| {
+        log::warn!("Failed to read openai-key config: {e}");
+        String::new()
+    });
     if !openai_key.is_empty() {
         keys.push(ApiKeyInfo {
             id: "openai-key".to_string(),
@@ -39,7 +45,10 @@ pub async fn handle_list_api_keys(State(state): State<Arc<AppState>>) -> impl In
         });
     }
 
-    let anthropic_key = config_manager.get_config(&default_bot_id, "anthropic-key", None).unwrap_or_default();
+    let anthropic_key = config_manager.get_config(&default_bot_id, "anthropic-key", None).unwrap_or_else(|e| {
+        log::warn!("Failed to read anthropic-key config: {e}");
+        String::new()
+    });
     if !anthropic_key.is_empty() {
         keys.push(ApiKeyInfo {
             id: "anthropic-key".to_string(),

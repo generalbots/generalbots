@@ -54,7 +54,10 @@ pub fn register_website_for_crawling_with_refresh(
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .bind::<diesel::sql_types::Text, _>(url)
         .load(conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to query website crawl status for {url}: {e}");
+            Vec::new()
+        });
 
         result.first().map(|r| r.cnt == 0).unwrap_or(true)
     };

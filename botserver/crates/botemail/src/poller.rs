@@ -205,10 +205,10 @@ fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Re
             Err(_) => continue,
         };
         let headers = parsed.get_headers();
-        let subject = headers.get_first_value("Subject").unwrap_or_default();
-        let from_address = headers.get_first_value("From").unwrap_or_default();
-        let to_addresses = non_empty(&headers.get_first_value("To").unwrap_or_default());
-        let date_str = headers.get_first_value("Date").unwrap_or_default();
+        let subject = headers.get_first_value("Subject").unwrap_or_else(String::new);
+        let from_address = headers.get_first_value("From").unwrap_or_else(String::new);
+        let to_addresses = non_empty(&headers.get_first_value("To").unwrap_or_else(String::new));
+        let date_str = headers.get_first_value("Date").unwrap_or_else(String::new);
         let received_at = dateparse(&date_str)
             .ok()
             .and_then(|secs| chrono::DateTime::<chrono::Utc>::from_timestamp(secs, 0))
@@ -246,8 +246,8 @@ fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Re
         let message = StoredMessage {
             account_id: account.id,
             uid,
-            message_id: non_empty(&headers.get_first_value("Message-ID").unwrap_or_default()),
-            in_reply_to: non_empty(&headers.get_first_value("In-Reply-To").unwrap_or_default()),
+            message_id: non_empty(&headers.get_first_value("Message-ID").unwrap_or_else(String::new)),
+            in_reply_to: non_empty(&headers.get_first_value("In-Reply-To").unwrap_or_else(String::new)),
             subject: subject.clone(),
             normalized_subject: crate::unified_inbox::normalize_subject(&subject),
             from_address,

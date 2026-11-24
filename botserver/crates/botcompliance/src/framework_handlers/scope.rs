@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     fn where_clause(sql: &str) -> String {
-        sql.split("WHERE").nth(1).unwrap_or_default().to_string()
+        sql.split("WHERE").nth(1).unwrap_or("").to_string()
     }
 
     fn assert_scoped(sql: &str, table: &str) {

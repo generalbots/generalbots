@@ -121,7 +121,10 @@ pub async fn create_room_htmx(
     match meeting_service.create_room(name, created_by, None).await {
         Ok(room) => {
             let card = render_meeting_card(&room_persistence::MeetingListItem {
-                id: uuid::Uuid::parse_str(&room.id).unwrap_or_default(),
+                id: uuid::Uuid::parse_str(&room.id).unwrap_or_else(|e| {
+                    log::warn!("Room id '{}' is not a UUID: {e}", room.id);
+                    uuid::Uuid::nil()
+                }),
                 title: room.name,
                 description: None,
                 status: "live".to_string(),

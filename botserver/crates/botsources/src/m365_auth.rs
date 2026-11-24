@@ -51,7 +51,10 @@ impl M365OAuthClient {
             http_client: reqwest::blocking::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
                 .build()
-                .unwrap_or_default(),
+                .unwrap_or_else(|e| {
+                    log::warn!("M365: HTTP client build failed: {e}");
+                    reqwest::blocking::Client::new()
+                }),
         }
     }
 
@@ -98,7 +101,7 @@ impl M365OAuthClient {
             ("client_id", self.credentials.client_id.clone()),
             ("scope", self.credentials.scopes.join(" ")),
             ("code", code.to_string()),
-            ("redirect_uri", self.credentials.redirect_uri.clone().unwrap_or_default()),
+            ("redirect_uri", self.credentials.redirect_uri.clone().unwrap_or_else(String::new)),
             ("grant_type", "authorization_code".to_string()),
         ];
         if let Some(secret) = &self.credentials.client_secret {

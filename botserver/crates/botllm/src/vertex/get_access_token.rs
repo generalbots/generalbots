@@ -96,7 +96,7 @@ impl VertexTokenManager {
 
         if !response.status().is_success() {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Google OAuth2 token request failed: {} - {}", status, body);
             return Err(format!("Token request failed with status {}: {}", status, body).into());
         }

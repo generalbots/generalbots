@@ -31,7 +31,10 @@ impl SecretsManager {
     pub fn get_drive_config(&self) -> Result<(String, String, String)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
-                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
+                    log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
+                    String::new()
+                });
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
                 let auth = format!("X-Vault-Token: {vault_token}");
@@ -70,7 +73,10 @@ impl SecretsManager {
     pub fn get_cache_config(&self) -> Result<(String, u16, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
-                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
+                    log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
+                    String::new()
+                });
                 log::info!("Attempting to read cache config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
                 let auth = format!("X-Vault-Token: {vault_token}");
@@ -106,7 +112,10 @@ impl SecretsManager {
     pub fn get_qdrant_config(&self) -> Result<(String, Option<String>)> {
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
-                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
+                let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_else(|e| {
+                    log::warn!("VAULT_CACERT unavailable ({e}); Vault TLS uses -k fallback");
+                    String::new()
+                });
                 log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
                 let auth = format!("X-Vault-Token: {vault_token}");
@@ -151,7 +160,7 @@ impl SecretsManager {
                 .get("username")
                 .cloned()
                 .ok_or_else(|| anyhow!("database username not configured"))?;
-            let password = secrets.get("password").cloned().unwrap_or_default();
+            let password = secrets.get("password").cloned().unwrap_or_else(String::new);
             return Ok((host, port, database, username, password));
         }
         Err(anyhow!("Database configuration not available"))
@@ -160,8 +169,8 @@ impl SecretsManager {
     pub async fn get_drive_credentials(&self) -> Result<(String, String)> {
         let s = self.get_secret(SecretPaths::DRIVE).await?;
         Ok((
-            s.get("accesskey").cloned().unwrap_or_default(),
-            s.get("secret").cloned().unwrap_or_default(),
+            s.get("accesskey").cloned().unwrap_or_else(String::new),
+            s.get("secret").cloned().unwrap_or_else(String::new),
         ))
     }
 
@@ -183,7 +192,7 @@ impl SecretsManager {
             .get("username")
             .cloned()
             .ok_or_else(|| anyhow!("database username not configured in Vault"))?;
-        let password = s.get("password").cloned().unwrap_or_default();
+        let password = s.get("password").cloned().unwrap_or_else(String::new);
         Ok((host, port, database, username, password))
     }
 
@@ -205,7 +214,7 @@ impl SecretsManager {
         let s = self.get_secret(SecretPaths::TABLES).await?;
         Ok((
             s.get("username").cloned().unwrap_or_else(|| "gbuser".into()),
-            s.get("password").cloned().unwrap_or_default(),
+            s.get("password").cloned().unwrap_or_else(String::new),
         ))
     }
 
@@ -221,17 +230,17 @@ impl SecretsManager {
             .ok_or_else(|| anyhow!("directory url not configured in Vault"))?;
         Ok((
             url,
-            s.get("project_id").cloned().unwrap_or_default(),
-            s.get("client_id").cloned().unwrap_or_default(),
-            s.get("client_secret").cloned().unwrap_or_default(),
+            s.get("project_id").cloned().unwrap_or_else(String::new),
+            s.get("client_id").cloned().unwrap_or_else(String::new),
+            s.get("client_secret").cloned().unwrap_or_else(String::new),
         ))
     }
 
     pub async fn get_directory_credentials(&self) -> Result<(String, String)> {
         let s = self.get_secret(SecretPaths::DIRECTORY).await?;
         Ok((
-            s.get("client_id").cloned().unwrap_or_default(),
-            s.get("client_secret").cloned().unwrap_or_default(),
+            s.get("client_id").cloned().unwrap_or_else(String::new),
+            s.get("client_secret").cloned().unwrap_or_else(String::new),
         ))
     }
 
@@ -254,7 +263,7 @@ impl SecretsManager {
             url,
             s.get("org").cloned().unwrap_or_else(|| "system".into()),
             s.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
-            s.get("token").cloned().unwrap_or_default(),
+            s.get("token").cloned().unwrap_or_else(String::new),
         ))
     }
 

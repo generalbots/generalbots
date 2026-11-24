@@ -213,7 +213,7 @@ pub(super) async fn handle_billing_search(
     headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
-    let q = query.q.clone().unwrap_or_default();
+    let q = query.q.clone().unwrap_or_else(String::new);
     if q.is_empty() {
         return Html(String::new());
     }

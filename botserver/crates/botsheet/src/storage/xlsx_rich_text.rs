@@ -28,7 +28,7 @@ pub fn extract_rich_text_all(bytes: &[u8]) -> HashMap<usize, HashMap<String, Vec
     let rels = files
         .get("xl/_rels/workbook.xml.rels")
         .map(|r| parse_rels(r))
-        .unwrap_or_default();
+        .unwrap_or_else(HashMap::new);
 
     let rich_strings = parse_shared_strings(sst_xml);
     if rich_strings.is_empty() {
@@ -280,7 +280,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry {i}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut data = Vec::new();
         std::io::Read::read_to_end(&mut entry, &mut data)
             .map_err(|e| format!("Failed to read zip entry {name}: {e}"))?;

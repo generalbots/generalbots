@@ -14,7 +14,7 @@ fn texts(blocks: &[Block]) -> Vec<String> {
                 .segments
                 .first()
                 .map(|s| s.text.clone())
-                .unwrap_or_default(),
+                .unwrap_or_else(String::new),
             _ => String::new(),
         })
         .collect()

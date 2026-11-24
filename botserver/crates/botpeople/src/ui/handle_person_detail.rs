@@ -39,7 +39,7 @@ pub(super) async fn handle_person_detail(
 
     match result {
         Some(row) => {
-            let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+            let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_else(String::new));
             let email_str = row.email.unwrap_or_else(|| "-".to_string());
             let phone_str = row.phone.unwrap_or_else(|| "-".to_string());
             let mobile_str = row.mobile.unwrap_or_else(|| "-".to_string());
@@ -171,8 +171,8 @@ pub(super) async fn handle_departments_list(State(state): State<Arc<PeopleState>
             let mut html = String::from(r##"<div class="departments-list">"##);
 
             for (id, name, description, code) in depts {
-                let desc_str = description.unwrap_or_default();
-                let code_str = code.unwrap_or_default();
+                let desc_str = description.unwrap_or_else(String::new);
+                let code_str = code.unwrap_or_else(String::new);
 
                 html.push_str(&format!(
                     r##"<div class="department-item" data-id="{id}">
@@ -231,7 +231,7 @@ pub(super) async fn handle_teams_list(State(state): State<Arc<PeopleState>>) -> 
             let mut html = String::from(r##"<div class="teams-list">"##);
 
             for (id, name, description, color) in teams {
-                let desc_str = description.unwrap_or_default();
+                let desc_str = description.unwrap_or_else(String::new);
                 let team_color = color.unwrap_or_else(|| "#3b82f6".to_string());
 
                 html.push_str(&format!(

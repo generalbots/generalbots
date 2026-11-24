@@ -24,7 +24,7 @@ pub async fn handle_subscription_cancel(State(state): State<Arc<BillingApiState>
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": "Database unavailable" })));
     };
     let branch = branch_id(&state);
-    let reason = req.reason.unwrap_or_default();
+    let reason = req.reason.unwrap_or_else(String::new);
 
     let _ = diesel::sql_query(
         "UPDATE billing_recurring SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW() WHERE branch_id = $1",
@@ -63,7 +63,10 @@ pub async fn handle_invoices_export(State(state): State<Arc<BillingApiState>>) -
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load admin billing rows ({e}); using empty list");
+        Vec::new()
+    });
 
     let mut csv = String::from("invoice_number,customer,amount,status,issue_date\n");
     for r in rows {
@@ -71,7 +74,7 @@ pub async fn handle_invoices_export(State(state): State<Arc<BillingApiState>>) -
         csv.push_str(&format!(
             "{},{},{:.2},{},{}\n",
             r.number,
-            r.customer_name.unwrap_or_default().replace(',', " "),
+            r.customer_name.unwrap_or_else(String::new).replace(',', " "),
             amount,
             r.status.unwrap_or_else(|| "unknown".to_string()),
             r.issue_date,
@@ -109,7 +112,10 @@ pub async fn handle_invoices_unpaid(State(state): State<Arc<BillingApiState>>) -
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load admin billing rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<option value="">No unpaid invoices</option>"#.to_string());
@@ -186,7 +192,10 @@ pub async fn handle_dashboard_bot_usage(State(state): State<Arc<BillingApiState>
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load admin billing rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="bots-empty">No bot usage data</div>"#.to_string());
@@ -228,7 +237,10 @@ pub async fn handle_dashboard_recent_invoices(State(state): State<Arc<BillingApi
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load admin billing rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="empty-state"><p>No recent invoices</p></div>"#.to_string());

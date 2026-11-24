@@ -21,7 +21,10 @@ pub async fn get_team(
         .filter(people_team_members::team_id.eq(id))
         .select(people_team_members::person_id)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load member ids for team {id}: {e}");
+            Vec::new()
+        });
 
     // Members and leader stay inside the team's branch (#2138).
     let members: Vec<Person> = if member_ids.is_empty() {
@@ -31,7 +34,10 @@ pub async fn get_team(
             .filter(people::branch_id.eq(branch_id))
             .filter(people::id.eq_any(&member_ids))
             .load(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load members for team {id}: {e}");
+                Vec::new()
+            })
     };
 
     let leader: Option<Person> = team

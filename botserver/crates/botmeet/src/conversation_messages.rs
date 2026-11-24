@@ -51,8 +51,14 @@ impl From<MessageRow> for MessageResponse {
             content: r.content,
             message_type: r.message_type,
             reply_to: r.reply_to,
-            attachments: serde_json::from_value(r.attachments).unwrap_or_default(),
-            reactions: serde_json::from_value(r.reactions).unwrap_or_default(),
+            attachments: serde_json::from_value(r.attachments).unwrap_or_else(|e| {
+                log::warn!("Failed to parse message attachments: {e}");
+                Vec::new()
+            }),
+            reactions: serde_json::from_value(r.reactions).unwrap_or_else(|e| {
+                log::warn!("Failed to parse message reactions: {e}");
+                Vec::new()
+            }),
             is_pinned: r.is_pinned,
             is_edited: r.is_edited,
             created_at: r.created_at,
@@ -110,7 +116,7 @@ pub async fn send_message(
         .message_type
         .clone()
         .unwrap_or_else(|| "text".to_string());
-    let attachments = serde_json::to_value(req.attachments.clone().unwrap_or_default())?;
+    let attachments = serde_json::to_value(req.attachments.clone().unwrap_or_else(Vec::new))?;
 
     sql_query(
         "INSERT INTO meet_conversation_messages
@@ -137,7 +143,7 @@ pub async fn send_message(
         content: req.content.clone(),
         message_type,
         reply_to: req.reply_to,
-        attachments: req.attachments.clone().unwrap_or_default(),
+        attachments: req.attachments.clone().unwrap_or_else(Vec::new),
         reactions: vec![],
         is_pinned: false,
         is_edited: false,

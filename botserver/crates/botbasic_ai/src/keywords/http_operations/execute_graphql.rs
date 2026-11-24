@@ -61,7 +61,10 @@ pub(super) async fn execute_soap(
         })?;
 
     let status = response.status();
-    let body_text = response.text().await.unwrap_or_default();
+    let body_text = response.text().await.unwrap_or_else(|e| {
+        log::warn!("Failed to read SOAP response body for {endpoint}: {e}");
+        String::new()
+    });
 
     let parsed_response = parse_soap_response(&body_text);
 
@@ -144,10 +147,13 @@ pub(super) fn dynamic_to_json(value: &Dynamic) -> Value {
     } else if value.is_string() {
         Value::String(value.to_string())
     } else if value.is_array() {
-        let arr = value.clone().into_array().unwrap_or_default();
+        let arr = value.clone().into_array().unwrap_or_else(|e| {
+            log::warn!("Failed to convert Rhai array to JSON: {e}");
+            rhai::Array::new()
+        });
         Value::Array(arr.iter().map(dynamic_to_json).collect())
     } else if value.is_map() {
-        let map = value.clone().try_cast::<Map>().unwrap_or_default();
+        let map = value.clone().try_cast::<Map>().unwrap_or_else(Map::new);
         let obj: serde_json::Map<String, Value> = map
             .iter()
             .map(|(k, v)| (k.to_string(), dynamic_to_json(v)))

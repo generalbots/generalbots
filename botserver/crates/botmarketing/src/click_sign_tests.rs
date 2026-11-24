@@ -36,7 +36,7 @@ fn other_recipient() -> TrackingRecord {
 }
 
 fn parse_query(url: &str) -> ClickQuery {
-    let raw = url.split_once('?').map(|(_, q)| q).unwrap_or_default();
+    let raw = url.split_once('?').map(|(_, q)| q).unwrap_or("");
     let mut query = ClickQuery::default();
     for (key, value) in form_urlencoded::parse(raw.as_bytes()) {
         match key.as_ref() {

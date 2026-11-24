@@ -33,7 +33,7 @@ impl ConnectorEngine {
                             let records = body.as_array().cloned()
                                 .or_else(|| body["data"].as_array().cloned())
                                 .or_else(|| body["records"].as_array().cloned())
-                                .unwrap_or_default();
+                                .unwrap_or_else(Vec::new);
                             let count = records.len() as i64;
                             total_synced += count;
                             EndpointSyncResult {
@@ -77,7 +77,11 @@ impl ConnectorEngine {
             .bind::<diesel::sql_types::Uuid, _>(sync_log_id)
             .bind::<diesel::sql_types::Uuid, _>(id)
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(None::<Uuid>)
-            .bind::<diesel::sql_types::Text, _>(serde_json::to_string(&ep_result.status).unwrap_or_default())
+            .bind::<diesel::sql_types::Text, _>(serde_json::to_string(&ep_result.status)
+                .unwrap_or_else(|e| {
+                    log::warn!("Endpoint sync status serialization failed: {e}");
+                    String::new()
+                }))
             .bind::<diesel::sql_types::BigInt, _>(ep_result.records_synced)
             .bind::<diesel::sql_types::BigInt, _>(ep_result.records_failed)
             .bind::<diesel::sql_types::BigInt, _>(ep_start.elapsed().as_millis() as i64)
@@ -190,7 +194,10 @@ impl ConnectorEngine {
             headers: r.headers,
             auth_type: AuthType::ApiKey,
             sync_direction: serde_json::from_str(&r.sync_direction).unwrap_or(SyncDirection::Pull),
-            field_mapping: serde_json::from_value(r.field_mapping).unwrap_or_default(),
+            field_mapping: serde_json::from_value(r.field_mapping).unwrap_or_else(|e| {
+                log::warn!("Endpoint field mapping parse failed: {e}");
+                Vec::new()
+            }),
             schedule: r.schedule,
             pagination: r.pagination.and_then(|p| serde_json::from_value(p).ok()),
         }).collect())
@@ -212,10 +219,22 @@ impl ConnectorEngine {
         .bind::<diesel::sql_types::Text, _>(&ep.method)
         .bind::<diesel::sql_types::Text, _>(&ep.url)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(ep.headers.as_ref())
-        .bind::<diesel::sql_types::Text, _>(serde_json::to_string(&ep.sync_direction).unwrap_or_default())
-        .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&ep.field_mapping).unwrap_or_default())
+        .bind::<diesel::sql_types::Text, _>(serde_json::to_string(&ep.sync_direction)
+            .unwrap_or_else(|e| {
+                log::warn!("Endpoint sync direction serialization failed: {e}");
+                String::new()
+            }))
+        .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&ep.field_mapping)
+            .unwrap_or_else(|e| {
+                log::warn!("Endpoint field mapping serialization failed: {e}");
+                serde_json::Value::Null
+            }))
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&ep.schedule)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(ep.pagination.as_ref().map(|p| serde_json::to_value(p).unwrap_or_default()))
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(ep.pagination.as_ref()
+            .map(|p| serde_json::to_value(p).unwrap_or_else(|e| {
+                log::warn!("Endpoint pagination serialization failed: {e}");
+                serde_json::Value::Null
+            })))
         .bind::<diesel::sql_types::Timestamptz, _>(now)
         .execute(conn)
         .map_err(|e| format!("Failed to create endpoint: {e}"))?;

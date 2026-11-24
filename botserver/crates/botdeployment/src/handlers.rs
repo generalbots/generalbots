@@ -324,11 +324,11 @@ pub async fn stop_project(
 
     let app_name = body.get("app_name")
         .and_then(|v| v.as_str())
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string();
     let org = body.get("org")
         .and_then(|v| v.as_str())
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string();
 
     let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
@@ -347,11 +347,11 @@ pub async fn start_project(
 
     let app_name = body.get("app_name")
         .and_then(|v| v.as_str())
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string();
     let org = body.get("org")
         .and_then(|v| v.as_str())
-        .unwrap_or_default()
+        .unwrap_or("")
         .to_string();
 
     let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();

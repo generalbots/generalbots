@@ -1,6 +1,9 @@
 use crate::auth::{resolve_user_id, resolve_user_name, SheetUser};
 use crate::collaboration::broadcast_sheet_change;
 use crate::formulas::{evaluate_formula, evaluate_formula_in};
+use crate::scale::{
+    BudgetError, MemoryBudget, RecalcEstimate, RecalcRequest, WorkbookTier, estimate_recalc,
+};
 use crate::state::SheetState;
 use crate::storage::import::create_new_spreadsheet;
 use crate::types::{
@@ -12,7 +15,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use botsheet_core::dependency_graph::DepGraph;
+use botcore::shared::analytics::record_office_recalc_optional;
+use botsheet_core::dependency_graph::{DepGraph, build_dependency_graph, collect_dependents};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,6 +32,65 @@ pub const MAX_COLS: u32 = 16_384;
 
 fn in_bounds(row: u32, col: u32) -> bool {
     row < MAX_ROWS && col < MAX_COLS
+}
+
+/// Peak bytes held per evaluated cell; prices a cascade before it starts (#2435).
+const RECALC_BYTES_PER_CELL: u64 = 1_024;
+
+/// Price an edit's cascade against the tier budget; refuse with a fixed message.
+pub(crate) fn guard_recalc_budget(
+    cells: u64,
+    total_formulas: u64,
+    dirty_cells: u64,
+    dependent_formulas: u64,
+) -> Result<RecalcEstimate, (StatusCode, Json<serde_json::Value>)> {
+    let budget = MemoryBudget::for_tier(WorkbookTier::classify(cells, total_formulas));
+    let request = RecalcRequest {
+        dirty_cells,
+        dependent_formulas,
+        total_formulas,
+        bytes_per_cell: RECALC_BYTES_PER_CELL,
+    };
+    estimate_recalc(&request, &budget).map_err(|error| {
+        let sanitized = botsecurity_core::error_sanitizer::log_and_sanitize(
+            &error,
+            "botsheet::handlers::cell_ops::recalc_budget",
+            None,
+        );
+        log::debug!("recalc budget refusal: {}", sanitized.message);
+        let reason = match error {
+            BudgetError::TooManyFormulas { .. } => "too many dependent formulas",
+            BudgetError::RecalcOverBudget { .. } => "recalculation memory budget exceeded",
+            _ => "recalculation budget exceeded",
+        };
+        let message = format!("Recalculation refused: {reason}; undo or split the edit");
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": message })),
+        )
+    })
+}
+
+/// Count formulas reachable from the roots; the cached `DepGraph` has no
+/// topology accessor, and an underestimate would let an over-budget cascade run.
+pub(crate) fn preflight_recalc(
+    worksheet: &Worksheet,
+    roots: &[(u32, u32)],
+) -> Result<RecalcEstimate, (StatusCode, Json<serde_json::Value>)> {
+    let total_formulas = worksheet
+        .data
+        .values()
+        .filter(|cell| cell.formula.is_some())
+        .count() as u64;
+    let graph = build_dependency_graph(worksheet);
+    let reachable = collect_dependents(roots, &graph);
+    let dependents = reachable.len().saturating_sub(roots.len()) as u64;
+    guard_recalc_budget(
+        worksheet.data.len() as u64,
+        total_formulas,
+        roots.len() as u64,
+        dependents,
+    )
 }
 
 /// Excel-style protection: a protected worksheet locks every cell by default;
@@ -101,7 +164,7 @@ pub async fn handle_update_cell(
                         Json(
                             serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::cell_ops", None)}),
                         ),
-                    ))
+                    ));
                 }
             }
         }
@@ -135,8 +198,11 @@ pub async fn handle_update_cell(
         ));
     }
 
+    // #2435: refuse the cascade before mutating, avoiding stale written values.
+    let index = req.worksheet_index;
+    let recalc_started = std::time::Instant::now();
+    preflight_recalc(&sheet.worksheets[index], &[(req.row, req.col)])?;
     let key = format!("{},{}", req.row, req.col);
-
     let (value, formula, typed) = if req.value.starts_with('=') {
         let result = botsheet_core::engine::evaluate_typed_in(
             &req.value,
@@ -180,7 +246,6 @@ pub async fn handle_update_cell(
         if graphs.len() != sheet.worksheets.len() {
             *graphs = sheet.worksheets.iter().map(DepGraph::build).collect();
         }
-        let index = req.worksheet_index;
         graphs[index].on_edit(&sheet.worksheets[index], &[(req.row, req.col)]);
         graphs[index].recalc_cascade_typed(
             &mut sheet.worksheets[index],
@@ -188,9 +253,9 @@ pub async fn handle_update_cell(
             MAX_RECALC_CELLS,
         );
     }
-
+    let recalc_ms = recalc_started.elapsed().as_secs_f64() * 1000.0;
+    record_office_recalc_optional(Some(state.metrics_collector.as_ref()), recalc_ms, "sheet").await;
     sheet.updated_at = Utc::now();
-
     state.sessions.record(
         &session,
         &state,
@@ -365,7 +430,7 @@ pub async fn handle_evaluate_formula(
                     print_areas: None,
                     rich_text: None,
                 },
-            )))
+            )));
         }
     };
 
@@ -381,34 +446,5 @@ pub async fn handle_evaluate_formula(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn protection(protected: bool, locked: &[&str]) -> botsheet_core::types::SheetProtection {
-        botsheet_core::types::SheetProtection {
-            protected,
-            locked_cells: locked.iter().map(|cell| cell.to_string()).collect(),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn unprotected_sheet_allows_every_cell() {
-        assert!(!cell_edit_blocked(Some(&protection(false, &[])), 0, 0));
-        assert!(!cell_edit_blocked(None, 5, 5));
-    }
-
-    #[test]
-    fn protected_sheet_locks_every_cell_by_default() {
-        assert!(cell_edit_blocked(Some(&protection(true, &[])), 0, 0));
-        assert!(cell_edit_blocked(Some(&protection(true, &[])), 9, 3));
-    }
-
-    #[test]
-    fn protected_sheet_can_lock_an_explicit_list() {
-        let p = protection(true, &["1,1", "2,0"]);
-        assert!(cell_edit_blocked(Some(&p), 1, 1));
-        assert!(cell_edit_blocked(Some(&p), 2, 0));
-        assert!(!cell_edit_blocked(Some(&p), 0, 0));
-    }
-}
+#[path = "cell_ops_tests.rs"]
+mod cell_ops_tests;

@@ -40,7 +40,7 @@ office:version="1.2">
             for col in 0..=max_col {
                 let key = format!("{row},{col}");
                 let cell = ws.data.get(&key);
-                let value = cell.and_then(|c| c.value.clone()).unwrap_or_default();
+                let value = cell.and_then(|c| c.value.clone()).unwrap_or_else(String::new);
                 let formula = cell.and_then(|c| c.formula.clone());
 
                 if let Some(f) = formula {

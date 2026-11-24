@@ -137,7 +137,7 @@ pub(super) fn execute_pivot(
         let row_key = item_map
             .get(row_field)
             .map(|v| v.to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         let value = item_map
             .get(value_field)
@@ -167,7 +167,7 @@ pub(super) fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, B
         let group_key = item_map
             .get(field)
             .map(|v| v.to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         groups.entry(group_key).or_default().push(item);
     }

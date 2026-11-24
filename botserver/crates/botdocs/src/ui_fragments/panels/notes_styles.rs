@@ -11,10 +11,13 @@ pub async fn handle_footnotes_panel(
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: notes panel payload unreadable: {error}");
+        Vec::new()
+    });
     if notes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
-            notes = doc.footnotes.unwrap_or_default();
+            notes = doc.footnotes.unwrap_or_else(Vec::new);
         }
     }
     if notes.is_empty() {
@@ -53,10 +56,13 @@ pub async fn handle_endnotes_panel(
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: notes panel payload unreadable: {error}");
+        Vec::new()
+    });
     if notes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
-            notes = doc.endnotes.unwrap_or_default();
+            notes = doc.endnotes.unwrap_or_else(Vec::new);
         }
     }
     if notes.is_empty() {
@@ -90,10 +96,13 @@ pub async fn handle_styles_panel(
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: styles panel payload unreadable: {error}");
+        Vec::new()
+    });
     if styles.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
-            styles = doc.styles.unwrap_or_default();
+            styles = doc.styles.unwrap_or_else(Vec::new);
         }
     }
     if styles.is_empty() {

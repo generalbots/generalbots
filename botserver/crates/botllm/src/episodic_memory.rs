@@ -145,10 +145,10 @@ let llm_provider = state.llm_provider.clone();
         // Use session.bot_id instead of Uuid::nil() to avoid using default bot settings
         let model = config_manager
             .get_config(&session.bot_id, "llm-model", None)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() });
         let key = config_manager
             .get_config(&session.bot_id, "llm-key", None)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() });
 
     let summarized = match llm_provider
         .as_ref()

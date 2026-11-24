@@ -152,7 +152,10 @@ pub(super) async fn handle_spending_chart(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load billing UI rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="chart-empty">No invoice data yet</div>"#.to_string());
@@ -194,7 +197,10 @@ pub(super) async fn handle_cost_breakdown(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load billing UI rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<div class="breakdown-empty">No invoice data yet</div>"#.to_string());
@@ -262,7 +268,10 @@ pub(super) async fn handle_dashboard_quotas(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load billing UI rows ({e}); using empty list");
+        Vec::new()
+    });
 
     let mut quota_limits: HashMap<String, i64> = HashMap::new();
     for &(key, default) in DEFAULT_QUOTA_LIMITS {

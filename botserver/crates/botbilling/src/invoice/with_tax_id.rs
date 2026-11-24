@@ -75,7 +75,7 @@ impl InvoiceService {
                     period_start: item.period_start,
                     period_end: item.period_end,
                     proration: item.proration,
-                    metadata: item.metadata.unwrap_or_default(),
+                    metadata: item.metadata.unwrap_or_else(HashMap::new),
                 }
             })
             .collect();
@@ -84,7 +84,7 @@ impl InvoiceService {
 
         let discounts: Vec<InvoiceDiscount> = request
             .discounts
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|d| {
                 let amount = if let Some(percent) = d.percent_off {
@@ -154,7 +154,7 @@ impl InvoiceService {
             pdf_url: None,
             notes: request.notes,
             footer: request.footer,
-            metadata: request.metadata.unwrap_or_default(),
+            metadata: request.metadata.unwrap_or_else(HashMap::new),
         };
 
         Ok(invoice)
@@ -243,7 +243,7 @@ impl InvoiceService {
         invoice.updated_at = now;
 
         if let Some(note) = reason {
-            let existing_notes = invoice.notes.take().unwrap_or_default();
+            let existing_notes = invoice.notes.take().unwrap_or_else(String::new);
             invoice.notes = Some(format!("{}\n\nVoided: {}", existing_notes, note));
         }
 

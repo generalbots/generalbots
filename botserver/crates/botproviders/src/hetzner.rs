@@ -109,7 +109,10 @@ impl HetznerProvider {
         let status = resp.status();
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let body = read_body(resp).await.unwrap_or_default();
+            let body = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("Hetzner: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status_or_capacity("Hetzner", status, &headers, &body));
         }
         let text = read_body(resp).await?;
@@ -225,15 +228,15 @@ impl ComputeProvider for HetznerProvider {
         Ok(servers
             .iter()
             .map(|server| {
-                let server_type = server["server_type"]["name"].as_str().unwrap_or_default();
+                let server_type = server["server_type"]["name"].as_str().unwrap_or("");
                 ProvisionResult {
                     provider: "hetzner".into(),
-                    instance_id: server["id"].as_i64().unwrap_or_default().to_string(),
+                    instance_id: server["id"].as_i64().unwrap_or(0).to_string(),
                     status: server["status"].as_str().unwrap_or("unknown").into(),
                     ip_address: server["public_net"]["ipv4"]["ip"].as_str().map(str::to_string),
                     region: server["datacenter"]["location"]["name"]
                         .as_str()
-                        .unwrap_or_default()
+                        .unwrap_or("")
                         .to_string(),
                     spec: MachineSpec {
                         cpu_cores: server["server_type"]["cores"].as_u64().unwrap_or(1) as u32,

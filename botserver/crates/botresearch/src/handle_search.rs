@@ -5,7 +5,7 @@ pub async fn handle_search<S: ResearchState>(
     headers: axum::http::HeaderMap,
     Form(payload): Form<SearchRequest>,
 ) -> impl IntoResponse {
-    let query = payload.query.unwrap_or_default();
+    let query = payload.query.unwrap_or_else(String::new);
 
     if query.trim().is_empty() {
         return Html(
@@ -52,7 +52,10 @@ pub async fn handle_search<S: ResearchState>(
             .bind::<diesel::sql_types::Text, _>(&search_pattern)
             .bind::<diesel::sql_types::Text, _>(&coll)
             .load::<KbDocumentRow>(&mut db_conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load research documents: {e}");
+                Vec::new()
+            })
         } else {
             diesel::sql_query(format!(
                 "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE LOWER(file_path) LIKE $1 OR metadata::text ILIKE $1{} ORDER BY file_path ASC LIMIT 20",
@@ -60,11 +63,17 @@ pub async fn handle_search<S: ResearchState>(
             ))
             .bind::<diesel::sql_types::Text, _>(&search_pattern)
             .load::<KbDocumentRow>(&mut db_conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load research documents: {e}");
+                Vec::new()
+            })
         }
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Research search task failed: {e}");
+        Vec::new()
+    });
 
     let llm = state.llm_provider();
 
@@ -195,10 +204,16 @@ pub async fn handle_recent_searches<S: ResearchState>(
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<RecentSearchRow>(&mut db_conn)
         .map(|rows| rows.into_iter().map(|r| r.query).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load recent searches: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Recent searches task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
 
@@ -247,10 +262,16 @@ pub async fn handle_trending_tags<S: ResearchState>(
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<TrendingTagRow>(&mut db_conn)
         .map(|rows| rows.into_iter().map(|r| (r.query, r.n)).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load trending tags: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Trending tags task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
     html.push_str("<div class=\"trending-tags-list\">");

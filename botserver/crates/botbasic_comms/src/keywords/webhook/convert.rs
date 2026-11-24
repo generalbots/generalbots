@@ -46,10 +46,13 @@ pub(super) fn dynamic_to_json(value: &Dynamic) -> Value {
     } else if value.is_string() {
         Value::String(value.to_string())
     } else if value.is_array() {
-        let arr = value.clone().into_array().unwrap_or_default();
+        let arr = value.clone().into_array().unwrap_or_else(|_| Vec::new());
         Value::Array(arr.iter().map(dynamic_to_json).collect())
     } else if value.is_map() {
-        let map = value.clone().try_cast::<rhai::Map>().unwrap_or_default();
+        let map = value
+            .clone()
+            .try_cast::<rhai::Map>()
+            .unwrap_or_else(rhai::Map::new);
         let obj: serde_json::Map<String, Value> = map
             .iter()
             .map(|(k, v)| (k.to_string(), dynamic_to_json(v)))

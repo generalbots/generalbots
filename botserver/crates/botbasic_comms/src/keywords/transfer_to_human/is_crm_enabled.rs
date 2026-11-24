@@ -83,7 +83,7 @@ pub(super) fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
                     let aliases = alias_idx
                         .and_then(|i| parts.get(i))
                         .map(|s| s.split(';').map(|a| a.trim().to_lowercase()).collect())
-                        .unwrap_or_default();
+                        .unwrap_or_else(Vec::new);
 
                     attendants.push(Attendant {
                         id: (*parts.get(id_idx).unwrap_or(&"")).to_string(),

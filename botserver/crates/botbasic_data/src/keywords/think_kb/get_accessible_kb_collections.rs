@@ -68,7 +68,10 @@ pub(super) fn get_recent_consolidations(
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<ConsolidationRow>(conn)
-    .unwrap_or_default()
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to load KB consolidations: {e}");
+        Vec::new()
+    })
 }
 pub(super) fn get_kb_memory_stats(
     conn: &mut diesel::PgConnection,
@@ -131,7 +134,7 @@ pub(super) async fn search_qdrant_with_real_embeddings(
     let api_key = std::env::var("QDRANT_API_KEY")
         .ok()
         .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     // Fail closed: no verified bot scope means no Qdrant request at all.
     let Some(scope_filter) = filter_for_bot(Some(bot_id)) else {
@@ -152,7 +155,10 @@ pub(super) async fn search_qdrant_with_real_embeddings(
         .await
     {
         Ok(r) if r.status().is_success() => {
-            let info: serde_json::Value = r.json().await.unwrap_or_default();
+            let info: serde_json::Value = r.json().await.unwrap_or_else(|e| {
+                log::warn!("Failed to parse Qdrant collection info: {e}");
+                serde_json::Value::Null
+            });
             info["result"]["config"]["params"]["vectors"]["size"]
                 .as_u64()
                 .map(|d| d as usize)
@@ -217,7 +223,7 @@ pub(super) async fn search_qdrant_with_real_embeddings(
         .await
         .map_err(|e| format!("Qdrant parse error: {e}"))?;
 
-    let points = result["result"].as_array().cloned().unwrap_or_default();
+    let points = result["result"].as_array().cloned().unwrap_or_else(Vec::new);
 
     let mut results = Vec::new();
     for point in &points {

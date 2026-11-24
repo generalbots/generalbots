@@ -59,12 +59,15 @@ pub fn load_catalog(work_path: &str, bot_id: &str) -> UiCatalog {
     let Ok(raw) = std::fs::read_to_string(path) else {
         return UiCatalog::default();
     };
-    serde_json::from_str(&raw).unwrap_or_default()
+    serde_json::from_str(&raw).unwrap_or_else(|e| {
+        log::warn!("MCP UI: sidecar catalog is malformed: {e}");
+        UiCatalog::default()
+    })
 }
 
 #[must_use]
 pub fn entries_for(catalog: &UiCatalog, server: &str) -> Vec<UiCatalogEntry> {
-    catalog.servers.get(server).cloned().unwrap_or_default()
+    catalog.servers.get(server).cloned().unwrap_or_else(Vec::new)
 }
 
 #[must_use]
@@ -118,7 +121,7 @@ fn string_list(value: Option<&Value>) -> Vec<String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 /// Base64 payload for the preview. The client builds a Blob and renders it in

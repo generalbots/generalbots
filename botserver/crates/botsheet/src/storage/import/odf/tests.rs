@@ -14,7 +14,10 @@ fn ods_zip(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
     writer
         .finish()
         .map(|writer| writer.into_inner())
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            log::warn!("ods test: failed to finish archive: {error}");
+            Vec::new()
+        })
 }
 
 fn document(body: &str) -> String {
@@ -38,7 +41,7 @@ fn value(sheet: &Worksheet, key: &str) -> String {
         .data
         .get(key)
         .and_then(|cell| cell.value.clone())
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
 }
 
 #[test]

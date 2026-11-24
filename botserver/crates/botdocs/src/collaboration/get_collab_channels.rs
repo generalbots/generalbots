@@ -33,7 +33,7 @@ pub async fn handle_get_collaborators(Path(doc_id): Path<String>) -> impl IntoRe
     let users: Vec<&UserPresence> = presence
         .get(&doc_id)
         .map(|v| v.iter().collect())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     Json(serde_json::json!({
         "count": users.len(),
@@ -42,12 +42,12 @@ pub async fn handle_get_collaborators(Path(doc_id): Path<String>) -> impl IntoRe
 }
 pub async fn handle_get_presence(Path(doc_id): Path<String>) -> impl IntoResponse {
     let presence = get_presence().read().await;
-    let users = presence.get(&doc_id).cloned().unwrap_or_default();
+    let users = presence.get(&doc_id).cloned().unwrap_or_else(Vec::new);
     Json(serde_json::json!({ "users": users }))
 }
 pub async fn handle_get_typing(Path(doc_id): Path<String>) -> impl IntoResponse {
     let typing = get_typing().read().await;
-    let indicators = typing.get(&doc_id).cloned().unwrap_or_default();
+    let indicators = typing.get(&doc_id).cloned().unwrap_or_else(Vec::new);
 
     let now = Utc::now();
     let active: Vec<&TypingIndicator> = indicators
@@ -59,12 +59,12 @@ pub async fn handle_get_typing(Path(doc_id): Path<String>) -> impl IntoResponse 
 }
 pub async fn handle_get_selections(Path(doc_id): Path<String>) -> impl IntoResponse {
     let selections = get_selections().read().await;
-    let sels = selections.get(&doc_id).cloned().unwrap_or_default();
+    let sels = selections.get(&doc_id).cloned().unwrap_or_else(Vec::new);
     Json(serde_json::json!({ "selections": sels }))
 }
 pub async fn handle_get_mentions(Path(user_id): Path<String>) -> impl IntoResponse {
     let mentions = get_mentions().read().await;
-    let user_mentions = mentions.get(&user_id).cloned().unwrap_or_default();
+    let user_mentions = mentions.get(&user_id).cloned().unwrap_or_else(Vec::new);
     Json(serde_json::json!({ "mentions": user_mentions }))
 }
 

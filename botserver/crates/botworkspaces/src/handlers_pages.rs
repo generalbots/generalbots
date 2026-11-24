@@ -76,7 +76,7 @@ pub(crate) async fn get_page(
         .select(aiworkspace_pages::id)
         .order(aiworkspace_pages::position.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let page = db_to_page(db_page, children);
     Ok(Json(page))
@@ -120,7 +120,7 @@ pub(crate) async fn update_page(
         .select(aiworkspace_pages::id)
         .order(aiworkspace_pages::position.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let page = db_to_page(db_page, children);
     Ok(Json(page))
@@ -249,7 +249,7 @@ pub(crate) async fn search_pages(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let query = params.q.unwrap_or_default();
+    let query = params.q.unwrap_or_else(String::new);
     if query.is_empty() {
         return Ok(Json(vec![]));
     }

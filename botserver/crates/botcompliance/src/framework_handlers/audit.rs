@@ -19,7 +19,7 @@ pub(super) fn audit(
             compliance_audit_log::event_type.eq(action),
             compliance_audit_log::user_id.eq(actor_id),
             compliance_audit_log::resource_type.eq(target_type),
-            compliance_audit_log::resource_id.eq(target_id.map(|id| id.to_string()).unwrap_or_default()),
+            compliance_audit_log::resource_id.eq(target_id.map(|id| id.to_string()).unwrap_or_else(String::new)),
             compliance_audit_log::action.eq(action),
             compliance_audit_log::result.eq("success"),
             compliance_audit_log::ip_address.eq(Option::<String>::None),

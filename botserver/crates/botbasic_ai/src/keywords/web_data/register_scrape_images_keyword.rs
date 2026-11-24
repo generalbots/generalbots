@@ -148,7 +148,10 @@ pub(super) async fn scrape_links(url: &str) -> Result<Array, Box<dyn std::error:
             let absolute = base_url
                 .join(href)
                 .map(|u| u.to_string())
-                .unwrap_or_default();
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to resolve link href '{href}': {e}");
+                    String::new()
+                });
             if !absolute.is_empty() {
                 let mut link = Map::new();
                 link.insert("href".into(), Dynamic::from(absolute));
@@ -173,7 +176,10 @@ pub(super) async fn scrape_images(url: &str) -> Result<Array, Box<dyn std::error
             let absolute = base_url
                 .join(src)
                 .map(|u| u.to_string())
-                .unwrap_or_default();
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to resolve image src '{src}': {e}");
+                    String::new()
+                });
             if !absolute.is_empty() {
                 let mut img = Map::new();
                 img.insert("src".into(), Dynamic::from(absolute));

@@ -135,7 +135,7 @@ pub fn extract_cell_format_codes(
             .name_for_index(i)
             .and_then(|entry| entry.ok())
             .map(|n| n.to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         if sheet_name_re.is_match(&name) {
             if let Some(caps) = sheet_name_re.captures(&name) {
                 if let Ok(num) = caps[1].parse::<u32>() {

@@ -308,7 +308,7 @@ pub async fn publish_due(state: &dyn BasicRuntime) -> usize {
           RETURNING id, bot_id, platform, content, media_url",
     )
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|_| Vec::new());
     drop(conn);
 
     let mut published = 0;

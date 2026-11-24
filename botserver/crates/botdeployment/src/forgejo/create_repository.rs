@@ -50,7 +50,10 @@ impl ForgejoClient {
             Ok(repo)
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read Forgejo error body: {e}");
+                String::new()
+            });
             // Idempotent re-deploys: the repo already exists from a previous
             // deploy. Fetch it instead of failing so the pipeline can push
             // the new commit (the re-deploy must succeed like git does).
@@ -71,7 +74,10 @@ impl ForgejoClient {
                 return Err(ForgejoError::ApiError(format!(
                     "{}: {}",
                     existing.status(),
-                    existing.text().await.unwrap_or_default()
+                    existing.text().await.unwrap_or_else(|e| {
+                        log::warn!("Failed to read Forgejo existing-repo body: {e}");
+                        String::new()
+                    })
                 )));
             }
             // Vibe projects derive the ALM org from the branch id
@@ -99,7 +105,10 @@ impl ForgejoClient {
                             .map_err(|e| ForgejoError::JsonError(e.to_string()));
                     }
                     let retry_status = retry.status();
-                    let retry_body = retry.text().await.unwrap_or_default();
+                    let retry_body = retry.text().await.unwrap_or_else(|e| {
+                        log::warn!("Failed to read Forgejo retry body: {e}");
+                        String::new()
+                    });
                     return Err(ForgejoError::ApiError(format!(
                         "{}: {}",
                         retry_status, retry_body
@@ -130,7 +139,10 @@ impl ForgejoClient {
             Ok(())
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read Forgejo error body: {e}");
+                String::new()
+            });
             Err(ForgejoError::ApiError(format!("{}: {}", status, body)))
         }
     }
@@ -152,7 +164,10 @@ impl ForgejoClient {
             Ok(())
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read Forgejo error body: {e}");
+                String::new()
+            });
             Err(ForgejoError::ApiError(format!("{}: {}", status, body)))
         }
     }

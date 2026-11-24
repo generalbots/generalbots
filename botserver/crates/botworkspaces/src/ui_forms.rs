@@ -72,7 +72,7 @@ pub async fn workspace_settings(
     };
 
     let name = html_escape(&workspace.name);
-    let description = workspace.description.as_deref().map(html_escape).unwrap_or_default();
+    let description = workspace.description.as_deref().map(html_escape).unwrap_or_else(String::new);
 
     Html(format!(
         r##"<div class="modal-header">
@@ -150,7 +150,7 @@ pub async fn search_results(
         .order(aiworkspace_pages::updated_at.desc())
         .limit(20)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     if pages.is_empty() {
         return Html(render_empty_state(

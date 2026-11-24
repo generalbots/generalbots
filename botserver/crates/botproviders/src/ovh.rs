@@ -155,7 +155,7 @@ impl OvhProvider {
     ) -> Result<reqwest::RequestBuilder, ProviderError> {
         let (app_key, app_secret) = Self::parse_credential(credential)?;
         let url = format!("{API_ROOT}{path}");
-        let body_text = body.unwrap_or_default();
+        let body_text = body.unwrap_or_else(String::new);
         let content_type = "application/json";
         let timestamp = chrono::Utc::now().timestamp().to_string();
         let signature = Self::signature(
@@ -193,7 +193,10 @@ impl OvhProvider {
         let status = resp.status();
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let text = read_body(resp).await.unwrap_or_default();
+            let text = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("OVH: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status_or_capacity("OVH", status, &headers, &text));
         }
         let text = read_body(resp).await?;
@@ -321,7 +324,7 @@ impl ComputeProvider for OvhProvider {
             .iter()
             .map(|instance| ProvisionResult {
                 provider: "ovh".into(),
-                instance_id: instance["id"].as_u64().unwrap_or_default().to_string(),
+                instance_id: instance["id"].as_u64().unwrap_or(0).to_string(),
                 status: instance["status"].as_str().unwrap_or("unknown").into(),
                 ip_address: instance["ipAddresses"]
                     .as_array()

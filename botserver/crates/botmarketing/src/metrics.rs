@@ -186,7 +186,7 @@ pub async fn get_campaign_metrics_by_channel(
             .filter(marketing_recipients::channel.eq(channel))
             .select(marketing_recipients::status)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
         if recipients.is_empty() {
             continue;

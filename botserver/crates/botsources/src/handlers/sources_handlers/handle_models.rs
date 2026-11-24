@@ -6,13 +6,22 @@ pub async fn handle_models(State(state): State<Arc<AppState>>) -> impl IntoRespo
     let default_bot_id = uuid::Uuid::nil();
     let configured_model = config_manager
         .get_config(&default_bot_id, "llm-model", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to read llm-model config: {e}");
+            String::new()
+        });
     let configured_provider = config_manager
         .get_config(&default_bot_id, "llm-provider", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to read llm-provider config: {e}");
+            String::new()
+        });
     let llm_url = config_manager
         .get_config(&default_bot_id, "llm-url", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to read llm-url config: {e}");
+            String::new()
+        });
 
     // Known provider families the runtime can drive (see botllm::provider_catalog::LLMProviderType).
     // `match_url` is a lowercase substring tested against the configured llm-url;
@@ -64,7 +73,7 @@ pub async fn handle_search(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
 ) -> impl IntoResponse {
-    let query = params.q.unwrap_or_default();
+    let query = params.q.unwrap_or_else(String::new);
 
     if query.is_empty() {
         return Html("<div class=\"search-prompt\"><p>Enter a search term</p></div>".to_string());
@@ -108,7 +117,7 @@ pub async fn handle_mentions_autocomplete(
     State(state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
 ) -> impl IntoResponse {
-    let query = params.q.unwrap_or_default().to_lowercase();
+    let query = params.q.unwrap_or_else(String::new).to_lowercase();
 
     #[derive(serde::Serialize)]
     struct MentionItem {

@@ -60,7 +60,7 @@ impl SafetyLayer {
                 "security" => ConstraintType::Security, "resource" => ConstraintType::Resource,
                 other => ConstraintType::Custom(other.to_string()),
             },
-            description: row.description.unwrap_or_default(),
+            description: row.description.unwrap_or_else(String::new),
             expression: row.expression,
             threshold: row.threshold.and_then(|t| serde_json::from_str(&t).ok()),
             severity: match row.severity.as_str() {
@@ -68,7 +68,7 @@ impl SafetyLayer {
                 "critical" => ConstraintSeverity::Critical, _ => ConstraintSeverity::Warning,
             },
             enabled: row.enabled,
-            applies_to: row.applies_to.map(|s| s.split(',').map(|x| x.trim().to_string()).collect()).unwrap_or_default(),
+            applies_to: row.applies_to.map(|s| s.split(',').map(|x| x.trim().to_string()).collect()).unwrap_or_else(Vec::new),
             bot_id: bot_id_str.clone(),
         }).collect();
 

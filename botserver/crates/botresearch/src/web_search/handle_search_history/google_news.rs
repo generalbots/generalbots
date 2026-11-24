@@ -66,16 +66,16 @@ fn parse_rss(xml: &str, max_results: usize) -> Vec<WebSearchResult> {
         let item = &rest[..end];
         rest = &rest[end..];
 
-        let raw_title = tag_text(item, "title").unwrap_or_default();
+        let raw_title = tag_text(item, "title").unwrap_or_else(String::new);
         let link = extract_link(item);
         let pub_date = tag_text(item, "pubDate")
             .as_deref()
             .and_then(to_iso_date)
             .or_else(|| tag_text(item, "dc:date").as_deref().and_then(to_iso_date));
-        let source_name = extract_source(item).unwrap_or_default();
+        let source_name = extract_source(item).unwrap_or_else(String::new);
         let snippet = tag_text(item, "description")
             .map(|d| strip_tags(&decode_entities(&d)))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         if link.is_empty() || raw_title.is_empty() {
             continue;

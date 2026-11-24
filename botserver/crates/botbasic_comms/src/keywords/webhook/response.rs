@@ -29,7 +29,10 @@ impl WebhookResponse {
 
     pub fn from_dynamic(value: &Dynamic) -> Self {
         if value.is_map() {
-            let map = value.clone().try_cast::<rhai::Map>().unwrap_or_default();
+            let map = value
+                .clone()
+                .try_cast::<rhai::Map>()
+                .unwrap_or_else(rhai::Map::new);
 
             let status = map
                 .get("status")

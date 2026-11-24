@@ -61,15 +61,15 @@ impl LlmProfile {
     /// `OPENAI_API_KEY`, `LLM_MODEL`). Returns `None` when no URL is configured,
     /// mirroring the current behavior of skipping the provider entirely.
     pub fn legacy_from_env() -> Option<Self> {
-        let url = std::env::var("LLM_URL").unwrap_or_default();
+        let url = std::env::var("LLM_URL").unwrap_or_else(|_| String::new());
         if url.is_empty() {
             return None;
         }
-        let mut key = std::env::var("LLM_KEY").unwrap_or_default();
+        let mut key = std::env::var("LLM_KEY").unwrap_or_else(|_| String::new());
         if key.is_empty() {
-            key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
+            key = std::env::var("OPENAI_API_KEY").unwrap_or_else(|_| String::new());
         }
-        let model = std::env::var("LLM_MODEL").unwrap_or_default();
+        let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| String::new());
         Some(Self {
             url,
             key,

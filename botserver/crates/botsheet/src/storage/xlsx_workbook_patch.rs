@@ -220,7 +220,7 @@ fn patch_content_types(
     let mut cursor = 0;
     for tag in ov_re.find_iter(block) {
         let raw = tag.as_str();
-        let part = first_capture(part_re, raw).unwrap_or_default();
+        let part = first_capture(part_re, raw).unwrap_or_else(String::new);
         if part.contains("/worksheets/sheet") && deleted.contains(&part) && !kept.contains(&part) {
             out_block.push_str(&block[cursor..tag.start()]);
             cursor = tag.end();

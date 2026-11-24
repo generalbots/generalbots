@@ -55,7 +55,7 @@ impl LLMProvider for ClaudeClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             return Err(format!("Claude API error ({}): {}", status, error_text).into());
         }
 

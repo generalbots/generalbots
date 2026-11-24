@@ -22,10 +22,16 @@ pub async fn handle_prompts<S: ResearchState>(
         ))
         .load::<CollectionNameRow>(&mut db_conn)
         .map(|rows| rows.into_iter().map(|r| r.name).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load research topics: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Research topics task failed: {e}");
+        Vec::new()
+    });
 
     let mut prompts: Vec<(String, String, String)> = topics
         .iter()

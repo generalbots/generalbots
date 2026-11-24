@@ -311,7 +311,7 @@ impl CollaborationManager {
         sessions
             .get(&page_id)
             .map(|s| s.active_users.clone())
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
     }
 
     pub async fn cleanup_stale_sessions(&self, timeout_seconds: i64) {

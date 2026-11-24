@@ -180,7 +180,7 @@ pub async fn schedule_meeting(
         .and_then(|s| Uuid::parse_str(&s).ok())
         .unwrap_or(Uuid::nil());
 
-    let settings = request.settings.unwrap_or_default();
+    let settings = request.settings.unwrap_or_else(MeetingSettingsJson::default);
     let settings_json = serde_json::to_value(&settings)
         .map_err(|e| format!("Failed to serialize settings: {e}"))?;
 

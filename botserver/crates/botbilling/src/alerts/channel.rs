@@ -57,7 +57,10 @@ impl NotificationHandler for WebhookNotificationHandler {
 
         if !response.status().is_success() {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read webhook error body ({e}); using empty body");
+                String::new()
+            });
             return Err(NotificationError::DeliveryFailed(
                 format!("Webhook returned {}: {}", status, body)
             ));

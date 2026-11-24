@@ -21,7 +21,7 @@ pub(super) fn validate_deploy_key(headers: &HeaderMap, state: &GatewayState) -> 
     let key = headers
         .get("X-Deploy-Key")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or_default();
+        .unwrap_or("");
     if state.deploy_keys.contains(&key.to_string()) {
         Ok(())
     } else {
@@ -225,8 +225,8 @@ pub async fn gateway_stop(
 ) -> Result<Json<DeployGatewayResponse>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
 
-    let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or_default();
-    let org = body.get("org").and_then(|v| v.as_str()).unwrap_or_default();
+    let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or("");
+    let org = body.get("org").and_then(|v| v.as_str()).unwrap_or("");
     let container_name = container_name_from_parts(org, app_name)?;
 
     log::info!("Gateway stop: {container_name}");
@@ -256,8 +256,8 @@ pub async fn gateway_start(
 ) -> Result<Json<DeployGatewayResponse>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
 
-    let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or_default();
-    let org = body.get("org").and_then(|v| v.as_str()).unwrap_or_default();
+    let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or("");
+    let org = body.get("org").and_then(|v| v.as_str()).unwrap_or("");
     let container_name = container_name_from_parts(org, app_name)?;
 
     log::info!("Gateway start: {container_name}");
@@ -327,7 +327,12 @@ pub(super) async fn deploy_to_incus(
 ) -> Result<String, String> {
     let list = run_incus_command(state, &["list", container_name, "-f", "csv"]).await;
 
-    if list.is_err() || list.unwrap_or_default().trim().is_empty() {
+    if list.is_err()
+        || list.unwrap_or_else(|e| {
+            log::warn!("Failed to list Incus container {container_name}: {e}");
+            String::new()
+        }).trim().is_empty()
+    {
         log::info!("Creating new Incus container: {container_name}");
         run_incus_command(state, &["launch", "ubuntu:22.04", container_name]).await
             .map_err(|e| format!("Failed to launch container: {e}"))?;

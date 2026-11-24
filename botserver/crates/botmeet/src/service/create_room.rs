@@ -40,7 +40,7 @@ impl MeetingService {
             is_recording: false,
             is_transcribing: settings.as_ref().is_none_or(|s| s.enable_transcription),
             max_participants: 100,
-            settings: settings.unwrap_or_default(),
+            settings: settings.unwrap_or_else(MeetingSettings::default),
         };
 
         self.rooms.write().await.insert(room_id, room.clone());

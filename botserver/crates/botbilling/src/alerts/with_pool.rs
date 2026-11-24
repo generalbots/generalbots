@@ -50,7 +50,7 @@ impl AlertManager {
         org_id: Uuid,
     ) -> NotificationPreferences {
         let prefs = self.notification_prefs.read().await;
-        prefs.get(&org_id).cloned().unwrap_or_default()
+        prefs.get(&org_id).cloned().unwrap_or_else(NotificationPreferences::default)
     }
 
     pub async fn check_and_alert(
@@ -110,7 +110,7 @@ impl AlertManager {
 
     pub async fn get_active_alerts(&self, org_id: Uuid) -> Vec<UsageAlert> {
         let alerts = self.active_alerts.read().await;
-        alerts.get(&org_id).cloned().unwrap_or_default()
+        alerts.get(&org_id).cloned().unwrap_or_else(Vec::new)
     }
 
     pub async fn get_alert_history(
@@ -125,7 +125,7 @@ impl AlertManager {
             }
         }
         let history = self.alert_history.read().await;
-        let mut alerts = history.get(&org_id).cloned().unwrap_or_default();
+        let mut alerts = history.get(&org_id).cloned().unwrap_or_else(Vec::new);
 
         if let Some(limit) = limit {
             alerts.truncate(limit);

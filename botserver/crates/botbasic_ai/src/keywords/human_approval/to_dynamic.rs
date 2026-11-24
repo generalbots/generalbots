@@ -119,14 +119,14 @@ pub fn register_approval_keywords(engine: &mut Engine) {
         request
             .get("decided_by")
             .and_then(|v| v.clone().try_cast::<String>())
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     });
 
     engine.register_fn("approval_comments", |request: Map| -> String {
         request
             .get("comments")
             .and_then(|v| v.clone().try_cast::<String>())
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     });
 
     info!("Approval keywords registered");

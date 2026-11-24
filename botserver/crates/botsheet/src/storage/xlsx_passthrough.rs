@@ -111,7 +111,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("read zip entry {i}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut data = Vec::new();
         entry
             .read_to_end(&mut data)
@@ -187,7 +187,7 @@ fn build_cell_xml(
     let style = style_attr
         .filter(|s| !s.is_empty())
         .map(|s| format!(" {s}"))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     if let Some(formula) = &cell.formula {
         // When the formula is unchanged, keep the original `<c>` element

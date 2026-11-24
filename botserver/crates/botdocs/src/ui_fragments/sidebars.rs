@@ -16,7 +16,7 @@ pub async fn handle_document_view_by_id(
     user: DocUser,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Html<String> {
-    let doc_id = params.get("id").cloned().unwrap_or_default();
+    let doc_id = params.get("id").cloned().unwrap_or_else(String::new);
     if doc_id.is_empty() {
         return Html(err_fragment("id ausente"));
     }

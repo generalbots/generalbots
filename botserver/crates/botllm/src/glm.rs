@@ -184,7 +184,7 @@ impl LLMProvider for GLMClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("[GLM] API error: {}", error_text);
             return Err(format!("GLM API error: {}", error_text).into());
         }
@@ -194,7 +194,7 @@ impl LLMProvider for GLMClient {
             .choices
             .first()
             .and_then(|c| c.message.content.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         Ok(content)
     }
@@ -278,7 +278,7 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("[GLM] Streaming error: {}", error_text);
             return Err(format!("GLM streaming error: {}", error_text).into());
         }

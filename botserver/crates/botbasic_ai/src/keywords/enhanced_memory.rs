@@ -72,7 +72,10 @@ async fn share_bot_memory(
         .filter(bot_memories::key.eq(memory_key))
         .select(bot_memories::value)
         .first(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to read bot memory '{memory_key}': {e}");
+            String::new()
+        });
     
     let shared_memory = BotSharedMemory {
         id: Uuid::new_v4(),

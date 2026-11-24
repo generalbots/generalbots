@@ -56,7 +56,7 @@ impl LLMProvider for VertexClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Vertex/Gemini generate error: {}", error_text);
             return Err(format!("Google API error ({}): {}", status, error_text).into());
         }
@@ -175,7 +175,7 @@ impl LLMProvider for VertexClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Vertex/Gemini generate_stream error: {}", error_text);
             return Err(format!("Google API error ({}): {}", status, error_text).into());
         }

@@ -38,18 +38,33 @@ impl ReflectionEngine {
         .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
         .bind::<diesel::sql_types::Integer, _>(limit as i32)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load bot reflections: {e}");
+            Vec::new()
+        });
 
         let results: Vec<ReflectionResult> = rows
             .into_iter()
             .map(|row| {
                 let reflection_type: ReflectionType =
-                    serde_json::from_str(&row.reflection_type).unwrap_or_default();
-                let insights: Vec<String> = serde_json::from_str(&row.insights).unwrap_or_default();
+                    serde_json::from_str(&row.reflection_type).unwrap_or_else(|e| {
+                        log::warn!("Failed to parse reflection type: {e}");
+                        ReflectionType::default()
+                    });
+                let insights: Vec<String> = serde_json::from_str(&row.insights).unwrap_or_else(|e| {
+                    log::warn!("Failed to parse reflection insights: {e}");
+                    Vec::new()
+                });
                 let improvements: Vec<String> =
-                    serde_json::from_str(&row.improvements).unwrap_or_default();
+                    serde_json::from_str(&row.improvements).unwrap_or_else(|e| {
+                        log::warn!("Failed to parse reflection improvements: {e}");
+                        Vec::new()
+                    });
                 let positive_patterns: Vec<String> =
-                    serde_json::from_str(&row.positive_patterns).unwrap_or_default();
+                    serde_json::from_str(&row.positive_patterns).unwrap_or_else(|e| {
+                        log::warn!("Failed to parse reflection positive patterns: {e}");
+                        Vec::new()
+                    });
 
                 ReflectionResult {
                     id: row.id,

@@ -51,7 +51,10 @@ pub fn resolve_bindings(
     let workbook_xml = entry_text(entries, "xl/workbook.xml")
         .map_err(|_| "workbook missing xl/workbook.xml".to_string())?;
     let orig = parse_sheets(&workbook_xml)?;
-    let rels_xml = entry_text(entries, "xl/_rels/workbook.xml.rels").unwrap_or_default();
+    let rels_xml = entry_text(entries, "xl/_rels/workbook.xml.rels").unwrap_or_else(|error| {
+        log::warn!("sheets: workbook relationships unreadable: {error}");
+        String::new()
+    });
     let rid_to_target = parse_worksheet_rels(&rels_xml);
 
     // Chart/dialog/macro sheets are not modelled; preserve the whole structure
@@ -184,9 +187,9 @@ fn parse_sheets(workbook_xml: &str) -> Result<Vec<OrigSheet>, String> {
         .map(|tag| {
             let raw = tag.as_str().to_string();
             OrigSheet {
-                name: first_capture(name_re, &raw).unwrap_or_default(),
-                sheet_id: first_capture(sid_re, &raw).unwrap_or_default(),
-                rid: first_capture(rid_re, &raw).unwrap_or_default(),
+                name: first_capture(name_re, &raw).unwrap_or_else(String::new),
+                sheet_id: first_capture(sid_re, &raw).unwrap_or_else(String::new),
+                rid: first_capture(rid_re, &raw).unwrap_or_else(String::new),
                 raw,
             }
         })
@@ -211,7 +214,7 @@ fn parse_worksheet_rels(rels_xml: &str) -> HashMap<String, String> {
     for tag in rel_re.find_iter(rels_xml) {
         let raw = tag.as_str();
         if !first_capture(type_re, raw)
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
             .ends_with(WORKSHEET_REL_SUFFIX)
         {
             continue;

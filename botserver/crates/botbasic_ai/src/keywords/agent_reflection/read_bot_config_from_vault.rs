@@ -40,7 +40,10 @@ pub(super) fn write_bot_config_to_vault(bot_id: &Uuid, key: &str, value: &str) -
             .build();
         let result = if let Ok(rt) = rt {
             rt.block_on(async move {
-                let mut data = sm_clone.get_secret(&path_owned).await.unwrap_or_default();
+                let mut data = sm_clone.get_secret(&path_owned).await.unwrap_or_else(|e| {
+                    log::warn!("Failed to read Vault config at {path_owned}: {e}");
+                    HashMap::new()
+                });
                 data.insert(key_owned.clone(), value_owned.clone());
                 sm_clone.put_secret(&path_owned, data).await.ok()
             })

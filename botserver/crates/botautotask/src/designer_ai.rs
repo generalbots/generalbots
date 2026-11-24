@@ -65,7 +65,7 @@ impl DesignerAI {
         manifest: &TaskManifest,
     ) -> Result<Vec<DesignerSuggestion>, Box<dyn std::error::Error + Send + Sync>> {
         info!("DesignerAI suggesting improvements for: {}", manifest.app_name);
-        let manifest_json = serde_json::to_string(manifest).unwrap_or_default();
+        let manifest_json = serde_json::to_string(manifest).unwrap_or_else(|_| String::new());
         let prompt = format!(
             r#"Analyze this application manifest and suggest improvements.
 Manifest: {manifest_json}
@@ -151,7 +151,7 @@ Respond with JSON only:
 
         match serde_json::from_str::<AnalysisResponse>(cleaned) {
             Ok(resp) => {
-                let suggestions = resp.suggestions.unwrap_or_default().into_iter().map(|s| DesignerSuggestion {
+                let suggestions = resp.suggestions.unwrap_or_else(Vec::new).into_iter().map(|s| DesignerSuggestion {
                     id: Uuid::new_v4().to_string(),
                     category: s.category,
                     title: s.title,
@@ -161,8 +161,8 @@ Respond with JSON only:
                 }).collect();
                 Ok(DesignerAnalysis {
                     suggestions,
-                    improvements: resp.improvements.unwrap_or_default(),
-                    warnings: resp.warnings.unwrap_or_default(),
+                    improvements: resp.improvements.unwrap_or_else(Vec::new),
+                    warnings: resp.warnings.unwrap_or_else(Vec::new),
                 })
             }
             Err(e) => {

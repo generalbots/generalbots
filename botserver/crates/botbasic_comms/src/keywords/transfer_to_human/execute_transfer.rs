@@ -65,8 +65,8 @@ pub async fn execute_transfer(
     let transfer_context = serde_json::json!({
         "transfer_requested_at": Utc::now().to_rfc3339(),
         "transfer_priority": priority,
-        "transfer_reason": request.reason.clone().unwrap_or_default(),
-        "transfer_context": request.context.clone().unwrap_or_default(),
+        "transfer_reason": request.reason.clone().unwrap_or_else(String::new),
+        "transfer_context": request.context.clone().unwrap_or_else(String::new),
         "transfer_to_name": request.name.clone(),
         "transfer_to_department": request.department.clone(),
         "needs_human": true,

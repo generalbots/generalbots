@@ -1,7 +1,7 @@
 //! Offline unit tests for the dashboard row mappers (#2075).
 //!
 //! The storage layer converts Diesel rows into the API model. Every conversion
-//! has a fallback for a JSON column written by an older release (`unwrap_or_default`),
+//! has an explicit fallback for a JSON column written by an older release,
 //! and an unknown enum string must degrade to a safe default instead of failing
 //! the whole dashboard. Those fallbacks are the tested contract.
 

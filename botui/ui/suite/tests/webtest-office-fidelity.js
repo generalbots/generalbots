@@ -13,6 +13,7 @@
  *   12_fuzz.js         malformed ZIP and resource-cap checks
  *   20_static.js       [STATIC] production-source assertions
  *   25_recent_fixes.js [STATIC] guards for the #2457 fixes already landed
+ *   28_agent_undo.js   [KNOWN BUG] #2448 criterion 4: no batch-identity undo verb
  *   30_coverage.js     matrix derived from recorded results
  *
  * No server, browser, cargo, CDN or i18n change is involved. Nothing is
@@ -29,6 +30,7 @@ require("./webtest-office-fidelity/20_static");
 require("./webtest-office-fidelity/25_recent_fixes");
 require("./webtest-office-fidelity/26_kb_citation");
 require("./webtest-office-fidelity/27_kb_backfill");
+require("./webtest-office-fidelity/28_agent_undo");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

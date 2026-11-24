@@ -310,7 +310,10 @@ pub fn load_token_into_env() -> Result<()> {
 /// Replace all persisted Vault credential lines, keeping unrelated settings.
 pub fn write_env_file(env_file: &Path, vault_addr: &str, ca_cert: Option<&Path>) -> Result<()> {
     let lines = env_lines(vault_addr, ca_cert)?;
-    let existing = std::fs::read_to_string(env_file).unwrap_or_default();
+    let existing = std::fs::read_to_string(env_file).unwrap_or_else(|e| {
+        log::warn!("Failed to read {}: {e}", env_file.display());
+        String::new()
+    });
     let kept: Vec<&str> = existing
         .lines()
         .filter(|line| {

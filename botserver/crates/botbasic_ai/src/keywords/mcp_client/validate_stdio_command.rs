@@ -80,7 +80,10 @@ impl McpClient {
                 },
             })
         } else {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read MCP validation error body: {e}");
+                String::new()
+            });
             Ok(McpResponse {
                 id: request.id.clone(),
                 success: false,

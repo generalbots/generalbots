@@ -18,10 +18,10 @@ pub(crate) fn log_safe_url(url: &str) -> String {
     let authority = rest
         .split(['/', '?', '#'])
         .next()
-        .unwrap_or_default()
+        .unwrap_or("")
         .rsplit('@')
         .next()
-        .unwrap_or_default();
+        .unwrap_or("");
     if authority.is_empty() {
         return "<unparseable-url>".to_string();
     }

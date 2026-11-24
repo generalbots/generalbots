@@ -24,7 +24,7 @@ fn first_href(html: &str) -> String {
 }
 
 fn query_of(url: &str) -> ClickQuery {
-    let raw = url.split_once('?').map(|(_, q)| q).unwrap_or_default();
+    let raw = url.split_once('?').map(|(_, q)| q).unwrap_or("");
     let mut query = ClickQuery::default();
     for (key, value) in form_urlencoded::parse(raw.as_bytes()) {
         match key.as_ref() {

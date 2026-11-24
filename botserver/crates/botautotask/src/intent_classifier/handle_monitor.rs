@@ -236,7 +236,7 @@ impl IntentClassifier {
                 .bind::<Text, _>(&classification.original_text)
                 .bind::<Text, _>(&classification.intent_type.to_string())
                 .bind::<Float8, _>(classification.confidence)
-                .bind::<Text, _>(serde_json::to_string(&classification.entities).unwrap_or_default())
+                .bind::<Text, _>(serde_json::to_string(&classification.entities).unwrap_or_else(|_| String::new()))
                 .execute(conn).ok();
         }
         Ok(())

@@ -99,7 +99,7 @@ impl UsageMeteringService {
             .aggregated
             .get(&organization_id)
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(HashMap::new);
 
         Ok(metrics)
     }
@@ -156,7 +156,7 @@ impl UsageMeteringService {
             .aggregated
             .get(&organization_id)
             .map(|m| m.iter().map(|(&k, v)| (k, v.total)).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(HashMap::new);
 
         let snapshot = DailySnapshot {
             organization_id,
@@ -188,7 +188,7 @@ impl UsageMeteringService {
                 let start = len.saturating_sub(days);
                 s[start..].to_vec()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(snapshots)
     }

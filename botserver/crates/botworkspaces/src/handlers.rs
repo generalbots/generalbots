@@ -38,7 +38,7 @@ pub(crate) async fn list_workspaces(
         let db_members: Vec<DbWorkspaceMember> = aiworkspace_members::table
             .filter(aiworkspace_members::workspace_id.eq(ws.id))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let members: Vec<WorkspaceMember> = db_members
             .into_iter()
@@ -56,7 +56,7 @@ pub(crate) async fn list_workspaces(
             .select(aiworkspace_pages::id)
             .order(aiworkspace_pages::position.asc())
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         result.push(db_to_workspace(ws, members, root_pages));
     }
@@ -153,7 +153,7 @@ pub(crate) async fn get_workspace(
     let db_members: Vec<DbWorkspaceMember> = aiworkspace_members::table
         .filter(aiworkspace_members::workspace_id.eq(workspace_id))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let members: Vec<WorkspaceMember> = db_members
         .into_iter()
@@ -171,7 +171,7 @@ pub(crate) async fn get_workspace(
         .select(aiworkspace_pages::id)
         .order(aiworkspace_pages::position.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let workspace = db_to_workspace(db_workspace, members, root_pages);
     Ok(Json(workspace))
@@ -212,7 +212,7 @@ pub(crate) async fn update_workspace(
     let db_members: Vec<DbWorkspaceMember> = aiworkspace_members::table
         .filter(aiworkspace_members::workspace_id.eq(workspace_id))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let members: Vec<WorkspaceMember> = db_members
         .into_iter()
@@ -230,7 +230,7 @@ pub(crate) async fn update_workspace(
         .select(aiworkspace_pages::id)
         .order(aiworkspace_pages::position.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     let workspace = db_to_workspace(db_workspace, members, root_pages);
     Ok(Json(workspace))
@@ -253,7 +253,7 @@ pub(crate) async fn delete_workspace(
         .filter(aiworkspace_pages::workspace_id.eq(workspace_id))
         .select(aiworkspace_pages::id)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     if !page_ids.is_empty() {
         diesel::delete(aiworkspace_page_versions::table.filter(

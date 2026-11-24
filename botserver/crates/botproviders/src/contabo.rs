@@ -38,7 +38,10 @@ pub fn sign(
             // HMAC accepts a key of any length, so this arm is unreachable in
             // practice; returning an empty digest surfaces the problem as a 401
             // instead of aborting the process.
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                eprintln!("Contabo: HMAC initialization failed: {e}");
+                String::new()
+            });
     format!("{SIGN_HEADER} {timestamp},{consumer},{digest}")
 }
 
@@ -171,11 +174,17 @@ impl ComputeProvider for ContaboProvider {
         let resp = req.send().await?;
         let status = resp.status();
         if !status.is_success() {
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                eprintln!("Contabo: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("Contabo", status, &reqwest::header::HeaderMap::new(), &text));
         }
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Contabo: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Contabo: unreadable create response: {e}")))?;
 
@@ -219,7 +228,10 @@ impl ComputeProvider for ContaboProvider {
             )));
         }
         if !status.is_success() {
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                eprintln!("Contabo: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("Contabo", status, &reqwest::header::HeaderMap::new(), &text));
         }
         Ok(())
@@ -245,7 +257,7 @@ impl ComputeProvider for ContaboProvider {
                 instance_id: inst["instanceId"]
                     .as_str()
                     .or_else(|| inst["id"].as_str())
-                    .unwrap_or_default()
+                    .unwrap_or("")
                     .to_string(),
                 status: inst["status"].as_str().unwrap_or("unknown").into(),
                 ip_address: inst["ipAddress"]
@@ -282,10 +294,16 @@ impl ContaboProvider {
         let resp = req.send().await?;
         let status = resp.status();
         if !status.is_success() {
-            let text = resp.text().await.unwrap_or_default();
+            let text = resp.text().await.unwrap_or_else(|e| {
+                eprintln!("Contabo: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("Contabo", status, &reqwest::header::HeaderMap::new(), &text));
         }
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Contabo: response body unreadable: {e}");
+            String::new()
+        });
         serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Contabo: unreadable response: {e}")))
     }

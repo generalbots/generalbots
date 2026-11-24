@@ -31,13 +31,13 @@ pub async fn handle_share_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     let action = params
         .get("action")
         .cloned()
         .unwrap_or_else(|| "share".to_string());
     if action == "delete_named" {
-        let name = params.get("name").cloned().unwrap_or_default();
+        let name = params.get("name").cloned().unwrap_or_else(String::new);
         let escaped_name = html_escape(&name);
         return Html(format!(
             r##"<div class="ss-toast" style="padding:12px;background:#7f1d1d;color:#fecaca;border-radius:6px;">{}</div>"##,
@@ -76,7 +76,7 @@ pub async fn handle_find_replace_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="find-replace-form" hx-post="/api/sheet/find-replace" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{find}
@@ -105,7 +105,7 @@ pub async fn handle_conditional_format_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="cf-form" hx-post="/api/sheet/conditional-format" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{range_label}
@@ -152,7 +152,7 @@ pub async fn handle_data_validation_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="dv-form" hx-post="/api/sheet/data-validation" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{cell}
@@ -206,7 +206,7 @@ pub async fn handle_custom_format_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="cf-custom-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"custom"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{range}
@@ -240,7 +240,7 @@ pub async fn handle_insert_image_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     let file = form_field(
         &t(lang, "form.img.file"),
         r#"<input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />"#,
@@ -268,7 +268,7 @@ pub async fn handle_print_preview_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="print-form" hx-post="/api/sheet/print-preview" hx-vals='{{"id":"{id}","format":"pdf"}}' hx-target="#print-preview-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <div class="print-preview-frame" style="background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;padding:24px;min-height:300px;">
@@ -305,7 +305,7 @@ pub async fn handle_chart_form(
     let lang = Lang::from_headers(&headers);
     let mut params = query;
     merge_json_body(&mut params, body);
-    let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let sheet_id = params.get("id").cloned().unwrap_or_else(String::new);
     Html(format!(
         r##"<form class="ss-form" id="chart-form" hx-post="/api/sheet/chart" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{chart_type}

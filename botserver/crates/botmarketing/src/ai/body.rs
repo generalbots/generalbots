@@ -53,9 +53,9 @@ pub(super) fn get_llm_config(
     state: &Arc<AppState>,
     bot_id: Uuid,
 ) -> Result<(String, String, String), String> {
-    let llm_url = (state.get_config)(&bot_id, "llm-url", Some("")).unwrap_or_default();
-    let llm_model = (state.get_config)(&bot_id, "llm-model", None).unwrap_or_default();
-    let llm_key = (state.get_config)(&bot_id, "llm-key", None).unwrap_or_default();
+    let llm_url = (state.get_config)(&bot_id, "llm-url", Some("")).unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() });
+    let llm_model = (state.get_config)(&bot_id, "llm-model", None).unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() });
+    let llm_key = (state.get_config)(&bot_id, "llm-key", None).unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() });
     Ok((llm_url, llm_model, llm_key))
 }
 
@@ -278,7 +278,7 @@ Provide a JSON response:
         let (_llm_url, llm_model, llm_key) = get_llm_config(state, bot_id)?;
 
         let response = (state.llm_generate)(&prompt, &config, &llm_model, &llm_key)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("LLM generation failed: {e}"); String::new() });
 
         let parsed: serde_json::Value = serde_json::from_str(&response).unwrap_or(
             serde_json::json!({

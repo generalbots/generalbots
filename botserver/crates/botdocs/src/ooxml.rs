@@ -26,7 +26,7 @@ pub fn load_docx_preserving(bytes: &[u8]) -> Result<OoxmlDocument, String> {
                 .ok()
                 .and_then(|root| root.to_xml().ok())
         })
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let paragraphs = extract_paragraphs(&xml_str);
 
@@ -128,7 +128,7 @@ pub fn update_docx_text(
                 .by_index(i)
                 .map_err(|e| format!("Failed to read archive entry: {e}"))?;
 
-            let name = file.name().map(|n| n.to_string()).unwrap_or_default();
+            let name = file.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
 
             if name == "word/document.xml" {
                 let mut content = String::new();
@@ -265,7 +265,7 @@ mod update_docx_tests {
         let mut parts = Vec::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).expect("entry");
-            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
+            let name = file.name().map(|name| name.to_string()).unwrap_or_else(String::new);
             let mut content = Vec::new();
             file.read_to_end(&mut content).expect("read");
             parts.push((name, content));
@@ -324,7 +324,7 @@ mod fixture_round_trip {
         let mut out = Vec::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).expect("entry");
-            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
+            let name = file.name().map(|name| name.to_string()).unwrap_or_else(String::new);
             let mut content = Vec::new();
             file.read_to_end(&mut content).expect("read");
             out.push((name, content));

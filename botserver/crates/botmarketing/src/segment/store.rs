@@ -189,7 +189,7 @@ pub(crate) fn load_candidates(
                 last_activity,
                 deal_value,
                 deal_stages,
-                list_ids: lists_by_contact.get(&id).cloned().unwrap_or_default(),
+                list_ids: lists_by_contact.get(&id).cloned().unwrap_or_else(Vec::new),
                 consent: consent_flags(custom_fields.as_ref()),
                 marketing_subscribed: subscribed_by_email
                     .get(&normalized_email)
@@ -396,7 +396,7 @@ pub fn resolve_send_contacts(
             if suppressed.contains(&email.trim().to_lowercase()) {
                 return None;
             }
-            Some((id, email, name.unwrap_or_default()))
+            Some((id, email, name.unwrap_or_else(String::new)))
         })
         .collect()
 }

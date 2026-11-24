@@ -48,7 +48,10 @@ impl From<CallRow> for CallResponse {
             status: r.status,
             started_by: r.started_by.unwrap_or(Uuid::nil()),
             participants: serde_json::from_value::<Vec<CallParticipant>>(r.participants)
-                .unwrap_or_default(),
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to parse call participants: {e}");
+                    Vec::new()
+                }),
             started_at: r.started_at,
             ended_at: r.ended_at,
             duration_seconds: r.ended_at.map(|e| (e - r.started_at).num_seconds()),

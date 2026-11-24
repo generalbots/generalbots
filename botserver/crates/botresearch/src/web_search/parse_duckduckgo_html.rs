@@ -48,7 +48,7 @@ pub(super) fn parse_duckduckgo_html(html: &str, max_results: usize) -> Vec<WebSe
                 let end = text.find("</a>").unwrap_or(text.len());
                 Some(html_decode(&strip_html_inline(&text[..end])))
             })
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         if !title.trim().is_empty() && !url.trim().is_empty() {
             let domain = extract_domain(&url);

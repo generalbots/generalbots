@@ -84,8 +84,8 @@ pub async fn execute_llm_generation(
     state: Arc<dyn BasicRuntime>,
     prompt: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let model = state.config_value("llm-model").unwrap_or_default();
-    let key = state.config_value("llm-key").unwrap_or_default();
+    let model = state.config_value("llm-model").unwrap_or_else(String::new);
+    let key = state.config_value("llm-key").unwrap_or_else(String::new);
     state.llm_generate(&prompt, &model, &key).map_err(|e| e.into())
 }
 

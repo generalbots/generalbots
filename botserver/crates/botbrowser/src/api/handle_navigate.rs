@@ -14,7 +14,13 @@ pub async fn handle_navigate(
         return Err((axum::http::StatusCode::BAD_REQUEST, reason));
     }
     match session.navigate_with_result(&payload.url).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_default())),
+        Ok(result) => {
+            let value = serde_json::to_value(result).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize navigation result: {e}");
+                serde_json::Value::Null
+            });
+            Ok(Json(value))
+        }
         Err(e) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             format!("Navigate failed: {e}"),

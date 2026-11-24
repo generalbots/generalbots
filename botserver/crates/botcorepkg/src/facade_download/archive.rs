@@ -20,7 +20,7 @@ pub fn handle_downloaded_file(temp_file: &std::path::Path, bin_path: &std::path:
             if let Some(name) = binary_name {
                 install_binary(temp_file, bin_path, name)?;
             } else {
-                let final_path = bin_path.join(temp_file.file_name().unwrap_or_default());
+                let final_path = bin_path.join(temp_file.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")));
                 if temp_file.to_string_lossy().contains("botserver-installers") {
                     std::fs::copy(temp_file, &final_path)?;
                 } else {
@@ -57,7 +57,7 @@ pub(super) fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result
         let sub = dirs[0].path();
         for entry in std::fs::read_dir(&sub).into_iter().flatten().flatten() {
             let src = entry.path();
-            let name = src.file_name().unwrap_or_default();
+            let name = src.file_name().unwrap_or_else(|| std::ffi::OsStr::new(""));
             let dst = bin_path.join(name);
             let _ = std::fs::rename(&src, &dst);
         }

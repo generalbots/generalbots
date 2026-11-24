@@ -93,7 +93,7 @@ pub async fn download_and_install(base_path: &std::path::Path, url: &str, compon
             let asset_name = cache_path
                 .file_name()
                 .map(|name| name.to_string_lossy().to_string())
-                .unwrap_or_default();
+                .unwrap_or_else(String::new);
             let download_url = if download_url.contains("{tag}") {
                 let tag = resolve_release_tag(&download_url, &asset_name).await?;
                 download_url.replace("{tag}", &tag)

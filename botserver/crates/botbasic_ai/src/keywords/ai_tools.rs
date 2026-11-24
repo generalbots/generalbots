@@ -141,14 +141,20 @@ fn register_classify_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, 
                 let cat_list: Vec<String> = if categories.is_array() {
                     categories
                         .into_array()
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            log::warn!("Failed to convert CLASSIFY categories to array: {e}");
+                            rhai::Array::new()
+                        })
                         .into_iter()
                         .filter_map(|c| c.into_string().ok())
                         .collect()
                 } else {
                     categories
                         .into_string()
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            log::warn!("Failed to convert CLASSIFY categories to string: {e}");
+                            String::new()
+                        })
                         .split(',')
                         .map(|s| s.trim().to_string())
                         .collect()

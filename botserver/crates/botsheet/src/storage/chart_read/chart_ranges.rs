@@ -42,7 +42,7 @@ pub(crate) fn resolve_range_labels(
         for c in c0..=c1 {
             let key = format!("{r},{c}");
             if let Some(cell) = worksheets[ws_idx].data.get(&key) {
-                labels.push(cell.value.clone().unwrap_or_default());
+                labels.push(cell.value.clone().unwrap_or_else(String::new));
             }
         }
     }

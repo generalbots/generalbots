@@ -157,8 +157,8 @@ pub async fn handle_create_audit_log(
         let now = Utc::now();
         let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
-        let metadata =
-            serde_json::to_value(req.metadata.unwrap_or_default()).unwrap_or(serde_json::json!({}));
+        let metadata = serde_json::to_value(req.metadata.unwrap_or_else(std::collections::HashMap::new))
+            .unwrap_or(serde_json::json!({}));
 
         let db_log = DbAuditLog {
             id: Uuid::new_v4(),

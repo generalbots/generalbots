@@ -119,7 +119,7 @@ impl BedrockClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Bedrock generate_stream error: {}", error_text);
             return Err(format!("Bedrock API error ({}): {}", status, error_text).into());
         }
@@ -230,7 +230,7 @@ impl LLMProvider for BedrockClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Bedrock generate error: {}", error_text);
             return Err(format!("Bedrock API error ({}): {}", status, error_text).into());
         }

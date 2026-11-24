@@ -118,7 +118,7 @@ pub(super) async fn send_via_gmail(
         .map_err(|e| format!("Gmail API request failed: {}", e))?;
 
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = response.text().await.unwrap_or_else(|_| String::new());
         return Err(format!("Gmail API error: {}", error_text));
     }
 
@@ -160,7 +160,7 @@ pub(super) async fn send_via_outlook(
         .map_err(|e| format!("Microsoft Graph request failed: {}", e))?;
 
     if !response.status().is_success() {
-        let error_text = response.text().await.unwrap_or_default();
+        let error_text = response.text().await.unwrap_or_else(|_| String::new());
         return Err(format!("Microsoft Graph error: {}", error_text));
     }
 

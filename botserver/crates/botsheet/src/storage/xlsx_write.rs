@@ -251,7 +251,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
     let underline_str = font
         .as_ref()
         .map(|f| f.underline().to_string())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let has_strikethrough = font.as_ref().map(|f| f.strikethrough()).unwrap_or(false);
     let text_decoration = {
         let mut dec = Vec::new();
@@ -360,7 +360,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
 pub(crate) fn extract_border(sides: [&umya_spreadsheet::Border; 4]) -> Option<String> {
     let side = sides.into_iter().find(|b| b.border_style() != "none")?;
     let style = border_style_to_css(side.border_style())?;
-    let argb = side.color().map(|c| c.argb_str()).unwrap_or_default();
+    let argb = side.color().map(|c| c.argb_str()).unwrap_or_else(String::new);
     let color = if argb.len() >= 8 {
         format!("#{}", &argb[2..])
     } else if argb.is_empty() {

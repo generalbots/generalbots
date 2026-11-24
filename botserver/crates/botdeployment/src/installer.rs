@@ -107,8 +107,8 @@ impl InstallerManifest {
                 };
                 let mut parsed = std::collections::HashMap::new();
                 for (suffix, v) in versions {
-                    let url = v.get("url").and_then(|x| x.as_str()).unwrap_or_default().to_string();
-                    let sha = v.get("sha256").and_then(|x| x.as_str()).unwrap_or_default().to_string();
+                    let url = v.get("url").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                    let sha = v.get("sha256").and_then(|x| x.as_str()).unwrap_or("").to_string();
                     parsed.insert(suffix.clone(), ComponentVersion { url, sha256: sha });
                 }
                 components.push(Component { name: name.clone(), versions: parsed });

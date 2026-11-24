@@ -264,18 +264,18 @@ impl TaskManifest {
                 md.push_str(&format!("  - {} {} (Step {}/{})\n", child_checkbox, child.name, child.current_step, child.total_steps));
                 for group in &child.item_groups {
                     let gc = match group.status { ItemStatus::Completed => "[x]", ItemStatus::Running => "[>]", _ => "[ ]" };
-                    let dur = group.duration_seconds.map(|s| format!(" - Duration: {} min", s / 60)).unwrap_or_default();
+                    let dur = group.duration_seconds.map(|s| format!(" - Duration: {} min", s / 60)).unwrap_or_else(String::new);
                     md.push_str(&format!("   - {} {}{}\n", gc, group.display_name(), dur));
                 }
                 for item in &child.items {
                     let ic = match item.status { ItemStatus::Completed => "[x]", ItemStatus::Running => "[>]", _ => "[ ]" };
-                    let dur = item.duration_seconds.map(|s| format!(" - Duration: {}s", s)).unwrap_or_default();
+                    let dur = item.duration_seconds.map(|s| format!(" - Duration: {}s", s)).unwrap_or_else(String::new);
                     md.push_str(&format!("   - {} {}{}\n", ic, item.name, dur));
                 }
             }
             for group in &section.item_groups {
                 let gc = match group.status { ItemStatus::Completed => "[x]", ItemStatus::Running => "[>]", _ => "[ ]" };
-                let dur = group.duration_seconds.map(|s| format!(" - Duration: {} min", s / 60)).unwrap_or_default();
+                let dur = group.duration_seconds.map(|s| format!(" - Duration: {} min", s / 60)).unwrap_or_else(String::new);
                 md.push_str(&format!("  - {} {}{}\n", gc, group.display_name(), dur));
             }
             for item in &section.items {

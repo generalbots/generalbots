@@ -5,7 +5,10 @@ impl McpClient {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to build MCP HTTP client: {e}");
+                reqwest::Client::new()
+            });
 
         Self {
             state,
@@ -19,7 +22,10 @@ impl McpClient {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.default_timeout_seconds as u64))
             .build()
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to build MCP HTTP client: {e}");
+                reqwest::Client::new()
+            });
 
         Self {
             state,
@@ -62,15 +68,21 @@ impl McpClient {
             status: String,
         }
 
-        let rows: Vec<ServerRow> = query.load(&mut *conn).unwrap_or_default();
+        let rows: Vec<ServerRow> = query.load(&mut *conn).unwrap_or_else(|e| {
+            log::warn!("Failed to load MCP servers for bot {bot_id}: {e}");
+            Vec::new()
+        });
 
         for row in rows {
             let server = McpServer {
                 id: row.id.clone(),
                 name: row.name.clone(),
-                description: row.description.unwrap_or_default(),
+                description: row.description.unwrap_or_else(String::new),
                 server_type: McpServerType::from(row.server_type.as_str()),
-                connection: serde_json::from_str(&row.config).unwrap_or_default(),
+                connection: serde_json::from_str(&row.config).unwrap_or_else(|e| {
+                    log::warn!("Failed to parse MCP server config for '{}': {e}", row.name);
+                    McpConnection::default()
+                }),
                 auth: McpAuth::default(),
                 tools: Vec::new(),
                 resources: Vec::new(),

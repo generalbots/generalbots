@@ -37,8 +37,14 @@ impl std::fmt::Debug for SecretsManager {
 
 impl SecretsManager {
     pub fn from_env() -> Result<Self> {
-        let addr = env::var("VAULT_ADDR").unwrap_or_default();
-        let token = env::var("VAULT_TOKEN").unwrap_or_default();
+        let addr = env::var("VAULT_ADDR").unwrap_or_else(|e| {
+            warn!("VAULT_ADDR unavailable ({e}); Vault stays disabled");
+            String::new()
+        });
+        let token = env::var("VAULT_TOKEN").unwrap_or_else(|e| {
+            warn!("VAULT_TOKEN unavailable ({e}); Vault stays disabled");
+            String::new()
+        });
         let skip_verify =
             env::var("VAULT_SKIP_VERIFY").map(|v| v == "true" || v == "1").unwrap_or(false);
         let cache_ttl = env::var("VAULT_CACHE_TTL")
@@ -126,7 +132,10 @@ impl SecretsManager {
             Ok(manager) => {
                 info!(
                     "SecretsManager singleton initialized (Vault: {})",
-                    env::var("VAULT_ADDR").unwrap_or_default()
+                    env::var("VAULT_ADDR").unwrap_or_else(|e| {
+                        warn!("VAULT_ADDR unavailable ({e}) during init");
+                        String::new()
+                    })
                 );
                 Ok(manager)
             }

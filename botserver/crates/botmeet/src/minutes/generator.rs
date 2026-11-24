@@ -118,7 +118,7 @@ impl MinutesGenerator {
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let action_items: Vec<MinuteActionItem> = parsed["action_items"]
             .as_array()
@@ -132,7 +132,7 @@ impl MinutesGenerator {
                     })
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let decisions: Vec<String> = parsed["decisions"]
             .as_array()
@@ -141,7 +141,7 @@ impl MinutesGenerator {
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok((summary, key_points, action_items, decisions))
     }

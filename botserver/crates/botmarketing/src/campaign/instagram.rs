@@ -133,8 +133,9 @@ impl InstagramService {
         let result: serde_json::Value = self.call_llm(payload).await?;
         let hashtags: Vec<String> = result["hashtags"]
             .as_array()
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
-            .unwrap_or_default();
+            .map_or_else(Vec::new, |arr| {
+                arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect()
+            });
 
         Ok(hashtags)
     }

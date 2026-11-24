@@ -116,7 +116,7 @@ impl KiroClient {
                 }
                 Ok(r) => {
                     let status = r.status();
-                    let body = r.text().await.unwrap_or_default();
+                    let body = r.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
                     if Self::is_capacity_error(&body) {
                         let n = capacity_retries.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         if n < MAX_CAPACITY_RETRIES {

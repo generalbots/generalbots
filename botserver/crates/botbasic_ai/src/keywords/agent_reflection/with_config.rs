@@ -89,7 +89,10 @@ impl ReflectionEngine {
         .bind::<diesel::sql_types::Uuid, _>(session_id)
         .bind::<diesel::sql_types::Integer, _>(limit as i32)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load conversation history: {e}");
+            Vec::new()
+        });
 
         let history: Vec<ConversationMessage> = messages
             .into_iter()
@@ -168,7 +171,10 @@ impl ReflectionEngine {
             .map_err(|e| format!("LLM request failed: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read LLM error response body: {e}");
+                String::new()
+            });
             return Err(format!("LLM error: {}", error_text));
         }
 
@@ -212,12 +218,28 @@ impl ReflectionEngine {
             .get()
             .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
 
-        let insights_json = serde_json::to_string(&result.insights).unwrap_or_default();
-        let improvements_json = serde_json::to_string(&result.improvements).unwrap_or_default();
-        let patterns_json = serde_json::to_string(&result.positive_patterns).unwrap_or_default();
-        let concerns_json = serde_json::to_string(&result.concerns).unwrap_or_default();
+        let insights_json = serde_json::to_string(&result.insights).unwrap_or_else(|e| {
+            log::warn!("Failed to serialize reflection insights: {e}");
+            String::new()
+        });
+        let improvements_json = serde_json::to_string(&result.improvements).unwrap_or_else(|e| {
+            log::warn!("Failed to serialize reflection improvements: {e}");
+            String::new()
+        });
+        let patterns_json =
+            serde_json::to_string(&result.positive_patterns).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize reflection positive patterns: {e}");
+                String::new()
+            });
+        let concerns_json = serde_json::to_string(&result.concerns).unwrap_or_else(|e| {
+            log::warn!("Failed to serialize reflection concerns: {e}");
+            String::new()
+        });
         let reflection_type_str =
-            serde_json::to_string(&result.reflection_type).unwrap_or_default();
+            serde_json::to_string(&result.reflection_type).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize reflection type: {e}");
+                String::new()
+            });
 
         diesel::sql_query(
             "INSERT INTO bot_reflections \

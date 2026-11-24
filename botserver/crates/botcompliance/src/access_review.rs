@@ -224,7 +224,7 @@ impl AccessReviewService {
         reviewer_id: Uuid,
         days_until_due: i64,
     ) -> Result<AccessReviewRequest> {
-        let user_permissions = self.permissions.get(&user_id).cloned().unwrap_or_default();
+        let user_permissions = self.permissions.get(&user_id).cloned().unwrap_or_else(Vec::new);
 
         let review = AccessReviewRequest {
             id: Uuid::new_v4(),
@@ -322,7 +322,7 @@ impl AccessReviewService {
         self.permissions
             .get(&user_id)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .filter(|p| p.is_active)
             .collect()
