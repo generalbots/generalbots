@@ -1,3 +1,4 @@
+pub mod access_control;
 pub mod approval;
 #[cfg(test)]
 #[path = "approval_tests.rs"]
