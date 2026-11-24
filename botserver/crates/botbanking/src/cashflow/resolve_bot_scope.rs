@@ -79,7 +79,7 @@ pub(super) fn normalize_row(row: &CashflowRow) -> Result<(NaiveDate, String, f64
     let kind = row
         .kind
         .clone()
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
         .to_lowercase();
     let negative = is_expense(&kind, raw_amount);
     let amount = if negative { -raw_amount.abs() } else { raw_amount.abs() };
@@ -87,7 +87,7 @@ pub(super) fn normalize_row(row: &CashflowRow) -> Result<(NaiveDate, String, f64
     let description = row
         .description
         .clone()
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
         .trim()
         .to_string();
     Ok((date, description, amount, category, kind))

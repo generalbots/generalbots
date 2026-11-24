@@ -47,7 +47,7 @@ pub async fn upload_media(
         // No declared type is not a claim: the extension decides (an omitted
         // Content-Type must not be forced to `video/mp4`, or a poster image
         // would be refused as a mismatch).
-        let content_type = field.content_type().map(|s| s.to_string()).unwrap_or_default();
+        let content_type = field.content_type().map(|s| s.to_string()).unwrap_or_else(String::new);
 
         let data = match field.bytes().await {
             Ok(d) => d,

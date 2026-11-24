@@ -2203,6 +2203,7 @@ name = "botdomains"
 version = "7.1.2"
 dependencies = [
  "async-trait",
+ "log",
  "quick-xml 0.42.0",
  "reqwest 0.12.28",
  "serde",

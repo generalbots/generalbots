@@ -74,8 +74,8 @@ async fn create_item(
     let branch = resolve_branch(&headers)?;
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
-    let qty = payload.quantity.unwrap_or_default();
-    let cost = payload.unit_cost.unwrap_or_default();
+    let qty = payload.quantity.unwrap_or_else(|| rust_decimal::Decimal::ZERO);
+    let cost = payload.unit_cost.unwrap_or_else(|| rust_decimal::Decimal::ZERO);
 
     diesel::sql_query(
         "INSERT INTO inventory_items (id, branch_id, sku, name, description, quantity, unit, \

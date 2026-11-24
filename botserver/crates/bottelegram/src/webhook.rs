@@ -368,7 +368,7 @@ async fn process_callback(
         .message
         .as_ref()
         .map(|m| m.chat.id.to_string())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let user_name = {
         let mut name = callback.from.first_name.clone();
@@ -379,7 +379,7 @@ async fn process_callback(
         name
     };
 
-    let data = callback.data.clone().unwrap_or_default();
+    let data = callback.data.clone().unwrap_or_else(String::new);
 
     if data.is_empty() || chat_id.is_empty() {
         return Ok(());

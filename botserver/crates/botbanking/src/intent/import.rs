@@ -56,7 +56,7 @@ pub(super) fn parse_csv_rows(csv: &str) -> Vec<Row> {
         let values = split_csv_line(line);
         let mut row = Row::new();
         for (i, header) in headers.iter().enumerate() {
-            let value = values.get(i).cloned().unwrap_or_default();
+            let value = values.get(i).cloned().unwrap_or_else(String::new);
             row.insert(header.clone(), value);
         }
         rows.push(row);
@@ -98,7 +98,7 @@ pub fn import_bank_statement(csv: &str) -> BankTransactionImport {
             .and_then(parse_br_date)
             .unwrap_or_else(|| "1970-01-01".to_string());
         let description = cell(row, &["description", "descricao", "historico"])
-            .unwrap_or_default()
+            .unwrap_or("")
             .to_string();
         let amount = cell(row, &["amount", "valor"])
             .map(parse_amount)
@@ -130,7 +130,7 @@ pub fn import_platform_orders(csv: &str) -> DeliveryTransactionImport {
     for row in &rows {
         let platform = cell(row, &["platform"]).unwrap_or("unknown").to_string();
         let platform_order_id = cell(row, &["order_id", "id", "pedido_id"])
-            .unwrap_or_default()
+            .unwrap_or("")
             .to_string();
         let order_date = cell(row, &["date", "data"])
             .and_then(parse_br_date)

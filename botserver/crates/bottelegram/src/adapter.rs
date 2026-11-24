@@ -25,7 +25,10 @@ pub struct TelegramAdapter {
 
 impl TelegramAdapter {
     pub fn new(_pool: Arc<DbPool>, bot_id: Uuid, get_config: GetConfigFn) -> Self {
-        let bot_token = get_config(&bot_id, "telegram-bot-token", None).unwrap_or_default();
+        let bot_token = get_config(&bot_id, "telegram-bot-token", None).unwrap_or_else(|e| {
+            log::warn!("telegram: cannot read bot token config: {e}");
+            String::new()
+        });
 
         Self { bot_token }
     }

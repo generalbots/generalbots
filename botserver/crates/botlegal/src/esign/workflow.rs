@@ -65,7 +65,7 @@ impl ApprovalWorkflow {
                 .iter()
                 .find(|s| s.state.is_active())
                 .map(|s| vec![s.id.clone()])
-                .unwrap_or_default(),
+                .unwrap_or_else(Vec::new),
             RouteMode::Parallel => self
                 .steps
                 .iter()

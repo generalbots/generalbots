@@ -234,7 +234,7 @@ pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str)
     )
     .bind::<diesel::sql_types::Uuid, _>(stable)
     .load(conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|_| Vec::new());
     if names
         .iter()
         .any(|g| botsecurity_auth::rbac_middleware::is_admin_group_name(&g.name))

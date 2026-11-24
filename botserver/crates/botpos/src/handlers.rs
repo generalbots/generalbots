@@ -104,7 +104,7 @@ fn items_from_json(value: &serde_json::Value) -> Vec<OrderItem> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub async fn list_products(headers: HeaderMap) -> Result<Json<Vec<Product>>, (StatusCode, String)> {

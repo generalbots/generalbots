@@ -38,14 +38,26 @@ impl InstagramAdapter {
     }
 
     pub fn with_config(get_config: &GetConfigFn, bot_id: &str) -> Self {
-        let access_token = get_config(bot_id, "instagram-access-token", None).unwrap_or_default();
+        let access_token = get_config(bot_id, "instagram-access-token", None).unwrap_or_else(|e| {
+            log::warn!("Instagram access token not configured for {bot_id}: {e}");
+            String::new()
+        });
         // No default (#2142): a published default verify token is a published
         // secret, and the handshake must fail closed until the bot sets one.
         let verify_token =
-            get_config(bot_id, crate::auth::VERIFY_TOKEN_KEY, None).unwrap_or_default();
-        let page_id = get_config(bot_id, "instagram-page-id", None).unwrap_or_default();
+            get_config(bot_id, crate::auth::VERIFY_TOKEN_KEY, None).unwrap_or_else(|e| {
+                log::warn!("Instagram verify token not configured for {bot_id}: {e}");
+                String::new()
+            });
+        let page_id = get_config(bot_id, "instagram-page-id", None).unwrap_or_else(|e| {
+            log::warn!("Instagram page id not configured for {bot_id}: {e}");
+            String::new()
+        });
         let instagram_account_id =
-            get_config(bot_id, "instagram-account-id", None).unwrap_or_default();
+            get_config(bot_id, "instagram-account-id", None).unwrap_or_else(|e| {
+                log::warn!("Instagram account id not configured for {bot_id}: {e}");
+                String::new()
+            });
 
         Self {
             access_token,

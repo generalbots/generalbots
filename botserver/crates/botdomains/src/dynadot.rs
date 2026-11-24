@@ -50,7 +50,10 @@ impl Dynadot {
             .map_err(|e| RegistrarError::Transport(SERVICE.into(), e.to_string()))?;
         let status = resp.status();
         if !status.is_success() {
-            let text = http::body(SERVICE, resp).await.unwrap_or_default();
+            let text = http::body(SERVICE, resp).await.unwrap_or_else(|e| {
+                log::warn!("Failed to read Dynadot error response body: {e}");
+                String::new()
+            });
             return Err(http::classify(SERVICE, status, &Default::default(), &text));
         }
 
@@ -301,7 +304,7 @@ impl Dynadot {
                 &[("domain", domain.trim().to_lowercase())],
             )
             .await?;
-        let entries = data.as_array().cloned().unwrap_or_default();
+        let entries = data.as_array().cloned().unwrap_or_else(Vec::new);
         Ok(entries.iter().filter_map(parse_entry).collect())
     }
 }
@@ -314,7 +317,7 @@ fn parse_entry(node: &Value) -> Option<DnsRecord> {
     let expected = format!("{}=", record_type.as_str());
     let value = line.strip_prefix(expected.as_str()).unwrap_or(line).to_string();
     Some(DnsRecord {
-        host: node["host"].as_str().unwrap_or_default().to_string(),
+        host: node["host"].as_str().unwrap_or("").to_string(),
         record_type,
         value,
         ttl: node["ttl"].as_u64().unwrap_or(crate::DEFAULT_TTL as u64) as u32,

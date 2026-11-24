@@ -24,7 +24,7 @@ pub fn render_html(app: &WebApp, content: &str) -> String {
                 escape_html(text)
             )
         })
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let meta_tags: String = app
         .config

@@ -204,7 +204,7 @@ pub async fn import_project(
                 if let Some(name) = field.file_name() {
                     filename = name.to_string();
                 }
-                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                content_type = field.content_type().map(str::to_string).unwrap_or_else(String::new);
                 match field.bytes().await {
                     Ok(bytes) => file_bytes = Some(bytes.to_vec()),
                     Err(e) => return Err(bad_request(&format!("Failed to read file: {e}"))),

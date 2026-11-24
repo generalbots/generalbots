@@ -19,7 +19,10 @@ pub(crate) async fn export_canvas(
         .filter(canvas_elements::canvas_id.eq(canvas_id))
         .order(canvas_elements::z_index.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("canvas export: failed to load elements: {e}");
+            Vec::new()
+        });
 
     let elements: Vec<CanvasElement> = db_elements.into_iter().map(db_to_canvas_element).collect();
     let canvas = db_to_canvas(db_canvas, elements);

@@ -116,7 +116,10 @@ impl QdrantClient {
             .context("Failed to send create collection request")?;
 
         let status = response.status();
-        let text = response.text().await.unwrap_or_default();
+        let text = response.text().await.unwrap_or_else(|e| {
+            log::warn!("Failed to read HTTP response body: {e}");
+            String::new()
+        });
         
         if status.is_success() {
             botlog::safe_info!("Collection '{}' created successfully", name);
@@ -147,7 +150,10 @@ impl QdrantClient {
             debug!("Found {} collections", result.collections.len());
             Ok(result)
         } else {
-            let text = response.text().await.unwrap_or_default();
+            let text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             log::error!("Failed to list collections: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
@@ -188,7 +194,10 @@ impl QdrantClient {
                 .context("Failed to parse collection info response")?;
             Ok(result)
         } else {
-            let text = response.text().await.unwrap_or_default();
+            let text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             log::error!("Failed to get collection info: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
@@ -208,7 +217,10 @@ impl QdrantClient {
             .context("Failed to send delete collection request")?;
 
         let status = response.status();
-        let text = response.text().await.unwrap_or_default();
+        let text = response.text().await.unwrap_or_else(|e| {
+            log::warn!("Failed to read HTTP response body: {e}");
+            String::new()
+        });
 
         if status.is_success() {
             info!("Collection '{}' deleted successfully", name);
@@ -241,7 +253,10 @@ impl QdrantClient {
             .context("Failed to send upsert request")?;
 
         let status = response.status();
-        let text = response.text().await.unwrap_or_default();
+        let text = response.text().await.unwrap_or_else(|e| {
+            log::warn!("Failed to read HTTP response body: {e}");
+            String::new()
+        });
         
         if status.is_success() {
             debug!("Successfully upserted {} points", points.len());
@@ -285,11 +300,14 @@ impl QdrantClient {
             let result: Value = response.json().await.context("Failed to parse search response")?;
             let points = result["result"]
                 .as_array().cloned()
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             debug!("Found {} search results", points.len());
             Ok(points)
         } else {
-            let text = response.text().await.unwrap_or_default();
+            let text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             log::error!("Failed to search points: {} - {}", status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
@@ -317,7 +335,10 @@ impl QdrantClient {
             .context("Failed to send delete request")?;
 
         let status = response.status();
-        let text = response.text().await.unwrap_or_default();
+        let text = response.text().await.unwrap_or_else(|e| {
+            log::warn!("Failed to read HTTP response body: {e}");
+            String::new()
+        });
         
         if status.is_success() {
             info!("Successfully deleted {} points", point_ids.len());

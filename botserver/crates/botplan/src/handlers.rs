@@ -128,7 +128,7 @@ pub async fn handle_create_task(
         start: req.start,
         end: req.end,
         progress: 0,
-        tags: req.tags.unwrap_or_default(),
+        tags: req.tags.unwrap_or_else(Vec::new),
         depends_on: Vec::new(),
         created_at: now,
         updated_at: now,

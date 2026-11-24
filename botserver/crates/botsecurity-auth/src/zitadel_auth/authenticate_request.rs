@@ -78,7 +78,10 @@ impl ZitadelAuthProvider {
     }
 
     async fn introspect_and_get_user(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        let introspect_url = format!("{}/oauth/v2/introspect", self.config.sanitized_api_base().unwrap_or_default());
+        let introspect_url = format!(
+            "{}/oauth/v2/introspect",
+            self.config.sanitized_api_base_or_empty()
+        );
 
         let params = [
             ("token", token),
@@ -140,7 +143,7 @@ impl ZitadelAuthProvider {
             })
             .and_then(|v| v.as_object())
             .map(|obj| obj.keys().cloned().collect())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let zitadel_user = ZitadelUser {
             id: user_id.to_string(),
@@ -202,7 +205,7 @@ impl ZitadelAuthProvider {
                     .map(|s| s.to_string())
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let zitadel_user = ZitadelUser {
             id: user_id.to_string(),
@@ -244,7 +247,10 @@ impl ZitadelAuthProvider {
     ) -> Result<AuthenticatedUser, AuthError> {
         let service_token = self.get_service_token().await?;
 
-        let url = format!("{}/v2/users/_search", self.config.sanitized_api_base().unwrap_or_default());
+        let url = format!(
+            "{}/v2/users/_search",
+            self.config.sanitized_api_base_or_empty()
+        );
 
         let body = serde_json::json!({
             "queries": [{

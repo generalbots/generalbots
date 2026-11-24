@@ -170,7 +170,7 @@ pub(super) fn test_rendered_document_has_no_inline_event_handlers() {
     let script_directive = WEBA_CSP
         .split(';')
         .find(|part| part.trim_start().starts_with("script-src"))
-        .unwrap_or_default();
+        .unwrap_or("");
     assert!(!script_directive.contains("unsafe-inline"));
 }
 

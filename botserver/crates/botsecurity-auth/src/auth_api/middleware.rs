@@ -93,7 +93,7 @@ pub async fn auth_middleware_with_providers(
             .headers()
             .get(&state.config.internal_token_header)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or_default();
+            .unwrap_or("");
         if !supplied.is_empty() && botsecurity_core::constant_time::eq_str(supplied, expected) {
             info!("Internal token accepted for {} {}", method, path);
             request

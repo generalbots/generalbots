@@ -138,7 +138,7 @@ pub async fn cashflow_diagnosis_inner(
         .collect();
 
     let loaded_rates = bottax::storage::load_rates_from_billing(&mut conn, &scope.branch_id);
-    let rates = loaded_rates.unwrap_or_default();
+    let rates = loaded_rates.unwrap_or_else(bottax::calculator::TaxRates::default);
     let source = if loaded_rates.is_some() {
         "billing_tax_rates"
     } else {
@@ -201,13 +201,13 @@ pub(super) fn parse_csv_rows(csv: &str) -> Vec<CashflowRow> {
         let date = get("date")
             .or_else(|| get("data"))
             .or_else(|| get("vencimento"))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let description = get("description")
             .or_else(|| get("descricao"))
             .or_else(|| get("historico"))
-            .unwrap_or_default();
-        let amount = get("amount").or_else(|| get("valor")).unwrap_or_default();
-        let kind = get("type").or_else(|| get("tipo")).unwrap_or_default();
+            .unwrap_or_else(String::new);
+        let amount = get("amount").or_else(|| get("valor")).unwrap_or_else(String::new);
+        let kind = get("type").or_else(|| get("tipo")).unwrap_or_else(String::new);
         if date.is_empty() || amount.is_empty() {
             continue;
         }

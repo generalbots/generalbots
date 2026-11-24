@@ -122,7 +122,10 @@ impl CleanupService {
             .bind::<diesel::sql_types::Uuid, _>(organization_id)
             .bind::<diesel::sql_types::Integer, _>(limit)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load cleanup history: {e}");
+                Vec::new()
+            });
 
         let history = rows
             .into_iter()

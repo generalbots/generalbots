@@ -153,10 +153,19 @@ pub struct CommunitySummary {
     pub icon: Option<String>,
 }
 pub(super) fn db_post_to_post(db: DbPost) -> Post {
-    let attachments: Vec<Attachment> = serde_json::from_value(db.attachments).unwrap_or_default();
-    let mentions: Vec<Uuid> = serde_json::from_value(db.mentions).unwrap_or_default();
+    let attachments: Vec<Attachment> = serde_json::from_value(db.attachments).unwrap_or_else(|e| {
+        eprintln!("social: invalid post attachments: {e}");
+        Vec::new()
+    });
+    let mentions: Vec<Uuid> = serde_json::from_value(db.mentions).unwrap_or_else(|e| {
+        eprintln!("social: invalid post mentions: {e}");
+        Vec::new()
+    });
     let reaction_counts: HashMap<String, i32> =
-        serde_json::from_value(db.reaction_counts).unwrap_or_default();
+        serde_json::from_value(db.reaction_counts).unwrap_or_else(|e| {
+            eprintln!("social: invalid post reaction counts: {e}");
+            HashMap::new()
+        });
     let hashtags: Vec<String> = db.hashtags.into_iter().flatten().collect();
 
     Post {
@@ -190,7 +199,7 @@ pub(super) fn db_community_to_community(db: DbCommunity) -> Community {
         organization_id: db.org_id,
         name: db.name,
         slug: db.slug,
-        description: db.description.unwrap_or_default(),
+        description: db.description.unwrap_or_else(String::new),
         cover_image: db.cover_image,
         icon: db.icon,
         visibility: db.visibility,
@@ -206,9 +215,15 @@ pub(super) fn db_community_to_community(db: DbCommunity) -> Community {
     }
 }
 pub(super) fn db_comment_to_comment(db: DbComment) -> Comment {
-    let mentions: Vec<Uuid> = serde_json::from_value(db.mentions).unwrap_or_default();
+    let mentions: Vec<Uuid> = serde_json::from_value(db.mentions).unwrap_or_else(|e| {
+        eprintln!("social: invalid comment mentions: {e}");
+        Vec::new()
+    });
     let reaction_counts: HashMap<String, i32> =
-        serde_json::from_value(db.reaction_counts).unwrap_or_default();
+        serde_json::from_value(db.reaction_counts).unwrap_or_else(|e| {
+            eprintln!("social: invalid comment reaction counts: {e}");
+            HashMap::new()
+        });
 
     Comment {
         id: db.id,

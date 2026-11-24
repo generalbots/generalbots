@@ -164,8 +164,8 @@ struct AiAssistRequest {
 async fn ai_assist_handler(
     Json(payload): Json<AiAssistRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let title = payload.title.unwrap_or_default();
-    let description = payload.description.unwrap_or_default();
+    let title = payload.title.unwrap_or_else(String::new);
+    let description = payload.description.unwrap_or_else(String::new);
     let suggestion = if description.is_empty() {
         format!("Add a short description for '{title}' that states the learning goal and the target audience.")
     } else {

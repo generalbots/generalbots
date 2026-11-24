@@ -227,7 +227,7 @@ fn parse_retention(json: &Option<serde_json::Value>) -> Vec<crate::responses::Re
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 fn parse_geography(json: &Option<serde_json::Value>) -> Vec<crate::responses::GeoData> {

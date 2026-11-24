@@ -14,7 +14,7 @@ pub async fn handle_ai_summarize(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.unwrap_or_else(String::new);
 
     if text.is_empty() {
         return Html(format_ai_response("Please select some text to summarize."));
@@ -41,7 +41,7 @@ pub async fn handle_ai_expand(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.unwrap_or_else(String::new);
 
     if text.is_empty() {
         return Html(format_ai_response("Please select some text to expand."));
@@ -66,7 +66,7 @@ pub async fn handle_ai_improve(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.unwrap_or_else(String::new);
 
     if text.is_empty() {
         return Html(format_ai_response("Please select some text to improve."));
@@ -87,7 +87,7 @@ pub async fn handle_ai_simplify(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.unwrap_or_else(String::new);
 
     if text.is_empty() {
         return Html(format_ai_response("Please select some text to simplify."));
@@ -111,7 +111,7 @@ pub async fn handle_ai_translate(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.unwrap_or_else(String::new);
     let lang = payload.translate_lang.unwrap_or_else(|| "es".to_string());
 
     if text.is_empty() {
@@ -154,8 +154,12 @@ pub async fn handle_ai_custom(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.clone().or_else(|| payload.text.clone()).unwrap_or_default();
-    let prompt = payload.prompt.unwrap_or_default();
+    let text = payload
+        .selected_text
+        .clone()
+        .or_else(|| payload.text.clone())
+        .unwrap_or_else(String::new);
+    let prompt = payload.prompt.unwrap_or_else(String::new);
 
     if text.is_empty() || prompt.is_empty() {
         return Html(format_ai_response(
@@ -185,8 +189,12 @@ pub async fn handle_ai_tone(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.clone().or_else(|| payload.text.clone()).unwrap_or_default();
-    let tone = payload.tone.clone().unwrap_or_default();
+    let text = payload
+        .selected_text
+        .clone()
+        .or_else(|| payload.text.clone())
+        .unwrap_or_else(String::new);
+    let tone = payload.tone.clone().unwrap_or_else(String::new);
 
     if text.is_empty() {
         return Html(format_ai_response("Please select some text to adjust."));

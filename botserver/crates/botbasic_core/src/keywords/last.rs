@@ -11,7 +11,10 @@ pub fn last_keyword(engine: &mut Engine) {
                 // `"test_video.mp4"]` — the classify_media media-filing bug
                 // filed objects under media/2026/09/unsorted/"test_video.mp4"].
                 if input.is_array() {
-                    let arr = input.into_array().unwrap_or_default();
+                    let arr = input.into_array().unwrap_or_else(|e| {
+                        log::warn!("LAST: value is not an array: {e}");
+                        rhai::Array::new()
+                    });
                     return Ok(arr.last().cloned().unwrap_or(Dynamic::UNIT));
                 }
                 let input_str = input.to_string();

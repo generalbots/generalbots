@@ -81,9 +81,15 @@ fn teams_credentials(state: &Arc<ChannelState>) -> TeamsCredentials {
     let bot_id = (state.get_default_bot)(&mut conn).0;
     drop(conn);
 
-    let app_id = (state.get_config)(&bot_id, auth::APP_ID_KEY, None).unwrap_or_default();
+    let app_id = (state.get_config)(&bot_id, auth::APP_ID_KEY, None).unwrap_or_else(|e| {
+        log::warn!("teams: cannot read app id config: {e}");
+        String::new()
+    });
     let security_token =
-        (state.get_config)(&bot_id, auth::SECURITY_TOKEN_KEY, None).unwrap_or_default();
+        (state.get_config)(&bot_id, auth::SECURITY_TOKEN_KEY, None).unwrap_or_else(|e| {
+            log::warn!("teams: cannot read security token config: {e}");
+            String::new()
+        });
 
     TeamsCredentials::new(&app_id, &security_token)
 }

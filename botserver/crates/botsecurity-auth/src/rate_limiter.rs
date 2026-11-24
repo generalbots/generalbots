@@ -262,7 +262,7 @@ fn trusted_proxies() -> &'static HashSet<IpAddr> {
         std::env::var(TRUSTED_PROXIES_ENV)
             .ok()
             .map(|value| parse_trusted_proxies(&value))
-            .unwrap_or_default()
+            .unwrap_or_else(HashSet::new)
     })
 }
 fn parse_trusted_proxies(value: &str) -> HashSet<IpAddr> {

@@ -170,7 +170,7 @@ impl BasicCompiler {
             if do_call_re.as_ref().is_some_and(|re| re.is_match(&normalized)) {
                 found_directives.insert(basic_errors::Directive::OnUpdateOf);
                 if let Some(re) = do_call_re.as_ref().and_then(|r| r.captures(&normalized)) {
-                    let table_name = re.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+                    let table_name = re.get(1).map(|m| m.as_str().to_string()).unwrap_or_else(String::new);
                     let trigger_script = re.get(2).map(|m| m.as_str().to_string()).unwrap_or_else(|| script_name.clone());
                     if let Some(ref cb) = self.callbacks.execute_on_update {
                         let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -206,7 +206,7 @@ impl BasicCompiler {
                     .split('"')
                     .nth(1)
                     .map(|s| s.to_string())
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 if let Some(ref cb) = self.callbacks.execute_on_update {
                     let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
                     use botcore::shared::schema::system_automations;

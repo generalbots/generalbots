@@ -14,7 +14,7 @@ where
         .to_string()
         .split(" -- binds")
         .next()
-        .unwrap_or_default()
+        .unwrap_or("")
         .replace('"', "")
         .trim()
         .to_string()

@@ -112,7 +112,7 @@ impl SocialOAuthService {
             .map_err(|e| OAuthServiceError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|_| String::new());
             return Err(OAuthServiceError::TokenExchangeFailed(error_text));
         }
 
@@ -129,7 +129,7 @@ impl SocialOAuthService {
         let scopes = token_response
             .scope
             .map(|s| s.split(' ').map(String::from).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let token = OAuthToken {
             id: Uuid::new_v4(),
@@ -192,7 +192,7 @@ impl SocialOAuthService {
             .map_err(|e| OAuthServiceError::NetworkError(e.to_string()))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|_| String::new());
             return Err(OAuthServiceError::TokenRefreshFailed(error_text));
         }
 

@@ -157,7 +157,7 @@ pub(crate) async fn handle_topup(
         .filter(email.eq(&body.email))
         .select((first_name, last_name))
         .first::<(Option<String>, Option<String>)>(&mut conn)
-        .map(|(fn_, ln_)| [fn_.unwrap_or_default(), ln_.unwrap_or_default()].join(" "))
+        .map(|(fn_, ln_)| [fn_.unwrap_or_else(String::new), ln_.unwrap_or_else(String::new)].join(" "))
         .map(|s| if s.trim().is_empty() { body.email.split('@').next().unwrap_or("Customer").to_string() } else { s })
         .unwrap_or_else(|_| body.email.split('@').next().unwrap_or("Customer").to_string());
 

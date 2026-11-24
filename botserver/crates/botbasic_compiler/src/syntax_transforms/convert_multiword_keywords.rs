@@ -277,7 +277,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                                 } else if params.len() == 3 && params[1].eq_ignore_ascii_case("AS") {
                                     (params[0].clone(), params[2].clone())
                                 } else {
-                                    (params[0].clone(), params.last().cloned().unwrap_or_default())
+                                    (params[0].clone(), params.last().cloned().unwrap_or_else(String::new))
                                 };
                                 let up_keyword = keyword.to_uppercase();
                                 format!("{}{}{} {} as {};", indent, prefix, up_keyword, switcher_id, label)

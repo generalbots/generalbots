@@ -256,7 +256,10 @@ impl HybridSearchEngine {
             .map_err(|e| format!("Qdrant search failed: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             return Err(format!("Qdrant search error: {}", error_text));
         }
 

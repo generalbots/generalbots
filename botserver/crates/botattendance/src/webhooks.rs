@@ -83,7 +83,10 @@ pub fn emit_webhook_event(
         .filter(attendance_webhooks::branch_id.eq(branch_id))
         .filter(attendance_webhooks::is_active.eq(true))
         .load(conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load attendance webhooks: {e}");
+            Vec::new()
+        });
 
     for webhook in webhooks {
         // #2636 — revalidate at dispatch: DNS can change after the URL was
@@ -104,7 +107,10 @@ pub fn emit_webhook_event(
             bot_id,
             data: data.clone(),
         };
-        let payload_json = serde_json::to_string(&payload).unwrap_or_default();
+        let payload_json = serde_json::to_string(&payload).unwrap_or_else(|e| {
+            log::warn!("Webhook payload could not be serialized: {e}");
+            String::new()
+        });
         let mut request = reqwest::Client::new()
             .post(&webhook.webhook_url)
             .header("Content-Type", "application/json")

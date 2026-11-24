@@ -228,7 +228,7 @@ impl CanvasService {
             .stroke
             .as_ref()
             .map(|s| format!(r#" stroke="{}" stroke-width="{}""#, s.color, s.width))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         match element.element_type {
             ElementType::Rectangle => {
@@ -276,7 +276,7 @@ impl CanvasService {
                     element.x, element.y, element.width, element.height, url, opacity, transform
                 )
             }
-            ElementType::Svg => element.properties.svg_content.clone().unwrap_or_default(),
+            ElementType::Svg => element.properties.svg_content.clone().unwrap_or_else(String::new),
             ElementType::Path => {
                 let d = element.properties.path_data.as_deref().unwrap_or("");
                 format!(

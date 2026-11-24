@@ -28,7 +28,10 @@ pub(crate) async fn caldav_root() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            log::warn!("Failed to build CalDAV response: {error}");
+            Response::default()
+        })
 }
 
 pub(crate) async fn caldav_principals() -> impl IntoResponse {
@@ -56,7 +59,10 @@ pub(crate) async fn caldav_principals() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            log::warn!("Failed to build CalDAV response: {error}");
+            Response::default()
+        })
 }
 
 pub(crate) async fn caldav_calendars(State(state): State<Arc<DbPool>>) -> impl IntoResponse {
@@ -124,7 +130,10 @@ pub(crate) async fn caldav_calendars(State(state): State<Arc<DbPool>>) -> impl I
         .status(StatusCode::OK)
         .header("Content-Type", "application/xml; charset=utf-8")
         .body(xml)
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            log::warn!("Failed to build CalDAV response: {error}");
+            Response::default()
+        })
 }
 
 pub(crate) async fn caldav_calendar(
@@ -186,7 +195,10 @@ pub(crate) async fn caldav_calendar(
         .status(StatusCode::OK)
         .header("Content-Type", "application/xml; charset=utf-8")
         .body(xml)
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            log::warn!("Failed to build CalDAV response: {error}");
+            Response::default()
+        })
 }
 
 pub(crate) async fn caldav_event(
@@ -220,7 +232,10 @@ pub(crate) async fn caldav_event(
                 .status(StatusCode::OK)
                 .header("Content-Type", "text/calendar; charset=utf-8")
                 .body(ical_str)
-                .unwrap_or_default()
+                .unwrap_or_else(|error| {
+                    log::warn!("Failed to build CalDAV event response: {error}");
+                    Response::default()
+                })
                 .into_response()
         }
         None => StatusCode::NOT_FOUND.into_response()
@@ -343,7 +358,10 @@ pub(crate) async fn caldav_put_event(
                 .status(StatusCode::CREATED)
                 .header("ETag", format!("\"{}\"", Uuid::new_v4()))
                 .body(String::new())
-                .unwrap_or_default()
+                .unwrap_or_else(|error| {
+                    log::warn!("Failed to build CalDAV PUT response: {error}");
+                    Response::default()
+                })
                 .into_response()
         }
         _ => StatusCode::INTERNAL_SERVER_ERROR.into_response()

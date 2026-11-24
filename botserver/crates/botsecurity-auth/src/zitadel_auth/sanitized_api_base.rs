@@ -33,6 +33,17 @@ impl ZitadelAuthConfig {
         Some(base)
     }
 
+    /// Fail-closed base for outbound Zitadel requests. An unusable or unsafe
+    /// configured URL yields an empty base, which makes URL construction fail
+    /// before any request can reach an untrusted host; the warning keeps the
+    /// misconfiguration visible in logs.
+    pub(super) fn sanitized_api_base_or_empty(&self) -> String {
+        self.sanitized_api_base().unwrap_or_else(|| {
+            warn!("Zitadel API base URL is missing or unsafe; request will fail closed");
+            String::new()
+        })
+    }
+
     pub fn new(issuer_url: &str, api_url: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
             issuer_url: issuer_url.to_string(),

@@ -88,7 +88,7 @@ pub async fn create_meeting(
     let meeting_date = parse_dt(&req.date, &req.time)
         .unwrap_or_else(Utc::now);
     let duration = req.duration.unwrap_or(30).max(0);
-    let location = req.location.unwrap_or_default();
+    let location = req.location.unwrap_or_else(String::new);
     diesel::sql_query(
         "INSERT INTO minutes_meetings (id, title, meeting_date, duration_minutes, participants, status, created_at, branch_id)
          VALUES ($1, $2, $3, $4, '[]'::jsonb, 'scheduled', NOW(), $5)",
@@ -126,7 +126,7 @@ pub async fn create_action(
             .ok()
             .or_else(|| parse_dt(d, "00:00"))
     });
-    let notes = req.notes.unwrap_or_default();
+    let notes = req.notes.unwrap_or_else(String::new);
     diesel::sql_query(
         "INSERT INTO minutes_actions (id, meeting_id, title, owner, due, priority, notes, status, created_at, branch_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', NOW(), $8)",
@@ -160,7 +160,7 @@ pub async fn create_document(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok());
     let kind = req.kind.clone().unwrap_or_else(|| "minutes".to_string());
-    let content = req.content.unwrap_or_default();
+    let content = req.content.unwrap_or_else(String::new);
     diesel::sql_query(
         "INSERT INTO minutes_documents (id, meeting_id, title, kind, content, version, created_at, updated_at, branch_id)
          VALUES ($1, $2, $3, $4, $5, 1, NOW(), NOW(), $6)",

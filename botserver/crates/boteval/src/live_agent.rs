@@ -116,8 +116,14 @@ impl HarnessTarget for LiveHarnessTarget {
 async fn fallback_answer(prompt: &str) -> Option<String> {
     use crate::runner::LlmTarget;
     let url = std::env::var("EVAL_LLM_URL").ok().filter(|v| !v.is_empty())?;
-    let key = std::env::var("EVAL_LLM_KEY").unwrap_or_default();
-    let model = std::env::var("EVAL_LLM_MODEL").unwrap_or_default();
+    let key = std::env::var("EVAL_LLM_KEY").unwrap_or_else(|e| {
+        log::warn!("boteval: EVAL_LLM_KEY unavailable: {e}");
+        String::new()
+    });
+    let model = std::env::var("EVAL_LLM_MODEL").unwrap_or_else(|e| {
+        log::warn!("boteval: EVAL_LLM_MODEL unavailable: {e}");
+        String::new()
+    });
     let target = crate::http::OpenAiCompatibleTarget::new(url, key, model);
     target
         .complete(None, prompt)
@@ -261,8 +267,14 @@ impl VibeState for EvalVibeState {
         // terminate before its first tool call.
         let url = std::env::var("EVAL_LLM_URL").ok().filter(|v| !v.is_empty())?;
         Some(LlmConfig {
-            model: std::env::var("EVAL_LLM_MODEL").unwrap_or_default(),
-            key: std::env::var("EVAL_LLM_KEY").unwrap_or_default(),
+            model: std::env::var("EVAL_LLM_MODEL").unwrap_or_else(|e| {
+                log::warn!("boteval: EVAL_LLM_MODEL unavailable: {e}");
+                String::new()
+            }),
+            key: std::env::var("EVAL_LLM_KEY").unwrap_or_else(|e| {
+                log::warn!("boteval: EVAL_LLM_KEY unavailable: {e}");
+                String::new()
+            }),
             url,
         })
     }

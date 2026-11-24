@@ -267,7 +267,7 @@ impl SessionMigrationService {
 
     pub async fn get_migrated_messages(&self, user_id: Uuid) -> Vec<MigratedMessage> {
         let messages = self.migrated_messages.read().await;
-        messages.get(&user_id).cloned().unwrap_or_default()
+        messages.get(&user_id).cloned().unwrap_or_else(Vec::new)
     }
 
     pub async fn get_conversation_messages(
@@ -284,12 +284,15 @@ impl SessionMigrationService {
                     .cloned()
                     .collect()
             })
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
     }
 
     pub async fn get_user_conversations(&self, user_id: Uuid) -> Vec<Uuid> {
         let conversations = self.user_conversations.read().await;
-        conversations.get(&user_id).cloned().unwrap_or_default()
+        conversations
+            .get(&user_id)
+            .cloned()
+            .unwrap_or_else(Vec::new)
     }
 
     pub async fn rollback_migration(&self, migration_id: Uuid) -> Result<(), MigrationError> {

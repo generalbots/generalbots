@@ -73,7 +73,7 @@ pub async fn ui_events_list(
                 .iter()
                 .map(|(id, title, _desc, location, start, end, all_day, color, _status)| {
                     let event_color = color.clone().unwrap_or_else(|| "#3b82f6".to_string());
-                    let location_text = location.clone().unwrap_or_default();
+                    let location_text = location.clone().unwrap_or_else(String::new);
                     let time_str = if *all_day {
                         "All day".to_string()
                     } else {
@@ -180,8 +180,12 @@ pub async fn ui_event_detail(
                 )
             };
 
-            let attendees_list: Vec<String> =
-                serde_json::from_value(attendees).unwrap_or_default();
+            let attendees_list: Vec<String> = serde_json::from_value(attendees).unwrap_or_else(
+                |error| {
+                    log::warn!("Failed to parse calendar attendees: {error}");
+                    Vec::new()
+                },
+            );
             let attendees_html = if attendees_list.is_empty() {
                 "<p>No attendees</p>".to_string()
             } else {

@@ -56,7 +56,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read image generation error body: {error}");
+                String::new()
+            });
             log::error!("Image generation failed: {}", error_text);
             return Err(format!("Image generation failed: {}", error_text).into());
         }
@@ -105,7 +108,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read video generation error body: {error}");
+                String::new()
+            });
             log::error!("Video generation failed: {}", error_text);
             return Err(format!("Video generation failed: {}", error_text).into());
         }
@@ -154,7 +160,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read audio generation error body: {error}");
+                String::new()
+            });
             log::error!("Audio generation failed: {}", error_text);
             return Err(format!("Audio generation failed: {}", error_text).into());
         }
@@ -210,7 +219,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read image description error body: {error}");
+                String::new()
+            });
             log::error!("Image description failed: {}", error_text);
             return Err(format!("Image description failed: {}", error_text).into());
         }
@@ -261,7 +273,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read video description error body: {error}");
+                String::new()
+            });
             log::error!("Video description failed: {}", error_text);
             return Err(format!("Video description failed: {}", error_text).into());
         }

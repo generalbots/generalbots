@@ -29,6 +29,9 @@ function count(text, regex) {
 // Re-locked for #2543 debt refactors: trash_empty.rs, delete_bot_tests.rs,
 // public_link_tests.rs and other test-module splits added 2 Rust files.
 // No route changes.
+// Re-locked for #2543 debt refactors: module/test splits across botdocs,
+// botbasic_data, botmeet, botsheet, botproviders and botresearch added 6 Rust
+// files. No route or registration changes.
 // Re-locked for #2543: multimedia/handlers.rs was extracted from
 // multimedia.rs to keep it under 450 lines (one extra Rust file, no routes).
 // Re-locked for #2499: kb_search.rs adds one Rust file and GET
@@ -55,7 +58,7 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4683, "shipped router .rs file count");
+  equal(files.length, 4689, "shipped router .rs file count");
   equal(routeCalls, 2450, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");

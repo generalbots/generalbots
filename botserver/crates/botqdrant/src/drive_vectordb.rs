@@ -175,7 +175,7 @@ impl UserDriveVectorDB {
                         .get(key)
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string())
-                        .unwrap_or_default()
+                        .unwrap_or_else(String::new)
                 };
 
                 let file = FileDocument {

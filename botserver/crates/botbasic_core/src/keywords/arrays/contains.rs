@@ -84,8 +84,15 @@ fn items_equal(a: &Dynamic, b: &Dynamic) -> bool {
     }
 
     if a.is_string() && b.is_string() {
-        return a.clone().into_string().unwrap_or_default()
-            == b.clone().into_string().unwrap_or_default();
+        let a = a.clone().into_string().unwrap_or_else(|e| {
+            log::warn!("CONTAINS: left value is not a string: {e}");
+            String::new()
+        });
+        let b = b.clone().into_string().unwrap_or_else(|e| {
+            log::warn!("CONTAINS: right value is not a string: {e}");
+            String::new()
+        });
+        return a == b;
     }
 
     false

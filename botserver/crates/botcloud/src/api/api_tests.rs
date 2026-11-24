@@ -22,9 +22,9 @@ mod signup_password_tests {
 
     #[test]
     fn rejection_messages_name_the_missing_class() {
-        let msg = password_policy_violation(&format!("{}{}", "campos", 10)).unwrap_or_default();
+        let msg = password_policy_violation(&format!("{}{}", "campos", 10)).unwrap_or_else(String::new);
         assert!(msg.contains("uppercase"), "got: {msg}");
-        let msg = password_policy_violation(&format!("{}{}", "Campos", 10)).unwrap_or_default();
+        let msg = password_policy_violation(&format!("{}{}", "Campos", 10)).unwrap_or_else(String::new);
         assert!(msg.contains("symbol"), "got: {msg}");
     }
 }

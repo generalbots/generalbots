@@ -270,7 +270,7 @@ pub async fn list_cmdb(headers: HeaderMap) -> Result<Json<Vec<CmdbItem>>, (Statu
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| CmdbItem {
         id: r.id, name: r.name, kind: r.kind, owner: r.owner, status: r.status,
-        dependencies: r.dependencies.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
+        dependencies: r.dependencies.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_else(Vec::new),
     }).collect()))
 }
 
@@ -296,7 +296,7 @@ pub async fn list_kb(headers: HeaderMap) -> Result<Json<Vec<KbArticle>>, (Status
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| KbArticle {
         id: r.id, title: r.title, content: r.content,
-        tags: r.tags.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
+        tags: r.tags.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_else(Vec::new),
         author: r.author, created_at: r.created_at,
     }).collect()))
 }

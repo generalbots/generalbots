@@ -66,7 +66,7 @@ pub async fn list_attendants(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     info!("Listing attendants");
-    let bot_id_str = params.get("bot_id").cloned().unwrap_or_default();
+    let bot_id_str = params.get("bot_id").cloned().unwrap_or_else(String::new);
     let bot_id = match Uuid::parse_str(&bot_id_str) {
         Ok(id) => id,
         Err(_) => {
@@ -278,7 +278,7 @@ pub async fn transfer_conversation(
             let mut ctx = session.context_data;
             ctx["assigned_to"] = serde_json::json!(to_attendant.to_string());
             ctx["transferred_at"] = serde_json::json!(Utc::now().to_rfc3339());
-            ctx["transfer_reason"] = serde_json::json!(reason.clone().unwrap_or_default());
+            ctx["transfer_reason"] = serde_json::json!(reason.clone().unwrap_or_else(String::new));
             ctx["status"] = serde_json::json!("transferred");
             diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
                 .set((user_sessions::context_data.eq(&ctx), user_sessions::updated_at.eq(Utc::now())))

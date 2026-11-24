@@ -325,7 +325,7 @@ pub(crate) async fn handle_signup(
                                     }
                                     Ok(r) => {
                                         let status = r.status();
-                                        let body_text = r.text().await.unwrap_or_default();
+                                        let body_text = r.text().await.unwrap_or_else(|_| String::new());
                                         tracing::error!(
                                             "signup: Zitadel password set returned {status} for {}: {body_text}",
                                             body.email
@@ -360,7 +360,7 @@ pub(crate) async fn handle_signup(
                 }
                 Ok(resp) => {
                     let status = resp.status();
-                    let body_text = resp.text().await.unwrap_or_default();
+                    let body_text = resp.text().await.unwrap_or_else(|_| String::new());
                     tracing::error!("signup: Zitadel user creation returned {status} for {}: {body_text}", body.email);
                     return Err((
                         StatusCode::BAD_GATEWAY,

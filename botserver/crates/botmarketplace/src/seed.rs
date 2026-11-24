@@ -43,7 +43,10 @@ pub fn seed_starter_skills() -> Vec<PublishBody> {
                 icon_glyph: Some(skill.icon_glyph.to_string()),
                 version: STARTER_VERSION.to_string(),
                 changelog: Some("Initial release".to_string()),
-                manifest: bundle.get("manifest").cloned().unwrap_or_default(),
+                manifest: bundle
+                    .get("manifest")
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::Value::Null),
                 content_base64: b64::encode_standard(bundle.to_string().as_bytes()),
                 visibility: Some("public".to_string()),
             }

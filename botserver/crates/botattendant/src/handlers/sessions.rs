@@ -121,7 +121,7 @@ pub async fn get_session(
         .filter(attendant_session_messages::session_id.eq(id))
         .order(attendant_session_messages::created_at.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     Ok(Json(SessionWithMessages { session, messages }))
 }
@@ -307,7 +307,7 @@ pub async fn send_message(
         sender_name: req.sender_name,
         content: req.content,
         content_type: req.content_type.unwrap_or_else(|| "text".to_string()),
-        attachments: serde_json::to_value(req.attachments.clone().unwrap_or_default())
+        attachments: serde_json::to_value(req.attachments.clone().unwrap_or_else(Vec::new))
             .unwrap_or_else(|_| serde_json::json!([])),
         is_internal: req.is_internal.unwrap_or(false),
         created_at: now,

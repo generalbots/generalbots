@@ -93,7 +93,7 @@ async fn main() {
             std::process::exit(2);
         }
     };
-    let api_key = arg_value(&args, "--api-key").unwrap_or_default();
+    let api_key = arg_value(&args, "--api-key").unwrap_or_else(String::new);
     let model = arg_value(&args, "--model")
         .unwrap_or_else(|| "gpt-oss-120b".to_string());
     let gate_path = arg_value(&args, "--gate")

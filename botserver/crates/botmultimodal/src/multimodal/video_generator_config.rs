@@ -5,7 +5,7 @@ impl VideoGeneratorConfig {
         Self {
             model: provider
                 .get_config(bot_id, "video-generator-model", None)
-                .unwrap_or_default(),
+                .unwrap_or_else(String::new),
             frames: provider
                 .get_config(bot_id, "video-generator-frames", Some("24"))
                 .unwrap_or( "24".to_string())

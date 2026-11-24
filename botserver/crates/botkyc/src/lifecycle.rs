@@ -47,7 +47,7 @@ pub fn documents_from_steps(steps: &Value) -> Vec<String> {
                 .filter_map(|item| item.as_str().map(String::from))
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 #[cfg(test)]

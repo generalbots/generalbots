@@ -170,7 +170,10 @@ impl OpenAiCompatibleTarget {
             .map_err(|e| format!("http: {e}"))?;
         if !response.status().is_success() {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("boteval: failed to read error response body: {e}");
+                String::new()
+            });
             return Err(format!("non-success status {status}: {body}"));
         }
         let body: ChatResponse = response
@@ -182,7 +185,7 @@ impl OpenAiCompatibleTarget {
             .into_iter()
             .next()
             .and_then(|c| c.message.content)
-            .unwrap_or_default())
+            .unwrap_or_else(String::new))
     }
 }
 

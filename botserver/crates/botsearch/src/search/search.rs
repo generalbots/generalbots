@@ -95,7 +95,7 @@ impl SearchService {
                 let metadata: HashMap<String, String> = row
                     .metadata_json
                     .and_then(|json| serde_json::from_str(&json).ok())
-                    .unwrap_or_default();
+                    .unwrap_or_else(HashMap::new);
 
                 SearchResult {
                     id: row.id,

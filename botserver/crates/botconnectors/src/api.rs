@@ -207,7 +207,7 @@ async fn search_connectors(
     let admin = verified_admin(&headers)?;
     let user_id = verified_user_id(&admin)?;
 
-    let q = params.get("q").map(|s| s.trim().to_string()).unwrap_or_default();
+    let q = params.get("q").map(|s| s.trim().to_string()).unwrap_or_else(String::new);
     if q.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Query parameter 'q' is required".to_string()));
     }

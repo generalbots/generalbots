@@ -197,7 +197,7 @@ pub async fn handle_ui_tasks_list(
     .await
     .ok()
     .and_then(Result::ok)
-    .unwrap_or_default();
+    .unwrap_or_else(Vec::new);
 
     if result.is_empty() {
         return Html(
@@ -218,7 +218,7 @@ pub async fn handle_ui_tasks_list(
             .description
             .as_deref()
             .map(html_escape)
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let progress = task.progress.unwrap_or(0);
         let status_text = html_escape(&task.status);
         let priority = html_escape(&task.priority);
@@ -255,7 +255,7 @@ pub async fn handle_ui_tasks_list(
         let parent_attr = task
             .parent_id
             .map(|pid| format!(" data-parent-id=\"{pid}\""))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let complete_action = if done {
             format!(
                 r#"<button class="task-action-btn" title="Reopen" onclick="event.stopPropagation(); reopenTask('{id}')">↩</button>"#,

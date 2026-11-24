@@ -145,7 +145,10 @@ impl VectorDBIndexer {
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
                 .bind::<diesel::sql_types::Text, _>(&account_id)
                 .load(&mut conn)
-                .unwrap_or_default();
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to load rows from database: {e}");
+                    Vec::new()
+                });
 
             let emails: Vec<EmailDocument> = rows
                 .into_iter()
@@ -158,7 +161,7 @@ impl VectorDBIndexer {
                     subject: row.subject,
                     body_text: row
                         .body_html
-                        .unwrap_or_else(|| row.body_text.unwrap_or_default()),
+                        .unwrap_or_else(|| row.body_text.unwrap_or_else(String::new)),
                     date: row.received_at,
                     folder: row.folder,
                     has_attachments: false,
@@ -219,7 +222,10 @@ impl VectorDBIndexer {
             let rows: Vec<FileRow> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
                 .load(&mut conn)
-                .unwrap_or_default();
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to load rows from database: {e}");
+                    Vec::new()
+                });
 
             let files: Vec<FileDocument> = rows
                 .into_iter()

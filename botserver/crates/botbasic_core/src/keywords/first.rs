@@ -10,7 +10,10 @@ pub fn first_keyword(engine: &mut Engine) {
                 // FIRST(SPLIT(...)) into Rhai debug text like `["inbox"` —
                 // the classify_media media-filing bug (2026-09).
                 if input.is_array() {
-                    let arr = input.into_array().unwrap_or_default();
+                    let arr = input.into_array().unwrap_or_else(|e| {
+                        log::warn!("FIRST: value is not an array: {e}");
+                        rhai::Array::new()
+                    });
                     return Ok(arr.first().cloned().unwrap_or(Dynamic::UNIT));
                 }
                 let input_str = input.to_string();

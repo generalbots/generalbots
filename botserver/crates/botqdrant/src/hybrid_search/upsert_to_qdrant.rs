@@ -27,7 +27,10 @@ impl HybridSearchEngine {
             .map_err(|e| format!("Qdrant upsert failed: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read HTTP response body: {e}");
+                String::new()
+            });
             return Err(format!("Qdrant upsert error: {}", error_text));
         }
 

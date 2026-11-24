@@ -48,10 +48,13 @@ pub fn dynamic_to_json(value: &Dynamic) -> Value {
     } else if value.is_string() {
         Value::String(value.to_string())
     } else if value.is_array() {
-        let arr = value.clone().into_array().unwrap_or_default();
+        let arr = value.clone().into_array().unwrap_or_else(|e| {
+            log::warn!("Failed to convert Rhai value to array: {e}");
+            Vec::new()
+        });
         Value::Array(arr.iter().map(dynamic_to_json).collect())
     } else if value.is_map() {
-        let map = value.clone().try_cast::<Map>().unwrap_or_default();
+        let map = value.clone().try_cast::<Map>().unwrap_or_else(Map::new);
         let obj: serde_json::Map<String, Value> = map
             .iter()
             .map(|(k, v)| (k.to_string(), dynamic_to_json(v)))
@@ -64,11 +67,11 @@ pub fn dynamic_to_json(value: &Dynamic) -> Value {
 
 pub fn dynamic_to_file_data(value: &Dynamic) -> FileData {
     if value.is_map() {
-        let map = value.clone().try_cast::<Map>().unwrap_or_default();
+        let map = value.clone().try_cast::<Map>().unwrap_or_else(Map::new);
         let content = map
             .get("data")
             .map(|v| v.to_string().into_bytes())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         let filename = map
             .get("filename")
             .map(|v| v.to_string())

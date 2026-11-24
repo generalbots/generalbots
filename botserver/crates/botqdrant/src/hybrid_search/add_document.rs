@@ -107,7 +107,7 @@ impl BM25Index {
         results
             .into_iter()
             .map(|(doc_id, score)| {
-                let source = self.doc_sources.get(&doc_id).cloned().unwrap_or_default();
+                let source = self.doc_sources.get(&doc_id).cloned().unwrap_or_else(String::new);
                 (doc_id, source, score)
             })
             .collect()

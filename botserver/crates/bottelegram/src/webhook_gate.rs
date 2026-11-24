@@ -52,7 +52,7 @@ pub fn authorize_delivery(expected_secret: &str, provided: Option<&str>) -> Deli
     // Only horizontal whitespace is padding: a header may be pasted with
     // spaces or a tab, but a newline or any other control character means the
     // value is not the secret, so it must not be trimmed away (#2142).
-    let provided = provided.unwrap_or_default().trim_matches([' ', '\t']);
+    let provided = provided.unwrap_or("").trim_matches([' ', '\t']);
     if provided.is_empty() {
         return DeliveryAuth::Mismatch;
     }

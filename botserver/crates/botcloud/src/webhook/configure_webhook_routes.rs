@@ -193,7 +193,7 @@ pub(super) async fn process_checkout_completed(
     .map_err(|e| tracing::warn!("GL entry failed: {e}"));
 
     // 4. Subscription: create or update billing_recurring
-    let email_ref = invoice.customer_email.clone().unwrap_or_default();
+    let email_ref = invoice.customer_email.clone().unwrap_or_else(String::new);
     let _ = integration::create_billing_subscription(integration::NewSubscription {
         pool: service.pool(),
         branch_id: invoice.branch_id,

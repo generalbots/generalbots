@@ -11,7 +11,10 @@ impl ZitadelAuthProvider {
             }
         }
 
-        let token_url = format!("{}/oauth/v2/token", self.config.sanitized_api_base().unwrap_or_default());
+        let token_url = format!(
+            "{}/oauth/v2/token",
+            self.config.sanitized_api_base_or_empty()
+        );
 
         let params = [
             ("grant_type", "client_credentials"),
@@ -106,7 +109,7 @@ impl ZitadelAuthProvider {
 
         let url = format!(
             "{}/v2/users/{}/grants",
-            self.config.sanitized_api_base().unwrap_or_default(), user_id
+            self.config.sanitized_api_base_or_empty(), user_id
         );
 
         let response = self

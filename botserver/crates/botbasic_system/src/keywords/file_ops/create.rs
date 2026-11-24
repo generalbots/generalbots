@@ -119,7 +119,10 @@ fn register_create_file_syntax(state: Arc<dyn BasicRuntime>, user: UserSession, 
                     data.to_string()
                 } else {
                     serde_json::to_string(&crate::keywords::file_ops::utils::dynamic_to_json(&data))
-                        .unwrap_or_default()
+                        .unwrap_or_else(|e| {
+                            log::warn!("Failed to serialize CREATE FILE data: {e}");
+                            String::new()
+                        })
                 };
 
                 let (tx, rx) = std::sync::mpsc::channel();

@@ -73,7 +73,7 @@ pub async fn handle_export_user_data(
             user_id,
             status: "completed".to_string(),
             format: format.clone(),
-            include_sections: serde_json::to_value(&sections).unwrap_or_default(),
+            include_sections: serde_json::to_value(&sections).unwrap_or_else(|_| serde_json::Value::Null),
             requested_at: now,
             started_at: Some(now),
             completed_at: Some(now),
@@ -93,7 +93,7 @@ pub async fn handle_export_user_data(
             .filter(cookie_consents::branch_id.eq(branch_id))
             .filter(cookie_consents::user_id.eq(user_id))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let consents: Vec<CookieConsent> = db_consents.into_iter().map(db_consent_to_consent).collect();
 

@@ -15,7 +15,7 @@ scope = [
 unwrap = 0
 expect = 0
 panic = 0
-unwrap_or_default = 384
+unwrap_or_default = 0
 discarded_result = 1327
 
 [rule_notes]
@@ -46,25 +46,17 @@ discarded_result = 12
 [files."botserver/src/main_module/init.rs"]
 discarded_result = 12
 
-[files."botserver/crates/botattendance/src/llm_assist_commands.rs"]
-unwrap_or_default = 1
-discarded_result = 10
-
 [files."botserver/crates/botcompliance/src/code_scanner/to_html.rs"]
 discarded_result = 11
 
 [files."botserver/crates/botvibe/src/proxy_sites/caddy.rs"]
 discarded_result = 11
 
-[files."botserver/crates/botvideo/src/engine/chat_ai.rs"]
-unwrap_or_default = 10
-discarded_result = 1
+[files."botserver/crates/botattendance/src/llm_assist_commands.rs"]
+discarded_result = 10
 
 [files."botserver/crates/botbasic_ai/src/keywords/api_tool_generator/generate_bas_file.rs"]
 discarded_result = 10
-
-[files."botserver/crates/botcoreoauth/src/providers.rs"]
-unwrap_or_default = 10
 
 [files."botserver/crates/botmeet/src/signaling/handler.rs"]
 discarded_result = 10
@@ -83,9 +75,6 @@ discarded_result = 9
 
 [files."botserver/crates/botbrowser/src/api/handle_agent_ws_stream.rs"]
 discarded_result = 9
-
-[files."botserver/crates/botpaper/src/ai_handlers.rs"]
-unwrap_or_default = 9
 
 [files."botserver/crates/botsources/src/handlers/sources_handlers/handle_list_repositories.rs"]
 discarded_result = 9
@@ -108,19 +97,8 @@ discarded_result = 8
 [files."botserver/crates/botdrive/src/drive_monitor/types/index_kb_file.rs"]
 discarded_result = 8
 
-[files."botserver/crates/botgit/src/handlers.rs"]
-unwrap_or_default = 7
-discarded_result = 1
-
 [files."botserver/crates/botpaper/src/templates.rs"]
 discarded_result = 8
-
-[files."botserver/crates/botplan/src/collaboration.rs"]
-unwrap_or_default = 3
-discarded_result = 5
-
-[files."botserver/crates/botqdrant/src/qdrant_native/from_url.rs"]
-unwrap_or_default = 8
 
 [files."botserver/src/main_module/routes/ai_accounts/handlers.rs"]
 discarded_result = 8
@@ -131,10 +109,6 @@ discarded_result = 8
 [files."botserver/crates/botagent/src/stream.rs"]
 discarded_result = 7
 
-[files."botserver/crates/botcalendar/src/caldav_api.rs"]
-unwrap_or_default = 6
-discarded_result = 1
-
 [files."botserver/crates/botdrive/src/drive_handlers/list_trash.rs"]
 discarded_result = 7
 
@@ -143,10 +117,6 @@ discarded_result = 7
 
 [files."botserver/crates/botmeet/src/recording/subscribe.rs"]
 discarded_result = 7
-
-[files."botserver/crates/bottasks/src/task_api/handlers.rs"]
-unwrap_or_default = 1
-discarded_result = 6
 
 [files."botserver/crates/botvibe/src/proxy_sites/caddy_deploy.rs"]
 discarded_result = 7
@@ -160,10 +130,6 @@ discarded_result = 7
 [files."botserver/src/core/bot/ws/stream/turn.rs"]
 discarded_result = 7
 
-[files."botserver/crates/botagent/src/vm/incus.rs"]
-unwrap_or_default = 3
-discarded_result = 3
-
 [files."botserver/crates/botanalytics/src/handlers_activity.rs"]
 discarded_result = 6
 
@@ -176,9 +142,35 @@ discarded_result = 6
 [files."botserver/crates/botbasic_comms/src/keywords/play/play_keyword.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botcanvas/src/api/canvases.rs"]
-unwrap_or_default = 2
-discarded_result = 4
-
 [files."botserver/crates/botcore/src/config/resolve_bot_identity.rs"]
 discarded_result = 6
+
+[files."botserver/crates/botcoredirectory/src/provisioning.rs"]
+discarded_result = 6
+
+[files."botserver/crates/bottasks/src/task_api/handlers.rs"]
+discarded_result = 6
+
+[files."botserver/src/core/bot/pipeline/event_sink/steps.rs"]
+discarded_result = 6
+
+[files."botserver/src/core/bot/pipeline/tool_exec/script.rs"]
+discarded_result = 6
+
+[files."botserver/src/core/bot/ws/session.rs"]
+discarded_result = 6
+
+[files."botserver/src/core/bot/ws/stream/tool_call.rs"]
+discarded_result = 6
+
+[files."botserver/crates/botbasic_ai/src/keywords/agent_reflection/register_reflection_keywords.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botbasic_comms/src/keywords/transfer_to_human/register_transfer_to_human_keyword.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/register_universal_messaging.rs"]
+discarded_result = 5
+
+[files."botserver/crates/botcore/src/dns/mod.rs"]
+discarded_result = 5

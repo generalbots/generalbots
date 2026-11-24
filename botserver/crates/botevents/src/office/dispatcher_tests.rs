@@ -56,7 +56,7 @@ impl RecordingTransport {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .last()
             .map(|call| call.body.clone())
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
     }
 }
 
@@ -148,7 +148,7 @@ fn doc_comment_added_delivers_a_signed_payload_with_the_right_ids() {
         .iter()
         .find(|(name, _)| name == SIGNATURE_HEADER)
         .map(|(_, value)| value.clone())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     assert!(signing::verify(
         &subscription,
         &header,
@@ -156,7 +156,10 @@ fn doc_comment_added_delivers_a_signed_payload_with_the_right_ids() {
         Utc::now().timestamp(),
         DEFAULT_TOLERANCE_SECS
     ));
-    let body = String::from_utf8(calls[0].body.clone()).unwrap_or_default();
+    let body = String::from_utf8(calls[0].body.clone()).unwrap_or_else(|e| {
+        eprintln!("delivered body is not UTF-8: {e}");
+        String::new()
+    });
     assert!(body.contains("evt-1"));
     assert!(body.contains("doc-1"));
     assert!(body.contains("usr-1"));
@@ -225,7 +228,10 @@ fn payloads_hide_content_unless_enabled_and_authorised() {
     denied.add_subscription(subscription().with_content(true));
     let report = denied.publish(&event);
     assert_eq!(report.delivered, 1);
-    let body = String::from_utf8(denied_transport.last_call_body()).unwrap_or_default();
+    let body = String::from_utf8(denied_transport.last_call_body()).unwrap_or_else(|e| {
+        eprintln!("denied body is not UTF-8: {e}");
+        String::new()
+    });
     assert!(!body.contains("secret body text"));
     assert!(!body.contains("content"));
 
@@ -234,7 +240,10 @@ fn payloads_hide_content_unless_enabled_and_authorised() {
     allowed.add_subscription(subscription().with_content(true));
     let report = allowed.publish(&event);
     assert_eq!(report.delivered, 1);
-    let body = String::from_utf8(allowed_transport.last_call_body()).unwrap_or_default();
+    let body = String::from_utf8(allowed_transport.last_call_body()).unwrap_or_else(|e| {
+        eprintln!("allowed body is not UTF-8: {e}");
+        String::new()
+    });
     assert!(body.contains("secret body text"));
 }
 

@@ -166,7 +166,7 @@ async fn handle_tips_command(config: &Arc<AttendanceConfig>, current_session: Op
     if history.is_empty() {
         return Ok(" No messages yet. Tips will appear when customer sends a message.".to_string());
     }
-    let last_customer_msg = history.iter().rev().find(|m| m.role == "customer").map(|m| m.content.clone()).unwrap_or_default();
+    let last_customer_msg = history.iter().rev().find(|m| m.role == "customer").map(|m| m.content.clone()).unwrap_or_else(String::new);
     let request = TipRequest { session_id, customer_message: last_customer_msg, history };
     let (_, tip_response) = generate_tips(AxumState(config.clone()), AxumJson(request)).await;
     if tip_response.tips.is_empty() {

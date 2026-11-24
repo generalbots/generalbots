@@ -40,7 +40,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read speech-to-text error body: {error}");
+                String::new()
+            });
             log::error!("Speech to text failed: {}", error_text);
             return Err(format!("Speech to text failed: {}", error_text).into());
         }
@@ -85,7 +88,10 @@ impl BotModelsClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read barcode scan error body: {error}");
+                String::new()
+            });
             log::error!("Barcode scan failed: {}", error_text);
             return Err(format!("Barcode scan failed: {}", error_text).into());
         }

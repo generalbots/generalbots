@@ -53,7 +53,10 @@ impl Porkbun {
             .map_err(|e| RegistrarError::Transport(SERVICE.into(), e.to_string()))?;
         let status = resp.status();
         if !status.is_success() {
-            let text = http::body(SERVICE, resp).await.unwrap_or_default();
+            let text = http::body(SERVICE, resp).await.unwrap_or_else(|e| {
+                log::warn!("Failed to read Porkbun error response body: {e}");
+                String::new()
+            });
             return Err(http::classify(SERVICE, status, &Default::default(), &text));
         }
 
@@ -82,9 +85,9 @@ impl Porkbun {
             .filter_map(|record| {
                 let record_type = RecordType::parse(record["type"].as_str()?)?;
                 Some(DnsRecord {
-                    host: record["name"].as_str().unwrap_or_default().to_string(),
+                    host: record["name"].as_str().unwrap_or("").to_string(),
                     record_type,
-                    value: record["content"].as_str().unwrap_or_default().to_string(),
+                    value: record["content"].as_str().unwrap_or("").to_string(),
                     ttl: record["ttl"].as_str().and_then(|t| t.parse().ok()).unwrap_or(300),
                     record_id: record["id"].as_str().map(str::to_string),
                 })
@@ -170,7 +173,7 @@ impl Registrar for Porkbun {
         let entry = parsed["data"][tld.as_str()]
             .as_object()
             .ok_or_else(|| RegistrarError::Decode(SERVICE.into(), format!("no entry for {tld}")))?;
-        let status = entry["status"].as_str().unwrap_or_default().to_lowercase();
+        let status = entry["status"].as_str().unwrap_or("").to_lowercase();
         let price_cents = entry["price"]
             .as_str()
             .and_then(|price| price.parse::<f64>().ok())

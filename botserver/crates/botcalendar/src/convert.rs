@@ -79,10 +79,17 @@ pub(crate) fn date_perhaps_time_to_utc(dpt: DatePerhapsTime) -> Option<DateTime<
 }
 
 pub(crate) fn record_to_event(record: CalendarEventRecord) -> CalendarEvent {
-    let attendees: Vec<String> =
-        serde_json::from_value(record.attendees.clone()).unwrap_or_default();
+    let attendees: Vec<String> = serde_json::from_value(record.attendees.clone()).unwrap_or_else(
+        |error| {
+            log::warn!("Failed to parse calendar attendees: {error}");
+            Vec::new()
+        },
+    );
     let reminders: Vec<serde_json::Value> =
-        serde_json::from_value(record.reminders.clone()).unwrap_or_default();
+        serde_json::from_value(record.reminders.clone()).unwrap_or_else(|error| {
+            log::warn!("Failed to parse calendar reminders: {error}");
+            Vec::new()
+        });
     let reminder_minutes = reminders
         .first()
         .and_then(|r| r.get("minutes_before"))

@@ -140,7 +140,10 @@ fn the_pack_ships_at_least_one_hundred_skills() {
 fn every_package_has_a_usable_manifest_and_body() {
     let mut problems = Vec::new();
     for file in skill_files() {
-        let document = fs::read_to_string(&file).unwrap_or_default();
+        let document = fs::read_to_string(&file).unwrap_or_else(|e| {
+            log::warn!("Cannot read skill file {}: {e}", file.display());
+            String::new()
+        });
         let relative = file
             .strip_prefix(repo_root())
             .unwrap_or(&file)
@@ -149,7 +152,7 @@ fn every_package_has_a_usable_manifest_and_body() {
         let name = front_matter(&document, "name");
         let description = front_matter(&document, "description");
         let version = front_matter(&document, "version");
-        if name.as_deref().map(str::trim).unwrap_or_default().is_empty() {
+        if name.as_deref().map(str::trim).unwrap_or("").is_empty() {
             problems.push(format!("{relative}: missing name"));
         }
         match description.as_deref() {
@@ -169,7 +172,10 @@ fn every_package_has_a_usable_manifest_and_body() {
     // other in `bot_skills` (keyed on name).
     let mut seen = std::collections::HashMap::new();
     for file in skill_files() {
-        let document = fs::read_to_string(&file).unwrap_or_default();
+        let document = fs::read_to_string(&file).unwrap_or_else(|e| {
+            log::warn!("Cannot read skill file {}: {e}", file.display());
+            String::new()
+        });
         let Some(name) = front_matter(&document, "name") else {
             continue;
         };

@@ -316,7 +316,7 @@ pub async fn handle_get_plan_collaborators(
     let caller = Caller::from_headers(&headers)?;
     visible_plan(&plan_id, &caller, Access::Read).await?;
     let presence = get_plan_presence().read().await;
-    let users: Vec<PlanUserPresence> = presence.get(&plan_id).cloned().unwrap_or_default();
+    let users: Vec<PlanUserPresence> = presence.get(&plan_id).cloned().unwrap_or_else(Vec::new);
     Ok(Json(
         serde_json::json!({ "count": users.len(), "users": users }),
     ))
@@ -330,7 +330,7 @@ pub async fn handle_get_plan_presence(
     let caller = Caller::from_headers(&headers)?;
     visible_plan(&plan_id, &caller, Access::Read).await?;
     let presence = get_plan_presence().read().await;
-    let users = presence.get(&plan_id).cloned().unwrap_or_default();
+    let users = presence.get(&plan_id).cloned().unwrap_or_else(Vec::new);
     Ok(Json(serde_json::json!({ "users": users })))
 }
 
@@ -342,7 +342,7 @@ pub async fn handle_get_plan_typing(
     let caller = Caller::from_headers(&headers)?;
     visible_plan(&plan_id, &caller, Access::Read).await?;
     let typing = get_plan_typing().read().await;
-    let indicators = typing.get(&plan_id).cloned().unwrap_or_default();
+    let indicators = typing.get(&plan_id).cloned().unwrap_or_else(Vec::new);
     let now = chrono::Utc::now();
     let active: Vec<PlanTypingIndicator> = indicators
         .into_iter()

@@ -77,7 +77,7 @@ impl AuthProvider for SaasJwtAuthProvider {
         let user_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| {
             Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{}", claims.sub).as_bytes())
         });
-        let email = claims.email.unwrap_or_default();
+        let email = claims.email.unwrap_or_else(String::new);
         let username = email.split('@').next().unwrap_or("user").to_string();
 
         let mut user = AuthenticatedUser::new(user_id, username)

@@ -53,7 +53,7 @@ pub fn scrub(message: &str) -> String {
     match cached(&PHONE_RE, r"\+?[0-9][0-9()\-\s]{7,}[0-9]") {
         Some(re) => re
             .replace_all(&message, |caps: &regex::Captures<'_>| {
-                let hit = caps.get(0).map(|m| m.as_str()).unwrap_or_default();
+                let hit = caps.get(0).map(|m| m.as_str()).unwrap_or("");
                 if looks_like_date_or_time(hit) {
                     hit.to_string()
                 } else {

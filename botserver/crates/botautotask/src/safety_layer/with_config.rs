@@ -42,8 +42,9 @@ impl SafetyLayer {
         }
 
         // A failed load must not look like "this bot has no constraints": that
-        // silently disabled every check. This used to be `unwrap_or_default()`,
-        // which also hid the table being missing entirely — see migration
+        // silently disabled every check. This used to rely on an
+        // implicit-default fallback, which also hid the table being missing
+        // entirely — see migration
         // `6.7.8-safety-constraints`, which creates it.
         let rows: Vec<ConstraintRow> = query
             .load(&mut *conn)

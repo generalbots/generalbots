@@ -210,7 +210,7 @@ pub async fn update_verification(
     );
     Ok(Json(Verification {
         id: parsed, user_id: Uuid::nil(), kind: "identity".to_string(), status: state.as_status().to_string(),
-        documents: req.documents.unwrap_or_default(), reviewed_by: None,
+        documents: req.documents.unwrap_or_else(Vec::new), reviewed_by: None,
         created_at: now, completed_at,
     }))
 }

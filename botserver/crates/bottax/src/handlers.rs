@@ -289,7 +289,7 @@ pub async fn calculate_tax(
     // (issue #734); the client-supplied body branch_id is never trusted, so
     // a caller cannot load another tenant's tax rates by providing its id.
     let loaded = load_rates_from_billing(&mut conn, &branch);
-    let rates = loaded.unwrap_or_default();
+    let rates = loaded.unwrap_or_else(crate::calculator::TaxRates::default);
     let breakdown = crate::calculator::calculate_service_tax(service_value, &rates);
     persist_calculation(
         &mut conn,

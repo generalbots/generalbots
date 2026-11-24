@@ -164,7 +164,7 @@ pub async fn handle_esign_transition(
         } => {
             signature = Some(
                 workflow
-                    .sign(&signer, &digest, at_epoch, &reason.unwrap_or_default())
+                    .sign(&signer, &digest, at_epoch, &reason.unwrap_or_else(String::new))
                     .map_err(map_approval_error)?,
             );
         }

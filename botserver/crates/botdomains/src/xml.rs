@@ -98,7 +98,7 @@ pub fn parse(service: &str, body: &str) -> Result<Response, RegistrarError> {
                 if is_leaf_interest(&opened) && !inner.is_empty() {
                     response.leaves.push((opened.clone(), inner.clone()));
                 }
-                let parent = stack.last().map(|(name, _)| name.clone()).unwrap_or_default();
+                let parent = stack.last().map(|(name, _)| name.clone()).unwrap_or_else(String::new);
                 response.blocks.push((opened.clone(), inner.clone()));
                 response.nested.push((parent, opened, inner));
             }
@@ -112,8 +112,8 @@ pub fn parse(service: &str, body: &str) -> Result<Response, RegistrarError> {
         .iter()
         .filter(|(tag, _)| tag == "Error")
         .map(|(_, xml)| ApiError {
-            number: leaf_in(xml, "Number").unwrap_or_default(),
-            message: leaf_in(xml, "Message").unwrap_or_default(),
+            number: leaf_in(xml, "Number").unwrap_or_else(String::new),
+            message: leaf_in(xml, "Message").unwrap_or_else(String::new),
         })
         .collect();
 

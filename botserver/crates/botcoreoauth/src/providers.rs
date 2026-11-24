@@ -160,7 +160,10 @@ impl OAuthProvider {
             .map_err(|e| anyhow!("Failed to exchange code: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read token exchange error body: {error}");
+                String::new()
+            });
             return Err(anyhow!("Token exchange failed: {}", error_text));
         }
 
@@ -217,7 +220,10 @@ impl OAuthProvider {
             .map_err(|e| anyhow!("Failed to fetch user info: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|error| {
+                log::warn!("Failed to read user-info error body: {error}");
+                String::new()
+            });
             return Err(anyhow!("Failed to fetch user info: {}", error_text));
         }
 
@@ -247,7 +253,7 @@ impl OAuthProvider {
     fn parse_user_info(self, raw: &serde_json::Value) -> Result<OAuthUserInfo> {
         match self {
             Self::Google => Ok(OAuthUserInfo {
-                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider_id: raw["id"].as_str().unwrap_or("").to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
                 // Google's userinfo endpoint reports `verified_email`; the
@@ -260,20 +266,20 @@ impl OAuthProvider {
                 raw: Some(raw.clone()),
             }),
             Self::Discord => Ok(OAuthUserInfo {
-                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider_id: raw["id"].as_str().unwrap_or("").to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
                 // `/users/@me` reports whether the address was verified.
                 email_verified: raw["verified"].as_bool(),
                 name: raw["username"].as_str().map(String::from),
                 avatar_url: raw["avatar"].as_str().map(|avatar| {
-                    let user_id = raw["id"].as_str().unwrap_or_default();
+                    let user_id = raw["id"].as_str().unwrap_or("");
                     format!("https://cdn.discordapp.com/avatars/{}/{}.png", user_id, avatar)
                 }),
                 raw: Some(raw.clone()),
             }),
             Self::Reddit => Ok(OAuthUserInfo {
-                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider_id: raw["id"].as_str().unwrap_or("").to_string(),
                 provider: self,
                 email: None,
                 email_verified: None,
@@ -286,7 +292,7 @@ impl OAuthProvider {
             Self::Twitter => {
                 let data = raw.get("data").unwrap_or(raw);
                 Ok(OAuthUserInfo {
-                    provider_id: data["id"].as_str().unwrap_or_default().to_string(),
+                    provider_id: data["id"].as_str().unwrap_or("").to_string(),
                     provider: self,
                     email: None,
                     email_verified: None,
@@ -296,7 +302,7 @@ impl OAuthProvider {
                 })
             }
             Self::Microsoft => Ok(OAuthUserInfo {
-                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider_id: raw["id"].as_str().unwrap_or("").to_string(),
                 provider: self,
                 email: raw["mail"]
                     .as_str()
@@ -311,7 +317,7 @@ impl OAuthProvider {
                 raw: Some(raw.clone()),
             }),
             Self::Facebook => Ok(OAuthUserInfo {
-                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider_id: raw["id"].as_str().unwrap_or("").to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
                 // Graph exposes no verification flag for the account email.
@@ -328,7 +334,7 @@ impl OAuthProvider {
                     .as_u64()
                     .map(|n| n.to_string())
                     .or_else(|| raw["id"].as_str().map(String::from))
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let login = raw["login"].as_str().map(String::from);
                 Ok(OAuthUserInfo {
                     provider_id,

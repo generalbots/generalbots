@@ -76,7 +76,7 @@ impl VideoEngine {
             clips.first().ok_or("No clips in project")?
         };
 
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -90,7 +90,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("Transcription service error: {error}").into());
         }
 
@@ -172,7 +172,7 @@ impl VideoEngine {
         language: &str,
         output_dir: &str,
     ) -> Result<TTSResponse, Box<dyn std::error::Error + Send + Sync>> {
-        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_default();
+        let botmodels_url = std::env::var("BOTMODELS_URL").unwrap_or_else(|_| String::new());
 
         let client = reqwest::Client::new();
         let response = client
@@ -187,7 +187,7 @@ impl VideoEngine {
             .await?;
 
         if !response.status().is_success() {
-            let error = response.text().await.unwrap_or_default();
+            let error = response.text().await.unwrap_or_else(|_| String::new());
             return Err(format!("TTS service error: {error}").into());
         }
 
@@ -268,7 +268,7 @@ fn segments_from_transcription_json(result: &serde_json::Value) -> Vec<Transcrip
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 /// Turns an ffmpeg `showinfo` log into scene ranges. A cut closer than 500 ms

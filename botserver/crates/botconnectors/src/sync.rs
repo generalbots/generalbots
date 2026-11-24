@@ -92,7 +92,7 @@ fn run_sync(
 
     let containers = connector.list_containers(&credentials)?;
     let mut cursors: Map<String, Value> =
-        row.cursors.as_object().cloned().unwrap_or_default();
+        row.cursors.as_object().cloned().unwrap_or_else(serde_json::Map::new);
 
     let mut budget = MAX_ITEMS_PER_SYNC;
     let mut budget_exhausted = false;

@@ -4,7 +4,7 @@ pub async fn handle_magic(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<MagicRequest>,
 ) -> Result<Json<MagicResponse>, (StatusCode, String)> {
-    let code = payload.code.unwrap_or_default();
+    let code = payload.code.unwrap_or_else(String::new);
     if code.trim().is_empty() {
         return Ok(Json(MagicResponse {
             improved_code: None,

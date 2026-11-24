@@ -58,7 +58,7 @@ impl ApiKeyManager {
             last_used_at: None,
             rotated_from: None,
             rotation_deadline: None,
-            metadata: request.metadata.unwrap_or_default(),
+            metadata: request.metadata.unwrap_or_else(HashMap::new),
         };
 
         let key_id = key.id;

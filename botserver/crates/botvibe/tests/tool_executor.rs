@@ -269,8 +269,8 @@ async fn executor_runs_write_tool_without_approval_gate() {
         assert!(!err.contains("Aprovação"), "approval gate must be gone: {err}");
     }
     let recorded = call.result.expect("tool layer was reached and recorded a result");
-    assert!(recorded.error.as_deref().unwrap_or_default().is_empty() 
-        || !recorded.error.as_deref().unwrap_or_default().contains("Aprovação"));
+    assert!(recorded.error.as_deref().unwrap_or("").is_empty() 
+        || !recorded.error.as_deref().unwrap_or("").contains("Aprovação"));
 }
 
 #[tokio::test]
