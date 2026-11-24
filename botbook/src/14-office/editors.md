@@ -77,6 +77,12 @@ The **Export** menu offers CSV, XLSX, Markdown, ODS, PDF, HTML and JSON. CSV out
 
 Presentation export is available through the Slides API and the catalog's `slides.export` verb. The editor's present/print workflow stays inside the deck rather than producing another office format.
 
+## Appearance and performance instrumentation
+
+Sheet's toolbar and its first row follow the office skin tokens scoped to the app (`--surface`, `--surface-raised`), the same treatment Docs uses, instead of the light product theme's near-white surface.
+
+The editors emit browser performance marks named `gb.office.<app>.<stage>` for `open`, `first-content`, `save`, `export.<format>`, `slide` and `recalc`. `window.GBOfficePerf.report()` exposes the durations between them. Marks carry only a normalized app label and, for exports, a format label — never document content, file names, user ids or tenant ids. They are first-party instrumentation in the browser; the server-side metric families, including `office_recalc_duration_ms`, are exposed at `GET /metrics`.
+
 ## See Also
 
 - [Creating office files from chat](./from-chat.md)

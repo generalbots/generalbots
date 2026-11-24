@@ -30,7 +30,16 @@ The pipeline parses these logs automatically, extracting fields for indexing and
 
 ## Metrics Collection
 
-The platform exposes operational metrics through a Prometheus-compatible endpoint at `/api/metrics`, enabling integration with standard monitoring infrastructure. Available metrics track log event counts by severity level, error totals broken down by service, currently active session counts, total messages processed since startup, and LLM response latency measurements.
+The platform exposes operational metrics through two read-only endpoints: the canonical Prometheus scrape endpoint `GET /metrics` (`text/plain; version=0.0.4`) and the legacy `GET /api/metrics`. Both require a Bearer token; the RBAC route catalogue lists each as a read-only `GET` permission. Available metrics track log event counts by severity level, error totals broken down by service, currently active session counts, total messages processed since startup, and LLM response latency measurements.
+
+Office applications contribute first-party metrics to the same collector. The open/save/export/slide/recalc marks in the browser are instrumentation only and carry no document content or user, tenant or file ids.
+
+| Metric family | Meaning |
+|---|---|
+| `office_recalc_duration_ms_{count,sum,max}` | Spreadsheet recalculations observed and their duration in milliseconds |
+| `office_export_duration_ms_{count,sum,max}` | Office export operations observed and their duration in milliseconds |
+| `office_workbook_memory_bytes` | Resident memory per workbook (label is an opaque hash) |
+| `http_request_duration_ms_{count,sum,max}` | HTTP requests observed per route and their latency |
 
 These metrics enable administrators to understand system behavior over time, identify trends that might indicate developing problems, and verify that the platform operates within expected parameters. The Prometheus format ensures compatibility with common visualization and alerting tools.
 

@@ -28,6 +28,7 @@ USE KB "policies"
 - **Auto-Indexing** - Documents indexed automatically when added
 - **Hybrid Search** - Combines dense (semantic) retrieval with term matching, fused by Reciprocal Rank Fusion
 - **Context Management** - Relevant chunks injected into LLM prompts
+- **Structured Docs search** - Saved Docs documents are indexed in a separate, process-local structure-aware index. `GET /api/docs/kb/search?q=<text>&limit=<n>` returns citation identity (`document_id`, `file`, `version`, `source_ref`, `section`, `score`) for documents the caller may read, never document text. In chat, a question about a saved document appends up to three citation-only lines to the system message for an authenticated user; anonymous turns get none. See [Document Indexing](./indexing.md).
 
 ## Document Organization
 

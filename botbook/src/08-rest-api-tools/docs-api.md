@@ -81,6 +81,41 @@ Full-text search across document content and metadata.
 
 ---
 
+### Search the structured KB (citation-only)
+
+**`GET /api/docs/kb/search?q=<text>&limit=<n>`**
+
+Searches the structure-aware index built from saved Docs documents. Results are
+permission-filtered by the caller's tenant and the document ACL, and contain
+citation identity only — document bytes are never stored in this index and so
+can never be returned here.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | Yes | Search query; an empty or whitespace-only value is rejected |
+| `limit` | integer | No | Results per page (default: 10, maximum: 50) |
+
+**Response:**
+```json
+{
+  "hits": [
+    {
+      "id": "0123456789abcdef",
+      "document_id": "contract",
+      "file": "contract.html",
+      "version": "1",
+      "source_ref": { "kind": "clause", "locator": "7.3", "page": 12 },
+      "section": "Termination",
+      "score": 0.75
+    }
+  ]
+}
+```
+
+Validation errors use fixed messages: `query is required` and `limit must be between 1 and 50` (both 400), plus `authentication required` (401). A caller without access simply receives fewer or no hits — there is no "restricted" result that reveals a document exists.
+
+---
+
 ### Load Document
 
 **`GET /api/docs/load`**

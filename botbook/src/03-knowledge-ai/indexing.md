@@ -22,7 +22,7 @@ Document → Extract Text → Embed → Store in Qdrant
 | **Embed** | Generate one vector per document with the configured embedding model |
 | **Store** | Save to Qdrant with the file path, type, bucket and tag metadata that retrieval filters on |
 
-> **No chunking stage at runtime (September 2026).** A document becomes a single record. There is no splitting into segments and no overlap, so precision degrades on long documents. This is a known limitation, not a setting. `botcore` does contain a structure-aware chunker and citation model, but it is offline only and not called by the runtime — see "Structure-aware indexing model (offline only)" below.
+> **`.gbkb` file indexing stores whole-file records.** The pipeline above does not split a document into segments or overlap windows, so precision degrades on long files; this is a limitation of that path, not a setting. Saved Docs documents take a separate structure-aware path — see "Structure-aware indexing of saved Docs documents" below.
 
 ## Supported File Types
 
@@ -81,22 +81,26 @@ USE KB "documentation"
 ' LLM uses this knowledge automatically
 ```
 
-## Structure-aware indexing model (offline only)
+## Structure-aware indexing of saved Docs documents
 
-`botcore` contains a self-contained model for structure-aware chunking,
-permission-aware retrieval and citations back to a document location (issue
-#2499). It lives in `botserver/crates/botcore/src/kb/structured/` and is
-re-exported from `botcore::kb` (`kb/mod.rs:14-18`). **It is not part of the
-runtime indexing pipeline described above.** The module deliberately makes no
-Qdrant, HTTP or database calls, has no Drive integration and has no callers
-outside its own inline tests. The runtime still stores whole-file records.
+Docs saves are also projected into a structure-aware, in-memory knowledge
+index. `DocState::with_in_memory_kb_index`
+(`botserver/crates/botdocs/src/state.rs`) converts the saved HTML to Markdown,
+splits it at headings, page/slide/cell markers and numbered clauses, and stores
+each chunk with a stable ID, a citation and an ACL derived from the document's
+tenant and owner. A local lexical embedding fills the vector slot. These points
+live only in that process-local index — the Qdrant store described above is not
+part of this path.
 
 | Capability | State today |
 |---|---|
-| Chunk, citation, ACL types and in-memory index | Implemented in `botcore` (`kb/structured/`) |
-| Unit tests over those types | Present, inline under `#[cfg(test)]` |
-| Automatic ingestion from Docs, Slides, Sheets and PDF on save/publish | Not implemented; no Office extractor emits the addressing markers |
-| Qdrant projection, Drive wiring, index-status UI and backfill over real Drive documents | Not implemented |
+| Chunk, citation and ACL types | Implemented in `botcore::kb::structured` and used by the Docs save path |
+| Indexing on save and autosave | Implemented; an edit first evicts the document's previous points so removed clauses stop matching |
+| Removal on delete | Implemented; both index points and their citation identity are dropped |
+| Boot backfill | Persisted Docs documents are replayed from Drive into the in-memory index at start-up; a failure is logged, not fatal |
+| Permission-filtered search | `GET /api/docs/kb/search?q=<text>&limit=<n>` returns citation identity only — `document_id`, `file`, `version`, `source_ref`, `section`, `score` — and never document content |
+| Citation-only chat context | An authenticated user's question about a saved document appends at most three identity lines (`document_id`, `file`, `version`, `section`, `page`) to the system message; an anonymous turn appends none |
+| Qdrant projection of these points | Not implemented |
 
 ### SourceRef and Citation
 
@@ -168,18 +172,14 @@ stable-ID, ACL and payload tests in `chunk.rs`, `citation.rs` and `chunker.rs`.
 These are model-level tests, not end-to-end evidence: no server, Drive bucket
 or Qdrant collection is involved.
 
-### What still needs wiring
+### Still not available
 
-- Emit the `[[PAGE]]`, `[[SLIDE]]`, `[[SHEET]]` and `[[CELL]]` markers from the
-  Docs, Slides, Sheets and PDF extractors, and call the chunker on save or
-  publish. Today the markers occur only in the chunker's own tests.
-- Project `StructuredChunk::to_payload()` into Qdrant points and carry the
-  `citation` and `acl` fields through the retrieval path, using `retrieve` as
-  the post-filter described at `index.rs:10-15`.
-- Connect index status and the backfill report to Drive documents and a UI;
-  implement incremental reindex on edit, removal on archive or retention, a
-  per-workspace admin switch, tenant-scoped encryption at rest, and an opener
-  that highlights the cited page, clause, cell or slide.
+- The index is process-local: it is rebuilt from persisted documents on every
+  start-up. There is no Qdrant projection of the structured points and no
+  separate index-status or backfill-report UI.
+- Only Docs documents are projected today. Slides, Sheets and PDF files are
+  not indexed by this structure-aware path.
+- There is no opener that highlights a cited page, clause, cell or slide.
 
 ## Troubleshooting
 

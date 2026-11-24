@@ -199,6 +199,17 @@ fn read_configuration_file(path: &str) -> Result<String, std::io::Error> {
 }
 ```
 
+### Production-path error policy
+
+Production code must not use `unwrap()`, `expect()`, `panic!()`, `todo!()` or
+`#[allow(...)]`, and must not silently replace a failed result with
+`unwrap_or_default()`. Errors propagate through `Result`, or are handled
+locally with a log; a discarded `Result` is logged rather than dropped. The
+shrink-only ratchet in `botcore::error_budget::Budget` enforces this:
+`scripts/check-error-budget.py` counts `unwrap`, `expect`, `panic`,
+`unwrap_or_default` and `allow` sites in production Rust, and the ratchet
+refuses any run whose counts exceed the baseline.
+
 ### Custom Error Types
 
 ```rust
