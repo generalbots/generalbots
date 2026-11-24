@@ -265,6 +265,11 @@
           msg.col = pl.col !== undefined ? pl.col : msg.col;
           msg.content = pl.value !== undefined ? pl.value : msg.content;
         }
+        // #2447 — the server broadcasts the cell value under `value`; older
+        // peers used `content`. Accept either so a co-edited cell renders.
+        if (msg.content === undefined || msg.content === null) {
+          msg.content = msg.value !== undefined ? msg.value : msg.content;
+        }
         let row, col;
         if (msg.row !== undefined && msg.col !== undefined) {
           row = msg.row; col = msg.col;

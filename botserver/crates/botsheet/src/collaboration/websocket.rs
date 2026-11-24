@@ -24,8 +24,7 @@ mod websocket_auth;
 
 use self::websocket_auth::{extract_user_from_token, reason_code, unauthorized, WsAuthQuery};
 
-/// Converged per-sheet cell state (#2447); stale/duplicate edits are rejected
-/// before they can overwrite a newer workbook winner.
+/// Per-sheet cell state; stale/duplicate edits are rejected before overwriting (#2447).
 static MERGE_STATES: OnceLock<RwLock<HashMap<String, CellState>>> = OnceLock::new();
 
 fn merge_states() -> &'static RwLock<HashMap<String, CellState>> {
@@ -353,6 +352,7 @@ pub async fn handle_sheet_connection(
                                         }),
                                     );
                                     collab_msg.msg_type = "cell_update".to_string();
+                                    collab_msg.value = Some(content.clone()); // #2447 — peers read this
                                     collab_msg.seq = Some(seq);
                                 }
                             }
