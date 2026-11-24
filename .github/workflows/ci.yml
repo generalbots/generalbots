@@ -691,6 +691,20 @@ jobs:
           python3 scripts/check_doc_ips.py --self-test
           python3 scripts/check_doc_ips.py
 
+      # #2459 — the four office metric hooks were once exported but never
+      # called, so /metrics silently showed no samples. This gate fails when a
+      # hook loses its definition or its last production call site, when the
+      # canonical scrape router stops being merged, or when either read-only
+      # RBAC GET permission disappears. Pure Python, no network.
+      - name: "Guard: office metric wiring and scrape route (#2459)"
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/check_metrics_wiring.py ]; then
+            echo "scripts/check_metrics_wiring.py is missing" >&2
+            exit 1
+          fi
+          python3 scripts/check_metrics_wiring.py
+
   # #2543 — the three error-handling lints stay `warn` in Cargo.toml because
   # workspace lints cannot express a per-file baseline exclusion. This is the
   # equivalent blocking gate: clippy emits JSON diagnostics, the script keeps

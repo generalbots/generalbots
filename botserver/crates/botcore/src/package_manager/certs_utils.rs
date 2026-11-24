@@ -230,39 +230,14 @@ pub fn push_all_certs_ssh(base_path: &Path, ssh_host: &str) -> Result<()> {
             ("server.key", svc_dir.join("server.key")),
         ];
 
-        // #2791 — stage in a fresh 0700 directory with an unpredictable name.
-        // A predictable /tmp/{container}-{file} could be pre-created or
-        // symlinked by a local user on the remote host.
-        let staging_dir = remote_cert_staging_dir(container);
-        safe_sh(&format!(
-            "ssh {ssh_host} -o StrictHostKeyChecking=accept-new 'mkdir -p {staging_dir} && chmod 700 {staging_dir}'"
-        ))?;
-
-        let push_result = (|| -> Result<()> {
-            for (fname, fpath) in &files {
-                if !fpath.exists() {
-                    warn!("{} missing for {}, skipping", fname, name);
-                    continue;
-                }
-
-                let remote_tmp = PathBuf::from(format!("{staging_dir}/{fname}"));
-
-                // SCP to host
-                safe_sh(&format!(
-                    "scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 {} {}:{}",
-                    fpath.display(), ssh_host, remote_tmp.display()
-                ))?;
-
-                // mkdir + incus file push on host
-                let target_dir = format!("/opt/gbo/conf/system/certificates/{}", name);
-                safe_sh(&format!(
-                    "ssh {} -o StrictHostKeyChecking=accept-new 'sudo incus exec {} -- mkdir -p {} && sudo incus file push {} {}:{}/{}'",
-                    ssh_host, container, target_dir, remote_tmp.display(), container, target_dir, fname
-                ))?;
+        // #2791/#2711 — build_remote_push_script stages each file in a
+        // private mktemp directory and verifies the SHA-256 both before and
+        // after the incus push. This supersedes the old scp+incus path.
+        for (fname, fpath) in &files {
+            if !fpath.exists() {
+                warn!("{} missing for {}, skipping", fname, name);
+                continue;
             }
-            Ok(())
-        })();
-
             let expected = file_sha256(fpath)?;
             let script = build_remote_push_script(
                 ssh_host,

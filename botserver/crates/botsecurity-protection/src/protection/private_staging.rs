@@ -46,7 +46,9 @@ impl StagedConfig {
 
 impl Drop for StagedConfig {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.dir);
+        if let Err(error) = std::fs::remove_dir_all(&self.dir) {
+            log::warn!("private staging cleanup failed for {}: {error}", self.dir.display());
+        }
     }
 }
 

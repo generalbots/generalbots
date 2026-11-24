@@ -17,6 +17,13 @@ pub fn set_metrics_collector(collector: MetricsCollector) {
     }
 }
 
+/// #2459 — the same collector the exporter scrapes, for callers outside
+/// botsheet-core (e.g. the HTTP latency middleware). Initialising on demand
+/// keeps the first request safe; boot normally installs it before serving.
+pub fn metrics_collector() -> MetricsCollector {
+    METRICS.get_or_init(MetricsCollector::new).clone()
+}
+
 /// #2459 — record one workbook recalculation duration into the shared
 /// collector. `recalculate_workbook` is synchronous and is called from both
 /// async handlers and plain code, so the async hook is driven without ever

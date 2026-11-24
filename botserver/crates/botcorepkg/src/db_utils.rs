@@ -14,7 +14,9 @@ pub fn get_database_url_sync() -> Result<String> {
             Ok(rt) => rt.block_on(manager.get_database_url()),
             Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
         };
-        let _ = tx.send(result);
+        if let Err(error) = tx.send(result) {
+            log::warn!("Vault secret lookup result dropped: {error}");
+        }
     });
     rx.recv_timeout(std::time::Duration::from_secs(10))
         .map_err(|e| anyhow::anyhow!("Database credential lookup did not finish: {e}"))?
@@ -27,19 +29,23 @@ pub fn get_secret_value_sync(path: &str, key: &str) -> Result<String> {
     let manager = SecretsManager::get_clone()?;
     let path = path.to_string();
     let key = key.to_string();
+    let err_path = path.clone();
+    let err_key = key.clone();
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let result = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
             Ok(rt) => rt.block_on(manager.get_value(&path, &key)),
             Err(error) => Err(anyhow::anyhow!("Failed to create runtime: {error}")),
         };
-        let _ = tx.send(result);
+        if let Err(error) = tx.send(result) {
+            log::warn!("Vault secret lookup result dropped: {error}");
+        }
     });
     let value = rx
         .recv_timeout(std::time::Duration::from_secs(10))
         .map_err(|error| anyhow::anyhow!("Vault secret lookup did not finish: {error}"))??;
     if value.is_empty() {
-        Err(anyhow::anyhow!("Vault field {path}::{key} is empty"))
+        Err(anyhow::anyhow!("Vault field {err_path}::{err_key} is empty"))
     } else {
         Ok(value)
     }
