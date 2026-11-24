@@ -56,7 +56,7 @@
             '<span class="gb-drv-empty-icon">' + D.svg(D.PATHS.upload, 22, 1.8) + '</span>' +
             '<strong>' + esc(title) + '</strong>' +
             '<span class="gb-drv-empty-text">' + esc(text) + '</span>' +
-            '<span class="gb-drv-empty-limit">' + (pt ? "PDF · WORD · EXCEL · IMAGENS · ATÉ 25 MB" : "PDF · WORD · EXCEL · IMAGES · UP TO 25 MB") +
+            '<span class="gb-drv-empty-limit">' + (pt ? "PDF · WORD · EXCEL · IMAGENS · ATÉ " : "PDF · WORD · EXCEL · IMAGES · UP TO ") + (D.MAX_UPLOAD_MB || 75) + " MB" +
             '</span></button></div>';
         list.querySelector("button").onclick = function () {
             document.getElementById("gbDrvFileInput").click();

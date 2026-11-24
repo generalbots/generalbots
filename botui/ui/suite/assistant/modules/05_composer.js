@@ -123,10 +123,12 @@
     }
 
     /* ---- Send ---- */
-    /* Attachments travel inside the socket frame as base64; a larger file
-       fails the frame and the chat would stay silent. Same limit as the server
-       expects from the existing client. */
+    /* Attachments travel inside the socket message as base64. The server
+       takes 50 MB per file (68 MiB of base64) and 96 MiB per message, so the
+       files of one message stay under 70 MB together; above that the message
+       would be dropped and the chat would stay silent. */
     var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
+    var MAX_ATTACH_TOTAL = 70 * 1024 * 1024;
 
     function doSend(text, messageType) {
         text = (text || "").trim();
@@ -147,6 +149,13 @@
             }).join(", ");
             A.renderError(A.t("attach.too-big",
                 "Arquivo grande demais (limite de 50 MB por arquivo): ") + names);
+            return;
+        }
+        var total = files.reduce(function (sum, f) { return sum + f.size; }, 0);
+        if (total > MAX_ATTACH_TOTAL) {
+            A.renderError(A.t("attach.too-big-total",
+                "Anexos grandes demais para uma só mensagem (até 70 MB no total; estes somam ") +
+                (total / 1048576).toLocaleString(A.locale || undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " MB).");
             return;
         }
         var empty = files.filter(function (f) { return f.size === 0; });

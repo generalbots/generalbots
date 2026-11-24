@@ -207,7 +207,15 @@
         });
     }
 
-    var MAX_DRIVE_UPLOAD = 25 * 1024 * 1024; /* 25 MB */
+    /* /api/files/write takes the file as base64 inside a JSON body of at
+       most 100 MiB (server upload policy, Drive class): 75 MB of file. */
+    var DRIVE_BODY_MAX = 100 * 1024 * 1024;
+    D.MAX_UPLOAD_MB = 75;
+
+    function overDriveLimit(file) {
+        var path = (D.path ? D.path + "/" : "") + file.name;
+        return Math.ceil(file.size / 3) * 4 + path.length * 4 + 1024 > DRIVE_BODY_MAX;
+    }
 
     D.reloadList = function () {
         if (D.inboxMode) D.loadInboxFiles();
@@ -220,7 +228,7 @@
         var tooBig = [];
         var ok = [];
         for (var fi = 0; fi < files.length; fi++) {
-            if (files[fi].size > MAX_DRIVE_UPLOAD) {
+            if (overDriveLimit(files[fi])) {
                 tooBig.push(files[fi].name + " (" + D.fmtBytes(files[fi].size) + ")");
             } else {
                 ok.push(files[fi]);
@@ -228,8 +236,7 @@
         }
         if (tooBig.length) {
             D.showToast(
-                (document.documentElement.lang.toLowerCase().startsWith("pt") ? "Arquivo grande demais (limite de 25 MB): " :
-                    "File too large (25 MB limit): ") + tooBig.join(", "),
+                A.t("drive.file-too-big", "Arquivo grande demais para o Drive (limite de 75 MB por arquivo): ") + tooBig.join(", "),
                 "error"
             );
         }

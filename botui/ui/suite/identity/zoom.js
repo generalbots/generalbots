@@ -1,8 +1,9 @@
 "use strict";
 /* App zoom: scales the whole interface, like the browser's own zoom.
  * 80 % to 150 % in steps of 10, stored per device, applied before first paint.
- * Inside the desktop app the webview's own zoom is used when the app grants
- * it; otherwise (and in a browser) CSS zoom on the root element.
+ * Inside the desktop app the webview's own zoom is used (Tauri command
+ * plugin:webview|set_webview_zoom, granted by core:webview:allow-set-webview-zoom);
+ * when the app refuses it, and in a browser, CSS zoom on the root element.
  * CSS zoom also scales viewport units and the pixel values scripts write, so
  * the factor is published as --gb-zoom (stylesheets divide vh/vw by it) and as
  * GBZoom.factor() (scripts divide client coordinates by it before placing a
@@ -35,25 +36,30 @@
 
     function factor() { return native ? 1 : stored() / 100; }
 
-    function webview() {
-        var tauri = window.__TAURI__;
-        var api = tauri && tauri.webview;
-        var view = api && typeof api.getCurrentWebview === "function" ? api.getCurrentWebview() : null;
-        return view && typeof view.setZoom === "function" ? view : null;
+    /* The desktop app's IPC, or null in a browser. */
+    function ipc() {
+        var internals = window.__TAURI_INTERNALS__;
+        return internals && typeof internals.invoke === "function" ? internals : null;
     }
 
-    /* The CSS zoom is always set first so the page never paints unscaled;
-       a granted webview zoom then takes over and the CSS one is removed. */
+    function webviewZoom(internals, pct) {
+        var meta = internals.metadata && internals.metadata.currentWebview;
+        var args = { value: pct / 100 };
+        if (meta && meta.label) { args.label = meta.label; }
+        return internals.invoke("plugin:webview|set_webview_zoom", args);
+    }
+
+    /* In the desktop app the webview zooms natively; if the app refuses the
+       command the CSS zoom takes over and listeners hear the new factor. */
     function apply(pct) {
-        if (!native) { cssZoom(pct); }
-        var view = webview();
-        if (!view) { return; }
-        view.setZoom(pct / 100).then(function () {
-            native = true;
-            cssZoom(DEF);
-        }, function () {
+        var internals = ipc();
+        if (!internals) { cssZoom(pct); return; }
+        native = true;
+        cssZoom(DEF);
+        Promise.resolve().then(function () { return webviewZoom(internals, pct); }).catch(function () {
             native = false;
             cssZoom(pct);
+            window.dispatchEvent(new CustomEvent("gb-zoom-change", { detail: { value: pct } }));
         });
     }
 
