@@ -123,6 +123,42 @@ impl Drop for SecureEnvFile {
     }
 }
 
+/// #2654 — generic private staging for arbitrary payloads (systemd units).
+/// Same 0700-dir/0600-file guarantees as `SecureEnvFile`, with a caller-supplied
+/// file name; used by `caddy_deploy.rs` before `incus file push`.
+pub(crate) struct PrivateTemp {
+    pub(crate) path: PathBuf,
+    dir: PathBuf,
+}
+
+impl PrivateTemp {
+    pub(crate) fn create(name: &str, content: &[u8]) -> Result<Self, String> {
+        // Unique per instance: Drop removes this directory, so two staged
+        // units must never share one (otherwise the first drop deletes the
+        // second unit's file before `incus file push` reads it).
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = secure_env_tmp_dir().join(format!("unit-{}-{nonce}", std::process::id()));
+        create_private_dir(&dir)?;
+        let file = dir.join(name);
+        let text = std::str::from_utf8(content)
+            .map_err(|error| format!("staged unit is not UTF-8: {error}"))?;
+        if let Err(error) = write_secret_file(&file, text) {
+            remove_dir_quietly(&dir);
+            return Err(error);
+        }
+        Ok(Self { path: file, dir })
+    }
+}
+
+impl Drop for PrivateTemp {
+    fn drop(&mut self) {
+        remove_dir_quietly(&self.dir);
+    }
+}
+
 /// Pin the pushed EnvironmentFile to 0600 owned by the service user. The
 /// python unit declares no `User=`, so systemd runs it as root; `chown` plus
 /// `chmod` make the proxy-side file match the private staging file, and a

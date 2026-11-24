@@ -6,7 +6,7 @@ use super::*;
 // this file stays under the 450-line limit (AGENTS.md).
 #[path = "secure_env.rs"]
 mod secure_env;
-use secure_env::{harden_proxy_env_file, SecureEnvFile};
+use secure_env::{harden_proxy_env_file, PrivateTemp, SecureEnvFile};
 
 /// Install (or refresh) the per-site python systemd service inside the
 /// proxy: venv + dependency install + unit + start. Idempotent. The unit
