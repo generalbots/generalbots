@@ -24,6 +24,8 @@
 <link rel="stylesheet" href="/suite/chat/chat-assistant-controls.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat-conversation-header.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat-model-accounts.css?v=1" />
+<!-- Assistant parity: additive surface, chat's own CSS is untouched. -->
+<link rel="stylesheet" href="/suite/chat/assistant-parity/assistant-parity.css?v=1" />
 <div class="chat-layout gb-app" id="chat-app" data-gb-app="chat" style="opacity: 1; visibility: visible;">
     <div class="chat-content-wrapper" id="chatContentWrapper">
         <div id="chatHeaderActions" class="gb-chat-header-actions" role="toolbar"
@@ -272,6 +274,14 @@
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <!-- gb-search.js belongs to the shell taskbar (desktop.html); chat never
      calls GBUniversalSearch. -->
+<!-- Assistant parity modules: additive behaviour, loaded before the boot so
+     each mount() can attach to chat's existing DOM. -->
+<script src="/suite/chat/assistant-parity/01_workshop.js?v=1"></script>
+<script src="/suite/chat/assistant-parity/02_model_dock.js?v=1"></script>
+<script src="/suite/chat/assistant-parity/03_drive_actions.js?v=1"></script>
+<script src="/suite/chat/assistant-parity/04_blocks.js?v=1"></script>
+<script src="/suite/chat/assistant-parity/05_attach_panel.js?v=1"></script>
+<script src="/suite/chat/assistant-parity/99_init.js?v=1"></script>
 <script src="/suite/chat/tour.js?v=1"></script>
 <!-- Optional surfaces are registered in boot-budget.js and injected after first
      paint on desktop only; compact mode skips them and gates their buttons. -->

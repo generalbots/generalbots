@@ -1,0 +1,260 @@
+/* =============================================================================
+   CHAT / ASSISTANT PARITY — appearance only.
+
+   Gives the *new* `gb-parity-*` elements the assistant visual language (warm
+   paper, hairline cards, flat pills, one accent) without touching chat's own
+   look: every selector is scoped to a `gb-parity-*` class or its children.
+   Nothing targets #messages, .message, .input-container or #modelPicker.
+
+   Tokens read from the identity layer (--id-*) with literal light fallbacks so
+   the layer renders before identity CSS loads. Dark swaps only the fallbacks;
+   a loaded theme still wins through var().
+   ========================================================================== */
+
+/* == 0. Self-contained token bridge ===================================== */
+.gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare, .gb-parity-model-btn,
+.gb-parity-action-menu, .gb-parity-confirm, .gb-parity-block-stack, .gb-parity-block, .gb-parity-attach-panel {
+    --gbp-paper: var(--id-paper, #FFF8F2); --gbp-surface: var(--id-surface-solid, #fff);
+    --gbp-surface-soft: var(--id-surface, rgba(255, 255, 255, .9));
+    --gbp-ink: var(--id-ink, #2C2C2C); --gbp-text: var(--id-text, #4B5563);
+    --gbp-muted: var(--id-muted, #5F6673); --gbp-line: var(--id-line, #E5E7EB);
+    --gbp-line-soft: var(--id-line-soft, #F3F4F6); --gbp-fill: var(--id-fill, #F3F4F6);
+    --gbp-gray-300: var(--id-gray-300, #D1D5DB); --gbp-accent: var(--id-accent, #F28C28);
+    --gbp-accent-text: var(--id-accent-text, #B45309);
+    --gbp-accent-soft: var(--id-accent-soft, rgba(242, 140, 40, .1));
+    --gbp-on-accent: var(--id-on-accent, #2C2C2C);
+    --gbp-radius: var(--id-radius-card, calc(var(--radius, .75rem) + 8px));
+    --gbp-radius-sm: var(--id-radius-sm, max(4px, calc(var(--radius, .75rem) - 4px)));
+    --gbp-radius-pill: var(--id-radius-pill, 999px);
+    --gbp-shadow: var(--id-shadow-card, 0 1px 2px rgb(0 0 0 / .05));
+    --gbp-shadow-hover: var(--id-shadow-card-hover, 0 8px 20px -10px rgb(0 0 0 / .12));
+    --gbp-shadow-float: var(--id-shadow-float, 0 10px 15px -3px rgb(0 0 0 / .04));
+    --gbp-font: var(--id-font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --gbp-font-heading: var(--id-font-heading, var(--gbp-font));
+    --gbp-focus: var(--id-focus, 0 0 0 2px var(--gbp-accent-text));
+    --gbp-overlay: var(--id-overlay, rgb(0 0 0 / .3));
+    --gbp-success-text: var(--id-success-text, #16a34a);
+    --gbp-success-soft: var(--id-success-soft, rgb(34 197 94 / .06));
+    --gbp-warn-text: var(--id-warn-text, #92400e);
+    --gbp-warn-soft: var(--id-warn-soft, rgb(234 179 8 / .08));
+    --gbp-danger-text: var(--id-danger-text, #b91c1c);
+    --gbp-danger-soft: var(--id-danger-soft, rgb(220 38 38 / .06));
+    --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .3));
+}
+
+/* Dark scheme: transparent to a loaded theme, literal when standing alone. */
+[data-color-scheme="dark"] :is(.gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare,
+    .gb-parity-model-btn, .gb-parity-action-menu, .gb-parity-confirm, .gb-parity-block-stack,
+    .gb-parity-block, .gb-parity-attach-panel) {
+    --gbp-paper: var(--id-paper, #221F1B); --gbp-surface: var(--id-surface-solid, #262633);
+    --gbp-surface-soft: var(--id-surface, rgba(38, 38, 51, .9));
+    --gbp-ink: var(--id-ink, #E4E4EA); --gbp-text: var(--id-text, #CDD0D9);
+    --gbp-muted: var(--id-muted, #808898); --gbp-line: var(--id-line, #3A3A4A);
+    --gbp-line-soft: var(--id-line-soft, #2E2E3E); --gbp-fill: var(--id-fill, #2A2A36);
+    --gbp-gray-300: var(--id-gray-300, #4A4A5A); --gbp-accent-text: var(--id-accent-text, #FDB96A);
+    --gbp-accent-soft: var(--id-accent-soft, rgba(242, 140, 40, .16));
+    --gbp-overlay: var(--id-overlay, rgb(0 0 0 / .5));
+    --gbp-success-text: var(--id-success-text, #86efac);
+    --gbp-success-soft: var(--id-success-soft, rgb(34 197 94 / .12));
+    --gbp-warn-text: var(--id-warn-text, #fde68a);
+    --gbp-warn-soft: var(--id-warn-soft, rgb(234 179 8 / .15));
+    --gbp-danger-text: var(--id-danger-text, #fca5a5);
+    --gbp-danger-soft: var(--id-danger-soft, rgb(220 38 38 / .12));
+    --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .4));
+}
+
+/* Shared focus ring for every interactive parity element and its children. */
+[class*="gb-parity-"]:focus-visible, [class*="gb-parity-"] :focus-visible { outline: 2px solid var(--gbp-accent-text, #B45309); outline-offset: 2px; }
+
+/* == 1. Workshop dialog ================================================= */
+.gb-parity-dialog { position: fixed; inset: 0; z-index: var(--z-modal, 1000); display: flex; align-items: center; justify-content: center; padding: var(--id-space-4, 16px); box-sizing: border-box; }
+.gb-parity-dialog-backdrop { position: absolute; inset: 0; background: var(--gbp-overlay); }
+.gb-parity-dialog-panel { position: relative; z-index: 1; display: flex; flex-direction: column; width: 100%; max-width: 560px; max-height: min(88vh, 760px); background: var(--gbp-surface); color: var(--gbp-text); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius); box-shadow: var(--gbp-shadow-hover); box-sizing: border-box; overflow: hidden; }
+.gb-parity-dialog-header { display: flex; align-items: flex-start; gap: var(--id-space-3, 12px); padding: var(--id-space-4, 16px) var(--id-space-5, 20px); border-bottom: 1px solid var(--gbp-line-soft); flex-shrink: 0; }
+.gb-parity-dialog-title { flex: 1; margin: 0; font-family: var(--gbp-font-heading); font-size: var(--id-text-2xl, 1.25rem); font-weight: 600; color: var(--gbp-ink); }
+.gb-parity-dialog-subtitle { margin: 2px 0 0; font-size: var(--id-text-sm, .75rem); color: var(--gbp-muted); }
+.gb-parity-dialog-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--id-space-5, 20px); }
+.gb-parity-dialog-footer { display: flex; align-items: center; justify-content: flex-end; gap: var(--id-space-2, 8px); padding: var(--id-space-3, 12px) var(--id-space-5, 20px); border-top: 1px solid var(--gbp-line-soft); flex-shrink: 0; }
+
+/* Every panel has a visible close target (glyph drawn in CSS). */
+.gb-parity-dialog-close, .gb-parity-confirm-close, .gb-parity-attach-panel-close, .gb-parity-model-menu-close, .gb-parity-action-menu-close { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--gbp-radius-sm); background: transparent; color: var(--gbp-muted); cursor: pointer; transition: background var(--id-dur-fast, 150ms) var(--id-ease, ease), color var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-dialog-close::before, .gb-parity-confirm-close::before, .gb-parity-attach-panel-close::before, .gb-parity-model-menu-close::before, .gb-parity-action-menu-close::before { content: "\00D7"; font-size: 20px; line-height: 1; }
+.gb-parity-dialog-close:hover, .gb-parity-confirm-close:hover, .gb-parity-attach-panel-close:hover, .gb-parity-model-menu-close:hover, .gb-parity-action-menu-close:hover { background: var(--gbp-fill); color: var(--gbp-ink); }
+
+/* == 2. Gauge (five segments; tone carries meaning) ==================== */
+.gb-parity-gauge { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.gb-parity-gauge i, .gb-parity-gauge .gb-parity-gauge-seg { width: 14px; height: 8px; border-radius: 2px; background: var(--gbp-line); }
+.gb-parity-gauge .on, .gb-parity-gauge .is-on { background: var(--gbp-accent); }
+.gb-parity-gauge--warn .on, .gb-parity-gauge--warn .is-on, .gb-parity-gauge--level-1 .on, .gb-parity-gauge--level-2 .on { background: var(--gbp-warn-text); }
+.gb-parity-gauge--good .on, .gb-parity-gauge--good .is-on, .gb-parity-gauge--level-4 .on, .gb-parity-gauge--level-5 .on { background: var(--gbp-success-text); }
+.gb-parity-gauge-label { margin-left: var(--id-space-2, 8px); font-size: var(--id-text-xs, .75rem); font-weight: 500; color: var(--gbp-muted); }
+
+/* == 3. Guide (two-question walkthrough) ================================ */
+.gb-parity-guide { border-style: dashed; background: var(--gbp-surface); }
+.gb-parity-guide-head { margin-bottom: var(--id-space-2, 8px); color: var(--gbp-ink); }
+.gb-parity-guide-step { display: flex; align-items: center; gap: var(--id-space-2, 8px); margin-bottom: var(--id-space-2, 8px); font-size: var(--id-text-xs, .75rem); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gbp-muted); }
+.gb-parity-guide-dots { display: inline-flex; gap: 4px; }
+.gb-parity-guide-dots i, .gb-parity-guide-dots span { width: 18px; height: 4px; border-radius: 2px; background: var(--gbp-line); }
+.gb-parity-guide-dots .on { background: var(--gbp-accent); }
+.gb-parity-guide-back { margin-left: auto; border: 0; background: transparent; color: var(--gbp-accent-text); cursor: pointer; font: inherit; font-size: var(--id-text-sm, .75rem); padding: 2px 6px; border-radius: var(--gbp-radius-sm); }
+.gb-parity-guide-back:hover { background: var(--gbp-accent-soft); }
+.gb-parity-guide-q { margin: 0 0 var(--id-space-3, 12px); font-size: var(--id-text-base, .875rem); color: var(--gbp-ink); }
+.gb-parity-guide-rec { margin: 0 0 var(--id-space-3, 12px); padding-left: var(--id-space-3, 12px); border-left: 3px solid var(--gbp-accent); font-size: var(--id-text-base, .875rem); color: var(--gbp-ink); }
+.gb-parity-guide-answers { display: flex; flex-wrap: wrap; gap: var(--id-space-2, 8px); }
+.gb-parity-guide-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--id-space-3, 12px); }
+.gb-parity-guide-choice { display: flex; align-items: flex-start; gap: var(--id-space-3, 12px); padding: var(--id-space-3, 12px) var(--id-space-4, 16px); min-width: 0; border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius); background: var(--gbp-surface); box-shadow: var(--gbp-shadow); color: var(--gbp-ink); text-align: left; cursor: pointer; font: inherit; transition: border-color var(--id-dur-fast, 150ms) var(--id-ease, ease), box-shadow var(--id-dur-fast, 150ms) var(--id-ease, ease), transform var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-guide-choice:hover { border-color: var(--gbp-accent); box-shadow: var(--gbp-shadow-hover); transform: translateY(-1px); }
+.gb-parity-choice-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--gbp-accent-soft); color: var(--gbp-accent); }
+.gb-parity-choice-icon svg { width: 22px; height: 22px; }
+.gb-parity-choice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gb-parity-choice-text strong { font-size: var(--id-text-base, .875rem); font-weight: 600; }
+.gb-parity-choice-text small { font-size: var(--id-text-sm, .75rem); color: var(--gbp-muted); }
+.gb-parity-guide-result { display: flex; align-items: center; gap: var(--id-space-2, 8px); margin: 4px 0 var(--id-space-2, 8px); font-size: var(--id-text-xl, 1.0625rem); font-weight: 600; color: var(--gbp-ink); }
+.gb-parity-guide-result svg { color: var(--gbp-accent); }
+
+/* == 4. Comparison table (scrolls on narrow screens) =================== */
+.gb-parity-compare { overflow-x: auto; margin-bottom: var(--id-space-4, 16px); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius); background: var(--gbp-surface); }
+.gb-parity-compare-grid { display: grid; grid-template-columns: minmax(100px, .9fr) repeat(3, minmax(130px, 1fr)); min-width: 560px; }
+.gb-parity-compare-corner { border-bottom: 1px solid var(--gbp-line); }
+.gb-parity-compare-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; margin: var(--id-space-3, 12px) var(--id-space-2, 8px); padding: var(--id-space-3, 12px); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius); background: var(--gbp-surface); box-shadow: var(--gbp-shadow); color: var(--gbp-ink); text-align: left; cursor: pointer; font: inherit; transition: border-color var(--id-dur-fast, 150ms) var(--id-ease, ease), transform var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-compare-head:hover:not(:disabled) { border-color: var(--gbp-accent); transform: translateY(-1px); }
+.gb-parity-compare-head:disabled { cursor: not-allowed; opacity: .55; }
+.gb-parity-compare-head.selected { border: 2px solid var(--gbp-accent); background: var(--gbp-accent-soft); }
+.gb-parity-compare-head svg { color: var(--gbp-accent); }
+.gb-parity-compare-badges { display: flex; flex-wrap: wrap; gap: 4px; min-height: 0; }
+.gb-parity-compare-badges:empty { display: none; }
+.gb-parity-compare-cta { display: inline-flex; align-items: center; gap: 2px; margin-top: auto; padding-top: 6px; font-size: var(--id-text-sm, .75rem); font-weight: 600; color: var(--gbp-accent-text); }
+.gb-parity-compare-cta svg { transition: transform var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-compare-head:hover .gb-parity-compare-cta svg { transform: translateX(2px); }
+.gb-parity-compare-label { padding: 10px var(--id-space-3, 12px); font-size: var(--id-text-sm, .75rem); font-weight: 500; color: var(--gbp-ink); border-bottom: 1px solid var(--gbp-line-soft); }
+.gb-parity-compare-cell { display: flex; gap: 8px; align-items: flex-start; padding: 10px var(--id-space-3, 12px); font-size: var(--id-text-sm, .75rem); color: var(--gbp-text); border-left: 1px solid var(--gbp-line-soft); border-bottom: 1px solid var(--gbp-line-soft); }
+.gb-parity-compare-note { display: block; margin-top: 3px; font-size: var(--id-text-xs, .75rem); color: var(--gbp-muted); }
+.gb-parity-compare-sugg { display: inline-block; padding: 1px 6px; border-radius: var(--gbp-radius-pill); border: 1px solid var(--gbp-success-text); background: var(--gbp-success-soft); color: var(--gbp-success-text); font-size: var(--id-text-xs, .75rem); font-weight: 500; }
+
+/* == 5. Model button + grouped dropdown ================================ */
+.gb-parity-model-btn { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius-pill); background: var(--gbp-surface); color: var(--gbp-text); font: inherit; font-family: var(--gbp-font); font-size: var(--id-text-xs, .75rem); cursor: pointer; white-space: nowrap; transition: background var(--id-dur-fast, 150ms) var(--id-ease, ease), border-color var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-model-btn:hover { background: var(--gbp-fill); border-color: var(--gbp-gray-300); }
+.gb-parity-model-btn svg { flex-shrink: 0; }
+.gb-parity-model-menu { position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 50; min-width: 220px; max-width: min(300px, calc(100vw - 24px)); max-height: min(70vh, 520px); overflow-y: auto; padding: var(--id-space-1, 4px); box-sizing: border-box; background: var(--gbp-surface); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius-sm); box-shadow: var(--gbp-shadow-float); }
+.gb-parity-model-menu[hidden] { display: none; }
+.gb-parity-model-menu-head { display: flex; align-items: center; gap: var(--id-space-2, 8px); padding: 4px 4px 6px; border-bottom: 1px solid var(--gbp-line-soft); margin-bottom: 4px; }
+.gb-parity-model-menu-head span { flex: 1; font-size: var(--id-text-sm, .75rem); font-weight: 600; color: var(--gbp-ink); }
+.gb-parity-model-menu-item { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 6px 10px; border: none; border-radius: var(--gbp-radius-sm); background: transparent; color: var(--gbp-text); font: inherit; font-family: var(--gbp-font); font-size: var(--id-text-sm, .75rem); cursor: pointer; text-align: left; transition: background var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-model-menu-item:hover { background: var(--gbp-fill); }
+.gb-parity-model-menu-item.active { background: var(--gbp-accent-soft); color: var(--gbp-accent-text); }
+.gb-parity-model-menu-name { font-weight: 500; }
+.gb-parity-model-menu-meta { font-size: var(--id-text-xs, .75rem); color: var(--gbp-muted); }
+.gb-parity-model-menu-divider { height: 1px; background: var(--gbp-line-soft); margin: 2px 0; }
+.gb-parity-model-menu-action { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 10px; border: none; border-radius: var(--gbp-radius-sm); background: transparent; color: var(--gbp-accent-text); font: inherit; font-family: var(--gbp-font); font-size: var(--id-text-sm, .75rem); cursor: pointer; text-align: left; }
+.gb-parity-model-menu-action:hover { background: var(--gbp-accent-soft); }
+.gb-parity-model-group { border-top: 1px solid var(--gbp-line-soft); }
+.gb-parity-model-group-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; background: transparent; color: var(--gbp-ink); font: inherit; font-size: var(--id-text-sm, .75rem); font-weight: 600; cursor: pointer; text-align: left; }
+.gb-parity-model-group-head:hover { background: var(--gbp-accent-soft); }
+.gb-parity-model-group-logo { display: inline-flex; width: 16px; height: 16px; flex-shrink: 0; }
+.gb-parity-model-group-logo svg { width: 16px; height: 16px; }
+.gb-parity-model-group-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gb-parity-model-group-count { font-size: var(--id-text-xs, .75rem); font-weight: 500; color: var(--gbp-muted); }
+.gb-parity-model-group-caret { transition: transform var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-model-group.open .gb-parity-model-group-caret { transform: rotate(180deg); }
+.gb-parity-model-group-list { display: none; padding-left: 12px; }
+.gb-parity-model-group.open .gb-parity-model-group-list { display: block; }
+/* Native <select> stays in the DOM for a11y but is never painted. */
+.gb-parity-native-select-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* == 6. Drive action menu + confirm ==================================== */
+.gb-parity-action-menu { position: absolute; z-index: 60; min-width: 180px; max-width: min(260px, calc(100vw - 24px)); padding: var(--id-space-1, 4px); box-sizing: border-box; background: var(--gbp-surface); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius-sm); box-shadow: var(--gbp-shadow-float); }
+.gb-parity-action-menu[hidden] { display: none; }
+.gb-parity-action-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: none; border-radius: var(--gbp-radius-sm); background: transparent; color: var(--gbp-text); font: inherit; font-family: var(--gbp-font); font-size: var(--id-text-sm, .75rem); cursor: pointer; text-align: left; }
+.gb-parity-action-item:hover { background: var(--gbp-fill); color: var(--gbp-ink); }
+.gb-parity-action-item--danger { color: var(--gbp-danger-text); }
+.gb-parity-action-item--danger:hover { background: var(--gbp-danger-soft); }
+.gb-parity-action-separator { height: 1px; background: var(--gbp-line-soft); margin: 2px 0; }
+.gb-parity-confirm { position: fixed; inset: 0; z-index: var(--z-modal, 1000); display: flex; align-items: center; justify-content: center; padding: var(--id-space-4, 16px); box-sizing: border-box; }
+.gb-parity-confirm-panel { position: relative; z-index: 1; width: 100%; max-width: 420px; box-sizing: border-box; padding: var(--id-space-5, 20px); background: var(--gbp-surface); color: var(--gbp-text); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius); box-shadow: var(--gbp-shadow-hover); }
+.gb-parity-confirm .gb-parity-confirm-close { position: absolute; top: 8px; right: 8px; }
+.gb-parity-confirm-title { margin: 0 32px var(--id-space-2, 8px) 0; font-family: var(--gbp-font-heading); font-size: var(--id-text-lg, 1rem); font-weight: 600; color: var(--gbp-ink); }
+.gb-parity-confirm-body { margin: 0 0 var(--id-space-4, 16px); font-size: var(--id-text-sm, .75rem); }
+.gb-parity-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--id-space-2, 8px); }
+.gb-parity-confirm-btn { padding: var(--id-space-2, 8px) var(--id-space-4, 16px); border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius-sm); background: var(--gbp-surface); color: var(--gbp-text); font: inherit; font-family: var(--gbp-font); font-size: var(--id-text-sm, .75rem); font-weight: 500; cursor: pointer; }
+.gb-parity-confirm-btn:hover { background: var(--gbp-fill); }
+.gb-parity-confirm-btn--primary { background: var(--gbp-accent); border-color: var(--gbp-accent); color: var(--gbp-on-accent); }
+.gb-parity-confirm-btn--danger { background: var(--gbp-danger-soft); border-color: var(--gbp-danger-line); color: var(--gbp-danger-text); }
+
+/* == 7. Activity block stack + cards =================================== */
+.gb-parity-block-stack { position: relative; display: flex; flex-direction: column; gap: 0; width: 100%; margin: 0 0 var(--id-space-1, 4px); box-sizing: border-box; }
+.gb-parity-block { background: var(--gbp-surface); border: 1px solid var(--gbp-line); border-radius: var(--id-radius-bar, calc(var(--radius, .75rem) + 4px)); overflow: hidden; box-sizing: border-box; }
+.gb-parity-block-stack .gb-parity-block { margin: 0; width: 100%; }
+.gb-parity-block-stack .gb-parity-block + .gb-parity-block { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
+.gb-parity-block-stack .gb-parity-block:has(+ .gb-parity-block) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.gb-parity-block:hover { box-shadow: var(--gbp-shadow); }
+.gb-parity-block-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; user-select: none; }
+.gb-parity-block-icon { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--gbp-fill); color: var(--gbp-muted); }
+.gb-parity-block--running .gb-parity-block-icon { background: var(--gbp-accent-soft); color: var(--gbp-accent-text); }
+.gb-parity-block--failed .gb-parity-block-icon { background: var(--gbp-danger-soft); color: var(--gbp-danger-text); }
+.gb-parity-block--needs-you .gb-parity-block-icon { background: var(--gbp-warn-soft); color: var(--gbp-warn-text); }
+.gb-parity-block-title { font-size: var(--id-text-xs, .75rem); font-weight: 600; color: var(--gbp-ink); white-space: nowrap; }
+.gb-parity-block-summary { flex: 1; min-width: 0; font-size: var(--id-text-xs, .75rem); color: var(--gbp-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-parity-block-chip { flex-shrink: 0; padding: 1px 8px; border-radius: var(--gbp-radius-pill); font-size: var(--id-text-xs, .75rem); font-weight: 500; white-space: nowrap; border: 1px solid var(--gbp-line); background: var(--gbp-fill); color: var(--gbp-muted); }
+.gb-parity-block-chip--running { background: var(--gbp-accent-soft); color: var(--gbp-accent-text); border-color: var(--gbp-accent); animation: gbp-shimmer 2s ease-in-out infinite; }
+@keyframes gbp-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+.gb-parity-block-chip--done { background: var(--gbp-success-soft); color: var(--gbp-success-text); }
+.gb-parity-block-chip--failed { background: var(--gbp-danger-soft); color: var(--gbp-danger-text); border-color: var(--gbp-danger-line); }
+.gb-parity-block-chip--needs-you { background: var(--gbp-warn-soft); color: var(--gbp-warn-text); }
+.gb-parity-block-body { max-height: 0; overflow: hidden; padding: 0 12px; transition: max-height var(--id-dur-medium, 350ms) var(--id-ease, ease), padding var(--id-dur-medium, 350ms) var(--id-ease, ease); }
+.gb-parity-block.open .gb-parity-block-body { max-height: 800px; padding: 0 12px 10px; }
+.gb-parity-block-chevron { flex-shrink: 0; transition: transform var(--id-dur-fast, 150ms) var(--id-ease, ease); }
+.gb-parity-block.open .gb-parity-block-chevron { transform: rotate(90deg); }
+.gb-parity-block-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-size: var(--id-text-xs, .75rem); color: var(--gbp-text); }
+.gb-parity-block-row + .gb-parity-block-row { border-top: 1px solid var(--gbp-line-soft); }
+.gb-parity-block-row-label { color: var(--gbp-muted); min-width: 60px; flex-shrink: 0; }
+.gb-parity-block-row-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gb-parity-block-footer { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+
+/* == 8. Attachment panel =============================================== */
+.gb-parity-attach-panel { position: absolute; inset: 0 0 0 auto; z-index: 30; width: 380px; max-width: 100%; display: flex; flex-direction: column; box-sizing: border-box; background: var(--gbp-surface); border-left: 1px solid var(--gbp-line); box-shadow: var(--gbp-shadow-hover); }
+.gb-parity-attach-panel[hidden] { display: none; }
+.gb-parity-attach-panel-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--gbp-line); flex-shrink: 0; }
+.gb-parity-attach-panel-title { flex: 1; min-width: 0; font-size: var(--id-text-sm, .75rem); font-weight: 600; color: var(--gbp-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-parity-attach-panel-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+.gb-parity-attach-card { display: flex; align-items: center; gap: 8px; padding: 6px 10px; position: relative; background: var(--gbp-surface); border: 1px solid var(--gbp-line); border-radius: 10px; font-size: var(--id-text-xs, .75rem); }
+.gb-parity-attach-card[role="button"] { cursor: pointer; }
+.gb-parity-attach-card[role="button"]:hover { border-color: var(--gbp-accent); background: var(--gbp-accent-soft); }
+.gb-parity-attach-icon { flex-shrink: 0; color: var(--gbp-muted); }
+.gb-parity-attach-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--gbp-ink); }
+.gb-parity-attach-size { font-size: var(--id-text-xs, .75rem); color: var(--gbp-muted); white-space: nowrap; }
+.gb-parity-attach-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.gb-parity-attach-remove { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; border: none; border-radius: 50%; background: transparent; color: var(--gbp-muted); cursor: pointer; }
+.gb-parity-attach-remove:hover { background: var(--gbp-fill); color: var(--gbp-ink); }
+.gb-parity-attach-error { border-color: var(--gbp-danger-line); }
+.gb-parity-attach-error .gb-parity-attach-name, .gb-parity-attach-error .gb-parity-attach-size { color: var(--gbp-danger-text); }
+.gb-parity-attach-panel-name { font-weight: 600; font-size: var(--id-text-md, .9375rem); color: var(--gbp-ink); }
+.gb-parity-attach-panel-info, .gb-parity-attach-panel-loading { font-size: var(--id-text-sm, .75rem); color: var(--gbp-muted); text-align: center; }
+.gb-parity-attach-panel-loading { padding: 40px 16px; }
+.gb-parity-attach-panel-actions { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+.gb-parity-attach-panel-download { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--gbp-line); border-radius: var(--gbp-radius-sm); background: var(--gbp-surface); color: var(--gbp-ink); font: inherit; font-size: var(--id-text-sm, .75rem); cursor: pointer; }
+.gb-parity-attach-panel-download:hover { background: var(--gbp-fill); }
+.gb-parity-attach-panel-img { max-width: 100%; border-radius: 6px; }
+.gb-parity-attach-panel-table { width: 100%; border-collapse: collapse; font-size: var(--id-text-xs, .75rem); }
+.gb-parity-attach-panel-table th, .gb-parity-attach-panel-table td { padding: 4px 8px; border: 1px solid var(--gbp-line); text-align: left; color: var(--gbp-text); }
+.gb-parity-attach-panel-table th { background: var(--gbp-fill); font-weight: 600; color: var(--gbp-ink); }
+
+/* == 9. Responsive — usable down to 380px ============================== */
+@media (max-width: 640px) {
+    .gb-parity-dialog-panel { max-height: 92vh; }
+    .gb-parity-dialog-header, .gb-parity-dialog-body, .gb-parity-dialog-footer { padding-left: var(--id-space-4, 16px); padding-right: var(--id-space-4, 16px); }
+    .gb-parity-guide-choices { grid-template-columns: 1fr; }
+    .gb-parity-confirm-actions { justify-content: stretch; }
+    .gb-parity-confirm-btn { flex: 1 1 auto; }
+}
+@media (max-width: 420px) {
+    .gb-parity-dialog { padding: 8px; }
+    .gb-parity-attach-panel { width: 100%; }
+    .gb-parity-block-title, .gb-parity-block-summary { white-space: normal; }
+    .gb-parity-model-menu { right: auto; left: 0; }
+}
+
+/* == 10. Reduced motion — stop every animation and transition ========== */
+@media (prefers-reduced-motion: reduce) {
+    [class*="gb-parity-"], [class*="gb-parity-"] *, [class*="gb-parity-"]::before, [class*="gb-parity-"]::after { animation-duration: 0s; animation-iteration-count: 1; transition-duration: 0s; transition-delay: 0s; scroll-behavior: auto; }
+    .gb-parity-guide-choice:hover, .gb-parity-compare-head:hover:not(:disabled) { transform: none; }
+}
