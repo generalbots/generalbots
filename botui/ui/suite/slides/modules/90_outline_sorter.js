@@ -225,13 +225,31 @@
     var byId = {};
     var thumbs = host.querySelectorAll(".sl-thumb");
     for (var i = 0; i < thumbs.length; i += 1) byId[stableId(thumbs[i], i)] = thumbs[i];
+    // The server fragment wraps the thumbnails in an inner flex <div>, so a
+    // thumb's parentNode is usually NOT #sidebar-thumbs. Reorder inside the
+    // actual container instead of requiring a direct child (#2473 UAT).
+    var container = thumbs.length ? thumbs[0].parentNode : null;
+    if (!container || typeof container.appendChild !== "function") return;
     order.forEach(function (id) {
-      if (byId[id] && byId[id].parentNode === host) host.appendChild(byId[id]);
+      if (byId[id] && container.contains(byId[id])) container.appendChild(byId[id]);
     });
-    Array.prototype.slice.call(host.querySelectorAll(".sl-thumb")).forEach(function (node, index) {
+    Array.prototype.slice.call(container.querySelectorAll(".sl-thumb")).forEach(function (node, index) {
+      var n = String(index + 1);
+      node.setAttribute("data-index", String(index));
+      node.setAttribute("data-slide", String(index));
+      // Legacy local markup used .sl-thumb-num; the server fragment emits a
+      // plain "Slide N" label div. Update whichever is present.
       var num = node.querySelector(".sl-thumb-num");
-      if (num && num.textContent) {
-        num.textContent = String(num.textContent).replace(/\d+/, String(index + 1));
+      if (num) {
+        num.textContent = (/slide/i.test(num.textContent || "") ? "Slide " : "") + n;
+        return;
+      }
+      var labels = node.querySelectorAll("div");
+      for (var j = 0; j < labels.length; j += 1) {
+        if (/^\s*slide\s+\d+\s*$/i.test(labels[j].textContent || "")) {
+          labels[j].textContent = "Slide " + n;
+          break;
+        }
       }
     });
   }
