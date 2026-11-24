@@ -184,9 +184,7 @@ pub struct DocState {
 }
 
 impl DocState {
-    /// Production constructor: the projection and retrieval handles share one
-    /// real in-memory KB index, so a saved structured document is immediately
-    /// searchable without a Qdrant or embedding service (#2499).
+    /// Production constructor: projection and retrieval share one KB index (#2499).
     pub fn with_in_memory_kb_index(
         pool: Arc<DbPool>,
         drive: Arc<dyn DriveRepository>,
@@ -214,7 +212,13 @@ impl DocState {
         user: &UserContext,
         limit: usize,
     ) -> Vec<SearchHit> {
-        search_index(&self.kb_index, query_embedding, user, limit)
+        match self.kb_index.try_read() {
+            Ok(index) => index.search(query_embedding, user, limit),
+            Err(_) => {
+                log::warn!("botdocs: in-memory KB index busy during search; failing closed");
+                Vec::new()
+            }
+        }
     }
 
     /// Convenience for in-process consumers: embed `query` with the same
@@ -227,10 +231,8 @@ impl DocState {
         )
     }
 
-    /// #2499 — stable tenant UUID for a Drive bucket. `AclMetadata::allows`
-    /// compares string forms against `UserContext::organization_id`, so real
-    /// UUID buckets are parsed and names (`default.gbai`) derived
-    /// deterministically; writer and reader then always agree.
+    /// #2499 — stable tenant UUID for a Drive bucket, so writer and reader
+    /// always agree on named buckets (`default.gbai`) and real UUIDs.
     pub fn tenant_uuid(bucket: &str) -> uuid::Uuid {
         match uuid::Uuid::parse_str(bucket) {
             Ok(id) => id,
@@ -262,27 +264,25 @@ impl DocState {
         }
     }
 
-    /// #2499 — replay every persisted document from Drive into the freshly
-    /// created in-memory KB index on boot. The index is process-local and empty
-    /// after a restart; this is strictly best effort and never fails startup.
-    /// Returns the number of documents successfully re-indexed.
+    /// #2499 — drop a deleted document's `{doc_id}.html` points; busy locks are logged, not fatal.
+    pub fn remove_from_kb(&self, doc_id: &str) {
+        if doc_id.trim().is_empty() {
+            return;
+        }
+        let source_prefix = format!("{doc_id}.html");
+        match self.kb_index.try_write() {
+            Ok(mut index) => {
+                let removed = index.remove(&source_prefix);
+                log::debug!("botdocs: removed {removed} KB points for {doc_id}");
+            }
+            Err(_) => log::warn!("botdocs: KB index busy; removal for {doc_id} skipped"),
+        }
+    }
+
+    /// #2499 — replay persisted documents from Drive into the process-local
+    /// index on boot. Best effort; returns the number re-indexed.
     pub async fn reindex_persisted_documents(&self) -> usize {
         crate::handlers_api::kb_backfill::reindex_persisted_documents(self).await
-    }
-}
-
-fn search_index(
-    kb_index: &tokio::sync::RwLock<InMemoryKbIndex>,
-    query_embedding: &[f32],
-    user: &UserContext,
-    limit: usize,
-) -> Vec<SearchHit> {
-    match kb_index.try_read() {
-        Ok(index) => index.search(query_embedding, user, limit),
-        Err(_) => {
-            log::warn!("botdocs: in-memory KB index busy during search; failing closed");
-            Vec::new()
-        }
     }
 }
 
@@ -380,7 +380,7 @@ mod kb_index_tests {
         Uuid::parse_str(value).unwrap_or_default()
     }
 
-    fn state() -> Arc<DocState> {
+    fn state_with_bucket(bucket: &str) -> Arc<DocState> {
         let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(
             "postgres://unused:unused@127.0.0.1:1/unused",
         );
@@ -390,14 +390,14 @@ mod kb_index_tests {
         Arc::new(DocState::with_in_memory_kb_index(
             Arc::new(pool),
             Arc::new(TestDrive),
-            TENANT.to_string(),
+            bucket.to_string(),
             Arc::new(MetricsCollector::default()),
         ))
     }
 
     #[test]
     fn saved_document_is_indexed_and_cited_for_owner() {
-        let state = state();
+        let state = state_with_bucket(TENANT);
         state.project_to_kb(OWNER, "doc-1", "Employment", HTML);
 
         let owner = UserContext::authenticated(uuid(OWNER), None, Some(uuid(TENANT)));
@@ -415,17 +415,18 @@ mod kb_index_tests {
     }
 
     #[test]
+    fn deleted_document_is_removed_from_index() {
+        let state = state_with_bucket(TENANT);
+        let owner = UserContext::authenticated(uuid(OWNER), None, Some(uuid(TENANT)));
+        state.project_to_kb(OWNER, "doc-del", "Employment", HTML);
+        assert_eq!(state.search_text("ZANZIBARCLAUSE", &owner, 5).len(), 1);
+        state.remove_from_kb("doc-del");
+        assert!(state.search_text("ZANZIBARCLAUSE", &owner, 5).is_empty());
+    }
+
+    #[test]
     fn named_bucket_is_searchable_via_deterministic_tenant_uuid() {
-        let state = DocState::with_in_memory_kb_index(
-            Arc::new(diesel::r2d2::Pool::builder().max_size(1).build_unchecked(
-                diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(
-                    "postgres://unused:unused@127.0.0.1:1/unused",
-                ),
-            )),
-            Arc::new(TestDrive),
-            "default.gbai".to_string(),
-            Arc::new(MetricsCollector::default()),
-        );
+        let state = state_with_bucket("default.gbai");
         state.project_to_kb(OWNER, "doc-named", "Employment", HTML);
         let tenant = DocState::tenant_uuid("default.gbai");
         let owner = UserContext::authenticated(uuid(OWNER), None, Some(tenant));
@@ -436,7 +437,7 @@ mod kb_index_tests {
 
     #[test]
     fn foreign_org_and_denied_user_get_no_hits() {
-        let state = state();
+        let state = state_with_bucket(TENANT);
         state.project_to_kb(OWNER, "doc-2", "Employment", HTML);
 
         let foreign = UserContext::authenticated(uuid(OWNER), None, Some(uuid(FOREIGN_ORG)));

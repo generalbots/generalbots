@@ -309,6 +309,7 @@ pub async fn handle_delete_document(
             ),
         ));
     }
+    state.remove_from_kb(&doc_id); // #2499 — evict points from retrieval
 
     Ok(Json(DocsSaveResponse {
         id: doc_id,
