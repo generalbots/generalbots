@@ -423,7 +423,7 @@ fn mark_delivery(
         "success" | "failed" => Some(Utc::now()),
         _ => None,
     };
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "UPDATE webhook_deliveries SET status = $1, response_code = $2, response_body = $3, \
          attempt = $4, error = $5, next_retry_at = $6, completed_at = $7 WHERE id = $8",
     )
@@ -441,7 +441,7 @@ fn mark_delivery(
     )
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(completed_at)
     .bind::<diesel::sql_types::Uuid, _>(delivery_id)
-    .execute(&mut conn);
+    .execute(&mut conn) { log::warn!("webhook delivery status update failed: {e}"); }
 }
 
 #[cfg(test)]

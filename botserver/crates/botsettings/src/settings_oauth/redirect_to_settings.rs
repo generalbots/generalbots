@@ -62,7 +62,9 @@ pub(super) fn store_tokens_in_vault(
         } else {
             Err(anyhow::anyhow!("failed to create runtime"))
         };
-        let _ = tx.send(result);
+        if tx.send(result).is_err() {
+            log::warn!("[oauth] Vault operation result channel closed before delivery");
+        }
     });
     match rx.recv() {
         Ok(Ok(())) => Ok(()),
@@ -96,7 +98,9 @@ pub(super) fn delete_tokens_from_vault(
         } else {
             Err(anyhow::anyhow!("failed to create runtime"))
         };
-        let _ = tx.send(result);
+        if tx.send(result).is_err() {
+            log::warn!("[oauth] Vault operation result channel closed before delivery");
+        }
     });
     match rx.recv() {
         Ok(Ok(())) => Ok(()),

@@ -103,7 +103,9 @@ pub async fn oauth_unlink(
     };
 
     // Best-effort token revocation from Vault.
-    let _ = delete_tokens_from_vault(&user_id, provider);
+    if let Err(e) = delete_tokens_from_vault(&user_id, provider) {
+        log::warn!("Best-effort Vault token revocation failed: {e}");
+    }
 
     let affected =
         diesel::sql_query("DELETE FROM oauth_account_links WHERE user_id = $1 AND provider = $2")

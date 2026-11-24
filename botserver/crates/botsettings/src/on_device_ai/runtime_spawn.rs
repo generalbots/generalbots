@@ -49,7 +49,9 @@ pub(super) fn spawn_server(server_dir: &str, args: &[String], log_name: &str) ->
     }
     let stack = botcore::shared::utils::get_stack_path();
     let log_dir = format!("{stack}/logs/llm");
-    let _ = std::fs::create_dir_all(&log_dir);
+    if let Err(e) = std::fs::create_dir_all(&log_dir) {
+        log::warn!("[runtime_spawn] cannot create LLM log dir {log_dir}: {e}");
+    }
     let log_path = format!("{log_dir}/{log_name}");
     match std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
         Ok(log_file) => {

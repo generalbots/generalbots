@@ -50,7 +50,7 @@ pub async fn groups_create(
         return (StatusCode::BAD_REQUEST, Html(reason.to_string()));
     }
 
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO rbac_groups (id, name, display_name, description, is_active, created_by, created_at, updated_at)
          VALUES ($1, $2, $3, $4, true, $5, NOW(), NOW())",
     )
@@ -59,7 +59,10 @@ pub async fn groups_create(
     .bind::<diesel::sql_types::Text, _>(&display)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(form.description)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::warn!("Failed to create RBAC group: {e}");
+    }
 
     (
         StatusCode::OK,

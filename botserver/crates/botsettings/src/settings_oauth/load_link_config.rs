@@ -49,7 +49,9 @@ pub(super) fn read_oauth_bot_config(state: &Arc<AppState>) -> HashMap<String, St
         } else {
             None
         };
-        let _ = tx.send(result);
+        if tx.send(result).is_err() {
+            log::warn!("[oauth] config load result channel closed before delivery");
+        }
     });
     match rx.recv().ok().flatten() {
         Some(config) => config,

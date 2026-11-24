@@ -215,9 +215,9 @@ pub async fn webhooks_delete(
         Ok(1) => {
             // Best-effort cleanup of the Vault secret.
             if let Ok(sm) = SecretsManager::get() {
-                let _ = sm
-                    .delete_secret(&crate::webhook_delivery::webhook_vault_path(webhook_id))
-                    .await;
+                if let Err(e) = sm.delete_secret(&crate::webhook_delivery::webhook_vault_path(webhook_id)).await {
+                    log::warn!("webhook delete: Vault secret cleanup failed: {e}");
+                }
             }
             crate::audit_log::record_audit_event(crate::audit_log::AuditEvent {
                 state: &state,
@@ -319,7 +319,7 @@ pub async fn webhooks_test(
 
     // Record a pending delivery row, then deliver in the background so the
     // request returns promptly; failures retry with backoff and land in the log.
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO webhook_deliveries (id, webhook_id, event, payload, signature, status, attempt, max_attempts, created_at) \
          VALUES ($1, $2, 'test', $3::jsonb, $4, 'pending', 0, 5, NOW())",
     )
@@ -327,7 +327,7 @@ pub async fn webhooks_test(
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
     .bind::<diesel::sql_types::Text, _>(&payload_str)
     .bind::<diesel::sql_types::Text, _>(&signed.stored)
-    .execute(&mut conn);
+    .execute(&mut conn) { log::warn!("webhook test delivery insert failed: {e}"); }
 
     let url_clone = url.clone();
     tokio::spawn(async move {

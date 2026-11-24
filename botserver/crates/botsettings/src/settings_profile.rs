@@ -295,11 +295,14 @@ pub async fn user_password(
         }
     };
 
-    let _ =
+    if let Err(e) =
         diesel::sql_query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
             .bind::<diesel::sql_types::Text, _>(&hash)
             .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .execute(&mut conn);
+            .execute(&mut conn)
+    {
+        log::warn!("Failed to persist updated user password: {e}");
+    }
 
     (
         StatusCode::OK,
