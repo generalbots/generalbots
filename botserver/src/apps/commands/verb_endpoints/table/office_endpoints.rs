@@ -67,6 +67,16 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         &[("file_id", "doc_id"), ("instruction", "command")],
         &[],
     ),
+    // #2448 — anchored comment add. `AddCommentRequest` takes `doc_id`,
+    // `content`, `position` and `length`; the verb uses the uniform `file_id`
+    // targeting key, so only that rename is needed.
+    bind(
+        "docs.comment.add",
+        "POST",
+        "/api/docs/comment",
+        &[("file_id", "doc_id")],
+        &[],
+    ),
     // ——— #2037 — Sheet (crates/botsheet) ———
     bind("sheet.list", "GET", "/api/sheet/list", &[], &[]),
     bind("sheet.create", "POST", "/api/sheet/new", &[], &[]),

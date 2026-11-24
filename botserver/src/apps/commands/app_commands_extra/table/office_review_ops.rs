@@ -12,6 +12,27 @@ use super::super::*;
 /// ask the user first) and state that the whole batch is one undo entry.
 pub(super) static OFFICE_REVIEW_OPS: &[AppCommand] = &[
     // ——— Docs: comment threads, tracked changes and styles ———
+    // #2448 — anchored comment add. `AddCommentRequest` requires the character
+    // range (`position` + `length`) the thread is anchored to; the old shallow
+    // `text`/`quote` form could not be bound to the REST route. The handler
+    // field is `content`, so the verb names it that way (no rename needed).
+    cmd(
+        "docs",
+        "docs.comment.add",
+        "Add comment",
+        "Add a comment anchored to a character range in a document (scope: write; confirm: no; undo: one batch entry).",
+        &[
+            ("file_id", "document id"),
+            ("content", "comment text"),
+            (
+                "position",
+                "zero-based character offset the comment anchors to",
+            ),
+            ("length", "number of characters the comment spans"),
+        ],
+        None,
+        false,
+    ),
     cmd(
         "docs",
         "docs.comment.reply",
