@@ -286,7 +286,9 @@ jobs:
             done
             test -s "dist/installers/$f"
           done
-          (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
+          # The manifest also pins minio.exe for the Windows job; it is not
+          # downloaded here, so skip absent entries instead of failing.
+          (cd dist/installers && sha256sum -c --ignore-missing SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
           # Fail the build instead of shipping a vulnerable drive: the vendored
           # binary must report the source-built tag that carries the fix.
