@@ -173,6 +173,7 @@ sheet-untitled = Hoja sin título
 # Docs & CRM runtime strings (#2091 #2092)
 # ============================================================================
 docs-export-replacements = Sustituciones aplicadas: {count}
+docs-export-degraded = Exportado sin tablas/gráficos: datos de origen no disponibles ({count} omitidos)
 docs-compare-ids-required = Se requieren los dos IDs de documento.
 docs-compare-running = Comparando…
 docs-compare-no-differences = No se encontraron diferencias.

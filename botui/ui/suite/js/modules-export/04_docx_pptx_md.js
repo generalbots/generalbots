@@ -27,6 +27,18 @@
     '<a:lnT w="6350"><a:solidFill><a:srgbClr val="D9D9D9"/></a:solidFill></a:lnT>' +
     '<a:lnB w="6350"><a:solidFill><a:srgbClr val="D9D9D9"/></a:solidFill></a:lnB>';
 
+  // #2457 — a skipped table/chart is a real degradation, not a silent one.
+  // Track the drop in the same path that logs it and expose the result to
+  // callers (Blob fields + lossReport()) so an export UI can say so.
+  let lastLoss = { degraded: false, dropped: 0 };
+  function noteLoss(type) {
+    lastLoss.degraded = true;
+    lastLoss.dropped += 1;
+    console.error("exportPPTX: " + type + " element without structured data was skipped");
+  }
+  function resetLoss() { lastLoss = { degraded: false, dropped: 0 }; }
+  function lossReport() { return { degraded: lastLoss.degraded, dropped: lastLoss.dropped }; }
+
   function finite(value, fallback) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -224,10 +236,10 @@
       const type = element.element_type;
       if (type === "table") {
         if (dataOf(element, "table_data")) shapes += tableFrameXml(element, id++);
-        else console.error("exportPPTX: table element without structured data was skipped");
+        else noteLoss("table");
       } else if (type === "chart") {
         if (dataOf(element, "chart_data")) shapes += chartFrameXml(element, id++, charts, index);
-        else console.error("exportPPTX: chart element without structured data was skipped");
+        else noteLoss("chart");
       }
       // No native writer for other element types: their text is not invented
       // as a fake table/chart (#2457).
@@ -290,6 +302,7 @@
     const arr = Array.isArray(slides) ? slides : Array.from(slides || []);
     const charts = [];
     const files = {};
+    resetLoss();
 
     arr.forEach((slide, i) => {
       files["ppt/slides/slide" + (i + 1) + ".xml"] = buildSlideXml(slide || {}, i, charts);
@@ -352,6 +365,10 @@
     const zip = EIX.makeZipStored(files);
     const blob = new Blob([zip], { type: PPTX_MIME });
     download((opts && opts.filename) || "export.pptx", PPTX_MIME, blob);
+    // Additive fields: callers still receive the same Blob, but can now report
+    // a degraded export instead of silently shipping flattened structure.
+    blob.gbDegraded = lastLoss.degraded;
+    blob.gbDropped = lastLoss.dropped;
     return blob;
   }
 
@@ -387,6 +404,7 @@
     exportDOC: exportDOC,
     exportDOCX: exportDOCX,
     exportPPTX: exportPPTX,
-    exportMarkdown: exportMarkdown
+    exportMarkdown: exportMarkdown,
+    lossReport: lossReport
   };
 })(window);

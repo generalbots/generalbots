@@ -617,3 +617,5 @@ tasks-intent-open-app = アプリを開く →
 tasks-intent-task-id = タスク ID:
 tasks-intent-error = 問題が発生しました
 tasks-intent-failed = 応答の処理に失敗しました
+
+docs-export-degraded = 表/グラフなしでエクスポート: 元データが利用できません ({count} 件をスキップ)

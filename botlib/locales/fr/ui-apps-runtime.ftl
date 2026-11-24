@@ -617,3 +617,5 @@ tasks-intent-open-app = Ouvrir l'application →
 tasks-intent-task-id = ID de la tâche :
 tasks-intent-error = Une erreur s'est produite
 tasks-intent-failed = Échec du traitement de la réponse
+
+docs-export-degraded = Exporté sans tableaux/graphiques : données source indisponibles ({count} ignorés)
