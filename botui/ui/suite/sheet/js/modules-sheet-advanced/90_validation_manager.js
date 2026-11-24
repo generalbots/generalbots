@@ -8,7 +8,7 @@
   var APP_SEL = '[data-gb-app="sheets"], #sheet-app';
   var PANEL_ID = "gb-dv-manager", LAUNCHER_ID = "gb-dv-launcher";
   var REG_KEY = "validation_rule_registry", INVALID_ATTR = "data-gb-dv-invalid";
-  var state = { rules: [], marked: [], grid: null, seq: 0, open: false };
+  var state = { rules: [], marked: [], grid: null, bodyInner: null, seq: 0, open: false };
 
   function t(key, fallback, params) {
     if (typeof window.gbT === "function") {
@@ -179,8 +179,13 @@
   }
   function hookGrid() {
     var g = grid();
-    if (!g || !g.bodyInner || state.grid === g) return;
+    if (!g || !g.bodyInner) return;
+    // An HTMX re-target can swap the grid's bodyInner while keeping the same
+    // grid object. Re-hook when EITHER changes, otherwise the new cell layer
+    // never receives the delegated pointerdown listener (#2474 UAT).
+    if (state.grid === g && state.bodyInner === g.bodyInner && g.bodyInner.__gbDvBound) return;
     state.grid = g;
+    state.bodyInner = g.bodyInner;
     if (typeof g.render === "function" && !g.__gbDvWrapped) {
       var original = g.render;
       g.__gbDvRender = original;
