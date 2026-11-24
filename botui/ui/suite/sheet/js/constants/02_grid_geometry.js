@@ -13,6 +13,14 @@
 
   D.GridProto = D.GridProto || {};
 
+  // #2459 — emitted only once the server's recalculated cells have been applied
+  // and rendered by requestRange (not on scroll/reload range fetches). No value,
+  // formula or cell coordinate is carried; gbPerfSignal emits "sheet" only.
+  function markSheetRecalc() {
+    if (typeof window.gbPerfSignal === "function") window.gbPerfSignal("sheet", "recalc");
+  }
+  D.markSheetRecalc = markSheetRecalc;
+
   function freshGridState() {
     return {
       totalRows: D.DEFAULT_TOTAL_ROWS,
@@ -172,7 +180,7 @@
     return { start: start, end: Math.min(this.totalCols, end) };
   };
 
-  VirtualGrid.requestRange = function () {
+  VirtualGrid.requestRange = function (afterApply) {
     if (!this.viewportHeight) return;
     const range = this.visibleRowRange();
     const cols = this.visibleColRange();
@@ -199,6 +207,7 @@
         if (data.total_rows) self.totalRows = Math.max(self.totalRows, data.total_rows);
         if (data.total_cols) self.totalCols = Math.max(self.totalCols, data.total_cols);
         self.render();
+        if (typeof afterApply === "function") afterApply();
       })
       .catch(function (err) {
         /* Best-effort range fetch; grid can retry on next scroll/request. */
