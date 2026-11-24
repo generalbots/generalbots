@@ -208,6 +208,6 @@ window.GBAssistantLocales["pt-BR"] = {
     "blocks.unit-sources":     "fontes",
     "settings.preview.windowed": "Suite em janelas",
     "settings.preview.windowed-title": "Suite em janelas (Prévia)",
-    "settings.preview.windowed-desc": "Abre o gerenciador de janelas clássico com o Chat em uma janela. O assistente continua sendo o padrão.",
+    "settings.preview.windowed-desc": "Abre o gerenciador de janelas clássico com o Chat em uma janela e todos os aplicativos disponíveis. O assistente continua sendo o padrão.",
     "settings.preview.windowed-open": "Abrir suite em janelas"
 };

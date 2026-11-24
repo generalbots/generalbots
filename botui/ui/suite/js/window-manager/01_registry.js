@@ -167,6 +167,22 @@ const APPS_REGISTRY = [
 // the sidebar all read APPS_REGISTRY — until the user turns the Preview switch
 // on. The preference is per browser, like the other sidebar switches.
 var PREVIEW_KEY = "gb-preview-mode";
+var PREVIEW_ALL_KEY = "gb-preview-all";
+// #2569 — the assistant shell's Preview action opens the classic windowed
+// suite with every app available. `?preview=all` (or the tab-scoped flag it
+// seeds) is the only way to bypass a product profile's hidden_apps list; the
+// normal Preview switch keeps honouring the profile.
+function readPreviewAllFlag() {
+  var fromUrl = false;
+  try {
+    fromUrl = new URLSearchParams(window.location.search).get("preview") === "all";
+  } catch (e) {
+    fromUrl = /[?&]preview=all(?:[&#]|$)/.test(window.location.search || "");
+  }
+  var fromSession = false;
+  try { fromSession = sessionStorage.getItem(PREVIEW_ALL_KEY) === "1"; } catch (e) { /* */ }
+  return fromUrl || fromSession;
+}
 var GBPreviewMode = {
   isOn: function () {
     try {
@@ -181,10 +197,19 @@ var GBPreviewMode = {
     } catch (e) {
       /* storage unavailable — the switch still applies to this page */
     }
+    if (!on) {
+      WM.previewAll = false;
+      try { sessionStorage.removeItem(PREVIEW_ALL_KEY); } catch (e) { /* */ }
+    }
     refreshAppsCatalog();
     window.dispatchEvent(new CustomEvent("gb-preview-changed", { detail: { preview: !!on } }));
   },
 };
+WM.previewAll = readPreviewAllFlag();
+if (WM.previewAll) {
+  try { sessionStorage.setItem(PREVIEW_ALL_KEY, "1"); } catch (e) { /* */ }
+  try { localStorage.setItem(PREVIEW_KEY, "1"); } catch (e) { /* */ }
+}
 
 // State the rebuild reads: the embedded list (offline fallback), the
 // authoritative catalog once it answers, and the preview identifiers the
@@ -256,21 +281,25 @@ function toRegistryApp(a) {
 
 function rebuildAppsRegistry() {
   var previewOn = GBPreviewMode.isOn();
+  var previewAll = WM.previewAll === true;
   var base = catalogApps && catalogApps.length ? catalogApps : embeddedApps;
   var merged = [];
   var known = {};
 
   base.forEach(function (a) {
-    if (a.compiled === false || a.hidden === true) return;
-    if (typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
+    if (a.compiled === false) return;
+    if (!previewAll && a.hidden === true) return;
+    if (!previewAll && typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
     var preview = !!a.preview || isPreviewId(a.id);
     var core = isCoreAppId(a.id);
     // A preview application is surfaced only while Preview mode is on. Core
     // surfaces are the only hardcoded exception; everything else follows the
-    // product profile.
-    if (preview && !previewOn && !core) return;
-    if (!preview && a.hxGet === undefined && a.enabled === false) return;
+    // product profile. `?preview=all` deliberately bypasses the profile so
+    // the assistant shell's Preview action can offer the full suite.
+    if (preview && !previewOn && !core && !previewAll) return;
+    if (!preview && a.hxGet === undefined && a.enabled === false && !previewAll) return;
     var app = toRegistryApp(a);
+    if (previewAll) app.hidden = false;
     app.preview = preview;
     merged.push(app);
     known[app.id] = true;
@@ -286,7 +315,7 @@ function rebuildAppsRegistry() {
   // every launcher via the toolwindow / `vibe-` prefix filters).
   embeddedApps.forEach(function (a) {
     if (known[a.id]) return;
-    if (typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
+    if (!previewAll && typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
     // A catalog entry marked `compiled: false` is authoritative even for the
     // always-on list: re-adding it put Terminal in builds that do not ship
     // the terminal routes (#1841).
@@ -300,10 +329,10 @@ function rebuildAppsRegistry() {
     // If product config hasn't loaded yet we can't confirm exclusion — keep the
     // embedded tile so it remains resolvable; a later rebuild will filter it.
     var productKnown = !!(window.productConfig && (window.productConfig.apps || window.productConfig.preview_apps));
-    if (catalogLoaded && !isCoreAppId(a.id) && String(a.id).indexOf("vibe") !== 0 &&
+    if (!previewAll && catalogLoaded && !isCoreAppId(a.id) && String(a.id).indexOf("vibe") !== 0 &&
         !(productKnown ? (productAppIds[a.id] === true || !!productPreviewIds[a.id]) : true)) return;
     var preview = isPreviewId(a.id);
-    if (preview && !previewOn) return;
+    if (preview && !previewOn && !previewAll) return;
     a.preview = preview;
     merged.push(a);
     known[a.id] = true;

@@ -92,7 +92,7 @@
 .gb-gar-sub { margin: 0 0 var(--id-space-3); }
 .gb-gar-compare { overflow-x: auto; margin-bottom: var(--id-space-4); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-card); background: var(--id-surface-solid); }
-.gb-gar-grid { display: grid; grid-template-columns: minmax(110px, .9fr) repeat(3, minmax(130px, 1fr)); min-width: 560px; }
+.gb-gar-grid { display: grid; grid-template-columns: minmax(110px, .9fr) repeat(4, minmax(130px, 1fr)); min-width: 700px; }
 .gb-gar-corner { border-bottom: 1px solid var(--id-line); }
 /* Column headers are cards you press: raised, with an action line at the foot. */
 .gb-set-mode-card.gb-gar-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;
@@ -122,7 +122,8 @@
 .gb-gar-note { display: block; margin-top: 3px; font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-gar-grid[data-view="local"] [data-col="local"],
 .gb-gar-grid[data-view="own_key"] [data-col="own_key"],
-.gb-gar-grid[data-view="free"] [data-col="free"] { background: var(--id-accent-soft); }
+.gb-gar-grid[data-view="free"] [data-col="free"],
+.gb-gar-grid[data-view="acp"] [data-col="acp"] { background: var(--id-accent-soft); }
 .gb-gar-sugg { display: none; }
 .gb-gar-grid[data-rec="local"] [data-mode="local"] .gb-gar-sugg,
 .gb-gar-grid[data-rec="own_key"] [data-mode="own_key"] .gb-gar-sugg,
@@ -181,3 +182,6 @@
     .gb-gar-choice, .gb-gar-head-cta svg { transition: none; }
     .gb-gar-choice:hover { transform: none; }
 }
+
+/* "Soon" badge used by the garage ACP column and the agents list (gbgov). */
+.gb-gar-soon { background: var(--id-warn-soft); color: var(--id-warn-text); }

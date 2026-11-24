@@ -137,6 +137,7 @@
             }
         }
         addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
+        if (!opts.isError && raw && A.tagAnswer) { A.tagAnswer(el, raw, opts.model); }
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };
@@ -330,6 +331,7 @@
                     el.appendChild(bd);
                 }
                 addAssistantActions(el, m.content, false);
+                if (A.answerModel) { A.attachModelTag(el, m.model || A.answerModel(m.content)); }
             }
             msgs.appendChild(el);
         }
@@ -429,7 +431,7 @@
                     A.renderErrorCode(data.error_code, fc);
                 } else {
                     A.renderAssistantMessage(fc, fr, {
-                        citations: data.citations,
+                        citations: data.citations, model: data.model,
                         retryable: !!(data.retryable || isError), isError: isError
                     });
                 }

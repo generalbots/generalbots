@@ -38,14 +38,18 @@ const settingsJs = readAll(
 const catalogTypes = read("botserver/src/apps/integration_catalog/types.rs");
 const llmProviders = read("botserver/src/apps/integration_catalog/providers/llm.rs");
 const cargoToml = read("botserver/Cargo.toml");
-const pipelineExec = read("botserver/src/core/bot/pipeline/exec.rs");
+const pipelineExec = readAll(
+  ["mod.rs", "context.rs", "finish.rs"]
+    .map((file) => "botserver/src/core/bot/pipeline/exec/" + file),
+);
 const desktop = read("botui/ui/suite/desktop.html");
 const taskbarCss = read("botui/ui/suite/css/desktop/taskbar.css");
 const baseJs = read("botui/ui/suite/js/base/01_product_config.js");
 const composerCss = read("botui/ui/suite/chat/chat-composer.css");
 const windowManager = readAll(
   ["01_registry.js", "02_class_core.js", "03_window_chrome.js", "04_window_state.js",
-   "05_start_menu.js", "06_deeplinks.js", "07_status.js", "99_init.js"]
+   "05_start_menu.js", "06_deeplinks.js", "07_status_a_core.js", "07_status_b_render.js",
+   "07_status_c_events.js", "99_init.js"]
     .map((file) => "botui/ui/suite/js/window-manager/" + file),
 );
 const sidebarSections = read("botui/ui/suite/js/sidebar-sections.js");
@@ -57,11 +61,13 @@ const productApps = ((product.match(/^apps=(.*)$/m) || [])[1] || "")
   .map((s) => s.trim())
   .filter(Boolean);
 const expectedAlways = [
-  "chat", "drive", "clock-widget", "jukebox", "sheet", "player",
-  "calculator", "notes", "photos", "timer", "weather", "integrations",
+  "chat", "drive", "browser", "clock-widget", "jukebox", "player", "calculator",
+  "notes", "notepad", "photos", "timer", "weather", "integrations", "docs",
+  "sheet", "slides", "paper", "crm", "billing", "products", "tasks", "calendar",
+  "mail", "preview",
 ];
 check(expectedAlways.every((app) => productApps.indexOf(app) !== -1) &&
-  productApps.length === expectedAlways.length,
+  productApps.every((app) => expectedAlways.indexOf(app) !== -1),
   "desktop profile always list matches the #1811 split");
 check(/^hidden_apps=research,sources\s*$/m.test(product),
   "desktop profile hides Research and the sources surface");
@@ -69,7 +75,7 @@ const productPreview = ((product.match(/^preview_apps=(.*)$/m) || [])[1] || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-check(["docs", "slides", "canvas", "goals", "mail", "calendar", "people", "automations"]
+check(["analytics", "canvas", "automations", "goals", "people", "vibe"]
   .every((app) => productPreview.indexOf(app) !== -1),
   "desktop profile moves non-essential apps to Preview mode");
 check(productPreview.indexOf("sheet") === -1,
@@ -94,7 +100,8 @@ check(/label:\s*tr\("chat-new-conversation"/.test(sidebarSections),
   "the sidebar keeps its chat quick action");
 
 // #1619 — search placeholder and the disabled-search removal.
-check(/placeholder="Search\.\.\."/.test(desktop), "search placeholder reads 'Search...'");
+check(/data-i18n-placeholder="taskbar-search"/.test(desktop),
+  "search placeholder is locale-driven through taskbar-search");
 check(!/Search apps, people, products/.test(desktop), "old placeholder is gone");
 check(/search_enabled === false/.test(read("botui/ui/suite/desktop-inline/06_taskbar_search.js")) &&
   /taskbarSearchWrap/.test(desktop), "search field is removed when search is disabled");
@@ -129,8 +136,9 @@ check(!/free account/i.test(chatPartial), "chat has no create-a-free-account cop
 
 // #1630 — the composer is a single modern capsule with scrollable chips.
 check(chatPartial.indexOf("chat-composer.css") !== -1, "chat loads the composer stylesheet");
-check(/border-radius:\s*28px/.test(composerCss), "composer is a rounded capsule");
-check(/scroll-snap-type:\s*x proximity/.test(composerCss), "suggestion chips scroll horizontally");
+check(/border-radius:\s*999px/.test(composerCss), "composer is a rounded capsule");
+check(/scroll-snap-type:\s*x proximity/.test(read("botui/ui/suite/chat/chat-composer-toggle.css")),
+  "suggestion chips scroll horizontally");
 check(/@media \(max-width: 640px\)/.test(composerCss), "composer has a narrow-screen layout");
 
 // #1627 — one LLM provider list: Integrations owns it, Settings does not.
@@ -181,6 +189,23 @@ check(!/strip\.setAttribute\("role", "tablist"\)/.test(tabsJs),
   "the strip itself is not the tablist (buttons would be illegal children)");
 check(/\.gb-tab-close\s*\{[^}]*min-width:\s*24px[^}]*min-height:\s*24px/s.test(tabCss),
   "tab close target is at least 24x24 px");
+
+// #2569 — the assistant shell's Preview action must switch to the windowed
+// suite with every app available, while both shells stay selectable.
+const assistantShellSwitch = read("botui/ui/suite/assistant/modules/09d_settings_shell.js");
+const settingsPreview = read("botui/ui/suite/settings/main/08_preview.js");
+check(/preview=all/.test(assistantShellSwitch),
+  "assistant Preview opens the windowed suite with all apps");
+check(/gb-preview-mode",\s*"1"/.test(assistantShellSwitch),
+  "assistant Preview turns Preview mode on before switching shells");
+check(/WM\.previewAll = readPreviewAllFlag\(\)/.test(windowManager),
+  "window manager reads the preview=all flag");
+check(/if \(!previewAll && a\.hidden === true\) return/.test(windowManager),
+  "preview=all bypasses the product hidden_apps list");
+check(/gb-shell-override",\s*"assistant"/.test(settingsPreview),
+  "suite Settings can still switch back to the assistant shell");
+check(/gb-shell-override",\s*"desktop"/.test(assistantShellSwitch),
+  "assistant Settings can still switch back to the windowed suite");
 
 console.log(`desktop_surfaces: ${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -27,7 +27,9 @@ fn incus_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, Strin
     // #2086 — there is no Incus daemon on Windows: the agent-VM path must fail
     // fast as a capability error instead of retrying `incus list` five times
     // (≈30 s) before every LLM call.
-    if cfg!(windows) {
+    // On Windows it can run through a WSL wrapper named in AGENT_INCUS_BIN;
+    // without one, nothing is tried.
+    if cfg!(windows) && crate::agent_backend_unavailable().is_some() {
         return Err((
             StatusCode::SERVICE_UNAVAILABLE,
             INCUS_MISSING_MESSAGE.to_string(),
