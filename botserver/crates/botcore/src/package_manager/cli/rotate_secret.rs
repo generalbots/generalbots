@@ -14,11 +14,17 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
     match component {
         "tables" => {
             let new_password = generate_password(32);
-            let mut secrets = manager
-                .get_secret(SecretPaths::TABLES)
-                .await
-                .unwrap_or_default();
-            let old_password = secrets.get("password").cloned().unwrap_or_default();
+            let mut secrets = match manager.get_secret(SecretPaths::TABLES).await {
+                Ok(secrets) => secrets,
+                Err(e) => {
+                    log::warn!("Could not read tables secret from Vault: {e}");
+                    HashMap::new()
+                }
+            };
+            let old_password = match secrets.get("password") {
+                Some(password) => password.clone(),
+                None => String::new(),
+            };
             secrets.insert("password".to_string(), new_password.clone());
 
             println!("⚠️  WARNING: You must update PostgreSQL with the new password!");
@@ -54,10 +60,13 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
         "drive" => {
             let new_accesskey = generate_access_key();
             let new_secret = generate_secret_key();
-            let mut secrets = manager
-                .get_secret(SecretPaths::DRIVE)
-                .await
-                .unwrap_or_default();
+            let mut secrets = match manager.get_secret(SecretPaths::DRIVE).await {
+                Ok(secrets) => secrets,
+                Err(e) => {
+                    log::warn!("Could not read drive secret from Vault: {e}");
+                    HashMap::new()
+                }
+            };
 
             println!("⚠️  WARNING: You must update MinIO with the new credentials!");
             println!();
@@ -118,10 +127,13 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
         }
         "email" => {
             let new_password = generate_password(24);
-            let mut secrets = manager
-                .get_secret(SecretPaths::EMAIL)
-                .await
-                .unwrap_or_default();
+            let mut secrets = match manager.get_secret(SecretPaths::EMAIL).await {
+                Ok(secrets) => secrets,
+                Err(e) => {
+                    log::warn!("Could not read email secret from Vault: {e}");
+                    HashMap::new()
+                }
+            };
 
             println!("⚠️  WARNING: You must update the mail server with the new password!");
             println!();
@@ -168,10 +180,13 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
         }
         "directory" => {
             let new_secret = generate_password(48);
-            let mut secrets = manager
-                .get_secret(SecretPaths::DIRECTORY)
-                .await
-                .unwrap_or_default();
+            let mut secrets = match manager.get_secret(SecretPaths::DIRECTORY).await {
+                Ok(secrets) => secrets,
+                Err(e) => {
+                    log::warn!("Could not read directory secret from Vault: {e}");
+                    HashMap::new()
+                }
+            };
 
             println!("⚠️  WARNING: You must update Zitadel with the new client secret!");
             println!();

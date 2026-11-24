@@ -100,7 +100,13 @@ impl ConfigManager {
             let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move {
-                    let mut data = sm_clone.get_secret(&path_owned).await.unwrap_or_default();
+                    let mut data = match sm_clone.get_secret(&path_owned).await {
+                        Ok(data) => data,
+                        Err(e) => {
+                            log::warn!("Could not read Vault secret at {path_owned} before writing {key_owned}: {e}");
+                            Default::default()
+                        }
+                    };
                     data.insert(key_owned.clone(), value_owned.clone());
                     sm_clone.put_secret(&path_owned, data).await.ok()
                 })

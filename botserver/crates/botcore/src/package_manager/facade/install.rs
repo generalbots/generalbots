@@ -152,7 +152,17 @@ impl PackageManager {
 
                 info!("Downloading data file: {}", url);
                 println!("Downloading {}", url);
-                utils::download_file(url, download_target.to_str().unwrap_or_default()).await?;
+                let target = match download_target.to_str() {
+                    Some(target) => target,
+                    None => {
+                        log::warn!(
+                            "Download target path is not valid UTF-8: {}",
+                            download_target.display()
+                        );
+                        ""
+                    }
+                };
+                utils::download_file(url, target).await?;
                 botcorepkg::checksum::verify_download(&download_target, &expected, &filename)?;
 
                 if cache.is_some() && download_target != output_path {

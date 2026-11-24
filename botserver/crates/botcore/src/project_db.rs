@@ -112,7 +112,10 @@ pub fn database_url_for(db_name: &str) -> String {
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
     match base.rfind('/') {
         Some(pos) => {
-            let query = base[pos..].split_once('?').map(|(_, q)| format!("?{q}")).unwrap_or_default();
+            let query = match base[pos..].split_once('?') {
+                Some((_, query)) => format!("?{query}"),
+                None => String::new(),
+            };
             format!("{}/{db_name}{query}", &base[..pos])
         }
         None => format!("{base}/{db_name}"),

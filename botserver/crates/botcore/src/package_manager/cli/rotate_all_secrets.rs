@@ -28,10 +28,13 @@ pub(super) async fn rotate_all_secrets() -> Result<()> {
     println!();
 
     let tables_password = generate_password(32);
-    let mut tables = manager
-        .get_secret(SecretPaths::TABLES)
-        .await
-        .unwrap_or_default();
+    let mut tables = match manager.get_secret(SecretPaths::TABLES).await {
+        Ok(secrets) => secrets,
+        Err(e) => {
+            log::warn!("Could not read tables secret from Vault: {e}");
+            HashMap::new()
+        }
+    };
     tables.insert("password".to_string(), tables_password.clone());
     manager
         .put_secret(SecretPaths::TABLES, tables.clone())
@@ -44,10 +47,13 @@ pub(super) async fn rotate_all_secrets() -> Result<()> {
 
     let drive_accesskey = generate_access_key();
     let drive_secret = generate_secret_key();
-    let mut drive = manager
-        .get_secret(SecretPaths::DRIVE)
-        .await
-        .unwrap_or_default();
+    let mut drive = match manager.get_secret(SecretPaths::DRIVE).await {
+        Ok(secrets) => secrets,
+        Err(e) => {
+            log::warn!("Could not read drive secret from Vault: {e}");
+            HashMap::new()
+        }
+    };
     drive.insert("accesskey".to_string(), drive_accesskey.clone());
     drive.insert("secret".to_string(), drive_secret.clone());
     manager.put_secret(SecretPaths::DRIVE, drive).await?;
@@ -63,19 +69,25 @@ pub(super) async fn rotate_all_secrets() -> Result<()> {
     println!("✓ cache: redis-cli CONFIG SET requirepass '[REDACTED]'");
 
     let email_password = generate_password(24);
-    let mut email = manager
-        .get_secret(SecretPaths::EMAIL)
-        .await
-        .unwrap_or_default();
+    let mut email = match manager.get_secret(SecretPaths::EMAIL).await {
+        Ok(secrets) => secrets,
+        Err(e) => {
+            log::warn!("Could not read email secret from Vault: {e}");
+            HashMap::new()
+        }
+    };
     email.insert("password".to_string(), email_password.clone());
     manager.put_secret(SecretPaths::EMAIL, email).await?;
     println!("✓ email: new password set ({} chars)", email_password.len());
 
     let directory_secret = generate_password(48);
-    let mut directory = manager
-        .get_secret(SecretPaths::DIRECTORY)
-        .await
-        .unwrap_or_default();
+    let mut directory = match manager.get_secret(SecretPaths::DIRECTORY).await {
+        Ok(secrets) => secrets,
+        Err(e) => {
+            log::warn!("Could not read directory secret from Vault: {e}");
+            HashMap::new()
+        }
+    };
     directory.insert("client_secret".to_string(), directory_secret.clone());
     manager
         .put_secret(SecretPaths::DIRECTORY, directory)
@@ -106,7 +118,10 @@ pub(super) async fn verify_rotation(component: &str) -> Result<()> {
             let host = secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string());
             let port = secrets.get("port").cloned().unwrap_or_else(|| "5432".to_string());
             let user = secrets.get("username").cloned().unwrap_or_else(|| "postgres".to_string());
-            let pass = secrets.get("password").cloned().unwrap_or_default();
+            let pass = match secrets.get("password") {
+                Some(password) => password.clone(),
+                None => String::new(),
+            };
             let db = secrets.get("database").cloned().unwrap_or_else(|| "postgres".to_string());
 
             println!("  Testing connection to {}@{}:{}...", user, host, port);
@@ -195,7 +210,11 @@ pub(super) async fn vault_health() -> Result<()> {
     match manager.health_check().await {
         Ok(true) => {
             println!("* Vault is healthy");
-            println!("  Address: {}", env::var("VAULT_ADDR").unwrap_or_default());
+            let address = match env::var("VAULT_ADDR") {
+                Ok(address) => address,
+                Err(_) => String::new(),
+            };
+            println!("  Address: {}", address);
         }
         Ok(false) => {
             println!("x Vault health check failed");

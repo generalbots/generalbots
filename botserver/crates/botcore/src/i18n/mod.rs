@@ -88,12 +88,16 @@ pub fn locale_from_headers(headers: &axum::http::HeaderMap) -> Locale {
         }
     }
 
-    headers
+    match headers
         .get(ACCEPT_LANGUAGE)
         .and_then(|h| h.to_str().ok())
         .map(parse_accept_language)
         .and_then(|langs| negotiate_locale(&langs))
-        .unwrap_or_default()
+    {
+        Some(locale) => locale,
+        // No usable language header is the normal case for API clients.
+        None => Locale::default(),
+    }
 }
 
 fn parse_accept_language(header: &str) -> Vec<(String, f32)> {

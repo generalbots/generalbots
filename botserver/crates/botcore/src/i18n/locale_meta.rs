@@ -53,11 +53,12 @@ const DEFAULT_NUMBER_FORMAT: &str = "#,##0.###";
 /// `true` when the language subtag is written right-to-left.
 #[must_use]
 pub fn is_rtl(code: &str) -> bool {
-    let language = code
-        .split(['-', '_'])
-        .next()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
+    // split() always yields at least one item; handle the empty case
+    // explicitly rather than defaulting silently.
+    let language = match code.split(['-', '_']).next() {
+        Some(language) => language.to_ascii_lowercase(),
+        None => String::new(),
+    };
     RTL_LANGUAGES.contains(&language.as_str())
 }
 

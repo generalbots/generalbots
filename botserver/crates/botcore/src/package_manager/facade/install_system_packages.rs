@@ -250,8 +250,8 @@ impl PackageManager {
                 if let Some(name) = binary_name {
                     self.install_binary(temp_file, bin_path, name)?;
                 } else {
-                    let final_path = bin_path.join(temp_file.file_name().unwrap_or_default());
-
+                    let name = temp_file.file_name().map_or_else(|| "".as_ref(), |n| n);
+                    let final_path = bin_path.join(name);
                     if temp_file.to_string_lossy().contains("botserver-installers") {
                         std::fs::copy(temp_file, &final_path)?;
                     } else {
@@ -289,11 +289,9 @@ impl PackageManager {
         let file = std::fs::File::open(temp_file)
             .with_context(|| format!("Failed to open zip: {}", temp_file.display()))?;
         trace!("extract_zip: file opened, size={}", file.metadata().map(|m| m.len()).unwrap_or(0));
-
         let mut archive = zip::ZipArchive::new(file)
             .with_context(|| format!("Failed to read zip: {}", temp_file.display()))?;
         trace!("extract_zip: archive read, {} entries", archive.len());
-
         for i in 0..archive.len() {
             let mut entry = archive.by_index(i)
                 .with_context(|| format!("Failed to read entry {i} from zip"))?;
@@ -304,14 +302,15 @@ impl PackageManager {
                 warn!("skipping zip entry with unsafe path at index {i}");
                 continue;
             };
-            let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
-
+            let name = match entry.name() {
+                Ok(n) => n.to_string(),
+                Err(_) => String::new(),
+            };
             // Skip unnecessary directories to speed up extraction
             // (e.g. pgAdmin 4 in EDB PostgreSQL distribution has 22k+ files)
             if name.contains("pgAdmin 4") || name.contains("StackBuilder") {
                 continue;
             }
-
             let target = bin_path.join(&enclosed);
             if !target.starts_with(bin_path) {
                 warn!("skipping zip entry escaping destination: {name}");

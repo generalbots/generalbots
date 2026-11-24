@@ -27,7 +27,10 @@ fn cache_password() -> Option<String> {
     PASSWORD
         .get_or_init(|| {
             for key in ["REDISCLI_AUTH", "CACHE_PASSWORD", "GB_CACHE_PASSWORD"] {
-                let value = std::env::var(key).unwrap_or_default();
+                let value = match std::env::var(key) {
+                    Ok(value) => value,
+                    Err(_) => String::new(),
+                };
                 if !value.is_empty() {
                     return Some(value);
                 }

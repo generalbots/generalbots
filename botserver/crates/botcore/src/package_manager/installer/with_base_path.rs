@@ -138,11 +138,16 @@ impl PackageManager {
             let mut evaluated_envs = HashMap::new();
             for (k, v) in &component.env_vars {
                 if let Some(var_name) = v.strip_prefix('$') {
-                    let value = vault_credentials
+                    let value = match vault_credentials
                         .get(var_name)
                         .cloned()
                         .or_else(|| std::env::var(var_name).ok())
-                        .unwrap_or_default();
+                    {
+                        Some(value) => value,
+                        // A component may reference an env var that is not
+                        // configured in this profile; pass an empty value.
+                        None => String::new(),
+                    };
                     evaluated_envs.insert(k.clone(), value);
                 } else {
                     evaluated_envs.insert(k.clone(), v.clone());

@@ -45,7 +45,10 @@ impl ContainerOperations for PackageManager {
 
         // #2617 — never create an unscoped DNAT rule. An explicit external
         // interface is required; without it the host keeps its existing rules.
-        let iface = std::env::var("GB_EXTERNAL_IFACE").unwrap_or_default();
+        let iface = match std::env::var("GB_EXTERNAL_IFACE") {
+            Ok(iface) => iface,
+            Err(_) => String::new(),
+        };
         if !is_valid_interface(&iface) {
             return Err(anyhow::anyhow!(
                 "GB_EXTERNAL_IFACE must be a valid interface name; refusing to create unscoped DNAT rules"
@@ -304,6 +307,13 @@ impl ContainerOperations for PackageManager {
                 trace!("Cert file {:?} not found, skipping", src);
                 continue;
             }
+            let src_arg = match src.to_str() {
+                Some(path) => path,
+                None => {
+                    log::warn!("Certificate path is not valid UTF-8: {}", src.display());
+                    ""
+                }
+            };
             SafeCommand::new("incus")
                 .and_then(|c| c.arg("exec"))
                 .and_then(|c| c.arg(container))
@@ -321,7 +331,7 @@ impl ContainerOperations for PackageManager {
             SafeCommand::new("incus")
                 .and_then(|c| c.arg("file"))
                 .and_then(|c| c.arg("push"))
-                .and_then(|c| c.arg(src.to_str().unwrap_or_default()))
+                .and_then(|c| c.arg(src_arg))
                 .and_then(|c| c.arg(format!("{container}:{dest}").as_str()))
                 .and_then(|cmd| cmd.execute())?;
         }

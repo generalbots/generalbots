@@ -74,7 +74,10 @@ impl PackageManager {
     /// Ensure `.env` exists with a reference to the scoped token — never with
     /// the token value or the root token (#2498).
     pub(super) fn ensure_env_file_exists(&self) -> Result<()> {
-        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+        let vault_addr = match std::env::var("VAULT_ADDR") {
+            Ok(addr) => addr,
+            Err(_) => String::new(),
+        };
         if vault_addr.is_empty() {
             return Ok(());
         }
