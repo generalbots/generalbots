@@ -1,15 +1,16 @@
 //! What Codex does without an approval request: web searches and MCP tool
 //! calls. Neither has an approval in the app-server protocol (v0.171).
 //!
-//! Web search is turned off for every bridged thread: its default mode is
-//! `cached` (`ConfigToml::web_search`, `WebSearchMode` in Codex 0.171), so it
-//! would reach the web without asking. The ChatGPT apps connector (the
+//! Web search is live for every bridged thread (`ConfigToml::web_search`,
+//! `WebSearchMode` in Codex 0.171; the default `cached` answers from an
+//! index): searching is always allowed, and each search or page it opens is
+//! a step of the answer, never hidden. The ChatGPT apps connector (the
 //! `codex_apps` MCP server, feature `apps`, on by default) and plugins
 //! (feature `plugins`, which can bring their own MCP servers) are turned off
 //! too: their tools run without an approval request. The keys are dotted
 //! overrides, applied per thread like `-c features.apps=false`. The
-//! workspace configures no MCP server. Either item, should one still appear,
-//! becomes a step row.
+//! workspace configures no MCP server. Should an MCP call still appear, it
+//! becomes a step row too.
 
 use serde_json::{json, Value};
 
@@ -17,7 +18,7 @@ use serde_json::{json, Value};
 #[must_use]
 pub fn thread_config() -> Value {
     json!({
-        "web_search": "disabled",
+        "web_search": "live",
         "features.apps": false,
         "features.plugins": false,
     })
@@ -28,17 +29,20 @@ fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 /// A finished item that ran without asking, as its step: `("web_search",
-/// query)` or `("mcp_tool", "server/tool")`, and whether it worked.
+/// query)`, `("web_fetch", url)` for a page it opened, or `("mcp_tool",
+/// "server/tool")`, and whether it worked.
 #[must_use]
 pub fn noted_step(item: &Value) -> Option<(&'static str, String, bool)> {
     match item.get("type").and_then(Value::as_str)? {
         "webSearch" => {
             let action = item.get("action").unwrap_or(&Value::Null);
-            let query = text(item, "query")
-                .or_else(|| text(action, "query"))
-                .or_else(|| text(action, "url"))
-                .unwrap_or("");
-            Some(("web_search", query.to_string(), true))
+            if let Some(query) = text(item, "query").or_else(|| text(action, "query")) {
+                return Some(("web_search", query.to_string(), true));
+            }
+            match text(action, "url") {
+                Some(url) => Some(("web_fetch", url.to_string(), true)),
+                None => Some(("web_search", String::new(), true)),
+            }
         }
         "mcpToolCall" => {
             let name = format!("{}/{}", text(item, "server").unwrap_or("?"), text(item, "tool").unwrap_or("?"));
@@ -54,9 +58,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_bridged_thread_has_web_search_off() {
-        assert_eq!(thread_start_params("/w", "", false)["config"]["web_search"], "disabled");
-        assert_eq!(thread_resume_params("t1", "/w", "", None)["config"]["web_search"], "disabled");
+    fn every_bridged_thread_searches_the_live_web() {
+        assert_eq!(thread_start_params("/w", "", false)["config"]["web_search"], "live");
+        assert_eq!(thread_resume_params("t1", "/w", "", None)["config"]["web_search"], "live");
     }
 
     #[test]
@@ -80,7 +84,9 @@ mod tests {
         let search = json!({"type": "webSearch", "id": "w1", "query": "rust 1.90 release", "action": null});
         assert_eq!(noted_step(&search), Some(("web_search", "rust 1.90 release".to_string(), true)));
         let open = json!({"type": "webSearch", "id": "w2", "query": "", "action": {"type": "openPage", "url": "https://example.org/"}});
-        assert_eq!(noted_step(&open).map(|s| s.1), Some("https://example.org/".to_string()));
+        assert_eq!(noted_step(&open), Some(("web_fetch", "https://example.org/".to_string(), true)));
+        let blank = json!({"type": "webSearch", "id": "w3", "query": "", "action": {"type": "other"}});
+        assert_eq!(noted_step(&blank), Some(("web_search", String::new(), true)));
         let mcp = json!({"type": "mcpToolCall", "id": "m1", "server": "docs", "tool": "lookup", "status": "failed"});
         assert_eq!(noted_step(&mcp), Some(("mcp_tool", "docs/lookup".to_string(), false)));
         assert_eq!(noted_step(&json!({"type": "commandExecution"})), None);

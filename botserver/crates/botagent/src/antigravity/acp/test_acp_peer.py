@@ -70,6 +70,11 @@ def prompt(request):
                          "status": "in_progress"})
         update(session, {"sessionUpdate": "tool_call_update", "toolCallId": "t9", "status": "completed"})
         chunk(session, "agent_message_chunk", "feito")
+    elif MODE == "search":
+        update(session, {"sessionUpdate": "tool_call", "toolCallId": "s1", "title": "Search the web",
+                         "kind": "search", "status": "in_progress", "rawInput": {"query": "rust 2026"}})
+        update(session, {"sessionUpdate": "tool_call_update", "toolCallId": "s1", "status": "completed"})
+        chunk(session, "agent_message_chunk", "achei")
     send({"jsonrpc": "2.0", "id": request["id"], "result": {"stopReason": "end_turn"}})
 
 

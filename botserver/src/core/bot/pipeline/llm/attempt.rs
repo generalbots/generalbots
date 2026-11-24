@@ -215,6 +215,21 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                             }
                             continue;
                         }
+                        if chunk.contains(botllm::claude::web_search::WEB_STEP_MARKER) {
+                            use crate::core::bot::pipeline::native_tools::web_steps;
+                            if let Some((tool, text, sites, ok)) = web_steps::parse_marker(&chunk) {
+                                botlog::safe_info!(
+                                    "web step from the model: tool={tool} ok={ok} sites={} {}",
+                                    sites.len(),
+                                    web_steps::query_fingerprint(&text)
+                                );
+                                let run = crate::core::bot::pipeline::event_sink::RunContext::new(session_id_s, "chat")
+                                    .with_state(state.clone())
+                                    .with_scope(bot_uuid, user_id, None);
+                                web_steps::noted_on(sink, run, tool, &text, ok, &sites).await;
+                                continue;
+                            }
+                        }
                         if chunk.contains("\"__tool_call__\"") {
                             // Each __tool_call__ chunk arrives as one
                             // complete JSON object (one per parallel

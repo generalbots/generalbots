@@ -63,6 +63,7 @@ impl ClaudeClient {
         let mut chunk_count = 0usize;
         let mut last_activity = Instant::now();
         let mut done_received = false;
+        let mut searches = super::web_search::SearchSteps::default();
 
         trace!("CLAUDE Starting stream read");
 
@@ -177,6 +178,13 @@ impl ClaudeClient {
                         continue;
                     }
 
+                    if let Some(step) = searches.on_event(data) {
+                        if tx.send(step).await.is_err() {
+                            warn!("CLAUDE Receiver dropped, stopping stream");
+                            return Ok(());
+                        }
+                    }
+
                     // Process SSE data and send text chunks
                     let (content, reasoning) = self.process_sse_data(data, model_name);
                     
@@ -245,7 +253,7 @@ impl ClaudeClient {
         tx: mpsc::Sender<String>,
         model: &str,
         key: &str,
-        _tools: Option<&Vec<Value>>,
+        tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let model_name = if model.is_empty() {
             &self.deployment_name
@@ -274,6 +282,11 @@ impl ClaudeClient {
             system,
             stream: Some(true),
             thinking,
+            // A chat answer (the caller passes its tool list) may search the
+            // web on Anthropic's side; other calls never do.
+            tools: tools
+                .and_then(|_| super::web_search::tool_for(model_name, &self.base_url))
+                .map(|tool| vec![tool]),
         };
 
         let request_body = Self::body_with_media(&request, messages)?;

@@ -24,6 +24,7 @@ use botagent::claude::bridge::{
 use botagent::AgentService;
 
 use crate::core::ai_accounts::{provider_label, CLAUDE_CODE};
+use crate::core::bot::pipeline::native_tools::web_steps::{self, WebStep};
 use crate::core::bot::pipeline::llm::refusal::{coded, AGENT_NOT_LINKED, AGENT_UNSAFE_VERSION};
 use crate::core::bot::pipeline::vm_consent::{
     self, BridgeIdentity, VmAction, VmActionKind, VmAgent, VmDecision, VmOutcome, VmReceipt,
@@ -31,6 +32,9 @@ use crate::core::bot::pipeline::vm_consent::{
 use crate::core::bot::runs::bus;
 
 type ProviderError = Box<dyn std::error::Error + Send + Sync>;
+
+/// The model reads this when a tool use has no card to ask with.
+const UNDESCRIBED: &str = "This action cannot be asked for here; nothing ran.";
 
 /// Claude's session id per conversation, resumed on its next turn. The
 /// workspace keeps a copy (`bridge::store_session`), read when this map has
@@ -92,6 +96,7 @@ impl ClaudeBridgeProvider {
             cancelled_at_start: run_bus.is_cancelled(&thread),
             thread,
             open: Mutex::default(),
+            web: Mutex::default(),
             staged: super::claude_attached::staged_paths(self.session_id),
         };
         let quoted = transcript.contains(super::antigravity_bridge::QUOTED_MARKER);
@@ -142,7 +147,19 @@ fn unsafe_refusal() -> String {
 
 /// The action the card shows for one Claude Code tool use. A read is its own
 /// kind (`vm_file_read`): allowing reads never allows commands.
-fn vm_action(action: &ClaudeAction) -> VmAction {
+/// A web search, or (in this edition) a page read: a step of the answer,
+/// allowed without a card.
+fn web_step(action: &ClaudeAction) -> Option<(&'static str, &str)> {
+    match action {
+        ClaudeAction::Search { query } => Some((web_steps::SEARCH, query.as_str())),
+        ClaudeAction::Fetch { url } if web_steps::ALWAYS_ON => Some((web_steps::FETCH, url.as_str())),
+        _ => None,
+    }
+}
+
+/// The card's action, or `None` for a web search (it has no card: see
+/// [`web_step`]).
+fn vm_action(action: &ClaudeAction) -> Option<VmAction> {
     let command = |command: String| VmActionKind::Command {
         command,
         cwd: Some(botagent::claude::CLAUDE_HOME.to_string()),
@@ -160,8 +177,9 @@ fn vm_action(action: &ClaudeAction) -> VmAction {
         ClaudeAction::ReadFile { path } => VmActionKind::FileRead { path: path.clone() },
         ClaudeAction::WriteFile { path, .. } => VmActionKind::FileWrite { path: path.clone(), from: None },
         ClaudeAction::Fetch { url } => VmActionKind::OpenUrl { url: url.clone() },
+        ClaudeAction::Search { .. } => return None,
     };
-    VmAction { agent: VmAgent::ClaudeCode, kind }
+    Some(VmAction { agent: VmAgent::ClaudeCode, kind })
 }
 
 /// The gate side of one turn.
@@ -173,6 +191,8 @@ struct Gate<'a> {
     cancelled_at_start: bool,
     /// Allowed tool uses waiting for their result: id → receipt, files.
     open: Mutex<HashMap<String, (VmReceipt, Vec<String>)>>,
+    /// Web searches and reads waiting for their result: id → step.
+    web: Mutex<HashMap<String, WebStep>>,
     /// The workspace copies of the files attached to this message.
     staged: Vec<String>,
 }
@@ -185,7 +205,17 @@ impl BridgeGate for Gate<'_> {
                 return GateAnswer::Allow;
             }
         }
-        let vm = vm_action(action);
+        if let Some((tool, text)) = web_step(action) {
+            botlog::safe_info!("claude bridge: {tool} allowed without a card {}", web_steps::query_fingerprint(text));
+            let step = WebStep::begin(&self.turn.identity(), tool, text).await;
+            if let (Some(step), Some(id)) = (step, &request.tool_use_id) {
+                self.web.lock().unwrap_or_else(PoisonError::into_inner).insert(id.clone(), step);
+            }
+            return GateAnswer::Allow;
+        }
+        let Some(vm) = vm_action(action) else {
+            return GateAnswer::Deny(UNDESCRIBED.to_string());
+        };
         match vm_consent::ask(&self.turn.identity(), &vm).await {
             VmDecision::Allowed(ticket) => {
                 if let Some(id) = &request.tool_use_id {
@@ -201,6 +231,11 @@ impl BridgeGate for Gate<'_> {
     }
 
     async fn finished(&self, tool_use_id: &str, outcome: &ToolOutcome) {
+        let step = self.web.lock().unwrap_or_else(PoisonError::into_inner).remove(tool_use_id);
+        if let Some(step) = step {
+            step.end(self.turn.identity().sink, outcome.ok, &[]).await;
+            return;
+        }
         let entry = self.open.lock().unwrap_or_else(PoisonError::into_inner).remove(tool_use_id);
         let Some((receipt, files)) = entry else {
             return;
@@ -253,8 +288,23 @@ impl botlib::traits::LLMProvider for ClaudeBridgeProvider {
 
 #[cfg(test)]
 mod tests {
-    use super::vm_action;
+    use super::{web_step, web_steps};
+    use crate::core::bot::pipeline::vm_consent::VmAction;
     use botagent::claude::bridge::ClaudeAction;
+
+    fn vm_action(action: &ClaudeAction) -> VmAction {
+        super::vm_action(action).expect("this action has a card")
+    }
+
+    #[test]
+    fn a_web_search_is_a_step_without_a_card() {
+        let search = ClaudeAction::Search { query: "rust 2026".into() };
+        assert_eq!(web_step(&search), Some((web_steps::SEARCH, "rust 2026")));
+        assert!(super::vm_action(&search).is_none());
+        let fetch = ClaudeAction::Fetch { url: "https://example.com/".into() };
+        assert_eq!(web_step(&fetch).is_some(), web_steps::ALWAYS_ON);
+        assert!(web_step(&ClaudeAction::Command { command: "curl https://example.com".into() }).is_none());
+    }
 
     #[test]
     fn the_card_carries_the_exact_command_path_or_url() {

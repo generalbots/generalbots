@@ -18,6 +18,7 @@ use botagent::AgentService;
 
 use crate::core::ai_accounts::{provider_label, CODEX_CLI};
 use crate::core::bot::pipeline::llm::refusal::{coded, AGENT_NOT_LINKED, AGENT_UNSAFE_VERSION};
+use crate::core::bot::pipeline::native_tools::web_steps;
 use crate::core::bot::pipeline::vm_consent::{
     self, BridgeIdentity, VmAction, VmActionKind, VmAgent, VmDecision, VmDenial, VmOutcome, VmReceipt,
 };
@@ -166,6 +167,12 @@ impl Approvals for Gate<'_> {
     }
 
     async fn noted(&self, kind: &str, text: &str, ok: bool) {
+        // A search or a page read is a web step ("Pesquisou na web: …").
+        if let Some(tool) = web_steps::kind_of(kind) {
+            botlog::safe_info!("codex bridge: {tool} ok={ok} {}", web_steps::query_fingerprint(text));
+            web_steps::noted(&self.turn.identity(), tool, text, ok).await;
+            return;
+        }
         vm_consent::noted(&self.turn.identity(), VmAgent::CodexCli, kind, text, ok).await;
     }
 

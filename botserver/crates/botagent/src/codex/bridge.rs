@@ -48,7 +48,7 @@ pub trait Approvals: Send + Sync {
     fn finished(&self, ticket: Self::Ticket, outcome: ActionOutcome) -> impl Future<Output = ()> + Send;
     /// A piece of the agent's answer, in order.
     fn text(&self, chunk: &str) -> impl Future<Output = ()> + Send;
-    /// A step Codex took without asking (`web_search`, `mcp_tool`), shown
+    /// A step Codex took without asking (`web_search`, `web_fetch`, `mcp_tool`), shown
     /// in the steps block.
     fn noted(&self, kind: &str, text: &str, ok: bool) -> impl Future<Output = ()> + Send;
     /// The person stopped the turn (or nobody reads the answer any more).

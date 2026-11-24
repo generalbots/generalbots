@@ -42,8 +42,12 @@ var STEP_LABELS = {
     publish: ["Publicou no Drive", "Published to Drive", "Publicando no Drive", "Publishing to Drive"],
     generate: ["Gerou a resposta", "Wrote the answer", "Gerando a resposta", "Writing the answer"],
     vm_action: ["Ação na Máquina Virtual", "Virtual Machine action", "Ação na Máquina Virtual", "Virtual Machine action"],
-    web_fetch: ["Leu a página", "Read the web page", "Lendo a página", "Reading the web page"]
+    web_fetch: ["Leu a página", "Read the web page", "Lendo a página", "Reading the web page"],
+    web_search: ["Pesquisou na web", "Searched the web", "Pesquisando na web", "Searching the web"]
 };
+/* Web steps carry data, not words: the query or the site, shown as sent. */
+var WEB_STEPS = { web_fetch: 1, web_search: 1 };
+var SITES_SHOWN = 4;
 /* A step id the shell does not know: a neutral line, never the server's
    own (English) name or detail. */
 var OTHER_STEP = ["Concluiu uma etapa", "Finished a step", "Executando uma etapa", "Running a step"];
@@ -143,8 +147,10 @@ function stepLabel(step) {
     if (step.key.indexOf("trace:") === 0 && step.name) { return t("Etapa do programa: ", "Program step: ") + step.name; }
     var l = STEP_LABELS[step.key] || OTHER_STEP;
     var label = step.state === "running" ? t(l[2], l[3]) : t(l[0], l[1]);
-    /* The site a page came from is data, not words: shown as sent. */
-    return step.key === "web_fetch" && step.detail ? label + ": " + step.detail : label;
+    if (!WEB_STEPS[step.key] || !step.detail) { return label; }
+    var sites = step.sites || [];
+    var more = sites.length > SITES_SHOWN ? ", …" : "";
+    return label + ": " + step.detail + (sites.length ? " (" + sites.slice(0, SITES_SHOWN).join(", ") + more + ")" : "");
 }
 
 /* The run header's second line: the shell's label; package names and the
@@ -163,6 +169,11 @@ function runFor(runId) {
 function runTitle(run, status) {
     /* Pages read from the web (phase "web"): not the virtual machine. */
     if (run.web && !run.vm && !run.local) {
+        var searchedOnly = run.steps.every(function (s) { return s.key === "web_search"; });
+        if (searchedOnly) {
+            if (status === "running") { return t("Pesquisando na web", "Searching the web"); }
+            return status === "failed" ? t("A pesquisa na web falhou", "The web search failed") : t("Pesquisou na web", "Searched the web");
+        }
         if (status === "running") { return t("Lendo a web", "Reading the web"); }
         return status === "failed" ? t("Não conseguiu ler a página", "Could not read the page") : t("Leu a web", "Read the web");
     }
@@ -289,6 +300,7 @@ function onStep(frame) {
     if (data.denied) { step.denied = data.denied; if (A.reviveConsentCards) { A.reviveConsentCards(); } }
     if (Array.isArray(data.output)) { step.output = data.output; }
     if (Array.isArray(data.files)) { step.files = data.files; }
+    if (Array.isArray(data.sites)) { step.sites = data.sites.map(String); }
     if (data.reason) { step.reason = data.reason; }
     if (data.exit_code != null) { step.exit = data.exit_code; }
     if (frame.type === "STEP_STARTED") {

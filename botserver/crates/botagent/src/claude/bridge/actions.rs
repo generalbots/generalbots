@@ -20,11 +20,13 @@ pub enum ClaudeAction {
     WriteFile { path: String, edit: bool },
     /// `WebFetch`.
     Fetch { url: String },
+    /// `WebSearch`: the query (the search runs on Anthropic's side).
+    Search { query: String },
 }
 
 /// The built-in tools a bridged session may use (`--tools`): each one asks
 /// (see `SETTINGS_JSON`) and is described by [`ClaudeAction::from_request`].
-pub(super) const TOOLS: &str = "Bash,Read,Write,Edit,NotebookEdit,WebFetch";
+pub(super) const TOOLS: &str = "Bash,Read,Write,Edit,NotebookEdit,WebFetch,WebSearch";
 
 fn field(input: &Value, key: &str) -> Option<String> {
     input
@@ -102,6 +104,7 @@ impl ClaudeAction {
                 let url = field(input, "url")?;
                 (url.starts_with("https://") || url.starts_with("http://")).then_some(Self::Fetch { url })
             }
+            "WebSearch" => Some(Self::Search { query: field(input, "query")? }),
             _ => None,
         }
     }

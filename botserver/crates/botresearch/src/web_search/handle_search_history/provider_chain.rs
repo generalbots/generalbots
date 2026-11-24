@@ -66,7 +66,7 @@ pub async fn search_web_with_source(
                 provider: "google_news".to_string(),
             });
         }
-        Ok(_) => info!("web search: Google News returned no results for '{cleaned}'"),
+        Ok(_) => info!("web search: Google News returned no results (query_chars={})", cleaned.chars().count()),
         Err(reason) => info!("web search: Google News unavailable ({reason})"),
     }
 

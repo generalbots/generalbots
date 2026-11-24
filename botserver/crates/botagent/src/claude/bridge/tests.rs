@@ -83,6 +83,8 @@ fn each_known_tool_becomes_the_action_the_card_shows() {
         (request("NotebookEdit", json!({"notebook_path": "/home/claude/n.ipynb"})), Some(ClaudeAction::WriteFile { path: "/home/claude/n.ipynb".into(), edit: true })),
         (request("WebFetch", json!({"url": "https://example.com/", "prompt": "t"})), Some(ClaudeAction::Fetch { url: "https://example.com/".into() })),
         (request("WebFetch", json!({"url": "file:///etc/passwd"})), None),
+        (request("WebSearch", json!({"query": "rust 2026"})), Some(ClaudeAction::Search { query: "rust 2026".into() })),
+        (request("WebSearch", json!({"query": " "})), None),
         (request("Bash", json!({})), None),
         (request("CronCreate", json!({"cron": "*"})), None),
         (request("Task", json!({"prompt": "x"})), None),

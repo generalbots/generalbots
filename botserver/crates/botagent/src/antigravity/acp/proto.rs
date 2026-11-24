@@ -211,6 +211,8 @@ pub enum AcpAction {
     Write { path: String },
     Delete { path: String },
     Fetch { url: String },
+    /// A web search (kind `search` with a query and no path).
+    Search { query: String },
     /// Anything else, described by the agent's own title.
     Other { title: String },
 }
@@ -244,6 +246,17 @@ fn paths_of(call: &Value) -> Vec<String> {
     paths
 }
 
+/// Arguments that put a `search` inside the workspace (a file search).
+const SEARCH_SCOPE_KEYS: &[&str] =
+    &["SearchPath", "SearchDirectory", "DirectoryPath", "directory", "dir", "cwd", "Cwd", "pattern", "Pattern"];
+
+/// A web search or page read: the agent may run it without a card, and it
+/// is shown as a step.
+#[must_use]
+pub fn is_web(action: &AcpAction) -> bool {
+    matches!(action, AcpAction::Search { .. } | AcpAction::Fetch { .. })
+}
+
 /// The actions of one `session/request_permission` (several paths of one
 /// edit are asked one by one).
 #[must_use]
@@ -265,6 +278,15 @@ pub fn actions_of(params: &Value) -> Vec<AcpAction> {
             vec![AcpAction::Command { command, cwd }]
         }
         "read" | "search" if !paths.is_empty() => paths.into_iter().map(|path| AcpAction::Read { path }).collect(),
+        // A search in a folder reads the workspace; one with only a query is
+        // a web search.
+        "search" => match first_text(&raw, SEARCH_SCOPE_KEYS) {
+            Some(path) => vec![AcpAction::Read { path: path.to_string() }],
+            None => match first_text(&raw, &["query", "Query", "q", "searchTerm", "SearchTerm"]) {
+                Some(query) => vec![AcpAction::Search { query: query.to_string() }],
+                None => other(),
+            },
+        },
         "edit" | "move" if !paths.is_empty() => paths.into_iter().map(|path| AcpAction::Write { path }).collect(),
         "delete" if !paths.is_empty() => paths.into_iter().map(|path| AcpAction::Delete { path }).collect(),
         "fetch" => match first_text(&raw, &["url", "Url", "uri"]) {

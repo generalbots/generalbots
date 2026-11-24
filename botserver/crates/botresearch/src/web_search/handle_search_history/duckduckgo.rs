@@ -20,7 +20,8 @@ pub(super) async fn search_duckduckgo(
         encoded_query, region
     );
 
-    debug!("Searching DuckDuckGo: {}", query);
+    // The query can carry personal data: logs get its length only.
+    debug!("Searching DuckDuckGo: query_chars={}", query.chars().count());
 
     let response = client
         .get(&url)
@@ -36,9 +37,9 @@ pub(super) async fn search_duckduckgo(
     let status = response.status();
     let html = response.text().await?;
     info!(
-        "DuckDuckGo HTTP {} for '{}': {} bytes, result__a markers: {}",
+        "DuckDuckGo HTTP {} for query_chars={}: {} bytes, result__a markers: {}",
         status,
-        query,
+        query.chars().count(),
         html.len(),
         html.matches("result__a").count()
     );
@@ -46,8 +47,8 @@ pub(super) async fn search_duckduckgo(
     let results = parse_duckduckgo_html(&html, max_results);
 
     info!(
-        "DuckDuckGo search for '{}' returned {} results",
-        query,
+        "DuckDuckGo search for query_chars={} returned {} results",
+        query.chars().count(),
         results.len()
     );
 

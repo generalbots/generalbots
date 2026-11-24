@@ -27,6 +27,7 @@ impl LLMProvider for ClaudeClient {
             system,
             stream: None,
             thinking: None,
+            tools: None,
         };
 
         let body = Self::body_with_media(&request, messages)?;

@@ -106,12 +106,12 @@ mod tests {
         assert!(script.contains("su claude -s /bin/sh -c '"));
         assert!(!script.contains("su -"));
         assert!(script.contains("--permission-prompt-tool stdio --permission-mode manual --restricted"));
-        assert!(script.contains("--tools Bash,Read,Write,Edit,NotebookEdit,WebFetch"));
+        assert!(script.contains("--tools Bash,Read,Write,Edit,NotebookEdit,WebFetch,WebSearch"));
         assert!(script.contains("--model claude-sonnet-4-5"));
         assert!(script.contains("--resume 2f25aa59-31f0-40d5-82a5-b2e43226ab98"));
         assert!(script.contains(&format!("> {SETTINGS_PATH}.$$")));
         let settings: serde_json::Value = serde_json::from_str(&settings_json()).expect("json");
-        assert_eq!(settings["permissions"]["ask"].as_array().map(Vec::len), Some(6));
+        assert_eq!(settings["permissions"]["ask"].as_array().map(Vec::len), Some(7));
     }
 
     #[test]

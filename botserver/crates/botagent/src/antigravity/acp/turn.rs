@@ -7,6 +7,8 @@
 //! - `session/request_permission` → [`AcpGate::decide`] per action, answered
 //!   with the agent's own "once" option (or `cancelled`);
 //! - a finished tool call that was allowed → [`AcpGate::finished`];
+//! - a web search or fetch that completes without having asked →
+//!   [`AcpGate::noted`];
 //! - a tool call that changes or runs something and completes without
 //!   having asked ends the turn as unsafe.
 //!
@@ -42,6 +44,8 @@ pub trait AcpGate: Send + Sync {
 
     fn decide(&self, action: &AcpAction) -> impl Future<Output = Verdict<Self::Ticket>> + Send;
     fn finished(&self, ticket: Self::Ticket, outcome: ActionOutcome) -> impl Future<Output = ()> + Send;
+    /// A web search or page read that finished without asking, shown as a step.
+    fn noted(&self, action: &AcpAction, ok: bool) -> impl Future<Output = ()> + Send;
     /// A piece of the answer, in order.
     fn text(&self, chunk: &str) -> impl Future<Output = ()> + Send;
     /// A piece of the agent's reasoning, in order.
@@ -247,6 +251,15 @@ async fn permission<H: AcpGate>(
     Ok(())
 }
 
+/// The web searches and reads of a tool call that did not ask, from what
+/// the updates said about it; `None` when it is not one.
+fn web_actions<T>(turn: &Turn<T>, id: &str, call: &Value) -> Option<Vec<AcpAction>> {
+    let known = turn.calls.get(id).map_or(call, |(_, known)| known);
+    let web: Vec<AcpAction> =
+        proto::actions_of(&json!({ "toolCall": known })).into_iter().filter(proto::is_web).collect();
+    (!web.is_empty()).then_some(web)
+}
+
 fn written_paths(action: &AcpAction) -> Vec<String> {
     match action {
         AcpAction::Write { path } => vec![path.clone()],
@@ -277,16 +290,21 @@ async fn updated<H: AcpGate>(
                 for (ticket, files) in tickets {
                     handler.finished(ticket, proto::outcome_of(&call, &status, files)).await;
                 }
-            } else if status == "completed"
-                && !turn.asked.contains(&id)
-                && kind
-                    .as_deref()
-                    .or_else(|| turn.calls.get(&id).and_then(|(_, known)| known.get("kind")).and_then(Value::as_str))
-                    .is_some_and(proto::acts)
-            {
-                tracing::error!("antigravity bridge: an action finished without asking; turn stopped");
-                cancel(client, turn);
-                return Err(AcpError::Unasked);
+            } else if !turn.asked.contains(&id) {
+                if let Some(web) = web_actions(turn, &id, &call) {
+                    for action in web {
+                        handler.noted(&action, status == "completed").await;
+                    }
+                } else if status == "completed"
+                    && kind
+                        .as_deref()
+                        .or_else(|| turn.calls.get(&id).and_then(|(_, known)| known.get("kind")).and_then(Value::as_str))
+                        .is_some_and(proto::acts)
+                {
+                    tracing::error!("antigravity bridge: an action finished without asking; turn stopped");
+                    cancel(client, turn);
+                    return Err(AcpError::Unasked);
+                }
             }
         }
         _ => {}

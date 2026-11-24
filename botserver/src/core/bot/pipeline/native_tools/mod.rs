@@ -6,6 +6,7 @@
 //!
 //! Split by tool family: `vm_exec` (program execution and its repair/render
 //! helpers), `terminal` (live PTY runs), `web_fetch` (one public page),
+//! `web_search` (a web search), `web_steps` (every search and read as a step),
 //! `web_prefetch` (named pages read ahead for engines without tools) and
 //! this module (capture buffer, chat send/persist and the dispatch table).
 
@@ -33,6 +34,9 @@ mod vm_exec;
 mod vm_trace;
 pub(super) mod web_fetch;
 pub(super) mod web_prefetch;
+#[cfg(any(feature = "research", feature = "web-search"))]
+pub(super) mod web_search;
+pub mod web_steps;
 mod web_text;
 
 /// The last message(s) a native tool sent to chat, keyed by session. The LLM
@@ -65,6 +69,11 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
     }
     if name == web_fetch::TOOL {
         web_fetch::run(identity, args).await;
+        return true;
+    }
+    #[cfg(any(feature = "research", feature = "web-search"))]
+    if name == web_search::TOOL {
+        web_search::run(identity, args).await;
         return true;
     }
     if name == "terminal_run" || name == "vm_exec" {

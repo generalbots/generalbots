@@ -44,6 +44,9 @@ pub struct ClaudeRequest {
     pub stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thinking: Option<ClaudeThinking>,
+    /// Server tools only (Anthropic's web search, `web_search`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,7 +184,7 @@ mod tests {
             {"role": "user", "content": "o que é isto?"}
         ]);
         let (system, msgs) = client.build_messages_from_value("", &messages);
-        let request = ClaudeRequest { model: "m".into(), max_tokens: 10, messages: msgs, system, stream: None, thinking: None };
+        let request = ClaudeRequest { model: "m".into(), max_tokens: 10, messages: msgs, system, stream: None, thinking: None, tools: None };
         let body: Value = serde_json::from_str(&ClaudeClient::body_with_media(&request, &messages).unwrap()).unwrap();
         let blocks = body["messages"][0]["content"].as_array().unwrap();
         assert_eq!(blocks[0]["type"], "image");
@@ -203,3 +206,4 @@ mod tests {
 mod azure;
 mod stream_single_attempt;
 mod generate;
+pub mod web_search;

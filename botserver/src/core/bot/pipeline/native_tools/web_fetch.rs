@@ -1,10 +1,11 @@
 //! `web_fetch`: reads one public web page for the model, on any engine.
 //!
 //! Reading a page is network traffic leaving the person's machine, so it is
-//! never the server's own idea. The tool is offered for a turn only when the
-//! person's message names a web address (the message is the decision, and the
-//! model may read pages of those sites) or when the composer's Web switch is
-//! on (any public page). Every read is a visible step naming the site. The
+//! never the server's own idea. In this edition it is offered on every turn
+//! for any public page (owner's decision: the web is always on). Elsewhere it
+//! is offered when the person's message names a web address (the model may
+//! read pages of those sites) or when the composer's Web switch is on (any
+//! public page). Every read is a visible step naming the site. The
 //! fetch goes through the shared SSRF guard: public `http(s)` only, every
 //! redirect re-checked, size and time bounded.
 
@@ -16,11 +17,9 @@ use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 use uuid::Uuid;
 
 use super::super::types::SessionIdentity;
-use super::super::workspace_progress::WorkspaceProgress;
 use super::web_text::{addresses_in, plain_text, readable_text, site_of};
 
 pub(crate) const TOOL: &str = "web_fetch";
-pub(super) const PHASE: &str = "web";
 /// Pages one answer may read.
 pub(super) const PAGES_PER_TURN: usize = 5;
 const FETCH_TIMEOUT: Duration = Duration::from_secs(15);
@@ -64,16 +63,17 @@ pub(crate) fn offer(session_id: Uuid, user_text: &str, web_switch_on: bool) -> O
     Some(prompt_block(&addresses, web_switch_on))
 }
 
-/// [`offer`] for this turn's request: the Web switch is `web_search` in the
-/// message; the block, when offered, joins the prompt as a system message.
+/// [`offer`] for this turn's request: always open in this edition, otherwise
+/// the Web switch (`web_search` in the message); the block, when offered,
+/// joins the prompt as a system message.
 pub(crate) fn apply(
     parsed: &serde_json::Value,
     session_id: Uuid,
     user_text: &str,
     messages: &mut Vec<serde_json::Value>,
 ) {
-    let web_switch_on =
-        parsed.get("web_search").and_then(serde_json::Value::as_bool) == Some(true);
+    let web_switch_on = super::web_steps::ALWAYS_ON
+        || parsed.get("web_search").and_then(serde_json::Value::as_bool) == Some(true);
     if let Some(block) = offer(session_id, user_text, web_switch_on) {
         messages.push(serde_json::json!({"role": "system", "content": block}));
     }
@@ -160,13 +160,10 @@ pub(crate) async fn run(identity: &SessionIdentity<'_>, args: &str) {
         return;
     }
     let site = site_of(&address).unwrap_or_default();
-    let progress = WorkspaceProgress::new(identity);
-    if let Some(progress) = progress.as_ref() {
-        progress.start(PHASE, TOOL, "Reading a web page", &site).await;
-    }
+    let step = super::web_steps::WebStep::begin(identity, super::web_steps::FETCH, &address).await;
     let (status, title, result) = read_page(&address, &site).await;
-    if let Some(progress) = progress.as_ref() {
-        progress.finish(PHASE, TOOL, status, &site).await;
+    if let Some(step) = step {
+        step.end(identity.sink, status == "ok", &[]).await;
     }
     super::super::turn_record::note_page(session_id, &site, Some(&title), status == "ok");
     super::tell_model(session_id, &result);

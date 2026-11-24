@@ -21,6 +21,7 @@ use botagent::codex::Verdict;
 use botagent::AgentService;
 
 use crate::core::ai_accounts::{provider_label, ANTIGRAVITY};
+use crate::core::bot::pipeline::native_tools::web_steps::{self, WebStep};
 use crate::core::bot::pipeline::llm::refusal::{coded, AGENT_NOT_LINKED, AGENT_UNSAFE_VERSION};
 use crate::core::bot::pipeline::vm_consent::{
     self, BridgeIdentity, VmAction, VmActionKind, VmAgent, VmDecision, VmDenial, VmOutcome, VmReceipt,
@@ -209,7 +210,29 @@ fn unsafe_refusal(label: &str, version: &str) -> String {
 }
 
 /// The action the card shows for one Antigravity tool call.
-fn vm_action(action: &AcpAction) -> VmAction {
+/// What an allowed action waits with: its card's receipt, or its web step.
+enum Ticket {
+    Card(VmReceipt),
+    Web(Option<WebStep>),
+}
+
+/// A web search or page read as a step: `(step, query or address)`.
+fn web_kind(action: &AcpAction) -> Option<(&'static str, &str)> {
+    match action {
+        AcpAction::Search { query } => Some((web_steps::SEARCH, query.as_str())),
+        AcpAction::Fetch { url } => Some((web_steps::FETCH, url.as_str())),
+        _ => None,
+    }
+}
+
+/// The web actions allowed without a card: searches, and in this edition
+/// page reads too.
+fn web_step(action: &AcpAction) -> Option<(&'static str, &str)> {
+    web_kind(action).filter(|(tool, _)| *tool == web_steps::SEARCH || web_steps::ALWAYS_ON)
+}
+
+/// The card's action, or `None` for a web search (it has no card).
+fn vm_action(action: &AcpAction) -> Option<VmAction> {
     let command = |command: String, cwd: Option<String>| VmActionKind::Command {
         command,
         cwd,
@@ -227,8 +250,9 @@ fn vm_action(action: &AcpAction) -> VmAction {
         AcpAction::Delete { path } => VmActionKind::FileDelete { path: path.clone() },
         AcpAction::Fetch { url } => VmActionKind::OpenUrl { url: url.clone() },
         AcpAction::Other { title } => command(title.clone(), Some(botagent::antigravity::ANTIGRAVITY_HOME.to_string())),
+        AcpAction::Search { .. } => return None,
     };
-    VmAction { agent: VmAgent::Antigravity, kind }
+    Some(VmAction { agent: VmAgent::Antigravity, kind })
 }
 
 /// The gate side of one turn.
@@ -241,19 +265,39 @@ struct Gate<'a> {
 }
 
 impl AcpGate for Gate<'_> {
-    type Ticket = VmReceipt;
+    type Ticket = Ticket;
 
-    async fn decide(&self, action: &AcpAction) -> Verdict<VmReceipt> {
-        match vm_consent::ask(&self.turn.identity(), &vm_action(action)).await {
-            VmDecision::Allowed(ticket) => Verdict::Allow(ticket.receipt()),
+    async fn decide(&self, action: &AcpAction) -> Verdict<Ticket> {
+        if let Some((tool, text)) = web_step(action) {
+            botlog::safe_info!("antigravity bridge: {tool} allowed without a card {}", web_steps::query_fingerprint(text));
+            return Verdict::Allow(Ticket::Web(WebStep::begin(&self.turn.identity(), tool, text).await));
+        }
+        let Some(vm) = vm_action(action) else {
+            return Verdict::Decline;
+        };
+        match vm_consent::ask(&self.turn.identity(), &vm).await {
+            VmDecision::Allowed(ticket) => Verdict::Allow(Ticket::Card(ticket.receipt())),
             VmDecision::Denied(VmDenial::ByPerson) => Verdict::Decline,
             VmDecision::Denied(_) => Verdict::Cancel,
         }
     }
 
-    async fn finished(&self, receipt: VmReceipt, outcome: ActionOutcome) {
-        let outcome = VmOutcome { ok: outcome.ok, exit_code: outcome.exit_code, output: outcome.output, files: outcome.files, reason: None };
-        vm_consent::report(&self.turn.identity(), &receipt, &outcome).await;
+    async fn finished(&self, ticket: Ticket, outcome: ActionOutcome) {
+        match ticket {
+            Ticket::Card(receipt) => {
+                let outcome = VmOutcome { ok: outcome.ok, exit_code: outcome.exit_code, output: outcome.output, files: outcome.files, reason: None };
+                vm_consent::report(&self.turn.identity(), &receipt, &outcome).await;
+            }
+            Ticket::Web(Some(step)) => step.end(self.turn.identity().sink, outcome.ok, &[]).await,
+            Ticket::Web(None) => {}
+        }
+    }
+
+    async fn noted(&self, action: &AcpAction, ok: bool) {
+        if let Some((tool, text)) = web_kind(action) {
+            botlog::safe_info!("antigravity bridge: {tool} ran without asking ok={ok} {}", web_steps::query_fingerprint(text));
+            web_steps::noted(&self.turn.identity(), tool, text, ok).await;
+        }
     }
 
     async fn text(&self, chunk: &str) {
@@ -300,6 +344,21 @@ impl botlib::traits::LLMProvider for AntigravityBridgeProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn vm_action(action: &AcpAction) -> VmAction {
+        super::vm_action(action).expect("this action has a card")
+    }
+
+    #[test]
+    fn a_web_search_is_a_step_without_a_card() {
+        let search = AcpAction::Search { query: "rust 2026".into() };
+        assert_eq!(web_step(&search), Some((web_steps::SEARCH, "rust 2026")));
+        assert!(super::vm_action(&search).is_none());
+        let fetch = AcpAction::Fetch { url: "https://example.org/".into() };
+        assert_eq!(web_step(&fetch).is_some(), web_steps::ALWAYS_ON);
+        assert_eq!(web_kind(&fetch), Some((web_steps::FETCH, "https://example.org/")));
+        assert!(web_step(&AcpAction::Command { command: "curl x".into(), cwd: None }).is_none());
+    }
 
     #[test]
     fn each_tool_call_shows_its_own_card_for_antigravity() {

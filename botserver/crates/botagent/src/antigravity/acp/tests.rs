@@ -90,6 +90,24 @@ fn permission_requests_become_the_actions_the_card_shows() {
 }
 
 #[test]
+fn a_search_with_only_a_query_is_a_web_search_and_one_in_a_folder_a_read() {
+    let web = json!({"toolCall":{"kind":"search","rawInput":{"query":"rust 2026"}}});
+    assert_eq!(actions_of(&web), vec![AcpAction::Search { query: "rust 2026".into() }]);
+    assert!(actions_of(&web).iter().all(proto::is_web));
+    let grep = json!({"toolCall":{"kind":"search","rawInput":{"Query":"fn main","SearchPath":"/home/antigravity"}}});
+    assert_eq!(actions_of(&grep), vec![AcpAction::Read { path: "/home/antigravity".into() }]);
+    let blank = json!({"toolCall":{"kind":"search","title":"Look around"}});
+    assert_eq!(actions_of(&blank), vec![AcpAction::Other { title: "Look around".into() }]);
+}
+
+#[tokio::test]
+async fn a_web_search_that_did_not_ask_is_noted_and_the_turn_goes_on() {
+    let gate = Script::default();
+    assert_eq!(prompt("search", &gate).await, Ok("achei".to_string()));
+    assert_eq!(gate.log(), vec!["noted Search { query: \"rust 2026\" } true".to_string()]);
+}
+
+#[test]
 fn the_answer_picks_the_agents_once_option_never_a_lasting_one() {
     let params = json!({"options":[
         {"optionId":"aa","kind":"allow_always"},{"optionId":"a1","kind":"allow_once"},
@@ -205,6 +223,10 @@ impl AcpGate for Script {
 
     async fn finished(&self, ticket: String, outcome: ActionOutcome) {
         self.log.lock().expect("log").push(format!("done {ticket} {} {}", outcome.ok, outcome.output));
+    }
+
+    async fn noted(&self, action: &AcpAction, ok: bool) {
+        self.log.lock().expect("log").push(format!("noted {action:?} {ok}"));
     }
 
     async fn text(&self, _chunk: &str) {}

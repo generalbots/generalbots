@@ -14,8 +14,7 @@ use botcore::shared::state::AppState;
 use uuid::Uuid;
 
 use super::super::types::SessionIdentity;
-use super::super::workspace_progress::WorkspaceProgress;
-use super::web_fetch::{read_page, PAGES_PER_TURN, PHASE, TOOL};
+use super::web_fetch::{read_page, PAGES_PER_TURN};
 use super::web_text::{addresses_in, site_of};
 
 /// Whether this turn's engine can call the native tools (`web_fetch`).
@@ -58,8 +57,9 @@ fn page_note(site: &str, read: bool, text: &str) -> String {
     format!("{head}\n{text}")
 }
 
-/// This turn's web reading: `web_fetch` for an engine that calls tools, the
-/// named pages read ahead for one that does not.
+/// This turn's web reading: `web_search` and `web_fetch` for an engine that
+/// calls tools, the named pages read ahead for one that does not (the
+/// subscription agents search and read with their own tools).
 pub(crate) async fn apply(
     identity: &SessionIdentity<'_>,
     parsed: &serde_json::Value,
@@ -69,6 +69,8 @@ pub(crate) async fn apply(
 ) {
     if engine_calls_tools(identity.state, identity.bot_uuid, model_preference) {
         super::web_fetch::apply(parsed, identity.session_id, user_text, messages);
+        #[cfg(any(feature = "research", feature = "web-search"))]
+        super::web_search::apply(parsed, identity.session_id, messages);
     } else {
         read_named_pages(identity, user_text, messages).await;
     }
@@ -84,15 +86,12 @@ async fn read_named_pages(
     if addresses.is_empty() {
         return;
     }
-    let progress = WorkspaceProgress::new(identity);
     for address in addresses {
         let site = site_of(&address).unwrap_or_default();
-        if let Some(progress) = progress.as_ref() {
-            progress.start(PHASE, TOOL, "Reading a web page", &site).await;
-        }
+        let step = super::web_steps::WebStep::begin(identity, super::web_steps::FETCH, &address).await;
         let (status, title, text) = read_page(&address, &site).await;
-        if let Some(progress) = progress.as_ref() {
-            progress.finish(PHASE, TOOL, status, &site).await;
+        if let Some(step) = step {
+            step.end(identity.sink, status == "ok", &[]).await;
         }
         let read = status == "ok";
         super::super::turn_record::note_page(identity.session_id, &site, Some(&title), read);
