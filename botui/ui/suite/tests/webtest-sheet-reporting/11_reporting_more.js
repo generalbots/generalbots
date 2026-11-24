@@ -105,7 +105,7 @@ test("pageCells caps at 80 rendered cells and wraps page indices", function () {
   deep(g.preview.pageCells(99, plan, ""), g.preview.pageCells(1, plan, ""));
 });
 
-test("preview render builds one article per page and a single page break", function () {
+test("[UAT:SHEET-10] preview render builds one article per page and a single page break", function () {
   var plan = g.print.paginate("A1:H60", g.core.defaultSetup());
   var container = g.dom.makeNode("div");
   var ctx = {
@@ -205,7 +205,7 @@ test("sparklinePoints is deterministic, bounded and has eight x positions", func
   equal(g.dashboard.sparklinePoints("").split(" ").length, 8);
 });
 
-test("widgetNode emits grid placement and type-specific content", function () {
+test("[UAT:DB-10] widgetNode emits grid placement and type-specific content", function () {
   var chart = g.dashboard.widgetNode({
     type: "chart", title: "<w>", source: "<s>", col: 2, row: 3, w: 4, h: 5,
   }, null);
@@ -231,7 +231,7 @@ test("schedule exposes the shipped formats and frequencies", function () {
   deep(g.schedule.FREQUENCIES, ["daily", "weekly", "monthly"]);
 });
 
-test("validatePolicy accepts a complete local policy", function () {
+test("[UAT:CODE-04] validatePolicy accepts a complete local policy", function () {
   var result = g.schedule.validatePolicy({
     name: "<report>", sourceRange: "A1:H60", format: "PDF", frequency: "daily",
     recipientList: "a@example.com, b@example.com",

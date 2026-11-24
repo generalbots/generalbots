@@ -119,7 +119,7 @@ test("RUNTIME ops: delete/undo/redo is invertible through the reducer", function
   equal(NS.getDoc().blocks.length, 1, "redo re-deletes");
 });
 
-test("RUNTIME ops: format/unformat, move and table cells invert", function () {
+test("[UAT:DOC-02] RUNTIME ops: format/unformat, move and table cells invert", function () {
   var NS = loadModel().NS;
   var root = NS.getDoc().blocks[0];
   put(NS, "format", { spanIds: [root.spans[0].id], mark: { type: "bold" } });

@@ -42,7 +42,7 @@ h.staticTest("XLSX export preserves unsupported parts by merging [xlsx:tables]",
     "merge_into_original", "passthrough merge present");
 });
 
-h.staticTest("DOCX export preserves the original package [docx:footnotes]", function () {
+h.staticTest("[UAT:DOC-01] DOCX export preserves the original package [docx:footnotes]", function () {
   h.sourceHas("botserver/crates/botdocs/src/ooxml.rs",
     "load_docx_preserving", "preserving loader present");
 });
