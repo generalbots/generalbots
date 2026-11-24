@@ -1033,6 +1033,15 @@ jobs:
           node botui/ui/suite/tests/webtest-office-search.js
           node botui/ui/suite/tests/webtest-office-translate.js
 
+      # #2531 — large-document degradation harnesses were only run ad-hoc.
+      # Both are offline Node suites over the shipped suite modules, so a
+      # regression in the docs/office GAP matrix fails the PR.
+      - name: "Guard: large-document degradation suites (#2531)"
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-docs-large.js
+          node botui/ui/suite/tests/webtest-office-large.js
+
       # #2470 — data-protection safety guards (pre-restore snapshot + path
       # validation) must not regress silently. Static source audit + bash -n;
       # no destructive commands run in CI.
