@@ -1,0 +1,5 @@
+# Enable the data-protection units at image build (mkosi runs preset-all).
+# gb-export-data.service / gb-reset-pc.service are intentionally NOT enabled:
+# they are one-shots started on demand by Settings, never at boot.
+enable gb-data-provision.service
+enable gb-snapshot.timer

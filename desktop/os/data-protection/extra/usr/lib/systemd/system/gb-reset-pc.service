@@ -1,0 +1,15 @@
+[Unit]
+Description=General Bots OS - Reset this PC (wipe user data, keep rescue, #2470)
+After=gb-data-provision.service
+ConditionPathExists=/usr/local/libexec/gb-data/reset-pc.sh
+
+[Service]
+Type=oneshot
+# SAFETY: the script refuses to run unless the exact confirmation token is
+# passed as an argument by the Settings UI (or an operator). No default wipe.
+# Example: systemctl start gb-reset-pc.service with a drop-in that supplies
+#   ExecStart=/bin/bash /usr/local/libexec/gb-data/reset-pc.sh --confirm RESET-THIS-PC
+ExecStart=/bin/bash /usr/local/libexec/gb-data/reset-pc.sh --help
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal
