@@ -26,6 +26,8 @@ function count(text, regex) {
   return matches ? matches.length : 0;
 }
 
+// Re-locked for #2499: kb_search.rs adds one Rust file and GET
+// /api/docs/kb/search adds one parsed registration. No route removed.
 // Re-locked for malware/tests.rs (extracted from malware.rs to keep it under
 // 450 lines) — one extra Rust file, no route changes.
 // Re-locked for the upstream security merge: botsecurity-protection adds
@@ -48,8 +50,8 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4678, "shipped router .rs file count");
-  equal(routeCalls, 2449, "raw .route( call count");
+  equal(files.length, 4679, "shipped router .rs file count");
+  equal(routeCalls, 2450, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");
   observe("Rust files / .route( calls / .nest( calls / router files",
@@ -64,8 +66,8 @@ test("[BASELINE-OBSERVE] 2,736 parsed registrations (2,705 unique method+path)",
   });
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
-  equal(registrations.length, 2793, "parsed registration count");
-  equal(Object.keys(unique).length, 2760, "unique method+path count");
+  equal(registrations.length, 2794, "parsed registration count");
+  equal(Object.keys(unique).length, 2761, "unique method+path count");
   var sources = {};
   registrations.forEach(function (r) { sources[r.source] = true; });
   observe("parsed registrations / unique method+path / owning files",
