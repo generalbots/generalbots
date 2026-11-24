@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 905
+discarded_result = 886
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -27,9 +27,6 @@ discarded_result = ".ok(); statements and let _ = ...; bindings"
 
 [files."botserver/crates/botanalytics/src/handlers_charts.rs"]
 discarded_result = 18
-
-[files."botserver/crates/botcoresecrets/src/tenant.rs"]
-discarded_result = 12
 
 [files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
 discarded_result = 12
@@ -173,4 +170,7 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botcore/src/shared/analytics/endpoints.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcorepkg/src/facade.rs"]
 discarded_result = 4

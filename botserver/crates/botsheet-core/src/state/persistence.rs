@@ -244,9 +244,15 @@ pub async fn delete_sheet_from_drive(
     let meta_path = format!("{}/{}.meta.json", get_user_sheets_path(user_id), sheet_id);
     let xlsx_path = format!("{}/{}.xlsx", get_user_sheets_path(user_id), sheet_id);
 
-    let _ = drive.delete_object("gbo", &json_path).await;
-    let _ = drive.delete_object("gbo", &meta_path).await;
-    let _ = drive.delete_object("gbo", &xlsx_path).await;
+    if let Err(e) = drive.delete_object("gbo", &json_path).await {
+        log::warn!("delete sheet json '{json_path}' failed: {e}");
+    }
+    if let Err(e) = drive.delete_object("gbo", &meta_path).await {
+        log::warn!("delete sheet meta '{meta_path}' failed: {e}");
+    }
+    if let Err(e) = drive.delete_object("gbo", &xlsx_path).await {
+        log::warn!("delete sheet xlsx '{xlsx_path}' failed: {e}");
+    }
 
     Ok(())
 }

@@ -46,7 +46,9 @@ pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("bot config Vault read: could not deliver result to caller: {e}");
+        }
     });
     rx.recv().ok().flatten()
 }
