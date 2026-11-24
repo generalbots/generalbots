@@ -442,5 +442,6 @@ jobs:
             dist/generalbots-os.iso
             dist/SHA256SUMS-os
             dist/vm-smoke.log
+            dist/generalbots-os.manifest.txt
           if-no-files-found: error
           retention-days: 7
