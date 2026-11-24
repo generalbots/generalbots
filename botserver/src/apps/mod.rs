@@ -5,6 +5,7 @@
 
 pub mod commands;
 pub mod integration_catalog;
+pub mod office_platform;
 pub mod registry;
 
 #[cfg(feature = "uifragments")]
