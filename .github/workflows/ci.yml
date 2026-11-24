@@ -980,6 +980,16 @@ jobs:
           node botui/ui/suite/tests/webtest-route-contract.js
           node botui/ui/suite/tests/webtest-ui-mobile-office.js
 
+      # #2457 — Office fidelity gate. The harness scores the docx/pptx/xlsx
+      # corpus and prints a per-app fidelity matrix on every PR. It exits
+      # non-zero on any FAIL (a regression in a previously passing corpus file)
+      # but tolerates deliberately documented DEGRADED results. No server,
+      # browser or cargo: the shipped export/preview IIFEs run in a Node vm.
+      - name: "Guard: Office fidelity score and corpus regression (#2457)"
+        run: |
+          set -euo pipefail
+          node botui/ui/suite/tests/webtest-office-fidelity.js
+
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
       # is a documented manual/nightly run:
