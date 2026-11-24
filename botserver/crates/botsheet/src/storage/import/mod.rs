@@ -1,7 +1,9 @@
 mod csv;
+mod odf;
 mod xlsx;
 
 pub use csv::parse_csv_to_worksheets;
+pub use odf::{is_odf_spreadsheet, parse_ods_to_worksheets};
 pub use xlsx::parse_xlsx_to_worksheets;
 
 use crate::types::Spreadsheet;
@@ -120,7 +122,7 @@ pub fn import_spreadsheet_bytes(
         "xlsx" | "xlsm" => parse_xlsx_to_worksheets(bytes, "xlsx")?,
         "xls" => super::import_binary::parse_binary_to_worksheets(bytes, "xls")?,
         "xlsb" => super::import_binary::parse_binary_to_worksheets(bytes, "xlsb")?,
-        "ods" => super::import_ods::parse_ods_to_worksheets(bytes)?,
+        "ods" => odf::parse_ods_to_worksheets(bytes)?,
         "csv" => parse_csv_to_worksheets(bytes, b',', "Sheet1")?,
         "tsv" => parse_csv_to_worksheets(bytes, b'\t', "Sheet1")?,
         _ => {
@@ -129,7 +131,7 @@ pub fn import_spreadsheet_bytes(
             } else if ext == "tsv" || ext == "txt" {
                 parse_csv_to_worksheets(bytes, b'\t', "Sheet1")?
             } else if ext == "ods" {
-                super::import_ods::parse_ods_to_worksheets(bytes)?
+                odf::parse_ods_to_worksheets(bytes)?
             } else {
                 return Err(format!("Unsupported format: {detected}"));
             }
