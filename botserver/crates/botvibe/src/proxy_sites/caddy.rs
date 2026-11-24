@@ -287,14 +287,18 @@ pub(crate) fn stage_payload(
         120,
     )
     .map_err(|e| format!("incus file push: {e}"))?;
-    let _ = std::fs::remove_file(&tmp);
+    if let Err(e) = std::fs::remove_file(&tmp) {
+        log::warn!("Vibe caddy deploy: remove local temp config failed: {e}");
+    }
     if pushed.exit_code != Some(0) {
         return Err(format!("incus file push failed: {}", pushed.stderr.trim()));
     }
 
     let new_dir = format!("{site_dir}.new");
     let old_dir = format!("{site_dir}.old");
-    let _ = must_run("cleanup staging", &["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30);
+    if let Err(e) = must_run("cleanup staging", &["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30) {
+        log::warn!("Vibe caddy deploy: clean staging dir failed: {e}");
+    }
     must_run("mkdir staging", &["mkdir".to_string(), "-p".to_string(), new_dir.clone()], 20)?;
     must_run(
         "tar extract",
@@ -309,7 +313,9 @@ pub(crate) fn stage_payload(
         ],
         60,
     )?;
-    let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_tmp.clone()], 20);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_tmp.clone()], 20) {
+        log::warn!("Vibe caddy deploy: remove staged archive failed: {e}");
+    }
     // Ownership marker travels with the payload.
     must_run(
         "write marker",
@@ -329,7 +335,9 @@ pub(crate) fn stage_payload(
     )?;
     if count.stdout.lines().filter(|l| !l.trim().is_empty()).count() < 2 {
         // less than marker + at least one payload file
-        let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30);
+        if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30) {
+            log::warn!("Vibe caddy deploy: remove empty staging dir failed: {e}");
+        }
         return Err("payload extraction produced no files in proxy".to_string());
     }
 
@@ -338,17 +346,23 @@ pub(crate) fn stage_payload(
     rotate_release(site_dir)?;
 
     // Atomic-ish swap: current → .old, .new → current, drop .old.
-    let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30);
-    let _ = proxy_exec(
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30) {
+        log::warn!("Vibe caddy deploy: remove stale old dir failed: {e}");
+    }
+    if let Err(e) = proxy_exec(
         &["mv".to_string(), site_dir.to_string(), old_dir.clone()],
         20,
-    );
+    ) {
+        log::warn!("Vibe caddy deploy: move current payload to old dir failed: {e}");
+    }
     must_run(
         "promote staging",
         &["mv".to_string(), new_dir.clone(), site_dir.to_string()],
         20,
     )?;
-    let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir], 30);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir], 30) {
+        log::warn!("Vibe caddy deploy: remove retired old dir failed: {e}");
+    }
     Ok(())
 }
 
@@ -361,24 +375,32 @@ pub(crate) fn rotate_release(site_dir: &str) -> Result<(), String> {
     }
     // Drop the oldest slot to make room.
     let oldest = format!("{site_dir}.prev-{RELEASE_RETENTION}");
-    let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), oldest], 60);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), oldest], 60) {
+        log::warn!("Vibe caddy deploy: drop oldest release failed: {e}");
+    }
     for n in (1..RELEASE_RETENTION).rev() {
         let from = format!("{site_dir}.prev-{n}");
         let to = format!("{site_dir}.prev-{}", n + 1);
         let has = proxy_exec(&["test".to_string(), "-d".to_string(), from.clone()], 15)?;
         if has.exit_code == Some(0) {
-            let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), to.clone()], 60);
-            let _ = proxy_exec(&["mv".to_string(), from, to], 20);
+            if let Err(e) = proxy_exec(&["rm".to_string(), "-rf".to_string(), to.clone()], 60) {
+                log::warn!("Vibe caddy deploy: remove release slot failed: {e}");
+            }
+            if let Err(e) = proxy_exec(&["mv".to_string(), from, to], 20) {
+                log::warn!("Vibe caddy deploy: rotate release slot failed: {e}");
+            }
         }
     }
-    let _ = proxy_exec(
+    if let Err(e) = proxy_exec(
         &[
             "mv".to_string(),
             site_dir.to_string(),
             format!("{site_dir}.prev-1"),
         ],
         20,
-    );
+    ) {
+        log::warn!("Vibe caddy deploy: rotate live payload failed: {e}");
+    }
     Ok(())
 }
 

@@ -89,7 +89,9 @@ async fn bind_domain(
     }
     match domains.bind(project_id, &req).await {
         Ok(bind) => {
-            let _ = metering.add_for_project(project_id, &bind.env, crate::metering::MeterKind::DomainBindings, 1.0);
+            if let Err(e) = metering.add_for_project(project_id, &bind.env, crate::metering::MeterKind::DomainBindings, 1.0) {
+                log::warn!("Vibe domains_api: metering domain binding for {project_id} failed: {e}");
+            }
             ok(bind)
         }
         Err(e) => err(e),

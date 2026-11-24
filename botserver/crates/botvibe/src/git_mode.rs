@@ -293,7 +293,7 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
     let auth_env = git_auth_env(&alm_token);
     // The external remote is replaced on purpose: after the import the
     // internal repository is the source of truth.
-    let _ = run(
+    if let Err(e) = run(
         "git",
         &[
             "remote".to_string(),
@@ -302,7 +302,9 @@ async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), Strin
         ],
         cwd,
         15,
-    );
+    ) {
+        log::warn!("Vibe git_mode: remove stale origin remote failed: {e}");
+    }
     git(
         cwd,
         &["remote", "add", "origin", &internal_url],

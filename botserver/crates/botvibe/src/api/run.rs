@@ -167,7 +167,7 @@ pub(crate) fn resolve_project(
                             .enable_all()
                             .build();
                         if let Ok(rt) = rt {
-                            let _ = rt.block_on(
+                            if let Err(e) = rt.block_on(
                                 crate::scaffold::scaffold_project_workspace(
                                     &scaffold_key,
                                     &scaffold_name,
@@ -175,7 +175,9 @@ pub(crate) fn resolve_project(
                                     scaffold_framework.as_deref(),
                                     Some(&scaffold_intent),
                                 ),
-                            );
+                            ) {
+                                log::warn!("Vibe run: auto-scaffold for '{scaffold_name}' failed: {e}");
+                            }
                         }
                     });
                     // #1271 — an auto-created project must grant the caller

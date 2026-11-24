@@ -76,7 +76,9 @@ fn read_vault_llm() -> Option<std::collections::HashMap<String, String>> {
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("Vibe LLM vault reader: result channel closed before send: {e}");
+        }
     });
     rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten()
 }

@@ -67,14 +67,18 @@ pub(crate) fn ensure_python_service_for(
         // world-readable /tmp file. The private 0700 dir + 0600 O_EXCL file are
         // owned by `env_tmp`; its Drop removes them on every exit path.
         let env_tmp = SecureEnvFile::create(&env_content)?;
-        let _ = proxy_exec(
+        if let Err(e) = proxy_exec(
             &["mkdir".to_string(), "-p".to_string(), "/etc/gb-vibe".to_string()],
             15,
-        );
-        let _ = proxy_exec(
+        ) {
+            log::warn!("Vibe python service: create /etc/gb-vibe failed: {e}");
+        }
+        if let Err(e) = proxy_exec(
             &["rm".to_string(), "-f".to_string(), env_file.to_string()],
             15,
-        );
+        ) {
+            log::warn!("Vibe python service: remove stale env file failed: {e}");
+        }
         let pushed_env = crate::harness::cmd::run(
             "incus",
             &[
@@ -101,10 +105,12 @@ pub(crate) fn ensure_python_service_for(
     // Pre-delete the unit: `incus file push` cannot overwrite a file owned
     // by another uid (EACCES) — seen when a previous botserver ran as a
     // different user.
-    let _ = proxy_exec(
+    if let Err(e) = proxy_exec(
         &["rm".to_string(), "-f".to_string(), format!("/etc/systemd/system/gb-vibe-{unit_name}.service")],
         15,
-    );
+    ) {
+        log::warn!("Vibe python service: pre-delete systemd unit failed: {e}");
+    }
     let pushed = crate::harness::cmd::run(
         "incus",
         &[
@@ -142,7 +148,9 @@ pub(crate) fn probe_python_service(port: u16) -> Result<(), String> {
     let tmp = std::env::temp_dir().join(format!("gb-probe-{}.py", std::process::id()));
     std::fs::write(&tmp, script).map_err(|e| format!("write probe: {e}"))?;
     let proxy_path = "/tmp/gb-vibe-probe.py";
-    let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_path.to_string()], 15);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_path.to_string()], 15) {
+        log::warn!("Vibe proxy probe: remove stale script failed: {e}");
+    }
     let pushed = crate::harness::cmd::run(
         "incus",
         &[
@@ -154,7 +162,9 @@ pub(crate) fn probe_python_service(port: u16) -> Result<(), String> {
         Path::new("."),
         30,
     );
-    let _ = std::fs::remove_file(&tmp);
+    if let Err(e) = std::fs::remove_file(&tmp) {
+        log::warn!("Vibe proxy probe: remove local temp script failed: {e}");
+    }
     if let Ok(p) = pushed {
         if p.exit_code != Some(0) {
             return Err(format!("probe push failed: {}", p.stderr.trim()));
@@ -187,7 +197,9 @@ pub(crate) fn verify_route_serving(site_host: &str) -> Result<(), String> {
     let tmp = std::env::temp_dir().join(format!("gb-verify-{}.py", std::process::id()));
     std::fs::write(&tmp, script).map_err(|e| format!("write verify probe: {e}"))?;
     let proxy_path = "/tmp/gb-vibe-verify.py";
-    let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_path.to_string()], 15);
+    if let Err(e) = proxy_exec(&["rm".to_string(), "-f".to_string(), proxy_path.to_string()], 15) {
+        log::warn!("Vibe proxy probe: remove stale script failed: {e}");
+    }
     let pushed = crate::harness::cmd::run(
         "incus",
         &[
@@ -199,7 +211,9 @@ pub(crate) fn verify_route_serving(site_host: &str) -> Result<(), String> {
         Path::new("."),
         30,
     );
-    let _ = std::fs::remove_file(&tmp);
+    if let Err(e) = std::fs::remove_file(&tmp) {
+        log::warn!("Vibe proxy probe: remove local temp script failed: {e}");
+    }
     if let Ok(p) = pushed {
         if p.exit_code != Some(0) {
             return Err(format!("verify probe push failed: {}", p.stderr.trim()));

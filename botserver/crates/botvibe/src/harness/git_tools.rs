@@ -232,12 +232,14 @@ pub fn git_commit_tool() -> ToolHandler {
                             ) {
                                 Ok(reb) if reb.exit_code == Some(0) => {}
                                 Ok(reb) => {
-                                    let _ = run(
+                                    if let Err(e) = run(
                                         "git",
                                         &["rebase".to_string(), "--abort".to_string()],
                                         cwd,
                                         15,
-                                    );
+                                    ) {
+                                        log::warn!("Vibe git harness: rebase --abort failed: {e}");
+                                    }
                                     return err(format!(
                                         "git rebase onto origin/main failed: {}",
                                         reb.stderr.trim()

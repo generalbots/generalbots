@@ -385,7 +385,9 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
                 other => format!("pg_dump spawn: {other}"),
             })?;
         if !dump.status.success() {
-            let _ = std::fs::remove_file(&dump_file);
+            if let Err(e) = std::fs::remove_file(&dump_file) {
+                log::warn!("Vibe db/refresh-dev: remove failed dump file: {e}");
+            }
             return Err(format!("pg_dump failed: {}", String::from_utf8_lossy(&dump.stderr)));
         }
         let restore = SafeCommand::new("psql")
@@ -406,7 +408,9 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
                 other => format!("psql spawn: {other}"),
             })?;
         let stderr = String::from_utf8_lossy(&restore.stderr).to_string();
-        let _ = std::fs::remove_file(&dump_file);
+        if let Err(e) = std::fs::remove_file(&dump_file) {
+            log::warn!("Vibe db/refresh-dev: remove dump file after restore: {e}");
+        }
         if !restore.status.success() {
             return Err(format!("restore into {dev_db} failed: {stderr}"));
         }

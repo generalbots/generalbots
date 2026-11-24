@@ -140,7 +140,9 @@ pub fn build_daily_briefing_blocking(pool: &DbPool) -> String {
         } else {
             "Daily briefing: unavailable.".to_string()
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("Vibe daily briefing: result channel closed before send: {e}");
+        }
     });
     rx.recv_timeout(std::time::Duration::from_secs(45))
         .unwrap_or_else(|_| "Daily briefing: generation timed out.".to_string())

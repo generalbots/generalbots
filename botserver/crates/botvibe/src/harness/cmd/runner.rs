@@ -65,8 +65,12 @@ fn run_prepared(
             break;
         }
         if std::time::Instant::now() > deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            if let Err(e) = child.kill() {
+                log::warn!("Vibe command timeout: kill child failed: {e}");
+            }
+            if let Err(e) = child.wait() {
+                log::warn!("Vibe command timeout: wait on child failed: {e}");
+            }
             timed_out = true;
             break;
         }

@@ -162,12 +162,14 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             project.name
         ));
     }
-    let _ = metering.add_for_project(
+    if let Err(e) = metering.add_for_project(
         project_id,
         &env,
         crate::metering::MeterKind::BuildMinutes,
         1.0,
-    );
+    ) {
+        log::warn!("Vibe publish: metering build minutes for {project_id} failed: {e}");
+    }
     // The Vibe project registry uses the user-facing kinds `apps` and
     // `website`, while the deployment API accepts `app-*` and `site`.
     // Translate at the boundary so a calculator/apps app is deployable.

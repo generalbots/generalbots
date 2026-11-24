@@ -307,7 +307,9 @@ async fn create_backup(
     }
     match routes.backups.create_snapshot(pid, &req.env) {
         Ok(rec) => {
-            let _ = routes.metering.add_for_project(pid, &rec.env, crate::metering::MeterKind::SnapshotCount, 1.0);
+            if let Err(e) = routes.metering.add_for_project(pid, &rec.env, crate::metering::MeterKind::SnapshotCount, 1.0) {
+                log::warn!("Vibe ops_api: metering snapshot count for {pid} failed: {e}");
+            }
             ok(json!({ "backup": rec }))
         }
         Err(e) => err(e),
