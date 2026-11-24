@@ -11,7 +11,14 @@
 //! (the branch/tenant boundary) and the verified `DocUser` namespace both
 //! constrain the read. Nothing here accepts a caller-supplied bucket/owner and
 //! no owner id, author name or other PII is copied into the response.
+//!
+//! #2452 — the read is also gated by the object ACL. The persisted grants in
+//! `resource_permissions` (the same store the collab REST/WS layers use) are
+//! projected into [`Acl`] and checked with [`decide`] before any node is built.
+//! The old `doc.owner_id == user.id()` predicate is subsumed by that decision:
+//! the namespace owner is the ACL owner and therefore still passes.
 
+use crate::access_control::{decide, Action, Acl, Principal, Reason, Role};
 use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
@@ -20,6 +27,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use diesel::prelude::*;
+use diesel::sql_types::Text;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -254,6 +263,109 @@ fn effective_budget(requested: Option<usize>) -> usize {
         .clamp(1, MAX_AST_TOKEN_BUDGET)
 }
 
+/// Resource type of a Docs object in the shared permission store.
+const DOCS_RESOURCE: &str = "docs";
+
+/// One persisted grant. `resource_permissions` is the ACL store shared by the
+/// collab REST and WebSocket layers (#2452).
+#[derive(QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct PermissionRow {
+    #[diesel(sql_type = Text)]
+    grantee_type: String,
+    #[diesel(sql_type = Text)]
+    grantee_id: String,
+    #[diesel(sql_type = Text)]
+    role: String,
+}
+
+/// Persisted role spelling → policy role. Unknown/legacy values fail closed.
+fn policy_role(role: &str) -> Option<Role> {
+    match role.trim().to_ascii_lowercase().as_str() {
+        "viewer" => Some(Role::Viewer),
+        "commenter" => Some(Role::Commenter),
+        "editor" => Some(Role::Editor),
+        "owner" => Some(Role::Owner),
+        _ => None,
+    }
+}
+
+/// Project the object's persisted grants into the pure ACL the policy core
+/// consumes. No grant is invented: when the store is unavailable or empty the
+/// ACL keeps the namespace owner only, which is the pre-#2452 boundary.
+fn acl_from_permissions(state: &DocState, doc_id: &str, owner: &str, org: &str) -> Acl {
+    let mut acl = Acl::new(org, owner);
+    let Ok(mut conn) = state.pool.get() else {
+        log::warn!("docs ast: permission store unavailable for {doc_id}");
+        return acl;
+    };
+    let rows = diesel::sql_query(
+        "SELECT grantee_type, grantee_id, role FROM resource_permissions \
+         WHERE resource_type = $1 AND resource_id = $2",
+    )
+    .bind::<Text, _>(DOCS_RESOURCE)
+    .bind::<Text, _>(doc_id)
+    .load::<PermissionRow>(&mut conn);
+    let rows = match rows {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("docs ast: permission lookup failed for {doc_id}: {e}");
+            return acl;
+        }
+    };
+    for row in rows {
+        let Some(role) = policy_role(&row.role) else {
+            continue;
+        };
+        match row.grantee_type.as_str() {
+            "user" => acl.grant_user(row.grantee_id, role),
+            // Group ids are recorded as written; `DocUser` carries no group
+            // memberships, so a group grant cannot be matched here yet.
+            "group" => acl.grant_group(row.grantee_id, role),
+            _ => {}
+        }
+    }
+    acl
+}
+
+/// Stable, non-sensitive code for a policy denial. The document id, owner,
+/// tenant and raw error text are never put in the response.
+fn reason_code(reason: &Reason) -> &'static str {
+    match reason {
+        Reason::Owner | Reason::UserGrant(_) | Reason::GroupGrant(_, _) | Reason::LinkGrant(_) => {
+            "allowed"
+        }
+        Reason::NoIdentity => "no-identity",
+        Reason::CrossTenant => "cross-tenant",
+        Reason::NoGrant => "no-grant",
+        Reason::NoLink | Reason::LinkTokenMismatch | Reason::LinkExpired => "link-invalid",
+        Reason::OrgOnly => "org-only",
+        Reason::PasswordRequired => "password-required",
+        Reason::GuestsDisabled
+        | Reason::GuestOnlyLink
+        | Reason::GuestEmailMismatch
+        | Reason::DomainNotAllowed => "guest-restricted",
+        Reason::GuestActionNotAllowed(_) | Reason::InsufficientRole { .. } => {
+            "insufficient-role"
+        }
+        Reason::DownloadDisabled | Reason::PrintDisabled | Reason::CopyDisabled => {
+            "capability-disabled"
+        }
+    }
+}
+
+/// Typed refusal carrying a machine-readable cause, never the object body.
+fn acl_denied(reason: &Reason) -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::FORBIDDEN,
+        Json(serde_json::json!({
+            "error": "Document not found or access denied",
+            "code": "docs_acl_denied",
+            "reason": reason_code(reason),
+        })),
+    )
+}
+
 /// `GET /api/docs/:id/ast` — compact, tenant-scoped structured read.
 pub async fn handle_docs_ast(
     State(state): State<Arc<DocState>>,
@@ -281,13 +393,19 @@ pub async fn handle_docs_ast(
         }
     };
 
-    // Defense in depth: the drive path already scopes by verified owner and
-    // bucket, but never serve a node tree for a document owned by someone else.
-    if doc.owner_id != user_id {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Document not found" })),
-        ));
+    // #2452 — the read is gated by the object ACL, not by a bare ownership
+    // comparison. The namespace owner is the ACL owner when no persisted grant
+    // exists, so owners keep exactly the access they had before this check.
+    let mut acl = acl_from_permissions(&state, &doc_id, &doc.owner_id, &state.bucket_name);
+    // Collab stores grants under the verified user's email; Docs identifies the
+    // same principal by id. Copy a matching grant under the id the policy sees.
+    if let Some(role) = acl.user_grants.get(user.display_name()).copied() {
+        acl.user_grants.entry(user_id.clone()).or_insert(role);
+    }
+    let principal = Principal::member(user_id.clone(), state.bucket_name.clone(), Vec::new());
+    let decision = decide(&principal, Action::View, &acl, chrono::Utc::now());
+    if !decision.is_allowed() {
+        return Err(acl_denied(decision.reason()));
     }
 
     let all_nodes = html_to_ast_nodes(&doc.content);
