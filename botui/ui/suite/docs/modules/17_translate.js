@@ -40,7 +40,14 @@ async function translateDocument(lang) {
     });
     if (!res.ok) throw new Error("http " + res.status);
     var j = await res.json();
-    translated = (j && (j.content || j.response || j.text || j.result)) || "";
+    // #2457 — the backend returns HTTP 200 even when the LLM failed, with
+    // result:"unavailable" + error:"..." (and content = the ORIGINAL text).
+    // Never treat that as a successful translation or inject it — doing so
+    // showed "Translated to X" over an unchanged document. Only accept a
+    // genuine success result with non-empty content.
+    if (j && (j.result === "unavailable" || j.error)) throw new Error(j.error || "translation unavailable");
+    translated = (j && j.result === "success" && (j.content || j.response || j.text)) || "";
+    if (!translated) translated = (j && (j.content || j.response || j.text)) || "";
   } catch (e) {
     translated = "";
   }
