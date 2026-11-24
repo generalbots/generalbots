@@ -129,6 +129,8 @@ impl StructureAwareChunker {
                     if number.contains('.') {
                         state.clause = Some(number);
                     }
+                    // Embed the heading text so heading-only queries can match.
+                    state.lines.push(line.to_string());
                     continue;
                 }
                 state.lines.push(line.to_string());
@@ -152,19 +154,12 @@ impl StructureAwareChunker {
         state.lines.clear();
 
         let source = Self::source_ref(state);
-        let heading_path: Vec<String> = state
-            .headings
-            .iter()
-            .map(|(_, title)| title.clone())
-            .collect();
+        let heading_path: Vec<String> = state.headings.iter().map(|(_, t)| t.clone()).collect();
         let address = source.address();
         let path = heading_path.join("|");
 
-        for (index, content) in
-            Self::window_chunks(&text, self.options.max_chars, self.options.overlap_chars)
-                .into_iter()
-                .enumerate()
-        {
+        let wins = Self::window_chunks(&text, self.options.max_chars, self.options.overlap_chars);
+        for (index, content) in wins.into_iter().enumerate() {
             let index_text = index.to_string();
             let id = stable_id(&[
                 &identity.tenant_id,
@@ -289,6 +284,11 @@ impl StructureAwareChunker {
         }
         let title = candidate[number_end..]
             .trim_start_matches(|c: char| c == '.' || c == ':' || c.is_whitespace());
+        // A clause number at the start of prose is not a heading: require a
+        // short, title-like line so the sentence survives as body content.
+        if line.chars().count() > 120 || matches!(title.chars().last(), Some('.' | '!' | '?')) {
+            return None;
+        }
         let level = number.chars().filter(|c| *c == '.').count() + 1;
         Some((level, number.to_string(), title.to_string()))
     }
@@ -403,10 +403,7 @@ mod tests {
 
     #[test]
     fn long_sections_are_windowed_within_max_chars() {
-        let options = ChunkOptions {
-            max_chars: 120,
-            overlap_chars: 20,
-        };
+        let options = ChunkOptions { max_chars: 120, overlap_chars: 20 };
         let chunks = chunk_with(options, &"Section text repeats. ".repeat(40));
         assert!(chunks.len() > 1);
         assert!(chunks.iter().all(|c| c.content.chars().count() <= 120));
@@ -414,10 +411,7 @@ mod tests {
 
     #[test]
     fn windows_overlap_by_configured_amount() {
-        let options = ChunkOptions {
-            max_chars: 100,
-            overlap_chars: 20,
-        };
+        let options = ChunkOptions { max_chars: 100, overlap_chars: 20 };
         let chunks = chunk_with(options, &"word ".repeat(60));
         assert!(chunks.len() >= 2);
         for pair in chunks.windows(2) {
@@ -427,5 +421,26 @@ mod tests {
             let head: String = next[..20].iter().collect();
             assert_eq!(tail, head);
         }
+    }
+
+    #[test]
+    fn prose_clause_number_stays_in_body() {
+        let c = chunk("Clause 7.3: the notice period is ninety days and ZORBLAXKEY applies.");
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[0].source.kind, SourceKind::Page);
+        assert!(c[0].content.contains("ZORBLAXKEY"));
+    }
+
+    #[test]
+    fn short_clause_heading_keeps_locator() {
+        let c = chunk("Clause 7.3 Notice\nBody.");
+        assert!(c.iter().any(|x| x.source.kind == SourceKind::Clause));
+        assert!(c.iter().any(|x| x.source.locator == "7.3"));
+    }
+
+    #[test]
+    fn heading_text_is_embedded_in_content() {
+        let c = chunk("Clause 7.3 Notice\nBody.");
+        assert!(c.iter().any(|x| x.content.contains("Clause 7.3 Notice")));
     }
 }
