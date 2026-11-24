@@ -1,5 +1,5 @@
 use crate::auth::{resolve_user_id, SheetUser};
-use crate::handlers::cell_ops::MAX_RECALC_CELLS;
+use crate::handlers::cell_ops::{MAX_RECALC_CELLS, preflight_recalc};
 use crate::handlers::paste_html::{parse_html_table, style_for};
 use crate::state::SheetState;
 use crate::types::{CellData, PasteRequest, ResizeRequest, SaveResponse, TableRequest};
@@ -8,6 +8,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use botcore::shared::analytics::record_office_recalc_optional;
 use botsheet_core::dependency_graph::DepGraph;
 use chrono::Utc;
 use std::collections::HashMap;
@@ -161,6 +162,7 @@ pub async fn handle_paste(
     }
 
     let mut payloads: Vec<PastePayload> = Vec::new();
+    let mut paste_roots: Vec<(u32, u32)> = Vec::new();
     for (row_offset, cells) in grid.iter().enumerate() {
         let target_row = req.start_row + row_offset as u32;
         if target_row >= crate::handlers::cell_ops::MAX_ROWS {
@@ -171,6 +173,7 @@ pub async fn handle_paste(
             if target_col >= crate::handlers::cell_ops::MAX_COLS {
                 break;
             }
+            paste_roots.push((target_row, target_col));
             let style = style_for(cell.style.as_deref(), &mode);
             let payload = if mode != "formats" && cell.value.starts_with('=') {
                 let result = botsheet_core::engine::evaluate_typed_in(
@@ -202,6 +205,10 @@ pub async fn handle_paste(
             payloads.push(payload);
         }
     }
+    // #2435: price the paste's cascade before any cell is written, so a
+    // rejected recalculation cannot leave written-but-stale formulas behind.
+    let recalc_started = std::time::Instant::now();
+    preflight_recalc(&sheet.worksheets[req.worksheet_index], &paste_roots)?;
     {
         let worksheet = &mut sheet.worksheets[req.worksheet_index];
         let mut payload_index = 0usize;
@@ -257,7 +264,8 @@ pub async fn handle_paste(
             MAX_RECALC_CELLS,
         );
     }
-
+    let recalc_ms = recalc_started.elapsed().as_secs_f64() * 1000.0;
+    record_office_recalc_optional(Some(state.metrics_collector.as_ref()), recalc_ms, "sheet").await;
     sheet.updated_at = Utc::now();
     state.sessions.record(
         &session,

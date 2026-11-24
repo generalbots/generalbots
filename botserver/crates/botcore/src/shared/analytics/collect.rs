@@ -208,6 +208,71 @@ pub async fn track_office_recalc(
     record_duration_distribution(collector, OFFICE_RECALC_DURATION_MS, scope, duration_ms).await;
 }
 
+impl MetricsCollector {
+    /// #2459 — record a recalculation on the collector the exporter scrapes.
+    /// Delegates to [`track_office_recalc`] so `app` is reduced to a bounded
+    /// `[a-z0-9_]` token; no file name, user id or tenant id is accepted.
+    pub async fn record_office_recalc(&self, duration_ms: f64, app: &str) {
+        track_office_recalc(self, app, None, duration_ms).await;
+    }
+}
+
+/// #2459 — optional form for callers that may run without telemetry. A missing
+/// collector is a no-op, never an error or a panic.
+pub async fn record_office_recalc_optional(
+    collector: Option<&MetricsCollector>,
+    duration_ms: f64,
+    app: &str,
+) {
+    if let Some(collector) = collector {
+        collector.record_office_recalc(duration_ms, app).await;
+    }
+}
+
+#[cfg(test)]
+mod recalc_metric_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn recalc_sample_without_collector_is_noop() {
+        record_office_recalc_optional(None, 4.25, "sheet").await;
+    }
+
+    #[tokio::test]
+    async fn recalc_sample_records_pii_safe_distribution() {
+        let collector = MetricsCollector::new();
+        record_office_recalc_optional(Some(&collector), 4.25, "SHEET/tenant-7").await;
+
+        let metrics = collector.get_metrics().await;
+        let mut seen_count = false;
+        let mut seen_sum = false;
+        let mut seen_max = false;
+        for metric in &metrics {
+            match metric.name.as_str() {
+                "office_recalc_duration_ms_count" => {
+                    assert_eq!(metric.value, 1.0);
+                    assert_eq!(
+                        metric.labels.get("app").map(String::as_str),
+                        Some("sheet_tenant_7")
+                    );
+                    assert!(!metric.labels.contains_key("branch"));
+                    seen_count = true;
+                }
+                "office_recalc_duration_ms_sum" => {
+                    assert_eq!(metric.value, 4.25);
+                    seen_sum = true;
+                }
+                "office_recalc_duration_ms_max" => {
+                    assert_eq!(metric.value, 4.25);
+                    seen_max = true;
+                }
+                _ => {}
+            }
+        }
+        assert!(seen_count && seen_sum && seen_max);
+    }
+}
+
 /// #2459 — measured resident memory for a single workbook, in bytes.
 ///
 /// `workbook_id` is hashed to an opaque `wb*` label; the raw id (which could
