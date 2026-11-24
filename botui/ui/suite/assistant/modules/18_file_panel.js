@@ -111,7 +111,7 @@
             if (kind === "text" || kind === "markdown" || kind === "csv") {
                 return blob.text().then(function (text) { if (panel === mine) { showText(box, text, kind); } });
             }
-            if (kind === "office" && state.src.kind === "vm" && !state.src.driveCopy) {
+            if (kind === "office" && F.canPreviewOffice(state.src)) {
                 return F.fetchOfficeHtml(state.src).then(function (html) {
                     if (panel !== mine) { return; }
                     box.innerHTML = '<iframe class="gb-file-frame gb-file-frame--doc" sandbox="" title="' + esc(state.src.name) + '"></iframe>';
@@ -171,7 +171,8 @@
         if (which === "open") {
             btn.disabled = true;
             withBlob(state).then(function (blob) { return F.openOutside(blob, state.src.name); }).then(function (path) {
-                status(path ? t("Aberto a partir de ", "Opened from ") + path : "", "ok");
+                status(path === true ? t("Aberto no aplicativo do computador.", "Opened in the computer's program.")
+                    : path ? t("Aberto a partir de ", "Opened from ") + path : "", "ok");
             }).catch(function (err) {
                 status(err && err.savedTo
                     ? t("Salvo em ", "Saved to ") + err.savedTo + t(". Abra-o pelo Explorador de Arquivos.", ". Open it from File Explorer.")

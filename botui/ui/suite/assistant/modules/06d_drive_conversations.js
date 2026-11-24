@@ -4,9 +4,10 @@
  *
  * Lists the files the assistant saved for each conversation
  * (`<bot>.gbdrive/conversations/<folder>/`, see 18a_file_store.js), grouped
- * by conversation. Folder names are the title slug or `<slug>-<id8>`; both
- * are matched to the conversation list for the group's name. A row opens
- * the same file panel as a link in an answer.
+ * by conversation. The server names each folder's conversation and title;
+ * an older server's folder names (title slug or `<slug>-<id8>`) are matched
+ * to the conversation list instead. A row opens the same file panel as a
+ * link in an answer.
  */
 (function () {
     var A = window.GBAssistant;
@@ -20,6 +21,7 @@
 
     function title(g) {
         if (g.session && g.session.title) { return g.session.title; }
+        if (g.title) { return g.title; }
         var name = g.folder.replace(/-[0-9a-f]{8}$/i, "").replace(/^conversation$/i, "");
         return name ? name.replace(/-/g, " ") : t("Conversa sem título", "Untitled conversation");
     }
@@ -53,7 +55,7 @@
                 esc(x.files.length === 1 ? t("arquivo", "file") : t("arquivos", "files")) + '</span></div>';
             return head + x.files.map(function (f) {
                 return '<div class="gb-drv-row gb-drv-conv-row" tabindex="0" data-group="' + gi + '" data-path="' + esc(f.path) +
-                    '" data-name="' + esc(f.name) + '" data-size="' + (f.size || 0) + '" data-folder="' + esc(x.g.folder) + '">' +
+                    '" data-name="' + esc(f.name) + '" data-size="' + (f.size || 0) + '" data-folder="' + esc(x.g.folder) + '"' + (f.api ? ' data-api="1"' : '') + '>' +
                     '<div class="gb-drv-name-cell">' + D.fileBadge(f.name, false) +
                     '<span class="gb-drv-name-text">' + esc(f.name) + '</span></div>' +
                     '<div class="gb-drv-size-cell">' + D.fmtBytes(f.size) + '</div>' +
@@ -65,7 +67,7 @@
 
     function srcOf(row) {
         return { kind: "drive", path: row.getAttribute("data-path"), name: row.getAttribute("data-name"),
-            size: Number(row.getAttribute("data-size")) || 0, folder: row.getAttribute("data-folder") };
+            size: Number(row.getAttribute("data-size")) || 0, folder: row.getAttribute("data-folder"), api: row.getAttribute("data-api") === "1" };
     }
 
     function bind(list) {

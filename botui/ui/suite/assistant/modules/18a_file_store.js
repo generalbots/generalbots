@@ -7,10 +7,14 @@
  * - the conversation's workspace on the Virtual Machine, read through
  *   GET /api/agent/vm/file?conversation_id=&path=output/<name>&raw=1 (bytes)
  *   or &preview=1 (office packages rendered as script-free HTML);
- * - the Drive copy, `<bot>.gbdrive/conversations/<folder>/<name>`, listed with
- *   GET /api/files/list?scope=bot&path= and read with
- *   POST /api/files/download-binary. The folder is the conversation's title
- *   slug, or `<slug>-<first 8 characters of the conversation id>`.
+ * - the Drive copy, `<bot>.gbdrive/conversations/<folder>/<name>`, listed by
+ *   GET /api/agent/drive/conversations (each folder with its conversation id,
+ *   title and files) and read with GET /api/agent/drive/file?path=<relative
+ *   to .gbdrive>&raw=1 or &preview=1. A server without those endpoints (404)
+ *   is read the older way: GET /api/files/list?scope=bot&path= and
+ *   POST /api/files/download-binary, with the folder matched to a
+ *   conversation by its name (title slug, or `<slug>-<first 8 characters of
+ *   the conversation id>`).
  *
  * Saving to Drive is POST /api/agent/drive/save { conversation_id, files }.
  * The panel (18_file_panel.js) and the Drive tab (06d) both use this.
@@ -84,7 +88,17 @@
             "&path=" + encodeURIComponent(src.path) + "&" + mode + "=1";
     };
 
+    F.driveFileUrl = function (item, mode) {
+        return "/api/agent/drive/file?path=" + encodeURIComponent(item.path) + "&" + mode + "=1";
+    };
+
     function driveBlob(item) {
+        if (item.api) {
+            return A.apiFetch(F.driveFileUrl(item, "raw")).then(function (r) {
+                if (!r.ok) { throw httpError(r.status); }
+                return r.blob();
+            });
+        }
         return A.apiFetch("/api/files/download-binary", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -110,9 +124,17 @@
         });
     };
 
+    /* Office packages preview from the workspace, or from a Drive copy the
+       server can render; the older Drive read has no preview. */
+    function previewItem(src) { return src.kind === "drive" ? src : src.driveCopy; }
+    F.canPreviewOffice = function (src) {
+        var item = previewItem(src);
+        return item ? !!item.api : src.kind === "vm";
+    };
     F.fetchOfficeHtml = function (src) {
-        if (src.kind !== "vm") { return Promise.reject(httpError(415)); }
-        return A.apiFetch(F.vmUrl(src, "preview")).then(function (r) {
+        if (!F.canPreviewOffice(src)) { return Promise.reject(httpError(415)); }
+        var item = previewItem(src);
+        return A.apiFetch(item ? F.driveFileUrl(item, "preview") : F.vmUrl(src, "preview")).then(function (r) {
             if (!r.ok) { throw httpError(r.status); }
             return r.text();
         });
@@ -169,19 +191,44 @@
     var cache = null;
     F.invalidateFolders = function () { cache = null; };
 
-    /* Every conversation folder with its files, read at most every 30 s. */
-    F.conversationFolders = function (force) {
-        if (!force && cache && Date.now() - cache.at < 30000) { return cache.promise; }
-        var promise = list(F.driveRoot()).then(function (items) {
+    /* The server's own list; null when this server does not have it. */
+    function serverFolders() {
+        return A.apiFetch("/api/agent/drive/conversations").then(function (r) {
+            if (r.status === 404 || r.status === 405) { return null; }
+            if (!r.ok) { throw httpError(r.status); }
+            return r.json().then(function (data) { return data && Array.isArray(data.folders) ? data.folders : null; }, function () { return null; });
+        }).then(function (folders) {
+            return folders && folders.map(function (g) {
+                return { folder: String(g.folder || ""), conversationId: String(g.conversation_id || ""), title: String(g.title || ""),
+                    files: (g.files || []).map(function (f) {
+                        return { name: f.name, path: f.path, size: f.size, modified: f.modified, api: true };
+                    }) };
+            });
+        });
+    }
+
+    function sessionById(id) {
+        var key = String(id || "").toLowerCase();
+        return key ? (A.sessions || []).filter(function (s) { return String(s.id || "").toLowerCase() === key; })[0] || null : null;
+    }
+
+    function listedFolders() {
+        return list(F.driveRoot()).then(function (items) {
             var dirs = items.filter(function (i) { return i.is_dir; }).slice(0, 80);
             return Promise.all(dirs.map(function (d) {
                 return list(d.path).then(function (files) {
                     return { folder: d.name, path: d.path, files: files.filter(function (f) { return !f.is_dir; }) };
                 }).catch(function () { return { folder: d.name, path: d.path, files: [] }; });
             }));
-        }).then(function (groups) {
+        });
+    }
+
+    /* Every conversation folder with its files, read at most every 30 s. */
+    F.conversationFolders = function (force) {
+        if (!force && cache && Date.now() - cache.at < 30000) { return cache.promise; }
+        var promise = serverFolders().then(function (groups) { return groups || listedFolders(); }).then(function (groups) {
             return groups.filter(function (g) { return g.files.length; }).map(function (g) {
-                g.session = F.folderSession(g.folder);
+                g.session = sessionById(g.conversationId) || F.folderSession(g.folder);
                 return g;
             });
         });
@@ -191,16 +238,21 @@
     };
 
     /* The Drive copy of a workspace file: same name, in this conversation's
-       folder when one is known, otherwise the only folder holding that name. */
+       folder when one is known, otherwise the only folder holding that name
+       whose conversation the server did not name. */
     F.findDriveCopy = function (src) {
         return F.conversationFolders().then(function (groups) {
             var holding = groups.map(function (g) {
                 var file = g.files.filter(function (f) { return f.name === src.name; })[0];
                 return file ? { group: g, file: file } : null;
             }).filter(Boolean);
-            var own = holding.filter(function (h) { return F.folderMatches(h.group.folder, src.conversationId); })[0];
-            var pick = own || (holding.length === 1 ? holding[0] : null);
-            return pick ? { kind: "drive", path: pick.file.path, name: pick.file.name, size: pick.file.size, folder: pick.group.folder } : null;
+            var own = holding.filter(function (h) {
+                var id = h.group.conversationId;
+                return id ? id.toLowerCase() === String(src.conversationId || "").toLowerCase() : F.folderMatches(h.group.folder, src.conversationId);
+            })[0];
+            var unnamed = holding.length === 1 && !holding[0].group.conversationId;
+            var pick = own || (unnamed ? holding[0] : null);
+            return pick ? { kind: "drive", api: !!pick.file.api, path: pick.file.path, name: pick.file.name, size: pick.file.size, folder: pick.group.folder } : null;
         }).catch(function () { return null; });
     };
 
@@ -251,11 +303,22 @@
         });
     };
 
-    /* Saves a copy where the person chooses and opens it with the program
-       the computer uses for that type. */
+    /* Opens the file with the program the computer uses for that type:
+       the desktop's open_download command when it has one (resolves with the
+       path it used, or true), otherwise a copy saved where the person
+       chooses and then opened. */
     F.openOutside = function (blob, name) {
         var T = tauri();
         if (!T) { return anchorSave(blob, name); }
+        return blob.arrayBuffer().then(function (buffer) {
+            return T.invoke("open_download", { fileName: name, bytes: Array.from(new Uint8Array(buffer)) });
+        }).then(function (path) { return path || true; }, function (err) {
+            if (!/not found|unknown command/i.test(String((err && err.message) || err))) { throw err; }
+            return saveAndOpen(T, blob, name);
+        });
+    };
+
+    function saveAndOpen(T, blob, name) {
         return F.saveBlob(blob, name).then(function (saved) {
             if (!saved) { return null; }
             return T.invoke("plugin:opener|open_path", { path: saved }).then(function () { return saved; }, function () {
@@ -264,5 +327,5 @@
                 throw e;
             });
         });
-    };
+    }
 })();

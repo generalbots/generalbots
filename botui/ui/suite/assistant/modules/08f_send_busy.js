@@ -1,6 +1,6 @@
 "use strict";
 /**
- * 05g_send_busy.js - Sending while the assistant is still answering.
+ * 08f_send_busy.js - Sending while the assistant is still answering.
  *
  * A message sent during a turn would be lost, so the composer used to drop
  * Enter with only a screen-reader notice. Now the person always sees why

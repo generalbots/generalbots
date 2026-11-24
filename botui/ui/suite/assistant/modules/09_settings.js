@@ -2,7 +2,7 @@
 /**
  * 09_settings.js - Settings frame for the assistant shell: the numbered section
  * list in the rail, the page heading and the section router. The pages live in
- * 09c (Persona), 09d (Conta, Sobre), 09e (Idioma, Atalhos), 10* (Modelo) and
+ * 09c (Persona), 09f (Memória), 09d (Conta, Sobre), 09e (Idioma, Atalhos), 10* (Modelo) and
  * 10i (Limites). Appearance is a window next to the gear (09b_patterns.js).
  */
 
@@ -12,6 +12,7 @@
     var sections = [
         ["account", "Conta", "Account", "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
         ["instructions", "Persona", "Persona", "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"],
+        ["memory", "Memória", "Memory", "M6 3h12v18l-6-4-6 4zM9 8h6M9 12h4"],
         ["language", "Idioma", "Language", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"],
         ["model", "Modelo", "Model", "M4 4h16v16H4zM9 9h6v6H9zM15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"],
         ["limits", "Limites", "Limits", "M12 14l4-4M3.34 19a10 10 0 1 1 17.32 0"],
@@ -88,6 +89,7 @@
         var renderers = {
             account: A.renderAccount,
             instructions: A.renderInstructions,
+            memory: A.renderMemory,
             language: A.renderLanguage,
             model: A.renderModelFull,
             shortcuts: A.renderShortcuts,
