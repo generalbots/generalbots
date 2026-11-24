@@ -156,9 +156,15 @@ async fn anonymous_new_sheet_is_unauthorized() {
 async fn no_handler_silently_uses_the_legacy_default_namespace() {
     let (state, drive) = state();
     // Every entry point an anonymous caller used to reach.
-    let _ = handle_new_sheet(State(state.clone()), None).await;
-    let _ = handle_list_sheets(State(state.clone()), None).await;
-    let _ = handle_save_sheet(State(state), None, Json(save_request("Ghost"))).await;
+    if let Err(e) = handle_new_sheet(State(state.clone()), None).await {
+        log::warn!("Isolation test: new sheet handler refused: {e:?}");
+    }
+    if let Err(e) = handle_list_sheets(State(state.clone()), None).await {
+        log::warn!("Isolation test: list sheets handler refused: {e:?}");
+    }
+    if let Err(e) = handle_save_sheet(State(state), None, Json(save_request("Ghost"))).await {
+        log::warn!("Isolation test: save sheet handler refused: {e:?}");
+    }
     assert!(
         drive.keys().iter().all(|key| !key.contains("default-user")),
         "nothing may be stored in the shared legacy namespace: {:?}",

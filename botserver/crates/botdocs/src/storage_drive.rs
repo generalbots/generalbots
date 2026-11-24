@@ -309,7 +309,9 @@ pub async fn delete_document_from_drive(
 
     for ext in &[".html", ".docx", ".docx.source.json", ".meta.json"] {
         let path = format!("{base_path}/{doc_id}{ext}");
-        let _ = state.drive.delete_object(&state.bucket_name, &path).await;
+        if let Err(e) = state.drive.delete_object(&state.bucket_name, &path).await {
+            log::warn!("Docs delete: failed to remove {path} from drive: {e}");
+        }
     }
 
     remove_from_cache(doc_id).await;

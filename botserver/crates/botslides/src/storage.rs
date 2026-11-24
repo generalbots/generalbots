@@ -269,8 +269,12 @@ pub async fn delete_presentation_from_drive<D: DriveOps>(
         presentation_id
     );
 
-    let _ = drive.delete_object("gbo", &json_path).await;
-    let _ = drive.delete_object("gbo", &pptx_path).await;
+    if let Err(e) = drive.delete_object("gbo", &json_path).await {
+        log::warn!("Slides delete: failed to remove {json_path} from drive: {e}");
+    }
+    if let Err(e) = drive.delete_object("gbo", &pptx_path).await {
+        log::warn!("Slides delete: failed to remove {pptx_path} from drive: {e}");
+    }
 
     Ok(())
 }

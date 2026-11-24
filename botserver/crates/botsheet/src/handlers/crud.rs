@@ -239,7 +239,9 @@ pub async fn handle_load_from_drive(
     };
 
     // Persist (no export hook — opening must not rewrite the source).
-    let _ = persist_sheet_to_drive(&state, &user_id, &sheet).await;
+    if let Err(e) = persist_sheet_to_drive(&state, &user_id, &sheet).await {
+        log::warn!("Sheet open: failed to persist working copy: {e}");
+    }
 
     // Return a display-formatted clone; the persisted model keeps raw values.
     let mut response = sheet.clone();

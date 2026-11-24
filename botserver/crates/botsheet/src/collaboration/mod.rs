@@ -239,7 +239,9 @@ pub async fn broadcast_sheet_change(
             seq: None,
             timestamp: Utc::now(),
         };
-        let _ = tx.send(msg);
+        if let Err(e) = tx.send(msg) {
+            log::warn!("Sheet collaboration: failed to broadcast cell update: {e}");
+        }
     }
 }
 
