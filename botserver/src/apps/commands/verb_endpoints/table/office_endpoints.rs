@@ -151,7 +151,17 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         &[("file_id", "id")],
         &[],
     ),
-    bind("sheet.import", "POST", "/api/sheet/import", &[], &[]),
+    // #2448 — the import handler reads a Drive path from the JSON body via
+    // ImportPathRequest { path, file, file_path }. The verb's curated name is
+    // `path`; rename it onto `file`, the first fallback the handler reads.
+    // (The multipart-upload branch is a different, already-working surface.)
+    bind(
+        "sheet.import",
+        "POST",
+        "/api/sheet/import",
+        &[("path", "file")],
+        &[],
+    ),
     bind(
         "sheet.search",
         "GET",
@@ -170,11 +180,13 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
         ],
         &[],
     ),
+    // ConditionalFormatRequest { bg_color } accepts the curated `fill` name at
+    // runtime via a serde alias; make the mapping explicit for the audit.
     bind(
         "sheet.conditional_format.apply",
         "POST",
         "/api/sheet/conditional-format",
-        &[("file_id", "id")],
+        &[("file_id", "id"), ("fill", "bg_color")],
         &[],
     ),
     bind(
