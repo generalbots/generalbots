@@ -1,9 +1,23 @@
 use std::sync::Arc;
 
+use botcore::kb::structured::UpsertPoint;
 use botlib::traits::DriveRepository;
 
 use crate::Document;
 pub use botlib::db_pool::DbPool;
+
+/// #2499 — seam between a successful Docs save and the runtime KB/vector
+/// indexer. It is storage-agnostic: the runtime maps each [`UpsertPoint`] onto
+/// its client request and fills the reserved embedding slot. The Docs save
+/// owns the document bytes, so a missing or failing indexer must never turn a
+/// successful save into an HTTP error.
+pub type KbIndexer = Arc<dyn Fn(Vec<UpsertPoint>) -> Result<(), String> + Send + Sync>;
+
+/// Default handle: accepts the projection and drops it. Used until a runtime
+/// vector indexer is reachable from the Docs router (#2499).
+pub fn noop_kb_indexer() -> KbIndexer {
+    Arc::new(|_points| Ok(()))
+}
 
 /// Per-document undo/redo snapshot stacks (session-lifetime, capped).
 #[derive(Default)]
@@ -69,6 +83,40 @@ pub struct DocState {
     /// History keyed by document id; added for server-side undo/redo
     /// (#1138). Uses interior mutability so fragment handlers can share it.
     pub history: tokio::sync::Mutex<std::collections::HashMap<String, DocHistory>>,
+    /// #2499 — optional projection of a saved document into the KB/vector
+    /// index. Defaults to a no-op so saves never depend on index availability.
+    pub kb_indexer: KbIndexer,
+}
+
+impl DocState {
+    /// #2499 — project a successfully saved document into storage-agnostic
+    /// upsert points and hand them to the runtime KB indexer.
+    /// `build_upsert_points` is built on `build_structured_chunks`, so
+    /// structure-aware addressing, the derived ACL and the bucket-scoped
+    /// tenant all travel with the points.
+    ///
+    /// Strictly best-effort: the document is already durable when this runs,
+    /// so a projection or index failure is logged and swallowed — it must
+    /// never turn a successful save into an HTTP error.
+    pub fn project_to_kb(&self, user_id: &str, doc_id: &str, title: &str, content: &str) {
+        let source_ref = format!("{doc_id}.html");
+        let input = crate::handlers_api::kb_index::DocumentIndexInput {
+            document_id: doc_id,
+            title,
+            source_ref: &source_ref,
+            version: 1,
+            content,
+            tenant_id: &self.bucket_name,
+            owner_id: user_id,
+        };
+        let points = crate::handlers_api::kb_index::build_upsert_points(&input);
+        if points.is_empty() {
+            return;
+        }
+        if let Err(e) = (self.kb_indexer)(points) {
+            log::warn!("botdocs: KB index projection for document {doc_id} failed: {e}");
+        }
+    }
 }
 
 #[cfg(test)]

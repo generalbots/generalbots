@@ -26,6 +26,7 @@ fn doc_state(drive: Arc<MemoryDrive>) -> DocState {
         drive,
         bucket_name: "office-fidelity.gbai".to_string(),
         history: Default::default(),
+        kb_indexer: botdocs::state::noop_kb_indexer(),
     }
 }
 

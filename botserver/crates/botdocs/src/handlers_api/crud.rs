@@ -96,6 +96,7 @@ pub async fn handle_docs_save(
             ),
         ));
     }
+    state.project_to_kb(&user_id, &doc_id, &title, &content);
 
     Ok(Json(DocsSaveResponse {
         id: doc_id,
@@ -162,6 +163,7 @@ pub async fn handle_create_document(
             ),
         ));
     }
+    state.project_to_kb(&user_id, &doc.id, &doc.title, &doc.content);
 
     Ok(Json(doc))
 }
@@ -265,6 +267,7 @@ pub async fn handle_save_document(
             ),
         ));
     }
+    state.project_to_kb(&user_id, &doc_id, &title, &content);
 
     Ok(Json(DocsSaveResponse {
         id: doc_id,
