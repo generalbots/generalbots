@@ -15,6 +15,11 @@ var harness = require("./webtest-apps/00_harness");
   "03_goals_12books",
   "04_calendar_45min",
   "05_tasks_complete_delete",
+  "06_db_tables_rows_sort",
+  "07_db_query_console",
+  "08_compliance_score_checks",
+  "09_canvas_draw_select_fill",
+  "10_canvas_undo_pdf",
 ].forEach(function (name) {
   require("./webtest-uat-gaps/" + name);
 });
