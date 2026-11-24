@@ -33,29 +33,29 @@ var metrics = require("./10_scan").metrics;
  * a11y fixture was dropped; the four documented gaps stay explicitly reported.
  */
 var EXPECTED = {
-  filesScanned: 1570,
+  filesScanned: 1575,
   htmlFiles: 215,
-  jsFiles: 1355,
+  jsFiles: 1360,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 713,
-  ariaLiveFiles: 244,
-  ariaLiveDeclarations: 668,
-  livePolite: 598,
+  ariaLiveMentions: 715,
+  ariaLiveFiles: 246,
+  ariaLiveDeclarations: 670,
+  livePolite: 600,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 535,
+  roleStatus: 537,
   roleAlert: 106,
   roleLog: 12,
-  roleStatusAlertFiles: 245,
-  dataI18nAttrs: 5858,
+  roleStatusAlertFiles: 247,
+  dataI18nAttrs: 5865,
   htmlWithI18n: 204,
   gbTCalls: 378, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 123,
-  dynamicWrites: 4258,
-  writesInRegionFiles: 1211,
-  writesOutsideRegionFiles: 3047,
-  filesWithWritesNoRegion: 609,
+  dynamicWrites: 4284,
+  writesInRegionFiles: 1214,
+  writesOutsideRegionFiles: 3070,
+  filesWithWritesNoRegion: 613,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {

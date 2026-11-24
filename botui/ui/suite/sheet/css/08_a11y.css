@@ -161,3 +161,16 @@
     font-weight: 700;
     line-height: 16px;
 }
+
+/* #2454 — the compact format-row rule in 01_toolbar.css (min-width:26px,
+   height:26px) outranks the generic coarse-pointer 44px rule. Restore a
+   full-size hit area on touch devices without changing the desktop glyphs. */
+@media (pointer: coarse) {
+    .sheet-toolbar-row-format .btn-icon,
+    .sheet-toolbar .btn-icon {
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+}
