@@ -87,6 +87,11 @@ function ensureDocArticle() {
     if (typeof attachEditorHandlers === "function") attachEditorHandlers(host);
   }
   article.setAttribute("data-gb-field", "body");
+  // Live generation addresses this target as "document body" (the English
+  // automation hint). aria-label is localized ("corpo do documento" in pt-BR),
+  // so expose a locale-independent alias the UI-hint executor can match in
+  // every language (#empty-letter).
+  article.setAttribute("data-gb-field-alias", "document body");
   if (!article.getAttribute("aria-label")) article.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("docs-article-aria-label", "document body") : "document body"));
   if (typeof docsEnsureArticleDocId === "function") {
     docsEnsureArticleDocId(article);

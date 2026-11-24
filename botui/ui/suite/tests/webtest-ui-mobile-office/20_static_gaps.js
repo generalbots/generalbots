@@ -36,6 +36,13 @@ staticTest("#2515: both real mobile IIFEs exist and are wired last in their frag
   assert(docsHtml.indexOf("19_mobile.js") > docsHtml.indexOf("99_init.js"), "docs module loads after init");
 });
 
+staticTest("#empty-letter: the UI-hint fill target is locale-independent", function () {
+  has("docs/modules/03_editor.js", 'data-gb-field-alias", "document body"',
+    "Docs publishes a canonical English alias on the editable article");
+  has("js/ui-orchestrator/01_overlay.js", 'data-gb-field-alias\\"\\)\\)',
+    "the field resolver reads that alias before falling back to localized labels");
+});
+
 staticTest("#docs-theme: Docs keeps its dark editor skin under any product theme", function () {
   var docsHtml = read("docs/docs.html");
   assert(docsHtml.indexOf("/suite/docs/docs-theme.css") >= 0, "docs.html loads the theme overlay");
