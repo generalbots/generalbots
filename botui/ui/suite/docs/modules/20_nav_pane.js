@@ -181,6 +181,9 @@
   }
 
   function renderResults(section) {
+    // #2457 — clear stale matches on every render so a prior query's rows
+    // can never jump to the wrong text after an empty/no-results render.
+    searchMatches = [];
     var query = NS.currentQuery || "";
     if (!query) {
       section.innerHTML = emptyRow("docs-nav-search-hint", "Find something first");
