@@ -1,6 +1,7 @@
 use super::{
     ensure_sweep_started, get_collab_channels, get_mentions, get_presence, get_random_color,
-    get_selections, get_typing, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
+    get_selections, get_typing, CellKey, CellOp, CellState, MentionNotification, SelectionInfo,
+    TypingIndicator, UserPresence,
 };
 use crate::state::SheetState;
 use crate::types::CollabMessage;
@@ -14,13 +15,39 @@ use axum::{
 use botsheet_core::formulas::cell_to_a1;
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
 
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, RwLock};
 
 mod websocket_auth;
 
 use self::websocket_auth::{extract_user_from_token, reason_code, unauthorized, WsAuthQuery};
+
+/// Converged per-sheet cell state (#2447); stale/duplicate edits are rejected
+/// before they can overwrite a newer workbook winner.
+static MERGE_STATES: OnceLock<RwLock<HashMap<String, CellState>>> = OnceLock::new();
+
+fn merge_states() -> &'static RwLock<HashMap<String, CellState>> {
+    MERGE_STATES.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+/// Join an incoming edit with the convergent state and return the winning op.
+/// A client `seq` is its version cursor and is honoured when present; without
+/// one the next monotonic server value keeps the old arrival-order behaviour.
+fn stage_cell_edit(
+    state: &mut CellState,
+    actor: &str,
+    cell: CellKey,
+    value: Option<String>,
+    seq_hint: Option<u64>,
+) -> Option<CellOp> {
+    let clock = seq_hint
+        .filter(|seq| *seq > 0)
+        .unwrap_or_else(|| state.max_clock().saturating_add(1));
+    let op = CellOp::new(actor, clock, cell, value);
+    state.apply(op.clone()).then_some(op)
+}
 
 pub async fn handle_sheet_websocket(
     ws: WebSocketUpgrade,
@@ -243,12 +270,35 @@ pub async fn handle_sheet_connection(
                                             continue;
                                         }
                                     };
-                                    {
-                                        let mut sheet = session.sheet.write().await;
-                                        let ws_idx = collab_msg
+                                    let ws_idx = {
+                                        let sheet = session.sheet.read().await;
+                                        collab_msg
                                             .worksheet_index
                                             .unwrap_or(0)
-                                            .min(sheet.worksheets.len().saturating_sub(1));
+                                            .min(sheet.worksheets.len().saturating_sub(1))
+                                    };
+                                    let winner = {
+                                        let mut states = merge_states().write().await;
+                                        let cells = states
+                                            .entry(sheet_id_clone.clone())
+                                            .or_insert_with(CellState::new);
+                                        stage_cell_edit(
+                                            cells,
+                                            &user_id_clone,
+                                            CellKey::new(ws_idx, row, col),
+                                            Some(content.clone()),
+                                            collab_msg.seq,
+                                        )
+                                    };
+                                    if winner.is_none() {
+                                        log::debug!(
+                                            "dropping stale sheet edit {row},{col}@{ws_idx} from {}",
+                                            user_id_clone
+                                        );
+                                        continue;
+                                    }
+                                    {
+                                        let mut sheet = session.sheet.write().await;
                                         let key = format!("{row},{col}");
                                         let entry = sheet.worksheets[ws_idx]
                                             .data
@@ -381,4 +431,20 @@ pub async fn handle_sheet_connection(
     }
 
     let _ = broadcast_tx.send(leave_msg);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{stage_cell_edit, CellKey, CellState};
+
+    #[test]
+    fn version_hint_rejects_stale_and_duplicate_edits() {
+        let cell = CellKey::new(0, 1, 2);
+        let mut state = CellState::new();
+        assert!(stage_cell_edit(&mut state, "alice", cell, Some("v".into()), Some(9)).is_some());
+        assert!(stage_cell_edit(&mut state, "bob", cell, Some("stale".into()), Some(3)).is_none());
+        assert!(stage_cell_edit(&mut state, "alice", cell, Some("v".into()), Some(9)).is_none());
+        let next = stage_cell_edit(&mut state, "bob", cell, Some("next".into()), None);
+        assert!(next.is_some_and(|op| op.clock > 9));
+    }
 }
