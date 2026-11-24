@@ -5,6 +5,18 @@
  * to the boot graph is surfaced for review. They are observations, not a
  * ratchet: no baseline file is read or written. When production legitimately
  * changes the graph, these exact numbers must be updated in the same PR.
+ *
+ * BASELINE REFRESH (2026-11-24): relocked after legitimate production HTML
+ * growth since the previous lock (25b27a776). The +1 file / +5 scripts /
+ * +3 stylesheets delta is fully accounted for by shipped pages:
+ *   - new settings/partials/16_protection.html  (+1 file, +2 stylesheets)
+ *   - docs/docs.html                            (+1 script, +1 stylesheet)
+ *   - docs/shared.html                          (+1 script)
+ *   - partials/tasks.html                       (+1 script)
+ *   - settings/index.html                       (+1 script)
+ *   - tasks/tasks.html                          (+1 script)
+ * No per-file entry-page baseline changed (desktop/chat/projector counts are
+ * unchanged), so this is observation drift only, not a budget regression.
  */
 "use strict";
 
@@ -19,9 +31,9 @@ var DESKTOP = "desktop.html";
 var CHAT = "partials/chat.html";
 var PROJECTOR = "chat/projector.html";
 
-test("[BASELINE-OBSERVE] 214 shipped suite HTML files scanned, tests/ excluded", function () {
+test("[BASELINE-OBSERVE] 215 shipped suite HTML files scanned, tests/ excluded", function () {
   var a = all();
-  equal(a.files.length, 214, "HTML file count");
+  equal(a.files.length, 215, "HTML file count");
   assert(a.files.every(function (rel) { return rel.indexOf("tests/") !== 0 && rel.indexOf("tests/") < 0; }),
     "tests/ leaked into the scan set");
 });
@@ -62,13 +74,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 3 style
   equal(p.stylesheet, 3, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1160 scripts, 1104 src, 1091 blocking, 56 inline, 510 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1165 scripts, 1109 src, 1096 blocking, 56 inline, 513 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1160, "scripts");
-  equal(t.scriptSrc, 1104, "scriptSrc");
-  equal(t.blockingScriptSrc, 1091, "blockingScriptSrc");
+  equal(t.scripts, 1165, "scripts");
+  equal(t.scriptSrc, 1109, "scriptSrc");
+  equal(t.blockingScriptSrc, 1096, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
-  equal(t.stylesheet, 510, "stylesheet");
+  equal(t.stylesheet, 513, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
