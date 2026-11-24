@@ -6,6 +6,12 @@
 /// (command name, app id, HTTP method, registered route) — stable contract.
 const EXPECTED: &[(&str, &str, &str, &str)] = &[
     (
+        "docs.comment.add",
+        "docs",
+        "POST",
+        "/api/docs/comment",
+    ),
+    (
         "docs.comment.reply",
         "docs",
         "POST",
