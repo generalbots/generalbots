@@ -104,7 +104,8 @@ pub fn db_dashboard_to_dashboard(
     widgets: Vec<Widget>,
     filters: Vec<DashboardFilter>,
 ) -> Dashboard {
-    let layout: DashboardLayout = serde_json::from_value(db.layout).unwrap_or_default();
+    let layout: DashboardLayout =
+        serde_json::from_value(db.layout).unwrap_or_else(|_| DashboardLayout::default());
     let tags: Vec<String> = db.tags.into_iter().flatten().collect();
 
     Dashboard {
@@ -128,7 +129,8 @@ pub fn db_dashboard_to_dashboard(
 
 pub fn db_widget_to_widget(db: DbWidget) -> Widget {
     let widget_type: WidgetType = db.widget_type.parse().unwrap_or(WidgetType::Text);
-    let config: WidgetConfig = serde_json::from_value(db.config).unwrap_or_default();
+    let config: WidgetConfig =
+        serde_json::from_value(db.config).unwrap_or_else(|_| WidgetConfig::default());
     let data_query: Option<DataQuery> = db.data_query.and_then(|v| serde_json::from_value(v).ok());
     let style: Option<WidgetStyle> = serde_json::from_value(db.style).ok();
 
@@ -153,8 +155,10 @@ pub fn db_filter_to_filter(db: DbFilter) -> DashboardFilter {
         .filter_type
         .parse()
         .unwrap_or(DashboardFilterType::Text);
-    let options: Vec<FilterOption> = serde_json::from_value(db.options).unwrap_or_default();
-    let linked_widgets: Vec<Uuid> = serde_json::from_value(db.linked_widgets).unwrap_or_default();
+    let options: Vec<FilterOption> =
+        serde_json::from_value(db.options).unwrap_or_else(|_| Vec::new());
+    let linked_widgets: Vec<Uuid> =
+        serde_json::from_value(db.linked_widgets).unwrap_or_else(|_| Vec::new());
 
     DashboardFilter {
         id: db.id,
@@ -172,8 +176,8 @@ pub fn db_data_source_to_data_source(db: DbDataSource) -> DataSource {
         .source_type
         .parse()
         .unwrap_or(DataSourceType::InternalTables);
-    let connection: DataSourceConnection =
-        serde_json::from_value(db.connection.clone()).unwrap_or_default();
+    let connection: DataSourceConnection = serde_json::from_value(db.connection.clone())
+        .unwrap_or_else(|_| DataSourceConnection::default());
     let schema: Option<DataSourceSchema> = serde_json::from_value(db.schema_definition).ok();
     let status: DataSourceStatus = db.status.parse().unwrap_or(DataSourceStatus::Inactive);
 

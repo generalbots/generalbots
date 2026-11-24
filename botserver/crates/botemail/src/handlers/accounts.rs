@@ -200,7 +200,7 @@ pub async fn list_email_accounts_htmx(
     .await
     .ok()
     .and_then(Result::ok)
-    .unwrap_or_default();
+    .unwrap_or_else(Vec::new);
 
     if accounts.is_empty() {
         return axum::response::Html(

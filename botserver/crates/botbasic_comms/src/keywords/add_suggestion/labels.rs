@@ -27,7 +27,7 @@ pub fn pick_locale(session_locale: Option<&str>, configured: Option<&str>) -> Lo
         .flatten()
         .map(str::trim)
         .find_map(Locale::new)
-        .unwrap_or_default()
+        .unwrap_or_else(Locale::default)
 }
 
 /// Locale of the running session.

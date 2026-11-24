@@ -48,7 +48,7 @@ impl ClaudeClient {
         trace!("CLAUDE Response status: {} in {:?}", status, start_time.elapsed());
 
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Claude API error response: {}", error_text);
             return Err(format!("HTTP {}: {}", status, error_text).into());
         }

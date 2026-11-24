@@ -32,7 +32,7 @@ impl Episode {
                 item_map.insert("description".into(), a.description.clone().into());
                 item_map.insert(
                     "assignee".into(),
-                    a.assignee.clone().unwrap_or_default().into(),
+                    a.assignee.clone().unwrap_or_else(String::new).into(),
                 );
                 item_map.insert(
                     "priority".into(),
@@ -76,28 +76,28 @@ pub fn register_episodic_memory_keywords(engine: &mut Engine) {
         episode
             .get("summary")
             .and_then(|v| v.clone().try_cast::<String>())
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     });
 
     engine.register_fn("episode_topics", |episode: Map| -> Array {
         episode
             .get("key_topics")
             .and_then(|v| v.clone().try_cast::<Array>())
-            .unwrap_or_default()
+            .unwrap_or_else(rhai::Array::new)
     });
 
     engine.register_fn("episode_decisions", |episode: Map| -> Array {
         episode
             .get("decisions")
             .and_then(|v| v.clone().try_cast::<Array>())
-            .unwrap_or_default()
+            .unwrap_or_else(rhai::Array::new)
     });
 
     engine.register_fn("episode_action_items", |episode: Map| -> Array {
         episode
             .get("action_items")
             .and_then(|v| v.clone().try_cast::<Array>())
-            .unwrap_or_default()
+            .unwrap_or_else(rhai::Array::new)
     });
 
     engine.register_fn("episode_sentiment_score", |episode: Map| -> f64 {

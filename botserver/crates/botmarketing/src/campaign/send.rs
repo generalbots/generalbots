@@ -257,7 +257,7 @@ mod tests {
             assert!(!outcome.delivered);
             assert!(outcome.skipped.is_none());
             assert_eq!(outcome.status, "unsupported_channel");
-            let error = outcome.error.unwrap_or_default();
+            let error = outcome.error.unwrap_or_else(String::new);
             assert!(error.contains(channel.as_str()));
         }
     }

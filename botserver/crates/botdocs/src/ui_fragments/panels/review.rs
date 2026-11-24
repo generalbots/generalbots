@@ -7,7 +7,10 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: comments panel payload unreadable: {error}");
+        Vec::new()
+    });
     if comments.is_empty() {
         return Html(format!(
             r##"<div class="dc-panel" id="comments-panel">{}</div>"##,
@@ -57,10 +60,13 @@ pub async fn handle_track_changes_panel(
             .cloned()
             .unwrap_or(serde_json::Value::Null),
     )
-    .unwrap_or_default();
+    .unwrap_or_else(|error| {
+        log::warn!("docs: changes panel payload unreadable: {error}");
+        Vec::new()
+    });
     if changes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
-            changes = doc.track_changes.unwrap_or_default();
+            changes = doc.track_changes.unwrap_or_else(Vec::new);
         }
     }
     let doc_id = payload

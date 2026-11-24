@@ -328,7 +328,7 @@ async fn scan_barcode(
     bot_id: &uuid::Uuid,
     image_path: &str,
 ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-    let host = state.config_value("botmodels-host").unwrap_or_default();
+    let host = state.config_value("botmodels-host").unwrap_or_else(String::new);
     let key = state.config_value("botmodels-api-key").unwrap_or_else(|| "starter".to_string());
 
     let client = reqwest::Client::builder()

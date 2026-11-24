@@ -144,7 +144,10 @@ pub async fn handle_list_collections<S: ResearchState>(
         }
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Research collections task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
 
@@ -199,7 +202,7 @@ pub async fn handle_create_collection<S: ResearchState>(
     let conn = state.db_pool().clone();
     let id = uuid::Uuid::new_v4();
     let name = payload.name.clone();
-    let description = payload.description.unwrap_or_default();
+    let description = payload.description.unwrap_or_else(String::new);
     let qdrant_collection = kb_scope.collection_name(&name);
 
     let id_clone = id;
@@ -273,10 +276,16 @@ pub async fn handle_get_collection<S: ResearchState>(
         ))
         .bind::<diesel::sql_types::Text, _>(&collection_id)
         .load::<KbDocumentRow>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load collection documents: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Collection documents task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
     html.push_str("<div class=\"collection-results\">");

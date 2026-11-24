@@ -173,7 +173,7 @@ impl CodeScanner {
             for entry in WalkDir::new(&templates_path).max_depth(3).into_iter().flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let name = path.file_name().unwrap_or_default().to_string_lossy();
+                    let name = path.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")).to_string_lossy();
                     if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
                         bot_paths.push(path.to_path_buf());
                     }
@@ -185,7 +185,7 @@ impl CodeScanner {
             for entry in WalkDir::new(&work_path).max_depth(3).into_iter().flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let name = path.file_name().unwrap_or_default().to_string_lossy();
+                    let name = path.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")).to_string_lossy();
                     if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
                         bot_paths.push(path.to_path_buf());
                     }
@@ -213,7 +213,11 @@ impl CodeScanner {
     }
 
     pub async fn scan_bot(&self, bot_path: &Path) -> Result<BotScanResult, Box<dyn std::error::Error + Send + Sync>> {
-        let bot_name = bot_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let bot_name = bot_path
+            .file_name()
+            .unwrap_or_else(|| std::ffi::OsStr::new(""))
+            .to_string_lossy()
+            .to_string();
         let bot_id = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, bot_name.as_bytes()).to_string();
 
         let mut issues = Vec::new();
@@ -223,7 +227,9 @@ impl CodeScanner {
         for entry in WalkDir::new(bot_path).into_iter().flatten() {
             let path = entry.path();
             if path.is_file() {
-                let extension = path.extension().unwrap_or_default().to_string_lossy();
+                let extension = path.extension()
+                    .unwrap_or_else(|| std::ffi::OsStr::new(""))
+                    .to_string_lossy();
                 if extension == "bas" || extension == "csv" {
                     files_scanned += 1;
                     let file_issues = self.scan_file(path).await?;

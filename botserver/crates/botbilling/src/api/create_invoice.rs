@@ -32,7 +32,7 @@ pub async fn create_invoice(
     let discount_percent = bd(req.discount_percent.unwrap_or(0.0));
 
     let mut subtotal = bd(0.0);
-    let items = req.items.unwrap_or_default();
+    let items = req.items.unwrap_or_else(Vec::new);
     for item in &items {
         let item_amount = item.quantity * item.unit_price;
         let item_discount = item_amount * item.discount_percent.unwrap_or(0.0) / 100.0;
@@ -50,7 +50,7 @@ pub async fn create_invoice(
         bot_id,
         branch_id,
         invoice_number,
-        customer_name: req.customer_name.clone().unwrap_or_default(),
+        customer_name: req.customer_name.clone().unwrap_or_else(String::new),
         customer_email: req.customer_email.clone(),
         status: "draft".to_string(),
         total: total.clone(),

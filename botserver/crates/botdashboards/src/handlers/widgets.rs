@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::error::DashboardsError;
 use crate::schema::dashboard_widgets;
 use crate::storage::{db_widget_to_widget, DbWidget};
-use crate::types::{AddWidgetRequest, UpdateWidgetRequest, Widget, WidgetData};
+use crate::types::{AddWidgetRequest, UpdateWidgetRequest, Widget, WidgetData, WidgetStyle};
 use crate::DashboardsState;
 
 pub async fn handle_add_widget(
@@ -35,9 +35,10 @@ pub async fn handle_add_widget(
             position_y: req.position.y,
             width: req.position.width,
             height: req.position.height,
-            config: serde_json::to_value(&req.config).unwrap_or_default(),
+            config: serde_json::to_value(&req.config).unwrap_or_else(|_| serde_json::Value::Null),
             data_query: req.data_query.and_then(|q| serde_json::to_value(&q).ok()),
-            style: serde_json::to_value(req.style.unwrap_or_default()).unwrap_or_default(),
+            style: serde_json::to_value(req.style.unwrap_or_else(WidgetStyle::default))
+                .unwrap_or_else(|_| serde_json::Value::Null),
             created_at: now,
             updated_at: now,
         };
@@ -83,13 +84,15 @@ pub async fn handle_update_widget(
             db_widget.height = position.height;
         }
         if let Some(config) = req.config {
-            db_widget.config = serde_json::to_value(&config).unwrap_or_default();
+            db_widget.config =
+                serde_json::to_value(&config).unwrap_or_else(|_| serde_json::Value::Null);
         }
         if let Some(data_query) = req.data_query {
             db_widget.data_query = serde_json::to_value(&data_query).ok();
         }
         if let Some(style) = req.style {
-            db_widget.style = serde_json::to_value(&style).unwrap_or_default();
+            db_widget.style =
+                serde_json::to_value(&style).unwrap_or_else(|_| serde_json::Value::Null);
         }
         db_widget.updated_at = Utc::now();
 

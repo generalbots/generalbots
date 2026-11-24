@@ -69,8 +69,8 @@ fn user_id_from_session(user: &UserSession) -> Option<Uuid> {
 }
 
 fn llm_content(state: &Arc<dyn BasicRuntime>, prompt: &str, fallback: &str) -> String {
-    let model = state.config_value("llm-model").unwrap_or_default();
-    let key = state.config_value("llm-key").unwrap_or_default();
+    let model = state.config_value("llm-model").unwrap_or_else(String::new);
+    let key = state.config_value("llm-key").unwrap_or_else(String::new);
     state
         .llm_generate(prompt, &model, &key)
         .unwrap_or_else(|_| fallback.to_string())

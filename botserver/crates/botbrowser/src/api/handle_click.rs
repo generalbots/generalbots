@@ -31,7 +31,13 @@ pub async fn handle_click(
         )
     })?;
     match session.click(&selector).await {
-        Ok(state) => Ok(Json(serde_json::to_value(state).unwrap_or_default())),
+        Ok(state) => {
+            let value = serde_json::to_value(state).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize click state: {e}");
+                serde_json::Value::Null
+            });
+            Ok(Json(value))
+        }
         Err(e) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             format!("Click failed: {e}"),

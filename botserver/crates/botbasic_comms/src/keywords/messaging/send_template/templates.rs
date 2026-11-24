@@ -93,11 +93,11 @@ pub(super) fn extract_template_variables(content: &str) -> Array {
 }
 
 pub(super) fn generate_message_id() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
+        .unwrap_or_else(|_| Duration::ZERO)
         .as_millis();
 
     format!("msg_{}", timestamp)

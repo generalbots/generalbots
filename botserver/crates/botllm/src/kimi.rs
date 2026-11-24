@@ -188,7 +188,7 @@ impl LLMProvider for KimiClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("Kimi API error: {}", error_text);
             return Err(format!("Kimi API error: {}", error_text).into());
         }
@@ -198,7 +198,7 @@ impl LLMProvider for KimiClient {
             .choices
             .first()
             .and_then(|c| c.message.content.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         Ok(content)
     }
@@ -282,7 +282,7 @@ impl LLMProvider for KimiClient {
             .await?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("[Kimi] Streaming error: {}", error_text);
             return Err(format!("Kimi streaming error: {}", error_text).into());
         }

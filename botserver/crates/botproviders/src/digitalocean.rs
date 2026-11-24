@@ -95,7 +95,10 @@ impl DigitalOceanProvider {
         let status = resp.status();
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let body = read_body(resp).await.unwrap_or_default();
+            let body = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("DigitalOcean: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("DigitalOcean", status, &headers, &body));
         }
         let text = read_body(resp).await?;
@@ -206,7 +209,10 @@ impl ComputeProvider for DigitalOceanProvider {
         let status = resp.status();
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let body = read_body(resp).await.unwrap_or_default();
+            let body = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("DigitalOcean: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("DigitalOcean", status, &headers, &body));
         }
         Ok(())
@@ -226,17 +232,17 @@ impl ComputeProvider for DigitalOceanProvider {
         Ok(droplets
             .iter()
             .map(|droplet| {
-                let slug = droplet["size_slug"].as_str().unwrap_or_default();
+                let slug = droplet["size_slug"].as_str().unwrap_or("");
                 ProvisionResult {
                     provider: "digitalocean".into(),
-                    instance_id: droplet["id"].as_i64().unwrap_or_default().to_string(),
+                    instance_id: droplet["id"].as_i64().unwrap_or(0).to_string(),
                     status: droplet["status"].as_str().unwrap_or("unknown").into(),
                     ip_address: droplet["networks"]["v4"]
                         .as_array()
                         .and_then(|nets| nets.first())
                         .and_then(|net| net["ip_address"].as_str())
                         .map(str::to_string),
-                    region: droplet["region"]["slug"].as_str().unwrap_or_default().to_string(),
+                    region: droplet["region"]["slug"].as_str().unwrap_or("").to_string(),
                     spec: MachineSpec {
                         cpu_cores: droplet["vcpus"].as_u64().unwrap_or(1) as u32,
                         ram_gb: droplet["memory_mib"].as_u64().unwrap_or(1024) as u32 / 1024,

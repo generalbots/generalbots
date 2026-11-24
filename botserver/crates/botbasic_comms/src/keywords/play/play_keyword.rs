@@ -107,7 +107,7 @@ pub(super) fn play_simple_keyword(
 
         match rx.recv_timeout(std::time::Duration::from_secs(30)) {
             Ok(Ok(response)) => {
-                let json = serde_json::to_string(&response).unwrap_or_default();
+                let json = serde_json::to_string(&response).unwrap_or_else(|_| String::new());
                 Ok(Dynamic::from(json))
             }
             Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -164,7 +164,7 @@ pub(super) fn play_with_options_keyword(
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                 Ok(Ok(response)) => {
-                    let json = serde_json::to_string(&response).unwrap_or_default();
+                    let json = serde_json::to_string(&response).unwrap_or_else(|_| String::new());
                     Ok(Dynamic::from(json))
                 }
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(

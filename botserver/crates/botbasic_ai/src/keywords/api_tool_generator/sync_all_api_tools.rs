@@ -181,7 +181,7 @@ impl ApiToolGenerator {
             name: param.name.clone(),
             param_type,
             location: param.location.clone(),
-            description: param.description.clone().unwrap_or_default(),
+            description: param.description.clone().unwrap_or_else(String::new),
             required: param.required.unwrap_or(false),
             example,
         }
@@ -191,7 +191,7 @@ impl ApiToolGenerator {
         let mut params = Vec::new();
 
         if let Some(properties) = &schema.properties {
-            let required_fields = schema.required.clone().unwrap_or_default();
+            let required_fields = schema.required.clone().unwrap_or_else(Vec::new);
 
             for (name, prop_schema) in properties {
                 let param_type = prop_schema

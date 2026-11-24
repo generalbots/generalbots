@@ -34,7 +34,7 @@ pub(super) async fn handle_time_off_list(State(state): State<Arc<PeopleState>>) 
             let mut html = String::from(r##"<div class="time-off-list">"##);
 
             for (id, _person_id, time_off_type, status, start_date, end_date, reason) in requests {
-                let reason_str = reason.unwrap_or_default();
+                let reason_str = reason.unwrap_or_else(String::new);
                 let start_str = start_date.format("%b %d").to_string();
                 let end_str = end_date.format("%b %d, %Y").to_string();
 
@@ -77,7 +77,7 @@ pub(super) async fn handle_people_search(
     State(state): State<Arc<PeopleState>>,
     Query(query): Query<SearchQuery>,
 ) -> Html<String> {
-    let q = query.q.clone().unwrap_or_default();
+    let q = query.q.clone().unwrap_or_else(String::new);
     if q.is_empty() {
         return Html(String::new());
     }
@@ -120,9 +120,9 @@ pub(super) async fn handle_people_search(
             let mut html = String::from(r##"<div class="search-results">"##);
 
             for row in persons {
-                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
-                let email_str: String = row.email.unwrap_or_default();
-                let title_str: String = row.job_title.unwrap_or_default();
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_else(String::new));
+                let email_str: String = row.email.unwrap_or_else(String::new);
+                let title_str: String = row.job_title.unwrap_or_else(String::new);
                 let avatar: String = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
                 let id = row.id;
 

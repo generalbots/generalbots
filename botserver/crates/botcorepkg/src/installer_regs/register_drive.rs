@@ -34,7 +34,7 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
                 ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
                 ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
             ]),
-            data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_default(),
+            data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_else(Vec::new),
             exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
             check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
             exec_cmd_windows: Some("start /B {{BIN_PATH}}\\minio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 > {{LOGS_PATH}}\\minio.log 2>&1".to_string()),
@@ -206,8 +206,8 @@ pub fn register_llm(components: &mut HashMap<String, ComponentConfig>) {
             post_install_cmds_windows: Vec::new(),
             env_vars: HashMap::new(),
             data_download_list: vec![
-                get_model_url("deepseek_small").unwrap_or_default(),
-                get_model_url("bge_embedding").unwrap_or_default(),
+                get_model_url("deepseek_small").unwrap_or_else(String::new),
+                get_model_url("bge_embedding").unwrap_or_else(String::new),
             ],
             // The llama.cpp release archives unpack to `bin/`, and every consumer
             // of the local model calls it over plain HTTP (`http://127.0.0.1:8081`,

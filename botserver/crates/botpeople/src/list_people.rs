@@ -80,13 +80,19 @@ pub async fn get_person(
         .filter(people::is_active.eq(true))
         .order(people::first_name.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load direct reports for person {id}: {e}");
+            Vec::new()
+        });
 
     let team_ids: Vec<Uuid> = people_team_members::table
         .filter(people_team_members::person_id.eq(id))
         .select(people_team_members::team_id)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load team ids for person {id}: {e}");
+            Vec::new()
+        });
 
     let teams: Vec<Team> = if team_ids.is_empty() {
         vec![]
@@ -95,14 +101,20 @@ pub async fn get_person(
             .filter(people_teams::branch_id.eq(branch_id))
             .filter(people_teams::id.eq_any(&team_ids))
             .load(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load teams for person {id}: {e}");
+                Vec::new()
+            })
     };
 
     let skill_ids: Vec<Uuid> = people_person_skills::table
         .filter(people_person_skills::person_id.eq(id))
         .select(people_person_skills::skill_id)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load skill ids for person {id}: {e}");
+            Vec::new()
+        });
 
     let skills: Vec<Skill> = if skill_ids.is_empty() {
         vec![]
@@ -111,7 +123,10 @@ pub async fn get_person(
             .filter(people_skills::branch_id.eq(branch_id))
             .filter(people_skills::id.eq_any(&skill_ids))
             .load(&mut conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load skills for person {id}: {e}");
+                Vec::new()
+            })
     };
 
     Ok(Json(PersonWithDetails {

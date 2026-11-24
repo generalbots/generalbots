@@ -180,7 +180,7 @@ Respond with JSON only:
                     },
                     time: ts.time, day: ts.day, interval: ts.interval, cron_expression: ts.cron_expression,
                 });
-                let alternatives = resp.alternatives.unwrap_or_default().into_iter().map(|a| AlternativeClassification {
+                let alternatives = resp.alternatives.unwrap_or_else(Vec::new).into_iter().map(|a| AlternativeClassification {
                     intent_type: IntentType::from(a.intent_type.as_str()),
                     confidence: a.confidence, reason: a.reason,
                 }).collect();
@@ -191,8 +191,8 @@ Respond with JSON only:
                     entities: ClassifiedEntities {
                         subject: resp.subject, action: resp.action, domain: resp.domain,
                         time_spec, condition: resp.condition, recipient: resp.recipient,
-                        features: resp.features.unwrap_or_default(), tables: resp.tables.unwrap_or_default(),
-                        trigger_phrases: resp.trigger_phrases.unwrap_or_default(),
+                        features: resp.features.unwrap_or_else(Vec::new), tables: resp.tables.unwrap_or_else(Vec::new),
+                        trigger_phrases: resp.trigger_phrases.unwrap_or_else(Vec::new),
                         target_value: resp.target_value,
                     },
                     suggested_name: resp.suggested_name,

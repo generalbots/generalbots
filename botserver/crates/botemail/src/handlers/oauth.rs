@@ -204,7 +204,7 @@ pub async fn mail_oauth_callback(
     Query(params): Query<OAuthCallbackParams>,
 ) -> Response {
     if let Some(error) = params.error {
-        let detail = params.error_description.unwrap_or_default();
+        let detail = params.error_description.unwrap_or_else(String::new);
         return EmailError(format!("The provider refused the consent request: {error} {detail}"))
             .into_response();
     }

@@ -142,7 +142,7 @@ impl PackageManager {
                 println!("Downloading {}", url);
                 crate::facade_download::download_file(
                     url,
-                    download_target.to_str().unwrap_or_default(),
+                    download_target.to_str().unwrap_or(""),
                 )
                 .await?;
                 crate::checksum::verify_download(&download_target, &expected, &filename)?;

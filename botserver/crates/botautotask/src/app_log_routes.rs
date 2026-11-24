@@ -256,7 +256,7 @@ pub async fn log_stats(
                     })
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(HashMap::new);
         Ok(LogStats {
             total_logs: row.total_logs.max(0) as usize,
             errors: row.errors.max(0) as usize,

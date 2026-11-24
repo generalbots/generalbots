@@ -62,7 +62,10 @@ impl ComputeProvider for VastAiProvider {
             .send()
             .await?;
 
-        let search_text = search_resp.text().await.unwrap_or_default();
+        let search_text = search_resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vast.ai: search response body unreadable: {e}");
+            String::new()
+        });
         let search_parsed: serde_json::Value = serde_json::from_str(&search_text)
             .map_err(|e| ProviderError::Api(format!("Vast.ai search parse: {e}")))?;
 
@@ -107,7 +110,10 @@ impl ComputeProvider for VastAiProvider {
             .send()
             .await?;
 
-        let instance_text = instance_resp.text().await.unwrap_or_default();
+        let instance_text = instance_resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vast.ai: create response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&instance_text)
             .map_err(|e| ProviderError::Api(format!("Vast.ai create parse: {e}")))?;
 
@@ -162,7 +168,10 @@ impl ComputeProvider for VastAiProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vast.ai: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Vast.ai parse: {e}")))?;
 
@@ -188,7 +197,10 @@ impl ComputeProvider for VastAiProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vast.ai: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Vast.ai parse: {e}")))?;
 

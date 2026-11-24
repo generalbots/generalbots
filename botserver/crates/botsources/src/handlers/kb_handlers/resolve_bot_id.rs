@@ -115,7 +115,7 @@ pub async fn handle_upload_document(
         match name.as_str() {
             "file" => {
                 file_name = field.file_name().unwrap_or("unknown").to_string();
-                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                content_type = field.content_type().map(str::to_string).unwrap_or_else(String::new);
                 if let Ok(data) = field.bytes().await {
                     file_data = data.to_vec();
                 }
@@ -319,10 +319,16 @@ pub async fn handle_list_sources(
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(status_filter.as_deref())
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(type_filter.as_deref())
             .load::<KnowledgeSourceRow>(&mut db_conn)
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("KB source list query failed: {e}");
+                Vec::new()
+            })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("KB source list task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::new();
     html.push_str("<div class=\"sources-list\">");

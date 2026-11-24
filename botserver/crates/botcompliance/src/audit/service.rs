@@ -215,7 +215,7 @@ impl AuditService {
         format: ExportFormat,
         filter: Option<AuditFilter>,
     ) -> Result<Vec<u8>> {
-        let events = self.query_events(filter.unwrap_or_default()).await?;
+        let events = self.query_events(filter.unwrap_or_else(AuditFilter::default)).await?;
 
         match format {
             ExportFormat::Json => {
@@ -241,7 +241,7 @@ impl AuditService {
                         event.timestamp.to_rfc3339(),
                         format!("{:?}", event.event_type),
                         format!("{:?}", event.severity),
-                        event.user_id.map(|u| u.to_string()).unwrap_or_default(),
+                        event.user_id.map(|u| u.to_string()).unwrap_or_else(String::new),
                         event.action,
                         format!("{:?}", event.outcome),
                     ])?;

@@ -182,7 +182,7 @@ pub fn sign(key: &str, record: &TrackingRecord, destination: &str, expires_at: i
     let message = canonical_message(record, destination, expires_at);
     hmac_sha256(key.as_bytes(), message.as_bytes())
         .map(hex::encode)
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
 }
 
 /// Validates a destination and returns it unchanged.

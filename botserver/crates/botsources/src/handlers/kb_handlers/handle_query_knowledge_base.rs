@@ -75,14 +75,20 @@ pub async fn handle_query_knowledge_base(
                 .bind::<diesel::sql_types::Uuid, _>(bot_id)
                 .bind::<diesel::sql_types::Text, _>(coll)
                 .load(&mut db_conn)
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    log::warn!("KB query with collection filter failed: {e}");
+                    Vec::new()
+                })
         } else {
             diesel::sql_query(&sql)
                 .bind::<diesel::sql_types::Text, _>(&query)
                 .bind::<diesel::sql_types::Text, _>(&search_pattern)
                 .bind::<diesel::sql_types::Uuid, _>(bot_id)
                 .load(&mut db_conn)
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    log::warn!("KB query failed: {e}");
+                    Vec::new()
+                })
         };
 
         search_results
@@ -99,7 +105,10 @@ pub async fn handle_query_knowledge_base(
             .collect::<Vec<_>>()
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("KB query task failed: {e}");
+        Vec::new()
+    });
 
     let processing_time_ms = start_time.elapsed().as_millis() as u64;
 
@@ -132,7 +141,10 @@ pub async fn handle_get_source(
         )
         .bind::<diesel::sql_types::Text, _>(&id)
         .load(&mut db_conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("KB source detail query failed: {e}");
+            Vec::new()
+        });
 
         sources.into_iter().next()
     })

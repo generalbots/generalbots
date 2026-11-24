@@ -40,7 +40,7 @@ pub(super) fn execute_insert(
 
     match result {
         Ok(rows) => {
-            let id = rows.first().map(|r| r.id.clone()).unwrap_or_default();
+            let id = rows.first().map(|r| r.id.clone()).unwrap_or_else(String::new);
             Ok(json!({
                 "command": "insert",
                 "table": table,
@@ -146,7 +146,7 @@ pub(super) fn execute_merge(
         let key_value = item_map
             .get(key_field)
             .map(|v| v.to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         if key_value.is_empty() {
             continue;

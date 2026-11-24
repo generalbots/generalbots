@@ -67,7 +67,7 @@ impl SubscriptionLifecycleService {
             event_type,
             None,
             Some(request.plan_id),
-            request.metadata.unwrap_or_default(),
+            request.metadata.unwrap_or_else(HashMap::new),
         )
         .await;
 
@@ -249,7 +249,7 @@ impl SubscriptionLifecycleService {
                 None,
                 HashMap::from([
                     ("immediate".to_string(), "true".to_string()),
-                    ("reason".to_string(), request.reason.unwrap_or_default()),
+                    ("reason".to_string(), request.reason.unwrap_or_else(String::new)),
                 ]),
             )
             .await;
@@ -265,8 +265,8 @@ impl SubscriptionLifecycleService {
                 None,
                 None,
                 HashMap::from([
-                    ("reason".to_string(), request.reason.unwrap_or_default()),
-                    ("feedback".to_string(), request.feedback.unwrap_or_default()),
+                    ("reason".to_string(), request.reason.unwrap_or_else(String::new)),
+                    ("feedback".to_string(), request.feedback.unwrap_or_else(String::new)),
                 ]),
             )
             .await;

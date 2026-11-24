@@ -48,7 +48,7 @@ pub fn trigger_deal_stage_change(
         .filter(system_automations::is_active.eq(true))
         .filter(system_automations::bot_id.eq(_bot_id))
         .load(conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     for automation in automations {
         let target_stage = automation.target.as_deref().unwrap_or("");
@@ -74,7 +74,7 @@ pub fn trigger_contact_change(
         .filter(system_automations::is_active.eq(true))
         .filter(system_automations::bot_id.eq(_bot_id))
         .load(conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     for automation in automations {
         let target_value = automation.target.as_deref().unwrap_or("");
@@ -100,7 +100,7 @@ pub fn trigger_email_opened(
         .filter(system_automations::is_active.eq(true))
         .filter(system_automations::bot_id.eq(_bot_id))
         .load(conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     for automation in automations {
         let target_campaign = automation.target.as_deref().unwrap_or("");

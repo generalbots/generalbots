@@ -73,7 +73,7 @@ pub fn extract_charts(
         let drawing_rels = files
             .get(&drawing_rels_path)
             .map(|r| parse_rels(r))
-            .unwrap_or_default();
+            .unwrap_or_else(HashMap::new);
 
         let anchored = parse_drawing(drawing_xml, &drawing_rels);
         if anchored.is_empty() {
@@ -105,7 +105,7 @@ fn to_chart_config(
     let mut datasets = Vec::new();
     for (i, series) in parsed.series.iter().enumerate() {
         let label = if series.name.contains('!') {
-            resolve_single_cell(&series.name, ws_index, worksheets).unwrap_or_default()
+            resolve_single_cell(&series.name, ws_index, worksheets).unwrap_or_else(String::new)
         } else {
             series.name.clone()
         };
@@ -131,12 +131,12 @@ fn to_chart_config(
             .series
             .first()
             .map(|s| s.val_ref.clone())
-            .unwrap_or_default(),
+            .unwrap_or_else(String::new),
         label_range: parsed
             .series
             .first()
             .map(|s| s.cat_ref.clone())
-            .unwrap_or_default(),
+            .unwrap_or_else(String::new),
         position,
         options: ChartOptions {
             show_legend: parsed.legend_pos.is_some(),
@@ -159,7 +159,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry {i}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut data = Vec::new();
         std::io::Read::read_to_end(&mut entry, &mut data)
             .map_err(|e| format!("Failed to read zip entry {name}: {e}"))?;

@@ -99,7 +99,10 @@ pub async fn handle_payment_methods(State(state): State<Arc<BillingApiState>>) -
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load billing summary rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if methods.is_empty() {
         return Html(
@@ -180,7 +183,10 @@ pub async fn handle_invoices(State(state): State<Arc<BillingApiState>>) -> impl 
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("Failed to load billing summary rows ({e}); using empty list");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(r#"<tr><td colspan="4" class="empty-cell">No invoices yet</td></tr>"#.to_string());

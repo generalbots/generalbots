@@ -48,7 +48,10 @@
     }
 
     fn uuid(value: &str) -> Uuid {
-        Uuid::parse_str(value).unwrap_or_default()
+        Uuid::parse_str(value).unwrap_or_else(|error| {
+            log::warn!("docs test: invalid UUID {value}: {error}");
+            Uuid::nil()
+        })
     }
 
     fn state_with_bucket(bucket: &str) -> Arc<DocState> {

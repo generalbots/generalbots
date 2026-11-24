@@ -72,7 +72,7 @@ pub fn script_body(
         }
         IntentType::Tool => {
             let triggers = if classification.entities.trigger_phrases.is_empty() {
-                vec![classification.suggested_name.clone().unwrap_or_default()]
+                vec![classification.suggested_name.clone().unwrap_or_else(String::new)]
             } else {
                 classification.entities.trigger_phrases.clone()
             };
@@ -114,7 +114,7 @@ pub fn script_for(
     let path = script_path_for_intent(classification);
     let fallback = fallback_script(
         &classification.original_text,
-        &classification.suggested_name.clone().unwrap_or_default(),
+        &classification.suggested_name.clone().unwrap_or_else(String::new),
     );
     let body = match compiled {
         Some(c) => script_body(classification, c, &fallback),

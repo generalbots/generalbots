@@ -100,7 +100,7 @@ impl BrowserSession {
         let id = uuid::Uuid::new_v4().to_string();
         let capability = new_capability();
         let vm = {
-            let vm = meta.vm.clone().unwrap_or_default();
+            let vm = meta.vm.clone().unwrap_or_else(String::new);
             if vm.trim().is_empty() {
                 "default".to_string()
             } else {
@@ -155,8 +155,8 @@ impl BrowserSession {
             .await
             .context("Failed to create new page")?;
 
-        let url = page.url().await.ok().flatten().unwrap_or_default();
-        let title = page.get_title().await.ok().flatten().unwrap_or_default();
+        let url = page.url().await.ok().flatten().unwrap_or_else(String::new);
+        let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
 
         Ok(Self {
             id,
@@ -214,11 +214,11 @@ impl BrowserSession {
             .await
             .context("Failed to wait for navigation")?;
 
-        let current_url = page.url().await.ok().flatten().unwrap_or_default();
+        let current_url = page.url().await.ok().flatten().unwrap_or_else(String::new);
         crate::url_policy::validate_navigation_target(&current_url)
             .await
             .map_err(anyhow::Error::msg)?;
-        let title = page.get_title().await.ok().flatten().unwrap_or_default();
+        let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
         let text_content = extract_page_text(&page).await;
 
         *self.current_url.lock().await = current_url.clone();
@@ -246,11 +246,11 @@ impl BrowserSession {
             .await
             .context("Failed to wait for navigation")?;
 
-        let current_url = page.url().await.ok().flatten().unwrap_or_default();
+        let current_url = page.url().await.ok().flatten().unwrap_or_else(String::new);
         crate::url_policy::validate_navigation_target(&current_url)
             .await
             .map_err(anyhow::Error::msg)?;
-        let title = page.get_title().await.ok().flatten().unwrap_or_default();
+        let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
         let text_content = extract_page_text(&page).await;
         let links = extract_links(&page).await;
         let headings = extract_headings(&page).await;
@@ -275,8 +275,8 @@ impl BrowserSession {
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
-        let current_url = page.url().await.ok().flatten().unwrap_or_default();
-        let title = page.get_title().await.ok().flatten().unwrap_or_default();
+        let current_url = page.url().await.ok().flatten().unwrap_or_else(String::new);
+        let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
         let text_content = extract_page_text(&page).await;
 
         *self.current_url.lock().await = current_url.clone();
@@ -341,8 +341,8 @@ impl BrowserSession {
 
     pub async fn extract_page_state(&self) -> Result<PageState> {
         let page = self.page.lock().await;
-        let current_url = page.url().await.ok().flatten().unwrap_or_default();
-        let title = page.get_title().await.ok().flatten().unwrap_or_default();
+        let current_url = page.url().await.ok().flatten().unwrap_or_else(String::new);
+        let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
         let text_content = extract_page_text(&page).await;
 
         *self.current_url.lock().await = current_url.clone();
@@ -378,7 +378,7 @@ async fn extract_page_text(page: &Page) -> String {
         .await
         .ok()
         .and_then(|r| r.into_value::<String>().ok())
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
 }
 
 async fn extract_links(page: &Page) -> Vec<LinkInfo> {
@@ -396,7 +396,7 @@ async fn extract_links(page: &Page) -> Vec<LinkInfo> {
         .await
         .ok()
         .and_then(|r| r.into_value::<Vec<LinkInfo>>().ok())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 async fn extract_headings(page: &Page) -> Vec<String> {
@@ -410,7 +410,7 @@ async fn extract_headings(page: &Page) -> Vec<String> {
         .await
         .ok()
         .and_then(|r| r.into_value::<Vec<String>>().ok())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

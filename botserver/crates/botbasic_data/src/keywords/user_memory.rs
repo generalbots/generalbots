@@ -63,7 +63,10 @@ pub fn get_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
         let conn_result = state.db_pool().get();
 
         if let Ok(mut conn) = conn_result {
-            get_user_memory_sync(&mut conn, user_id, &key_param).unwrap_or_default()
+            get_user_memory_sync(&mut conn, user_id, &key_param).unwrap_or_else(|e| {
+                log::warn!("Failed to read user memory '{key_param}': {e}");
+                String::new()
+            })
         } else {
             String::new()
         }
@@ -109,7 +112,10 @@ pub fn get_user_facts_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
 
         if let Ok(mut conn) = conn_result {
             get_user_facts_sync(&mut conn, user_id)
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to read user facts: {e}");
+                    Vec::new()
+                })
                 .into_iter()
                 .map(Dynamic::from)
                 .collect()
@@ -202,7 +208,7 @@ fn get_user_memory_sync(
     .optional()
     .map_err(|e| format!("Failed to get user memory: {e}"))?;
 
-    Ok(result.map(|r| r.value).unwrap_or_default())
+    Ok(result.map(|r| r.value).unwrap_or_else(String::new))
 }
 
 fn add_user_fact(state: Arc<dyn BasicRuntime>, user_id: Uuid, fact: &str) -> Result<(), String> {

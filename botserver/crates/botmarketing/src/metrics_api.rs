@@ -64,7 +64,7 @@ pub async fn get_time_series_metrics(
             .filter(email_tracking::campaign_id.eq(campaign_id))
             .select((email_tracking::opened_at, email_tracking::clicked_at))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     for (opened, clicked) in email_events {
         if let Some(ts) = opened {
@@ -108,7 +108,7 @@ async fn get_channel_breakdown(
             .filter(marketing_recipients::channel.eq(channel))
             .select(marketing_recipients::status)
             .load(conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
         if recipients.is_empty() {
             continue;
@@ -178,7 +178,7 @@ pub async fn get_aggregate_metrics(
         .filter(marketing_campaigns::branch_id.eq(branch_id))
         .select(marketing_campaigns::all_columns)
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     let campaign_ids: Vec<Uuid> = campaigns.iter().map(|c| c.id).collect();
 
@@ -186,7 +186,7 @@ pub async fn get_aggregate_metrics(
         .filter(marketing_recipients::campaign_id.eq_any(campaign_ids.clone()))
         .select((marketing_recipients::channel, marketing_recipients::status))
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
 
     let total_recipients = recipients.len() as i64;
     let total_sent = recipients.iter().filter(|(_, s)| s.as_deref() == Some("sent")).count() as i64;

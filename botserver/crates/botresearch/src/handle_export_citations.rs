@@ -5,7 +5,7 @@ pub async fn handle_export_citations<S: ResearchState>(
     headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let query = params.get("q").cloned().unwrap_or_default();
+    let query = params.get("q").cloned().unwrap_or_else(String::new);
 
     if query.trim().is_empty() {
         return Html(
@@ -33,10 +33,16 @@ pub async fn handle_export_citations<S: ResearchState>(
         ))
         .bind::<diesel::sql_types::Text, _>(&search_pattern)
         .load::<KbDocumentRow>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load cited documents: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Citation export task failed: {e}");
+        Vec::new()
+    });
 
     Html(render_citations_html(&docs))
 }
@@ -86,7 +92,7 @@ pub async fn handle_sources<S: ResearchState>(
     headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<SearchQuery>,
 ) -> impl IntoResponse {
-    let category = params.q.unwrap_or_default();
+    let category = params.q.unwrap_or_else(String::new);
     let conn = state.db_pool().clone();
     let scope = bot_scope_clause(&state.resolve_scope(&headers));
 
@@ -106,7 +112,10 @@ pub async fn handle_sources<S: ResearchState>(
             ))
             .load::<CollectionNameRow>(&mut db_conn)
             .map(|rows| rows.into_iter().map(|r| r.name).collect())
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load research sources: {e}");
+                Vec::new()
+            })
         } else {
             diesel::sql_query(format!(
                 "SELECT DISTINCT collection_name FROM kb_documents WHERE collection_name ILIKE $1{} ORDER BY collection_name ASC LIMIT 50",
@@ -115,11 +124,17 @@ pub async fn handle_sources<S: ResearchState>(
             .bind::<diesel::sql_types::Text, _>(&format!("%{category}%"))
             .load::<CollectionNameRow>(&mut db_conn)
             .map(|rows| rows.into_iter().map(|r| r.name).collect())
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load research sources: {e}");
+                Vec::new()
+            })
         }
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Research sources task failed: {e}");
+        Vec::new()
+    });
 
     Json(serde_json::json!({ "sources": sources }))
 }

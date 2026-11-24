@@ -83,9 +83,9 @@ pub async fn handle_connect_connector(
 
     // Secrets never touch the DB: sensitive auth fields move to Vault and the
     // row keeps only the vault path + sanitized config.
-    let raw_auth = payload.auth_config.unwrap_or_default();
+    let raw_auth = payload.auth_config.unwrap_or(serde_json::Value::Null);
     let (auth, secrets) = crate::connector_ops::split_sensitive_auth(&raw_auth);
-    let endpoints = payload.endpoints.unwrap_or_default();
+    let endpoints = payload.endpoints.unwrap_or(serde_json::Value::Null);
     let vault_path = if secrets.is_empty() {
         None
     } else {
@@ -284,8 +284,15 @@ pub async fn handle_create_etl_job(
     let mut conn = state.conn.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
     let id = Uuid::new_v4();
-    let transform: serde_json::Value =
-        payload.transform.map(|t| serde_json::from_str(&t).unwrap_or_default()).unwrap_or_default();
+    let transform: serde_json::Value = payload
+        .transform
+        .map(|t| {
+            serde_json::from_str(&t).unwrap_or_else(|e| {
+                log::warn!("ETL transform config parse failed: {e}");
+                serde_json::Value::Null
+            })
+        })
+        .unwrap_or(serde_json::Value::Null);
 
     diesel::sql_query(
         "INSERT INTO etl_jobs (id, bot_id, name, source_connector_id, destination_connector_id, \

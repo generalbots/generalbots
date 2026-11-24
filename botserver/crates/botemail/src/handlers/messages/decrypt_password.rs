@@ -24,6 +24,15 @@ pub(super) fn format_email_time(date_str: &str) -> String {
     }
     date_str.split_whitespace().take(4).collect::<Vec<_>>().join(" ")
 }
+/// Decodes a mail body, logging the parse error before falling back to an
+/// empty body so a decoding failure is visible in the server log (#2543).
+#[cfg(feature = "mail")]
+fn body_or_empty(body: std::result::Result<String, mailparse::MailParseError>) -> String {
+    body.unwrap_or_else(|e| {
+        log::warn!("Failed to decode mail body: {e}");
+        String::new()
+    })
+}
 #[cfg(feature = "mail")]
 pub async fn list_emails(
     State(state): State<Arc<AppState>>,
@@ -86,17 +95,17 @@ pub async fn list_emails(
             let parsed = parse_mail(body).map_err(|e| EmailError(format!("Failed to parse email: {e:?}")))?;
 
             let headers = parsed.get_headers();
-            let subject = headers.get_first_value("Subject").unwrap_or_default();
-            let from = headers.get_first_value("From").unwrap_or_default();
-            let to = headers.get_first_value("To").unwrap_or_default();
-            let date = headers.get_first_value("Date").unwrap_or_default();
+            let subject = headers.get_first_value("Subject").unwrap_or_else(String::new);
+            let from = headers.get_first_value("From").unwrap_or_else(String::new);
+            let to = headers.get_first_value("To").unwrap_or_else(String::new);
+            let date = headers.get_first_value("Date").unwrap_or_else(String::new);
 
             let body_text = parsed.subparts.iter()
                 .find(|p| p.ctype.mimetype == "text/plain")
-                .map_or_else(|| parsed.get_body().unwrap_or_default(), |bp| bp.get_body().unwrap_or_default());
+                .map_or_else(|| body_or_empty(parsed.get_body()), |bp| body_or_empty(bp.get_body()));
             let body_html = parsed.subparts.iter()
                 .find(|p| p.ctype.mimetype == "text/html")
-                .map_or_else(String::new, |bp| bp.get_body().unwrap_or_default());
+                .map_or_else(String::new, |bp| body_or_empty(bp.get_body()));
 
             let preview: String = body_text.lines().take(3).collect::<Vec<_>>().join(" ");
             // Mail bodies are arbitrary text; cut on a char boundary.

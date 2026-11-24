@@ -276,7 +276,10 @@ pub(super) async fn execute_http_request(
         .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
         .collect();
 
-    let body_text = response.text().await.unwrap_or_default();
+    let body_text = response.text().await.unwrap_or_else(|e| {
+        log::warn!("Failed to read HTTP response body for {method} {url}: {e}");
+        String::new()
+    });
 
     let body_value: Value = serde_json::from_str(&body_text).unwrap_or(Value::String(body_text));
 

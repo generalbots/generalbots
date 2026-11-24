@@ -189,7 +189,7 @@ impl LLMProvider for OpenAIClient {
                     .headers()
                     .get("retry-after")
                     .and_then(|v| v.to_str().ok().map(str::to_string));
-                let error_text = response.text().await.unwrap_or_default();
+                let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
                 warn!("LLM HTTP error body: {}", error_text);
                 if attempt < max_retries && retry::is_retryable_status(status.as_u16()) {
                     let wait = retry::wait_for(status.as_u16(), &error_text, retry_after_hdr.as_deref(), attempt)

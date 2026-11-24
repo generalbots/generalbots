@@ -156,7 +156,7 @@ pub async fn create_quote(
     let discount_percent = bd(req.discount_percent.unwrap_or(0.0));
 
     let mut subtotal = bd(0.0);
-    let items = req.items.unwrap_or_default();
+    let items = req.items.unwrap_or_else(Vec::new);
     for item in &items {
         let item_amount = item.quantity * item.unit_price;
         let item_discount = item_amount * item.discount_percent.unwrap_or(0.0) / 100.0;
@@ -174,7 +174,7 @@ pub async fn create_quote(
         bot_id,
         branch_id,
         quote_number,
-        customer_name: req.customer_name.clone().unwrap_or_default(),
+        customer_name: req.customer_name.clone().unwrap_or_else(String::new),
         customer_email: req.customer_email.clone(),
         total,
         currency: req.currency.clone().unwrap_or_else(|| "USD".to_string()),

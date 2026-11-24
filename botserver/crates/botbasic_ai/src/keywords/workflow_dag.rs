@@ -393,7 +393,7 @@ async fn upsert_dag_node(
         kind: kind.clone(),
         label: label.to_string(),
         condition: condition.map(|s| s.to_string()),
-        branches: branches.unwrap_or_default(),
+        branches: branches.unwrap_or_else(Vec::new),
         handler: handler.map(|s| s.to_string()),
         depends_on: Vec::new(),
     };

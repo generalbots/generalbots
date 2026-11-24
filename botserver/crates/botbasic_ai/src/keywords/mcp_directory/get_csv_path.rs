@@ -164,11 +164,11 @@ impl McpCsvLoader {
         let args = columns
             .get(3)
             .map(|s| s.trim().to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let description = columns
             .get(4)
             .map(|s| s.trim().to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let enabled = columns
             .get(5)
             .map(|s| s.trim().to_lowercase() != "false")

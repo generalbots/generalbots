@@ -57,7 +57,7 @@ tr:hover { background-color: #f1f1f1; }
             for col in 0..=max_col {
                 let key = format!("{row},{col}");
                 let cell = ws.data.get(&key);
-                let value = cell.and_then(|c| c.value.clone()).unwrap_or_default();
+                let value = cell.and_then(|c| c.value.clone()).unwrap_or_else(String::new);
                 let style = cell.and_then(|c| c.style.as_ref());
 
                 let mut style_str = String::new();

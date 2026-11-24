@@ -146,7 +146,10 @@ impl OracleProvider {
         let status = resp.status();
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let body = read_body(resp).await.unwrap_or_default();
+            let body = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("Oracle: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("Oracle", status, &headers, &body));
         }
         let text = read_body(resp).await?;
@@ -266,7 +269,10 @@ impl ComputeProvider for OracleProvider {
         }
         if !status.is_success() {
             let headers = resp.headers().clone();
-            let body = read_body(resp).await.unwrap_or_default();
+            let body = read_body(resp).await.unwrap_or_else(|e| {
+                eprintln!("Oracle: error response body unreadable: {e}");
+                String::new()
+            });
             return Err(classify_status("Oracle", status, &headers, &body));
         }
         Ok(())
@@ -289,7 +295,7 @@ impl ComputeProvider for OracleProvider {
             .iter()
             .map(|instance| ProvisionResult {
                 provider: "oracle".into(),
-                instance_id: instance["id"].as_str().unwrap_or_default().to_string(),
+                instance_id: instance["id"].as_str().unwrap_or("").to_string(),
                 status: instance["lifecycle_state"].as_str().unwrap_or("UNKNOWN").into(),
                 ip_address: None,
                 region: DEFAULT_REGION.to_string(),

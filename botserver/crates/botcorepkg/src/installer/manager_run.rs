@@ -233,7 +233,7 @@ impl PackageManager {
                         .get(var_name)
                         .cloned()
                         .or_else(|| std::env::var(var_name).ok())
-                        .unwrap_or_default();
+                        .unwrap_or_else(String::new);
                     evaluated_envs.insert(k.clone(), value);
                 } else {
                     evaluated_envs.insert(

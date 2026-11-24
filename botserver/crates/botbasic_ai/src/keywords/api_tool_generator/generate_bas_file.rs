@@ -291,7 +291,10 @@ impl ApiToolGenerator {
             serde_json::Value::String(s) => s.clone(),
             serde_json::Value::Number(n) => n.to_string(),
             serde_json::Value::Bool(b) => b.to_string(),
-            _ => serde_json::to_string(value).unwrap_or_default(),
+            _ => serde_json::to_string(value).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize OpenAPI value: {e}");
+                String::new()
+            }),
         }
     }
 

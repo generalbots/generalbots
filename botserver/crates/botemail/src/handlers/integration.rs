@@ -268,7 +268,10 @@ pub async fn handle_resolve_meeting(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<MeetingResolveRequest>,
 ) -> Result<Json<MeetingResolveResponse>, StatusCode> {
-    let conflicts = check_calendar_conflicts_internal(&req).await.unwrap_or_default();
+    let conflicts = check_calendar_conflicts_internal(&req).await.unwrap_or_else(|e| {
+        log::warn!("Calendar conflict check failed: {e}");
+        Vec::new()
+    });
     let has_conflicts = !conflicts.is_empty();
 
     let suggested_alternatives = if has_conflicts {

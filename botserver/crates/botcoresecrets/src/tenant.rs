@@ -19,10 +19,10 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
-                secrets.get("project_id").cloned().unwrap_or_default(),
-                secrets.get("client_id").cloned().unwrap_or_default(),
-                secrets.get("client_secret").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"),
+                secrets.get("project_id").cloned().unwrap_or_else(String::new),
+                secrets.get("client_id").cloned().unwrap_or_else(String::new),
+                secrets.get("client_secret").cloned().unwrap_or_else(String::new),
             );
         }
         ("".to_string(), String::new(), String::new(), String::new())
@@ -40,11 +40,11 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("smtp_host").cloned().unwrap_or_default(),
+                secrets.get("smtp_host").cloned().unwrap_or_else(String::new),
                 secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
-                secrets.get("smtp_user").cloned().unwrap_or_default(),
-                secrets.get("smtp_password").cloned().unwrap_or_default(),
-                secrets.get("smtp_from").cloned().unwrap_or_default(),
+                secrets.get("smtp_user").cloned().unwrap_or_else(String::new),
+                secrets.get("smtp_password").cloned().unwrap_or_else(String::new),
+                secrets.get("smtp_from").cloned().unwrap_or_else(String::new),
             );
         }
         (String::new(), 587, String::new(), String::new(), String::new())
@@ -62,11 +62,11 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
+                secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"),
                 secrets.get("model").cloned().unwrap_or_else(|| "gpt-4".into()),
                 secrets.get("openai_key").cloned(),
                 secrets.get("anthropic_key").cloned(),
-                secrets.get("ollama_url").cloned().unwrap_or_default(),
+                secrets.get("ollama_url").cloned().unwrap_or_else(String::new),
             );
         }
         ("".to_string(), "gpt-4".to_string(), None, None, "".to_string())
@@ -84,9 +84,9 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
-                secrets.get("app_id").cloned().unwrap_or_default(),
-                secrets.get("app_secret").cloned().unwrap_or_default(),
+                secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"),
+                secrets.get("app_id").cloned().unwrap_or_else(String::new),
+                secrets.get("app_secret").cloned().unwrap_or_else(String::new),
             );
         }
         ("".to_string(), String::new(), String::new())
@@ -103,7 +103,7 @@ impl SecretsManager {
             let _ = tx.send(result);
         });
         if let Ok(Some(secrets)) = rx.recv() {
-            return (secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"), secrets.get("api_key").cloned());
+            return (secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"), secrets.get("api_key").cloned());
         }
         ("".to_string(), None)
     }
@@ -120,10 +120,10 @@ impl SecretsManager {
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
-                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
+                secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"),
                 secrets.get("org").cloned().unwrap_or_else(|| "system".into()),
                 secrets.get("bucket").cloned().unwrap_or_else(|| "metrics".into()),
-                secrets.get("token").cloned().unwrap_or_default(),
+                secrets.get("token").cloned().unwrap_or_else(String::new),
             );
         }
         ("".to_string(), "system".to_string(), "metrics".to_string(), String::new())
@@ -143,7 +143,7 @@ impl SecretsManager {
             let url = secrets
                 .get("url")
                 .cloned()
-                .unwrap_or_default()
+                .unwrap_or_else(String::new)
                 .replace("localhost", "127.0.0.1");
             let token = secrets
                 .get("token")
@@ -151,8 +151,8 @@ impl SecretsManager {
                 .filter(|t| !t.is_empty())
                 .or_else(|| secrets.get("runner_token").cloned().filter(|t| !t.is_empty()))
                 .or_else(|| secrets.get("password").cloned().filter(|t| !t.is_empty()))
-                .unwrap_or_default();
-            let default_org = secrets.get("default_org").cloned().unwrap_or_default();
+                .unwrap_or_else(String::new);
+            let default_org = secrets.get("default_org").cloned().unwrap_or_else(String::new);
             if !url.is_empty() {
                 return (url, token, default_org);
             }
@@ -167,8 +167,8 @@ impl SecretsManager {
         let token = std::env::var("FORGEJO_TOKEN")
             .ok()
             .or_else(|| std::env::var("ALM_TOKEN").ok())
-            .unwrap_or_default();
-        let default_org = std::env::var("FORGEJO_DEFAULT_ORG").ok().unwrap_or_default();
+            .unwrap_or_else(String::new);
+        let default_org = std::env::var("FORGEJO_DEFAULT_ORG").ok().unwrap_or_else(String::new);
         (url, token, default_org)
     }
 
@@ -188,12 +188,12 @@ impl SecretsManager {
             let caddy_api_url = secrets
                 .get("caddy_api_url")
                 .cloned()
-                .unwrap_or_default()
+                .unwrap_or_else(String::new)
                 .replace("localhost", "127.0.0.1");
             let vibe_api_url = secrets
                 .get("vibe_api_url")
                 .cloned()
-                .unwrap_or_default()
+                .unwrap_or_else(String::new)
                 .replace("localhost", "127.0.0.1");
             if !caddy_api_url.is_empty() || !vibe_api_url.is_empty() {
                 let caddy = if caddy_api_url.is_empty() {
@@ -225,7 +225,7 @@ impl SecretsManager {
             let _ = tx.send(result);
         });
         if let Ok(Some(secrets)) = rx.recv() {
-            return secrets.get("secret").cloned().unwrap_or_default();
+            return secrets.get("secret").cloned().unwrap_or_else(String::new);
         }
         String::new()
     }
@@ -245,11 +245,11 @@ impl SecretsManager {
                         if let Ok(secrets) = self_owned.get_secret(&path).await {
                             if !secrets.is_empty() && secrets.contains_key("smtp_from") {
                                 return Some((
-                                    secrets.get("smtp_host").cloned().unwrap_or_default(),
+                                    secrets.get("smtp_host").cloned().unwrap_or_else(String::new),
                                     secrets.get("smtp_port").and_then(|p| p.parse().ok()).unwrap_or(587),
-                                    secrets.get("smtp_user").cloned().unwrap_or_default(),
-                                    secrets.get("smtp_password").cloned().unwrap_or_default(),
-                                    secrets.get("smtp_from").cloned().unwrap_or_default(),
+                                    secrets.get("smtp_user").cloned().unwrap_or_else(String::new),
+                                    secrets.get("smtp_password").cloned().unwrap_or_else(String::new),
+                                    secrets.get("smtp_from").cloned().unwrap_or_else(String::new),
                                 ));
                             }
                         }
@@ -276,7 +276,7 @@ impl SecretsManager {
                 s.get("port").and_then(|p| p.parse().ok()).unwrap_or(5432),
                 s.get("database").cloned().unwrap_or_else(|| "botserver".into()),
                 s.get("username").cloned().unwrap_or_else(|| "gbuser".into()),
-                s.get("password").cloned().unwrap_or_default(),
+                s.get("password").cloned().unwrap_or_else(String::new),
             ));
         }
         self.get_database_config().await
@@ -387,14 +387,20 @@ impl SecretsManager {
 pub fn alm_config() -> (String, String, String) {
     SecretsManager::get()
         .map(|s| s.get_alm_config())
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("SecretsManager unavailable for ALM config ({e}); using empty config");
+            (String::new(), String::new(), String::new())
+        })
 }
 
 /// Vault-first runtime endpoints resolver: `secret/gbo/system/app` → env → defaults.
 pub fn app_runtime() -> (String, String) {
     SecretsManager::get()
         .map(|s| s.get_app_runtime())
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("SecretsManager unavailable for app runtime ({e}); using empty config");
+            (String::new(), String::new())
+        })
 }
 
 /// Vault-first internal API token resolver: `secret/gbo/system/security` → env.
@@ -430,5 +436,5 @@ pub fn internal_api_token() -> String {
     rx.recv_timeout(std::time::Duration::from_secs(5))
         .ok()
         .flatten()
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
 }

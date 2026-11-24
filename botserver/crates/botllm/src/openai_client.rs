@@ -112,7 +112,7 @@ impl LLMProvider for AzureGPT5Client {
 
         let status = response.status();
         if status != reqwest::StatusCode::OK {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
             log::error!("AzureGPT5 generate error: {}", error_text);
             return Err(format!("AzureGPT5 request failed with status: {}", status).into());
         }

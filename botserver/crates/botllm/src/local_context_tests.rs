@@ -13,7 +13,7 @@ fn roles(messages: &Value) -> Vec<String> {
                 .map(|m| m["role"].as_str().unwrap_or("").to_string())
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn a_system_message_too_long_on_its_own_keeps_its_beginning() {
     assert!(text.starts_with("RULES "));
     assert!(text.ends_with(CUT_NOTE));
     assert_eq!(fitted[1]["content"], json!("What does it say?"));
-    let list = fitted.as_array().cloned().unwrap_or_default();
+    let list = fitted.as_array().cloned().unwrap_or_else(Vec::new);
     assert!(total_tokens(&list) <= 4000);
 }
 

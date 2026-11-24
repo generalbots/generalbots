@@ -55,7 +55,10 @@ pub async fn handle_get_report(
         let all_issues: Vec<DbComplianceIssue> = compliance_issues::table
             .filter(compliance_issues::branch_id.eq(branch_id))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load compliance issues: {e}");
+                Vec::new()
+            });
 
         let mut critical = 0;
         let mut high = 0;
@@ -117,7 +120,7 @@ pub async fn handle_upload_evidence(
         match name.as_str() {
             "file" => {
                 file_name = field.file_name().unwrap_or("unknown").to_string();
-                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                content_type = field.content_type().map(str::to_string).unwrap_or_else(String::new);
                 let data = field.bytes().await.map_err(|e| ComplianceError::Internal(e.to_string()))?;
                 file_size = data.len();
                 file_bytes = data.to_vec();

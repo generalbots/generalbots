@@ -48,7 +48,10 @@ pub async fn search_web_with_source(
 
     let ddg = search_duckduckgo(&cleaned, max_results, region)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("DuckDuckGo search failed: {e}");
+            Vec::new()
+        });
     if !ddg.is_empty() && !news_intent {
         return Ok(WebSearchOutcome {
             results: ddg,

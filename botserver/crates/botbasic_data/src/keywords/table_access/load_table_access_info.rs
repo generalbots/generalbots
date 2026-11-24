@@ -71,7 +71,7 @@ pub(super) fn parse_roles_string(roles: Option<&String>) -> Vec<String> {
                 .filter(|r| !r.is_empty())
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 pub fn check_table_access(
     conn: &mut diesel::PgConnection,
@@ -207,7 +207,10 @@ pub fn get_table_columns(conn: &mut PgConnection, table_name: &str) -> Vec<Strin
     )
     .bind::<Text, _>(table_name)
     .load::<ColumnName>(conn)
-    .unwrap_or_default()
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to read columns of table '{table_name}': {e}");
+        Vec::new()
+    })
     .into_iter()
     .map(|c| c.column_name)
     .collect()

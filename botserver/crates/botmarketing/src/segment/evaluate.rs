@@ -129,7 +129,7 @@ fn number_value(value: &Value) -> Option<f64> {
 }
 
 fn text_matches(actual: Option<&str>, condition: &ValidCondition) -> bool {
-    let needle = text_value(&condition.value).unwrap_or_default().to_lowercase();
+    let needle = text_value(&condition.value).unwrap_or_else(String::new).to_lowercase();
     let haystack = actual.map(str::trim).filter(|value| !value.is_empty());
     match condition.op {
         SegmentOp::Eq => haystack.is_some_and(|value| value.to_lowercase() == needle),
@@ -159,7 +159,7 @@ fn tag_matches(tags: &[String], condition: &ValidCondition) -> bool {
     let normalized: Vec<String> = tags.iter().map(|tag| tag.to_lowercase()).collect();
     match condition.op {
         SegmentOp::Contains => {
-            let needle = text_value(&condition.value).unwrap_or_default().to_lowercase();
+            let needle = text_value(&condition.value).unwrap_or_else(String::new).to_lowercase();
             normalized.iter().any(|tag| tag == &needle)
         }
         SegmentOp::In => string_values(&condition.value)
@@ -261,7 +261,7 @@ fn text_list_or_scalar_matches(values: &[String], condition: &ValidCondition) ->
             values.iter().any(|value| text_matches(Some(value), condition))
         }
         SegmentOp::Ne => {
-            let needle = text_value(&condition.value).unwrap_or_default().to_lowercase();
+            let needle = text_value(&condition.value).unwrap_or_else(String::new).to_lowercase();
             values.iter().all(|value| value.to_lowercase() != needle)
         }
         SegmentOp::In | SegmentOp::NotIn => {

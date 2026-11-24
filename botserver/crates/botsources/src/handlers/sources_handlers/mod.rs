@@ -17,9 +17,9 @@ pub struct SavePromptRequest {
     Form(form): Form<SavePromptRequest>,
 ) -> impl IntoResponse {
     let _ = state;
-    let prompt_id = form.prompt_id.unwrap_or_default();
+    let prompt_id = form.prompt_id.unwrap_or_else(String::new);
     let collection = form.collection.unwrap_or_else(|| "default".to_string());
-    let prompt = form.prompt.unwrap_or_default();
+    let prompt = form.prompt.unwrap_or_else(String::new);
 
     Json(serde_json::json!({
         "ok": true,

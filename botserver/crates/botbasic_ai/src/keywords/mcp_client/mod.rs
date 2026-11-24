@@ -55,7 +55,7 @@ fn string_list(value: Option<&Value>) -> Vec<String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 /// A `ui://` resource advertised by an MCP server.

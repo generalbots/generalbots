@@ -110,13 +110,13 @@ pub async fn ui_workspace_pages(
             .filter(aiworkspace_pages::parent_id.eq(parent_id))
             .order(aiworkspace_pages::position.asc())
             .load(&mut conn)
-            .unwrap_or_default(),
+            .unwrap_or_else(|_| Vec::new()),
         None => aiworkspace_pages::table
             .filter(aiworkspace_pages::workspace_id.eq(workspace_id))
             .filter(aiworkspace_pages::parent_id.is_null())
             .order(aiworkspace_pages::position.asc())
             .load(&mut conn)
-            .unwrap_or_default(),
+            .unwrap_or_else(|_| Vec::new()),
     };
 
     if pages.is_empty() && query.parent_id.is_none() {
@@ -165,7 +165,7 @@ pub async fn ui_workspace_members(
         .filter(aiworkspace_members::workspace_id.eq(workspace_id))
         .order(aiworkspace_members::joined_at.asc())
         .load(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| Vec::new());
 
     if members.is_empty() {
         return Html(render_empty_state(

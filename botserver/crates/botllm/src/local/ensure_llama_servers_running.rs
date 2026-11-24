@@ -49,14 +49,15 @@ pub async fn ensure_llama_servers_running(
                 .unwrap_or_else(|_| "".to_string()),
             config_manager
                 .get_config(&default_bot_id, "llm-model", None)
-                .unwrap_or_default(),
+                .unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() }),
             config_manager
                 .get_config(&default_bot_id, "embedding-url", Some(""))
                 .unwrap_or_else(|_| "".to_string()),
-            embedding_model_result.unwrap_or_default(),
+            embedding_model_result
+                .unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() }),
             config_manager
                 .get_config(&default_bot_id, "llm-server-path", None)
-                .unwrap_or_default(),
+                .unwrap_or_else(|e| { log::warn!("config read failed: {e}"); String::new() }),
         )
     };
     let (

@@ -152,7 +152,10 @@ fn get_default_schema(table_name: &str) -> Value {
 }
 
 fn build_extraction_prompt(table_name: &str, schema: &Value, text: &str) -> String {
-    let schema_str = serde_json::to_string_pretty(schema).unwrap_or_default();
+    let schema_str = serde_json::to_string_pretty(schema).unwrap_or_else(|e| {
+        log::warn!("Failed to serialize extraction schema: {e}");
+        String::new()
+    });
 
     let table_context = match table_name {
         "leads" | "rob" => "This is a CRM lead/contact record. Extract contact information, company details, and any relevant notes.",
@@ -193,7 +196,7 @@ Return ONLY the JSON object, no explanations or markdown formatting."#,
 
 async fn call_llm_for_extraction(state: Arc<dyn BasicRuntime>, prompt: &str) -> Result<Value, String> {
     let model = state.config_value("llm-model").unwrap_or_else(|| "gpt-3.5-turbo".to_string());
-    let key = state.config_value("llm-key").unwrap_or_default();
+    let key = state.config_value("llm-key").unwrap_or_else(String::new);
 
     let client = botlib::security::create_tls_client(None);
     let response = client

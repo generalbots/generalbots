@@ -127,7 +127,10 @@ pub fn unseal_vault(
 }
 
 pub fn ensure_env_file_exists(base_path: &std::path::Path) -> Result<()> {
-    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_else(|e| {
+        log::warn!("VAULT_ADDR unavailable: {e}");
+        String::new()
+    });
     if vault_addr.is_empty() {
         return Ok(());
     }

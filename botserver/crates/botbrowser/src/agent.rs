@@ -174,8 +174,8 @@ pub async fn observe_page(session: &Arc<Mutex<BrowserSession>>) -> Result<AgentO
     let session = session.lock().await;
     let page = session.page.lock().await;
 
-    let url = page.url().await.ok().flatten().unwrap_or_default();
-    let title = page.get_title().await.ok().flatten().unwrap_or_default();
+    let url = page.url().await.ok().flatten().unwrap_or_else(String::new);
+    let title = page.get_title().await.ok().flatten().unwrap_or_else(String::new);
 
     let text_script =
         r#"document.body.innerText ? document.body.innerText.substring(0, 5000) : ''"#;
@@ -185,7 +185,7 @@ pub async fn observe_page(session: &Arc<Mutex<BrowserSession>>) -> Result<AgentO
         .await
         .ok()
         .and_then(|r| r.into_value::<String>().ok())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let links_script = r#"
         JSON.stringify(
@@ -202,7 +202,7 @@ pub async fn observe_page(session: &Arc<Mutex<BrowserSession>>) -> Result<AgentO
         .await
         .ok()
         .and_then(|r| r.into_value::<Vec<super::LinkInfo>>().ok())
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
 
     Ok(AgentObservation {
         url,
@@ -223,7 +223,7 @@ pub async fn decide_next_action(
 
     let last_action = last_step
         .map(|s| format!("Last action: {:?}\nReasoning: {}", s.action, s.reasoning))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let system_prompt = "You are a web navigation agent. Given a goal and current page state, decide the next action.\n\
         Available actions:\n\

@@ -71,17 +71,23 @@ pub(super) async fn handle_export(State(pool): State<Arc<DbPool>>) -> impl IntoR
         )
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load compliance checks: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Compliance checks task failed: {e}");
+        Vec::new()
+    });
 
     let mut csv = String::from("check_type,status,checked_at\n");
     for r in &rows {
         let checked = r
             .checked_at
             .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         csv.push_str(&format!("{},{},{}\n", r.check_type, r.status, checked));
     }
 

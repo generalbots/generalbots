@@ -127,7 +127,13 @@ pub async fn vault_health() -> Result<()> {
     match manager.health_check().await {
         Ok(true) => {
             println!("* Vault is healthy");
-            println!(" Address: {}", std::env::var("VAULT_ADDR").unwrap_or_default());
+            println!(
+                " Address: {}",
+                std::env::var("VAULT_ADDR").unwrap_or_else(|e| {
+                    log::warn!("VAULT_ADDR unavailable: {e}");
+                    String::new()
+                })
+            );
         }
         Ok(false) => {
             println!("x Vault health check failed");

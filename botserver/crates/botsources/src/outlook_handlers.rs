@@ -68,7 +68,7 @@ pub async fn list_messages(
                                 })
                                 .collect()
                         })
-                        .unwrap_or_default()
+                        .unwrap_or_else(Vec::new)
                 };
                 let importance = match entry.get("importance").and_then(|v| v.as_str()) {
                     Some("high") => EmailImportance::High,
@@ -131,7 +131,7 @@ pub async fn list_messages(
                                 .filter_map(|x| x.as_str().map(String::from))
                                 .collect()
                         })
-                        .unwrap_or_default(),
+                        .unwrap_or_else(Vec::new),
                     folder: entry
                         .get("parentFolderId")
                         .and_then(|v| v.as_str())

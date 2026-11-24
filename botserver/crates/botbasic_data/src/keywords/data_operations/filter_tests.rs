@@ -26,7 +26,7 @@ fn names(result: Dynamic) -> Vec<String> {
             dynamic_to_map(row)
                 .get("name")
                 .map(ToString::to_string)
-                .unwrap_or_default()
+                .unwrap_or_else(String::new)
         })
         .collect()
 }
@@ -176,7 +176,7 @@ fn pivot_sums_by_row_key_and_treats_junk_as_zero() {
         .map(|row| {
             let map = dynamic_to_map(row);
             (
-                map.get("city").map(ToString::to_string).unwrap_or_default(),
+                map.get("city").map(ToString::to_string).unwrap_or_else(String::new),
                 map.get("amount")
                     .and_then(|value| value.as_float().ok())
                     .unwrap_or(-1.0),

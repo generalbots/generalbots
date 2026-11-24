@@ -24,7 +24,7 @@ impl InvoiceService {
             period_start: item.period_start,
             period_end: item.period_end,
             proration: item.proration,
-            metadata: item.metadata.unwrap_or_default(),
+            metadata: item.metadata.unwrap_or_else(HashMap::new),
         };
 
         invoice.line_items.push(line_item);

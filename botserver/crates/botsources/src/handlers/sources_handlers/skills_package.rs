@@ -34,7 +34,7 @@ fn slug_is_valid(value: &str) -> bool {
 pub fn parse_skill_package(markdown: &str, fallback_name: Option<&str>) -> Result<SkillPackage, String> {
     let normalized = markdown.replace("\r\n", "\n");
     let mut lines = normalized.lines();
-    let first = lines.next().unwrap_or_default().trim();
+    let first = lines.next().unwrap_or("").trim();
     if first != "---" {
         return Err("SKILL.md must start with a YAML front-matter block (---)".to_string());
     }

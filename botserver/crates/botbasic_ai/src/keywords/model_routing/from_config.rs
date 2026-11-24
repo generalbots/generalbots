@@ -113,8 +113,8 @@ pub(super) fn load_model_config(
 
     let vault_configs = read_bot_config_from_vault(&bot_id)?;
 
-    let model_path = vault_configs.get(&model_key).cloned().unwrap_or_default();
-    let url = vault_configs.get(&url_key).cloned().unwrap_or_default();
+    let model_path = vault_configs.get(&model_key).cloned().unwrap_or_else(String::new);
+    let url = vault_configs.get(&url_key).cloned().unwrap_or_else(String::new);
     let api_key = vault_configs.get(&key_key).cloned().filter(|v| v != "none");
 
     if model_path.is_empty() && url.is_empty() {
@@ -269,7 +269,10 @@ pub fn list_models_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 
         if let Ok(mut conn) = state.db_pool().get() {
             list_available_models_sync(&mut conn, user_clone.bot_id)
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to list available models: {e}");
+                    Vec::new()
+                })
                 .into_iter()
                 .map(Dynamic::from)
                 .collect()

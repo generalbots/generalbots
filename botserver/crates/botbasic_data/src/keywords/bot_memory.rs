@@ -362,7 +362,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 .optional()
                 .unwrap_or(None);
 
-            memory_value.unwrap_or_default()
+            memory_value.unwrap_or_else(String::new)
         } else {
             String::new()
         }
@@ -388,7 +388,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 .optional()
                 .unwrap_or(None);
 
-            memory_value.unwrap_or_default()
+            memory_value.unwrap_or_else(String::new)
         } else {
             String::new()
         }
@@ -417,7 +417,7 @@ pub fn get_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 .optional()
                 .unwrap_or(None);
 
-            memory_value.unwrap_or_default()
+            memory_value.unwrap_or_else(String::new)
         } else {
             String::new()
         }

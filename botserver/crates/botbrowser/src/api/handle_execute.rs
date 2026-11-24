@@ -22,7 +22,13 @@ pub async fn handle_state(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let session = get_session(&sessions, &id, &caller).await?;
     match session.extract_page_state().await {
-        Ok(state) => Ok(Json(serde_json::to_value(state).unwrap_or_default())),
+        Ok(state) => {
+            let value = serde_json::to_value(state).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize browser state: {e}");
+                serde_json::Value::Null
+            });
+            Ok(Json(value))
+        }
         Err(e) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             format!("Get state failed: {e}"),

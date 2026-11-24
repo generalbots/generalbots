@@ -200,7 +200,7 @@ mod tests {
         assert!(headers
             .get(header::CONTENT_DISPOSITION)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or_default()
+            .unwrap_or("")
             .starts_with("attachment;"));
     }
 

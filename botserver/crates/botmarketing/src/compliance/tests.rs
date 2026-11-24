@@ -166,12 +166,12 @@ fn unsubscribe_token_is_signed_and_bound_to_claims() {
     };
     let token = sign_claims_with_key(key, &claims);
     assert!(token.is_some());
-    let token = token.unwrap_or_default();
+    let token = token.unwrap_or_else(String::new);
 
     let verified = verify_unsubscribe_token(key, &token);
     assert!(verified.is_ok());
     assert_eq!(
-        verified.map(|decoded| decoded.address).unwrap_or_default(),
+        verified.map(|decoded| decoded.address).unwrap_or_else(String::new),
         claims.address
     );
     assert_eq!(

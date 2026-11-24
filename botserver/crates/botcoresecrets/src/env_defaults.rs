@@ -194,7 +194,10 @@ mod tests {
 
     #[test]
     fn missing_vault_tables_secret_returns_empty_password() {
-        let secrets = get_from_env("tables").unwrap_or_default();
+        let secrets = get_from_env("tables").unwrap_or_else(|e| {
+            log::warn!("get_from_env(tables) failed ({e}); using empty secret map");
+            HashMap::new()
+        });
         assert_eq!(secrets.get("password").map(String::as_str), Some(""));
         assert_eq!(secrets.get("username").map(String::as_str), Some("gbuser"));
     }
@@ -233,7 +236,10 @@ mod tests {
     #[test]
     fn every_builtin_secret_default_is_empty() {
         for path in SECRET_PATHS {
-            let secrets = get_from_env(path).unwrap_or_default();
+            let secrets = get_from_env(path).unwrap_or_else(|e| {
+                log::warn!("get_from_env({path}) failed ({e}); using empty secret map");
+                HashMap::new()
+            });
             for (key, value) in &secrets {
                 assert!(
                     !is_secret_field(key) || value.is_empty(),

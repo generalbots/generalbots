@@ -235,7 +235,7 @@ pub async fn load_document_from_drive(
         storage_path: doc_path,
         created_at,
         updated_at,
-        collaborators: meta_field(&meta, "collaborators").unwrap_or_default(),
+        collaborators: meta_field(&meta, "collaborators").unwrap_or_else(Vec::new),
         version: meta
             .get("version")
             .and_then(serde_json::Value::as_u64)
@@ -273,7 +273,7 @@ pub async fn list_documents_from_drive(
                 if let Ok(meta_str) = String::from_utf8(bytes) {
                     if let Ok(meta) = serde_json::from_str::<serde_json::Value>(&meta_str) {
                         let doc_meta = DocumentMetadata {
-                            id: meta["id"].as_str().unwrap_or_default().to_string(),
+                            id: meta["id"].as_str().unwrap_or("").to_string(),
                             title: meta["title"].as_str().unwrap_or("Untitled").to_string(),
                             owner_id: user_identifier.to_string(),
                             created_at: meta["created_at"]

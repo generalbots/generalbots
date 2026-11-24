@@ -145,7 +145,7 @@ mod tests {
         }
 
         fn list_objects(&self, _bucket: &str, prefix: Option<&str>) -> BoxFutureVecString {
-            let prefix = prefix.map(str::to_string).unwrap_or_default();
+            let prefix = prefix.map(str::to_string).unwrap_or_else(String::new);
             Box::pin(async move {
                 if prefix == USERS_PREFIX {
                     Ok(vec![
@@ -208,9 +208,15 @@ mod tests {
     async fn backfill_reindexes_persisted_documents_into_kb() {
         let state = state();
         let owner = UserContext::authenticated(
-            Uuid::parse_str(OWNER).unwrap_or_default(),
+            Uuid::parse_str(OWNER).unwrap_or_else(|error| {
+                log::warn!("docs backfill: invalid owner UUID {OWNER}: {error}");
+                Uuid::nil()
+            }),
             None,
-            Some(Uuid::parse_str(TENANT).unwrap_or_default()),
+            Some(Uuid::parse_str(TENANT).unwrap_or_else(|error| {
+                log::warn!("docs backfill: invalid tenant UUID {TENANT}: {error}");
+                Uuid::nil()
+            })),
         );
 
         // The in-memory index starts empty on a fresh boot.

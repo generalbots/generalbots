@@ -143,7 +143,7 @@ pub async fn create_campaign(
         campaign_type: req.campaign_type.unwrap_or_else(|| "email".to_string()),
         starts_at,
         ends_at: None,
-        budget: req.budget.map(|b| bigdecimal::BigDecimal::try_from(b).unwrap_or_default()),
+        budget: req.budget.map(|b| bigdecimal::BigDecimal::try_from(b).unwrap_or_else(|_| bigdecimal::BigDecimal::from(0))),
         metrics: Some(metrics),
         run_offset: Some(0),
         pause_requested: Some(false),
@@ -209,7 +209,7 @@ pub async fn update_campaign(
     }
     if let Some(budget) = req.budget {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::budget.eq(bigdecimal::BigDecimal::try_from(budget).unwrap_or_default()))
+            .set(marketing_campaigns::budget.eq(bigdecimal::BigDecimal::try_from(budget).unwrap_or_else(|_| bigdecimal::BigDecimal::from(0))))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -320,7 +320,7 @@ pub async fn send_campaign(
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
         let linked: Vec<(Uuid, String, String)> = query
             .into_iter()
-            .map(|(rcid, email, name)| (rcid.unwrap_or_else(Uuid::new_v4), email.unwrap_or_default(), name.unwrap_or_default()))
+            .map(|(rcid, email, name)| (rcid.unwrap_or_else(Uuid::new_v4), email.unwrap_or_else(String::new), name.unwrap_or_else(String::new)))
             .collect();
         crate::segment::drop_suppressed(linked, &suppressed)
     };
@@ -341,7 +341,7 @@ pub async fn send_campaign(
             .first(&mut conn)
             .optional()
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-        row.map(|(s, b)| (s.unwrap_or_default(), b))
+        row.map(|(s, b)| (s.unwrap_or_else(String::new), b))
             .unwrap_or_else(|| ("Newsletter".to_string(), None))
     } else {
         let default_metrics = serde_json::json!({});

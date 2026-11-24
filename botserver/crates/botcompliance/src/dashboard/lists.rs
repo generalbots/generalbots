@@ -27,10 +27,16 @@ pub(super) async fn handle_failing_controls(State(pool): State<Arc<DbPool>>) -> 
         )
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load compliance dashboard rows: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Failing controls task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::from("<div class=\"controls-list\">");
     if rows.is_empty() {
@@ -75,10 +81,16 @@ pub(super) async fn handle_evidence(State(pool): State<Arc<DbPool>>) -> impl Int
         )
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load compliance dashboard rows: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Evidence task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::from("<div class=\"evidence-list\">");
     if rows.is_empty() {
@@ -125,10 +137,16 @@ pub(super) async fn handle_audit_log(State(pool): State<Arc<DbPool>>) -> impl In
         )
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .load::<Row>(&mut db_conn)
-        .unwrap_or_default()
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to load compliance dashboard rows: {e}");
+            Vec::new()
+        })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        log::warn!("Audit log task failed: {e}");
+        Vec::new()
+    });
 
     let mut html = String::from("<div class=\"log-list\">");
     if rows.is_empty() {

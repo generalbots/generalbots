@@ -119,7 +119,7 @@ pub(super) fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSes
                     // Check if data has an "id" field to decide insert vs upsert
                     let data_map = dynamic_to_map(&data);
                     let has_id = data_map.contains_key("id");
-                    let id_value = data_map.get("id").map(|v| v.to_string()).unwrap_or_default();
+                    let id_value = data_map.get("id").map(|v| v.to_string()).unwrap_or_else(String::new);
 
                     let result = if has_id {
                         // SAVE () TO WHERE with id → upsert

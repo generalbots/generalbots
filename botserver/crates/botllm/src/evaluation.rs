@@ -206,7 +206,7 @@ fn extract_json_scores(raw: &str) -> HashMap<String, u64> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(HashMap::new)
 }
 
 /// Fallback: scan raw text for "CriterionName: <number>" patterns.

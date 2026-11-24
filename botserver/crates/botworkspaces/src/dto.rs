@@ -8,7 +8,7 @@ pub(crate) fn db_to_workspace(db: DbWorkspace, members: Vec<WorkspaceMember>, ro
         }),
         _ => None,
     };
-    let settings: WorkspaceSettings = serde_json::from_value(db.settings).unwrap_or_default();
+    let settings: WorkspaceSettings = serde_json::from_value(db.settings).unwrap_or_else(|_| WorkspaceSettings::default());
 
     Workspace {
         id: db.id,
@@ -35,9 +35,9 @@ pub(crate) fn db_to_page(db: DbWorkspacePage, children: Vec<Uuid>) -> Page {
         _ => None,
     };
 
-    let blocks: Vec<Block> = serde_json::from_value(db.content).unwrap_or_default();
+    let blocks: Vec<Block> = serde_json::from_value(db.content).unwrap_or_else(|_| Vec::new());
     let properties: HashMap<String, PropertyValue> =
-        serde_json::from_value(db.properties).unwrap_or_default();
+        serde_json::from_value(db.properties).unwrap_or_else(|_| HashMap::new());
 
     Page {
         id: db.id,

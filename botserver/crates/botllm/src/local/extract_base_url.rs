@@ -6,7 +6,7 @@ pub(super) fn extract_base_url(url: &str) -> String {
             "{}://{}{}",
             parsed.scheme(),
             parsed.host_str().unwrap_or("localhost"),
-            parsed.port().map(|p| format!(":{}", p)).unwrap_or_default()
+            parsed.port().map_or_else(String::new, |p| format!(":{}", p))
         )
     } else {
         url.to_string()
@@ -35,7 +35,7 @@ pub async fn is_server_running(url: &str) -> bool {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::warn!("failed to build HTTP client: {e}"); reqwest::Client::default() });
 
     match client.get(format!("{base_url}/health")).send().await {
         Ok(response) => {

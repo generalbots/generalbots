@@ -34,7 +34,7 @@ pub fn tag_conversation_impl(
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         for tag in tags_clone {
             if !existing_tags.contains(&tag) {
@@ -124,7 +124,7 @@ pub fn add_note_impl(
             .get("notes")
             .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         notes.push(serde_json::json!({
             "text": &note_clone,
@@ -192,7 +192,10 @@ pub fn get_customer_history_impl(state: &Arc<dyn BasicRuntime>, user_id: &str) -
             .order(user_sessions::created_at.desc())
             .limit(10)
             .load(&mut db_conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to load recent user sessions: {e}");
+                Vec::new()
+            });
 
         let session_items: Vec<Dynamic> = sessions
             .iter()

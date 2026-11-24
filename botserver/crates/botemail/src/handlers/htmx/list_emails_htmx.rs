@@ -117,7 +117,7 @@ pub async fn list_folders_htmx(
     for (folder_name, count) in &[("inbox", folder_counts.get("INBOX").unwrap_or(&0)), ("sent", folder_counts.get("Sent").unwrap_or(&0)), ("drafts", folder_counts.get("Drafts").unwrap_or(&0)), ("trash", folder_counts.get("Trash").unwrap_or(&0))] {
         let active = if *folder_name == "inbox" { "active" } else { "" };
         let count_badge = if **count > 0 { format!(r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#, count) } else { String::new() };
-        let display: String = folder_name.chars().next().unwrap_or_default().to_uppercase().collect::<String>() + &folder_name[1..];
+        let display: String = folder_name.chars().next().unwrap_or('?').to_uppercase().collect::<String>() + &folder_name[1..];
         use std::fmt::Write;
         let _ = write!(html, r##"<div class="nav-item {}" hx-get="/api/ui/email/list?folder={}" hx-target="#mail-list" hx-swap="innerHTML"><span></span> {} {}</div>"##, active, folder_name, display, count_badge);
     }
@@ -188,8 +188,8 @@ pub async fn get_email_content_htmx(
 
         let body = row.body_html.filter(|h| !h.is_empty())
             .or(row.body_text)
-            .unwrap_or_default();
-        let to = row.to_addresses.unwrap_or_default();
+            .unwrap_or_else(String::new);
+        let to = row.to_addresses.unwrap_or_else(String::new);
         Ok(EmailContent {
             id: id_for_content,
             from_name: row.from_address.clone(),

@@ -92,7 +92,10 @@ impl WebinarService {
             .bind::<DieselUuid, _>(webinar_id)
             .bind::<Integer, _>(MAX_RAISED_HANDS_VISIBLE as i32)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to list raised hands: {e}");
+                Vec::new()
+            });
 
         Ok(rows
             .into_iter()
@@ -272,7 +275,10 @@ impl WebinarService {
         let rows: Vec<QuestionRow> = diesel::sql_query(&sql)
             .bind::<DieselUuid, _>(webinar_id)
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to list webinar questions: {e}");
+                Vec::new()
+            });
 
         Ok(rows.into_iter().map(|r| self.row_to_question(r)).collect())
     }

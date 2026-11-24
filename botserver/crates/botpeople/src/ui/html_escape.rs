@@ -95,7 +95,7 @@ pub(super) async fn handle_people_list(
             );
 
             for row in persons {
-                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_else(String::new));
                 let email_str = row.email.unwrap_or_else(|| "-".to_string());
                 let title_str = row.job_title.unwrap_or_else(|| "-".to_string());
                 let dept_str = row.department.unwrap_or_else(|| "-".to_string());
@@ -192,12 +192,12 @@ pub(super) async fn handle_people_cards(
             let mut html = String::from(r##"<div class="people-cards-grid">"##);
 
             for row in persons {
-                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_default());
-                let email_str = row.email.unwrap_or_default();
+                let full_name = format!("{} {}", row.first_name, row.last_name.unwrap_or_else(String::new));
+                let email_str = row.email.unwrap_or_else(String::new);
                 let title_str = row.job_title.unwrap_or_else(|| "Team Member".to_string());
-                let dept_str = row.department.unwrap_or_default();
+                let dept_str = row.department.unwrap_or_else(String::new);
                 let avatar = row.avatar_url.unwrap_or_else(|| "/assets/default-avatar.png".to_string());
-                let phone_str = row.phone.unwrap_or_default();
+                let phone_str = row.phone.unwrap_or_else(String::new);
                 let id = row.id;
 
                 html.push_str(&format!(

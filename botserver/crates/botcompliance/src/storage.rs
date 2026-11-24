@@ -209,8 +209,10 @@ pub fn db_issue_to_result(db: DbComplianceIssue) -> ComplianceIssueResult {
 pub fn db_audit_to_entry(db: DbAuditLog) -> AuditLogEntry {
     let event_type: AuditEventType = db.event_type.parse().unwrap_or(AuditEventType::Access);
     let result: ActionResult = db.result.parse().unwrap_or(ActionResult::Success);
-    let metadata: HashMap<String, String> =
-        serde_json::from_value(db.metadata).unwrap_or_default();
+    let metadata: HashMap<String, String> = serde_json::from_value(db.metadata).unwrap_or_else(|e| {
+        log::warn!("Failed to parse audit log metadata: {e}");
+        HashMap::new()
+    });
 
     AuditLogEntry {
         id: db.id,

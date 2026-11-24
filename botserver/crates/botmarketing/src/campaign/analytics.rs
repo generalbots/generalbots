@@ -237,9 +237,9 @@ pub fn compare_channels(metrics: &CampaignMetrics) -> Option<ChannelComparison> 
         .map(|(c, _)| c.clone());
 
     Some(ChannelComparison {
-        best_performing: best.unwrap_or_default(),
-        highest_engagement: highest_eng.unwrap_or_default(),
-        lowest_cost_per_conversion: lowest_cpa.unwrap_or_default(),
+        best_performing: best.unwrap_or_else(String::new),
+        highest_engagement: highest_eng.unwrap_or_else(String::new),
+        lowest_cost_per_conversion: lowest_cpa.unwrap_or_else(String::new),
         channel_rankings: rankings,
     })
 }

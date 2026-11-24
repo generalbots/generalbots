@@ -31,7 +31,7 @@ pub(super) fn import_excel(file_path: &str) -> Result<Dynamic, Box<dyn std::erro
         let mut row_map: Map = Map::new();
 
         for (i, header) in headers.iter().enumerate() {
-            let value = row.get(i).map(|cell| cell.to_string()).unwrap_or_default();
+            let value = row.get(i).map(|cell| cell.to_string()).unwrap_or_else(String::new);
             row_map.insert(header.clone().into(), Dynamic::from(value));
         }
 
@@ -61,7 +61,7 @@ pub(super) fn export_csv(
         let values: Vec<String> = headers
             .iter()
             .map(|h| {
-                let val = map.get(h).map(|v| v.to_string()).unwrap_or_default();
+                let val = map.get(h).map(|v| v.to_string()).unwrap_or_else(String::new);
                 escape_csv_value(&val)
             })
             .collect();
@@ -90,7 +90,7 @@ pub(super) fn export_tsv(
         let map = dynamic_to_map(&item);
         let values: Vec<String> = headers
             .iter()
-            .map(|h| map.get(h).map(|v| v.to_string()).unwrap_or_default())
+            .map(|h| map.get(h).map(|v| v.to_string()).unwrap_or_else(String::new))
             .collect();
         writeln!(file, "{}", values.join("\t"))?;
     }
@@ -134,7 +134,7 @@ pub(super) fn export_excel(
     for (row_idx, item) in array.iter().enumerate() {
         let map = dynamic_to_map(item);
         for (col, header) in headers.iter().enumerate() {
-            let value = map.get(header).map(|v| v.to_string()).unwrap_or_default();
+            let value = map.get(header).map(|v| v.to_string()).unwrap_or_else(String::new);
             sheet.write_string((row_idx + 1) as u32, col as u16, &value)?;
         }
     }

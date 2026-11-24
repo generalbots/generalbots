@@ -106,7 +106,10 @@ pub async fn handle_extract(
             format!("Extract failed: {e}"),
         )
     })?;
-    let links = session.extract_links().await.unwrap_or_default();
+    let links = session.extract_links().await.unwrap_or_else(|e| {
+        log::warn!("Failed to extract browser links: {e}");
+        Vec::new()
+    });
     Ok(Json(serde_json::json!({
         "url": state.url,
         "title": state.title,

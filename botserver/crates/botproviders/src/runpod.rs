@@ -106,7 +106,10 @@ impl ComputeProvider for RunPodProvider {
             })?;
 
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("RunPod: response body unreadable: {e}");
+            String::new()
+        });
 
         if !status.is_success() {
             return Err(if status.as_u16() == 401 {
@@ -192,7 +195,10 @@ impl ComputeProvider for RunPodProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("RunPod: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("RunPod parse: {e}")))?;
 
@@ -207,7 +213,10 @@ impl ComputeProvider for RunPodProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("RunPod: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("RunPod parse: {e}")))?;
 
@@ -223,7 +232,7 @@ impl ComputeProvider for RunPodProvider {
                     .and_then(Self::runpod_gpu_to_type);
                 ProvisionResult {
                     provider: "runpod".into(),
-                    instance_id: item["id"].as_str().unwrap_or_default().into(),
+                    instance_id: item["id"].as_str().unwrap_or("").into(),
                     status: item["status"].as_str().unwrap_or("unknown").into(),
                     ip_address: item["ip"].as_str().map(|s| s.into()),
                     region: item["country"].as_str().unwrap_or("").into(),

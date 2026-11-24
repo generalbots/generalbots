@@ -122,7 +122,10 @@ impl ComputeProvider for VultrProvider {
             .await?;
 
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vultr: response body unreadable: {e}");
+            String::new()
+        });
 
         if !status.is_success() {
             return Err(if status.as_u16() == 401 {
@@ -179,7 +182,10 @@ impl ComputeProvider for VultrProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vultr: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Vultr parse: {e}")))?;
 
@@ -197,7 +203,10 @@ impl ComputeProvider for VultrProvider {
             .send()
             .await?;
 
-        let text = resp.text().await.unwrap_or_default();
+        let text = resp.text().await.unwrap_or_else(|e| {
+            eprintln!("Vultr: response body unreadable: {e}");
+            String::new()
+        });
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("Vultr parse: {e}")))?;
 

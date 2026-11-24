@@ -54,7 +54,10 @@ pub async fn search_records_handler(
     )
     .bind::<diesel::sql_types::Text, _>(&table_name)
     .load::<TextColRow>(&mut conn)
-    .unwrap_or_default()
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to list text columns of table '{table_name}': {e}");
+        Vec::new()
+    })
     .into_iter()
     .map(|r| r.column_name)
     .collect();

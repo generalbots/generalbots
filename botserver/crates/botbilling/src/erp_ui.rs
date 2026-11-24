@@ -106,7 +106,10 @@ async fn handle_inventory(State(state): State<Arc<BillingApiState>>, headers: He
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("ERP UI blocking task failed ({e}); using empty rows");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(render_empty("No inventory items yet"));
@@ -170,7 +173,10 @@ async fn handle_procurement(State(state): State<Arc<BillingApiState>>, headers: 
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("ERP UI blocking task failed ({e}); using empty rows");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(render_empty("No purchase orders yet"));
@@ -232,7 +238,10 @@ async fn handle_gl_accounts(State(state): State<Arc<BillingApiState>>, headers: 
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("ERP UI blocking task failed ({e}); using empty rows");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(render_empty("No general ledger accounts yet"));
@@ -291,7 +300,10 @@ async fn handle_gl_balance_sheet(State(state): State<Arc<BillingApiState>>, head
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("ERP UI blocking task failed ({e}); using empty rows");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(render_empty("No balance sheet data yet"));
@@ -350,7 +362,10 @@ async fn handle_gl_income_statement(State(state): State<Arc<BillingApiState>>, h
         })
     })
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| {
+        tracing::warn!("ERP UI blocking task failed ({e}); using empty rows");
+        Vec::new()
+    });
 
     if rows.is_empty() {
         return Html(render_empty("No income statement data yet"));

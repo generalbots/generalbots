@@ -45,7 +45,7 @@ impl AdvisorEngine {
             .filter(campaign_id.eq(campaign_id_val))
             .select((metric_type, metric_value))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| { log::warn!("DB read failed: {e}"); Vec::new() });
         let mut m = DbMetricsRow {
             sent_count: 0,
             delivered_count: 0,

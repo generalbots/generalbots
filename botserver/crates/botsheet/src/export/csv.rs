@@ -24,7 +24,7 @@ pub fn export_to_csv(sheet: &Spreadsheet) -> String {
                     .data
                     .get(&key)
                     .and_then(|c| c.value.clone())
-                    .unwrap_or_default();
+                    .unwrap_or_else(String::new);
                 let escaped = if value.contains(',') || value.contains('"') || value.contains('\n')
                 {
                     format!("\"{}\"", value.replace('"', "\"\""))

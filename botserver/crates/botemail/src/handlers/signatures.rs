@@ -242,9 +242,9 @@ pub async fn update_signature(
 
     let result = diesel::sql_query(format!("UPDATE email_signatures SET {} WHERE id = $1 AND user_id = $2", updates.join(", ")))
         .bind::<DieselUuid, _>(signature_id).bind::<DieselUuid, _>(user_id)
-        .bind::<Varchar, _>(payload.name.unwrap_or_default())
-        .bind::<Text, _>(payload.content_html.unwrap_or_default())
-        .bind::<Text, _>(payload.content_plain.unwrap_or_default())
+        .bind::<Varchar, _>(payload.name.unwrap_or_else(String::new))
+        .bind::<Text, _>(payload.content_html.unwrap_or_else(String::new))
+        .bind::<Text, _>(payload.content_plain.unwrap_or_else(String::new))
         .bind::<Bool, _>(payload.is_default.unwrap_or(false))
         .bind::<Bool, _>(payload.is_active.unwrap_or(true))
         .execute(&mut conn);

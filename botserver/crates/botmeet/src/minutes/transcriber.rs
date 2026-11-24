@@ -34,7 +34,10 @@ impl RealSttTranscriber {
 
         if !resp.status().is_success() {
             let status = resp.status();
-            let body = resp.text().await.unwrap_or_default();
+            let body = resp.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read STT error response body: {e}");
+                String::new()
+            });
             error!("STT API returned {status}: {body}");
             return Err(anyhow::anyhow!("STT API error {status}: {body}"));
         }
@@ -56,7 +59,7 @@ impl RealSttTranscriber {
                     })
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let full_text: String = segments
             .iter()

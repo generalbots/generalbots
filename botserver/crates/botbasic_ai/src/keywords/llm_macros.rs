@@ -45,10 +45,10 @@ async fn call_llm(
     let config_manager = ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| String::new());
     let key = config_manager
         .get_config(&Uuid::nil(), "llm-key", None)
-        .unwrap_or_default();
+        .unwrap_or_else(|_| String::new());
 
     let handler = botllm::llm_models::get_handler(&model);
     let raw_response = state
@@ -264,7 +264,7 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
                     .map(|v| Dynamic::from(v.as_str().unwrap_or("").to_string()))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Array::new);
         map.insert("errors".into(), Dynamic::from(errors));
 
         let warnings: Array = json["warnings"]
@@ -274,7 +274,7 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
                     .map(|v| Dynamic::from(v.as_str().unwrap_or("").to_string()))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Array::new);
         map.insert("warnings".into(), Dynamic::from(warnings));
 
         return Ok(Dynamic::from(map));

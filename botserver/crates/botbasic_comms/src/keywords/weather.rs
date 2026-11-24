@@ -386,7 +386,9 @@ pub fn degrees_to_compass(degrees: f64) -> String {
 }
 
 fn get_weather_api_key(state: &Arc<dyn BasicRuntime>) -> Result<String, String> {
-    let key = state.config_value("weather-api-key").unwrap_or_default();
+    let key = state
+        .config_value("weather-api-key")
+        .unwrap_or_else(String::new);
     if key.is_empty() {
         return Err("Weather API key not configured. Please set 'weather-api-key' in the bot configuration database".to_string());
     }

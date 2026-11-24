@@ -88,14 +88,14 @@ pub async fn handle_export_framework_csv(
 
         let mut covered = 0usize;
         for c in &controls {
-            let evs = evidence_by_control.get(&c.id).cloned().unwrap_or_default();
+            let evs = evidence_by_control.get(&c.id).cloned().unwrap_or_else(Vec::new);
             let approved = evs.iter().filter(|e| e.status == "approved").count();
             let has_evidence = approved > 0;
             if has_evidence {
                 covered += 1;
             }
             let title = c.title.replace([',', '\n'], " ");
-            let category = c.category.clone().unwrap_or_default().replace(',', " ");
+            let category = c.category.clone().unwrap_or_else(String::new).replace(',', " ");
             csv.push_str(&format!(
                 "{},{},{},{},{},{},{}\n",
                 c.control_id,

@@ -85,7 +85,10 @@ impl SharePointClient {
             http_client: reqwest::blocking::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
                 .build()
-                .unwrap_or_default(),
+                .unwrap_or_else(|e| {
+                    log::warn!("SharePoint: HTTP client build failed: {e}");
+                    reqwest::blocking::Client::new()
+                }),
         }
     }
 

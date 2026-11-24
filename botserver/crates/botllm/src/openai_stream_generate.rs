@@ -90,7 +90,7 @@ pub(crate) async fn generate(
                     .headers()
                     .get("retry-after")
                     .and_then(|v| v.to_str().ok().map(str::to_string));
-                let text = resp.text().await.unwrap_or_default();
+                let text = resp.text().await.unwrap_or_else(|e| { log::warn!("LLM error body read failed: {e}"); String::new() });
                 Ok::<(u16, String, Option<String>), String>((status.as_u16(), text, retry_after))
             }.await;
 

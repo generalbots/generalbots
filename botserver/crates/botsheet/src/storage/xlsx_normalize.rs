@@ -54,7 +54,7 @@ pub fn normalise_merge_cells(bytes: &[u8]) -> Result<Vec<u8>, String> {
         let mut entry = archive
             .by_index(index)
             .map_err(|e| format!("read entry {index}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut buffer = Vec::new();
         entry
             .read_to_end(&mut buffer)

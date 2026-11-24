@@ -148,7 +148,7 @@ mod tests {
         let header = headers
             .get(reqwest::header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or_default()
+            .unwrap_or("")
             .to_string();
         assert!(header.starts_with("Basic "), "{header}");
     }

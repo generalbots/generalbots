@@ -58,7 +58,7 @@ pub fn register_send_sms_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                         map.insert("success".into(), Dynamic::from(result.success));
                         map.insert(
                             "message_id".into(),
-                            Dynamic::from(result.message_id.unwrap_or_default()),
+                            Dynamic::from(result.message_id.unwrap_or_else(String::new)),
                         );
                         map.insert("provider".into(), Dynamic::from(result.provider));
                         map.insert("to".into(), Dynamic::from(result.to));
@@ -163,7 +163,7 @@ pub fn register_send_sms_with_third_arg_keyword(
                         map.insert("success".into(), Dynamic::from(result.success));
                         map.insert(
                             "message_id".into(),
-                            Dynamic::from(result.message_id.unwrap_or_default()),
+                            Dynamic::from(result.message_id.unwrap_or_else(String::new)),
                         );
                         map.insert("provider".into(), Dynamic::from(result.provider));
                         map.insert("to".into(), Dynamic::from(result.to));

@@ -130,7 +130,10 @@ If you have questions, reply to this email.
 ",
             request.approval_type,
             request.message,
-            serde_json::to_string_pretty(&request.context).unwrap_or_default(),
+            serde_json::to_string_pretty(&request.context).unwrap_or_else(|e| {
+                log::warn!("Failed to serialize approval context: {e}");
+                String::new()
+            }),
             request.expires_at.format("%Y-%m-%d %H:%M:%S UTC"),
             approve_url,
             reject_url

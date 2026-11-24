@@ -87,7 +87,7 @@ impl InvoiceService {
             .company_tax_id
             .as_ref()
             .map(|id| format!("<div>Tax ID: {}</div>", escape_html(id)))
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let customer_name = escape_html(&invoice.customer.name);
         let customer_email = escape_html(&invoice.customer.email);
         let customer_address = invoice
@@ -103,7 +103,7 @@ impl InvoiceService {
                     escape_html(a.postal_code.as_deref().unwrap_or(""))
                 )
             })
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let notes = invoice
             .notes
             .as_ref()
@@ -113,7 +113,7 @@ impl InvoiceService {
                     escape_html(n)
                 )
             })
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let footer = escape_html(
             invoice
                 .footer

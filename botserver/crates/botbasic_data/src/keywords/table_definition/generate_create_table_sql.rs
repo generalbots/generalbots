@@ -73,10 +73,10 @@ pub fn load_connection_config(
         })?;
 
     let username = state.config_value(&format!("{}Username", prefix))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let password = state.config_value(&format!("{}Password", prefix))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
 
     let port = state.config_value(&format!("{}Port", prefix))
         .and_then(|p| p.parse().ok());

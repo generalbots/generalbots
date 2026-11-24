@@ -125,7 +125,7 @@ If the information is not available, say so clearly.
                     .filter(|e| e.confidence >= self.config.min_confidence)
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let relationships: Vec<ExtractedRelationship> = parsed["relationships"]
             .as_array()
@@ -143,7 +143,7 @@ If the information is not available, say so clearly.
                     .filter(|r| r.confidence >= self.config.min_confidence)
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         Ok(ExtractionResult {
             entities,

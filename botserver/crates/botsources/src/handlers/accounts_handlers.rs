@@ -123,8 +123,11 @@ pub async fn handle_list_accounts_htmx(State(state): State<Arc<AppState>>) -> im
             "error"
         };
 
-        let meta: HashMap<String, String> =
-            serde_json::from_str(&acct.metadata_json).unwrap_or_default();
+        let meta: HashMap<String, String> = serde_json::from_str(&acct.metadata_json)
+            .unwrap_or_else(|e| {
+                log::warn!("Account metadata JSON is malformed: {e}");
+                HashMap::new()
+            });
         let imap_server = meta.get("imap_server").map(|s| s.as_str()).unwrap_or("");
 
         let _ = write!(

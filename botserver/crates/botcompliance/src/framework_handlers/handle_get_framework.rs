@@ -44,7 +44,7 @@ pub async fn handle_get_framework(
         let mut controls_json = Vec::new();
 
         for c in &controls {
-            let evidence = evidence_by_control.get(&c.id).cloned().unwrap_or_default();
+            let evidence = evidence_by_control.get(&c.id).cloned().unwrap_or_else(Vec::new);
             let approved = evidence
                 .iter()
                 .filter(|e| e["status"] == serde_json::json!("approved"))

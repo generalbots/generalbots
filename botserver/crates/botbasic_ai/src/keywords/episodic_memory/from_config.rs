@@ -115,7 +115,7 @@ Respond with valid JSON only:
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let decisions: Vec<String> = parsed["decisions"]
             .as_array()
@@ -124,7 +124,7 @@ Respond with valid JSON only:
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let action_items: Vec<ActionItem> = parsed["action_items"]
             .as_array()
@@ -146,7 +146,7 @@ Respond with valid JSON only:
                     })
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         let sentiment = Sentiment {
             score: parsed["sentiment"]["score"].as_f64().unwrap_or(0.0),

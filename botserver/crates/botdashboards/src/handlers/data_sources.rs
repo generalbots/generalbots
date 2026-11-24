@@ -67,7 +67,8 @@ pub async fn handle_create_data_source(
             name: req.name,
             description: req.description,
             source_type: req.source_type.to_string(),
-            connection: serde_json::to_value(&req.connection).unwrap_or_default(),
+            connection: serde_json::to_value(&req.connection)
+                .unwrap_or_else(|_| serde_json::Value::Null),
             schema_definition: serde_json::json!({}),
             refresh_schedule: None,
             last_sync: None,

@@ -105,7 +105,7 @@ impl CachedLLMProvider {
             let _ = conn
                 .set_ex::<_, _, ()>(
                     &cache_key,
-                    serde_json::to_string(&cached).unwrap_or_default(),
+                    serde_json::to_string(&cached).unwrap_or_else(|e| { log::warn!("cache serialization failed: {e}"); String::new() }),
                     self.config.ttl,
                 )
                 .await;
@@ -168,7 +168,7 @@ impl CachedLLMProvider {
             model: model.to_string(),
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
+                .unwrap_or_else(|_| std::time::Duration::ZERO)
                 .as_secs(),
             hit_count: 0,
             embedding,

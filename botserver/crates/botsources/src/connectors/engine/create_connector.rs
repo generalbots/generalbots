@@ -24,7 +24,11 @@ impl ConnectorEngine {
         .bind::<diesel::sql_types::Text, _>(&req.name)
         .bind::<diesel::sql_types::Text, _>(&req.connector_type)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&req.description)
-        .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&auth_config).unwrap_or_default())
+        .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&auth_config)
+            .unwrap_or_else(|e| {
+                log::warn!("Connector auth config serialization failed: {e}");
+                serde_json::Value::Null
+            }))
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&req.schedule)
         .bind::<diesel::sql_types::Bool, _>(true)
         .bind::<diesel::sql_types::Timestamptz, _>(now)
@@ -33,7 +37,7 @@ impl ConnectorEngine {
         .execute(conn)
         .map_err(|e| format!("Failed to create connector: {e}"))?;
 
-        let endpoints = req.endpoints.unwrap_or_default();
+        let endpoints = req.endpoints.unwrap_or_else(Vec::new);
         for ep in &endpoints {
             Self::insert_endpoint(conn, id, ep, now)?;
         }
@@ -105,7 +109,11 @@ impl ConnectorEngine {
             sql_query(
                 "UPDATE connectors SET auth_config = $1, secrets_vault_path = COALESCE($3, secrets_vault_path) WHERE id = $2",
             )
-            .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&sanitized).unwrap_or_default())
+            .bind::<diesel::sql_types::Jsonb, _>(&serde_json::to_value(&sanitized)
+                .unwrap_or_else(|e| {
+                    log::warn!("Connector sanitized auth serialization failed: {e}");
+                    serde_json::Value::Null
+                }))
             .bind::<diesel::sql_types::Uuid, _>(id)
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&vault_path)
             .execute(conn)
@@ -263,7 +271,7 @@ impl ConnectorEngine {
                                     max_length: None,
                                     values: None,
                                 }).collect()
-                            }).unwrap_or_default(),
+                            }).unwrap_or_else(Vec::new),
                             total_count: body["total_size"].as_i64()
                                 .or_else(|| body["total"].as_i64())
                                 .or_else(|| body["count"].as_i64()),
@@ -312,7 +320,10 @@ fn vault_auth(
     connector_id: Uuid,
     auth: &AuthConfig,
 ) -> (AuthConfig, Option<String>) {
-    let value = serde_json::to_value(auth).unwrap_or_default();
+    let value = serde_json::to_value(auth).unwrap_or_else(|e| {
+        log::warn!("Connector auth config serialization failed: {e}");
+        serde_json::Value::Null
+    });
     let (sanitized, secrets) = crate::connector_ops::split_sensitive_auth(&value);
     let sanitized_auth: AuthConfig =
         serde_json::from_value(sanitized).unwrap_or_else(|_| auth.clone());
@@ -341,7 +352,10 @@ fn merge_vault_secrets(auth: &mut AuthConfig, path: &str) {
     if secrets.is_empty() {
         return;
     }
-    let mut value = serde_json::to_value(&*auth).unwrap_or_default();
+    let mut value = serde_json::to_value(&*auth).unwrap_or_else(|e| {
+        log::warn!("Connector auth config serialization for Vault merge failed: {e}");
+        serde_json::Value::Null
+    });
     if let Some(object) = value.as_object_mut() {
         for (key, secret) in secrets {
             object.insert(key, serde_json::json!(secret));
@@ -359,7 +373,10 @@ fn store_refreshed_grant(auth: &AuthConfig, path: &str) {
         log::warn!("refreshed connector grant for {path} not persisted: Vault is not configured");
         return;
     };
-    let value = serde_json::to_value(auth).unwrap_or_default();
+    let value = serde_json::to_value(auth).unwrap_or_else(|e| {
+        log::warn!("Connector auth config serialization failed: {e}");
+        serde_json::Value::Null
+    });
     let (_, secrets) = crate::connector_ops::split_sensitive_auth(&value);
     crate::connector_ops::store_secrets(&manager, path, &secrets);
 }

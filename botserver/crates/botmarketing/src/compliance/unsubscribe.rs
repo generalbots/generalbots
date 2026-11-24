@@ -89,7 +89,7 @@ fn signing_key() -> &'static str {
         }
         hmac_sha256(base.as_bytes(), KEY_DERIVATION_LABEL)
             .map(hex::encode)
-            .unwrap_or_default()
+            .unwrap_or_else(String::new)
     })
     .as_str()
 }

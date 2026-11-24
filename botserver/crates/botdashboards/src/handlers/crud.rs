@@ -13,7 +13,10 @@ use crate::storage::{
     db_dashboard_to_dashboard, db_filter_to_filter, db_widget_to_widget, DbDashboard, DbFilter,
     DbWidget,
 };
-use crate::types::{CreateDashboardRequest, Dashboard, DashboardFilter, ListDashboardsQuery, UpdateDashboardRequest, Widget};
+use crate::types::{
+    CreateDashboardRequest, Dashboard, DashboardFilter, DashboardLayout, ListDashboardsQuery,
+    UpdateDashboardRequest, Widget,
+};
 use crate::DashboardsState;
 
 pub async fn handle_list_dashboards(
@@ -62,11 +65,11 @@ pub async fn handle_list_dashboards(
             let widgets_db: Vec<DbWidget> = dashboard_widgets::table
                 .filter(dashboard_widgets::dashboard_id.eq(dash_id))
                 .load(&mut conn)
-                .unwrap_or_default();
+                .unwrap_or_else(|_| Vec::new());
             let filters_db: Vec<DbFilter> = dashboard_filters::table
                 .filter(dashboard_filters::dashboard_id.eq(dash_id))
                 .load(&mut conn)
-                .unwrap_or_default();
+                .unwrap_or_else(|_| Vec::new());
 
             let widgets: Vec<Widget> = widgets_db.into_iter().map(db_widget_to_widget).collect();
             let filters: Vec<DashboardFilter> =
@@ -97,8 +100,8 @@ pub async fn handle_create_dashboard(
         let branch_id = get_default_bot(&mut conn);
         let now = Utc::now();
 
-        let layout = req.layout.unwrap_or_default();
-        let layout_json = serde_json::to_value(&layout).unwrap_or_default();
+        let layout = req.layout.unwrap_or_else(DashboardLayout::default);
+        let layout_json = serde_json::to_value(&layout).unwrap_or_else(|_| serde_json::Value::Null);
 
         let db_dashboard = DbDashboard {
             id: Uuid::new_v4(),
@@ -111,7 +114,7 @@ pub async fn handle_create_dashboard(
             refresh_interval: None,
             is_public: req.is_public.unwrap_or(false),
             is_template: false,
-            tags: req.tags.unwrap_or_default().into_iter().map(Some).collect(),
+            tags: req.tags.unwrap_or_else(Vec::new).into_iter().map(Some).collect(),
             created_at: now,
             updated_at: now,
             branch_id,
@@ -152,11 +155,11 @@ pub async fn handle_get_dashboard(
                 let widgets_db: Vec<DbWidget> = dashboard_widgets::table
                     .filter(dashboard_widgets::dashboard_id.eq(dashboard_id))
                     .load(&mut conn)
-                    .unwrap_or_default();
+                    .unwrap_or_else(|_| Vec::new());
                 let filters_db: Vec<DbFilter> = dashboard_filters::table
                     .filter(dashboard_filters::dashboard_id.eq(dashboard_id))
                     .load(&mut conn)
-                    .unwrap_or_default();
+                    .unwrap_or_else(|_| Vec::new());
 
                 let widgets: Vec<Widget> = widgets_db.into_iter().map(db_widget_to_widget).collect();
                 let filters: Vec<DashboardFilter> =
@@ -197,7 +200,8 @@ pub async fn handle_update_dashboard(
             db_dash.description = Some(description);
         }
         if let Some(layout) = req.layout {
-            db_dash.layout = serde_json::to_value(&layout).unwrap_or_default();
+            db_dash.layout =
+                serde_json::to_value(&layout).unwrap_or_else(|_| serde_json::Value::Null);
         }
         if let Some(is_public) = req.is_public {
             db_dash.is_public = is_public;
@@ -218,11 +222,11 @@ pub async fn handle_update_dashboard(
         let widgets_db: Vec<DbWidget> = dashboard_widgets::table
             .filter(dashboard_widgets::dashboard_id.eq(dashboard_id))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
         let filters_db: Vec<DbFilter> = dashboard_filters::table
             .filter(dashboard_filters::dashboard_id.eq(dashboard_id))
             .load(&mut conn)
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
 
         let widgets: Vec<Widget> = widgets_db.into_iter().map(db_widget_to_widget).collect();
         let filters: Vec<DashboardFilter> =

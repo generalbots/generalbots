@@ -220,7 +220,7 @@ impl TranscriptionService {
             .segments
             .first()
             .map(|s| s.meeting_id.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
         let speakers = self.speaker_diarization();
         let total_duration = speakers.iter().map(|s| s.total_duration).sum();
 
@@ -269,7 +269,7 @@ impl TranscriptionService {
             .segments
             .first()
             .map(|s| s.meeting_id.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
 
         TranscriptSummary {
             meeting_id,

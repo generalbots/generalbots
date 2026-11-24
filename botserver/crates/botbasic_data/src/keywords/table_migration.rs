@@ -334,7 +334,10 @@ pub fn sync_bot_tables(
         info!("Syncing table: {}", table.name);
 
         // Get existing columns
-        let existing_columns = get_table_columns(&table.name, &mut conn).unwrap_or_default();
+        let existing_columns = get_table_columns(&table.name, &mut conn).unwrap_or_else(|e| {
+            log::warn!("Failed to read columns of table '{}': {e}", table.name);
+            Vec::new()
+        });
 
         // Generate CREATE TABLE SQL
         let create_sql = crate::keywords::table_definition::generate_create_table_sql(table, "postgres");

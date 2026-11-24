@@ -24,7 +24,7 @@ pub fn extract_comments(bytes: &[u8]) -> HashMap<usize, HashMap<String, CellComm
     let rels = files
         .get("xl/_rels/workbook.xml.rels")
         .map(|r| parse_rels(r))
-        .unwrap_or_default();
+        .unwrap_or_else(HashMap::new);
 
     for (sheet_index, sheet_path) in sheet_parts(workbook_xml, &rels) {
         let Some(rels_path) = rels_path_for(&sheet_path) else {
@@ -129,7 +129,7 @@ fn parse_comments(xml: &[u8]) -> Option<HashMap<String, CellComment>> {
                             let author_name = current_author
                                 .and_then(|i| authors.get(i))
                                 .cloned()
-                                .unwrap_or_default();
+                                .unwrap_or_else(String::new);
                             map.insert(
                                 format!("{row},{col}"),
                                 CellComment {
@@ -239,7 +239,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry {i}: {e}"))?;
-        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_else(|_| String::new());
         let mut data = Vec::new();
         std::io::Read::read_to_end(&mut entry, &mut data)
             .map_err(|e| format!("Failed to read zip entry {name}: {e}"))?;

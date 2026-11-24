@@ -4,6 +4,11 @@ use botlib::security::SafeCommand;
 use anyhow::Result;
 use std::collections::HashMap;
 
+fn empty_vault_secrets(e: anyhow::Error) -> HashMap<String, String> {
+    log::warn!("Failed to read Vault secret: {e}");
+    HashMap::new()
+}
+
 fn confirm_action(prompt: &str) -> bool {
     print!("{prompt}");
     let _ = std::io::Write::flush(&mut std::io::stdout());
@@ -37,8 +42,8 @@ pub async fn rotate_secret(component: &str) -> Result<()> {
             let mut secrets = manager
                 .get_secret(SecretPaths::TABLES)
                 .await
-                .unwrap_or_default();
-            let old_password = secrets.get("password").cloned().unwrap_or_default();
+                .unwrap_or_else(empty_vault_secrets);
+            let old_password = secrets.get("password").cloned().unwrap_or_else(String::new);
             secrets.insert("password".to_string(), new_password.clone());
 
             println!("⚠️ WARNING: You must update PostgreSQL with the new password!");
@@ -73,7 +78,7 @@ pub async fn rotate_secret(component: &str) -> Result<()> {
             let mut secrets = manager
                 .get_secret(SecretPaths::DRIVE)
                 .await
-                .unwrap_or_default();
+                .unwrap_or_else(empty_vault_secrets);
 
             println!("⚠️ WARNING: You must update MinIO with the new credentials!");
             println!();
@@ -129,7 +134,7 @@ pub async fn rotate_secret(component: &str) -> Result<()> {
             let mut secrets = manager
                 .get_secret(SecretPaths::EMAIL)
                 .await
-                .unwrap_or_default();
+                .unwrap_or_else(empty_vault_secrets);
 
             println!("⚠️ WARNING: You must update the mail server with the new password!");
             println!();
@@ -171,7 +176,7 @@ pub async fn rotate_secret(component: &str) -> Result<()> {
             let mut secrets = manager
                 .get_secret(SecretPaths::DIRECTORY)
                 .await
-                .unwrap_or_default();
+                .unwrap_or_else(empty_vault_secrets);
 
             println!("⚠️ WARNING: You must update Zitadel with the new client secret!");
             println!();
@@ -287,7 +292,7 @@ pub async fn rotate_all_secrets() -> Result<()> {
     let mut tables = manager
         .get_secret(SecretPaths::TABLES)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(empty_vault_secrets);
     tables.insert("password".to_string(), tables_password.clone());
     manager
         .put_secret(SecretPaths::TABLES, tables.clone())
@@ -303,7 +308,7 @@ pub async fn rotate_all_secrets() -> Result<()> {
     let mut drive = manager
         .get_secret(SecretPaths::DRIVE)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(empty_vault_secrets);
     drive.insert("accesskey".to_string(), drive_accesskey.clone());
     drive.insert("secret".to_string(), drive_secret.clone());
     manager.put_secret(SecretPaths::DRIVE, drive).await?;
@@ -322,7 +327,7 @@ pub async fn rotate_all_secrets() -> Result<()> {
     let mut email = manager
         .get_secret(SecretPaths::EMAIL)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(empty_vault_secrets);
     email.insert("password".to_string(), email_password.clone());
     manager.put_secret(SecretPaths::EMAIL, email).await?;
     println!("✓ email: new password set ({} chars)", email_password.len());
@@ -331,7 +336,7 @@ pub async fn rotate_all_secrets() -> Result<()> {
     let mut directory = manager
         .get_secret(SecretPaths::DIRECTORY)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(empty_vault_secrets);
     directory.insert("client_secret".to_string(), directory_secret.clone());
     manager
         .put_secret(SecretPaths::DIRECTORY, directory)
@@ -363,7 +368,7 @@ pub async fn verify_rotation(component: &str) -> Result<()> {
             let host = secrets.get("host").cloned().unwrap_or_else(|| "localhost".to_string());
             let port = secrets.get("port").cloned().unwrap_or_else(|| "5432".to_string());
             let user = secrets.get("username").cloned().unwrap_or_else(|| "postgres".to_string());
-            let pass = secrets.get("password").cloned().unwrap_or_default();
+            let pass = secrets.get("password").cloned().unwrap_or_else(String::new);
             let db = secrets.get("database").cloned().unwrap_or_else(|| "postgres".to_string());
 
             println!(" Testing connection to {}@{}:{}...", user, host, port);

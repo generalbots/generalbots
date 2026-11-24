@@ -21,7 +21,10 @@ impl Default for DeployGatewayConfig {
         Self {
             gateway_url: std::env::var("DEPLOY_GATEWAY_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:5860".to_string()),
-            deploy_key: std::env::var("DEPLOY_KEY").unwrap_or_default(),
+            deploy_key: std::env::var("DEPLOY_KEY").unwrap_or_else(|e| {
+                log::warn!("DEPLOY_KEY unavailable: {e}");
+                String::new()
+            }),
         }
     }
 }
@@ -63,7 +66,10 @@ impl DeployGateway {
                 .map_err(|e| DeploymentError::CiCdError(format!("Gateway response parse failed: {e}")))
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read gateway error body: {e}");
+                String::new()
+            });
             Err(DeploymentError::CiCdError(format!(
                 "Gateway returned {status}: {body}"
             )))
@@ -97,7 +103,10 @@ impl DeployGateway {
                 .map_err(|e| DeploymentError::CiCdError(format!("Gateway stop response parse failed: {e}")))
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read gateway error body: {e}");
+                String::new()
+            });
             Err(DeploymentError::CiCdError(format!(
                 "Gateway stop returned {status}: {body}"
             )))
@@ -131,7 +140,10 @@ impl DeployGateway {
                 .map_err(|e| DeploymentError::CiCdError(format!("Gateway start response parse failed: {e}")))
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read gateway error body: {e}");
+                String::new()
+            });
             Err(DeploymentError::CiCdError(format!(
                 "Gateway start returned {status}: {body}"
             )))
@@ -160,7 +172,10 @@ impl DeployGateway {
                 .map_err(|e| DeploymentError::CiCdError(format!("Gateway status response parse failed: {e}")))
         } else {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            let body = response.text().await.unwrap_or_else(|e| {
+                log::warn!("Failed to read gateway error body: {e}");
+                String::new()
+            });
             Err(DeploymentError::CiCdError(format!(
                 "Gateway status returned {status}: {body}"
             )))

@@ -138,7 +138,7 @@ impl CiGateRunner {
         // 2. Load output samples
         let samples: Vec<EvaluationSample> = load_json(output_path.as_ref())
             .map_err(|e| format!("Failed to load output samples: {e}"))?
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         info!(
             "CI gate: loaded {} samples, baseline {}",

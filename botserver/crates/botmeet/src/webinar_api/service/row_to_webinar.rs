@@ -3,7 +3,10 @@ use super::*;
 impl WebinarService {
     pub(super) fn row_to_webinar(&self, row: WebinarRow) -> Webinar {
         let settings: WebinarSettings =
-            serde_json::from_str(&row.settings_json).unwrap_or_default();
+            serde_json::from_str(&row.settings_json).unwrap_or_else(|e| {
+                log::warn!("Failed to parse webinar settings JSON: {e}");
+                WebinarSettings::default()
+            });
         let status = match row.status.as_str() {
             "draft" => WebinarStatus::Draft,
             "scheduled" => WebinarStatus::Scheduled,
@@ -86,7 +89,7 @@ impl WebinarService {
         let upvoted_by: Vec<Uuid> = row
             .upvoted_by
             .and_then(|u| serde_json::from_str(&u).ok())
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
 
         QAQuestion {
             id: row.id,

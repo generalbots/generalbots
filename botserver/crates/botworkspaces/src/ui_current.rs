@@ -114,7 +114,7 @@ pub(crate) async fn pages_current_get(State(state): State<Arc<WorkspacesState>>)
                     .content
                     .as_array()
                     .cloned()
-                    .unwrap_or_default();
+                    .unwrap_or_else(Vec::new);
                 let mut html = String::new();
                 for block in blocks.iter().take(5) {
                     let block_type = block
@@ -186,7 +186,7 @@ pub(crate) async fn pages_current_blocks(State(state): State<Arc<WorkspacesState
                 .content
                 .as_array()
                 .cloned()
-                .unwrap_or_default();
+                .unwrap_or_else(Vec::new);
             if blocks.is_empty() {
                 return Html("<div class='empty-page'><p>Press <kbd>/</kbd> for commands or start typing...</p></div>".to_string());
             }
