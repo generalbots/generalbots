@@ -133,8 +133,14 @@ h.staticTest("#2448 undo consumes once and reverts LIFO before-states through th
   contains(handler, "super::restore_version(", "restore is routed through the existing handler");
   contains(handler, "Extension(user.clone())", "the verified session is forwarded, not a body owner");
   contains(handler, "Path(version_id)", "only the recorded version id is passed");
-  ordered(handler, "undo_plan_for(&store, &scope, &body.batch_id)", "super::restore_version(",
-    "restore follows a successful single-use consume");
+  contains(handler, "let plan = peek(&store, &key)", "a read-only peek feeds the restore plan");
+  ordered(handler, "let plan = peek(&store, &key)",
+    "let restored = restore_plan(&state, &user, locale, &plan).await?;",
+    "the batch is peeked before any restore is attempted");
+  ordered(handler, "let restored = restore_plan(&state, &user, locale, &plan).await?;",
+    "let reverted = undo_plan_for(&store, &scope, &body.batch_id)",
+    "restore succeeds BEFORE the single-use consume (a failed restore leaves the batch active)");
+  absent(handler, "store.consume", "the handler must not consume before restore");
   ["req.user_id", "body.user_id", "body.bot_id", "body.owner"].forEach(function (forbidden) {
     absent(handler, forbidden, "restore must not receive a caller-supplied " + forbidden);
   });
