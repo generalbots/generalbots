@@ -312,7 +312,9 @@ async fn apply_bot_template(
             };
 
             let ct = guess_content_type(file_path);
-            let _ = drive.put_object(bucket, &key, data, Some(ct)).await;
+            if let Err(e) = drive.put_object(bucket, &key, data, Some(ct)).await {
+                log::warn!("Setup Wizard: Could not upload template file {key}: {e}");
+            }
             files_uploaded += 1;
         }
     }
