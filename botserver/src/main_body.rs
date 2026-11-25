@@ -32,7 +32,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     #[cfg(not(feature = "console"))]
     let no_console = true;
 
-    if let Err(e) = rustls::crypto::ring::default_provider().install_default() { warn!("rustls provider install failed: {e}"); }
+    if let Err(e) = rustls::crypto::ring::default_provider().install_default() { warn!("rustls provider install failed: {e:?}"); }
 
     if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
         if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
