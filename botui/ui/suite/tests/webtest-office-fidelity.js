@@ -60,6 +60,7 @@ require("./webtest-office-fidelity/54_view_ip_hook");
 require("./webtest-office-fidelity/55_link_download_policy");
 require("./webtest-office-fidelity/56_clippy_baseline_gate");
 require("./webtest-office-fidelity/57_link_inventory");
+require("./webtest-office-fidelity/58_agent_undo_gap");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
