@@ -64,8 +64,11 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
 // Re-locked 2026-11-25 (#2452): dto_tests.rs added 1 Rust file for the
 // share-link download-policy DTO tests; no new .route(/.nest( calls.
 // One-time documented correction; shrink-only afterwards.
-  equal(files.length, 4698, "shipped router .rs file count");
-  equal(routeCalls, 2450, "raw .route( call count");
+  // Re-locked 2026-11-25 (#2452): link_inventory.rs + the /api/collab/links/all
+  // route add 1 Rust file and 1 registration. No route removed/reordered.
+  // One-time documented correction; shrink-only afterwards.
+  equal(files.length, 4699, "shipped router .rs file count");
+  equal(routeCalls, 2451, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");
   observe("Rust files / .route( calls / .nest( calls / router files",
@@ -80,8 +83,8 @@ test("[BASELINE-OBSERVE] 2,736 parsed registrations (2,705 unique method+path)",
   });
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
-  equal(registrations.length, 2794, "parsed registration count");
-  equal(Object.keys(unique).length, 2761, "unique method+path count");
+  equal(registrations.length, 2795, "parsed registration count");
+  equal(Object.keys(unique).length, 2762, "unique method+path count");
   var sources = {};
   registrations.forEach(function (r) { sources[r.source] = true; });
   observe("parsed registrations / unique method+path / owning files",
