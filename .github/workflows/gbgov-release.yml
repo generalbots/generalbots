@@ -1,0 +1,344 @@
+name: gbgov release
+
+# Release build and Windows installers of the government desktop edition
+# (branch `gbgov`). It runs only on the edition's own tags (`gbgov-v1.2.3`) and
+# by hand; the platform's `v*.*.*` tags and release workflow are not involved.
+#
+# A tag builds and publishes a pre-release named for the tag. A manual run
+# builds the same files and keeps them as workflow artifacts; it publishes only
+# with `publish=true` and only when it runs on a `gbgov-v*` tag.
+#
+# Versions: the tag carries the edition version (`gbgov-v1.2.3` -> 1.2.3). The
+# Windows installer (MSI) accepts only `major.minor.patch` with an optional
+# numeric pre-release (`1.2.3-4`), so other tags fail before the build starts.
+
+on:
+  push:
+    tags: ["gbgov-v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish a pre-release (only when run on a gbgov-v* tag)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gbgov-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GBGOV_FEATURES: gbgov
+  TARGET_TRIPLE: x86_64-pc-windows-msvc
+
+jobs:
+  build:
+    name: Release build, installers, smoke
+    runs-on: windows-latest
+    timeout-minutes: 240
+    env:
+      # `secrets` cannot be read in a step condition; this flag can.
+      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Resolve the edition version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            if ($env:GITHUB_REF_NAME -notlike 'gbgov-v*') {
+              throw "tag $($env:GITHUB_REF_NAME) is not an edition tag (gbgov-v*)"
+            }
+            $version = $env:GITHUB_REF_NAME.Substring('gbgov-v'.Length)
+            $label = $env:GITHUB_REF_NAME
+          } else {
+            $version = (Get-Content botapp/tauri.conf.json -Raw | ConvertFrom-Json).version
+            $label = "gbgov-build-$((git rev-parse --short HEAD).Trim())"
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-\d+)?$') {
+            throw "version '$version' is not major.minor.patch with an optional numeric pre-release"
+          }
+          $commit = (git rev-parse --short HEAD).Trim()
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          "GBGOV_VERSION=$version" >> $env:GITHUB_ENV
+          "GBGOV_LABEL=$label" >> $env:GITHUB_ENV
+          "BOTSERVER_BUILD_VERSION=$version" >> $env:GITHUB_ENV
+          "BOTSERVER_COMMIT=$commit" >> $env:GITHUB_ENV
+          "BOTSERVER_BUILD_DATE=$built" >> $env:GITHUB_ENV
+          $versionConf = Join-Path $env:RUNNER_TEMP 'gbgov-version.conf.json'
+          @{ version = $version } | ConvertTo-Json | Set-Content $versionConf -Encoding utf8
+          "GBGOV_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
+          Write-Host "edition version $version ($label, $commit)"
+
+      - name: Install PostgreSQL (libpq for the build and the payload, a server for the smoke test)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          choco install postgresql16 --no-progress -y --params '/Password:postgres'
+          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Sort-Object Name | Select-Object -Last 1
+          if (-not $pg) { throw "PostgreSQL install directory not found" }
+          "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
+          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+          # The desktop shell stages these beside the server at first run.
+          $payload = 'botserver\botserver-installers'
+          New-Item -ItemType Directory -Force $payload | Out-Null
+          $runtimeDlls = @(
+            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
+            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
+            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
+          )
+          foreach ($name in $runtimeDlls) {
+            $dll = Join-Path "$($pg.FullName)\bin" $name
+            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
+            Copy-Item $dll $payload -Force
+          }
+
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: gbgov-release
+
+      - name: Build botserver (release, Chat + Drive profile)
+        run: cargo build --release -p botserver --no-default-features --features ${{ env.GBGOV_FEATURES }}
+
+      - name: Prepare the smoke database
+        shell: pwsh
+        env:
+          PGPASSWORD: postgres
+        run: |
+          $svc = Get-Service -Name "postgresql*" | Select-Object -First 1
+          if ($svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE gb LOGIN PASSWORD 'gb'"
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE DATABASE botserver OWNER gb"
+
+      - name: Smoke test the release server (isolated stack, local mock model)
+        shell: pwsh
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}\gbgov-stack
+          DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/gbgov-smoke.ps1 -Binary target\release\botserver.exe
+          $logs = Get-ChildItem 'botserver-smoke.log*' -ErrorAction SilentlyContinue
+          $panics = $logs | Select-String -Pattern 'panicked at' -SimpleMatch
+          if ($panics) {
+            $panics | Select-Object -First 5 | ForEach-Object { Write-Host "::error::$($_.Line)" }
+            throw "the release server panicked during the smoke test"
+          }
+
+      - name: Build the desktop shell (release)
+        run: cargo build --release -p botapp --features ${{ env.GBGOV_FEATURES }},custom-protocol
+
+      # Same pinned components and digests as the platform's Windows release
+      # (botserver/3rdparty.toml). Anything not listed here is still downloaded
+      # on first run.
+      - name: Stage the offline payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $payload = 'botserver\botserver-installers'
+          New-Item -ItemType Directory -Force $payload | Out-Null
+          $downloads = @(
+            @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
+            @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
+            @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = 'SHA256'; Hash = '5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e' },
+            @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = 'SHA256'; Hash = '6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be' },
+            @{ Name = 'zitadel-windows-amd64.tar.gz'; Url = 'https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-windows-amd64.tar.gz'; Algo = 'SHA256'; Hash = 'dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405' },
+            @{ Name = 'caddy_2.11.9_windows_amd64.zip'; Url = 'https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_windows_amd64.zip'; Algo = 'SHA512'; Hash = '98753d5d42650383d00619ac70917a217141f9e92314185bf6c1b8b439cfcfdf8393da0ebb4675c8cb3b23d29a19aabe99dc5aca64fa1bfc3a1ba22509b06871' }
+          )
+          foreach ($item in $downloads) {
+            $out = Join-Path $payload $item.Name
+            Invoke-WebRequest -Uri $item.Url -OutFile $out -UseBasicParsing
+            $actual = (Get-FileHash $out -Algorithm $item.Algo).Hash.ToLowerInvariant()
+            if ($actual -ne $item.Hash) {
+              throw "checksum mismatch for $($item.Name): expected $($item.Hash), got $actual"
+            }
+            Write-Host "verified $($item.Name) ($($item.Algo))"
+          }
+
+      # The agent workspace on Windows runs Incus inside WSL through a small
+      # `incus.exe` wrapper. Its source is not in this repository yet, so the
+      # installer ships without it and agent mode stays off on such machines.
+      - name: Build the WSL Incus wrapper (when its source is in the repository)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = 'desktop\windows\incus-wsl\Cargo.toml'
+          if (-not (Test-Path $manifest)) {
+            Write-Host "::notice::$manifest is not in the repository; the installer ships without incus.exe"
+            exit 0
+          }
+          cargo build --release --manifest-path $manifest
+          $exe = Get-ChildItem 'desktop\windows\incus-wsl\target\release\incus.exe' -ErrorAction Stop
+          Copy-Item $exe.FullName 'botserver\botserver-installers\incus.exe' -Force
+
+      - name: Record the payload checksums
+        shell: pwsh
+        run: |
+          $payload = 'botserver\botserver-installers'
+          $sums = Join-Path $payload 'SHA256SUMS-windows-installers'
+          Get-ChildItem $payload -File |
+            Where-Object { $_.Name -ne 'SHA256SUMS-windows-installers' } |
+            Sort-Object Name |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
+            Set-Content $sums -Encoding ascii
+          Get-ChildItem $payload -File | Sort-Object Name |
+            ForEach-Object { Write-Host ("payload {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
+
+      - name: Stage the server sidecar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force botapp\binaries | Out-Null
+          Copy-Item target\release\botserver.exe "botapp\binaries\botserver-$env:TARGET_TRIPLE.exe" -Force
+
+      # Code signing waits for the certificate. With the secrets in place the
+      # certificate goes into the runner's user store and the bundler signs the
+      # application, the sidecar and both installers with it.
+      - name: Prepare code signing
+        if: env.HAS_WINDOWS_CERT == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          Remove-Item $pfx -Force
+          $signConf = Join-Path $env:RUNNER_TEMP 'gbgov-sign.conf.json'
+          @{ bundle = @{ windows = @{
+              certificateThumbprint = $cert.Thumbprint
+              digestAlgorithm = 'sha256'
+              timestampUrl = 'http://timestamp.digicert.com'
+          } } } | ConvertTo-Json -Depth 5 | Set-Content $signConf -Encoding utf8
+          "GBGOV_SIGN_CONF=$signConf" >> $env:GITHUB_ENV
+
+      - name: Install the Tauri bundler
+        run: cargo install tauri-cli --version "^2" --locked
+
+      # Product name and app identifier stay as today until the owner decides
+      # them (decision D1). TODO(D1): change `productName` and `identifier` in
+      # botapp/tauri.gbgov.conf.json before the first public release; changing
+      # them later breaks upgrades and moves the data folder.
+      - name: Package the NSIS and MSI installers
+        shell: pwsh
+        working-directory: botapp
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $configs = @('--config', 'tauri.gbgov.conf.json', '--config', $env:GBGOV_VERSION_CONF)
+          if ($env:GBGOV_SIGN_CONF) { $configs += @('--config', $env:GBGOV_SIGN_CONF) }
+          cargo tauri build --features "$env:GBGOV_FEATURES,custom-protocol" @configs --bundles nsis,msi
+          if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
+
+      - name: Collect the release files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = $env:GBGOV_VERSION
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
+          $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
+          $setup = Get-ChildItem ($bundles | ForEach-Object { "$_\nsis\*-setup.exe" }) -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msi) { throw 'the bundler produced no MSI' }
+          if (-not $setup) { throw 'the bundler produced no NSIS installer' }
+          Copy-Item $msi.FullName "dist\generalbots-gbgov-$v-windows-x64.msi"
+          Copy-Item $setup.FullName "dist\generalbots-gbgov-$v-windows-x64-setup.exe"
+          Copy-Item target\release\botapp.exe "dist\generalbots-gbgov-$v-windows-x64.exe"
+          Copy-Item target\release\botserver.exe "dist\botserver-gbgov-$v-windows-x64.exe"
+          foreach ($f in Get-ChildItem dist -File) {
+            if ($f.Name -match '(msi|setup\.exe)$' -and $f.Length -lt 1MB) {
+              throw "$($f.Name) is suspiciously small ($($f.Length) bytes)"
+            }
+          }
+
+      - name: Software bill of materials (CycloneDX)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo install cargo-cyclonedx --version "^0.5" --locked
+          if ($LASTEXITCODE -ne 0) { throw 'could not install cargo-cyclonedx' }
+          $builds = @(
+            @{ Crate = 'botserver'; Args = @('--no-default-features', '--features', $env:GBGOV_FEATURES) },
+            @{ Crate = 'botapp'; Args = @('--features', "$env:GBGOV_FEATURES,custom-protocol") }
+          )
+          foreach ($b in $builds) {
+            cargo cyclonedx --manifest-path "$($b.Crate)\Cargo.toml" --format json --target $env:TARGET_TRIPLE @($b.Args)
+            if ($LASTEXITCODE -ne 0) { throw "cargo cyclonedx failed for $($b.Crate)" }
+            $sbom = Get-ChildItem $b.Crate -Filter '*.cdx.json' -File | Select-Object -First 1
+            if (-not $sbom) { throw "no SBOM was written for $($b.Crate)" }
+            Copy-Item $sbom.FullName "dist\$($b.Crate)-gbgov-$env:GBGOV_VERSION.cdx.json" -Force
+          }
+
+      - name: SHA-256 sums
+        shell: pwsh
+        run: |
+          $sums = "SHA256SUMS-gbgov-$env:GBGOV_VERSION-windows.txt"
+          Get-ChildItem dist -File | Where-Object { $_.Name -ne $sums } | Sort-Object Name |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
+            Set-Content (Join-Path dist $sums) -Encoding ascii
+          Get-Content (Join-Path dist $sums)
+
+      - name: Upload the release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gbgov-release-${{ env.GBGOV_LABEL }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Upload smoke evidence and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gbgov-release-smoke-${{ github.sha }}
+          path: |
+            botserver-smoke.log
+            botserver-smoke.log.err
+            mock-llm.log
+            mock-llm.log.err
+            smoke-artifacts/**
+          if-no-files-found: warn
+
+  publish:
+    name: Publish the pre-release
+    needs: build
+    if: ${{ github.event_name == 'push' || inputs.publish }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Require an edition tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ] || [[ "$GITHUB_REF_NAME" != gbgov-v* ]]; then
+            echo "::error::publishing needs a gbgov-v* tag; this run is on $GITHUB_REF_TYPE $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Download the release files
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: gbgov-release-${{ github.ref_name }}
+          path: dist
+
+      - name: Create or update the GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ls -l dist
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --title "$TAG" \
+              --prerelease \
+              --verify-tag \
+              --notes "Windows installers of the desktop edition (Chat + Drive). Verify the downloads with the SHA256SUMS file attached to this release."
+          fi

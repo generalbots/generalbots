@@ -1,8 +1,9 @@
 //! Startup update check against the latest GitHub release (#1862).
 //!
-//! The desktop shell asks GitHub for `releases/latest`, compares the release
-//! tag with the running application version and, when a newer version exists,
-//! offers an opt-in prompt that links to the release page. Nothing is
+//! The desktop shell asks GitHub for `releases/latest` (or, for an edition
+//! build, the newest release of its own tag line: see `feed`), compares the
+//! release tag with the running application version and, when a newer
+//! version exists, offers an opt-in prompt that links to the release page. Nothing is
 //! downloaded or installed automatically: the UI only notifies the user and
 //! opens the official release page (or the platform asset when one is
 //! published).
@@ -14,7 +15,8 @@ use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
 
-const RELEASES_API: &str = "https://api.github.com/repos/generalbots/generalbots/releases/latest";
+mod feed;
+
 const RELEASES_PAGE: &str = "https://github.com/generalbots/generalbots/releases";
 const RELEASE_URL_PREFIX: &str = "https://github.com/generalbots/generalbots/releases";
 
@@ -214,11 +216,14 @@ fn release_url_or_page(candidate: &str) -> String {
     }
 }
 
-fn release_from_github(release: GitHubRelease) -> Result<ReleaseInfo, String> {
+fn release_from_github(
+    release: GitHubRelease,
+    prefix: Option<&str>,
+) -> Result<ReleaseInfo, String> {
     if release.draft {
         return Err("GitHub returned a draft release.".to_string());
     }
-    if release.prerelease {
+    if release.prerelease && prefix.is_none() {
         return Err("GitHub returned a prerelease for the stable channel.".to_string());
     }
     if release.tag_name.trim().is_empty() {
@@ -226,11 +231,7 @@ fn release_from_github(release: GitHubRelease) -> Result<ReleaseInfo, String> {
     }
 
     let current_version = crate::build_info::version();
-    let latest_version = release
-        .tag_name
-        .trim()
-        .trim_start_matches(|character| character == 'v' || character == 'V')
-        .to_string();
+    let latest_version = feed::tag_version(&release.tag_name, prefix);
     let platform = platform_id();
     let asset = select_asset(&release.assets, &platform);
     let release_name = release
@@ -256,9 +257,15 @@ fn release_from_github(release: GitHubRelease) -> Result<ReleaseInfo, String> {
     })
 }
 
-fn parse_github_release(raw: &str) -> Result<GitHubRelease, String> {
-    serde_json::from_str(raw)
-        .map_err(|error| format!("could not parse the GitHub release: {error}"))
+fn parse_github_release(raw: &str, prefix: Option<&str>) -> Result<GitHubRelease, String> {
+    let Some(prefix) = prefix else {
+        return serde_json::from_str(raw)
+            .map_err(|error| format!("could not parse the GitHub release: {error}"));
+    };
+    let releases: Vec<GitHubRelease> = serde_json::from_str(raw)
+        .map_err(|error| format!("could not parse the GitHub releases: {error}"))?;
+    feed::newest_in_channel(releases, prefix)
+        .ok_or_else(|| format!("no published release tagged {prefix}* was found."))
 }
 
 /// Fetches `releases/latest` and reports whether the desktop should offer an
@@ -270,8 +277,9 @@ pub async fn check_latest_release() -> Result<ReleaseInfo, String> {
         .build()
         .map_err(|error| format!("could not create the update HTTP client: {error}"))?;
 
+    let prefix = feed::tag_prefix();
     let mut request = client
-        .get(RELEASES_API)
+        .get(feed::releases_endpoint(prefix))
         .header(reqwest::header::USER_AGENT, user_agent())
         .header(reqwest::header::ACCEPT, "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28");
@@ -300,8 +308,8 @@ pub async fn check_latest_release() -> Result<ReleaseInfo, String> {
         .text()
         .await
         .map_err(|error| format!("could not read the GitHub release: {error}"))?;
-    let release = parse_github_release(&body)?;
-    let info = release_from_github(release)?;
+    let release = parse_github_release(&body, prefix)?;
+    let info = release_from_github(release, prefix)?;
     log::info!(
         "update check: current={} latest={} available={}",
         info.current_version,
