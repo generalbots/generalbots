@@ -60,7 +60,7 @@
       el.style.position = "fixed";
       el.style.right = "16px";
       el.style.bottom = "16px";
-      el.style.zIndex = "9999";
+      el.style.zIndex = "var(--z-toast)";
       el.style.maxWidth = "360px";
       el.style.pointerEvents = "none";
       (doc.body || doc.documentElement).appendChild(el);

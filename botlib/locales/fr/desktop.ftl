@@ -111,6 +111,8 @@ sidebar-add-pin = Ajouter un code PIN
 
 collab-collaborators = Collaborateurs ({ $count })
 collab-no-one-else = Personne d'autre n'est ici
+collab-unavailable = Collaboration indisponible
+collab-retry = Réessayer
 
 update-available-title = Mise à jour disponible — v{ $version }
 update-now = Mettre à jour maintenant

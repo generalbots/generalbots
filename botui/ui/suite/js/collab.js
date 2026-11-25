@@ -1,29 +1,25 @@
 "use strict";
-/* GBCollab — shared real-time collaboration client (WebSocket + presence)
- * Used by sheet, docs, slides, plan, and any future app that needs it.
- * Public API (window.GBCollab):
- *   connect({ app, docId, host?, onPresence, onTyping, onSelection, onMessage, onEdit, onConnect, onDisconnect })
- *   send(type, payload)                       — send a typed collab message
- *   sendCursor(position)                      — convenience: cursor event
- *   sendTypingStart(position)                 — convenience: typing_start
- *   sendTypingStop()                          — convenience: typing_stop
- *   sendSelection(start, end)                 — convenience: selection event
- *   sendMention(toUserId, message, position)  — convenience: mention
- *   sendEdit({ content, position, length, format })
- *   disconnect()
- *   getUser()                                 — { id, name, color } for self
+/* GBCollab — shared realtime collaboration client (WebSocket + presence).
+ * Used by sheet, docs, slides, plan. Public API (window.GBCollab): connect({
+ * app, docId, host?, callbacks... }), send*, disconnect, retry, getUser, helpers.
+ * Auth: a SaaS JWT from localStorage.gb-access-token is sent as ?token=... on
+ * the upgrade; Slides rejects an invalid token (401) and never upgrades.
  *
- * Auth: pulls JWT from localStorage.gb-access-token; sends as ?token=... on
- * WebSocket upgrade. Server (Rust) verifies the HS256 signature and expiry
- * (botsecurity_core::verified_jwt). `/ws/slides/{id}` refuses an invalid token
- * with 401 and never upgrades; `/ws/sheet/{id}` and `/ws/docs/{id}` still fall
- * back to an anonymous UUID, so keep a token in storage there.
+ * #2926 — reconnects use bounded exponential backoff and stop after a finite
+ * number of attempts. A 1008 close (policy violation) or a 1006 whose reason
+ * names a policy denial / HTTP 4xx is TERMINAL: browsers hide the status of a
+ * denied upgrade and report only 1006, so 401/403/404/forbidden/denied in the
+ * reason is treated conservatively as a rejection and never retried. A bare
+ * 1006 is a network drop and gets bounded backoff — never a tab-lifetime loop.
  */
-
 (function (window) {
   const RECONNECT_DELAY_MS = 2000;
+  const BACKOFF_MAX_MS = 30000;
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const TERMINAL_REASON = /(?:policy|forbidden|unauthori[sz]ed|not found|denied|reject|\b(?:401|403|404|405)\b)/i;
   const HEARTBEAT_MS = 25000;
   const TYPING_AWAY_MS = 4000;
+  const STATUS_ID = "gb-collab-status";
   const STORAGE_KEYS = { TOKEN: "gb-access-token", WS_TOKEN: "gb-ws-token", USER: "gb-user-data" };
 
   function readUser() {
@@ -31,13 +27,11 @@
       const raw = localStorage.getItem(STORAGE_KEYS.USER);
       if (raw) {
         const u = JSON.parse(raw);
-        if (u && (u.id || u.sub || u.user_id)) {
-          return {
-            id: u.id || u.sub || u.user_id,
-            name: u.display_name || u.name || u.email || "User",
-            color: u.color || pickColor(u.id || u.sub || u.user_id)
-          };
-        }
+        if (u && (u.id || u.sub || u.user_id)) return {
+          id: u.id || u.sub || u.user_id,
+          name: u.display_name || u.name || u.email || "User",
+          color: u.color || pickColor(u.id || u.sub || u.user_id)
+        };
       }
     } catch (_) { window.gbLogError ? gbLogError(_, "readUser") : console.error("readUser", _); }
     const id = "anon-" + Math.random().toString(36).slice(2, 10);
@@ -45,10 +39,9 @@
   }
 
   function readToken() {
+    // WebSockets verify a SaaS JWT; REST uses an opaque `gb_…` token. Mixing
+    // them made every socket fail with malformed_token, so prefer WS_TOKEN.
     try {
-      // WebSockets verify a SaaS JWT, while REST accepts the opaque `gb_…`
-      // session token. They are different credentials: using the REST one on
-      // the wire made every collaboration socket fail with malformed_token.
       const ws = localStorage.getItem(STORAGE_KEYS.WS_TOKEN) ||
         sessionStorage.getItem(STORAGE_KEYS.WS_TOKEN) || "";
       if (ws) return ws;
@@ -60,13 +53,12 @@
 
   window.setGBWSToken = function (token) {
     try {
-      if (token) {
-        localStorage.setItem(STORAGE_KEYS.WS_TOKEN, token);
-        sessionStorage.setItem(STORAGE_KEYS.WS_TOKEN, token);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.WS_TOKEN);
-        sessionStorage.removeItem(STORAGE_KEYS.WS_TOKEN);
-      }
+      ["localStorage", "sessionStorage"].forEach(function (name) {
+        const store = window[name];
+        if (!store) return;
+        if (token) store.setItem(STORAGE_KEYS.WS_TOKEN, token);
+        else store.removeItem(STORAGE_KEYS.WS_TOKEN);
+      });
     } catch (_) { /* storage disabled */ }
   };
 
@@ -82,16 +74,14 @@
 
   function el(tag, attrs, children) {
     const node = document.createElement(tag);
-    if (attrs) {
-      for (const k in attrs) {
-        if (k === "style" && typeof attrs[k] === "object") Object.assign(node.style, attrs[k]);
-        else if (k === "class") node.className = attrs[k];
-        else if (k === "html") node.innerHTML = attrs[k];
-        else if (k.startsWith("on") && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
-        else if (k === "data" && typeof attrs[k] === "object") {
-          for (const dk in attrs[k]) node.dataset[dk] = attrs[k][dk];
-        } else node.setAttribute(k, attrs[k]);
-      }
+    if (attrs) for (const k in attrs) {
+      if (k === "style" && typeof attrs[k] === "object") Object.assign(node.style, attrs[k]);
+      else if (k === "class") node.className = attrs[k];
+      else if (k === "html") node.innerHTML = attrs[k];
+      else if (k.startsWith("on") && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
+      else if (k === "data" && typeof attrs[k] === "object") {
+        for (const dk in attrs[k]) node.dataset[dk] = attrs[k][dk];
+      } else node.setAttribute(k, attrs[k]);
     }
     if (children) {
       const list = Array.isArray(children) ? children : [children];
@@ -107,18 +97,16 @@
     const px = size || 28;
     const initial = (user.user_name || user.name || "?").trim().charAt(0).toUpperCase();
     return el("span", {
-      class: "gb-collab-avatar",
-      title: user.user_name || user.name || user.user_id,
+      class: "gb-collab-avatar", title: user.user_name || user.name || user.user_id,
       data: { userId: user.user_id, color: user.user_color || user.color },
       style: {
         display: "inline-flex", alignItems: "center", justifyContent: "center",
         width: px + "px", height: px + "px", borderRadius: "50%",
-        background: user.user_color || user.color || "#3b82f6",
-        color: "#fff", fontWeight: "600", fontSize: Math.max(10, Math.floor(px * 0.45)) + "px",
+        background: user.user_color || user.color || "#3b82f6", color: "#fff",
+        fontWeight: "600", fontSize: Math.max(10, Math.floor(px * 0.45)) + "px",
         marginLeft: "-6px", border: "2px solid #0f172a",
         boxShadow: "0 1px 3px rgba(0,0,0,0.4)", position: "relative"
-      },
-      html: escapeHtml(initial)
+      }, html: escapeHtml(initial)
     });
   }
 
@@ -136,36 +124,33 @@
     const overflow = users.length - max;
     const visible = users.slice(0, max);
     visible.forEach(function (u) { container.appendChild(avatar(u)); });
-    if (overflow > 0) {
-      container.appendChild(el("span", {
-        class: "gb-collab-avatar gb-collab-overflow",
-        style: {
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: "28px", height: "28px", borderRadius: "50%",
-          background: "#334155", color: "#f8fafc", fontSize: "11px", fontWeight: "600",
-          marginLeft: "-6px", border: "2px solid #0f172a"
-        },
-        html: "+" + overflow
-      }));
-    }
+    if (overflow > 0) container.appendChild(el("span", {
+      class: "gb-collab-avatar gb-collab-overflow",
+      style: {
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: "28px", height: "28px", borderRadius: "50%",
+        background: "#334155", color: "#f8fafc", fontSize: "11px", fontWeight: "600",
+        marginLeft: "-6px", border: "2px solid #0f172a"
+      }, html: "+" + overflow
+    }));
     container.dataset.userCount = String(users.length);
   }
 
-  // Minimal i18n bridge: the suite loads `window.i18n` with `t(key)`, and a
-  // missing key falls back to the English default supplied here.
+  // The suite loads window.i18n with t(key); a missing key falls back to the
+  // English default supplied here. #2926 uses window.gbT for the status text.
   function tr(key, fallback, vars) {
     var text = fallback;
     if (window.i18n && typeof window.i18n.t === "function") {
       var value = window.i18n.t(key);
       if (value && value !== key) text = value;
     }
-    if (vars) {
-      Object.keys(vars).forEach(function (name) {
-        text = text.split("{" + name + "}").join(vars[name]);
-      });
-    }
+    if (vars) Object.keys(vars).forEach(function (name) {
+      text = text.split("{" + name + "}").join(vars[name]);
+    });
     return text;
   }
+
+  function T(key, fallback) { return window.gbT ? window.gbT(key, fallback) : fallback; }
 
   function renderTypingIndicator(container, users) {
     if (!container) return;
@@ -184,10 +169,8 @@
   function defaultUrl(app, docId) {
     const loc = window.location;
     const proto = loc.protocol === "https:" ? "wss:" : "ws:";
-    // Same-origin: the suite server (botui, dev :3000) and Caddy (prod
-    // 80/443) both proxy /ws to botserver, so the page host + /ws is the
-    // correct address everywhere. Hardcoding botserver's :8080 breaks prod,
-    // where the port is not exposed publicly (#913).
+    // Same-origin: botui (:3000) and prod Caddy both proxy /ws to botserver,
+    // so the page host is correct everywhere; hardcoding :8080 breaks prod.
     return proto + "//" + loc.host + "/ws/" + app + "/" + encodeURIComponent(docId);
   }
 
@@ -203,10 +186,12 @@
     this.reconnectTimer = null;
     this.heartbeatTimer = null;
     this.typingTimer = null;
+    this.reconnectAttempts = 0;
+    this.terminal = false;
+    this._manualClose = false;
     this.user = readUser();
-    // Server-authoritative sequence cursor (#791): the last op seq applied to
-    // local state. On reconnect the client fetches every op after it from the
-    // session oplog before live messages arrive, so nothing is lost.
+    // Server-authoritative sequence cursor (#791): fetch every op after it
+    // on reconnect before live messages are trusted, so nothing is lost.
     this.lastSeq = this.opts.lastSeq || 0;
     this.knownUsers = new Map();
     this.callbacks = {
@@ -228,23 +213,25 @@
       console.warn("[GBCollab] app and docId required");
       return null;
     }
-    // #2029 — the guard used to refuse every connection unless the caller
-    // passed an explicit url, on the (stale) grounds that botserver has no
-    // /ws/{app}/{doc} route. It does: /ws/docs/{id} (botdocs), /ws/sheet/{id}
-    // (botsheet) and /ws/slides/{id} (botslides), which is exactly what
-    // `defaultUrl()` builds. Apps without a realtime route keep the REST
-    // presence path, so no reconnect loop is started for them.
+    // #2029 — the old guard refused every connection without an explicit url.
+    // botserver does serve /ws/docs, /ws/sheet and /ws/slides, which is what
+    // defaultUrl builds; apps without a realtime route use REST presence only.
     var HAS_REALTIME = { docs: true, sheet: true, slides: true, canvas: true };
     if (!this.opts.url && HAS_REALTIME[this.app] !== true) {
       console.info("[GBCollab] no realtime route for '" + this.app + "'; using REST presence");
       this.callbacks.onDisconnect();
       return null;
     }
+    this.reconnectAttempts = 0;
+    this.terminal = false;
+    this._manualClose = false;
+    this._clearUnavailable();
     this._open();
     return this;
   };
 
   GBCollab.prototype._open = function () {
+    this._manualClose = false;
     const token = readToken();
     const sep = this.url.indexOf("?") === -1 ? "?" : "&";
     const wsUrl = token ? this.url + sep + "token=" + encodeURIComponent(token) : this.url;
@@ -255,6 +242,9 @@
 
     ws.addEventListener("open", function () {
       this.connected = true;
+      this.reconnectAttempts = 0;
+      this.terminal = false;
+      this._clearUnavailable();
       this._sendRaw({ msg_type: "hello", user_id: this.user.id, user_name: this.user.name, user_color: this.user.color, doc_id: this.docId });
       this._startHeartbeat();
       this._catchUp();
@@ -268,26 +258,68 @@
       this._dispatch(msg);
     }.bind(this));
 
-    ws.addEventListener("close", function () {
+    ws.addEventListener("close", function (ev) {
       this.connected = false;
       this._stopHeartbeat();
       this.callbacks.onDisconnect();
       this.knownUsers.clear();
       renderAvatars(this.collaboratorsEl, []);
-      this._scheduleReconnect();
+      if (!this._manualClose) this._scheduleReconnect(ev);
     }.bind(this));
 
     ws.addEventListener("error", function () {
       try { ws.close(); } catch (_) { window.gbLogError ? gbLogError(_, "_open") : console.error("_open", _); }
     });
   };
+  GBCollab.prototype._isTerminalClose = function (ev) {
+    if (!ev) return false;
+    const code = ev.code;
+    const reason = ev.reason || "";
+    // 1008 = policy violation; a denial may report 1006 + reason; a bare 1006 is a network drop (bounded retries).
+    return code === 1008 || (code === 1006 && TERMINAL_REASON.test(reason));
+  };
 
-  GBCollab.prototype._scheduleReconnect = function () {
-    if (this.reconnectTimer) return;
+  GBCollab.prototype._showUnavailable = function () {
+    if (!document.body) return;
+    let node = document.getElementById(STATUS_ID);
+    if (!node) {
+      // Exactly ONE status region for the whole tab, whatever the app.
+      node = el("div", { id: STATUS_ID, class: "gb-collab-status", role: "status", "aria-live": "polite", style: { position: "fixed", right: "12px", bottom: "12px", zIndex: "9999", display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", borderRadius: "8px", background: "#7f1d1d", color: "#f8fafc", font: "13px sans-serif", boxShadow: "0 4px 16px rgba(0,0,0,.4)" } });
+      document.body.appendChild(node);
+    }
+    node.innerHTML = "";
+    node.appendChild(el("span", { class: "gb-collab-status-text" },
+      T("collab-unavailable", "Collaboration unavailable")));
+    node.appendChild(el("button", { type: "button", class: "gb-collab-retry",
+      onclick: function () { this.retry(); }.bind(this) }, T("collab-retry", "Retry")));
+  };
+
+  GBCollab.prototype._clearUnavailable = function () {
+    const node = document.getElementById(STATUS_ID);
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  };
+
+  GBCollab.prototype.retry = function () {
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    this.reconnectAttempts = 0;
+    this.terminal = false;
+    this._clearUnavailable();
+    this._open();
+  };
+
+  GBCollab.prototype._scheduleReconnect = function (ev) {
+    if (this.reconnectTimer || this.terminal) return;
+    if (this._isTerminalClose(ev) || this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      this.terminal = true;
+      this._showUnavailable();
+      return;
+    }
+    const wait = Math.min(RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts), BACKOFF_MAX_MS);
+    this.reconnectAttempts += 1;
     this.reconnectTimer = setTimeout(function () {
       this.reconnectTimer = null;
       this._open();
-    }.bind(this), RECONNECT_DELAY_MS);
+    }.bind(this), wait);
   };
 
   GBCollab.prototype._startHeartbeat = function () {
@@ -302,12 +334,9 @@
   };
 
   GBCollab.prototype._catchUp = function () {
-    // Session-oplog recovery (#789, #791): asks the document's ops endpoint
-    // for every op after our cursor and applies them through onEdit before
-    // the live feed is trusted. The provider opts into it by passing
-    // `opLogUrl(docId, since)` and `opSeqOf(op) -> number|undefined`.
-    if (!this.opts.opLogUrl || !this.callbacks.onEdit) return;
-    if (!this.lastSeq) return;
+    // Session-oplog recovery (#789, #791): apply every op after lastSeq before
+    // the live feed is trusted. Hooks: opLogUrl(docId, since), opSeqOf(op).
+    if (!this.opts.opLogUrl || !this.callbacks.onEdit || !this.lastSeq) return;
     const url = this.opts.opLogUrl(this.docId, this.lastSeq);
     fetch(url)
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -333,18 +362,13 @@
       }
       this._renderPresence();
       this.callbacks.onPresence(Array.from(this.knownUsers.values()));
-    } else if (t === "typing_start" || t === "typing_stop") {
-      this.callbacks.onTyping(msg);
-    } else if (t === "selection") {
-      this.callbacks.onSelection(msg);
-    } else if (t === "edit" || t === "cell_update" || t === "slide_update" || t === "plan_update") {
+    } else if (t === "typing_start" || t === "typing_stop") this.callbacks.onTyping(msg);
+    else if (t === "selection") this.callbacks.onSelection(msg);
+    else if (t === "edit" || t === "cell_update" || t === "slide_update" || t === "plan_update") {
       if (typeof msg.seq === "number" && msg.seq > this.lastSeq) this.lastSeq = msg.seq;
       this.callbacks.onEdit(msg);
-    } else if (t === "mention") {
-      this._toastMention(msg);
-    } else {
-      this.callbacks.onMessage(msg);
-    }
+    } else if (t === "mention") this._toastMention(msg);
+    else this.callbacks.onMessage(msg);
   };
 
   GBCollab.prototype._renderPresence = function () {
@@ -368,21 +392,20 @@
     const msg = Object.assign({ msg_type: type, user_id: this.user.id, user_name: this.user.name, user_color: this.user.color, doc_id: this.docId, timestamp: Date.now() }, payload || {});
     return this._sendRaw(msg);
   };
-
-  GBCollab.prototype.sendCursor = function (position, col) {
+  function positionPayload(position, col) {
     const payload = {};
-    if (position === undefined || position === null) return this.send("cursor", payload);
     if (col === undefined) payload.position = position;
     else { payload.row = position; payload.col = col; }
-    return this.send("cursor", payload);
+    return payload;
+  }
+  GBCollab.prototype.sendCursor = function (position, col) {
+    if (position === undefined || position === null) return this.send("cursor", {});
+    return this.send("cursor", positionPayload(position, col));
   };
   GBCollab.prototype.sendTypingStart = function (position, col) {
     this._typingActive = true;
-    const payload = {};
-    if (position === undefined || position === null) return this.send("typing_start", payload);
-    if (col === undefined) payload.position = position;
-    else { payload.row = position; payload.col = col; }
-    return this.send("typing_start", payload);
+    if (position === undefined || position === null) return this.send("typing_start", {});
+    return this.send("typing_start", positionPayload(position, col));
   };
   GBCollab.prototype.sendTypingStop = function () {
     this._typingActive = false;
@@ -402,11 +425,8 @@
   };
   GBCollab.prototype.sendEdit = function (opts) {
     opts = opts || {};
-    // A1 addressing (#791): send row/col when the caller supplies them; the
-    // position encoding is kept for backwards compatibility with text apps.
+    // #2447: send both `content` (legacy) and `value` (server field).
     if (opts.row !== undefined && opts.col !== undefined) {
-      // #2447 — send both `content` (legacy) and `value` (server CollabMessage
-      // field) so an edit is never dropped by the WS envelope.
       const payload = { row: opts.row, col: opts.col, content: opts.content, value: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength };
       return this.send("edit", payload);
     }
@@ -415,6 +435,7 @@
 
   GBCollab.prototype.disconnect = function () {
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    this._manualClose = true; this.terminal = false;
     this._stopHeartbeat();
     if (this.ws) { try { this.ws.close(); } catch (_) { window.gbLogError ? gbLogError(_, "disconnect") : console.error("disconnect", _); } this.ws = null; }
   };
@@ -422,8 +443,6 @@
   GBCollab.prototype.getUser = function () { return this.user; };
   GBCollab.prototype.getKnownUsers = function () { return Array.from(this.knownUsers.values()); };
   GBCollab.prototype.isConnected = function () { return this.connected; };
-
   GBCollab.helpers = { renderAvatars: renderAvatars, renderTypingIndicator: renderTypingIndicator, avatar: avatar, pickColor: pickColor, escapeHtml: escapeHtml, el: el };
-
   window.GBCollab = new GBCollab();
 })(window);

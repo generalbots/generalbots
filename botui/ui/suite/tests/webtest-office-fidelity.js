@@ -67,6 +67,7 @@ require("./webtest-office-fidelity/61_db_failure_debt");
 require("./webtest-office-fidelity/62_undo_transfer_guard");
 require("./webtest-office-fidelity/63_suite_asset_refs");
 require("./webtest-office-fidelity/64_settings_fetch_budget");
+require("./webtest-office-fidelity/65_collab_backoff");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
