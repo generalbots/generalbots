@@ -191,7 +191,22 @@ pub fn harden_stack_configs(stack: &Path) {
         Ok(false) => {}
         Err(e) => log::warn!("stack hardening: could not update conf/pg_hba.conf: {e}"),
     }
+    seal_plain_secret_files(stack);
     drop(guard);
+}
+
+/// Seals Vault secret files an older install left in plain text. Reading one
+/// through `protected_file` seals it; a missing file is skipped.
+pub fn seal_plain_secret_files(stack: &Path) {
+    for relative in ["vault-unseal-keys", "conf/vault/init.json"] {
+        let path = stack.join(relative);
+        let Ok(bytes) = std::fs::read(&path) else { continue };
+        if !crate::protected_file::is_sealed(&bytes) {
+            if let Err(e) = crate::protected_file::read_secret(&path) {
+                log::warn!("stack hardening: could not protect {relative}: {e}");
+            }
+        }
+    }
 }
 
 #[cfg(test)]

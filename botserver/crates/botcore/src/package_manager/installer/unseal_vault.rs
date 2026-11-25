@@ -64,6 +64,7 @@ VAULT_CACERT={}
             root_token,
             ca_cert.display()
         );
+        let env_content = crate::package_manager::server_token::env_content_for(&self.base_path, env_content);
 
         if env_file.exists() {
             // Reinstalling the stack changes the vault root token; replace the

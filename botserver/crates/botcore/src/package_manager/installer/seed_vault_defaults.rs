@@ -292,6 +292,7 @@ VAULT_CACERT={}
                 token,
                 ca_cert.display()
             );
+            let env_content = crate::package_manager::server_token::env_content_for(&self.base_path, env_content);
 
             if env_file.exists() {
                 let existing = std::fs::read_to_string(&env_file)?;

@@ -154,6 +154,8 @@ impl PackageManager {
                 .ok_or_else(|| anyhow::anyhow!("Invalid init.json path: no parent directory"))?
         )?;
         botcorepkg::protected_file::write_secret(&init_json, &serde_json::to_string_pretty(&init_json_val)?)?;
+        // A new Vault: a server token kept for the previous one is void.
+        let _ = std::fs::remove_file(self.base_path.join(crate::package_manager::server_token::TOKEN_FILE));
         {
             let abs = crate::os_abstraction::get_abstraction();
             let _ = abs.set_readonly_owner(&init_json)

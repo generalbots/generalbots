@@ -41,6 +41,10 @@ pub(super) async fn main() -> std::io::Result<()> {
         dotenvy::dotenv().ok();
     }
     }
+    // Windows desktop: the server's own limited Vault token, before any reader
+    // of VAULT_TOKEN runs (it is no longer kept in `.env`).
+    #[cfg(windows)]
+    botcore::package_manager::server_token::load_early(std::path::Path::new(&botcore::shared::utils::get_stack_path()));
 
     let env_path_early = std::path::Path::new("./.env");
     let stack = botcore::shared::utils::get_stack_path();
@@ -54,6 +58,7 @@ pub(super) async fn main() -> std::io::Result<()> {
         std::fs::read_to_string(env_path_early)
             .map(|content| content.contains("VAULT_TOKEN="))
             .unwrap_or(false)
+            || (cfg!(windows) && std::env::var("VAULT_TOKEN").is_ok_and(|t| !t.is_empty()))
     });
 
     if bootstrap_ready {
@@ -150,6 +155,13 @@ pub(super) async fn main() -> std::io::Result<()> {
     }
 
     let cfg = run_bootstrap(install_mode, tenant, &progress_tx).await?;
+    #[cfg(windows)]
+    {
+        let stack = std::path::PathBuf::from(botcore::shared::utils::get_stack_path());
+        tokio::task::spawn_blocking(move || botcore::package_manager::server_token::ensure_scoped_token(&stack))
+            .await
+            .ok();
+    }
 
     trace!("Bootstrap config phase complete");
     trace!("Reloading dotenv...");

@@ -96,3 +96,18 @@ fn apply_rewrites_only_when_needed_and_skips_missing_files() {
     assert!(apply(&path, harden_qdrant_yaml).unwrap());
     assert!(!apply(&path, harden_qdrant_yaml).unwrap());
 }
+
+#[test]
+fn plain_vault_secret_files_are_sealed_and_still_readable() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join("conf/vault")).unwrap();
+    let init = dir.path().join("conf/vault/init.json");
+    std::fs::write(&init, "{}").unwrap();
+    seal_plain_secret_files(dir.path());
+    seal_plain_secret_files(dir.path());
+    assert!(init.exists());
+    let sealed = crate::protected_file::is_sealed(&std::fs::read(&init).unwrap());
+    assert_eq!(sealed, cfg!(windows));
+    assert_eq!(crate::protected_file::read_secret(&init).unwrap(), "{}");
+    assert!(!dir.path().join("vault-unseal-keys").exists());
+}
