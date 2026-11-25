@@ -1,11 +1,11 @@
 "use strict";
-/* #2344 — conversation-level controls in the chat app itself: title, rename,
- * clear context, export, copy link, delete. Mounted into .chat-content-wrapper.
- */
+/* #2344 — conversation title, rename, clear/export/copy/delete controls in the chat app. */
 (function () {
   function t(key, fallback) {
     return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
   }
+
+  var idle = window.gbIdle || window.setTimeout;
 
   function authHeaders(extra) {
     var headers = Object.assign({}, extra || {});
@@ -14,11 +14,8 @@
       if (typeof window.getGBAccessToken === "function") token = window.getGBAccessToken() || "";
     } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     if (!token) {
-      try {
-        if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
-          token = window.GBSecurity.getToken() || "";
-        }
-      } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
+      try { if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") token = window.GBSecurity.getToken() || ""; }
+      catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     }
     if (!token) {
       try {
@@ -43,14 +40,12 @@
   }
 
   function notify(msg, type) {
-    if (typeof window.showToast === "function") {
-      window.showToast(msg, type || "info");
-      return;
-    }
-    if (typeof window.chatNotice === "function") {
-      window.chatNotice(msg, type || "info");
-      return;
-    }
+    if (typeof window.showToast === "function") { window.showToast(msg, type || "info"); return; }
+    if (typeof window.chatNotice === "function") { window.chatNotice(msg, type || "info"); }
+  }
+
+  function announceCleared(sid) {
+    window.dispatchEvent(new CustomEvent("gb-chat-session-changed", { detail: { session_id: sid, cleared: true } }));
   }
 
   async function fetchSessionTitle(sessionId) {
@@ -62,11 +57,8 @@
       var data = await res.json();
       var sessions = (data && data.sessions) || [];
       for (var i = 0; i < sessions.length; i++) {
-        var s = sessions[i];
-        var id = s.session_id || s.id || s.sessionId;
-        if (String(id) === String(sessionId)) {
-          return (s.title || "").trim();
-        }
+        var s = sessions[i], id = s.session_id || s.id || s.sessionId;
+        if (String(id) === String(sessionId)) return (s.title || "").trim();
       }
     } catch (e) { window.gbLogError ? gbLogError(e, "fetchSessionTitle") : console.error("fetchSessionTitle", e); }
     return "";
@@ -104,8 +96,7 @@
   function setTitle(title) {
     var input = document.getElementById("chatConversationTitleInput");
     if (!input) return;
-    input.value = title || "";
-    input.dataset.lastSaved = title || "";
+    input.value = input.dataset.lastSaved = title || "";
   }
 
   async function refreshTitle() {
@@ -118,16 +109,20 @@
     setTitle(title);
   }
 
+  var titleRefreshQueued = false;
+  function scheduleTitleRefresh() {
+    if (titleRefreshQueued) return;
+    titleRefreshQueued = true;
+    idle(function () { titleRefreshQueued = false; refreshTitle(); });
+  }
+
   async function renameSession(newTitle) {
     var sid = currentSessionId();
     if (!sid) return false;
     try {
-      var res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid), {
-        method: "PUT",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        credentials: "same-origin",
-        body: JSON.stringify({ title: newTitle || "" })
-      });
+      var res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid), { method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }), credentials: "same-origin",
+        body: JSON.stringify({ title: newTitle || "" }) });
       if (!res.ok) throw new Error("rename " + res.status);
       setTitle((newTitle || "").trim());
       notify(t("chat-conversation-renamed", "Conversation renamed"), "success");
@@ -146,10 +141,8 @@
     if (pane) pane.innerHTML = "";
     var sugg = document.getElementById("suggestions");
     if (sugg) sugg.innerHTML = "";
-    try {
-      var key = "gb_chat_history_" + (currentSessionId() || "default");
-      localStorage.removeItem(key);
-    } catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
+    try { localStorage.removeItem("gb_chat_history_" + (currentSessionId() || "default")); }
+    catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
     if (typeof window.hideThinkingIndicator === "function") {
       try { window.hideThinkingIndicator(); } catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
     }
@@ -159,44 +152,32 @@
     var sid = currentSessionId();
     if (!sid) return;
     try {
-      var res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid) + "/messages", {
-        method: "DELETE",
-        headers: authHeaders(),
-        credentials: "same-origin"
-      });
+      var res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid) + "/messages",
+        { method: "DELETE", headers: authHeaders(), credentials: "same-origin" });
       if (!res.ok) {
-        // fallback to truncate endpoint
-        res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid) + "/truncate", {
-          method: "POST",
-          headers: authHeaders({ "Content-Type": "application/json" }),
-          credentials: "same-origin",
-          body: JSON.stringify({ from_index: 0 })
-        });
+        // Fall back to the truncate endpoint.
+        res = await fetch("/api/chat/history/sessions/" + encodeURIComponent(sid) + "/truncate", { method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }), credentials: "same-origin",
+          body: JSON.stringify({ from_index: 0 }) });
       }
-      // If the server does not know this session (404), still clear the local
-      // conversation view so the user can start fresh while keeping session id.
+      // A 404 still clears the local view while keeping the session id.
       if (res.ok || res.status === 404) {
         clearMessagesUi();
         notify(t("chat-conversation-cleared", "Conversation context cleared"), "success");
-        window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {
-          detail: { session_id: sid, cleared: true }
-        }));
+        announceCleared(sid);
         return;
       }
       throw new Error("clear " + res.status);
     } catch (e) {
-      // As a last resort, clear local UI so the control is not a dead-end.
+      // Last resort: clear local UI so the control is not a dead end.
       clearMessagesUi();
       notify(t("chat-conversation-cleared", "Conversation context cleared"), "success");
-      window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {
-        detail: { session_id: sid, cleared: true }
-      }));
+      announceCleared(sid);
     }
   }
 
   function exportJson() {
-    var messages = [];
-    var pane = document.getElementById("messages");
+    var messages = [], pane = document.getElementById("messages");
     if (pane) {
       pane.querySelectorAll(".message").forEach(function (el) {
         var role = el.classList.contains("user") ? "user" : "assistant";
@@ -209,13 +190,9 @@
         messages.push({ role: role, content: content });
       });
     }
-    var payload = {
-      session_id: currentSessionId(),
-      bot: currentBotName(),
+    var payload = { session_id: currentSessionId(), bot: currentBotName(), messages: messages,
       title: (document.getElementById("chatConversationTitleInput") || {}).value || "",
-      messages: messages,
-      exported_at: new Date().toISOString()
-    };
+      exported_at: new Date().toISOString() };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
@@ -277,19 +254,16 @@
   }
 
   function closeMenu() {
-    var menu = document.getElementById("chatConversationMenu");
-    var btn = document.getElementById("chatConversationMenuBtn");
+    var menu = document.getElementById("chatConversationMenu"), btn = document.getElementById("chatConversationMenuBtn");
     if (menu) menu.hidden = true;
     if (btn) btn.setAttribute("aria-expanded", "false");
   }
 
   function toggleMenu() {
-    var menu = document.getElementById("chatConversationMenu");
-    var btn = document.getElementById("chatConversationMenuBtn");
+    var menu = document.getElementById("chatConversationMenu"), btn = document.getElementById("chatConversationMenuBtn");
     if (!menu || !btn) return;
     var open = menu.hidden;
-    menu.hidden = !open;
-    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    menu.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
   function bind() {
@@ -357,9 +331,7 @@
       if (!header.contains(e.target)) closeMenu();
     });
 
-    window.addEventListener("gb-chat-session-changed", function () {
-      setTimeout(refreshTitle, 50);
-    });
+    window.addEventListener("gb-chat-session-changed", scheduleTitleRefresh);
 
     // Also refresh periodically/after connection when session id becomes available
     var tries = 0;
@@ -367,15 +339,18 @@
       tries++;
       if (currentSessionId() || tries > 40) {
         clearInterval(timer);
-        refreshTitle();
+        scheduleTitleRefresh();
       }
     }, 250);
 
-    refreshTitle();
+    scheduleTitleRefresh();
   }
 
+  var mountQueued = false;
   function mount() {
-    bind();
+    if (mountQueued) return;
+    mountQueued = true;
+    idle(function () { bind(); });
   }
 
   if (document.readyState === "loading") {

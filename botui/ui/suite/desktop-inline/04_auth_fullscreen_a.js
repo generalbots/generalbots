@@ -27,11 +27,6 @@
 
 
             document.addEventListener("DOMContentLoaded", async () => {
-                // #2933 — defer optional chrome off this handler (was 159 ms).
-                var deferIdle = function (fn) {
-                    if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 800 });
-                    return window.setTimeout(fn, 1);
-                };
                 // Initialize WindowManager
                 if (typeof window.WindowManager !== "undefined") {
                     window.wm = window.WindowManager;
@@ -284,6 +279,14 @@
                     }
                 }
             });
+
+            // #2933 — module-scope idle scheduler. The boot-chrome initializer
+            // below must not reference a helper scoped to DOMContentLoaded.
+            var deferIdle = function (fn) {
+                if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 800 });
+                return window.setTimeout(fn, 1);
+            };
+            window.gbDeferIdle = deferIdle;
 
             // Listen to HTMX afterRequest event
             document.body.addEventListener("htmx:afterRequest", function (evt) {

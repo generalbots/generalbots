@@ -5,6 +5,8 @@
     return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
   }
 
+  var idle = window.gbIdle || window.setTimeout;
+
   function text(el, value) {
     if (!el) return;
     var v = value == null ? "" : String(value);
@@ -12,8 +14,7 @@
   }
 
   function currentBot() {
-    return (window.ChatState && (window.ChatState.currentBotName || window.ChatState.currentBotId)) ||
-      window.__INITIAL_BOT_NAME__ || "default";
+    return (window.ChatState && (window.ChatState.currentBotName || window.ChatState.currentBotId)) || window.__INITIAL_BOT_NAME__ || "default";
   }
 
   function currentSession() {
@@ -29,8 +30,7 @@
 
   function connectionInfo() {
     var el = document.getElementById("connectionStatus");
-    var cls = (el && el.className) || "";
-    var txt = el ? (el.querySelector(".connection-text") || el).textContent || "" : "";
+    var cls = (el && el.className) || "", txt = el ? (el.querySelector(".connection-text") || el).textContent || "" : "";
     txt = txt.trim();
     if (/connected|online/i.test(cls) || /online/i.test(txt)) {
       return { key: "connected", label: txt || t("chat-online", "Online") };
@@ -64,18 +64,10 @@
       await gbCopyText(sid);
       var btn = document.getElementById("chatStatusCopySession");
       if (btn) {
-        btn.dataset.copied = "1";
-        btn.title = t("chat-status-copied", "Copied");
-        setTimeout(function () {
-          if (btn) {
-            btn.dataset.copied = "";
-            btn.title = t("chat-status-copy-session", "Copy session id");
-          }
-        }, 1200);
+        btn.dataset.copied = "1"; btn.title = t("chat-status-copied", "Copied");
+        setTimeout(function () { btn.dataset.copied = ""; btn.title = t("chat-status-copy-session", "Copy session id"); }, 1200);
       }
-      if (typeof window.showToast === "function") {
-        window.showToast(t("chat-status-copied", "Copied"), "success");
-      }
+      if (typeof window.showToast === "function") window.showToast(t("chat-status-copied", "Copied"), "success");
     } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
   }
 
@@ -83,10 +75,8 @@
     var wrapper = document.getElementById("chatContentWrapper");
     if (!wrapper || document.getElementById("chatEngineerStatus")) return document.getElementById("chatEngineerStatus");
     var strip = document.createElement("div");
-    strip.id = "chatEngineerStatus";
-    strip.className = "gb-chat-engineer-status";
-    strip.setAttribute("role", "status");
-    strip.setAttribute("aria-live", "polite");
+    strip.id = "chatEngineerStatus"; strip.className = "gb-chat-engineer-status";
+    strip.setAttribute("role", "status"); strip.setAttribute("aria-live", "polite");
     strip.innerHTML =
       '<span class="gb-chat-es-item gb-chat-es-conn" data-state="connecting">' +
         '<span class="gb-chat-es-dot" aria-hidden="true"></span>' +
@@ -104,11 +94,7 @@
       '<span class="gb-chat-es-item"><span class="gb-chat-es-label" data-i18n="chat-status-state">State</span> <span id="chatStatusTurn" class="gb-chat-es-value"></span></span>';
 
     var header = document.getElementById("chatConversationHeader") || document.getElementById("chatHeaderActions");
-    if (header && header.parentNode === wrapper) {
-      wrapper.insertBefore(strip, header.nextSibling);
-    } else {
-      wrapper.insertBefore(strip, wrapper.firstChild);
-    }
+    wrapper.insertBefore(strip, header && header.parentNode === wrapper ? header.nextSibling : wrapper.firstChild);
     var copyBtn = document.getElementById("chatStatusCopySession");
     if (copyBtn) copyBtn.addEventListener("click", copySession);
     return strip;
@@ -117,35 +103,36 @@
   function update() {
     var strip = ensureStrip();
     if (!strip) return;
+    // Read phase: every displayed value before the first write.
     var conn = connectionInfo();
     var connItem = strip.querySelector(".gb-chat-es-conn");
-    if (connItem) connItem.dataset.state = conn.key;
-    text(document.getElementById("chatStatusConnText"), conn.label);
-    text(document.getElementById("chatStatusBot"), currentBot());
+    var bot = currentBot();
     var sid = currentSession();
     var shortSid = sid ? (sid.length > 12 ? sid.slice(0, 8) + "…" + sid.slice(-4) : sid) : t("chat-status-no-session", "—");
+    var model = currentModel() || "—";
+    var turn = turnInfo();
+    // Write phase: no layout reads below.
+    if (connItem) connItem.dataset.state = conn.key;
+    text(document.getElementById("chatStatusConnText"), conn.label);
+    text(document.getElementById("chatStatusBot"), bot);
     var sessEl = document.getElementById("chatStatusSession");
     text(sessEl, shortSid);
     if (sessEl) sessEl.title = sid || "";
     var copyBtn = document.getElementById("chatStatusCopySession");
     if (copyBtn) copyBtn.disabled = !sid;
-    text(document.getElementById("chatStatusModel"), currentModel() || "—");
-    text(document.getElementById("chatStatusTurn"), turnInfo());
+    text(document.getElementById("chatStatusModel"), model);
+    text(document.getElementById("chatStatusTurn"), turn);
   }
 
   var scheduled = false;
   function scheduleUpdate() {
     if (scheduled) return;
     scheduled = true;
-    setTimeout(function () {
-      scheduled = false;
-      update();
-    }, 50);
+    idle(function () { scheduled = false; update(); });
   }
 
   function bind() {
-    ensureStrip();
-    update();
+    idle(function () { ensureStrip(); update(); });
     var conn = document.getElementById("connectionStatus");
     if (conn && typeof MutationObserver !== "undefined") {
       try {
@@ -157,7 +144,7 @@
     document.addEventListener("gb-chat-session-changed", scheduleUpdate);
     document.addEventListener("gb-chat-turn-state", scheduleUpdate);
     window.addEventListener("focus", scheduleUpdate);
-    setInterval(update, 2000);
+    setInterval(scheduleUpdate, 2000);
   }
 
   if (document.readyState === "loading") {

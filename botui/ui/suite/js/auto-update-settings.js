@@ -108,19 +108,35 @@
   }
 
   function renderSettings() {
+    // #2933 — read phase: capture nodes and values before the first write.
     var checkbox = document.getElementById("update-check-startup");
-    if (checkbox) checkbox.checked = GB.startupCheckEnabled();
+    var startup = GB.startupCheckEnabled();
     var install = document.getElementById("update-install-automatic");
-    if (install) install.checked = GB.autoInstallEnabled();
-
+    var automatic = GB.autoInstallEnabled();
     var current = document.getElementById("updates-current-version");
-    if (current) current.textContent = formatVersion(GB.version);
+    var version = formatVersion(GB.version);
     var checked = document.getElementById("updates-last-check");
-    if (checked) {
-      var timestamp = lastCheckAt();
-      checked.textContent = timestamp ? formatDate(timestamp) : "Never";
-    }
-    if (GB.lastInfo) render(GB.lastInfo);
+    var timestamp = lastCheckAt();
+    var checkedText = timestamp ? formatDate(timestamp) : "Never";
+    var info = GB.lastInfo;
+    // Write phase — no DOM reads below this line.
+    if (checkbox) checkbox.checked = startup;
+    if (install) install.checked = automatic;
+    if (current) current.textContent = version;
+    if (checked) checked.textContent = checkedText;
+    if (info) render(info);
+  }
+
+  var refreshQueued = false;
+  function scheduleRenderSettings() {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    var run = function () {
+      refreshQueued = false;
+      renderSettings();
+    };
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(run);
+    else window.setTimeout(run, 1);
   }
 
   function showReleaseNotes(info) {
@@ -209,7 +225,8 @@
   } else {
     start();
   }
-  // Settings partials arrive through HTMX after this script runs.
-  document.addEventListener("htmx:afterSwap", renderSettings);
-  document.addEventListener("htmx:load", renderSettings);
+  // Settings partials arrive through HTMX after this script runs. Both events
+  // fire for one swap — coalesce them into a single frame of DOM work.
+  document.addEventListener("htmx:afterSwap", scheduleRenderSettings);
+  document.addEventListener("htmx:load", scheduleRenderSettings);
 })();
