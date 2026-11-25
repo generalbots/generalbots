@@ -271,7 +271,7 @@ pub async fn get_approval(
     let caller = principal(&service, &headers)?;
     let record = approvals(&service)
         .get(&caller.tenant, id)
-        .map_err(|e| (status_for(&e), e))?
+        .map_err(|e| domain_error(&e))?
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "not_found", "approval not found"))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
@@ -372,7 +372,7 @@ pub async fn check_sla(
     let caller = principal(&service, &headers)?;
     let record = approvals(&service)
         .get(&caller.tenant, id)
-        .map_err(|e| (status_for(&e), e))?
+        .map_err(|e| domain_error(&e))?
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "not_found", "approval not found"))?;
     let now = body.at.unwrap_or_else(Utc::now);
     let events = super::engine::check_sla(&record, now);

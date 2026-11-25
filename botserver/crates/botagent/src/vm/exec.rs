@@ -223,7 +223,7 @@ async fn write_program(
     const CHUNK: usize = 1_500;
     let b64 = crate::sandbox::b64_encode(code.as_bytes());
     let tmp = format!("{path}.b64");
-    let _ = run_with_timeout(state, vm_name, format!(": > {tmp}"), 30_000).await?;
+    run_with_timeout(state, vm_name, format!(": > {tmp}"), 30_000).await?;
     let bytes = b64.as_bytes();
     let mut offset = 0;
     while offset < bytes.len() {

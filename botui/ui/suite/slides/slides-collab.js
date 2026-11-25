@@ -94,7 +94,9 @@ function restoreSlidesDraft() {
                 window.GBOfflineDraft.clear(key);
                 window.GBOfflineDraft.hideBanner();
             })
-            .catch(function () {});
+            .catch(function () {
+                window.gbLog && window.gbLog.warn ? window.gbLog.warn("restoreSlidesDraft: snapshot sync failed") : console.warn("restoreSlidesDraft: snapshot sync failed");
+            });
     } else {
         applySlidesContent(draft.c);
     }
@@ -116,7 +118,9 @@ function recordSlidesEdit() {
             resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
             action: "edit",
             payload: {}
-        }).catch(function () {});
+        }).catch(function () {
+            window.gbLog && window.gbLog.warn ? window.gbLog.warn("recordSlidesEdit: activity record failed") : console.warn("recordSlidesEdit: activity record failed");
+        });
     }, 1500);
 }
 function bindSlidesBadge() {

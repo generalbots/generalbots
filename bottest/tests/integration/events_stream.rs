@@ -103,11 +103,13 @@ async fn next_sse_frame(
         }
 
         let remaining = deadline.checked_duration_since(Instant::now())?;
+        // timeout → Elapsed, chunk → reqwest::Error, stream end → None all mean
+        // "stop"; only Some(bytes) continues. Two .ok()? unwrap the outer
+        // Result layers, then ?? stops on request error / end of stream.
         let chunk = tokio::time::timeout(remaining, response.chunk())
             .await
             .ok()?
-            .ok()?
-            .ok()?;
+            .ok()??;
         buffer.push_str(&String::from_utf8_lossy(&chunk).replace("\r\n", "\n"));
     }
 }

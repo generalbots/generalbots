@@ -37,7 +37,9 @@ pub(super) async fn handle_terminal_ws(
                 "message": "Terminal session created"
             });
             if let Ok(welcome_str) = serde_json::to_string(&welcome) {
-                let _ = sender.send(Message::Text(welcome_str)).await;
+                if let Err(e) = sender.send(Message::Text(welcome_str)).await {
+                    warn!("Failed to send terminal welcome frame: {e}");
+                }
             }
             terminal_manager.get_session(&session_id).await
         }
@@ -47,9 +49,9 @@ pub(super) async fn handle_terminal_ws(
                 "type": "error",
                 "message": e
             });
-            let _ = sender
-                .send(Message::Text(error_msg.to_string()))
-                .await;
+            if let Err(e) = sender.send(Message::Text(error_msg.to_string())).await {
+                warn!("Failed to send terminal error frame: {e}");
+            }
             return;
         }
     };
@@ -110,7 +112,12 @@ pub(super) async fn handle_terminal_ws(
                         }
 
                         if trimmed == "\\exit" || trimmed == "exit" {
-                            let _ = terminal_manager_clone2.kill_session(&session_id_clone2).await;
+                            if let Err(e) = terminal_manager_clone2
+                                .kill_session(&session_id_clone2)
+                                .await
+                            {
+                                warn!("Failed to kill terminal session on exit: {e}");
+                            }
                             break;
                         }
 
@@ -122,7 +129,9 @@ pub(super) async fn handle_terminal_ws(
                                     parts[2].parse::<u16>(),
                                 ) {
                                     let session = session_arc.lock().await;
-                                    let _ = session.resize(cols, rows).await;
+                                    if let Err(e) = session.resize(cols, rows).await {
+                                        warn!("Failed to resize terminal: {e}");
+                                    }
                                 }
                             }
                             continue;

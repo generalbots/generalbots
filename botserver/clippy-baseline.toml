@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 775
+discarded_result = 768
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -121,9 +121,6 @@ discarded_result = 5
 [files."botserver/src/main_module/routes/org_handlers/handle_get_organization.rs"]
 discarded_result = 5
 
-[files."botserver/crates/botapi/src/terminal/terminal_ws.rs"]
-discarded_result = 4
-
 [files."botserver/crates/botautotask/src/app_logs/app_log_store.rs"]
 discarded_result = 4
 
@@ -173,6 +170,9 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botsources/src/handlers/mcp_handlers/handle_disable_mcp_server.rs"]
+discarded_result = 4
+
+[files."botserver/src/api/terminal/session.rs"]
 discarded_result = 4
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real

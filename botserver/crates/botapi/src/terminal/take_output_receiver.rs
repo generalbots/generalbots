@@ -96,11 +96,14 @@ impl TerminalSession {
         });
 
         let tx = self.output_tx.clone();
-        tx.send(TerminalOutput::System(
-            "Container started. Welcome to your isolated terminal!\r\n".to_string(),
-        ))
-        .await
-        .ok();
+        if let Err(e) = tx
+            .send(TerminalOutput::System(
+                "Container started. Welcome to your isolated terminal!\r\n".to_string(),
+            ))
+            .await
+        {
+            warn!("Failed to send terminal welcome message: {e}");
+        }
 
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         self.send_command("export TERM=xterm-256color; clear")
@@ -131,7 +134,9 @@ impl TerminalSession {
 
     pub async fn kill(&mut self) -> Result<(), String> {
         if let Some(mut child) = self.process.take() {
-            let _ = child.kill().await;
+            if let Err(e) = child.kill().await {
+                warn!("Failed to kill terminal shell process: {e}");
+            }
         }
 
         let stop_argv = incus_command::stop_argv(&self.container_name)?;
