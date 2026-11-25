@@ -216,17 +216,21 @@ pub(crate) async fn delete_organization(
         .map(|r| r.id);
 
     if let Some(bid) = branch_id {
-        diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "DELETE FROM workspace_resources WHERE workspace_id IN (SELECT id FROM cloud_workspaces WHERE branch_id = $1)"
         )
         .bind::<diesel::sql_types::Uuid, _>(bid)
         .execute(&mut conn)
-        .ok();
+        {
+            tracing::warn!("Failed to remove workspace resources during organization delete: {e}");
+        }
 
         use crate::schema_ext::cloud_workspaces::dsl as cw;
-        diesel::delete(cw::cloud_workspaces.filter(cw::branch_id.eq(bid)))
+        if let Err(e) = diesel::delete(cw::cloud_workspaces.filter(cw::branch_id.eq(bid)))
             .execute(&mut conn)
-            .ok();
+        {
+            tracing::warn!("Failed to remove cloud workspaces during organization delete: {e}");
+        }
     }
 
     // Remove organization record

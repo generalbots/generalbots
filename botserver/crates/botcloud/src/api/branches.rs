@@ -158,10 +158,12 @@ pub(crate) async fn delete_branch_handler(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
     // Unlink bots first
-    diesel::sql_query("UPDATE bots SET branch_id = NULL WHERE branch_id = $1")
+    if let Err(e) = diesel::sql_query("UPDATE bots SET branch_id = NULL WHERE branch_id = $1")
         .bind::<diesel::sql_types::Uuid, _>(branch_id_param)
         .execute(&mut conn)
-        .ok();
+    {
+        tracing::warn!("Failed to unlink bots from branch before delete: {e}");
+    }
 
     let deleted = diesel::sql_query("DELETE FROM branches WHERE id = $1 AND org_id = $2")
         .bind::<diesel::sql_types::Uuid, _>(branch_id_param)

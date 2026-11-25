@@ -153,9 +153,11 @@ pub(crate) async fn delete_workspace(
 
     // Remove resources first
     use crate::schema_ext::workspace_resources::dsl as wr;
-    diesel::delete(wr::workspace_resources.filter(wr::workspace_id.eq(ws_id_param)))
+    if let Err(e) = diesel::delete(wr::workspace_resources.filter(wr::workspace_id.eq(ws_id_param)))
         .execute(&mut conn)
-        .ok();
+    {
+        tracing::warn!("Failed to remove workspace resources before workspace delete: {e}");
+    }
 
     use crate::schema_ext::cloud_workspaces::dsl as cw;
     let deleted = diesel::delete(cw::cloud_workspaces.filter(cw::id.eq(ws_id_param).and(cw::branch_id.eq(branch_id))))

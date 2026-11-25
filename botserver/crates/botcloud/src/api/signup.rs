@@ -43,8 +43,7 @@ pub(crate) async fn handle_signup(
         .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
         .unwrap_or_else(|| "free".to_string());
 
-    // Auto-pause free signups when server is under pressure
-    // Can be disabled via SAAS_DISABLE_CAPACITY_CHECK=1 for dev/testing
+    // Auto-pause free signups under pressure (SAAS_DISABLE_CAPACITY_CHECK=1 disables)
     if (chosen_plan == "free" || chosen_plan == "shared")
         && std::env::var("SAAS_DISABLE_CAPACITY_CHECK").as_deref() != Ok("1")
     {
@@ -183,7 +182,9 @@ pub(crate) async fn handle_signup(
             result
         }
         Err(e) => {
-            sql_query("ROLLBACK").execute(&mut conn).ok();
+            if let Err(rollback_error) = sql_query("ROLLBACK").execute(&mut conn) {
+                tracing::warn!("signup: rollback failed: {rollback_error}");
+            }
             return Err((StatusCode::INTERNAL_SERVER_ERROR, e));
         }
     };
