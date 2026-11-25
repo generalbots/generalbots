@@ -72,9 +72,13 @@ impl PackageManager {
         } else if !db_password_override.is_empty() {
             db_password_override.to_string()
         } else {
-            let from_url = get_database_url_sync()
-                .map(|url| parse_database_url(&url).1)
-                .unwrap_or_default();
+            let from_url = match get_database_url_sync() {
+                Ok(url) => parse_database_url(&url).1,
+                Err(error) => {
+                    warn!("cached database URL unavailable for {component}: {error}");
+                    String::new()
+                }
+            };
             if from_url.is_empty() {
                 // The cached URL can lack a password during first boot; read
                 // the strict Vault field instead so installer SQL never runs
