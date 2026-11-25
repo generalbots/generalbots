@@ -1,5 +1,6 @@
-@import url("/suite/tasks/tasks-scoped-log-detail-terminal.css");
-
+/* #2934 — the old log-detail-terminal part never shipped; its terminal and
+   log styles live in tasks-scoped-terminal-modals-terminal.css, which is
+   already imported by tasks-scoped-terminal-modals.css in tasks.html. */
 
 .btn-action-rich:hover {
     background: var(--surface-hover, var(--palette-1e1e1e));

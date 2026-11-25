@@ -21,6 +21,36 @@ if (typeof TasksState === "undefined") {
   };
 }
 
+// #2934 — the only registered stats route returns an HTMX HTML fragment
+// (botserver/crates/bottasks/src/lib.rs:55), not JSON. Parse the fragment so
+// the filter pills render real numbers without a fetch/parse failure.
+function parseTaskStatsFragment(html) {
+  var stats = {};
+  if (typeof DOMParser === "undefined" || typeof html !== "string") return stats;
+  var doc = new DOMParser().parseFromString(html, "text/html");
+  var root = doc.querySelector(".task-stats");
+  if (!root) return stats;
+  var keys = {
+    all: "total",
+    active: "active",
+    done: "completed",
+    overdue: "overdue",
+    "due soon": "due_soon",
+  };
+  var nodes = root.querySelectorAll(".stat");
+  for (var i = 0; i < nodes.length; i++) {
+    var value = nodes[i].querySelector("b");
+    if (!value) continue;
+    var raw = (value.textContent || "").trim();
+    if (!/^\d+$/.test(raw)) continue;
+    var label = ((nodes[i].textContent || "").replace(raw, "")).trim().toLowerCase();
+    var key = keys[label];
+    if (key) stats[key] = Number(raw);
+  }
+  return stats;
+}
+window.parseTaskStatsFragment = parseTaskStatsFragment;
+
 // Quick-intent result escaping/URL validation lives in the shared helper
 // tasks-intent-security.js (loaded before this file).
 

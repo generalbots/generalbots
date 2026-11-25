@@ -254,8 +254,12 @@ document.addEventListener("htmx:afterRequest", function (event) {
 
 // Update counts for new filters
 function updateFilterCounts() {
-  fetch("/api/tasks/stats/json")
-    .then((response) => response.json())
+  fetch("/api/ui/tasks/stats")
+    .then((response) => {
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      return response.text();
+    })
+    .then((html) => parseTaskStatsFragment(html))
     .then((stats) => {
       if (stats.total !== undefined) {
         const el = document.getElementById("count-all");

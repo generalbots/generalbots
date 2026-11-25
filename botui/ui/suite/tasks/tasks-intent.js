@@ -25,44 +25,6 @@ function skipDecision() {
 }
 
 // =============================================================================
-// TASK STATS LOADING
-// =============================================================================
-
-function loadTaskStats() {
-  fetch("/api/tasks/stats/json")
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Failed to fetch stats");
-      }
-      return response.json();
-    })
-    .then(function (stats) {
-      var mappings = [
-        { key: "complete", id: "count-complete" },
-        { key: "completed", id: "count-complete" },
-        { key: "active", id: "count-active" },
-        { key: "awaiting", id: "count-awaiting" },
-        { key: "paused", id: "count-paused" },
-        { key: "blocked", id: "count-blocked" },
-        { key: "time_saved", id: "time-saved-value" },
-        { key: "total", id: "count-all" },
-      ];
-
-      mappings.forEach(function (mapping) {
-        if (stats[mapping.key] !== undefined) {
-          var el = document.getElementById(mapping.id);
-          if (el) {
-            el.textContent = stats[mapping.key];
-          }
-        }
-      });
-    })
-    .catch(function (e) {
-      console.warn("Failed to load stats:", e);
-    });
-}
-
-// =============================================================================
 // SPLITTER DRAG FUNCTIONALITY
 // =============================================================================
 
@@ -187,7 +149,6 @@ document.querySelectorAll(".filter-pill").forEach(function (pill) {
 
 document.body.addEventListener("htmx:afterSwap", function (e) {
   if (e.detail.target && e.detail.target.id === "task-list") {
-    loadTaskStats();
     var taskList = document.getElementById("task-list");
     var emptyState = document.getElementById("empty-state");
     if (taskList && emptyState) {

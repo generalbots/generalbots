@@ -20,11 +20,12 @@
   }
 
   function updateFilterCounts() {
-    fetch("/api/tasks/stats/json")
+    fetch("/api/ui/tasks/stats")
       .then(function (response) {
         if (!response.ok) throw new Error("Failed to fetch stats");
-        return response.json();
+        return response.text();
       })
+      .then(function (html) { return parseTaskStatsFragment(html); })
       .then(function (stats) {
         var mappings = [
           ["count-all", stats.total],

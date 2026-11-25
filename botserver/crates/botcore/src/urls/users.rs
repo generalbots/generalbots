@@ -121,7 +121,6 @@ impl ApiUrls {
     pub const TASK_STATUS: &'static str = "/api/tasks/{id}/status";
     pub const TASK_PRIORITY: &'static str = "/api/tasks/{id}/priority";
     pub const TASK_COMMENTS: &'static str = "/api/tasks/{id}/comments";
-    pub const TASKS_STATS_JSON: &'static str = "/api/tasks/stats/json";
 
     // Tasks - HTMX/HTML APIs
     pub const TASKS_LIST_HTMX: &'static str = "/api/ui/tasks";
