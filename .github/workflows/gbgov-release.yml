@@ -78,17 +78,22 @@ jobs:
           "GBGOV_VERSION_CONF=$versionConf" >> $env:GITHUB_ENV
           Write-Host "edition version $version ($label, $commit)"
 
-      - name: Install PostgreSQL (libpq for the build and the payload, a server for the smoke test)
+      # The server links libpq and the desktop shell stages its runtime DLLs
+      # beside the server at first run (botapp/src/desktop/sidecar.rs). They
+      # come from the same pinned client build used on developer machines
+      # (botserver/3rdparty.toml `libpq_win.url_win`); the EDB 16 installer
+      # below only provides a database server for the smoke test.
+      - name: PostgreSQL client libraries (pinned) and a server for the smoke test
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          choco install postgresql16 --no-progress -y --params '/Password:postgres'
-          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
-            Sort-Object Name | Select-Object -Last 1
-          if (-not $pg) { throw "PostgreSQL install directory not found" }
-          "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
-          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
-          # The desktop shell stages these beside the server at first run.
+          $zip = Join-Path $env:RUNNER_TEMP 'pgsql-17.4-binaries.zip'
+          Invoke-WebRequest -Uri 'https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip' -OutFile $zip -MaximumRetryCount 3 -RetryIntervalSec 10
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '80bb49e80df0100dd52e7b3c647896f8d8cfde760b6473e5180819c8df4b23c4') { throw "PostgreSQL client archive digest mismatch: $hash" }
+          $client = Join-Path $env:RUNNER_TEMP 'pgclient'
+          Expand-Archive $zip -DestinationPath $client -Force
+          $pgsql = Join-Path $client 'pgsql'
           $payload = 'botserver\botserver-installers'
           New-Item -ItemType Directory -Force $payload | Out-Null
           $runtimeDlls = @(
@@ -97,10 +102,17 @@ jobs:
             'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
           )
           foreach ($name in $runtimeDlls) {
-            $dll = Join-Path "$($pg.FullName)\bin" $name
+            $dll = Join-Path "$pgsql\bin" $name
             if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
             Copy-Item $dll $payload -Force
           }
+          choco install postgresql16 --no-progress -y --params '/Password:postgres'
+          $server = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory | Sort-Object Name | Select-Object -Last 1
+          if (-not $server) { throw "PostgreSQL server install directory not found" }
+          "PQ_LIB_DIR=$pgsql\lib" >> $env:GITHUB_ENV
+          # Later entries win: the pinned client DLLs come before the server's.
+          "$($server.FullName)\bin" >> $env:GITHUB_PATH
+          "$pgsql\bin" >> $env:GITHUB_PATH
 
       - uses: ./.github/actions/rust-setup
         with:
