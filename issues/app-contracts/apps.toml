@@ -208,7 +208,7 @@ routes = ["/api/social", "/api/social/activity", "/api/social/analytics"]
 routes = ["/api/cloud/store", "/api/cloud/store/purchase"]
 
 [app.tasks]
-routes = ["/api/tasks", "/api/tasks/stats/json"]
+routes = ["/api/tasks", "/api/ui/tasks/stats"]
 
 [app.tax]
 routes = ["/api/tax", "/api/tax/calculate", "/api/billing/tax-rates"]
