@@ -6,20 +6,24 @@
 //! unknown payloads.
 
 use super::*;
+use botsecurity_core::upload_hostile::macro_strip;
 use botsecurity_core::upload_policy::{self, UploadClass};
 
 pub async fn upload_file_binary(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     body: axum::body::Body,
-) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
 
     // #2132 — cap before buffering: `to_bytes` never allocates past the limit,
     // so an oversized body cannot exhaust memory, and the declared
     // `Content-Length` is refused up front when it is already over budget.
     if let Err(error) = upload_policy::check_declared_length(UploadClass::Drive, &headers) {
-        botlog::safe_warn!("binary upload refused before buffering: {}", error.log_detail());
+        botlog::safe_warn!(
+            "binary upload refused before buffering: {}",
+            error.log_detail()
+        );
         return Err(upload_policy::rejection_json(&error, &headers));
     }
     let max = upload_policy::max_bytes(UploadClass::Drive);
@@ -28,9 +32,25 @@ pub async fn upload_file_binary(
         upload_policy::rejection_json(&error, &headers)
     })?;
 
-    // This endpoint carries no filename: the bytes decide the type, and the
-    // validator still refuses executables, markup and unknown payloads.
-    let detected = botsecurity_core::file_validation::detect_mime_type(&data);
+    // #2927 — this endpoint carries no filename, so the bytes decide the
+    // type. Sanitize Office packages before the shared gate and store only the
+    // macro-free copy, with a machine-readable notice in the response.
+    let prepared = macro_strip::prepare_office_upload(&data).map_err(|error| {
+        botlog::safe_warn!("binary upload sanitize refused: {}", error.log_detail());
+        upload_policy::rejection_json(&error, &headers)
+    })?;
+    let macro_strip::PreparedUpload {
+        bytes: prepared_bytes,
+        notice,
+    } = prepared;
+    let effective = prepared_bytes.as_ref();
+    if let Some(notice) = &notice {
+        botlog::safe_warn!(
+            "binary upload removed {} executable part(s) before storing",
+            notice.count
+        );
+    }
+    let detected = botsecurity_core::file_validation::detect_mime_type(effective);
     let extension = detected
         .as_deref()
         .and_then(upload_policy::extension_for_mime)
@@ -40,7 +60,7 @@ pub async fn upload_file_binary(
         UploadClass::Drive,
         &filename,
         detected.as_deref().unwrap_or(""),
-        &data,
+        effective,
     ) {
         Ok(upload) => upload,
         Err(error) => {
@@ -48,12 +68,13 @@ pub async fn upload_file_binary(
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
+    let stored = prepared_bytes.into_owned();
 
     let bucket = state.bucket_name.clone();
     let key = format!("uploads/{}.{}", uuid::Uuid::new_v4(), upload.extension);
 
     drive
-        .put_object(&bucket, &key, data.to_vec(), None)
+        .put_object(&bucket, &key, stored, None)
         .await
         .map_err(|e| {
             err(
@@ -62,5 +83,5 @@ pub async fn upload_file_binary(
             )
         })?;
 
-    Ok(Json(SuccessResponse { success: true }))
+    Ok(drive_upload_response(notice))
 }

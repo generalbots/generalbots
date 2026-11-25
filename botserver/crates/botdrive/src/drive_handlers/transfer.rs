@@ -8,7 +8,25 @@
 
 use super::*;
 use botsecurity_core::content_disposition::attachment_disposition;
+use botsecurity_core::upload_hostile::macro_strip::{self, MacroNotice};
 use botsecurity_core::upload_policy::{self, UploadClass};
+
+/// #2927 — Drive's shared success shape. The security notice is a catalogue
+/// key plus counts, never a user-facing literal; the UI binds `message_key`.
+pub(crate) fn drive_upload_response(notice: Option<MacroNotice>) -> Json<serde_json::Value> {
+    let mut body = serde_json::json!({ "success": true });
+    if let Some(notice) = notice {
+        match serde_json::to_value(notice) {
+            Ok(encoded) => {
+                if let Some(map) = body.as_object_mut() {
+                    map.insert("security_notices".to_string(), serde_json::json!([encoded]));
+                }
+            }
+            Err(error) => log::error!("drive upload: notice serialization failed: {error}"),
+        }
+    }
+    Json(body)
+}
 
 /// Local principal for single-user desktop installs (`no_security=true`).
 /// Normal deployments always answer `None`, so a missing auth extension can
@@ -26,7 +44,7 @@ pub async fn upload_file_to_drive(
     user: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
     Json(req): Json<WriteFileBody>,
-) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     // The global auth middleware always inserts a principal, including the
     // local desktop one when `no_security=true`. The fallback below keeps the
     // endpoint itself safe if it is ever mounted without that middleware:
@@ -86,7 +104,33 @@ pub async fn upload_file_to_drive(
         );
         return Err(upload_policy::rejection_json(&error, &headers));
     }
-    let upload = match upload_policy::validate_upload(UploadClass::Drive, &req.path, "", &data) {
+    // #2927 — same policy as the Office importers: strip executable parts
+    // before the shared gate, validate/store the macro-free copy and report a
+    // machine-readable notice. A package we cannot safely rewrite is refused
+    // by `prepare_office_upload` and never reaches the write below.
+    let prepared = macro_strip::prepare_office_upload(&data).map_err(|error| {
+        botlog::safe_warn!(
+            "drive write sanitize refused for '{}': {}",
+            req.path,
+            error.log_detail()
+        );
+        upload_policy::rejection_json(&error, &headers)
+    })?;
+    let macro_strip::PreparedUpload {
+        bytes: prepared_bytes,
+        notice,
+    } = prepared;
+    let effective = prepared_bytes.as_ref();
+    if let Some(notice) = &notice {
+        botlog::safe_warn!(
+            "drive write removed {} executable part(s) before storing '{}'",
+            notice.count,
+            req.path
+        );
+    }
+
+    let upload = match upload_policy::validate_upload(UploadClass::Drive, &req.path, "", effective)
+    {
         Ok(upload) => upload,
         Err(error) => {
             botlog::safe_warn!(
@@ -97,6 +141,7 @@ pub async fn upload_file_to_drive(
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
+    let stored = prepared_bytes.into_owned();
 
     // The client name is only a hint: the stored key keeps the sanitized
     // basename and the (already normalized) parent folder.
@@ -119,7 +164,7 @@ pub async fn upload_file_to_drive(
     // NoSuchBucket and retry once instead of failing the upload (#1709).
     let mut created = false;
     loop {
-        match drive.put_object(&bucket, &key, data.clone(), None).await {
+        match drive.put_object(&bucket, &key, stored.clone(), None).await {
             Ok(()) => break,
             Err(e) if !created && e.contains("NoSuchBucket") => {
                 if let Err(e) = drive.create_bucket_if_not_exists(&bucket).await {
@@ -137,7 +182,7 @@ pub async fn upload_file_to_drive(
     }
 
     botlog::safe_info!("File uploaded: {key} to bucket {bucket}");
-    Ok(Json(SuccessResponse { success: true }))
+    Ok(drive_upload_response(notice))
 }
 /// `POST /api/files/read` — returns a file's content as raw text (`{content}`)
 /// for the designer/editor apps. Mirrors `download_file` but returns plain
@@ -343,4 +388,39 @@ pub async fn download_file_inline(
         }
     }
     Ok(response)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn drive_response_omits_notices_for_a_clean_upload() {
+        let Json(value) = drive_upload_response(None);
+        assert_eq!(value["success"], true);
+        assert!(value.get("security_notices").is_none());
+    }
+
+    #[test]
+    fn drive_response_carries_only_catalogue_keys() {
+        let notice = MacroNotice {
+            code: "file-macros-removed",
+            message_key: "file-macros-removed",
+            count: 1,
+            parts: vec!["ppt/vbaproject.bin".to_string()],
+        };
+        let Json(value) = drive_upload_response(Some(notice));
+        assert_eq!(value["success"], true);
+        assert!(
+            value.get("security_notices").is_some(),
+            "a sanitized upload must carry a notice"
+        );
+        if let Some(notices) = value["security_notices"].as_array() {
+            assert_eq!(notices.len(), 1);
+            assert_eq!(notices[0]["code"], "file-macros-removed");
+            assert_eq!(notices[0]["message_key"], "file-macros-removed");
+            assert_eq!(notices[0]["count"], 1);
+            assert_eq!(notices[0]["parts"][0], "ppt/vbaproject.bin");
+        }
+    }
 }

@@ -16,6 +16,7 @@ use axum::{extract::State, http::StatusCode, Extension, Json};
 use base64::Engine;
 use botcore::shared::state::AppState;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
+use botsecurity_core::upload_hostile::macro_strip;
 use botsecurity_core::upload_policy::{self, UploadClass};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -127,6 +128,15 @@ pub async fn upload_file(
     // #2132 — the declared type and the bytes must agree with the name before
     // anything leaves for the provider.
     let declared = body.mime_type.as_deref().unwrap_or("");
+    // #2927 — the same sanitize-then-gate policy as the in-app Drive writes:
+    // strip executable Office parts before validating, so a macro-free PPTX
+    // is accepted here too while genuine VBA stays rejected.
+    let prepared_upload = macro_strip::prepare_office_upload(&content).map_err(|error| {
+        log::warn!("external drive upload sanitization failed: {}", error.log_detail());
+        upload_policy::rejection_json(&error, &headers)
+    })?;
+    let notice = prepared_upload.notice.clone();
+    let content = prepared_upload.bytes.into_owned();
     let validated = upload_policy::validate_upload(UploadClass::Drive, &body.name, declared, &content)
         .map_err(|error| {
             log::warn!("external drive upload refused: {}", error.log_detail());
@@ -197,12 +207,19 @@ pub async fn upload_file(
         }
     }
 
-    Ok(Json(serde_json::json!({
+    let mut response = serde_json::json!({
         "provider": uploaded.provider,
         "remote_id": uploaded.remote_id,
         "name": uploaded.name,
         "web_view_link": uploaded.web_view_link,
         "bytes": uploaded.bytes,
         "path": mirror.path,
-    })))
+    });
+    if let Some(notice) = notice {
+        response["security_notices"] = serde_json::json!([{
+            "code": notice.code,
+            "message_key": notice.message_key,
+        }]);
+    }
+    Ok(Json(response))
 }
