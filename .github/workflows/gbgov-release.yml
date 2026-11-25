@@ -15,6 +15,10 @@ name: gbgov release
 on:
   push:
     tags: ["gbgov-v*"]
+    # Build-only trial runs: a push to this branch builds and tests everything
+    # and keeps the files as artifacts; it never publishes (manual runs need
+    # the workflow on the default branch, which this edition does not touch).
+    branches: ["gbgov-release-dryrun"]
   workflow_dispatch:
     inputs:
       publish:
@@ -307,7 +311,7 @@ jobs:
   publish:
     name: Publish the pre-release
     needs: build
-    if: ${{ github.event_name == 'push' || inputs.publish }}
+    if: ${{ startsWith(github.ref, 'refs/tags/gbgov-v') && (github.event_name == 'push' || inputs.publish) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
