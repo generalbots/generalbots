@@ -231,7 +231,10 @@ fn clear_vibe_slots_for_provider(
             continue;
         }
         for suffix in ["provider", "url", "model", "key"] {
-            let _ = config.set_config(bot_id, &format!("vibe-llm-{agent}-{suffix}"), "");
+            let key = format!("vibe-llm-{agent}-{suffix}");
+            if let Err(e) = config.set_config(bot_id, &key, "") {
+                log::warn!("failed to clear vibe config key {key}: {e}");
+            }
         }
     }
 }
