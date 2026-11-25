@@ -82,7 +82,10 @@ through a polkit rule.
 ## Locking and the media grant
 
 The lock screen is a UI overlay; the session's real boundary is the account.
-Microphone and camera are granted per origin: the WebKit permission handler
+It locks after 15 minutes of inactivity by default (`lock-screen.js`), and on
+explicit lock signals (`gb-lock`, `gb-suspend`, logind `Lock`) or a lock set by
+another tab. Switching windows, resuming or opening the lid does not lock the
+session. Microphone and camera are granted per origin: the WebKit permission handler
 allows media only for the shell's own loopback origins (plus any host named in
 `GB_MEDIA_ORIGINS`), denies everything else and logs the origin it refused.
 

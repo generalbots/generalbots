@@ -69,7 +69,7 @@
       "/suite/js/snap-assist.js?v=1",
       "/suite/js/virtual-desktops.js?v=1",
       "/suite/js/control-center.js?v=1",
-      "/suite/js/lock-screen.js?v=2",
+      "/suite/js/lock-screen.js?v=4",
       // #2444 — the power menu depends on the lock screen and on a Tauri event.
       "/suite/js/power-menu.js?v=3",
       // #2450 — branded restart/recovery surface for kiosk webview restarts.

@@ -118,6 +118,35 @@ pub fn get_database_url_sync() -> anyhow::Result<String> {
         .or_else(|_| std::env::var("PG_URL"))
         .map_err(|_| anyhow::anyhow!("DATABASE_URL not set"))
 }
+/// Strict Vault read of one secret field. Unlike `get_secret` (used by
+/// `get_database_url`), this never serves an env-derived cache entry, so
+/// first-boot installers cannot render an empty DB/Zitadel password.
+pub fn get_secret_value_strict_sync(path: &str, key: &str) -> anyhow::Result<String> {
+    let manager = botcoresecrets::SecretsManager::get_clone()?;
+    let secret_path = path.to_string();
+    let secret_key = key.to_string();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = match rt {
+            Ok(rt) => rt.block_on(manager.get_secret_strict(&secret_path)),
+            Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {e}")),
+        };
+        if let Err(e) = tx.send(result) {
+            log::warn!("Strict secret read result dropped for {secret_path}: {e}");
+        }
+    });
+    let data = rx
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .map_err(|e| anyhow::anyhow!("Strict secret read for {path} did not finish: {e}"))??;
+    data.get(&secret_key)
+        .cloned()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("Vault field {path}::{key} is empty or missing"))
+}
+
 pub fn get_work_path() -> String {
     get_work_path_default()
 }

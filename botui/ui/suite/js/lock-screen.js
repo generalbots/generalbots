@@ -1,18 +1,19 @@
 "use strict";
 /* Lock screen (#1158, hardened in #2446): a real session lock, not a cosmetic
- * div. Unlocking calls POST /api/auth/login; logind/resume events re-lock. */
+ * div. Unlocking calls POST /api/auth/login. Only explicit lock signals
+ * (gb-lock, gb-suspend, logind Lock) re-lock; resume does not. */
 (function () {
   if (window.LockScreen) return;
 
   var STATE_KEY = "gb-lock-state", IDLE_KEY = "gb-lock-idle-ms";
   var ATTEMPT_KEY = "gb-lock-attempts", AUDIT_KEY = "gb-lock-audit";
   var USER_KEY = "gb-user-data", TOKEN_KEY = "gb-access-token", LOGIN_URL = "/api/auth/login";
-  var DEFAULT_IDLE_MS = 60 * 60 * 1000, MIN_IDLE_MS = 30 * 1000;
+  var DEFAULT_IDLE_MS = 15 * 60 * 1000, MIN_IDLE_MS = 30 * 1000;
   var MAX_IDLE_MS = 24 * 60 * 60 * 1000, MAX_ATTEMPTS = 5;
-  var COOLDOWN_MS = 30 * 1000, RESUME_THRESHOLD_MS = 1500, AUDIT_LIMIT = 50;
+  var COOLDOWN_MS = 30 * 1000, AUDIT_LIMIT = 50;
 
   var initialized = false, idleTimer = null, clockTimer = null, observer = null;
-  var hiddenAt = 0, pendingUnlock = false, hiddenState = [];
+  var pendingUnlock = false, hiddenState = [];
 
   function logErr(error, context) {
     if (window.gbLogError) { try { window.gbLogError(error, context); return; } catch { /* console below */ } }
@@ -81,8 +82,7 @@
   }
   function reasonText(reason) {
     if (reason === "idle") return t("lock-reason-idle", "Locked after inactivity");
-    if (reason === "resume" || reason === "gb-resume" || reason === "gb-lid-open" ||
-        reason === "gb-session-switch" || reason === "org.freedesktop.login1.Lock")
+    if (reason === "org.freedesktop.login1.Lock")
       return t("lock-reason-resume", "Locked after resume");
     if (reason === "restore" || reason === "cross-tab") return t("lock-reason-restore", "Session locked");
     return t("lock-reason-manual", "Screen locked");
@@ -294,7 +294,7 @@
     document.removeEventListener("keydown", blockWhileLocked, true);
     window.removeEventListener("beforeunload", onBeforeUnload);
     stopWatch(); if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-    setState("unlocked"); hiddenAt = 0; armIdle();
+    setState("unlocked"); armIdle();
   }
   function lock(reason) {
     if (isLocked()) return;
@@ -312,30 +312,24 @@
     idleTimer = setTimeout(function () { if (!isLocked()) lock("idle"); }, getIdleMs());
   }
   function resetIdle() { if (!isLocked()) armIdle(); }
-  function onVisibility() {
-    if (isLocked()) { hiddenAt = 0; return; }
-    if (document.hidden) { hiddenAt = Date.now(); return; }
-    var resume = hiddenAt && Date.now() - hiddenAt >= RESUME_THRESHOLD_MS;
-    hiddenAt = 0; if (resume) lock("resume");
-  }
   function onStorage(event) {
     if (event && event.key === STATE_KEY && event.newValue === "locked" && !isLocked()) lock("cross-tab");
   }
   function listenTauri() {
     var tauri = window.GBTAURI;
     if (!tauri || !tauri.event || typeof tauri.event.listen !== "function") return;
-    ["gb-lock", "gb-lock-screen", "gb-suspend", "gb-resume", "gb-lid-open", "gb-session-switch", "org.freedesktop.login1.Lock"].forEach(function (name) {
+    ["gb-lock", "gb-lock-screen", "gb-suspend", "org.freedesktop.login1.Lock"].forEach(function (name) {
       tauri.event.listen(name, function () { lock(name); }).catch(function (error) { logErr(error, "lock:listen"); });
     });
     ["gb-unlock", "org.freedesktop.login1.Unlock"].forEach(function (name) {
       // logind Unlock means "session active again", not "user authenticated".
-      tauri.event.listen(name, function () { hiddenAt = 0; audit("logind:unlock-signal"); }).catch(function (error) { logErr(error, "lock:listen"); });
+      tauri.event.listen(name, function () { audit("logind:unlock-signal"); }).catch(function (error) { logErr(error, "lock:listen"); });
     });
   }
   function init() {
     if (initialized) return;
     initialized = true; listenTauri();
-    document.addEventListener("visibilitychange", onVisibility); window.addEventListener("storage", onStorage);
+    window.addEventListener("storage", onStorage);
     window.addEventListener("beforeunload", onBeforeUnload);
     ["mousemove", "keydown", "mousedown", "touchstart", "scroll"].forEach(function (name) {
       document.addEventListener(name, resetIdle, { passive: true });
