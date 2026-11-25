@@ -72,6 +72,7 @@ require("./webtest-office-fidelity/66_theme_single_owner");
 require("./webtest-office-fidelity/67_i18n_key_coverage");
 require("./webtest-office-fidelity/68_reflow_idle_budget");
 require("./webtest-office-fidelity/69_slides_route_contract");
+require("./webtest-office-fidelity/70_undo_route_wiring");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

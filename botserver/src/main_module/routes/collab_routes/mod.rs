@@ -41,6 +41,11 @@ mod permissions;
 // #2452 — ownership transfer: local-user target resolution plus pure,
 // unit-tested validation/authorization rules (no Zitadel round trip).
 mod transfer;
+// #2448 criterion 4 — the live, session-scoped, single-use agent-batch undo
+// endpoint consuming the typed `core::bot::consent_gate::undo` model. The
+// model is only compiled with the `consent` feature, so gate this route too.
+#[cfg(feature = "consent")]
+mod undo;
 mod versions;
 
 pub use comments::*;
@@ -50,10 +55,12 @@ pub(crate) use helpers::*;
 pub use link_inventory::*;
 pub use permissions::*;
 pub use transfer::*;
+#[cfg(feature = "consent")]
+pub use undo::*;
 pub use versions::*;
 
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {
-    Router::new()
+    let router = Router::new()
         .route(
             "/api/activity",
             get(list_activity).post(record_activity_event),
@@ -92,6 +99,9 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/collab/versions/:id", get(get_version))
         .route("/api/collab/versions/:id/restore", post(restore_version))
-        .route("/api/collab/versions/:id/name", post(name_version))
-        .merge(super::collab_ops::configure_collab_ops_routes())
+        .route("/api/collab/versions/:id/name", post(name_version));
+    // #2448 criterion 4 — one command undoes the caller's last agent batch.
+    #[cfg(feature = "consent")]
+    let router = router.route("/api/collab/undo", post(undo_batch));
+    router.merge(super::collab_ops::configure_collab_ops_routes())
 }

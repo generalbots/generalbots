@@ -5,7 +5,6 @@
  * /api/consent/resolve; GET /api/consent/pending revives them on reload.
  */
   // #2448 criterion 3 — destructive cards render Confirm/Cancel, not grants.
-
 (function () {
   function escapeHtml(value) {
     if (typeof window.escapeHtml === "function") return window.escapeHtml(value);
@@ -24,7 +23,6 @@
     always: { label: "Always allow", outcome: "Always allowed" },
     deny: { label: "Deny", outcome: "Denied" },
   };
-
   // Five wire decisions: confirm=allow_once, cancel=deny (no new enum).
   var CONFIRM_WIRE_DECISION = "allow_once", CANCEL_WIRE_DECISION = "deny";
   function wireDecision(d) {
@@ -35,7 +33,6 @@
   }
 
   var lastConsentRequest = null;
-
   // #2448: explicit batch id only; never a request id.
   function batchIdFrom(req) {
     if (!req || !isConfirmGate(req)) return "";
@@ -50,7 +47,6 @@
       lastConsentRequest = d.consent_request;
     }
   });
-
   // #2347 — bearer tokens must not be read from localStorage.
   function authHeaders(extra) {
     var h = extra || {};
@@ -63,7 +59,6 @@
     } catch (e) { /* anonymous */ }
     return h;
   }
-
   // Summarise detail; raw JSON printed "[object Object]" and hid intent.
   function describeDetail(detail) {
     if (detail === null || detail === undefined) return "";
@@ -95,17 +90,13 @@
       return "";
     }
   }
-
   // Client-side caps mirror the server bounds (PREVIEW_MAX_ENTRIES / _VALUE_CHARS).
   var PREVIEW_MAX_ROWS = 10, PREVIEW_VALUE_CHARS = 80;
-
   function t(k, fb) { return typeof gbT === "function" ? gbT(k, fb) : fb; }
-
   function pv(v) {
     var s = v === null || v === undefined ? "" : (typeof v === "object" ? JSON.stringify(v) : String(v));
     return s.length > PREVIEW_VALUE_CHARS ? s.slice(0, PREVIEW_VALUE_CHARS - 1) + "\u2026" : s;
   }
-
   function buildPreview(preview) {
     if (!preview || typeof preview !== "object") return null;
     var rows = Array.isArray(preview.entries) ? preview.entries.slice(0, PREVIEW_MAX_ROWS) : [];
@@ -134,7 +125,6 @@
     });
     return region;
   }
-
   function buildCard(req) {
     var confirmGate = isConfirmGate(req);
     // Destructive commands must never be satisfiable by a permission grant.
@@ -177,9 +167,7 @@
     });
     return card;
   }
-
   window.GBBuildConsentCard = buildCard;
-
   function swapToOutcome(card, decision, ok) {
     var meta = DECISIONS[decision] || { outcome: decision };
     var text = decision === "confirm" ? t("action-confirm", "Confirm")
@@ -194,8 +182,30 @@
       '<span class="gb-consent-outcome-time">' +
       gbFormatTime(new Date()) +
       "</span></div>";
+    // #2448 criterion 4 — one-click undo of the batch carried by this card;
+    // user/bot/session are derived from the verified session, not from the UI.
+    if (ok && decision === "confirm") appendUndoButton(card);
   }
-
+  function appendUndoButton(card) {
+    var id = card && card.getAttribute ? card.getAttribute("data-batch-id") : "";
+    if (!id) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "gb-consent-btn gb-consent-undo";
+    b.setAttribute("data-undo-batch", id); b.textContent = t("action-undo", "Undo");
+    b.addEventListener("click", function () { undoBatch(id, b, card); });
+    card.appendChild(b);
+  }
+  function undoBatch(id, button, card) {
+    if (!id || !button || button.disabled) return;
+    button.disabled = true;
+    fetch("/api/collab/undo", { method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ batch_id: id }) })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function () { if (card) card.classList.add("gb-consent-undone"); })
+      .catch(function () { button.disabled = false; });
+  }
+  window.GBUndoBatch = undoBatch;
   // A grant must RESUME the turn: the server ends it on the marker, and the
   // assistant never retries alone. `sendMessage` routes to the owning tab.
   function resumeAfterGrant(decision) {
@@ -207,7 +217,6 @@
       } catch (e) { /* the grant still applies to the next message the user sends */ }
     }, 200);
   }
-
   function resolve(card, requestId, decision) {
     var buttons = card.querySelectorAll(".gb-consent-btn");
     buttons.forEach(function (b) { b.disabled = true; });
@@ -237,7 +246,6 @@
         swapToOutcome(card, decision, false);
       });
   }
-
   // Renders one request into a message; idempotent per request id.
   window.GBRenderConsentCard = function (msgEl, req) {
     if (!msgEl || !req || !req.request_id) return;
@@ -248,7 +256,6 @@
     if (msgEl.querySelector(".gb-consent-card")) return;
     msgEl.appendChild(buildCard(req));
   };
-
   function appendStandaloneCard(req) {
     var pane = document.getElementById("messages");
     if (!pane) return;
@@ -262,13 +269,11 @@
     wrap.querySelector(".message-content").appendChild(buildCard(req));
     pane.appendChild(wrap);
   }
-
   function featureCompiled(name) {
     var cfg = window.productConfig;
     if (!cfg || !Array.isArray(cfg.compiled_features)) return null;
     return cfg.compiled_features.indexOf(name) !== -1;
   }
-
   function revivePending() {
     // A missing consent route answers 404 (#1693); check the manifest first.
     if (featureCompiled("consent") === false) {
@@ -293,7 +298,6 @@
       })
       .catch(function () { /* revival is best-effort */ });
   }
-
   // Wrap addMessage, chaining on top of 30_citations.js's wrapper.
   var MARKER = "GB-CONSENT-REQUEST:";
 
