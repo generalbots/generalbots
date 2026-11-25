@@ -8,6 +8,7 @@ use axum::http::{header, HeaderMap, StatusCode};
 use axum::Json;
 use botlib::i18n::{self, Locale};
 use serde_json::{json, Value};
+use std::fmt;
 
 /// Why an upload was refused. The `code` is a catalogue message id, stable
 /// across locales, so clients can branch on it.
@@ -147,6 +148,42 @@ impl UploadError {
     }
 }
 
+/// A short, locale-independent description for logs and test failure output.
+///
+/// Every variant renders a fixed sentence: the structured fields (extension,
+/// signature, detected type, archive part, …) are caller-controlled and may
+/// carry user data, so they are deliberately never interpolated here. Detailed
+/// diagnostics belong in [`UploadError::log_detail`], which stays server-side.
+impl fmt::Display for UploadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::Empty => "the upload is empty",
+            Self::TooLarge { .. } => "the upload exceeds the maximum allowed size",
+            Self::FilenameInvalid | Self::FilenameTooLong { .. } => "the file name is invalid",
+            Self::ExtensionBlocked { .. } => "the file extension is blocked",
+            Self::ExtensionNotAllowed { .. } => "the file type is not allowed",
+            Self::UnknownExtension { .. } => "the file extension is not recognized",
+            Self::TypeMismatch { .. } => "the declared type does not match the content",
+            Self::ArchiveUnsafe { .. } => "the archive contains unsafe content",
+            Self::ArchiveEncrypted => "the archive contains an encrypted entry",
+            Self::ArchiveNested { .. } => "the archive contains a nested container",
+            Self::ArchiveMacro { .. } => "the archive contains a macro-bearing part",
+            Self::ArchiveCompressionRatio { .. } => {
+                "the archive compression ratio exceeds the limit"
+            }
+            Self::RelationshipTargetUnsafe { .. } => {
+                "the document contains an unsafe external reference"
+            }
+            Self::MalwareScannerMissing => "no malware scanner is configured",
+            Self::MalwareScanFailed => "the malware scan could not be completed",
+            Self::MalwareDetected { .. } => "malware detected",
+        };
+        f.write_str(message)
+    }
+}
+
+impl std::error::Error for UploadError {}
+
 /// Request locale from `X-Locale` / `Accept-Language` (#2094).
 #[must_use]
 pub fn locale_from_headers(headers: &HeaderMap) -> Locale {
@@ -188,5 +225,93 @@ fn human_size(bytes: usize) -> String {
         format!("{} MiB", bytes / MIB)
     } else {
         format!("{} KiB", bytes / 1024)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_is_error<E: std::error::Error>() {}
+
+    #[test]
+    fn every_variant_has_a_display_message() {
+        assert_is_error::<UploadError>();
+        let variants = [
+            UploadError::Empty,
+            UploadError::TooLarge { max: 1 },
+            UploadError::FilenameInvalid,
+            UploadError::FilenameTooLong { max: 1 },
+            UploadError::ExtensionBlocked {
+                extension: "exe".into(),
+            },
+            UploadError::ExtensionNotAllowed {
+                extension: "exe".into(),
+                allowed: &["txt"],
+            },
+            UploadError::UnknownExtension {
+                extension: "zzz".into(),
+            },
+            UploadError::TypeMismatch {
+                expected: "pdf".into(),
+                detected: "png".into(),
+            },
+            UploadError::ArchiveUnsafe { reason: "bad" },
+            UploadError::ArchiveEncrypted,
+            UploadError::ArchiveNested {
+                part: "inner.zip".into(),
+            },
+            UploadError::ArchiveMacro {
+                part: "vbaProject.bin".into(),
+            },
+            UploadError::ArchiveCompressionRatio {
+                ratio: 1000,
+                max: 10,
+            },
+            UploadError::RelationshipTargetUnsafe { kind: "external" },
+            UploadError::MalwareScannerMissing,
+            UploadError::MalwareScanFailed,
+            UploadError::MalwareDetected {
+                signature: "EICAR".into(),
+            },
+        ];
+        for error in &variants {
+            assert!(
+                !error.to_string().is_empty(),
+                "each variant must render a message"
+            );
+        }
+    }
+
+    #[test]
+    fn display_never_embeds_caller_controlled_fields() {
+        const SENTINEL: &str = "SENTINEL_DO_NOT_LEAK";
+        let errors = [
+            UploadError::ExtensionBlocked {
+                extension: SENTINEL.into(),
+            },
+            UploadError::UnknownExtension {
+                extension: SENTINEL.into(),
+            },
+            UploadError::ArchiveNested {
+                part: SENTINEL.into(),
+            },
+            UploadError::ArchiveMacro {
+                part: SENTINEL.into(),
+            },
+            UploadError::MalwareDetected {
+                signature: SENTINEL.into(),
+            },
+            UploadError::TypeMismatch {
+                expected: SENTINEL.into(),
+                detected: SENTINEL.into(),
+            },
+        ];
+        for error in &errors {
+            assert!(
+                !error.to_string().contains(SENTINEL),
+                "Display leaked a structured field"
+            );
+        }
     }
 }
