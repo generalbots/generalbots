@@ -132,9 +132,9 @@ h.staticTest("anonymous capability read gates source by the link's role", functi
     "viewer source-denial unit test must exist");
   h.assert(tests.indexOf("fn owner_and_higher_role_links_still_release_the_source()") !== -1,
     "source-capable role unit test must exist");
-  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, now, SOURCE), "");',
+  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), "");',
     "viewer roles must be asserted to yield no body");
-  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, now, SOURCE), SOURCE);',
+  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), SOURCE);',
     "source-capable roles must be asserted to keep the body");
 });
 
