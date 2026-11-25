@@ -601,6 +601,10 @@ jobs:
           done
           # Final cleanup in case all attempts failed after starting services.
           if [ "$ok" -ne 1 ]; then
+            echo "::group::Zitadel and provisioning logs"
+            cat "$RUNNER_TEMP/first-run-attempt-1/home/.local/share/generalbots/stack/logs/zitadel.log" 2>/dev/null || echo "no zitadel.log"
+            tail -120 "$RUNNER_TEMP/first-run-attempt-1/provision.log" 2>/dev/null || echo "no provision.log"
+            echo "::endgroup::"
             cleanup_provision
           fi
           if [ "$ok" -ne 1 ]; then
@@ -644,9 +648,10 @@ jobs:
         with:
           name: first-run-logs
           path: |
-            ${{ runner.temp }}/first-run/provision.log
-            ${{ runner.temp }}/first-run/botserver.log
-            ${{ runner.temp }}/first-run/home/.local/share/generalbots/stack/logs/
+            ${{ runner.temp }}/first-run-provision.log
+            ${{ runner.temp }}/first-run-attempt-1/provision.log
+            ${{ runner.temp }}/first-run-attempt-1/botserver.log
+            ${{ runner.temp }}/first-run-attempt-1/home/.local/share/generalbots/stack/logs/
           if-no-files-found: warn
           retention-days: 7
 
