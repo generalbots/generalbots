@@ -2,7 +2,7 @@
 const ThemeManager = (() => {
   const STORAGE_KEY = "gb-theme";
   const LIGHT_ID = "light";
-  const DARK_ID = "sentient";
+  const DARK_ID = "carbon";
   const SYSTEM = "system";
   const VALID_PREF = { light: 1, dark: 1, system: 1 };
   let currentThemeId = "default";
@@ -98,11 +98,13 @@ const ThemeManager = (() => {
   }
 
   function resolve(pref) {
-    const value = VALID_PREF[pref] ? pref : SYSTEM;
-    if (value === SYSTEM) return osDark() ? DARK_ID : LIGHT_ID;
-    if (value === "dark") return DARK_ID;
-    if (value === "light") return LIGHT_ID;
-    return value;
+    // A named theme id is already a concrete choice — never collapse it to
+    // SYSTEM just because it is not one of the three preference keywords.
+    if (known(pref)) return pref;
+    if (!VALID_PREF[pref]) return SYSTEM;
+    if (pref === SYSTEM) return osDark() ? DARK_ID : LIGHT_ID;
+    if (pref === "dark") return DARK_ID;
+    return LIGHT_ID;
   }
 
   /* The preference is one key. */

@@ -105,7 +105,8 @@ h.staticTest("#2930 one localStorage key, theme-id vocabulary, three-way legacy 
   var head = between(owner, "const ThemeManager = (() => {", "// Bot ID to theme mapping");
   spanHas(head, 'const STORAGE_KEY = "gb-theme";', "one canonical key");
   spanHas(head, 'const LIGHT_ID = "light";', "light maps to the light theme id");
-  spanHas(head, 'const DARK_ID = "sentient";', "dark maps to the dark theme id");
+  spanHas(head, 'const DARK_ID = "carbon";', "dark maps to a registered dark theme id");
+  contains(owner, '{ id: "carbon"', "the dark theme id is registered in the theme catalog");
   spanHas(head, 'const SYSTEM = "system";', "system is a preference value, not an attribute value");
   spanHas(head, 'const VALID_PREF = { light: 1, dark: 1, system: 1 };',
     "the preference vocabulary is explicit");
@@ -124,10 +125,10 @@ h.staticTest("#2930 one localStorage key, theme-id vocabulary, three-way legacy 
     "localStorage.setItem(STORAGE_KEY, value)"], "read, fall back, migrate, persist");
 
   var resolve = between(owner, "function resolve(pref) {", "/* The preference is one key");
-  spanHas(resolve, 'if (value === SYSTEM) return osDark() ? DARK_ID : LIGHT_ID;',
+  spanHas(resolve, 'if (known(pref)) return pref;', "named theme ids are never collapsed to System");
+  spanHas(resolve, 'if (pref === SYSTEM) return osDark() ? DARK_ID : LIGHT_ID;',
     "System resolves to one of the two theme ids");
-  spanHas(resolve, 'if (value === "dark") return DARK_ID;', "Dark resolves to the dark id");
-  spanHas(resolve, 'if (value === "light") return LIGHT_ID;', "Light resolves to the light id");
+  spanHas(resolve, 'if (pref === "dark") return DARK_ID;', "Dark resolves to the dark id");
 
   var api = between(owner, "const api = {", "window.ThemeManager = api;");
   spanHas(api, "set: setPreference,", "the preference API is exposed");
@@ -161,11 +162,11 @@ h.staticTest("#2930 scoped :root light/dark base tokens with both vocabularies",
   spanHas(light, "--text: #1e293b;", "light ink is dark");
   spanHas(dark, "--text: #f8fafc;", "dark ink is light");
 
-  // The dark preference resolves to the sentient theme id; it must carry the
-  // same two vocabularies, as must the default paper identity theme.
-  var sentient = between(css, ':root[data-theme="sentient"] {', "/* Retro Themes */");
+  // The dark preference resolves to the registered `carbon` theme; its CSS
+  // file must carry both token vocabularies, as must the default paper theme.
+  var darkThemeCss = h.readRepo("botui/ui/suite/public/themes/carbon.css");
   ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {
-    spanHas(sentient, token + ":", "sentient base tokens must emit " + token);
+    contains(darkThemeCss, token + ":", "carbon theme must emit " + token);
   });
   var paper = between(css, ':root[data-theme="default"] {', ':root[data-theme="sentient"] {');
   ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {

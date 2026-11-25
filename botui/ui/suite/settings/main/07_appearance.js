@@ -57,14 +57,12 @@ function currentBotId() {
 }
 
 window.setTheme = function (theme, element) {
-  // Apply on <html> so the desktop shell CSS variables react, not just the
-  // settings fragment body.
-  document.documentElement.setAttribute("data-theme", theme);
-  document.body.setAttribute("data-theme", theme);
-  localStorage.setItem(STORAGE_KEYS.THEME, theme);
-  // Mirror into the per-bot key the desktop theme-manager reads, so the
-  // choice survives navigation and applies to the shell.
-  localStorage.setItem("gb-theme-" + currentBotId(), theme);
+  // ThemeManager is the single owner of data-theme and the gb-theme key.
+  // Delegate to it so the shell, apps and settings cannot fight over the
+  // attribute; this module only updates its own selection UI.
+  if (window.GBTheme && typeof window.GBTheme.set === "function") {
+    window.GBTheme.set(theme);
+  }
   document.querySelectorAll(".theme-option").forEach(function (o) {
     o.classList.remove("active");
   });
