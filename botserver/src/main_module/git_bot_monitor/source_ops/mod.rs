@@ -17,6 +17,7 @@
 use std::path::{Path, PathBuf};
 
 use botcore::shared::utils::{get_work_path, DbPool};
+use botlib::security::redact::redact_url_userinfo;
 use diesel::RunQueryDsl;
 
 use super::core::{
@@ -139,7 +140,13 @@ pub(super) fn commit_and_push(
             );
             run_git(checkout, &["fetch", "origin", "main"])?;
             if let Err(e) = run_git(checkout, &["rebase", "origin/main"]) {
-                let _ = run_git(checkout, &["rebase", "--abort"]);
+                if let Err(abort) = run_git(checkout, &["rebase", "--abort"]) {
+                    log::warn!(
+                        "[git_monitor] autotask {}: rebase abort failed: {}",
+                        target.bot_name,
+                        redact_url_userinfo(&abort)
+                    );
+                }
                 return Err(format!("rebase onto origin/main failed: {e}"));
             }
             run_git(checkout, &["push", "origin", "HEAD:main"])?;

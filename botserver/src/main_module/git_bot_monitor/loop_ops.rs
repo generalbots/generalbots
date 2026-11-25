@@ -308,8 +308,14 @@ fn dispatch_bot_op(pool: &DbPool, op: &str, project_id: Uuid) -> Result<(), Stri
             // A deploy always ships the committed state: push any uncommitted
             // workspace edits first so PROD == git HEAD.
             let workspace = botvibe::harness::workspace_root().join(&project.repo_slug);
-            let _ = run_git(&workspace, &["add", "-A"]);
-            let _ = run_git(
+            if let Err(e) = run_git(&workspace, &["add", "-A"]) {
+                log::warn!(
+                    "[git_monitor] deploy {}: git add failed: {}",
+                    project.name,
+                    redact_url_userinfo(&e)
+                );
+            }
+            if let Err(e) = run_git(
                 &workspace,
                 &[
                     "-c",
@@ -320,8 +326,20 @@ fn dispatch_bot_op(pool: &DbPool, op: &str, project_id: Uuid) -> Result<(), Stri
                     "-m",
                     &format!("Deploy {}", project.name),
                 ],
-            );
-            let _ = run_git(&workspace, &["push", "origin", "HEAD:main"]);
+            ) {
+                log::warn!(
+                    "[git_monitor] deploy {}: git commit failed: {}",
+                    project.name,
+                    redact_url_userinfo(&e)
+                );
+            }
+            if let Err(e) = run_git(&workspace, &["push", "origin", "HEAD:main"]) {
+                log::warn!(
+                    "[git_monitor] deploy {}: git push failed: {}",
+                    project.name,
+                    redact_url_userinfo(&e)
+                );
+            }
             let etag = run_git(&workspace, &["rev-parse", "HEAD"])
                 .unwrap_or_else(|_| "deploy".to_string());
             promote_test_to_prod(pool, branch_slug.trim(), &project.name, etag.trim())
@@ -386,10 +404,13 @@ pub async fn start(app_state: Arc<AppState>, pool: DbPool) {
                 let pool_for_task = pool.clone();
                 let work_root_for_task = work_root.clone();
                 let project_for_task = project.clone();
-                let _ = tokio::task::spawn_blocking(move || {
+                if let Err(e) = tokio::task::spawn_blocking(move || {
                     sync_one(&pool_for_task, &project_for_task, &work_root_for_task)
                 })
-                .await;
+                .await
+                {
+                    log::warn!("[git_monitor] sync task for {} panicked: {e}", project.name);
+                }
             }
         }
     });

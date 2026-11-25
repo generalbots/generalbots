@@ -131,16 +131,20 @@ pub fn prompt_block() -> String {
             if index > 0 {
                 args_text.push_str(", ");
             }
-            let _ = std::fmt::Write::write_fmt(
+            if let Err(e) = std::fmt::Write::write_fmt(
                 &mut args_text,
                 format_args!("\"{name}\": {description}"),
-            );
+            ) {
+                log::warn!("surface catalog: argument description format failed: {e}");
+            }
         }
         args_text.push('}');
-        let _ = std::fmt::Write::write_fmt(
+        if let Err(e) = std::fmt::Write::write_fmt(
             &mut block,
             format_args!("- {}: {}.\n", entry.name, &entry.summary),
-        );
+        ) {
+            log::warn!("surface catalog: tool summary format failed: {e}");
+        }
         if entry.name == "show_surface" {
             block.push_str("  ");
             block.push_str(&args_text);
@@ -148,7 +152,11 @@ pub fn prompt_block() -> String {
             block.push_str(RENDERER_COMPONENTS);
             block.push_str(". Always include a fallback. Never send HTML.\n");
         } else {
-            let _ = std::fmt::Write::write_fmt(&mut block, format_args!("  {}\n", &args_text));
+            if let Err(e) =
+                std::fmt::Write::write_fmt(&mut block, format_args!("  {}\n", &args_text))
+            {
+                log::warn!("surface catalog: argument block format failed: {e}");
+            }
         }
     }
     block.push_str(
@@ -165,8 +173,11 @@ pub fn prompt_block() -> String {
     );
     for entry in SURFACE_TOOLS {
         for (user, call) in entry.few_shots {
-            let _ =
-                std::fmt::Write::write_fmt(&mut block, format_args!("user: {user} -> {call}.\n"));
+            if let Err(e) =
+                std::fmt::Write::write_fmt(&mut block, format_args!("user: {user} -> {call}.\n"))
+            {
+                log::warn!("surface catalog: few-shot format failed: {e}");
+            }
         }
     }
     block.push_str(

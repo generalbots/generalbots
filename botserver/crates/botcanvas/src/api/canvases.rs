@@ -226,23 +226,34 @@ pub(crate) async fn delete_canvas(
         .get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
 
-    diesel::delete(canvas_comments::table.filter(canvas_comments::canvas_id.eq(canvas_id)))
-        .execute(&mut conn)
-        .ok();
+    if let Err(e) =
+        diesel::delete(canvas_comments::table.filter(canvas_comments::canvas_id.eq(canvas_id)))
+            .execute(&mut conn)
+    {
+        log::warn!("canvas api: failed to delete comments for {canvas_id}: {e}");
+    }
 
-    diesel::delete(canvas_versions::table.filter(canvas_versions::canvas_id.eq(canvas_id)))
-        .execute(&mut conn)
-        .ok();
+    if let Err(e) =
+        diesel::delete(canvas_versions::table.filter(canvas_versions::canvas_id.eq(canvas_id)))
+            .execute(&mut conn)
+    {
+        log::warn!("canvas api: failed to delete versions for {canvas_id}: {e}");
+    }
 
-    diesel::delete(
+    if let Err(e) = diesel::delete(
         canvas_collaborators::table.filter(canvas_collaborators::canvas_id.eq(canvas_id)),
     )
     .execute(&mut conn)
-    .ok();
+    {
+        log::warn!("canvas api: failed to delete collaborators for {canvas_id}: {e}");
+    }
 
-    diesel::delete(canvas_elements::table.filter(canvas_elements::canvas_id.eq(canvas_id)))
-        .execute(&mut conn)
-        .ok();
+    if let Err(e) =
+        diesel::delete(canvas_elements::table.filter(canvas_elements::canvas_id.eq(canvas_id)))
+            .execute(&mut conn)
+    {
+        log::warn!("canvas api: failed to delete elements for {canvas_id}: {e}");
+    }
 
     let deleted = diesel::delete(canvases::table.filter(canvases::id.eq(canvas_id)))
         .execute(&mut conn)

@@ -93,7 +93,9 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
         None => return Err("ALM config missing (secret/gbo/alm) — git monitor idle".to_string()),
     };
     let tmp = root.join(format!(".clone-{}", project.repo_slug));
-    let _ = std::fs::remove_dir_all(&tmp);
+    if let Err(e) = std::fs::remove_dir_all(&tmp) {
+        log::warn!("[git_monitor] stale clone cleanup {}: {e}", tmp.display());
+    }
     match run_git(
         &root,
         &["clone", "--quiet", &url, tmp.to_string_lossy().as_ref()],
@@ -110,7 +112,9 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
                     std::fs::rename(entry.path(), &to).map_err(|e| format!("move {e}"))?;
                 }
             }
-            let _ = std::fs::remove_dir_all(&tmp);
+            if let Err(e) = std::fs::remove_dir_all(&tmp) {
+                log::warn!("[git_monitor] clone temp cleanup {}: {e}", tmp.display());
+            }
             log::info!(
                 "[git_monitor] cloned {org}/{} → {}",
                 project.repo_slug,
@@ -119,7 +123,12 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
             Ok(cwd)
         }
         Err(e) => {
-            let _ = std::fs::remove_dir_all(&tmp);
+            if let Err(cleanup) = std::fs::remove_dir_all(&tmp) {
+                log::warn!(
+                    "[git_monitor] failed-clone cleanup {}: {cleanup}",
+                    tmp.display()
+                );
+            }
             Err(format!("clone {org}/{}: {e}", project.repo_slug))
         }
     }

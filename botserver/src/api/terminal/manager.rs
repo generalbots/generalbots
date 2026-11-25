@@ -143,7 +143,9 @@ impl TerminalManager {
                 .lock()
                 .map_err(|_| "child lock poisoned".to_string())?;
             if let Some(child) = guard.as_mut() {
-                let _ = child.kill();
+                if let Err(e) = child.kill() {
+                    log::warn!("terminal kill {id}: child process kill failed: {e}");
+                }
             }
         }
         if let Ok(mut exit) = session.exit_code.lock() {

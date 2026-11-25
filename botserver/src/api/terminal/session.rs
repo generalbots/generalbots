@@ -109,7 +109,9 @@ impl TerminalSession {
                 at: Utc::now(),
             });
         }
-        let _ = self.events.send(data);
+        if let Err(e) = self.events.send(data) {
+            log::warn!("terminal session {}: broadcast failed: {e}", self.id);
+        }
     }
 
     /// Allocate a PTY pair and spawn the shell on the slave side.
@@ -284,7 +286,9 @@ impl TerminalSession {
         if let Some(w) = guard.as_mut() {
             w.write_all(data.as_bytes())
                 .map_err(|e| format!("pty write: {e}"))?;
-            let _ = w.flush();
+            if let Err(e) = w.flush() {
+                log::warn!("terminal session {}: pty flush failed: {e}", self.id);
+            }
         }
         Ok(())
     }
@@ -293,12 +297,14 @@ impl TerminalSession {
     pub fn resize(&self, cols: u16, rows: u16) {
         if let Ok(guard) = self.master.lock() {
             if let Some(m) = guard.as_ref() {
-                let _ = m.resize(portable_pty::PtySize {
+                if let Err(e) = m.resize(portable_pty::PtySize {
                     rows,
                     cols,
                     pixel_width: 0,
                     pixel_height: 0,
-                });
+                }) {
+                    log::warn!("terminal session {}: pty resize failed: {e}", self.id);
+                }
             }
         }
     }
@@ -308,7 +314,9 @@ impl Drop for TerminalSession {
     fn drop(&mut self) {
         if let Ok(mut guard) = self.child.lock() {
             if let Some(child) = guard.as_mut() {
-                let _ = child.kill();
+                if let Err(e) = child.kill() {
+                    log::warn!("terminal session {}: child kill failed: {e}", self.id);
+                }
             }
         }
     }

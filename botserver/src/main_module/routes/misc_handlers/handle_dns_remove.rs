@@ -308,7 +308,7 @@ pub async fn handle_user_current_org_put(
 
     let mut conn = pool_conn(&state)?;
 
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at) \
          VALUES ($1, $2, 'current_org_id', $3::jsonb, NOW(), NOW()) \
          ON CONFLICT (user_id, preference_key) \
@@ -317,7 +317,10 @@ pub async fn handle_user_current_org_put(
     .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
     .bind::<diesel::sql_types::Text, _>(&user_id)
     .bind::<diesel::sql_types::Text, _>(&org_id.to_string())
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::warn!("user current-org: failed to persist preference: {e}");
+    }
 
     Ok(Json(
         serde_json::json!({ "success": true, "org_id": org_id }),

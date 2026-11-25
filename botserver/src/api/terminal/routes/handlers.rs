@@ -246,7 +246,9 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::super::Term
                 match incoming {
                     Some(Ok(Message::Text(text))) => {
                         if text == "ping" {
-                            let _ = socket.send(Message::Text("pong".into())).await;
+                            if let Err(e) = socket.send(Message::Text("pong".into())).await {
+                                log::warn!("terminal ws: pong send failed: {e}");
+                            }
                             continue;
                         }
                         // xterm.js sends `resize <cols> <rows>`; forward it to
@@ -255,10 +257,14 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::super::Term
                             session.resize(cols, rows);
                             continue;
                         }
-                        session.write(&text).ok();
+                        if let Err(e) = session.write(&text) {
+                            log::warn!("terminal ws: text write failed: {e}");
+                        }
                     }
                     Some(Ok(Message::Binary(bytes))) => {
-                        session.write(&String::from_utf8_lossy(&bytes)).ok();
+                        if let Err(e) = session.write(&String::from_utf8_lossy(&bytes)) {
+                            log::warn!("terminal ws: binary write failed: {e}");
+                        }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(e)) => {

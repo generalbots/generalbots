@@ -71,12 +71,15 @@ fn mark_imported(pool: &DbPool, project_id: Uuid, files: usize) {
         "source_imported_at": chrono::Utc::now().to_rfc3339(),
         "source_imported_files": files as i64,
     });
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "UPDATE vibe_projects SET payload = payload || $2::jsonb, updated_at = NOW() WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(project_id)
     .bind::<diesel::sql_types::Jsonb, _>(&patch)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::warn!("[git_import] mark project {project_id}: {e}");
+    }
 }
 
 /// Copy the Drive objects of one bot into the workspace's `.gbdialog/` dir.

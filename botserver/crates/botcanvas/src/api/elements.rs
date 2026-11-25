@@ -88,10 +88,12 @@ pub(crate) async fn create_element(
             )
         })?;
 
-    diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
+    if let Err(e) = diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
         .set(canvases::updated_at.eq(now))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("canvas api: failed to touch canvas {canvas_id} after insert: {e}");
+    }
 
     let element = db_to_canvas_element(db_element);
     Ok(Json(element))
@@ -150,10 +152,12 @@ pub(crate) async fn update_element(
             )
         })?;
 
-    diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
+    if let Err(e) = diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
         .set(canvases::updated_at.eq(Utc::now()))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("canvas api: failed to touch canvas {canvas_id} after update: {e}");
+    }
 
     let element = db_to_canvas_element(db_element);
     Ok(Json(element))
@@ -182,10 +186,12 @@ pub(crate) async fn delete_element(
     })?;
 
     if deleted > 0 {
-        diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
+        if let Err(e) = diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
             .set(canvases::updated_at.eq(Utc::now()))
             .execute(&mut conn)
-            .ok();
+        {
+            log::warn!("canvas api: failed to touch canvas {canvas_id} after delete: {e}");
+        }
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err((StatusCode::NOT_FOUND, "Element not found".to_string()))

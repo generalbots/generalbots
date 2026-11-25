@@ -203,7 +203,9 @@ async fn handle_canvas_connection(
         elements: None,
         timestamp: chrono::Utc::now(),
     };
-    let _ = broadcast_tx.send(join_msg);
+    if let Err(e) = broadcast_tx.send(join_msg) {
+        log::warn!("Canvas WebSocket: failed to broadcast join for {canvas_id}: {e}");
+    }
 
     let broadcast_tx_clone = broadcast_tx.clone();
     let user_id_clone = user_id.clone();
@@ -221,7 +223,11 @@ async fn handle_canvas_connection(
                         collab_msg.user_color = user_color_clone.clone();
                         collab_msg.canvas_id = canvas_id_clone.clone();
                         collab_msg.timestamp = chrono::Utc::now();
-                        let _ = broadcast_tx_clone.send(collab_msg);
+                        if let Err(e) = broadcast_tx_clone.send(collab_msg) {
+                            log::warn!(
+                                "Canvas WebSocket: failed to broadcast update for {canvas_id_clone}: {e}"
+                            );
+                        }
                     }
                 }
                 Ok(Message::Close(_)) => break,
@@ -261,7 +267,9 @@ async fn handle_canvas_connection(
         elements: None,
         timestamp: chrono::Utc::now(),
     };
-    let _ = broadcast_tx.send(leave_msg);
+    if let Err(e) = broadcast_tx.send(leave_msg) {
+        log::warn!("Canvas WebSocket: failed to broadcast leave for {canvas_id}: {e}");
+    }
 }
 
 #[cfg(test)]

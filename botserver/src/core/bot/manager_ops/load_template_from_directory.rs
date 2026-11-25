@@ -206,10 +206,14 @@ TALK response
             .and_then(|c| c.arg(temp_str.as_ref()))
             .and_then(|c| c.arg(&dest_path))
         {
-            let _ = cmd.execute_async().await;
+            if let Err(e) = cmd.execute_async().await {
+                warn!("template upload failed: {e}");
+            }
         }
 
-        let _ = std::fs::remove_file(&temp_file);
+        if let Err(e) = std::fs::remove_file(&temp_file) {
+            warn!("template upload temp cleanup failed: {e}");
+        }
         Ok(())
     }
 
@@ -254,7 +258,9 @@ TALK response
             .and_then(|c| c.arg("--force"))
             .and_then(|c| c.arg(&bucket_path))
         {
-            let _ = cmd.execute_async().await;
+            if let Err(e) = cmd.execute_async().await {
+                warn!("bot bucket cleanup during deletion failed: {e}");
+            }
         }
 
         {
