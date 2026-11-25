@@ -48,7 +48,7 @@ function count(text, regex) {
 // collab_message.rs (4 new Rust files). #2459 registers GET /metrics, a
 // single additional parsed registration. The .route(/.nest( counts are
 // unchanged; no route was removed or renamed.
-test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( calls", function () {
+test("[BASELINE-OBSERVE] 4,720 router Rust files, 2,454 .route( and 9 .nest( calls", function () {
   var files = rustFiles();
   var routeCalls = 0;
   var nestCalls = 0;
@@ -72,7 +72,12 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
   // Re-locked 2026-11-25: bucket_scope, route_contract_tests and related
   // files add 3 Rust files and 1 registration; no new public route family.
   // Shrink-only afterwards.
-  equal(files.length, 4718, "shipped router .rs file count");
+  // Re-locked 2026-11-25 (undo bug fix): the undo lookup/route module splits
+  // add 2 Rust files (4718 -> 4720). Exactly observed: files 4720, routeCalls
+  // 2454, nestCalls 9, routeFiles 224, registrations 2798, unique 2765 —
+  // every other count is unchanged and no route was added or removed.
+  // One-time documented correction; shrink-only afterwards.
+  equal(files.length, 4720, "shipped router .rs file count");
   equal(routeCalls, 2454, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");

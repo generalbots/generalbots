@@ -1,16 +1,22 @@
-# ─── Complexity ceiling relock — 2026-11-25 (#2925, #2923) ───────────────────
+# ─── Complexity ceiling relock — 2026-11-25 (Settings showToast smoke fix) ───
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# One ceiling ROSE and is justified in this PR:
-#   drive: loc 10558 -> 10584 (+26) — the /api/product capability gate that
-#   hides Home/Connected/Removable on cloud hosts (#2925): 1 hidden attribute,
-#   1 shared predicate change, 3 capability guards, 1 config listener and the
-#   applyDesktopOnlyTabs() helper. No route or module was added.
-# Two ceilings TIGHTENED because the code shrank since the prior relock:
-#   chat: 30982 -> 30960 (-22), settings: 13455 -> 13448 (-7).
-# Every other metric is unchanged. Future changes may only hold or lower these
-# numbers; any rise needs an owner note in the same PR or a code split/delete.
+# One ceiling ROSE and is justified here:
+#   settings: loc 13448 -> 13450 (+2) — commit 2b39abb87 "fix(settings): guard
+#   showToast calls until the global exists" (Settings-open pageerror smoke
+#   follow-up to the #2933/#2935 Settings partial gating work). The +2 is
+#   exactly settings/main/08_preview.js:19: one assignment became a two-line
+#   rationale comment plus the guard-pinned
+#   `if (typeof showToast === "function") window.showToast = showToast;`.
+#   The five inline hx-on sites in partials 01/03/06 were in-place edits (zero
+#   LOC delta). Guard 79 pins the statement verbatim and the comment lines are
+#   outside this maintenance change's file ownership, so the +2 cannot be
+#   compacted without dropping the clobber guard's rationale. No route added.
+# One ceiling TIGHTENED because code shrank since the prior relock:
+#   chat: 30960 -> 30928 (-32). The earlier drive +26 (/api/product capability
+#   gate, #2925) remains justified; every other metric is unchanged.
+# Future changes may only hold or lower these numbers; any rise needs an owner
+# note in the same PR or a code split/delete. No blanket suppression.
 # ─────────────────────────────────────────────────────────────────────────────
-#
 # Per-app complexity budget (#2120).
 #
 # Ceilings, not snapshots: a metric may stay equal or fall, never rise.
@@ -89,7 +95,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30960
+loc = 30928
 
 [apps."clock"]
 routes = 0
@@ -304,7 +310,7 @@ loc = 561
 [apps."settings"]
 routes = 52
 js_modules = 35
-loc = 13448
+loc = 13450
 
 [apps."sheet"]
 routes = 0
