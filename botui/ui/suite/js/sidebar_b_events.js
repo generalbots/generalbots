@@ -26,16 +26,14 @@
     toggleBtn.addEventListener("click", loadHistory);
   }
 
-  // Delegated: the rail is re-rendered by sidebar-sections on boot and after
-  // workspace changes, which replaces the button node and drops listeners
-  // bound to the original instance ("New Conversation" did nothing).
+  // Delegated: sidebar-sections replaces the rail button on boot/swap.
   document.addEventListener("click", function (e) {
     if (e.target && e.target.closest && e.target.closest("#sidebarNewChatBtn")) {
       newConversation();
     }
   });
 
-  // Expose for programmatic use (taskbar, collapsed icons, other apps).
+  // Programmatic API.
   window.GBSidebar = {
     loadHistory: loadHistory,
     openConversation: openConversation,
@@ -43,15 +41,17 @@
     refreshUser: refreshUser,
   };
 
-  // #1299 — Home app removed: the welcome-only window added no capability
-  // beyond the command palette it advertised.
+  // #1299: Home app retired.
 
-  // ── Init ────────────────────────────────────────────────────────
-  // Sidebar visibility is toggled by the existing .chat-sidebar-toggle
-  // button; no extra gripper is installed on the bar.
+  // ── Init ──
+  // #2933 — render the rail on idle, off the DOMContentLoaded path.
+  function deferIdle(fn) {
+    if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 800 });
+    return window.setTimeout(fn, 1);
+  }
 
   function init() {
-    (fns.renderApps || window.renderApps || function(){})();
+    deferIdle(fns.renderApps || window.renderApps || function () {});
     refreshUser();
     loadHistory();
   }

@@ -2,13 +2,11 @@
 (function (window) {
   "use strict";
 
-function backgroundLuminanceIsDark() {
-  const rootStyle = getComputedStyle(document.documentElement);
-  const background = rootStyle.getPropertyValue("--background").trim();
+// #2933 — pure form: derive the scheme without re-reading style after writes.
+function isDarkFromValues(background, solid) {
   const hsl = background.match(/^(-?[\d.]+)(?:deg)?\s+([\d.]+)%\s+([\d.]+)%/);
   if (hsl) return parseFloat(hsl[3]) < 50;
-  const solid = rootStyle.getPropertyValue("--bg").trim() || rootStyle.getPropertyValue("--bg-primary").trim();
-  const hex = solid.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  const hex = (solid || "").match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!hex) return false;
   const value = hex[1].length === 3 ? hex[1].split("").map((c) => c + c).join("") : hex[1];
   const r = parseInt(value.slice(0, 2), 16);
@@ -17,11 +15,17 @@ function backgroundLuminanceIsDark() {
   return (r * 299 + g * 587 + b * 114) / 1000 < 128;
 }
 
+function backgroundLuminanceIsDark() {
+  const rootStyle = getComputedStyle(document.documentElement);
+  return isDarkFromValues(rootStyle.getPropertyValue("--background").trim(),
+    rootStyle.getPropertyValue("--bg").trim() || rootStyle.getPropertyValue("--bg-primary").trim());
+}
+
 function syncColorScheme() {
   document.documentElement.setAttribute("data-color-scheme", backgroundLuminanceIsDark() ? "dark" : "light");
 }
 
-// Watch both elements so any theme switcher keeps the scheme in sync.
+// Watch both theme axes.
 function watchColorScheme() {
   const observe = () => {
     if (typeof MutationObserver !== "function") return;
@@ -37,7 +41,7 @@ function watchColorScheme() {
   syncColorScheme();
 }
 
-// Stale inline tokens beat :root[data-theme], so clear them before a switch.
+// Stale inline tokens beat :root[data-theme].
 const BRIDGED_TOKENS = [
   "--bg", "--bg-primary", "--bg-secondary", "--bg-card", "--primary-bg",
   "--primary-fg", "--text", "--text-primary", "--text-secondary",
@@ -85,7 +89,7 @@ function getContrastYIQ(hexcolor) {
   return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? "#000000" : "#ffffff";
 }
 
-/* Publish both token vocabularies as inline root variables; onDone lets the owner announce. */
+/* Publish both token vocabularies as inline root variables; onDone announces. */
 function bridge(themeId, themeName, onDone) {
   const rootStyle = getComputedStyle(document.documentElement);
   const primary = rootStyle.getPropertyValue("--primary")?.trim() || "#3b82f6";
@@ -109,8 +113,11 @@ function bridge(themeId, themeName, onDone) {
   const textColor = fgHsl ? hslToHex(...fgHsl) : toCssColor(foreground, getContrastYIQ(bgHsl ? hslToHex(...bgHsl) : bgColor));
   const secondaryTextColor = toCssColor(mutedForeground, textColor);
   const mutedTextColor = rootStyle.getPropertyValue("--gb-text-muted")?.trim() || secondaryTextColor;
-  // #2004: body-appended panels sit outside #chat-app and read these root tokens.
+  // #2004: body-appended panels read these root tokens.
   const surface2Color = rootStyle.getPropertyValue("--gb-surface-2")?.trim() || `color-mix(in srgb, ${surfaceColor} 92%, ${textColor})`;
+  // #2933 — remaining DOM reads before the first write.
+  const hasBotColors = document.documentElement.getAttribute("data-has-bot-colors") === "true";
+  const themeDropdown = document.getElementById("themeDropdown");
 
   const vars = {
     "--bg": bgColor, "--bg-primary": bgColor, "--bg-secondary": secondaryBgColor,
@@ -122,10 +129,12 @@ function bridge(themeId, themeName, onDone) {
   };
   vars["--background"] = background;
   vars["--foreground"] = foreground;
+  // #2933 — one write phase; no read-after-write reflow.
+  document.documentElement.setAttribute("data-color-scheme", isDarkFromValues(background, bgColor) ? "dark" : "light");
   Object.keys(vars).forEach((key) => document.documentElement.style.setProperty(key, vars[key]));
 
-  // Preserve a primary colour already set by config.csv.
-  if (document.documentElement.getAttribute("data-has-bot-colors") !== "true") {
+  // Keep config.csv's primary colour.
+  if (!hasBotColors) {
     const chatVars = {
       "--chat-color1": primaryColor, "--chat-color2": surfaceColor,
       "--suggestion-color": primaryColor, "--suggestion-bg": surfaceColor,
@@ -134,12 +143,10 @@ function bridge(themeId, themeName, onDone) {
     Object.keys(chatVars).forEach((key) => document.documentElement.style.setProperty(key, chatVars[key]));
   }
 
-  // #2004: keep the theme dropdown background on the new surface.
-  const themeDropdown = document.getElementById("themeDropdown");
+  // #2004: dropdown surface.
   if (themeDropdown) themeDropdown.style.setProperty("background", surfaceColor, "important");
 
   gbLog.debug("✓ Theme colours applied:", { themeId: themeId, background: background, primary: primary });
-  syncColorScheme();
   if (typeof onDone === "function") onDone({ themeId: themeId, themeName: themeName });
 }
 

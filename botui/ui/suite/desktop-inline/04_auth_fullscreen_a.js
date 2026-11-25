@@ -10,10 +10,8 @@
                     var u = new URL(window.location.href);
                     ['token', 'email', 'name', 'gb_token', 'gb_state', 'gb_ts'].forEach(function (k) { u.searchParams.delete(k); });
                     u.hash = '';
-                    // suite-sso is a GET endpoint whose contract still takes
-                    // the token in its query (#2812 needs a POST/cookie hop to
-                    // remove that last exposure). Pair it with a one-time state
-                    // that 01_boot_flags.js verifies and consumes on return.
+                    // suite-sso is a GET endpoint (#2812 needs a POST/cookie hop);
+                    // pair it with the one-time state 01_boot_flags.js consumes.
                     if (cloudToken.split('.').length === 3) {
                         var st = window.GB_SSO_STATE ? window.GB_SSO_STATE.create() : null;
                         if (st) { u.searchParams.set('state', st.state); u.searchParams.set('ts', String(st.ts)); }
@@ -29,6 +27,11 @@
 
 
             document.addEventListener("DOMContentLoaded", async () => {
+                // #2933 — defer optional chrome off this handler (was 159 ms).
+                var deferIdle = function (fn) {
+                    if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 800 });
+                    return window.setTimeout(fn, 1);
+                };
                 // Initialize WindowManager
                 if (typeof window.WindowManager !== "undefined") {
                     window.wm = window.WindowManager;
@@ -38,19 +41,13 @@
                     );
                 }
 
-                // AUTO-OPEN an app on load: ?app=vibe (legacy ?vibe=1) opens
-                // the Vibe workbench immediately, so the browser always lands
-                // with the app loaded instead of a bare desktop. Waits for the
-                // catalog merge when it is still in flight so deep links
-                // resolve against the full registry.
+                // AUTO-OPEN ?app=vibe (legacy ?vibe=1) after the catalog merge.
                 var autoApp =
                     new URLSearchParams(window.location.search).get("app") ||
                     (new URLSearchParams(window.location.search).get("vibe")
                         ? "vibe"
                         : "");
-                // Respect a remembered close of the Vibe bar: closing it sets
-                // gb.vibe.closed=1, so a reload of /vibe (or ?app=vibe) must
-                // NOT auto-reopen it. Reopening the bar clears the flag.
+                // gb.vibe.closed=1 prevents auto-reopen; clearing it reopens.
                 if (autoApp === "vibe") {
                     try {
                         if (localStorage.getItem("gb.vibe.closed") === "1") {
@@ -387,8 +384,8 @@
                 });
             })();
 
-            // Widget pane + pinned launcher (#1160)
-            (function () {
+            // Widget pane + pinned launcher (#1160) — non-critical chrome (#2933).
+            deferIdle(function () {
                 if (window.GBWidgets) {
                     window.GBWidgets.init(document.getElementById("desktop-content"));
                 }
@@ -418,7 +415,7 @@
                 if (window.AgentExecutor) {
                     window.AgentExecutor.init();
                 }
-            })();
+            });
 
             // Listen for auth state changes
             function initAuthUI() {

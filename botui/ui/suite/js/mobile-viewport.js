@@ -1,22 +1,20 @@
 "use strict";
-/* Mobile viewport bridge (#2516).
-   On iOS Safari (and Chrome on Android with the keyboard open) the layout
-   viewport does not shrink when the on-screen keyboard appears: `100vh` keeps
-   the height of the page *without* the keyboard, so a bottom-anchored composer
-   ends up underneath it and the user types blind.
-
-   `window.visualViewport` is the only reliable source for what the user can
-   actually see. This module publishes it as CSS custom properties, updated on
-   resize/scroll and on orientation change:
-
-     --gb-vv-height   visible height in px
-     --gb-vv-bottom   inset from the bottom of the layout viewport to the
-                      visible bottom (the keyboard height)
-     --gb-vv-top      inset from the top (URL bar collapse)
-
-   Every consumer stays declarative; no layout maths in the apps. */
+/* Mobile viewport bridge (#2516): publishes visualViewport as --gb-vv-height,
+   --gb-vv-bottom (keyboard inset) and --gb-vv-top; consumers stay declarative. */
 const MobileViewport = (() => {
-  let started = false;
+  let started = false, frame = 0, keyIdle = 0, keyState = false;
+
+  function deferIdle(fn) {
+    if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 800 });
+    return window.setTimeout(fn, 1);
+  }
+  // #2933 — coalesce the cosmetic keyboard flag to one idle toggle.
+  function queueKeyboard(root, open) {
+    keyState = open;
+    if (keyIdle) return;
+    keyIdle = 1;
+    deferIdle(function () { keyIdle = 0; root.classList.toggle("gb-keyboard-open", keyState); });
+  }
 
   function apply() {
     const vv = window.visualViewport;
@@ -35,9 +33,14 @@ const MobileViewport = (() => {
     root.style.setProperty("--gb-vv-height", Math.round(vv.height) + "px");
     root.style.setProperty("--gb-vv-bottom", Math.round(bottom) + "px");
     root.style.setProperty("--gb-vv-top", Math.round(vv.offsetTop) + "px");
-    // Keyboard-open flag lets the CSS drop non-essential chrome while typing.
-    const keyboardOpen = bottom > 120;
-    root.classList.toggle("gb-keyboard-open", keyboardOpen);
+    // Cosmetic keyboard flag.
+    queueKeyboard(root, bottom > 120);
+  }
+
+  // #2933 — one apply per frame; start() still paints synchronously.
+  function schedule() {
+    if (frame) return;
+    frame = window.requestAnimationFrame(function () { frame = 0; apply(); });
   }
 
   function start() {
@@ -46,14 +49,14 @@ const MobileViewport = (() => {
     apply();
     const vv = window.visualViewport;
     if (vv) {
-      vv.addEventListener("resize", apply);
-      vv.addEventListener("scroll", apply);
+      vv.addEventListener("resize", schedule);
+      vv.addEventListener("scroll", schedule);
     }
     window.addEventListener("orientationchange", function () {
       // The viewport settles after the rotation animation.
-      setTimeout(apply, 250);
+      setTimeout(schedule, 250);
     });
-    window.addEventListener("resize", apply);
+    window.addEventListener("resize", schedule);
   }
 
   if (typeof window !== "undefined") {

@@ -46,12 +46,8 @@
     return this._isCoarsePointer() && window.innerWidth < 768;
   },
 
-  // Keep an open window inside the viewport. If layout shifted between
-  // computing the cascade position and the window being appended
-  // (auto-opened apps on load are the usual victim), the window can sit
-  // off-screen (negative rect) even though its inline top/left look sane.
-  // Shift it back into view using pure viewport-rect math: whatever the
-  // offsetParent is doing, the window must end up fully visible.
+  // Keep an open window inside the viewport with pure rect math; layout can
+  // shift between cascade and append (auto-opened apps on load).
   _clampWindowIntoView(id) {
     const win = document.getElementById(`window-${id}`);
     if (!win) return;
@@ -198,17 +194,9 @@
       s.remove();
       return clone;
     });
-    // Vendor scripts define globals (Terminal, _amdLoaderGlobal, etc.).
-    // Re-injecting them in a second window breaks with "already declared"
-    // errors, so skip src-based scripts that were already loaded once.
-    // NOTE: dedup is scoped PER WINDOW (not page-global) — app modules
-    // (vibe-*, chat-*, etc.) bind listeners to the fresh injected DOM and
-    // MUST re-run on every window open; only vendor bundles are skipped
-    // after their first load anywhere.
-    //
-    // Loading gate: the fragment is hidden behind a spinner until its own
-    // stylesheets have applied, so windows never flash unstyled markup
-    // (FOUC). Apps without local stylesheets reveal immediately.
+    // Vendor globals break on re-injection; dedup src scripts once. App
+    // modules must re-run per window. A spinner hides the fragment until its
+    // stylesheets apply (no FOUC).
     body.classList.remove("gb-window-ready");
     body.innerHTML =
       '<div class="gb-window-loading" role="status" aria-label="Loading app" data-i18n-aria-label="window-loading">' +
@@ -246,7 +234,13 @@
       // up extending under the taskbar. Clamp once more now that the
       // window has its final height.
       const wid = body.dataset && body.dataset.windowId;
-      if (wid && this._clampWindowIntoView) this._clampWindowIntoView(wid);
+      if (!wid || !this._clampWindowIntoView) return;
+      // #2933 — clamp reads getBoundingClientRect; reveal first, clamp on idle.
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => this._clampWindowIntoView(wid), { timeout: 800 });
+      } else {
+        window.setTimeout(() => this._clampWindowIntoView(wid), 1);
+      }
     };
     if (!links.length) {
       body.classList.add("gb-window-ready");

@@ -52,7 +52,6 @@ body.gb-remote-support-active .taskbar-tray::after {
   z-index: var(--z-blocker);
 }
 
-/* #2477 — LAN exposure warning. */
 #osLanExposureWarning {
   display: inline-block;
   min-height: 24px;
@@ -66,7 +65,6 @@ body.gb-remote-support-active .taskbar-tray::after {
 }
 #osLanExposureWarning[hidden] { display: none; }
 
-/* #2469 — accessibility toggles. */
 body.gb-a11y-contrast { filter: contrast(1.4) saturate(0.6); }
 body.gb-a11y-large-pointer * { cursor: pointer; }
 body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-large-pointer input { min-height: 48px; }
@@ -80,7 +78,6 @@ body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-la
 .gb-osk-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
 .gb-osk button { min-width: 44px; min-height: 44px; font-size: var(--text-md); }
 
-/* #2467 — OS first-run wizard. */
 .gb-first-run {
   position: fixed; inset: 0; z-index: var(--z-blocker);
   display: flex; align-items: center; justify-content: center;

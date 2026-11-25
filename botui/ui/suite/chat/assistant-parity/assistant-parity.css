@@ -32,7 +32,6 @@
     --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .3));
 }
 
-/* Dark scheme: transparent to a loaded theme, literal when standing alone. */
 [data-color-scheme="dark"] :is(.gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare,
     .gb-parity-model-btn, .gb-parity-action-menu, .gb-parity-confirm, .gb-parity-block-stack,
     .gb-parity-block, .gb-parity-attach-panel) {
@@ -53,7 +52,6 @@
     --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .4));
 }
 
-/* Shared focus ring for every interactive parity element and its children. */
 [class*="gb-parity-"]:focus-visible, [class*="gb-parity-"] :focus-visible { outline: 2px solid var(--gbp-accent-text, #B45309); outline-offset: 2px; }
 
 /* == 1. Workshop dialog ================================================= */

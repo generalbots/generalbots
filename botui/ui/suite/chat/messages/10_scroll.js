@@ -17,18 +17,9 @@ function snapToBottom() {
   if (messages) messages.scrollTop = messages.scrollHeight;
 }
 
-// Keep the live edge pinned for a short window while async layout (inline
-// iframes, images, markdown) grows the last message. Without this the scroll
-// landed before the artifact finished and the reply stayed below the fold.
-//
-// #2014 — the pin must never fight the reader: it only runs while they are at
-// the bottom edge, and any deliberate scroll (wheel, keys, scrollbar drag) ends
-// it for good. The 250 ms run-timeline heartbeat would otherwise re-arm this on
-// every tick during a VM cold start and drag the viewport down each second.
-// Only one stick-to-bottom timer may run at a time: during history replay
-// (hundreds of messages) the old code armed a new 1.4 s interval per message,
-// which fought the reader and made the transcript "dance". Re-arming now
-// extends the existing window instead of stacking intervals.
+// Pin the live edge while async layout grows, but never fight reader intent.
+// #2014 — only one timer: re-arming extends the window instead of stacking
+// intervals (history replay used to arm one per message and "danced").
 var gbStickTimer = null;
 function stickToBottom(duration) {
   var messages = document.getElementById("messages");
@@ -48,10 +39,7 @@ function stickToBottom(duration) {
   }, 120);
 }
 
-/* #2014 — reader intent. Any of these means "the viewport is mine": a wheel,
- * a keyboard page, or a scrollbar drag (pointerdown/mousedown on the track or
- * thumb). The transcript's own pins land at the bottom, so a scroll event that
- * leaves the reader far from the bottom can only be theirs. */
+/* #2014 — reader intent: wheel/key/drag. A scroll far from the bottom is theirs. */
 var gbPinCancelAt = 0;
 
 function gbMarkReaderIntent() {
@@ -253,13 +241,16 @@ function gbRefreshScrollbarMarkers() {
   }
 }
 
+/* #2933 — idle scheduler for chat's non-critical paint; setTimeout fallback. */
+window.gbIdle = function (fn) {
+  if (typeof requestIdleCallback === "function") return requestIdleCallback(fn, { timeout: 800 });
+  return setTimeout(fn, 1);
+};
 function scheduleScrollbarMarkers() {
   if (gbMarkersRefreshQueued) return;
   gbMarkersRefreshQueued = true;
-  requestAnimationFrame(function () {
-    gbMarkersRefreshQueued = false;
-    gbRefreshScrollbarMarkers();
-  });
+  // #2933 — marker rebuild was a 129-158 ms rAF handler; run it on idle.
+  gbIdle(function () { gbMarkersRefreshQueued = false; gbRefreshScrollbarMarkers(); });
 }
 
 function initScrollbarMarkers() {

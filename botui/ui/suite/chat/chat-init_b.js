@@ -84,9 +84,7 @@ scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatStat
 }
 var messagesEl = document.getElementById("messages");
 if (messagesEl) {
-// Async layout (iframe artifacts, suggestions, footer resize) changes the
-// viewport after the initial scroll. Stay pinned while the reader is near the
-// live edge; a deliberate scroll further up is left alone.
+// Async layout shifts the viewport; stay pinned near the live edge.
 if (window.ResizeObserver) {
   var liveEdgeObserver = new ResizeObserver(function () {
     var box = document.getElementById("messages");
@@ -143,13 +141,8 @@ hideMention();
 });
 }
 function initChat() {
-  // #1753 — deleting the open conversation reinitializes through here.
-  // Duplicate delete events (or a re-injected module binding again) must not
-  // run two /api/auth rounds and two sockets for the SAME chat instance.
-  // #2285 — the guard is per-window/instance (not page-global): opening a
-  // second chat while the first is booting must still produce a working second
-  // chat. A boot request that arrives while this instance is in flight is
-  // coalesced into one queued re-run on release instead of being dropped.
+  // #1753/#2285 — per-instance guard: coalesce duplicate boot requests into
+  // one queued re-run so two sockets never bind to the same chat instance.
   var root = document.getElementById("chat-app") || document.body;
   if (root.__gbInitChatBusy) {
     root.__gbInitChatQueued = true;
@@ -226,10 +219,9 @@ if (document.readyState === 'loading') {
 (function(){ var __cb = function() {
 setupEventHandlers();
 initChat();
+// #2349 card is decoration; #2933 paint on idle.
+window.gbIdle(function(){ if (typeof renderChatEmptyState === "function") renderChatEmptyState(); });
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); }
-// #2349 — a conversation with no turns must say so instead of showing a blank
-// pane; the card removes itself as soon as the first bubble is appended.
-if (typeof renderChatEmptyState === "function") renderChatEmptyState();
 })();
 } else {
 setupEventHandlers();

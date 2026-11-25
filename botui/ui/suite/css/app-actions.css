@@ -1,5 +1,4 @@
-/* #2341 — universal per-app actions (Refresh / Copy ID / Copy link /
-   Diagnose). Compact in the title bar, 44px touch targets on coarse pointers. */
+/* #2341 — per-app actions in the title bar; 44px targets on coarse pointers. */
 
 .window-sanity-btn {
   position: relative;

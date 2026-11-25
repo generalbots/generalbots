@@ -15,6 +15,13 @@
   var initialized = false, idleTimer = null, clockTimer = null, observer = null;
   var pendingUnlock = false, hiddenState = [];
 
+  // #2933 — visibilitychange did 1 s+ of synchronous overlay construction.
+  // Handlers only capture a flag; every DOM/storage step runs on idle.
+  function deferIdle(fn) {
+    if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 1000 });
+    return window.setTimeout(fn, 1);
+  }
+
   function logErr(error, context) {
     if (window.gbLogError) { try { window.gbLogError(error, context); return; } catch { /* console below */ } }
     if (window.console && console.error) console.error(context, error);
@@ -315,6 +322,16 @@
   function onStorage(event) {
     if (event && event.key === STATE_KEY && event.newValue === "locked" && !isLocked()) lock("cross-tab");
   }
+  // Resume does not re-lock: the old path called lock("resume") inline and
+  // built the whole overlay in the event (1072 ms violation). Defer all work.
+  function onVisibilityChange() {
+    var hidden = document.hidden;
+    deferIdle(function () {
+      if (hidden) return;
+      if (getState() === "locked") { if (!isLocked()) lock("restore"); }
+      else if (!isLocked()) resetIdle();
+    });
+  }
   function listenTauri() {
     var tauri = window.GBTAURI;
     if (!tauri || !tauri.event || typeof tauri.event.listen !== "function") return;
@@ -330,6 +347,7 @@
     if (initialized) return;
     initialized = true; listenTauri();
     window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("beforeunload", onBeforeUnload);
     ["mousemove", "keydown", "mousedown", "touchstart", "scroll"].forEach(function (name) {
       document.addEventListener(name, resetIdle, { passive: true });
