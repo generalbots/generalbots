@@ -6,9 +6,21 @@
     document.body.removeEventListener("change", handleCheckboxChange);
     document.body.addEventListener("change", handleCheckboxChange);
 
-    var unifiedItem = document.querySelector('.nav-item[data-folder="unified"]');
-    if (unifiedItem && typeof htmx !== "undefined") {
-      htmx.trigger(unifiedItem, "click");
+    // The desktop shell injects the Mail fragment after htmx's initial pass,
+    // so its hx-get buttons are not bound. Process the injected window before
+    // triggering the first folder load; otherwise the list stays on its
+    // loading spinner forever.
+    if (typeof htmx !== "undefined") {
+      var win = document.getElementById("window-body-mail");
+      if (win) htmx.process(win);
+      var list = document.getElementById("mail-list");
+      if (list) {
+        htmx.ajax("GET", "/api/ui/email/list?folder=inbox",
+          { target: "#mail-list", swap: "innerHTML" });
+      } else {
+        var unifiedItem = document.querySelector('.nav-item[data-folder="unified"]');
+        if (unifiedItem) htmx.trigger(unifiedItem, "click");
+      }
     }
   }
 
