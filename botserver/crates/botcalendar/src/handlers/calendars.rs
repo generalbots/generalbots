@@ -87,9 +87,12 @@ pub async fn list_calendars_db(
             };
             // Race-safe: two concurrent first lists may both try to
             // insert; a duplicate-key error is harmless (the other won).
-            let _ = diesel::insert_into(calendars::table)
+            if let Err(e) = diesel::insert_into(calendars::table)
                 .values(&default_calendar)
-                .execute(&mut conn);
+                .execute(&mut conn)
+            {
+                log::warn!("Failed to auto-provision default calendar (likely a benign concurrent insert): {e}");
+            }
             return Ok(vec![default_calendar]);
         }
         Ok(calendars)

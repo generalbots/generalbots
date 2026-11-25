@@ -300,7 +300,9 @@ pub async fn get_analytics_handler(
 ) -> impl axum::response::IntoResponse {
     let engine = AnalyticsEngine::new(state.conn.clone());
 
-    let _ = engine.get_or_create_analytics(project_id, None).await;
+    if let Err(e) = engine.get_or_create_analytics(project_id, None).await {
+        log::warn!("Failed to get or create analytics for project {project_id}: {e}");
+    }
 
     match engine.get_analytics(project_id).await {
         Ok(analytics) => (
