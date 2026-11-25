@@ -56,6 +56,21 @@
 }
 .gb-titlebar-dot { color: var(--id-accent, #f28c28); }
 .gb-titlebar-wordmark .id-lockup { pointer-events: none; }
+/* The General Bots robot mark before the lockup, in the title bar only: the
+ * same ink as the GB mark, so it is black in the light theme and white in
+ * the dark one. Same height as the GB mark (14px). */
+.gb-titlebar-robot {
+    flex: none;
+    width: calc(14px * 1676 / 872);
+    height: 14px;
+    background: var(--id-ink, #171717);
+    -webkit-mask: url("/suite/identity/robot-mark.svg") center / contain no-repeat;
+    mask: url("/suite/identity/robot-mark.svg") center / contain no-repeat;
+    pointer-events: none;
+}
+@media (forced-colors: active) {
+    .gb-titlebar-robot { background: CanvasText; forced-color-adjust: none; }
+}
 
 /* ---- Centre: conversation title ---- */
 .gb-titlebar-title {
