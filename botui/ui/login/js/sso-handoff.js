@@ -63,9 +63,15 @@ function gbSsoCreate(opts) {
   var o = opts || {};
   var state = gbSsoNonce();
   var ts = o._now ? o._now() : Date.now();
-  if (o._doc) {
+  // Browser call sites pass only _host/_secure. Defaulting to the page's
+  // document is what actually writes the one-time state cookie; without it
+  // the receiver discards the token on arrival. Node self-tests inject a
+  // fake _doc and keep working without a DOM.
+  var doc = o._doc || (typeof document !== "undefined" ? document : null);
+  if (doc) {
     var secure = o._secure === true;
-    gbSsoWrite(o._doc, o._host, secure, encodeURIComponent(state) + "." + ts,
+    var host = o._host || (typeof location !== "undefined" ? location.hostname : "");
+    gbSsoWrite(doc, host, secure, encodeURIComponent(state) + "." + ts,
       Math.ceil(GB_SSO_TTL_MS / 1000));
   }
   return { state: state, ts: ts };
