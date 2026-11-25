@@ -138,36 +138,27 @@ h.staticTest("anonymous capability read gates source by the link's role", functi
     "source-capable roles must be asserted to keep the body");
 });
 
-// (b) Every export handler authenticates only through the DocUser extractor and
-//     the workclass admission gate; the common loader reads from that bearer's
-//     own namespace and turns a miss into 404 "Document not found". No role
-//     lookup, ACL decision or 403 exists in the file, so denial stays a
-//     namespace/auth artifact rather than a role decision.
-h.knownBug("export denial is namespace/auth based with no role gate in any format handler", function () {
+// (b) FIXED (#2452): the shared export loader now runs export_decision (a real
+//     role ACL via decide/Action::Export) before any document load, returning a
+//     typed 403. This case flips to FAIL if the gate is removed or reordered.
+h.staticTest("export denial is a role decision before any document load", function () {
   var FORMATS = ["pdf", "docx", "odt", "md", "html", "txt"];
   var src = h.readRepo(EXPORT_HANDLERS);
   FORMATS.forEach(function (fmt) {
     contains(EXPORT_HANDLERS, "pub async fn handle_export_" + fmt + "(", "export handler " + fmt + " is shipped");
   });
   h.assert((src.match(/user: DocUser,/g) || []).length >= FORMATS.length,
-    "non-vacuity: every export handler must take the DocUser extractor");
+    "non-vacuity: every export handler takes the DocUser extractor");
   contains(EXPORT_HANDLERS, "fn load_export_document(", "export loader is shipped");
-  contains(EXPORT_HANDLERS, "let user_id = user.id();", "loader derives the namespace from the bearer");
-  contains(EXPORT_HANDLERS, "load_document_from_drive(state, user_id, &query.id)",
-    "loader reads only the bearer's namespace");
-  contains(EXPORT_HANDLERS, '"error": "Document not found"', "namespace miss is a 404");
-  contains(EXPORT_HANDLERS, "admit(", "workclass admission gate is shipped");
+  contains(EXPORT_HANDLERS, "export_decision(", "role gate is shipped");
+  contains(EXPORT_HANDLERS, "record_export_access_with_ip(", "IP-aware audit is preserved");
+  contains(EXPORT_HANDLERS, '"error": "Document not found"', "namespace miss fallback is retained");
 
   var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "pub async fn handle_export_md(");
-  h.assert(loader.indexOf("StatusCode::NOT_FOUND") !== -1,
-    "the loader must still deny via 404 :: <" + loader.slice(0, 400) + ">");
-
-  var noRole = [
-    "role", "effective_role(", "my_role(", "grantee_id", "acl", "FORBIDDEN",
-    "Principal", "principal", "Action::"
-  ];
-  absent(src, noRole, "role-based export gate in export.rs");
-  absent(loader, noRole, "role-based decision in the export loader");
+  var gate = loader.indexOf("export_decision(");
+  var load = loader.indexOf("load_document_from_drive(");
+  h.assert(gate !== -1 && load !== -1 && gate < load,
+    "role gate must precede document load :: <" + loader.slice(0, 500) + ">");
 });
 
 // (c) The Docs access audit event, its collab_activity row projection and the
@@ -248,12 +239,11 @@ h.knownBug("docs_acl_denied/decide primitive ships but is bypassed by the anonym
     "Principal", "principal", "AuditLog::record"
   ];
   absent(h.readRepo(SHARED_LINK), decisionTokens, "ACL decision on the anonymous capability path");
-  absent(h.readRepo(EXPORT_HANDLERS), decisionTokens, "ACL decision in the export handlers");
 });
 
 h.note(
-  "FOLLOW-UP #2452 remaining criteria: route the capability and export reads " +
-  "through decide() with a real principal and return docs_acl_denied/403 on " +
-  "insufficient role. Body role-gating and the access-audit IP field/INSERT " +
-  "are shipped and asserted positively above."
+  "FOLLOW-UP #2452 remaining criterion: the anonymous capability read still " +
+  "uses a role allow-list rather than the full decide() ACL. Body role-gating, " +
+  "the export ACL gate and the access-audit IP field/INSERT are shipped and " +
+  "asserted positively above."
 );

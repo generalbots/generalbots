@@ -122,32 +122,19 @@ h.knownBug("shared-link capability endpoint reads by link owner only with no ide
   absent(h.readRepo(SHARED_LINK), ["decide(", "principal", "org_id"], "any ACL decision in shared_link.rs");
 });
 
-// 3. All six export handlers authenticate a Docs user only through the
-//    admission gate; the loader reads from that user's own namespace. There is
-//    no role decision anywhere in the file, so a viewer link's own bearer can
-//    still download bytes and denial stays namespace-based.
-h.knownBug("export handlers load by bearer namespace only, with no role decide() gate", function () {
+// 3. FIXED (#2452): all six export handlers share the loader, which now runs
+//    export_decision (role ACL) BEFORE any document load or audit. This case
+//    flips to FAIL if the gate is removed or moved after the load.
+h.staticTest("export handlers gate by role before loading any document", function () {
   var FORMATS = ["pdf", "docx", "odt", "md", "html", "txt"];
-  var src = h.readRepo(EXPORT_HANDLERS);
+  h.assert(h.readRepo(EXPORT_HANDLERS).indexOf("export_decision(") !== -1,
+    "export gate is shipped");
   FORMATS.forEach(function (fmt) {
     contains(EXPORT_HANDLERS, "pub async fn handle_export_" + fmt + "(", "export handler " + fmt + " is shipped");
   });
-  contains(EXPORT_HANDLERS, "fn load_export_document(", "export loader is shipped");
-  contains(EXPORT_HANDLERS, "admit(", "admission gate is shipped");
-
   var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "pub async fn handle_export_md(");
-  [
-    "let user_id = user.id();",
-    "load_document_from_drive(state, user_id, &query.id)"
-  ].forEach(function (marker) {
-    h.assert(loader.indexOf(marker) !== -1,
-      "loader must still be keyed by the bearer's namespace <" + marker + "> :: <" + loader + ">");
-  });
-
-  var noRole = [
-    "decide(", "principal", "role", "acl", "viewer", "commenter",
-    "grantee_id", "org_id", "allowlist"
-  ];
-  absent(src, noRole, "role-based export gate in export.rs");
-  absent(loader, noRole, "role-based decision in the export loader");
+  h.assert(loader.indexOf("export_decision(") !== -1, "loader invokes the role gate");
+  h.assert(loader.indexOf("load_document_from_drive(") !== -1, "loader still loads the document");
+  h.assert(loader.indexOf("export_decision(") < loader.indexOf("load_document_from_drive("),
+    "role gate must precede document load :: <" + loader.slice(0, 500) + ">");
 });
