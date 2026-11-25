@@ -96,7 +96,7 @@
             </button>
         </div>
         <form hx-post="/api/dns/register" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) { document.getElementById('register-dns-modal').close(); showToast('DNS record registered'); }">
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('register-dns-modal').close(); window.showToast && window.showToast('DNS record registered'); }">
             <div class="form-group">
                 <label data-i18n="label-hostname">Hostname</label>
                 <input type="text" name="hostname" required data-i18n-placeholder="settings-placeholder-dns-hostname">

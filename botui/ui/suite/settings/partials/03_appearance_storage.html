@@ -137,7 +137,7 @@
             </div>
 
             <form hx-put="/api/user/notifications/preferences" hx-swap="none"
-                hx-on::after-request="if (event.detail.successful) showToast((window.gbT || function (k, f) { return f; })('settings-notifications-saved', 'Notification preferences saved'))">
+                hx-on::after-request="if (event.detail.successful && window.showToast) window.showToast((window.gbT || function (k, f) { return f; })('settings-notifications-saved', 'Notification preferences saved'))">
 
                 <!-- Email Notifications -->
                 <div class="setting-card">

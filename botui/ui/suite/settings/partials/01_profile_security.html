@@ -7,7 +7,7 @@
             </div>
 
             <form class="settings-form" hx-put="/api/user/profile" hx-swap="none"
-                hx-on::after-request="showToast('Profile updated successfully')">
+                hx-on::after-request="window.showToast && window.showToast('Profile updated successfully')">
                 <!-- Avatar -->
                 <div class="setting-card">
                     <div class="card-header">
@@ -148,7 +148,7 @@
                     <p data-i18n="settings-change-password-desc">Update your password regularly for better security</p>
                 </div>
                 <form hx-post="/api/user/password" hx-swap="none"
-                    hx-on::after-request="this.reset(); showToast('Password changed successfully')">
+                    hx-on::after-request="this.reset(); window.showToast && window.showToast('Password changed successfully')">
                     <div class="form-grid">
                         <div class="form-group full-width">
                             <label for="current-password" data-i18n="settings-current-password">Current Password</label>
@@ -203,7 +203,7 @@
                 <div class="card-footer">
                     <button class="btn-danger-outline" hx-post="/api/ui/user/security/sessions/revoke-all"
                         hx-confirm="Sign out of all other devices?"
-                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')" data-i18n="session-sign-out-all">
+                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); window.showToast && window.showToast('All other sessions revoked')" data-i18n="session-sign-out-all">
                         Sign Out All Other Sessions
                     </button>
                 </div>

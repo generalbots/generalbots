@@ -16,7 +16,9 @@ window.showSection = function (sectionId, navElement) {
   if (navElement) navElement.classList.add("active");
   history.replaceState(null, "", "#" + sectionId);
 };
-window.showToast = showToast;
+// Guard the global assignment so a missing S.showToast cannot clobber a toast
+// already installed by another Settings surface module.
+if (typeof showToast === "function") window.showToast = showToast;
 window.previewAvatar = function (input) {
   if (input.files && input.files[0]) {
     var reader = new FileReader();
