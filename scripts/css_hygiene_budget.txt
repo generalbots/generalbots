@@ -3,6 +3,8 @@
 # raw-hex = 6-digit colour literal outside token-definition files.
 # bang-important = !important in any component CSS (token files exempt).
 
+raw-hex:botui/ui/suite/chat/assistant-parity/assistant-parity.css 28
+raw-hex:botui/ui/suite/docs/docs-theme.css 30
 bang-important:botui/ui/suite/about/about-inline.css 4
 bang-important:botui/ui/suite/admin/admin-layout-partials/01_dialog.css 3
 bang-important:botui/ui/suite/admin/admin-layout-partials/02_activity-list.css 3
@@ -61,6 +63,7 @@ bang-important:botui/ui/suite/campaigns/campaigns-studio-campaign.css 4
 bang-important:botui/ui/suite/campaigns/campaigns-studio.css 4
 bang-important:botui/ui/suite/canvas/canvas-toolbar-partials/01_canvas-app.css 4
 bang-important:botui/ui/suite/canvas/canvas-toolbar-partials/02_canvas-container.css 5
+bang-important:botui/ui/suite/chat/assistant-parity/assistant-parity.css 1
 bang-important:botui/ui/suite/chat/chat-artifact-overlay.css 16
 bang-important:botui/ui/suite/chat/chat-assistant-controls.css 16
 bang-important:botui/ui/suite/chat/chat-assistant-look.css 8
@@ -166,6 +169,7 @@ bang-important:botui/ui/suite/desktop/vdi.css 5
 bang-important:botui/ui/suite/docs/docs-mobile.css 8
 bang-important:botui/ui/suite/docs/docs-nav.css 1
 bang-important:botui/ui/suite/docs/docs-present.css 11
+bang-important:botui/ui/suite/docs/docs-theme.css 5
 bang-important:botui/ui/suite/drive/styles/bots-folder.css 4
 bang-important:botui/ui/suite/drive/styles/bots.css 4
 bang-important:botui/ui/suite/drive/styles/components.css 6
@@ -262,6 +266,7 @@ bang-important:botui/ui/suite/sheet/css/03_sheet_status_chat.css 4
 bang-important:botui/ui/suite/sheet/css/04_context_menus.css 15
 bang-important:botui/ui/suite/sheet/css/05_modal_find_replace.css 4
 bang-important:botui/ui/suite/sheet/css/08_a11y.css 2
+bang-important:botui/ui/suite/sheet/css/99_theme.css 1
 bang-important:botui/ui/suite/slides/slides-animation.css 2
 bang-important:botui/ui/suite/slides/slides-object-model.css 4
 bang-important:botui/ui/suite/slides/slides-table-media.css 1
