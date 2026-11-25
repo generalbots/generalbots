@@ -1,5 +1,9 @@
 # Core Framework
-fastapi==0.115.0
+# 0.133.0 is the earliest fastapi whose starlette constraint is unbounded
+# (>=0.40.0): it resolves starlette 1.10.0, clear of the 14 advisories that
+# affect the old 0.38.6 (all fixed by 1.3.1). Earlier releases cap starlette
+# below 1.0.0, which still carries open advisories.
+fastapi==0.133.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.0
 pydantic-settings==2.5.2
