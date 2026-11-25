@@ -3,7 +3,13 @@
 
 function initCollab() {
   if (!window.GBCollab) return;
-  var docId = (document.getElementById("docTitle") && document.getElementById("docTitle").value) || "current";
+  // The server validates the doc id (UUID/slug); the title input holds the
+  // human-readable document name, so using it made every docs WebSocket
+  // upgrade fail with "malformed document id" and silently disabled
+  // collaboration (#GB-UAT 27893d4e).
+  var article = document.querySelector("article[contenteditable]");
+  var docId = (article && article.dataset && article.dataset.docId) ||
+    (document.getElementById("docTitle") && document.getElementById("docTitle").value) || "current";
   var typingEl = document.getElementById("typing-indicator");
   window.GBCollab.connect({
     app: "docs",
