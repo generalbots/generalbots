@@ -83,31 +83,39 @@ pub(super) fn turn_instruction(agent_enabled: bool, route: Route) -> String {
     //         sees controls or capabilities that do not exist in this build.
     if !agent_enabled {
         if cfg!(feature = "agent-vm") {
-            format!(
-                "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
+            "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
                  terminal_run, or terminal.exec, and do not assume a workspace/VM is available. \
                  Never claim a file was created and never emit a vmfile: link. Answer directly or use \
                  non-VM capabilities only. When the request genuinely needs the VM (running code, \
-                 generating or attaching a file), tell the person, in their language, what this sentence says: \"{}\"",
-                super::super::agent_turn::DISABLED_MESSAGE
-            )
+                 generating or attaching a file), say so in one short sentence in the person's language \
+                 (for example: \"Para gerar o PDF, ative o Agente.\"); a card to turn the Agent on is \
+                 shown with your answer, so do not explain where the switch is. Then give, as text, \
+                 any content you can write without the VM."
+                .to_string()
         } else {
             "THIS TURN: Answer directly using your knowledge and the API command catalog. \
              Do not offer to run code, use a sandbox or generate files in this turn."
                 .to_string()
         }
     } else {
-        match route {
+        let line = match route {
             Route::Agentic => {
                 "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
             }
             Route::NonAgentic => {
                 "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
             }
-        }
-        .to_string()
+        };
+        format!("{line} {FILES_ARE_REAL}")
     }
 }
+
+/// The rule on files for a turn with the Agent on: a file exists only when a
+/// `vm_exec` step of this turn wrote it.
+const FILES_ARE_REAL: &str = "A file exists only when a vm_exec step of this turn wrote it under \
+    output/; never say a file was generated, checked, saved or exported otherwise, and never write \
+    code for a file anywhere but vm_exec. After making files, say in two or three short sentences \
+    what was produced and that it is shown below the answer.";
 
 #[cfg(test)]
 mod tests {
@@ -124,5 +132,14 @@ mod tests {
     fn a_switched_on_agent_follows_the_route() {
         assert!(turn_instruction(true, Route::Agentic).starts_with("THIS TURN: agentic."));
         assert!(turn_instruction(true, Route::NonAgentic).starts_with("THIS TURN: non-agentic."));
+        assert!(turn_instruction(true, Route::Agentic).contains("A file exists only when a vm_exec step"));
+    }
+
+    #[test]
+    fn a_switched_off_agent_keeps_the_prose_short() {
+        let text = turn_instruction(false, Route::Agentic);
+        if cfg!(feature = "agent-vm") {
+            assert!(text.contains("a card to turn the Agent on"));
+        }
     }
 }

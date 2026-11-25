@@ -182,11 +182,16 @@ pub async fn process_message_internal(
     // #1642 — a "remember …" turn (or a lasting preference) is stored for the
     // person; #1790 — a forget turn answers with the real outcome instead of
     // letting the model claim it removed something.
+    super::turn_events::take(session_id);
+    super::turn_events::note_request(session_id, &user_text);
     let memory_turn = if msg_type == 1 {
         crate::core::user_memory::capture_from_message(&state.conn, user_id, Some(bot_uuid), &user_text)
     } else {
         crate::core::user_memory::MemoryTurn::Untouched
     };
+    if let Some(frame) = super::turn_events::memory_frame(user_id, &memory_turn) {
+        super::turn_events::emit(identity, super::turn_events::MEMORY_EVENT, frame).await;
+    }
     if let Some(reply) = crate::core::user_memory::forget_reply(&state.conn, user_id, &memory_turn) {
         let resp = botlib::models::BotResponse::new(
             bot_uuid.to_string(),
@@ -314,6 +319,16 @@ pub async fn process_message_internal(
     context::grounding(identity, &parsed, &user_text, &model_preference, &mut messages).await;
     super::turn_watch::reached_model();
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
+    // An agent-off request for a file or a command: the answer carries a card
+    // to turn the Agent on (kept with the answer; sent once it is complete).
+    let agent_request = (cfg!(feature = "agent-vm")
+        && !agent_enabled
+        && msg_type == 1
+        && super::turn_events::needs_vm(&user_text))
+    .then(|| super::turn_events::agent_enable_frame(super::turn_events::AGENT_REASON, &user_text));
+    if let Some(frame) = &agent_request {
+        super::turn_events::record(session_id, super::turn_events::AGENT_ENABLE_REQUEST, frame.clone());
+    }
 
     let turn_timeout_secs = super::enriched_llm::turn_timeout_secs();
     if super::turn_progress::until_quiet(
@@ -335,6 +350,10 @@ pub async fn process_message_internal(
     {
         botlog::safe_warn!("turn made no progress for {turn_timeout_secs}s for session {session_id}");
         return Err(super::types::PipelineError::LLM(format!("Turn made no progress for {turn_timeout_secs}s")));
+    }
+
+    if let Some(frame) = agent_request {
+        let _ = sink.send_raw_json(&frame).await;
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no

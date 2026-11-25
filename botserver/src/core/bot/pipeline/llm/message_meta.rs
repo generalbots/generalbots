@@ -26,6 +26,10 @@ pub struct MessageMeta {
     /// command run). Replayed with the message in later turns, never shown.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub model_note: String,
+    /// Structured events of the turn (`memory_event`, `agent_enable_request`,
+    /// `files_produced`), each as the frame the shell received.
+    #[serde(default, flatten, skip_serializing_if = "serde_json::Map::is_empty")]
+    pub events: serde_json::Map<String, serde_json::Value>,
 }
 
 /// Attachment detail stored with user messages.
@@ -40,7 +44,11 @@ pub struct AttachmentInfo {
 
 /// Appends metadata to content for storage. Returns the combined string.
 pub fn encode(content: &str, meta: &MessageMeta) -> String {
-    if meta.reasoning.is_empty() && meta.attachments.is_empty() && meta.model_note.is_empty() {
+    if meta.reasoning.is_empty()
+        && meta.attachments.is_empty()
+        && meta.model_note.is_empty()
+        && meta.events.is_empty()
+    {
         return content.to_string();
     }
     let json = match serde_json::to_string(meta) {

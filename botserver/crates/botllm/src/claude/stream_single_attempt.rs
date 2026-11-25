@@ -176,6 +176,13 @@ impl ClaudeClient {
                         continue;
                     }
 
+                    if let Some(gap) = searches.paragraph_break(data) {
+                        if tx.send(gap).await.is_err() {
+                            warn!("CLAUDE Receiver dropped, stopping stream");
+                            return Ok(());
+                        }
+                    }
+
                     if let Some(step) = searches.on_event(data) {
                         if tx.send(step).await.is_err() {
                             warn!("CLAUDE Receiver dropped, stopping stream");
@@ -281,10 +288,10 @@ impl ClaudeClient {
             stream: Some(true),
             thinking,
             // A chat answer (the caller passes its tool list) may search the
-            // web on Anthropic's side; other calls never do.
+            // web and read pages on Anthropic's side; other calls never do.
             tools: tools
-                .and_then(|_| super::web_search::tool_for(model_name, &self.base_url))
-                .map(|tool| vec![tool]),
+                .map(|_| super::web_search::tools_for(model_name, &self.base_url))
+                .filter(|web_tools| !web_tools.is_empty()),
         };
 
         let request_body = Self::body_with_media(&request, messages)?;

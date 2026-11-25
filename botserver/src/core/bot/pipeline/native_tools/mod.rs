@@ -143,6 +143,9 @@ pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
 /// reads it in the edition's language (outside a model-only scope).
 pub(super) async fn refuse_vm_off(identity: &SessionIdentity<'_>) {
     send_split(identity, super::agent_turn::DISABLED_MESSAGE, super::agent_turn::DISABLED_FOR_PERSON).await;
+    let request = super::turn_events::request_of(identity.session_id);
+    let frame = super::turn_events::agent_enable_frame(super::turn_events::AGENT_REASON, &request);
+    super::turn_events::emit(identity, super::turn_events::AGENT_ENABLE_REQUEST, frame).await;
 }
 
 /// The model reads `for_model`; the person reads `for_person` (outside a

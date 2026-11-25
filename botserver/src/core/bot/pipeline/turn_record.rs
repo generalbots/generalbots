@@ -96,16 +96,20 @@ pub(crate) fn attach(session_id: Uuid, role: i32, content: &str) -> Option<Strin
     if role != ASSISTANT_ROLE {
         return None;
     }
-    let lines = records().remove(&session_id)?;
-    if lines.is_empty() {
+    let lines = records().remove(&session_id).unwrap_or_default();
+    let events = super::turn_events::take(session_id);
+    if lines.is_empty() && events.is_empty() {
         return None;
     }
     let (visible, meta) = message_meta::decode(content);
     let mut meta = meta.unwrap_or_default();
-    if !meta.model_note.is_empty() {
-        meta.model_note.push('\n');
+    if !lines.is_empty() {
+        if !meta.model_note.is_empty() {
+            meta.model_note.push('\n');
+        }
+        meta.model_note.push_str(&lines.join("\n"));
     }
-    meta.model_note.push_str(&lines.join("\n"));
+    super::turn_events::merge_into(&mut meta.events, events);
     Some(message_meta::encode(visible, &meta))
 }
 

@@ -21,6 +21,10 @@ struct HistoryMessage {
     attachments: Vec<HistoryAttachment>,
     #[serde(skip_serializing_if = "String::is_empty")]
     reasoning: String,
+    /// The turn's structured events (`memory_event`, `agent_enable_request`,
+    /// `files_produced`), so a reload renders the same blocks.
+    #[serde(flatten)]
+    events: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -140,6 +144,7 @@ pub async fn handle_chat_history_messages(
                 .as_ref()
                 .map(|m| m.reasoning.clone())
                 .unwrap_or_default();
+            let events = meta.as_ref().map(|m| m.events.clone()).unwrap_or_default();
             let idx = msg_seq;
             msg_seq += 1;
             HistoryMessage {
@@ -148,6 +153,7 @@ pub async fn handle_chat_history_messages(
                 message_index: idx,
                 attachments,
                 reasoning,
+                events,
             }
         })
         .collect();

@@ -43,6 +43,7 @@ pub mod turn_context;
 pub mod turn_hooks;
 pub mod turn_progress;
 pub mod turn_record;
+pub mod turn_events;
 pub mod turn_watch;
 pub mod types;
 #[cfg(feature = "agent-vm")]

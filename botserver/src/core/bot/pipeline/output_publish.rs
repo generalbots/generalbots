@@ -41,6 +41,7 @@ use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 mod ledger;
 mod offer;
+mod produced;
 use ledger::{snapshot, store};
 pub use ledger::{
     candidates, digest, is_unchanged, output_link, OutputFile, PublishReport, PublishedArtifact,
@@ -353,6 +354,18 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     if report.is_empty() {
         return;
     }
+    let listing: Vec<OutputFile> = agent_vm_hook::list_session_folder_meta(user_id, session_id, "output")
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(name, size, modified)| OutputFile { name, size, modified })
+        .collect();
+    let produced = produced::files_frame(&report, &listing);
+    if let Some(frame) = &produced {
+        if let Err(error) = sink.send_raw_json(frame).await {
+            botlog::safe_warn!("output publish: files frame not sent for {session_id}: {error}");
+        }
+    }
     let count = report.published.len();
     botlog::safe_info!("output publish: {count} file(s) for {session_id}");
     // #2172 — signal finalize so a live-streaming app can reconcile to the
@@ -380,7 +393,16 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
         return;
     }
     send(identity, &message).await;
-    persist(state, session_id, user_id, &message).await;
+    // The files frame stays with this message, so a reload shows the cards.
+    let stored = match produced {
+        Some(frame) => {
+            let mut meta = super::llm::message_meta::MessageMeta::default();
+            meta.events.insert(super::turn_events::FILES_PRODUCED.to_string(), frame);
+            super::llm::message_meta::encode(&message, &meta)
+        }
+        None => message,
+    };
+    persist(state, session_id, user_id, &stored).await;
 }
 
 #[cfg(test)]
