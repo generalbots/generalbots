@@ -330,6 +330,19 @@ pub struct LinkBody {
     /// when present; `None` keeps the legacy permanent-link behavior.
     #[serde(default)]
     pub expires_at: Option<String>,
+    /// #2452 — when explicitly false, redeeming the link never yields the
+    /// editable source bytes, whatever role the link grants. `None` keeps the
+    /// legacy allow-download behaviour.
+    #[serde(default)]
+    pub allow_download: Option<bool>,
+}
+
+impl LinkBody {
+    /// #2452 — a missing policy means downloads stay enabled, matching every
+    /// link minted before the column existed.
+    pub(crate) fn downloads_allowed(&self) -> bool {
+        self.allow_download.unwrap_or(true)
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -345,6 +358,8 @@ pub struct LinkItem {
     pub role: String,
     pub expires_at: Option<String>,
     pub created_at: String,
+    /// #2452 — `null` for legacy rows created before the policy existed.
+    pub allow_download: Option<bool>,
 }
 
 #[derive(QueryableByName)]
@@ -367,6 +382,8 @@ pub(crate) struct LinkRow {
     pub(crate) expires_at: Option<chrono::DateTime<chrono::Utc>>,
     #[diesel(sql_type = Timestamptz)]
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
+    #[diesel(sql_type = Nullable<Bool>)]
+    pub(crate) allow_download: Option<bool>,
 }
 
 pub(crate) fn valid_editable_role(role: &str) -> bool {
@@ -386,6 +403,9 @@ pub(crate) fn sanitize_resource(ty: &str, id: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '-' || c == '_')
 }
+
+#[cfg(test)]
+mod dto_tests;
 
 #[cfg(test)]
 mod tests {

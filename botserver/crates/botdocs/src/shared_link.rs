@@ -18,7 +18,9 @@
 //!   records — a link grants a view, not an editor session;
 //! * #2452 — the body is role-scoped: only roles that actually carry source
 //!   capability receive the editable document body. A `viewer` link gets the
-//!   document metadata and an empty body, never the full HTML source.
+//!   document metadata and an empty body, never the full HTML source;
+//! * #2452 — `allow_download = false` on the link yields the same
+//!   metadata-only response even for `commenter`/`editor`: it lives on the row.
 //!
 //! The owning namespace is captured on the link row when it is minted
 //! (`owner_id`), because documents live under `users/{owner}/docs` (#2135) and
@@ -30,7 +32,7 @@ use axum::Json;
 use axum::extract::{ConnectInfo, Path, State};
 use axum::http::StatusCode;
 use diesel::prelude::*;
-use diesel::sql_types::{Nullable, Text, Timestamptz};
+use diesel::sql_types::{Bool, Nullable, Text, Timestamptz};
 use serde::Serialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -68,6 +70,9 @@ struct LinkRow {
     owner_id: Option<String>,
     #[diesel(sql_type = Nullable<Timestamptz>)]
     expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    // #2452 — NULL is the legacy "allowed" value; no unwrap on the read path.
+    #[diesel(sql_type = Nullable<Bool>)]
+    allow_download: Option<bool>,
 }
 
 /// A token is usable only when it has the minted shape: a 64-character
@@ -89,19 +94,21 @@ fn role_allows_source(role: &str) -> bool {
 }
 
 /// The single decision for releasing source bytes across the capability
-/// boundary. Every gate fails closed: a malformed token, an expired link or a
-/// role without source capability denies the body. The handler rejects the
-/// first two up front with the generic `not_found()`; this function also
-/// feeds the body field so the role check cannot be bypassed later.
+/// boundary. Every gate fails closed: a bad token, an expired link, a disabled
+/// download policy or a role without source capability denies the body, and
+/// this function feeds the body field so no gate can be bypassed later.
 fn body_for_link<'a>(
     token: &str,
     role: &str,
+    allow_download: Option<bool>,
     expires_at: Option<chrono::DateTime<chrono::Utc>>,
     now: chrono::DateTime<chrono::Utc>,
     source: &'a str,
 ) -> &'a str {
-    let allowed =
-        is_valid_token(token) && !link_is_expired(expires_at, now) && role_allows_source(role);
+    let allowed = is_valid_token(token)
+        && !link_is_expired(expires_at, now)
+        && allow_download.unwrap_or(true)
+        && role_allows_source(role);
     if allowed { source } else { "" }
 }
 
@@ -202,6 +209,7 @@ pub async fn handle_shared_document(
     let content = body_for_link(
         &token,
         &link.role,
+        link.allow_download,
         link.expires_at,
         chrono::Utc::now(),
         &document.content,
@@ -228,7 +236,7 @@ async fn load_link(
         .map_err(|e| internal(&e, "botdocs::shared_link"))?;
 
     diesel::sql_query(
-        "SELECT resource_type, resource_id, role, owner_id, expires_at \
+        "SELECT resource_type, resource_id, role, owner_id, expires_at, allow_download \
          FROM resource_links WHERE token = $1",
     )
     .bind::<Text, _>(token)
@@ -326,7 +334,7 @@ mod tests {
         let token = minted_token();
         assert!(!SOURCE.is_empty() && SOURCE.contains("UAT_SECRET_MARKER"));
         for role in ["viewer", "Viewer", "", "guest"] {
-            assert_eq!(body_for_link(&token, role, None, now, SOURCE), "");
+            assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), "");
         }
     }
 
@@ -335,7 +343,43 @@ mod tests {
         let now = chrono::Utc::now();
         let token = minted_token();
         for role in ["commenter", "editor", "owner", "EDITOR"] {
-            assert_eq!(body_for_link(&token, role, None, now, SOURCE), SOURCE);
+            assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), SOURCE);
+        }
+    }
+
+    #[test]
+    fn download_disabled_commenter_link_releases_no_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        for role in ["commenter", "editor"] {
+            assert_eq!(
+                body_for_link(&token, role, Some(false), None, now, SOURCE),
+                ""
+            );
+        }
+    }
+
+    #[test]
+    fn download_disabled_viewer_link_releases_no_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        assert_eq!(
+            body_for_link(&token, "viewer", Some(false), None, now, SOURCE),
+            ""
+        );
+    }
+
+    #[test]
+    fn absent_or_enabled_download_policy_keeps_role_behaviour() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        for policy in [None, Some(true)] {
+            for role in ["commenter", "editor", "owner"] {
+                assert_eq!(body_for_link(&token, role, policy, None, now, SOURCE), SOURCE);
+            }
+            for role in ["viewer", "guest"] {
+                assert_eq!(body_for_link(&token, role, policy, None, now, SOURCE), "");
+            }
         }
     }
 
@@ -344,14 +388,18 @@ mod tests {
         let now = chrono::Utc::now();
         let token = minted_token();
         assert_eq!(
-            body_for_link("g".repeat(64).as_str(), "editor", None, now, SOURCE),
+            body_for_link("g".repeat(64).as_str(), "editor", None, None, now, SOURCE),
             ""
         );
-        assert_eq!(body_for_link(&token, "editor", Some(now), now, SOURCE), "");
+        assert_eq!(
+            body_for_link(&token, "editor", None, Some(now), now, SOURCE),
+            ""
+        );
         assert_eq!(
             body_for_link(
                 &token,
                 "editor",
+                None,
                 Some(now - chrono::Duration::seconds(1)),
                 now,
                 SOURCE
@@ -362,6 +410,7 @@ mod tests {
             body_for_link(
                 &token,
                 "editor",
+                None,
                 Some(now + chrono::Duration::hours(1)),
                 now,
                 SOURCE
