@@ -61,7 +61,10 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
   });
 // Re-locked 2026-11-25 (#2448/#2452/#2435): export_acl.rs + export_docx.rs
 // added 2 Rust files; no new .route(/.nest( calls. One-time documented correction.
-  equal(files.length, 4697, "shipped router .rs file count");
+// Re-locked 2026-11-25 (#2452): dto_tests.rs added 1 Rust file for the
+// share-link download-policy DTO tests; no new .route(/.nest( calls.
+// One-time documented correction; shrink-only afterwards.
+  equal(files.length, 4698, "shipped router .rs file count");
   equal(routeCalls, 2450, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");
