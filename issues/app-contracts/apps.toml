@@ -32,6 +32,9 @@ routes = ["/api/analytics", "/api/analytics/bots/performance", "/api/analytics/a
 [app.attendant]
 routes = ["/api/attendant", "/api/attendant/agents", "/api/attendant/attachments"]
 
+[app.approvals]
+routes = ["/api/approvals", "/api/approvals/sla-sweep"]
+
 [app.automations]
 routes = ["/api/automations/runs", "/api/automations/schedules"]
 
@@ -95,6 +98,9 @@ routes = ["/api/drive/files", "/api/drive/sync/status", "/api/agent/drive/save"]
 
 [app.editor]
 routes = ["/api/editor", "/api/editor/files", "/api/editor/format"]
+
+[app.events]
+routes = ["/api/events/publish", "/api/events/replay", "/api/events/dead-letters"]
 
 [app.fraud]
 routes = ["/api/fraud", "/api/fraud/assess", "/api/fraud/blocklist"]
