@@ -1,26 +1,15 @@
-# ─── One-time complexity ceiling relock — 2026-11-25 ──────────────────────────
-# Re-baselined with `python3 scripts/app_complexity_budget.py --update` from the
-# current tree, after the earlier relock on 2026-11-22. This is the owner note
-# that justifies the ceilings that ROSE; it does not relax the contract below.
-# All numbers are the tool's before -> after values.
-#
-# Three LOC ceilings rose for shipped UI work (guard modules and asset
-# extraction) that landed in these apps after the previous relock:
-#   mail:     loc 4383  -> 4395  (+12)
-#   settings: loc 13379 -> 13455 (+76)
-#   slides:   loc 21748 -> 21752 (+4)
-#
-# The same re-baseline TIGHTENED three metrics that had fallen since 2026-11-22:
-#   chat:  loc 30986 -> 30982 (-4)    docs:  loc 20854 -> 20853 (-1)
-#   tasks: loc 11759 -> 11756 (-3)
-# (chat's previous ceiling remains the [defaults] loc ceiling, since --update
-# never lowers a default below its existing value.)
-#
-# GOING FORWARD: every metric below is a hard ceiling. Future changes may only
-# HOLD or LOWER these numbers. Any increase must be justified in the same PR
-# with an owner note like this one, or the code must be split/deleted to fit
-# the existing ceiling. Never treat this relock as a new recurring baseline.
-# ───────────────────────────────────────────────────────────────────────────────
+# ─── Complexity ceiling relock — 2026-11-25 (#2925, #2923) ───────────────────
+# Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
+# One ceiling ROSE and is justified in this PR:
+#   drive: loc 10558 -> 10584 (+26) — the /api/product capability gate that
+#   hides Home/Connected/Removable on cloud hosts (#2925): 1 hidden attribute,
+#   1 shared predicate change, 3 capability guards, 1 config listener and the
+#   applyDesktopOnlyTabs() helper. No route or module was added.
+# Two ceilings TIGHTENED because the code shrank since the prior relock:
+#   chat: 30982 -> 30960 (-22), settings: 13455 -> 13448 (-7).
+# Every other metric is unchanged. Future changes may only hold or lower these
+# numbers; any rise needs an owner note in the same PR or a code split/delete.
+# ─────────────────────────────────────────────────────────────────────────────
 #
 # Per-app complexity budget (#2120).
 #
@@ -47,8 +36,6 @@ routes = 33
 js_modules = 11
 loc = 4210
 
-# #2501 — Approvals joined the catalog in 8af6517d2; ceiling recorded at ship
-# time (owner: office). No Rust routes; the surface is suite JS/HTML/CSS.
 [apps."approvals"]
 routes = 0
 js_modules = 5
@@ -102,7 +89,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30982
+loc = 30960
 
 [apps."clock"]
 routes = 0
@@ -152,15 +139,13 @@ loc = 20853
 [apps."drive"]
 routes = 26
 js_modules = 34
-loc = 10558
+loc = 10584
 
 [apps."editor"]
 routes = 0
 js_modules = 5
 loc = 967
 
-# #2503 — Events joined the catalog in 8af6517d2; ceiling recorded at ship
-# time (owner: office). No Rust routes; the surface is suite JS/HTML/CSS.
 [apps."events"]
 routes = 0
 js_modules = 6
@@ -319,7 +304,7 @@ loc = 561
 [apps."settings"]
 routes = 52
 js_modules = 35
-loc = 13455
+loc = 13448
 
 [apps."sheet"]
 routes = 0
