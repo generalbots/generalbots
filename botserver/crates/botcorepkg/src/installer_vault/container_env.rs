@@ -15,7 +15,7 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
     std::thread::sleep(std::time::Duration::from_secs(5));
     let output = safe_incus(&[
         "exec", container_name, "--", "bash", "-c",
-        "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
+        &format!("VAULT_ADDR=http://127.0.0.1:8200 {} operator init -key-shares=5 -key-threshold=3 -format=json", crate::secrets_engine::CONTAINER_CLI),
     ]);
     let output = match output {
         Some(o) => o,
@@ -73,7 +73,7 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
         if let Some(key) = unseal_keys.get(i) {
             let key_str = key.as_str().unwrap_or("");
             let unseal_cmd = format!(
-                "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}", key_str
+                "VAULT_ADDR=http://127.0.0.1:8200 {cli} operator unseal {}", key_str, cli = crate::secrets_engine::CONTAINER_CLI
             );
             let unseal_output = safe_incus(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
             if let Some(output) = unseal_output {
@@ -103,8 +103,8 @@ pub fn generate_env_from_vault(container_name: &str) -> Result<String> {
     if !initialized {
         return Err(anyhow::anyhow!(
             "Vault in container {} is not initialized. Please initialize it first with: \
-incus exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
-            container_name, container_name
+incus exec {} -- {cli} operator init -key-shares=1 -key-threshold=1",
+            container_name, container_name, cli = crate::secrets_engine::CONTAINER_CLI
         ));
     }
     let unseal_output = safe_incus(&[
@@ -123,8 +123,8 @@ incus exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1
     if sealed {
         return Err(anyhow::anyhow!(
             "Vault in container {} is sealed. Please unseal it first with: \
-incus exec {} -- /opt/gbo/bin/vault operator unseal <key>",
-            container_name, container_name
+incus exec {} -- {cli} operator unseal <key>",
+            container_name, container_name, cli = crate::secrets_engine::CONTAINER_CLI
         ));
     }
     let token_output = safe_incus(&[

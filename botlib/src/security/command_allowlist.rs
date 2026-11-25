@@ -77,6 +77,7 @@ pub static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| 
         "llama-server",
         "ollama",
         "vault",
+        "bao",
         "python",
         "python3",
         "python3.11",

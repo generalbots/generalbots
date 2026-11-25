@@ -22,6 +22,10 @@ pub mod desktop_hardening;
 pub mod pg_scram;
 pub mod port_guard;
 pub mod protected_file;
+pub mod secrets_engine;
+pub mod openbao_config;
+pub mod openbao_fetch;
+pub mod openbao_migration;
 
 // #1347/#1732 — package_manager duplication note: the module that is actually
 // invoked at boot is `botcore::package_manager` (botserver main.rs CLI and

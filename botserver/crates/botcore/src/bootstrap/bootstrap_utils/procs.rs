@@ -32,6 +32,7 @@ pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
         ("llama-server".to_string(), vec!["-9", "-f"]),
         ("stalwart".to_string(), vec!["-9", "-f"]),
         ("vault server".to_string(), vec!["-9", "-f"]),
+        ("bao server".to_string(), vec!["-9", "-f"]),
         ("watcher".to_string(), vec!["-9", "-f"]),
     ]
 }

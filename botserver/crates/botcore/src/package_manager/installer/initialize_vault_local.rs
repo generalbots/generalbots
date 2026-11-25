@@ -5,12 +5,8 @@ impl PackageManager {
 
         info!("Initializing Vault locally (non-LXC mode)...");
 
-        let bin_path = self.base_path.join("bin/vault");
         let conf_path = self.base_path.join("conf");
-        #[cfg(target_os = "windows")]
-        let vault_bin = bin_path.join("vault.exe");
-        #[cfg(not(target_os = "windows"))]
-        let vault_bin = bin_path.join("vault");
+        let vault_bin = botcorepkg::secrets_engine::cli_path(&self.base_path);
         let vault_data = self.base_path.join("data/vault");
 
         // Check if Vault data directory exists (real indicator of initialized state)

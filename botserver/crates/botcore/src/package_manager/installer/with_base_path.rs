@@ -122,6 +122,7 @@ impl PackageManager {
 
             let rendered_cmd = component
                 .effective_exec_cmd()
+                .replace(botcorepkg::secrets_engine::CLI_PLACEHOLDER, botcorepkg::secrets_engine::active_engine(&self.base_path).binary_name())
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
@@ -295,7 +296,9 @@ impl PackageManager {
             } else {
                 first
             };
-            let resolved = candidate.replace("{{BIN_PATH}}", &bin_root.to_string_lossy());
+            let resolved = candidate
+                .replace(botcorepkg::secrets_engine::CLI_PLACEHOLDER, botcorepkg::secrets_engine::active_engine(&self.base_path).binary_name())
+                .replace("{{BIN_PATH}}", &bin_root.to_string_lossy());
             if resolved.contains('/') || resolved.contains('\\') {
                 return Some(std::path::PathBuf::from(resolved));
             }

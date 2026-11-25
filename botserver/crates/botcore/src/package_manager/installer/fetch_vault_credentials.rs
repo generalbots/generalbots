@@ -52,10 +52,7 @@ impl PackageManager {
             return credentials;
         }
 
-        #[cfg(target_os = "windows")]
-        let vault_bin = base_path.join("bin/vault/vault.exe");
-        #[cfg(not(target_os = "windows"))]
-        let vault_bin = base_path.join("bin/vault/vault");
+        let vault_bin = botcorepkg::secrets_engine::cli_path(&base_path);
         let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
             base_path
                 .join("conf/system/certificates/ca/ca.crt")

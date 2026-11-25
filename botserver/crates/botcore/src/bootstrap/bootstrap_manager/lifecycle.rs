@@ -21,7 +21,7 @@ impl BootstrapManager {
     }
 
     pub fn vault_bin(&self) -> String {
-        self.stack_dir("bin/vault/vault")
+        botcorepkg::secrets_engine::cli_path(&self.stack_path)
             .to_str()
             .unwrap_or(&get_stack_path())
             .to_string()
@@ -78,6 +78,9 @@ impl BootstrapManager {
         // Vault init includes unseal + seeding credentials - must finish before services that
         // need those credentials (drive, cache) can start.
         if pm.is_installed("vault") {
+            if self.install_mode == InstallMode::Local {
+                crate::package_manager::openbao_boot::prepare(&self.stack_path).await;
+            }
             if vault_health_check() {
                 info!("vault is already running");
             } else {

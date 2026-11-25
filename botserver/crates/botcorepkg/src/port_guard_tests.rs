@@ -45,6 +45,8 @@ fn stack_programs_are_recognised_without_regard_to_case() {
     let other_user = PathBuf::from(r"C:\Users\b\AppData\Local\generalbots\stack\bin\vault\vault.exe");
     let sibling = PathBuf::from(r"C:\Users\a\AppData\Local\generalbots\stack-old\bin\vault.exe");
     assert!(belongs_to_stack(Some(&ours), stack));
+    let openbao = PathBuf::from(r"C:\Users\a\AppData\Local\generalbots\stack\bin\vault\bao.exe");
+    assert!(belongs_to_stack(Some(&openbao), stack));
     assert!(!belongs_to_stack(Some(&other_user), stack));
     assert!(!belongs_to_stack(Some(&sibling), stack));
     assert!(!belongs_to_stack(None, stack));

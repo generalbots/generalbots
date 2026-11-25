@@ -18,7 +18,7 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
         .filter(|a| !a.is_empty())
         .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
     let ca_cert = base_path.join("conf/system/certificates/ca/ca.crt");
-    let vault_bin = base_path.join("bin/vault/vault");
+    let vault_bin = crate::secrets_engine::cli_path(&base_path);
 
     let unseal_keys_file = base_path.join("vault-unseal-keys");
     let unseal_keys = if unseal_keys_file.exists() {

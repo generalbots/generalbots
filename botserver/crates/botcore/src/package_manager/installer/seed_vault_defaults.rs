@@ -219,10 +219,7 @@ impl PackageManager {
             .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
         let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
-        #[cfg(target_os = "windows")]
-        let vault_bin = self.base_path.join("bin/vault/vault.exe");
-        #[cfg(not(target_os = "windows"))]
-        let vault_bin = self.base_path.join("bin/vault/vault");
+        let vault_bin = botcorepkg::secrets_engine::cli_path(&self.base_path);
 
         // Try to read existing unseal keys
         let unseal_keys_file = self.base_path.join("vault-unseal-keys");

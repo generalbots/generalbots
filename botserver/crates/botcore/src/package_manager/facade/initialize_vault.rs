@@ -12,7 +12,7 @@ impl PackageManager {
             "--",
             "bash",
             "-c",
-            "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
+            &format!("VAULT_ADDR=http://127.0.0.1:8200 {} operator init -key-shares=5 -key-threshold=3 -format=json", botcorepkg::secrets_engine::CONTAINER_CLI),
         ]);
 
         let output = match output {
@@ -89,8 +89,9 @@ impl PackageManager {
             if let Some(key) = unseal_keys.get(i) {
                 let key_str = key.as_str().unwrap_or("");
                 let unseal_cmd = format!(
-                    "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}",
-                    key_str
+                    "VAULT_ADDR=http://127.0.0.1:8200 {cli} operator unseal {}",
+                    key_str,
+                    cli = botcorepkg::secrets_engine::CONTAINER_CLI
                 );
                 let unseal_output =
                     safe_incus(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
@@ -131,8 +132,8 @@ impl PackageManager {
         if !initialized {
             return Err(anyhow::anyhow!(
                 "Vault in container {} is not initialized. Please initialize it first with: \
-                lxc exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
-                container_name, container_name
+                lxc exec {} -- {cli} operator init -key-shares=1 -key-threshold=1",
+                container_name, container_name, cli = botcorepkg::secrets_engine::CONTAINER_CLI
             ));
         }
 
@@ -158,8 +159,8 @@ impl PackageManager {
         if sealed {
             return Err(anyhow::anyhow!(
                 "Vault in container {} is sealed. Please unseal it first with: \
-                lxc exec {} -- /opt/gbo/bin/vault operator unseal <key>",
-                container_name, container_name
+                lxc exec {} -- {cli} operator unseal <key>",
+                container_name, container_name, cli = botcorepkg::secrets_engine::CONTAINER_CLI
             ));
         }
 

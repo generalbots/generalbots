@@ -27,11 +27,11 @@ On server restart, run:
   botserver vault unseal
 
 Or manually:
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <key>
+  lxc exec {}-vault -- {cli} operator unseal <key>
 
 For other auto-unseal options (TPM, HSM, Transit), see:
   https://generalbots.github.io/botbook/chapter-08/secrets-management.html",
-                    ip, ip, self.tenant
+                    ip, ip, self.tenant, cli = botcorepkg::secrets_engine::CONTAINER_CLI
                 )
             }
             "vector_db" => {

@@ -169,9 +169,8 @@ pub fn ensure_scoped_token(stack: &Path) {
     if !cfg!(windows) || !stack.join(INIT_FILE).is_file() {
         return;
     }
-    let exe = if cfg!(windows) { "vault.exe" } else { "vault" };
     let vault = Vault {
-        bin: stack.join("bin/vault").join(exe),
+        bin: botcorepkg::secrets_engine::cli_path(stack),
         addr: std::env::var("VAULT_ADDR")
             .ok()
             .filter(|a| !a.is_empty())
@@ -240,8 +239,8 @@ mod tests {
 
     #[test]
     fn create_answer_yields_the_client_token() {
-        let json = serde_json::json!({"auth": {"client_token": "hvs.abc", "policies": ["gbo-server"]}});
-        assert_eq!(client_token(&json).as_deref(), Some("hvs.abc"));
+        let json = serde_json::json!({"auth": {"client_token": "s.abc", "policies": ["gbo-server"]}});
+        assert_eq!(client_token(&json).as_deref(), Some("s.abc"));
         assert_eq!(client_token(&serde_json::json!({"auth": {}})), None);
     }
 
