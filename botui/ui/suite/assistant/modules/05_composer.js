@@ -130,6 +130,8 @@
     var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
     var MAX_ATTACH_TOTAL = 70 * 1024 * 1024;
 
+    /* The same path as the send button, for a card that sends a request again. */
+    A.sendFromComposer = function (text) { doSend(text); };
     function doSend(text, messageType) {
         text = (text || "").trim();
         var files = A.pendingFiles.slice();

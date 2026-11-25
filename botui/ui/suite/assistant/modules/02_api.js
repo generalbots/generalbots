@@ -369,6 +369,12 @@
             return;
         }
 
+        /* Structured turn frames (agent switch, files, memory): 19_*.js. */
+        if (data.type && A.frameHandlers && typeof A.frameHandlers[data.type] === "function") {
+            A.frameHandlers[data.type](data);
+            return;
+        }
+
         if (data.type === "run_cancelled") {
             A.isStreaming = false;
             if (typeof A.onStreamEnd === "function") {

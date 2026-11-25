@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<meta name="color-scheme" content="dark"/>
 <title>General Bots</title>
 <link rel="stylesheet" href="suite/identity/lockup.css"/>
 <style>
@@ -12,34 +11,35 @@
 @font-face{font-family:'Geist Mono';font-weight:100 900;font-style:normal;font-display:swap;
   src:url("suite/identity/fonts/geist-mono-latin-wght-normal.woff2") format("woff2")}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0e;
+/* The window is transparent. Neither html nor body paints a background (a
+   body background would spread to the whole canvas); only the clipped .bg
+   layer does, so the rounded corners show the desktop, not a dark square. */
+html,body{width:100%;height:100%;overflow:hidden;
   font-family:'Fira Sans','Segoe UI',system-ui,-apple-system,sans-serif}
+html{background:transparent}
 body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;
   border-radius:20px;overflow:hidden;position:relative}
 .bg{position:absolute;inset:0;z-index:0;
-  background:url("splash/splash-bg.jpg") center/cover no-repeat}
-/* Gradient overlays only where text sits — top-left corner and bottom strip */
-.grad-top{position:absolute;top:0;left:0;right:50%;height:120px;z-index:1;pointer-events:none;
-  background:linear-gradient(160deg,rgb(0 0 0/.52) 0%,rgb(0 0 0/.28) 50%,transparent 100%)}
+  background:#0a0a0e url("splash/splash-bg.jpg") center/cover no-repeat}
+/* Gradient overlay only under the bottom strip; the legal text sits on the
+   image's own dark top-left corner. */
 .grad-bottom{position:absolute;bottom:0;left:0;right:0;height:140px;z-index:1;pointer-events:none;
   background:linear-gradient(to top,rgb(0 0 0/.62) 0%,rgb(0 0 0/.36) 55%,transparent 100%)}
 /* Legal footnotes — top-left */
 .legal{position:absolute;top:16px;left:20px;z-index:10;
-  font-size:9.5px;line-height:1.55;color:rgb(255 255 255/.45);letter-spacing:.01em}
+  font-size:9.5px;line-height:1.55;color:rgb(255 255 255/.55);letter-spacing:.01em}
 /* Bottom layout: stacked rows — info row, progress row, bar */
 .bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;
   padding:0 24px;display:flex;flex-direction:column;gap:0}
-/* Row 1: wordmark / version / slogan (left) + site (right) */
-.bottom-info{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
-  padding-bottom:6px}
+/* Row 1: wordmark / version / slogan */
+.bottom-info{display:flex;align-items:flex-end;padding-bottom:6px}
 .bottom-left{display:flex;flex-direction:column;gap:2px;max-width:60%}
 .wordmark{font-family:'Fira Sans',sans-serif;font-weight:500;font-size:20px;
   color:rgb(255 255 255/.72);letter-spacing:-.02em;line-height:1.3}
 .wordmark .id-lockup{--lockup-h:22px;--id-font-mono:'Geist Mono',ui-monospace,monospace}
 .version{font-size:11px;color:rgb(255 255 255/.38);min-height:1em}
 .slogan{font-size:11px;font-style:italic;color:rgb(255 255 255/.42);line-height:1.4}
-.bottom-right{font-size:10px;color:rgb(255 255 255/.35);text-align:right;white-space:nowrap}
-/* Row 2: spinner + status (left) + site (right) */
+/* Row 2: spinner + status */
 .progress-row{display:flex;align-items:center;gap:8px;padding-bottom:8px}
 .spinner{width:14px;height:14px;border:2px solid rgb(255 255 255/.18);
   border-top-color:rgb(255 255 255/.7);border-radius:50%;flex-shrink:0;
@@ -59,7 +59,7 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
 .bar,.bar-glow{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:999px;
   background-image:var(--rainbow);background-size:var(--track) 100%;background-repeat:no-repeat;
   transition:width 600ms cubic-bezier(.22,1,.36,1)}
-.bar-glow{filter:blur(9px) saturate(1.6);opacity:.95;transform:scaleY(1.9);pointer-events:none}
+.bar-glow{filter:blur(6px) saturate(1.1);opacity:.4;transform:scaleY(1.3);pointer-events:none}
 .bar{overflow:hidden;box-shadow:inset 0 1px 0 rgb(255 255 255/.35)}
 /* Moving highlight along the filled part */
 .bar::after{content:"";position:absolute;inset:0;
@@ -76,7 +76,6 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
 </head>
 <body>
 <div class="bg" aria-hidden="true"></div>
-<div class="grad-top" aria-hidden="true"></div>
 <div class="grad-bottom" aria-hidden="true"></div>
 
 <div class="legal" id="legalText"></div>
@@ -88,7 +87,6 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
       <div class="version" id="splashVersion"></div>
       <div class="slogan" id="sloganText"></div>
     </div>
-    <div class="bottom-right">www.pragmatismo.com.br</div>
   </div>
   <div class="progress-row">
     <div class="spinner" id="splashSpinner" aria-hidden="true"></div>
@@ -124,13 +122,11 @@ if(legalEl){
   if(pt){
     legalEl.innerHTML="Software de código aberto · Licença MIT<br>"
       +"© General Bots · Pragmatismo<br>"
-      +"Inclui componentes de terceiros sob suas próprias licenças.<br>"
-      +"Fornecido no estado em que se encontra, sem garantias.";
+      +"Inclui componentes de terceiros sob suas próprias licenças.";
   }else{
     legalEl.innerHTML="Open source software · MIT License<br>"
       +"© General Bots · Pragmatismo<br>"
-      +"Includes third-party components under their own licenses.<br>"
-      +"Provided as is, without warranties.";
+      +"Includes third-party components under their own licenses.";
   }
 }
 

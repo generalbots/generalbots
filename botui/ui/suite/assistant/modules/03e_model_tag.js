@@ -2,7 +2,7 @@
 /**
  * 03e_model_tag.js - Names the model that wrote each answer.
  *
- * A small tag sits next to the "Concluído" chip of the thinking card, or at
+ * A small tag sits next to the "Concluído" chip of the reasoning card, or at
  * the start of the answer toolbar when the answer had no thinking card.
  * The server does not store the model per message yet, so the shell keeps
  * the name it sent with each turn (by a hash of the answer text) in this
@@ -82,7 +82,9 @@ A.attachModelTag = function (el, model) {
     tag.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">' +
         '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>' +
         '<span>' + esc(A.answerModelLabel(model)) + '</span>';
-    var thinking = el.querySelectorAll(".gb-block-stack .gb-block--done .gb-block-header");
+    /* Only the reasoning card: a run or step card is rebuilt by later
+       activity frames, and the tag went with the old header. */
+    var thinking = el.querySelectorAll(".gb-block-stack .gb-block-kind--thinking.gb-block--done .gb-block-header");
     var hdr = thinking.length ? thinking[thinking.length - 1] : null;
     var chip = hdr ? hdr.querySelector(".gb-block-chip") : null;
     if (chip) { hdr.insertBefore(tag, chip); return; }
@@ -115,7 +117,7 @@ A.tagAnswer = function (el, content, model) {
     A.attachModelTag(el, used);
     /* The engine was switched a moment ago, or has not been read yet: name
        the engine again once the shell knows it. */
-    var pending = A._engineSync || (!A.engineMode && A.syncEngine ? A.syncEngine() : null);
+    var pending = A._engineSync || ((!A.engineMode || !used) && A.syncEngine ? A.syncEngine() : null);
     if (!pending) { return; }
     pending.then(function () {
         var again = A.answerModelFor(model);

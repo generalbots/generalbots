@@ -68,11 +68,12 @@
     var thinkingObserver = null;
 
     /* The indicator is always the last item of the conversation: a reasoning,
-       run or permission card added while it shows goes above it. */
+       run or permission card added while it shows moves above it. The card
+       moves, not the indicator: moving the indicator restarted its pulse. */
     function keepThinkingLast() {
         var el = document.getElementById("gbThinking");
-        if (!el || !el.parentNode || el.parentNode.lastElementChild === el) { return; }
-        el.parentNode.appendChild(el);
+        if (!el || !el.parentNode || !el.nextElementSibling) { return; }
+        while (el.nextElementSibling) { el.parentNode.insertBefore(el.nextElementSibling, el); }
         if (!userScrolledUp) { A.scrollToBottom(false); }
     }
 

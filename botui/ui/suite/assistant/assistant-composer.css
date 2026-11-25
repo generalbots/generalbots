@@ -203,17 +203,20 @@
 }
 /* Reconnect banner */
 .gb-reconnect-banner {
-    display: flex; align-items: center; gap: 8px; justify-content: center;
-    padding: 6px 16px; font-size: var(--id-text-sm);
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    padding: 8px 16px; font-size: var(--id-text-base); font-weight: 500; line-height: 1.4;
     color: var(--id-warn-text); background: var(--id-warn-bg);
-    border-radius: var(--id-radius-sm); margin: 0 auto 4px; max-width: 680px; width: 100%;
+    border: 1px solid color-mix(in srgb, var(--id-warn) 45%, transparent);
+    border-radius: var(--id-radius-sm); margin: 0 auto 8px; max-width: 680px; width: 100%;
+    position: relative; z-index: 2; box-shadow: 0 1px 3px rgb(0 0 0 / .08);
 }
 .gb-reconnect-pulse {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--id-warn); animation: gb-pulse 1.5s infinite;
+    flex: none; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--id-warn); animation: gb-reconnect-blink 1.5s infinite;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--id-warn) 25%, transparent);
 }
 @media (prefers-reduced-motion: reduce) { .gb-reconnect-pulse { animation: none; } }
-@keyframes gb-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes gb-reconnect-blink { 0%,100%{opacity:1} 50%{opacity:.35} }
 /* Keyboard shortcut list in Settings */
 .gb-shortcut-list { list-style: none; padding: 0; margin: 0; }
 .gb-shortcut-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--id-line-soft); font-size: var(--id-text-sm); color: var(--id-text); }

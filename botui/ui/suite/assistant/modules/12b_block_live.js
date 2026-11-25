@@ -87,6 +87,7 @@ function place(el) {
     stack.appendChild(el);
     if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }
 }
+A.placeInTurn = place;
 
 /* Where a Virtual Machine permission card goes: in the answer that waits
    for it, right after its steps (08_consent.js mounts the card). */
@@ -135,6 +136,8 @@ function onActivity(payload) {
         rebuilt.classList.toggle("open", wasOpen);
         rebuilt.querySelector(".gb-block-header").setAttribute("aria-expanded", String(wasOpen));
     }
+    var tag = existing.querySelector(".gb-block-header .gb-model-tag");
+    if (tag) { rebuilt.querySelector(".gb-block-header").insertBefore(tag, rebuilt.querySelector(".gb-block-chip")); }
     existing.replaceWith(rebuilt);
 }
 

@@ -312,6 +312,7 @@
                     if (typeof A.renderMath === "function") { A.renderMath(bd); }
                     el.appendChild(bd);
                 }
+                if (A.renderTurnExtras) { A.renderTurnExtras(el, m); }
                 addAssistantActions(el, m.content, false);
                 if (A.answerModel) { A.attachModelTag(el, A.answerModel(m.content) || m.model); }
             }

@@ -211,11 +211,14 @@
     color: var(--id-muted); font-size: var(--id-text-sm);
 }
 .gb-thinking-pulse {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--id-accent-light);
-    animation: gb-pulse 1.4s ease-in-out infinite;
+    flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--id-accent-text);
+    box-shadow: 0 0 0 3px var(--id-accent-glow);
+    animation: gb-thinking-pulse 1.4s ease-in-out infinite;
 }
-@keyframes gb-pulse {
+/* Its own name: the reconnect banner's keyframes (assistant-composer.css,
+   loaded later) used to replace these under a shared name. */
+@keyframes gb-thinking-pulse {
     0%, 100% { transform: scale(.8); opacity: .5; }
     50% { transform: scale(1.2); opacity: 1; }
 }

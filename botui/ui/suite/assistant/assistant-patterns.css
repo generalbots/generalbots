@@ -181,9 +181,38 @@
     opacity: 1;
     animation: none;
 }
+/* Paper band: an eased (smoothstep) fade sampled in ten steps each side,
+   so the edges have no kink. Band and page differ by only a few 8-bit
+   levels, and a plain ramp showed them as stripes: a faint grain on the
+   page under the band dithers them. It shows through the fades only; the
+   band hides it in the middle. */
+[data-identity="mantis"] .gb-main {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 [data-identity="mantis"] .gb-main::after {
-    background: linear-gradient(90deg, transparent,
-        color-mix(in srgb, var(--id-surface-solid) 90%, transparent) 17% 83%, transparent);
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--id-surface-solid) 0%, transparent) 0%,
+        color-mix(in srgb, var(--id-surface-solid) 2.5%, transparent) 1.8%,
+        color-mix(in srgb, var(--id-surface-solid) 9.4%, transparent) 3.6%,
+        color-mix(in srgb, var(--id-surface-solid) 19.4%, transparent) 5.4%,
+        color-mix(in srgb, var(--id-surface-solid) 31.7%, transparent) 7.2%,
+        color-mix(in srgb, var(--id-surface-solid) 45%, transparent) 9%,
+        color-mix(in srgb, var(--id-surface-solid) 58.3%, transparent) 10.8%,
+        color-mix(in srgb, var(--id-surface-solid) 70.6%, transparent) 12.6%,
+        color-mix(in srgb, var(--id-surface-solid) 80.6%, transparent) 14.4%,
+        color-mix(in srgb, var(--id-surface-solid) 87.5%, transparent) 16.2%,
+        color-mix(in srgb, var(--id-surface-solid) 90%, transparent) 18%,
+        color-mix(in srgb, var(--id-surface-solid) 90%, transparent) 82%,
+        color-mix(in srgb, var(--id-surface-solid) 87.5%, transparent) 83.8%,
+        color-mix(in srgb, var(--id-surface-solid) 80.6%, transparent) 85.6%,
+        color-mix(in srgb, var(--id-surface-solid) 70.6%, transparent) 87.4%,
+        color-mix(in srgb, var(--id-surface-solid) 58.3%, transparent) 89.2%,
+        color-mix(in srgb, var(--id-surface-solid) 45%, transparent) 91%,
+        color-mix(in srgb, var(--id-surface-solid) 31.7%, transparent) 92.8%,
+        color-mix(in srgb, var(--id-surface-solid) 19.4%, transparent) 94.6%,
+        color-mix(in srgb, var(--id-surface-solid) 9.4%, transparent) 96.4%,
+        color-mix(in srgb, var(--id-surface-solid) 2.5%, transparent) 98.2%,
+        color-mix(in srgb, var(--id-surface-solid) 0%, transparent) 100%);
 }
 [data-identity="mantis"] .gb-ap-tile::before {
     content: "";
