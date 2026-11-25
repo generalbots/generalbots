@@ -20,6 +20,7 @@ use uuid::Uuid;
 use super::store::ApprovalStore;
 use super::types::{ApprovalStep, CallerPrincipal, DecisionKind, Delegation};
 use crate::ConsentService;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 
 fn status_for(error: &str) -> StatusCode {
     match error {
@@ -36,7 +37,27 @@ fn status_for(error: &str) -> StatusCode {
     }
 }
 
-type ApiResult<T> = Result<T, (StatusCode, String)>;
+/// #2753 — the body is always the sanitised envelope; the status travels
+/// beside it so the `status_for` mapping stays authoritative.
+type ApiError = (StatusCode, Json<SafeErrorResponse>);
+type ApiResult<T> = Result<T, ApiError>;
+
+fn api_error(status: StatusCode, error: &str, message: impl Into<String>) -> ApiError {
+    (status, Json(SafeErrorResponse::new(error, message)))
+}
+
+/// Domain rejections carry only the fixed, client-facing store message.
+fn domain_error(e: &str) -> ApiError {
+    api_error(status_for(e), "approval_error", e)
+}
+
+/// Storage/IO detail is logged in full and replaced by the generic body.
+fn internal_error(e: impl std::fmt::Display, context: &str) -> ApiError {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(log_and_sanitize_str(&e.to_string(), context, None)),
+    )
+}
 
 fn approvals(service: &Arc<ConsentService>) -> &ApprovalStore {
     &service.approvals
@@ -54,10 +75,10 @@ fn tenant_of_user(
     pool: &crate::DbPool,
     user_id: Uuid,
     default_only: bool,
-) -> Result<Option<String>, (StatusCode, String)> {
+) -> ApiResult<Option<String>> {
     let mut conn = pool
         .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+        .map_err(|e| internal_error(e, "botconsent::approvals::pool"))?;
     diesel::sql_query(
         "SELECT COALESCE(o.tenant_id::text, o.org_id::text) AS tenant \
          FROM users u \
@@ -72,12 +93,7 @@ fn tenant_of_user(
     .get_result::<TenantRow>(&mut conn)
     .optional()
     .map(|row| row.map(|r| r.tenant))
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("tenant lookup failed: {e}"),
-        )
-    })
+    .map_err(|e| internal_error(e, "botconsent::approvals::tenant_lookup"))
 }
 
 /// Binds a request to the identity returned by authentication and to the
@@ -86,8 +102,9 @@ fn tenant_of_user(
 fn principal(
     service: &Arc<ConsentService>,
     headers: &HeaderMap,
-) -> Result<CallerPrincipal, (StatusCode, String)> {
-    let user_id = crate::api::require_consent_user(headers, &service.pool)?;
+) -> ApiResult<CallerPrincipal> {
+    let user_id = crate::api::require_consent_user(headers, &service.pool)
+        .map_err(|(status, message)| api_error(status, "unauthorized", message))?;
     let tenant =
         tenant_of_user(&service.pool, user_id, true)?.unwrap_or_else(|| user_id.to_string());
     Ok(CallerPrincipal::new(user_id, tenant))
@@ -100,18 +117,18 @@ fn ensure_tenant_user(
     service: &Arc<ConsentService>,
     target: &str,
     tenant: &str,
-) -> Result<(), (StatusCode, String)> {
+) -> ApiResult<()> {
     #[derive(QueryableByName)]
     struct ExistsRow {
         #[diesel(sql_type = diesel::sql_types::Bool)]
         ok: bool,
     }
     let target_id = Uuid::parse_str(target)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "invalid delegate".to_string()))?;
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "bad_request", "invalid delegate"))?;
     let mut conn = service
         .pool
         .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+        .map_err(|e| internal_error(e, "botconsent::approvals::pool"))?;
     let found = diesel::sql_query(
         "SELECT EXISTS( \
              SELECT 1 FROM users u \
@@ -125,20 +142,16 @@ fn ensure_tenant_user(
     .bind::<diesel::sql_types::Text, _>(tenant)
     .get_result::<ExistsRow>(&mut conn)
     .optional()
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("delegate lookup failed: {e}"),
-        )
-    })?
+    .map_err(|e| internal_error(e, "botconsent::approvals::delegate_lookup"))?
     .map(|row| row.ok)
     .unwrap_or(false);
     if found {
         Ok(())
     } else {
-        Err((
+        Err(api_error(
             StatusCode::FORBIDDEN,
-            "delegate is not a tenant user".to_string(),
+            "forbidden",
+            "delegate is not a tenant user",
         ))
     }
 }
@@ -233,7 +246,7 @@ pub async fn create(
             &caller.actor,
             &body.content,
         )
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -246,7 +259,7 @@ pub async fn list(
     let caller = principal(&service, &headers)?;
     let rows = approvals(&service)
         .list(&caller.tenant)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approvals": rows })))
 }
 
@@ -259,7 +272,7 @@ pub async fn get_approval(
     let record = approvals(&service)
         .get(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?
-        .ok_or_else(|| (StatusCode::NOT_FOUND, "approval not found".to_string()))?;
+        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "not_found", "approval not found"))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -273,7 +286,7 @@ pub async fn route(
     let message = body.message.unwrap_or_else(String::new);
     let record = approvals(&service)
         .set_route(&caller.tenant, id, body.steps, &message, body.due_at)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -294,7 +307,7 @@ pub async fn delegate(
     };
     let record = approvals(&service)
         .delegate(&caller.tenant, id, delegation)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -317,7 +330,7 @@ pub async fn decide(
             &comment,
             body.version_hash.as_deref(),
         )
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -331,7 +344,7 @@ pub async fn sign(
     let comment = body.comment.unwrap_or_else(String::new);
     let record = approvals(&service)
         .sign(&caller.tenant, id, &caller.actor, &comment)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -344,7 +357,7 @@ pub async fn update_content(
     let caller = principal(&service, &headers)?;
     let record = approvals(&service)
         .update_content(&caller.tenant, id, &body.content)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "approval": record })))
 }
 
@@ -360,7 +373,7 @@ pub async fn check_sla(
     let record = approvals(&service)
         .get(&caller.tenant, id)
         .map_err(|e| (status_for(&e), e))?
-        .ok_or_else(|| (StatusCode::NOT_FOUND, "approval not found".to_string()))?;
+        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "not_found", "approval not found"))?;
     let now = body.at.unwrap_or_else(Utc::now);
     let events = super::engine::check_sla(&record, now);
     Ok(Json(serde_json::json!({ "events": events })))
@@ -377,7 +390,7 @@ pub async fn sla_sweep(
     let now = body.at.unwrap_or_else(Utc::now);
     let events = approvals(&service)
         .check_sla_at(&caller.tenant, now)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "events": events })))
 }
 
@@ -389,7 +402,7 @@ pub async fn publish(
     let caller = principal(&service, &headers)?;
     let artifact = approvals(&service)
         .publish(&caller.tenant, id)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "artifact": artifact })))
 }
 
@@ -401,7 +414,7 @@ pub async fn verify(
     let caller = principal(&service, &headers)?;
     let verified = approvals(&service)
         .verify_trail(&caller.tenant, id)
-        .map_err(|e| (status_for(&e), e))?;
+        .map_err(|e| domain_error(&e))?;
     Ok(Json(serde_json::json!({ "verified": verified })))
 }
 

@@ -166,7 +166,9 @@ impl CollaborationManager {
             payload: CollaborationPayload::User(active_user),
         };
 
-        let _ = tx.send(event);
+        if let Err(e) = tx.send(event) {
+            log::warn!("failed to broadcast user-joined collaboration event: {e}");
+        }
 
         Ok((session.clone(), rx))
     }
@@ -193,7 +195,9 @@ impl CollaborationManager {
                     timestamp: now,
                     payload: CollaborationPayload::Empty,
                 };
-                let _ = tx.send(event);
+                if let Err(e) = tx.send(event) {
+                    log::warn!("failed to broadcast user-left collaboration event: {e}");
+                }
             }
 
             if session.active_users.is_empty() {
@@ -230,7 +234,9 @@ impl CollaborationManager {
                     timestamp: now,
                     payload: CollaborationPayload::Cursor(cursor),
                 };
-                let _ = tx.send(event);
+                if let Err(e) = tx.send(event) {
+                    log::warn!("failed to broadcast cursor-moved collaboration event: {e}");
+                }
             }
         }
 
@@ -264,7 +270,9 @@ impl CollaborationManager {
                         timestamp: now,
                         payload: CollaborationPayload::Selection(sel),
                     };
-                    let _ = tx.send(event);
+                    if let Err(e) = tx.send(event) {
+                        log::warn!("failed to broadcast selection-changed collaboration event: {e}");
+                    }
                 }
             }
         }
@@ -294,7 +302,9 @@ impl CollaborationManager {
                     timestamp: now,
                     payload: CollaborationPayload::Operation(operation),
                 };
-                let _ = tx.send(event);
+                if let Err(e) = tx.send(event) {
+                    log::warn!("failed to broadcast block-operation collaboration event: {e}");
+                }
             }
         }
 

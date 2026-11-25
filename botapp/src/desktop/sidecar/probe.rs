@@ -21,10 +21,7 @@ const HEALTH_PATH: &str = "/health";
 /// `GB_SIDECAR_PORT` environment variable (used by the test rig to run
 /// the real app against an isolated server instance).
 pub(crate) fn sidecar_port() -> u16 {
-    std::env::var("GB_SIDECAR_PORT")
-        .ok()
-        .and_then(|v| v.trim().parse().ok())
-        .unwrap_or(8080)
+    super::super::sidecar_port()
 }
 
 /// The assistant's product endpoint on the sidecar port (wizard use).

@@ -3970,6 +3970,7 @@ dependencies = [
  "botsecurity-core",
  "chrono",
  "diesel",
+ "log",
  "r2d2",
  "serde",
  "serde_json",

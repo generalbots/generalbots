@@ -261,7 +261,7 @@ fn test_events_contract_dead_letters_replay_dedup_publish() {
     let first_receipt = first.as_ref().map(|result| &result.receipt);
     assert_eq!(
         first_receipt.map(|receipt| receipt.status_code),
-        Some(200),
+        Ok(200),
         "delivery must succeed after the demo transport recovers"
     );
     assert!(

@@ -50,9 +50,12 @@ impl MetricsCollector {
             *h = health.clone();
         }
 
-        let _ = self
+        if let Err(e) = self
             .broadcast_tx
-            .send(MonitoringMessage::HealthUpdate { health });
+            .send(MonitoringMessage::HealthUpdate { health })
+        {
+            log::warn!("failed to broadcast health update: {e}");
+        }
     }
 
     async fn collect_cpu_usage(&self) -> f64 {

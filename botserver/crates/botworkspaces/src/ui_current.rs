@@ -158,12 +158,15 @@ pub(crate) async fn pages_current_put(
         return Html("".to_string());
     };
 
-    let _ = diesel::update(aiworkspace_pages::table.filter(aiworkspace_pages::workspace_id.eq(workspace_id)))
+    if let Err(e) = diesel::update(aiworkspace_pages::table.filter(aiworkspace_pages::workspace_id.eq(workspace_id)))
         .set((
             aiworkspace_pages::title.eq(&title),
             aiworkspace_pages::updated_at.eq(Utc::now()),
         ))
-        .execute(&mut conn);
+        .execute(&mut conn)
+    {
+        log::warn!("failed to update current page title: {e}");
+    }
 
     Html("".to_string())
 }

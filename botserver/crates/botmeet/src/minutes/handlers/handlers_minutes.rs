@@ -1,9 +1,30 @@
 use super::*;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
+
+/// #2753 — log the cause server-side, hand the caller only the generic body.
+fn safe_internal(e: impl std::fmt::Display, context: &str) -> SafeErrorResponse {
+    log_and_sanitize_str(&e.to_string(), context, None)
+}
+
+fn safe_db(e: impl std::fmt::Display) -> SafeErrorResponse {
+    safe_internal(e, "botmeet::minutes::db")
+}
+
+/// The PDF export keeps its explicit 501, so its error arm carries the status
+/// next to the sanitised envelope instead of relying on the envelope's kind.
+type PdfError = (StatusCode, Json<SafeErrorResponse>);
+
+fn pdf_internal(e: impl std::fmt::Display, context: &str) -> PdfError {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(safe_internal(e, context)),
+    )
+}
 
 pub async fn handle_get_minutes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
+) -> Result<Json<MeetingMinute>, SafeErrorResponse> {
     let pool = state.conn.clone();
     let minute = tokio::task::spawn_blocking(move || {
         let mut conn = pool
@@ -12,8 +33,8 @@ pub async fn handle_get_minutes(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| SafeErrorResponse::not_found("Resource"))?;
 
     Ok(Json(minute))
 }
@@ -22,7 +43,7 @@ pub async fn handle_list_minutes(
     State(state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
     Query(p): Query<PaginationParams>,
-) -> Result<Json<Vec<MeetingMinute>>, (StatusCode, String)> {
+) -> Result<Json<Vec<MeetingMinute>>, SafeErrorResponse> {
     let limit = p.limit.unwrap_or(50);
     let offset = p.offset.unwrap_or(0);
     let pool = state.conn.clone();
@@ -34,8 +55,8 @@ pub async fn handle_list_minutes(
             .map_err(|e| format!("Failed to list minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(db_error)?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(safe_db)?;
 
     Ok(Json(minutes))
 }
@@ -44,7 +65,7 @@ pub async fn handle_update_minutes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateMinutesRequest>,
-) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
+) -> Result<Json<MeetingMinute>, SafeErrorResponse> {
     let pool = state.conn.clone();
     let updated = tokio::task::spawn_blocking(move || {
         let mut conn = pool
@@ -56,8 +77,8 @@ pub async fn handle_update_minutes(
             .map_err(|e| format!("Failed to reload minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(db_error)?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(safe_db)?;
 
     Ok(Json(updated))
 }
@@ -65,7 +86,7 @@ pub async fn handle_update_minutes(
 pub async fn handle_finalize_minutes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     let pool = state.conn.clone();
     let minute = tokio::task::spawn_blocking(move || {
         let mut conn = pool
@@ -77,8 +98,8 @@ pub async fn handle_finalize_minutes(
             .map_err(|e| format!("Failed to reload minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(db_error)?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(safe_db)?;
 
     info!("Finalized minutes {}", minute.id);
     Ok(Json(serde_json::json!({
@@ -91,7 +112,7 @@ pub async fn handle_finalize_minutes(
 pub async fn handle_export_pdf(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Vec<u8>, (StatusCode, String)> {
+) -> Result<Vec<u8>, PdfError> {
     // Load the minute so the export endpoint at least validates existence
     let pool = state.conn.clone();
     let _minute = tokio::task::spawn_blocking(move || {
@@ -101,19 +122,22 @@ pub async fn handle_export_pdf(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
+    .map_err(|e| pdf_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| (StatusCode::NOT_FOUND, Json(SafeErrorResponse::not_found("Resource"))))?;
 
     Err((
         StatusCode::NOT_IMPLEMENTED,
-        "PDF export not yet implemented".to_string(),
+        Json(SafeErrorResponse::new(
+            "not_implemented",
+            "PDF export not yet implemented",
+        )),
     ))
 }
 
 pub async fn handle_get_signatures(
     State(state): State<Arc<AppState>>,
     Path(minute_id): Path<Uuid>,
-) -> Result<Json<Vec<MinuteSignature>>, (StatusCode, String)> {
+) -> Result<Json<Vec<MinuteSignature>>, SafeErrorResponse> {
     let pool = state.conn.clone();
     let sigs = tokio::task::spawn_blocking(move || {
         let mut conn = pool
@@ -123,8 +147,8 @@ pub async fn handle_get_signatures(
             .map_err(|e| format!("Failed to load signatures: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(db_error)?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(safe_db)?;
 
     Ok(Json(sigs))
 }
@@ -134,12 +158,9 @@ pub async fn handle_sign_minutes(
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<SignMinutesRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     if user.user_id.is_nil() {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            "Authentication required".to_string(),
-        ));
+        return Err(SafeErrorResponse::unauthorized());
     }
     let pool = state.conn.clone();
     let minute = tokio::task::spawn_blocking(move || {
@@ -149,16 +170,16 @@ pub async fn handle_sign_minutes(
         MinuteStorage::get_minute(&mut conn, id).map_err(|e| format!("Failed to load minutes: {e}"))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(|_| (StatusCode::NOT_FOUND, "Resource not found".to_string()))?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(|_| SafeErrorResponse::not_found("Resource"))?;
 
     let signature =
         SignatureService::sign_minute(&minute, user.user_id, req.signature_id, req.ip_address)
             .map_err(|error| {
                 log::error!("Failed to sign minute {id}: {error}");
-                (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "Meeting-minute signing is unavailable".to_string(),
+                SafeErrorResponse::new(
+                    "service_unavailable",
+                    "Meeting-minute signing is unavailable",
                 )
             })?;
 
@@ -183,8 +204,8 @@ pub async fn handle_sign_minutes(
         Ok::<_, String>((sig, status))
     })
     .await
-    .map_err(|e| internal_error(e, "botmeet::minutes::spawn"))?
-    .map_err(db_error)?;
+    .map_err(|e| safe_internal(e, "botmeet::minutes::spawn"))?
+    .map_err(safe_db)?;
 
     let (signature, status) = result;
     info!("Minute {} signed (status: {status})", id);

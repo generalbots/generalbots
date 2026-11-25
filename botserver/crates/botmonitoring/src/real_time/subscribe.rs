@@ -54,9 +54,11 @@ impl MetricsCollector {
                 metric.data_points.remove(0);
             }
 
-            let _ = self.broadcast_tx.send(MonitoringMessage::MetricUpdate {
+            if let Err(e) = self.broadcast_tx.send(MonitoringMessage::MetricUpdate {
                 metric: metric.clone(),
-            });
+            }) {
+                log::warn!("failed to broadcast metric update: {e}");
+            }
         } else {
             let metric = Metric {
                 name: name.to_string(),
@@ -69,9 +71,11 @@ impl MetricsCollector {
                 updated_at: now,
             };
 
-            let _ = self.broadcast_tx.send(MonitoringMessage::MetricUpdate {
+            if let Err(e) = self.broadcast_tx.send(MonitoringMessage::MetricUpdate {
                 metric: metric.clone(),
-            });
+            }) {
+                log::warn!("failed to broadcast metric update: {e}");
+            }
 
             metrics.insert(name.to_string(), metric);
         }
@@ -204,9 +208,11 @@ impl MetricsCollector {
             acknowledged_by: None,
         };
 
-        let _ = self.broadcast_tx.send(MonitoringMessage::AlertFired {
+        if let Err(e) = self.broadcast_tx.send(MonitoringMessage::AlertFired {
             alert: alert.clone(),
-        });
+        }) {
+            log::warn!("failed to broadcast alert fired: {e}");
+        }
 
         alerts.insert(alert.id, alert);
     }
@@ -225,9 +231,12 @@ impl MetricsCollector {
                 alert.status = AlertStatus::Resolved;
                 alert.resolved_at = Some(Utc::now());
 
-                let _ = self
+                if let Err(e) = self
                     .broadcast_tx
-                    .send(MonitoringMessage::AlertResolved { alert_id });
+                    .send(MonitoringMessage::AlertResolved { alert_id })
+                {
+                    log::warn!("failed to broadcast alert resolved: {e}");
+                }
             }
         }
     }

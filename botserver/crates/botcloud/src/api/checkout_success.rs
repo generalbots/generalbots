@@ -1,4 +1,20 @@
 use super::*;
+use botsecurity::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
+
+/// #2753 — sanitised envelope body with the concrete status beside it.
+type SafeError = (StatusCode, Json<SafeErrorResponse>);
+
+fn error(status: StatusCode, code: &str, message: &str) -> SafeError {
+    (status, Json(SafeErrorResponse::new(code, message)))
+}
+
+fn db_error(context: &str, e: impl std::fmt::Display) -> SafeError {
+    tracing::error!("checkout_success {context}: {e}");
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(log_and_sanitize_str(&e.to_string(), "checkout_success", None)),
+    )
+}
 
 /// `GET /api/cloud/checkout/success`
 ///
@@ -10,20 +26,20 @@ pub(crate) async fn checkout_success(
     State(service): State<Arc<SaasService>>,
     headers: HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    fn forbidden() -> (StatusCode, String) {
-        (StatusCode::FORBIDDEN, "checkout session does not authorize this invoice".to_string())
-    }
-    fn db_error(context: &str, e: impl std::fmt::Display) -> (StatusCode, String) {
-        tracing::error!("checkout_success {context}: {e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "billing database unavailable".to_string())
+) -> Result<Json<serde_json::Value>, SafeError> {
+    fn forbidden() -> SafeError {
+        error(
+            StatusCode::FORBIDDEN,
+            "forbidden",
+            "checkout session does not authorize this invoice",
+        )
     }
 
     let session_id = params.get("session_id")
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing session_id".to_string()))?;
+        .ok_or_else(|| error(StatusCode::BAD_REQUEST, "bad_request", "missing session_id"))?;
     let invoice_id = params.get("invoice")
         .and_then(|v| Uuid::parse_str(v).ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing invoice".to_string()))?;
+        .ok_or_else(|| error(StatusCode::BAD_REQUEST, "bad_request", "missing invoice"))?;
 
     // Never trust client-supplied session data: retrieve it from Stripe with
     // our API key. metadata["invoice_id"] was set by handle_checkout.
@@ -32,7 +48,11 @@ pub(crate) async fn checkout_success(
         .await
         .map_err(|e| {
             tracing::error!("checkout session lookup failed for {session_id}: {e}");
-            (StatusCode::BAD_GATEWAY, "checkout session could not be verified".to_string())
+            error(
+                StatusCode::BAD_GATEWAY,
+                "bad_gateway",
+                "checkout session could not be verified",
+            )
         })?;
 
     let (invoice, authenticated_branch, authenticated_org, mapped_customer) = {
@@ -42,9 +62,15 @@ pub(crate) async fn checkout_success(
         let authenticated_branch = get_branch_id_from_jwt(&headers, &mut conn)
             .map_err(|e| {
                 tracing::warn!("checkout JWT scope rejected: {e}");
-                (StatusCode::UNAUTHORIZED, "unable to resolve tenant".to_string())
+                error(StatusCode::UNAUTHORIZED, "unauthorized", "unable to resolve tenant")
             })?
-            .ok_or_else(|| (StatusCode::FORBIDDEN, "no billing scope for this account".to_string()))?;
+            .ok_or_else(|| {
+                error(
+                    StatusCode::FORBIDDEN,
+                    "forbidden",
+                    "no billing scope for this account",
+                )
+            })?;
 
         let invoice = botbilling::schema::billing_invoices::table
             .filter(botbilling::schema::billing_invoices::id.eq(invoice_id))

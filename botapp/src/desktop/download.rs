@@ -127,7 +127,7 @@ fn url_allowed(url: &reqwest::Url, extra: &[String], sidecar_port: u16) -> bool 
 fn is_allowed_download_url(url: &reqwest::Url) -> bool {
     let raw = std::env::var(DOWNLOAD_HOSTS_ENV).ok();
     let extra = configured_hosts(raw.as_deref());
-    url_allowed(url, &extra, super::sidecar::probe::sidecar_port())
+    url_allowed(url, &extra, super::sidecar_port())
 }
 
 /// Non-globally-routable IPv4 ranges not covered by the stable

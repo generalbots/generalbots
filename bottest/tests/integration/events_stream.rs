@@ -106,6 +106,7 @@ async fn next_sse_frame(
         let chunk = tokio::time::timeout(remaining, response.chunk())
             .await
             .ok()?
+            .ok()?
             .ok()?;
         buffer.push_str(&String::from_utf8_lossy(&chunk).replace("\r\n", "\n"));
     }

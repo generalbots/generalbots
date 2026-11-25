@@ -17,6 +17,15 @@ pub mod activity;
 pub mod app;
 pub mod commands;
 pub mod download;
+
+/// Port the sidecar listens on. Kept here so the download URL gate can allow
+/// localhost sidecar traffic even when the `desktop-local` feature is off.
+pub(crate) fn sidecar_port() -> u16 {
+    std::env::var("GB_SIDECAR_PORT")
+        .ok()
+        .and_then(|value| value.trim().parse().ok())
+        .unwrap_or(8080)
+}
 pub mod drive;
 #[cfg(target_os = "linux")]
 pub mod dbus_isolation;

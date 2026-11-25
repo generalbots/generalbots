@@ -135,17 +135,23 @@ pub(crate) async fn delete_page(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    diesel::delete(aiworkspace_comments::table.filter(aiworkspace_comments::page_id.eq(page_id)))
+    if let Err(e) = diesel::delete(aiworkspace_comments::table.filter(aiworkspace_comments::page_id.eq(page_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete page comments: {e}");
+    }
 
-    diesel::delete(aiworkspace_page_versions::table.filter(aiworkspace_page_versions::page_id.eq(page_id)))
+    if let Err(e) = diesel::delete(aiworkspace_page_versions::table.filter(aiworkspace_page_versions::page_id.eq(page_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete page versions: {e}");
+    }
 
-    diesel::delete(aiworkspace_pages::table.filter(aiworkspace_pages::parent_id.eq(page_id)))
+    if let Err(e) = diesel::delete(aiworkspace_pages::table.filter(aiworkspace_pages::parent_id.eq(page_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete child pages: {e}");
+    }
 
     let deleted = diesel::delete(aiworkspace_pages::table.filter(aiworkspace_pages::id.eq(page_id)))
         .execute(&mut conn)

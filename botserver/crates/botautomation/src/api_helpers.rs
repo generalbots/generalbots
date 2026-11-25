@@ -1,5 +1,45 @@
 use super::*;
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use botsecurity_core::verified_jwt::{verify_saas_jwt, VerifiedJwt};
+
+/// #2753 — ownership guards hand back a sanitised envelope plus the concrete
+/// status. The bridge below exists only for the legacy api.rs handlers: it
+/// forwards the generic envelope message, never a storage/IO detail.
+pub(super) struct OwnedError {
+    status: StatusCode,
+    body: SafeErrorResponse,
+}
+
+impl OwnedError {
+    fn storage(status: StatusCode, message: &str) -> Self {
+        let body = if status.is_server_error() {
+            log_and_sanitize_str(message, "botautomation ownership", None)
+        } else {
+            SafeErrorResponse::new("error", message)
+        };
+        Self { status, body }
+    }
+
+    fn not_found(resource: &'static str) -> Self {
+        Self {
+            status: StatusCode::NOT_FOUND,
+            body: SafeErrorResponse::not_found(resource),
+        }
+    }
+}
+
+fn ownership_db_error(e: impl std::fmt::Display) -> OwnedError {
+    let (status, message) = db_err("verify bot ownership", e);
+    OwnedError::storage(status, &message)
+}
+
+type LegacyError = (StatusCode, String);
+
+impl From<OwnedError> for LegacyError {
+    fn from(error: OwnedError) -> Self {
+        (error.status, error.body.message)
+    }
+}
 
 /// Canonical administrator role names (shared rule #2633). Mirrored locally so
 /// the crate needs no RBAC dependency; only *signed* role claims of a verified
@@ -197,11 +237,12 @@ pub(super) fn assert_owned_schedule(
     headers: &HeaderMap,
     token_param: &str,
     schedule_id: Uuid,
-) -> Result<AgentSchedule, (StatusCode, String)> {
-    let schedule = load_schedule(state, schedule_id)?;
+) -> Result<AgentSchedule, OwnedError> {
+    let schedule = load_schedule(state, schedule_id)
+        .map_err(|(status, message)| OwnedError::storage(status, &message))?;
     match caller_identity(headers, token_param) {
         Some(caller) if is_owned(&caller, &OwnedResource::from(&schedule)) => Ok(schedule),
-        _ => Err((StatusCode::NOT_FOUND, "Schedule not found".to_string())),
+        _ => Err(OwnedError::not_found("Schedule")),
     }
 }
 
@@ -213,22 +254,24 @@ pub(super) fn assert_owned_run(
     headers: &HeaderMap,
     token_param: &str,
     run_id: Uuid,
-) -> Result<AgentRun, (StatusCode, String)> {
-    let run = load_run_row(state, run_id)?;
+) -> Result<AgentRun, OwnedError> {
+    let run = load_run_row(state, run_id)
+        .map_err(|(status, message)| OwnedError::storage(status, &message))?;
     let caller = match caller_identity(headers, token_param) {
         Some(caller) => caller,
-        None => return Err((StatusCode::NOT_FOUND, "Run not found".to_string())),
+        None => return Err(OwnedError::not_found("Run")),
     };
     let schedule_id = match run.schedule_id {
         Some(id) => id,
-        None => return Err((StatusCode::NOT_FOUND, "Run not found".to_string())),
+        None => return Err(OwnedError::not_found("Run")),
     };
     let schedule = load_schedule(state, schedule_id)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Run not found".to_string()))?;
+        .map_err(|(status, message)| OwnedError::storage(status, &message))
+        .map_err(|_| OwnedError::not_found("Run"))?;
     if is_owned(&caller, &OwnedResource::from(&schedule)) {
         Ok(run)
     } else {
-        Err((StatusCode::NOT_FOUND, "Run not found".to_string()))
+        Err(OwnedError::not_found("Run"))
     }
 }
 
@@ -255,25 +298,24 @@ pub(super) fn assert_owned_bot(
     state: &AutomationService,
     headers: &HeaderMap,
     bot_id: Uuid,
-) -> Result<(), (StatusCode, String)> {
-    let caller =
-        caller_identity(headers, "").ok_or((StatusCode::NOT_FOUND, "Bot not found".to_string()))?;
+) -> Result<(), OwnedError> {
+    let caller = caller_identity(headers, "").ok_or_else(|| OwnedError::not_found("Bot"))?;
     let mut conn = state
         .pool()
         .get()
-        .map_err(|e| db_err("verify bot ownership", e))?;
+        .map_err(|e| ownership_db_error(e))?;
     use botschema::bots::dsl as b;
     let bot = b::bots
         .filter(b::id.eq(bot_id))
         .select((b::org_id, b::branch_id))
         .first::<(Uuid, Uuid)>(&mut conn)
         .optional()
-        .map_err(|e| db_err("verify bot ownership", e))?
-        .ok_or((StatusCode::NOT_FOUND, "Bot not found".to_string()))?;
+        .map_err(ownership_db_error)?
+        .ok_or_else(|| OwnedError::not_found("Bot"))?;
     if bot_is_owned(&caller, bot.0, bot.1) {
         Ok(())
     } else {
-        Err((StatusCode::NOT_FOUND, "Bot not found".to_string()))
+        Err(OwnedError::not_found("Bot"))
     }
 }
 

@@ -225,11 +225,14 @@ mod recipient_scope_tests {
     #[test]
     fn candidate_query_collects_both_org_sources() {
         let sql = include_str!("share_recipients.rs");
-        assert!(sql.contains("JOIN user_organizations uo ON uo.user_id = u.id"));
-        assert!(sql.contains("JOIN crm_contacts c ON lower(c.email) = lower(u.email)"));
-        assert!(sql.contains("JOIN branches br ON br.id = c.branch_id"));
+        // Scan only production code: the assertion below contains the very
+        // literal it looks for, which would otherwise make this guard vacuous.
+        let production = sql.split("#[cfg(test)]").next().unwrap_or(sql);
+        assert!(production.contains("JOIN user_organizations uo ON uo.user_id = u.id"));
+        assert!(production.contains("JOIN crm_contacts c ON lower(c.email) = lower(u.email)"));
+        assert!(production.contains("JOIN branches br ON br.id = c.branch_id"));
         assert!(
-            !sql.contains("let _ = user"),
+            !production.contains("let _ = user"),
             "the caller identity must not be discarded"
         );
     }

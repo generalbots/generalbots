@@ -103,12 +103,14 @@ fn a_macro_document_is_stripped_and_noticed_before_conversion() {
         &unscanned_policy(),
     )
     .expect("sanitized package must pass the shared gate");
+    // Structural checks stay fully enforced; only the scanner requirement is
+    // relaxed, because no malware scanner is registered inside a unit test.
     let result = audit_hostile_upload(
         &stripped.bytes,
         &upload.filename,
         &axum::http::HeaderMap::new(),
         "test",
-        &upload_policy::HostileFilePolicy::default(),
+        &unscanned_policy(),
     );
     assert!(result.is_ok(), "no executable parts may remain");
     let notice = crate::import_security::macro_notice(
@@ -232,6 +234,28 @@ fn a_clean_document_package_reaches_the_converter() {
                 .to_vec(),
         ),
     ]);
+    // `HostileFilePolicy::default()` requires a registered malware scanner;
+    // unit tests have none, so only the scanner requirement is relaxed here.
+    // Bombs, macros, XXE and unsafe relationship targets are still enforced by
+    // the same structural gates (see the negative tests in this file).
+    let result = audit_hostile_upload(
+        &bytes,
+        "clean.docx",
+        &axum::http::HeaderMap::new(),
+        "test",
+        &unscanned_policy(),
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn a_clean_zip_still_requires_a_scanner_under_the_production_policy() {
+    // Guards the fixture change above: relaxing the scanner requirement only
+    // in isolated structural tests never relaxes the production default.
+    let bytes = zip_with(&[(
+        "word/document.xml",
+        b"<w:document><w:body/></w:document>".to_vec(),
+    )]);
     let result = audit_hostile_upload(
         &bytes,
         "clean.docx",
@@ -239,7 +263,10 @@ fn a_clean_document_package_reaches_the_converter() {
         "test",
         &upload_policy::HostileFilePolicy::default(),
     );
-    assert!(result.is_ok());
+    assert!(is_sanitized_rejection(
+        result,
+        "error-file-upload-failed"
+    ));
 }
 
 #[test]

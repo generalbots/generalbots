@@ -245,9 +245,11 @@ pub(crate) async fn delete_workspace(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    diesel::delete(aiworkspace_comments::table.filter(aiworkspace_comments::workspace_id.eq(workspace_id)))
+    if let Err(e) = diesel::delete(aiworkspace_comments::table.filter(aiworkspace_comments::workspace_id.eq(workspace_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete workspace comments: {e}");
+    }
 
     let page_ids: Vec<Uuid> = aiworkspace_pages::table
         .filter(aiworkspace_pages::workspace_id.eq(workspace_id))
@@ -256,20 +258,26 @@ pub(crate) async fn delete_workspace(
         .unwrap_or_else(|_| Vec::new());
 
     if !page_ids.is_empty() {
-        diesel::delete(aiworkspace_page_versions::table.filter(
+        if let Err(e) = diesel::delete(aiworkspace_page_versions::table.filter(
             aiworkspace_page_versions::page_id.eq_any(&page_ids),
         ))
         .execute(&mut conn)
-        .ok();
+        {
+            log::warn!("failed to delete workspace page versions: {e}");
+        }
     }
 
-    diesel::delete(aiworkspace_pages::table.filter(aiworkspace_pages::workspace_id.eq(workspace_id)))
+    if let Err(e) = diesel::delete(aiworkspace_pages::table.filter(aiworkspace_pages::workspace_id.eq(workspace_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete workspace pages: {e}");
+    }
 
-    diesel::delete(aiworkspace_members::table.filter(aiworkspace_members::workspace_id.eq(workspace_id)))
+    if let Err(e) = diesel::delete(aiworkspace_members::table.filter(aiworkspace_members::workspace_id.eq(workspace_id)))
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("failed to delete workspace members: {e}");
+    }
 
     let deleted = diesel::delete(aiworkspaces::table.filter(aiworkspaces::id.eq(workspace_id)))
         .execute(&mut conn)
