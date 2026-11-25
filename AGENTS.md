@@ -58,7 +58,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 
 ```
 1. Pick the next OPEN issue(s)                          → gh issue list --state open
-2. Start any build in the background (never block)       → CARGO_BUILD_JOBS=8 nohup cargo build -p botserver > /tmp/opencode/build.log 2>&1 &
+2. Start any build in the background (never block)       → nohup cargo build -p botserver > /tmp/opencode/build.log 2>&1 &
 3. Fan out up to 8 agents, ONE ISSUE EACH                → subagent(background=true)
 4. While they run: continue with non-overlapping work    → never poll, never sleep
 5. Agent result arrives → driver checks the evidence
@@ -600,7 +600,6 @@ caught in review; if you find one, move it and re-export.
 
 - NEVER search the `/target` folder — it is binary compiled
 - ❌ NEVER build in release mode for local development / server work — use debug builds. The **only** exception is the desktop packaging pipeline (`.github/workflows/release.yml`, version tags), which builds `--release` for the installers.
-- ❌ NEVER run `cargo build` — use `cargo check` for syntax verification
 - ❌ NEVER run `cargo check` synchronously — always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ NEVER compile directly for production / copy binaries manually — ALWAYS push + CI/CD
 - ❌ NEVER SSH into bot container to deploy binaries — CI workflow handles build, transfer, restart via alm-ci SSH
@@ -697,24 +696,20 @@ Script: reads `/tmp/<crate>_check.log` → parses file:line:col → applies rege
 
 **LLM-enabled scripts:** for semantic fixes use `openai` package with `DEV_LLM_URL`/`DEV_LLM_KEY` from `.env` (DEV-only keys, never committed). Script sends error + code context, LLM returns fixed code.
 
-### Memory Management (process "Killed")
+### Compilation — non-blocking, online coding
 
-The dev container is capped at **4.5 GiB**, so `rustc` is SIGKILLed while
-compiling the `botserver` graph (diesel + ooxmlsdk). This cap is an
-**environment-specific exception, not the project default**: the default is
-**6 jobs** via `.cargo/config.toml` (#2243). On this container use
-`CARGO_BUILD_JOBS=1` (or 2) for local builds — `nohup` and crate-scoped checks
-do not make the full graph fit, so do not burn time retrying it.
+Compilation is allowed while fixing issues. Never block on a build.
 
-- **Syntax gate (local):** `scripts/verify-rust-syntax.sh [base-ref]` parses
-  every changed `.rs` with `rustfmt --emit stdout` and reports failures.
-  It catches syntax errors, not missing imports or type mismatches.
-- **Type/compile gate (authoritative):** push to `main`, or dispatch
-  `release.yml` on a version tag. The release build is the only supported
-  compile check under the current memory cap.
-- **If the cap is ever raised to ≥8–12 GiB**, verify
-  `cargo check -p botserver` once and update this section; until then, do not
-  add local cargo jobs to scripts or agent instructions.
+- **Always stop all services before compiling** to free RAM; restart with
+  `./restart.sh` before browser testing.
+- **Default:** `cargo build`, launched in the background with output to
+  `/tmp/`; keep working on other issues while it runs and read the log later.
+  Parallelism comes from the single source of truth, `.cargo/config.toml`
+  (`jobs = 3`); do not override it with `-j` or `CARGO_BUILD_JOBS` unless the
+  host cannot fit it.
+- One build at a time; scoped `cargo check`/`cargo test` are permitted.
+  `scripts/verify-rust-syntax.sh [base-ref]` is a quick syntax gate.
+- CI on push to `main` (or `release.yml`) remains the authoritative type gate.
 
 ---
 
