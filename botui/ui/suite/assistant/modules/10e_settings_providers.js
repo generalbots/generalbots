@@ -14,6 +14,7 @@
 var A = window.GBAssistant;
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function S() { return A._modelShared; }
+function gbT(k, fb) { return typeof window.gbT === "function" ? window.gbT(k, fb) : fb; }
 
 var P = [
   { id:"openai", name:"OpenAI", co:"OpenAI", pt:"Modelos GPT", en:"GPT models",
@@ -64,7 +65,7 @@ var P = [
 
 var L = { "pt-BR": {
   intro:"Escolha o provedor. O endereço é preenchido sozinho; você só escolhe o modelo e cola a chave.",
-  search:"Buscar provedor", connect:"Conectar", inUse:"Em uso", none:"Nenhum provedor com esse nome.",
+  search:"Buscar provedor", connect:"Conectar", inUse:"Em uso", none:gbT("mdl-prov-none", "No provider by that name."),
   soon:"Em breve",
   orgT:"Servidor da sua organização", orgD:"Qualquer servidor compatível com a API da OpenAI (vLLM, Ollama, LM Studio, Azure…)",
   add:"Adicionar", back:"Todos os provedores", address:"Endereço", auto:"automático",

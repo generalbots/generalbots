@@ -34,7 +34,7 @@
         var preview = document.createElement("button");
         preview.type = "button";
         preview.textContent = t("weba-preview", "Preview");
-        preview.onclick = function () { window.open("/render/" + app.slug, "_blank"); };
+        preview.onclick = function () { window.open("/render/" + app.slug, "_blank", "noopener,noreferrer"); };
         row.appendChild(preview);
         el.appendChild(row);
       });

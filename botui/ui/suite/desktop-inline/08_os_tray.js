@@ -435,9 +435,9 @@
     startPolling();
   }
 
-  // #2504 — the media indicator is not edition-gated: a Tauri desktop
-  // WebView can grant the microphone or camera too.
-  installMediaIndicator();
+  // The media indicator is installed by 08b_os_tray_media.js, which defines
+  // installMediaIndicator() and loads after this file. Calling it here threw
+  // a ReferenceError that aborted the rest of this IIFE (overflow/polling).
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", wire);

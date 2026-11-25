@@ -111,6 +111,6 @@
   global.docsSanitizeHtml = sanitize;
 
   if (global.location && /docs-sanitize-selftest/.test(String(global.location.hash))) {
-    try { console.log("[DocsSanitize] selfTest", selfTest()); } catch (e) { /* no console */ }
+    try { if (global.gbLog && global.gbLog.debug) global.gbLog.debug("[DocsSanitize] selfTest", selfTest()); } catch (e) { /* no logging */ }
   }
 })(typeof window !== "undefined" ? window : this);

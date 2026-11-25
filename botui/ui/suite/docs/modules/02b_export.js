@@ -141,13 +141,12 @@
       return;
     }
     if (document.getElementById("docsExportBtn")) return;
-    var button = document.createElement("button");
-    button.className = "btn-icon";
-    button.id = "docsExportBtn";
-    button.title = "Export";
-    button.setAttribute("aria-label", "Export document");
-    button.style.cssText = "font-size:14px;padding:4px 6px;";
-    button.textContent = "⭳";
+    // #2448 criterion 6: the Export toolbar action declares the catalog verb
+    // it performs (`docs.export`, registered in botserver/src/apps/commands),
+    // so the toolbar-to-verb parity guard checks a real, non-vacuous mapping.
+    var holder = document.createElement("div");
+    holder.innerHTML = '<button type="button" class="btn-icon" id="docsExportBtn" data-verb="docs.export" title="Export" aria-label="Export document" style="font-size:14px;padding:4px 6px;">⭳</button>';
+    var button = holder.firstChild;
     button.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();

@@ -12,16 +12,17 @@
 (function () {
 var A = window.GBAssistant;
 var FILTER_FROM = 12;
+function gbT(k, fb) { return typeof window.gbT === "function" ? window.gbT(k, fb) : fb; }
 
 var L = { "pt-BR": {
   title:"Modelos desta chave",
   hint:"Busque os modelos que esta chave libera e ligue os que devem aparecer no menu do chat.",
   stored:"Com o campo da chave vazio, a busca usa a chave guardada.",
   fetch:"Buscar modelos", fetching:"Buscando modelos…", filter:"Filtrar modelos",
-  count:"%n de %t ligados", save:"Salvar modelos", saving:"Salvando…",
+  count:"%n de %t ligados", save:gbT("mdl-km-save", "Save models"), saving:"Salvando…",
   saved:"Modelos salvos. Os ligados aparecem no menu do chat.",
   fetchFail:"Não foi possível buscar os modelos (%e).", saveFail:"Não foi possível salvar (%e).",
-  empty:"O provedor não devolveu nenhum modelo.", noMatch:"Nenhum modelo com esse nome.",
+  empty:"O provedor não devolveu nenhum modelo.", noMatch:gbT("mdl-km-no-match", "No model by that name."),
   unavailable:"Este servidor ainda não oferece modelos por chave.", said:"O provedor disse:",
   urlNeeded:"Informe o endereço do servidor.", keyNeeded:"Cole a chave de API." },
 en: {
