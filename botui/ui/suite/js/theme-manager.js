@@ -133,14 +133,15 @@ const ThemeManager = (() => {
     link.id = "theme-css";
     link.rel = "stylesheet";
     link.href = `/suite/public/themes/${theme.file}?v=2`;
+    // #2933 — the stylesheet's load event already guarantees style resolution;
+    // the old 50 ms timer only delayed the batched read/compute/write bridge
+    // onto a later task and left the newly loaded theme unbridged for 50 ms.
     link.onload = () => {
       if (document.getElementById("theme-css") !== link) return;
       gbLog.debug("✓ Theme loaded:", theme.name);
       currentThemeId = id;
-      setTimeout(() => {
-        scheme.bridge(id, theme.name, announce);
-        updateDropdown();
-      }, 50);
+      scheme.bridge(id, theme.name, announce);
+      updateDropdown();
     };
     link.onerror = () => console.error("✗ Failed:", theme.name);
     document.head.appendChild(link);
