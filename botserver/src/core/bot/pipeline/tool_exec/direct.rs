@@ -63,7 +63,9 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
                 &message,
                 channel,
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("tool exec: availability notice not delivered: {e}");
+            }
             return;
         }
         let state_for_tool = state.clone();
@@ -128,7 +130,9 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
                     &message,
                     channel,
                 );
-                let _ = sink.send_bot_response(&resp).await;
+                if let Err(e) = sink.send_bot_response(&resp).await {
+                    log::warn!("tool exec: failure notice not delivered: {e}");
+                }
             }
             Err(e) => {
                 let fail = tool_act.failed(&e.to_string());

@@ -8,5 +8,7 @@
 //! deterministic and unit-testable.
 
 mod budget;
+mod db_read;
 
 pub use budget::{Budget, Decision, ErrorCounts, RULE_NAMES};
+pub use db_read::DbRead;

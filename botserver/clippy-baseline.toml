@@ -16,18 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 859
-
-# Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real
-# `cargo clippy --message-format=json` diagnostics, not textual proxies. They
-# are counted only in non-test production files under `botserver/src` and
-# `botserver/crates` by scripts/check_clippy_baseline.py. The text ratchet has
-# driven all three to zero in scope, so any occurrence is a regression.
-# Shrink-only: lower a number after fixing sites; never raise one by hand.
-[clippy]
-unwrap_used = 0
-expect_used = 0
-panic = 0
+discarded_result = 793
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -40,9 +29,6 @@ discarded_result = ".ok(); statements and let _ = ...; bindings"
 discarded_result = 18
 
 [files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
-discarded_result = 12
-
-[files."botserver/src/core/bot/pipeline/llm/stream.rs"]
 discarded_result = 12
 
 [files."botserver/src/main_module/init.rs"]
@@ -58,9 +44,6 @@ discarded_result = 10
 discarded_result = 10
 
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
-discarded_result = 10
-
-[files."botserver/src/core/bot/pipeline/llm/attempt.rs"]
 discarded_result = 10
 
 [files."botserver/crates/botsources/src/handlers/sources_handlers/handle_list_repositories.rs"]
@@ -87,9 +70,6 @@ discarded_result = 8
 [files."botserver/src/console/wizard/wizard_core.rs"]
 discarded_result = 7
 
-[files."botserver/src/core/bot/pipeline/exec/mod.rs"]
-discarded_result = 7
-
 [files."botserver/src/core/bot/ws/stream/turn.rs"]
 discarded_result = 7
 
@@ -103,9 +83,6 @@ discarded_result = 6
 discarded_result = 6
 
 [files."botserver/src/core/bot/pipeline/event_sink/steps.rs"]
-discarded_result = 6
-
-[files."botserver/src/core/bot/pipeline/tool_exec/script.rs"]
 discarded_result = 6
 
 [files."botserver/src/core/bot/ws/session.rs"]
@@ -139,9 +116,6 @@ discarded_result = 5
 discarded_result = 5
 
 [files."botserver/src/basic/mod.rs"]
-discarded_result = 5
-
-[files."botserver/src/core/bot/pipeline/vibe_route.rs"]
 discarded_result = 5
 
 [files."botserver/src/core/bot/ws/stream.rs"]
@@ -185,3 +159,29 @@ discarded_result = 4
 
 [files."botserver/crates/botmarketing/src/whatsapp.rs"]
 discarded_result = 4
+
+[files."botserver/crates/botmarketplace/src/blobstore.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botmodelsbridge/src/python_bridge/start.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botmonitoring/src/lib.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botmonitoring/src/real_time/subscribe.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botsecurity-core/src/jwt_secret.rs"]
+discarded_result = 4
+
+# Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real
+# `cargo clippy --message-format=json` diagnostics, not textual proxies. They
+# are counted only in non-test production files under `botserver/src` and
+# `botserver/crates` by scripts/check_clippy_baseline.py. The text ratchet has
+# driven all three to zero in scope, so any occurrence is a regression.
+# Shrink-only: lower a number after fixing sites; never raise one by hand.
+[clippy]
+unwrap_used = 0
+expect_used = 0
+panic = 0

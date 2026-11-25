@@ -153,7 +153,9 @@ pub async fn run_llm_tool_call(
                 msg,
                 sink.channel_type(),
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("tool_call: response frame not delivered: {e}");
+            }
             return String::new();
         }
 
@@ -169,7 +171,9 @@ pub async fn run_llm_tool_call(
                 &msg,
                 sink.channel_type(),
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("tool_call: response frame not delivered: {e}");
+            }
             return String::new();
         }
 
@@ -283,7 +287,9 @@ pub async fn run_llm_tool_call(
                 &message,
                 sink.channel_type(),
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("tool_call: response frame not delivered: {e}");
+            }
             return String::new();
         }
 

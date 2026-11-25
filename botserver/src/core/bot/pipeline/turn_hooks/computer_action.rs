@@ -39,7 +39,9 @@ pub(crate) async fn propose_computer_action(
                 "url": action.get("url").cloned().map_or_else(Default::default, |v| v),
             },
         });
-        let _ = sink.send_raw_json(&frame).await;
+        if let Err(e) = sink.send_raw_json(&frame).await {
+            log::warn!("computer action: frame not delivered: {e}");
+        }
         return true;
     }
     if let Some(action) = crate::core::computer_use::propose_terminal_from_text(user_text) {
@@ -54,7 +56,9 @@ pub(crate) async fn propose_computer_action(
                 super::super::agent_turn::DISABLED_MESSAGE,
                 "web",
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("computer action: disabled notice not delivered: {e}");
+            }
             return true;
         }
         let proposal = crate::core::computer_use::create(
@@ -77,7 +81,9 @@ pub(crate) async fn propose_computer_action(
                 "reason": action.get("reason").cloned().map_or_else(Default::default, |v| v),
             },
         });
-        let _ = sink.send_raw_json(&frame).await;
+        if let Err(e) = sink.send_raw_json(&frame).await {
+            log::warn!("computer action: frame not delivered: {e}");
+        }
         return true;
     }
     false

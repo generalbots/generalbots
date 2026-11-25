@@ -49,7 +49,9 @@ pub async fn process_message_internal(
                 &status,
                 sink.channel_type(),
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("exec: response frame not delivered: {e}");
+            }
             return Ok(());
         }
     }
@@ -319,7 +321,9 @@ pub async fn process_message_internal(
                 format!("<p>{reply}</p>"),
                 "web",
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("exec: response frame not delivered: {e}");
+            }
             return Ok(());
         }
     }
@@ -350,7 +354,9 @@ pub async fn process_message_internal(
                 format!("Tool '{tool_name}' not implemented via legacy path"),
                 "web",
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("exec: response frame not delivered: {e}");
+            }
         }
         return Ok(());
     }
@@ -368,7 +374,9 @@ pub async fn process_message_internal(
                     format!("<p>Invalid tool name: {raw_tool_name}</p>"),
                     "web",
                 );
-                let _ = sink.send_bot_response(&resp).await;
+                if let Err(e) = sink.send_bot_response(&resp).await {
+                    log::warn!("exec: tool error frame not delivered: {e}");
+                }
                 return Ok(());
             }
         };

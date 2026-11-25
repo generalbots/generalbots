@@ -57,7 +57,9 @@ pub(super) async fn execute_and_prepare_followup(
                 "session_id": session_id_s,
                 "message": steer,
             });
-            let _ = sink.send_raw_json(&notice).await;
+            if let Err(e) = sink.send_raw_json(&notice).await {
+                log::warn!("stream tools: steering frame not delivered: {e}");
+            }
             if let Some(items) = follow_messages.as_array_mut() {
                 items.push(serde_json::json!({
                     "role": "user",

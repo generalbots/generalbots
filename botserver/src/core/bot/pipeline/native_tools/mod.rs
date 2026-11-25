@@ -108,8 +108,10 @@ pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
         message,
         sink.channel_type(),
     );
-    // A failed send is already logged by the sink implementation.
-    let _ = sink.send_bot_response(&resp).await;
+    // Best-effort send; log here when the sink rejects the frame.
+    if let Err(e) = sink.send_bot_response(&resp).await {
+        log::warn!("native tools: response frame not delivered: {e}");
+    }
 }
 
 /// Save an assistant turn so a result is still there after the user switches

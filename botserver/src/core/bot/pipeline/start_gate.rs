@@ -104,10 +104,12 @@ pub(super) async fn gate_turn(
             context_max_length: 0,
             reasoning: String::new(),
         };
-        let _ = sink.send_bot_response(&resp).await;
+        if let Err(e) = sink.send_bot_response(&resp).await {
+            log::warn!("start gate: start.bas response not delivered: {e}");
+        }
     }
 
-    let _ = sink
+    if let Err(e) = sink
         .send_bot_response(&BotResponse {
             bot_id: bot_uuid.to_string(),
             user_id: user_id.to_string(),
@@ -124,7 +126,10 @@ pub(super) async fn gate_turn(
             context_max_length: 0,
             reasoning: String::new(),
         })
-        .await;
+        .await
+    {
+        log::warn!("start gate: opening frame not delivered: {e}");
+    }
 
     Ok(false)
 }

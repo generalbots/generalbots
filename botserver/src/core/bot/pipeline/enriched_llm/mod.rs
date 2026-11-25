@@ -186,11 +186,15 @@ pub(super) async fn build_and_stream(
             super::llm::message_meta::encode(&display_text, &meta)
         };
         let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 1, &stored_text, 1);
+        if let Err(e) = sm.save_message(session_id, user_id, 1, &stored_text, 1) {
+            log::warn!("enriched llm: user turn not persisted: {e}");
+        }
         // Name the conversation as soon as it starts, from the user's own
         // words. Only runs while the title is still a placeholder, so a later
         // rename (manual or automatic) is preserved.
-        let _ = sm.ensure_title_from_message(session_id, user_id, &display_text);
+        if let Err(e) = sm.ensure_title_from_message(session_id, user_id, &display_text) {
+            log::warn!("enriched llm: title not generated: {e}");
+        }
     }
 
     if let Some(arr) = messages_val.as_array_mut() {

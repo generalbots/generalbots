@@ -140,7 +140,9 @@ pub async fn run_start_bas(
         match rx.try_recv() {
             Ok(response) => {
                 drained += 1;
-                let _ = sink.send_bot_response(&response).await;
+                if let Err(e) = sink.send_bot_response(&response).await {
+                    log::warn!("start.bas: drained response not delivered: {e}");
+                }
             }
             Err(tokio::sync::mpsc::error::TryRecvError::Empty) => break,
             Err(_) => break,
@@ -204,6 +206,8 @@ async fn send_start_suggestions(
             context_max_length: 0,
             reasoning: String::new(),
         };
-        let _ = sink.send_bot_response(&resp).await;
+        if let Err(e) = sink.send_bot_response(&resp).await {
+            log::warn!("start.bas: suggestions frame not delivered: {e}");
+        }
     }
 }

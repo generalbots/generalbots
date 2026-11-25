@@ -46,7 +46,7 @@ pub(super) async fn send_stream_start_marker(
     session_id: Uuid,
     user_id: Uuid,
 ) {
-    let _ = sink
+    if let Err(e) = sink
         .send_bot_response(&botlib::models::BotResponse {
             bot_id: bot_uuid.to_string(),
             user_id: user_id.to_string(),
@@ -63,5 +63,8 @@ pub(super) async fn send_stream_start_marker(
             context_max_length: 0,
             reasoning: String::new(),
         })
-        .await;
+        .await
+    {
+        log::warn!("history: stream-start marker not delivered: {e}");
+    }
 }

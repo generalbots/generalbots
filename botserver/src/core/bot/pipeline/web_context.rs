@@ -73,7 +73,9 @@ async fn status(
         context_max_length: 0,
         reasoning: format!("{text}\n"),
     };
-    let _ = sink.send_bot_response(&response).await;
+    if let Err(e) = sink.send_bot_response(&response).await {
+        log::warn!("web context: reasoning frame not delivered: {e}");
+    }
 }
 
 /// Searches the user's turn directly and injects the results. Called only when

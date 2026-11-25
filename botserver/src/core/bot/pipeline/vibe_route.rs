@@ -68,7 +68,9 @@ pub(super) async fn route_vibe_project(
                 super::agent_turn::DISABLED_MESSAGE,
                 "web",
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("vibe route: disabled notice not delivered: {e}");
+            }
             return Ok(true);
         }
         let project_name = routed_project_name;
@@ -121,7 +123,9 @@ pub(super) async fn route_vibe_project(
                         format!("⏳ {detail} — your change is queued and will run automatically."),
                         "web",
                     );
-                    let _ = sink.send_bot_response(&resp).await;
+                    if let Err(e) = sink.send_bot_response(&resp).await {
+                        log::warn!("vibe route: lock-conflict notice not delivered: {e}");
+                    }
                     return Ok(true);
                 }
                 // Surface a concise confirmation; the run itself streams its
@@ -139,7 +143,9 @@ pub(super) async fn route_vibe_project(
                     &note,
                     "web",
                 );
-                let _ = sink.send_bot_response(&resp).await;
+                if let Err(e) = sink.send_bot_response(&resp).await {
+                    log::warn!("vibe route: response frame not delivered: {e}");
+                }
 
                 // #e2e — report the run's outcome back into this chat. The
                 // "agent started" note above is the last thing the user sees
@@ -172,7 +178,9 @@ pub(super) async fn route_vibe_project(
                             );
                             let channels = state.response_channels.lock().await;
                             if let Some(tx) = channels.get(&session_id.to_string()) {
-                                let _ = tx.try_send(resp);
+                                if let Err(e) = tx.try_send(resp) {
+                                    log::warn!("vibe route: chat poll message dropped: {e}");
+                                }
                             }
                         };
                         let final_state = loop {
@@ -261,7 +269,9 @@ pub(super) async fn route_vibe_project(
                     format!("Vibe agent could not start for '{project_name}': {e}"),
                     "web",
                 );
-                let _ = sink.send_bot_response(&resp).await;
+                if let Err(e) = sink.send_bot_response(&resp).await {
+                    log::warn!("vibe route: response frame not delivered: {e}");
+                }
             }
         }
         return Ok(true);

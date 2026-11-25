@@ -309,7 +309,9 @@ pub(super) async fn emit_injection_blocked(
         "context_length": 0,
         "context_max_length": 0,
     });
-    let _ = sink.send_raw_json(&frame).await;
+    if let Err(e) = sink.send_raw_json(&frame).await {
+        log::warn!("exec: security-block frame not delivered: {e}");
+    }
     true
 }
 

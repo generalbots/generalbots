@@ -112,7 +112,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             // loop can classify it and report to the client, instead of
             // silently producing an empty response.
             let sentinel = super::error_classify::sentinel_message(&e.to_string());
-            let _ = retry_tx.send(sentinel).await;
+            if let Err(e) = retry_tx.send(sentinel).await {
+                log::warn!("attempt: LLM error sentinel not queued: {e}");
+            }
         }
     }));
 
@@ -134,7 +136,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         if !style_css.is_empty() {
             init_msg["css"] = serde_json::Value::String(style_css.to_string());
         }
-        let _ = sink.send_raw_json(&init_msg).await;
+        if let Err(e) = sink.send_raw_json(&init_msg).await {
+            log::warn!("attempt: init frame not delivered: {e}");
+        }
     } else {
         log::warn!("LLM retry attempt {}/{}", attempt, super::LLM_RETRY_MAX);
     }
@@ -155,8 +159,12 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                 super::message_meta::stopped_answer(&content_buffer, &attempt_reasoning);
             {
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &kept, 2);
-                let _ = sm.record_message_model(session_id, model);
+                if let Err(e) = sm.save_message(session_id, user_id, 2, &kept, 2) {
+                    log::warn!("attempt: stopped answer not persisted: {e}");
+                }
+                if let Err(e) = sm.record_message_model(session_id, model) {
+                    log::warn!("attempt: stopped answer model not recorded: {e}");
+                }
             }
             let cancelled = botlib::models::BotResponse::new(
                 bot_uuid_s,
@@ -165,7 +173,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                 "Stopped.",
                 "web",
             );
-            let _ = sink.send_bot_response(&cancelled).await;
+            if let Err(e) = sink.send_bot_response(&cancelled).await {
+                log::warn!("attempt: cancelled notice not delivered: {e}");
+            }
             return AttemptOutcome::Stopped;
         }
         tokio::select! {
@@ -200,7 +210,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                         context_max_length: 0,
                                         reasoning: r.to_string(),
                                     };
-                                    let _ = sink.send_bot_response(&rc).await;
+                                    if let Err(e) = sink.send_bot_response(&rc).await {
+                                        log::warn!("attempt: reasoning frame not delivered: {e}");
+                                    }
                                 }
                             }
                             continue;
@@ -267,7 +279,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                 context_max_length: 0,
                                 reasoning: String::new(),
                             };
-                            let _ = sink.send_bot_response(&partial).await;
+                            if let Err(e) = sink.send_bot_response(&partial).await {
+                                log::warn!("attempt: partial frame not delivered: {e}");
+                            }
                         }
                         budget.observe_chars(full_response.chars().count());
                         if let Some(breach) = budget.check() {
@@ -282,7 +296,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                             );
                             {
                                 let mut sm = state.session_manager.lock().await;
-                                let _ = sm.save_message(session_id, user_id, 2, &notice, 2);
+                                if let Err(e) = sm.save_message(session_id, user_id, 2, &notice, 2) {
+                                    log::warn!("attempt: cap notice not persisted: {e}");
+                                }
                             }
                             let capped = serde_json::json!({
                                 "bot_id": bot_uuid_s,
@@ -297,7 +313,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                 "context_length": 0,
                                 "context_max_length": 0,
                             });
-                            let _ = sink.send_raw_json(&capped).await;
+                            if let Err(e) = sink.send_raw_json(&capped).await {
+                                log::warn!("attempt: cap frame not delivered: {e}");
+                            }
                             return AttemptOutcome::Capped;
                         }
                         if !ttft_logged {
@@ -345,7 +363,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                     "context_length": 0,
                     "context_max_length": 0,
                 });
-                let _ = sink.send_raw_json(&ka).await;
+                if let Err(e) = sink.send_raw_json(&ka).await {
+                    log::warn!("attempt: keepalive frame not delivered: {e}");
+                }
             }
         }
     }

@@ -254,9 +254,13 @@ pub(crate) async fn respond_in_answer_mode(
     };
     match mode_response {
         Ok(resp) => {
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("answer mode: response frame not delivered: {e}");
+            }
             let mut sm = state.session_manager.lock().await;
-            let _ = sm.save_message(session_id, user_id, 2, &resp.content, 2);
+            if let Err(e) = sm.save_message(session_id, user_id, 2, &resp.content, 2) {
+                log::warn!("answer mode: answer not persisted: {e}");
+            }
         }
         Err(e) => {
             let err_resp = botlib::models::BotResponse::new(
@@ -266,7 +270,9 @@ pub(crate) async fn respond_in_answer_mode(
                 format!("<p>Error: {e}</p>"),
                 "web",
             );
-            let _ = sink.send_bot_response(&err_resp).await;
+            if let Err(e) = sink.send_bot_response(&err_resp).await {
+                log::warn!("answer mode: error frame not delivered: {e}");
+            }
         }
     }
     Ok(true)

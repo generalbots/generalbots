@@ -130,7 +130,9 @@ pub(super) async fn run_terminal_run(identity: &SessionIdentity<'_>, args: &str)
                 );
             }
         }
-        let _ = child.wait();
+        if let Err(e) = child.wait() {
+            log::warn!("terminal: child wait failed: {e}");
+        }
         Ok(output)
     })
     .await;
