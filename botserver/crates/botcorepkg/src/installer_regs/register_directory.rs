@@ -34,7 +34,19 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 ).to_string(),
             ],
             post_install_cmds_linux: vec![
-                "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE ROLE zitadel WITH LOGIN PASSWORD '{{ZITADEL_PASSWORD}}'\" 2>&1 | grep -v 'already exists' || true".to_string(),
+                // Idempotent and fail-closed: an existing `zitadel` role must
+                // receive the password resolved for this install, otherwise
+                // Zitadel starts with a stale credential and never becomes
+                // ready (auth failure 28P01). The old `grep -v || true`
+                // masked exactly that failure.
+                concat!(
+                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql ",
+                    "-h localhost -p 5432 -U gbuser -d postgres -v ON_ERROR_STOP=1 ",
+                    "-c \"DO \\$zitadel\\$ BEGIN IF NOT EXISTS ",
+                    "(SELECT FROM pg_roles WHERE rolname = 'zitadel') THEN ",
+                    "CREATE ROLE zitadel WITH LOGIN; END IF; END \\$zitadel\\$;\" ",
+                    "-c \"ALTER ROLE zitadel WITH LOGIN PASSWORD '{{ZITADEL_PASSWORD}}';\""
+                ).to_string(),
                 "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel WITH OWNER zitadel\" 2>&1 | grep -v 'already exists' || true".to_string(),
                 "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel\" 2>&1 || true".to_string(),
                 concat!(
