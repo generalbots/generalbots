@@ -106,7 +106,7 @@ pub fn run_commands_with_password(
             // whose password is empty during first boot, even though Vault
             // already has the seeded credential. Read the strict Vault field
             // so installer SQL never runs with `PGPASSWORD=''`.
-            match crate::db_utils::get_secret_value_sync("secret/gbo/tables", "password") {
+            match crate::db_utils::get_secret_value_strict_sync("secret/gbo/tables", "password") {
                 Ok(password) => password,
                 Err(_) => {
                     trace!("Vault not available for DB_PASSWORD, using empty string");

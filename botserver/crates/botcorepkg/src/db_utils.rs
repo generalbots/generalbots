@@ -51,6 +51,21 @@ pub fn get_secret_value_sync(path: &str, key: &str) -> Result<String> {
     }
 }
 
+/// Strict Vault read of one field. `get_value_sync` uses the cached/env-backed
+/// secret view, which can hold an empty password during first boot; installer
+/// commands must use the strict path instead.
+pub fn get_secret_value_strict_sync(path: &str, key: &str) -> Result<String> {
+    let value = get_secret_strict_sync(path)?
+        .get(key)
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("Key '{key}' not found in '{path}'"))?;
+    if value.is_empty() {
+        Err(anyhow::anyhow!("Vault field {path}::{key} is empty"))
+    } else {
+        Ok(value)
+    }
+}
+
 pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
     if let Some(stripped) = url.strip_prefix("postgres://") {
         let parts: Vec<&str> = stripped.split('@').collect();
