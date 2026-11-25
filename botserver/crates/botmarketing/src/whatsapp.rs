@@ -103,7 +103,7 @@ pub async fn send_whatsapp_message(
         Ok(message_id) => {
             if let Some(recipient_id) = payload.recipient_id {
                 let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-                diesel::update(
+                if let Err(e) = diesel::update(
                     marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)),
                 )
                 .set((
@@ -112,7 +112,9 @@ pub async fn send_whatsapp_message(
                     marketing_recipients::response.eq(Some(serde_json::json!({ "message_id": message_id }))),
                 ))
                 .execute(&mut conn)
-                .ok();
+                {
+                    log::warn!("Failed to mark WhatsApp recipient as sent: {e}");
+                }
             }
 
             Ok(WhatsAppSendResult {
@@ -124,7 +126,7 @@ pub async fn send_whatsapp_message(
         Err(send_err) => {
             if let Some(recipient_id) = payload.recipient_id {
                 let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-                diesel::update(
+                if let Err(e) = diesel::update(
                     marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)),
                 )
                 .set((
@@ -133,7 +135,9 @@ pub async fn send_whatsapp_message(
                     marketing_recipients::error_message.eq(Some(send_err.clone())),
                 ))
                 .execute(&mut conn)
-                .ok();
+                {
+                    log::warn!("Failed to mark WhatsApp recipient as failed: {e}");
+                }
             }
 
             let _ = media_type;
@@ -275,16 +279,20 @@ pub async fn handle_webhook_event(
                     None
                 };
 
-                diesel::update(marketing_recipients::table.filter(
-                    marketing_recipients::response
-                        .eq(Some(serde_json::json!({ "message_id": message_id }))),
-                ))
+                if let Err(e) = diesel::update(
+                    marketing_recipients::table.filter(
+                        marketing_recipients::response
+                            .eq(Some(serde_json::json!({ "message_id": message_id }))),
+                    ),
+                )
                 .set((
                     marketing_recipients::status.eq(status_str),
                     marketing_recipients::delivered_at.eq(delivered_at),
                 ))
                 .execute(&mut conn)
-                .ok();
+                {
+                    log::warn!("Failed to persist WhatsApp delivery status: {e}");
+                }
             }
         }
     }

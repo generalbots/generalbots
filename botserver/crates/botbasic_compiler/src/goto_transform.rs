@@ -209,7 +209,9 @@ fn generate_state_machine(blocks: &[LabeledBlock]) -> String {
         &blocks[0].name
     };
 
-    let _ = writeln!(output, "let __goto_label = \"{start_label}\";");
+    if let Err(e) = writeln!(output, "let __goto_label = \"{start_label}\";") {
+        warn!("Failed to render GOTO state-machine initializer: {e}");
+    }
     output.push_str("let __goto_iterations = 0;\n");
     output.push_str("let __goto_max_iterations = 1000000;\n\n");
     output.push_str("while __goto_label != \"__exit\" {\n");
@@ -221,21 +223,27 @@ fn generate_state_machine(blocks: &[LabeledBlock]) -> String {
     output.push_str("    }\n\n");
 
     for block in blocks {
-        let _ = writeln!(output, "    if __goto_label == \"{}\" {{", block.name);
+        if let Err(e) = writeln!(output, "    if __goto_label == \"{}\" {{", block.name) {
+            warn!("Failed to render GOTO state-machine block guard: {e}");
+        }
 
         for line in &block.lines {
             let transformed = transform_line(line);
 
             for transformed_line in transformed.lines() {
                 if !transformed_line.trim().is_empty() {
-                    let _ = writeln!(output, "        {transformed_line}");
+                    if let Err(e) = writeln!(output, "        {transformed_line}") {
+                        warn!("Failed to render GOTO state-machine line: {e}");
+                    }
                 }
             }
         }
 
         match &block.next_label {
             Some(next) => {
-                let _ = writeln!(output, "        __goto_label = \"{next}\"; continue;");
+                if let Err(e) = writeln!(output, "        __goto_label = \"{next}\"; continue;") {
+                    warn!("Failed to render GOTO state-machine jump: {e}");
+                }
             }
             None => {
                 output.push_str("        __goto_label = \"__exit\";\n");

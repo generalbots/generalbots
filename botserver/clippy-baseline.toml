@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 455
+discarded_result = 444
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -43,9 +43,6 @@ discarded_result = 4
 [files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/send_web_message.rs"]
 discarded_result = 4
 
-[files."botserver/crates/botbasic_compiler/src/goto_transform.rs"]
-discarded_result = 4
-
 [files."botserver/crates/botcore/src/os_abstraction/linux.rs"]
 discarded_result = 4
 
@@ -65,9 +62,6 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botdesktop/src/proxy.rs"]
-discarded_result = 4
-
-[files."botserver/crates/botmarketing/src/whatsapp.rs"]
 discarded_result = 4
 
 [files."botserver/crates/botmarketplace/src/blobstore.rs"]
@@ -116,9 +110,6 @@ discarded_result = 3
 discarded_result = 3
 
 [files."botserver/crates/botemail/src/handlers/integration.rs"]
-discarded_result = 3
-
-[files."botserver/crates/botmarketing/src/campaigns.rs"]
 discarded_result = 3
 
 [files."botserver/crates/botmeet/src/signaling/handler.rs"]
@@ -172,7 +163,16 @@ discarded_result = 2
 [files."botserver/crates/botautotask/src/intent_classifier/handle_monitor.rs"]
 discarded_result = 2
 
-[files."botserver/crates/botbasic_compiler/src/preprocess_basic.rs"]
+[files."botserver/crates/botbasic_core/src/keywords/dag.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botbasic_core/src/keywords/set_user.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botbasic_data/src/keywords/table_definition/parse_table_definition.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botbasic_system/src/keywords/create_site/llm_impl/create_site.rs"]
 discarded_result = 2
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real

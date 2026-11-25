@@ -39,14 +39,16 @@ impl BasicCompiler {
                 .get()
                 .map_err(|e| format!("Failed to get database connection: {e}"))?;
             use botcore::shared::schema::system_automations::dsl::*;
-            diesel::delete(
+            if let Err(e) = diesel::delete(
                 system_automations
                     .filter(bot_id.eq(&bot_uuid))
                     .filter(kind.eq(TriggerKind::Scheduled as i32))
                     .filter(param.eq(&script_name)),
             )
             .execute(&mut conn)
-            .ok();
+            {
+                log::error!("Failed to clean old scheduled triggers during preprocessing: {e}");
+            }
         }
 
         let website_regex = crate::re_cache::cached_re!(

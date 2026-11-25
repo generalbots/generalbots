@@ -366,11 +366,19 @@ pub async fn send_campaign(
             let safe_name = plain_param(&name);
             match (state.send_whatsapp)(bot_id, &email, &message, Some(safe_name.as_str()), None) {
                 Ok(_) => {
-                    set_recipient_status(&mut conn, campaign_id, contact_id, "sent", None).ok();
+                    if let Err(e) =
+                        set_recipient_status(&mut conn, campaign_id, contact_id, "sent", None)
+                    {
+                        log::warn!("Failed to record sent status for campaign recipient: {e}");
+                    }
                     sent += 1;
                 }
                 Err(e) => {
-                    set_recipient_status(&mut conn, campaign_id, contact_id, "failed", Some(e)).ok();
+                    if let Err(status_err) =
+                        set_recipient_status(&mut conn, campaign_id, contact_id, "failed", Some(e))
+                    {
+                        log::warn!("Failed to record failed status: {status_err}");
+                    }
                     failed += 1;
                 }
             }
@@ -396,14 +404,14 @@ pub async fn send_campaign(
         }
     }
 
-    diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(campaign_id)))
-        .set(marketing_campaigns::metrics.eq(Some(serde_json::json!({
-            "sent": sent,
-            "failed": failed,
-            "status": "sent"
-        }))))
-        .execute(&mut conn)
-        .ok();
+    let metrics = serde_json::json!({ "sent": sent, "failed": failed, "status": "sent" });
+    if let Err(e) =
+        diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(campaign_id)))
+            .set(marketing_campaigns::metrics.eq(Some(metrics)))
+            .execute(&mut conn)
+    {
+        log::warn!("Failed to persist campaign metrics: {e}");
+    }
 
     Ok(Json(serde_json::json!({
         "campaign_id": campaign_id,
