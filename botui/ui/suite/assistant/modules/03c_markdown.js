@@ -195,20 +195,57 @@
     /* ================================================================
        Reasoning disclosure
        ================================================================ */
-    /* `live`: the model is still thinking, no answer text has arrived yet. */
+    /* `live`: the model is still thinking, no answer text has arrived yet.
+       While live the icon is a turning ring; once the thought ends it
+       becomes the reasoning card's brain. */
+    var LIVE_ICON = '<svg class="gb-reasoning-icon gb-reasoning-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" opacity=".22"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>';
+    function doneIcon() {
+        return window.GBIcon ? window.GBIcon("brain", 14, "gb-reasoning-icon")
+            : '<svg class="gb-reasoning-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>';
+    }
+    function reasoningSummary(elapsed, live) {
+        if (live) { return A.t("assistant.thinking", "Thinking") + (elapsed > 0 ? " · " + elapsed + " s" : ""); }
+        return elapsed > 0 ? A.t("assistant.thought-for", "Thought for") + " " + elapsed + " s"
+            : A.t("assistant.reasoning", "Reasoning");
+    }
     function reasoningHtml(text, elapsed, live) {
         if (!text) { return ""; }
-        var summary = live
-            ? escapeHtml(A.t("assistant.thinking", "Thinking")) + (elapsed > 0 ? " · " + elapsed + " s" : "")
-            : elapsed > 0
-            ? escapeHtml(A.t("assistant.thought-for", "Thought for")) + " " + elapsed + " s"
-            : escapeHtml(A.t("assistant.reasoning", "Reasoning"));
-        return '<details class="gb-reasoning"><summary>' +
-            '<svg class="gb-reasoning-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' +
-            '<span>' + summary + '</span></summary>' +
+        return '<details class="gb-reasoning' + (live ? ' gb-reasoning--live' : '') + '"><summary>' +
+            (live ? LIVE_ICON : doneIcon()) +
+            '<span class="gb-reasoning-label">' + escapeHtml(reasoningSummary(elapsed, live)) + '</span></summary>' +
             '<div class="gb-reasoning-body">' + escapeHtml(text) + '</div></details>';
     }
     A.reasoningHtml = reasoningHtml;
+
+    /** Brings the streaming reasoning card `el` (null: none yet) up to date
+        without rebuilding it, so the icon keeps turning and an opened card
+        stays open. Returns the card. */
+    A.updateReasoning = function (host, el, text, elapsed, live) {
+        if (!el) {
+            var tmp = document.createElement("div");
+            tmp.innerHTML = reasoningHtml(text, elapsed, live);
+            el = tmp.firstChild;
+            var head = host.querySelector(":scope > .gb-msg-heading");
+            host.insertBefore(el, head ? head.nextSibling : host.firstChild);
+            return el;
+        }
+        var wasLive = el.classList.contains("gb-reasoning--live");
+        if (wasLive !== !!live) {
+            el.classList.toggle("gb-reasoning--live", !!live);
+            var icon = el.querySelector(".gb-reasoning-icon");
+            if (icon) { icon.outerHTML = live ? LIVE_ICON : doneIcon(); }
+        }
+        var label = el.querySelector(".gb-reasoning-label");
+        var sum = reasoningSummary(elapsed, live);
+        if (label && label.textContent !== sum) { label.textContent = sum; }
+        var body = el.querySelector(".gb-reasoning-body");
+        if (body && body.textContent !== text) {
+            var follow = body.scrollHeight - body.scrollTop - body.clientHeight < 24;
+            body.textContent = text;
+            if (follow) { body.scrollTop = body.scrollHeight; }
+        }
+        return el;
+    };
 
     /* ================================================================
        Notice card (leaked/unavailable tool)

@@ -38,6 +38,8 @@
         if (!panel) { return; }
         var hadFocus = panel.contains(document.activeElement);
         if (panel._url) { URL.revokeObjectURL(panel._url); }
+        var pdf = panel.querySelector(".gb-file-preview");
+        if (pdf && pdf._pdf) { pdf._pdf.destroy(); }
         panel.remove();
         panel = null;
         current = null;
@@ -100,12 +102,20 @@
             if (state.src.driveCopy) { state.copy = state.src.driveCopy; paintSave(state); }
             setMeta(state);
             box.className = "gb-file-preview gb-file-preview--" + kind;
-            if (kind === "pdf" || kind === "image") {
-                var typed = blob.type ? blob : new Blob([blob], { type: kind === "pdf" ? "application/pdf" : "image/" + F.ext(state.src.name) });
+            if (kind === "pdf") {
+                return F.pdfView(box, blob, state.src.name).then(function (view) {
+                    if (panel !== mine) { view.destroy(); }
+                }).catch(function () {
+                    if (panel === mine) {
+                        notice(state, t("Não foi possível mostrar este PDF aqui. Baixe o arquivo ou abra com o aplicativo do computador.",
+                            "This PDF cannot be shown here. Download it or open it with the computer's app."));
+                    }
+                });
+            }
+            if (kind === "image") {
+                var typed = blob.type ? blob : new Blob([blob], { type: "image/" + F.ext(state.src.name) });
                 panel._url = URL.createObjectURL(typed);
-                box.innerHTML = kind === "pdf"
-                    ? '<iframe class="gb-file-frame" title="' + esc(state.src.name) + '" src="' + panel._url + '"></iframe>'
-                    : '<img class="gb-file-img" alt="' + esc(state.src.name) + '" src="' + panel._url + '">';
+                box.innerHTML = '<img class="gb-file-img" alt="' + esc(state.src.name) + '" src="' + panel._url + '">';
                 return;
             }
             if (kind === "text" || kind === "markdown" || kind === "csv") {

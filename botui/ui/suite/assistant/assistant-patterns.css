@@ -181,14 +181,11 @@
     opacity: 1;
     animation: none;
 }
-/* Paper band: an eased (smoothstep) fade sampled in ten steps each side,
-   so the edges have no kink. Band and page differ by only a few 8-bit
-   levels, and a plain ramp showed them as stripes: a faint grain on the
-   page under the band dithers them. It shows through the fades only; the
-   band hides it in the middle. */
-[data-identity="mantis"] .gb-main {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+/* Paper band: an eased (smoothstep) fade sampled in ten steps each side.
+   Band and panel share --id-surface-solid, so the band only softens the
+   pattern under the conversation and adds no luminance ramp of its own:
+   no layer under it may carry a texture it would fade (a grain here showed
+   as 1-level stripes across the fades). */
 [data-identity="mantis"] .gb-main::after {
     background: linear-gradient(90deg,
         color-mix(in srgb, var(--id-surface-solid) 0%, transparent) 0%,

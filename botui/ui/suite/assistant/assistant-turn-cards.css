@@ -1,6 +1,5 @@
 /* assistant-turn-cards.css - Cards a turn adds to its answer (19_turn_cards.js,
-   19a_file_cards.js): the Agent switch request, memory blocks, file cards,
-   and the conversation-copy mark in Drive. Loaded after assistant-files.css. */
+   19a_file_cards.js): the Agent switch request, memory cards and file cards. Loaded after assistant-files.css. */
 
 /* The Agent request uses the VM permission card's look (assistant-composer.css)
    but does not hold the turn: the thinking row stays visible beside it. */
@@ -10,10 +9,12 @@
 .gb-consent-agent-text { margin: 0 0 6px; font-size: var(--id-text-sm); line-height: 1.5; color: var(--id-ink); }
 .gb-consent-agent.gb-consent-resolved { padding: 8px 12px; }
 
-/* Memory block: the body is a row of actions and a status line. */
-.gb-block-kind--memory .gb-block-summary { color: var(--id-ink); }
-.gb-memory-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0; }
-.gb-memory-status { margin: 4px 0 0; font-size: var(--id-text-sm); color: var(--id-muted); min-height: 0; }
+/* Memory card: the reasoning card's frame; the body is the kept text, a row
+   of actions and a status line. */
+.gb-block-kind--memory .gb-block-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.gb-memory-text { color: var(--id-ink); }
+.gb-memory-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+.gb-memory-status { margin: 0; padding: 0 12px 8px; font-size: var(--id-text-sm); color: var(--id-muted); min-height: 0; }
 .gb-memory-status:empty { display: none; }
 
 /* File cards */
@@ -30,21 +31,18 @@
     color: var(--id-muted);
 }
 .gb-fcard-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.gb-fcard-thumb--pdf { background: #fff; }
-.gb-fcard-thumb iframe {
-    width: 300px; height: 384px; border: 0; pointer-events: none;
-    transform: scale(.2533); transform-origin: 0 0; align-self: flex-start; flex: none;
-}
+.gb-fcard-thumb--pdf { background: #fff; align-items: flex-start; }
+.gb-fcard-thumb .gb-pdf-thumb { display: block; flex: none; }
 .gb-fcard-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .gb-fcard-name { font-weight: 600; font-size: var(--id-text-base); color: var(--id-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-fcard-meta { font-size: var(--id-text-sm); color: var(--id-muted); }
-.gb-fcard-drive { display: flex; align-items: center; gap: 5px; font-size: var(--id-text-sm); color: var(--id-muted); }
+.gb-fcard-drive {
+    display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; padding: 0; border: 0; background: none;
+    font: inherit; font-size: var(--id-text-sm); color: var(--id-muted); text-align: left; cursor: pointer;
+}
+.gb-fcard-drive span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-fcard-drive:hover span { color: var(--id-accent-text); text-decoration: underline; }
+.gb-fcard-drive:focus-visible { outline: 2px solid var(--id-accent); outline-offset: 2px; border-radius: 2px; }
 .gb-fcard-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
 .gb-fcard-status { margin: 0; font-size: var(--id-text-sm); color: var(--id-muted); }
 .gb-fcard-status:empty { display: none; }
-
-/* Drive: rows under "Conversas" in Meus arquivos */
-.gb-drv-conv-mark {
-    margin-left: 8px; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
-    font-size: var(--id-text-xs); color: var(--id-muted); border: 1px solid var(--id-line);
-}

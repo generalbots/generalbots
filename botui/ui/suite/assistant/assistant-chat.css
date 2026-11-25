@@ -243,6 +243,11 @@
 }
 .gb-reasoning summary::-webkit-details-marker { display: none; }
 .gb-reasoning-icon { flex-shrink: 0; color: var(--id-accent); }
+.gb-reasoning-spin { animation: gb-reasoning-spin 1s linear infinite; transform-origin: 50% 50%; }
+@keyframes gb-reasoning-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .gb-reasoning-spin { animation: none; opacity: .75; }
+}
 .gb-reasoning-body {
     padding: var(--id-space-2) var(--id-space-3);
     margin-top: var(--id-space-1); white-space: pre-wrap;

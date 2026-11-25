@@ -176,23 +176,29 @@
         renderStreamContent();
     };
 
+    /* The heading and the reasoning card stay; only the answer text after
+       them is redrawn on each frame. */
     function renderStreamContent() {
-        if (!A.streamingEl) { return; }
+        var host = A.streamingEl;
+        if (!host) { return; }
         var elapsed = A.thinkingElapsed();
-        var html = "";
+        var card = host.querySelector(":scope > .gb-reasoning");
         if (A.streamingReasoning) {
             var answering = !!A.streamingContent;
-            html += A.reasoningHtml(A.streamingReasoning, answering ? (A._thoughtSeconds || elapsed) : elapsed, !answering);
+            card = A.updateReasoning(host, card, A.streamingReasoning,
+                answering ? (A._thoughtSeconds || elapsed) : elapsed, !answering);
         }
         var cleaned = typeof A.cleanProtocol === "function"
             ? A.cleanProtocol(A.streamingContent) : A.streamingContent;
         if (typeof A.consentStripMarker === "function") {
             cleaned = A.consentStripMarker(cleaned);
         }
-        html += A.mdToHtml(cleaned);
-        A.streamingEl.innerHTML = html;
-        if (A.addMessageHeading) { A.addMessageHeading(A.streamingEl, false, Number(A.streamingEl.dataset.streamStarted)); }
-        A.enhanceCodeBlocks(A.streamingEl);
+        if (A.addMessageHeading) { A.addMessageHeading(host, false, Number(host.dataset.streamStarted)); }
+        var keep = card || host.querySelector(":scope > .gb-msg-heading");
+        while (keep && keep.nextSibling) { host.removeChild(keep.nextSibling); }
+        if (!keep) { host.textContent = ""; }
+        host.insertAdjacentHTML("beforeend", A.mdToHtml(cleaned));
+        A.enhanceCodeBlocks(host);
         if (!userScrolledUp) { A.scrollToBottom(false); }
     }
 

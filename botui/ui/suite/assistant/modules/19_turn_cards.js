@@ -8,8 +8,9 @@
  *   switch goes on and the same request is sent again through the composer)
  *   and "Agora não" (the text answer stays).
  * - {type:"memory_saved", key, value}, {type:"memory_forgot", count},
- *   {type:"memory_off"}: a small block in the style of the run blocks, with
- *   "Ver em Configurações › Memória" and, for a saved memory, "Desfazer"
+ *   {type:"memory_off"}: a "Memória" context card in the style of the
+ *   reasoning card, with "Ver em Configurações › Memória" and, for a saved
+ *   memory, "Desfazer"
  *   (DELETE /api/user/memory/:key).
  * On reload the answer's message meta carries the same objects under
  * `agent_enable_request` (shown answered, without buttons) and
@@ -121,20 +122,27 @@ A.frameHandlers.agent_enable_request = function (d) {
     A.announce(t("Pedido de permissão: ativar o Agente nesta conversa.", "Permission request: turn on the Agent in this conversation."));
 };
 
-/* ---- Memory ---- */
+/* ---- Memory ----
+   A context card like "Raciocínio": closed by default, the header says what
+   happened, the body holds the text and the actions. */
 function memoryBlock(ev) {
     var kind = ev.type;
-    var title = kind === "memory_saved" ? t("Memória salva", "Memory saved") :
-        kind === "memory_forgot" ? t("Memória removida", "Memory removed") : t("Memória desligada", "Memory off");
-    var summary = kind === "memory_saved" ? String(ev.value || "") :
-        kind === "memory_forgot" ? (Number(ev.count) === 1 ? t("1 lembrança", "1 memory") : (Number(ev.count) || 0) + " " + t("lembranças", "memories")) :
-        t("Nada desta conversa foi guardado", "Nothing from this conversation was kept");
+    var count = Number(ev.count) || 0;
+    var value = String(ev.value || "");
+    var summary = kind === "memory_saved" ? t("Guardou: ", "Saved: ") + value :
+        kind === "memory_forgot" ? (count === 1 ? t("Removeu 1 item", "Removed 1 item") : t("Removeu " + count + " itens", "Removed " + count + " items")) :
+        t("Memória desligada", "Memory off");
+    var text = kind === "memory_saved" ? value :
+        kind === "memory_forgot" ? t("A memória deixou de guardar o que você pediu para esquecer.", "What you asked to forget is no longer kept.") :
+        t("A memória está desligada: nada desta conversa foi guardado.", "Memory is off: nothing from this conversation was kept.");
     var undo = kind === "memory_saved" && ev.key
         ? '<button type="button" class="gb-block-btn" data-act="undo">' + esc(t("Desfazer", "Undo")) + '</button>' : '';
-    var el = B.block({ kind: "memory", icon: "brain", title: title, summary: summary, status: "done", open: true,
-        bodyHtml: '<div class="gb-memory-actions">' +
+    var el = B.block({ kind: "memory", icon: "bookmark", title: t("Memória", "Memory"), summary: summary, status: "done", open: false,
+        bodyHtml: '<div class="gb-block-prose gb-memory-text">' + esc(text) + '</div>' +
+            '<div class="gb-memory-actions">' +
             '<button type="button" class="gb-block-btn" data-act="settings">' + esc(t("Ver em Configurações › Memória", "See in Settings › Memory")) + '</button>' +
             undo + '</div><p class="gb-memory-status" role="status"></p>' });
+    el.querySelector(".gb-block-summary").title = summary;
     el.addEventListener("click", function (e) {
         var btn = e.target.closest("[data-act]");
         if (!btn || btn.disabled) { return; }
@@ -146,7 +154,7 @@ function memoryBlock(ev) {
         var status = el.querySelector(".gb-memory-status");
         A.apiFetch("/api/user/memory/" + encodeURIComponent(ev.key), { method: "DELETE" }).then(function (r) {
             if (!r.ok && r.status !== 404) { throw new Error("HTTP " + r.status); }
-            el.querySelector(".gb-block-title").textContent = t("Memória desfeita", "Memory undone");
+            el.querySelector(".gb-block-summary").textContent = t("Desfeito: ", "Undone: ") + value;
             btn.remove();
             status.textContent = t("Esta lembrança não será usada.", "This memory will not be used.");
         }).catch(function () {
@@ -157,10 +165,26 @@ function memoryBlock(ev) {
     return el;
 }
 
+/* A finished answer takes the card in its own steps, beside its reasoning
+   card; a turn still running takes it among its steps. */
+function placeMemory(el) {
+    var answer = turnAnswer();
+    if (!answer || !answer.querySelector(".gb-msg-toolbar")) { return A.placeTurnCard(el); }
+    var stack = answer.querySelector(".gb-block-stack");
+    if (!stack) {
+        stack = document.createElement("div");
+        stack.className = "gb-block-stack";
+        var head = answer.querySelector(":scope > .gb-msg-heading");
+        answer.insertBefore(stack, head ? head.nextSibling : answer.firstChild);
+    }
+    stack.appendChild(el);
+    return true;
+}
+
 function onMemory(ev) {
     var el = memoryBlock(ev);
-    if (A.placeTurnCard(el)) {
-        A.announce(el.querySelector(".gb-block-title").textContent + ": " + el.querySelector(".gb-block-summary").textContent);
+    if (placeMemory(el)) {
+        A.announce(t("Memória", "Memory") + ": " + el.querySelector(".gb-block-summary").textContent);
     }
 }
 A.frameHandlers.memory_saved = onMemory;

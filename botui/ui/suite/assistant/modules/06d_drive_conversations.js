@@ -30,8 +30,7 @@
         var list = document.getElementById("gbDrvList");
         if (!list || !D.convMode) { return; }
         var crumb = document.getElementById("gbDrvBreadcrumb");
-        if (crumb && D.convFromMine && D.mineConversationsCrumb) { D.mineConversationsCrumb(crumb); }
-        else if (crumb) { crumb.textContent = t("Arquivos das conversas", "Conversation files"); }
+        if (crumb) { crumb.textContent = t("Arquivos das conversas", "Conversation files"); }
         var q = String(query || "").trim().toLowerCase();
         var shown = groups.map(function (g) {
             var files = q ? g.files.filter(function (f) { return f.name.toLowerCase().indexOf(q) !== -1; }) : g.files;
