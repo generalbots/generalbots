@@ -211,6 +211,29 @@
         return '<div class="gb-sp-k">' + esc(key) + '</div><div class="gb-sp-v' + (missing ? " gb-sp-none" : "") + '">' + esc(value) + '</div>';
     }
 
+    /* Collaborators of github.com/GeneralBots/generalbots (2026-11-25). Kept
+     * in the page: the app works offline, so nothing is fetched and no
+     * avatar is loaded from GitHub. Maintainers are the repository admins. */
+    var collaborators = [
+        "AnaPaulaGil", "AtyllaL", "christopherdecastilho", "ChristopherCastilho", "danielolima96",
+        "Dariojunior3", "flavioandrade91", "HeraldoAlmeida", "jonathasc", "jramos-br", "lpicanco",
+        "marcosvelasco", "oerlabshenrique", "operations-pragmatismo", "othonlima", "RobsonDantasE",
+        "rodrigorodriguez", "thipatriota", "ZuilhoSe"
+    ];
+    var maintainers = ["operations-pragmatismo", "rodrigorodriguez", "thipatriota"];
+
+    function collaboratorsCard() {
+        var items = collaborators.map(function (login) {
+            var role = maintainers.indexOf(login) >= 0 ? '<span class="gb-sp-person-role">' + esc(tr("Mantenedor", "Maintainer")) + '</span>' : '';
+            return '<li><a class="gb-sp-person" href="https://github.com/' + encodeURIComponent(login) + '" target="_blank" rel="noopener noreferrer">' +
+                '<span class="gb-sp-person-badge" aria-hidden="true">' + esc(login.charAt(0).toUpperCase()) + '</span>' +
+                '<span class="gb-sp-person-name">' + esc(login) + '</span>' + role + '</a></li>';
+        }).join("");
+        return '<section class="gb-sp-card gb-sp-clip" aria-labelledby="gbPeopleTitle"><div class="gb-sp-head"><strong id="gbPeopleTitle">' +
+            esc(tr("Colaboradores", "Collaborators")) + '</strong><span class="gb-sp-people-count">' + collaborators.length +
+            ' · github.com/GeneralBots/generalbots</span></div><ul class="gb-sp-people">' + items + '</ul></section>';
+    }
+
     function known(value) { return value && !/^unknown$/i.test(String(value)) ? String(value) : ""; }
 
     A.renderAbout = function (panel, state) {
@@ -238,7 +261,7 @@
             ' <a href="https://www.sentient.net.br" target="_blank" rel="noopener noreferrer">Sentient</a></div></div>' +
             '<div class="gb-sp-about-foot"><span>' + tr("Código aberto, escrito em Rust.", "Open source, written in Rust.") +
             '</span><a href="https://github.com/GeneralBots" target="_blank" rel="noopener noreferrer">' + tr("Ver o código", "View the code") +
-            A.settingsIcon("M7 17 17 7M8 7h9v9", 11, 3) + '</a></div></section>';
+            A.settingsIcon("M7 17 17 7M8 7h9v9", 11, 3) + '</a></div></section>' + collaboratorsCard();
         var button = panel.querySelector("#gbCheckUpdate");
         button.onclick = async function () {
             if (!tauri || typeof tauri.invoke !== "function") {
