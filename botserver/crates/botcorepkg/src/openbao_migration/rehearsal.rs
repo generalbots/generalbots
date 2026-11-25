@@ -186,3 +186,16 @@ async fn rehearsal_crash_is_recovered_then_retried() {
     let mut child = check_serving(&stack, Engine::OpenBao).await;
     server::stop(&mut child);
 }
+
+/// A move of a copy of a real stack: `GB_OPENBAO_COPY=<stack copy>` whose
+/// `config.hcl` already points at the copy's storage and the rehearsal port.
+#[tokio::test]
+#[ignore = "runs real secrets servers on a stack copy; see the module docs"]
+async fn rehearsal_on_a_stack_copy() {
+    let Some(stack) = std::env::var("GB_OPENBAO_COPY").ok().map(PathBuf::from) else { return };
+    let outcome = migration(&stack, None).run().await;
+    println!("copy: outcome {outcome:?}");
+    let Outcome::Migrated(report) = outcome else { panic!("not migrated") };
+    assert_eq!(report.before, report.after);
+    kill(report.openbao_pid, &stack);
+}

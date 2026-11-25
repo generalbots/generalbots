@@ -64,8 +64,8 @@ impl Layout {
         }
         let tmp = path.with_extension("tmp");
         let json = serde_json::to_string(data).map_err(io::Error::other)?;
-        std::fs::write(&tmp, json)?;
-        std::fs::rename(tmp, path)
+        std::fs::write(&tmp, json).map_err(|e| step("writing the migrating marker", &tmp, e))?;
+        rename_retry(&tmp, &path, "writing the migrating marker")
     }
 
     /// Starts the move: from here on a restart rolls it back first.
@@ -102,19 +102,19 @@ impl Layout {
     /// storage folder.
     pub fn set_aside_storage(&self, stamp: &str) -> io::Result<()> {
         let data = self.at(DATA_DIR);
-        std::fs::rename(&data, self.backup_dir(stamp))?;
-        std::fs::create_dir_all(data)
+        rename_retry(&data, &self.backup_dir(stamp), "setting the former storage aside")?;
+        std::fs::create_dir_all(&data).map_err(|e| step("making the new storage folder", &data, e))
     }
 
     /// Moves the former sealed files (and the config), as they are, into
     /// the aside folder.
     pub fn set_aside_files(&self, stamp: &str) -> io::Result<()> {
         let aside = self.aside_dir(stamp);
-        std::fs::create_dir_all(&aside)?;
+        std::fs::create_dir_all(&aside).map_err(|e| step("making the aside folder", &aside, e))?;
         for rel in SET_ASIDE {
             let from = self.at(rel);
             if from.is_file() {
-                std::fs::rename(&from, aside.join(file_name(rel)))?;
+                rename_retry(&from, &aside.join(file_name(rel)), "setting a former sealed file aside")?;
             }
         }
         Ok(())
@@ -136,7 +136,7 @@ impl Layout {
         });
         let mut text = serde_json::to_string_pretty(&json).map_err(io::Error::other)?;
         super::tree::wipe_value(&mut json);
-        let written = write_secret(&self.at(INIT_FILE), &text);
+        let written = write_secret(&self.at(INIT_FILE), &text).map_err(|e| step("sealing the new init data", &self.at(INIT_FILE), e));
         super::tree::wipe_string(&mut text);
         written?;
         let mut keys: String = init
@@ -145,19 +145,20 @@ impl Layout {
             .enumerate()
             .map(|(i, key)| format!("VAULT_UNSEAL_KEY_{}={key}\n", i + 1))
             .collect();
-        let written = write_secret(&self.at(KEYS_FILE), &keys);
+        let written = write_secret(&self.at(KEYS_FILE), &keys).map_err(|e| step("sealing the new unseal keys", &self.at(KEYS_FILE), e));
         super::tree::wipe_string(&mut keys);
         written
     }
 
     /// Writes the config OpenBao starts with (no secrets in it).
     pub fn write_config(&self, text: &str) -> io::Result<()> {
-        std::fs::write(self.at(CONFIG_FILE), text)
+        let path = self.at(CONFIG_FILE);
+        std::fs::write(&path, text).map_err(|e| step("writing the OpenBao config", &path, e))
     }
 
     /// Ends the move: OpenBao serves this stack from now on.
     pub fn finish(&self) -> io::Result<()> {
-        std::fs::write(self.at(MIGRATED_MARKER), b"1\n")?;
+        std::fs::write(self.at(MIGRATED_MARKER), b"1\n").map_err(|e| step("writing the migrated marker", &self.at(MIGRATED_MARKER), e))?;
         remove_if_present(&self.at(MIGRATING_MARKER))
     }
 
@@ -169,9 +170,9 @@ impl Layout {
         if backup.is_dir() {
             let data = self.at(DATA_DIR);
             if data.exists() {
-                std::fs::remove_dir_all(&data)?;
+                remove_dir_retry(&data)?;
             }
-            std::fs::rename(&backup, &data)?;
+            rename_retry(&backup, &data, "putting the former storage back")?;
         }
         let aside = self.aside_dir(&marker.stamp);
         if aside.is_dir() {
@@ -180,17 +181,57 @@ impl Layout {
                 if kept.is_file() {
                     let target = self.at(rel);
                     remove_if_present(&target)?;
-                    std::fs::rename(&kept, &target)?;
+                    rename_retry(&kept, &target, "putting a former sealed file back")?;
                 } else if rel == TOKEN_FILE {
                     // The former storage had no server token; drop one the
                     // new server may have been given.
                     remove_if_present(&self.at(rel))?;
                 }
             }
-            std::fs::remove_dir(&aside)?;
+            std::fs::remove_dir(&aside).map_err(|e| step("removing the aside folder", &aside, e))?;
         }
         remove_if_present(&self.at(MIGRATING_MARKER))
     }
+}
+
+/// How long a rename waits out a file another process still holds open
+/// (antivirus or indexer scans, a server that has just exited on Windows).
+const RETRY_FOR: std::time::Duration = std::time::Duration::from_secs(20);
+const RETRY_EVERY: std::time::Duration = std::time::Duration::from_millis(250);
+
+/// The error names the step and the path; paths hold no secret.
+fn step(what: &str, path: &Path, e: io::Error) -> io::Error {
+    io::Error::new(e.kind(), format!("{what} ({}): {e}", path.display()))
+}
+
+/// Windows refuses a rename (access denied, sharing violation) while any
+/// file under the path is open without delete sharing.
+fn transient(e: &io::Error) -> bool {
+    e.kind() == io::ErrorKind::PermissionDenied || matches!(e.raw_os_error(), Some(5 | 32 | 33))
+}
+
+fn with_retry(what: &str, path: &Path, mut op: impl FnMut() -> io::Result<()>) -> io::Result<()> {
+    let start = std::time::Instant::now();
+    loop {
+        match op() {
+            Err(e) if transient(&e) && start.elapsed() < RETRY_FOR => std::thread::sleep(RETRY_EVERY),
+            Err(e) => return Err(step(what, path, e)),
+            Ok(()) => {
+                if start.elapsed() > RETRY_EVERY {
+                    log::info!("{what}: done after {} ms of retries", start.elapsed().as_millis());
+                }
+                return Ok(());
+            }
+        }
+    }
+}
+
+fn rename_retry(from: &Path, to: &Path, what: &str) -> io::Result<()> {
+    with_retry(what, from, || std::fs::rename(from, to))
+}
+
+fn remove_dir_retry(dir: &Path) -> io::Result<()> {
+    with_retry("removing the partial new storage", dir, || std::fs::remove_dir_all(dir))
 }
 
 fn file_name(rel: &str) -> &str {

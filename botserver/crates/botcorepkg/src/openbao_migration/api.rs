@@ -10,6 +10,15 @@ use std::time::{Duration, Instant};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 const POLL: Duration = Duration::from_millis(300);
+/// A freshly enabled KV v2 mount upgrades its storage in the background and
+/// refuses writes until it is done.
+const KV_UPGRADE_WAIT: Duration = Duration::from_secs(60);
+
+/// The mount is still upgrading to versioned storage ("Upgrading from
+/// non-versioned to versioned data"); the write can be repeated.
+fn kv_upgrading(e: &anyhow::Error) -> bool {
+    e.to_string().contains("Upgrading from non-versioned to versioned data")
+}
 const ACTIVE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// What `sys/init` hands back, wiped on drop.
@@ -96,7 +105,16 @@ impl Api {
         if status.is_success() {
             Ok(json)
         } else {
-            Err(anyhow!("{} answered {status}", segments.join("/")))
+            // The server's own error messages name the problem (permission,
+            // path, seal state); they never echo a request value.
+            let reasons: Vec<&str> = json
+                .get("errors")
+                .and_then(Value::as_array)
+                .map(|list| list.iter().filter_map(Value::as_str).collect())
+                .unwrap_or_default();
+            let mut reason = reasons.join("; ");
+            reason.truncate(300);
+            Err(anyhow!("{} answered {status} {reason}", segments.join("/")))
         }
     }
 
@@ -239,9 +257,17 @@ impl KvStore for Api {
 
     async fn write(&self, mount: &Mount, path: &str, fields: &Fields) -> Result<()> {
         let mut body = mount.write_body(fields);
-        let result = self.ok(Method::POST, &mount.data_segments(path), Some(&body)).await;
+        let segments = mount.data_segments(path);
+        let start = Instant::now();
+        let result = loop {
+            let result = self.ok(Method::POST, &segments, Some(&body)).await;
+            match result {
+                Err(e) if kv_upgrading(&e) && start.elapsed() < KV_UPGRADE_WAIT => tokio::time::sleep(POLL).await,
+                other => break other,
+            }
+        };
         super::tree::wipe_value(&mut body);
-        result.map(|_| ()).map_err(|_| anyhow!("writing {}{path} failed", mount.path))
+        result.map(|_| ()).map_err(|e| anyhow!("writing {}{path} failed: {e}", mount.path))
     }
 }
 
