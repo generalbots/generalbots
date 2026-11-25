@@ -16,7 +16,7 @@
   };
   function t(key, fallback) { return window.gbT ? window.gbT(key, fallback) : fallback; }
   function load() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    try { return gbStoreGet(KEY, {}) || {}; }
     catch (e) { return {}; }
   }
   function save(state) {
