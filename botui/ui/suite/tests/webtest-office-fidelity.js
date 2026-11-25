@@ -40,6 +40,7 @@ require("./webtest-office-fidelity/34_perf_marks");
 require("./webtest-office-fidelity/35_sharing_gaps");
 require("./webtest-office-fidelity/36_link_expiry");
 require("./webtest-office-fidelity/37_sheet_toolbar_theme");
+require("./webtest-office-fidelity/38_chunker_prose");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
