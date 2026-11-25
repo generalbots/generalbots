@@ -1,4 +1,6 @@
 use super::super::*;
+use axum::extract::ConnectInfo;
+use std::net::SocketAddr;
 
 /// `GET /api/activity?resource_type=&resource_id=&limit=&before=` — audit
 /// timeline for a resource, newest first, cursor-paginated on `created_at`.
@@ -42,8 +44,10 @@ pub async fn list_activity(
 
     // A NULL `before` means "start from the newest"; the single 4-bind query
     // keeps both cases type-compatible with diesel.
+    // #2452 criterion 4 — `ip` is nullable because rows written before the
+    // migration (and requests with no resolvable address) have no caller IP.
     let rows = diesel::sql_query(
-        "SELECT id::text, actor_id, actor_name, action, payload, created_at \
+        "SELECT id::text, actor_id, actor_name, action, payload, ip, created_at \
          FROM collab_activity \
          WHERE resource_type = $1 AND resource_id = $2 \
            AND ($3::timestamptz IS NULL OR created_at < $3) \
@@ -64,6 +68,7 @@ pub async fn list_activity(
             actor_name: r.actor_name,
             action: r.action,
             payload: serde_json::from_str(&r.payload).unwrap_or(serde_json::Value::Null),
+            ip: r.ip,
             created_at: r.created_at.to_rfc3339(),
         })
         .collect();
@@ -78,6 +83,7 @@ pub async fn record_activity_event(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     request_locale: botcore::i18n::RequestLocale,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<RecordActivityBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
@@ -112,7 +118,10 @@ pub async fn record_activity_event(
         return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
 
-    record_activity(
+    // #2452 criterion 4 — the server-supplied peer address is the only IP
+    // trusted here; the request body never carries one.
+    let client_ip = addr.ip().to_string();
+    record_activity_with_ip(
         &mut conn,
         &actor_id,
         &actor_name,
@@ -120,6 +129,7 @@ pub async fn record_activity_event(
         &req.resource_id,
         &req.action,
         &req.payload,
+        Some(client_ip.as_str()),
     );
 
     Ok(Json(serde_json::json!({ "success": true })))

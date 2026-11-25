@@ -16,6 +16,13 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 /*
+ * Re-locked 2026-11-25 (#2435/#2448/#2452): the Sheet window-cache module,
+ * body-hosted a11y live region, Docs collaboration lifecycle fix and new
+ * Rust/JS test guards legitimately moved these whole-tree counts (filesScanned
+ * +1, ariaLive* +5/+5/+2, roleStatus* +2/+2, dynamicWrites +10, in-region
+ * writes +16). Re-measured twice from the shipped tree; one-time documented
+ * correction, not a silent acceptance.
+/*
  * Relocked 2026-11-24 (issue #2454 offline slice). The 2026-11-22
  * characterization predates legitimate production growth; every drifted value
  * below was re-measured from the shipped tree (two identical runs), not accepted
@@ -37,29 +44,29 @@ var metrics = require("./10_scan").metrics;
  * a11y fixture was dropped; the four documented gaps stay explicitly reported.
  */
 var EXPECTED = {
-  filesScanned: 1583,
+  filesScanned: 1584,
   htmlFiles: 215,
-  jsFiles: 1368,
+  jsFiles: 1369,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 722,
-  ariaLiveFiles: 251,
-  ariaLiveDeclarations: 676,
-  livePolite: 606,
+  ariaLiveMentions: 727,
+  ariaLiveFiles: 256,
+  ariaLiveDeclarations: 678,
+  livePolite: 608,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 542,
+  roleStatus: 544,
   roleAlert: 106,
   roleLog: 12,
-  roleStatusAlertFiles: 252,
+  roleStatusAlertFiles: 254,
   dataI18nAttrs: 5872,
   htmlWithI18n: 204,
   gbTCalls: 387, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 124,
-  dynamicWrites: 4324,
-  writesInRegionFiles: 1249,
-  writesOutsideRegionFiles: 3075,
-  filesWithWritesNoRegion: 614,
+  dynamicWrites: 4334,
+  writesInRegionFiles: 1265,
+  writesOutsideRegionFiles: 3069,
+  filesWithWritesNoRegion: 612,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {

@@ -46,6 +46,16 @@ require("./webtest-office-fidelity/40_agent_parity_gaps");
 require("./webtest-office-fidelity/41_consent_preview_ui");
 require("./webtest-office-fidelity/42_fidelity_coverage_matrix");
 require("./webtest-office-fidelity/43_citation_directive");
+require("./webtest-office-fidelity/44_sharing_acl_gaps");
+require("./webtest-office-fidelity/45_sheet_scale_fixes");
+require("./webtest-office-fidelity/46_export_acl_gate");
+require("./webtest-office-fidelity/47_activity_ip_wiring");
+require("./webtest-office-fidelity/48_sheet_a11y_live");
+require("./webtest-office-fidelity/49_track_changes_admin_gate");
+require("./webtest-office-fidelity/50_docs_collab_docid");
+require("./webtest-office-fidelity/51_docs_collab_lifecycle");
+require("./webtest-office-fidelity/52_docs_blank_collab");
+require("./webtest-office-fidelity/53_interop_gaps");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

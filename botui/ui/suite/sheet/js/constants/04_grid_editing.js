@@ -11,6 +11,22 @@
   var parseCellRef = D.parseCellRef;
   const VirtualGrid = D.virtualGrid;
 
+  function tr(key, fallback) {
+    return typeof window.gbT === "function" ? (window.gbT(key, fallback) || fallback) : fallback;
+  }
+
+  // Existing role=status / aria-live=polite region on the grid (03a_grid_a11y.js).
+  function announce(grid, message) {
+    if (grid && typeof grid.announce === "function") {
+      grid.announce(message, true);
+      return;
+    }
+    const live = grid && grid.a11yLive
+      ? grid.a11yLive
+      : document.querySelector(".sheet-a11y-live");
+    if (live) live.textContent = message;
+  }
+
   function positionSelectionOverlay(row, col) {
     var grid = this && this.selectionOverlay ? this : ((D.getActiveSheetInstance && D.getActiveSheetInstance() && D.getActiveSheetInstance().grid) || VirtualGrid);
     if (!grid.selectionOverlay) return;
@@ -144,11 +160,11 @@
         return;
       }
       // A rejected edit used to stay on screen as if saved. Restore the
-      // previous text and say so.
+      // previous text and say so in the toast and the a11y live region.
       cell.textContent = origVal;
-      if (window.sheetNotify) {
-        window.sheetNotify("Cell not saved: " + (res && res.error ? res.error : "server rejected the edit"), true);
-      }
+      const message = (res && res.error) || tr("status-error", "Error");
+      if (window.sheetNotify) window.sheetNotify(message, true);
+      announce(self, message);
     });
 
     if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {

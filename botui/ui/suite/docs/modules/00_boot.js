@@ -42,6 +42,17 @@
     return id;
   }
 
+  // A successful save (autosave via docsRefreshSidebar, or a title blur) is
+  // the point where the minted id actually exists in Drive. Clear the transient
+  // blank flag and let the collab watcher open its single socket for that id.
+  // No-op for a real Drive doc, which never carried the flag.
+  function markActiveDocPersisted() {
+    if (typeof docsClearBlankDocUnsaved !== "function") return;
+    var article = activeArticle();
+    if (!article || !docsClearBlankDocUnsaved(article)) return;
+    if (typeof window.docsSyncCollab === "function") window.docsSyncCollab();
+  }
+
   function processHtmx(host) {
     if (window.htmx && typeof htmx.process === "function") htmx.process(host);
   }
@@ -251,6 +262,7 @@
       .then(function (response) {
         if (!response.ok) throw new Error("http " + response.status);
         status("All changes saved", false);
+        markActiveDocPersisted();
       })
       .catch(function () {
         status("Title not saved", true);
@@ -263,11 +275,16 @@
     if (!host) return;
     host.innerHTML = "";
     var article = typeof ensureDocArticle === "function" ? ensureDocArticle() : null;
+    // docsEnsureArticleDocId() flags a freshly minted id as unsaved, so the
+    // collab watcher stays offline until the first save persists this doc.
     if (article && typeof docsEnsureArticleDocId === "function") docsEnsureArticleDocId(article);
     setTitle(window.docsT ? docsT("docs-untitled", "Untitled Document") : "Untitled Document");
   }
 
   function docsRefreshSidebar() {
+    // The only production caller is the autosave success hook (02_save.js),
+    // so reaching here means the current doc id was just persisted to Drive.
+    markActiveDocPersisted();
     return json("/api/docs/list")
       .then(renderSidebar)
       .catch(function (err) {

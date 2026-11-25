@@ -22,11 +22,11 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Language tools | Local-first spelling, style and readability review. Suggestions are accepted individually and reversed with one undo; no document text is sent to a server and AI assistance is off by default |
 | Table editing | A contextual Table tools toolbar for insert/delete rows and columns, merge/split cells, header toggle, banding, borders/shading, padding, vertical alignment, width/autofit and column sort; text↔table conversion and `Ctrl+Alt+T` to reopen the tools. Structural edits keep valid table markup and are one undo step. An accessibility check lists missing header scope, uneven column counts and unlabelled tables and jumps to each one |
 | Undo / Redo | Standard history |
-| **Track Changes** | Record edits as suggestions rather than applying them silently |
+| **Track Changes** | Record edits as suggestions rather than applying them silently. Accepting or rejecting all changes is admin-only: non-admins receive a typed `403 docs_acl_denied` with reason `insufficient-role`, and an unresolved role is denied as `no-identity`. The role is resolved by the server from RBAC group membership, never from the request |
 | **Compare Documents** | Diff two documents against each other |
 | **Version history** | Browse and restore earlier states |
-| Activity log | What happened to the document, and when |
-| Export | Toolbar Export menu downloads the active document as `.docx`, `.odt`, `.pdf`, `.html`, Markdown or plain text; if the document has no stored copy the editor content is exported instead |
+| Activity log | What happened to the document, when, and from which address. `GET /api/activity` rows include a nullable `ip` taken from the request's peer address; rows written before the field existed return `null` |
+| Export | Toolbar Export menu downloads the active document as `.docx`, `.odt`, `.pdf`, `.html`, Markdown or plain text; if the document has no stored copy the editor content is exported instead. Every format is authorized against the document's object role before any content is loaded: a caller without sufficient role gets `403` with `code: docs_acl_denied` and no document data, and a document with no stored grants stays owner-only |
 
 ### Structure and content
 
@@ -62,7 +62,9 @@ ownership transfer). A **public link** is read-only by design:
 |---|---|
 | The dialog mints a token and copies `…/suite/docs/shared.html?link=<token>` | `botui/ui/suite/js/collab-share.js` (`POST /api/collab/links`), `botui/ui/suite/docs/shared.html` |
 | Opening the link renders the document in a standalone viewer with **no toolbar and no editor**, marked **Read-only** | `botui/ui/suite/docs/shared-viewer.js` |
-| The server resolves the token — never a document id in the URL — and returns the body with `read_only: true` | `GET /api/docs/shared/:token` in `botserver/crates/botdocs/src/shared_link.rs` |
+| The server resolves the token — never a document id in the URL — and returns the document shell with `read_only: true`; the body itself is released only to roles with source capability | `GET /api/docs/shared/:token` in `botserver/crates/botdocs/src/shared_link.rs` |
+| A **viewer** link returns document metadata with an empty `content` field — the editable HTML source never leaves the server. `commenter`, `editor` and `owner` links still receive it, and an unrecognised role fails closed | `role_allows_source` / `body_for_link` in `botserver/crates/botdocs/src/shared_link.rs` |
+| Token shape and expiry are re-checked at the body boundary, so a malformed token or an expired link yields no source bytes; expired, revoked and unknown links still answer `404` | `body_for_link` in `botserver/crates/botdocs/src/shared_link.rs` |
 | The link cannot write: every mutating Docs route requires a signed-in `DocUser`, and the token route is declared a capability (read methods only) | `botserver/crates/botsecurity-auth/src/auth_api/public_routes.rs` |
 | The Share button shows a dot while a read-only link is active | `botui/ui/suite/docs/modules/15_readonly.js` |
 

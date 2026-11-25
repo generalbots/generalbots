@@ -148,6 +148,9 @@ pub struct ActivityItem {
     pub actor_name: String,
     pub action: String,
     pub payload: serde_json::Value,
+    /// #2452 criterion 4 — caller address recorded by the write side. `None`
+    /// serializes as JSON `null`, so older rows without an IP stay readable.
+    pub ip: Option<String>,
     pub created_at: String,
 }
 
@@ -163,6 +166,8 @@ pub(crate) struct ActivityRow {
     pub(crate) action: String,
     #[diesel(sql_type = Text)]
     pub(crate) payload: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub(crate) ip: Option<String>,
     #[diesel(sql_type = Timestamptz)]
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -380,4 +385,37 @@ pub(crate) fn sanitize_resource(ty: &str, id: &str) -> bool {
         && ty
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '-' || c == '_')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ActivityItem;
+
+    /// RFC 5737 TEST-NET-3 — documentation-only address, never a real client.
+    const TEST_IP: &str = "203.0.113.7";
+
+    fn activity_item(ip: Option<&str>) -> ActivityItem {
+        ActivityItem {
+            id: "row-1".to_string(),
+            actor_id: "actor-1".to_string(),
+            actor_name: "Alice".to_string(),
+            action: "export".to_string(),
+            payload: serde_json::json!({ "format": "pdf" }),
+            ip: ip.map(|addr| addr.to_string()),
+            created_at: "2026-01-01T00:00:00+00:00".to_string(),
+        }
+    }
+
+    #[test]
+    fn activity_item_serializes_a_present_ip() {
+        let json = serde_json::to_value(activity_item(Some(TEST_IP)))
+            .unwrap_or(serde_json::Value::Null);
+        assert_eq!(json.get("ip").and_then(|v| v.as_str()), Some(TEST_IP));
+    }
+
+    #[test]
+    fn activity_item_serializes_an_absent_ip_as_null() {
+        let json = serde_json::to_value(activity_item(None)).unwrap_or(serde_json::Value::Null);
+        assert!(json.get("ip").is_some_and(serde_json::Value::is_null));
+    }
 }

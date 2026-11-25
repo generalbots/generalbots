@@ -67,9 +67,20 @@ pub(crate) fn extract_mentions(body: &str) -> Vec<String> {
     mentions
 }
 
+/// #2452 criterion 4 — the IP-aware shape is the primary INSERT; the original
+/// column list is kept as a fallback so a deployment whose `collab_activity`
+/// predates the migration still records the row instead of losing it.
+const ACTIVITY_INSERT_WITH_IP: &str = "INSERT INTO collab_activity \
+     (resource_type, resource_id, actor_id, actor_name, action, payload, ip) \
+     VALUES ($1, $2, $3, $4, $5, $6, $7)";
+const ACTIVITY_INSERT_WITHOUT_IP: &str = "INSERT INTO collab_activity \
+     (resource_type, resource_id, actor_id, actor_name, action, payload) \
+     VALUES ($1, $2, $3, $4, $5, $6)";
+
 /// Append an audit-trail row for a resource. This is fire-and-forget from the
 /// mutating handlers — an audit-log failure is logged but never fatal to the
-/// primary write it trails.
+/// primary write it trails. Existing callers keep this exact signature and
+/// write `ip = NULL` through [`record_activity_with_ip`].
 pub(crate) fn record_activity(
     conn: &mut PgConnection,
     actor_id: &str,
@@ -79,20 +90,58 @@ pub(crate) fn record_activity(
     action: &str,
     payload: &serde_json::Value,
 ) {
+    record_activity_with_ip(
+        conn,
+        actor_id,
+        actor_name,
+        resource_type,
+        resource_id,
+        action,
+        payload,
+        None,
+    );
+}
+
+/// IP-aware variant of [`record_activity`]. `ip` is the server-resolved peer
+/// address supplied by the request layer; `None` is stored as SQL NULL and is
+/// never fabricated here. A failed IP-aware insert falls back to the legacy
+/// column shape so an audit row is never dropped on an older deployment.
+pub(crate) fn record_activity_with_ip(
+    conn: &mut PgConnection,
+    actor_id: &str,
+    actor_name: &str,
+    resource_type: &str,
+    resource_id: &str,
+    action: &str,
+    payload: &serde_json::Value,
+    ip: Option<&str>,
+) {
     let payload_json = serde_json::to_string(payload).unwrap_or_else(|_| "{}".to_string());
-    let res = diesel::sql_query(
-        "INSERT INTO collab_activity \
-         (resource_type, resource_id, actor_id, actor_name, action, payload) \
-         VALUES ($1, $2, $3, $4, $5, $6)",
-    )
-    .bind::<Text, _>(resource_type)
-    .bind::<Text, _>(resource_id)
-    .bind::<Text, _>(actor_id)
-    .bind::<Text, _>(actor_name)
-    .bind::<Text, _>(action)
-    .bind::<Text, _>(&payload_json)
-    .execute(conn);
-    if let Err(e) = res {
+    let result = diesel::sql_query(ACTIVITY_INSERT_WITH_IP)
+        .bind::<Text, _>(resource_type)
+        .bind::<Text, _>(resource_id)
+        .bind::<Text, _>(actor_id)
+        .bind::<Text, _>(actor_name)
+        .bind::<Text, _>(action)
+        .bind::<Text, _>(&payload_json)
+        .bind::<Nullable<Text>, _>(ip)
+        .execute(conn);
+    if let Err(e) = result {
+        // Non-fatal by design: an older deployment without the `ip` column
+        // still keeps the audit row through the legacy INSERT below.
+        warn!("collab activity IP-aware insert failed, retrying legacy shape: {e}");
+    } else {
+        return;
+    }
+    let fallback = diesel::sql_query(ACTIVITY_INSERT_WITHOUT_IP)
+        .bind::<Text, _>(resource_type)
+        .bind::<Text, _>(resource_id)
+        .bind::<Text, _>(actor_id)
+        .bind::<Text, _>(actor_name)
+        .bind::<Text, _>(action)
+        .bind::<Text, _>(&payload_json)
+        .execute(conn);
+    if let Err(e) = fallback {
         warn!("collab activity insert failed: {e}");
     }
 }

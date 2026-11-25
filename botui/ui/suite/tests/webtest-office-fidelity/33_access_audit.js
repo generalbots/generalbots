@@ -7,9 +7,11 @@
  *   (a) a successful shared-link read appends an `anonymous-guest` `view` event
  *       with resource_type = docs and a content-free payload (no token/body)
  *   (b) every mounted export format handler appends an `export` event carrying
- *       only the verified owner identity and the format — nothing content-bearing
+ *       only the verified owner identity, the format and a caller-supplied IP —
+ *       nothing content-bearing; the event, SQL row and read DTO carry `ip`,
+ *       `with_ip` attaches it and INSERT_WITH_IP persists it
  *   (c) both hooks are placed AFTER a successful load/render (fail-closed), the
- *       module is compiled into the crate, and both unit tests exist
+ *       module is compiled into the crate, and the unit tests exist
  *
  * All assertions are literal source substrings. Removing a hook, its identity
  * fields, the fail-closed ordering or a regression test makes the matching case
@@ -102,10 +104,11 @@ h.staticTest("Shared-link read emits an anonymous content-free view event", func
 // (b) Every mounted export handler appends the same audit hook with the
 //     verified Docs user (not a link guest) and only the format token. The
 //     constructor keeps exactly one payload key and never carries body bytes.
-h.staticTest("Every export handler appends an owner-and-format-only event", function () {
+h.staticTest("Every export handler appends an owner/format/client-IP event", function () {
   var exportFn = between(ACCESS_AUDIT, EXPORT_FN,
     "/// Mirror of `collab_routes::helpers::record_activity`'s INSERT");
 
+  // The payload stays content-free: only the format token, never body bytes.
   [
     "resource_type: RESOURCE_DOCS,",
     "actor_id: actor_id.to_string(),",
@@ -122,25 +125,60 @@ h.staticTest("Every export handler appends an owner-and-format-only event", func
   h.assert(exportFn.indexOf("content") === -1 && exportFn.indexOf("bytes") === -1,
     "export payload must not carry document content :: <" + exportFn + ">");
 
-  // The verified owner, not a guest marker, is forwarded into the event.
+  // #2452 — the event, its SQL row and its read DTO carry the optional client
+  // address. `with_ip` is the only attach point; INSERT_WITH_IP persists it.
+  var auditSrc = h.readRepo(ACCESS_AUDIT);
+  var ipFields = auditSrc.split("pub ip: Option<String>,").length - 1;
+  h.assert(ipFields >= 3,
+    "event, row and read DTO must all carry ip :: found " + ipFields);
   contains(ACCESS_AUDIT,
-    "AccessAuditEvent::export(user.id(), user.display_name(), resource_id, format),",
-    "export hook forwards the verified Docs user identity and format only");
+    "pub fn with_ip(mut self, ip: Option<&str>) -> Self {",
+    "with_ip is the additive IP attach point");
+  contains(ACCESS_AUDIT, "self.ip = ip.map(|addr| addr.to_string());",
+    "with_ip stores the caller's address verbatim");
+  contains(ACCESS_AUDIT, "const INSERT_WITH_IP: &str", "IP-aware INSERT is shipped");
+  contains(ACCESS_AUDIT, "actor_name, action, payload, ip)",
+    "IP-aware INSERT includes the ip column");
+  contains(ACCESS_AUDIT, "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    "IP-aware INSERT binds seven values");
+  contains(ACCESS_AUDIT,
+    ".bind::<Nullable<Text>, _>(event.ip.as_deref())",
+    "IP-aware INSERT binds the event IP as nullable text");
+  contains(ACCESS_AUDIT, "const INSERT_WITHOUT_IP: &str",
+    "legacy deployments keep a no-IP fallback");
 
-  // One hook per mounted format; its format token must match the route.
+  // The verified owner, not a guest marker, is forwarded into the event and
+  // the request layer's resolved address is attached via with_ip.
+  contains(ACCESS_AUDIT,
+    "AccessAuditEvent::export(user.id(), user.display_name(), resource_id, format).with_ip(ip),",
+    "export hook forwards the verified Docs user, format and caller IP");
+  contains(ACCESS_AUDIT, "fn record_export_access_with_ip(",
+    "IP-aware export recorder is shipped");
+  contains(ACCESS_AUDIT,
+    "record_export_access_with_ip(state, user, resource_id, format, None);",
+    "no-IP wrapper stays additive for existing callers");
+
+  // One hook per mounted format; its format token and client IP must match the
+  // route. The address comes from ConnectInfo, never from request input.
   var src = h.readRepo(EXPORT_HANDLERS);
   FORMATS.forEach(function (fmt, index) {
     var span = handlerSpan(src, index);
-    var hook = 'crate::access_audit::record_export_access(&state, &user, &doc.id, "' + fmt + '");';
+    var hook = "crate::access_audit::record_export_access_with_ip(";
     h.assert(span.indexOf(hook) !== -1,
-      "handle_export_" + fmt + " must append the export audit hook :: <" + span.slice(0, 200) + ">");
+      "handle_export_" + fmt + " must append the IP-aware export audit hook :: <" + span.slice(0, 200) + ">");
+    h.assert(span.indexOf('"' + fmt + '",') !== -1,
+      "handle_export_" + fmt + " must pass its own format token :: <" + span.slice(-260) + ">");
+    h.assert(span.indexOf("Some(client_ip.as_str())") !== -1,
+      "handle_export_" + fmt + " must pass the connected client's IP :: <" + span.slice(-260) + ">");
+    h.assert(span.indexOf("let client_ip = addr.ip().to_string();") !== -1,
+      "handle_export_" + fmt + " must resolve the IP from ConnectInfo :: <" + span.slice(0, 200) + ">");
   });
 });
 
 // (c) Fail-closed placement: a view is recorded only after the document is
 //     actually loaded, and an export only after the bytes/render were produced.
 //     The module is compiled into the crate and both regression tests exist.
-h.staticTest("Audit hooks are fail-closed and both unit tests exist", function () {
+h.staticTest("Audit hooks are fail-closed and the IP/unit tests exist", function () {
   contains(LIB, "pub mod access_audit;", "access_audit is compiled into botdocs");
 
   // Shared link: load -> audit -> response, so a rejected request cannot emit
@@ -153,16 +191,18 @@ h.staticTest("Audit hooks are fail-closed and both unit tests exist", function (
     "view hook must run only after a successful load :: <" + shared.slice(0, 360) + ">");
 
   // Exports: the analytics call follows the renderer for each format, and the
-  // audit hook follows that call — never a pre-render or failure path.
+  // IP-aware audit hook follows that call — never a pre-render or failure path.
   var src = h.readRepo(EXPORT_HANDLERS);
   FORMATS.forEach(function (fmt, index) {
     var span = handlerSpan(src, index);
     var analytics = 'record_export(&state, "' + fmt + '", started).await;';
-    var hook = 'crate::access_audit::record_export_access(&state, &user, &doc.id, "' + fmt + '");';
+    var hook = "crate::access_audit::record_export_access_with_ip(";
     var a = span.indexOf(analytics);
     var b = span.indexOf(hook);
     h.assert(a !== -1 && b !== -1 && a < b,
       "export hook must follow successful render for " + fmt + " :: <" + span.slice(-260) + ">");
+    h.assert(span.indexOf("ConnectInfo(addr): ConnectInfo<SocketAddr>") !== -1,
+      "export handler must take the connected peer address :: <" + span.slice(0, 200) + ">");
   });
 
   // The two regression tests pin down the contracts above.
@@ -177,4 +217,10 @@ h.staticTest("Audit hooks are fail-closed and both unit tests exist", function (
     "shared-view test must assert no token/content in payload");
   h.assert(tests.indexOf('assert!(event.payload.as_object().is_some_and(|map| map.len() == 1));') !== -1,
     "export test must assert exactly one payload key");
+  h.assert(tests.indexOf("fn event_with_ip_carries_the_callers_address()") !== -1 &&
+    tests.indexOf("fn event_without_ip_stays_none()") !== -1,
+    "IP attach/detach unit tests must exist");
+  h.assert(tests.indexOf("fn row_and_dto_round_trip_a_present_ip()") !== -1 &&
+    tests.indexOf("fn row_and_dto_round_trip_an_absent_ip()") !== -1,
+    "IP row/DTO round-trip unit tests must exist");
 });

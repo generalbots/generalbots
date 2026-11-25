@@ -15,7 +15,10 @@
 //! * every mutating Docs route keeps taking a [`crate::auth::DocUser`], and an
 //!   anonymous request has none (`401`), so a link session cannot save;
 //! * the response always carries `read_only: true`, whatever role the link
-//!   records — a link grants a view, not an editor session.
+//!   records — a link grants a view, not an editor session;
+//! * #2452 — the body is role-scoped: only roles that actually carry source
+//!   capability receive the editable document body. A `viewer` link gets the
+//!   document metadata and an empty body, never the full HTML source.
 //!
 //! The owning namespace is captured on the link row when it is minted
 //! (`owner_id`), because documents live under `users/{owner}/docs` (#2135) and
@@ -71,6 +74,34 @@ struct LinkRow {
 /// touched.
 pub fn is_valid_token(token: &str) -> bool {
     token.len() == TOKEN_LEN && token.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Roles whose capability includes the editable document body. The Share
+/// dialog mints `viewer`, `commenter` and `editor`; `owner` is accepted for
+/// legacy rows. A `viewer` link grants a read-only view, not the source, and
+/// an unrecognised role fails closed.
+fn role_allows_source(role: &str) -> bool {
+    matches!(
+        role.trim().to_ascii_lowercase().as_str(),
+        "commenter" | "editor" | "owner"
+    )
+}
+
+/// The single decision for releasing source bytes across the capability
+/// boundary. Every gate fails closed: a malformed token, an expired link or a
+/// role without source capability denies the body. The handler rejects the
+/// first two up front with the generic `not_found()`; this function also
+/// feeds the body field so the role check cannot be bypassed later.
+fn body_for_link<'a>(
+    token: &str,
+    role: &str,
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    now: chrono::DateTime<chrono::Utc>,
+    source: &'a str,
+) -> &'a str {
+    let allowed =
+        is_valid_token(token) && !link_is_expired(expires_at, now) && role_allows_source(role);
+    if allowed { source } else { "" }
 }
 
 /// Unknown, expired, revoked and wrong-type links are indistinguishable: the
@@ -150,10 +181,23 @@ pub async fn handle_shared_document(
     // The token and the body stay out of the audit payload.
     crate::access_audit::record_shared_view(&state, &link.resource_id);
 
+    // #2452 — the capability is scoped to the role recorded on the link. A
+    // viewer sees only the metadata shell; the editable HTML source (and
+    // anything embedded in it) never leaves the server on a viewer link.
+    // The response shape is unchanged: only `content` is role-dependent.
+    let content = body_for_link(
+        &token,
+        &link.role,
+        link.expires_at,
+        chrono::Utc::now(),
+        &document.content,
+    )
+    .to_string();
+
     Ok(Json(SharedDocument {
         id: document.id,
         title: document.title,
-        content: document.content,
+        content,
         read_only: true,
         role: link.role,
         updated_at: document.updated_at.to_rfc3339(),
@@ -208,16 +252,21 @@ async fn resolve_owner(state: &DocState, link: &LinkRow) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_valid_token, link_is_expired};
+    use super::{body_for_link, is_valid_token, link_is_expired};
 
-    #[test]
-    fn the_minted_token_shape_is_accepted() {
-        let token = format!(
+    fn minted_token() -> String {
+        format!(
             "{}{}",
             uuid::Uuid::new_v4().simple(),
             uuid::Uuid::new_v4().simple()
-        );
-        assert!(is_valid_token(&token));
+        )
+    }
+
+    const SOURCE: &str = "<h1>Shared heading</h1><p>UAT_SECRET_MARKER</p>";
+
+    #[test]
+    fn the_minted_token_shape_is_accepted() {
+        assert!(is_valid_token(&minted_token()));
     }
 
     #[test]
@@ -247,5 +296,55 @@ mod tests {
             now
         ));
         assert!(!link_is_expired(None, now));
+    }
+
+    #[test]
+    fn viewer_link_does_not_release_the_editable_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        assert!(!SOURCE.is_empty() && SOURCE.contains("UAT_SECRET_MARKER"));
+        for role in ["viewer", "Viewer", "", "guest"] {
+            assert_eq!(body_for_link(&token, role, None, now, SOURCE), "");
+        }
+    }
+
+    #[test]
+    fn owner_and_higher_role_links_still_release_the_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        for role in ["commenter", "editor", "owner", "EDITOR"] {
+            assert_eq!(body_for_link(&token, role, None, now, SOURCE), SOURCE);
+        }
+    }
+
+    #[test]
+    fn bad_token_and_expired_link_fail_closed_without_body_bytes() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        assert_eq!(
+            body_for_link("g".repeat(64).as_str(), "editor", None, now, SOURCE),
+            ""
+        );
+        assert_eq!(body_for_link(&token, "editor", Some(now), now, SOURCE), "");
+        assert_eq!(
+            body_for_link(
+                &token,
+                "editor",
+                Some(now - chrono::Duration::seconds(1)),
+                now,
+                SOURCE
+            ),
+            ""
+        );
+        assert_eq!(
+            body_for_link(
+                &token,
+                "editor",
+                Some(now + chrono::Duration::hours(1)),
+                now,
+                SOURCE
+            ),
+            SOURCE
+        );
     }
 }

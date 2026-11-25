@@ -72,12 +72,27 @@
     if (this.headerRow) this.headerRow.setAttribute("role", "row");
     if (this.bodyInner) this.bodyInner.setAttribute("role", "presentation");
 
-    this.a11yLive = document.createElement("div");
-    this.a11yLive.className = "sheet-a11y-live";
-    this.a11yLive.setAttribute("role", "status");
-    this.a11yLive.setAttribute("aria-live", "polite");
-    this.a11yLive.setAttribute("aria-atomic", "true");
-    this.root.appendChild(this.a11yLive);
+    // (#2435) Host the polite status region on document.body, never on the
+    // grid root. VirtualGrid.init() rebuilds this.root on every (re-)init while
+    // reusing the grid object, so a live region appended to an old root ended
+    // up disconnected once that root was replaced — announce() then wrote the
+    // guardrail error into a detached node no screen reader announced. A
+    // body-level node is always connected; keying it per window keeps repeated
+    // init idempotent (no duplicate regions) and lets a fresh grid object
+    // repoint to the existing node.
+    var liveId = "gb-sheet-a11y-live-" + (this.windowId || "main");
+    var existingLive = document.getElementById(liveId);
+    if (existingLive) {
+      this.a11yLive = existingLive;
+    } else {
+      this.a11yLive = document.createElement("div");
+      this.a11yLive.id = liveId;
+      this.a11yLive.className = "sheet-a11y-live";
+      this.a11yLive.setAttribute("role", "status");
+      this.a11yLive.setAttribute("aria-live", "polite");
+      this.a11yLive.setAttribute("aria-atomic", "true");
+      document.body.appendChild(this.a11yLive);
+    }
 
     this.a11yRowGroup = document.createElement("div");
     this.a11yRowGroup.className = "sheet-a11y-rowgroup";
@@ -133,6 +148,10 @@
   VirtualGrid.announce = function (text, immediate) {
     if (!text || !this.a11yLive) return;
     var live = this.a11yLive;
+    // (#2435) Defensive re-host: if a stale root change ever detaches the
+    // region, move it back to the connected document body before writing so
+    // the message lands in a live role=status node and is actually announced.
+    if (!live.isConnected && document.body) document.body.appendChild(live);
     if (this.a11yAnnounceTimer) clearTimeout(this.a11yAnnounceTimer);
     var write = function () {
       // Identical consecutive messages are not re-announced by most screen

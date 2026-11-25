@@ -176,7 +176,14 @@ Two independent filters run, and both must agree:
    when `is_admin_only_endpoint` matches the method and path.
 2. **Execution filter.** `execute_command` re-checks the verb's `admin_only`
    flag, and `exec_endpoint` re-checks the endpoint matrix. A model that
-   hallucinates an admin verb therefore gets an error, not a result.
+   hallucinates an admin verb therefore gets an error, not a result. The gate is
+   typed and fail closed: a non-admin gets the fixed message `command denied:
+   admin role required`, and a caller whose role cannot be resolved gets
+   `command denied: caller role could not be resolved`; no verb name, REST path
+   or database error is echoed back. The same check runs for `api.exec` loopback
+   calls that name an admin-only verb's bound REST route instead of the verb, so
+   a prompt-injected path cannot reach the route by avoiding the verb name — for
+   example the Docs track-changes accept-all route or worksheet deletion.
 
 Role resolution itself is in `botserver/src/security/user_role.rs`: a user is
 `admin` when any active group in `rbac_groups` they belong to has a name

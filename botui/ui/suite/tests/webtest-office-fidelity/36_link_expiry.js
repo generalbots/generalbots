@@ -211,7 +211,9 @@ h.staticTest("#2452 Docs UI sends expiry only when set and validates invalid/pas
 //     exactly-now are expired; a future deadline and an open-ended link are not.
 h.staticTest("#2452 both expiry unit tests cover the past/boundary and future/open-ended cases", function () {
   contains(SHARED_LINK, "mod tests {", "unit test module is shipped");
-  contains(SHARED_LINK, "use super::{is_valid_token, link_is_expired};", "helper imported by tests");
+  contains(SHARED_LINK,
+    "use super::{body_for_link, is_valid_token, link_is_expired};",
+    "expiry helper and role-scoped body helper imported by tests");
 
   var expired = between(SHARED_LINK,
     "fn expired_deadlines_are_refused_including_the_boundary() {",
@@ -233,4 +235,17 @@ h.staticTest("#2452 both expiry unit tests cover the past/boundary and future/op
     "open-ended (None) link stays redeemable");
 
   h.assert(occurrences(src, "#[test]") >= 4, "both expiry tests must be annotated #[test]");
+
+  // The #2452 role/body refactor added fail-closed source tests next to the
+  // expiry ones. Their non-vacuity marker is a real secret embedded in SOURCE,
+  // so an always-empty or always-full gate cannot satisfy the role guard.
+  ["fn viewer_link_does_not_release_the_editable_source() {",
+   "fn owner_and_higher_role_links_still_release_the_source() {",
+   "fn bad_token_and_expired_link_fail_closed_without_body_bytes() {"].forEach(function (marker) {
+    h.assert(src.indexOf(marker) !== -1, "role-scoped body unit test must exist <" + marker + ">");
+  });
+  h.assert(src.indexOf('for role in ["viewer", "Viewer", "", "guest"]') !== -1,
+    "viewer roles must be exercised by the source-gating test");
+  h.assert(src.indexOf('for role in ["commenter", "editor", "owner", "EDITOR"]') !== -1,
+    "source-capable roles must be exercised by the source-gating test");
 });
