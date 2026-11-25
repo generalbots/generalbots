@@ -81,7 +81,7 @@ impl PackageManager {
                 // with PGPASSWORD=''.
                 get_secret_value_strict_sync("secret/gbo/tables", "password")
                     .unwrap_or_else(|error| {
-                        warn!("Vault DB password unavailable for {name}: {error}");
+                        warn!("Vault DB password unavailable for {component}: {error}");
                         String::new()
                     })
             } else {
