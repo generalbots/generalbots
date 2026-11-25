@@ -195,7 +195,7 @@ headers:{'Content-Type':'application/json'},
 body:JSON.stringify({email:e||'admin@localhost',password:'dev'})});
 if(r.ok){var h=GB_SSO_HANDOFF.create({_host:location.hostname,_secure:location.protocol==='https:'});
 var d=new URL('/dashboard',(window.GB_CLOUD_URL||'http://localhost:4000'));
-window.location.href=GB_SSO_HANDOFF.destination(d,{token:t,email:e||'admin@localhost',name:''},h,location.origin)}catch(_){}}else if(e){document.getElementById('login-email').value=e}})();
+window.location.href=GB_SSO_HANDOFF.destination(d,{token:t,email:e||'admin@localhost',name:''},h,location.origin)}}catch(_){}}else if(e){document.getElementById('login-email').value=e}})();
 function onLoginSubmit(e){sessionStorage.removeItem('gb-signed-out');handleLogin(e)}
 </script>
 </body>

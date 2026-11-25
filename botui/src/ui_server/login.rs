@@ -171,6 +171,23 @@ pub async fn serve_login_cloud(axum::extract::Path(path): axum::extract::Path<St
     serve_login_file(cloud_root.join(path.as_str())).await
 }
 
+/// `/suite/:dir/*path` on the login server, restricted to the shared static
+/// trees the auth pages actually link: the palette tokens
+/// (`/suite/css/palette-tokens.css`) and the touch icons
+/// (`/suite/assets/icons/apple-touch-icon.png`). The login router has no
+/// catch-all static mount, so those requests used to fall through to
+/// `serve_login_index` and the browser refused the HTML body as a stylesheet
+/// ("MIME type ('text/html') is not a supported stylesheet MIME type").
+pub async fn serve_login_suite(
+    axum::extract::Path((dir, path)): axum::extract::Path<(String, String)>,
+) -> Response {
+    if !matches!(dir.as_str(), "css" | "assets") || !is_safe_relative_path(&path) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    let suite_root = get_ui_root().join("suite");
+    serve_login_file(suite_root.join(&dir).join(path.as_str())).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,7 +251,19 @@ mod tests {
             assert_eq!(images.status(), StatusCode::NOT_FOUND, "images: {payload}");
             let cloud = serve_login_cloud(Path(payload.to_string())).await;
             assert_eq!(cloud.status(), StatusCode::NOT_FOUND, "cloud: {payload}");
+            let suite = serve_login_suite(Path(("css".to_string(), payload.to_string()))).await;
+            assert_eq!(suite.status(), StatusCode::NOT_FOUND, "suite: {payload}");
         }
+    }
+
+    #[tokio::test]
+    async fn login_suite_handler_only_serves_shared_static_trees() {
+        use axum::extract::Path;
+
+        // The auth router has no catch-all static mount: only the trees the
+        // login/signup pages link are exposed.
+        let denied = serve_login_suite(Path(("chat".to_string(), "chat.html".to_string()))).await;
+        assert_eq!(denied.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
@@ -253,6 +282,9 @@ mod tests {
         assert_eq!(js.status(), StatusCode::OK);
         let cloud = serve_login_cloud(Path("js/cloud.js".to_string())).await;
         assert_eq!(cloud.status(), StatusCode::OK);
+        let suite =
+            serve_login_suite(Path(("css".to_string(), "palette-tokens.css".to_string()))).await;
+        assert_eq!(suite.status(), StatusCode::OK);
     }
 
     #[cfg(unix)]
