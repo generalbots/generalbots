@@ -77,7 +77,10 @@ h.staticTest("#2543 botserver/clippy-baseline.toml ships a documented [clippy] t
 
   // The [clippy] ceiling table is isolated from [rules]/[files.*] and holds
   // the three real diagnostic codes, each pinned to zero exactly once.
-  var clippy = span(baseline, "[clippy]", "[rule_notes]");
+  // The preservation helper appends unknown tables at EOF, so [clippy] may
+  // be the last table rather than followed by [rule_notes].
+  var start = baseline.indexOf("[clippy]");
+  var clippy = start === -1 ? "" : baseline.slice(start);
   contains(clippy, "unwrap_used = 0", "unwrap_used ceiling is zero");
   contains(clippy, "expect_used = 0", "expect_used ceiling is zero");
   contains(clippy, "panic = 0", "panic ceiling is zero");
