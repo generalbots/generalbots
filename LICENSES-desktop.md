@@ -16,6 +16,8 @@ ships that file at `/usr/share/doc/general-bots/licenses/LICENSE`.
 
 Source URLs point at the upstream repository, not at the download mirror: for
 the AGPL/BUSL entries that is where the corresponding source is obtained.
+Rows whose key ends in `_cached` are legacy offline-installer copies of the same
+upstream binary and carry the same license as their non-cached counterpart.
 
 | component | name | version | license | source | text |
 |---|---|---|---|---|---|
@@ -23,20 +25,26 @@ the AGPL/BUSL entries that is where the corresponding source is obtained.
 | `mc` | MinIO Client (mc) | RELEASE.2025-08-13T08-35-41Z | AGPL-3.0-or-later | https://github.com/minio/mc | payload `LICENSE` |
 | `clamav` | ClamAV Antivirus Engine | 1.5.5 | GPL-2.0-or-later | https://github.com/Cisco-Talos/clamav | payload `copyright` |
 | `tables` | PostgreSQL Database | 18.6.1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
+| `tables_17_2_0_cached` | PostgreSQL Database (bundled cache copy) | 17.2.0 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
 | `cache` | Valkey Cache (Redis-compatible) | 9.1.3 | BSD-3-Clause | https://github.com/valkey-io/valkey | payload `COPYING` |
+| `cache_8_1_5_cached` | Valkey Cache (bundled cache copy) | 8.1.5 | BSD-3-Clause | https://github.com/valkey-io/valkey | payload `COPYING` |
 | `caddy` | Caddy Web Server | 2.11.9 | Apache-2.0 | https://github.com/caddyserver/caddy | payload `LICENSE` |
 | `email` | Stalwart Mail Server | 1.0.3 | AGPL-3.0-only | https://github.com/stalwartlabs/mail-server | payload `LICENSE-AGPL` |
 | `directory` | Zitadel Identity Provider | 4.20.1 | Apache-2.0 | https://github.com/zitadel/zitadel | payload `LICENSE` |
 | `alm` | Forgejo Git Server | 17.0.1 | GPL-3.0-or-later | https://codeberg.org/forgejo/forgejo | payload `LICENSE` |
+| `alm_10_0_1_cached` | Forgejo Git Server (bundled cache copy) | 10.0.1 | GPL-3.0-or-later | https://codeberg.org/forgejo/forgejo | payload `LICENSE` |
 | `alm_ci` | Forgejo Actions Runner | 13.2.1 | GPL-3.0-or-later | https://code.forgejo.org/forgejo/runner | payload `LICENSE` |
+| `alm_ci_6_0_0_cached` | Forgejo Actions Runner (bundled cache copy) | 6.0.0 | GPL-3.0-or-later | https://code.forgejo.org/forgejo/runner | payload `LICENSE` |
 | `dns` | CoreDNS Server | 1.15.0 | Apache-2.0 | https://github.com/coredns/coredns | payload `LICENSE` |
 | `webmail` | Roundcube Webmail | 1.7.5 | GPL-3.0-or-later | https://github.com/roundcube/roundcubemail | payload `LICENSE` |
 | `meet` | LiveKit Media Server | 1.13.11 | Apache-2.0 | https://github.com/livekit/livekit | payload `LICENSE` |
 | `libpq_win` | PostgreSQL Client Libraries (libpq) | 18.6-1 | PostgreSQL | https://github.com/postgres/postgres | payload `COPYRIGHT` |
 | `table_editor` | NocoDB | unpinned (get.nocodb.com) | AGPL-3.0-or-later | https://github.com/nocodb/nocodb | payload `LICENSE` |
 | `vector_db` | Qdrant Vector Database | 1.20.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
+| `vector_db_1_12_0_cached` | Qdrant Vector Database (bundled cache copy) | 1.12.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
 | `timeseries_db` | InfluxDB Time Series Database | 2.7.10 | MIT | https://github.com/influxdata/influxdb | payload `LICENSE` |
 | `vault` | HashiCorp Vault | 2.2.1 | BUSL-1.1 | https://github.com/hashicorp/vault | payload `LICENSE` |
+| `vault_1_18_2_cached` | HashiCorp Vault (bundled cache copy) | 1.18.2 | BUSL-1.1 | https://github.com/hashicorp/vault | payload `LICENSE` |
 | `observability` | Vector Log Aggregator | 0.61.0 | MPL-2.0 | https://github.com/vectordotdev/vector | payload `LICENSE` |
 | `botmodels` | BotModels Python Service (pythonbox) | release tag | MIT | https://github.com/generalbots/generalbots | payload `LICENSE` |
 | `llm` | Llama.cpp Server (Linux x64 CPU) | b7345 | MIT | https://github.com/ggml-org/llama.cpp | payload `LICENSE` |

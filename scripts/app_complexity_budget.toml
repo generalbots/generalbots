@@ -1,32 +1,20 @@
 # ─── One-time complexity ceiling relock — 2026-11-25 ──────────────────────────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update` from the
-# current tree, after the previous relock on 2026-11-22. This block is the owner
-# note that justifies the ceilings that ROSE; it does not relax the contract
-# below for future changes. All numbers are the tool's before -> after values.
+# current tree, after the earlier relock on 2026-11-22. This is the owner note
+# that justifies the ceilings that ROSE; it does not relax the contract below.
+# All numbers are the tool's before -> after values.
 #
-# 23 per-app metrics grew (plus the two [defaults] ceilings):
-#   defaults: js_modules 115 -> 117 (+2)
-#   defaults: loc 28453 -> 30986 (+2533)
-#   about:      loc 760 -> 762 (+2)            banking:    loc 967 -> 969 (+2)
-#   chat:       js_modules 92 -> 98 (+6)       chat:       loc 28453 -> 30986 (+2533)
-#   crm:        js_modules 7 -> 8 (+1)         crm:        loc 3646 -> 3978 (+332)
-#   desktop:    routes 4 -> 6 (+2)             desktop:    loc 28073 -> 28083 (+10)
-#   docs:       js_modules 107 -> 109 (+2)     docs:       loc 19510 -> 20854 (+1344)
-#   fraud:      loc 963 -> 966 (+3)            plugins:    loc 174 -> 176 (+2)
-#   settings:   js_modules 33 -> 35 (+2)       settings:   loc 13153 -> 13379 (+226)
-#   sheet:      js_modules 115 -> 117 (+2)     sheet:      loc 27745 -> 28451 (+706)
-#   slides:     js_modules 94 -> 97 (+3)       slides:     loc 21292 -> 21748 (+456)
-#   social:     loc 1316 -> 1353 (+37)         tasks:      js_modules 25 -> 26 (+1)
-#   tasks:      loc 11512 -> 11759 (+247)      terminal:   loc 689 -> 695 (+6)
-#   vibe:       loc 14592 -> 14603 (+11)
+# Three LOC ceilings rose for shipped UI work (guard modules and asset
+# extraction) that landed in these apps after the previous relock:
+#   mail:     loc 4383  -> 4395  (+12)
+#   settings: loc 13379 -> 13455 (+76)
+#   slides:   loc 21748 -> 21752 (+4)
 #
-# Why: legitimate shipped features landed since 2026-11-22 (notably chat, docs,
-# crm, settings, sheet, slides and tasks), and the adequacy guard's file-size
-# rule (split at 350 lines, hard limit 450 lines) required splitting those UI
-# surfaces into more JS modules. Both effects raise js_modules and UI loc counts
-# without adding accidental complexity. The same re-baseline TIGHTENED 21 other
-# metrics that had fallen (notably designer loc 5794 -> 4901 and editor loc
-# 1328 -> 967); see the diff for the complete list.
+# The same re-baseline TIGHTENED three metrics that had fallen since 2026-11-22:
+#   chat:  loc 30986 -> 30982 (-4)    docs:  loc 20854 -> 20853 (-1)
+#   tasks: loc 11759 -> 11756 (-3)
+# (chat's previous ceiling remains the [defaults] loc ceiling, since --update
+# never lowers a default below its existing value.)
 #
 # GOING FORWARD: every metric below is a hard ceiling. Future changes may only
 # HOLD or LOWER these numbers. Any increase must be justified in the same PR
@@ -107,7 +95,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30986
+loc = 30982
 
 [apps."clock"]
 routes = 0
@@ -152,7 +140,7 @@ loc = 28083
 [apps."docs"]
 routes = 0
 js_modules = 109
-loc = 20854
+loc = 20853
 
 [apps."drive"]
 routes = 26
@@ -212,7 +200,7 @@ loc = 2138
 [apps."mail"]
 routes = 36
 js_modules = 6
-loc = 4383
+loc = 4395
 
 [apps."meet"]
 routes = 13
@@ -317,7 +305,7 @@ loc = 561
 [apps."settings"]
 routes = 52
 js_modules = 35
-loc = 13379
+loc = 13455
 
 [apps."sheet"]
 routes = 0
@@ -327,7 +315,7 @@ loc = 28451
 [apps."slides"]
 routes = 0
 js_modules = 97
-loc = 21748
+loc = 21752
 
 [apps."social"]
 routes = 6
@@ -342,7 +330,7 @@ loc = 413
 [apps."tasks"]
 routes = 0
 js_modules = 26
-loc = 11759
+loc = 11756
 
 [apps."tax"]
 routes = 5
