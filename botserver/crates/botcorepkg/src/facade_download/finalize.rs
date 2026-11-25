@@ -138,7 +138,16 @@ pub fn run_commands_with_password(
     } else if !db_password_override.is_empty() {
         db_password_override.to_string()
     } else {
-        let from_url = db_password_from_url(get_database_url_sync(), component);
+        let url_result = get_database_url_sync();
+        let url_error = url_result.as_ref().err().map(|error| error.to_string());
+        let from_url = db_password_from_url(url_result, component);
+        // Diagnostics only — never log the password value. The CI first-run
+        // rendered PGPASSWORD='' even though Vault had a seeded credential.
+        log::warn!(
+            "DB_PASSWORD resolution for {component}: url_password_present={} url_error={:?}",
+            !from_url.is_empty(),
+            url_error
+        );
         if from_url.is_empty() {
             // `get_database_url()` can be served from an env-derived cache
             // whose password is empty during first boot, even though Vault
@@ -146,8 +155,10 @@ pub fn run_commands_with_password(
             // so installer SQL never runs with `PGPASSWORD=''`.
             match crate::db_utils::get_secret_value_strict_sync("secret/gbo/tables", "password") {
                 Ok(password) => password,
-                Err(_) => {
-                    trace!("Vault not available for DB_PASSWORD, using empty string");
+                Err(error) => {
+                    log::warn!(
+                        "DB_PASSWORD strict Vault lookup failed for {component}: {error}"
+                    );
                     String::new()
                 }
             }
