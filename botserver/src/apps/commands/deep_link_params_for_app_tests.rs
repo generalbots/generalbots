@@ -128,6 +128,11 @@ mod surface_coverage_tests {
     #[test]
     fn every_registry_app_has_a_verb_a_deep_link_and_a_ui_hint() {
         for app in crate::apps::registry::all_apps() {
+            // #2501/#2503 — UI-only preview apps; see UI_ONLY_PREVIEW_APPS in
+            // the parent module for the scoped justification and owner issues.
+            if crate::apps::commands::UI_ONLY_PREVIEW_APPS.contains(&app.id.as_str()) {
+                continue;
+            }
             assert!(
                 !commands_for_app(&app.id).is_empty(),
                 "{} has no curated verb",

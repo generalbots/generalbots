@@ -31,9 +31,18 @@ pub use deep_link_build::*;
 pub use deep_link_params_for_app::*;
 pub use verb_endpoints::*;
 
+/// #2501/#2503 — Office `events` and `approvals` ship as UI-only preview apps:
+/// their REST surfaces (`/api/events/*`, `/api/approvals/*`) are authenticated
+/// but are absent from `endpoint_inventory::all_routes()`, so `api.exec` cannot
+/// reach them. A curated verb here would be a navigation stub, not an action.
+/// The #2035/#2036 guards below exempt ONLY these two entries until an owner
+/// issue adds a real command-catalog surface; every other app stays strict.
+#[cfg(test)]
+pub(crate) const UI_ONLY_PREVIEW_APPS: &[&str] = &["approvals", "events"];
+
 #[cfg(test)]
 mod surface_guard_tests {
-    use super::{all_commands, commands_for_app};
+    use super::{all_commands, commands_for_app, UI_ONLY_PREVIEW_APPS};
     use crate::apps::registry;
 
     /// #2036 — build-time guard: every registered app must expose at least one
@@ -47,6 +56,7 @@ mod surface_guard_tests {
 
         let missing: Vec<String> = apps
             .iter()
+            .filter(|app| !UI_ONLY_PREVIEW_APPS.contains(&app.id.as_str()))
             .filter(|app| commands_for_app(&app.id).is_empty())
             .map(|app| app.id.clone())
             .collect();
