@@ -2,16 +2,17 @@
 //!
 //! The slides WebSocket identifies a collaborator from a JWT that must now be
 //! *verified*, not merely decoded: `extract_user_from_token` delegates to
-//! `botsecurity_core::verified_jwt::verify_saas_jwt`, which pins HS256,
-//! compares the HMAC in constant time and enforces `exp`/`nbf`. These tests
-//! mint real tokens with the secret the verifier resolves in this process and
-//! pin the accept/reject boundary: a forged, unsigned (`alg: none`), expired or
-//! foreign-key token yields an error instead of an identity, so the upgrade is
-//! refused and no writable guest session is created.
+//! `botsecurity_core::verified_jwt`, which pins HS256, compares the HMAC in
+//! constant time and enforces `exp`/`nbf`. These tests mint real tokens with a
+//! deterministic secret injected through the `#[cfg(test)]` verification seam
+//! and pin the accept/reject boundary: a forged, unsigned (`alg: none`),
+//! expired or foreign-key token yields an error instead of an identity, so the
+//! upgrade is refused and no writable guest session is created. No test depends
+//! on the process working directory or on a provisioned `botserver-stack`.
 
-use super::extract_user_from_token;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use botsecurity_core::verified_jwt::{resolve_saas_jwt_secret, JwtVerifyError};
+use super::{TEST_JWT_SECRET, extract_user_from_token};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use botsecurity_core::verified_jwt::JwtVerifyError;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
@@ -24,13 +25,16 @@ fn sign_with(claims: serde_json::Value, secret: &str) -> String {
     let header = b64url(br#"{"alg":"HS256","typ":"JWT"}"#);
     let payload = b64url(claims.to_string().as_bytes());
     let signing_input = format!("{header}.{payload}");
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac key");
+    // HMAC-SHA256 accepts any byte string as a key, so this cannot fail.
+    let Ok(mut mac) = Hmac::<Sha256>::new_from_slice(secret.as_bytes()) else {
+        return signing_input;
+    };
     mac.update(signing_input.as_bytes());
     format!("{signing_input}.{}", b64url(&mac.finalize().into_bytes()))
 }
 
 fn token(claims: serde_json::Value) -> String {
-    sign_with(claims, &resolve_saas_jwt_secret().expect("saas jwt secret"))
+    sign_with(claims, TEST_JWT_SECRET)
 }
 
 fn claims() -> serde_json::Value {
