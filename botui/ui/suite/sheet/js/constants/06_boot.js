@@ -8,6 +8,20 @@
   var SheetAPI = D.SheetAPI;
   var fallbackVirtualGrid = D.virtualGrid;
 
+  function tr(key, fallback) {
+    return typeof window.gbT === "function" ? (window.gbT(key, fallback) || fallback) : fallback;
+  }
+
+  // Existing role=status / aria-live=polite region on the grid (03a_grid_a11y.js).
+  function announce(grid, message) {
+    if (grid && typeof grid.announce === "function") {
+      grid.announce(message, true);
+      return;
+    }
+    var live = (grid && grid.a11yLive) ? grid.a11yLive : document.querySelector(".sheet-a11y-live");
+    if (live) live.textContent = message;
+  }
+
   function activeInstance(context) {
     if (context && context.windowId && (context.grid || context.body)) return context;
     if (D.getSheetInstance) {
@@ -198,7 +212,19 @@
         var val = formulaInput.value;
         if (!g || g.selectedRow == null || g.selectedCol == null) return;
         var ref = colName(g.selectedCol) + (g.selectedRow + 1);
+        var cellData = g.cells.get(g.selectedRow + "," + g.selectedCol);
+        var oldBarValue = cellData && cellData.formula ? cellData.formula
+          : (cellData && cellData.value != null ? String(cellData.value) : "");
         SheetAPI.updateCell(ref, val, inst || g).then(function (res) {
+          if (res && res.ok === false) {
+            // #2435 criterion 6 — the grid kept the old value on refusal;
+            // leaving the rejected value in the bar would desync the two.
+            formulaInput.value = oldBarValue;
+            var message = res.error || tr("status-error", "Error");
+            if (window.sheetNotify) window.sheetNotify(message, true);
+            announce(g, message);
+            return;
+          }
           if (res && res.success) {
             g.lastRenderedRange = null;
             // #2459 — formula-bar edits recalculate dependents server-side;

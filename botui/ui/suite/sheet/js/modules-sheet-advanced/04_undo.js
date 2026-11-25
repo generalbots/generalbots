@@ -186,7 +186,10 @@
         const newValue = value == null ? "" : String(value);
         const newSnap = {};
         newSnap[key] = { value: newValue.startsWith("=") ? "" : newValue, formula: newValue.startsWith("=") ? newValue : (before ? before.formula || "" : "") };
-        res.then(function () {
+        res.then(function (result) {
+          // #2435 criterion 6 — a guardrail refusal resolves with {ok:false}.
+          // Nothing was persisted, so it must not become an undoable "Edit".
+          if (result && result.ok === false) return;
           pushEntry("Edit", oldSnap, newSnap);
           updateButtons();
         });
