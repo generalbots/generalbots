@@ -8,6 +8,7 @@ use log::{info, warn};
 use serde_json::json;
 use std::time::{Duration, Instant};
 use super::i18n;
+use tauri::window::Color;
 use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 /// Whether the splash stays above every other window and takes the focus.
@@ -40,6 +41,21 @@ pub(crate) fn park_offscreen(window: &WebviewWindow) {
     let _ = window.set_always_on_top(false);
 }
 
+/// Fully transparent colour for the splash window and its webview. WebView2
+/// paints white behind a transparent page unless its own background is cleared.
+const TRANSPARENT: Color = Color(0, 0, 0, 0);
+
+/// Clears the webview background and drops the system shadow, whose 1px border
+/// draws a white rounded outline around an undecorated window on Windows 11.
+fn clear_backdrop(window: &WebviewWindow) {
+    if let Err(e) = window.set_background_color(Some(TRANSPARENT)) {
+        warn!("splash: could not clear the background: {e}");
+    }
+    if let Err(e) = window.set_shadow(false) {
+        warn!("splash: could not remove the shadow: {e}");
+    }
+}
+
 /// Reads the minimum splash duration from the environment or the compile-time
 /// default.
 fn splash_min_duration() -> Duration {
@@ -60,6 +76,7 @@ pub fn show(app: &tauri::AppHandle) {
         if rig {
             park_offscreen(&window);
         }
+        clear_backdrop(&window);
         let _ = window.show();
         if !rig {
             if TOPMOST {
@@ -84,6 +101,8 @@ pub fn show(app: &tauri::AppHandle) {
         .resizable(false)
         .decorations(false)
         .transparent(true)
+        .background_color(TRANSPARENT)
+        .shadow(false)
         .skip_taskbar(rig)
         .visible(true);
     if rig {
