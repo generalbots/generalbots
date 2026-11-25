@@ -18,6 +18,29 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             },
             WidgetSpec { url: None, size_w: 2, size_h: 1, refresh_secs: Some(1) },
         ),
+        // #2503 / #2501 — Office event stream and approval routing ship as
+        // preview apps: no `.product*` profile lists them in `apps=`, so the
+        // registry must not mark them always-visible.
+        app(AppSpec {
+            id: "events",
+            title: "Events",
+            category: "business",
+            color: "#0ea5e9",
+            url: "/suite/events/events.html",
+            description: "Schedule and review events, appointments and reminders.",
+            keywords: "events schedule appointments calendar",
+            icon: "<path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"/>",
+        }),
+        app(AppSpec {
+            id: "approvals",
+            title: "Approvals",
+            category: "office",
+            color: "#f59e0b",
+            url: "/suite/approvals/approvals.html",
+            description: "Approval routing, SLA, delegation and e-signature records.",
+            keywords: "approval routing sla delegation signature",
+            icon: "<path d=\"M9 11l3 3L22 4\"/><path d=\"M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7\"/>",
+        }),
         app_always(AppSpec {
             id: "chat",
             title: "Chat",

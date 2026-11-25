@@ -6,6 +6,50 @@ use super::args::{extract_deep_links, inject_tax_value_from_user, merge_missing_
 use super::humanize::{grounded_numbers, humanize_result};
 use super::parse::{extract_api_call_payload, strip_api_call_block};
 
+/// Delivers one reply and records it in the transcript. Both sides are
+/// best-effort: a transport or storage failure is logged, not surfaced to the
+/// user, so a lost notification never hides the command result.
+async fn deliver_and_save(
+    identity: &SessionIdentity<'_>,
+    resp: &botlib::models::BotResponse,
+    context: &str,
+) {
+    if let Err(e) = identity.sink.send_bot_response(resp).await {
+        log::warn!("api_call: {context} reply not delivered: {e}");
+    }
+    let mut sm = identity.state.session_manager.lock().await;
+    if let Err(e) = sm.save_message(identity.session_id, identity.user_id, 2, &resp.content, 2) {
+        log::warn!("api_call: {context} reply not saved: {e}");
+    }
+}
+
+/// Turns `web.search` hits into citation chips for the answer.
+fn search_citations(result: &serde_json::Value) -> Vec<serde_json::Value> {
+    let results = match result.get("results").and_then(|v| v.as_array()) {
+        Some(results) => results,
+        None => return Vec::new(),
+    };
+    let mut citations = Vec::new();
+    for r in results {
+        let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let url = r.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        if url.is_empty() {
+            continue;
+        }
+        let host = url
+            .split("://")
+            .nth(1)
+            .unwrap_or(&url)
+            .split('/')
+            .next()
+            .unwrap_or(&url)
+            .trim_start_matches("www.")
+            .to_string();
+        citations.push(serde_json::json!({ "title": title, "url": url, "host": host }));
+    }
+    citations
+}
+
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
 /// in the LLM reply. Returns true when the call was handled (even on error),
 /// so the caller skips the regular rendering path.
@@ -69,9 +113,7 @@ pub(crate) async fn handle_api_call(
             msg,
             &channel_name,
         );
-        let _ = sink.send_bot_response(&resp).await;
-        let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 2, msg, 2);
+        deliver_and_save(identity, &resp, "Agent/VM-off notice").await;
         return true;
     }
     let compose = payload
@@ -176,11 +218,7 @@ pub(crate) async fn handle_api_call(
                 &message,
                 &channel,
             );
-            let _ = sink.send_bot_response(&resp).await;
-            {
-                let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &message, 2);
-            }
+            deliver_and_save(identity, &resp, "consent-denied notice").await;
             return true;
         }
         gate.approved_detail
@@ -242,41 +280,10 @@ pub(crate) async fn handle_api_call(
             // #1835 — when the model itself runs web.search, surface its hits
             // as citation chips too, so informational answers show references.
             if name == "web.search" {
-                if let Some(results) = result.get("results").and_then(|v| v.as_array()) {
-                    let mut citations = Vec::new();
-                    for r in results {
-                        let title = r
-                            .get("title")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let url = r
-                            .get("url")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        if url.is_empty() {
-                            continue;
-                        }
-                        let host = url
-                            .split("://")
-                            .nth(1)
-                            .unwrap_or(&url)
-                            .split('/')
-                            .next()
-                            .unwrap_or(&url)
-                            .trim_start_matches("www.")
-                            .to_string();
-                        citations.push(serde_json::json!({
-                            "title": title,
-                            "url": url,
-                            "host": host,
-                        }));
-                    }
-                    if !citations.is_empty() {
-                        let mut pending = state.pending_citations.lock().await;
-                        pending.insert(session_id.to_string(), citations);
-                    }
+                let citations = search_citations(&result);
+                if !citations.is_empty() {
+                    let mut pending = state.pending_citations.lock().await;
+                    pending.insert(session_id.to_string(), citations);
                 }
             }
             if compose {
@@ -373,9 +380,7 @@ pub(crate) async fn handle_api_call(
                             &text,
                             &channel,
                         );
-                        let _ = sink.send_bot_response(&resp).await;
-                        let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &text, 2);
+                        deliver_and_save(identity, &resp, "composed answer").await;
                     }
                     None => {
                         // Never lose the result to a composition failure: the
@@ -398,9 +403,7 @@ pub(crate) async fn handle_api_call(
                             &fallback,
                             &channel,
                         );
-                        let _ = sink.send_bot_response(&resp).await;
-                        let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
+                        deliver_and_save(identity, &resp, "fallback answer").await;
                     }
                 }
             } else {
@@ -415,9 +418,7 @@ pub(crate) async fn handle_api_call(
                     &text,
                     &channel,
                 );
-                let _ = sink.send_bot_response(&resp).await;
-                let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &text, 2);
+                deliver_and_save(identity, &resp, "result summary").await;
             }
             true
         }
@@ -438,7 +439,9 @@ pub(crate) async fn handle_api_call(
                 format!("Falha ao executar {name}: {e}"),
                 &channel,
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("api_call '{name}': failure notice not delivered: {e}");
+            }
             true
         }
     }

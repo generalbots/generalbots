@@ -52,6 +52,8 @@ pub struct AppOwnership {
 pub const OWNERSHIP: &[(&str, &str, AppStatus)] = &[
     ("about", "platform", AppStatus::Supported),
     ("analytics", "business", AppStatus::Preview),
+    // #2501 — approval routing is an Office surface, shipped behind Preview.
+    ("approvals", "office", AppStatus::Preview),
     ("attendant", "business", AppStatus::Preview),
     ("automations", "chat-ai", AppStatus::Preview),
     ("banking", "business", AppStatus::Preview),
@@ -75,6 +77,8 @@ pub const OWNERSHIP: &[(&str, &str, AppStatus)] = &[
     ("docs", "office", AppStatus::Supported),
     ("drive", "desktop", AppStatus::Supported),
     ("editor", "platform", AppStatus::Preview),
+    // #2503 — Office event stream, shipped behind Preview.
+    ("events", "office", AppStatus::Preview),
     ("fraud", "business", AppStatus::Preview),
     ("goals", "office", AppStatus::Preview),
     ("handoff", "business", AppStatus::Preview),

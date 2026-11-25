@@ -47,6 +47,13 @@ routes = 33
 js_modules = 11
 loc = 4210
 
+# #2501 — Approvals joined the catalog in 8af6517d2; ceiling recorded at ship
+# time (owner: office). No Rust routes; the surface is suite JS/HTML/CSS.
+[apps."approvals"]
+routes = 0
+js_modules = 5
+loc = 785
+
 [apps."attendant"]
 routes = 17
 js_modules = 7
@@ -151,6 +158,13 @@ loc = 10558
 routes = 0
 js_modules = 5
 loc = 967
+
+# #2503 — Events joined the catalog in 8af6517d2; ceiling recorded at ship
+# time (owner: office). No Rust routes; the surface is suite JS/HTML/CSS.
+[apps."events"]
+routes = 0
+js_modules = 6
+loc = 823
 
 [apps."fraud"]
 routes = 8

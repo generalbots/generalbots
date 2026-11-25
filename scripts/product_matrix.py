@@ -59,6 +59,8 @@ APP_FEATURES: dict[str, str | None] = {
     "about": None,
     "settings": None,
     "analytics": "analytics",
+    # #2501/#2503 — UI-only preview apps; no Cargo feature gate.
+    "approvals": None,
     "attendant": "attendant",
     "automations": "automations",
     "banking": "banking",
@@ -80,6 +82,7 @@ APP_FEATURES: dict[str, str | None] = {
     "docs": "docs",
     "drive": "drive",
     "editor": "editor",
+    "events": None,
     "fraud": "fraud",
     "goals": "goals",
     "handoff": "handoff",

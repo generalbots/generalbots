@@ -19,7 +19,7 @@ preview_apps=
 
 # Hidden: not part of the edition. `sources` is the non-app Data Sources
 # surface and stays hidden with the Research app.
-hidden_apps=analytics,attendant,automations,banking,billing,browser,calculator,calendar,campaigns,canvas,clock,clock-widget,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,integrations,jukebox,kyc,learn,lists,mail,meet,memory,minutes,monitoring,notepad,notes,o365,paper,people,photos,plan,player,plugins,pos,preview,products,project,recycle,research,retail,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vibe,video,vision,weather,workspace
+hidden_apps=analytics,approvals,attendant,automations,banking,billing,browser,calculator,calendar,campaigns,canvas,clock,clock-widget,compliance,concierge,crm,database,designer,desktop,docs,editor,events,fraud,goals,handoff,hr,integrations,jukebox,kyc,learn,lists,mail,meet,memory,minutes,monitoring,notepad,notes,o365,paper,people,photos,plan,player,plugins,pos,preview,products,project,recycle,research,retail,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vibe,video,vision,weather,workspace
 
 # Chat opens automatically when the suite loads.
 suite_default_app=chat

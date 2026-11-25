@@ -123,13 +123,21 @@ mod tests {
         let dir = file.parent().map(std::path::Path::to_path_buf);
         assert_eq!(accent_in(&stack), None, "no file means no accent");
         if let Some(dir) = dir {
-            std::fs::create_dir_all(dir).ok();
+            if let Err(e) = std::fs::create_dir_all(dir) {
+                log::warn!("appearance test: could not create temp dir: {e}");
+            }
         }
-        std::fs::write(&file, r##"{ "accent": "#2563EB" }"##).ok();
+        if let Err(e) = std::fs::write(&file, r##"{ "accent": "#2563EB" }"##) {
+            log::warn!("appearance test: could not write accent fixture: {e}");
+        }
         assert_eq!(accent_in(&stack).as_deref(), Some("#2563eb"));
-        std::fs::write(&file, r#"{ "accent": "javascript:1" }"#).ok();
+        if let Err(e) = std::fs::write(&file, r#"{ "accent": "javascript:1" }"#) {
+            log::warn!("appearance test: could not write accent fixture: {e}");
+        }
         assert_eq!(accent_in(&stack), None);
-        std::fs::remove_dir_all(&stack).ok();
+        if let Err(e) = std::fs::remove_dir_all(&stack) {
+            log::warn!("appearance test: could not clean up temp dir: {e}");
+        }
     }
 
     #[test]
@@ -138,7 +146,9 @@ mod tests {
         let result = write_accent(&stack, "#A1B2C3");
         assert_eq!(result.ok(), Some("#a1b2c3".to_string()));
         assert_eq!(accent_in(&stack).as_deref(), Some("#a1b2c3"));
-        std::fs::remove_dir_all(&stack).ok();
+        if let Err(e) = std::fs::remove_dir_all(&stack) {
+            log::warn!("appearance test: could not clean up temp dir: {e}");
+        }
     }
 
     #[test]
@@ -147,18 +157,24 @@ mod tests {
         assert!(write_accent(&stack, "red").is_err());
         assert!(write_accent(&stack, "#fff").is_err());
         assert!(write_accent(&stack, "").is_err());
-        std::fs::remove_dir_all(&stack).ok();
+        if let Err(e) = std::fs::remove_dir_all(&stack) {
+            log::warn!("appearance test: could not clean up temp dir: {e}");
+        }
     }
 
     #[test]
     fn clear_accent_removes_the_file() {
         let stack = std::env::temp_dir().join(format!("gb-clear-accent-{}", std::process::id()));
-        write_accent(&stack, "#112233").ok();
+        if let Err(e) = write_accent(&stack, "#112233") {
+            log::warn!("appearance test: could not write accent fixture: {e}");
+        }
         assert!(accent_in(&stack).is_some());
         assert!(clear_accent(&stack).is_ok());
         assert!(accent_in(&stack).is_none());
         // Clearing when already absent is fine.
         assert!(clear_accent(&stack).is_ok());
-        std::fs::remove_dir_all(&stack).ok();
+        if let Err(e) = std::fs::remove_dir_all(&stack) {
+            log::warn!("appearance test: could not clean up temp dir: {e}");
+        }
     }
 }

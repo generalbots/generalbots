@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 602
+discarded_result = 583
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -25,14 +25,8 @@ panic = "panic! macro invocations"
 unwrap_or_default = ".unwrap_or_default(...) calls (Result and Option)"
 discarded_result = ".ok(); statements and let _ = ...; bindings"
 
-[files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
-discarded_result = 12
-
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
 discarded_result = 10
-
-[files."botserver/crates/botcore/src/product/appearance.rs"]
-discarded_result = 8
 
 [files."botserver/src/core/bot/ws/stream/turn.rs"]
 discarded_result = 7
@@ -173,6 +167,12 @@ discarded_result = 3
 discarded_result = 3
 
 [files."botserver/crates/botcore/src/package_manager/certs_utils.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcore/src/package_manager/facade/install.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botdrive/src/drive_handlers/search_files.rs"]
 discarded_result = 3
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real
