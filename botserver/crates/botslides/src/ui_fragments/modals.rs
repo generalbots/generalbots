@@ -29,7 +29,10 @@ pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<
 }
 
 pub async fn handle_ai_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     Html(format!(
         r##"<div class="sl-modal" id="ai-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="sl-modal-content" style="background:#1e293b;border:1px solid #4338ca;border-radius:8px;max-width:560px;width:90%;">
@@ -79,7 +82,10 @@ pub async fn handle_insert_element_modal(Json(payload): Json<serde_json::Value>)
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "sl",
         &format!(
@@ -103,7 +109,10 @@ pub async fn handle_add_text_modal(Json(payload): Json<serde_json::Value>) -> Ht
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "sl",
         &format!(
@@ -148,7 +157,10 @@ pub async fn handle_add_shape_modal(Json(payload): Json<serde_json::Value>) -> H
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "sl",
         &format!(
@@ -171,7 +183,10 @@ pub async fn handle_add_chart_modal(Json(payload): Json<serde_json::Value>) -> H
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "sl",
         &format!(
@@ -194,7 +209,10 @@ pub async fn handle_add_table_modal(Json(payload): Json<serde_json::Value>) -> H
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "sl",
         &format!(
@@ -217,7 +235,10 @@ pub async fn handle_notes_modal(Json(payload): Json<serde_json::Value>) -> Html<
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let notes = html_escape(payload.get("notes").and_then(|v| v.as_str()).unwrap_or(""));
     let body = modal_body(
         "sl",
@@ -264,7 +285,10 @@ pub async fn handle_transition_modal(Json(payload): Json<serde_json::Value>) -> 
             .and_then(|v| v.as_str())
             .unwrap_or(""),
     );
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let ttype = html_escape(
         payload
             .get("transition_type")
@@ -350,10 +374,5 @@ pub async fn handle_master_modal(Json(payload): Json<serde_json::Value>) -> Html
         ),
         "",
     );
-    Html(modal_shell(
-        "sl",
-        "master-modal",
-        "📐 Slide Mestre",
-        &body,
-    ))
+    Html(modal_shell("sl", "master-modal", "📐 Slide Mestre", &body))
 }

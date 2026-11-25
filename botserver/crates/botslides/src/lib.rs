@@ -17,7 +17,8 @@ use std::sync::Arc;
 use crate::storage::DriveOps;
 use botlib::db_pool::DbPool;
 
-pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) + Send + Sync>;
+pub type GetDefaultBotFn =
+    Arc<dyn Fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) + Send + Sync>;
 
 pub struct SlidesState<D: DriveOps> {
     pub drive: Option<D>,
@@ -36,3 +37,7 @@ mod create_tests;
 #[cfg(test)]
 #[path = "insert_slide_tests.rs"]
 mod insert_slide_tests;
+
+#[cfg(test)]
+#[path = "route_contract_tests.rs"]
+mod route_contract_tests;

@@ -99,7 +99,9 @@ pub fn preserve_pptx_text(
         if changes.is_empty() {
             return Ok(PreservedPptx::Unchanged(original.to_vec()));
         }
-        return Ok(PreservedPptx::Patched(update_pptx_text(original, &changes)?));
+        return Ok(PreservedPptx::Patched(update_pptx_text(
+            original, &changes,
+        )?));
     }
 
     // The paragraph counts differ, so a positional patch would land in the
@@ -121,9 +123,7 @@ fn same_visible_text(source: &[Vec<String>], model: &[Vec<String>]) -> bool {
     source
         .iter()
         .zip(model.iter())
-        .all(|(source_slide, model_slide)| {
-            flatten(source_slide) == flatten(model_slide)
-        })
+        .all(|(source_slide, model_slide)| flatten(source_slide) == flatten(model_slide))
 }
 
 fn flatten(paragraphs: &[String]) -> String {
@@ -156,14 +156,10 @@ pub async fn export_presentation_pptx<D: DriveOps>(
         match load_pptx_preserving(original) {
             Ok(parsed) => {
                 let source = SourceTexts::of(&parsed);
-                let model_texts: Vec<Vec<String>> = presentation
-                    .slides
-                    .iter()
-                    .map(slide_paragraphs)
-                    .collect();
+                let model_texts: Vec<Vec<String>> =
+                    presentation.slides.iter().map(slide_paragraphs).collect();
                 match preserve_pptx_text(original, &source, &model_texts) {
-                    Ok(PreservedPptx::Unchanged(bytes))
-                    | Ok(PreservedPptx::Patched(bytes)) => {
+                    Ok(PreservedPptx::Unchanged(bytes)) | Ok(PreservedPptx::Patched(bytes)) => {
                         return Ok(ExportedPptx {
                             bytes,
                             fidelity: "preserved",

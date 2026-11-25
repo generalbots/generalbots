@@ -25,6 +25,6 @@ mod export_tests;
 pub use export::export_to_pptx;
 pub use import::load_pptx;
 pub use preserve::{
-    export_presentation_pptx, preserve_pptx_text, slide_paragraphs, ExportedPptx,
-    PreservedPptx, SourceTexts,
+    export_presentation_pptx, preserve_pptx_text, slide_paragraphs, ExportedPptx, PreservedPptx,
+    SourceTexts,
 };

@@ -121,10 +121,7 @@ pub struct SlideMessage {
     pub data: Option<serde_json::Value>,
     /// The browser sends `Date.now()` (epoch millis); the server stamps the
     /// authoritative time anyway, so accept millis and default when absent.
-    #[serde(
-        default = "chrono::Utc::now",
-        with = "chrono::serde::ts_milliseconds"
-    )]
+    #[serde(default = "chrono::Utc::now", with = "chrono::serde::ts_milliseconds")]
     pub timestamp: DateTime<Utc>,
 }
 

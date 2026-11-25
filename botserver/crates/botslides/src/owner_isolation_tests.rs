@@ -3,10 +3,6 @@
 //! Every read and write resolves the owner from the verified identity, so a
 //! caller can only reach the decks under `users/{their id}/presentations/`.
 
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use axum::routing::get;
-use axum::Router;
 use crate::auth::SlidesUser;
 use crate::handlers::handle_new_presentation;
 use crate::storage::{
@@ -14,6 +10,10 @@ use crate::storage::{
     load_presentation_by_id, save_presentation_to_drive, DriveOps,
 };
 use crate::SlidesState;
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use axum::routing::get;
+use axum::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower::ServiceExt;

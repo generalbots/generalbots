@@ -21,7 +21,7 @@ pub async fn handle_theme_picker(Json(payload): Json<serde_json::Value>) -> Html
     let mut html = String::from(
         r##"<div class="sl-panel" id="themes-picker" style="padding:16px;">
 <h3 style="margin:0 0 12px 0;color:#f8fafc;font-size:16px;">Escolher Tema</h3>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">"##
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">"##,
     );
     for (id, name, primary, secondary, text) in themes {
         let preview = format!(

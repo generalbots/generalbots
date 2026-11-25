@@ -150,9 +150,7 @@ pub async fn handle_get_collaborators(Path(presentation_id): Path<String>) -> im
     }))
 }
 
-pub async fn handle_get_presence(
-    Path(presentation_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_presence(Path(presentation_id): Path<String>) -> impl IntoResponse {
     let presence = get_presence().read().await;
     let users = match presence.get(&presentation_id) {
         Some(users) => users.clone(),
@@ -161,9 +159,7 @@ pub async fn handle_get_presence(
     Json(serde_json::json!({ "users": users }))
 }
 
-pub async fn handle_get_typing(
-    Path(presentation_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_typing(Path(presentation_id): Path<String>) -> impl IntoResponse {
     let typing = get_typing().read().await;
     let indicators = match typing.get(&presentation_id) {
         Some(indicators) => indicators.clone(),
@@ -179,9 +175,7 @@ pub async fn handle_get_typing(
     Json(serde_json::json!({ "typing": active }))
 }
 
-pub async fn handle_get_selections(
-    Path(presentation_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_selections(Path(presentation_id): Path<String>) -> impl IntoResponse {
     let selections = get_selections().read().await;
     let sels = match selections.get(&presentation_id) {
         Some(sels) => sels.clone(),
@@ -190,9 +184,7 @@ pub async fn handle_get_selections(
     Json(serde_json::json!({ "selections": sels }))
 }
 
-pub async fn handle_get_mentions(
-    Path(user_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_mentions(Path(user_id): Path<String>) -> impl IntoResponse {
     let mentions = get_mentions().read().await;
     let user_mentions = match mentions.get(&user_id) {
         Some(mentions) => mentions.clone(),
@@ -201,9 +193,7 @@ pub async fn handle_get_mentions(
     Json(serde_json::json!({ "mentions": user_mentions }))
 }
 
-pub async fn handle_get_questions(
-    Path(presentation_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_questions(Path(presentation_id): Path<String>) -> impl IntoResponse {
     let questions = get_questions().read().await;
     let list = match questions.get(&presentation_id) {
         Some(list) => list.clone(),

@@ -1,5 +1,5 @@
-use crate::storage::{load_presentation_by_id, DriveOps};
 use crate::auth::SlidesUser;
+use crate::storage::{load_presentation_by_id, DriveOps};
 use crate::types::{
     AddMediaRequest, DeleteMediaRequest, ListMediaResponse, MediaElement, UpdateMediaRequest,
 };
@@ -32,7 +32,11 @@ pub async fn handle_add_media<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::media",
+                    None,
+                )),
             )
         })?;
 
@@ -86,12 +90,13 @@ pub async fn handle_add_media<D: DriveOps>(
     media_list.push(media.clone());
     presentation.updated_at = Utc::now();
 
-    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation)
-        .await
+    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation).await
     {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)}),
+            ),
         ));
     }
 
@@ -117,7 +122,11 @@ pub async fn handle_update_media<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::media",
+                    None,
+                )),
             )
         })?;
 
@@ -155,12 +164,13 @@ pub async fn handle_update_media<D: DriveOps>(
     }
 
     presentation.updated_at = Utc::now();
-    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation)
-        .await
+    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation).await
     {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)}),
+            ),
         ));
     }
 
@@ -186,7 +196,11 @@ pub async fn handle_delete_media<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::media",
+                    None,
+                )),
             )
         })?;
 
@@ -202,12 +216,13 @@ pub async fn handle_delete_media<D: DriveOps>(
     }
 
     presentation.updated_at = Utc::now();
-    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation)
-        .await
+    if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation).await
     {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::media", None)}),
+            ),
         ));
     }
 
@@ -244,7 +259,11 @@ pub async fn handle_list_media<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::media",
+                    None,
+                )),
             )
         })?;
 

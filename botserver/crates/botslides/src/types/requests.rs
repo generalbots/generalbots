@@ -38,7 +38,6 @@ where
     })
 }
 
-
 /// One slide of a `slides.create` request: a heading and an optional body.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DeckSlideInput {
@@ -317,7 +316,11 @@ pub struct UpdatePresenterRequest {
     /// The shell panel knows the deck, not the ephemeral session id.
     #[serde(default)]
     pub presentation_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_opt_usize")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_opt_usize"
+    )]
     pub current_slide: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_paused: Option<bool>,

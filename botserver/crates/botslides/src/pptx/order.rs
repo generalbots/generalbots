@@ -16,8 +16,7 @@ use zip::ZipArchive;
 /// relationships are missing or unreadable, which is what the importer did
 /// before; a package without a usable slide list still has to open.
 pub fn slide_part_names(bytes: &[u8]) -> Result<Vec<String>, String> {
-    let mut archive =
-        ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open pptx: {e}"))?;
+    let mut archive = ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open pptx: {e}"))?;
 
     let mut names = presentation_order(&mut archive);
     names.retain(|name| archive.by_name(name).is_ok());
@@ -121,13 +120,13 @@ fn by_file_name<R: Read + Seek>(archive: &mut ZipArchive<R>) -> Vec<String> {
         let name = match file.name() {
             Ok(name) => name.to_string(),
             Err(error) => {
-                log::warn!("slides order: archive entry {index} has no readable name ({error}); skipping");
+                log::warn!(
+                    "slides order: archive entry {index} has no readable name ({error}); skipping"
+                );
                 String::new()
             }
         };
-        if name.starts_with("ppt/slides/slide")
-            && name.ends_with(".xml")
-            && !name.contains("_rels")
+        if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") && !name.contains("_rels")
         {
             names.push(name);
         }
@@ -166,9 +165,8 @@ mod tests {
             .iter()
             .map(|(id, _)| format!("<p:sldId id=\"256\" r:id=\"{id}\"/>"))
             .collect();
-        let presentation = format!(
-            "<p:presentation><p:sldIdLst>{ids}</p:sldIdLst></p:presentation>"
-        );
+        let presentation =
+            format!("<p:presentation><p:sldIdLst>{ids}</p:sldIdLst></p:presentation>");
         let rels: String = slide_ids
             .iter()
             .map(|(id, target)| {

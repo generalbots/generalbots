@@ -4,7 +4,8 @@ use super::export::xml_escape;
 use crate::types::Presentation;
 
 pub fn export_to_odp_content(presentation: &Presentation) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
 xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
 xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0"
@@ -13,7 +14,8 @@ xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
 office:version="1.2">
 <office:body>
 <office:presentation>
-"#);
+"#,
+    );
 
     for (idx, slide) in presentation.slides.iter().enumerate() {
         xml.push_str(&format!(
@@ -79,7 +81,6 @@ office:version="1.2">
     xml
 }
 
-
 pub fn export_to_odp(presentation: &Presentation) -> Result<Vec<u8>, String> {
     use std::io::Write;
     use zip::write::SimpleFileOptions;
@@ -95,19 +96,22 @@ pub fn export_to_odp(presentation: &Presentation) -> Result<Vec<u8>, String> {
     let mut cursor = std::io::Cursor::new(Vec::new());
     {
         let mut zip = zip::ZipWriter::new(&mut cursor);
-        let stored = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Stored);
-        let deflated = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
-        zip.start_file("mimetype", stored).map_err(|e| e.to_string())?;
+        let stored =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let deflated =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file("mimetype", stored)
+            .map_err(|e| e.to_string())?;
         zip.write_all(b"application/vnd.oasis.opendocument.presentation")
             .map_err(|e| e.to_string())?;
         zip.start_file("content.xml", deflated)
             .map_err(|e| e.to_string())?;
-        zip.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        zip.write_all(content.as_bytes())
+            .map_err(|e| e.to_string())?;
         zip.start_file("META-INF/manifest.xml", deflated)
             .map_err(|e| e.to_string())?;
-        zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;
+        zip.write_all(manifest.as_bytes())
+            .map_err(|e| e.to_string())?;
         zip.finish().map_err(|e| e.to_string())?;
     }
     Ok(cursor.into_inner())

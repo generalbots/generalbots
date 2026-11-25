@@ -33,8 +33,7 @@ pub struct SlideInfo {
 /// Reads the original package and the visible paragraph text of every slide.
 pub fn load_pptx_preserving(bytes: &[u8]) -> Result<OoxmlPresentation, String> {
     let parts = slide_part_names(bytes)?;
-    let mut archive =
-        ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open pptx: {e}"))?;
+    let mut archive = ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open pptx: {e}"))?;
 
     let mut slides = Vec::new();
     for (index, part_name) in parts.iter().enumerate() {

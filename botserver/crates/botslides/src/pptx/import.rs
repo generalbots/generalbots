@@ -5,7 +5,9 @@ use std::io::{Cursor, Read};
 use zip::ZipArchive;
 
 use crate::ooxml::{paragraph_texts, shape_blocks};
-use crate::types::{ElementContent, ElementStyle, Presentation, Slide, SlideBackground, SlideElement};
+use crate::types::{
+    ElementContent, ElementStyle, Presentation, Slide, SlideBackground, SlideElement,
+};
 
 const PX_TO_EMU: f64 = 12_700.0; // 914400 / 72
 
@@ -38,8 +40,11 @@ pub fn load_pptx(bytes: &[u8]) -> Result<Presentation, String> {
     for name in slide_names {
         let mut content = String::new();
         {
-            let mut file = archive.by_name(&name).map_err(|e| format!("open {name}: {e}"))?;
-            file.read_to_string(&mut content).map_err(|e| format!("read {name}: {e}"))?;
+            let mut file = archive
+                .by_name(&name)
+                .map_err(|e| format!("open {name}: {e}"))?;
+            file.read_to_string(&mut content)
+                .map_err(|e| format!("read {name}: {e}"))?;
         }
         let rels = slide_rels(&mut archive, &name);
         slides.push(parse_slide_xml(&content, &mut archive, &rels));
@@ -58,7 +63,11 @@ pub fn load_pptx(bytes: &[u8]) -> Result<Presentation, String> {
     })
 }
 
-fn parse_slide_xml(xml: &str, archive: &mut ZipArchive<Cursor<&[u8]>>, rels: &HashMap<String, String>) -> Slide {
+fn parse_slide_xml(
+    xml: &str,
+    archive: &mut ZipArchive<Cursor<&[u8]>>,
+    rels: &HashMap<String, String>,
+) -> Slide {
     // One fragment per shape, from the same scan the preserving save uses, so
     // element order and paragraph order agree with the package (#2041).
     let mut elements: Vec<SlideElement> = shape_blocks(xml)
@@ -111,7 +120,10 @@ fn parse_shape_element(sp_xml: &str) -> Option<SlideElement> {
             width: w.max(100.0),
             height: h.max(40.0),
             rotation: 0.0,
-            content: ElementContent { text: Some(text), ..Default::default() },
+            content: ElementContent {
+                text: Some(text),
+                ..Default::default()
+            },
             style,
             animations: Vec::new(),
             z_index: 0,
@@ -132,7 +144,10 @@ fn parse_shape_element(sp_xml: &str) -> Option<SlideElement> {
         width: w.max(20.0),
         height: h.max(20.0),
         rotation: 0.0,
-        content: ElementContent { shape_type: Some("rectangle".to_string()), ..Default::default() },
+        content: ElementContent {
+            shape_type: Some("rectangle".to_string()),
+            ..Default::default()
+        },
         style,
         animations: Vec::new(),
         z_index: 0,
@@ -178,7 +193,10 @@ fn extract_drawing_text(xml: &str) -> String {
 }
 
 /// Map `rId` -> `ppt/media/...` for one slide.
-fn slide_rels(archive: &mut ZipArchive<Cursor<&[u8]>>, slide_name: &str) -> HashMap<String, String> {
+fn slide_rels(
+    archive: &mut ZipArchive<Cursor<&[u8]>>,
+    slide_name: &str,
+) -> HashMap<String, String> {
     let base = slide_name.rsplit('/').next().unwrap_or(slide_name);
     let rels_name = format!("ppt/slides/_rels/{base}.rels");
     let mut map = HashMap::new();
@@ -228,7 +246,13 @@ fn parse_pic_element(
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).ok()?;
 
-    let mime = match media_path.rsplit('.').next().unwrap_or("").to_ascii_lowercase().as_str() {
+    let mime = match media_path
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
         "gif" => "image/gif",

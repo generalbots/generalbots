@@ -135,7 +135,10 @@ fn markdown_renders_images_notes_and_slide_numbers() {
 
 #[test]
 fn markdown_of_an_empty_deck_is_just_the_title() {
-    assert_eq!(export_to_markdown(&presentation("Empty", Vec::new())), "# Empty\n\n");
+    assert_eq!(
+        export_to_markdown(&presentation("Empty", Vec::new())),
+        "# Empty\n\n"
+    );
 }
 
 #[test]
@@ -145,7 +148,10 @@ fn json_export_round_trips_the_model() {
     let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid json");
     assert_eq!(parsed["name"], "Deck");
     assert_eq!(parsed["slides"].as_array().map(Vec::len), Some(1));
-    assert_eq!(parsed["slides"][0]["elements"][0]["content"]["text"], "hello");
+    assert_eq!(
+        parsed["slides"][0]["elements"][0]["content"]["text"],
+        "hello"
+    );
     // Pretty-printed, so a human can diff two decks.
     assert!(json.contains("\n  \"name\""));
 }
@@ -217,7 +223,10 @@ fn svg_renders_every_shape_branch() {
             "line" => "<line",
             _ => "<polygon",
         };
-        assert!(svg.contains(expected_tag), "{shape} must render {expected_tag}");
+        assert!(
+            svg.contains(expected_tag),
+            "{shape} must render {expected_tag}"
+        );
         assert!(svg.contains("#abcdef"), "{shape} must keep its fill");
     }
 

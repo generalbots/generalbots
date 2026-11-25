@@ -1,11 +1,7 @@
 use crate::storage::DriveOps;
 use crate::types::{SlidesAiRequest, SlidesAiResponse};
 use crate::SlidesState;
-use axum::{
-    extract::State,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::State, response::IntoResponse, Json};
 use std::sync::Arc;
 
 /// Maps a lowercased command to an honest reply.

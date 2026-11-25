@@ -149,7 +149,10 @@ mod tests {
             "<a:p><a:pPr algn=\"ctr\"/><a:r><a:t>One</a:t></a:r></a:p>\
              <a:p><a:r><a:t>Two</a:t></a:r></a:p>",
         );
-        assert_eq!(paragraph_texts(&xml), vec!["One".to_string(), "Two".to_string()]);
+        assert_eq!(
+            paragraph_texts(&xml),
+            vec!["One".to_string(), "Two".to_string()]
+        );
     }
 
     #[test]

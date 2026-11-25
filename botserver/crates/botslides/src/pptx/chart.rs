@@ -35,11 +35,7 @@ fn truncate(text: &str) -> String {
 fn series_xml(data: &ChartData) -> String {
     let mut series = String::new();
     for (index, dataset) in data.datasets.iter().take(MAX_SERIES).enumerate() {
-        let count = dataset
-            .data
-            .len()
-            .min(data.labels.len())
-            .min(MAX_POINTS);
+        let count = dataset.data.len().min(data.labels.len()).min(MAX_POINTS);
         let color = hex_color(Some(&dataset.color), "4F81BD");
         let series_letter = char::from(b'A' + index as u8);
         let mut categories = String::new();
@@ -100,7 +96,9 @@ fn chart_part_xml(data: &ChartData, title: Option<&str>) -> String {
         "horizontal" => ("barChart", "bar"),
         "bar" | "column" => ("barChart", "col"),
         other => {
-            log::warn!("pptx export: unknown chart type '{other}' — using a clustered column chart");
+            log::warn!(
+                "pptx export: unknown chart type '{other}' — using a clustered column chart"
+            );
             ("barChart", "col")
         }
     };

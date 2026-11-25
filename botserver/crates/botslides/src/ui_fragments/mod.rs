@@ -1,9 +1,9 @@
 pub mod get_bridge;
+pub mod modals;
 pub mod panels;
 pub mod sidebars;
-pub mod toolbar;
-pub mod modals;
 pub mod themes;
+pub mod toolbar;
 
 use axum::{
     extract::{Query, State},
@@ -14,33 +14,29 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::auth::{SlidesUser, SlidesUnauthorized};
+use crate::auth::{SlidesUnauthorized, SlidesUser};
 use crate::storage::DriveOps;
 use crate::types::PresentationMetadata;
 
-use panels::{
-    handle_theme_panel,
-    handle_presenter_panel,
-    handle_slide_sorter,
-};
-use sidebars::{
-    handle_presentation_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
-    handle_slide_thumbnails,
-        handle_presentation_view_by_id, handle_presentation_view_post,
-};
-use toolbar::{
-    handle_share_form, handle_ai_form, handle_new_slide_form, handle_insert_element_form,
-    handle_add_text_form, handle_add_image_form, handle_add_shape_form, handle_add_chart_form,
-    handle_add_table_form, handle_notes_form, handle_background_form,
-    handle_transition_form, handle_animation_form, handle_export_form, handle_master_form,
-};
 use modals::{
-    handle_share_modal, handle_ai_modal, handle_new_slide_modal, handle_insert_element_modal,
-    handle_add_text_modal, handle_add_image_modal, handle_add_shape_modal, handle_add_chart_modal,
-    handle_add_table_modal, handle_notes_modal, handle_background_modal,
-    handle_transition_modal, handle_animation_modal, handle_export_modal, handle_master_modal,
+    handle_add_chart_modal, handle_add_image_modal, handle_add_shape_modal, handle_add_table_modal,
+    handle_add_text_modal, handle_ai_modal, handle_animation_modal, handle_background_modal,
+    handle_export_modal, handle_insert_element_modal, handle_master_modal, handle_new_slide_modal,
+    handle_notes_modal, handle_share_modal, handle_transition_modal,
+};
+use panels::{handle_presenter_panel, handle_slide_sorter, handle_theme_panel};
+use sidebars::{
+    handle_presentation_list_sidebar, handle_presentation_view_by_id,
+    handle_presentation_view_post, handle_recent_sidebar, handle_search_sidebar,
+    handle_slide_thumbnails,
 };
 use themes::handle_theme_picker;
+use toolbar::{
+    handle_add_chart_form, handle_add_image_form, handle_add_shape_form, handle_add_table_form,
+    handle_add_text_form, handle_ai_form, handle_animation_form, handle_background_form,
+    handle_export_form, handle_insert_element_form, handle_master_form, handle_new_slide_form,
+    handle_notes_form, handle_share_form, handle_transition_form,
+};
 
 pub use botuifragments::ui_fragments::htmx_escape as html_escape;
 
@@ -113,10 +109,12 @@ async fn get_presentation_list<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<crate::SlidesState<D>>>,
     user: SlidesUser,
 ) -> Result<Html<String>, SlidesUnauthorized> {
-    Ok(handle_presentation_list_sidebar(Json(
-        sidebar_presentations(&state, user.owner_id()).await,
-    ))
-    .await)
+    Ok(
+        handle_presentation_list_sidebar(Json(
+            sidebar_presentations(&state, user.owner_id()).await,
+        ))
+        .await,
+    )
 }
 
 async fn get_search_sidebar<D: DriveOps + Send + Sync + 'static>(
@@ -140,52 +138,113 @@ async fn get_recent_sidebar<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<crate::SlidesState<D>>>,
     user: SlidesUser,
 ) -> Result<Html<String>, SlidesUnauthorized> {
-    Ok(handle_recent_sidebar(Json(
-        sidebar_presentations(&state, user.owner_id()).await,
-    ))
-    .await)
+    Ok(handle_recent_sidebar(Json(sidebar_presentations(&state, user.owner_id()).await)).await)
 }
 
-pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Router<std::sync::Arc<crate::SlidesState<D>>> {
+pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>(
+) -> Router<std::sync::Arc<crate::SlidesState<D>>> {
     Router::new()
-        .route("/suite/slides/fragments/presentation-list", get(get_presentation_list::<D>))
-        .route("/suite/slides/fragments/search", get(get_search_sidebar::<D>))
-        .route("/suite/slides/fragments/recent", get(get_recent_sidebar::<D>))
-        .route("/suite/slides/fragments/view", post(handle_presentation_view_post::<D>))
-        .route("/suite/slides/fragments/view-by-id", get(handle_presentation_view_by_id::<D>))
-        .route("/suite/slides/fragments/thumbnails", post(handle_slide_thumbnails))
+        .route(
+            "/suite/slides/fragments/presentation-list",
+            get(get_presentation_list::<D>),
+        )
+        .route(
+            "/suite/slides/fragments/search",
+            get(get_search_sidebar::<D>),
+        )
+        .route(
+            "/suite/slides/fragments/recent",
+            get(get_recent_sidebar::<D>),
+        )
+        .route(
+            "/suite/slides/fragments/view",
+            post(handle_presentation_view_post::<D>),
+        )
+        .route(
+            "/suite/slides/fragments/view-by-id",
+            get(handle_presentation_view_by_id::<D>),
+        )
+        .route(
+            "/suite/slides/fragments/thumbnails",
+            post(handle_slide_thumbnails),
+        )
         .route("/suite/slides/fragments/theme", post(handle_theme_panel))
-        .route("/suite/slides/fragments/themes-picker", post(handle_theme_picker))
-        .route("/suite/slides/fragments/presenter", post(handle_presenter_panel))
-        .route("/suite/slides/fragments/sorter", post(handle_slide_sorter::<D>))
+        .route(
+            "/suite/slides/fragments/themes-picker",
+            post(handle_theme_picker),
+        )
+        .route(
+            "/suite/slides/fragments/presenter",
+            post(handle_presenter_panel),
+        )
+        .route(
+            "/suite/slides/fragments/sorter",
+            post(handle_slide_sorter::<D>),
+        )
         .route("/suite/slides/forms/share", post(handle_share_form))
         .route("/suite/slides/forms/ai", post(handle_ai_form))
         .route("/suite/slides/forms/new-slide", post(handle_new_slide_form))
-        .route("/suite/slides/forms/insert-element", post(handle_insert_element_form))
+        .route(
+            "/suite/slides/forms/insert-element",
+            post(handle_insert_element_form),
+        )
         .route("/suite/slides/forms/add-text", post(handle_add_text_form))
         .route("/suite/slides/forms/add-image", post(handle_add_image_form))
         .route("/suite/slides/forms/add-shape", post(handle_add_shape_form))
         .route("/suite/slides/forms/add-chart", post(handle_add_chart_form))
         .route("/suite/slides/forms/add-table", post(handle_add_table_form))
         .route("/suite/slides/forms/notes", post(handle_notes_form))
-        .route("/suite/slides/forms/background", post(handle_background_form))
-        .route("/suite/slides/forms/transition", post(handle_transition_form))
+        .route(
+            "/suite/slides/forms/background",
+            post(handle_background_form),
+        )
+        .route(
+            "/suite/slides/forms/transition",
+            post(handle_transition_form),
+        )
         .route("/suite/slides/forms/animation", post(handle_animation_form))
         .route("/suite/slides/forms/export", post(handle_export_form))
         .route("/suite/slides/forms/master", post(handle_master_form))
         .route("/suite/slides/modals/share", post(handle_share_modal))
         .route("/suite/slides/modals/ai", post(handle_ai_modal))
-        .route("/suite/slides/modals/new-slide", post(handle_new_slide_modal))
-        .route("/suite/slides/modals/insert-element", post(handle_insert_element_modal))
+        .route(
+            "/suite/slides/modals/new-slide",
+            post(handle_new_slide_modal),
+        )
+        .route(
+            "/suite/slides/modals/insert-element",
+            post(handle_insert_element_modal),
+        )
         .route("/suite/slides/modals/add-text", post(handle_add_text_modal))
-        .route("/suite/slides/modals/add-image", post(handle_add_image_modal))
-        .route("/suite/slides/modals/add-shape", post(handle_add_shape_modal))
-        .route("/suite/slides/modals/add-chart", post(handle_add_chart_modal))
-        .route("/suite/slides/modals/add-table", post(handle_add_table_modal))
+        .route(
+            "/suite/slides/modals/add-image",
+            post(handle_add_image_modal),
+        )
+        .route(
+            "/suite/slides/modals/add-shape",
+            post(handle_add_shape_modal),
+        )
+        .route(
+            "/suite/slides/modals/add-chart",
+            post(handle_add_chart_modal),
+        )
+        .route(
+            "/suite/slides/modals/add-table",
+            post(handle_add_table_modal),
+        )
         .route("/suite/slides/modals/notes", post(handle_notes_modal))
-        .route("/suite/slides/modals/background", post(handle_background_modal))
-        .route("/suite/slides/modals/transition", post(handle_transition_modal))
-        .route("/suite/slides/modals/animation", post(handle_animation_modal))
+        .route(
+            "/suite/slides/modals/background",
+            post(handle_background_modal),
+        )
+        .route(
+            "/suite/slides/modals/transition",
+            post(handle_transition_modal),
+        )
+        .route(
+            "/suite/slides/modals/animation",
+            post(handle_animation_modal),
+        )
         .route("/suite/slides/modals/export", post(handle_export_modal))
         .route("/suite/slides/modals/master", post(handle_master_modal))
         .route("/suite/slides/health", get(health))
@@ -195,7 +254,9 @@ pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Route
         .route("/suite/slides/*path", get(get_bridge::get_bridge::<D>))
 }
 
-async fn health() -> &'static str { "ok" }
+async fn health() -> &'static str {
+    "ok"
+}
 
 pub fn render_metadata_card(m: &crate::types::PresentationMetadata) -> String {
     format!(

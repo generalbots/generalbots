@@ -10,8 +10,8 @@
 //! upgrade is refused and no writable guest session is created. No test depends
 //! on the process working directory or on a provisioned `botserver-stack`.
 
-use super::{TEST_JWT_SECRET, extract_user_from_token};
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use super::{extract_user_from_token, TEST_JWT_SECRET};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use botsecurity_core::verified_jwt::JwtVerifyError;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;

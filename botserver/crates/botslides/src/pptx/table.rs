@@ -5,7 +5,7 @@
 //! escaped, dimensions are bounded, and every indexed access is checked — the
 //! exporter runs on untrusted presentation JSON.
 
-use super::export::{emu, fill_xml, hex_color, xml_escape, xfrm_emu_xml};
+use super::export::{emu, fill_xml, hex_color, xfrm_emu_xml, xml_escape};
 use crate::types::SlideElement;
 
 const MAX_ROWS: usize = 50;
@@ -63,7 +63,10 @@ fn fallback_px(total: f64, count: usize) -> f64 {
 
 fn cell_paragraphs(element: &SlideElement, cell: Option<&crate::types::TableCell>) -> String {
     let style = cell.and_then(|value| value.style.as_ref());
-    let text = truncate(cell.map(|value| value.content.as_str()).unwrap_or(""), MAX_CELL_CHARS);
+    let text = truncate(
+        cell.map(|value| value.content.as_str()).unwrap_or(""),
+        MAX_CELL_CHARS,
+    );
     let font_size = style
         .and_then(|value| value.font_size)
         .or(element.style.font_size)
@@ -122,14 +125,20 @@ pub(super) fn table_shape_xml(element: &SlideElement, id: usize) -> String {
     let row_fallback = fallback_px(element.height, rows);
     let widths: Vec<i64> = (0..cols)
         .map(|col| {
-            dimension(data.col_widths.get(col).copied().unwrap_or(col_fallback), col_fallback)
-                .max(MIN_EMU)
+            dimension(
+                data.col_widths.get(col).copied().unwrap_or(col_fallback),
+                col_fallback,
+            )
+            .max(MIN_EMU)
         })
         .collect();
     let heights: Vec<i64> = (0..rows)
         .map(|row| {
-            dimension(data.row_heights.get(row).copied().unwrap_or(row_fallback), row_fallback)
-                .max(MIN_EMU)
+            dimension(
+                data.row_heights.get(row).copied().unwrap_or(row_fallback),
+                row_fallback,
+            )
+            .max(MIN_EMU)
         })
         .collect();
     let cx: i64 = widths.iter().copied().sum();
@@ -146,7 +155,11 @@ pub(super) fn table_shape_xml(element: &SlideElement, id: usize) -> String {
                 .copied()
                 .unwrap_or(Merge::None);
             if merge != Merge::None {
-                let tag = if merge == Merge::Horizontal { "hMerge" } else { "vMerge" };
+                let tag = if merge == Merge::Horizontal {
+                    "hMerge"
+                } else {
+                    "vMerge"
+                };
                 cells.push_str(&format!(
                     "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p/></a:txBody><a:tcPr {tag}=\"1\"/></a:tc>"
                 ));
@@ -154,8 +167,14 @@ pub(super) fn table_shape_xml(element: &SlideElement, id: usize) -> String {
             }
 
             let cell = data.cells.get(row).and_then(|line| line.get(col));
-            let colspan = cell.map(|value| value.colspan.max(1)).unwrap_or(1).min(cols - col);
-            let rowspan = cell.map(|value| value.rowspan.max(1)).unwrap_or(1).min(rows - row);
+            let colspan = cell
+                .map(|value| value.colspan.max(1))
+                .unwrap_or(1)
+                .min(cols - col);
+            let rowspan = cell
+                .map(|value| value.rowspan.max(1))
+                .unwrap_or(1)
+                .min(rows - row);
             for next_col in col + 1..col + colspan {
                 if let Some(slot) = covered.get_mut(row).and_then(|line| line.get_mut(next_col)) {
                     *slot = Merge::Horizontal;
@@ -163,7 +182,10 @@ pub(super) fn table_shape_xml(element: &SlideElement, id: usize) -> String {
             }
             for next_row in row + 1..row + rowspan {
                 for next_col in col..col + colspan {
-                    if let Some(slot) = covered.get_mut(next_row).and_then(|line| line.get_mut(next_col)) {
+                    if let Some(slot) = covered
+                        .get_mut(next_row)
+                        .and_then(|line| line.get_mut(next_col))
+                    {
                         *slot = Merge::Vertical;
                     }
                 }

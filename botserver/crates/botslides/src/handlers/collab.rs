@@ -53,8 +53,8 @@ fn collab_user_name(user: &AuthenticatedUser) -> String {
 
 fn collab_user_color(user_id: &str) -> String {
     const PALETTE: [&str; 12] = [
-        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD",
-        "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA",
+        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+        "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA",
     ];
     let mut h: u32 = 0;
     for b in user_id.bytes() {

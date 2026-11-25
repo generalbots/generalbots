@@ -6,14 +6,14 @@
 //! in-memory Drive, so a broken route, payload or insert position fails here
 //! instead of in the browser.
 
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
 use crate::auth::SlidesUser;
 use crate::routes::configure_slides_routes;
 use crate::storage::{
     create_new_presentation, load_presentation_by_id, save_presentation_to_drive, DriveOps,
 };
 use crate::SlidesState;
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower::ServiceExt;
@@ -154,8 +154,16 @@ async fn add_slide_appends_at_the_requested_position_and_persists() {
     let reloaded = load_presentation_by_id(&drive, "user-a", &deck.id)
         .await
         .expect("reload deck");
-    assert_eq!(reloaded.slides.len(), before.len() + 1, "one slide appended");
-    let after: Vec<String> = reloaded.slides.iter().map(|slide| slide.id.clone()).collect();
+    assert_eq!(
+        reloaded.slides.len(),
+        before.len() + 1,
+        "one slide appended"
+    );
+    let after: Vec<String> = reloaded
+        .slides
+        .iter()
+        .map(|slide| slide.id.clone())
+        .collect();
     assert_eq!(after[..3], before[..3], "slides 1..3 keep their order");
     assert_eq!(
         after[4..],

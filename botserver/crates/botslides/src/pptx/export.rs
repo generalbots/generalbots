@@ -44,10 +44,7 @@ fn decode_data_uri(src: &str) -> Option<(String, Vec<u8>)> {
 
 pub(super) fn fill_xml(style: &ElementStyle, default: &str) -> String {
     let color = hex_color(style.fill.as_ref(), default);
-    format!(
-        "<a:solidFill><a:srgbClr val=\"{}\"/></a:solidFill>",
-        color
-    )
+    format!("<a:solidFill><a:srgbClr val=\"{}\"/></a:solidFill>", color)
 }
 
 pub(super) fn xfrm_emu_xml(x: i64, y: i64, cx: i64, cy: i64) -> String {
@@ -85,11 +82,7 @@ fn prst_geom(shape_type: &str) -> &'static str {
     }
 }
 
-fn slide_shape_xml(
-    element: &SlideElement,
-    id: usize,
-    images: &mut Vec<ImagePart>,
-) -> String {
+fn slide_shape_xml(element: &SlideElement, id: usize, images: &mut Vec<ImagePart>) -> String {
     let name = format!("Shape {id}");
     let xfrm = xfrm_xml(element.x, element.y, element.width, element.height);
 
@@ -130,7 +123,11 @@ fn slide_shape_xml(
     let sz = (font_size * 75.0).round() as i32; // px -> hundredths of a point
     let color = hex_color(element.style.color.as_ref(), "000000");
     let font_family = xml_escape(element.style.font_family.as_deref().unwrap_or("Arial"));
-    let bold = if element.style.font_weight.as_deref() == Some("bold") { " b=\"1\"" } else { "" };
+    let bold = if element.style.font_weight.as_deref() == Some("bold") {
+        " b=\"1\""
+    } else {
+        ""
+    };
 
     let mut paragraphs = String::new();
     let lines: Vec<&str> = text.split('\n').collect();
@@ -192,7 +189,12 @@ pub fn export_to_pptx(presentation: &Presentation) -> Result<Vec<u8>, String> {
     let notes: Vec<bool> = presentation
         .slides
         .iter()
-        .map(|s| s.notes.as_deref().map(|n| !n.trim().is_empty()).unwrap_or(false))
+        .map(|s| {
+            s.notes
+                .as_deref()
+                .map(|n| !n.trim().is_empty())
+                .unwrap_or(false)
+        })
         .collect();
     let chart_count = presentation
         .slides
@@ -204,23 +206,57 @@ pub fn export_to_pptx(presentation: &Presentation) -> Result<Vec<u8>, String> {
     let mut buf = Cursor::new(Vec::new());
     {
         let mut zip = ZipWriter::new(&mut buf);
-        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let opts =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-        let write_part = |zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, name: &str, data: &str| -> Result<(), String> {
-            zip.start_file(name, opts).map_err(|e| format!("zip start {name}: {e}"))?;
-            zip.write_all(data.as_bytes()).map_err(|e| format!("zip write {name}: {e}"))?;
+        let write_part = |zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
+                          name: &str,
+                          data: &str|
+         -> Result<(), String> {
+            zip.start_file(name, opts)
+                .map_err(|e| format!("zip start {name}: {e}"))?;
+            zip.write_all(data.as_bytes())
+                .map_err(|e| format!("zip write {name}: {e}"))?;
             Ok(())
         };
 
-        write_part(&mut zip, "[Content_Types].xml", &static_parts::content_types_xml(slide_count, &notes, chart_count))?;
+        write_part(
+            &mut zip,
+            "[Content_Types].xml",
+            &static_parts::content_types_xml(slide_count, &notes, chart_count),
+        )?;
         write_part(&mut zip, "_rels/.rels", &static_parts::root_rels_xml())?;
-        write_part(&mut zip, "ppt/presentation.xml", &static_parts::presentation_xml(slide_count))?;
-        write_part(&mut zip, "ppt/_rels/presentation.xml.rels", &static_parts::presentation_rels_xml(slide_count, &notes))?;
+        write_part(
+            &mut zip,
+            "ppt/presentation.xml",
+            &static_parts::presentation_xml(slide_count),
+        )?;
+        write_part(
+            &mut zip,
+            "ppt/_rels/presentation.xml.rels",
+            &static_parts::presentation_rels_xml(slide_count, &notes),
+        )?;
         write_part(&mut zip, "ppt/theme/theme1.xml", &static_parts::theme_xml())?;
-        write_part(&mut zip, "ppt/slideMasters/slideMaster1.xml", &static_parts::slide_master_xml())?;
-        write_part(&mut zip, "ppt/slideMasters/_rels/slideMaster1.xml.rels", &static_parts::slide_master_rels_xml())?;
-        write_part(&mut zip, "ppt/slideLayouts/slideLayout1.xml", &static_parts::slide_layout_xml())?;
-        write_part(&mut zip, "ppt/slideLayouts/_rels/slideLayout1.xml.rels", &static_parts::slide_layout_rels_xml())?;
+        write_part(
+            &mut zip,
+            "ppt/slideMasters/slideMaster1.xml",
+            &static_parts::slide_master_xml(),
+        )?;
+        write_part(
+            &mut zip,
+            "ppt/slideMasters/_rels/slideMaster1.xml.rels",
+            &static_parts::slide_master_rels_xml(),
+        )?;
+        write_part(
+            &mut zip,
+            "ppt/slideLayouts/slideLayout1.xml",
+            &static_parts::slide_layout_xml(),
+        )?;
+        write_part(
+            &mut zip,
+            "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+            &static_parts::slide_layout_rels_xml(),
+        )?;
 
         let mut chart_sequence = 0usize;
         for (i, slide) in presentation.slides.iter().enumerate() {
@@ -233,12 +269,18 @@ pub fn export_to_pptx(presentation: &Presentation) -> Result<Vec<u8>, String> {
             chart_sequence += charts.len();
             let n = i + 1;
             write_part(&mut zip, &format!("ppt/slides/slide{n}.xml"), &slide_xml)?;
-            write_part(&mut zip, &format!("ppt/slides/_rels/slide{n}.xml.rels"), &static_parts::slide_rels_xml(&images, &charts))?;
+            write_part(
+                &mut zip,
+                &format!("ppt/slides/_rels/slide{n}.xml.rels"),
+                &static_parts::slide_rels_xml(&images, &charts),
+            )?;
 
             for (j, img) in images.iter().enumerate() {
                 let name = format!("ppt/media/image{}.{}", j + 1, img.ext);
-                zip.start_file(&name, opts).map_err(|e| format!("zip start {name}: {e}"))?;
-                zip.write_all(&img.bytes).map_err(|e| format!("zip write {name}: {e}"))?;
+                zip.start_file(&name, opts)
+                    .map_err(|e| format!("zip start {name}: {e}"))?;
+                zip.write_all(&img.bytes)
+                    .map_err(|e| format!("zip write {name}: {e}"))?;
             }
 
             for chart in &charts {

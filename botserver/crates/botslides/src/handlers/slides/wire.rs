@@ -23,9 +23,11 @@ pub(super) fn slide_index_of(payload: &serde_json::Value) -> usize {
     payload
         .get("slide_index")
         .and_then(|value| {
-            value
-                .as_u64()
-                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+            value.as_u64().or_else(|| {
+                value
+                    .as_str()
+                    .and_then(|text| text.trim().parse::<u64>().ok())
+            })
         })
         .or_else(|| {
             payload
@@ -49,7 +51,12 @@ pub(super) fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> 
         .and_then(|value| value.as_str())
         .map(str::to_string)
         .unwrap_or_else(|| format!("el_{}", Uuid::new_v4()));
-    let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
+    let number = |key: &str| {
+        payload
+            .get(key)
+            .and_then(|value| value.as_f64())
+            .unwrap_or(0.0)
+    };
     let number_opt = |key: &str| payload.get(key).and_then(|value| value.as_f64());
     let text = |key: &str| {
         payload
@@ -86,9 +93,11 @@ pub(super) fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> 
             payload
                 .get(key)
                 .and_then(|value| {
-                    value
-                        .as_u64()
-                        .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+                    value.as_u64().or_else(|| {
+                        value
+                            .as_str()
+                            .and_then(|text| text.trim().parse::<u64>().ok())
+                    })
                 })
                 .map(|value| value.clamp(1, 50))
                 .unwrap_or(default)
@@ -121,7 +130,9 @@ pub(super) fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> 
     let chart_data = if element_type == "chart" {
         let parsed = payload.get("data").and_then(|value| {
             if value.is_string() {
-                value.as_str().and_then(|text| serde_json::from_str(text).ok())
+                value
+                    .as_str()
+                    .and_then(|text| serde_json::from_str(text).ok())
             } else {
                 Some(value.clone())
             }
@@ -129,21 +140,24 @@ pub(super) fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> 
         parsed.map(|value| {
             // An empty form (`{}`) legitimately has neither field; the demo
             // series below keeps the inserted chart visible. No warning here.
-            let mut labels: Vec<String> = match value.get("labels").and_then(|items| items.as_array()) {
-                Some(items) => items
-                    .iter()
-                    .filter_map(|item| item.as_str().map(str::to_string))
-                    .collect(),
-                None => Vec::new(),
-            };
-            let mut datasets: Vec<ChartDataset> =
-                match value.get("datasets").and_then(|items| items.as_array()) {
+            let mut labels: Vec<String> =
+                match value.get("labels").and_then(|items| items.as_array()) {
                     Some(items) => items
                         .iter()
-                        .filter_map(|item| serde_json::from_value::<ChartDataset>(item.clone()).ok())
+                        .filter_map(|item| item.as_str().map(str::to_string))
                         .collect(),
                     None => Vec::new(),
                 };
+            let mut datasets: Vec<ChartDataset> = match value
+                .get("datasets")
+                .and_then(|items| items.as_array())
+            {
+                Some(items) => items
+                    .iter()
+                    .filter_map(|item| serde_json::from_value::<ChartDataset>(item.clone()).ok())
+                    .collect(),
+                None => Vec::new(),
+            };
             // The form starts with `{}`; a demo series keeps the inserted
             // chart visible instead of saving an empty box.
             if datasets.is_empty() {

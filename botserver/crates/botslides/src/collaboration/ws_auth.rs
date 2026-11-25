@@ -7,9 +7,9 @@
 //! compared in constant time, `exp`/`nbf` enforced. A refusal carries a stable
 //! machine-readable code so the client sees why the upgrade was rejected.
 
-use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use botsecurity_core::verified_jwt::{self, JwtVerifyError};
 use serde::Deserialize;
 

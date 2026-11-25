@@ -32,13 +32,16 @@ pub async fn handle_create_presentation<D: DriveOps>(
     user: SlidesUser,
     Json(req): Json<CreatePresentationRequest>,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
-    let deck = create_presentation_with(user.owner_id(), req.title.as_deref(), req.slides.as_deref());
+    let deck =
+        create_presentation_with(user.owner_id(), req.title.as_deref(), req.slides.as_deref());
 
     if let Some(drive) = &state.drive {
         if let Err(e) = save_presentation_to_drive(drive, user.owner_id(), &deck).await {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)}),
+                ),
             ));
         }
     }
@@ -140,7 +143,9 @@ pub async fn handle_save_presentation<D: DriveOps>(
     if req.id.as_deref() == Some("current") {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Presentation id 'current' is not allowed; create a deck with a unique id first" })),
+            Json(
+                serde_json::json!({ "error": "Presentation id 'current' is not allowed; create a deck with a unique id first" }),
+            ),
         ));
     }
     let presentation_id = req
@@ -178,7 +183,9 @@ pub async fn handle_save_presentation<D: DriveOps>(
         if let Err(e) = save_presentation_to_drive(drive, &user_id, &presentation).await {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)}),
+                ),
             ));
         }
         // Save-back: a deck imported from a Drive .pptx writes the exported
@@ -279,7 +286,9 @@ pub async fn handle_delete_presentation<D: DriveOps>(
             };
             return Err((
                 status,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)}),
+                ),
             ));
         }
     }

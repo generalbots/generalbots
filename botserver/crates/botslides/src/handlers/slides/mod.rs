@@ -19,7 +19,11 @@ macro_rules! load_pres {
                 Err(e) => {
                     return Err((
                         axum::http::StatusCode::NOT_FOUND,
-                        axum::Json(serde_json::json!({ "error": e })),
+                        axum::Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                            &e,
+                            "botslides::handlers::slides",
+                            None,
+                        )),
                     ))
                 }
             },

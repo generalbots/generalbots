@@ -40,16 +40,14 @@ fn a_missing_or_invalid_slide_index_defaults_to_the_first_slide() {
 
 #[test]
 fn a_flat_transition_duration_accepts_both_shapes() {
-    let numeric: SetTransitionRequest = serde_json::from_str(
-        r#"{"presentation_id":"p","slide_index":1,"duration":1.5}"#,
-    )
-    .expect("numeric duration");
+    let numeric: SetTransitionRequest =
+        serde_json::from_str(r#"{"presentation_id":"p","slide_index":1,"duration":1.5}"#)
+            .expect("numeric duration");
     assert_eq!(numeric.duration, Some(1.5));
 
-    let textual: SetTransitionRequest = serde_json::from_str(
-        r#"{"presentation_id":"p","slide_index":"1","duration":" 2.25 "}"#,
-    )
-    .expect("string duration");
+    let textual: SetTransitionRequest =
+        serde_json::from_str(r#"{"presentation_id":"p","slide_index":"1","duration":" 2.25 "}"#)
+            .expect("string duration");
     assert_eq!(textual.duration, Some(2.25));
     assert_eq!(textual.slide_index, 1);
 }
@@ -94,7 +92,6 @@ fn the_export_request_accepts_both_id_field_names() {
     assert_eq!(by_id.id, "p1");
 
     let by_presentation: ExportRequest =
-        serde_json::from_str(r#"{"presentation_id":"p2","format":"html"}"#)
-            .expect("alias form");
+        serde_json::from_str(r#"{"presentation_id":"p2","format":"html"}"#).expect("alias form");
     assert_eq!(by_presentation.id, "p2");
 }

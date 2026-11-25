@@ -1,5 +1,5 @@
-use crate::storage::{load_presentation_by_id, DriveOps};
 use crate::auth::SlidesUser;
+use crate::storage::{load_presentation_by_id, DriveOps};
 use crate::types::{
     EndPresenterRequest, PresenterNotesResponse, PresenterSession, PresenterSessionResponse,
     StartPresenterRequest, UpdatePresenterRequest,
@@ -35,7 +35,11 @@ pub async fn handle_start_presenter<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::presenter",
+                    None,
+                )),
             )
         })?;
 
@@ -62,16 +66,13 @@ pub async fn handle_update_presenter<D: DriveOps>(
 ) -> Result<Json<PresenterSessionResponse>, (StatusCode, Json<serde_json::Value>)> {
     let session_id = if req.session_id.is_empty() {
         req.presentation_id.as_deref().and_then(|presentation_id| {
-            PRESENTER_SESSIONS
-                .read()
-                .ok()
-                .and_then(|sessions| {
-                    sessions
-                        .values()
-                        .filter(|session| session.presentation_id == presentation_id)
-                        .max_by_key(|session| session.started_at.timestamp_millis())
-                        .map(|session| session.id.clone())
-                })
+            PRESENTER_SESSIONS.read().ok().and_then(|sessions| {
+                sessions
+                    .values()
+                    .filter(|session| session.presentation_id == presentation_id)
+                    .max_by_key(|session| session.started_at.timestamp_millis())
+                    .map(|session| session.id.clone())
+            })
         })
     } else {
         Some(req.session_id.clone())
@@ -164,7 +165,11 @@ pub async fn handle_get_presenter_notes<D: DriveOps>(
         .map_err(|e| {
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
+                Json(botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                    &e,
+                    "botslides::handlers::presenter",
+                    None,
+                )),
             )
         })?;
 

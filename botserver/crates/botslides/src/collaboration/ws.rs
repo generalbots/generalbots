@@ -9,7 +9,10 @@ use crate::collaboration::{
 use crate::storage::DriveOps;
 use crate::types::SlideMessage;
 use crate::SlidesState;
-use axum::extract::{Path, Query, State, ws::{Message, WebSocket, WebSocketUpgrade}};
+use axum::extract::{
+    ws::{Message, WebSocket, WebSocketUpgrade},
+    Path, Query, State,
+};
 use axum::response::{IntoResponse, Response};
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
@@ -236,9 +239,13 @@ async fn handle_slides_connection(
                             }
                             "question_upvote" | "question_answered" => {
                                 if let Some(data) = &slide_msg.data {
-                                    if let Some(qid) = data.get("question_id").and_then(|v| v.as_str()) {
+                                    if let Some(qid) =
+                                        data.get("question_id").and_then(|v| v.as_str())
+                                    {
                                         let mut questions = get_questions().write().await;
-                                        if let Some(list) = questions.get_mut(&presentation_id_clone) {
+                                        if let Some(list) =
+                                            questions.get_mut(&presentation_id_clone)
+                                        {
                                             for q in list.iter_mut() {
                                                 if q.id == qid {
                                                     if slide_msg.msg_type == "question_upvote" {
@@ -395,4 +402,3 @@ async fn handle_slides_connection(
         log::info!("User left (broadcast may have no receivers): {}", e);
     }
 }
-
