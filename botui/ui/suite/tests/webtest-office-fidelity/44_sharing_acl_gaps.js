@@ -1,33 +1,34 @@
 /**
- * [KNOWN BUG] #2452 — source-backed guards for the four sharing/ACL criteria
- * that the live UAT (v7.1.2, 2026-11-25) still found failing:
- *   (a) the anonymous capability-link read returns the FULL document body with
- *       no caller identity or role gate — the handler takes only State + Path,
- *       the token lookup is keyed by token alone, content is loaded from the
- *       link owner's namespace and echoed as `content: document.content`;
- *   (b) export denial is namespace/owner-lookup based (404 "Document not
- *       found" from the loader / 401 from the DocUser extractor), never a role
- *       decision — all six handlers load from `user.id()` and there is no
- *       effective_role/acl call in export.rs;
- *   (c) the live audit rows (GET /api/activity DTO and the collab_activity
- *       INSERT used by both record_activity and access_audit) carry actor/time
- *       but NO ip / remote_addr field. The offline access_control::audit::
- *       AuditEvent does have `ip`, but it is not wired to the HTTP path;
- *   (d) the decision/denial primitive ships (decide(), acl_denied() with code
- *       "docs_acl_denied" in handlers_api/ast.rs, re-exported from access_control)
- *       yet BOTH read paths bypass it — the anonymous capability path never
- *       calls decide() and export.rs never calls it either, so no request can
- *       produce a 403/docs_acl_denied response. Expiry and malformed-token
- *       fail-closed DO work and are deliberately not claimed as gaps here.
+ * #2452 — source-backed guards for the four sharing/ACL criteria from the
+ * v7.1.2 (2026-11-25) live UAT:
+ *   (a) FIXED: the anonymous capability read gates source bytes through
+ *       `body_for_link` + `role_allows_source`, using the role recorded on the
+ *       link row: a viewer gets an empty content string, while
+ *       commenter/editor/owner keep the full source. No caller input can pick
+ *       the body; `content: document.content` is gone.
+ *   (b) KNOWN BUG: export denial is still namespace/owner-lookup based (404
+ *       "Document not found" from the loader / 401 from the DocUser extractor),
+ *       never a role decision — all six handlers load from `user.id()` and
+ *       there is no effective_role/acl call in export.rs;
+ *   (c) FIXED: the Docs access-audit event, SQL row and read DTO now carry an
+ *       optional `ip`, attached with `with_ip` and persisted by INSERT_WITH_IP;
+ *   (d) KNOWN BUG: the decision/denial primitive ships (decide(), acl_denied()
+ *       with code "docs_acl_denied" in handlers_api/ast.rs, re-exported from
+ *       access_control) yet BOTH read paths still bypass it — the anonymous
+ *       capability path uses role_allows_source, not decide(), and export.rs
+ *       never calls it either, so no request can produce a 403/docs_acl_denied
+ *       response. Expiry and malformed-token fail-closed DO work and are
+ *       deliberately not claimed as gaps here.
  *
- * Each case asserts the CURRENT degraded shape and PASSES as a documented
- * KNOWN BUG. NON-VACUITY: every case first proves the shipped artifact exists
- * and carries its real handlers, SQL, DTO fields and primitive declarations;
- * the "gap" assertions are then scoped absence checks, so a missing, empty or
- * garbled file can never satisfy a case by accident. When a real fix lands an
- * asserted-in gap disappears, its knownBug fn throws, the case becomes FAIL and
- * this marker must be removed and replaced by a runtime test. No user-facing
- * string, no server, no browser, no cargo.
+ * Cases (b) and (d) are confirmed, documented degradations; cases (a) and (c)
+ * are POSITIVE static assertions of the shipped fixes. NON-VACUITY: every case
+ * first proves the shipped artifact exists and carries its real handlers, SQL,
+ * DTO fields and primitive declarations; the positive assertions use literal
+ * substrings and ordering, the gap assertions are scoped absence checks, so a
+ * missing, empty or garbled file can never satisfy a case by accident.
+ * Removing role_allows_source, feeding the body from caller input, or dropping
+ * the IP field/INSERT makes its case FAIL. No user-facing string, no server,
+ * no browser, no cargo.
  */
 "use strict";
 
@@ -38,9 +39,6 @@ var EXPORT_HANDLERS = "botserver/crates/botdocs/src/handlers_api/export.rs";
 var AST_HANDLER = "botserver/crates/botdocs/src/handlers_api/ast.rs";
 var ACCESS_CONTROL = "botserver/crates/botdocs/src/access_control/mod.rs";
 var ACCESS_AUDIT = "botserver/crates/botdocs/src/access_audit.rs";
-var POLICY_AUDIT = "botserver/crates/botdocs/src/access_control/audit.rs";
-var COLLAB_DTO = "botserver/src/main_module/routes/collab_routes/dto.rs";
-var COLLAB_HELPERS = "botserver/src/main_module/routes/collab_routes/helpers.rs";
 
 /** Literal substring assertion — no regex metacharacter escaping needed. */
 function contains(relPath, needle, msg) {
@@ -62,6 +60,12 @@ function between(relPath, startMarker, endMarker) {
   return span;
 }
 
+/** Literal substring assertion on an already-read source span. */
+function spanHas(span, needle, msg) {
+  h.assert(span.indexOf(needle) !== -1,
+    (msg || "span must contain") + " <" + needle + "> :: " + span.slice(0, 200));
+}
+
 /** Assert every token is absent from a span (the documented defect). */
 function absent(span, tokens, what) {
   tokens.forEach(function (token) {
@@ -72,38 +76,66 @@ function absent(span, tokens, what) {
   });
 }
 
-// (a) The capability read has no caller to authorise: the handler signature is
-//     State + Path only, the SQL key is the token alone, the body is loaded
-//     from the link owner's namespace and the full text is returned verbatim.
-//     The link's role is echoed as metadata, not computed by a decision.
-h.knownBug("anonymous capability read echoes full document content with no caller identity/role gate", function () {
+// (a) The capability read now gates source bytes with a single decision keyed
+//     by the role on the LINK row: viewer -> empty body, commenter/editor/owner
+//     -> full source, unknown roles fail closed. No caller input can select it.
+h.staticTest("anonymous capability read gates source by the link's role", function () {
   contains(SHARED_LINK, "pub async fn handle_shared_document(", "shared document route is shipped");
   contains(SHARED_LINK, "pub struct SharedDocument {", "response DTO is shipped");
-  contains(SHARED_LINK, "pub content: String,", "response DTO carries the document body");
+  contains(SHARED_LINK, "pub content: String,", "response DTO carries a content field");
   contains(SHARED_LINK, "pub role: String,", "response DTO carries a role field");
   contains(SHARED_LINK, "FROM resource_links WHERE token = $1", "token-only lookup is shipped");
   contains(SHARED_LINK, "resolve_owner(&state, &link)", "owner namespace comes from the link row");
   contains(SHARED_LINK, "load_document_from_drive(&state, &owner_id, &link.resource_id)",
     "content is loaded from the link owner's namespace");
-  contains(SHARED_LINK, "content: document.content,", "full body is returned");
-  contains(SHARED_LINK, "role: link.role,", "role is echoed from the link row");
 
-  var sig = between(SHARED_LINK, "pub async fn handle_shared_document(", "let token = token.trim()");
-  absent(sig, [
-    "Extension<", "AuthenticatedUser", "DocUser", "user.id()", "my_role(",
-    "effective_role(", "grantee_id", "require_role"
-  ], "caller identity extractor on the shared route");
+  // Explicit allow-list: viewer is NOT source-capable; unknown roles fail closed.
+  var roleGate = between(SHARED_LINK,
+    "fn role_allows_source(role: &str) -> bool {", "fn body_for_link<'a>(");
+  spanHas(roleGate, "matches!(", "role gate is an explicit allow-list");
+  spanHas(roleGate, '"commenter" | "editor" | "owner"',
+    "only source-capable roles are allowed");
+  h.assert(roleGate.indexOf('"viewer"') === -1,
+    "viewer must not be in the source allow-list :: <" + roleGate + ">");
 
-  var lookup = between(SHARED_LINK, "async fn load_link(", "/// Owner namespace of the linked document.");
-  absent(lookup, [
-    "AND owner_id", "AND org_id", "effective_role(", "my_role(", "grantee_id", "principal"
-  ], "caller scope in the token lookup");
+  // The single release decision rechecks token/expiry and the role, and feeds
+  // the body field — so removing the role call cannot silently pass through.
+  var bodyFn = between(SHARED_LINK, "fn body_for_link<'a>(", "/// Unknown, expired, revoked");
+  spanHas(bodyFn, "is_valid_token(token)", "body gate rechecks the token shape");
+  spanHas(bodyFn, "!link_is_expired(expires_at, now)", "body gate rechecks expiry");
+  spanHas(bodyFn, "&& role_allows_source(role)", "body gate calls the role allow-list");
+  spanHas(bodyFn, 'if allowed { source } else { "" }', "role denial yields an empty body");
 
-  var body = between(SHARED_LINK, "let token = token.trim()", "#[cfg(test)]");
-  absent(body, [
-    "Extension<", "AuthenticatedUser", "user.id()", "effective_role(", "my_role(",
-    "grantee_id", "principal"
-  ], "caller role check in the shared route body");
+  // The handler builds DTO content from that decision using link.role (the row
+  // value), never a caller-supplied role or document.content directly.
+  var handler = between(SHARED_LINK,
+    "pub async fn handle_shared_document(", "async fn load_link(");
+  var decision = handler.indexOf("let content = body_for_link(");
+  var response = handler.indexOf("Ok(Json(SharedDocument {");
+  h.assert(decision !== -1 && response !== -1 && decision < response,
+    "source decision must precede the response :: <" + handler.slice(-420) + ">");
+  var call = handler.slice(decision, response);
+  ["&token,", "&link.role,", "link.expires_at,", "chrono::Utc::now(),", "&document.content,"].forEach(function (arg) {
+    h.assert(call.indexOf(arg) !== -1,
+      "body_for_link must receive <" + arg + "> :: <" + call + ">");
+  });
+  spanHas(call, ".to_string()", "gated body is materialized for the DTO");
+  spanHas(handler.slice(response), "content,", "DTO content comes from the gated local");
+  h.assert(handler.indexOf("content: document.content,") === -1,
+    "full body must not be echoed directly :: <" + handler + ">");
+
+  // Non-vacuity: unit tests cover both sides with a real secret embedded in
+  // SOURCE, so an always-empty or always-full gate cannot satisfy this case.
+  var linkSrc = h.readRepo(SHARED_LINK);
+  var tests = linkSrc.slice(linkSrc.indexOf("#[cfg(test)]"));
+  h.assert(tests.indexOf("fn viewer_link_does_not_release_the_editable_source()") !== -1,
+    "viewer source-denial unit test must exist");
+  h.assert(tests.indexOf("fn owner_and_higher_role_links_still_release_the_source()") !== -1,
+    "source-capable role unit test must exist");
+  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, now, SOURCE), "");',
+    "viewer roles must be asserted to yield no body");
+  spanHas(tests, 'assert_eq!(body_for_link(&token, role, None, now, SOURCE), SOURCE);',
+    "source-capable roles must be asserted to keep the body");
 });
 
 // (b) Every export handler authenticates only through the DocUser extractor and
@@ -126,7 +158,7 @@ h.knownBug("export denial is namespace/auth based with no role gate in any forma
   contains(EXPORT_HANDLERS, '"error": "Document not found"', "namespace miss is a 404");
   contains(EXPORT_HANDLERS, "admit(", "workclass admission gate is shipped");
 
-  var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "enum HtmlBlock {");
+  var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "pub async fn handle_export_md(");
   h.assert(loader.indexOf("StatusCode::NOT_FOUND") !== -1,
     "the loader must still deny via 404 :: <" + loader.slice(0, 400) + ">");
 
@@ -138,34 +170,65 @@ h.knownBug("export denial is namespace/auth based with no role gate in any forma
   absent(loader, noRole, "role-based decision in the export loader");
 });
 
-// (c) The rows a reader actually sees through GET /api/activity are ActivityItem
-//     from collab_routes/dto.rs, written by helpers::record_activity and by
-//     access_audit::append into the same collab_activity table. All three carry
-//     actor + created_at but no IP/remote_addr column. The offline
-//     access_control::audit::AuditEvent has `ip`, proving the field is known to
-//     the codebase yet absent from the live audit path.
-h.knownBug("live audit rows carry actor/time but no IP or remote_addr field", function () {
-  contains(COLLAB_DTO, "pub struct ActivityItem {", "activity response DTO is shipped");
-  contains(COLLAB_DTO, "pub actor_id: String,", "actor id is recorded");
-  contains(COLLAB_DTO, "pub actor_name: String,", "actor name is recorded");
-  contains(COLLAB_DTO, "pub created_at: String,", "timestamp is recorded");
-  contains(COLLAB_DTO, "pub(crate) struct ActivityRow {", "activity SQL row is shipped");
-  contains(COLLAB_HELPERS, "pub(crate) fn record_activity(", "generic activity writer is shipped");
+// (c) The Docs access audit event, its collab_activity row projection and the
+//     read DTO now carry an optional `ip`. Only the shipped crate module is
+//     asserted here; the request-layer wiring (migration / collab_routes) is a
+//     separate workstream. Removing any of the three fields, `with_ip` or the
+//     IP-aware INSERT makes this POSITIVE case FAIL.
+h.staticTest("Docs access audit event, row and DTO carry the caller IP", function () {
   contains(ACCESS_AUDIT, "pub struct AccessAuditEvent {", "Docs access audit event is shipped");
+  contains(ACCESS_AUDIT, "pub struct AccessAuditRow {", "Docs audit row is shipped");
+  contains(ACCESS_AUDIT, "pub struct AccessAuditItem {", "Docs audit read DTO is shipped");
 
-  var columns = "(resource_type, resource_id, actor_id, actor_name, action, payload)";
-  contains(COLLAB_HELPERS, columns, "generic activity INSERT column list is shipped");
-  contains(ACCESS_AUDIT, columns, "Docs access audit INSERT column list is shipped");
-  contains(POLICY_AUDIT, "pub struct AuditEvent {", "offline audit event is shipped");
-  contains(POLICY_AUDIT, "pub ip: Option<String>,", "the offline policy event knows the IP field");
+  var audit = h.readRepo(ACCESS_AUDIT);
+  var ipFields = audit.split("pub ip: Option<String>,").length - 1;
+  h.assert(ipFields >= 3, "event, row and read DTO must all carry ip :: found " + ipFields);
 
-  var ipFields = [
-    "remote_addr", "ip_address", "client_ip", "peer_addr", "remote_ip",
-    "pub ip:", "    ip:", '"ip"'
-  ];
-  absent(h.readRepo(COLLAB_DTO), ipFields, "IP field on the activity DTO/row");
-  absent(h.readRepo(COLLAB_HELPERS), ipFields, "IP field in the activity INSERT");
-  absent(h.readRepo(ACCESS_AUDIT), ipFields, "IP field in the Docs access audit event/INSERT");
+  var event = between(ACCESS_AUDIT, "pub struct AccessAuditEvent {", "impl AccessAuditEvent {");
+  spanHas(event, "pub ip: Option<String>,", "event carries the optional client address");
+  contains(ACCESS_AUDIT, "pub fn with_ip(mut self, ip: Option<&str>) -> Self {",
+    "with_ip attach point is shipped");
+  contains(ACCESS_AUDIT, "self.ip = ip.map(|addr| addr.to_string());",
+    "with_ip keeps the caller's address");
+
+  var row = between(ACCESS_AUDIT, "pub struct AccessAuditRow {", "/// Serialized audit item");
+  h.assert(row.indexOf("#[diesel(sql_type = Nullable<Text>)]") !== -1 &&
+    row.indexOf("pub ip: Option<String>,") !== -1,
+    "row maps the nullable ip column :: <" + row + ">");
+  contains(ACCESS_AUDIT, "ip: row.ip,", "row-to-DTO conversion forwards ip");
+
+  var insert = between(ACCESS_AUDIT, "const INSERT_WITH_IP: &str", "const INSERT_WITHOUT_IP: &str");
+  spanHas(insert, "actor_name, action, payload, ip)",
+    "IP-aware INSERT writes the ip column");
+  spanHas(insert, "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    "IP-aware INSERT binds seven values");
+  var append = between(ACCESS_AUDIT, "fn append(conn: &mut PgConnection", "fn record(state: &DocState");
+  h.assert(append.indexOf("diesel::sql_query(INSERT_WITH_IP)") !== -1 &&
+    append.indexOf(".bind::<Nullable<Text>, _>(event.ip.as_deref())") !== -1,
+    "append binds the event IP into the IP-aware INSERT :: <" + append + ">");
+  spanHas(append, "diesel::sql_query(INSERT_WITHOUT_IP)",
+    "append keeps the no-IP fallback for older deployments");
+
+  // Additive recorders let the request layer supply the address without
+  // breaking existing callers; the constructors stay content-free.
+  contains(ACCESS_AUDIT, "pub fn record_shared_view_with_ip(",
+    "IP-aware shared-view recorder is shipped");
+  contains(ACCESS_AUDIT, "pub fn record_export_access_with_ip(",
+    "IP-aware export recorder is shipped");
+  contains(ACCESS_AUDIT, "record_shared_view_with_ip(state, resource_id, None);",
+    "no-IP shared-view wrapper stays additive");
+  contains(ACCESS_AUDIT, "record_export_access_with_ip(state, user, resource_id, format, None);",
+    "no-IP export wrapper stays additive");
+
+  var tests = audit.slice(audit.indexOf("#[cfg(test)]"));
+  ["fn event_with_ip_carries_the_callers_address()",
+   "fn event_without_ip_stays_none()",
+   "fn row_and_dto_round_trip_a_present_ip()",
+   "fn row_and_dto_round_trip_an_absent_ip()"].forEach(function (name) {
+    h.assert(tests.indexOf(name) !== -1, "IP unit test must exist <" + name + ">");
+  });
+  spanHas(tests, 'json.get("ip").and_then(|v| v.as_str())',
+    "read DTO must serialize ip for the activity reader");
 });
 
 // (d) A typed refusal primitive is fully implemented for the authenticated AST
@@ -189,7 +252,8 @@ h.knownBug("docs_acl_denied/decide primitive ships but is bypassed by the anonym
 });
 
 h.note(
-  "FOLLOW-UP #2452 criteria 2/3/4: route the capability and export reads through " +
-  "decide() with a real principal, return docs_acl_denied/403 on insufficient role, " +
-  "and persist an IP/remote_addr on the live collab_activity audit rows."
+  "FOLLOW-UP #2452 remaining criteria: route the capability and export reads " +
+  "through decide() with a real principal and return docs_acl_denied/403 on " +
+  "insufficient role. Body role-gating and the access-audit IP field/INSERT " +
+  "are shipped and asserted positively above."
 );

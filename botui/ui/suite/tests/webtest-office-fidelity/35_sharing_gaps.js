@@ -135,7 +135,7 @@ h.knownBug("export handlers load by bearer namespace only, with no role decide()
   contains(EXPORT_HANDLERS, "fn load_export_document(", "export loader is shipped");
   contains(EXPORT_HANDLERS, "admit(", "admission gate is shipped");
 
-  var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "enum HtmlBlock {");
+  var loader = between(EXPORT_HANDLERS, "fn load_export_document(", "pub async fn handle_export_md(");
   [
     "let user_id = user.id();",
     "load_document_from_drive(state, user_id, &query.id)"
