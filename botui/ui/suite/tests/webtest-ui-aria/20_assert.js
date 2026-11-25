@@ -46,16 +46,18 @@ var metrics = require("./10_scan").metrics;
 // Re-locked 2026-11-25: three shipped JS files (settings/slides asset
 // extractions plus the #2448 batch-id module) changed the observed surface
 // counts; the four documented gaps and all a11y invariants stay unchanged.
+// Re-locked 2026-11-25: shipped route-contract/undo/i18n guards add live-region
+// mentions and gbT declarations; the a11y invariants below are unchanged.
 var EXPECTED = {
   filesScanned: 1587,
   htmlFiles: 215,
   jsFiles: 1372,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 727,
-  ariaLiveFiles: 256,
-  ariaLiveDeclarations: 678,
-  livePolite: 608,
+  ariaLiveMentions: 728,
+  ariaLiveFiles: 257,
+  ariaLiveDeclarations: 679,
+  livePolite: 609,
   liveAssertive: 69,
   liveOff: 1,
   roleStatus: 544,
@@ -64,12 +66,12 @@ var EXPECTED = {
   roleStatusAlertFiles: 254,
   dataI18nAttrs: 5872,
   htmlWithI18n: 204,
-  gbTCalls: 387, // relock note above: -1 from prior lock, see e216103e1
-  jsWithGbt: 124,
-  dynamicWrites: 4334,
-  writesInRegionFiles: 1263,
-  writesOutsideRegionFiles: 3071,
-  filesWithWritesNoRegion: 613,
+  gbTCalls: 390, // relock note above: -1 from prior lock, see e216103e1
+  jsWithGbt: 126,
+  dynamicWrites: 4336,
+  writesInRegionFiles: 1269,
+  writesOutsideRegionFiles: 3067,
+  filesWithWritesNoRegion: 612,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
