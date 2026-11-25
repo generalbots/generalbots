@@ -49,6 +49,7 @@ require("./webtest-office-fidelity/43_citation_directive");
 require("./webtest-office-fidelity/44_sharing_acl_gaps");
 require("./webtest-office-fidelity/45_sheet_scale_fixes");
 require("./webtest-office-fidelity/46_export_acl_gate");
+require("./webtest-office-fidelity/47_activity_ip_wiring");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
