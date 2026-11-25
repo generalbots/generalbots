@@ -60,10 +60,12 @@ pub async fn get_snoozed_emails(
 
     let email_ids: Vec<Uuid> = rows.into_iter().map(|r| r.email_id).collect();
 
-    diesel::sql_query("DELETE FROM email_snooze WHERE snooze_until <= $1")
+    if let Err(e) = diesel::sql_query("DELETE FROM email_snooze WHERE snooze_until <= $1")
         .bind::<diesel::sql_types::Timestamp, _>(now)
         .execute(&mut conn)
-        .ok();
+    {
+        log::warn!("Failed to clear expired email snoozes: {e}");
+    }
 
     Ok(Json(email_ids))
 }

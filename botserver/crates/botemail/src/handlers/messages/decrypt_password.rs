@@ -126,7 +126,9 @@ pub async fn list_emails(
         }
     }
 
-    session.logout().ok();
+    if let Err(e) = session.logout() {
+        log::warn!("IMAP logout failed: {e}");
+    }
     Ok(Json(ApiResponse { success: true, data: Some(email_list), message: None }))
 }
 #[cfg(not(feature = "mail"))]

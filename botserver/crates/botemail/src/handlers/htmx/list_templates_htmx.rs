@@ -30,9 +30,13 @@ pub async fn list_templates_htmx(
     let mut html = String::new();
     use std::fmt::Write;
     for temp in temps {
-        let _ = write!(html, r##"<div class="template-item" onclick="useTemplate('{}')"><h4>{}</h4><p class="text-sm text-gray">{}</p></div>"##, temp.id, temp.name, temp.subject_template);
+        if let Err(e) = write!(html, r##"<div class="template-item" onclick="useTemplate('{}')"><h4>{}</h4><p class="text-sm text-gray">{}</p></div>"##, temp.id, temp.name, temp.subject_template) {
+            log::warn!("Failed to render mail template row: {e}");
+        }
     }
-    let _ = writeln!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a template to use it</p>"#);
+    if let Err(e) = writeln!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a template to use it</p>"#) {
+        log::warn!("Failed to render template hint: {e}");
+    }
 
     axum::response::Html(html)
 }
@@ -66,9 +70,13 @@ pub async fn list_signatures_htmx(
     let mut html = String::new();
     use std::fmt::Write;
     for sig in sigs {
-        let _ = write!(html, r##"<div class="signature-item" onclick="useSignature('{}')"><h4>{}</h4><div class="text-sm text-gray">{}</div></div>"##, sig.id, sig.name, sig.content_html);
+        if let Err(e) = write!(html, r##"<div class="signature-item" onclick="useSignature('{}')"><h4>{}</h4><div class="text-sm text-gray">{}</div></div>"##, sig.id, sig.name, sig.content_html) {
+            log::warn!("Failed to render mail signature row: {e}");
+        }
     }
-    let _ = writeln!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a signature to insert it</p>"#);
+    if let Err(e) = writeln!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a signature to insert it</p>"#) {
+        log::warn!("Failed to render signature hint: {e}");
+    }
 
     axum::response::Html(html)
 }
@@ -103,7 +111,9 @@ pub async fn list_rules_htmx(
     use std::fmt::Write;
     for rule in rules {
         let checked = if rule.is_active { "checked" } else { "" };
-        let _ = write!(html, r##"<div class="rule-item"><div class="rule-header"><span class="rule-name">{}</span><label class="toggle-label"><input type="checkbox" {}><span class="toggle-switch"></span></label></div><p class="text-sm text-gray">If: {} → Action: {}</p></div>"##, rule.name, checked, rule.conditions_json, rule.actions_json);
+        if let Err(e) = write!(html, r##"<div class="rule-item"><div class="rule-header"><span class="rule-name">{}</span><label class="toggle-label"><input type="checkbox" {}><span class="toggle-switch"></span></label></div><p class="text-sm text-gray">If: {} → Action: {}</p></div>"##, rule.name, checked, rule.conditions_json, rule.actions_json) {
+            log::warn!("Failed to render mail rule row: {e}");
+        }
     }
 
     axum::response::Html(html)

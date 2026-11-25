@@ -148,12 +148,15 @@ async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Call
         } else {
             "plan_access_denied"
         };
-        let _ = sender
+        if let Err(e) = sender
             .send(Message::Close(Some(CloseFrame {
                 code,
                 reason: reason.into(),
             })))
-            .await;
+            .await
+        {
+            log::warn!("plan ws failed to send close frame for {plan_id}: {e}");
+        }
         return;
     }
 
@@ -197,7 +200,9 @@ async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Call
         position: None,
         timestamp: chrono::Utc::now(),
     };
-    let _ = broadcast_tx.send(join_msg);
+    if let Err(e) = broadcast_tx.send(join_msg) {
+        log::warn!("plan ws failed to broadcast join for {plan_id}: {e}");
+    }
 
     let bc_tx_clone = broadcast_tx.clone();
     let uid_clone = user_id.clone();
@@ -253,7 +258,9 @@ async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Call
                             _ => {}
                         }
 
-                        let _ = bc_tx_clone.send(m);
+                        if let Err(e) = bc_tx_clone.send(m) {
+                            log::warn!("plan ws failed to broadcast message for {pid_clone}: {e}");
+                        }
                     }
                 }
                 Ok(Message::Close(_)) | Err(_) => break,
@@ -279,7 +286,13 @@ async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Call
         }
     });
 
-    let _ = tokio::join!(receive, send);
+    let (receive_result, send_result) = tokio::join!(receive, send);
+    if let Err(e) = receive_result {
+        log::warn!("plan ws receive task failed for {plan_id}: {e}");
+    }
+    if let Err(e) = send_result {
+        log::warn!("plan ws send task failed for {plan_id}: {e}");
+    }
 
     {
         let mut presence = get_plan_presence().write().await;
@@ -305,7 +318,9 @@ async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Call
         position: None,
         timestamp: chrono::Utc::now(),
     };
-    let _ = broadcast_tx.send(leave_msg);
+    if let Err(e) = broadcast_tx.send(leave_msg) {
+        log::warn!("plan ws failed to broadcast leave for {plan_id}: {e}");
+    }
 }
 
 /// `GET /api/plan/:plan_id/collaborators`

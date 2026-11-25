@@ -30,7 +30,9 @@ pub async fn list_labels_htmx(
     let mut html = String::new();
     use std::fmt::Write;
     for label in labels {
-        let _ = write!(html, r##"<div class="label-item" style="--label-color: {};"><span class="label-dot" style="background: {};"></span><span>{}</span></div>"##, label.color, label.color, label.name);
+        if let Err(e) = write!(html, r##"<div class="label-item" style="--label-color: {};"><span class="label-dot" style="background: {};"></span><span>{}</span></div>"##, label.color, label.color, label.name) {
+            log::warn!("Failed to render mail label row: {e}");
+        }
     }
 
     axum::response::Html(html)

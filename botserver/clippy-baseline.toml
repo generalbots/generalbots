@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 583
+discarded_result = 540
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -34,9 +34,6 @@ discarded_result = 7
 [files."botserver/crates/botcoredirectory/src/provisioning.rs"]
 discarded_result = 6
 
-[files."botserver/crates/bottasks/src/task_api/handlers.rs"]
-discarded_result = 6
-
 [files."botserver/src/core/bot/pipeline/event_sink/steps.rs"]
 discarded_result = 6
 
@@ -45,21 +42,6 @@ discarded_result = 6
 
 [files."botserver/src/core/bot/ws/stream/tool_call.rs"]
 discarded_result = 6
-
-[files."botserver/crates/botcore/src/dns/mod.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botcorepkg/src/facade_container.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botdesktop/src/proxy.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botemail/src/handlers/htmx/list_templates_htmx.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botplan/src/collaboration.rs"]
-discarded_result = 5
 
 [files."botserver/src/basic/mod.rs"]
 discarded_result = 5
@@ -98,6 +80,12 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botcorepkg/src/facade.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botcorepkg/src/facade_container.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botdesktop/src/proxy.rs"]
 discarded_result = 4
 
 [files."botserver/crates/botmarketing/src/whatsapp.rs"]
@@ -173,6 +161,18 @@ discarded_result = 3
 discarded_result = 3
 
 [files."botserver/crates/botdrive/src/drive_handlers/search_files.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botemail/src/handlers/integration.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botmarketing/src/campaigns.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botmeet/src/signaling/handler.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botmodelsbridge/src/opencv/initialize.rs"]
 discarded_result = 3
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real

@@ -120,10 +120,12 @@ pub async fn add_email_account(
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         if request.is_primary {
-            diesel::update(user_email_accounts.filter(user_id.eq(&current_user_id)))
+            if let Err(e) = diesel::update(user_email_accounts.filter(user_id.eq(&current_user_id)))
                 .set(is_primary.eq(false))
                 .execute(&mut db_conn)
-                .ok();
+            {
+                log::warn!("Failed to clear primary flag on other mail accounts: {e}");
+            }
         }
 
         diesel::sql_query(
@@ -228,14 +230,16 @@ pub async fn list_email_accounts_htmx(
             None => String::new(),
         };
         use std::fmt::Write;
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r#"<div class="account-item" data-account-id="{}">
                 <span>{}</span>
                 {}{}
             </div>"#,
             account.id, name, primary_badge, health_badge
-        );
+        ) {
+            log::warn!("Failed to render mail account row: {e}");
+        }
     }
 
     axum::response::Html(html)

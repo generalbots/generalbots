@@ -168,13 +168,21 @@ pub async fn handle_execute_task(
 
     match scheduler_exec::execute_task(&state, id, &mut manifest).await {
         Ok(()) => {
-            let _ = engine.update_task_status(id, branch_id, &manifest.status);
-            let _ = persistence.save_manifest(id, &manifest).await;
+            if let Err(e) = engine.update_task_status(id, branch_id, &manifest.status) {
+                log::warn!("Failed to update task status after execution: {e}");
+            }
+            if let Err(e) = persistence.save_manifest(id, &manifest).await {
+                log::warn!("Failed to save task manifest after execution: {e}");
+            }
             Json(serde_json::json!({"status": "completed", "manifest": manifest})).into_response()
         }
         Err(e) => {
-            let _ = engine.update_task_status(id, branch_id, "failed");
-            let _ = persistence.save_manifest(id, &manifest).await;
+            if let Err(e) = engine.update_task_status(id, branch_id, "failed") {
+                log::warn!("Failed to mark task as failed: {e}");
+            }
+            if let Err(e) = persistence.save_manifest(id, &manifest).await {
+                log::warn!("Failed to save failed-task manifest: {e}");
+            }
             Json(serde_json::json!({"error": e})).into_response()
         }
     }
@@ -203,8 +211,12 @@ pub async fn handle_cancel_task(
 
     let persistence = EnginePersistence::new(state.clone());
     if let Ok(Some(mut manifest)) = persistence.load_manifest(id).await {
-        let _ = scheduler_exec::cancel_task(&state, id, &mut manifest).await;
-        let _ = persistence.save_manifest(id, &manifest).await;
+        if let Err(e) = scheduler_exec::cancel_task(&state, id, &mut manifest).await {
+            log::warn!("Failed to cancel running task {id}: {e}");
+        }
+        if let Err(e) = persistence.save_manifest(id, &manifest).await {
+            log::warn!("Failed to save manifest for cancelled task {id}: {e}");
+        }
     }
 
     Json(serde_json::json!({"status": "cancelled"})).into_response()

@@ -155,7 +155,7 @@ pub async fn list_unified_inbox(
         let preview: String = msg.body_text.as_deref().unwrap_or("").chars().take(120).collect();
         let date = msg.received_at.format("%b %d %H:%M").to_string();
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r##"<div class="mail-item{unread}" data-account-id="{aid}" \
                 hx-get="/api/ui/email/content/{id}?account_id={aid}" \
@@ -174,7 +174,9 @@ pub async fn list_unified_inbox(
             date = date,
             subj = msg.subject,
             preview = preview,
-        );
+        ) {
+            log::warn!("Failed to render unified inbox row: {e}");
+        }
     }
 
     html.push_str("</div>");

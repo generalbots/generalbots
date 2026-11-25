@@ -298,7 +298,9 @@ pub fn create_container_service(
             .replace("{{CONF_PATH}}", "/opt/gbo/conf")
             .replace("{{LOGS_PATH}}", "/opt/gbo/logs")
             .replace(ZITADEL_PASSWORD_PLACEHOLDER, &zitadel_password);
-        let _ = writeln!(env_section, "Environment={key}={rendered_value}");
+        if let Err(e) = writeln!(env_section, "Environment={key}={rendered_value}") {
+            warn!("Failed to render container service environment entry: {e}");
+        }
     }
     let service_content = format!(
         "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",

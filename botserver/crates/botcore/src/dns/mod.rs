@@ -162,22 +162,28 @@ impl DynamicDnsService {
         let entries = self.entries.read().await;
 
         let mut zone_content = String::new();
-        let _ = writeln!(
+        if let Err(e) = writeln!(
             zone_content,
             "$ORIGIN {}.\n$TTL {}",
             self.config.domain, self.config.ttl_seconds
-        );
+        ) {
+            log::warn!("Failed to write DNS zone origin record: {e}");
+        }
 
-        let _ = writeln!(
+        if let Err(e) = writeln!(
             zone_content,
             "@       IN      SOA     ns1.{}. admin.{}. (",
             self.config.domain, self.config.domain
-        );
-        let _ = writeln!(
+        ) {
+            log::warn!("Failed to write DNS zone SOA record: {e}");
+        }
+        if let Err(e) = writeln!(
             zone_content,
             "                        {}      ; Serial",
             Utc::now().timestamp()
-        );
+        ) {
+            log::warn!("Failed to write DNS zone serial record: {e}");
+        }
         zone_content.push_str(
             "                        3600            ; Refresh\n\
              \x20                       1800            ; Retry\n\
@@ -185,11 +191,13 @@ impl DynamicDnsService {
              \x20                       60              ; Minimum TTL\n\
              )\n",
         );
-        let _ = writeln!(
+        if let Err(e) = writeln!(
             zone_content,
             "        IN      NS      ns1.{}.",
             self.config.domain
-        );
+        ) {
+            log::warn!("Failed to write DNS zone NS record: {e}");
+        }
         zone_content.push_str("ns1     IN      A       127.0.0.1\n\n");
 
         zone_content.push_str("; Static service entries\n");
@@ -209,11 +217,13 @@ impl DynamicDnsService {
                 if !Self::is_valid_hostname(hostname) {
                     continue;
                 }
-                let _ = writeln!(
+                if let Err(e) = writeln!(
                     zone_content,
                     "{:<16} IN      A       {}",
                     hostname, entry.ip
-                );
+                ) {
+                    log::warn!("Failed to write DNS zone entry: {e}");
+                }
             }
         }
 

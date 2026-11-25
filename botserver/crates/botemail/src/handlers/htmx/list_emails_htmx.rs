@@ -54,7 +54,9 @@ pub async fn list_emails_htmx(
     use std::fmt::Write;
     for email in &emails {
         let unread_class = if !email.read { "unread" } else { "" };
-        let _ = write!(html, r##"<div class="mail-item {}" hx-get="/api/ui/email/content/{}" hx-target="#mail-content" hx-swap="innerHTML"><input type="checkbox" class="mail-item-checkbox" data-id="{}" onclick="event.stopPropagation()" style="margin-right: 8px; cursor: pointer;" /><div class="mail-header"><span>{}</span><span class="text-sm text-gray">{}</span></div><div class="mail-subject">{}</div><div class="mail-preview">{}</div></div>"##, unread_class, email.id, email.id, email.from_name, email.date, email.subject, email.preview);
+        if let Err(e) = write!(html, r##"<div class="mail-item {}" hx-get="/api/ui/email/content/{}" hx-target="#mail-content" hx-swap="innerHTML"><input type="checkbox" class="mail-item-checkbox" data-id="{}" onclick="event.stopPropagation()" style="margin-right: 8px; cursor: pointer;" /><div class="mail-header"><span>{}</span><span class="text-sm text-gray">{}</span></div><div class="mail-subject">{}</div><div class="mail-preview">{}</div></div>"##, unread_class, email.id, email.id, email.from_name, email.date, email.subject, email.preview) {
+            log::warn!("Failed to render email list row: {e}");
+        }
     }
 
     if html.is_empty() {
@@ -119,7 +121,9 @@ pub async fn list_folders_htmx(
         let count_badge = if **count > 0 { format!(r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#, count) } else { String::new() };
         let display: String = folder_name.chars().next().unwrap_or('?').to_uppercase().collect::<String>() + &folder_name[1..];
         use std::fmt::Write;
-        let _ = write!(html, r##"<div class="nav-item {}" hx-get="/api/ui/email/list?folder={}" hx-target="#mail-list" hx-swap="innerHTML"><span></span> {} {}</div>"##, active, folder_name, display, count_badge);
+        if let Err(e) = write!(html, r##"<div class="nav-item {}" hx-get="/api/ui/email/list?folder={}" hx-target="#mail-list" hx-swap="innerHTML"><span></span> {} {}</div>"##, active, folder_name, display, count_badge) {
+            log::warn!("Failed to render folder navigation row: {e}");
+        }
     }
 
     axum::response::Html(html)

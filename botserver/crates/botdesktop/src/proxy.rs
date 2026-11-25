@@ -78,7 +78,9 @@ pub async fn handle_ws_connection(ws: WebSocket, session: DesktopSession, sessio
         }
     };
 
-    let _ = tcp_stream.set_nodelay(true);
+    if let Err(e) = tcp_stream.set_nodelay(true) {
+        warn!("Failed to set TCP_NODELAY for session {session_id}: {e}");
+    }
     info!("TCP connected to {} for session {}", target, session_id);
 
     // Update session status

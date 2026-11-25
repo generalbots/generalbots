@@ -186,12 +186,14 @@ pub async fn search_emails(
 
     let mut html = String::from(r#"<div class="search-results">"#);
     use std::fmt::Write;
-    let _ = write!(
+    if let Err(e) = write!(
         html,
         r#"<div class="result-stats">Found {} results for &quot;{}&quot;</div>"#,
         messages.len(),
         query
-    );
+    ) {
+        log::warn!("Failed to render email search stats: {e}");
+    }
 
     for msg in &messages {
         let acct_email = account_map
@@ -206,7 +208,7 @@ pub async fn search_emails(
             ""
         };
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r##"<div class="mail-item" data-account-id="{aid}" \
                 hx-get="/api/ui/email/content/{id}?account_id={aid}" \
@@ -223,7 +225,9 @@ pub async fn search_emails(
             date = date,
             subj = msg.subject,
             preview = preview,
-        );
+        ) {
+            log::warn!("Failed to render email search result row: {e}");
+        }
     }
 
     html.push_str("</div>");

@@ -5,7 +5,12 @@ pub fn get_store() -> &'static PlanStore {
 }
 /// Attach the database pool so mutations persist to `plan_snapshots`.
 pub fn set_pool(pool: DbPool) {
-    let _ = POOL.set(Some(pool));
+    if let Err(existing) = POOL.set(Some(pool)) {
+        log::warn!(
+            "plan store pool already initialized (had_pool={}); ignoring duplicate",
+            existing.is_some()
+        );
+    }
 }
 /// Hydrate the in-memory store from any persisted plan snapshots. Fire-and-
 /// forget: spawns a task so the route mount stays synchronous.

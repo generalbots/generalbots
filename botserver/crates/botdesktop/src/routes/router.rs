@@ -49,7 +49,9 @@ pub(super) fn vdi_default_connection() -> Option<(String, u16, String)> {
                 return;
             }
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            warn!("vdi: credential lookup result channel closed: {e}");
+        }
     });
     let secrets = rx.recv().ok()?.ok()?;
 

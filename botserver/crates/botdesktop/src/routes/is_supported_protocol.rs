@@ -52,7 +52,9 @@ pub(super) fn vault_vdi_credentials(
                 return;
             }
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            warn!("vdi: credential storage result channel closed: {e}");
+        }
     });
 
     match rx.recv() {

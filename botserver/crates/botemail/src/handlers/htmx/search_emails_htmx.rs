@@ -33,11 +33,15 @@ pub async fn search_emails_htmx(
 
     let mut html = String::from(r#"<div class="search-results">"#);
     use std::fmt::Write;
-    let _ = write!(html, r#"<div class="result-stats">Found {} results for "{}"</div>"#, results.len(), query);
+    if let Err(e) = write!(html, r#"<div class="result-stats">Found {} results for "{}"</div>"#, results.len(), query) {
+        log::warn!("Failed to render email search stats: {e}");
+    }
     for row in results {
         let preview: String = row.body_text.as_deref().unwrap_or("").chars().take(100).collect();
         let formatted_date = row.received_at.format("%b %d, %Y").to_string();
-        let _ = write!(html, r##"<div class="email-item" hx-get="/api/ui/email/content/{}" hx-target="#email-content" hx-swap="innerHTML"><div class="email-sender">{}</div><div class="email-subject">{}</div><div class="email-preview">{}</div><div class="email-date">{}</div></div>"##, row.id, row.from_address, row.subject, preview, formatted_date);
+        if let Err(e) = write!(html, r##"<div class="email-item" hx-get="/api/ui/email/content/{}" hx-target="#email-content" hx-swap="innerHTML"><div class="email-sender">{}</div><div class="email-subject">{}</div><div class="email-preview">{}</div><div class="email-date">{}</div></div>"##, row.id, row.from_address, row.subject, preview, formatted_date) {
+            log::warn!("Failed to render email search result row: {e}");
+        }
     }
     html.push_str("</div>");
     axum::response::Html(html)

@@ -86,13 +86,15 @@ pub async fn get_thread(
     let msg_count = messages.len();
     let mut html = String::from(r#"<div class="thread-view">"#);
     use std::fmt::Write;
-    let _ = write!(
+    if let Err(e) = write!(
         html,
         r#"<div class="thread-header"><h3>{} messages</h3>\
            <p class="text-sm text-gray">Subject: {}</p></div>"#,
         msg_count,
         botsecurity_core::validation::sanitize_html(&thread_subject)
-    );
+    ) {
+        log::warn!("Failed to render thread header: {e}");
+    }
 
     for (i, msg) in messages.iter().enumerate() {
         let (sender, color) = account_map
@@ -112,7 +114,7 @@ pub async fn get_thread(
         let preview_safe = botsecurity_core::validation::sanitize_html(&preview);
         let body_safe = botsecurity_core::validation::sanitize_html(body);
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r##"<div class="thread-message {expanded}" data-id="{id}">\
                 <div class="thread-msg-header" onclick="this.parentElement.classList.toggle('expanded')">\
@@ -131,7 +133,9 @@ pub async fn get_thread(
             toggle = toggle,
             preview = preview_safe,
             body = body_safe,
-        );
+        ) {
+            log::warn!("Failed to render thread message row: {e}");
+        }
     }
 
     html.push_str("</div>");
