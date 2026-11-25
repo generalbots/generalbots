@@ -158,63 +158,10 @@ pub async fn revoke_permission(
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-/// `POST /api/collab/permissions/transfer` — transfer ownership to another
-/// user. Owner (or admin) only; records a `transfer` audit event.
-pub async fn transfer_ownership(
-    State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
-    request_locale: botcore::i18n::RequestLocale,
-    Json(req): Json<TransferBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let locale = request_locale.locale();
-    if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
-    }
-    let new_owner = req.new_owner_id.trim().to_string();
-    if new_owner.is_empty() || new_owner.len() > 255 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-new-owner"));
-    }
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-    if !owner_or_admin(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
-    }
-
-    diesel::sql_query(
-        "DELETE FROM resource_permissions \
-         WHERE resource_type = $1 AND resource_id = $2 AND grantee_type = 'user' AND role = 'owner'",
-    )
-    .bind::<Text, _>(&req.resource_type)
-    .bind::<Text, _>(&req.resource_id)
-    .execute(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    diesel::sql_query(
-        "INSERT INTO resource_permissions \
-         (resource_type, resource_id, grantee_type, grantee_id, role) \
-         VALUES ($1, $2, 'user', $3, 'owner') \
-         ON CONFLICT (resource_type, resource_id, grantee_type, grantee_id) \
-         DO UPDATE SET role = 'owner', updated_at = NOW()",
-    )
-    .bind::<Text, _>(&req.resource_type)
-    .bind::<Text, _>(&req.resource_id)
-    .bind::<Text, _>(&new_owner)
-    .execute(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    record_activity(
-        &mut conn,
-        &collab_user_id(&user),
-        &collab_user_name(&user),
-        &req.resource_type,
-        &req.resource_id,
-        "transfer",
-        &serde_json::json!({ "new_owner": new_owner }),
-    );
-    Ok(Json(serde_json::json!({ "success": true })))
-}
+/// `POST /api/collab/permissions/transfer` now lives in [`super::transfer`]:
+/// #2452 requires the target to be resolved against the local `users` table
+/// instead of trusting a caller-supplied string, and the pure validation and
+/// authorization rules are unit-tested there.
 
 /// `GET /api/collab/permissions/me?resource_type=&resource_id=` — the caller's
 /// effective role (or null when they have no access). Docs/Slides use this to

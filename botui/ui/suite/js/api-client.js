@@ -355,6 +355,11 @@
     if (response.access_token) {
       setAuthToken(response.access_token, response.remember !== false);
     }
+    // The collaboration WebSocket verifies a JWT, not the opaque REST token.
+    var wsToken = response.session_token || response.token || "";
+    if (wsToken.indexOf("eyJ") === 0) {
+      localStorage.setItem("gb-ws-token", wsToken);
+    }
     if (response.session_id) {
       setSessionId(response.session_id, response.remember !== false);
     }

@@ -112,9 +112,12 @@
         }).catch(function () { /* keep defaults */ });
     })();
 
-    function redirect(token, email) {
+    function redirect(token, email, wsToken) {
         try {
             localStorage.setItem("gb-access-token", token);
+            if (wsToken && wsToken.indexOf("eyJ") === 0) {
+                localStorage.setItem("gb-ws-token", wsToken);
+            }
             localStorage.setItem("gb-user-data", JSON.stringify({
                 id: email || "admin",
                 name: (email || "admin").split("@")[0],
@@ -233,7 +236,8 @@
                     resetButton();
                     return;
                 }
-                redirect(token, result.data.email || email);
+                redirect(token, result.data.email || email,
+                    result.data.session_token || (token.indexOf("eyJ") === 0 ? token : ""));
             }).catch(function () {
                 showError(
                     esc(t.errNoServer) +

@@ -24,7 +24,7 @@
   const RECONNECT_DELAY_MS = 2000;
   const HEARTBEAT_MS = 25000;
   const TYPING_AWAY_MS = 4000;
-  const STORAGE_KEYS = { TOKEN: "gb-access-token", USER: "gb-user-data" };
+  const STORAGE_KEYS = { TOKEN: "gb-access-token", WS_TOKEN: "gb-ws-token", USER: "gb-user-data" };
 
   function readUser() {
     try {
@@ -45,8 +45,30 @@
   }
 
   function readToken() {
-    try { return localStorage.getItem(STORAGE_KEYS.TOKEN) || ""; } catch (_) { return ""; }
+    try {
+      // WebSockets verify a SaaS JWT, while REST accepts the opaque `gb_…`
+      // session token. They are different credentials: using the REST one on
+      // the wire made every collaboration socket fail with malformed_token.
+      const ws = localStorage.getItem(STORAGE_KEYS.WS_TOKEN) ||
+        sessionStorage.getItem(STORAGE_KEYS.WS_TOKEN) || "";
+      if (ws) return ws;
+      const rest = localStorage.getItem(STORAGE_KEYS.TOKEN) ||
+        sessionStorage.getItem(STORAGE_KEYS.TOKEN) || "";
+      return rest.indexOf("eyJ") === 0 ? rest : "";
+    } catch (_) { return ""; }
   }
+
+  window.setGBWSToken = function (token) {
+    try {
+      if (token) {
+        localStorage.setItem(STORAGE_KEYS.WS_TOKEN, token);
+        sessionStorage.setItem(STORAGE_KEYS.WS_TOKEN, token);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.WS_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.WS_TOKEN);
+      }
+    } catch (_) { /* storage disabled */ }
+  };
 
   function pickColor(seed) {
     const palette = [

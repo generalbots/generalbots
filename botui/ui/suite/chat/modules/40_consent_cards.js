@@ -25,9 +25,7 @@
     deny: { label: "Deny", outcome: "Denied" },
   };
 
-  // The wire accepts five decisions (botconsent::models::Decision); confirm
-  // reuses `allow_once` (stages the request id, resumes) and cancel reuses
-  // `deny` (never staged) — no new enum/crate needed.
+  // Five wire decisions: confirm=allow_once, cancel=deny (no new enum).
   var CONFIRM_WIRE_DECISION = "allow_once", CANCEL_WIRE_DECISION = "deny";
   function wireDecision(d) {
     return d === "confirm" ? CONFIRM_WIRE_DECISION : (d === "cancel" ? CANCEL_WIRE_DECISION : d);
@@ -37,6 +35,14 @@
   }
 
   var lastConsentRequest = null;
+
+  // #2448: explicit batch id only; never a request id.
+  function batchIdFrom(req) {
+    if (!req || !isConfirmGate(req)) return "";
+    var d = req.detail || {}, id = req.batch_id || (d.params || d).batch_id;
+    return typeof id === "string" && id.trim() ? id.trim() : "";
+  }
+  window.GBConsentBatchId = batchIdFrom;
 
   document.addEventListener("gb-ws-frame", function (e) {
     var d = e.detail || {};
@@ -58,8 +64,7 @@
     return h;
   }
 
-  // Summarise detail objects into one readable line: raw JSON printed
-  // "[object Object]" and hid WHAT was being approved.
+  // Summarise detail; raw JSON printed "[object Object]" and hid intent.
   function describeDetail(detail) {
     if (detail === null || detail === undefined) return "";
     if (typeof detail === "string") return detail;
@@ -139,6 +144,8 @@
     var card = document.createElement("div");
     card.className = "gb-consent-card" + (confirmGate ? " gb-consent-confirm-gate" : "");
     card.setAttribute("data-request-id", String(req.request_id));
+    var b = batchIdFrom(req);
+    if (b) card.setAttribute("data-batch-id", b);
     card.innerHTML =
       '<div class="gb-consent-head">' +
       '<span class="gb-consent-glyph">\u{1F6E1}\uFE0F</span>' +

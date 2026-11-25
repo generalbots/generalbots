@@ -38,6 +38,9 @@ mod link_inventory;
 #[cfg(any(feature = "mail", feature = "digest"))]
 pub(crate) mod notification_email;
 mod permissions;
+// #2452 — ownership transfer: local-user target resolution plus pure,
+// unit-tested validation/authorization rules (no Zitadel round trip).
+mod transfer;
 mod versions;
 
 pub use comments::*;
@@ -46,6 +49,7 @@ pub use engagement::*;
 pub(crate) use helpers::*;
 pub use link_inventory::*;
 pub use permissions::*;
+pub use transfer::*;
 pub use versions::*;
 
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {

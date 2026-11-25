@@ -2,6 +2,9 @@
 //! Holds the process-wide `ConsentService` and offers a single decision
 //! entry point used by the chat command path and the api/ui loopback executor.
 use std::sync::{Arc, OnceLock};
+// #2448 criterion 4 — scoped, single-use agent-batch undo data model.
+#[path = "undo/mod.rs"]
+pub mod undo;
 
 static SERVICE: OnceLock<Arc<botconsent::ConsentService>> = OnceLock::new();
 
@@ -268,6 +271,11 @@ pub fn marker_content(request: &botconsent::PendingRequest) -> String {
         payload["confirm_required"] = serde_json::json!(true);
         if let Some(preview) = consent_preview(&request.detail) {
             payload["preview"] = preview;
+        }
+        // #2448 criterion 4 — carry only an explicit batch id; a consent id is not one.
+        let supplied = request.detail.pointer("/params/batch_id").and_then(serde_json::Value::as_str);
+        if let Some(id) = supplied.filter(|id| !id.trim().is_empty()) {
+            payload["batch_id"] = serde_json::json!(id);
         }
     }
     let encoded =
