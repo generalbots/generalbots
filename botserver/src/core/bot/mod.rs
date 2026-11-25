@@ -153,6 +153,8 @@ pub mod answer_mode_ops;
 pub mod consent_gate;
 #[cfg(feature = "drive")]
 pub mod drive_bridge;
+#[cfg(feature = "drive")]
+pub mod person_drive;
 pub mod kb_context;
 #[cfg(feature = "memory-os")]
 pub mod memory_hook;

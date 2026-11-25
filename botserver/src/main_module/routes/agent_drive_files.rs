@@ -1,12 +1,15 @@
 //! The conversation copies in Drive, for the shell's file panel and the Drive
 //! tab's "Arquivos das conversas".
 //!
-//! - `GET /api/agent/drive/conversations` lists `{bot}.gbdrive/conversations/`
-//!   of every bot the caller talked to, only the folders of the caller's own
-//!   conversations, newest conversation first.
-//! - `GET /api/agent/drive/file?path=conversations/<folder>/<file>&raw=1`
-//!   serves one of those files; `&preview=1` renders an Office package as the
-//!   same sanitized HTML the workspace file preview uses.
+//! - `GET /api/agent/drive/conversations` lists the conversation folders of
+//!   the caller's own conversations, newest conversation first: the
+//!   `Conversas/` folder of the caller's own Drive area, where files are kept
+//!   now, and the older `{bot}.gbdrive/conversations/` of every bot the caller
+//!   talked to.
+//! - `GET /api/agent/drive/file?path=Conversas/<folder>/<file>&raw=1` (or
+//!   `conversations/<folder>/<file>`) serves one of those files; `&preview=1`
+//!   renders an Office package as the same sanitized HTML the workspace file
+//!   preview uses.
 //!
 //! The bot's Drive location comes from `bot_drive_location_for` (an org bot
 //! lives under its `{org}.gborg` bucket). A folder no session of the caller
@@ -27,6 +30,7 @@ use uuid::Uuid;
 use crate::core::bot::drive_bridge;
 
 mod folders;
+mod person_area;
 use folders::{group, owner_of, validate_path, OwnedFolder, OwnedSession, CONVERSATIONS};
 
 /// Sessions of the caller looked at, newest first.
@@ -120,7 +124,9 @@ pub async fn list_conversation_folders(State(state): State<Arc<AppState>>, heade
     let Some(drive) = state.drive.clone() else {
         return refuse(StatusCode::SERVICE_UNAVAILABLE, "drive_unavailable");
     };
-    let mut found: Vec<(String, String, OwnedFolder)> = Vec::new();
+    // The person's own folders first: when a conversation also has an older
+    // copy in a bot's area, the merged entry keeps the person's folder.
+    let mut found: Vec<(String, String, OwnedFolder)> = person_area::list(&drive, user_id, &by_bot).await;
     for (bot_id, sessions) in &by_bot {
         let place = match location(&state, *bot_id) {
             Ok(place) => place,
@@ -170,7 +176,7 @@ pub async fn list_conversation_folders(State(state): State<Arc<AppState>>, heade
             "files": files.into_iter().map(|(_, entry)| entry).collect::<Vec<Value>>(),
         }));
     }
-    Json(json!({ "folders": out })).into_response()
+    Json(json!({ "folders": person_area::merge_same_conversation(out) })).into_response()
 }
 
 /// `filename*=` value of RFC 6266 / 5987 (UTF-8, percent-encoded).
@@ -182,6 +188,25 @@ fn disposition(name: &str) -> String {
 fn is_active_content(name: &str) -> bool {
     let extension = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     matches!(extension.as_str(), "html" | "htm" | "svg" | "xml" | "xhtml")
+}
+
+/// Bucket and key of an older copy in a bot's `conversations/`, when one of
+/// the caller's sessions of that bot explains the folder.
+fn bot_file_location(
+    state: &AppState,
+    folder: &str,
+    path: &str,
+    by_bot: &BTreeMap<Uuid, Vec<OwnedSession>>,
+) -> Result<Option<(String, String)>, Response> {
+    let Some(bot_id) = by_bot
+        .iter()
+        .find(|(_, sessions)| owner_of(folder, sessions).is_some())
+        .map(|(bot_id, _)| *bot_id)
+    else {
+        return Ok(None);
+    };
+    let place = location(state, bot_id)?;
+    Ok(Some((place.bucket.clone(), place.key_for(path))))
 }
 
 /// `GET /api/agent/drive/file?path=…&raw=1` (or `&preview=1`).
@@ -197,34 +222,35 @@ pub async fn conversation_file(
     let Some(path) = params.get("path").map(String::as_str) else {
         return refuse(StatusCode::BAD_REQUEST, "path_missing");
     };
-    let Ok(folder) = validate_path(path) else {
+    let person_folder = person_area::folder_of(path);
+    let bot_folder = validate_path(path).ok();
+    if person_folder.is_none() && bot_folder.is_none() {
         return refuse(StatusCode::BAD_REQUEST, "invalid_path");
-    };
+    }
     let by_bot = match owned_sessions(&state, user_id) {
         Ok(by_bot) => by_bot,
         Err(response) => return response,
     };
-    let Some(bot_id) = by_bot
-        .iter()
-        .find(|(_, sessions)| owner_of(folder, sessions).is_some())
-        .map(|(bot_id, _)| *bot_id)
-    else {
+    let found = match (person_folder, bot_folder) {
+        (Some(folder), _) => person_area::file_location(user_id, folder, path, &by_bot),
+        (None, Some(folder)) => match bot_file_location(&state, folder, path, &by_bot) {
+            Ok(found) => found,
+            Err(response) => return response,
+        },
+        (None, None) => None,
+    };
+    let Some((bucket, key)) = found else {
         return refuse(StatusCode::NOT_FOUND, "not_found");
     };
     let Some(drive) = state.drive.clone() else {
         return refuse(StatusCode::SERVICE_UNAVAILABLE, "drive_unavailable");
     };
-    let place = match location(&state, bot_id) {
-        Ok(place) => place,
-        Err(response) => return response,
-    };
-    let key = place.key_for(path);
-    match drive.get_object_metadata(&place.bucket, &key).await {
+    match drive.get_object_metadata(&bucket, &key).await {
         Ok(Some(meta)) if meta.size > MAX_SERVED_BYTES => return refuse(StatusCode::PAYLOAD_TOO_LARGE, "too_large"),
         Ok(Some(_)) => {}
         _ => return refuse(StatusCode::NOT_FOUND, "not_found"),
     }
-    let bytes = match drive.get_object(&place.bucket, &key).await {
+    let bytes = match drive.get_object(&bucket, &key).await {
         Ok(bytes) => bytes,
         Err(e) => {
             botlog::safe_warn!("agent drive files: reading a conversation file failed: {e}");

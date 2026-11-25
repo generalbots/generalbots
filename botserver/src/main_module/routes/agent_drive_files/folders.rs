@@ -40,7 +40,8 @@ pub struct FolderOwner {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FolderFile {
     pub name: String,
-    /// Path relative to `{bot}.gbdrive/`.
+    /// Path relative to the area that holds it: `{bot}.gbdrive/`, or the
+    /// person's own `users/<id>/` for `Conversas/…`.
     pub path: String,
     pub size: u64,
 }
@@ -97,6 +98,12 @@ fn display_title(title: &str, folder: &str) -> String {
 /// caller does not own are dropped.
 #[must_use]
 pub fn group(objects: &[(String, u64)], sessions: &[OwnedSession]) -> Vec<OwnedFolder> {
+    group_under(objects, sessions, CONVERSATIONS)
+}
+
+/// [`group`] for the folders under `root`; file paths start with `root/`.
+#[must_use]
+pub fn group_under(objects: &[(String, u64)], sessions: &[OwnedSession], root: &str) -> Vec<OwnedFolder> {
     let mut folders: HashMap<String, OwnedFolder> = HashMap::new();
     let mut strangers: Vec<String> = Vec::new();
     for (relative, size) in objects {
@@ -124,7 +131,7 @@ pub fn group(objects: &[(String, u64)], sessions: &[OwnedSession]) -> Vec<OwnedF
         if let Some(entry) = folders.get_mut(folder) {
             entry.files.push(FolderFile {
                 name: name.to_string(),
-                path: format!("{CONVERSATIONS}/{relative}"),
+                path: format!("{root}/{relative}"),
                 size: *size,
             });
         }
@@ -149,6 +156,11 @@ pub enum PathRefusal {
 /// folder: `conversations/<folder>/<file…>`, no `.`/`..` or empty segment,
 /// no drive letter, backslash or control character. Returns the folder.
 pub fn validate_path(raw: &str) -> Result<&str, PathRefusal> {
+    validate_under(raw, CONVERSATIONS)
+}
+
+/// [`validate_path`] for the conversation folders under `root`.
+pub fn validate_under<'a>(raw: &'a str, root: &str) -> Result<&'a str, PathRefusal> {
     if raw.trim().is_empty() {
         return Err(PathRefusal::Empty);
     }
@@ -162,7 +174,7 @@ pub fn validate_path(raw: &str) -> Result<&str, PathRefusal> {
     if segments.iter().any(|segment| segment.is_empty() || *segment == "." || *segment == "..") {
         return Err(PathRefusal::Traversal);
     }
-    if segments.len() < 3 || segments[0] != CONVERSATIONS {
+    if segments.len() < 3 || segments[0] != root {
         return Err(PathRefusal::OutsideConversations);
     }
     Ok(segments[1])

@@ -38,7 +38,7 @@ pub struct OutputFile {
 pub struct PublishedArtifact {
     /// File name inside the conversation's `output/`.
     pub name: String,
-    /// `bucket/key` returned by the bridge.
+    /// Path in the person's Drive, `Conversas/<folder>/<name>`.
     pub drive_key: String,
     /// Markdown link attached to the turn.
     pub link: String,
@@ -89,7 +89,7 @@ impl PublishReport {
         let mut message = String::new();
         if !self.published.is_empty() {
             let folder = self.folder.as_str();
-            message.push_str(&format!("**Arquivos salvos no seu Drive** (`conversations/{folder}/`)\n"));
+            message.push_str(&format!("**Arquivos salvos no seu Drive** (`Conversas/{folder}/`)\n"));
             for artifact in &self.published {
                 let link = artifact.link.as_str();
                 message.push_str(&format!("- {link}\n"));

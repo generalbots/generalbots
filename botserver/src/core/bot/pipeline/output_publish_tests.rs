@@ -192,7 +192,7 @@ fn the_attached_link_matches_the_published_key() {
     };
     let message = report.message();
     assert!(message.contains(&artifact.link));
-    assert!(message.contains("conversations/demo/"));
+    assert!(message.contains("Conversas/demo/"));
     assert!(message.starts_with("**Arquivos salvos no seu Drive**"));
 }
 

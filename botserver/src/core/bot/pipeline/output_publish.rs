@@ -5,8 +5,8 @@
 //! to call `drive_save`. Closing the conversation threw the artifact away.
 //!
 //! When a step leaves new or changed files in `output/`, the person is asked
-//! inside the turn ([`offer_in_turn`]); allowed files go through
-//! [`drive_bridge::save_object`] (the same bridge the Save button uses). At
+//! inside the turn ([`offer_in_turn`]); allowed files are written into the
+//! person's own Drive area, `Conversas/<title>-<id8>/` ([`person_drive`]). At
 //! the end of the turn the resulting `vmfile:` links are attached, so the chat
 //! shows the attachment card for a file that now outlives the session folder.
 //! The turn's end never asks: it copies only on a stored conversation grant
@@ -24,7 +24,7 @@
 //!   the next turn retries because the ledger entry was not advanced.
 //!
 //! The ledger lives in process memory. After a restart (or eviction) the next
-//! turn republishes once; `drive_bridge::save_object` uses a deterministic key,
+//! turn republishes once; `person_drive::save_conversation_file` uses a deterministic key,
 //! so that is an overwrite of the same object, never a duplicate.
 
 use std::collections::HashMap;
@@ -37,7 +37,7 @@ use uuid::Uuid;
 use super::doc_delta;
 use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
-use crate::core::bot::{agent_vm_hook, drive_bridge};
+use crate::core::bot::{agent_vm_hook, drive_bridge, person_drive};
 
 mod ledger;
 mod offer;
@@ -54,7 +54,8 @@ use super::vm_consent::{self, VmAction, VmActionKind, VmDecision, VmDenial, VmOu
 #[async_trait]
 pub trait ArtifactPublisher: Send + Sync {
     async fn read(&self, name: &str) -> Result<Vec<u8>, String>;
-    /// Returns `bucket/key`, or `None` when Drive is unavailable.
+    /// Returns the file's path in the person's Drive, or `None` when Drive is
+    /// unavailable.
     async fn publish(&self, name: &str, bytes: Vec<u8>) -> Option<String>;
 }
 
@@ -142,9 +143,10 @@ pub async fn publish_candidates(
     published
 }
 
+/// Reads from the conversation's `output/` and writes into the person's own
+/// Drive area (`Conversas/<folder>/`, see [`person_drive`]).
 struct DrivePublisher {
     state: Arc<AppState>,
-    bot_uuid: Uuid,
     user_id: Uuid,
     session_id: Uuid,
     folder: String,
@@ -158,7 +160,7 @@ impl ArtifactPublisher for DrivePublisher {
     }
 
     async fn publish(&self, name: &str, bytes: Vec<u8>) -> Option<String> {
-        drive_bridge::save_object(&self.state, &self.bot_uuid, &self.folder, name, bytes).await
+        person_drive::save_conversation_file(&self.state, self.user_id, &self.folder, name, bytes).await
     }
 }
 
@@ -187,13 +189,12 @@ async fn copy_to_drive(
     receipt: &VmReceipt,
     files: Vec<OutputFile>,
 ) -> (String, Vec<PublishedArtifact>) {
-    let SessionIdentity { state, bot_uuid, user_id, session_id, .. } = *identity;
+    let SessionIdentity { state, user_id, session_id, .. } = *identity;
     let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
     let mut seen = snapshot(session_id);
     let folder = drive_bridge::conversation_title(state, session_id).await;
     let publisher = DrivePublisher {
         state: state.clone(),
-        bot_uuid,
         user_id,
         session_id,
         folder: folder.clone(),
@@ -261,11 +262,11 @@ pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishRepor
     let receipt = vm_consent::ask_if_granted(identity, &drive_save_action(&files))
         .await
         .map(|ticket| ticket.receipt());
-    let SessionIdentity { state, bot_uuid, user_id, .. } = *identity;
+    let SessionIdentity { state, user_id, .. } = *identity;
     let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
     let mut seen = snapshot(session_id);
     let folder = drive_bridge::conversation_title(state, session_id).await;
-    let publisher = DrivePublisher { state: state.clone(), bot_uuid, user_id, session_id, folder: folder.clone() };
+    let publisher = DrivePublisher { state: state.clone(), user_id, session_id, folder: folder.clone() };
     let (published, unsaved) =
         offer::settle_turn_end(session_id, files, receipt.is_some(), &mut seen, &publisher).await;
     if let Some(receipt) = receipt {

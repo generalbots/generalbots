@@ -1,9 +1,9 @@
 //! Drive ↔ workspace native tools (#1584).
 //!
 //! `drive_fetch` copies a Drive object into the conversation's `data/` before
-//! the program runs; `drive_save` publishes `output/` into
-//! `{bot}.gbdrive/conversations/{title}/`, keyed by the conversation title so
-//! saved files outlive the session folder.
+//! the program runs; `drive_save` publishes `output/` into the person's own
+//! Drive area, `Conversas/{title}-{id8}/` (`person_drive`), so saved files
+//! outlive the session folder and are the person's to rename, move or delete.
 //!
 //! The runtime also pre-fetches file names mentioned in the message
 //! ([`fetch_referenced`]) so "summarise sales.csv from my Drive" works without
@@ -22,7 +22,7 @@ mod list;
 mod outcome;
 pub(crate) use outcome::DriveOutcome;
 use outcome::refuse;
-use crate::core::bot::{agent_vm_hook, drive_bridge};
+use crate::core::bot::{agent_vm_hook, drive_bridge, person_drive};
 
 const TEXT_EXTENSIONS: &[&str] = &[
     "csv", "tsv", "xlsx", "xls", "docx", "doc", "pdf", "txt", "md", "json", "pptx", "ppt", "png",
@@ -67,17 +67,6 @@ fn human_size(bytes: u64) -> String {
     }
 }
 
-/// Splits a [`drive_bridge::save_object`] result (`bucket/key`) into bucket and
-/// bucket-relative key.
-///
-/// S3 bucket names never contain `/`, so the first segment is always the
-/// bucket and the remainder is the key the Drive app addresses.
-fn split_bucket_path(bucket_path: &str) -> (&str, &str) {
-    bucket_path
-        .split_once('/')
-        .unwrap_or((bucket_path, bucket_path))
-}
-
 /// Markdown link the chat renderer turns into an "Open in Drive" button.
 ///
 /// #2143 gap A — `drive:` is not a scheme any client resolves, so every saved
@@ -95,6 +84,13 @@ fn drive_link(name: &str, bucket: &str, key: &str) -> String {
     let path = urlencoding::encode(key);
     let bucket = urlencoding::encode(bucket);
     format!("[{name}](app://drive?path={path}&scope=bot&bucket={bucket})")
+}
+
+/// [`drive_link`] for a file of the person's own Drive area; `path` is the
+/// path the person's Drive shows (`Conversas/<folder>/<name>`).
+fn person_file_link(name: &str, path: &str) -> String {
+    let path = urlencoding::encode(path);
+    format!("[{name}](app://drive?path={path}&scope=user)")
 }
 
 /// Copies a Drive file into the conversation folder; the gate decided first
@@ -184,7 +180,6 @@ pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -
         state,
         session_id,
         user_id,
-        bot_uuid,
         ..
     } = *identity;
     // Only reached through the consent gate, which refuses the turn when the
@@ -238,10 +233,9 @@ pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -
                     failed.push(format!("{name} (turn limit)"));
                     continue;
                 }
-                match drive_bridge::save_object(state, &bot_uuid, &folder, name, bytes).await {
+                match person_drive::save_conversation_file(state, user_id, &folder, name, bytes).await {
                     Some(path) => {
-                        let (bucket, key) = split_bucket_path(&path);
-                        saved.push(drive_link(name, bucket, key));
+                        saved.push(person_file_link(name, &path));
                         stored.push(format!("output/{name}"));
                     }
                     None => failed.push(name.to_string()),
@@ -253,7 +247,7 @@ pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -
     let mut message = String::new();
     if !saved.is_empty() {
         message.push_str(&format!(
-            "Saved to Drive under `conversations/{folder}/` ({}):\n",
+            "Saved to the person's Drive (Meus arquivos) under `Conversas/{folder}/` ({}):\n",
             human_size(total)
         ));
         for item in &saved {
@@ -435,10 +429,10 @@ mod tests {
     }
 
     #[test]
-    fn split_bucket_path_extracts_bucket_and_key() {
-        let (bucket, key) =
-            split_bucket_path("beiner.gbai/beiner.gbdrive/conversations/report.pdf");
-        assert_eq!(bucket, "beiner.gbai");
-        assert_eq!(key, "beiner.gbdrive/conversations/report.pdf");
+    fn a_saved_file_links_to_the_persons_own_drive() {
+        let link = person_file_link("relatório.pdf", "Conversas/Relatório-1a2b3c4d/relatório.pdf");
+        assert!(link.starts_with("[relatório.pdf](app://drive?path=Conversas%2F"), "unexpected link: {link}");
+        assert!(link.ends_with("&scope=user)"), "unexpected link: {link}");
+        assert!(!link.contains("bucket="), "the person's area needs no bucket: {link}");
     }
 }
