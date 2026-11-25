@@ -78,11 +78,14 @@ pub async fn handle_ws(
         "type": "connected", "session_id": session_id, "user_id": user_id,
         "bot_id": bot_uuid, "message": "Connected to bot server", "tools": []
     });
-    let _ = ws_sender
+    if let Err(e) = ws_sender
         .lock()
         .await
         .send(Message::Text(welcome.to_string()))
-        .await;
+        .await
+    {
+        botlog::safe_warn!("WS welcome frame send failed: {e}");
+    }
 
     {
         let mut pending = state.pending_stream_responses.lock().await;
@@ -104,11 +107,14 @@ pub async fn handle_ws(
                 "context_length": 0,
                 "context_max_length": 0,
             });
-            let _ = ws_sender
+            if let Err(e) = ws_sender
                 .lock()
                 .await
                 .send(Message::Text(resp.to_string()))
-                .await;
+                .await
+            {
+                botlog::safe_warn!("pending stream response send failed: {e}");
+            }
         }
     }
 
@@ -185,11 +191,14 @@ pub async fn handle_ws(
                                 "session_id": session_id,
                                 "message": "Too many messages. Please slow down.",
                             });
-                            let _ = ws_sender
+                            if let Err(e) = ws_sender
                                 .lock()
                                 .await
                                 .send(Message::Text(notice.to_string()))
-                                .await;
+                                .await
+                            {
+                                botlog::safe_warn!("WS rate-limit notice send failed: {e}");
+                            }
                             continue;
                         }
                         // #cross-browser-sync — broadcast the user's input to every
@@ -263,11 +272,14 @@ pub async fn handle_ws(
                                         "session_id": session_id,
                                         "message_id": mid,
                                     });
-                                    let _ = ws_sender
+                                    if let Err(e) = ws_sender
                                         .lock()
                                         .await
                                         .send(Message::Text(ack.to_string()))
-                                        .await;
+                                        .await
+                                    {
+                                        botlog::safe_warn!("WS duplicate ack send failed: {e}");
+                                    }
                                     continue;
                                 }
                             }
@@ -306,7 +318,9 @@ pub async fn handle_ws(
                         .await;
                     }
                     Some(Ok(Message::Ping(data))) => {
-                        let _ = ws_sender.lock().await.send(Message::Pong(data)).await;
+                        if let Err(e) = ws_sender.lock().await.send(Message::Pong(data)).await {
+                            botlog::safe_warn!("WS pong send failed: {e}");
+                        }
                     }
                     Some(Ok(Message::Pong(_))) => {}
                     Some(Ok(Message::Close(_))) | None => break,

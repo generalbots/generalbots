@@ -18,7 +18,7 @@ pub(super) fn record(
     let model = llm_model.to_string();
     tokio::task::spawn_blocking(move || {
         let Ok(mut conn) = pool.get() else { return };
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "INSERT INTO llm_metrics (id, request_id, session_id, bot_id, model, request_type, input_tokens, output_tokens, total_tokens, latency_ms, ttft_ms, cached, success, estimated_cost, timestamp, metadata) \
              VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, $3, 'chat', 0, 0, 0, $4, $4, false, true, 0, NOW(), '{}'::jsonb)",
         )
@@ -26,6 +26,9 @@ pub(super) fn record(
         .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
         .bind::<diesel::sql_types::Text, _>(&model)
         .bind::<diesel::sql_types::BigInt, _>(ttft_ms)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        {
+            log::warn!("llm_ttft: metric persistence failed: {e}");
+        }
     });
 }

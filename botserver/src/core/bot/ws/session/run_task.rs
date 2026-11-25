@@ -87,7 +87,9 @@ pub(super) fn spawn(spec: RunSpec) {
                         "context_length": 0,
                         "context_max_length": 0,
                     });
-                    let _ = crate::core::bot::pipeline::ChannelSink::send_raw_json(&sink, &err_frame).await;
+                    if let Err(e) = crate::core::bot::pipeline::ChannelSink::send_raw_json(&sink, &err_frame).await {
+                        log::warn!("terminal error frame send failed: {e}");
+                    }
                     bus::bus().finish(&thread_id, botevents::RunState::Failed);
                     break;
                 }

@@ -160,7 +160,9 @@ pub async fn run_start_bas_on_connect(
                     response.content.chars().take(80).collect::<String>()
                 );
                 if let Ok(json) = serde_json::to_string(&response) {
-                    let _ = ws_sender.send(Message::Text(json)).await;
+                    if let Err(e) = ws_sender.send(Message::Text(json)).await {
+                        warn!("start.bas: response frame send failed: {e}");
+                    }
                 }
             }
             Err(tokio::sync::mpsc::error::TryRecvError::Empty) => break,

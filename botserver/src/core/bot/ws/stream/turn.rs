@@ -128,7 +128,9 @@ pub(super) async fn run(
             // turn can send a classified error frame to the client.
             let sentinel =
                 crate::core::bot::pipeline::llm::error_classify::sentinel_message(&e.to_string());
-            let _ = stream_tx.send(sentinel).await;
+            if let Err(e) = stream_tx.send(sentinel).await {
+                log::warn!("LLM error sentinel could not be queued: {e}");
+            }
         } else {
             log::info!("LLM spawn task completed successfully");
         }
@@ -147,7 +149,9 @@ pub(super) async fn run(
                 bot_name_clone
             );
         }
-        let _ = ws_sender.send(Message::Text(init_msg.to_string())).await;
+        if let Err(e) = ws_sender.send(Message::Text(init_msg.to_string())).await {
+            log::warn!("turn init frame send failed: {e}");
+        }
     }
 
     let mut full_response = String::new();
@@ -171,7 +175,9 @@ pub(super) async fn run(
                             let code =
                                 crate::core::bot::pipeline::llm::error_classify::classify(err_msg);
                             let err_resp = frames::llm_error(turn, code);
-                            let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
+                            if let Err(e) = ws_sender.send(Message::Text(err_resp.to_string())).await {
+                                log::warn!("turn LLM error frame send failed: {e}");
+                            }
                             return TurnResult {
                                 final_content: String::new(),
                                 reasoning: reasoning_accumulated,
@@ -248,9 +254,12 @@ pub(super) async fn run(
                                     "session_id": session_id_s,
                                     "message": steer,
                                 });
-                                let _ = ws_sender
+                                if let Err(e) = ws_sender
                                     .send(Message::Text(notice.to_string()))
-                                    .await;
+                                    .await
+                                {
+                                    log::warn!("turn steering notice send failed: {e}");
+                                }
                                 crate::core::bot::runs::bus::bus().publish(
                                     &thread_id,
                                     serde_json::json!({
@@ -285,7 +294,9 @@ pub(super) async fn run(
                                     {
                                         log::error!("LLM stream error after steering: {}", e);
                                         let sentinel = crate::core::bot::pipeline::llm::error_classify::sentinel_message(&e.to_string());
-                                        let _ = steer_tx.send(sentinel).await;
+                                        if let Err(e) = steer_tx.send(sentinel).await {
+                                            log::warn!("steered error sentinel could not be queued: {e}");
+                                        }
                                     }
                                 });
                                 continue;
@@ -296,7 +307,9 @@ pub(super) async fn run(
                 }
             }
             _ = keepalive_interval.tick() => {
-                let _ = ws_sender.send(Message::Text(frames::keepalive(turn).to_string())).await;
+                if let Err(e) = ws_sender.send(Message::Text(frames::keepalive(turn).to_string())).await {
+                    log::warn!("turn keepalive frame send failed: {e}");
+                }
             }
         }
     }
@@ -310,7 +323,9 @@ pub(super) async fn run(
         // Persist the stopping message so the run reads the same after a
         // reconnect or on another device.
         let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 2, &notice, 2);
+        if let Err(e) = sm.save_message(session_id, user_id, 2, &notice, 2) {
+            log::warn!("turn cap notice persistence failed: {e}");
+        }
         notice
     } else {
         let mut content = full_response.trim_end().to_string();

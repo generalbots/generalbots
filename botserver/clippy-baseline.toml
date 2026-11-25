@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 540
+discarded_result = 490
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -28,29 +28,11 @@ discarded_result = ".ok(); statements and let _ = ...; bindings"
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
 discarded_result = 10
 
-[files."botserver/src/core/bot/ws/stream/turn.rs"]
-discarded_result = 7
-
 [files."botserver/crates/botcoredirectory/src/provisioning.rs"]
 discarded_result = 6
 
 [files."botserver/src/core/bot/pipeline/event_sink/steps.rs"]
 discarded_result = 6
-
-[files."botserver/src/core/bot/ws/session.rs"]
-discarded_result = 6
-
-[files."botserver/src/core/bot/ws/stream/tool_call.rs"]
-discarded_result = 6
-
-[files."botserver/src/basic/mod.rs"]
-discarded_result = 5
-
-[files."botserver/src/core/bot/ws/stream.rs"]
-discarded_result = 5
-
-[files."botserver/src/main_module/routes/org_handlers/handle_get_organization.rs"]
-discarded_result = 5
 
 [files."botserver/crates/botautotask/src/app_logs/app_log_store.rs"]
 discarded_result = 4
@@ -118,16 +100,10 @@ discarded_result = 4
 [files."botserver/src/core/bot/pipeline/surface_catalog.rs"]
 discarded_result = 4
 
-[files."botserver/src/core/bot/ws/session/inbound.rs"]
-discarded_result = 4
-
 [files."botserver/src/main_module/git_bot_monitor/loop_ops.rs"]
 discarded_result = 4
 
 [files."botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs"]
-discarded_result = 4
-
-[files."botserver/src/main_module/wizard_provision.rs"]
 discarded_result = 4
 
 [files."botserver/crates/botbasic_core/src/keywords/hearing/syntax.rs"]
@@ -173,6 +149,30 @@ discarded_result = 3
 discarded_result = 3
 
 [files."botserver/crates/botmodelsbridge/src/opencv/initialize.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botsecurity-crypto/src/ca/verify_certificate.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botsecurity-protection/src/protection/installer/install_lmd.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botsheet-core/src/engine/format_render.rs"]
+discarded_result = 3
+
+[files."botserver/src/api/terminal/routes/handlers.rs"]
+discarded_result = 3
+
+[files."botserver/src/basic/keywords/post_to.rs"]
+discarded_result = 3
+
+[files."botserver/src/core/bot/crm_commands/contacts.rs"]
+discarded_result = 3
+
+[files."botserver/src/core/bot/pipeline/event_sink/lifecycle.rs"]
+discarded_result = 3
+
+[files."botserver/src/core/bot/pipeline/exec/mod.rs"]
 discarded_result = 3
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real

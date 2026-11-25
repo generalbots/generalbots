@@ -140,7 +140,7 @@ pub async fn send_start_suggestions(
             suggestions.len(),
             switchers.len()
         );
-        let _ = ws_sender
+        if let Err(e) = ws_sender
             .send(Message::Text(
                 serde_json::json!({
                     "bot_id": bot_id,
@@ -157,7 +157,10 @@ pub async fn send_start_suggestions(
                 })
                 .to_string(),
             ))
-            .await;
+            .await
+        {
+            log::warn!("suggestions/switchers frame send failed: {e}");
+        }
     }
     sent
 }

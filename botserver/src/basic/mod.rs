@@ -167,7 +167,9 @@ impl ScriptService {
                 for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status", "channel"] {
                     if let Some(val) = obj.get(*key).and_then(|v| v.as_str()) {
                         let rhai_key = key.to_uppercase();
-                        let _ = script_service.set_variable(&rhai_key, val);
+                        if let Err(e) = script_service.set_variable(&rhai_key, val) {
+                            log::warn!("basic: could not inject context variable {rhai_key}: {e}");
+                        }
                     }
                 }
             }
@@ -290,7 +292,9 @@ impl BasicRuntime for AppStateBasicRuntime {
                     let mut guard = sm.lock().await;
                     guard.update_user_id(session_id, user_id)
                 });
-                let _ = tx.send(result);
+                if let Err(e) = tx.send(result) {
+                    log::warn!("basic: session user update result could not be returned: {e}");
+                }
             }
         });
         rx.recv().unwrap_or(Err("Channel error".to_string()))
@@ -368,7 +372,9 @@ impl BasicRuntime for AppStateBasicRuntime {
             for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status", "channel"] {
                 if let Some(val) = obj.get(*key).and_then(|v| v.as_str()) {
                     let rhai_key = key.to_uppercase();
-                    let _ = service.set_variable(&rhai_key, val);
+                    if let Err(e) = service.set_variable(&rhai_key, val) {
+                        log::warn!("basic: could not inject context variable {rhai_key}: {e}");
+                    }
                 }
             }
         }

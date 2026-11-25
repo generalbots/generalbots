@@ -48,11 +48,14 @@ pub(super) async fn handle(
             "message": "No active run to take over",
             "session_id": session_id,
         });
-        let _ = ws_sender
+        if let Err(error) = ws_sender
             .lock()
             .await
             .send(Message::Text(denied.to_string()))
-            .await;
+            .await
+        {
+            warn!("takeover denial send failed: {error}");
+        }
         return;
     }
     let seq = persist(
@@ -97,11 +100,14 @@ pub(super) async fn handle(
         "state": state_label,
         "seq": seq,
     });
-    let _ = ws_sender
+    if let Err(error) = ws_sender
         .lock()
         .await
         .send(Message::Text(ack.to_string()))
-        .await;
+        .await
+    {
+        warn!("takeover ack send failed: {error}");
+    }
 }
 
 /// Persists one takeover segment as a CUSTOM run event (#1677). Returns the

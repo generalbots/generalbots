@@ -46,14 +46,20 @@ pub(super) async fn try_handle(ws_sender: &mut WsSink, turn: &LlmTurn<'_>) -> bo
     match mode_response {
         Ok(resp) => {
             if let Ok(json) = serde_json::to_string(&resp) {
-                let _ = ws_sender.send(Message::Text(json)).await;
+                if let Err(e) = ws_sender.send(Message::Text(json)).await {
+                    log::warn!("answer mode: response frame send failed: {e}");
+                }
             }
             let mut sm = state.session_manager.lock().await;
-            let _ = sm.save_message(session_id, user_id, 2, &resp.content, 2);
+            if let Err(e) = sm.save_message(session_id, user_id, 2, &resp.content, 2) {
+                log::warn!("answer mode: response persistence failed: {e}");
+            }
         }
         Err(e) => {
             let err_resp = super::frames::error(turn, format!("<p>Error: {}</p>", e));
-            let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
+            if let Err(e) = ws_sender.send(Message::Text(err_resp.to_string())).await {
+                log::warn!("answer mode: error frame send failed: {e}");
+            }
         }
     }
     true

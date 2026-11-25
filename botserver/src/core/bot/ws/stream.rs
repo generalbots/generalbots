@@ -63,7 +63,9 @@ pub async fn process_llm_response(
                 // #1654 — a subscription provider without a linked account must
                 // tell the user what to do instead of silently using another key.
                 let err_resp = frames::error(turn, format!("<p>{}</p>", message));
-                let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
+                if let Err(e) = ws_sender.send(Message::Text(err_resp.to_string())).await {
+                    log::warn!("stream: provider error frame send failed: {e}");
+                }
                 return;
             }
         };
@@ -137,7 +139,9 @@ pub async fn process_llm_response(
                     )
                 };
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &store_content, 2);
+                if let Err(e) = sm.save_message(session_id, user_id, 2, &store_content, 2) {
+                    log::warn!("stream: final answer persistence failed: {e}");
+                }
             }
 
             // #1948 — title the conversation from its first request with a
@@ -175,7 +179,11 @@ pub async fn process_llm_response(
                                 .collect();
                             if !cleaned.trim().is_empty() {
                                 let mut sm = state.session_manager.lock().await;
-                                let _ = sm.ensure_title_from_message(session_id, user_id, &cleaned);
+                                if let Err(e) =
+                                    sm.ensure_title_from_message(session_id, user_id, &cleaned)
+                                {
+                                    log::warn!("stream: conversation title persistence failed: {e}");
+                                }
                             }
                         }
                         Err(e) => log::debug!("conversation title generation failed: {e}"),
@@ -188,10 +196,14 @@ pub async fn process_llm_response(
             let fallback = format!("Recebi: \"{}\"", user_text);
             {
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
+                if let Err(e) = sm.save_message(session_id, user_id, 2, &fallback, 2) {
+                    log::warn!("stream: fallback persistence failed: {e}");
+                }
             }
             let resp = frames::fallback(turn, fallback).await;
-            let _ = ws_sender.send(Message::Text(resp.to_string())).await;
+            if let Err(e) = ws_sender.send(Message::Text(resp.to_string())).await {
+                log::warn!("stream: fallback frame send failed: {e}");
+            }
         }
     }
 }

@@ -63,11 +63,14 @@ pub(super) async fn handle(frame: Inbound<'_>) {
             "type": "run_cancelled",
             "session_id": session_id,
         });
-        let _ = ws_sender
+        if let Err(e) = ws_sender
             .lock()
             .await
             .send(Message::Text(ack.to_string()))
-            .await;
+            .await
+        {
+            botlog::safe_warn!("run cancel ack send failed: {e}");
+        }
         return;
     }
 
@@ -91,11 +94,14 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         "type": "message_received",
         "session_id": session_id,
     });
-    let _ = ws_sender
+    if let Err(e) = ws_sender
         .lock()
         .await
         .send(Message::Text(ack.to_string()))
-        .await;
+        .await
+    {
+        botlog::safe_warn!("message receipt send failed: {e}");
+    }
 
     // #1677 — a message sent during a run is steering: queue it, acknowledge
     // and deliver at the next turn boundary instead of interleaving two agents.
@@ -106,11 +112,14 @@ pub(super) async fn handle(frame: Inbound<'_>) {
             "session_id": session_id,
             "message": "Queued. The agent will pick this up at the next step.",
         });
-        let _ = ws_sender
+        if let Err(e) = ws_sender
             .lock()
             .await
             .send(Message::Text(queued.to_string()))
-            .await;
+            .await
+        {
+            botlog::safe_warn!("steering queued notice send failed: {e}");
+        }
         return;
     }
 

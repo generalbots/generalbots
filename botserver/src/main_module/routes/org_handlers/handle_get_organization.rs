@@ -149,18 +149,25 @@ pub async fn handle_delete_organization(
         ));
     }
 
-    let _ = auth_service
+    // The transport error can embed the directory service URL, so log context only.
+    if auth_service
         .http_delete(format!(
             "{}/v2/organizations/{}",
             auth_service.api_url(),
             org_id
         ))
-        .await;
+        .await
+        .is_err()
+    {
+        log::warn!("organization deletion in directory service failed");
+    }
 
     let stack = botcore::shared::utils::get_stack_path();
     let settings_path =
         std::path::PathBuf::from(format!("{}/conf/directory/org-settings.json", stack));
-    let _ = std::fs::remove_file(settings_path);
+    if let Err(e) = std::fs::remove_file(settings_path) {
+        log::warn!("organization settings cleanup failed: {e}");
+    }
 
     Ok(Json(
         serde_json::json!({"success": true, "message": format!("Organization {} deleted", org_id)}),
@@ -230,10 +237,12 @@ pub async fn handle_export_org_data(
         stack,
         chrono::Utc::now().timestamp()
     );
-    let _ = std::fs::write(
+    if let Err(e) = std::fs::write(
         &export_path,
         serde_json::to_string_pretty(&export).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
-    );
+    ) {
+        log::warn!("organization export could not be written: {e}");
+    }
 
     Ok(Json(serde_json::json!({
         "success": true,
@@ -299,7 +308,9 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
     let log_path = format!("{}/conf/directory/audit-log.json", stack);
 
     if let Some(parent) = std::path::Path::new(&log_path).parent() {
-        let _ = std::fs::create_dir_all(parent);
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            log::warn!("audit log directory could not be created: {e}");
+        }
     }
 
     let mut entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
@@ -318,10 +329,12 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
         entries = entries.split_off(entries.len() - 500);
     }
 
-    let _ = std::fs::write(
+    if let Err(e) = std::fs::write(
         &log_path,
         serde_json::to_string_pretty(&entries).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
-    );
+    ) {
+        log::warn!("audit log could not be written: {e}");
+    }
 }
 pub async fn handle_update_organization_contact(
     State(state): State<Arc<AppState>>,

@@ -27,11 +27,14 @@ pub(super) async fn replay(
                             if let Some(map) = frame.as_object_mut() {
                                 map.insert("gb_event".to_string(), serde_json::Value::Bool(true));
                             }
-                            let _ = ws_sender
+                            if let Err(error) = ws_sender
                                 .lock()
                                 .await
                                 .send(Message::Text(frame.to_string()))
-                                .await;
+                                .await
+                            {
+                                warn!("resume frame send failed: {error}");
+                            }
                         }
                         Err(error) => warn!("resume frame encode failed: {error}"),
                     }
@@ -46,9 +49,12 @@ pub(super) async fn replay(
         "session_id": session_id,
         "last_seq": after_seq,
     });
-    let _ = ws_sender
+    if let Err(error) = ws_sender
         .lock()
         .await
         .send(Message::Text(done.to_string()))
-        .await;
+        .await
+    {
+        warn!("run resume done frame send failed: {error}");
+    }
 }

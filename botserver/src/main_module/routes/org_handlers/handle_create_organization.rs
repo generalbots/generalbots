@@ -111,7 +111,7 @@ pub async fn handle_create_organization(
     // Create a default branch so the org has a usable workspace scope.
     let branch_id = uuid::Uuid::new_v4();
     let branch_slug = format!("{slug}-default");
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO branches (id, org_id, tenant_id, slug, name) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (org_id, slug) DO NOTHING",
     )
     .bind::<diesel::sql_types::Uuid, _>(&branch_id)
@@ -119,7 +119,10 @@ pub async fn handle_create_organization(
     .bind::<diesel::sql_types::Uuid, _>(&tenant_id)
     .bind::<diesel::sql_types::Text, _>(&branch_slug)
     .bind::<diesel::sql_types::Text, _>(&name)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::warn!("organization default branch insert failed: {e}");
+    }
 
     append_audit_log("organization_created", &name);
 

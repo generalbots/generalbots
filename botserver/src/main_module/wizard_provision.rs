@@ -207,7 +207,11 @@ async fn provision_component(
         if let Some(mut child) = spawned_child {
             if matches!(child.try_wait(), Ok(None)) {
                 match child.kill() {
-                    Ok(()) => { let _ = child.wait(); }
+                    Ok(()) => {
+                        if let Err(e) = child.wait() {
+                            log::warn!("could not reap timed-out identity provider: {e}");
+                        }
+                    }
                     Err(e) => log::warn!("could not stop timed-out identity provider: {e}"),
                 }
             }
@@ -254,9 +258,12 @@ async fn apply_llm_choice() {
         return;
     }
     if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
-        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
-    } else {
-        dotenvy::dotenv().ok();
+        // The error can quote the offending .env line, so log only the context.
+        if dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).is_err() {
+            log::warn!("provision: could not load the stack .env for the model choice");
+        }
+    } else if dotenvy::dotenv().is_err() {
+        log::warn!("provision: could not load the process .env for the model choice");
     }
 
     // On a first run the stack `.env` (and therefore VAULT_TOKEN) is written by
@@ -310,7 +317,9 @@ async fn apply_llm_choice() {
         let path = stack.join("conf/system/model-choice.json");
         let payload = serde_json::json!({ "url": url, "model": model, "api_key": std::env::var("GB_WIZARD_LLM_KEY").unwrap_or(Default::default()) });
         if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                log::warn!("provision: could not create the model choice directory: {e}");
+            }
         }
         match std::fs::write(&path, payload.to_string()) {
             Ok(()) => eprintln!("provision: model choice staged at {}", path.display()),
