@@ -98,15 +98,23 @@ pub fn run_commands_with_password(
     } else if !db_password_override.is_empty() {
         db_password_override.to_string()
     } else {
-        match get_database_url_sync() {
-            Ok(url) => {
-                let (_, password, _, _, _) = parse_database_url(&url);
-                password
+        let from_url = get_database_url_sync()
+            .map(|url| parse_database_url(&url).1)
+            .unwrap_or_default();
+        if from_url.is_empty() {
+            // `get_database_url()` can be served from an env-derived cache
+            // whose password is empty during first boot, even though Vault
+            // already has the seeded credential. Read the strict Vault field
+            // so installer SQL never runs with `PGPASSWORD=''`.
+            match crate::db_utils::get_secret_value_sync("secret/gbo/tables", "password") {
+                Ok(password) => password,
+                Err(_) => {
+                    trace!("Vault not available for DB_PASSWORD, using empty string");
+                    String::new()
+                }
             }
-            Err(_) => {
-                trace!("Vault not available for DB_PASSWORD, using empty string");
-                String::new()
-            }
+        } else {
+            from_url
         }
     };
     // #2763 — the Zitadel role password must be resolved from Vault (or an
