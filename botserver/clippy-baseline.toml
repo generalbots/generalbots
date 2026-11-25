@@ -18,6 +18,17 @@ panic = 0
 unwrap_or_default = 0
 discarded_result = 859
 
+# Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real
+# `cargo clippy --message-format=json` diagnostics, not textual proxies. They
+# are counted only in non-test production files under `botserver/src` and
+# `botserver/crates` by scripts/check_clippy_baseline.py. The text ratchet has
+# driven all three to zero in scope, so any occurrence is a regression.
+# Shrink-only: lower a number after fixing sites; never raise one by hand.
+[clippy]
+unwrap_used = 0
+expect_used = 0
+panic = 0
+
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
 expect = "calls to .expect(...)"

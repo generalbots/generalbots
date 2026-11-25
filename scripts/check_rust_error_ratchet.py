@@ -68,6 +68,8 @@ import subprocess
 import sys
 import tomllib
 
+from check_clippy_baseline import extract_unknown_sections, self_test_preservation
+
 ROOT = os.path.abspath(
     os.environ.get("GB_RATCHET_ROOT") or os.path.join(os.path.dirname(__file__), "..")
 )
@@ -249,7 +251,7 @@ from ratchet_baseline_history import (  # noqa: E402
 
 
 def write_baseline(path: str, totals: dict[str, int], per_file: dict[str, dict[str, int]]) -> None:
-    """Write a deterministic, shrink-only baseline with per-file hotspots."""
+    """Write a shrink-only baseline; carry unknown tables (e.g. [clippy]) over verbatim."""
     lines = [HEADER.rstrip("\n"), "", "issue = 2543", "scope = [", ]
     for scan_dir in SCAN_DIRS:
         lines.append(f'    "{scan_dir}",')
@@ -265,11 +267,21 @@ def write_baseline(path: str, totals: dict[str, int], per_file: dict[str, dict[s
         for rule in RULES:
             if counts[rule]:
                 lines.append(f"{rule} = {counts[rule]}")
+    preserved = ""
+    if os.path.isfile(path):
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                preserved = "\n".join(extract_unknown_sections(handle.read())).strip("\n")
+        except OSError as error:
+            print(f"check_rust_error_ratchet: cannot read {path}: {error}", file=sys.stderr)
+    content = "\n".join(lines) + "\n"
+    if preserved:
+        content = content.rstrip("\n") + "\n\n" + preserved + "\n"
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
-        handle.write("\n".join(lines) + "\n")
+        handle.write(content)
 
 
 def show_top(per_file: dict[str, dict[str, int]], rule: str, limit: int = 10) -> None:
@@ -334,6 +346,7 @@ pub fn production() -> u8 {
     raised["expect"] = 4
     check("raised count is growth", growth_rules(raised, ceilings) == ["expect"])
     self_test_history(check)
+    self_test_preservation(check, write_baseline)
 
     if failures:
         print(f"check_rust_error_ratchet: self-test FAIL — {len(failures)} check(s)")

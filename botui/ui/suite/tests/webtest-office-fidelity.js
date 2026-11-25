@@ -56,6 +56,10 @@ require("./webtest-office-fidelity/50_docs_collab_docid");
 require("./webtest-office-fidelity/51_docs_collab_lifecycle");
 require("./webtest-office-fidelity/52_docs_blank_collab");
 require("./webtest-office-fidelity/53_interop_gaps");
+require("./webtest-office-fidelity/54_view_ip_hook");
+require("./webtest-office-fidelity/55_link_download_policy");
+require("./webtest-office-fidelity/56_clippy_baseline_gate");
+require("./webtest-office-fidelity/57_link_inventory");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

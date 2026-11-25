@@ -32,18 +32,15 @@
 //! re-upload of an already-published object.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock};
 
 use async_trait::async_trait;
-use botcore::shared::state::AppState;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::core::bot::bounded::{self, BoundedMap};
 
-use super::doc_delta;
 use super::native_tools::{persist, send};
-use super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 /// Most artifacts one turn publishes. A program that writes a hundred files

@@ -1,5 +1,4 @@
 use super::super::*;
-use diesel::OptionalExtension;
 
 /// Lists CRM/people contacts (read-only), scoped to the bot's branch.
 pub(in crate::core::bot::api_catalog) async fn list_people(

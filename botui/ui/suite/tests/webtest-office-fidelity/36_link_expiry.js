@@ -131,8 +131,20 @@ h.staticTest("#2452 expired links return the generic 404 before owner/document l
     "if link_is_expired(link.expires_at, chrono::Utc::now()) {",
     "resolve_owner(&state, &link)",
     "load_document_from_drive(&state, &owner_id, &link.resource_id)",
-    "record_shared_view(&state, &link.resource_id)"
+    "crate::access_audit::record_shared_view_with_ip(&state, &link.resource_id, ip.as_deref());"
   ], "redemption order");
+
+  // #2452 — the audited IP is socket-derived only: the route takes ConnectInfo,
+  // client_ip(Some(&addr)) resolves it and the IP-aware hook consumes it. A
+  // header- or body-supplied value (X-Forwarded-For, HeaderMap, ...) is refused
+  // by the presence and absence assertions together.
+  ordered(handler, [
+    "ConnectInfo(addr): ConnectInfo<SocketAddr>,",
+    "let ip = client_ip(Some(&addr));",
+    "crate::access_audit::record_shared_view_with_ip(&state, &link.resource_id, ip.as_deref());"
+  ], "socket-derived view IP");
+  absent(handler, ["HeaderMap", "x-forwarded-for", "X-Forwarded-For", ".headers()", "header("],
+    "request-controlled IP source in the shared-link view");
   var expiryBranch = handler.slice(
     handler.indexOf("if link_is_expired(link.expires_at, chrono::Utc::now()) {"),
     handler.indexOf("resolve_owner(&state, &link)")
@@ -212,8 +224,8 @@ h.staticTest("#2452 Docs UI sends expiry only when set and validates invalid/pas
 h.staticTest("#2452 both expiry unit tests cover the past/boundary and future/open-ended cases", function () {
   contains(SHARED_LINK, "mod tests {", "unit test module is shipped");
   contains(SHARED_LINK,
-    "use super::{body_for_link, is_valid_token, link_is_expired};",
-    "expiry helper and role-scoped body helper imported by tests");
+    "use super::{body_for_link, client_ip, is_valid_token, link_is_expired};",
+    "expiry, role-scoped body and socket-IP helpers imported by tests");
 
   var expired = between(SHARED_LINK,
     "fn expired_deadlines_are_refused_including_the_boundary() {",
@@ -234,7 +246,8 @@ h.staticTest("#2452 both expiry unit tests cover the past/boundary and future/op
   h.assert(future.indexOf("assert!(!link_is_expired(None, now));") !== -1,
     "open-ended (None) link stays redeemable");
 
-  h.assert(occurrences(src, "#[test]") >= 4, "both expiry tests must be annotated #[test]");
+  h.assert(occurrences(src, "#[test]") >= 10,
+    "expiry, role and socket-IP tests must all be annotated #[test]");
 
   // The #2452 role/body refactor added fail-closed source tests next to the
   // expiry ones. Their non-vacuity marker is a real secret embedded in SOURCE,
@@ -248,4 +261,40 @@ h.staticTest("#2452 both expiry unit tests cover the past/boundary and future/op
     "viewer roles must be exercised by the source-gating test");
   h.assert(src.indexOf('for role in ["commenter", "editor", "owner", "EDITOR"]') !== -1,
     "source-capable roles must be exercised by the source-gating test");
+
+  // #2452 — three deterministic tests pin the shipped shared-view IP behaviour:
+  // the IP comes from a connected socket (and drops the port), a missing socket
+  // stays None, and the IP-aware event stays anonymous/content-free. Removing
+  // any one of them, or changing a test to use a caller-supplied IP, fails here.
+  ["fn view_ip_comes_from_the_connected_socket() {",
+   "fn missing_socket_address_stays_none() {",
+   "fn view_event_with_ip_stays_anonymous_and_content_free() {"].forEach(function (marker) {
+    h.assert(src.indexOf(marker) !== -1, "IP-aware view unit test must exist <" + marker + ">");
+  });
+
+  var socketTest = between(SHARED_LINK,
+    "fn view_ip_comes_from_the_connected_socket() {",
+    "fn missing_socket_address_stays_none() {");
+  spanHas(socketTest, "client_ip(Some(&connected_peer()))",
+    "socket test derives the IP from a connected peer");
+  spanHas(socketTest, "assert_eq!(ip.as_deref(), Some(TEST_IP));",
+    "socket test asserts the peer's documentation IP");
+  spanHas(socketTest, "!value.contains(':')",
+    "socket test asserts the transport port is excluded");
+
+  var noneTest = between(SHARED_LINK,
+    "fn missing_socket_address_stays_none() {",
+    "fn view_event_with_ip_stays_anonymous_and_content_free() {");
+  spanHas(noneTest, "assert_eq!(client_ip(None), None);",
+    "missing socket address stays None (SQL NULL, never an invented IP)");
+
+  var eventTest = src.slice(src.indexOf("fn view_event_with_ip_stays_anonymous_and_content_free() {"));
+  spanHas(eventTest, ".with_ip(ip.as_deref())",
+    "event test attaches the socket-derived IP");
+  spanHas(eventTest, "assert_eq!(event.ip.as_deref(), Some(TEST_IP));",
+    "event test asserts the IP is carried on the event");
+  spanHas(eventTest, 'assert!(event.payload.get("token").is_none());',
+    "event test keeps the token out of the payload");
+  spanHas(eventTest, 'assert!(event.payload.get("content").is_none());',
+    "event test keeps document content out of the payload");
 });

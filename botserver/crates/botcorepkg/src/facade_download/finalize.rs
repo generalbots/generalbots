@@ -63,6 +63,46 @@ pub fn make_executable(path: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
+/// Extract the password embedded in a resolved database URL. A failed lookup
+/// is recoverable (callers then read the strict Vault field), so log the
+/// context and fall back to an empty string instead of masking the error.
+fn db_password_from_url(url_lookup: Result<String>, component: &str) -> String {
+    match url_lookup {
+        Ok(url) => parse_database_url(&url).1,
+        Err(error) => {
+            log::warn!(
+                "Database URL unavailable for DB_PASSWORD in '{}', using empty string: {error}",
+                component
+            );
+            String::new()
+        }
+    }
+}
+
+#[cfg(test)]
+mod db_password_from_url_tests {
+    use super::db_password_from_url;
+
+    #[test]
+    fn error_falls_back_to_empty_password() {
+        assert_eq!(
+            db_password_from_url(Err(anyhow::anyhow!("Vault unavailable")), "demo"),
+            String::new()
+        );
+    }
+
+    #[test]
+    fn ok_extracts_password_from_url() {
+        assert_eq!(
+            db_password_from_url(
+                Ok("postgres://user:s3cret@dbhost:5432/generalbots".to_string()),
+                "demo"
+            ),
+            "s3cret".to_string()
+        );
+    }
+}
+
 pub fn run_commands(commands: &[String], target: &str, component: &str, base_path: &std::path::Path, db_password_override: &str) -> Result<()> {
     run_commands_with_password(commands, target, component, base_path, db_password_override)
 }
@@ -98,9 +138,7 @@ pub fn run_commands_with_password(
     } else if !db_password_override.is_empty() {
         db_password_override.to_string()
     } else {
-        let from_url = get_database_url_sync()
-            .map(|url| parse_database_url(&url).1)
-            .unwrap_or_default();
+        let from_url = db_password_from_url(get_database_url_sync(), component);
         if from_url.is_empty() {
             // `get_database_url()` can be served from an env-derived cache
             // whose password is empty during first boot, even though Vault

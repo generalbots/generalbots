@@ -306,10 +306,15 @@ pub async fn create_link(
     // session; see `link_owner_id`.
     let owner_id = link_owner_id(&user, &req.resource_type);
 
+    // #2452 — persist the download policy on mint. `downloads_allowed()`
+    // resolves an absent flag to TRUE, so every link written here carries an
+    // explicit boolean and only an explicit FALSE suppresses source bytes.
+    let allow_download = req.downloads_allowed();
     diesel::sql_query(
         "INSERT INTO resource_links \
-         (token, resource_type, resource_id, role, expires_at, created_by, owner_id) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+         (token, resource_type, resource_id, role, expires_at, created_by, owner_id, \
+          allow_download) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
     .bind::<Text, _>(&token)
     .bind::<Text, _>(&req.resource_type)
@@ -318,6 +323,7 @@ pub async fn create_link(
     .bind::<Nullable<Timestamptz>, _>(expires_at)
     .bind::<Text, _>(&collab_user_id(&user))
     .bind::<Nullable<Text>, _>(owner_id)
+    .bind::<Bool, _>(allow_download)
     .execute(&mut conn)
     .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
@@ -336,6 +342,7 @@ pub async fn create_link(
         role: req.role,
         expires_at: expires_at.map(|d| d.to_rfc3339()),
         created_at: created_at.to_rfc3339(),
+        allow_download: Some(allow_download),
     }))
 }
 
@@ -358,7 +365,7 @@ pub async fn list_links(
         return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
     let rows = diesel::sql_query(
-        "SELECT token, role, expires_at, created_at FROM resource_links \
+        "SELECT token, role, expires_at, created_at, allow_download FROM resource_links \
          WHERE resource_type = $1 AND resource_id = $2 \
            AND (expires_at IS NULL OR expires_at > NOW()) \
          ORDER BY created_at DESC",
@@ -375,6 +382,7 @@ pub async fn list_links(
                 role: r.role,
                 expires_at: r.expires_at.map(|d| d.to_rfc3339()),
                 created_at: r.created_at.to_rfc3339(),
+                allow_download: r.allow_download,
             })
             .collect(),
     ))

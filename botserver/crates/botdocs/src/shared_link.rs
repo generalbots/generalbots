@@ -18,7 +18,9 @@
 //!   records — a link grants a view, not an editor session;
 //! * #2452 — the body is role-scoped: only roles that actually carry source
 //!   capability receive the editable document body. A `viewer` link gets the
-//!   document metadata and an empty body, never the full HTML source.
+//!   document metadata and an empty body, never the full HTML source;
+//! * #2452 — `allow_download = false` on the link yields the same
+//!   metadata-only response even for `commenter`/`editor`: it lives on the row.
 //!
 //! The owning namespace is captured on the link row when it is minted
 //! (`owner_id`), because documents live under `users/{owner}/docs` (#2135) and
@@ -27,11 +29,12 @@
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{ConnectInfo, Path, State};
 use axum::http::StatusCode;
 use diesel::prelude::*;
-use diesel::sql_types::{Nullable, Text, Timestamptz};
+use diesel::sql_types::{Bool, Nullable, Text, Timestamptz};
 use serde::Serialize;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 /// Length of the token minted by `collab_routes::create_link`: two simple
@@ -67,6 +70,9 @@ struct LinkRow {
     owner_id: Option<String>,
     #[diesel(sql_type = Nullable<Timestamptz>)]
     expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    // #2452 — NULL is the legacy "allowed" value; no unwrap on the read path.
+    #[diesel(sql_type = Nullable<Bool>)]
+    allow_download: Option<bool>,
 }
 
 /// A token is usable only when it has the minted shape: a 64-character
@@ -88,19 +94,21 @@ fn role_allows_source(role: &str) -> bool {
 }
 
 /// The single decision for releasing source bytes across the capability
-/// boundary. Every gate fails closed: a malformed token, an expired link or a
-/// role without source capability denies the body. The handler rejects the
-/// first two up front with the generic `not_found()`; this function also
-/// feeds the body field so the role check cannot be bypassed later.
+/// boundary. Every gate fails closed: a bad token, an expired link, a disabled
+/// download policy or a role without source capability denies the body, and
+/// this function feeds the body field so no gate can be bypassed later.
 fn body_for_link<'a>(
     token: &str,
     role: &str,
+    allow_download: Option<bool>,
     expires_at: Option<chrono::DateTime<chrono::Utc>>,
     now: chrono::DateTime<chrono::Utc>,
     source: &'a str,
 ) -> &'a str {
-    let allowed =
-        is_valid_token(token) && !link_is_expired(expires_at, now) && role_allows_source(role);
+    let allowed = is_valid_token(token)
+        && !link_is_expired(expires_at, now)
+        && allow_download.unwrap_or(true)
+        && role_allows_source(role);
     if allowed { source } else { "" }
 }
 
@@ -140,6 +148,14 @@ fn internal<E: std::fmt::Display>(
     )
 }
 
+/// #2452 — resolve the caller's address for the audit row from the socket the
+/// listener accepted. No header or body field can reach this function, and a
+/// missing address stays `None` so the audit layer stores SQL NULL instead of
+/// inventing one. Only the IP is kept; the port is transport detail.
+fn client_ip(addr: Option<&SocketAddr>) -> Option<String> {
+    addr.map(|socket| socket.ip().to_string())
+}
+
 /// `GET /api/docs/shared/:token` — read a document through its share link.
 ///
 /// Anonymous by design (capability token). The response is the document body
@@ -148,6 +164,9 @@ fn internal<E: std::fmt::Display>(
 pub async fn handle_shared_document(
     State(state): State<Arc<DocState>>,
     Path(token): Path<String>,
+    // #2452 — both botserver listeners use the connect-info make-service, so
+    // the extractor is available without changing the route registration.
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Result<Json<SharedDocument>, (StatusCode, Json<serde_json::Value>)> {
     let token = token.trim().to_lowercase();
     if !is_valid_token(&token) {
@@ -178,8 +197,10 @@ pub async fn handle_shared_document(
         .ok_or_else(not_found)?;
 
     // #2452 — only a link that actually resolved to a document is a "view".
-    // The token and the body stay out of the audit payload.
-    crate::access_audit::record_shared_view(&state, &link.resource_id);
+    // The token and the body stay out of the audit payload; the address is
+    // taken from the connected socket, never from request-controlled input.
+    let ip = client_ip(Some(&addr));
+    crate::access_audit::record_shared_view_with_ip(&state, &link.resource_id, ip.as_deref());
 
     // #2452 — the capability is scoped to the role recorded on the link. A
     // viewer sees only the metadata shell; the editable HTML source (and
@@ -188,6 +209,7 @@ pub async fn handle_shared_document(
     let content = body_for_link(
         &token,
         &link.role,
+        link.allow_download,
         link.expires_at,
         chrono::Utc::now(),
         &document.content,
@@ -214,7 +236,7 @@ async fn load_link(
         .map_err(|e| internal(&e, "botdocs::shared_link"))?;
 
     diesel::sql_query(
-        "SELECT resource_type, resource_id, role, owner_id, expires_at \
+        "SELECT resource_type, resource_id, role, owner_id, expires_at, allow_download \
          FROM resource_links WHERE token = $1",
     )
     .bind::<Text, _>(token)
@@ -252,7 +274,15 @@ async fn resolve_owner(state: &DocState, link: &LinkRow) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{body_for_link, is_valid_token, link_is_expired};
+    use super::{body_for_link, client_ip, is_valid_token, link_is_expired};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    /// RFC 5737 TEST-NET-3 — documentation-only address, never a real client.
+    const TEST_IP: &str = "203.0.113.7";
+
+    fn connected_peer() -> SocketAddr {
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7)), 51234)
+    }
 
     fn minted_token() -> String {
         format!(
@@ -304,7 +334,7 @@ mod tests {
         let token = minted_token();
         assert!(!SOURCE.is_empty() && SOURCE.contains("UAT_SECRET_MARKER"));
         for role in ["viewer", "Viewer", "", "guest"] {
-            assert_eq!(body_for_link(&token, role, None, now, SOURCE), "");
+            assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), "");
         }
     }
 
@@ -313,7 +343,43 @@ mod tests {
         let now = chrono::Utc::now();
         let token = minted_token();
         for role in ["commenter", "editor", "owner", "EDITOR"] {
-            assert_eq!(body_for_link(&token, role, None, now, SOURCE), SOURCE);
+            assert_eq!(body_for_link(&token, role, None, None, now, SOURCE), SOURCE);
+        }
+    }
+
+    #[test]
+    fn download_disabled_commenter_link_releases_no_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        for role in ["commenter", "editor"] {
+            assert_eq!(
+                body_for_link(&token, role, Some(false), None, now, SOURCE),
+                ""
+            );
+        }
+    }
+
+    #[test]
+    fn download_disabled_viewer_link_releases_no_source() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        assert_eq!(
+            body_for_link(&token, "viewer", Some(false), None, now, SOURCE),
+            ""
+        );
+    }
+
+    #[test]
+    fn absent_or_enabled_download_policy_keeps_role_behaviour() {
+        let now = chrono::Utc::now();
+        let token = minted_token();
+        for policy in [None, Some(true)] {
+            for role in ["commenter", "editor", "owner"] {
+                assert_eq!(body_for_link(&token, role, policy, None, now, SOURCE), SOURCE);
+            }
+            for role in ["viewer", "guest"] {
+                assert_eq!(body_for_link(&token, role, policy, None, now, SOURCE), "");
+            }
         }
     }
 
@@ -322,14 +388,18 @@ mod tests {
         let now = chrono::Utc::now();
         let token = minted_token();
         assert_eq!(
-            body_for_link("g".repeat(64).as_str(), "editor", None, now, SOURCE),
+            body_for_link("g".repeat(64).as_str(), "editor", None, None, now, SOURCE),
             ""
         );
-        assert_eq!(body_for_link(&token, "editor", Some(now), now, SOURCE), "");
+        assert_eq!(
+            body_for_link(&token, "editor", None, Some(now), now, SOURCE),
+            ""
+        );
         assert_eq!(
             body_for_link(
                 &token,
                 "editor",
+                None,
                 Some(now - chrono::Duration::seconds(1)),
                 now,
                 SOURCE
@@ -340,11 +410,39 @@ mod tests {
             body_for_link(
                 &token,
                 "editor",
+                None,
                 Some(now + chrono::Duration::hours(1)),
                 now,
                 SOURCE
             ),
             SOURCE
         );
+    }
+
+    #[test]
+    fn view_ip_comes_from_the_connected_socket() {
+        let ip = client_ip(Some(&connected_peer()));
+        assert_eq!(ip.as_deref(), Some(TEST_IP));
+        // The port is transport detail and must not reach the audit row.
+        assert!(ip.is_some_and(|value| !value.contains(':')));
+    }
+
+    #[test]
+    fn missing_socket_address_stays_none() {
+        assert_eq!(client_ip(None), None);
+    }
+
+    #[test]
+    fn view_event_with_ip_stays_anonymous_and_content_free() {
+        let ip = client_ip(Some(&connected_peer()));
+        let event =
+            crate::access_audit::AccessAuditEvent::shared_view("doc-1").with_ip(ip.as_deref());
+        assert_eq!(event.resource_type, "docs");
+        assert_eq!(event.actor_id, "anonymous-guest");
+        assert_eq!(event.action, "view");
+        assert!(event.payload.as_object().is_some_and(|map| map.len() == 1));
+        assert!(event.payload.get("token").is_none());
+        assert!(event.payload.get("content").is_none());
+        assert_eq!(event.ip.as_deref(), Some(TEST_IP));
     }
 }

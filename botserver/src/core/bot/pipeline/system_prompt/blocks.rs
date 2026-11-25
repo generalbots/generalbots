@@ -1,5 +1,3 @@
-use crate::core::bot::pipeline;
-
 /// The locale the client announced in its capability handshake, or `en`.
 ///
 /// One resolver for every prompt block that needs it, so the capability block

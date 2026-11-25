@@ -5,17 +5,19 @@
  *
  * Covered contracts:
  *   (a) a successful shared-link read appends an `anonymous-guest` `view` event
- *       with resource_type = docs and a content-free payload (no token/body)
+ *       with resource_type = docs and a content-free payload (no token/body),
+ *       and its IP comes only from the accepted socket (never a header/body)
  *   (b) every mounted export format handler appends an `export` event carrying
  *       only the verified owner identity, the format and a caller-supplied IP —
  *       nothing content-bearing; the event, SQL row and read DTO carry `ip`,
  *       `with_ip` attaches it and INSERT_WITH_IP persists it
  *   (c) both hooks are placed AFTER a successful load/render (fail-closed), the
- *       module is compiled into the crate, and the unit tests exist
+ *       socket IP is captured before the view hook, the module is compiled into
+ *       the crate, and the unit tests exist
  *
  * All assertions are literal source substrings. Removing a hook, its identity
- * fields, the fail-closed ordering or a regression test makes the matching case
- * FAIL. No user-facing string is introduced here.
+ * fields, the fail-closed ordering, the socket-only IP source or a regression
+ * test makes the matching case FAIL. No user-facing string is introduced here.
  */
 "use strict";
 
@@ -26,7 +28,8 @@ var SHARED_LINK = "botserver/crates/botdocs/src/shared_link.rs";
 var EXPORT_HANDLERS = "botserver/crates/botdocs/src/handlers_api/export.rs";
 var LIB = "botserver/crates/botdocs/src/lib.rs";
 
-var SHARED_HOOK = "crate::access_audit::record_shared_view(&state, &link.resource_id);";
+var SHARED_HOOK = "crate::access_audit::record_shared_view_with_ip(&state, &link.resource_id, ip.as_deref());";
+var SHARED_IP_ASSIGN = "let ip = client_ip(Some(&addr));";
 var EXPORT_FN = "pub fn export(actor_id: &str, actor_name: &str, resource_id: &str, format: &str) -> Self {";
 var VIEW_FN = "pub fn shared_view(resource_id: &str) -> Self {";
 
@@ -98,7 +101,28 @@ h.staticTest("Shared-link read emits an anonymous content-free view event", func
   h.assert(view.indexOf("token") === -1 && view.indexOf("content") === -1,
     "view payload must not mention token or content :: <" + view + ">");
 
-  contains(SHARED_LINK, SHARED_HOOK, "shared-link read route records the view");
+  contains(SHARED_LINK, SHARED_HOOK, "shared-link read route records the IP-aware view");
+
+  // #2452 — the view IP is resolved from the socket the listener accepted.
+  // The route takes ConnectInfo, client_ip accepts only a SocketAddr and keeps
+  // the IP (never the port). No request header or body value can reach it.
+  contains(SHARED_LINK, "ConnectInfo(addr): ConnectInfo<SocketAddr>,",
+    "shared-link route takes the peer address from ConnectInfo");
+  contains(SHARED_LINK, SHARED_IP_ASSIGN,
+    "view IP is derived from the accepted socket, not request input");
+  var clientIp = between(SHARED_LINK, "fn client_ip(", "/// `GET /api/docs/shared/:token`");
+  h.assert(clientIp.indexOf("fn client_ip(addr: Option<&SocketAddr>) -> Option<String>") !== -1,
+    "client_ip accepts only the socket address :: <" + clientIp + ">");
+  h.assert(clientIp.indexOf("addr.map(|socket| socket.ip().to_string())") !== -1,
+    "client_ip keeps only the socket IP, never the port :: <" + clientIp + ">");
+  h.assert(clientIp.indexOf("HeaderMap") === -1 && clientIp.indexOf("headers") === -1,
+    "client_ip must never read request headers :: <" + clientIp + ">");
+
+  var handler = between(SHARED_LINK, "pub async fn handle_shared_document(", "async fn load_link(");
+  ["HeaderMap", "x-forwarded-for", "X-Forwarded-For", ".headers()", "header("].forEach(function (forbidden) {
+    h.assert(handler.indexOf(forbidden) === -1,
+      "shared-link view IP must not come from a request header/body <" + forbidden + ">");
+  });
 });
 
 // (b) Every mounted export handler appends the same audit hook with the
@@ -185,10 +209,12 @@ h.staticTest("Audit hooks are fail-closed and the IP/unit tests exist", function
   // a success event.
   var shared = between(SHARED_LINK, "pub async fn handle_shared_document(", "async fn load_link(");
   var load = shared.indexOf("let document = load_document_from_drive(");
+  var ipAssign = shared.indexOf(SHARED_IP_ASSIGN);
   var viewHook = shared.indexOf(SHARED_HOOK);
   var response = shared.indexOf("Ok(Json(SharedDocument {");
-  h.assert(load !== -1 && viewHook !== -1 && response !== -1 && load < viewHook && viewHook < response,
-    "view hook must run only after a successful load :: <" + shared.slice(0, 360) + ">");
+  h.assert(load !== -1 && ipAssign !== -1 && viewHook !== -1 && response !== -1 &&
+    load < ipAssign && ipAssign < viewHook && viewHook < response,
+    "view hook must run only after a successful load and socket-IP capture :: <" + shared.slice(0, 420) + ">");
 
   // Exports: the analytics call follows the renderer for each format, and the
   // IP-aware audit hook follows that call — never a pre-render or failure path.
