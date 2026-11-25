@@ -304,6 +304,10 @@ jobs:
           "mock_url=http://127.0.0.1:18080/v1`nreply=Hello from mock LLM.`nscript=$mockScript" | Set-Content "smoke-artifacts/mock-info.txt"
 
           $log = Join-Path (Get-Location) 'botserver-testbuild.log'
+          # No Vault/CSRF secret in the runner: dev posture lets the smoke boot
+          # instead of failing the production fail-closed CSRF gate (#2141).
+          $env:BOTSERVER_ENV = 'development'
+          $env:CSRF_SECRET = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')
           $proc = Start-Process -FilePath 'target\debug\botserver.exe' -ArgumentList '--noconsole' `
             -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
 
