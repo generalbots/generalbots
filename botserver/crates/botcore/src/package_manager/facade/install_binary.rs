@@ -72,16 +72,34 @@ impl PackageManager {
         } else if !db_password_override.is_empty() {
             db_password_override.to_string()
         } else {
-            match get_database_url_sync() {
-                Ok(url) => {
-                    let (_, password, _, _, _) = parse_database_url(&url);
-                    password
-                }
-                Err(_) => {
-                    trace!("Vault not available for DB_PASSWORD, using empty string");
-                    String::new()
-                }
+            let from_url = get_database_url_sync()
+                .map(|url| parse_database_url(&url).1)
+                .unwrap_or_default();
+            if from_url.is_empty() {
+                // The cached URL can lack a password during first boot; read
+                // the strict Vault field instead so installer SQL never runs
+                // with PGPASSWORD=''.
+                get_secret_value_strict_sync("secret/gbo/tables", "password")
+                    .unwrap_or_else(|error| {
+                        warn!("Vault DB password unavailable for {name}: {error}");
+                        String::new()
+                    })
+            } else {
+                from_url
             }
+        };
+        // The directory installer's SQL also carries the Zitadel role
+        // password. It must be substituted here too; leaving the placeholder
+        // in the rendered command creates a role with a literal placeholder
+        // password and Zitadel can never authenticate.
+        let zitadel_password = if commands
+            .iter()
+            .any(|cmd| cmd.contains("{{ZITADEL_PASSWORD}}"))
+        {
+            get_secret_value_strict_sync("secret/gbo/directory", "password")
+                .map_err(|error| anyhow::anyhow!("Cannot resolve Zitadel DB password: {error}"))?
+        } else {
+            String::new()
         };
 
         for cmd in commands {
@@ -92,7 +110,8 @@ impl PackageManager {
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
                 .replace("{{STACK_PATH}}", &self.base_path.to_string_lossy())
                 .replace("{{DATA_PATH_FWD}}", &data_path.to_string_lossy().replace('\\', "/"))
-                .replace("{{DB_PASSWORD}}", &db_password);
+                .replace("{{DB_PASSWORD}}", &db_password)
+                .replace("{{ZITADEL_PASSWORD}}", &zitadel_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
                 #[cfg(target_os = "windows")]

@@ -1,6 +1,8 @@
 pub(crate) use crate::package_manager::cache::{CacheResult, DownloadCache};
 pub(crate) use crate::package_manager::component::{ComponentConfig, InstallResult};
-use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
+use crate::shared::utils::{
+    self, get_database_url_sync, get_secret_value_strict_sync, parse_database_url,
+};
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use log::{error, info, trace, warn};
 
