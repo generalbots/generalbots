@@ -101,6 +101,9 @@ function hideThinkingIndicator(opts) {
 /* #2933 — #1797 conversation markers: one tick per user turn. */
 var gbMarkersRefreshQueued = false;
 var gbMarkerSyncQueued = false;
+// #2933 — the boot idle callback only arms this flag; every geometry read is
+// deferred to the first real scroll (one rAF) or mutation (coalesced idle pass).
+var gbMarkersBootPending = true;
 
 function gbMarkerOverlay(messages) {
   var overlay = messages.querySelector(".scrollbar-markers");
@@ -211,7 +214,12 @@ function gbSyncMarkerOverlay() {
   var messages = document.getElementById("messages");
   if (!messages) return;
   var overlay = messages.querySelector(".scrollbar-markers");
-  if (!overlay) return;
+  if (!overlay) {
+    // #2933 — boot skipped geometry. The first real scroll builds the markers
+    // in this one rAF pass, never on the boot idle callback.
+    if (!gbMarkersBootPending) gbRefreshScrollbarMarkers();
+    return;
+  }
   var top = messages.scrollTop;
   var height = messages.clientHeight;
   overlay.style.top = top + "px";
@@ -232,6 +240,18 @@ window.gbIdle = function (fn) {
 function scheduleScrollbarMarkers() {
   if (gbMarkersRefreshQueued) return;
   gbMarkersRefreshQueued = true;
+  if (gbMarkersBootPending) {
+    // #2933 — boot idle callback stays cheap: arm marker geometry with a data
+    // flag only. No style/box read runs here; the first scroll or mutation
+    // triggers the real rebuild off the boot path.
+    window.gbIdle(function () {
+      gbMarkersRefreshQueued = false;
+      var box = document.getElementById("messages");
+      if (box) box.dataset.gbMarkersArmed = "1";
+      gbMarkersBootPending = false;
+    });
+    return;
+  }
   // #2933 — marker rebuild was a 129-158 ms rAF handler; run it on idle.
   window.gbIdle(function () { gbMarkersRefreshQueued = false; gbRefreshScrollbarMarkers(); });
 }

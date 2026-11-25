@@ -1,8 +1,7 @@
-/* Theme scheme: luminance + base-token bridge. State-free; the owner writes data-theme. */
+/* Theme scheme: luminance + token bridge. Owner writes data-theme. */
 (function (window) {
   "use strict";
 
-// #2933 — pure form: derive the scheme without re-reading style after writes.
 function isDarkFromValues(background, solid) {
   const hsl = background.match(/^(-?[\d.]+)(?:deg)?\s+([\d.]+)%\s+([\d.]+)%/);
   if (hsl) return parseFloat(hsl[3]) < 50;
@@ -21,11 +20,14 @@ function backgroundLuminanceIsDark() {
     rootStyle.getPropertyValue("--bg").trim() || rootStyle.getPropertyValue("--bg-primary").trim());
 }
 
+// #2933 — the bridge caches the scheme from its one pre-write read, so the
+// owner's pinned post-write sync call is write-only. The cold read runs at boot.
+var gbSchemeSnapshot = null;
 function syncColorScheme() {
-  document.documentElement.setAttribute("data-color-scheme", backgroundLuminanceIsDark() ? "dark" : "light");
+  if (gbSchemeSnapshot === null) gbSchemeSnapshot = backgroundLuminanceIsDark() ? "dark" : "light";
+  document.documentElement.setAttribute("data-color-scheme", gbSchemeSnapshot);
 }
 
-// Watch both theme axes.
 function watchColorScheme() {
   const observe = () => {
     if (typeof MutationObserver !== "function") return;
@@ -41,7 +43,6 @@ function watchColorScheme() {
   syncColorScheme();
 }
 
-// Stale inline tokens beat :root[data-theme].
 const BRIDGED_TOKENS = [
   "--bg", "--bg-primary", "--bg-secondary", "--bg-card", "--primary-bg",
   "--primary-fg", "--text", "--text-primary", "--text-secondary",
@@ -89,7 +90,7 @@ function getContrastYIQ(hexcolor) {
   return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? "#000000" : "#ffffff";
 }
 
-/* Publish both token vocabularies as inline root variables; onDone announces. */
+/* Publish both token vocabularies as inline root variables. */
 function bridge(themeId, themeName, onDone) {
   const rootStyle = getComputedStyle(document.documentElement);
   const primary = rootStyle.getPropertyValue("--primary")?.trim() || "#3b82f6";
@@ -113,9 +114,7 @@ function bridge(themeId, themeName, onDone) {
   const textColor = fgHsl ? hslToHex(...fgHsl) : toCssColor(foreground, getContrastYIQ(bgHsl ? hslToHex(...bgHsl) : bgColor));
   const secondaryTextColor = toCssColor(mutedForeground, textColor);
   const mutedTextColor = rootStyle.getPropertyValue("--gb-text-muted")?.trim() || secondaryTextColor;
-  // #2004: body-appended panels read these root tokens.
   const surface2Color = rootStyle.getPropertyValue("--gb-surface-2")?.trim() || `color-mix(in srgb, ${surfaceColor} 92%, ${textColor})`;
-  // #2933 — remaining DOM reads before the first write.
   const hasBotColors = document.documentElement.getAttribute("data-has-bot-colors") === "true";
   const themeDropdown = document.getElementById("themeDropdown");
 
@@ -129,11 +128,11 @@ function bridge(themeId, themeName, onDone) {
   };
   vars["--background"] = background;
   vars["--foreground"] = foreground;
-  // #2933 — one write phase; no read-after-write reflow.
-  document.documentElement.setAttribute("data-color-scheme", isDarkFromValues(background, bgColor) ? "dark" : "light");
+  // #2933 — one write phase; the cached scheme came from the pre-write reads.
+  gbSchemeSnapshot = isDarkFromValues(background, bgColor) ? "dark" : "light";
+  document.documentElement.setAttribute("data-color-scheme", gbSchemeSnapshot);
   Object.keys(vars).forEach((key) => document.documentElement.style.setProperty(key, vars[key]));
 
-  // Keep config.csv's primary colour.
   if (!hasBotColors) {
     const chatVars = {
       "--chat-color1": primaryColor, "--chat-color2": surfaceColor,
@@ -143,7 +142,6 @@ function bridge(themeId, themeName, onDone) {
     Object.keys(chatVars).forEach((key) => document.documentElement.style.setProperty(key, chatVars[key]));
   }
 
-  // #2004: dropdown surface.
   if (themeDropdown) themeDropdown.style.setProperty("background", surfaceColor, "important");
 
   gbLog.debug("✓ Theme colours applied:", { themeId: themeId, background: background, primary: primary });
