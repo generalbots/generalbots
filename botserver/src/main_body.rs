@@ -32,14 +32,13 @@ pub(super) async fn main() -> std::io::Result<()> {
     #[cfg(not(feature = "console"))]
     let no_console = true;
 
-    let _ = rustls::crypto::ring::default_provider().install_default();
+    if let Err(e) = rustls::crypto::ring::default_provider().install_default() { warn!("rustls provider install failed: {e}"); }
 
     if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
         if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
-        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
-    } else {
-        dotenvy::dotenv().ok();
-    }
+            let path = std::path::PathBuf::from(stack).join(".env");
+            if let Err(e) = dotenvy::from_path(path) { warn!("stack .env load failed: {e}"); }
+        } else if let Err(e) = dotenvy::dotenv() { warn!("local .env load failed: {e}"); }
     }
 
     let env_path_early = std::path::Path::new("./.env");
@@ -159,11 +158,10 @@ pub(super) async fn main() -> std::io::Result<()> {
     trace!("Bootstrap config phase complete");
     trace!("Reloading dotenv...");
     if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
-if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
-        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
-    } else {
-        dotenvy::dotenv().ok();
-    }
+        if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+            let path = std::path::PathBuf::from(stack).join(".env");
+            if let Err(e) = dotenvy::from_path(path) { warn!("stack .env reload failed: {e}"); }
+        } else if let Err(e) = dotenvy::dotenv() { warn!("local .env reload failed: {e}"); }
     }
 
     let pool = init_database(&progress_tx).await?;
@@ -352,8 +350,8 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
     info!("Memory monitor started");
     log_process_memory();
 
-    let _ = state_tx.try_send(app_state.clone());
-    progress_tx.send(BootstrapProgress::BootstrapComplete).ok();
+    if let Err(e) = state_tx.try_send(app_state.clone()) { warn!("initial app state publish failed: {e}"); }
+    if let Err(e) = progress_tx.send(BootstrapProgress::BootstrapComplete) { warn!("bootstrap completion report failed: {e}"); }
 
     info!(
         "Starting HTTP server on {}:{}",
@@ -405,7 +403,7 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         use std::time::Duration;
         let pool = app_state.conn.clone();
         let server_port = config.server.port;
-        std::thread::Builder::new()
+        if let Err(e) = std::thread::Builder::new()
             .name("watchdog".to_string())
             .spawn(move || {
                 info!("[watchdog] started on std::thread, monitoring tokio runtime");
@@ -427,8 +425,9 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
                         if http_ok { "OK" } else { "DOWN" },
                     );
                 }
-            })
-            .ok();
+            }) {
+            warn!("watchdog thread spawn failed: {e}");
+        }
     }
 
     info!("Server started on port {}", config.server.port);
@@ -438,9 +437,7 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
     }
     trace!("run_axum_server returned (should not happen normally)");
 
-    if let Some(handle) = ui_handle {
-        handle.join().ok();
-    }
+    if let Some(handle) = ui_handle { if let Err(e) = handle.join() { warn!("console UI thread join failed: {e:?}"); } }
 
     Ok(())
 }

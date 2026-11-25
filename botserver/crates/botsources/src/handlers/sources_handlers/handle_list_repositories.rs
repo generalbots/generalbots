@@ -23,7 +23,7 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
         let language = repo.language.as_deref().unwrap_or("Unknown");
         let last_sync = repo.last_sync.as_deref().unwrap_or("Never");
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r#"<div class="repo-card">
             <div class="repo-header">
@@ -58,7 +58,9 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
             html_escape(&repo.description),
             language, repo.stars, repo.forks, last_sync,
             html_escape(&repo.url)
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     if repos.is_empty() {
@@ -108,7 +110,7 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
             _ => "🔷",
         };
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r#"<div class="app-card">
             <div class="app-header">
@@ -127,7 +129,9 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
             html_escape(&app.app_type),
             html_escape(&app.description),
             html_escape(&app.url)
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     if apps.is_empty() {
@@ -169,22 +173,26 @@ pub async fn handle_prompts(
 
     for (id, name, icon) in &categories {
         let active = if *id == category { " active" } else { "" };
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<button class=\"category-item{}\" hx-get=\"/api/sources/prompts?category={}\" hx-target=\"#content-area\" hx-swap=\"innerHTML\"><span class=\"category-icon\">{}</span><span class=\"category-name\">{}</span></button>",
             active, id, icon, name
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div></aside>");
     html.push_str("<div class=\"content-main\"><div class=\"prompts-grid\" id=\"prompts-grid\">");
 
     for prompt in &prompts {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"prompt-card\"><div class=\"prompt-header\"><span class=\"prompt-icon\">{}</span><h4>{}</h4></div><p class=\"prompt-description\">{}</p><div class=\"prompt-footer\"><span class=\"prompt-category\">{}</span><button class=\"btn-use\" onclick=\"usePrompt('{}')\">Use</button></div></div>",
             prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description), html_escape(&prompt.category), html_escape(&prompt.id)
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     if prompts.is_empty() {
@@ -203,11 +211,13 @@ pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoR
     html.push_str("<div class=\"templates-grid\">");
 
     for template in &templates {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"template-card\"><div class=\"template-icon\">{}</div><div class=\"template-info\"><h4>{}</h4><p>{}</p><div class=\"template-meta\"><span class=\"template-category\">{}</span></div></div><div class=\"template-actions\"><button class=\"btn-preview\">Preview</button><button class=\"btn-use-template\">Use Template</button></div></div>",
             template.icon, html_escape(&template.name), html_escape(&template.description), html_escape(&template.category)
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div></div>");
@@ -227,11 +237,13 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
     html.push_str("<div class=\"news-list\">");
 
     for (icon, title, description, time) in &news_items {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"news-item\"><div class=\"news-icon\">{}</div><div class=\"news-content\"><h4>{}</h4><p>{}</p><span class=\"news-time\">{}</span></div></div>",
             icon, html_escape(title), html_escape(description), time
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div></div>");
@@ -251,26 +263,32 @@ pub async fn handle_llm_tools(
 
     let mut html = String::new();
     html.push_str("<div class=\"tools-container\">");
-    let _ = write!(
+    if let Err(e) = write!(
         html,
         "<div class=\"tools-header\"><h3>LLM Tools</h3><p>All tools available for Tasks and LLM invocation</p><div class=\"tools-stats\"><span class=\"stat\"><strong>{}</strong> BASIC keywords</span><span class=\"stat\"><strong>{}</strong> MCP tools</span></div></div>",
         keywords.len(), mcp_tools_count
-    );
+    ) {
+        log::warn!("repositories HTML write failed: {e}");
+    }
 
     html.push_str("<div class=\"tools-grid\">");
     for keyword in keywords.iter().take(20) {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<span class=\"keyword-tag\">{}</span>",
             html_escape(keyword)
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
     if keywords.len() > 20 {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<span class=\"keyword-more\">+{} more...</span>",
             keywords.len() - 20
-        );
+        ) {
+            log::warn!("repositories HTML write failed: {e}");
+        }
     }
     html.push_str("</div></div>");
 

@@ -207,14 +207,18 @@ where
                         }
                     }
                     Some(Ok(AxumMessage::Pong(data))) => {
-                        let _ = upstream_tx.send(WsMessage::Pong(data)).await;
+                        if let Err(e) = upstream_tx.send(WsMessage::Pong(data)).await {
+                            log::warn!("Duplex upstream Pong send failed: {e}");
+                        }
                     }
                     Some(Ok(AxumMessage::Close(frame))) => {
                         let mapped = frame.map(|frame| WsCloseFrame {
                             code: CloseCode::from(frame.code),
                             reason: frame.reason,
                         });
-                        let _ = upstream_tx.send(WsMessage::Close(mapped)).await;
+                        if let Err(e) = upstream_tx.send(WsMessage::Close(mapped)).await {
+                            log::warn!("Duplex upstream close send failed: {e}");
+                        }
                         break;
                     }
                     Some(Err(_)) | None => break,
@@ -238,7 +242,9 @@ where
                         }
                     }
                     Some(Ok(WsMessage::Pong(data))) => {
-                        let _ = client_tx.send(AxumMessage::Pong(data)).await;
+                        if let Err(e) = client_tx.send(AxumMessage::Pong(data)).await {
+                            log::warn!("Duplex client Pong send failed: {e}");
+                        }
                     }
                     // Raw frame fragments are an internal tungstenite detail;
                     // the assembled Text/Binary/control message arrives next.
@@ -249,11 +255,14 @@ where
                             .map(|frame| frame.code == CloseCode::Normal)
                             .unwrap_or(false);
                         if normal {
-                            let _ = client_tx
+                            if let Err(e) = client_tx
                                 .send(close_frame(1000, "duplex closed"))
-                                .await;
+                                .await
+                            {
+                                log::warn!("Duplex client close send failed: {e}");
+                            }
                         } else {
-                            let _ = client_tx
+                            if let Err(e) = client_tx
                                 .send(AxumMessage::Text(
                                     serde_json::json!({
                                         "type": "error",
@@ -261,15 +270,21 @@ where
                                     })
                                     .to_string(),
                                 ))
-                                .await;
-                            let _ = client_tx
+                                .await
+                            {
+                                log::warn!("Duplex client error notice send failed: {e}");
+                            }
+                            if let Err(e) = client_tx
                                 .send(close_frame(1011, "duplex upstream closed unexpectedly"))
-                                .await;
+                                .await
+                            {
+                                log::warn!("Duplex client error close send failed: {e}");
+                            }
                         }
                         break;
                     }
                     Some(Err(_)) | None => {
-                        let _ = client_tx
+                        if let Err(e) = client_tx
                             .send(AxumMessage::Text(
                                 serde_json::json!({
                                     "type": "error",
@@ -277,10 +292,16 @@ where
                                 })
                                 .to_string(),
                             ))
-                            .await;
-                        let _ = client_tx
+                            .await
+                        {
+                            log::warn!("Duplex connection-lost notice send failed: {e}");
+                        }
+                        if let Err(e) = client_tx
                             .send(close_frame(1011, "duplex upstream connection lost"))
-                            .await;
+                            .await
+                        {
+                            log::warn!("Duplex connection-lost close send failed: {e}");
+                        }
                         break;
                     }
                 }

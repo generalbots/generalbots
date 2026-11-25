@@ -85,7 +85,7 @@ fn render_api_keys_html(keys: &[ApiKeyInfo]) -> String {
     } else {
         html.push_str(r#"<div class="servers-grid">"#);
         for key in keys {
-            let _ = write!(html, r#"
+            if let Err(e) = write!(html, r#"
             <div class="server-card">
             <div class="server-header">
             <div class="server-icon">🔑</div>
@@ -100,7 +100,9 @@ fn render_api_keys_html(keys: &[ApiKeyInfo]) -> String {
             <div class="server-actions" style="margin-top: 12px; display: flex; gap: 8px;">
             <button class="btn btn-sm btn-outline" onclick="deleteApiKey('{}')">Delete</button>
             </div></div>"#,
-            key.name, key.provider, key.key_preview, key.created_at, key.id);
+            key.name, key.provider, key.key_preview, key.created_at, key.id) {
+                log::warn!("API keys HTML write failed: {e}");
+            }
         }
         html.push_str("</div>");
     }

@@ -119,7 +119,7 @@ fn aggregate_range(
             total += 1;
             key.clear();
             use std::fmt::Write;
-            let _ = write!(&mut key, "{row},{col}");
+            if let Err(e) = write!(&mut key, "{row},{col}") { log::warn!("cross-sheet key write failed: {e}"); }
             if let Some(cell) = target.data.get(&key) {
                 if let Some(ref v) = cell.value {
                     if !v.trim().is_empty() {
@@ -202,7 +202,7 @@ fn range_text_values(target: &Worksheet, start: (u32, u32), end: (u32, u32)) -> 
         for col in start.1..=end.1 {
             key.clear();
             use std::fmt::Write;
-            let _ = write!(&mut key, "{row},{col}");
+            if let Err(e) = write!(&mut key, "{row},{col}") { log::warn!("cross-sheet key write failed: {e}"); }
             if let Some(v) = target.data.get(&key).and_then(|c| c.value.clone()) {
                 parts.push(v);
             }

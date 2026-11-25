@@ -32,15 +32,16 @@ pub async fn handle_template_meeting(
 
     let mut content = String::new();
     content.push_str("# Meeting Notes\n\n");
-    let _ = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d"));
+    if let Err(e) = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d")) { log::warn!("paper template write failed: {e}"); }
     content.push_str("**Attendees:**\n- \n\n");
     content.push_str("## Agenda\n\n1. \n\n");
     content.push_str("## Discussion\n\n\n\n");
     content.push_str("## Action Items\n\n- [ ] \n\n");
     content.push_str("## Next Steps\n\n");
 
-    let _ =
-        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+    if let Err(e) = save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await {
+        log::warn!("paper template write failed: {e}");
+    }
 
     Html(format_document_content(&title, &content))
 }
@@ -61,8 +62,9 @@ pub async fn handle_template_todo(
     content.push_str("## Low Priority\n\n- [ ] \n\n");
     content.push_str("## Completed\n\n- [x] Example completed task\n");
 
-    let _ =
-        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+    if let Err(e) = save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await {
+        log::warn!("paper template write failed: {e}");
+    }
 
     Html(format_document_content(&title, &content))
 }
@@ -86,8 +88,9 @@ pub async fn handle_template_research(
     content.push_str("## Conclusions\n\n\n\n");
     content.push_str("## References\n\n");
 
-    let _ =
-        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+    if let Err(e) = save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await {
+        log::warn!("paper template write failed: {e}");
+    }
 
     Html(format_document_content(&title, &content))
 }
@@ -104,7 +107,7 @@ pub async fn handle_template_report(
 
     let mut content = String::new();
     content.push_str("# Report\n\n");
-    let _ = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d"));
+    if let Err(e) = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d")) { log::warn!("paper template write failed: {e}"); }
     content.push_str("**Author:**\n\n");
     content.push_str("---\n\n");
     content.push_str("## Executive Summary\n\n\n\n");
@@ -118,8 +121,9 @@ pub async fn handle_template_report(
     content.push_str("## Conclusion\n\n\n\n");
     content.push_str("## Appendix\n\n");
 
-    let _ =
-        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+    if let Err(e) = save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await {
+        log::warn!("paper template write failed: {e}");
+    }
 
     Html(format_document_content(&title, &content))
 }
@@ -139,7 +143,7 @@ pub async fn handle_template_letter(
     content.push_str("[Your Address]\n");
     content.push_str("[City, State ZIP]\n");
     content.push_str("[Your Email]\n\n");
-    let _ = writeln!(content, "{}\n", now.format("%B %d, %Y"));
+    if let Err(e) = writeln!(content, "{}\n", now.format("%B %d, %Y")) { log::warn!("paper template write failed: {e}"); }
     content.push_str("[Recipient Name]\n");
     content.push_str("[Recipient Title]\n");
     content.push_str("[Company/Organization]\n");
@@ -153,8 +157,9 @@ pub async fn handle_template_letter(
     content.push_str("[Your Signature]\n");
     content.push_str("[Your Typed Name]\n");
 
-    let _ =
-        save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await;
+    if let Err(e) = save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await {
+        log::warn!("paper template write failed: {e}");
+    }
 
     Html(format_document_content(&title, &content))
 }

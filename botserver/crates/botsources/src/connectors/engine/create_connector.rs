@@ -158,10 +158,12 @@ impl ConnectorEngine {
         conn: &mut PgConnection,
         id: Uuid,
     ) -> Result<(), String> {
-        sql_query("DELETE FROM connector_sync_logs WHERE connector_id = $1")
+        if let Err(e) = sql_query("DELETE FROM connector_sync_logs WHERE connector_id = $1")
             .bind::<diesel::sql_types::Uuid, _>(id)
             .execute(conn)
-            .ok();
+        {
+            log::warn!("connector sync-log cleanup failed: {e}");
+        }
         sql_query("DELETE FROM connector_endpoints WHERE connector_id = $1")
             .bind::<diesel::sql_types::Uuid, _>(id)
             .execute(conn)

@@ -276,7 +276,7 @@ impl ReflectionEngine {
             let key = format!("improvement_{}", Uuid::new_v4());
             let now = chrono::Utc::now();
 
-            diesel::sql_query(
+            if let Err(e) = diesel::sql_query(
                 "INSERT INTO bot_memories (id, bot_id, key, value, created_at, updated_at) \
                  VALUES ($1, $2, $3, $4, $5, $6) \
                  ON CONFLICT (bot_id, key) DO UPDATE SET value = $4, updated_at = $6",
@@ -288,7 +288,9 @@ impl ReflectionEngine {
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .execute(&mut conn)
-            .ok();
+            {
+                log::warn!("bot memory persistence failed: {e}");
+            }
         }
 
         info!(

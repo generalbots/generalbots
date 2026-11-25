@@ -15,9 +15,12 @@ impl ConnectorEngine {
         let mut total_failed = 0i64;
         let mut endpoint_results = Vec::new();
 
-        sql_query("UPDATE connectors SET last_sync_status = 'running' WHERE id = $1")
+        if let Err(e) = sql_query("UPDATE connectors SET last_sync_status = 'running' WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(id)
-            .execute(conn).ok();
+            .execute(conn)
+        {
+            log::warn!("connector sync status update failed: {e}");
+        }
 
         let base_url = config.auth_config.base_url.as_ref()
             .ok_or_else(|| "Base URL not configured".to_string())?.clone();
@@ -104,7 +107,7 @@ impl ConnectorEngine {
         };
 
         let now = Utc::now();
-        sql_query("UPDATE connectors SET last_sync_at = $1, last_sync_status = $2, error_log = $3, updated_at = $4 WHERE id = $5")
+        if let Err(e) = sql_query("UPDATE connectors SET last_sync_at = $1, last_sync_status = $2, error_log = $3, updated_at = $4 WHERE id = $5")
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .bind::<diesel::sql_types::Text, _>(overall_status.to_string())
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
@@ -112,7 +115,10 @@ impl ConnectorEngine {
             )
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .bind::<diesel::sql_types::Uuid, _>(id)
-            .execute(conn).ok();
+            .execute(conn)
+        {
+            log::warn!("connector sync status update failed: {e}");
+        }
 
         Ok(SyncResult {
             status: overall_status,

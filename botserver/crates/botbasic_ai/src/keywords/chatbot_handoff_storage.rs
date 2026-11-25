@@ -182,7 +182,7 @@ pub fn set_agent_presence(state: &Arc<dyn BasicRuntime>, agent_id: UuidValue, on
         let key = format!("presence:{agent_id}");
         let value = if online { "online" } else { "offline" };
         let client_clone = Arc::clone(&client);
-        let _ = std::thread::Builder::new()
+        if let Err(e) = std::thread::Builder::new()
             .name("presence".into())
             .spawn(move || {
                 if let Ok(mut conn) = client_clone.get_connection() {
@@ -194,7 +194,8 @@ pub fn set_agent_presence(state: &Arc<dyn BasicRuntime>, agent_id: UuidValue, on
                     }
                 }
             })
-            .map(|h| h.join().ok())
-            .ok();
+            .map(|h| h.join().ok()) {
+            log::warn!("presence thread spawn failed: {e}");
+        }
     }
 }

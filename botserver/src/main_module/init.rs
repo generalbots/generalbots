@@ -64,9 +64,9 @@ pub async fn run_bootstrap(
     trace!("Starting bootstrap process...");
     let progress_tx_clone = progress_tx.clone();
     let cfg = {
-        progress_tx_clone
-            .send(BootstrapProgress::StartingBootstrap)
-            .ok();
+        if let Err(e) = progress_tx_clone.send(BootstrapProgress::StartingBootstrap) {
+            warn!("Failed to report bootstrap start progress: {e}");
+        }
 
         trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode, tenant);
@@ -100,19 +100,19 @@ pub async fn run_bootstrap(
             info!(">>> BRANCH: bootstrap_completed=TRUE - starting services only");
             trace!("Services already configured, ensuring all are running...");
             info!("Ensuring database and drive services are running...");
-            progress_tx_clone
-                .send(BootstrapProgress::StartingComponent(
-                    "all services".to_string(),
-                ))
-                .ok();
+            if let Err(e) = progress_tx_clone.send(BootstrapProgress::StartingComponent(
+                "all services".to_string(),
+            )) {
+                warn!("Failed to report service start progress: {e}");
+            }
             trace!("Calling bootstrap.start_all()...");
             bootstrap.start_all().await.map_err(std::io::Error::other)?;
             trace!("bootstrap.start_all() completed");
 
             trace!("Connecting to database...");
-            progress_tx_clone
-                .send(BootstrapProgress::ConnectingDatabase)
-                .ok();
+            if let Err(e) = progress_tx_clone.send(BootstrapProgress::ConnectingDatabase) {
+                warn!("Failed to report database connection progress: {e}");
+            }
 
             trace!("Creating database connection...");
             match create_conn() {
@@ -146,11 +146,11 @@ pub async fn run_bootstrap(
                 return Err(std::io::Error::other(format!("Bootstrap failed: {e}")));
             }
             trace!("bootstrap.bootstrap() completed");
-            progress_tx_clone
-                .send(BootstrapProgress::StartingComponent(
-                    "all services".to_string(),
-                ))
-                .ok();
+            if let Err(e) = progress_tx_clone.send(BootstrapProgress::StartingComponent(
+                "all services".to_string(),
+            )) {
+                warn!("Failed to report service start progress after bootstrap: {e}");
+            }
             bootstrap.start_all().await.map_err(std::io::Error::other)?;
 
             match create_conn() {
@@ -180,9 +180,9 @@ pub async fn run_bootstrap(
         }
 
         trace!("Config loaded, syncing templates to database...");
-        progress_tx_clone
-            .send(BootstrapProgress::UploadingTemplates)
-            .ok();
+        if let Err(e) = progress_tx_clone.send(BootstrapProgress::UploadingTemplates) {
+            warn!("Failed to report template upload progress: {e}");
+        }
 
         // #1942 — `app_templates` is created on demand by the templates
         // handlers. Bootstrap used to run the sync before the table existed,
@@ -225,7 +225,9 @@ pub async fn init_database(
     progress_tx: &tokio::sync::mpsc::UnboundedSender<BootstrapProgress>,
 ) -> Result<botcore::shared::utils::DbPool, std::io::Error> {
     trace!("Creating database pool again...");
-    progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
+    if let Err(e) = progress_tx.send(BootstrapProgress::ConnectingDatabase) {
+        warn!("Failed to report database connection progress: {e}");
+    }
 
     // Get database URL from Vault
     if let Ok(secrets) = crate::core::secrets::SecretsManager::get() {
@@ -270,27 +272,33 @@ pub async fn init_database(
             #[cfg(feature = "saas")]
             {
                 if let Ok(mut conn) = pool.get() {
-                    diesel::sql_query(
+                    if let Err(e) = diesel::sql_query(
                         "INSERT INTO tenants (id, name, slug, is_active, created_at, updated_at) \
                          VALUES ('00000000-0000-0000-0000-000000000000', 'System', 'system', true, NOW(), NOW()) \
                          ON CONFLICT (id) DO NOTHING",
                     )
                     .execute(&mut conn)
-                    .ok();
-                    diesel::sql_query(
+                    {
+                        warn!("Failed to seed system tenant: {e}");
+                    }
+                    if let Err(e) = diesel::sql_query(
                         "INSERT INTO organizations (org_id, name, slug, domain, created_at, updated_at) \
                          VALUES ('00000000-0000-0000-0000-000000000000', 'System', 'system', NULL, NOW(), NOW()) \
                          ON CONFLICT (org_id) DO NOTHING",
                     )
                     .execute(&mut conn)
-                    .ok();
-                    diesel::sql_query(
+                    {
+                        warn!("Failed to seed system organization: {e}");
+                    }
+                    if let Err(e) = diesel::sql_query(
                         "INSERT INTO branches (id, org_id, tenant_id, slug, name, is_active, created_at, updated_at) \
                          VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'system', 'System', true, NOW(), NOW()) \
                          ON CONFLICT (id) DO NOTHING",
                     )
                     .execute(&mut conn)
-                    .ok();
+                    {
+                        warn!("Failed to seed system branch: {e}");
+                    }
 
                     // Default cloud catalog products are scoped to the dedicated
                     // sample tenant (not the nil/global scope) so the seeded
@@ -330,12 +338,12 @@ pub async fn init_database(
         }
         Err(e) => {
             error!("Failed to create database pool: {}", e);
-            progress_tx
-                .send(BootstrapProgress::BootstrapError(format!(
-                    "Database pool creation failed: {}",
-                    e
-                )))
-                .ok();
+            if let Err(send_error) = progress_tx.send(BootstrapProgress::BootstrapError(format!(
+                "Database pool creation failed: {}",
+                e
+            ))) {
+                warn!("Failed to report database bootstrap error progress: {send_error}");
+            }
             return Err(std::io::Error::new(
                 std::io::ErrorKind::ConnectionRefused,
                 format!("Database pool creation failed: {}", e),
@@ -397,7 +405,9 @@ async fn ensure_templates_repo() {
     } else {
         // Clone fresh
         if let Some(parent) = work_dir.parent() {
-            let _ = std::fs::create_dir_all(parent);
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                warn!("Failed to create templates parent directory (non-blocking): {e}");
+            }
         }
         let clone = SafeCommand::new("git")
             .and_then(|c| c.args(&["clone"]))
@@ -412,7 +422,9 @@ async fn ensure_templates_repo() {
             Ok(out) => {
                 let stderr = String::from_utf8_lossy(&out.stderr);
                 warn!("git clone failed (non-blocking): {}", stderr);
-                let _ = std::fs::remove_dir_all("work/templates");
+                if let Err(e) = std::fs::remove_dir_all("work/templates") {
+                    warn!("Failed to clean up partial templates clone (non-blocking): {e}");
+                }
             }
             Err(e) => {
                 warn!("git clone could not run (non-blocking): {}", e);

@@ -316,7 +316,7 @@ impl AttendanceService {
         }
         use std::fmt::Write;
         let mut report = String::new();
-        let _ = writeln!(report, "Attendance Report for User: {}", user_id);
+        if let Err(e) = writeln!(report, "Attendance Report for User: {}", user_id) { log::warn!("attendance report write failed: {e}"); }
         report.push_str("========================\n");
         for record in user_records {
             let action = match record.command {
@@ -326,13 +326,15 @@ impl AttendanceService {
                 AttendanceCommand::Resume => "Resume",
                 _ => "Other",
             };
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 report,
                 "{}: {} at {}",
                 record.timestamp.format("%Y-%m-%d %H:%M:%S"),
                 action,
                 record.location.as_deref().unwrap_or("N/A")
-            );
+            ) {
+                log::warn!("attendance report write failed: {e}");
+            }
         }
         drop(records);
         Ok(AttendanceResponse::Report { data: report })

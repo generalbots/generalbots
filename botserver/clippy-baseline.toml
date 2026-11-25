@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 763
+discarded_result = 602
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -25,56 +25,17 @@ panic = "panic! macro invocations"
 unwrap_or_default = ".unwrap_or_default(...) calls (Result and Option)"
 discarded_result = ".ok(); statements and let _ = ...; bindings"
 
-[files."botserver/crates/botanalytics/src/handlers_charts.rs"]
-discarded_result = 18
-
 [files."botserver/src/core/bot/pipeline/api_call/handle.rs"]
 discarded_result = 12
-
-[files."botserver/src/main_module/init.rs"]
-discarded_result = 12
-
-[files."botserver/crates/botcompliance/src/code_scanner/to_html.rs"]
-discarded_result = 11
-
-[files."botserver/crates/botattendance/src/llm_assist_commands.rs"]
-discarded_result = 10
-
-[files."botserver/crates/botbasic_ai/src/keywords/api_tool_generator/generate_bas_file.rs"]
-discarded_result = 10
 
 [files."botserver/crates/botsheet-core/src/engine/ast.rs"]
 discarded_result = 10
 
-[files."botserver/crates/botsources/src/handlers/sources_handlers/handle_list_repositories.rs"]
-discarded_result = 9
-
-[files."botserver/src/main_body.rs"]
-discarded_result = 9
-
-[files."botserver/crates/botbasic_ai/src/keywords/learn.rs"]
-discarded_result = 8
-
 [files."botserver/crates/botcore/src/product/appearance.rs"]
 discarded_result = 8
 
-[files."botserver/crates/botpaper/src/templates.rs"]
-discarded_result = 8
-
-[files."botserver/src/main_module/routes/ai_accounts/handlers.rs"]
-discarded_result = 8
-
-[files."botserver/src/main_module/routes/speech_duplex.rs"]
-discarded_result = 8
-
-[files."botserver/src/console/wizard/wizard_core.rs"]
-discarded_result = 7
-
 [files."botserver/src/core/bot/ws/stream/turn.rs"]
 discarded_result = 7
-
-[files."botserver/crates/botanalytics/src/handlers_activity.rs"]
-discarded_result = 6
 
 [files."botserver/crates/botcoredirectory/src/provisioning.rs"]
 discarded_result = 6
@@ -91,9 +52,6 @@ discarded_result = 6
 [files."botserver/src/core/bot/ws/stream/tool_call.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botbasic_ai/src/keywords/chatbot_handoff.rs"]
-discarded_result = 5
-
 [files."botserver/crates/botcore/src/dns/mod.rs"]
 discarded_result = 5
 
@@ -107,9 +65,6 @@ discarded_result = 5
 discarded_result = 5
 
 [files."botserver/crates/botplan/src/collaboration.rs"]
-discarded_result = 5
-
-[files."botserver/crates/botsources/src/handlers/sources_handlers/handle_models.rs"]
 discarded_result = 5
 
 [files."botserver/src/basic/mod.rs"]
@@ -169,11 +124,56 @@ discarded_result = 4
 [files."botserver/crates/botsecurity-protection/src/protection/installer/check_admin.rs"]
 discarded_result = 4
 
-[files."botserver/crates/botsources/src/handlers/mcp_handlers/handle_disable_mcp_server.rs"]
-discarded_result = 4
-
 [files."botserver/src/api/terminal/session.rs"]
 discarded_result = 4
+
+[files."botserver/src/console/wizard/wizard_ui.rs"]
+discarded_result = 4
+
+[files."botserver/src/core/bot/manager_ops/load_template_from_directory.rs"]
+discarded_result = 4
+
+[files."botserver/src/core/bot/pipeline/surface_catalog.rs"]
+discarded_result = 4
+
+[files."botserver/src/core/bot/ws/session/inbound.rs"]
+discarded_result = 4
+
+[files."botserver/src/main_module/git_bot_monitor/loop_ops.rs"]
+discarded_result = 4
+
+[files."botserver/src/main_module/routes/misc_handlers/handle_dns_remove.rs"]
+discarded_result = 4
+
+[files."botserver/src/main_module/wizard_provision.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botbasic_core/src/keywords/hearing/syntax.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botbasic_core/src/keywords/switch_case.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botbasic_data/src/keywords/table_definition/generate_create_table_sql.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcanvas/src/api/elements.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcanvas/src/websocket.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcontacts/src/handlers/deals.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcore/src/bootstrap/instance.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcore/src/config/resolve_bot_identity.rs"]
+discarded_result = 3
+
+[files."botserver/crates/botcore/src/package_manager/certs_utils.rs"]
+discarded_result = 3
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real
 # `cargo clippy --message-format=json` diagnostics, not textual proxies. They

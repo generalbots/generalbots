@@ -4,15 +4,15 @@ impl ApiToolGenerator {
     pub(super) fn generate_bas_file(api_name: &str, endpoint: &GeneratedEndpoint) -> Result<String, String> {
         let mut bas = String::new();
 
-        let _ = writeln!(bas, "' Auto-generated tool for {} API", api_name);
-        let _ = writeln!(bas, "' Endpoint: {} {}", endpoint.method, endpoint.path);
-        let _ = writeln!(bas, "' Generated at: {}\n", chrono::Utc::now().to_rfc3339());
+        if let Err(e) = writeln!(bas, "' Auto-generated tool for {} API", api_name) { log::warn!("API tool BAS write failed: {e}"); }
+        if let Err(e) = writeln!(bas, "' Endpoint: {} {}", endpoint.method, endpoint.path) { log::warn!("API tool BAS write failed: {e}"); }
+        if let Err(e) = writeln!(bas, "' Generated at: {}\n", chrono::Utc::now().to_rfc3339()) { log::warn!("API tool BAS write failed: {e}"); }
 
         for param in &endpoint.parameters {
             let example = param.example.as_deref().unwrap_or("");
             let required_marker = if param.required { "" } else { " ' optional" };
 
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 bas,
                 "PARAM {} AS {} LIKE \"{}\" DESCRIPTION \"{}\"{}",
                 Self::sanitize_param_name(&param.name),
@@ -20,14 +20,18 @@ impl ApiToolGenerator {
                 example,
                 Self::escape_description(&param.description),
                 required_marker
-            );
+            ) {
+                log::warn!("API tool BAS write failed: {e}");
+            }
         }
 
-        let _ = writeln!(
+        if let Err(e) = writeln!(
             bas,
             "\nDESCRIPTION \"{}\"\n",
             Self::escape_description(&endpoint.description)
-        );
+        ) {
+            log::warn!("API tool BAS write failed: {e}");
+        }
 
         let mut url = format!("{}{}", endpoint.base_url, endpoint.path);
         let path_params: Vec<&EndpointParameter> = endpoint
@@ -55,11 +59,13 @@ impl ApiToolGenerator {
             for (i, param) in query_params.iter().enumerate() {
                 let name = Self::sanitize_param_name(&param.name);
                 let sep = if i == 0 { "?" } else { "&" };
-                let _ = writeln!(
+                if let Err(e) = writeln!(
                     bas,
                     "IF NOT ISEMPTY({}) THEN query_params = query_params + \"{}{}=\" + {}",
                     name, sep, param.name, name
-                );
+                ) {
+                    log::warn!("API tool BAS write failed: {e}");
+                }
             }
             bas.push('\n');
         }
@@ -75,11 +81,13 @@ impl ApiToolGenerator {
             bas.push_str("body = {}\n");
             for param in &body_params {
                 let name = Self::sanitize_param_name(&param.name);
-                let _ = writeln!(
+                if let Err(e) = writeln!(
                     bas,
                     "IF NOT ISEMPTY({}) THEN body.{} = {}",
                     name, param.name, name
-                );
+                ) {
+                    log::warn!("API tool BAS write failed: {e}");
+                }
             }
             bas.push('\n');
         }
@@ -92,13 +100,15 @@ impl ApiToolGenerator {
         };
 
         if body_params.is_empty() {
-            let _ = writeln!(bas, "result = {} HTTP {}", endpoint.method, full_url);
+            if let Err(e) = writeln!(bas, "result = {} HTTP {}", endpoint.method, full_url) { log::warn!("API tool BAS write failed: {e}"); }
         } else {
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 bas,
                 "result = {} HTTP {} WITH body",
                 endpoint.method, full_url
-            );
+            ) {
+                log::warn!("API tool BAS write failed: {e}");
+            }
         }
 
         bas.push_str("\n' Return result\n");
@@ -215,13 +225,15 @@ impl ApiToolGenerator {
 
         for api in existing {
             if !current_names.contains(&api.api_name.as_str()) {
-                diesel::sql_query(
+                if let Err(e) = diesel::sql_query(
                     "DELETE FROM generated_api_tools WHERE bot_id = $1 AND api_name = $2",
                 )
                 .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
                 .bind::<diesel::sql_types::Text, _>(&api.api_name)
                 .execute(&mut conn)
-                .ok();
+                {
+                    log::warn!("generated API tool cleanup failed: {e}");
+                }
 
                 let api_folder = format!(
                     "{work_path}/{org_id}.gborg/{bot_id}.gbai/.gbdialog/{api_name}",

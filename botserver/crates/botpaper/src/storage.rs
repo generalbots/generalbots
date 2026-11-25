@@ -214,10 +214,10 @@ pub async fn delete_document_from_drive(
     }
 
     if current_exists {
-        let _ = (state.s3_delete)(&state.bucket_name, &current_path).await;
+        if let Err(e) = (state.s3_delete)(&state.bucket_name, &current_path).await { log::warn!("paper document deletion failed: {e}"); }
     }
     for key in named_keys {
-        let _ = (state.s3_delete)(&state.bucket_name, &key).await;
+        if let Err(e) = (state.s3_delete)(&state.bucket_name, &key).await { log::warn!("paper document deletion failed: {e}"); }
     }
 
     Ok(())

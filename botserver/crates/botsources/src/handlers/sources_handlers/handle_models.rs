@@ -43,11 +43,13 @@ pub async fn handle_models(State(state): State<Arc<AppState>>) -> impl IntoRespo
     html.push_str("<div class=\"models-header\"><h3>AI Models</h3><p>Language models available to your bots</p></div>");
 
     if !configured_model.is_empty() {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"active-model-banner\"><strong>Configured model:</strong> {} <span class=\"model-status active\">Active</span></div>",
             html_escape(&configured_model)
-        );
+        ) {
+            log::warn!("models HTML write failed: {e}");
+        }
     }
 
     html.push_str("<div class=\"models-grid\">");
@@ -59,11 +61,13 @@ pub async fn handle_models(State(state): State<Arc<AppState>>) -> impl IntoRespo
             || (!match_url.is_empty() && !url_lower.is_empty() && url_lower.contains(match_url));
         let status_class = if is_configured { "model-active" } else { "model-available" };
         let status = if is_configured { "Active" } else { "Available" };
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"model-card {}\"><div class=\"model-icon\">{}</div><div class=\"model-info\"><div class=\"model-header\"><h4>{}</h4><span class=\"model-provider\">{}</span></div><p>{}</p><div class=\"model-footer\"><span class=\"model-status\">{}</span></div></div></div>",
             status_class, icon, html_escape(name), html_escape(name), html_escape(description), status
-        );
+        ) {
+            log::warn!("models HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div></div>");
@@ -90,22 +94,28 @@ pub async fn handle_search(
         .collect();
 
     let mut html = String::new();
-    let _ = write!(html, "<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query));
+    if let Err(e) = write!(html, "<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query)) {
+        log::warn!("models HTML write failed: {e}");
+    }
 
     if matching_prompts.is_empty() {
         html.push_str("<div class=\"no-results\"><p>No results found</p></div>");
     } else {
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"result-section\"><h4>Prompts ({})</h4><div class=\"results-grid\">",
             matching_prompts.len()
-        );
+        ) {
+            log::warn!("models HTML write failed: {e}");
+        }
         for prompt in matching_prompts {
-            let _ = write!(
+            if let Err(e) = write!(
                 html,
                 "<div class=\"result-item\"><span class=\"result-icon\">{}</span><div class=\"result-info\"><strong>{}</strong><p>{}</p></div></div>",
                 prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description)
-            );
+            ) {
+                log::warn!("models HTML write failed: {e}");
+            }
         }
         html.push_str("</div></div>");
     }

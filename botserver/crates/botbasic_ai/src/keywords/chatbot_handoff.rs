@@ -91,7 +91,7 @@ fn register_transfer_to_human(
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["TRANSFER", "TO", "HUMAN", "REASON", "$expr$"],
             false,
@@ -144,12 +144,14 @@ fn register_transfer_to_human(
             },
         )
         .map_err(|e| runtime_error(format!("TRANSFER TO HUMAN registration: {e}")))
-        .ok();
+    {
+        log::warn!("handoff keyword registration failed: {e}");
+    }
 }
 
 fn register_escalate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ESCALATE", "$expr$", "PRIORITY", "$expr$"],
             false,
@@ -206,12 +208,14 @@ fn register_escalate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &m
             },
         )
         .map_err(|e| runtime_error(format!("ESCALATE registration: {e}")))
-        .ok();
+    {
+        log::warn!("handoff keyword registration failed: {e}");
+    }
 }
 
 fn register_request_agent(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REQUEST", "AGENT", "TOPIC", "$expr$"],
             false,
@@ -260,12 +264,14 @@ fn register_request_agent(state: Arc<dyn BasicRuntime>, user: UserSession, engin
             },
         )
         .map_err(|e| runtime_error(format!("REQUEST AGENT registration: {e}")))
-        .ok();
+    {
+        log::warn!("handoff keyword registration failed: {e}");
+    }
 }
 
 fn register_assign_agent(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ASSIGN", "AGENT", "$expr$", "TO", "$expr$"],
             false,
@@ -305,7 +311,9 @@ fn register_assign_agent(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             },
         )
         .map_err(|e| runtime_error(format!("ASSIGN AGENT registration: {e}")))
-        .ok();
+    {
+        log::warn!("handoff keyword registration failed: {e}");
+    }
 }
 
 fn register_complete_handoff(
@@ -314,7 +322,7 @@ fn register_complete_handoff(
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["COMPLETE", "HANDOFF", "$expr$", "RATING", "$expr$"],
             false,
@@ -358,5 +366,7 @@ fn register_complete_handoff(
             },
         )
         .map_err(|e| runtime_error(format!("COMPLETE HANDOFF registration: {e}")))
-        .ok();
+    {
+        log::warn!("handoff keyword registration failed: {e}");
+    }
 }

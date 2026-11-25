@@ -66,7 +66,7 @@ pub async fn handle_query_knowledge_base(
             sql.push_str(" AND ks.collection = $4");
         }
 
-        let _ = write!(sql, " ORDER BY score DESC, kc.chunk_index ASC LIMIT {top_k}");
+        if let Err(e) = write!(sql, " ORDER BY score DESC, kc.chunk_index ASC LIMIT {top_k}") { log::warn!("knowledge base SQL write failed: {e}"); }
 
         let search_results: Vec<SearchResultRow> = if let Some(ref coll) = collection {
             diesel::sql_query(&sql)

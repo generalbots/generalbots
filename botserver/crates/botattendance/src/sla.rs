@@ -81,7 +81,7 @@ async fn check_sla_breaches(config: &Arc<AttendanceConfig>) -> Result<(), String
         }
 
         let pool = config.pool.clone();
-        let _ = tokio::task::spawn_blocking(move || {
+        if let Err(e) = tokio::task::spawn_blocking(move || {
             if let Ok(mut db_conn) = pool.get() {
                 crate::webhooks::emit_webhook_event(
                     &mut db_conn,
@@ -95,7 +95,9 @@ async fn check_sla_breaches(config: &Arc<AttendanceConfig>) -> Result<(), String
                 );
             }
         })
-        .await;
+        .await {
+            log::warn!("SLA webhook task failed: {e}");
+        }
     }
 
     Ok(())

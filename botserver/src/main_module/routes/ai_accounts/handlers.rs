@@ -98,9 +98,13 @@ pub async fn status(
                     .await
                     .map_err(|(code, message)| err_upstream(code, &message))?;
                 if status.state == "linked" {
-                    let _ = ai_accounts::mark_linked(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, None, None, Some(&row.vm_name), None);
+                    if let Err(e) = ai_accounts::mark_linked(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, None, None, Some(&row.vm_name), None) {
+                        log::warn!("Failed to record Claude Code link: {e}");
+                    }
                 } else {
-                    let _ = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, map_claude_state(&status.state), None, None, Some(&row.vm_name));
+                    if let Err(e) = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, map_claude_state(&status.state), None, None, Some(&row.vm_name)) {
+                        log::warn!("Failed to update Claude Code account status: {e}");
+                    }
                 }
                 json!({
                     "provider": ai_accounts::CLAUDE_CODE,
@@ -126,7 +130,9 @@ pub async fn status(
         }
         if row.get("status").and_then(Value::as_str) == Some("linked") {
             if ai_accounts_chatgpt::access_token(user.user_id).await.is_err() {
-                let _ = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CHATGPT_PLAN, "expired", None, None, None);
+                if let Err(e) = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CHATGPT_PLAN, "expired", None, None, None) {
+                    log::warn!("Failed to mark ChatGPT plan as expired: {e}");
+                }
                 return Ok(Json(json!({
                     "account": { "provider": ai_accounts::CHATGPT_PLAN, "status": "expired" },
                     "checked_at": chrono::Utc::now().to_rfc3339(),
@@ -148,9 +154,13 @@ pub async fn status(
                 };
                 let mapped = map_claude_state(&st);
                 if st == "linked" {
-                    let _ = ai_accounts::mark_linked(&state.conn, user.user_id, provider, None, None, Some(&row.vm_name), None);
+                    if let Err(e) = ai_accounts::mark_linked(&state.conn, user.user_id, provider, None, None, Some(&row.vm_name), None) {
+                        log::warn!("Failed to record {provider} link: {e}");
+                    }
                 } else {
-                    let _ = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped, None, None, Some(&row.vm_name));
+                    if let Err(e) = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped, None, None, Some(&row.vm_name)) {
+                        log::warn!("Failed to update {provider} account status: {e}");
+                    }
                 }
                 let mut obj = json!({ "provider": provider, "status": mapped, "state": st, "url": url, "message": msg, "vm_name": row.vm_name });
                 if let Some(extra_obj) = extra.as_object() {
@@ -192,7 +202,9 @@ pub async fn disconnect(
         ai_accounts::CLAUDE_CODE => {
             if let Some(service) = crate::core::bot::agent_vm_hook::service() {
                 if let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user.user_id) {
-                    let _ = botagent::claude::logout(service, &row.vm_name).await;
+                    if let Err(e) = botagent::claude::logout(service, &row.vm_name).await {
+                        log::warn!("Claude agent VM logout failed (status {})", e.0);
+                    }
                 }
             }
             ai_accounts::update_status(
@@ -214,7 +226,9 @@ pub async fn disconnect(
         ai_accounts::CODEX_CLI => {
             if let Some(service) = crate::core::bot::agent_vm_hook::service() {
                 if let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user.user_id) {
-                    let _ = botagent::codex::logout(service, &row.vm_name).await;
+                    if let Err(e) = botagent::codex::logout(service, &row.vm_name).await {
+                        log::warn!("Codex agent VM logout failed (status {})", e.0);
+                    }
                 }
             }
             ai_accounts::update_status(&state.conn, user.user_id, provider, "unlinked", None, None, None)
@@ -223,7 +237,9 @@ pub async fn disconnect(
         ai_accounts::ANTIGRAVITY => {
             if let Some(service) = crate::core::bot::agent_vm_hook::service() {
                 if let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user.user_id) {
-                    let _ = botagent::antigravity::logout(service, &row.vm_name).await;
+                    if let Err(e) = botagent::antigravity::logout(service, &row.vm_name).await {
+                        log::warn!("Antigravity agent VM logout failed (status {})", e.0);
+                    }
                 }
             }
             ai_accounts::update_status(&state.conn, user.user_id, provider, "unlinked", None, None, None)

@@ -238,7 +238,7 @@ pub fn get_range_values(range: &str, worksheet: &Worksheet) -> Vec<f64> {
     for row in start.0..=end.0 {
         for col in start.1..=end.1 {
             key.clear();
-            let _ = write!(&mut key, "{},{}", row, col);
+            if let Err(e) = write!(&mut key, "{},{}", row, col) { log::warn!("formula ref key write failed: {e}"); }
             if let Some(cell) = worksheet.data.get(&key) {
                 if let Some(ref value) = cell.value {
                     if let Ok(num) = value.parse::<f64>() {
@@ -262,7 +262,7 @@ pub fn get_range_string_values(range: &str, worksheet: &Worksheet) -> Vec<String
     for row in start.0..=end.0 {
         for col in start.1..=end.1 {
             key.clear();
-            let _ = write!(&mut key, "{},{}", row, col);
+            if let Err(e) = write!(&mut key, "{},{}", row, col) { log::warn!("formula ref key write failed: {e}"); }
             let value = match worksheet.data.get(&key).and_then(|c| c.value.clone()) {
                 Some(value) => value,
                 None => String::new(),

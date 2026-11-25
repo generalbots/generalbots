@@ -130,7 +130,7 @@ pub async fn handle_list_accounts_htmx(State(state): State<Arc<AppState>>) -> im
             });
         let imap_server = meta.get("imap_server").map(|s| s.as_str()).unwrap_or("");
 
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             r#"<div class="account-card">
                 <div class="account-header">
@@ -160,7 +160,9 @@ pub async fn handle_list_accounts_htmx(State(state): State<Arc<AppState>>) -> im
             imap_server = imap_server,
             status_class = status_class,
             status = status,
-        );
+        ) {
+            log::warn!("accounts HTML write failed: {e}");
+        }
     }
     html.push_str("</div>");
     Html(html)

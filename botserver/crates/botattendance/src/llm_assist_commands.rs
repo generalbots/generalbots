@@ -64,7 +64,9 @@ async fn handle_queue_command(config: &Arc<AttendanceConfig>) -> Result<String, 
         let name = session.context_data.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown");
         let channel = session.context_data.get("channel").and_then(|v| v.as_str()).unwrap_or("web");
         let status = session.context_data.get("status").and_then(|v| v.as_str()).unwrap_or("waiting");
-        let _ = write!(response, "{}. *{}* ({})\n Status: {} | ID: {}\n\n", i + 1, name, channel, status, &session.id.to_string()[..8]);
+        if let Err(e) = write!(response, "{}. *{}* ({})\n Status: {} | ID: {}\n\n", i + 1, name, channel, status, &session.id.to_string()[..8]) {
+            log::warn!("attendance response write failed: {e}");
+        }
     }
     response.push_str("Type `/take` to take the next conversation.");
     Ok(response)
@@ -174,7 +176,7 @@ async fn handle_tips_command(config: &Arc<AttendanceConfig>, current_session: Op
     }
     let mut result = " *Tips for this conversation*\n\n".to_string();
     for tip in tip_response.tips {
-        let _ = write!(result, "\u{1f4a1} {}\n\n", tip.content);
+        if let Err(e) = write!(result, "\u{1f4a1} {}\n\n", tip.content) { log::warn!("attendance response write failed: {e}"); }
     }
     Ok(result)
 }
@@ -191,10 +193,10 @@ async fn handle_polish_command(config: &Arc<AttendanceConfig>, current_session: 
         return Err(polish_response.error.unwrap_or_else(|| "Failed to polish message".to_string()));
     }
     let mut result = " *Polished message*\n\n".to_string();
-    let _ = write!(result, "_{}_\n\n", polish_response.polished);
+    if let Err(e) = write!(result, "_{}_\n\n", polish_response.polished) { log::warn!("attendance response write failed: {e}"); }
     if !polish_response.changes.is_empty() {
         result.push_str("Changes:\n");
-        for change in polish_response.changes { let _ = writeln!(result, "\u{2022} {}", change); }
+        for change in polish_response.changes { if let Err(e) = writeln!(result, "\u{2022} {}", change) { log::warn!("attendance response write failed: {e}"); } }
     }
     result.push_str("\n_Copy and send, or edit as needed._");
     Ok(result)
@@ -211,7 +213,9 @@ async fn handle_replies_command(config: &Arc<AttendanceConfig>, current_session:
     }
     let mut result = " *Suggested replies*\n\n".to_string();
     for (i, reply) in replies_response.replies.iter().enumerate() {
-        let _ = write!(result, "*{}. {}*\n_{}_\n\n", i + 1, reply.tone.to_uppercase(), reply.text);
+        if let Err(e) = write!(result, "*{}. {}*\n_{}_\n\n", i + 1, reply.tone.to_uppercase(), reply.text) {
+            log::warn!("attendance response write failed: {e}");
+        }
     }
     result.push_str("_Copy any reply or use as inspiration._");
     Ok(result)
@@ -226,20 +230,22 @@ async fn handle_summary_command(config: &Arc<AttendanceConfig>, current_session:
     }
     let summary = summary_response.summary;
     let mut result = " *Conversation Summary*\n\n".to_string();
-    let _ = write!(result, "{}\n\n", summary.brief);
+    if let Err(e) = write!(result, "{}\n\n", summary.brief) { log::warn!("attendance response write failed: {e}"); }
     if !summary.key_points.is_empty() {
         result.push_str("*Key Points:*\n");
-        for point in &summary.key_points { let _ = writeln!(result, "\u{2022} {}", point); }
+        for point in &summary.key_points { if let Err(e) = writeln!(result, "\u{2022} {}", point) { log::warn!("attendance response write failed: {e}"); } }
         result.push('\n');
     }
     if !summary.customer_needs.is_empty() {
         result.push_str("*Customer Needs:*\n");
-        for need in &summary.customer_needs { let _ = writeln!(result, "\u{2022} {}", need); }
+        for need in &summary.customer_needs { if let Err(e) = writeln!(result, "\u{2022} {}", need) { log::warn!("attendance response write failed: {e}"); } }
         result.push('\n');
     }
-    let _ = write!(result, " {} messages | {} minutes | Sentiment: {}", summary.message_count, summary.duration_minutes, summary.sentiment_trend);
+    if let Err(e) = write!(result, " {} messages | {} minutes | Sentiment: {}", summary.message_count, summary.duration_minutes, summary.sentiment_trend) {
+        log::warn!("attendance response write failed: {e}");
+    }
     if !summary.recommended_action.is_empty() {
-        let _ = write!(result, "\n\n *Recommended:* {}", summary.recommended_action);
+        if let Err(e) = write!(result, "\n\n *Recommended:* {}", summary.recommended_action) { log::warn!("attendance response write failed: {e}"); }
     }
     Ok(result)
 }

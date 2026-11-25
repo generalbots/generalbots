@@ -60,13 +60,15 @@ pub async fn handle_export_md(
                     .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
             );
 
-            let _ = (state.s3_put)(
+            if let Err(e) = (state.s3_put)(
                 &state.bucket_name,
                 &export_path,
                 doc.content.into_bytes(),
                 Some("text/markdown"),
             )
-            .await;
+            .await {
+                log::warn!("paper export upload failed: {e}");
+            }
 
             return Html(
                 "<script>alert('Markdown exported to your exports folder.');</script>".to_string(),
@@ -101,13 +103,15 @@ pub async fn handle_export_html(
                     .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
             );
 
-            let _ = (state.s3_put)(
+            if let Err(e) = (state.s3_put)(
                 &state.bucket_name,
                 &export_path,
                 html_content.into_bytes(),
                 Some("text/html"),
             )
-            .await;
+            .await {
+                log::warn!("paper export upload failed: {e}");
+            }
 
             return Html(
                 "<script>alert('HTML exported to your exports folder.');</script>".to_string(),
@@ -138,13 +142,15 @@ pub async fn handle_export_txt(
                     .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
             );
 
-            let _ = (state.s3_put)(
+            if let Err(e) = (state.s3_put)(
                 &state.bucket_name,
                 &export_path,
                 plain_text.into_bytes(),
                 Some("text/plain"),
             )
-            .await;
+            .await {
+                log::warn!("paper export upload failed: {e}");
+            }
 
             return Html(
                 "<script>alert('Text exported to your exports folder.');</script>".to_string(),

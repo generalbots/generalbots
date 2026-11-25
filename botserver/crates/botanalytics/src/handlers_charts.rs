@@ -20,31 +20,35 @@ fn render_line_chart(values: &[f64], max: f64, labels: &[String], fill: bool) ->
     // SVG silently drops; fall back to a unit scale so the chart stays valid.
     let max = if max.is_finite() && max > 0.0 { max } else { 1.0 };
     let mut html = String::new();
-    let _ = write!(html, "<div class=\"chart-container line-chart\">");
-    let _ = write!(html, "<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">");
+    if let Err(e) = write!(html, "<div class=\"chart-container line-chart\">") { log::warn!("chart HTML write failed: {e}"); }
+    if let Err(e) = write!(html, "<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">") { log::warn!("chart HTML write failed: {e}"); }
     if fill {
-        let _ = write!(html, "<polygon fill=\"var(--primary)\" fill-opacity=\"0.15\" stroke=\"none\" points=\"");
+        if let Err(e) = write!(html, "<polygon fill=\"var(--primary)\" fill-opacity=\"0.15\" stroke=\"none\" points=\"") {
+            log::warn!("chart HTML write failed: {e}");
+        }
         for (i, v) in values.iter().enumerate() {
             let x = (i as f64 / 23.0) * 480.0;
             let y = 180.0f64.mul_add(-(v / max), 200.0);
-            let _ = write!(html, "{x},{y} ");
+            if let Err(e) = write!(html, "{x},{y} ") { log::warn!("chart HTML write failed: {e}"); }
         }
-        let _ = write!(html, "480,200 0,200\"/>");
+        if let Err(e) = write!(html, "480,200 0,200\"/>") { log::warn!("chart HTML write failed: {e}"); }
     }
-    let _ = write!(html, "<polyline fill=\"none\" stroke=\"var(--primary)\" stroke-width=\"2\" points=\"");
+    if let Err(e) = write!(html, "<polyline fill=\"none\" stroke=\"var(--primary)\" stroke-width=\"2\" points=\"") {
+        log::warn!("chart HTML write failed: {e}");
+    }
     for (i, v) in values.iter().enumerate() {
         let x = (i as f64 / 23.0) * 480.0;
         let y = 180.0f64.mul_add(-(v / max), 200.0);
-        let _ = write!(html, "{x},{y} ");
+        if let Err(e) = write!(html, "{x},{y} ") { log::warn!("chart HTML write failed: {e}"); }
     }
-    let _ = write!(html, "\"/></svg>");
-    let _ = write!(html, "<div class=\"chart-labels\">");
+    if let Err(e) = write!(html, "\"/></svg>") { log::warn!("chart HTML write failed: {e}"); }
+    if let Err(e) = write!(html, "<div class=\"chart-labels\">") { log::warn!("chart HTML write failed: {e}"); }
     for (i, label) in labels.iter().enumerate() {
         if i % 4 == 0 {
-            let _ = write!(html, "<span>{label}</span>");
+            if let Err(e) = write!(html, "<span>{label}</span>") { log::warn!("chart HTML write failed: {e}"); }
         }
     }
-    let _ = write!(html, "</div></div>");
+    if let Err(e) = write!(html, "</div></div>") { log::warn!("chart HTML write failed: {e}"); }
     html
 }
 
@@ -113,18 +117,20 @@ pub async fn handle_timeseries_messages(
 
     for (i, count) in counts.iter().enumerate() {
         let height_pct = (*count as f64 / max_count as f64) * 100.0;
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"chart-bar\" style=\"height: {}%\" title=\"{}: {} messages\"></div>",
             height_pct, labels[i], count
-        );
+        ) {
+            log::warn!("chart HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div>");
     html.push_str("<div class=\"chart-labels\">");
     for (i, label) in labels.iter().enumerate() {
         if i % 4 == 0 {
-            let _ = write!(html, "<span>{label}</span>");
+            if let Err(e) = write!(html, "<span>{label}</span>") { log::warn!("chart HTML write failed: {e}"); }
         }
     }
     html.push_str("</div>");
@@ -263,11 +269,13 @@ pub async fn handle_channels_distribution(State(pool): State<Arc<DbPool>>) -> im
             0.0
         };
         let color = colors[i % colors.len()];
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"pie-segment\" style=\"--offset: {}; --value: {}; --color: {};\"></div>",
             offset, pct, color
-        );
+        ) {
+            log::warn!("chart HTML write failed: {e}");
+        }
         offset += pct;
     }
 
@@ -281,11 +289,13 @@ pub async fn handle_channels_distribution(State(pool): State<Arc<DbPool>>) -> im
             0.0
         };
         let color = colors[i % colors.len()];
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<div class=\"legend-item\"><span class=\"legend-color\" style=\"background: {};\"></span>{} ({:.0}%)</div>",
             color, html_escape(&data.channel), pct
-        );
+        ) {
+            log::warn!("chart HTML write failed: {e}");
+        }
     }
 
     html.push_str("</div>");
@@ -351,16 +361,20 @@ pub async fn handle_bots_performance(State(pool): State<Arc<DbPool>>) -> impl In
     for data in bot_data.iter() {
         let pct = (data.count as f64 / max_count as f64) * 100.0;
         html.push_str("<div class=\"bar-row\">");
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<span class=\"bar-label\">{}</span>",
             html_escape(&data.name)
-        );
-        let _ = write!(
+        ) {
+            log::warn!("chart HTML write failed: {e}");
+        }
+        if let Err(e) = write!(
             html,
             "<div class=\"bar-track\"><div class=\"bar-fill\" style=\"width: {pct}%;\"></div></div>"
-        );
-        let _ = write!(html, "<span class=\"bar-value\">{}</span>", data.count);
+        ) {
+            log::warn!("chart HTML write failed: {e}");
+        }
+        if let Err(e) = write!(html, "<span class=\"bar-value\">{}</span>", data.count) { log::warn!("chart HTML write failed: {e}"); }
         html.push_str("</div>");
     }
 

@@ -175,12 +175,14 @@ pub async fn handle_mcp_servers(
 
     html.push_str("<div style=\"margin-bottom:2rem;\">");
     html.push_str("<h4 style=\"font-size:1.1rem;margin-bottom:0.75rem;\">🔧 Configured Servers</h4>");
-    let _ = write!(
+    if let Err(e) = write!(
         html,
         "<div style=\"font-size:0.85rem);color:#666;margin-bottom:0.75rem;\"><span>Config:</span> <code style=\"background:#f5f5f5;padding:0.2rem 0.4rem;border-radius:0.25rem;\">{}</code>{}</div>",
         scan_result.file_path.to_string_lossy(),
         if loader.csv_exists() { "" } else { " <span style=\"background:#fff3cd;color:#856404;padding:0.2rem 0.4rem;border-radius:0.25rem;font-size:0.75rem;\">Not Found</span>" }
-    );
+    ) {
+        log::warn!("MCP server HTML write failed: {e}");
+    }
 
     html.push_str("<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;\" id=\"mcp-grid\">");
 
@@ -193,7 +195,7 @@ pub async fn handle_mcp_servers(
             let status_bg = if is_active { "#e8f5e9" } else { "#ffebee" };
             let status_color = if is_active { "#2e7d32" } else { "#c62828" };
 
-            let _ = write!(
+            if let Err(e) = write!(
                 html,
                 "<div style=\"background:#fff);border:1px solid #e0e0e0;border-left:3px solid #2196F3;border-radius:0.5rem;padding:1rem;\">
                 <div style=\"display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;\">
@@ -213,7 +215,9 @@ pub async fn handle_mcp_servers(
                 if server.description.is_empty() { "<em>No description</em>".to_string() } else { html_escape(&server.description) },
                 server.tools.len(),
                 html_escape(&server.name)
-            );
+            ) {
+                log::warn!("MCP server HTML write failed: {e}");
+            }
         }
     }
     html.push_str("</div></div>");
@@ -226,12 +230,14 @@ pub async fn handle_mcp_servers(
         html.push_str("<div style=\"display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;\" id=\"mcp-category-filter\">");
         html.push_str("<button class=\"category-btn active\" style=\"padding:0.4rem 0.8rem;border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, 'all')\">All</button>");
         for category in &catalog.categories {
-            let _ = write!(
+            if let Err(e) = write!(
                 html,
                 "<button class=\"category-btn\" style=\"padding:0.4rem 0.8rem);border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, '{}')\"> {}</button>",
                 html_escape(category),
                 html_escape(category)
-            );
+            ) {
+                log::warn!("MCP server HTML write failed: {e}");
+            }
         }
         html.push_str("</div>");
 
@@ -251,7 +257,7 @@ pub async fn handle_mcp_servers(
             };
             let category_icon = get_category_icon(&server.category);
 
-            let _ = write!(
+            if let Err(e) = write!(
                 html,
                 "<div class=\"server-card\" data-category=\"{}\" data-id=\"{}\" style=\"background:#fff;border:1px solid #e0e0e0;border-radius:0.75rem;padding:1rem;\">
                 <div style=\"display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:0.75rem;\">
@@ -279,7 +285,9 @@ pub async fn handle_mcp_servers(
                 html_escape(&server.category),
                 html_escape(&server.id),
                 html_escape(&server.name)
-            );
+            ) {
+                log::warn!("MCP server HTML write failed: {e}");
+            }
         }
         html.push_str("</div></div>");
     } else {

@@ -69,18 +69,22 @@ pub async fn handle_recent_activity(State(pool): State<Arc<DbPool>>) -> impl Int
         };
 
         html.push_str("<div class=\"activity-item\">");
-        let _ = write!(html, "<span class=\"activity-icon\">{icon}</span>");
+        if let Err(e) = write!(html, "<span class=\"activity-icon\">{icon}</span>") { log::warn!("activity HTML write failed: {e}"); }
         html.push_str("<div class=\"activity-content\">");
-        let _ = write!(
+        if let Err(e) = write!(
             html,
             "<span class=\"activity-desc\">{}</span>",
             html_escape(&activity.description)
-        );
-        let _ = write!(
+        ) {
+            log::warn!("activity HTML write failed: {e}");
+        }
+        if let Err(e) = write!(
             html,
             "<span class=\"activity-time\">{}</span>",
             html_escape(&activity.time_ago)
-        );
+        ) {
+            log::warn!("activity HTML write failed: {e}");
+        }
         html.push_str("</div>");
         html.push_str("</div>");
     }
@@ -142,13 +146,15 @@ pub async fn handle_top_queries(State(pool): State<Arc<DbPool>>) -> impl IntoRes
 
     for (i, q) in queries.iter().enumerate() {
         html.push_str("<div class=\"query-item\">");
-        let _ = write!(html, "<span class=\"query-rank\">{}</span>", i + 1);
-        let _ = write!(
+        if let Err(e) = write!(html, "<span class=\"query-rank\">{}</span>", i + 1) { log::warn!("activity HTML write failed: {e}"); }
+        if let Err(e) = write!(
             html,
             "<span class=\"query-text\">{}</span>",
             html_escape(&q.query)
-        );
-        let _ = write!(html, "<span class=\"query-count\">{}</span>", q.count);
+        ) {
+            log::warn!("activity HTML write failed: {e}");
+        }
+        if let Err(e) = write!(html, "<span class=\"query-count\">{}</span>", q.count) { log::warn!("activity HTML write failed: {e}"); }
         html.push_str("</div>");
     }
 

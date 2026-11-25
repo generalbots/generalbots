@@ -27,7 +27,7 @@ pub(super) async fn execute_soap(
         "text/xml; charset=utf-8".to_string(),
     );
     let mut soap_action = String::new();
-    let _ = write!(soap_action, "\"{operation}\"");
+    if let Err(e) = write!(soap_action, "\"{operation}\"") { log::warn!("SOAP action write failed: {e}"); }
     headers.insert("SOAPAction".to_string(), soap_action);
 
     let client = Client::builder()
@@ -88,7 +88,7 @@ pub(super) fn build_soap_envelope(operation: &str, params: &Value) -> String {
                 Value::Bool(b) => b.to_string(),
                 _ => value.to_string(),
             };
-            let _ = write!(params_xml, "<{key}>{value_str}</{key}>");
+            if let Err(e) = write!(params_xml, "<{key}>{value_str}</{key}>") { log::warn!("SOAP parameter write failed: {e}"); }
         }
     }
 

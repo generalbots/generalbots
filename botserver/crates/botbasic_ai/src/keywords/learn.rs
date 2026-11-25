@@ -80,7 +80,7 @@ fn llm_content(state: &Arc<dyn BasicRuntime>, prompt: &str, fallback: &str) -> S
 
 fn register_teach(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["TEACH", "$expr$", "ABOUT", "$expr$"],
             false,
@@ -123,12 +123,14 @@ fn register_teach(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut 
             },
         )
         .map_err(|e| runtime_error(format!("TEACH registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_study(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["STUDY", "$expr$"], false, move |context, inputs| {
             let topic = context.eval_expression_tree(&inputs[0])?.to_string();
             let state = Arc::clone(&state_clone);
@@ -165,12 +167,14 @@ fn register_study(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut 
             }
         })
         .map_err(|e| runtime_error(format!("STUDY registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_quiz(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["QUIZ", "$expr$", "WITH", "$expr$", "QUESTIONS"],
             false,
@@ -212,12 +216,14 @@ fn register_quiz(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut E
             },
         )
         .map_err(|e| runtime_error(format!("QUIZ registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_flashcard(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["FLASHCARD", "$expr$", "=", "$expr$"],
             false,
@@ -253,12 +259,14 @@ fn register_flashcard(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &
             },
         )
         .map_err(|e| runtime_error(format!("FLASHCARD registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_curriculum(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CURRICULUM", "$expr$"], false, move |context, inputs| {
             let subject = context.eval_expression_tree(&inputs[0])?.to_string();
             let state = Arc::clone(&state_clone);
@@ -300,12 +308,14 @@ fn register_curriculum(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
             }
         })
         .map_err(|e| runtime_error(format!("CURRICULUM registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_lesson(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["LESSON", "$expr$", "STAGE", "$expr$"],
             false,
@@ -339,12 +349,14 @@ fn register_lesson(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut
             },
         )
         .map_err(|e| runtime_error(format!("LESSON registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_progress(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["PROGRESS", "OF", "$expr$"], false, move |context, inputs| {
             let student_str = context.eval_expression_tree(&inputs[0])?.to_string();
             let state = Arc::clone(&state_clone);
@@ -372,12 +384,14 @@ fn register_progress(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &m
             }
         })
         .map_err(|e| runtime_error(format!("PROGRESS registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
 
 fn register_remember_fact(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REMEMBER", "FACT", "$expr$", "=", "$expr$"],
             false,
@@ -412,5 +426,7 @@ fn register_remember_fact(state: Arc<dyn BasicRuntime>, user: UserSession, engin
             },
         )
         .map_err(|e| runtime_error(format!("REMEMBER FACT registration: {e}")))
-        .ok();
+    {
+        log::warn!("learn keyword registration failed: {e}");
+    }
 }
