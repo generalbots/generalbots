@@ -24,7 +24,7 @@ var BOOT = "botui/ui/suite/docs/modules/00_boot.js";
 var FRAGMENT = "botserver/crates/botdocs/src/ui_fragments/sidebars.rs";
 
 var INIT_START = "function initCollab() {";
-var INIT_END = 'var typingEl = document.getElementById("typing-indicator");';
+var INIT_END = "var opts = {";
 
 /** Literal substring assertion — no regex metacharacter escaping needed. */
 function contains(relPath, needle, msg) {
@@ -65,48 +65,29 @@ function sequence(span, markers, msg) {
   });
 }
 
-// (a) The article's data-doc-id is preferred over the title input, with a
-// literal "current" fallback and the comment explaining the failure mode.
-h.staticTest("#2457 initCollab prefers article.dataset.docId over the docTitle input, falls back to 'current', and documents why", function () {
+// (a) The shipped lifecycle uses the article's real doc id on the wire and
+// documents why a title must never be used. The full connect/reconnect
+// lifecycle is covered by 51_docs_collab_lifecycle.js.
+h.staticTest("#2457 collab uses only the article data-doc-id and documents why", function () {
   var src = h.readRepo(COLLAB);
 
-  // Non-vacuity: initCollab really ships and actually connects with docId.
   contains(COLLAB, INIT_START, "initCollab is shipped");
-  contains(COLLAB, "window.GBCollab.connect({", "collab connection is shipped");
-  contains(COLLAB, "docId: docId,", "derived docId is used for the WebSocket connection");
+  contains(COLLAB, "gb.connect(opts)", "collab connection is shipped");
 
-  // Scope tightly to initCollab's doc-id selection so onEdit's separate
-  // `article` query cannot satisfy or invalidate any assertion here.
   var selection = between(src, INIT_START, INIT_END);
+  spanHas(selection, "human-readable name", "comment states the title is human-readable");
+  spanHas(selection, "server validates a UUID/slug", "comment states the server validates the id");
+  spanHas(selection, "#GB-UAT 27893d4e", "comment records the UAT evidence");
 
-  // The explanatory comment must survive the fix (it pins the root cause).
-  spanHas(selection, "The server validates the doc id (UUID/slug); the title input holds the",
-    "comment states the server validates the doc id, not the title");
-  spanHas(selection, "human-readable document name, so using it made every docs WebSocket",
-    "comment explains the title input is human-readable");
-  spanHas(selection, "malformed document id", "comment names the malformed-id failure");
-  spanHas(selection, "collaboration (#GB-UAT 27893d4e).", "comment records the UAT evidence");
-
-  // The article is queried, then its dataset.docId is selected first.
   spanHas(selection, 'var article = document.querySelector("article[contenteditable]");',
     "editable article is queried for its doc id");
-  spanHas(selection, "var docId = (article && article.dataset && article.dataset.docId) ||",
-    "dataset.docId is the first, guarded preference");
-  spanHas(selection,
-    '(document.getElementById("docTitle") && document.getElementById("docTitle").value) || "current";',
-    "title input is only the secondary source and 'current' is the final fallback");
-
-  // Strict preference order: dataset doc id, then title input, then "current".
-  // Reverting to title-first, or dropping the fallback, breaks these checks.
-  sequence(selection, [
-    "article.dataset.docId",
-    'getElementById("docTitle")',
-    '"current"'
-  ], "doc-id preference order is article dataset > docTitle > 'current'");
-  h.assertEqual(countIn(selection, "var docId ="), 1,
-    "the doc id is assigned from a single selection expression");
-  h.assertEqual(countIn(src, "var docId ="), 1,
-    "no second, overriding doc-id assignment exists in the module");
+  spanHas(selection, 'var id = article && article.dataset ? article.dataset.docId : "";',
+    "dataset.docId is the only source of a real id");
+  spanHas(selection, 'if (!id || id === "current" || !/^[A-Za-z0-9_.-]+$/.test(id)) return "";',
+    "placeholder/title-like ids are rejected before any connection");
+  spanHas(src, "opts.docId = id;", "the validated id is used for the WebSocket connection");
+  h.assert(selection.indexOf('getElementById("docTitle")') === -1,
+    "the title input must never be used as a doc id");
 });
 
 // (b) The shipped Docs template actually sets data-doc-id on the editable
