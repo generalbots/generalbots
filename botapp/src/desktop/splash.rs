@@ -84,7 +84,7 @@ pub fn show(app: &tauri::AppHandle) {
         .resizable(false)
         .decorations(false)
         .transparent(true)
-        .skip_taskbar(true)
+        .skip_taskbar(rig)
         .visible(true);
     if rig {
         builder = builder
@@ -162,6 +162,7 @@ fn watch_splash_painted(app: &tauri::AppHandle, created_at: Instant) {
 /// Hides (closes) the splash window once the real UI is ready, respecting the
 /// minimum display duration so the edition's hero animation completes.
 pub fn hide(app: &tauri::AppHandle) {
+    leave_taskbar(app);
     // Callers include the setup code on the main thread, so the minimum
     // display time is waited on a thread of its own: sleeping here froze the
     // event loop, and every window with it, for the whole remainder.
@@ -199,6 +200,14 @@ fn close(app: &tauri::AppHandle) {
     }
 }
 
+/// Takes the splash's button off the taskbar once another window (the suite
+/// or the setup wizard) has its own, so the person never sees two buttons.
+pub fn leave_taskbar(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("splash") {
+        let _ = window.set_skip_taskbar(true);
+    }
+}
+
 /// Keeps the splash above the freshly revealed suite window.
 ///
 /// #1830 — the main window opens while the suite is still booting, so a plain
@@ -206,6 +215,7 @@ fn close(app: &tauri::AppHandle) {
 /// re-asserts the always-on-top flag and pulls focus; a splash that was closed
 /// earlier stays closed.
 pub fn raise(app: &tauri::AppHandle) {
+    leave_taskbar(app);
     if let Some(window) = app.get_webview_window("splash") {
         if is_test_rig() {
             park_offscreen(&window);

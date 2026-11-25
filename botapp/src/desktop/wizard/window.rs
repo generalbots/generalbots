@@ -206,6 +206,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
 
     let Some(url) = target else {
         warn!("no suite URL is configured");
+        crate::desktop::splash::leave_taskbar(app);
         let _ = main.show();
         crate::desktop::splash::hide(app);
         return;
@@ -256,6 +257,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
             }
             tokio::time::sleep(std::time::Duration::from_millis(150)).await;
         }
+        crate::desktop::splash::leave_taskbar(&splash_app);
         let _ = window.show();
         let _ = window.set_focus();
         // #1830 — the suite is still booting (product config, catalog, default

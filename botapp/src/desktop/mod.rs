@@ -8,6 +8,7 @@ pub mod open_download;
 pub mod payload;
 pub(crate) mod no_window;
 pub mod safe_command;
+pub mod single_instance;
 #[cfg(feature = "desktop-local")]
 pub mod recovery;
 #[cfg(feature = "desktop-local")]

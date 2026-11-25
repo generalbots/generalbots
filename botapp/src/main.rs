@@ -223,7 +223,8 @@ fn main() {
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());
 
-    let builder = tauri::Builder::default()
+    // The single-instance guard is registered first, before any other plugin.
+    let builder = desktop::single_instance::register(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init());
 
@@ -341,10 +342,9 @@ fn main() {
             // extraction and the server stack boot run.
             desktop::splash::show(&app.handle());
 
-            // GB_SPLASH_PREVIEW: show just the splash with simulated progress,
-            // then exit. Does not start the sidecar, wizard or main window, and
-            // does not touch the stack. Safe to run alongside the real app (no
-            // single-instance guard exists).
+            // GB_SPLASH_PREVIEW: just the splash with simulated progress, then
+            // exit. No sidecar, wizard or main window, the stack is untouched and
+            // the single-instance guard is skipped, so it runs beside the app.
             if let Some(seconds) = desktop::splash::splash_preview_seconds() {
                 info!("splash preview mode: {seconds}s");
                 desktop::splash::run_preview(&app.handle(), seconds);
