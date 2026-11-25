@@ -1,7 +1,8 @@
 //! #2448 criterion 4 — the LIVE, scoped agent-batch undo endpoint.
 //!
 //! The typed data model lives in `core::bot::consent_gate::undo`; this module
-//! is its only HTTP consumer. The request body carries a single batch id:
+//! is its only HTTP consumer and also hosts the shared in-process service used
+//! by the chat-native `docs.undo` verb. The request body carries a single batch id:
 //! user, bot and session are derived exclusively from the verified
 //! `AuthenticatedUser` inserted by the auth middleware. A batch is consumed
 //! once (`UndoStore::consume`, conditional UPDATE) and reverted in LIFO order
@@ -12,7 +13,8 @@
 
 use super::*;
 use crate::core::bot::consent_gate::undo::{
-    BatchKey, RevertOperation, UndoError, UndoScope, UndoStore, shared_pool_store,
+    BatchKey, RevertOperation, UndoError, UndoScope, UndoStore, consume_latest,
+    shared_pool_store,
 };
 use uuid::Uuid;
 
@@ -134,14 +136,47 @@ pub async fn undo_batch(
     let plan =
         undo_plan_for(&store, &scope, &body.batch_id).map_err(|error| undo_error(locale, error))?;
 
+    let restored = restore_plan(&state, &user, locale, &plan).await?;
+    let result = UndoResult {
+        batch_id: body.batch_id,
+        reverted: plan,
+        restored,
+    };
+    let value = serde_json::to_value(result).map_err(|_| {
+        err(
+            locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-db-unavailable",
+        )
+    })?;
+    Ok(Json(value))
+}
+
+/// Typed, structured result shared by the HTTP route and the chat-native verb.
+/// The LLM turns these fields into user-facing text; no prose is hardcoded here.
+#[derive(Debug, serde::Serialize)]
+pub struct UndoResult {
+    pub batch_id: String,
+    pub reverted: Vec<RevertOperation>,
+    pub restored: Vec<String>,
+}
+
+/// Reverts a consumed plan through the existing version-restore handler.
+///
+/// The restore handler derives the target resource from the stored version and
+/// the actor from the verified session. No caller-supplied owner, bot or
+/// resource id is ever passed through this call.
+async fn restore_plan(
+    state: &Arc<AppState>,
+    user: &AuthenticatedUser,
+    locale: &botcore::i18n::Locale,
+    plan: &[RevertOperation],
+) -> Result<Vec<String>, (StatusCode, Json<serde_json::Value>)> {
     let mut restored = Vec::new();
-    for operation in &plan {
+    for operation in plan {
         let Some(version_id) = before_version_id(&operation.before) else {
             continue;
         };
-        // The restore handler derives the target resource from the stored
-        // version and the actor from the verified session. No caller-supplied
-        // owner, bot or resource id is ever passed through this call.
         let response = super::restore_version(
             State(state.clone()),
             Extension(user.clone()),
@@ -151,12 +186,38 @@ pub async fn undo_batch(
         .await?;
         restored.push(response.id.clone());
     }
+    Ok(restored)
+}
 
-    Ok(Json(serde_json::json!({
-        "batch_id": body.batch_id,
-        "reverted": plan,
-        "restored": restored,
-    })))
+/// Shared service for the chat-native "undo my last agent batch" verb (#2448).
+///
+/// The scope is built from the authenticated chat identity only — `user_id` and
+/// `bot_id` come from the trusted command executor, never from command params.
+/// With no session claim the verifier derives the same stable UUIDv5 the
+/// loopback HTTP hop uses, so chat and the consent card address one batch.
+/// The newest active batch of that scope is consumed once and reverted through
+/// the same restore path as the HTTP endpoint.
+pub async fn undo_last_batch_for_chat(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    bot_id: Uuid,
+) -> Result<UndoResult, UndoError> {
+    let user = AuthenticatedUser::new(user_id, "chat".to_string()).with_current_bot(bot_id);
+    let scope = verified_scope(&user)?;
+    let store = shared_pool_store().ok_or(UndoError::Storage)?;
+    let resolved = consume_latest(&store, &scope)?;
+    let locale = botcore::i18n::Locale::new("en").ok_or(UndoError::InvalidScope)?;
+    let restored = restore_plan(state, &user, &locale, &resolved.revert_plan)
+        .await
+        .map_err(|(status, _)| {
+            log::error!("chat undo version restore failed with HTTP {}", status.as_u16());
+            UndoError::Storage
+        })?;
+    Ok(UndoResult {
+        batch_id: resolved.key.batch_id,
+        reverted: resolved.revert_plan,
+        restored,
+    })
 }
 
 #[cfg(test)]

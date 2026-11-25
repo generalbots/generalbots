@@ -79,28 +79,22 @@ function hasUndo(name) {
 
 // 1. The catalog really has zero undo verbs — neither a declared command nor
 //    a bound endpoint. This is the UAT's "no *undo* catalog verb at all".
-h.knownBug("no undo verb is declared or bound in the chat/agent catalog", function () {
+h.staticTest("#2448 chat-native undo verb is declared, zero-param and dispatched in-process", function () {
   var commands = catalogNames(COMMANDS_DIR, "cmd");
   var bindings = catalogNames(VERB_TABLE_DIR, "bind");
   h.assert(commands.length > 0 && bindings.length > 0, "catalog scan is not vacuous");
-
-  h.assertEqual(
-    commands.filter(hasUndo).length, 0,
-    "no declared command name may contain 'undo'"
-  );
-  h.assertEqual(
-    bindings.filter(hasUndo).length, 0,
-    "no endpoint binding may have an 'undo' verb"
-  );
-  h.assert(
-    commands.indexOf("office.undo_last_batch") === -1,
-    "office.undo_last_batch is not declared yet"
-  );
-  h.assert(
-    bindings.indexOf("office.undo_last_batch") === -1,
-    "office.undo_last_batch is not bound to a REST route yet"
-  );
+  h.assert(commands.filter(hasUndo).length > 0, "no undo command is declared any more");
+  h.assert(commands.indexOf("docs.undo") !== -1, "docs.undo is not in the command catalog");
+  // Zero params: no prompt-supplied id can select a scope or a batch.
+  contains("botserver/src/apps/commands/app_commands_extra/table/undo_ops.rs", "&[]", "undo verb takes no params");
+  // Scope comes only from the verified chat identity and a single-use consume.
+  contains("botserver/src/core/bot/undo/lookup.rs", "consume_latest", "latest batch is consumed");
+  contains("botserver/src/main_module/routes/collab_routes/undo.rs", "verified_scope", "scope is server-derived");
+  contains("botserver/src/core/bot/api_catalog/execute_command.rs", '"docs.undo" =>', "verb has a dispatch arm");
+  // In-process dispatch: no REST binding to an inventory-absent route.
+  h.assertEqual(bindings.filter(hasUndo).length, 0, "undo must not be a REST-bound verb");
 });
+
 
 // 2. The only undo route the LLM can even see is the editor's: it is in the
 //    endpoint inventory, but no verb binds to it, its handler answers with an

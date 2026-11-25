@@ -72,7 +72,7 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
   // Re-locked 2026-11-25: bucket_scope, route_contract_tests and related
   // files add 3 Rust files and 1 registration; no new public route family.
   // Shrink-only afterwards.
-  equal(files.length, 4713, "shipped router .rs file count");
+  equal(files.length, 4717, "shipped router .rs file count");
   equal(routeCalls, 2453, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");

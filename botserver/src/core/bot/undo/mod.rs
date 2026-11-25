@@ -14,8 +14,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
+mod lookup;
 pub mod store;
 
+pub use lookup::{consume_latest, latest_batch_key, LatestUndo};
 pub use store::{shared_pool_store, InMemoryUndoStore, PgUndoStore, UndoStore};
 
 /// Bounds keep persisted records predictable and stop oversized ids from
@@ -268,5 +270,7 @@ pub struct RevertOperation {
     pub before: Value,
 }
 
+#[cfg(test)]
+mod lookup_tests;
 #[cfg(test)]
 mod tests;

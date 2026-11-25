@@ -350,6 +350,20 @@ pub async fn execute_command(
             let period = str_of("period");
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
+        // #2448 — chat-native "undo my last agent batch". `params` are
+        // deliberately not read: the shared service derives user, bot and
+        // session from the verified command identity only, so a prompt cannot
+        // name a foreign scope or batch. The route itself is consent-gated.
+        #[cfg(feature = "consent")]
+        "docs.undo" => {
+            let result =
+                crate::main_module::routes::collab_routes::undo_last_batch_for_chat(
+                    state, user_id, bot_uuid,
+                )
+                .await
+                .map_err(|error| error.to_string())?;
+            serde_json::to_value(result).map_err(|error| error.to_string())
+        }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
         #[cfg(feature = "automations")]
         "tasks.autotask.create"
