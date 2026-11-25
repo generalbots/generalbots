@@ -62,6 +62,7 @@ require("./webtest-office-fidelity/56_clippy_baseline_gate");
 require("./webtest-office-fidelity/57_link_inventory");
 require("./webtest-office-fidelity/58_agent_undo_gap");
 require("./webtest-office-fidelity/59_confirm_cancel_gate");
+require("./webtest-office-fidelity/60_transfer_audit_gap");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
