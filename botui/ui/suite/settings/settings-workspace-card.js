@@ -3,9 +3,18 @@
  * Read-only status only. Every chip deep-links into the surface that owns the
  * value (Storage, Versions, Cloud billing, Preview); nothing is edited here.
  * When an endpoint fails the chip says "unavailable" — never a fake value.
+ *
+ * #2936: identity / version / plan reads are memoized per panel load and use
+ * bounded backoff (honouring Retry-After). HTMX swaps reuse the cached promise
+ * so /api/auth/me is never re-issued on every fragment swap.
  */
 (function (window) {
   "use strict";
+
+  var MAX_RETRIES = 2;
+  var BACKOFF_CAP_MS = 8000;
+  var RETRY_AFTER_CAP_S = 30;
+  var fetchCache = Object.create(null);
 
   function byId(id) {
     return document.getElementById(id);
@@ -45,6 +54,64 @@
     return "Cloud";
   }
 
+  /* A panel load is identified by the auth token plus the active edition.
+   * Changing either is the only reason to issue a fresh read; an HTMX swap
+   * keeps the same identity, so it reuses the memoized promise below. */
+  function cacheId(key) {
+    return key + "|" + token() + "|" + edition();
+  }
+
+  function retryDelayMs(response, attempt) {
+    var header = response && response.headers && response.headers.get
+      ? response.headers.get("Retry-After") : null;
+    if (header !== null && header !== undefined) {
+      var seconds = Number(String(header).trim());
+      if (isFinite(seconds) && seconds >= 0) {
+        return Math.min(seconds, RETRY_AFTER_CAP_S) * 1000;
+      }
+      var at = Date.parse(String(header));
+      if (isFinite(at)) {
+        return Math.max(0, Math.min(at - Date.now(), RETRY_AFTER_CAP_S * 1000));
+      }
+    }
+    // No usable Retry-After: bounded exponential backoff, never an open loop.
+    return Math.min(1000 * Math.pow(2, attempt), BACKOFF_CAP_MS);
+  }
+
+  function isRetryable(response) {
+    var status = response ? response.status : 0;
+    return status === 429 || (status >= 500 && status < 600);
+  }
+
+  /* Single memoized fetch path. The first caller stores the in-flight promise;
+   * every later render (including afterSwap) gets that exact promise back, so
+   * a failed terminal result is also cached: after MAX_RETRIES the module
+   * stops instead of restarting a 429 storm on the next fragment swap. */
+  function memoFetch(key, url, options) {
+    var id = cacheId(key);
+    var hit = fetchCache[id];
+    if (hit) { return hit; }
+
+    var attempt = 0;
+    function run() {
+      return fetch(url, options).then(function (response) {
+        if (isRetryable(response) && attempt < MAX_RETRIES) {
+          var wait = retryDelayMs(response, attempt);
+          attempt += 1;
+          return new Promise(function (resolve) { setTimeout(resolve, wait); }).then(run);
+        }
+        return response;
+      });
+    }
+    var pending = Promise.resolve().then(run);
+    fetchCache[id] = pending;
+    return pending;
+  }
+
+  function clearFetchCache() {
+    fetchCache = Object.create(null);
+  }
+
   function setText(id, value) {
     var node = byId(id);
     if (node) { node.textContent = value; }
@@ -68,7 +135,7 @@
   }
 
   function renderIdentity() {
-    fetch("/api/auth/me", { headers: headers(), cache: "no-store" })
+    memoFetch("identity", "/api/auth/me", { headers: headers(), cache: "no-store" })
       .then(function (response) {
         if (!response.ok) { throw new Error("HTTP " + response.status); }
         return response.json();
@@ -89,7 +156,7 @@
   function renderVersions() {
     var chip = document.querySelector('[data-workspace-goto="versions"]');
     if (!chip) { return; }
-    fetch("/api/system/versions", { headers: headers(), cache: "no-store" })
+    memoFetch("versions", "/api/system/versions", { headers: headers(), cache: "no-store" })
       .then(function (response) {
         if (!response.ok) { throw new Error("HTTP " + response.status); }
         return response.json();
@@ -107,7 +174,7 @@
     if (edition() !== "cloud") { return; }
     var chip = byId("workspace-plan");
     if (!chip) { return; }
-    fetch("/api/user/billing/plan", { headers: headers(), cache: "no-store" })
+    memoFetch("plan", "/api/user/billing/plan", { headers: headers(), cache: "no-store" })
       .then(function (response) {
         if (!response.ok) { throw new Error("HTTP " + response.status); }
         return response.text();
@@ -178,9 +245,18 @@
   }
 
   window.addEventListener("gb-preview-changed", renderPreviewChip);
-  document.addEventListener("gb-product-config", render);
+  // Only a genuine product-config change invalidates the panel-load cache.
+  document.addEventListener("gb-product-config", function () {
+    clearFetchCache();
+    render();
+  });
   document.addEventListener("htmx:load", render);
-  document.addEventListener("htmx:afterSwap", render);
+  // #2936 — the ONE afterSwap listener. It is guarded: fragment swaps reuse
+  // the memoized fetches and must never clear the cache or start a new fetch.
+  document.addEventListener("htmx:afterSwap", function () {
+    if (!byId("workspace-card")) { return; }
+    render();
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", render);
