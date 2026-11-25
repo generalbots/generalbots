@@ -203,3 +203,13 @@ regexes = [
   '''^token = "gb_[0-9a-f]+_[0-9]+"$''',
   '''^token = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$''',
 ]
+
+# #2922 — RFC 6455 sample Sec-WebSocket-Key from the WS handshake contract
+# test. The base64 decodes to the spec's literal sample nonce, not a credential.
+# Path + exact literal keep this suppression narrow.
+[[allowlists]]
+description = "RFC 6455 sample WebSocket nonce in the Slides route-contract handshake test, not a credential."
+condition = "AND"
+paths = ['''^botserver/crates/botslides/src/route_contract_tests\.rs$''']
+regexTarget = "match"
+regexes = ['''dGhlIHNhbXBsZSBub25jZQ==''']

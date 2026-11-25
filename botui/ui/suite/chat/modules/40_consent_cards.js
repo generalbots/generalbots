@@ -4,7 +4,6 @@
  * Consent card renderer (#1176-fe). Cards POST {request_id,decision} to
  * /api/consent/resolve; GET /api/consent/pending revives them on reload.
  */
-  // #2448 criterion 3 — destructive cards render Confirm/Cancel, not grants.
 (function () {
   function escapeHtml(value) {
     if (typeof window.escapeHtml === "function") return window.escapeHtml(value);
@@ -23,7 +22,6 @@
     always: { label: "Always allow", outcome: "Always allowed" },
     deny: { label: "Deny", outcome: "Denied" },
   };
-  // Five wire decisions: confirm=allow_once, cancel=deny (no new enum).
   var CONFIRM_WIRE_DECISION = "allow_once", CANCEL_WIRE_DECISION = "deny";
   function wireDecision(d) {
     return d === "confirm" ? CONFIRM_WIRE_DECISION : (d === "cancel" ? CANCEL_WIRE_DECISION : d);
@@ -59,7 +57,6 @@
     } catch (e) { /* anonymous */ }
     return h;
   }
-  // Summarise detail; raw JSON printed "[object Object]" and hid intent.
   function describeDetail(detail) {
     if (detail === null || detail === undefined) return "";
     if (typeof detail === "string") return detail;
@@ -90,7 +87,6 @@
       return "";
     }
   }
-  // Client-side caps mirror the server bounds (PREVIEW_MAX_ENTRIES / _VALUE_CHARS).
   var PREVIEW_MAX_ROWS = 10, PREVIEW_VALUE_CHARS = 80;
   function t(k, fb) { return typeof gbT === "function" ? gbT(k, fb) : fb; }
   function pv(v) {
@@ -127,7 +123,6 @@
   }
   function buildCard(req) {
     var confirmGate = isConfirmGate(req);
-    // Destructive commands must never be satisfiable by a permission grant.
     var actions = confirmGate
       ? '<button type="button" class="gb-consent-btn primary" data-decision="confirm">' + escapeHtml(t("action-confirm", "Confirm")) + '</button><button type="button" class="gb-consent-btn danger" data-decision="cancel">' + escapeHtml(t("action-cancel", "Cancel")) + '</button>'
       : '<button type="button" class="gb-consent-btn primary" data-decision="allow_once">Allow once</button><button type="button" class="gb-consent-btn" data-decision="allow_run">This run</button><button type="button" class="gb-consent-btn" data-decision="allow_workspace">1 hour</button><button type="button" class="gb-consent-btn" data-decision="always">Always allow</button><button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button>';
@@ -206,8 +201,6 @@
       .catch(function () { button.disabled = false; });
   }
   window.GBUndoBatch = undoBatch;
-  // A grant must RESUME the turn: the server ends it on the marker, and the
-  // assistant never retries alone. `sendMessage` routes to the owning tab.
   function resumeAfterGrant(decision) {
     if (decision === "deny") return;
     if (typeof window.sendMessage !== "function") return;
@@ -228,13 +221,10 @@
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         swapToOutcome(card, decision, true);
-        // Cancel never resumes: `deny` stages no approval and no sendMessage
-        // goes out, so the model cannot re-emit the destructive command.
         if (decision === "cancel") {
           lastConsentRequest = null;
           try { if (window.addMessage) window.addMessage("bot", t("status-cancelled", "Cancelled")); } catch (e) {}
         } else if (decision === "confirm") {
-          // Confirm resumes on the one-shot approval carrying the payload.
           if (typeof window.sendMessage === "function") setTimeout(function () {
             try { window.sendMessage("Confirmed. Continue and run the previously requested command now with the same parameters."); } catch (e) {}
           }, 200);
@@ -298,7 +288,6 @@
       })
       .catch(function () { /* revival is best-effort */ });
   }
-  // Wrap addMessage, chaining on top of 30_citations.js's wrapper.
   var MARKER = "GB-CONSENT-REQUEST:";
 
   function decodeMarker(content) {
@@ -307,8 +296,6 @@
     if (idx === -1) return null;
     try {
       var b64 = content.slice(idx + MARKER.length).trim();
-      // base64url (no padding) -> standard base64; restore padding so atob
-      // accepts payloads whose length is not a multiple of 4.
       var std = b64.replace(/-/g, "+").replace(/_/g, "/");
       while (std.length % 4 !== 0) std += "=";
       var bin = atob(std);

@@ -155,23 +155,15 @@ staticTest("#2505: shipped palette keys exist in all eight locale catalogs", fun
     });
 });
 
-knownBug("#2505 KNOWN BUG: three palette keys are absent from every locale catalog", function () {
-  var missing = ["palette-show-tour", "palette-show-tour-hint", "palette-kind-tour"];
+staticTest("#2505 palette tour keys ship in all eight locale catalogs", function () {
+  var keys = ["palette-show-tour", "palette-show-tour-hint", "palette-kind-tour"];
   var palette = read(PALETTE);
-  missing.forEach(function (key) {
+  keys.forEach(function (key) {
     contains(palette, '"' + key + '"', "shipped code asks gbT for " + key);
     LOCALES.forEach(function (locale) {
       var catalog = h.readRepo("botlib/locales/" + locale + "/ui-shell.ftl");
-      assert(!new RegExp("^" + key + "\\s*=", "m").test(catalog),
-        locale + " unexpectedly defines " + key);
+      assert(new RegExp("^" + key + "\\s*=", "m").test(catalog),
+        locale + " missing " + key);
     });
   });
-  /* Execute the shipped render with a tour so the authored fallback is used. */
-  var f = fx.create({ tourIds: ["drive"] });
-  f.ctrlK();
-  equal(f.gbTCalls.filter(function (call) { return call.key === "palette-show-tour"; }).length,
-    1, "gbT was called with the missing key");
-  assert(f.overlay().innerHTML.indexOf("Show tour: Drive") >= 0,
-    "OBSERVED: authored English fallback rendered instead of a catalog translation");
-  h.note("KNOWN BUG (reported, not patched): js/command-palette.js uses palette-show-tour, palette-show-tour-hint and palette-kind-tour, but none of the eight ui-shell.ftl catalogs define them. gbT returns the authored English fallback, so those three labels are untranslated in every locale. Add the keys to all catalogs in production.");
 });
