@@ -284,6 +284,11 @@ VAULT_CACERT={}
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 if stderr.contains("path is already in use") {
                     info!("KV2 secrets engine already enabled at 'secret/'");
+                } else if stderr.contains("permission denied") {
+                    // The server's limited token (desktop) may not manage
+                    // mounts; it only exists once Vault was set up, and that
+                    // setup enabled the engine with the root token.
+                    info!("KV2 secrets engine is managed at Vault setup; the server token does not change mounts");
                 } else {
                     warn!("Failed to enable KV2 secrets engine: {}", stderr);
                 }
