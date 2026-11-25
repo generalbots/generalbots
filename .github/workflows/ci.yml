@@ -1229,6 +1229,9 @@ jobs:
       # desktop stack (Vault/PostgreSQL/MinIO/Zitadel) inside the runner.
       VAULT_ADDR: https://vault.a11y.invalid:8200
       BOTSERVER_DISABLE_TLS: "1"
+      # Smoke jobs have no Vault/CSRF secret: use the dev posture so the
+      # fail-closed production CSRF gate does not block boot (#2141).
+      BOTSERVER_ENV: development
       # Keep ensure_templates_repo() from cloning the public templates repo on
       # every audit run; the failure is already non-blocking.
       BOT_TEMPLATES_REPO: https://example.invalid/templates.git
@@ -1355,6 +1358,9 @@ jobs:
       # Same remote-Vault trick as `served-desktop`: no local stack bootstrap.
       VAULT_ADDR: https://vault.smoke.invalid:8200
       BOTSERVER_DISABLE_TLS: "1"
+      # Smoke jobs have no Vault/CSRF secret: use the dev posture so the
+      # fail-closed production CSRF gate does not block boot (#2141).
+      BOTSERVER_ENV: development
       BOT_TEMPLATES_REPO: https://example.invalid/templates.git
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

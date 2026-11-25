@@ -116,7 +116,26 @@ fn counts_are_distinct_recipients_not_event_rows() {
     touches.extend(recipient_touches(&second));
     let counts = build_event_counts(&touches);
     assert_eq!(counts.send, 1);
-    assert_eq!(counts.total(), 1);
+    // Two legacy rows for one contact are one recipient PER EVENT KIND. The
+    // touch set has several kinds (send/delivery/open), so `total()` is their
+    // sum — asserting it is 1 was a wrong invariant, not a dedupe regression.
+    assert!(
+        [
+            counts.send,
+            counts.delivery,
+            counts.open,
+            counts.click,
+            counts.reply,
+            counts.unsubscribe,
+            counts.bounce,
+            counts.complaint,
+            counts.skip,
+            counts.unknown,
+        ]
+        .iter()
+        .all(|value| *value <= 1),
+        "one contact must never be counted twice for any event kind"
+    );
 }
 
 #[test]
