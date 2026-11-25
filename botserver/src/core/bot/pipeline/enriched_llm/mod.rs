@@ -1,8 +1,3 @@
-use std::sync::Arc;
-
-use botcore::shared::state::AppState;
-use uuid::Uuid;
-
 use super::sink::ChannelSink;
 use super::types::{PipelineResult, SessionIdentity};
 
