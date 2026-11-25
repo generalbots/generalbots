@@ -59,7 +59,9 @@ pub(in crate::core::bot::pipeline) async fn maybe_open_document(identity: &Sessi
         &message,
         sink.channel_type(),
     );
-    let _ = sink.send_bot_response(&resp).await;
+    if let Err(e) = sink.send_bot_response(&resp).await {
+        log::warn!("doc open: response frame not delivered: {e}");
+    }
     super::super::native_tools::persist(state, session_id, user_id, &message).await;
     true
 }

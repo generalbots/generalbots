@@ -175,7 +175,9 @@ async fn capture(home: &str) -> Result<Vec<u8>, String> {
             .map_err(|error| format!("the screenshot failed ({error})"))
     })
     .await;
-    let _ = session.close().await;
+    if let Err(e) = session.close().await {
+        log::warn!("front page: browser session close failed: {e}");
+    }
 
     match shot {
         Ok(Ok(bytes)) => validate_png(bytes),
@@ -262,7 +264,9 @@ async fn status(
         context_max_length: 0,
         reasoning: format!("{text}\n"),
     };
-    let _ = sink.send_bot_response(&response).await;
+    if let Err(e) = sink.send_bot_response(&response).await {
+        log::warn!("front page: response frame not delivered: {e}");
+    }
 }
 
 fn file_name(outlet: &str) -> String {

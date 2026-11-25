@@ -21,7 +21,8 @@ pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawler
 
 use anyhow::Result;
 use diesel::prelude::*;
-use log::{info, warn};
+use crate::error_budget::DbRead;
+use log::{error, info, warn};
 
 
 #[derive(Debug)]
@@ -195,15 +196,26 @@ impl KnowledgeBaseManager {
 
         if let Some(pool) = self.indexer.get_db_pool() {
             if let Ok(mut conn) = pool.get() {
-                let existing: Option<KbDocCount> = diesel::sql_query(
-                    "SELECT document_count FROM kb_collections WHERE bot_id = $1 AND name = $2"
-                )
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .bind::<diesel::sql_types::Text, _>(kb_name)
-                .get_result(&mut conn)
-                .ok();
+                // #2543: keep a failed DB read distinct from "no rows" — a
+                // query error is logged, then both fall through to re-index.
+                let existing = DbRead::<KbDocCount>::from_result(
+                    diesel::sql_query(
+                        "SELECT document_count FROM kb_collections WHERE bot_id = $1 AND name = $2"
+                    )
+                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                    .bind::<diesel::sql_types::Text, _>(kb_name)
+                    .load(&mut conn),
+                );
+                let failed = existing.is_failed();
+                let row = match existing {
+                    DbRead::Rows(rows) => rows.into_iter().next(),
+                    DbRead::Empty | DbRead::Failed => None,
+                };
+                if failed {
+                    error!("KB count query failed for bot {bot_id}/kb {kb_name} — re-indexing");
+                }
 
-                if let Some(row) = existing {
+                if let Some(row) = row {
                     if let Some(db_doc_count) = row.document_count {
                         if db_doc_count > 0 {
                             let collection_name = format!("{}_{}_{}", bot_name, bot_id.to_string().chars().take(8).collect::<String>(), kb_name);

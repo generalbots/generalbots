@@ -306,6 +306,11 @@ def self_test() -> int:
         and is_scoped_production(normalize_rel("botserver/src/../src/a.rs"))
         and not is_scoped_production(normalize_rel("../outside/elsewhere.rs")),
     )
+    check("empty clippy JSON is not a PASS", not has_clippy_payload([]))
+    check(
+        "a real clippy compiler-message payload is accepted",
+        has_clippy_payload(['{"reason":"compiler-message","message":{}}']),
+    )
     check("equal counts are not growth", growth(expected.copy(), expected) == [])
     lowered = expected.copy()
     lowered["panic"] = 0
@@ -318,6 +323,22 @@ def self_test() -> int:
         return 1
     print(f"check_clippy_baseline: self-test OK — {len(checks)} checks passed")
     return 0
+
+
+def has_clippy_payload(lines: list[str]) -> bool:
+    """A failed/absent clippy run produces empty JSON — never count it as PASS."""
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(record, dict) and record.get("reason") in {
+            "compiler-artifact",
+            "compiler-message",
+            "build-finished",
+        }:
+            return True
+    return False
 
 
 def main() -> int:
@@ -349,6 +370,14 @@ def main() -> int:
         except OSError as error:
             print(f"check_clippy_baseline: cannot read {args.json_path}: {error}", file=sys.stderr)
             return 2
+
+    if not has_clippy_payload(lines):
+        print(
+            "check_clippy_baseline: FAIL — no clippy JSON payload; a failed or missing "
+            "clippy run cannot be reported as PASS",
+            file=sys.stderr,
+        )
+        return 2
 
     counts = count_diagnostics(lines)
     ceilings = load_baseline(args.baseline)

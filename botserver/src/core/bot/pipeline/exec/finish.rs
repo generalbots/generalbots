@@ -58,7 +58,9 @@ pub(super) async fn stream_and_finalize(
             "session_id": session_id.to_string(),
             "citations": citations,
         });
-        let _ = sink.send_raw_json(&frame).await;
+        if let Err(e) = sink.send_raw_json(&frame).await {
+            log::warn!("exec: citations frame not delivered: {e}");
+        }
     }
 
     // #2143 gap D — publish this turn's artifacts; a Drive outage never fails it.

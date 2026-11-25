@@ -87,13 +87,19 @@ pub(super) async fn run_script_tool(
                 match value {
                     serde_json::Value::String(s) => {
                         let clean_val = if is_placeholder_value(s) { String::new() } else { s.clone() };
-                        let _ = svc.set_variable(key, &clean_val);
+                        if let Err(e) = svc.set_variable(key, &clean_val) {
+                            log::warn!("tool script: string param not injected: {e}");
+                        }
                     }
                     serde_json::Value::Number(n) => {
-                        let _ = svc.set_variable(key, &n.to_string());
+                        if let Err(e) = svc.set_variable(key, &n.to_string()) {
+                            log::warn!("tool script: number param not injected: {e}");
+                        }
                     }
                     serde_json::Value::Bool(b) => {
-                        let _ = svc.set_variable(key, if *b { "true" } else { "false" });
+                        if let Err(e) = svc.set_variable(key, if *b { "true" } else { "false" }) {
+                            log::warn!("tool script: bool param not injected: {e}");
+                        }
                     }
                     _ => {}
                 }
@@ -108,7 +114,9 @@ pub(super) async fn run_script_tool(
                         for (param_name, _) in props {
                             let clean_name = param_name.trim_end_matches(":string").to_string();
                             if !injected_param_names.contains(&clean_name) {
-                                let _ = svc.set_variable(&clean_name, "");
+                                if let Err(e) = svc.set_variable(&clean_name, "") {
+                                    log::warn!("tool script: MCP param not initialized: {e}");
+                                }
                             }
                         }
                     }
@@ -136,7 +144,9 @@ pub(super) async fn run_script_tool(
         if tool_output.is_empty() {
             tool_output = message.clone();
         }
-        let _ = sink.send_bot_response(&resp).await;
+        if let Err(e) = sink.send_bot_response(&resp).await {
+            log::warn!("tool script: error notice not delivered: {e}");
+        }
     }
 
     // Drain rx to forward tool responses to the sink
@@ -150,7 +160,9 @@ pub(super) async fn run_script_tool(
                     }
                     tool_output.push_str(&response.content);
                 }
-                let _ = sink.send_bot_response(&response).await;
+                if let Err(e) = sink.send_bot_response(&response).await {
+                    log::warn!("tool script: tool response not delivered: {e}");
+                }
             }
             Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
             Err(_) => break,

@@ -164,25 +164,24 @@ h.knownBug("anchored comment add has no review-request verb or reviewer notifica
     "request_review", "review_request"], "reviewer field on docs.comment.add");
 });
 
-// 3. The marker now carries a bounded preview and the chat card renders it,
-//    but the card is still a permission GRANT (allow once/run/hour/always/
-//    deny) with no explicit confirm/cancel that resumes a staged mutation.
-//    This case flips to FAIL when that resolution gate lands.
-h.knownBug("destructive consent preview is read-only: no explicit confirm/cancel resolution gate", function () {
+// 3. FIXED (#2448): destructive markers carry confirm_required and the card
+//    renders a read-only preview with ONLY Confirm/Cancel (no grant buttons).
+//    This case flips to FAIL if the explicit gate is removed or the grant
+//    buttons return for the delete class.
+h.staticTest("destructive consent uses an explicit confirm/cancel gate", function () {
   contains(CONSENT_GATE, "pub fn marker_content(", "marker renderer is shipped");
   contains(CONSENT_GATE, 'payload["preview"] = preview;', "marker carries a bounded preview");
-  contains(CONSENT_GATE, "GB-CONSENT-REQUEST:{encoded}", "marker protocol is shipped");
+  contains(CONSENT_GATE, 'payload["confirm_required"] = serde_json::json!(true);',
+    "destructive marker flags the confirm gate");
+  contains(CONSENT_GATE, "destructive_confirm_required(", "class-scoped gate predicate is shipped");
   contains(CONSENT_CARD, "function buildPreview(preview)", "card preview renderer is shipped");
-  contains(CONSENT_CARD, "gb-consent-preview", "card preview region is shipped");
-  contains(CONSENT_CARD, 'data-decision="allow_once"', "grant-based decisions are shipped");
+  contains(CONSENT_CARD, "gb-consent-confirm-gate", "card marks the confirm gate for UAT");
+  contains(CONSENT_CARD, '"action-confirm"', "confirm button uses the i18n key");
+  contains(CONSENT_CARD, '"action-cancel"', "cancel button uses the i18n key");
 
-  var card = between(CONSENT_CARD, "  function buildCard(req) {", "  window.GBBuildConsentCard = buildCard;");
-  var hasExplicitGate = ["action-confirm", "action-cancel", "decision=confirm", "decision=cancel"]
-    .some(function (token) { return card.indexOf(token) !== -1; });
-  h.assert(
-    !hasExplicitGate,
-    "criterion 3 must still lack an explicit confirm/cancel resolution gate"
-  );
+  var gate = between(CONSENT_CARD, "function isConfirmGate(r)", "function buildCard(");
+  h.assert(gate.indexOf('"delete"') !== -1, "confirm gate is scoped to the delete class");
+  h.assert(gate.indexOf("confirm_required") !== -1, "gate reads the marker flag");
 });
 
 // 6. The Rust parity test is a hand-maintained snapshot with no toolbar scan;

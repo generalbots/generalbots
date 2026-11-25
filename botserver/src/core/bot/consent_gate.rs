@@ -128,6 +128,15 @@ pub fn deny_message(app_id: &str) -> String {
     )
 }
 
+/// Pure predicate: does this class require the explicit confirm/cancel gate
+/// instead of the permission-grant buttons (#2448 criterion 3)? Destructive
+/// `delete` is consent-per-call: `authorize_with_context` never satisfies it
+/// from a stored grant, so only the Confirm button's staged one-shot approval
+/// can resume it. Every other class keeps the legacy grant decisions.
+pub fn destructive_confirm_required(action_class: &str) -> bool {
+    action_class == "delete"
+}
+
 /// Upper bound on `{label, before, after}` entries in a consent preview.
 const PREVIEW_MAX_ENTRIES: usize = 10;
 /// Upper bound on characters kept for any single preview value.
@@ -252,10 +261,11 @@ pub fn marker_content(request: &botconsent::PendingRequest) -> String {
         "action_class": request.action_class,
         "detail": &request.detail,
     });
-    // #2448 criterion 4 — destructive/bulk verbs carry an OPTIONAL bounded,
-    // content-free diff the UI can show before the user approves. Legacy
-    // clients ignore the extra key; it is omitted when no diff is derivable.
-    if request.action_class == "delete" {
+    // #2448 criterion 3/4 — destructive markers carry `confirm_required` so
+    // the suite renders Confirm/Cancel (not grants), plus an OPTIONAL bounded,
+    // content-free preview. Legacy clients ignore both extra keys.
+    if destructive_confirm_required(&request.action_class) {
+        payload["confirm_required"] = serde_json::json!(true);
         if let Some(preview) = consent_preview(&request.detail) {
             payload["preview"] = preview;
         }
@@ -279,7 +289,67 @@ pub fn marker_content(request: &botconsent::PendingRequest) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{consent_preview, marker_content};
+    use super::{consent_preview, destructive_confirm_required, marker_content};
+
+    #[test]
+    fn destructive_confirm_gate_is_class_scoped() {
+        assert!(destructive_confirm_required("delete"));
+        // Every non-delete class keeps the legacy permission-grant buttons.
+        for class in [
+            "read", "create", "update", "share", "publish", "payment", "", "unknown",
+        ] {
+            assert!(
+                !destructive_confirm_required(class),
+                "'{class}' must not require the confirm gate"
+            );
+        }
+    }
+
+    #[test]
+    fn marker_flags_confirm_gate_only_for_destructive_class() {
+        use base64::Engine as _;
+        let make = |class: &str| botconsent::PendingRequest {
+            request_id: "req-1".to_string(),
+            user_id: uuid::Uuid::nil(),
+            app_id: String::new(),
+            action_class: class.to_string(),
+            detail: detail(
+                "database.rows.delete",
+                serde_json::json!({ "ids": [1, 2], "count": 2 }),
+            ),
+            thread_id: None,
+            run_id: None,
+            risk_tier: String::new(),
+        };
+        let decode = |marker: &str| -> serde_json::Value {
+            let encoded = marker
+                .split("GB-CONSENT-REQUEST:")
+                .nth(1)
+                .unwrap_or_default()
+                .trim();
+            let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(encoded)
+                .unwrap_or_default();
+            serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null)
+        };
+
+        let destructive = decode(&marker_content(&make("delete")));
+        assert_eq!(destructive["confirm_required"], serde_json::json!(true));
+        assert!(
+            destructive["preview"].is_object(),
+            "destructive marker must carry the bounded preview"
+        );
+
+        let read = decode(&marker_content(&make("read")));
+        assert!(
+            read.get("confirm_required").is_none(),
+            "read class must not expose a confirm gate"
+        );
+        assert!(
+            read.get("preview").is_none(),
+            "read class must not expose a destructive preview"
+        );
+    }
 
     fn detail(command: &str, params: serde_json::Value) -> serde_json::Value {
         serde_json::json!({ "command": command, "params": params })

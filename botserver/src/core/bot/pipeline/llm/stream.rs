@@ -176,7 +176,9 @@ async fn stream_llm_response_inner(
                         // The actual user-facing reply was persisted inside
                         // handle_api_call (marker, composed answer, ...); do
                         // not store the raw __api_call__ envelope here.
-                        let _ = sm.record_message_model(session_id, llm_model);
+                        if let Err(e) = sm.record_message_model(session_id, llm_model) {
+                            log::warn!("stream: model not recorded: {e}");
+                        }
                     }
                     break;
                 }
@@ -188,16 +190,18 @@ async fn stream_llm_response_inner(
                     // failure frame so the streaming bubble (which can contain
                     // JSON fragments emitted before the trigger was complete)
                     // is finalized and replaced by an honest answer.
-                    log::warn!(
-                        "api-call block detected but not executed; refusing to render the reply"
-                    );
+                    log::warn!("api-call block detected but not executed; refusing to render");
                     let locale =
                         botcore::i18n::locale_for_user_pool(&state.conn, user_id);
                     let err_msg = super::llm_empty_message(&locale);
                     {
                         let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &err_msg, 2);
-                        let _ = sm.record_message_model(session_id, llm_model);
+                        if let Err(e) = sm.save_message(session_id, user_id, 2, &err_msg, 2) {
+                            log::warn!("stream: empty-response notice not persisted: {e}");
+                        }
+                        if let Err(e) = sm.record_message_model(session_id, llm_model) {
+                            log::warn!("stream: model not recorded: {e}");
+                        }
                     }
                     super::stream_errors::send_empty_response_error(sink, identity).await;
                     return Ok(());
@@ -238,7 +242,9 @@ async fn stream_llm_response_inner(
                                     "context_length": 0,
                                     "context_max_length": 0,
                                 });
-                                let _ = sink.send_raw_json(&plan_frame).await;
+                                if let Err(e) = sink.send_raw_json(&plan_frame).await {
+                                    log::warn!("stream: UI plan frame not delivered: {e}");
+                                }
                             }
                             Err(e) => {
                                 log::warn!("Rejected UI plan: {e}");
@@ -258,17 +264,18 @@ async fn stream_llm_response_inner(
                         tokio::time::sleep(Duration::from_secs(LLM_RETRY_DELAY)).await;
                         continue;
                     }
-                    log::warn!(
-                        "LLM empty response after {} retries, sending fallback",
-                        LLM_RETRY_MAX
-                    );
+                    log::warn!("LLM empty response after {LLM_RETRY_MAX} retries, using fallback");
                     super::stream_errors::send_empty_response_error(sink, identity).await;
                     {
                         let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
                         let err_msg = super::llm_empty_message(&locale);
                         let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &err_msg, 2);
-                        let _ = sm.record_message_model(session_id, llm_model);
+                        if let Err(e) = sm.save_message(session_id, user_id, 2, &err_msg, 2) {
+                            log::warn!("stream: empty-response notice not persisted: {e}");
+                        }
+                        if let Err(e) = sm.record_message_model(session_id, llm_model) {
+                            log::warn!("stream: model not recorded: {e}");
+                        }
                     }
                     return Ok(());
                 }
@@ -335,7 +342,9 @@ async fn stream_llm_response_inner(
                                 context_max_length: 0,
                                 reasoning: reasoning_accumulated.trim().to_string(),
                             };
-                            let _ = sink.send_bot_response(&final_resp).await;
+                            if let Err(e) = sink.send_bot_response(&final_resp).await {
+                                log::warn!("stream: final response not delivered: {e}");
+                            }
                         } else {
                             log::info!(
                                 "Greeting guard: tool_call-only response, sending generic greeting"
@@ -348,7 +357,9 @@ async fn stream_llm_response_inner(
                                 msg,
                                 "web",
                             );
-                            let _ = sink.send_bot_response(&final_resp).await;
+                            if let Err(e) = sink.send_bot_response(&final_resp).await {
+                                log::warn!("stream: final response not delivered: {e}");
+                            }
                         }
                     } else {
                         match super::stream_tools::execute_and_prepare_followup(
@@ -393,8 +404,12 @@ async fn stream_llm_response_inner(
                         )
                     };
                     let mut sm = state.session_manager.lock().await;
-                    let _ = sm.save_message(session_id, user_id, 2, &store_content, 2);
-                    let _ = sm.record_message_model(session_id, llm_model);
+                    if let Err(e) = sm.save_message(session_id, user_id, 2, &store_content, 2) {
+                        log::warn!("stream: turn not persisted: {e}");
+                    }
+                    if let Err(e) = sm.record_message_model(session_id, llm_model) {
+                        log::warn!("stream: turn model not recorded: {e}");
+                    }
                 }
                 #[cfg(feature = "memory-os")]
                 crate::core::bot::memory_hook::extract_from_turn(
@@ -412,7 +427,9 @@ async fn stream_llm_response_inner(
             let fallback = format!("Recebi: \"{user_text}\"");
             {
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
+                if let Err(e) = sm.save_message(session_id, user_id, 2, &fallback, 2) {
+                    log::warn!("stream: fallback not persisted: {e}");
+                }
             }
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
@@ -421,7 +438,9 @@ async fn stream_llm_response_inner(
                 &fallback,
                 "web",
             );
-            let _ = sink.send_bot_response(&resp).await;
+            if let Err(e) = sink.send_bot_response(&resp).await {
+                log::warn!("stream: fallback response not delivered: {e}");
+            }
         }
     }
 

@@ -67,7 +67,9 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
   // Re-locked 2026-11-25 (#2452): link_inventory.rs + the /api/collab/links/all
   // route add 1 Rust file and 1 registration. No route removed/reordered.
   // One-time documented correction; shrink-only afterwards.
-  equal(files.length, 4699, "shipped router .rs file count");
+  // Re-locked 2026-11-25 (#2543): error_budget/db_read.rs adds 1 Rust file,
+  // no routes. One-time documented correction; shrink-only afterwards.
+  equal(files.length, 4700, "shipped router .rs file count");
   equal(routeCalls, 2451, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");

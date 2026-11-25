@@ -134,6 +134,9 @@ pub(crate) async fn handle_api_call(
             .unwrap_or_else(|| name.clone());
         // #2561 — read-only commands get "read" class (auto-grantable).
         let action_class = super::consent_class::consent_action_class(&name);
+        // #2448 criterion 3 — destructive requests are an explicit confirm
+        // gate, not a permission grant; label the activity accordingly.
+        let pending_label = if crate::core::bot::consent_gate::destructive_confirm_required(action_class) { "confirm_pending" } else { "pending" };
         let gate = crate::core::bot::consent_gate::check_with_context(
             user_id,
             &app_id,
@@ -147,12 +150,12 @@ pub(crate) async fn handle_api_call(
             // #2562 — permission activity: needs_input or denied.
             let perm_act = crate::core::bot::pipeline::activity::Activity::started(
                 crate::core::bot::pipeline::activity::ActivityKind::Permission,
-                crate::core::bot::pipeline::activity::permission_summary(&name, "pending", gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
+                crate::core::bot::pipeline::activity::permission_summary(&name, pending_label, gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
             )
             .with_run_id(&cmd_run.run_id);
             if gate.pending_request.is_some() {
                 let waiting = perm_act.needs_input(
-                    crate::core::bot::pipeline::activity::permission_summary(&name, "pending", gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
+                    crate::core::bot::pipeline::activity::permission_summary(&name, pending_label, gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
                 );
                 crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &waiting).await;
             } else {
