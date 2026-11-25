@@ -81,6 +81,8 @@ require("./webtest-office-fidelity/75_chat_boot_incremental");
 require("./webtest-office-fidelity/76_boot_idle_chunks");
 require("./webtest-office-fidelity/77_settings_partials_route");
 require("./webtest-office-fidelity/78_boot_theme_reflow");
+require("./webtest-office-fidelity/79_settings_showtoast_boot");
+require("./webtest-office-fidelity/80_deeplink_auth_gate");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

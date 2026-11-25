@@ -138,6 +138,8 @@ if (WM.previewAll) {
 // authoritative catalog once it answers, and the preview identifiers the
 // product file declares.
 var embeddedApps = APPS_REGISTRY.slice();
+var AUTH_GATED_IDS = ["drive", "terminal", "editor", "browser", "integrations", "admin"];
+var anonymousGate = true;
 var catalogApps = null;
 var catalogLoaded = false;
 var productPreviewIds = {};
@@ -287,14 +289,9 @@ function rebuildAppsRegistry() {
       }
     } catch (e) { window.gbLogError ? gbLogError(e, "rebuildAppsRegistry") : console.error("rebuildAppsRegistry", e); }
   }
-  if (!authenticated && !noSecurityBuild) {
-    // Anonymous visitors get the conversation only: no Drive, no workspace
-    // shell, no admin surface (the APIs already answer 401).
-    var privileged = ["drive", "terminal", "editor", "browser", "integrations", "admin"];
-    merged = merged.filter(function (app) {
-      return privileged.indexOf(app.id) === -1;
-    });
-  }
+  // Anonymous visitors get the conversation only; the APIs already answer 401.
+  anonymousGate = !authenticated && !noSecurityBuild;
+  if (anonymousGate) merged = merged.filter(function (app) { return AUTH_GATED_IDS.indexOf(app.id) === -1; });
   // #1539/#1540: enforce the core set even before the server catalog loads
   // (the embedded fallback otherwise kept every app visible).
   if (!previewOn) {
@@ -377,4 +374,5 @@ const CATEGORY_LABELS = {
   WM.refreshAppsCatalog = refreshAppsCatalog;
   WM.isCoreAppId = isCoreAppId;
   WM.isPreviewId = isPreviewId;
+  WM.isAuthWithheldApp = function (id) { return anonymousGate && AUTH_GATED_IDS.indexOf(id) !== -1; };
 })(window);

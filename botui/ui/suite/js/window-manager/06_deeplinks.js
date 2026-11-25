@@ -10,33 +10,32 @@
   WM.defineMethods(WindowManager.prototype, {
   openDeepLink(appId, params, opts) {
     opts = opts || {};
-    // #2013 — `admin` is a section of the unified Settings app, not a separate
-    // launcher tile. The historical deep link keeps working by routing to
-    // Settings with the admin view selected.
+    // #2013 — "admin" deep link routes into Settings' admin view.
     if (appId === "admin") {
       params = Object.assign({ view: "admin" }, params || {});
       appId = "settings";
     }
-    // `clockapp` was a byte-for-byte duplicate of `clock` in the embedded
-    // registry; keep any historical link working.
+    // `clockapp` is a legacy alias of `clock`.
     if (appId === "clockapp") {
       appId = "clock";
     }
-    // #2015 — `sales` was a second launcher app for the CRM surface (its page
-    // titled itself "Sales CRM"). Its only unique content, the quotes and
-    // orders lists, is now the CRM "Quotes & Orders" tab.
+    // #2015 — "sales" is now CRM's Quotes & Orders view.
     if (appId === "sales") {
       params = Object.assign({ view: "quotes" }, params || {});
       appId = "crm";
     }
     if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) {
-      // #2226 — the deep link names an app the user explicitly asked for, so
-      // offer to turn Preview mode on and open it instead of silently
-      // falling back to chat.
+      // #2226 — offer Preview mode instead of silently falling back.
       this.offerPreviewApp(appId, params, opts);
       return;
     }
     const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
+    const known = APPS_REGISTRY.find((a) => a.id === appId);
+    // Known-but-withheld app: offer login, do not fetch a missing partial.
+    if (!app && known && typeof WM.isAuthWithheldApp === "function" && WM.isAuthWithheldApp(appId)) {
+      this._openLoginRequired(appId, known.title || appId, opts);
+      return;
+    }
     const title = app
       ? window.gbAppTitle
         ? window.gbAppTitle(app)
@@ -44,36 +43,26 @@
       : appId;
     const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
     this.closeStartMenu();
-    // #1432/#1439 — `new: true` forces a FRESH window instance even when
-    // one is already open (New Conversation, history clicks): the window
-    // id gets a unique suffix so the dedup-by-app-id path never applies,
-    // and the new instance is focused/raised on creation.
+    // #1432/#1439 — new:true forces a fresh window instance.
     const forceNew = opts.new === true;
     const targetId = forceNew ? `${appId}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}` : appId;
     const existed = !forceNew && this.getWindow(targetId) !== null;
-    // The Vibe workbench keeps the glass chrome but no status bar.
+    // Vibe keeps glass chrome but no status bar.
     this.open(targetId, title, "", {
       noMaximize: appId === "vibe",
       ownerId: opts.ownerId || null,
     });
-    const appId_for_body = targetId;
-    // A FRESH window must not inherit the previous open's params: a stale
-    // vmConvId/vmPath from an earlier "Open in app" made the next blank Docs
-    // open re-fetch the old file instead of starting empty (#2184).
+    // #2184 — a fresh window starts with only this open's params.
     window.__gbAppParams__ = existed
       ? Object.assign({}, window.__gbAppParams__ || {}, params || {})
       : Object.assign({}, params || {});
     if (existed) {
-      // #1288 — a re-targeted window must adopt the caller's ownership
-      // (e.g. the Vibe toolbar opening the shared Terminal/Browser/Chat):
-      // a window first opened without an owner (desktop sidebar) would
-      // otherwise never be closable by its new owner's cleanup.
+      // #1288 — a re-targeted window adopts the caller's ownership.
       if (opts.ownerId) {
         const rec = this.openWindows.find((w) => w.id === targetId);
         if (rec) rec.ownerId = opts.ownerId;
       }
-      // Re-target an already-open app window (new project URL, session, ...)
-      // so deep-links always apply, not only on first open.
+      // Deep-links re-target an open window, not only first opens.
       document.dispatchEvent(new CustomEvent("gb:deep-link", {
         detail: { appId: targetId, params: params || {} },
       }));
@@ -84,18 +73,29 @@
     fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
       const body = document.getElementById(`window-body-${targetId}`);
       if (body) this._injectBodyContent(targetId, html);
-      // #2181 — a freshly opened window also needs the deep-link event so
-      // delta-renderers apply the first batch instead of dropping it.
+      // #2181 — the first batch still needs the deep-link event.
       document.dispatchEvent(new CustomEvent("gb:deep-link", {
         detail: { appId: targetId, params: params || {} },
       }));
-      // Content can push the workspace layout; re-clamp so an auto-opened
-      // app never sits off-screen after its body settles.
+      // Re-clamp after content settles.
       this._clampWindowIntoView(targetId);
     }).catch(() => {
       const body = document.getElementById(`window-body-${targetId}`);
       if (body) this._injectBodyContent(targetId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
     });
+  },
+
+  // Withheld app: localized login prompt instead of a 404.
+  _openLoginRequired(appId, title, opts) {
+    this.closeStartMenu();
+    this.open(appId, title, "", { ownerId: (opts && opts.ownerId) || null });
+    const body = document.getElementById(`window-body-${appId}`);
+    if (!body) return;
+    const t = (k, f) => window.gbT ? window.gbT(k, f) : f;
+    const url = (window.GB_LOGIN_URL || "/login") + "?return_to=" + encodeURIComponent(window.location.href);
+    this._injectBodyContent(appId, '<div style="padding:20px"><p>' +
+      t("cloud-appstores-login-first", "Please login first") + '</p><a href="' + url + '">' +
+      t("auth-go-to-login", "Go to Login") + '</a></div>');
   },
 
   // #2226 — a deep link (chat button, __ui_plan__, start menu) to a preview
