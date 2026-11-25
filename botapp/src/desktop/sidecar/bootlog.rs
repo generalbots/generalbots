@@ -4,7 +4,12 @@
 
 use log::warn;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/// Where the sidecar's output is captured inside the stack directory.
+pub(super) fn log_path(stack: &Path) -> PathBuf {
+    stack.join("logs").join("botserver-sidecar.log")
+}
 
 /// Formats the banner stamped at the top of every sidecar boot.
 ///

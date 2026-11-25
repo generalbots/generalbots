@@ -174,6 +174,7 @@ fn create_tray_with_mode(mode: String) -> Result<String, String> {
 #[cfg(feature = "desktop-local")]
 fn start_sidecar_and_show(app: &tauri::App) {
     let resource_dir = app.path().resource_dir().ok();
+    desktop::splash_progress::watch(app.handle());
 
     let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {

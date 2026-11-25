@@ -17,10 +17,10 @@ use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 /// on the computer, so there it is an ordinary window.
 const TOPMOST: bool = !cfg!(feature = "gbgov");
 
-/// Splash dimensions: the edition uses a wide animated hero (760x428);
+/// Splash dimensions: the edition uses a wide animated hero (776x443);
 /// the standard build keeps the square logo (420x420).
-const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 760.0 } else { 420.0 };
-const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 428.0 } else { 420.0 };
+const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 776.0 } else { 420.0 };
+const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 443.0 } else { 420.0 };
 
 /// Minimum time the splash stays on screen (milliseconds). The edition's hero
 /// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
@@ -77,17 +77,18 @@ pub fn show(app: &tauri::AppHandle) {
             park_offscreen(&window);
         }
         clear_backdrop(&window);
+        // Resize to the edition dimensions (the conf declares 420x420) while
+        // the window is still hidden, so the square size never shows.
+        let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
+        if !rig {
+            let _ = window.center();
+        }
         let _ = window.show();
         if !rig {
             if TOPMOST {
                 let _ = window.set_focus();
             }
             let _ = window.set_always_on_top(TOPMOST);
-        }
-        // Resize to the edition dimensions (the conf declares 420x420).
-        let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
-        if !rig {
-            let _ = window.center();
         }
         push_version(&window);
         watch_splash_painted(app, window_created_at);
@@ -130,6 +131,11 @@ pub fn show(app: &tauri::AppHandle) {
 /// this instant so that the 10 s minimum counts from visible content, not
 /// from process start.
 static SPLASH_SHOWN_AT: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+/// Whether the splash page has painted (or its paint deadline has passed).
+pub(crate) fn painted() -> bool {
+    SPLASH_SHOWN_AT.get().is_some()
+}
 
 /// Fragment the splash page stamps into its URL when it has finished the
 /// first paint. The page sets `location.hash = '#splash-painted'` in its
@@ -300,17 +306,12 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
         let deadline = Instant::now() + BOOT_WATCH_DEADLINE;
-        let mut saw_main = false;
         loop {
             let Some(splash) = handle.get_webview_window("splash") else {
                 // The splash was closed somewhere else (wizard, restart flow).
                 return;
             };
             if let Some(main) = handle.get_webview_window("main") {
-                if !saw_main {
-                    saw_main = true;
-                    push_progress_key(&splash, 70, "splash-loading-interface");
-                }
                 if let Ok(url) = main.url() {
                     if url.as_str().contains(BOOT_READY_FRAGMENT) {
                         info!("splash: boot-ready fragment seen; closing");
@@ -320,8 +321,6 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
                         return;
                     }
                 }
-            } else if !saw_main {
-                push_progress_key(&splash, 15, "splash-starting-services");
             }
             if Instant::now() >= deadline {
                 warn!("splash: boot-ready fragment never arrived; hiding the splash");
@@ -442,7 +441,7 @@ mod tests {
     #[test]
     fn splash_dimensions_match_edition() {
         if cfg!(feature = "gbgov") {
-            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (760.0, 428.0));
+            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (776.0, 443.0));
         } else {
             assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (420.0, 420.0));
         }

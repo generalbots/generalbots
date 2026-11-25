@@ -1,5 +1,7 @@
 #[cfg(feature = "desktop-local")]
 pub mod activity;
+#[cfg(feature = "desktop-local")]
+pub mod boot_steps;
 pub mod download;
 pub mod drive;
 pub mod i18n;
@@ -16,6 +18,8 @@ pub mod sidecar;
 #[cfg(feature = "desktop-local")]
 pub mod stack_stop;
 pub mod splash;
+#[cfg(feature = "desktop-local")]
+pub mod splash_progress;
 pub mod sync;
 pub mod tray;
 pub mod update;
