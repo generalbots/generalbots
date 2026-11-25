@@ -54,7 +54,7 @@ pub async fn list_unified_inbox(
     let accounts_result = tokio::task::spawn_blocking(move || {
         let mut db = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
         diesel::sql_query(
-            "SELECT id, email, display_name, is_primary FROM user_email_accounts \
+            "SELECT id, email, display_name, is_primary, last_error FROM user_email_accounts \
              WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC",
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
