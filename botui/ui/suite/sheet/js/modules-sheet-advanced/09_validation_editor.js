@@ -14,6 +14,22 @@
     return window.SheetAPI || null;
   }
 
+  function tr(key, fallback) {
+    return typeof window.gbT === "function" ? (window.gbT(key, fallback) || fallback) : fallback;
+  }
+
+  // Existing role=status / aria-live=polite region on the grid (03a_grid_a11y.js).
+  function announce(grid, message) {
+    if (grid && typeof grid.announce === "function") {
+      grid.announce(message, true);
+      return;
+    }
+    const live = grid && grid.a11yLive
+      ? grid.a11yLive
+      : document.querySelector(".sheet-a11y-live");
+    if (live) live.textContent = message;
+  }
+
   function colName(idx) {
     let n = idx + 1;
     let s = "";
@@ -65,11 +81,28 @@
       current.open = false;
       const val = sel.value;
       const ref = colName(col) + (row + 1);
-      const d = g.cells.get(row + "," + col) || {};
-      g.cells.set(row + "," + col, { value: val, formula: d.formula });
-      if (api()) api().updateCell(ref, val);
+      const key = row + "," + col;
+      const before = g.cells.get(key);
+      const oldText = node.textContent;
+      g.cells.set(key, { value: val, formula: before && before.formula });
       if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
       closeDropdown();
+      const a = api();
+      if (!a) return;
+      const req = a.updateCell(ref, val);
+      if (!req || typeof req.then !== "function") return;
+      req.then(function (res) {
+        if (!res || res.ok !== false) return;
+        // Guardrail refused the write: roll the optimistic display back and
+        // make the server's message visible instead of failing silently.
+        if (before) g.cells.set(key, before);
+        else g.cells.delete(key);
+        if (node.isConnected) node.textContent = oldText;
+        if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
+        const message = res.error || tr("status-error", "Error");
+        if (window.sheetNotify) window.sheetNotify(message, true);
+        announce(g, message);
+      });
     }
 
     sel.addEventListener("change", commit);
