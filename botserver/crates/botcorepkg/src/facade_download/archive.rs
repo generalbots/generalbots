@@ -59,9 +59,13 @@ pub(super) fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result
             let src = entry.path();
             let name = src.file_name().unwrap_or_else(|| std::ffi::OsStr::new(""));
             let dst = bin_path.join(name);
-            let _ = std::fs::rename(&src, &dst);
+            if let Err(e) = std::fs::rename(&src, &dst) {
+                log::warn!("Failed to move {} to {}: {e}", src.display(), dst.display());
+            }
         }
-        let _ = std::fs::remove_dir(&sub);
+        if let Err(e) = std::fs::remove_dir(&sub) {
+            log::warn!("Failed to remove collapsed subdirectory {}: {e}", sub.display());
+        }
         trace!("Collapsed single subdirectory {:?} in {:?}", sub, bin_path);
     }
     Ok(())
@@ -95,7 +99,11 @@ pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> R
                     if let Ok(_metadata) = std::fs::metadata(&path) {
                         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                         if ext.is_empty() || ext == "sh" || ext == "bash" {
-                            let _ = botlib::os::fs::get_permissions_manager().set_executable(&path);
+                            if let Err(e) =
+                                botlib::os::fs::get_permissions_manager().set_executable(&path)
+                            {
+                                log::warn!("Could not make {} executable: {e}", path.display());
+                            }
                             trace!("Made executable: {}", path.display());
                         }
                     }

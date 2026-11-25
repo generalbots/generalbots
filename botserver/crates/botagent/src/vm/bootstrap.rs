@@ -172,12 +172,15 @@ pub(super) fn schedule_workspace_preparation(state: Arc<AgentService>, vm_name: 
         .await;
         let already = matches!(ready, Ok((true, _, _)));
         if !already {
-            let _ = exec_in_vm(
+            if let Err(e) = exec_in_vm(
                 &state,
                 &vm_name,
                 &["sh".into(), "-c".into(), workspace_prepare_script()],
             )
-            .await;
+            .await
+            {
+                tracing::warn!("workspace preparation failed for {vm_name}: {e:?}");
+            }
         }
         if let Ok(mut guard) = set.lock() {
             guard.remove(&vm_name);

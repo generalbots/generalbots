@@ -7,12 +7,15 @@ pub async fn handle_subscription_upgrade(State(state): State<Arc<BillingApiState
     let branch = branch_id(&state);
     let plan = req.plan_id.unwrap_or_else(|| "shared".to_string());
 
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "UPDATE billing_recurring SET plan_name = $1, status = 'active', updated_at = NOW() WHERE branch_id = $2",
     )
     .bind::<diesel::sql_types::Text, _>(&plan)
     .bind::<diesel::sql_types::Uuid, _>(branch)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        tracing::warn!("Failed to upgrade billing subscription plan: {e}");
+    }
 
     (
         StatusCode::OK,
@@ -26,11 +29,14 @@ pub async fn handle_subscription_cancel(State(state): State<Arc<BillingApiState>
     let branch = branch_id(&state);
     let reason = req.reason.unwrap_or_else(String::new);
 
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "UPDATE billing_recurring SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW() WHERE branch_id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        tracing::warn!("Failed to cancel billing subscription: {e}");
+    }
 
     let _ = reason;
     (

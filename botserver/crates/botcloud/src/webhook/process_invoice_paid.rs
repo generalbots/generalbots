@@ -114,13 +114,14 @@ pub(super) async fn process_invoice_paid(
     .map_err(|e| format!("update recurring: {e}"))?;
 
     // GL
-    let _ = integration::create_gl_entry_for_invoice(
+    if let Err(e) = integration::create_gl_entry_for_invoice(
         service.pool(),
         new_invoice_id,
         total,
         &recurring.customer_name,
-    )
-    .map_err(|e| tracing::warn!("GL entry for recurring failed: {e}"));
+    ) {
+        tracing::warn!("GL entry for recurring failed: {e}");
+    }
 
     // --- Notification: recurring charge ---
     let mut vars = notifier::EmailVars::new(
@@ -168,7 +169,7 @@ pub(super) async fn process_invoice_payment_failed(
 
     // Mark last invoice as overdue
     if let Some(last_inv_id) = recurring.last_invoice_id {
-        let _ = diesel::update(
+        if let Err(e) = diesel::update(
             botbilling::schema::billing_invoices::table
                 .filter(botbilling::schema::billing_invoices::id.eq(last_inv_id)),
         )
@@ -176,11 +177,14 @@ pub(super) async fn process_invoice_payment_failed(
             botbilling::schema::billing_invoices::status.eq("overdue"),
             botbilling::schema::billing_invoices::updated_at.eq(now),
         ))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        {
+            tracing::warn!("invoice.payment_failed: mark last invoice overdue failed: {e}");
+        }
     }
 
     // Mark subscription as past_due
-    let _ = diesel::update(
+    if let Err(e) = diesel::update(
         botbilling::schema::billing_recurring::table
             .filter(botbilling::schema::billing_recurring::id.eq(recurring.id)),
     )
@@ -188,7 +192,10 @@ pub(super) async fn process_invoice_payment_failed(
         botbilling::schema::billing_recurring::status.eq("past_due"),
         botbilling::schema::billing_recurring::updated_at.eq(now),
     ))
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        tracing::warn!("invoice.payment_failed: mark subscription past_due failed: {e}");
+    }
 
     let amount_f64 = botbilling::api_models::bd_to_f64(&recurring.amount);
     let mut vars = notifier::EmailVars::new(
@@ -232,7 +239,7 @@ pub(super) async fn process_subscription_lifecycle(
         .unwrap_or_else(String::new);
 
     if status == "cancelled" || status == "past_due" || status == "paused" {
-        let _ = diesel::update(
+        if let Err(e) = diesel::update(
             botbilling::schema::billing_recurring::table
                 .filter(botbilling::schema::billing_recurring::customer_email.eq(Some(account_email.clone()))),
         )
@@ -240,7 +247,10 @@ pub(super) async fn process_subscription_lifecycle(
             botbilling::schema::billing_recurring::status.eq(status),
             botbilling::schema::billing_recurring::updated_at.eq(now),
         ))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        {
+            tracing::warn!("subscription lifecycle: status update failed: {e}");
+        }
 
         if status == "cancelled" && !account_email.is_empty() {
             let vars = notifier::EmailVars::new(

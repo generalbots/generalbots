@@ -213,7 +213,9 @@ async fn run(job: Arc<Job>, spec: &'static ModelSpec, dir: PathBuf) {
         match tokio::task::spawn_blocking(move || sha256_file(&part_for_hash)).await {
             Ok(Ok(digest)) if digest == spec.sha256 => {}
             Ok(Ok(digest)) => {
-                let _ = std::fs::remove_file(&part);
+                if let Err(e) = std::fs::remove_file(&part) {
+                    log::warn!("[on_device_ai] failed to remove partial download: {e}");
+                }
                 fail(&job, format!("checksum_mismatch: {digest}"));
                 return;
             }

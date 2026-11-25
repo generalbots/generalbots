@@ -22,14 +22,17 @@ pub(super) async fn handle_scan(State(pool): State<Arc<DbPool>>) -> impl IntoRes
         let mut count = 0usize;
         for (check_type, status) in check_types {
             let id = Uuid::new_v4();
-            let _ = diesel::sql_query(
+            if let Err(e) = diesel::sql_query(
                 "INSERT INTO compliance_checks (id, branch_id, check_type, status, checked_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT DO NOTHING",
             )
             .bind::<diesel::sql_types::Uuid, _>(&id)
             .bind::<diesel::sql_types::Uuid, _>(&branch)
             .bind::<diesel::sql_types::Text, _>(check_type)
             .bind::<diesel::sql_types::Text, _>(status)
-            .execute(&mut db_conn);
+            .execute(&mut db_conn)
+            {
+                log::warn!("failed to insert compliance check {check_type}: {e}");
+            }
             count += 1;
         }
         count

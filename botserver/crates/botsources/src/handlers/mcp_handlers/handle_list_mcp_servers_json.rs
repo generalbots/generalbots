@@ -194,7 +194,9 @@ pub async fn handle_update_mcp_server(
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);
 
-    let _ = loader.remove_server(&name);
+    if let Err(e) = loader.remove_server(&name) {
+        log::warn!("Failed to remove MCP server {name}: {e}");
+    }
 
     let (conn_type, command, args) = match &request.connection {
         crate::types::McpConnectionRequest::Stdio { command, args } => {

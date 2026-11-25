@@ -136,13 +136,16 @@ async fn exec_in_conversation_inner(
 
     // The program file is written by root; hand the tree to `runner` before
     // executing it so generated code cannot touch root-owned state.
-    let _ = run_with_timeout(
+    if let Err(e) = run_with_timeout(
         state,
         vm_name,
         format!("chown -R runner:runner {folder}"),
         15_000,
     )
-    .await;
+    .await
+    {
+        tracing::warn!("failed to hand folder {folder} to runner: {e:?}");
+    }
     let run_cmd = runner_command(&folder, interpreter, &script_path);
     let (mut first_ok, mut stdout, mut stderr) =
         run_or_stream(state, vm_name, run_cmd.clone(), timeout_ms, events.clone()).await?;

@@ -390,9 +390,12 @@ pub fn resolve_api_key(
     }
 
     // Bump last_used_at (best-effort, non-fatal).
-    let _ = diesel::sql_query("UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = $1")
+    if let Err(e) = diesel::sql_query("UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = $1")
         .bind::<diesel::sql_types::Text, _>(&hash)
-        .execute(&mut conn);
+        .execute(&mut conn)
+    {
+        log::warn!("Failed to bump API key last_used_at: {e}");
+    }
 
     Some((row.user_id, row.scopes))
 }

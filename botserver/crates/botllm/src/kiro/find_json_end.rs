@@ -48,7 +48,9 @@ impl LLMProvider for KiroClient {
         let handler = get_handler(model);
         let self_ = std::sync::Arc::new(self_clone(self));
         let emit = tokio::spawn(async move {
-            let _ = self_.emit_stream(stream, &tx, handler.as_ref()).await;
+            if let Err(e) = self_.emit_stream(stream, &tx, handler.as_ref()).await {
+                log::warn!("kiro: emit_stream failed: {e}");
+            }
         });
         let mut full = String::new();
         while let Some(chunk) = rx.recv().await {
@@ -60,7 +62,9 @@ impl LLMProvider for KiroClient {
             }
             full.push_str(&chunk);
         }
-        let _ = emit.await;
+        if let Err(e) = emit.await {
+            log::warn!("kiro: emit task join failed: {e}");
+        }
         Ok(full)
     }
 

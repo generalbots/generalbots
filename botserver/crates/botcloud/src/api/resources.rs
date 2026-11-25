@@ -79,12 +79,14 @@ pub(crate) async fn provision_compute_resource(
         .iter()
         .any(|name| settings.key_for(name).is_some())
     {
-        let _ = compute::record_outcome(
+        if let Err(e) = compute::record_outcome(
             pool,
             resource_id,
             compute::STATUS_NO_KEY,
             serde_json::json!({ "error": "no provider credential for this organization" }),
-        );
+        ) {
+            tracing::warn!("resource provisioning: record_outcome (no key) failed: {e}");
+        }
         return Err("No provider API key configured for organization".into());
     }
 

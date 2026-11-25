@@ -203,9 +203,12 @@ pub async fn handle_delete_source(
             }
         };
 
-        let _ = diesel::sql_query("DELETE FROM knowledge_chunks WHERE source_id = $1")
+        if let Err(e) = diesel::sql_query("DELETE FROM knowledge_chunks WHERE source_id = $1")
             .bind::<diesel::sql_types::Text, _>(&id)
-            .execute(&mut db_conn);
+            .execute(&mut db_conn)
+        {
+            log::warn!("Failed to delete knowledge chunks for source {id}: {e}");
+        }
 
         let delete_result = diesel::sql_query("DELETE FROM knowledge_sources WHERE id = $1")
             .bind::<diesel::sql_types::Text, _>(&id)

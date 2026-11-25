@@ -311,7 +311,9 @@ impl LLMProvider for KimiClient {
 
                 if line == "data: [DONE]" {
                     info!("[Kimi] Stream done: {} chunks, {} content chars sent", chunk_count, total_content_chars);
-                    let _ = tx.send(String::new()).await;
+                    if let Err(e) = tx.send(String::new()).await {
+                        log::warn!("kimi: stream done send failed: {e}");
+                    }
                     return Ok(());
                 }
 
@@ -329,7 +331,9 @@ impl LLMProvider for KimiClient {
                                                 "type": "tool_call",
                                                 "content": tool_call
                                             }).to_string();
-                                            let _ = tx.send(tool_call_json).await;
+                                            if let Err(e) = tx.send(tool_call_json).await {
+                                                log::warn!("kimi: tool call send failed: {e}");
+                                            }
                                         }
                                     }
 
@@ -348,7 +352,9 @@ impl LLMProvider for KimiClient {
                     let reasoning_msg = serde_json::json!({
                         "__reasoning__": processed.reasoning
                     }).to_string();
-                    let _ = tx.send(reasoning_msg).await;
+                    if let Err(e) = tx.send(reasoning_msg).await {
+                        log::warn!("kimi: reasoning send failed: {e}");
+                    }
                   }
                 }
               }
@@ -368,7 +374,9 @@ impl LLMProvider for KimiClient {
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
                                         info!("[Kimi] Stream finished: {}, {} content chars", reason, total_content_chars);
-                                        let _ = tx.send(String::new()).await;
+                                        if let Err(e) = tx.send(String::new()).await {
+                                            log::warn!("kimi: stream finished send failed: {e}");
+                                        }
                                         return Ok(());
                                     }
                                 }
@@ -387,7 +395,9 @@ impl LLMProvider for KimiClient {
         }
 
         info!("[Kimi] Stream ended (no [DONE]), {} chunks, {} content chars", chunk_count, total_content_chars);
-        let _ = tx.send(String::new()).await;
+        if let Err(e) = tx.send(String::new()).await {
+            log::warn!("kimi: stream end send failed: {e}");
+        }
         Ok(())
     }
 

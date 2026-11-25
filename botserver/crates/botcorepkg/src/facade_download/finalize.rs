@@ -52,7 +52,9 @@ pub fn install_binary(temp_file: &std::path::Path, bin_path: &std::path::Path, n
 pub fn make_executable(path: &std::path::Path) -> Result<()> {
     #[cfg(unix)]
     {
-        let _ = botlib::os::fs::get_permissions_manager().set_executable(path);
+        if let Err(e) = botlib::os::fs::get_permissions_manager().set_executable(path) {
+            log::warn!("Could not make {} executable: {e}", path.display());
+        }
     }
     #[cfg(windows)]
     {

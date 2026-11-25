@@ -111,7 +111,11 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
     let safe_json = serde_json::to_string_pretty(&secrets::sanitized_init_json(&init_json_val))?;
     std::fs::write(&init_json_path, safe_json)?;
     #[cfg(unix)]
-    let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&init_json_path);
+    {
+        if let Err(e) = botlib::os::fs::get_permissions_manager().set_readonly_owner(&init_json_path) {
+            log::warn!("Could not mark {} owner-only: {e}", init_json_path.display());
+        }
+    }
 
     let scoped = secrets::create_scoped_token(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
     secrets::write(secrets::VAULT_TOKEN_SECRET, &scoped)?;
@@ -138,7 +142,9 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
             .open(&token_file)
         {
             use std::io::Write;
-            let _ = file.write_all(scoped.as_bytes());
+            if let Err(e) = file.write_all(scoped.as_bytes()) {
+                log::warn!("Failed to write developer token file: {e}");
+            }
         }
         info!("Developer token file {} contains the scoped sidecar token", token_file.display());
     }

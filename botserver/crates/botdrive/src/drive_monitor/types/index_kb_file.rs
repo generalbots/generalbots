@@ -46,7 +46,9 @@ impl DriveMonitor {
                     s3_key,
                     e
                 );
-                let _ = self.file_repo.mark_failed(full_key);
+                if let Err(e) = self.file_repo.mark_failed(full_key) {
+                    log::warn!("Failed to mark {full_key} as failed: {e}");
+                }
                 self.files_being_indexed.write().await.remove(full_key);
                 return;
             }
@@ -91,7 +93,9 @@ impl DriveMonitor {
                     full_key,
                     result.collection_name
                 );
-                let _ = self.file_repo.mark_indexed(full_key, etag);
+                if let Err(e) = self.file_repo.mark_indexed(full_key, etag) {
+                    log::warn!("Failed to mark {full_key} indexed: {e}");
+                }
                 self.upsert_kb_collection(
                     bot_name,
                     &parsed.kb_name,
@@ -101,15 +105,21 @@ impl DriveMonitor {
             }
             Ok(Err(e)) => {
                 log::error!("KB indexing failed for {}: {}", full_key, e);
-                let _ = self.file_repo.mark_failed(full_key);
+                if let Err(e) = self.file_repo.mark_failed(full_key) {
+                    log::warn!("Failed to mark {full_key} as failed: {e}");
+                }
             }
             Err(_) => {
                 log::error!("KB indexing timed out after 120s for {}", full_key);
-                let _ = self.file_repo.mark_failed(full_key);
+                if let Err(e) = self.file_repo.mark_failed(full_key) {
+                    log::warn!("Failed to mark {full_key} as failed: {e}");
+                }
             }
         }
 
-        let _ = std::fs::remove_file(&temp_path);
+        if let Err(e) = std::fs::remove_file(&temp_path) {
+            log::warn!("Failed to remove temporary KB file {}: {e}", temp_path.display());
+        }
         self.files_being_indexed.write().await.remove(full_key);
     }
 
@@ -223,7 +233,9 @@ impl DriveMonitor {
 
         let relative_key = self.strip_prefix(s3_key);
         let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-        let _ = self.file_repo.mark_indexed(&full_key, etag);
+        if let Err(e) = self.file_repo.mark_indexed(&full_key, etag) {
+            log::warn!("Failed to mark {full_key} indexed: {e}");
+        }
     }
 
     pub(super) fn resolve_branch_id(&self) -> Option<uuid::Uuid> {
@@ -299,7 +311,9 @@ impl DriveMonitor {
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
                     let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-                    let _ = self.file_repo.mark_indexed(&full_key, etag);
+                    if let Err(e) = self.file_repo.mark_indexed(&full_key, etag) {
+                        log::warn!("Failed to mark {full_key} indexed: {e}");
+                    }
                 }
             }
             Err(e) => {

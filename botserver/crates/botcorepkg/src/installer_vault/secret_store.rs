@@ -111,7 +111,9 @@ pub(crate) fn write_private(path: &Path, value: &str) -> Result<()> {
         // The botcore installer marks generated files owner-read-only; make
         // sure a later regeneration can still open them for writing.
         if path.exists() {
-            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+            if let Err(e) = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)) {
+                log::warn!("Failed to set permissions on {}: {e}", path.display());
+            }
         }
         let mut file = std::fs::OpenOptions::new()
             .create(true)
@@ -180,7 +182,9 @@ pub fn write(name: &str, value: &str) -> Result<PathBuf> {
         write_private(&source, value)?;
         let source_arg = source.to_string_lossy().to_string();
         let result = helper_call(&[HELPER, "store", name, &source_arg]);
-        let _ = std::fs::remove_file(&source);
+        if let Err(e) = std::fs::remove_file(&source) {
+            log::warn!("Failed to remove temporary secret input {}: {e}", source.display());
+        }
         result?;
         info!("Stored secret {name} through the root helper");
         return Ok(path);
@@ -203,13 +207,17 @@ fn read_via_helper(name: &str) -> Result<String> {
     let dest_arg = dest.to_string_lossy().to_string();
     let result = helper_call(&[HELPER, "read", name, &dest_arg]);
     if let Err(error) = result {
-        let _ = std::fs::remove_file(&dest);
+        if let Err(e) = std::fs::remove_file(&dest) {
+            log::warn!("Failed to remove temporary secret output {}: {e}", dest.display());
+        }
         return Err(error);
     }
     audit_open(name);
     let content = std::fs::read_to_string(&dest)
         .with_context(|| format!("Cannot read helper output for secret {name}"))?;
-    let _ = std::fs::remove_file(&dest);
+    if let Err(e) = std::fs::remove_file(&dest) {
+        log::warn!("Failed to remove temporary secret output {}: {e}", dest.display());
+    }
     Ok(content.trim_end().to_string())
 }
 

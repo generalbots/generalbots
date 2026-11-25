@@ -23,9 +23,9 @@
 
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::Json;
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text, Timestamptz};
 use serde::Serialize;
@@ -82,6 +82,21 @@ fn not_found() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+/// #2452 — the single redemption decision for link expiry.
+///
+/// Kept pure so the deadline boundary is unit-testable without a database:
+/// `None` means a link that never expires (the backward-compatible default),
+/// and an equality at the deadline is already expired. The caller turns every
+/// `true` into the same generic `not_found()` as an unknown token, so an
+/// expired link cannot be distinguished from one that never existed and the
+/// token/document are never disclosed.
+fn link_is_expired(
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    now: chrono::DateTime<chrono::Utc>,
+) -> bool {
+    expires_at.is_some_and(|deadline| now >= deadline)
+}
+
 fn internal<E: std::fmt::Display>(
     error: &E,
     context: &str,
@@ -112,10 +127,10 @@ pub async fn handle_shared_document(
     if link.resource_type != DOCS_RESOURCE {
         return Err(not_found());
     }
-    if let Some(expires_at) = link.expires_at {
-        if expires_at < chrono::Utc::now() {
-            return Err(not_found());
-        }
+    // #2452 — refuse an expired link through the same generic error used for
+    // an unknown/wrong-type token: no existence hint, no token, no document.
+    if link_is_expired(link.expires_at, chrono::Utc::now()) {
+        return Err(not_found());
     }
 
     let Some(owner_id) = resolve_owner(&state, &link).await else {
@@ -130,6 +145,10 @@ pub async fn handle_shared_document(
         .await
         .map_err(|e| internal(&e, "botdocs::shared_link"))?
         .ok_or_else(not_found)?;
+
+    // #2452 — only a link that actually resolved to a document is a "view".
+    // The token and the body stay out of the audit payload.
+    crate::access_audit::record_shared_view(&state, &link.resource_id);
 
     Ok(Json(SharedDocument {
         id: document.id,
@@ -189,7 +208,7 @@ async fn resolve_owner(state: &DocState, link: &LinkRow) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::is_valid_token;
+    use super::{is_valid_token, link_is_expired};
 
     #[test]
     fn the_minted_token_shape_is_accepted() {
@@ -208,5 +227,25 @@ mod tests {
         assert!(!is_valid_token(&"g".repeat(64)));
         assert!(!is_valid_token(&"a".repeat(63)));
         assert!(!is_valid_token(&"a".repeat(65)));
+    }
+
+    #[test]
+    fn expired_deadlines_are_refused_including_the_boundary() {
+        let now = chrono::Utc::now();
+        assert!(link_is_expired(
+            Some(now - chrono::Duration::seconds(1)),
+            now
+        ));
+        assert!(link_is_expired(Some(now), now));
+    }
+
+    #[test]
+    fn future_and_open_ended_links_stay_redeemable() {
+        let now = chrono::Utc::now();
+        assert!(!link_is_expired(
+            Some(now + chrono::Duration::hours(1)),
+            now
+        ));
+        assert!(!link_is_expired(None, now));
     }
 }

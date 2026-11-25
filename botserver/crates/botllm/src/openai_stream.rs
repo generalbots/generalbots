@@ -213,11 +213,15 @@ impl LLMProvider for OpenAIClient {
             if let Ok(val) = serde_json::from_str::<Value>(&body) {
                 let choice = &val["choices"][0];
                 if let Some(reasoning) = choice["message"]["reasoning_content"].as_str().or(choice["message"]["reasoning"].as_str()) {
-                    let _ = tx.send(serde_json::json!({"__reasoning__": reasoning}).to_string()).await;
+                    if let Err(e) = tx.send(serde_json::json!({"__reasoning__": reasoning}).to_string()).await {
+                        log::warn!("openai_stream: reasoning send failed: {e}");
+                    }
                 }
                 if let Some(content) = choice["message"]["content"].as_str() {
                     if !content.is_empty() {
-                        let _ = tx.send(content.to_string()).await;
+                        if let Err(e) = tx.send(content.to_string()).await {
+                            log::warn!("openai_stream: content chunk send failed: {e}");
+                        }
                     }
                 }
                 if let Some(tcs) = choice["message"]["tool_calls"].as_array() {
@@ -225,7 +229,9 @@ impl LLMProvider for OpenAIClient {
                         if let Some(func) = tc.get("function") {
                             let args = func["arguments"].as_str().unwrap_or("{}");
                             let msg = serde_json::json!({"__tool_call__": true, "name": func["name"], "arguments": args});
-                            let _ = tx.send(msg.to_string()).await;
+                            if let Err(e) = tx.send(msg.to_string()).await {
+                                log::warn!("openai_stream: tool call send failed: {e}");
+                            }
                         }
                     }
                 }
@@ -273,7 +279,9 @@ impl LLMProvider for OpenAIClient {
                     }
                     Some(Err(e)) => {
                         let err_msg = format!("Stream read error: {e}");
-                        let _ = chunk_tx.send(Err(err_msg.clone())).await;
+                        if let Err(e) = chunk_tx.send(Err(err_msg.clone())).await {
+                            log::warn!("openai_stream: error chunk send failed: {e}");
+                        }
                         log::error!("LLM generate_stream stream error: {err_msg}");
                         break Err(err_msg.into());
                     }

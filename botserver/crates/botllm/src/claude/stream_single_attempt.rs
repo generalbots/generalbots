@@ -208,7 +208,9 @@ impl ClaudeClient {
                     if data != "[DONE]" {
                         let (content, reasoning) = self.process_sse_data(data);
                         if let Some(text) = content {
-                            let _ = tx.send(text).await;
+                            if let Err(e) = tx.send(text).await {
+                                log::warn!("claude: text chunk send failed: {e}");
+                            }
                             text_chunks_sent += 1;
                         }
                         if let Some(think) = reasoning {
@@ -216,7 +218,9 @@ impl ClaudeClient {
                                 "type": "thinking",
                                 "content": think
                             }).to_string();
-                            let _ = tx.send(think_msg).await;
+                            if let Err(e) = tx.send(think_msg).await {
+                                log::warn!("claude: thinking chunk send failed: {e}");
+                            }
                         }
                     }
                 }

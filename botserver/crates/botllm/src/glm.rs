@@ -306,7 +306,9 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
 
                 if line == "data: [DONE]" {
                     info!("[GLM] Stream done: {} chunks, {} reasoning chars, {} content chars sent", chunk_count, total_reasoning_chars, total_content_chars);
-                    let _ = tx.send(String::new()).await;
+                    if let Err(e) = tx.send(String::new()).await {
+                        log::warn!("glm: stream done send failed: {e}");
+                    }
                     return Ok(());
                 }
 
@@ -325,7 +327,9 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
                                                 "type": "tool_call",
                                                 "content": tool_call
                                             }).to_string();
-                                            let _ = tx.send(tool_call_json).await;
+                                            if let Err(e) = tx.send(tool_call_json).await {
+                                                log::warn!("glm: tool call send failed: {e}");
+                                            }
                                         }
                                     }
 
@@ -350,7 +354,9 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
                                                 "type": "thinking",
                                                 "content": "🤔 Pensando..."
                                             }).to_string();
-                                            let _ = tx.send(thinking).await;
+                                            if let Err(e) = tx.send(thinking).await {
+                                                log::warn!("glm: thinking send failed: {e}");
+                                            }
                                             has_sent_thinking = true;
                                         }
                                         continue;
@@ -364,14 +370,18 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
                                             "type": "thinking_clear",
                                             "content": ""
                                         }).to_string();
-                                        let _ = tx.send(clear).await;
+                                        if let Err(e) = tx.send(clear).await {
+                                            log::warn!("glm: thinking clear send failed: {e}");
+                                        }
                                     }
 
                                     // Send actual content to user
                                     if let Some(text) = content {
                                         if !text.is_empty() {
                                             total_content_chars += text.len();
-                                            let _ = tx.send(text.to_string()).await;
+                                            if let Err(e) = tx.send(text.to_string()).await {
+                                                log::warn!("glm: content chunk send failed: {e}");
+                                            }
                                         }
                                     }
                                 } else {
@@ -382,7 +392,9 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
                                 if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
                                     if !reason.is_empty() {
                                         info!("[GLM] Stream finished: {}, reasoning={} content={}", reason, total_reasoning_chars, total_content_chars);
-                                        let _ = tx.send(String::new()).await;
+                                        if let Err(e) = tx.send(String::new()).await {
+                                            log::warn!("glm: finish reason send failed: {e}");
+                                        }
                                         return Ok(());
                                     }
                                 }
@@ -399,7 +411,9 @@ chat_template_kwargs: Some(GLMChatTemplateKwargs {
         }
 
         info!("[GLM] Stream ended (no [DONE]), reasoning={} content={}", total_reasoning_chars, total_content_chars);
-        let _ = tx.send(String::new()).await;
+        if let Err(e) = tx.send(String::new()).await {
+            log::warn!("glm: stream end send failed: {e}");
+        }
         Ok(())
     }
 

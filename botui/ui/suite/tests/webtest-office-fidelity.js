@@ -34,6 +34,12 @@ require("./webtest-office-fidelity/28_agent_undo");
 require("./webtest-office-fidelity/29_sheet_scale_guard");
 require("./webtest-office-fidelity/30_kb_edit_eviction");
 require("./webtest-office-fidelity/31_chat_citation_inject");
+require("./webtest-office-fidelity/32_kb_clause_fallback");
+require("./webtest-office-fidelity/33_access_audit");
+require("./webtest-office-fidelity/34_perf_marks");
+require("./webtest-office-fidelity/35_sharing_gaps");
+require("./webtest-office-fidelity/36_link_expiry");
+require("./webtest-office-fidelity/37_sheet_toolbar_theme");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

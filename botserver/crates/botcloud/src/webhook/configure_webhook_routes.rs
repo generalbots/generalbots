@@ -180,21 +180,23 @@ pub(super) async fn process_checkout_completed(
 
     // 2. CRM: mark deal as won
     let deal_name = format!("Subscription {} - {}", plan_label, invoice.customer_name.as_str());
-    let _ = integration::win_crm_deal(service.pool(), invoice.branch_id, &deal_name)
-        .map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
+    if let Err(e) = integration::win_crm_deal(service.pool(), invoice.branch_id, &deal_name) {
+        tracing::warn!("CRM win deal failed: {e}");
+    }
 
     // 3. ERP (GL): posts accounting entry
-    let _ = integration::create_gl_entry_for_invoice(
+    if let Err(e) = integration::create_gl_entry_for_invoice(
         service.pool(),
         invoice_id,
         total,
         invoice.customer_name.as_str(),
-    )
-    .map_err(|e| tracing::warn!("GL entry failed: {e}"));
+    ) {
+        tracing::warn!("GL entry failed: {e}");
+    }
 
     // 4. Subscription: create or update billing_recurring
     let email_ref = invoice.customer_email.clone().unwrap_or_else(String::new);
-    let _ = integration::create_billing_subscription(integration::NewSubscription {
+    if let Err(e) = integration::create_billing_subscription(integration::NewSubscription {
         pool: service.pool(),
         branch_id: invoice.branch_id,
         customer_name: invoice.customer_name.as_str(),
@@ -204,8 +206,9 @@ pub(super) async fn process_checkout_completed(
         currency: invoice.currency.as_str(),
         invoice_id,
         period: "monthly",
-    })
-    .map_err(|e| tracing::warn!("Subscription creation failed: {e}"));
+    }) {
+        tracing::warn!("Subscription creation failed: {e}");
+    }
 
     // --- Notifications ---
     let mut vars = notifier::EmailVars::new(

@@ -33,7 +33,9 @@ pub fn fetch_vault_credentials_impl() -> HashMap<String, String> {
 
     // #2498 — the token is referenced through VAULT_TOKEN_FILE, never stored
     // in the user-owned `.env`. Resolve it from the private credential store.
-    let _ = super::secret_store::load_token_into_env();
+    if let Err(e) = super::secret_store::load_token_into_env() {
+        log::warn!("Failed to load Vault token into environment: {e}");
+    }
     let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_else(|e| {
         log::warn!("VAULT_ADDR unavailable: {e}");
         String::new()

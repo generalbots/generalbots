@@ -15,7 +15,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::DIRECTORY).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
@@ -36,7 +36,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::EMAIL).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
@@ -58,7 +58,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::LLM).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
@@ -80,7 +80,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::MEET).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
@@ -100,7 +100,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::VECTORDB).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (secrets.get("url").cloned().unwrap_or_else(String::new).replace("localhost", "127.0.0.1"), secrets.get("api_key").cloned());
@@ -116,7 +116,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::OBSERVABILITY).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return (
@@ -137,7 +137,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::ALM).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             let url = secrets
@@ -182,7 +182,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::APP).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             let caddy_api_url = secrets
@@ -222,7 +222,7 @@ impl SecretsManager {
             let result = if let Ok(rt) = rt {
                 rt.block_on(async move { self_owned.get_secret(SecretPaths::JWT).await.ok() })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
         if let Ok(Some(secrets)) = rx.recv() {
             return secrets.get("secret").cloned().unwrap_or_else(String::new);
@@ -257,7 +257,7 @@ impl SecretsManager {
                     None
                 })
             } else { None };
-            let _ = tx.send(result);
+            if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
         });
 
         if let Ok(Some(config)) = rx.recv() {
@@ -431,7 +431,7 @@ pub fn internal_api_token() -> String {
         } else {
             None
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) { log::warn!("secrets sync read: could not deliver result to caller: {e}"); }
     });
     rx.recv_timeout(std::time::Duration::from_secs(5))
         .ok()

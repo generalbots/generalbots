@@ -145,7 +145,9 @@ impl DriveMonitor {
                                         full_key,
                                         elapsed.num_minutes()
                                     );
-                                    let _ = self.file_repo.reset_file_fail_count(&full_key);
+                                    if let Err(e) = self.file_repo.reset_file_fail_count(&full_key) {
+                                        log::warn!("Failed to reset fail count for {full_key}: {e}");
+                                    }
                                 }
                             }
                         }
@@ -231,14 +233,20 @@ impl DriveMonitor {
                                         // 63% of a core burned on a server with 16 sessions a
                                         // week. `indexed` here means "no follow-up work", which
                                         // is exactly what the config/prompt arms already say.
-                                        let _ =
-                                            self.file_repo.mark_indexed(&full_key, etag.clone());
+                                        if let Err(e) =
+                                            self.file_repo.mark_indexed(&full_key, etag.clone())
+                                        {
+                                            log::warn!("Failed to mark {full_key} indexed: {e}");
+                                        }
                                     } else if file_type == "prompt" {
                                         self.sync_gbot_to_work(bot_name, &obj.key, etag.clone())
                                             .await;
                                     } else if file_type != "kb" && file_type != "config" {
-                                        let _ =
-                                            self.file_repo.mark_indexed(&full_key, etag.clone());
+                                        if let Err(e) =
+                                            self.file_repo.mark_indexed(&full_key, etag.clone())
+                                        {
+                                            log::warn!("Failed to mark {full_key} indexed: {e}");
+                                        }
                                     }
                                 }
                                 Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),

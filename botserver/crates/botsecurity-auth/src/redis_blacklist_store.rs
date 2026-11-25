@@ -175,7 +175,9 @@ impl BlacklistStore for RedisBlacklistStore {
                 };
 
                 if expired {
-                    let _ = redis::cmd("DEL").arg(&key).query_async::<()>(&mut conn).await;
+                    if let Err(e) = redis::cmd("DEL").arg(&key).query_async::<()>(&mut conn).await {
+                        tracing::warn!("Redis DEL failed during token blacklist cleanup: {e}");
+                    }
                     removed += 1;
                 }
             }

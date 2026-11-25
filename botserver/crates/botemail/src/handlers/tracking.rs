@@ -109,10 +109,13 @@ pub async fn serve_tracking_pixel(
         let ip_clone = client_ip.clone();
         let ua_clone = user_agent.clone();
 
-        let _ = tokio::task::spawn_blocking(move || {
+        if let Err(e) = tokio::task::spawn_blocking(move || {
             update_email_read_status(pool, tracking_uuid, ip_clone, ua_clone)
         })
-        .await;
+        .await
+        {
+            log::warn!("Tracking status update task failed for {tracking_id}: {e}");
+        }
 
         info!("Email read tracked: tracking_id={}, ip={:?}", tracking_id, client_ip);
     } else {

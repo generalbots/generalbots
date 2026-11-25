@@ -41,7 +41,9 @@ fn unseal_keys(base_path: &Path) -> Result<Vec<String>> {
     if !keys.is_empty() {
         secrets::write(secrets::UNSEAL_KEYS_SECRET, &keys.join("\n"))?;
     }
-    let _ = std::fs::remove_file(&legacy);
+    if let Err(e) = std::fs::remove_file(&legacy) {
+        log::warn!("Failed to remove legacy unseal key file {}: {e}", legacy.display());
+    }
     info!("Migrated unseal keys out of the user-owned stack");
     Ok(keys)
 }

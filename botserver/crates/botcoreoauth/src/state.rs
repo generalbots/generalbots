@@ -307,7 +307,9 @@ fn vault_secret() -> Option<String> {
             }),
             Err(_) => None,
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("OAuth state secret lookup: could not deliver result to caller: {e}");
+        }
     });
     rx.recv_timeout(SECRET_LOOKUP_TIMEOUT).ok().flatten()
 }

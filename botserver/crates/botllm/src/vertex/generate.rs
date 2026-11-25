@@ -200,7 +200,9 @@ impl LLMProvider for VertexClient {
                                             if let Some(delta) = first_choice.get("delta") {
                                                 if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
                                                     if !content.is_empty() {
-                                                        let _ = tx.send(content.to_string()).await;
+                                                        if let Err(e) = tx.send(content.to_string()).await {
+                                                            log::warn!("vertex tx failed: {e}");
+                                                        }
                                                     }
                                                 }
                                                 
@@ -235,7 +237,9 @@ impl LLMProvider for VertexClient {
                                                     for part in parts {
                                                         if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
                                                             if !text.is_empty() {
-                                                                let _ = tx.send(text.to_string()).await;
+                                                                if let Err(e) = tx.send(text.to_string()).await {
+                                                                    log::warn!("vertex tx failed: {e}");
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -257,7 +261,9 @@ impl LLMProvider for VertexClient {
         
         if !tool_call_buffer.is_empty() {
             tool_call_buffer.push_str("\"}");
-            let _ = tx.send(format!("`tool_call`: {}", tool_call_buffer)).await;
+            if let Err(e) = tx.send(format!("`tool_call`: {}", tool_call_buffer)).await {
+                log::warn!("vertex: tool call send failed: {e}");
+            }
         }
 
         Ok(())

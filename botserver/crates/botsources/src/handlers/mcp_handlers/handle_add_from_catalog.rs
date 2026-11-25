@@ -28,7 +28,9 @@ pub async fn handle_add_from_catalog(
                 risk_level: None,
                 requires_approval: false,
             };
-            let _ = loader.add_server(&row);
+            if let Err(e) = loader.add_server(&row) {
+                log::warn!("Failed to add MCP server from catalog: {e}");
+            }
         }
     }
 

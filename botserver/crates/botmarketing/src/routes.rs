@@ -92,14 +92,17 @@ pub async fn track_email_open_pixel(
     if let Ok(mut conn) = state.conn.get() {
         if let Ok(token_uuid) = uuid::Uuid::parse_str(&token) {
             let now = Utc::now();
-            let _ = diesel::update(
+            if let Err(e) = diesel::update(
                 email_tracking::table.filter(email_tracking::open_token.eq(Some(token_uuid))),
             )
             .set((
                 email_tracking::opened.eq(true),
                 email_tracking::opened_at.eq(Some(now)),
             ))
-            .execute(&mut conn);
+            .execute(&mut conn)
+            {
+                log::warn!("Failed to record email open pixel: {e}");
+            }
 
             log::info!(
                 "Email open tracked via pixel: token_fp={}",

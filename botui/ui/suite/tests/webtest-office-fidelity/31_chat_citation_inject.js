@@ -103,10 +103,23 @@ h.staticTest("Citation injection runs after inject_kb and fails closed", functio
 
   contains(CITATION, "if user_id.is_nil() {\n        return None;\n    }",
     "a nil principal resolves to no UserContext");
-  contains(CITATION, "let Some(principal) = principal_for(user_id, bucket_name) else {\n        return;\n    };",
-    "an unresolved principal returns before any search or prompt mutation");
-  contains(CITATION, "let Some(docs) = docs_from(extensions).await else {\n        return;\n    };",
-    "unpublished Docs state returns before any search or prompt mutation");
+  (function () {
+    var guards = [
+      ["let Some(principal) = principal_for(user_id, bucket_name) else {",
+        "an unresolved principal returns before any search or prompt mutation"],
+      ["let Some(docs) = docs_from(extensions).await else {",
+        "unpublished Docs state returns before any search or prompt mutation"]
+    ];
+    var src = h.readRepo(CITATION);
+    guards.forEach(function (pair) {
+      var at = src.indexOf(pair[0]);
+      h.assert(at >= 0, "citation guard present :: <" + pair[1] + ">");
+      var window = src.slice(at, at + 420);
+      h.assert(window.indexOf("return;") !== -1 &&
+        window.indexOf("return;") < window.indexOf("docs.search_text"),
+        pair[1]);
+    });
+  })();
   contains(CITATION, "extensions.get::<Arc<DocState>>().await",
     "docs_from resolves the Arc<DocState> published by the producer");
   contains(CITATION, "extensions.get::<DocState>().await",

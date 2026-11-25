@@ -240,11 +240,14 @@ pub async fn handle_upload_document(
             }
         }
 
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "UPDATE knowledge_sources SET status = 'indexed', indexed_at = NOW(), updated_at = NOW() WHERE id = $1"
         )
         .bind::<diesel::sql_types::Text, _>(&source_id_clone)
-        .execute(&mut db_conn);
+        .execute(&mut db_conn)
+        {
+            log::warn!("Failed to mark source {source_id_clone} as indexed: {e}");
+        }
 
         Ok(())
     })

@@ -234,7 +234,9 @@ async fn ensure_inner(desired: &DesiredRuntime, restore_previous: bool) -> Ensur
             Ok(()) => Ok(()),
             Err(reason) => {
                 log::warn!("[runtime_ctl] health wait failed, cleaning up PID {child_pid}");
-                let _ = runtime_stop::kill_pid(child_pid);
+                if let Err(e) = runtime_stop::kill_pid(child_pid) {
+                    log::warn!("[runtime_ctl] failed to kill PID {child_pid}: {e}");
+                }
                 Err(reason)
             }
         },
@@ -327,7 +329,9 @@ fn llm_log_since(mark: u64) -> String {
         return String::new();
     }
     let mut bytes = Vec::new();
-    let _ = file.read_to_end(&mut bytes);
+    if let Err(e) = file.read_to_end(&mut bytes) {
+        log::warn!("[runtime_ctl] cannot read LLM log tail: {e}");
+    }
     String::from_utf8_lossy(&bytes).into_owned()
 }
 
@@ -354,7 +358,9 @@ async fn restore(previous_model: &str, failed: &DesiredRuntime) {
             Ok(()) => log::info!("[runtime_ctl] previous model {bare} restored"),
             Err(reason) => {
                 log::warn!("[runtime_ctl] previous model {bare} did not come back: {reason}");
-                let _ = runtime_stop::kill_pid(pid);
+                if let Err(e) = runtime_stop::kill_pid(pid) {
+                    log::warn!("[runtime_ctl] failed to kill restored-runtime PID {pid}: {e}");
+                }
             }
         },
         Err(reason) => log::warn!("[runtime_ctl] cannot restore {bare}: {reason}"),

@@ -282,7 +282,9 @@ pub async fn exec_in_vm_streaming(
 
     if let Some(sender) = &events {
         let label: String = cmd_args.join(" ").chars().take(500).collect();
-        let _ = sender.send(ExecEvent::Started { command: label });
+        if let Err(e) = sender.send(ExecEvent::Started { command: label }) {
+            tracing::warn!("failed to send exec started event: {e}");
+        }
     }
 
     let started = Instant::now();
@@ -320,7 +322,9 @@ pub async fn exec_in_vm_streaming(
     let (exit_code, cancelled, timed_out) = wait;
 
     for reader in readers {
-        let _ = reader.join();
+        if let Err(e) = reader.join() {
+            tracing::warn!("output reader thread panicked: {e:?}");
+        }
     }
 
     let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
@@ -341,12 +345,14 @@ pub async fn exec_in_vm_streaming(
         });
 
     if let Some(sender) = &events {
-        let _ = sender.send(ExecEvent::Finished {
+        if let Err(e) = sender.send(ExecEvent::Finished {
             exit_code,
             duration_ms,
             cancelled,
             timed_out,
-        });
+        }) {
+            tracing::warn!("failed to send exec finished event: {e}");
+        }
     }
 
     Ok(ExecOutcome {

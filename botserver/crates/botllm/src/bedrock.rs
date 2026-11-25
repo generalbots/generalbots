@@ -185,7 +185,9 @@ impl BedrockClient {
 
         if !tool_call_buffer.is_empty() {
             tool_call_buffer.push_str("\"}");
-            let _ = tx.send(format!("`tool_call`: {}", tool_call_buffer)).await;
+            if let Err(e) = tx.send(format!("`tool_call`: {}", tool_call_buffer)).await {
+                log::warn!("bedrock: tool call send failed: {e}");
+            }
         }
 
         Ok(())

@@ -281,7 +281,9 @@ impl SessionStore {
         };
         for session in removed {
             if session.is_dirty() {
-                let _ = session.persist_now(state).await;
+                if let Err(e) = session.persist_now(state).await {
+                    log::warn!("close: sheet session persist failed: {e}");
+                }
             }
         }
     }

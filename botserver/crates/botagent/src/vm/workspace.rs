@@ -54,12 +54,15 @@ pub async fn ensure_conversation_folder(
     .await?;
     for sub in ["output", "program", "data"] {
         let sub_path = format!("{folder_path}/{sub}");
-        let _ = exec_in_vm(
+        if let Err(e) = exec_in_vm(
             state,
             &session.vm_name,
-            &["mkdir".into(), "-p".into(), sub_path],
+            &["mkdir".into(), "-p".into(), sub_path.clone()],
         )
-        .await;
+        .await
+        {
+            tracing::warn!("failed to create conversation subfolder {sub_path}: {e:?}");
+        }
     }
 
     let mut conn = state

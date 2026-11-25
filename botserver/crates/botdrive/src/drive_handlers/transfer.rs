@@ -122,7 +122,9 @@ pub async fn upload_file_to_drive(
         match drive.put_object(&bucket, &key, data.clone(), None).await {
             Ok(()) => break,
             Err(e) if !created && e.contains("NoSuchBucket") => {
-                let _ = drive.create_bucket_if_not_exists(&bucket).await;
+                if let Err(e) = drive.create_bucket_if_not_exists(&bucket).await {
+                    log::warn!("Failed to create bucket '{bucket}' on upload retry: {e}");
+                }
                 created = true;
             }
             Err(e) => {

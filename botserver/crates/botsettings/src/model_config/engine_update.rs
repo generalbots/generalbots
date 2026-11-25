@@ -111,7 +111,9 @@ pub(super) async fn update(
 
     let (current, previous) = (engine_dir(), previous_dir());
     if previous.exists() {
-        let _ = std::fs::remove_dir_all(&previous);
+        if let Err(e) = std::fs::remove_dir_all(&previous) {
+            log::warn!("[engine_update] cannot remove stale previous engine dir: {e}");
+        }
     }
     if let Err(e) = rename_with_retry(&current, &previous).await {
         log::error!("[engine_update] cannot move the engine aside: {e}");

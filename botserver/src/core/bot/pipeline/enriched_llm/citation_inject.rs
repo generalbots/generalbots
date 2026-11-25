@@ -93,17 +93,21 @@ pub(super) async fn inject_saved_doc_citations(
     messages: &mut serde_json::Value,
 ) {
     let Some(principal) = principal_for(user_id, bucket_name) else {
+        log::info!("chat citation injection: skipped (nil principal)");
         return;
     };
     let Some(docs) = docs_from(extensions).await else {
+        log::info!("chat citation injection: skipped (Docs state not published)");
         return;
     };
     let hits = docs.search_text(user_query, &principal, MAX_CITATIONS);
+    log::info!("chat citation injection: search hits={}", hits.len());
     let lines: Vec<String> = hits
         .iter()
         .take(MAX_CITATIONS)
         .map(|hit| citation_line(&docs.citation_meta(&hit.id), hit))
         .collect();
+    log::info!("chat citation injection: appending lines={}", lines.len());
     append_lines(messages, &lines);
 }
 

@@ -359,12 +359,14 @@ pub async fn provision_domain(
     let settings = load_settings(pool, org_id)?;
 
     if !sku.candidates.iter().any(|name| settings.key_for(name).is_some()) {
-        let _ = compute::record_outcome(
+        if let Err(e) = compute::record_outcome(
             pool,
             resource_id,
             STATUS_NO_KEY,
             serde_json::json!({ "error": "no registrar credential for this organization" }),
-        );
+        ) {
+            tracing::warn!("domain provisioning: record_outcome (no key) failed: {e}");
+        }
         return Err("No registrar API key configured for organization".into());
     }
 
@@ -372,12 +374,14 @@ pub async fn provision_domain(
     let outcome = match register_domain(&sku, &domain, &settings).await {
         Ok(outcome) => outcome,
         Err(message) => {
-            let _ = compute::record_outcome(
+            if let Err(e) = compute::record_outcome(
                 pool,
                 resource_id,
                 STATUS_FAILED,
                 serde_json::json!({ "error": message }),
-            );
+            ) {
+                tracing::warn!("domain provisioning: record_outcome (failed) failed: {e}");
+            }
             return Err(message);
         }
     };

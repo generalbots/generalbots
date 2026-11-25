@@ -44,7 +44,9 @@ pub fn secret_sync(path: &str) -> Option<BTreeMap<String, String>> {
                 None
             }
         };
-        let _ = tx.send(result);
+        if let Err(e) = tx.send(result) {
+            log::warn!("secret {log_path}: could not deliver Vault read result to caller: {e}");
+        }
     });
     rx.recv_timeout(READ_TIMEOUT).ok().flatten()
 }

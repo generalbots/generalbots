@@ -153,7 +153,9 @@ async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::
 
     let db_latency = {
         let start = Instant::now();
-        let _ = state.conn.get();
+        if let Err(e) = state.conn.get() {
+            log::warn!("health check DB connection probe failed: {e}");
+        }
         start.elapsed().as_millis()
     };
 

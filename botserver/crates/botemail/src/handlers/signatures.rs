@@ -182,9 +182,12 @@ pub async fn create_signature(
     let content_plain = payload.content_plain.unwrap_or_else(|| strip_html_tags(&payload.content_html));
 
     if payload.is_default {
-        let _ = diesel::sql_query("UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true")
+        if let Err(e) = diesel::sql_query("UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true")
             .bind::<DieselUuid, _>(user_id)
-            .execute(&mut conn);
+            .execute(&mut conn)
+        {
+            log::warn!("Failed to clear default email signature for user {user_id}: {e}");
+        }
     }
 
     let result = diesel::sql_query(
@@ -232,9 +235,12 @@ pub async fn update_signature(
     if payload.content_plain.is_some() { updates.push("content_plain = $5".to_string()); }
     if let Some(is_default) = payload.is_default {
         if is_default {
-            let _ = diesel::sql_query("UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true AND id != $2")
+            if let Err(e) = diesel::sql_query("UPDATE email_signatures SET is_default = false WHERE user_id = $1 AND is_default = true AND id != $2")
                 .bind::<DieselUuid, _>(user_id).bind::<DieselUuid, _>(signature_id)
-                .execute(&mut conn);
+                .execute(&mut conn)
+            {
+                log::warn!("Failed to clear previous default email signature {signature_id}: {e}");
+            }
         }
         updates.push("is_default = $6".to_string());
     }

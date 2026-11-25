@@ -309,7 +309,9 @@ impl PackageManager {
                         );
 
                         if component.name == "vault" && self.mode == InstallMode::Local {
-                            let _ = installer_vault::ensure_env_file_exists(&self.base_path);
+                            if let Err(e) = installer_vault::ensure_env_file_exists(&self.base_path) {
+                                log::warn!("Failed to ensure .env exists: {e}");
+                            }
                         }
 
                         SafeCommand::noop_child()

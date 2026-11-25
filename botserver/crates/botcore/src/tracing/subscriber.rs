@@ -8,11 +8,14 @@ use super::*;
 ///
 /// Safe to call multiple times — subsequent calls are silently ignored.
 pub fn setup_tracing_subscriber() {
-    let _ = tracing_subscriber::fmt()
+    if let Err(e) = tracing_subscriber::fmt()
         .with_target(true)
         .with_level(true)
         .with_thread_ids(true)
-        .try_init();
+        .try_init()
+    {
+        log::warn!("Tracing subscriber initialization failed or was already set: {e}");
+    }
 }
 
 // ---------------------------------------------------------------------------
