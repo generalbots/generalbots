@@ -26,6 +26,13 @@ use std::time::Instant;
 mod export_docx;
 use export_docx::html_to_docx_full;
 
+// #2452 — the role gate lives beside the handlers but in its own file so the
+// handler module stays below the 450-line limit. It reuses the `decide()` ACL
+// and the `resource_permissions` role source of the AST read.
+#[path = "export_acl.rs"]
+mod export_acl;
+use export_acl::{acl_denied, denial_code, export_decision};
+
 /// #2459 — emit export duration under a sanitized format token.
 async fn record_export(state: &DocState, format: &str, started: Instant) {
     let duration_ms = started.elapsed().as_secs_f64() * 1000.0;
@@ -180,6 +187,21 @@ async fn load_export_document(
     user: &DocUser,
     query: &ExportQuery,
 ) -> Result<crate::types::Document, (StatusCode, Json<serde_json::Value>)> {
+    // #2452 — authorize BEFORE reading or rendering any bytes. Previously the
+    // only "denial" was the namespace lookup below, which returned a generic
+    // 404 for a foreign caller and never consulted the object role. The gate
+    // resolves the verified caller's effective role from the shared
+    // `resource_permissions` store and runs the existing `decide()` policy with
+    // `Action::Export`; resolution failures fail closed.
+    let decision = export_decision(state, user, &query.id);
+    if !decision.is_allowed() {
+        log::warn!(
+            "docs export: ACL denied ({})",
+            denial_code(decision.reason())
+        );
+        return Err(acl_denied(decision.reason()));
+    }
+
     let user_id = user.id();
 
     match load_document_from_drive(state, user_id, &query.id).await {
