@@ -144,8 +144,14 @@ fn a_symlink_pointing_outside_the_root_is_rejected() {
     );
     let base = std::env::temp_dir().join(&unique);
     let outside = std::env::temp_dir().join(format!("{unique}-outside"));
-    let _ = std::fs::create_dir_all(&base);
-    let _ = std::fs::create_dir_all(&outside);
+    assert!(
+        std::fs::create_dir_all(&base).is_ok(),
+        "could not create git guard test dir"
+    );
+    assert!(
+        std::fs::create_dir_all(&outside).is_ok(),
+        "could not create git guard outside dir"
+    );
     let link = base.join("escape");
     if std::os::unix::fs::symlink(&outside, &link).is_ok() {
         assert!(
@@ -158,8 +164,14 @@ fn a_symlink_pointing_outside_the_root_is_rejected() {
             "a git pathspec must not follow a symlink out of the repo"
         );
     }
-    let _ = std::fs::remove_dir_all(&base);
-    let _ = std::fs::remove_dir_all(&outside);
+    assert!(
+        std::fs::remove_dir_all(&base).is_ok(),
+        "could not clean up git guard test dir"
+    );
+    assert!(
+        std::fs::remove_dir_all(&outside).is_ok(),
+        "could not clean up git guard outside dir"
+    );
 }
 
 #[test]
