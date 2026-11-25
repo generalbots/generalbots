@@ -68,8 +68,8 @@ var EXPECTED = {
   htmlWithI18n: 204,
   gbTCalls: 390, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 126,
-  dynamicWrites: 4336,
-  writesInRegionFiles: 1269,
+  dynamicWrites: 4337,
+  writesInRegionFiles: 1270,
   writesOutsideRegionFiles: 3067,
   filesWithWritesNoRegion: 612,
 };
