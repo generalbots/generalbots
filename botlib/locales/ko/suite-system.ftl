@@ -369,3 +369,6 @@ plugins-state-empty-action = 매니페스트 업로드
 # #2328 — plugin upload error states
 plugins-upload-failed = 업로드 실패
 plugins-upload-bad-response = 업로드 응답이 유효하지 않습니다
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = 종속성 트리를 사용할 수 없습니다

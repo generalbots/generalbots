@@ -140,3 +140,18 @@ vdi-placeholder-host = 10.0.0.1
 billing-quote-name-placeholder = 例: 第1四半期ソフトウェアライセンス提案
 billing-item-description-placeholder = 製品またはサービスの説明
 billing-terms-placeholder = 支払条件、納品条件など
+
+# --- #2921 missing keys added to every locale catalogue ---
+billing-filter-all = すべて
+billing-filter-draft = 下書き
+billing-filter-sent = 送信済み
+billing-filter-paid = 支払済み
+billing-filter-overdue = 期限超過
+billing-filter-cancelled = キャンセル済み
+billing-period-all = すべての期間
+billing-period-month = 月
+billing-period-quarter = 四半期
+billing-period-year = 年
+billing-export = エクスポート
+billing-col-number = 番号
+billing-col-due = 期限日

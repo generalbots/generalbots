@@ -369,3 +369,6 @@ plugins-state-empty-action = Téléverser un manifeste
 # #2328 — plugin upload error states
 plugins-upload-failed = Échec du téléversement
 plugins-upload-bad-response = Réponse de téléversement invalide
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = Arborescence des dépendances indisponible

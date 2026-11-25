@@ -1279,3 +1279,12 @@ calculator-aria-to-unit = 目标单位
 notes-empty-title = 还没有便签
 notes-empty-desc = 便签会一直留在面板上，直到您删除。抓住一闪而过的想法。
 notes-empty-action = 创建第一个便签
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = 时间到！休息一下。
+app-preview-name = 预览
+app-preview-desc = 发布前预览内容。
+app-events-name = 活动
+app-events-desc = 管理活动和日程。
+app-notepad-name = 记事本
+app-notepad-desc = 创建按用户本地存储的笔记。

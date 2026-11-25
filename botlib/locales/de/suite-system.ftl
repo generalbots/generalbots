@@ -369,3 +369,6 @@ plugins-state-empty-action = Manifest hochladen
 # #2328 — plugin upload error states
 plugins-upload-failed = Upload fehlgeschlagen
 plugins-upload-bad-response = Upload-Antwort ungültig
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = Abhängigkeitsdiagramm nicht verfügbar

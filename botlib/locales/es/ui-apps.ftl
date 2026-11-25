@@ -144,3 +144,18 @@ vdi-placeholder-host = 10.0.0.1
 billing-quote-name-placeholder = p. ej., Propuesta de licencia de software del T1
 billing-item-description-placeholder = Descripción del producto o servicio
 billing-terms-placeholder = Condiciones de pago, entrega, etc.
+
+# --- #2921 missing keys added to every locale catalogue ---
+billing-filter-all = Todos
+billing-filter-draft = Borrador
+billing-filter-sent = Enviado
+billing-filter-paid = Pagado
+billing-filter-overdue = Vencido
+billing-filter-cancelled = Cancelado
+billing-period-all = Todos los períodos
+billing-period-month = Mes
+billing-period-quarter = Trimestre
+billing-period-year = Año
+billing-export = Exportar
+billing-col-number = Número
+billing-col-due = Fecha de vencimiento

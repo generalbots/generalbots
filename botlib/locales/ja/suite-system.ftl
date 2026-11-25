@@ -369,3 +369,6 @@ plugins-state-empty-action = マニフェストをアップロード
 # #2328 — plugin upload error states
 plugins-upload-failed = アップロードに失敗しました
 plugins-upload-bad-response = アップロード応答が無効です
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = 依存関係ツリーは使用できません

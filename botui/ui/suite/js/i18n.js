@@ -310,13 +310,25 @@
 
     // #2087 — the build version keys the cache and the catalogue owns the
     // locale list; both are best-effort (offline boot keeps the fallbacks).
+    let productVersion = null;
     try {
       const product = window.productConfig || (await (await fetch("/api/product")).json());
       if (product && product.version) {
-        cacheBuild = String(product.version);
+        productVersion = String(product.version);
       }
     } catch (e) {
-      /* offline: keep the dev cache key */
+      /* offline: no build version is available */
+    }
+    if (productVersion) {
+      cacheBuild = productVersion;
+    } else {
+      // #2921 — without a product version the cache key falls back to "dev".
+      // An older deploy wrote its catalogue under that same key, so reusing it
+      // pins this client to stale strings for a whole CACHE_TTL_MS. Discard the
+      // unversioned entries once and fetch the catalogue from the current
+      // server. A successful versioned boot keeps its cache untouched.
+      cacheBuild = "dev";
+      clearCache();
     }
     try {
       const response = await fetch("/api/i18n/locales");

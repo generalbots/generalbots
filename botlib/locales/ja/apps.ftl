@@ -1279,3 +1279,12 @@ calculator-aria-to-unit = 変換先の単位
 notes-empty-title = まだメモがありません
 notes-empty-desc = 付箋は削除するまでボードに残ります。思いついたうちに記録しましょう。
 notes-empty-action = 最初のメモを作成
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = 時間です！休憩を取りましょう。
+app-preview-name = プレビュー
+app-preview-desc = 公開する前にコンテンツをプレビューします。
+app-events-name = イベント
+app-events-desc = イベントとスケジュールを管理します。
+app-notepad-name = メモ帳
+app-notepad-desc = ユーザーごとにローカル保存されるメモを作成します。

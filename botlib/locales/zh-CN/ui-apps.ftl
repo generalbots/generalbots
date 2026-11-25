@@ -140,3 +140,18 @@ vdi-placeholder-host = 10.0.0.1
 billing-quote-name-placeholder = 例如：第一季度软件许可方案
 billing-item-description-placeholder = 产品或服务描述
 billing-terms-placeholder = 付款条款、交付条件等
+
+# --- #2921 missing keys added to every locale catalogue ---
+billing-filter-all = 全部
+billing-filter-draft = 草稿
+billing-filter-sent = 已发送
+billing-filter-paid = 已付款
+billing-filter-overdue = 已逾期
+billing-filter-cancelled = 已取消
+billing-period-all = 所有时段
+billing-period-month = 月
+billing-period-quarter = 季度
+billing-period-year = 年
+billing-export = 导出
+billing-col-number = 编号
+billing-col-due = 到期日

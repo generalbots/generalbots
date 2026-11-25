@@ -1282,3 +1282,12 @@ notes-board = Notes board
 notes-empty-title = No notes yet
 notes-empty-desc = Sticky notes stay on your board until you delete them. Capture a thought before it goes.
 notes-empty-action = Create your first note
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = Time's up! Take a break.
+app-preview-name = Preview
+app-preview-desc = Preview content before publishing.
+app-events-name = Events
+app-events-desc = Manage events and schedules.
+app-notepad-name = Notepad
+app-notepad-desc = Take notes stored locally per user.

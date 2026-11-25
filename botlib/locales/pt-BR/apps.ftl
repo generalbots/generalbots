@@ -1280,3 +1280,12 @@ notes-board = Quadro de notas
 notes-empty-title = Ainda não há notas
 notes-empty-desc = As notas adesivas ficam no seu quadro até você excluí-las. Registre uma ideia antes que ela passe.
 notes-empty-action = Criar sua primeira nota
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = Tempo esgotado! Faça uma pausa.
+app-preview-name = Visualização
+app-preview-desc = Visualize o conteúdo antes de publicar.
+app-events-name = Eventos
+app-events-desc = Gerencie eventos e agendamentos.
+app-notepad-name = Bloco de notas
+app-notepad-desc = Faça anotações armazenadas localmente por usuário.

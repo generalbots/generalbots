@@ -1279,3 +1279,12 @@ calculator-aria-to-unit = Unité cible
 notes-empty-title = Aucune note pour le moment
 notes-empty-desc = Les notes restent sur votre tableau jusqu'à leur suppression. Notez une idée avant de la perdre.
 notes-empty-action = Créer votre première note
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = Le temps est écoulé ! Faites une pause.
+app-preview-name = Aperçu
+app-preview-desc = Prévisualisez le contenu avant de publier.
+app-events-name = Événements
+app-events-desc = Gérez les événements et les calendriers.
+app-notepad-name = Bloc-notes
+app-notepad-desc = Prenez des notes stockées localement par utilisateur.

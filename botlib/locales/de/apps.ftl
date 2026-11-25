@@ -1279,3 +1279,12 @@ calculator-aria-to-unit = Zu Einheit
 notes-empty-title = Noch keine Notizen
 notes-empty-desc = Haftnotizen bleiben auf Ihrer Pinnwand, bis Sie sie löschen. Halten Sie einen Gedanken fest, bevor er weg ist.
 notes-empty-action = Erste Notiz erstellen
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = Zeit abgelaufen! Machen Sie eine Pause.
+app-preview-name = Vorschau
+app-preview-desc = Inhalt vor dem Veröffentlichen ansehen.
+app-events-name = Veranstaltungen
+app-events-desc = Veranstaltungen und Termine verwalten.
+app-notepad-name = Notizblock
+app-notepad-desc = Notizen lokal pro Benutzer speichern.

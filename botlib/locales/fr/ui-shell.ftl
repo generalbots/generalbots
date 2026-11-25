@@ -277,3 +277,18 @@ settings-security-title = Paramètres de sécurité
 apps-menu-placeholder-search = Rechercher des applications...
 apps-menu-aria-search = Rechercher des applications
 apps-menu-aria-close = Fermer le menu des applications
+
+# --- #2921 missing keys added to every locale catalogue ---
+palette-kind-tour = Visite guidée
+palette-show-tour = Afficher la visite
+palette-show-tour-hint = Afficher la visite du produit
+sidebar-app-hide = Masquer { $app } de cette barre
+sidebar-apps-count-off = { $count } masqués
+sidebar-apps-empty = Aucune application à afficher
+sidebar-apps-manage = Gérer les applications
+sidebar-apps-manage-all = Tout afficher
+sidebar-apps-manage-close = Fermer
+sidebar-apps-manage-empty = Aucune application disponible
+sidebar-apps-manage-summary = { $on } sur { $total } affichés
+sidebar-apps-none = Aucune application
+toast-open = Ouvrir

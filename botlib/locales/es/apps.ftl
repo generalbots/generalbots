@@ -1277,3 +1277,12 @@ calculator-aria-to-unit = Unidad de destino
 notes-empty-title = Todavía no hay notas
 notes-empty-desc = Las notas adhesivas siguen en tu tablero hasta que las borres. Captura una idea antes de que se vaya.
 notes-empty-action = Crear tu primera nota
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = ¡Se acabó el tiempo! Toma un descanso.
+app-preview-name = Vista previa
+app-preview-desc = Previsualiza el contenido antes de publicar.
+app-events-name = Eventos
+app-events-desc = Gestiona eventos y horarios.
+app-notepad-name = Bloc de notas
+app-notepad-desc = Tome notas almacenadas localmente por usuario.

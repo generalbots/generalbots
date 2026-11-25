@@ -140,3 +140,18 @@ vdi-placeholder-host = 10.0.0.1
 billing-quote-name-placeholder = 예: 1분기 소프트웨어 라이선스 제안
 billing-item-description-placeholder = 제품 또는 서비스 설명
 billing-terms-placeholder = 결제 조건, 배송 조건 등
+
+# --- #2921 missing keys added to every locale catalogue ---
+billing-filter-all = 모두
+billing-filter-draft = 초안
+billing-filter-sent = 전송됨
+billing-filter-paid = 결제됨
+billing-filter-overdue = 기한 초과
+billing-filter-cancelled = 취소됨
+billing-period-all = 모든 기간
+billing-period-month = 월
+billing-period-quarter = 분기
+billing-period-year = 년
+billing-export = 내보내기
+billing-col-number = 번호
+billing-col-due = 만기일

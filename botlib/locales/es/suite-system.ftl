@@ -369,3 +369,6 @@ plugins-state-empty-action = Subir un manifiesto
 # #2328 — plugin upload error states
 plugins-upload-failed = Error al subir
 plugins-upload-bad-response = Respuesta de subida no válida
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = Árbol de dependencias no disponible

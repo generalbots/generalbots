@@ -277,3 +277,18 @@ settings-security-title = 보안 설정
 apps-menu-placeholder-search = 앱 검색...
 apps-menu-aria-search = 앱 검색
 apps-menu-aria-close = 앱 메뉴 닫기
+
+# --- #2921 missing keys added to every locale catalogue ---
+palette-kind-tour = 둘러보기
+palette-show-tour = 둘러보기 표시
+palette-show-tour-hint = 제품 둘러보기 표시
+sidebar-app-hide = 이 표시줄에서 { $app } 숨기기
+sidebar-apps-count-off = { $count }개 숨김
+sidebar-apps-empty = 표시할 앱이 없습니다
+sidebar-apps-manage = 앱 관리
+sidebar-apps-manage-all = 모두 표시
+sidebar-apps-manage-close = 닫기
+sidebar-apps-manage-empty = 사용할 수 있는 앱이 없습니다
+sidebar-apps-manage-summary = { $total }개 중 { $on }개 표시
+sidebar-apps-none = 앱이 없습니다
+toast-open = 열기

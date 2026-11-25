@@ -277,3 +277,18 @@ settings-security-title = 安全设置
 apps-menu-placeholder-search = 搜索应用...
 apps-menu-aria-search = 搜索应用
 apps-menu-aria-close = 关闭应用菜单
+
+# --- #2921 missing keys added to every locale catalogue ---
+palette-kind-tour = 导览
+palette-show-tour = 显示导览
+palette-show-tour-hint = 显示产品导览
+sidebar-app-hide = 从此栏隐藏 { $app }
+sidebar-apps-count-off = { $count } 个已隐藏
+sidebar-apps-empty = 没有可显示的应用
+sidebar-apps-manage = 管理应用
+sidebar-apps-manage-all = 显示全部
+sidebar-apps-manage-close = 关闭
+sidebar-apps-manage-empty = 没有可用的应用
+sidebar-apps-manage-summary = 已显示 { $total } 个中的 { $on } 个
+sidebar-apps-none = 没有应用
+toast-open = 打开

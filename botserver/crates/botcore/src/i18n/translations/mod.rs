@@ -50,3 +50,40 @@ pub fn get_translations_json(locale: &Locale) -> serde_json::Value {
     );
     serde_json::Value::Object(translations)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// #2921 — the API catalogue is the union of the hand-maintained lists and
+    /// every key embedded in the `.ftl` bundles. A key authored in a catalogue
+    /// must reach `GET /api/i18n/{locale}` without being added to a Rust list;
+    /// this pins that union so a registration regression fails the build.
+    #[test]
+    fn api_catalogue_serves_every_embedded_key() {
+        let keys = translation_keys();
+        assert!(!keys.is_empty(), "the i18n API catalogue must not be empty");
+        let embedded = botlib::i18n::message_ids();
+        assert!(
+            !embedded.is_empty(),
+            "the embedded English catalogue must be loaded"
+        );
+        for key in embedded {
+            assert!(
+                keys.contains(&key),
+                "API catalogue must serve embedded key {key}"
+            );
+        }
+        for key in [
+            "chat-copy",
+            "sidebar-apps-manage",
+            "toast-open",
+            "billing-export",
+        ] {
+            assert!(
+                keys.iter().any(|served| served == key),
+                "API catalogue must serve #2921 key {key}"
+            );
+        }
+    }
+}

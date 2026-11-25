@@ -1279,3 +1279,12 @@ calculator-aria-to-unit = 대상 단위
 notes-empty-title = 아직 메모가 없습니다
 notes-empty-desc = 메모는 삭제할 때까지 보드에 남습니다. 떠오른 생각을 바로 적어 두세요.
 notes-empty-action = 첫 메모 만들기
+
+# --- #2921 missing keys added to every locale catalogue ---
+timer-time-up = 시간이 다 되었습니다! 잠시 쉬어가세요.
+app-preview-name = 미리보기
+app-preview-desc = 게시하기 전에 콘텐츠를 미리 봅니다.
+app-events-name = 이벤트
+app-events-desc = 이벤트와 일정을 관리합니다.
+app-notepad-name = 메모장
+app-notepad-desc = 사용자별로 로컬에 저장되는 메모를 작성합니다.

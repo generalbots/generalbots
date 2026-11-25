@@ -369,3 +369,6 @@ plugins-state-empty-action = 上传清单
 # #2328 — plugin upload error states
 plugins-upload-failed = 上传失败
 plugins-upload-bad-response = 上传响应无效
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = 依赖关系树不可用

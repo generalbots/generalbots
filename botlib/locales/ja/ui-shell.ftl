@@ -277,3 +277,18 @@ settings-security-title = セキュリティ設定
 apps-menu-placeholder-search = アプリを検索...
 apps-menu-aria-search = アプリを検索
 apps-menu-aria-close = アプリメニューを閉じる
+
+# --- #2921 missing keys added to every locale catalogue ---
+palette-kind-tour = ツアー
+palette-show-tour = ツアーを表示
+palette-show-tour-hint = 製品ツアーを表示
+sidebar-app-hide = このバーで { $app } を非表示
+sidebar-apps-count-off = { $count } 件非表示
+sidebar-apps-empty = 表示するアプリがありません
+sidebar-apps-manage = アプリを管理
+sidebar-apps-manage-all = すべて表示
+sidebar-apps-manage-close = 閉じる
+sidebar-apps-manage-empty = 利用可能なアプリがありません
+sidebar-apps-manage-summary = { $total } 件中 { $on } 件を表示
+sidebar-apps-none = アプリがありません
+toast-open = 開く

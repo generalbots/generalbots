@@ -373,3 +373,6 @@ plugins-state-empty-action = Enviar um manifesto
 # #2328 — plugin upload error states
 plugins-upload-failed = Falha no envio
 plugins-upload-bad-response = Resposta de envio inválida
+
+# --- #2921 missing keys added to every locale catalogue ---
+about-dependency-tree-missing = Árvore de dependências não disponível
