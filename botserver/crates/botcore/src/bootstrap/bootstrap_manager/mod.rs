@@ -23,5 +23,6 @@ mod lifecycle;
 mod install;
 mod templates;
 mod helpers;
+mod start_plan;
 
 use helpers::*;

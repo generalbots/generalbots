@@ -217,18 +217,9 @@ impl PackageManager {
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));
 
+            // No fixed wait here: the caller polls the service's health check
+            // (and Vault's initialisation below polls Vault itself).
             trace!("Spawn result for {}: {:?}", component.name, child.is_ok());
-            std::thread::sleep(std::time::Duration::from_secs(2));
-
-            trace!(
-                "Checking if {} process exists after 2s sleep...",
-                component.name
-            );
-            let check_proc = safe_pgrep(&["-f", &component.name]);
-            if let Some(output) = check_proc {
-                let pids = String::from_utf8_lossy(&output.stdout);
-                trace!("pgrep '{}' result: '{}'", component.name, pids.trim());
-            }
 
             match child {
                 Ok(c) => {

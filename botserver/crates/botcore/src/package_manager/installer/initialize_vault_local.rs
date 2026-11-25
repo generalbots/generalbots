@@ -22,9 +22,8 @@ impl PackageManager {
             info!("Vault data directory found, checking health...");
         }
 
-        // Wait for Vault to be ready
+        // Vault's readiness is polled below; no fixed wait first.
         info!("Waiting for Vault to start...");
-        std::thread::sleep(std::time::Duration::from_secs(3));
 
         let vault_addr = std::env::var("VAULT_ADDR")
             .ok()
