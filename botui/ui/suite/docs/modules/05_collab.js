@@ -10,6 +10,9 @@
  * Lifecycle (all in this module — no other app/module is touched):
  *   - initCollab() only installs a watcher plus one initial sync; it never
  *     opens a socket while there is no article with a valid data-doc-id.
+ *   - a blank doc's minted id is flagged unsaved until its first successful
+ *     save; renderedDocId() then stays empty so no refused socket (and no
+ *     reconnect storm) is ever opened for a document Drive does not have.
  *   - every render path (server fragment, local view, Drive/VM deep link,
  *     blank start) mutates the DOM, which re-syncs against the article id.
  *   - switching documents updates the GBCollab singleton's doc id/url in place
@@ -36,6 +39,10 @@ function initCollab() {
   function renderedDocId() {
     var article = document.querySelector("article[contenteditable]");
     var id = article && article.dataset ? article.dataset.docId : "";
+    // A blank doc mints its id before it exists in Drive. The server refuses
+    // that socket and the close handler reopens it in a loop, so while the
+    // article is flagged unsaved there is no id to put on the wire at all.
+    if (id && typeof docsIsBlankDocUnsaved === "function" && docsIsBlankDocUnsaved(article)) return "";
     if (!id || id === "current" || !/^[A-Za-z0-9_.-]+$/.test(id)) return "";
     return id;
   }

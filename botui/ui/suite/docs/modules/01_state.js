@@ -169,12 +169,32 @@ function docsMintDocId() {
   return "doc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 }
 
+/* A blank document's id is minted here, before the document exists in Drive.
+ * botdocs refuses /ws/docs/{id} for a document it cannot resolve, and GBCollab
+ * reopens a refused socket on every close — the blank-doc reconnect storm. The
+ * article therefore carries a transient flag from the moment its id is minted
+ * until a successful save persists it; the collab watcher reads that flag and
+ * stays offline in the meantime. */
+function docsMarkBlankDocUnsaved(article) {
+  if (!article || !article.dataset) return;
+  article.dataset.docsUnsaved = "1";
+}
+function docsIsBlankDocUnsaved(article) {
+  return !!(article && article.dataset && article.dataset.docsUnsaved === "1");
+}
+function docsClearBlankDocUnsaved(article) {
+  if (!docsIsBlankDocUnsaved(article)) return false;
+  delete article.dataset.docsUnsaved;
+  return true;
+}
+
 function docsEnsureArticleDocId(article) {
   if (!article || !article.dataset) return "";
   var id = article.dataset.docId || "";
   if (!id || id === "current") {
     id = docsMintDocId();
     article.dataset.docId = id;
+    docsMarkBlankDocUnsaved(article);
   }
   return id;
 }
