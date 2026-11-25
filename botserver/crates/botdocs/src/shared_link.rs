@@ -27,11 +27,12 @@
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{ConnectInfo, Path, State};
 use axum::http::StatusCode;
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text, Timestamptz};
 use serde::Serialize;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 /// Length of the token minted by `collab_routes::create_link`: two simple
@@ -140,6 +141,14 @@ fn internal<E: std::fmt::Display>(
     )
 }
 
+/// #2452 — resolve the caller's address for the audit row from the socket the
+/// listener accepted. No header or body field can reach this function, and a
+/// missing address stays `None` so the audit layer stores SQL NULL instead of
+/// inventing one. Only the IP is kept; the port is transport detail.
+fn client_ip(addr: Option<&SocketAddr>) -> Option<String> {
+    addr.map(|socket| socket.ip().to_string())
+}
+
 /// `GET /api/docs/shared/:token` — read a document through its share link.
 ///
 /// Anonymous by design (capability token). The response is the document body
@@ -148,6 +157,9 @@ fn internal<E: std::fmt::Display>(
 pub async fn handle_shared_document(
     State(state): State<Arc<DocState>>,
     Path(token): Path<String>,
+    // #2452 — both botserver listeners use the connect-info make-service, so
+    // the extractor is available without changing the route registration.
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Result<Json<SharedDocument>, (StatusCode, Json<serde_json::Value>)> {
     let token = token.trim().to_lowercase();
     if !is_valid_token(&token) {
@@ -178,8 +190,10 @@ pub async fn handle_shared_document(
         .ok_or_else(not_found)?;
 
     // #2452 — only a link that actually resolved to a document is a "view".
-    // The token and the body stay out of the audit payload.
-    crate::access_audit::record_shared_view(&state, &link.resource_id);
+    // The token and the body stay out of the audit payload; the address is
+    // taken from the connected socket, never from request-controlled input.
+    let ip = client_ip(Some(&addr));
+    crate::access_audit::record_shared_view_with_ip(&state, &link.resource_id, ip.as_deref());
 
     // #2452 — the capability is scoped to the role recorded on the link. A
     // viewer sees only the metadata shell; the editable HTML source (and
@@ -252,7 +266,15 @@ async fn resolve_owner(state: &DocState, link: &LinkRow) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{body_for_link, is_valid_token, link_is_expired};
+    use super::{body_for_link, client_ip, is_valid_token, link_is_expired};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    /// RFC 5737 TEST-NET-3 — documentation-only address, never a real client.
+    const TEST_IP: &str = "203.0.113.7";
+
+    fn connected_peer() -> SocketAddr {
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 7)), 51234)
+    }
 
     fn minted_token() -> String {
         format!(
@@ -346,5 +368,32 @@ mod tests {
             ),
             SOURCE
         );
+    }
+
+    #[test]
+    fn view_ip_comes_from_the_connected_socket() {
+        let ip = client_ip(Some(&connected_peer()));
+        assert_eq!(ip.as_deref(), Some(TEST_IP));
+        // The port is transport detail and must not reach the audit row.
+        assert!(ip.is_some_and(|value| !value.contains(':')));
+    }
+
+    #[test]
+    fn missing_socket_address_stays_none() {
+        assert_eq!(client_ip(None), None);
+    }
+
+    #[test]
+    fn view_event_with_ip_stays_anonymous_and_content_free() {
+        let ip = client_ip(Some(&connected_peer()));
+        let event =
+            crate::access_audit::AccessAuditEvent::shared_view("doc-1").with_ip(ip.as_deref());
+        assert_eq!(event.resource_type, "docs");
+        assert_eq!(event.actor_id, "anonymous-guest");
+        assert_eq!(event.action, "view");
+        assert!(event.payload.as_object().is_some_and(|map| map.len() == 1));
+        assert!(event.payload.get("token").is_none());
+        assert!(event.payload.get("content").is_none());
+        assert_eq!(event.ip.as_deref(), Some(TEST_IP));
     }
 }
