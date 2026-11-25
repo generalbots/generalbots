@@ -1,6 +1,17 @@
+//! AI assistant and cached prompt evaluation for the sheet editor.
+//!
+//! #2923 — `/api/sheet/ai` uses the LLM path already shipped in this crate
+//! (`call_llm`) and never answers from a keyword table. An unconfigured or
+//! failing provider produces an explicit `503 ai_unavailable` envelope.
+
 use crate::state::SheetState;
 use crate::types::{SheetAiRequest, SheetAiResponse};
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -11,6 +22,22 @@ use tokio::sync::Semaphore;
 
 const MAX_BATCH_SIZE: usize = 100;
 const MAX_CONCURRENT_LLM: usize = 10;
+
+/// Typed verbs registered in the app command catalog
+/// (`botserver/src/apps/commands/app_commands_extra/table/docs_and_sheet_crud.rs`).
+const ALLOWED_ACTIONS: &[&str] = &[
+    "sheet.cell.set",
+    "sheet.cells.set",
+    "sheet.range.set",
+    "sheet.formula.set",
+    "sheet.format.apply",
+    "sheet.merge",
+    "sheet.unmerge",
+    "sheet.sort",
+    "sheet.filter.apply",
+    "sheet.chart.create",
+    "sheet.pivot.create",
+];
 
 #[derive(Debug, Deserialize)]
 pub struct EvaluateAiPromptRequest {
@@ -51,6 +78,31 @@ pub struct BatchItemResult {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct LlmPayload {
+    #[serde(default)]
+    response: String,
+    #[serde(default)]
+    action: Option<String>,
+    #[serde(default)]
+    data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Unavailable {
+    NotConfigured,
+    Provider,
+}
+
+impl Unavailable {
+    fn reason(self) -> &'static str {
+        match self {
+            Self::NotConfigured => "not_configured",
+            Self::Provider => "provider_error",
+        }
+    }
+}
+
 static AI_CACHE: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
@@ -63,52 +115,103 @@ fn compute_cache_key(prompt: &str) -> String {
     format!("ai_prompt:{}", hex::encode(hash))
 }
 
-/// Maps a lowercased command to an honest reply.
-///
-/// This endpoint does not mutate the workbook, so no branch may claim that an
-/// action was performed. Each branch explains the manual control instead.
-fn ai_reply_for(command: &str) -> &'static str {
-    if command.contains("sum") {
-        "This chat endpoint cannot edit the sheet yet. Select the cell where you want the total, then use the SUM formula (for example =SUM(B2:B10)) or AutoSum in the toolbar."
-    } else if command.contains("average") || command.contains("avg") {
-        "This chat endpoint cannot edit the sheet yet. Select a range and use the AVERAGE formula (for example =AVERAGE(B2:B10)) from the formula menu."
-    } else if command.contains("chart") {
-        "This chat endpoint cannot insert charts yet. Select your data range, then choose the chart type from the Insert \u{2192} Chart menu."
-    } else if command.contains("sort") {
-        "This chat endpoint cannot sort data yet. Select the range, then use Data \u{2192} Sort and choose ascending or descending order."
-    } else if command.contains("format")
-        || command.contains("currency")
-        || command.contains("percent")
-    {
-        "This chat endpoint cannot change cell formatting yet. Select the cells, then use the number-format control in the toolbar to apply currency or percent."
-    } else if command.contains("bold") || command.contains("italic") {
-        "This chat endpoint cannot change text formatting yet. Select the cells, then use the bold or italic button in the toolbar."
-    } else if command.contains("filter") {
-        "This chat endpoint cannot enable filters yet. Select the header row, then use Data \u{2192} Filter; dropdown arrows will appear in the header cells."
-    } else if command.contains("freeze") {
-        "This chat endpoint cannot freeze panes yet. Select the row or column to keep visible, then use View \u{2192} Freeze panes."
-    } else if command.contains("merge") {
-        "This chat endpoint cannot merge cells yet. Select the cells to combine, then use Format \u{2192} Merge cells."
-    } else if command.contains("clear") {
-        "This chat endpoint cannot clear cells yet. Select the cells and press Delete or Backspace."
-    } else if command.contains("help") {
-        "This assistant only explains how to use the editor; it cannot modify the workbook. The editor can help you:\n- Sum/Average columns with formulas or AutoSum\n- Format as currency or percent from the toolbar\n- Bold/Italic formatting from the toolbar\n- Sort data from Data \u{2192} Sort\n- Create charts from Insert \u{2192} Chart\n- Filter data from Data \u{2192} Filter\n- Freeze panes from View \u{2192} Freeze panes\n- Merge cells from Format \u{2192} Merge cells"
-    } else {
-        "This assistant only explains how to use the editor; it cannot modify the workbook. Try 'sum column B', 'format as currency', 'sort ascending' or 'create a chart' to get directions for those controls."
+fn llm_available() -> bool {
+    match std::env::var("BOT_AI_PROMPT_URL") {
+        Ok(url) => !url.trim().is_empty(),
+        Err(_) => false,
     }
 }
 
-pub async fn handle_sheet_ai(
-    State(_state): State<Arc<SheetState>>,
-    Json(req): Json<SheetAiRequest>,
-) -> impl IntoResponse {
-    let command = req.command.to_lowercase();
-    let response = ai_reply_for(&command);
-    Json(SheetAiResponse {
-        response: response.to_string(),
-        action: None,
-        data: None,
+fn build_prompt(req: &SheetAiRequest) -> String {
+    let selection = serde_json::to_string(&req.selection).unwrap_or_else(|_| "null".to_string());
+    let active_cell =
+        serde_json::to_string(&req.active_cell).unwrap_or_else(|_| "null".to_string());
+    format!(
+        "You are an assistant embedded in a spreadsheet editor. Return ONLY a JSON object \
+         with a string key \"response\" describing what you did or found. If the user asks for \
+         a workbook change, also set \"action\" to exactly one of these typed verbs: {}. Put the \
+         verb's arguments in the object \"data\". Never claim an edit you did not request.\n\
+         Command: {}\nSheet id: {}\nSelection: {}\nActive cell: {}",
+        ALLOWED_ACTIONS.join(", "),
+        req.command,
+        req.sheet_id.as_deref().unwrap_or(""),
+        selection,
+        active_cell
+    )
+}
+
+/// Parses the LLM envelope into the typed sheet response. Unknown verbs are
+/// stripped before the answer can be handed to a verb endpoint.
+fn parse_llm_answer(content: &str, req: &SheetAiRequest) -> SheetAiResponse {
+    let payload: LlmPayload = match serde_json::from_str(content) {
+        Ok(payload) => payload,
+        Err(_) => {
+            return SheetAiResponse {
+                response: content.trim().to_string(),
+                action: None,
+                data: None,
+            }
+        }
+    };
+    let mut data = match payload.data {
+        Some(value @ serde_json::Value::Object(_)) => Some(value),
+        _ => None,
+    };
+    let action = match payload.action {
+        Some(action) if ALLOWED_ACTIONS.contains(&action.as_str()) => Some(action),
+        _ => None,
+    };
+    if let (Some(action), Some(serde_json::Value::Object(fields))) = (&action, &mut data) {
+        if let Some(id) = req.sheet_id.as_deref() {
+            fields
+                .entry("file_id".to_string())
+                .or_insert_with(|| serde_json::Value::String(id.to_string()));
+        }
+        log::debug!("Sheet AI typed action: {action}");
+    } else {
+        data = None;
+    }
+    SheetAiResponse {
+        response: payload.response,
+        action,
+        data,
+    }
+}
+
+fn unavailable_body(reason: Unavailable) -> serde_json::Value {
+    serde_json::json!({
+        "error": "ai_unavailable",
+        "reason": reason.reason()
     })
+}
+
+fn unavailable_response(reason: Unavailable) -> Response {
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(unavailable_body(reason)),
+    )
+        .into_response()
+}
+
+pub async fn handle_sheet_ai(
+    State(state): State<Arc<SheetState>>,
+    Json(req): Json<SheetAiRequest>,
+) -> Response {
+    log::trace!(
+        "Sheet AI request (drive configured: {})",
+        state.drive.is_some()
+    );
+    if !llm_available() {
+        return unavailable_response(Unavailable::NotConfigured);
+    }
+    let prompt = build_prompt(&req);
+    match call_llm(&prompt).await {
+        Ok(content) => Json(parse_llm_answer(&content, &req)).into_response(),
+        Err(e) => {
+            log::error!("Sheet AI: LLM request failed: {e}");
+            unavailable_response(Unavailable::Provider)
+        }
+    }
 }
 
 pub async fn handle_evaluate_ai_prompt(
@@ -260,56 +363,5 @@ async fn perform_llm_request(prompt: &str) -> Result<String, String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const ACTION_COMMANDS: &[&str] = &[
-        "sum",
-        "average",
-        "create chart",
-        "sort ascending",
-        "format as currency",
-        "percent",
-        "bold",
-        "italic",
-        "filter",
-        "freeze rows",
-        "merge cells",
-        "clear cells",
-    ];
-
-    fn assert_no_false_confirmation(command: &str, reply: &str) {
-        assert!(
-            !reply.contains(concat!("I", "'ve")) && !reply.contains(concat!("I", " have")),
-            "false confirmation for {command}: {reply}"
-        );
-    }
-
-    #[test]
-    fn mutation_commands_explain_controls_without_claiming_success() {
-        for command in ACTION_COMMANDS {
-            let reply = ai_reply_for(command);
-            assert_no_false_confirmation(command, reply);
-            assert!(
-                reply.contains("This chat endpoint cannot"),
-                "missing honest limitation for {command}: {reply}"
-            );
-        }
-    }
-
-    #[test]
-    fn action_commands_point_to_manual_controls() {
-        assert!(ai_reply_for("sum").contains("SUM formula"));
-        assert!(ai_reply_for("format as currency").contains("number-format"));
-        assert!(ai_reply_for("bold").contains("toolbar"));
-        assert!(ai_reply_for("filter").contains("Data"));
-        assert!(ai_reply_for("help").contains("cannot modify the workbook"));
-    }
-
-    #[test]
-    fn unknown_command_is_instruction_only() {
-        let reply = ai_reply_for("make it prettier");
-        assert!(!reply.contains(concat!("I", "'ve")) && !reply.contains(concat!("I", " have")));
-        assert!(reply.contains("cannot modify the workbook"));
-    }
-}
+#[path = "ai_tests.rs"]
+mod ai_tests;

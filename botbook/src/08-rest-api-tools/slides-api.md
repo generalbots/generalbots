@@ -1,6 +1,6 @@
 # Slides API 🟡 BETA
 
-> **API for creating, editing, and managing presentation slides with AI-powered content generation.**
+> **API for creating, editing, and managing presentation slides, with an AI assistant that returns typed editor actions.**
 
 ---
 
@@ -219,51 +219,67 @@ Creates a new blank presentation with default settings.
 
 ---
 
-### AI Generate Content
+### AI Assistant
 
 **`POST /api/slides/ai`**
 
-Uses AI to generate slide content based on a prompt or topic.
+Sends the instruction to the configured LLM and returns its answer as JSON.
+This endpoint does **not** mutate the deck: when the model asks for a change it
+sets a typed verb in `action` and its arguments in `data`, which the caller
+executes through the matching verb endpoint (for example
+`POST /api/slides/slide/add`). There is no keyword-to-instruction fallback.
 
-| Parameter | Type | Required | Description |
+Configuration: `LLM_URL` and `LLM_KEY` must be set; `LLM_MODEL` is optional and
+defaults to `default`. The request uses the same OpenAI-compatible chat
+completions contract as the Docs AI endpoint.
+
+**Request body** (`SlidesAiRequest`, `botserver/crates/botslides/src/types/requests.rs`):
+
+| Field | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `prompt` | string | Yes | Description of desired content |
-| `presentation_id` | string | No | Existing presentation to add to |
-| `slide_count` | integer | No | Number of slides to generate (default: 5) |
-| `style` | string | No | Content style: `formal`, `casual`, `technical`, `creative` |
+| `command` | string | Yes | Instruction for the assistant. The editor form posts `prompt`, accepted as a serde alias. |
+| `presentation_id` | string | No | Deck id; injected into `data` when `action` is returned. |
+| `slide_index` | integer | No | 0-based slide context sent to the LLM. |
 
 **Request Body:**
 ```json
 {
-  "prompt": "Create a presentation about quarterly sales performance with charts and key metrics",
-  "slide_count": 8,
-  "style": "formal"
+  "prompt": "Add a content slide after slide 2",
+  "presentation_id": "uuid-string",
+  "slide_index": 1
 }
 ```
 
-**Response:**
+**Success (200)** (`SlidesAiResponse`, same file). `action` and `data` are
+omitted unless the model selected a verb:
+
 ```json
 {
-  "presentation_id": "uuid-string",
-  "slides": [
-    {
-      "type": "title",
-      "content": {
-        "title": "Q4 Sales Performance",
-        "subtitle": "Data-Driven Insights"
-      }
-    },
-    {
-      "type": "content",
-      "content": {
-        "title": "Key Metrics",
-        "body": "Revenue growth: 23%\nNew customers: 1,247\nRetention rate: 94%"
-      }
-    }
-  ],
-  "generation_time_ms": 3450
+  "response": "Added a content slide after slide 2.",
+  "action": "slides.slide.add",
+  "data": { "presentation_id": "uuid-string", "layout": "content", "position": 2 }
 }
 ```
+
+Allowed `action` values (the verbs bound in
+`botserver/src/apps/commands/verb_endpoints/table/office_endpoints.rs`):
+`slides.slide.add`, `slides.slide.delete`, `slides.slide.duplicate`,
+`slides.slide.notes`, `slides.element.add`, `slides.element.delete`,
+`slides.media.add`, `slides.theme.set`, `slides.transition.set`. A verb outside
+this list is stripped before the response is returned.
+
+**Unavailable (503)** — no generated text, no manual-control hints:
+
+```json
+{
+  "error": "ai_unavailable",
+  "reason": "not_configured"
+}
+```
+
+`reason` is `not_configured` when `LLM_URL` or `LLM_KEY` is missing, or
+`provider_error` when the call or its response fails. Provider error details
+are logged server-side and are never returned to the client.
 
 ---
 

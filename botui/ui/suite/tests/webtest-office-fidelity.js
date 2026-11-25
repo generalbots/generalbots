@@ -74,6 +74,8 @@ require("./webtest-office-fidelity/68_reflow_idle_budget");
 require("./webtest-office-fidelity/69_slides_route_contract");
 require("./webtest-office-fidelity/70_undo_route_wiring");
 require("./webtest-office-fidelity/71_reflow_root_causes");
+require("./webtest-office-fidelity/72_ai_endpoints");
+require("./webtest-office-fidelity/73_drive_cloud_surface_gate");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

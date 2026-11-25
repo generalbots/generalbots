@@ -1010,40 +1010,69 @@ Returns all collaborators on a spreadsheet.
 
 **`POST /api/sheet/ai`**
 
-Uses AI to analyze or transform spreadsheet data.
+Sends the instruction to the configured LLM through the crate's existing
+`call_llm` path and returns its answer as JSON. This endpoint does **not**
+mutate the workbook: a requested change is returned as a typed verb in
+`action` with arguments in `data` for the caller to execute. There is no
+keyword-to-instruction fallback.
 
-| Parameter | Type | Required | Description |
+Configuration: `BOT_AI_PROMPT_URL` must be set; `BOT_AI_PROMPT_MODEL` is
+optional and defaults to `default`. The same variables back
+`POST /api/sheet/ai/evaluate-prompt` and `/batch-evaluate`.
+
+**Request body** (`SheetAiRequest` and `SheetAiResponse` in
+`botserver/crates/botsheet-core/src/types/requests_feature.rs`):
+
+| Field | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `sheet_id` | string | Yes | Spreadsheet identifier |
-| `sheet_tab` | string | No | Sheet tab name |
-| `range` | string | No | Data range to analyze |
-| `prompt` | string | Yes | Natural language instruction |
-| `operation` | string | No | `analyze`, `transform`, `generate_formula`, `suggest` |
+| `command` | string | Yes | Natural language instruction (the editor modal posts `command`). |
+| `selection` | JSON value | No | Selected range or cells passed to the LLM. |
+| `active_cell` | JSON value | No | Active cell passed to the LLM. |
+| `sheet_id` | string | No | Workbook id; injected as `file_id` into `data` when `action` is returned. |
 
-**Response:**
+> The editor modal currently posts `id`, which this DTO does not declare, so
+> UI requests normally arrive without `sheet_id` (`botserver/crates/botsheet/src/ui_fragments/modals.rs`).
+
+**Request Body:**
 ```json
 {
-  "sheet_id": "sheet_001",
-  "prompt": "Analise a tendência de vendas por produto",
-  "operation": "analyze",
-  "result": {
-    "analysis": "Bot Enterprise apresenta crescimento de 15% QoQ, enquanto Bot Starter manteve estável. Bot Pro cresceu 22%, indicando oportunidade de upsell.",
-    "suggestions": [
-      "Focar esforços de venda em Bot Pro (maior crescimento)",
-      "Revisar pricing de Bot Starter para estimular crescimento",
-      "Criar campanha de upsell para clientes Bot Starter → Bot Pro"
-    ],
-    "formulas_generated": [
-      {
-        "cell": "E2",
-        "formula": "=IF(D2>100000, \"Alto\", IF(D2>50000, \"Médio\", \"Baixo\"))",
-        "description": "Classificação de performance"
-      }
-    ]
-  },
-  "generated_at": "2026-06-04T10:00:00Z"
+  "command": "Put =SUM(B2:B10) in B11",
+  "selection": { "range": "B2:B10" },
+  "active_cell": "B11",
+  "sheet_id": "sheet_001"
 }
 ```
+
+**Success (200)** (`SheetAiResponse`). `action` and `data` are omitted unless
+the model selected a verb:
+
+```json
+{
+  "response": "Wrote =SUM(B2:B10) into B11.",
+  "action": "sheet.formula.set",
+  "data": { "file_id": "sheet_001", "cell": "B11" }
+}
+```
+
+Allowed `action` values (registered in
+`botserver/src/apps/commands/app_commands_extra/table/docs_and_sheet_crud.rs`):
+`sheet.cell.set`, `sheet.cells.set`, `sheet.range.set`, `sheet.formula.set`,
+`sheet.format.apply`, `sheet.merge`, `sheet.unmerge`, `sheet.sort`,
+`sheet.filter.apply`, `sheet.chart.create`, `sheet.pivot.create`. A verb outside
+this list is stripped before the response is returned.
+
+**Unavailable (503)** — no generated text, no manual-control hints:
+
+```json
+{
+  "error": "ai_unavailable",
+  "reason": "not_configured"
+}
+```
+
+`reason` is `not_configured` when `BOT_AI_PROMPT_URL` is missing, or
+`provider_error` when the call or its response fails. Provider error details
+are logged server-side and are never returned to the client.
 
 ---
 
