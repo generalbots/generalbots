@@ -28,17 +28,17 @@
   border-radius: 18px;
   background: var(--accent);
   color: var(--surface);
-  font-size: 26px;
+  font-size: var(--text-2xl);
   font-weight: 800;
   letter-spacing: -1px;
 }
 .gb-restarting-title {
-  font-size: 28px;
+  font-size: var(--text-2xl);
   font-weight: 700;
   margin-bottom: 12px;
 }
 .gb-restarting-detail {
-  font-size: 15px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--text-muted);
 }

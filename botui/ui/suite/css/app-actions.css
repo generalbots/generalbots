@@ -48,7 +48,7 @@
   border-radius: 6px;
   color: var(--text);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -72,7 +72,7 @@
 }
 .gb-app-diagnostics[hidden] { display: none; }
 .gb-app-diagnostics-title {
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   margin-bottom: 10px;
 }
@@ -81,7 +81,7 @@
   padding: 10px;
   background: var(--surface);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -101,7 +101,7 @@
   background: var(--surface-hover);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 

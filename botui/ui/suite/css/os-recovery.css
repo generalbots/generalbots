@@ -16,15 +16,15 @@
   width: 72px; height: 72px; margin: 0 auto 24px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 18px; background: var(--accent); color: var(--surface);
-  font-size: 26px; font-weight: 800;
+  font-size: var(--text-2xl); font-weight: 800;
 }
-.gb-recovery-card h1 { font-size: 26px; margin: 0 0 12px; }
-.gb-recovery-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.gb-recovery-card h1 { font-size: var(--text-2xl); margin: 0 0 12px; }
+.gb-recovery-card p { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: 24px; }
 .gb-recovery-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .gb-recovery-btn {
   min-height: 44px; padding: 0 16px; border: 1px solid var(--border);
   border-radius: 8px; background: var(--surface-hover); color: var(--text);
-  font: inherit; font-size: 14px; cursor: pointer;
+  font: inherit; font-size: var(--text-sm); cursor: pointer;
 }
 
 #osRemoteSupportIndicator {
@@ -35,7 +35,7 @@
   border-radius: 999px;
   background: var(--error, var(--accent));
   color: var(--surface);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 #osRemoteSupportIndicator[hidden] { display: none; }
@@ -61,7 +61,7 @@ body.gb-remote-support-active .taskbar-tray::after {
   border-radius: 999px;
   background: var(--error, var(--accent));
   color: var(--surface);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 #osLanExposureWarning[hidden] { display: none; }
@@ -78,7 +78,7 @@ body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-la
 }
 .gb-osk[hidden] { display: none; }
 .gb-osk-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
-.gb-osk button { min-width: 44px; min-height: 44px; font-size: 15px; }
+.gb-osk button { min-width: 44px; min-height: 44px; font-size: var(--text-md); }
 
 /* #2467 — OS first-run wizard. */
 .gb-first-run {
@@ -88,9 +88,9 @@ body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-la
 }
 .gb-first-run[hidden] { display: none; }
 .fr-card { width: min(720px, 92vw); max-height: 90vh; overflow: auto; padding: 28px; border: 1px solid var(--border); border-radius: 12px; }
-.fr-card h1 { font-size: 22px; margin: 0 0 18px; }
+.fr-card h1 { font-size: var(--text-xl); margin: 0 0 18px; }
 .fr-steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.fr-step { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; }
+.fr-step { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: var(--text-2xs); }
 .fr-step.active { background: var(--accent); color: var(--surface); }
 .fr-body label { display: block; margin-bottom: 12px; }
 .fr-body input, .fr-body select { display: block; margin-top: 4px; min-height: 44px; }

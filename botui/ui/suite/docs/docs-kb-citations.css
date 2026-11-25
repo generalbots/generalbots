@@ -48,24 +48,24 @@
 
 .docs-kb-citation-status {
   color: var(--palette-93c5fd);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   padding: 6px 2px;
 }
 
 .docs-kb-citation-tag {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   color: var(--palette-93c5fd);
   letter-spacing: 0.04em;
 }
 
 .docs-kb-citation-value {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }
 
 .docs-kb-citations-empty {
   color: var(--palette-94a3b8);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   padding: 6px 2px;
 }

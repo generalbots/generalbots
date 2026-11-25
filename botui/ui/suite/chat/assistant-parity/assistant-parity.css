@@ -78,7 +78,7 @@
 
 /* Every panel has a visible close target (glyph drawn in CSS). */
 .gb-parity-dialog-close, .gb-parity-confirm-close, .gb-parity-attach-panel-close, .gb-parity-model-menu-close, .gb-parity-action-menu-close { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--gbp-radius-sm); background: transparent; color: var(--gbp-muted); cursor: pointer; transition: background var(--id-dur-fast, 150ms) var(--id-ease, ease), color var(--id-dur-fast, 150ms) var(--id-ease, ease); }
-.gb-parity-dialog-close::before, .gb-parity-confirm-close::before, .gb-parity-attach-panel-close::before, .gb-parity-model-menu-close::before, .gb-parity-action-menu-close::before { content: "\00D7"; font-size: 20px; line-height: 1; }
+.gb-parity-dialog-close::before, .gb-parity-confirm-close::before, .gb-parity-attach-panel-close::before, .gb-parity-model-menu-close::before, .gb-parity-action-menu-close::before { content: "\00D7"; font-size: var(--text-xl); line-height: 1; }
 .gb-parity-dialog-close:hover, .gb-parity-confirm-close:hover, .gb-parity-attach-panel-close:hover, .gb-parity-model-menu-close:hover, .gb-parity-action-menu-close:hover { background: var(--gbp-fill); color: var(--gbp-ink); }
 
 /* == 2. Gauge (five segments; tone carries meaning) ==================== */
