@@ -624,6 +624,8 @@ Applies a custom AI instruction to the document text.
 
 ### Export as PDF
 
+> **Role gate on every export format.** Each export endpoint authorizes the caller against the document's object role before any content is loaded or rendered. A caller without sufficient role receives `403` with `{"error": "Document not found or access denied", "code": "docs_acl_denied", "reason": "..."}` and no document data; unresolved roles and permission-store failures deny as well. A document with no stored grants stays owner-only.
+
 **`GET /api/docs/export/pdf`**
 
 Exports the document as a PDF file.

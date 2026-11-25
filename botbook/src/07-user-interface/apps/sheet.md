@@ -50,6 +50,12 @@ The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.
 | Edit a chart | Available | Double-click a chart to change its type (bar/line/pie), title or source range in place; the edit rewrites the stored chart, re-resolves the range and keeps its position |
 | Move / resize a chart | Available | Drag the chart body to move it or the bottom-right handle to resize; the position is persisted per chart |
 
+### Guardrail refusals and viewport reads
+
+When the server refuses a cell edit (for example at the 1,000-cell recalculation cap), the previous value is restored in the grid and the formula bar, the server's message is shown as a toast and announced through a connected `role="status" aria-live="polite"` region, and the refused edit never becomes an undo step.
+
+Viewport reads use `GET /api/sheet/:id/window?range=<A1:RANGE>&sheet=<index>` with `If-None-Match`/ETag caching: an unchanged window answers `304` and reuses the cached cells. The cache is bounded (40 ranges, at most 1,000 rows × 256 columns per request); any miss, error or over-sized range falls back to `POST /api/sheet/range`, so the grid keeps its previous behaviour.
+
 ### Formulas
 
 Around 170 worksheet functions are implemented server-side, including the Microsoft 365 dynamic-array family. A representative sample:
@@ -254,6 +260,7 @@ The examples below show the intended conversational flow. Chat-driven sheet crea
 | `/api/sheet/data-validation` | POST | Apply data validation rules |
 | `/api/sheet/ai` | POST | Query spreadsheet AI assistant |
 | `/api/sheet/:id` | GET | Get spreadsheet by ID |
+| `/api/sheet/:id/window?range=&sheet=` | GET | Viewport cell window with `If-None-Match`/ETag caching (`304` reuses the cached cells) |
 | `/api/sheet/:id/ops?since=N` | GET | Replay oplog entries after sequence `N` (collab reconnect recovery) |
 | `/ws/sheet/:sheet_id` | GET | WebSocket for collaborative editing |
 
