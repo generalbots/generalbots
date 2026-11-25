@@ -78,9 +78,6 @@ impl BootstrapManager {
         // Vault init includes unseal + seeding credentials - must finish before services that
         // need those credentials (drive, cache) can start.
         if pm.is_installed("vault") {
-            if self.install_mode == InstallMode::Local {
-                crate::package_manager::openbao_boot::prepare(&self.stack_path).await;
-            }
             if vault_health_check() {
                 info!("vault is already running");
             } else {

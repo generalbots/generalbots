@@ -41,6 +41,10 @@ pub(super) async fn main() -> std::io::Result<()> {
         dotenvy::dotenv().ok();
     }
     }
+    // A stack still on the former HashiCorp Vault storage is moved to OpenBao
+    // here, before any secrets client exists: a client made earlier would
+    // keep the former token and read defaults instead of the real secrets.
+    let openbao_notes = botcore::package_manager::openbao_boot::prepare(std::path::Path::new(&botcore::shared::utils::get_stack_path())).await;
     // Windows desktop: the server's own limited Vault token, before any reader
     // of VAULT_TOKEN runs (it is no longer kept in `.env`).
     #[cfg(windows)]
@@ -90,6 +94,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", &rust_log);
 
     init_logging_and_i18n(no_console, no_ui);
+    openbao_notes.emit();
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<botcore::shared::state::AppState>>(1);
