@@ -10,6 +10,35 @@
  * requests so they survive a page reload.
  */
 
+/**
+ * #2448 criterion 4 — destructive/bulk verbs must show a preview/diff and ask
+ * before executing. STATIC GAP GUARD: do not turn this permission card into a
+ * preview-then-confirm gate, because the shipped chat protocol carries neither
+ * a destructiveness flag for verb calls nor a diff payload. Renaming these
+ * buttons or dressing `detail.params` up as a diff would invent a protocol.
+ *
+ * - The only destructive signal in a chat frame is
+ *   `consent_request.action_class === "delete"`, derived from the command name
+ *   in botserver/src/core/bot/pipeline/api_call/consent_class.rs:11 (only
+ *   delete / batch_delete / revoke). Bulk verbs such as
+ *   docs.track_changes.accept_all and slides.transition.all classify as
+ *   "update" and raise no marker at all.
+ * - The marker (botserver/src/core/bot/consent_gate.rs:134-141) carries only
+ *   {request_id, app_id, action_class, detail:{command, params}} — no before,
+ *   after, affected-record or diff field. `params` names targets, not changes,
+ *   so presenting it as a diff would misstate what the user approved.
+ * - The `confirm: required` contract for the Office review verbs lives only in
+ *   AppCommand.summary prompt text
+ *   (botserver/src/apps/commands/app_commands_extra/table/office_review_ops.rs:8-12).
+ *   AppCommand (app_command.rs:5-24) and VerbEndpoint
+ *   (verb_endpoints/mod.rs:9-23) have no destructive/confirm field; the surface
+ *   catalog's `destructiveHint` (surface_catalog.rs:203-208) is false for all
+ *   four native tools.
+ * - A real gate needs a server-side preview frame (request id + per-record diff)
+ *   and a confirm/cancel resolution endpoint. Only then should this module draw
+ *   the diff and the two gbT("action-confirm"/"action-cancel") buttons.
+ */
+
 (function () {
   function escapeHtml(value) {
     if (typeof window.escapeHtml === "function") return window.escapeHtml(value);
