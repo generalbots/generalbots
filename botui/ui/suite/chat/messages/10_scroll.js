@@ -10,16 +10,13 @@ function scrollToBottom(animate) {
   }
 }
 
-// Instant snap used after layout-changing content (history replay, inline
-// artifact iframes). Smooth scrolling here finished before the iframe grew.
+// Instant snap used after layout-changing content (history replay, iframes).
 function snapToBottom() {
   var messages = document.getElementById("messages");
   if (messages) messages.scrollTop = messages.scrollHeight;
 }
 
-// Pin the live edge while async layout grows, but never fight reader intent.
-// #2014 — only one timer: re-arming extends the window instead of stacking
-// intervals (history replay used to arm one per message and "danced").
+// #2014 — one timer: re-arming extends the pin window instead of stacking.
 var gbStickTimer = null;
 function stickToBottom(duration) {
   var messages = document.getElementById("messages");
@@ -59,10 +56,6 @@ function gbAttachReaderIntent(messages) {
   }, { passive: true });
 }
 
-// History replay appends messages whose inline artifacts and images load
-// lazily, so the transcript keeps growing after the first scroll. Keep the
-// newest turn in view until the layout settles, and stop the moment the
-// reader scrolls away (their intent wins).
 function followLiveEdge(maxMs) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -96,11 +89,7 @@ function followLiveEdge(maxMs) {
   requestAnimationFrame(step);
 }
 
-// #1797 / #2098 — thinking state. The visible element and its elapsed timer
-// are owned by the turn state machine (chat-turn-state.js): visibility follows
-// the turn state (queued → thinking → tool → streaming → done/error) instead of
-// ad-hoc show/hide calls, and every turn is keyed by tab id. These two names
-// stay as the compatibility surface older modules call.
+// #1797 / #2098 — thinking state is owned by the turn state machine.
 function showThinkingIndicator(opts) {
   if (window.GBTurn) window.GBTurn.start("", opts);
 }
@@ -109,10 +98,9 @@ function hideThinkingIndicator(opts) {
   if (window.GBTurn) window.GBTurn.forceHide(opts);
 }
 
-/* #1797 — conversation markers along the right edge of the transcript.
- * One tick per user turn marks where a new thread starts; the overlay is
- * pinned to the viewport while the message pane scrolls underneath it. */
+/* #2933 — #1797 conversation markers: one tick per user turn. */
 var gbMarkersRefreshQueued = false;
+var gbMarkerSyncQueued = false;
 
 function gbMarkerOverlay(messages) {
   var overlay = messages.querySelector(".scrollbar-markers");
@@ -125,20 +113,10 @@ function gbMarkerOverlay(messages) {
   return overlay;
 }
 
-function gbSyncMarkerOverlay() {
-  var messages = document.getElementById("messages");
-  if (!messages) return;
-  var overlay = messages.querySelector(".scrollbar-markers");
-  if (!overlay) return;
-  // Counteract the transcript's scroll offset so the ticks stay glued to the
-  // visible scrollbar instead of riding the content upwards.
-  overlay.style.top = messages.scrollTop + "px";
-  overlay.style.height = messages.clientHeight + "px";
-}
-
+// textContent (never innerText) — innerText forces a synchronous layout.
 function gbMarkerLabel(message) {
   var body = message.querySelector(".message-content") || message;
-  var text = (body.innerText || body.textContent || "").replace(/\s+/g, " ").trim();
+  var text = (body.textContent || "").replace(/\s+/g, " ").trim();
   if (text.length > 64) text = text.slice(0, 61) + "\u2026";
   var ts = parseInt(message.getAttribute("data-ts") || "0", 10);
   var when = ts ? formatRelativeTime(ts) : "";
@@ -146,99 +124,104 @@ function gbMarkerLabel(message) {
   return text || when || "Message";
 }
 
+// Marker jumps are user-initiated; layout reads stay out of the boot path.
+function gbMarkerJump(messages, target, top, live) {
+  if (live && target && window.GBChatVirtual && window.GBChatVirtual.ensureVisible) {
+    window.GBChatVirtual.ensureVisible(target);
+  }
+  if (live && target && target.isConnected) {
+    var c = messages.getBoundingClientRect();
+    var t = target.getBoundingClientRect();
+    top = messages.scrollTop + (t.top - c.top);
+  }
+  messages.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
+}
+
+/* #2933 — marker rebuild: every layout read is captured in the read phase,
+ * then the overlay is cleared, sized and repopulated in a write-only phase. */
 function gbRefreshScrollbarMarkers() {
   var messages = document.getElementById("messages");
   if (!messages) return;
-  var overlay = gbMarkerOverlay(messages);
-  // #222x — during heavy history replay scrollHeight keeps growing, so the
-  // ratios stored on the first pass drift and the green ticks land in the
-  // wrong place. Drop the cached ratios whenever the transcript grew.
-  var lastH = parseInt(overlay.getAttribute("data-gb-last-h") || "0", 10);
-  if (lastH && lastH !== messages.scrollHeight) {
-    messages.querySelectorAll(".message.user").forEach(function (m) {
-      m.removeAttribute("data-gb-marker-ratio");
-    });
-  }
-  overlay.setAttribute("data-gb-last-h", String(messages.scrollHeight));
-  gbSyncMarkerOverlay();
-  overlay.innerHTML = "";
-  var total = Math.max(messages.scrollHeight, 1);
+  // READ PHASE — no writes until every geometry/label read is captured.
+  var rawH = messages.scrollHeight;
+  var total = Math.max(rawH, 1);
   var height = Math.max(messages.clientHeight, 1);
-
-  // #2229 — when virtualized, user turns may be detached; read from the
-  // virtualizer's item list so markers remain accurate and jump can rematerialize.
+  var top = messages.scrollTop;
   var V = window.GBChatVirtual;
-  if (V && V.isEnabled && V.isEnabled() && V._items) {
+  var virtual = !!(V && V.isEnabled && V.isEnabled() && V._items);
+  var gap = 16;
+  if (virtual) {
+    try { var cs = getComputedStyle(messages); var g = parseFloat(cs.rowGap || cs.gap || "16"); gap = isNaN(g) ? 16 : g; } catch (e) { gap = 16; }
+  }
+  var specs = [];
+  var acc = 0;
+  if (virtual) {
     var items = V._items();
-    var gap = (function(){ try { var cs=getComputedStyle(messages); var g=parseFloat(cs.rowGap||cs.gap||"16"); return isNaN(g)?16:g; } catch(e){return 16;} })();
-    var acc = 0;
     for (var vi = 0; vi < items.length; vi++) {
       var it = items[vi];
-      var h = ((it.h && it.h > 0) ? it.h : (it.el ? it.el.offsetHeight : 48)) + gap;
       if (it.el && it.el.classList && it.el.classList.contains("user")) {
-        var ratio = acc / total;
-        var top = Math.max(0, Math.min(height - 4, ratio * height));
-        var marker = document.createElement("button");
-        marker.type = "button";
-        marker.className = "scrollbar-marker user-marker";
-        marker.style.top = top + "px";
-        var label = (typeof gbMarkerLabel === "function") ? gbMarkerLabel(it.el) : "Message";
-        marker.setAttribute("aria-label", gbT("chat-str-jump-to-message", "Jump to message: ") + label);
-        marker.title = label;
-        var tooltip = document.createElement("span");
-        tooltip.className = "scrollbar-marker-tooltip";
-        tooltip.textContent = label;
-        marker.appendChild(tooltip);
-        (function (target, targetAcc, tick) {
-          tick.addEventListener("click", function () {
-            if (V && V.ensureVisible) V.ensureVisible(target);
-            var top = targetAcc;
-            if (target && target.isConnected) {
-              // Prefer live geometry after materialization to avoid drift from estimated heights.
-              var crect = messages.getBoundingClientRect();
-              var trect = target.getBoundingClientRect();
-              top = messages.scrollTop + (trect.top - crect.top);
-            }
-            messages.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
-          });
-        })(it.el, acc, marker);
-        overlay.appendChild(marker);
+        specs.push({ el: it.el, top: Math.max(0, Math.min(height - 4, (acc / total) * height)), acc: acc, live: true });
       }
-      acc += h;
+      acc += ((it.h && it.h > 0) ? it.h : (it.el ? it.el.offsetHeight : 48)) + gap;
     }
-    return;
+  } else {
+    var turns = messages.querySelectorAll(".message.user");
+    for (var i = 0; i < turns.length; i++) {
+      var m = turns[i];
+      var sr = m.getAttribute("data-gb-marker-ratio");
+      var anchor = m.offsetTop;
+      var ratio = sr !== null ? parseFloat(sr) : anchor / total;
+      specs.push({ el: m, top: Math.max(0, Math.min(height - 4, ratio * height)), acc: anchor, live: false, ratio: ratio, cache: sr === null });
+    }
   }
-
-  var turns = messages.querySelectorAll(".message.user");
-  for (var i = 0; i < turns.length; i++) {
-    var message = turns[i];
-    var top;
-    var storedRatio = message.getAttribute("data-gb-marker-ratio");
-    if (storedRatio !== null) {
-      top = Math.max(0, Math.min(height - 4, parseFloat(storedRatio) * height));
-    } else {
-      var ratio = message.offsetTop / total;
-      message.setAttribute("data-gb-marker-ratio", String(ratio));
-      top = Math.max(0, Math.min(height - 4, ratio * height));
-    }
+  for (var s = 0; s < specs.length; s++) specs[s].label = gbMarkerLabel(specs[s].el);
+  // WRITE PHASE — no layout reads below this line.
+  var overlay = gbMarkerOverlay(messages);
+  var lastH = parseInt(overlay.getAttribute("data-gb-last-h") || "0", 10);
+  if (lastH && lastH !== rawH && !virtual) {
+    messages.querySelectorAll(".message.user").forEach(function (m) { m.removeAttribute("data-gb-marker-ratio"); });
+  }
+  overlay.setAttribute("data-gb-last-h", String(rawH));
+  overlay.style.top = top + "px";
+  overlay.style.height = height + "px";
+  overlay.innerHTML = "";
+  for (var k = 0; k < specs.length; k++) {
+    var sp = specs[k];
+    if (sp.cache) sp.el.setAttribute("data-gb-marker-ratio", String(sp.ratio));
     var marker = document.createElement("button");
     marker.type = "button";
     marker.className = "scrollbar-marker user-marker";
-    marker.style.top = top + "px";
-    var label = gbMarkerLabel(message);
-    marker.setAttribute("aria-label", gbT("chat-str-jump-to-message", "Jump to message: ") + label);
-    marker.title = label;
+    marker.textContent = ""; // aria-label is the only accessible name
+    marker.style.top = sp.top + "px";
+    marker.setAttribute("aria-label", gbT("chat-str-jump-to-message", "Jump to message: ") + sp.label);
+    marker.title = gbT("chat-str-jump-to-message", "Jump to message: ") + sp.label;
     var tooltip = document.createElement("span");
     tooltip.className = "scrollbar-marker-tooltip";
-    tooltip.textContent = label;
+    tooltip.textContent = sp.label;
     marker.appendChild(tooltip);
-    (function (target, tick) {
-      tick.addEventListener("click", function () {
-        messages.scrollTo({ top: Math.max(0, target.offsetTop - 8), behavior: "smooth" });
-      });
-    })(message, marker);
+    (function (target, at, live) {
+      marker.addEventListener("click", function () { gbMarkerJump(messages, target, at, live); });
+    })(sp.el, sp.acc, sp.live);
     overlay.appendChild(marker);
   }
+}
+
+// Scroll path: one coalesced geometry read/write per frame, never per event.
+function gbSyncMarkerOverlay() {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  var overlay = messages.querySelector(".scrollbar-markers");
+  if (!overlay) return;
+  var top = messages.scrollTop;
+  var height = messages.clientHeight;
+  overlay.style.top = top + "px";
+  overlay.style.height = height + "px";
+}
+
+function scheduleMarkerSync() {
+  if (gbMarkerSyncQueued) return;
+  gbMarkerSyncQueued = true;
+  requestAnimationFrame(function () { gbMarkerSyncQueued = false; gbSyncMarkerOverlay(); });
 }
 
 /* #2933 — idle scheduler for chat's non-critical paint; setTimeout fallback. */
@@ -250,20 +233,18 @@ function scheduleScrollbarMarkers() {
   if (gbMarkersRefreshQueued) return;
   gbMarkersRefreshQueued = true;
   // #2933 — marker rebuild was a 129-158 ms rAF handler; run it on idle.
-  gbIdle(function () { gbMarkersRefreshQueued = false; gbRefreshScrollbarMarkers(); });
+  window.gbIdle(function () { gbMarkersRefreshQueued = false; gbRefreshScrollbarMarkers(); });
 }
 
 function initScrollbarMarkers() {
   var messages = document.getElementById("messages");
   if (!messages || messages.dataset.gbMarkers === "1") return;
   messages.dataset.gbMarkers = "1";
-  messages.addEventListener("scroll", gbSyncMarkerOverlay, { passive: true });
+  messages.addEventListener("scroll", scheduleMarkerSync, { passive: true });
   window.addEventListener("resize", scheduleScrollbarMarkers);
   if (window.MutationObserver) {
     new MutationObserver(function (entries) {
       if (ChatState.suppressPersist) return;
-      // Ignore the marker overlay's own churn; only real message boundaries
-      // (new turns, history pages) need a rebuild.
       var changed = entries.some(function (entry) {
         if (entry.type !== "childList") return false;
         var nodes = Array.prototype.slice.call(entry.addedNodes)
@@ -284,13 +265,11 @@ if (document.readyState === "loading") {
   initScrollbarMarkers();
 }
 
-function updateScrollButton() {
+function updateScrollButton(dist) {
   var messages = document.getElementById("messages");
   var scrollBtn = document.getElementById("scrollToBottom");
   if (!messages || !scrollBtn) return;
-  var dist = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
-  // Button appears only when not near bottom yet. Use a slightly larger
-  // threshold than "at bottom" tracking so the button doesn't flicker.
+  if (dist === undefined) dist = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
   var isNearBottom = dist < 100;
   if (isNearBottom) {
     scrollBtn.classList.remove("visible");

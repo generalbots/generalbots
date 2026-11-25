@@ -16,6 +16,37 @@ function installComposerFocusAfterLayoutChange() {
     refocusComposerAfterLayoutChange();
   });
 }
+// #2933 — one live-edge pass per frame for resize + mutation bursts.
+var gbLiveEdgeQueued = false;
+function gbPinLiveEdge() {
+  gbLiveEdgeQueued = false;
+  var box = document.getElementById("messages");
+  if (!box || ChatState.suppressPersist || !ChatState.isUserAtBottom) return;
+  var bottom = box.scrollHeight; // batch the read before the write
+  box.scrollTop = bottom;
+}
+function gbScheduleLiveEdge() {
+  if (gbLiveEdgeQueued) return;
+  gbLiveEdgeQueued = true;
+  requestAnimationFrame(gbPinLiveEdge);
+}
+// #2933 — one geometry pass per frame; the scroll listener never reads layout.
+var gbScrollFrameQueued = false;
+function gbOnScrollFrame() {
+  gbScrollFrameQueued = false;
+  var box = document.getElementById("messages");
+  if (!box) return;
+  var dist = box.scrollHeight - box.scrollTop - box.clientHeight; // batched reads
+  var pending = !!(ChatState && (ChatState.pendingResponseAt || ChatState.isStreaming));
+  var threshold = ChatState.isUserAtBottom ? (pending ? 400 : 120) : 40;
+  ChatState.isUserAtBottom = dist < threshold;
+  if (!pending) {
+    ChatState.isUserScrolling = true;
+    clearTimeout(box.scrollTimeout);
+    box.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
+  }
+  updateScrollButton(dist);
+}
 function setupEventHandlers() {
 var form = document.getElementById("chatForm");
 var input = document.getElementById("messageInput");
@@ -84,52 +115,21 @@ scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatStat
 }
 var messagesEl = document.getElementById("messages");
 if (messagesEl) {
-// Async layout shifts the viewport; stay pinned near the live edge.
+// Async layout shifts the viewport; one coalesced frame pin per burst.
+// A real user scroll away produces a larger distance than streaming growth.
 if (window.ResizeObserver) {
-  var liveEdgeObserver = new ResizeObserver(function () {
-    var box = document.getElementById("messages");
-    if (!box) return;
-    if (ChatState.suppressPersist) return;
-    if (!ChatState.isUserAtBottom) return;
-    // Pin to live edge when content grows or layout shifts while the reader is
-    // at the bottom. Do not run during history replay (suppressPersist) to
-    // avoid fighting the bulk-load scroll restoration.
-    box.scrollTop = box.scrollHeight;
-  });
+  var liveEdgeObserver = new ResizeObserver(gbScheduleLiveEdge);
   liveEdgeObserver.observe(messagesEl);
 }
 if (window.MutationObserver) {
-  var liveEdgeMutations = new MutationObserver(function () {
-    requestAnimationFrame(function () {
-      var box = document.getElementById("messages");
-      if (!box) return;
-      if (ChatState.suppressPersist) return;
-      if (!ChatState.isUserAtBottom) return;
-      box.scrollTop = box.scrollHeight;
-    });
-  });
+  var liveEdgeMutations = new MutationObserver(gbScheduleLiveEdge);
   liveEdgeMutations.observe(messagesEl, { childList: true, subtree: true });
 }
 messagesEl.addEventListener("scroll", function () {
-  var box = document.getElementById("messages");
-  var dist = box ? (box.scrollHeight - box.scrollTop - box.clientHeight) : 0;
-  // While a response is pending/streaming, be lenient: rapid content growth
-  // can momentarily push the distance over the normal threshold even though
-  // the reader never scrolled away. Flipping to "scrolled up" mid-turn made
-  // the transcript stop following and look like it scrolled up (#2244).
-  var pending = !!(ChatState && (ChatState.pendingResponseAt || ChatState.isStreaming));
-  // Sticky bottom: once we're following the live edge, small layout shifts
-  // (streaming/indicator growth, reflow) must not flip us to "scrolled up".
-  // A real user scroll away produces a larger distance.
-  var threshold = ChatState.isUserAtBottom ? (pending ? 400 : 120) : 40;
-  ChatState.isUserAtBottom = dist < threshold;
-  if (!pending) {
-    ChatState.isUserScrolling = true;
-    clearTimeout(messagesEl.scrollTimeout);
-    messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
-  }
-  updateScrollButton();
-});
+  if (gbScrollFrameQueued) return;
+  gbScrollFrameQueued = true;
+  requestAnimationFrame(gbOnScrollFrame);
+}, { passive: true });
 }
 document.addEventListener("click", function (e) {
 if (!e.target.closest("#mentionDropdown") && !e.target.closest("#messageInput")) {
@@ -191,12 +191,8 @@ function initChat() {
       idleTimer = setTimeout(function () {
         var input = document.getElementById("messageInput");
         if (!input || !input.isConnected) return;
-        var active = document.activeElement;
-        var typingElsewhere = active && active !== document.body && active !== input &&
-          (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
-        if (typingElsewhere) return;
         if (String(input.value || "").trim() !== "") return;
-        try { input.focus({ preventScroll: true }); } catch (e) { window.gbLogError ? gbLogError(e, "schedule") : console.error("schedule", e); }
+        gbScheduleComposerFocus();
       }, 15000);
     }
     ["mousemove","keydown","click","scroll","touchstart"].forEach(function (ev) {

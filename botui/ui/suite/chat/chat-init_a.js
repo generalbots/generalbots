@@ -280,6 +280,26 @@ function proceedWithChatInit() {
     });
 }
 
+// #2933 — focus() forces layout, so it never runs inside a boot timer. Every
+// path (autofocus, deep link, idle refocus) queues this one idle pass instead.
+var gbFocusQueued = false;
+function gbScheduleComposerFocus() {
+  if (gbFocusQueued) return;
+  gbFocusQueued = true;
+  if (window.gbIdle) window.gbIdle(gbApplyComposerFocus);
+  else setTimeout(gbApplyComposerFocus, 1);
+}
+function gbApplyComposerFocus() {
+  gbFocusQueued = false;
+  var input = document.getElementById("messageInput");
+  if (!input || !input.isConnected) return;
+  var active = document.activeElement;
+  var typingElsewhere = active && active !== document.body && active !== input &&
+    (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+  if (typingElsewhere) return;
+  input.focus({ preventScroll: true });
+}
+
 // #1271 — a deep link can carry a pre-filled chat message (e.g. the vibe
 // Chat button sends a botbook directive to route the fresh conversation to
 // the app running in vibe). Apply it once, then consume the params so a
@@ -297,7 +317,7 @@ function applyDeepLinkMessage() {
     var input = document.getElementById("messageInput");
     if (input) {
       input.value = msg;
-      input.focus({ preventScroll: true });
+      gbScheduleComposerFocus();
     }
   } catch (e) { /* non-fatal */ }
 }
@@ -324,7 +344,7 @@ function applyDeepLinkMessage() {
     } catch (e) { msg = ""; }
     if (!msg) { applied = true; return; }
     input.value = msg;
-    input.focus({ preventScroll: true });
+    gbScheduleComposerFocus();
     if (window.__gbAppParams__) delete window.__gbAppParams__.message;
     applied = true;
   }
@@ -344,10 +364,9 @@ function applyDeepLinkMessage() {
 })();
 
 function autoFocusInput() {
+  // #2163 — focus is coalesced into an idle pass; no layout read in this timer.
   setTimeout(function() {
-    var input = document.getElementById("messageInput");
-    // #2163 — focusing the composer must not scroll any ancestor.
-    if (input) input.focus({ preventScroll: true });
+    gbScheduleComposerFocus();
     applyDeepLinkMessage();
   }, 500);
 }
@@ -358,14 +377,6 @@ function autoFocusInput() {
 // briefly after a chat-originated layout change, and never while the user is
 // typing inside the document.
 function refocusComposerAfterLayoutChange() {
-  setTimeout(function () {
-    var input = document.getElementById("messageInput");
-    if (!input || !input.isConnected) return;
-    var active = document.activeElement;
-    var typingElsewhere = active && active !== document.body && active !== input &&
-      (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
-    if (typingElsewhere) return;
-    input.focus({ preventScroll: true });
-  }, 120);
+  setTimeout(gbScheduleComposerFocus, 120);
 }
 
