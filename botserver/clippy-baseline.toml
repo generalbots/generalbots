@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 444
+discarded_result = 432
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -34,9 +34,6 @@ discarded_result = 6
 [files."botserver/src/core/bot/pipeline/event_sink/steps.rs"]
 discarded_result = 6
 
-[files."botserver/crates/botautotask/src/app_logs/app_log_store.rs"]
-discarded_result = 4
-
 [files."botserver/crates/botbasic_comms/src/keywords/universal_messaging/send_file_to_recipient.rs"]
 discarded_result = 4
 
@@ -52,9 +49,6 @@ discarded_result = 4
 [files."botserver/crates/botcore/src/os_abstraction/windows.rs"]
 discarded_result = 4
 
-[files."botserver/crates/botcore/src/shared/analytics/endpoints.rs"]
-discarded_result = 4
-
 [files."botserver/crates/botcorepkg/src/facade.rs"]
 discarded_result = 4
 
@@ -62,9 +56,6 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botdesktop/src/proxy.rs"]
-discarded_result = 4
-
-[files."botserver/crates/botmarketplace/src/blobstore.rs"]
 discarded_result = 4
 
 [files."botserver/crates/botmodelsbridge/src/python_bridge/start.rs"]
@@ -173,6 +164,15 @@ discarded_result = 2
 discarded_result = 2
 
 [files."botserver/crates/botbasic_system/src/keywords/create_site/llm_impl/create_site.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botbasic_system/src/keywords/file_ops/archive.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botbilling/src/billing_admin/bd_to_f64.rs"]
+discarded_result = 2
+
+[files."botserver/crates/botcloud/src/api/login.rs"]
 discarded_result = 2
 
 # Blocking clippy baseline (issue #2543). Unlike [rules] above, these are real

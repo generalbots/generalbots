@@ -56,7 +56,9 @@ fn upload_bytes(mc_bin: &str, mc_alias: &str, object_key: &str, content: &[u8]) 
         remote,
     ];
     let result = run_mc(mc_bin, &args);
-    let _ = std::fs::remove_file(&tmp);
+    if let Err(e) = std::fs::remove_file(&tmp) {
+        tracing::warn!("Failed to remove marketplace upload temp file: {e}");
+    }
     let output = result?;
     if output.status.success() {
         Ok(())
@@ -76,16 +78,22 @@ fn download_bytes(mc_bin: &str, mc_alias: &str, object_key: &str) -> Result<Vec<
     ];
     let result = run_mc(mc_bin, &args);
     if let Err(e) = result {
-        let _ = std::fs::remove_file(&tmp);
+        if let Err(cleanup_err) = std::fs::remove_file(&tmp) {
+            tracing::warn!("Failed to remove marketplace download temp file: {cleanup_err}");
+        }
         return Err(e);
     }
     match std::fs::read(&tmp) {
         Ok(bytes) => {
-            let _ = std::fs::remove_file(&tmp);
+            if let Err(e) = std::fs::remove_file(&tmp) {
+                tracing::warn!("Failed to remove marketplace download temp file: {e}");
+            }
             Ok(bytes)
         }
         Err(e) => {
-            let _ = std::fs::remove_file(&tmp);
+            if let Err(cleanup_err) = std::fs::remove_file(&tmp) {
+                tracing::warn!("Failed to remove marketplace download temp file: {cleanup_err}");
+            }
             Err(format!("temp read: {e}"))
         }
     }

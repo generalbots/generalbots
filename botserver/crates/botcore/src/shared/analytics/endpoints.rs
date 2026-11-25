@@ -92,8 +92,12 @@ pub async fn export_metrics(State(state): State<Arc<AppState>>) -> impl IntoResp
     for metric in &metrics {
         if seen_metrics.insert(metric.name.as_str()) {
             let (metric_type, help) = describe_metric(&metric.name);
-            let _ = writeln!(prometheus_format, "# HELP {} {}", metric.name, help);
-            let _ = writeln!(prometheus_format, "# TYPE {} {}", metric.name, metric_type);
+            if let Err(e) = writeln!(prometheus_format, "# HELP {} {}", metric.name, help) {
+                log::warn!("Failed to write Prometheus HELP line: {e}");
+            }
+            if let Err(e) = writeln!(prometheus_format, "# TYPE {} {}", metric.name, metric_type) {
+                log::warn!("Failed to write Prometheus TYPE line: {e}");
+            }
         }
 
         let labels = metric
@@ -104,22 +108,26 @@ pub async fn export_metrics(State(state): State<Arc<AppState>>) -> impl IntoResp
             .join(",");
 
         if labels.is_empty() {
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 prometheus_format,
                 "{} {} {}",
                 metric.name,
                 metric.value,
                 metric.timestamp.timestamp_millis()
-            );
+            ) {
+                log::warn!("Failed to write Prometheus metric line: {e}");
+            }
         } else {
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 prometheus_format,
                 "{}{{{}}} {} {}",
                 metric.name,
                 labels,
                 metric.value,
                 metric.timestamp.timestamp_millis()
-            );
+            ) {
+                log::warn!("Failed to write labelled Prometheus metric line: {e}");
+            }
         }
     }
 

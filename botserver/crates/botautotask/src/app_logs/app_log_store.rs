@@ -211,16 +211,36 @@ impl AppLogStore {
         output.push_str("The following issues were detected. Please fix them:\n\n");
         for (idx, entry) in errors.iter().enumerate() {
             use std::fmt::Write;
-            let _ = writeln!(output, "{}. [{}] [{}] {}", idx + 1, entry.level, entry.source, entry.message);
+            if let Err(e) = writeln!(
+                output,
+                "{}. [{}] [{}] {}",
+                idx + 1,
+                entry.level,
+                entry.source,
+                entry.message
+            ) {
+                log::warn!("Failed to format designer error header: {e}");
+            }
             if let Some(ref details) = entry.details {
-                let _ = writeln!(output, "  Details: {details}");
+                if let Err(e) = writeln!(output, "  Details: {details}") {
+                    log::warn!("Failed to format designer error details: {e}");
+                }
             }
             if let Some(ref file) = entry.file_path {
-                let _ = writeln!(output, "  Location: {}:{}", file, entry.line_number.unwrap_or(0));
+                if let Err(e) = writeln!(
+                    output,
+                    "  Location: {}:{}",
+                    file,
+                    entry.line_number.unwrap_or(0)
+                ) {
+                    log::warn!("Failed to format designer error location: {e}");
+                }
             }
             if let Some(ref stack) = entry.stack_trace {
                 let short_stack: String = stack.lines().take(3).collect::<Vec<_>>().join("\n    ");
-                let _ = writeln!(output, "  Stack: {short_stack}");
+                if let Err(e) = writeln!(output, "  Stack: {short_stack}") {
+                    log::warn!("Failed to format designer error stack: {e}");
+                }
             }
             output.push('\n');
         }
