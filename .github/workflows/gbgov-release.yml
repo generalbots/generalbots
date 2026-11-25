@@ -159,6 +159,7 @@ jobs:
           $payload = 'botserver\botserver-installers'
           New-Item -ItemType Directory -Force $payload | Out-Null
           $downloads = @(
+            @{ Name = 'openbao_2.7.3_windows_amd64.zip'; Url = 'https://github.com/openbao/openbao/releases/download/v2.7.3/openbao_2.7.3_windows_amd64.zip'; Algo = 'SHA256'; Hash = '969e4872b21eeee7c9b4cd312e77027e624528ca7bc9dc2361311b97e34e6e90' },
             @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
             @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
             @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = 'SHA256'; Hash = '5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e' },
