@@ -13,6 +13,8 @@ pub mod single_instance;
 pub mod recovery;
 #[cfg(feature = "desktop-local")]
 pub mod sidecar;
+#[cfg(feature = "desktop-local")]
+pub mod stack_stop;
 pub mod splash;
 pub mod sync;
 pub mod tray;

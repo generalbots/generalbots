@@ -23,7 +23,7 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
     let unseal_keys_file = base_path.join("vault-unseal-keys");
     let unseal_keys = if unseal_keys_file.exists() {
         info!("Found existing vault-unseal-keys file");
-        let content = std::fs::read_to_string(&unseal_keys_file)?;
+        let content = crate::protected_file::read_secret(&unseal_keys_file)?;
         content
             .lines()
             .filter_map(|line| {
@@ -38,7 +38,7 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
 
     let init_json = base_path.join("conf/vault/init.json");
     let root_token = if init_json.exists() {
-        let content = std::fs::read_to_string(&init_json)?;
+        let content = crate::protected_file::read_secret(&init_json)?;
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
             json.get("root_token")
                 .and_then(|v| v.as_str())
@@ -122,7 +122,7 @@ pub fn unseal_vault(
     info!("Unsealing Vault...");
     let unseal_keys_file = base_path.join("vault-unseal-keys");
     if unseal_keys_file.exists() {
-        let content = std::fs::read_to_string(&unseal_keys_file)?;
+        let content = crate::protected_file::read_secret(&unseal_keys_file)?;
         let keys: Vec<String> = content
             .lines()
             .filter_map(|line| {
@@ -158,7 +158,7 @@ pub fn ensure_env_file_exists(base_path: &std::path::Path) -> Result<()> {
         return Ok(());
     }
 
-    let init_content = std::fs::read_to_string(&init_json)?;
+    let init_content = crate::protected_file::read_secret(&init_json)?;
     let init_json_val: serde_json::Value = serde_json::from_str(&init_content)?;
 
     let root_token = init_json_val["root_token"]

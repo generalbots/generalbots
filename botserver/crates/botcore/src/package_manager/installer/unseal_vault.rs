@@ -5,7 +5,7 @@ impl PackageManager {
         info!("Unsealing Vault...");
         let unseal_keys_file = self.base_path.join("vault-unseal-keys");
         if unseal_keys_file.exists() {
-            let content = std::fs::read_to_string(&unseal_keys_file)?;
+            let content = botcorepkg::protected_file::read_secret(&unseal_keys_file)?;
             let keys: Vec<String> = content
                 .lines()
                 .filter_map(|line| {
@@ -42,7 +42,7 @@ impl PackageManager {
             return Ok(()); // No init, no .env needed yet
         }
 
-        let init_content = std::fs::read_to_string(&init_json)?;
+        let init_content = botcorepkg::protected_file::read_secret(&init_json)?;
         let init_json_val: serde_json::Value = serde_json::from_str(&init_content)?;
 
         let root_token = init_json_val["root_token"]

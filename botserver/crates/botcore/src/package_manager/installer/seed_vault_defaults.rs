@@ -228,7 +228,7 @@ impl PackageManager {
         let unseal_keys_file = self.base_path.join("vault-unseal-keys");
         let unseal_keys = if unseal_keys_file.exists() {
             info!("Found existing vault-unseal-keys file");
-            let content = std::fs::read_to_string(&unseal_keys_file)?;
+            let content = botcorepkg::protected_file::read_secret(&unseal_keys_file)?;
             content
                 .lines()
                 .filter_map(|line| {
@@ -249,7 +249,7 @@ impl PackageManager {
             .filter(|token| !token.trim().is_empty())
             .or_else(|| {
                 if init_json.exists() {
-                    let content = std::fs::read_to_string(&init_json).ok()?;
+                    let content = botcorepkg::protected_file::read_secret(&init_json).ok()?;
                     let json = serde_json::from_str::<serde_json::Value>(&content).ok()?;
                     json.get("root_token")
                         .and_then(|value| value.as_str())

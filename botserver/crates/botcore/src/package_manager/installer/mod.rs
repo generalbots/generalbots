@@ -34,5 +34,7 @@ mod fetch_vault_credentials;
 mod initialize_vault_local;
 mod seed_vault_defaults;
 mod unseal_vault;
+#[cfg(windows)]
+mod windows_tables;
 
 use safe_sh_command::*;

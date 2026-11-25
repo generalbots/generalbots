@@ -153,7 +153,7 @@ impl PackageManager {
             init_json.parent()
                 .ok_or_else(|| anyhow::anyhow!("Invalid init.json path: no parent directory"))?
         )?;
-        std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
+        botcorepkg::protected_file::write_secret(&init_json, &serde_json::to_string_pretty(&init_json_val)?)?;
         {
             let abs = crate::os_abstraction::get_abstraction();
             let _ = abs.set_readonly_owner(&init_json)
@@ -219,7 +219,7 @@ VAULT_CACERT={}
             })
             .collect();
 
-        std::fs::write(&unseal_keys_file, keys_content)?;
+        botcorepkg::protected_file::write_secret(&unseal_keys_file, &keys_content)?;
 
         {
             let abs = crate::os_abstraction::get_abstraction();

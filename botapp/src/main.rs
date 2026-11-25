@@ -420,6 +420,7 @@ fn main() {
                     if desktop::tray::quit_requested() {
                         info!("quitting from the tray: stopping the sidecar");
                         sidecar.stop();
+                        desktop::stack_stop::stop_stack();
                     } else if app.get_webview_window("main").is_some() {
                         // Closing the wizard must not take the suite down with it:
                         // the main window is already answering, so keep the
@@ -438,6 +439,7 @@ fn main() {
                         desktop::wizard::ensure_suite_window(app);
                     } else {
                         sidecar.stop();
+                        desktop::stack_stop::stop_stack();
                     }
                 }
                 let _ = (&app, &event);

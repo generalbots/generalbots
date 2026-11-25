@@ -114,7 +114,7 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
 
     let init_json = base_path.join("conf/vault/init.json");
     std::fs::create_dir_all(init_json.parent().unwrap_or(std::path::Path::new("")))?;
-    std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
+    crate::protected_file::write_secret(&init_json, &serde_json::to_string_pretty(&init_json_val)?)?;
     #[cfg(unix)]
     let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&init_json);
     info!("Created {} (chmod 600)", init_json.display());
@@ -161,7 +161,7 @@ VAULT_CACERT={}
         })
         .collect();
 
-    std::fs::write(&unseal_keys_file, keys_content)?;
+    crate::protected_file::write_secret(&unseal_keys_file, &keys_content)?;
 
     #[cfg(unix)]
     {

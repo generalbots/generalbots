@@ -21,6 +21,7 @@ pub fn register_vector_db(components: &mut HashMap<String, ComponentConfig>) {
                 "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
                 "if not exist {{CONF_PATH}}\\vector_db mkdir {{CONF_PATH}}\\vector_db".to_string(),
                 "echo service: > {{CONF_PATH}}\\vector_db\\config.yaml".to_string(),
+                "echo   host: 127.0.0.1 >> {{CONF_PATH}}\\vector_db\\config.yaml".to_string(),
                 "echo   grpc_port: 6334 >> {{CONF_PATH}}\\vector_db\\config.yaml".to_string(),
                 "echo   http_port: 6333 >> {{CONF_PATH}}\\vector_db\\config.yaml".to_string(),
                 "echo storage: >> {{CONF_PATH}}\\vector_db\\config.yaml".to_string(),
