@@ -178,6 +178,7 @@ pub fn zitadel_db_password() -> Result<String> {
     if let Ok(override_value) = std::env::var(ZITADEL_PASSWORD_ENV) {
         if !override_value.is_empty() {
             if is_strong_zitadel_password(&override_value) {
+                log::info!("Zitadel DB password source: {ZITADEL_PASSWORD_ENV} override");
                 return Ok(override_value);
             }
             return Err(anyhow::anyhow!(
@@ -189,10 +190,12 @@ pub fn zitadel_db_password() -> Result<String> {
     let mut secret = get_secret_strict_sync(DIRECTORY_SECRET_PATH)?;
     if let Some(existing) = secret.get(ZITADEL_PASSWORD_KEY) {
         if is_strong_zitadel_password(existing) {
+            log::info!("Zitadel DB password source: {DIRECTORY_SECRET_PATH} secret");
             return Ok(existing.clone());
         }
     }
 
+    log::info!("Zitadel DB password source: freshly generated");
     let generated = crate::generate_random_string(32);
     secret.insert(ZITADEL_PASSWORD_KEY.to_string(), generated.clone());
     put_secret_sync(DIRECTORY_SECRET_PATH, secret)?;
