@@ -43,10 +43,13 @@ var metrics = require("./10_scan").metrics;
  * The "did not decrease" invariant still holds (665 -> 668 declarations). No
  * a11y fixture was dropped; the four documented gaps stay explicitly reported.
  */
+// Re-locked 2026-11-25: three shipped JS files (settings/slides asset
+// extractions plus the #2448 batch-id module) changed the observed surface
+// counts; the four documented gaps and all a11y invariants stay unchanged.
 var EXPECTED = {
-  filesScanned: 1584,
+  filesScanned: 1587,
   htmlFiles: 215,
-  jsFiles: 1369,
+  jsFiles: 1372,
   vendorFiles: 290,
   topSegments: 94,
   ariaLiveMentions: 727,
@@ -64,9 +67,9 @@ var EXPECTED = {
   gbTCalls: 387, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 124,
   dynamicWrites: 4334,
-  writesInRegionFiles: 1265,
-  writesOutsideRegionFiles: 3069,
-  filesWithWritesNoRegion: 612,
+  writesInRegionFiles: 1263,
+  writesOutsideRegionFiles: 3071,
+  filesWithWritesNoRegion: 613,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {

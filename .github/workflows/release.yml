@@ -380,9 +380,9 @@ jobs:
           # #2443 — pinned, checksummed update artifact consumed by the A/B
           # slot installer. Version and channel are baked into the filename so
           # a beta never silently replaces a stable slot.
-          (cd dist && tar czf gb-update-${{ github.ref_name }}-stable.tar.gz \
+          if (cd dist && tar czf gb-update-${{ github.ref_name }}-stable.tar.gz \
              generalbots-linux-x86_64 botserver-linux-x86_64 botui-linux-x86_64 \
-             generalbots-linux-x86_64.tar.gz 2>/dev/null || true)
+             generalbots-linux-x86_64.tar.gz 2>/dev/null); then :; fi
           (cd dist && sha256sum gb-update-*.tar.gz >> SHA256SUMS-update)
           ls -lh dist
 

@@ -15,7 +15,4 @@
 # botsecurity_core::verified_jwt::verify_hs256_jwt before reading any claim.
 botserver/crates/botcloud/src/payment_cards/jwt_email.rs # unverified payload read, email claim (#2125 follow-up)
 botserver/crates/botcloud/src/vouchers.rs # unverified payload read, org scope (#2125 follow-up)
-botserver/crates/botlearn/src/routes_learn.rs # unverified payload read, sub claim (#2125 follow-up)
-botserver/crates/botsecurity-auth/src/platform_admin.rs # unverified payload read, email claim (#2125 follow-up)
-botserver/crates/botsecurity-auth/src/zitadel_auth/authenticate_request.rs # RS256/JWKS verification not implemented (#2125 follow-up)
 botserver/src/core/ai_accounts_chatgpt/oauth.rs # claims from a provider id_token obtained over TLS (#2125 follow-up)

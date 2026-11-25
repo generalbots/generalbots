@@ -17,6 +17,17 @@
 # Directory where downloaded files are cached (relative to botserver root)
 cache_dir = "botserver-installers"
 
+# Bundled legacy installer copies (#A3 offline-first-boot audit). Each digest
+# is the upstream-published checksum; Qdrant 1.12.0 publishes none, so its hash
+# was computed from the official release asset (byte-identical to the cache).
+[components]
+alm_10_0_1_cached = { name = "Forgejo 10.0.1 (bundled cache copy)", url = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-linux-amd64", filename = "forgejo-10.0.1-linux-amd64", sha256 = "0256a95f6592f1d55149a5a0a7d2a5ca6b583d9ca1031e9c66f93562e0fcae06" }
+alm_ci_6_0_0_cached = { name = "Forgejo runner 6.0.0 (bundled cache copy)", url = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-runner-6.0.0-linux-amd64", filename = "forgejo-runner-6.0.0-linux-amd64", sha256 = "59124ed0a086a4d48a582dfb6919dfb93f5a6aea59a0ec63b8d326099f83f67d" }
+tables_17_2_0_cached = { name = "PostgreSQL 17.2.0 (bundled cache copy)", url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz", filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz", sha256 = "c5a214f3ffc71018877a11c0e105177e524ecd33fc77db65a92eba02c2acfbd8" }
+vector_db_1_12_0_cached = { name = "Qdrant 1.12.0 gnu (bundled cache copy)", url = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-unknown-linux-gnu.tar.gz", filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz", sha256 = "1417ca7f2c1933c1275e97cbf57ed9a1224b99d500be2a9ed6ef939f5eef8835" }
+cache_8_1_5_cached = { name = "Valkey 8.1.5 (bundled cache copy)", url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz", filename = "valkey-8.1.5-jammy-x86_64.tar.gz", sha256 = "9f5b1fc5c4599e71dc03de5bc4fe1c619d6881d0230f9877b3d470c36a635789" }
+vault_1_18_2_cached = { name = "Vault 1.18.2 (bundled cache copy)", url = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip", filename = "vault_1.18.2_linux_amd64.zip", sha256 = "a448c8b6839d76ec54fa320d3a558ff0e5ef0c3d27ea78c88ace333461d7264b" }
+
 # Components
 # ==========
 # Each component has:

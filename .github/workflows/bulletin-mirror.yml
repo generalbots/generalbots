@@ -143,7 +143,13 @@ jobs:
         run: |
           set -euo pipefail
           # Credential helper keeps the token out of the remote URL and logs.
-          git_auth=(-c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$MIRROR_TOKEN"; }; f')
+          # Quoted heredoc keeps "$MIRROR_TOKEN" literal so git expands it only
+          # when the helper runs (never baked into the git command line).
+          git_helper=$(cat <<'HELPER'
+          credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$MIRROR_TOKEN"; }; f
+          HELPER
+          )
+          git_auth=(-c "$git_helper")
           git "${git_auth[@]}" clone --depth 1 "$MIRROR_REPO" /tmp/mirror-repo
           mkdir -p "/tmp/mirror-repo/$BULLETIN_PREFIX"
           cp /tmp/bulletin/* "/tmp/mirror-repo/$BULLETIN_PREFIX/"
@@ -185,9 +191,11 @@ jobs:
             echo "::warning::Mirror variables not configured yet (#2726); skipping drift check"
             exit 0
           fi
-          echo "configured=true" >> "$GITHUB_OUTPUT"
-          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
-          echo "prefix=${TREE:0:16}" >> "$GITHUB_OUTPUT"
+          {
+            echo "configured=true"
+            echo "revision=$REVISION"
+            echo "prefix=${TREE:0:16}"
+          } >> "$GITHUB_OUTPUT"
       - name: Verify two surfaces serve one immutable revision
         if: ${{ steps.config.outputs.configured == 'true' }}
         env:

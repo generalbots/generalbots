@@ -1718,7 +1718,10 @@ jobs:
       - name: Prove clamscan detects EICAR (all artifacts under /tmp only)
         run: |
           set -euo pipefail
-          printf '%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > /tmp/gb-eicar.txt
+          printf '%s' "$(cat <<'EICAR'
+          X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+          EICAR
+          )" > /tmp/gb-eicar.txt
           set +e
           clamscan --no-summary --infected /tmp/gb-eicar.txt | tee /tmp/gb-clamscan-eicar.log
           status=${PIPESTATUS[0]}

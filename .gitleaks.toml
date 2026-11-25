@@ -66,6 +66,10 @@ paths = [
   # touches the network, and both files say so at the top.
   '''^botserver/crates/botmsteams/src/auth/(fixtures|tests)(_tests)?\.rs$''',
   '''^botserver/crates/botsecurity-auth/src/jwt/hardening_tests\.rs$''',
+  # #2851 — two throwaway RSA keypairs in the Zitadel JWKS verifier suite.
+  # The file's header states they sign nothing outside `cargo test`; one pair
+  # is deliberately "forged" so the test asserts it is rejected.
+  '''^botserver/crates/botsecurity-auth/src/zitadel_auth/jwks_tests\.rs$''',
   # #2119 — deterministic fuzz corpus: unsigned/garbage JWT seeds that the
   # properties assert are *rejected*; they carry no signature and no secret.
   '''^bottest/tests/fuzz_regressions\.rs$''',
@@ -156,3 +160,46 @@ description = "brand-guidelines skill: 'tokens: primary/secondary colours' is de
 paths = ['''^botskills/design/brand-guidelines/SKILL\.md$''']
 regexTarget = "match"
 regexes = ['''tokens:\s*primary/secondary''']
+
+# ---------------------------------------------------------------------------
+# #2773 — forged `alg:none` JWT samples in unit tests
+# ---------------------------------------------------------------------------
+# These `#[cfg(test)]` modules build unsigned JWTs whose header decodes to
+# `{"alg":"none"}` (base64url: eyJhbGciOiJub25lIn0) and assert the verifier
+# REJECTS them. A token with no signature is not a credential. `condition =
+# "AND"` keeps the suppression to these files AND this exact fixture shape,
+# so a real token added to any of them is still reported.
+[[allowlists]]
+description = "#2773 hardening tests: unsigned `alg:none` JWT forgery samples that tests assert are rejected; no signature means no credential."
+condition = "AND"
+paths = [
+  '''^botserver/crates/botfraud/src/handlers/state\.rs$''',
+  '''^botserver/crates/botsecurity-auth/src/platform_admin\.rs$''',
+  '''^botserver/crates/botconsent/src/api\.rs$''',
+  '''^botserver/crates/botlearn/src/routes_learn\.rs$''',
+  '''^botserver/crates/botchannelbindings/src/api\.rs$''',
+]
+regexTarget = "match"
+regexes = ['''^eyJhbGciOiJub25lIn0\..*''']
+
+# ---------------------------------------------------------------------------
+# #2773 / sanitizer — deterministic dummy values in unit tests
+# ---------------------------------------------------------------------------
+# A fake Stripe-shaped key (`sk_live_...`) fed to the redaction detector, an
+# opaque session token built from a fixed hex/counter pattern, and a fixed
+# UUID used to test token redaction. None authenticates anything. `condition
+# = "AND"` scopes each regex to its own file and fixture shape.
+[[allowlists]]
+description = "Unit-test dummy values: a fake provider key for the sanitizer detector, a deterministic opaque session token, and a fixed UUID token used to test redaction."
+condition = "AND"
+paths = [
+  '''^botserver/crates/botsecurity-core/src/error_sanitizer/looks_like_connection_string\.rs$''',
+  '''^botserver/crates/botlearn/src/routes_learn\.rs$''',
+  '''^botserver/crates/botmarketing/src/routes\.rs$''',
+]
+regexTarget = "match"
+regexes = [
+  '''^api_key=sk_live_[A-Za-z0-9]{1,12}"$''',
+  '''^token = "gb_[0-9a-f]+_[0-9]+"$''',
+  '''^token = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$''',
+]

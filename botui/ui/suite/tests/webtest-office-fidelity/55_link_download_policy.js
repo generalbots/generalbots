@@ -16,7 +16,7 @@ var h = require("./00_harness");
 
 var MIGRATION = "botserver/migrations/6.9.6-resource-links-download-policy/up.sql";
 var DTO = "botserver/src/main_module/routes/collab_routes/dto.rs";
-var DTO_TESTS = "botserver/src/main_module/routes/collab_routes/dto_tests.rs";
+var DTO_TESTS = "botserver/src/main_module/routes/collab_routes/dto/dto_tests.rs";
 var PERMISSIONS = "botserver/src/main_module/routes/collab_routes/permissions.rs";
 var SHARED = "botserver/crates/botdocs/src/shared_link.rs";
 

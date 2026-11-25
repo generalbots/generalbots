@@ -32,6 +32,9 @@ SHARED_LINK = f"{DOCS_SRC}/shared_link.rs"
 COLLAB_ROUTES = "botserver/src/main_module/routes/collab_routes"
 COLLAB_DTO = f"{COLLAB_ROUTES}/dto.rs"
 COLLAB_PERMISSIONS = f"{COLLAB_ROUTES}/permissions.rs"
+# #2452 — transfer_ownership moved to transfer.rs, re-exported by mod.rs.
+COLLAB_TRANSFER = f"{COLLAB_ROUTES}/transfer.rs"
+COLLAB_MOD = f"{COLLAB_ROUTES}/mod.rs"
 OFFICE_OWNER = "botserver/src/security/office_owner.rs"
 
 
@@ -123,12 +126,12 @@ def check_owner_derivation() -> str:
             )
             name = argument.group(1)
             require(
-                name in ("user_id", "owner_id"),
+                name in ("user_id", "owner_id", "owner"),
                 assertion,
-                f"object read at {rel}:{number} passes '{name}' as requester, expected user_id/owner_id",
+                f"object read at {rel}:{number} passes '{name}' as requester, expected a verified or server-derived id",
             )
             require(
-                re.search(r"\b(?:req|body|payload)\.(?:owner_id|user_id)\b", window) is None,
+                re.search(r"\b(?:req|body|payload)\.(?:owner_id|user_id|owner)\b", window) is None,
                 assertion,
                 f"request-body identity used as requester at {rel}:{number}",
             )
@@ -137,6 +140,18 @@ def check_owner_derivation() -> str:
                     "shared_link.rs" in rel and re.search(r"resolve_owner\(", content) is not None,
                     assertion,
                     f"owner_id at {rel}:{number} is not server-resolved from the link row",
+                )
+            elif name == "owner":
+                # #2499 KB backfill has no requester: namespace parsed from a
+                # server-side Drive key (users/{owner}/docs/id.html). Accept
+                # only with that derivation intact and no request-body identity.
+                require(
+                    re.search(r"Some\(\(owner,\s*\w+\)\)\s*=\s*parse_document_key\(", content)
+                    is not None
+                    and re.search(r"strip_prefix\(USERS_PREFIX\)", content) is not None
+                    and re.search(r"\b(?:req|body|payload)\.(?:owner_id|user_id|owner)\b", content) is None,
+                    assertion,
+                    f"owner at {rel}:{number} is not derived from a server-side Drive key",
                 )
             else:
                 has_verified_source = (
@@ -204,6 +219,8 @@ def check_sharing_json_inputs() -> str:
     assertion = "no-untrusted-role-or-owner-in-sharing-json"
     dto = source(COLLAB_DTO)
     perm = source(COLLAB_PERMISSIONS)
+    transfer_src = source(COLLAB_TRANSFER)
+    mod_src = source(COLLAB_MOD)
     owner_source = source(OFFICE_OWNER)
     grant = struct_block(dto, "GrantBody", assertion)
     transfer = struct_block(dto, "TransferBody", assertion)
@@ -257,11 +274,17 @@ def check_sharing_json_inputs() -> str:
                 assertion, f"request-body owner_id accepted at {rel}:{number}"
             )
 
-    start = perm.find("pub async fn transfer_ownership")
+    # #2452 — follow the handler to transfer.rs; mod.rs re-exports and routes it.
+    require(
+        re.search(r"pub use transfer::\*;", mod_src) is not None
+        and re.search(r'"/api/collab/permissions/transfer"', mod_src) is not None,
+        assertion, "transfer_ownership is not re-exported and routed by collab_routes/mod.rs",
+    )
+    start = transfer_src.find("pub async fn transfer_ownership")
     require(start != -1, assertion, "transfer_ownership handler not found")
-    end = perm.find("\npub async fn ", start + 1)
-    segment = perm[start : end if end != -1 else len(perm)]
-    segment_start_line = perm[:start].count("\n") + 1
+    bounds = [n for n in (transfer_src.find("\npub async fn ", start + 1), transfer_src.find("#[cfg(test)]", start + 1)) if n != -1]
+    segment = transfer_src[start : min(bounds) if bounds else len(transfer_src)]
+    segment_start_line = transfer_src[:start].count("\n") + 1
     guard = line_of(segment, r"if !owner_or_admin\(")
     insert = line_of(segment, r"INSERT INTO resource_permissions")
     require(
@@ -281,8 +304,8 @@ def check_sharing_json_inputs() -> str:
         f"{COLLAB_PERMISSIONS}:{validations[0]},{validations[1]}",
         f"EXCEPTION {COLLAB_DTO}:{loc(dto, 'pub struct TransferBody')} TransferBody.new_owner_id "
         f"is accepted from JSON but only after the owner-or-admin gate at "
-        f"{COLLAB_PERMISSIONS}:{segment_start_line + guard - 1}, before the INSERT at "
-        f"{COLLAB_PERMISSIONS}:{segment_start_line + insert - 1}",
+        f"{COLLAB_TRANSFER}:{segment_start_line + guard - 1}, before the INSERT at "
+        f"{COLLAB_TRANSFER}:{segment_start_line + insert - 1}",
         f"EXCEPTION {SHARED_LINK}:{line_of(source(SHARED_LINK), 'resolve_owner\\(') or 0} "
         "anonymous link reads use the owner recorded server-side at link creation "
         "(minted from the verified user), never a request-body field",
@@ -299,20 +322,35 @@ def check_link_credential_order() -> str:
     text = source(SHARED_LINK)
     shape = line_of(text, r"is_valid_token\(&token\)")
     load = line_of(text, r"load_link\(&state, &token\)")
-    expiry = line_of(text, r"expires_at < chrono::Utc::now\(\)")
+    # #2452 — expiry lives in the pure link_is_expired helper, applied before
+    # the read. A removed helper, call or relaxed deadline must fail this check.
+    expiry_call = line_of(text, r"if link_is_expired\(link\.expires_at,\s*chrono::Utc::now\(\)\)")
+    expiry_helper = line_of(text, r"fn link_is_expired\(")
+    expiry_boundary = line_of(text, r"expires_at\.is_some_and\(\|deadline\|\s*now\s*>=\s*deadline\)")
     read = line_of(text, r"load_document_from_drive\(&state, &owner_id")
-    content = line_of(text, r"content:\s*document\.content")
+    body_gate = line_of(text, r"let content = body_for_link\(")
     positions = (
         ("token shape check", shape),
         ("link lookup", load),
-        ("expiry check", expiry),
+        ("expiry gate", expiry_call),
         ("document read", read),
-        ("content in response", content),
+        ("gated source body", body_gate),
     )
     for label, number in positions:
         require(number is not None, assertion, f"{label} not found in {SHARED_LINK}")
     require(
-        shape < load < expiry < read < content,
+        expiry_helper is not None and expiry_boundary is not None
+        and expiry_helper < expiry_boundary < expiry_call,
+        assertion,
+        "link expiry helper is missing or not applied before the document read",
+    )
+    require(
+        re.search(r"SharedDocument\s*\{.*?\bcontent,\s*\n", text, re.S) is not None,
+        assertion,
+        "the gated body is not the content returned in SharedDocument",
+    )
+    require(
+        shape < load < expiry_call < read < body_gate,
         assertion,
         f"link credential ordering violated: {positions}",
     )
@@ -335,8 +373,8 @@ def check_link_credential_order() -> str:
         "decide_link grants a link role before verifying the token",
     )
     return (
-        f"shared_link.rs:{shape} shape -> :{load} lookup -> :{expiry} expiry -> :{read} read "
-        f"-> :{content} content; decision.rs:{equal} token equality before :{grant} LinkGrant"
+        f"shared_link.rs:{shape} shape -> :{load} lookup -> :{expiry_call} expiry -> :{read} read "
+        f"-> :{body_gate} gated body; decision.rs:{equal} token equality before :{grant} LinkGrant"
     )
 
 

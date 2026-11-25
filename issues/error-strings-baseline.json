@@ -5,5 +5,6 @@
     "botserver/src",
     "botserver/crates"
   ],
-  "total": 716
+  "total": 716,
+  "note": "#2452 guard audit 2026-11-25: live scan 726 (+10). The new collab_routes/transfer.rs contributes 0 (it returns (StatusCode, Json<serde_json::Value>) and routes causes through log_and_sanitize_str). Growth is committed since baseline commit fdb9445fd (which scanned exactly 716), in crates outside this task's scope: botautomation/api_helpers.rs +3, botmeet/minutes/handlers_minutes.rs +7, botconsent/approvals/api.rs +4, botbanking +4, botcloud +5, botbrowser/api/caller.rs +2, botcontacts/deals.rs +2, bottax/handlers.rs +2, plus smaller sites; offset by removals in botcanvas (-10), botmarketing (-9), botmeet/minutes/handlers.rs (-6). Two additions are not leaks (botsecurity-core/api_error.rs doc comment; error_sanitizer/looks_like_connection_string.rs::log_and_sanitize_tuple returns an already-sanitized String); the rest are real raw String bodies to migrate in their owning crates. Ceiling deliberately unchanged: --update refuses to raise and raising would hide real leaks."
 }

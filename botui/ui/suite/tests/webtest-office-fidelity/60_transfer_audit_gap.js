@@ -36,6 +36,7 @@ var fs = h.fs;
 var path = h.path;
 
 var PERMISSIONS = "botserver/src/main_module/routes/collab_routes/permissions.rs";
+var TRANSFER = "botserver/src/main_module/routes/collab_routes/transfer.rs";
 var COLLAB_DIR = "botserver/src/main_module/routes/collab_routes";
 var STORAGE_CORE = "botserver/crates/botdocs/src/storage_core.rs";
 var STORAGE_DRIVE = "botserver/crates/botdocs/src/storage_drive.rs";
@@ -125,11 +126,12 @@ function assertAbsent(scan, what, minFiles, minBytes) {
 // (a) The transfer route changes the ACL and the audit row only; no code path
 //     copies the namespace-keyed document (and its sidecar) to the new owner.
 h.knownBug("#2452 BLOCKED: ownership transfer is metadata-only — no document bytes move between user namespaces", function () {
-  contains(PERMISSIONS, "pub async fn transfer_ownership(", "transfer handler ships");
-  contains(PERMISSIONS, "DELETE FROM resource_permissions", "old owner ACL row is removed");
-  contains(PERMISSIONS, "INSERT INTO resource_permissions", "new owner ACL row is inserted");
-  contains(PERMISSIONS, "record_activity(", "activity audit call ships");
-  contains(PERMISSIONS, '"transfer"', "transfer activity verb ships");
+  // The handler moved from permissions.rs to transfer.rs (re-exported by mod.rs).
+  contains(TRANSFER, "pub async fn transfer_ownership(", "transfer handler ships");
+  contains(TRANSFER, "DELETE FROM resource_permissions", "old owner ACL row is removed");
+  contains(TRANSFER, "INSERT INTO resource_permissions", "new owner ACL row is inserted");
+  contains(TRANSFER, "record_activity(", "activity audit call ships");
+  contains(TRANSFER, '"transfer"', "transfer activity verb ships");
   contains(BOOK_SECURITY, "revoke and ownership transfer are owner-only",
     "book discloses the owner-only transfer");
   contains(BOOK_SECURITY, "Share, revoke, transfer, comment and version events are appended",
@@ -141,7 +143,8 @@ h.knownBug("#2452 BLOCKED: ownership transfer is metadata-only — no document b
   contains(STORAGE_DRIVE, "let base_path = get_user_docs_path(user_identifier);",
     "document writes resolve through that namespace");
 
-  var handler = between(PERMISSIONS, "pub async fn transfer_ownership(", "pub async fn my_role(");
+  var transferSrc = h.readRepo(TRANSFER);
+  var handler = transferSrc.slice(transferSrc.indexOf("pub async fn transfer_ownership("));
   h.assert(handler.indexOf("DELETE FROM resource_permissions") !== -1 &&
     handler.indexOf("INSERT INTO resource_permissions") !== -1 &&
     handler.indexOf("record_activity(") !== -1 && handler.indexOf('"transfer"') !== -1,

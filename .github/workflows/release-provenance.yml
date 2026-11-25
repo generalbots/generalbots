@@ -218,9 +218,9 @@ jobs:
             echo '---'
             echo '## Supply chain identity (#2717)'
             echo
-            echo '- SBOM (CycloneDX; Rust, JS, Python and vendored trees): `sbom-source.cdx.json`.'
-            echo '- SLSA v1.0 provenance: `provenance.slsa.json` (exact source commit, workflow and CI run).'
-            echo '- Every asset has `<asset>.sig`, `<asset>.pem` and `<asset>.bundle` (keyless Sigstore; no repository key).'
+            echo "- SBOM (CycloneDX; Rust, JS, Python and vendored trees): \`sbom-source.cdx.json\`."
+            echo "- SLSA v1.0 provenance: \`provenance.slsa.json\` (exact source commit, workflow and CI run)."
+            echo "- Every asset has \`<asset>.sig\`, \`<asset>.pem\` and \`<asset>.bundle\` (keyless Sigstore; no repository key)."
             echo '- Verify every downloaded asset with one command:'
             echo
             echo '```sh'

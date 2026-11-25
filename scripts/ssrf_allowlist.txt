@@ -46,6 +46,7 @@ botserver/crates/botcoredirectory/src/client/sanitize_api_base.rs # Zitadel dire
 botserver/crates/botcoredirectory/src/client/search_users_by_metadata.rs # Zitadel directory API base URL from the service config (Vault)
 botserver/crates/botcoreoauth/src/github_email.rs # OAuth provider endpoint (constant host); client credentials from Vault
 botserver/crates/botcoreoauth/src/providers.rs # OAuth provider endpoint (constant host); client credentials from Vault
+botserver/crates/botcorepkg/src/cli_audit.rs # cli_audit.rs:128 — advisory API endpoint comes from the operator's own --api flag / GB_ADVISORY_API env var in the `gb audit` CLI, never from a remote caller; defaults to the local botserver. botcorepkg has no botsecurity-core dependency (and Cargo.toml is out of scope), and the strict public-URL guard would reject both the loopback default and public advisory APIs.
 botserver/crates/botcorepkg/src/cli_secrets.rs # installer/ALM endpoint from configuration
 botserver/crates/botcorepkg/src/facade_download/download.rs # installer/ALM endpoint from configuration
 botserver/crates/botcorepkg/src/setup.rs # installer/ALM endpoint from configuration
@@ -73,6 +74,7 @@ botserver/crates/botqdrant/src/qdrant_native/from_url.rs # Qdrant URL from confi
 botserver/crates/botresearch/src/web_search/handle_search_history/tinyfish.rs # search provider URL pinned to a constant host, with the query URL-encoded
 botserver/crates/botresearch/src/web_search/handle_search_history/wikipedia.rs # search provider URL pinned to a constant host, with the query URL-encoded
 botserver/crates/botsecurity-auth/src/zitadel_auth/get_service_token.rs # Zitadel token endpoint from the service config (Vault)
+botserver/crates/botsecurity-auth/src/zitadel_auth/jwks.rs # jwks.rs:134 — JWKS URI is built by jwks_uri() from the operator-configured directory issuer (server-side config/Vault), which enforces https or http-on-loopback and never uses the untrusted token; no request or LLM can choose the host. fetch_user_url would reject the legitimate loopback/private issuer and fetch_internal_service_url accepts only a fixed internal host set that a public issuer would not match.
 botserver/crates/botsecurity-crypto/src/ca/verify_certificate.rs # certificate status endpoint built from the configured CA URL
 botserver/crates/botsettings/src/on_device_ai/jobs.rs # model weights URL built from the server-side model catalogue (huggingface.co or a test-only override env var), never from a request
 botserver/crates/botsources/src/connectors/engine/create_connector.rs # M365/Graph or connector endpoint built from the stored credential config

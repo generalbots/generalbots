@@ -64,6 +64,7 @@ require("./webtest-office-fidelity/58_agent_undo_gap");
 require("./webtest-office-fidelity/59_confirm_cancel_gate");
 require("./webtest-office-fidelity/60_transfer_audit_gap");
 require("./webtest-office-fidelity/61_db_failure_debt");
+require("./webtest-office-fidelity/62_undo_transfer_guard");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
