@@ -12,7 +12,8 @@ pub async fn search_files(
     // Home tab (and any local root) returned no matches / an error even
     // though the files were visible in the listing.
     if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {
-        let root = crate::local_fs::requested_root(params.root.as_deref(), params.bucket.as_deref());
+        let root =
+            crate::local_fs::requested_root(params.root.as_deref(), params.bucket.as_deref());
         let query = params.query.clone().unwrap_or_else(String::new);
         let items = crate::local_fs::search_local_files(root, None, &query)
             .await
@@ -247,7 +248,10 @@ async fn object_contains_query(
             _ => String::new(),
         };
         if let Err(e) = std::fs::remove_file(&path) {
-            log::warn!("Failed to remove temporary search file {}: {e}", path.display());
+            log::warn!(
+                "Failed to remove temporary search file {}: {e}",
+                path.display()
+            );
         }
         text
     })

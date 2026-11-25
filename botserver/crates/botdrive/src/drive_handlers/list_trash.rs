@@ -275,7 +275,11 @@ pub async fn restore_trash(
                 })?;
             revoke_links_for_key(&state, &row.bucket, &child)?;
             if let Err(e) = drive.delete_object(&row.bucket, &child).await {
-                log::warn!("Failed to delete restored trashed child {}/{}: {e}", row.bucket, child);
+                log::warn!(
+                    "Failed to delete restored trashed child {}/{}: {e}",
+                    row.bucket,
+                    child
+                );
             }
             restored += 1;
         }
@@ -295,7 +299,11 @@ pub async fn restore_trash(
             })?;
         revoke_links_for_key(&state, &row.bucket, &row.path)?;
         if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
-            log::warn!("Failed to delete restored trashed object {}/{}: {e}", row.bucket, row.path);
+            log::warn!(
+                "Failed to delete restored trashed object {}/{}: {e}",
+                row.bucket,
+                row.path
+            );
         }
         restored = 1;
     }
@@ -370,7 +378,11 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
                         "Failed to revoke public links for expired trashed object".to_string()
                     })?;
                     if let Err(e) = drive.delete_object(&row.bucket, &key).await {
-                        log::warn!("Failed to delete expired trashed object {}/{}: {e}", row.bucket, key);
+                        log::warn!(
+                            "Failed to delete expired trashed object {}/{}: {e}",
+                            row.bucket,
+                            key
+                        );
                     }
                 }
             }
@@ -379,7 +391,11 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
                 "Failed to revoke public links for expired trashed object".to_string()
             })?;
             if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
-                log::warn!("Failed to delete expired trashed object {}/{}: {e}", row.bucket, row.path);
+                log::warn!(
+                    "Failed to delete expired trashed object {}/{}: {e}",
+                    row.bucket,
+                    row.path
+                );
             }
         }
         let deleted = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1")

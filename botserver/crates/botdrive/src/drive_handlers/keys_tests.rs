@@ -68,8 +68,14 @@ fn scoped_key_without_a_prefix_returns_the_normalized_path() {
 
 #[test]
 fn scoped_key_normalizes_before_joining() {
-    assert_eq!(scoped_key("users/u1/", "/docs/./a.txt"), "users/u1/docs/a.txt");
-    assert_eq!(scoped_key("users/u1/", "../docs/a.txt"), "users/u1/docs/a.txt");
+    assert_eq!(
+        scoped_key("users/u1/", "/docs/./a.txt"),
+        "users/u1/docs/a.txt"
+    );
+    assert_eq!(
+        scoped_key("users/u1/", "../docs/a.txt"),
+        "users/u1/docs/a.txt"
+    );
 }
 
 #[test]
@@ -100,7 +106,10 @@ fn build_file_list_items_sorts_siblings_alphabetically() {
         "p/Alpha/x.txt".to_string(),
     ];
     let items = build_file_list_items("p/", &keys, &sizes(&[]));
-    assert_eq!(names(&items), vec!["Alpha", "beta", "alpha.txt", "zeta.txt"]);
+    assert_eq!(
+        names(&items),
+        vec!["Alpha", "beta", "alpha.txt", "zeta.txt"]
+    );
 }
 
 #[test]
@@ -126,7 +135,10 @@ fn build_file_list_items_flags_kb_objects_by_key_substring() {
 
 #[test]
 fn build_file_list_items_accepts_a_prefix_without_a_trailing_slash() {
-    let keys = vec!["users/u1/a.txt".to_string(), "users/u1/sub/b.txt".to_string()];
+    let keys = vec![
+        "users/u1/a.txt".to_string(),
+        "users/u1/sub/b.txt".to_string(),
+    ];
     let items = build_file_list_items("users/u1", &keys, &sizes(&[]));
     assert_eq!(names(&items), vec!["sub", "a.txt"]);
     assert_eq!(items[1].path, "users/u1/a.txt");
@@ -166,9 +178,18 @@ fn guess_mime_is_case_insensitive_and_unknown_extensions_fall_back() {
         ("a.md", "text/plain; charset=utf-8"),
         ("a.html", "text/html; charset=utf-8"),
         ("a.mjs", "application/javascript"),
-        ("a.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-        ("a.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-        ("a.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+        (
+            "a.docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ),
+        (
+            "a.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "a.pptx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
         ("a.zip", "application/zip"),
         ("a.svg", "image/svg+xml"),
         ("a.mp4", "video/mp4"),
@@ -205,11 +226,20 @@ fn guess_mime_covers_every_declared_arm() {
         ("json", "application/json"),
         ("xml", "application/xml"),
         ("zip", "application/zip"),
-        ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        (
+            "docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ),
         ("doc", "application/msword"),
-        ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        (
+            "xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
         ("xls", "application/vnd.ms-excel"),
-        ("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+        (
+            "pptx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
         ("ppt", "application/vnd.ms-powerpoint"),
     ];
     for (ext, expected) in arms {

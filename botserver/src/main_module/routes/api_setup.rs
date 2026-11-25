@@ -120,6 +120,12 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
                 "/api/files/list",
                 axum_get(crate::drive::drive_handlers::list_files),
             )
+            // #2928 — authoritative bucket for a bot: the Drive UI calls this
+            // instead of fabricating `{bot}.gbai` for an org-owned bot.
+            .route(
+                "/api/files/bucket",
+                axum_get(crate::drive::drive_handlers::resolve_drive_bucket),
+            )
             .route(
                 "/api/files/quota",
                 axum_get(crate::drive::drive_handlers::quota),

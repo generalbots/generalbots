@@ -76,6 +76,7 @@ struct PublicLinkRow {
 }
 
 mod ai_chat_handler;
+mod bucket_scope;
 mod cached_quota;
 mod delete_bot;
 mod export_archive;
@@ -93,6 +94,9 @@ mod upload_binary;
 mod version_list_body;
 
 #[cfg(test)]
+#[path = "bucket_scope_tests.rs"]
+mod bucket_scope_tests;
+#[cfg(test)]
 #[path = "delete_bot_tests.rs"]
 mod delete_bot_tests;
 #[cfg(test)]
@@ -103,6 +107,7 @@ mod keys_tests;
 mod public_link_tests;
 
 pub use ai_chat_handler::*;
+pub use bucket_scope::*;
 use cached_quota::*;
 pub use delete_bot::*;
 pub use export_archive::*;

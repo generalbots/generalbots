@@ -40,14 +40,22 @@ pub async fn empty_trash(
                     for key in keys {
                         revoke_links_for_key(&state, &row.bucket, &key)?;
                         if let Err(e) = drive.delete_object(&row.bucket, &key).await {
-                            log::warn!("Failed to delete trashed object {}/{}: {e}", row.bucket, key);
+                            log::warn!(
+                                "Failed to delete trashed object {}/{}: {e}",
+                                row.bucket,
+                                key
+                            );
                         }
                     }
                 }
             }
             revoke_links_for_key(&state, &row.bucket, &row.path)?;
             if let Err(e) = drive.delete_object(&row.bucket, &row.path).await {
-                log::warn!("Failed to delete trashed object {}/{}: {e}", row.bucket, row.path);
+                log::warn!(
+                    "Failed to delete trashed object {}/{}: {e}",
+                    row.bucket,
+                    row.path
+                );
             }
         }
 
