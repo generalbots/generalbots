@@ -16,7 +16,7 @@ unwrap = 0
 expect = 0
 panic = 0
 unwrap_or_default = 0
-discarded_result = 879
+discarded_result = 861
 
 [rule_notes]
 unwrap = "calls to .unwrap(...)"
@@ -51,9 +51,6 @@ discarded_result = 10
 
 [files."botserver/src/core/bot/pipeline/llm/attempt.rs"]
 discarded_result = 10
-
-[files."botserver/crates/botbrowser/src/api/handle_agent_ws_stream.rs"]
-discarded_result = 9
 
 [files."botserver/crates/botsources/src/handlers/sources_handlers/handle_list_repositories.rs"]
 discarded_result = 9
@@ -173,4 +170,7 @@ discarded_result = 4
 discarded_result = 4
 
 [files."botserver/crates/botcorepkg/src/facade.rs"]
+discarded_result = 4
+
+[files."botserver/crates/botmarketing/src/whatsapp.rs"]
 discarded_result = 4

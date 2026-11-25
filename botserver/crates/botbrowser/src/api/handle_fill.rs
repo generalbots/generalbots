@@ -55,9 +55,12 @@ pub(super) async fn handle_stream_inner(
     let session = match get_session(&sessions, &id, &caller).await {
         Ok(s) => s,
         Err(e) => {
-            let _ = ws
+            if let Err(send_err) = ws
                 .send(Message::Text(format!("{{\"error\":\"{}\"}}", e.1)))
-                .await;
+                .await
+            {
+                log::warn!("Failed to send stream error to client: {send_err}");
+            }
             return;
         }
     };
@@ -76,7 +79,9 @@ pub(super) async fn handle_stream_inner(
                     }
                     Err(e) => {
                         let msg = format!("{{\"error\":\"screenshot: {e}\"}}");
-                        let _ = ws.send(Message::Text(msg)).await;
+                        if let Err(send_err) = ws.send(Message::Text(msg)).await {
+                            log::warn!("Failed to send screenshot error to client: {send_err}");
+                        }
                         break;
                     }
                 }
@@ -86,7 +91,9 @@ pub(super) async fn handle_stream_inner(
                     Ok(Message::Close(_)) | Err(_) => break,
                     Ok(Message::Text(t))
                         if t == "ping" => {
-                            let _ = ws.send(Message::Text("pong".into())).await;
+                            if let Err(e) = ws.send(Message::Text("pong".into())).await {
+                                log::warn!("Failed to send pong to client: {e}");
+                            }
                         }
                     _ => {}
                 }
