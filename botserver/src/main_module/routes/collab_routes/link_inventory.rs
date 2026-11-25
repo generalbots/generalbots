@@ -17,7 +17,8 @@ use super::*;
 /// by a JWT identity) plus links minted by any user who is a member of the
 /// caller's authenticated org. Membership is verified in the database, never
 /// taken from the request. `$1` is the org id, `$2` the caller identity.
-const ORGANIZATION_LINKS_SQL: &str = "SELECT token, role, expires_at, created_at, allow_download FROM resource_links l \
+const ORGANIZATION_LINKS_SQL: &str =
+    "SELECT token, role, expires_at, created_at, allow_download FROM resource_links l \
      WHERE (l.created_by = $2 OR EXISTS ( \
          SELECT 1 FROM users u \
          JOIN user_organizations uo ON uo.user_id = u.id \
@@ -28,7 +29,8 @@ const ORGANIZATION_LINKS_SQL: &str = "SELECT token, role, expires_at, created_at
 /// Ordinary scope: only links the caller minted. There is deliberately no org
 /// predicate here — a non-admin must never see another user's links, even when
 /// both users belong to the same organization.
-const OWN_LINKS_SQL: &str = "SELECT token, role, expires_at, created_at, allow_download FROM resource_links \
+const OWN_LINKS_SQL: &str =
+    "SELECT token, role, expires_at, created_at, allow_download FROM resource_links \
      WHERE created_by = $1 ORDER BY created_at DESC";
 
 /// The scope an inventory request is allowed to use. `None` means the caller

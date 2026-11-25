@@ -14,7 +14,11 @@ pub async fn list_comments(
 ) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let mut conn = state
         .conn
@@ -22,7 +26,11 @@ pub async fn list_comments(
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     // #2768 — scope from verified claims before exposing any comment content.
     if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     // When children are not requested, the LIKE patterns bind as the empty
@@ -70,7 +78,13 @@ pub async fn list_comments(
     .bind::<Text, _>(&ty_prefix)
     .bind::<Text, _>(&id_prefix)
     .load::<ReactionRow>(&mut conn)
-    .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
+    .map_or_else(
+        |_| {
+            log::warn!("defaulting after error at {}:{}", file!(), line!());
+            Default::default()
+        },
+        |v| v,
+    );
 
     let mut reactions: std::collections::HashMap<String, Vec<ReactionItem>> =
         std::collections::HashMap::new();
@@ -95,7 +109,13 @@ pub async fn list_comments(
             author_name: r.author_name,
             parent_id: r.parent_id.clone(),
             body: r.body,
-            mentions: serde_json::from_str(&r.mentions).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
+            mentions: serde_json::from_str(&r.mentions).map_or_else(
+                |_| {
+                    log::warn!("defaulting after error at {}:{}", file!(), line!());
+                    Default::default()
+                },
+                |v| v,
+            ),
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
             resolved: r.resolved,
@@ -319,14 +339,26 @@ pub async fn create_comment(
 ) -> Result<Json<CommentItem>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let body = req.body.trim().to_string();
     if body.is_empty() {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-comment-body-required"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-comment-body-required",
+        ));
     }
     if body.chars().count() > 8000 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-comment-too-long"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-comment-too-long",
+        ));
     }
 
     let author_id = collab_user_id(&user);
@@ -340,7 +372,13 @@ pub async fn create_comment(
         None | Some("") => None,
         Some(p) => match uuid::Uuid::parse_str(p) {
             Ok(id) => Some(id),
-            Err(_) => return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-parent")),
+            Err(_) => {
+                return Err(err(
+                    locale,
+                    StatusCode::BAD_REQUEST,
+                    "error-collab-invalid-parent",
+                ))
+            }
         },
     };
 
@@ -351,7 +389,11 @@ pub async fn create_comment(
     // #2768 — identity is bound from verified claims (actor id above); a
     // writer must also have a grant on the target resource.
     if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     #[derive(QueryableByName)]
@@ -375,9 +417,7 @@ pub async fn create_comment(
     .bind::<Text, _>(&body)
     .bind::<Text, _>(&mentions_json)
     .get_result::<CreatedRow>(&mut conn)
-    .map_err(|e| {
-        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
-    })?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     botlog::safe_info!(
         "collab comment created by {author_id} on {}:{}",

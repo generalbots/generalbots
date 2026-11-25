@@ -201,7 +201,11 @@ pub async fn transfer_ownership(
     // Unchanged authorization rule: verified owner or admin, resolved from
     // claims by the existing RBAC-aware helper.
     if !owner_or_admin(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     let target = find_user(&mut conn, &key)
@@ -220,9 +224,11 @@ pub async fn transfer_ownership(
         TransferRejection::SelfTransfer => {
             rejection(locale, StatusCode::BAD_REQUEST, "self-transfer rejected")
         }
-        TransferRejection::NotAllowed => {
-            rejection(locale, StatusCode::FORBIDDEN, "caller is not owner or admin")
-        }
+        TransferRejection::NotAllowed => rejection(
+            locale,
+            StatusCode::FORBIDDEN,
+            "caller is not owner or admin",
+        ),
         TransferRejection::InvalidTarget => {
             rejection(locale, StatusCode::BAD_REQUEST, "invalid transfer target")
         }
@@ -332,7 +338,11 @@ mod tests {
             "x'; DROP TABLE users; --",
             overlong.as_str(),
         ] {
-            assert_eq!(normalize_target_key(raw), Err(TransferRejection::InvalidTarget), "{raw}");
+            assert_eq!(
+                normalize_target_key(raw),
+                Err(TransferRejection::InvalidTarget),
+                "{raw}"
+            );
         }
     }
 
@@ -353,7 +363,10 @@ mod tests {
     #[test]
     fn a_foreign_caller_is_not_a_self_transfer() {
         let target = target();
-        assert!(!is_self_transfer(&caller(Some(OWNER_ID), Some("admin@localhost")), &target));
+        assert!(!is_self_transfer(
+            &caller(Some(OWNER_ID), Some("admin@localhost")),
+            &target
+        ));
         // A session without claims is never the target merely by omission.
         assert!(!is_self_transfer(&caller(None, None), &target));
     }

@@ -10,13 +10,25 @@ pub async fn snapshot_version(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     if req.content.is_empty() {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-content-required"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-content-required",
+        ));
     }
     if req.content.len() > 2_000_000 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-content-too-large"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-content-too-large",
+        ));
     }
     let actor_id = collab_user_id(&user);
     let actor_name = collab_user_name(&user);
@@ -29,7 +41,11 @@ pub async fn snapshot_version(
     // #2768 — a snapshot write is only allowed on a resource the caller can
     // access; the actor id is bound from verified claims, never the payload.
     if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     #[derive(QueryableByName)]
@@ -76,9 +92,7 @@ pub async fn snapshot_version(
     .bind::<Text, _>(&content_hash)
     .bind::<Text, _>(&name)
     .get_result::<CreatedVersion>(&mut conn)
-    .map_err(|e| {
-        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
-    })?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(serde_json::json!({
         "id": created.id,
@@ -101,7 +115,11 @@ pub async fn list_versions(
 ) -> Result<Json<Vec<VersionItem>>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let mut conn = state
@@ -110,7 +128,11 @@ pub async fn list_versions(
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     // #2768 — version metadata must not leak for a foreign resource.
     if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     let rows = diesel::sql_query(
@@ -159,10 +181,18 @@ pub async fn get_version(
     // query. A foreign or unknown id is reported identically as 404 so the
     // endpoint cannot be used to enumerate other tenants' snapshots.
     let scope = version_resource(&mut conn, id).ok_or_else(|| {
-        err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+        err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        )
     })?;
     if !has_collab_access(&mut conn, &user, &scope.0, &scope.1) {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ));
     }
 
     let row = diesel::sql_query(
@@ -172,9 +202,11 @@ pub async fn get_version(
     .bind::<SqlUuid, _>(id)
     .get_result::<VersionDetailRow>(&mut conn)
     .map_err(|e| match e {
-        diesel::result::Error::NotFound => {
-            err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
-        }
+        diesel::result::Error::NotFound => err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ),
         other => err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, other),
     })?;
 
@@ -213,16 +245,22 @@ pub async fn restore_version(
     .bind::<SqlUuid, _>(id)
     .get_result::<RestoreRow>(&mut conn)
     .map_err(|e| match e {
-        diesel::result::Error::NotFound => {
-            err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
-        }
+        diesel::result::Error::NotFound => err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ),
         other => err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, other),
     })?;
 
     // #2768 — the target snapshot's own resource is the authorization scope;
     // a foreign id must not become a new version under the caller's identity.
     if !has_collab_access(&mut conn, &user, &old.resource_type, &old.resource_id) {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ));
     }
 
     #[derive(QueryableByName)]
@@ -246,9 +284,7 @@ pub async fn restore_version(
     .bind::<Text, _>(&old.content_hash)
     .bind::<Text, _>(&old.name)
     .get_result::<CreatedVersion>(&mut conn)
-    .map_err(|e| {
-        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
-    })?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     record_activity(
         &mut conn,
@@ -283,7 +319,11 @@ pub async fn name_version(
     let locale = request_locale.locale();
     let name = req.name.trim().to_string();
     if name.is_empty() || name.chars().count() > 255 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-name"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-name",
+        ));
     }
     let mut conn = state
         .conn
@@ -293,10 +333,18 @@ pub async fn name_version(
     // #2768 — resolve the row's resource scope before mutating it; foreign or
     // unknown ids are reported as 404 and never modified.
     let scope = version_resource(&mut conn, id).ok_or_else(|| {
-        err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+        err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        )
     })?;
     if !has_collab_access(&mut conn, &user, &scope.0, &scope.1) {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ));
     }
 
     let changed = diesel::sql_query("UPDATE collab_versions SET name = $1 WHERE id = $2")
@@ -306,7 +354,11 @@ pub async fn name_version(
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if changed == 0 {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-version-not-found",
+        ));
     }
     botlog::safe_info!("version {id} named by {}", collab_user_id(&user));
     Ok(Json(serde_json::json!({ "success": true, "name": name })))
@@ -355,7 +407,13 @@ pub async fn my_mentions(
             author_name: r.author_name,
             parent_id: r.parent_id,
             body: r.body,
-            mentions: serde_json::from_str(&r.mentions).map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v),
+            mentions: serde_json::from_str(&r.mentions).map_or_else(
+                |_| {
+                    log::warn!("defaulting after error at {}:{}", file!(), line!());
+                    Default::default()
+                },
+                |v| v,
+            ),
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
             resolved: r.resolved,

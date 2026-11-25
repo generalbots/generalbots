@@ -46,6 +46,11 @@ mod transfer;
 // model is only compiled with the `consent` feature, so gate this route too.
 #[cfg(feature = "consent")]
 mod undo;
+// #2448 — authenticated test/UAT recorder for agent batches. Not a production
+// writer: it exists only so the chat-native undo verb can be exercised until
+// the real batch executor records before-states itself.
+#[cfg(feature = "consent")]
+mod undo_seed;
 mod versions;
 
 pub use comments::*;
@@ -57,6 +62,8 @@ pub use permissions::*;
 pub use transfer::*;
 #[cfg(feature = "consent")]
 pub use undo::*;
+#[cfg(feature = "consent")]
+pub use undo_seed::*;
 pub use versions::*;
 
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {
@@ -103,5 +110,8 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
     // #2448 criterion 4 — one command undoes the caller's last agent batch.
     #[cfg(feature = "consent")]
     let router = router.route("/api/collab/undo", post(undo_batch));
+    // #2448 — authenticated test/UAT seed recorder (distinct exact path).
+    #[cfg(feature = "consent")]
+    let router = router.route("/api/collab/undo/seed", post(seed_undo_batch));
     router.merge(super::collab_ops::configure_collab_ops_routes())
 }

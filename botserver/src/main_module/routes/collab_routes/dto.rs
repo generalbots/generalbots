@@ -428,8 +428,8 @@ mod tests {
 
     #[test]
     fn activity_item_serializes_a_present_ip() {
-        let json = serde_json::to_value(activity_item(Some(TEST_IP)))
-            .unwrap_or(serde_json::Value::Null);
+        let json =
+            serde_json::to_value(activity_item(Some(TEST_IP))).unwrap_or(serde_json::Value::Null);
         assert_eq!(json.get("ip").and_then(|v| v.as_str()), Some(TEST_IP));
     }
 

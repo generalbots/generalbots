@@ -19,7 +19,11 @@ pub async fn list_permissions(
 ) -> Result<Json<Vec<PermissionItem>>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let mut conn = state
         .conn
@@ -58,17 +62,33 @@ pub async fn grant_permission(
 ) -> Result<Json<PermissionItem>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     if !valid_grantee_type(&req.grantee_type) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-grantee-type"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-grantee-type",
+        ));
     }
     if !valid_editable_role(&req.role) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-role"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-role",
+        ));
     }
     let grantee = req.grantee_id.trim().to_string();
     if grantee.is_empty() || grantee.len() > 255 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-grantee-id"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-grantee-id",
+        ));
     }
     let mut conn = state
         .conn
@@ -120,7 +140,11 @@ pub async fn revoke_permission(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let grantee = req.grantee_id.trim().to_string();
     let mut conn = state
@@ -144,7 +168,11 @@ pub async fn revoke_permission(
     .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if changed == 0 {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-grant-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-grant-not-found",
+        ));
     }
     record_activity(
         &mut conn,
@@ -174,7 +202,11 @@ pub async fn my_role(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let mut conn = state
         .conn
@@ -211,10 +243,18 @@ pub async fn create_link(
 ) -> Result<Json<LinkItem>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     if !valid_editable_role(&req.role) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-role"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-role",
+        ));
     }
     let mut conn = state
         .conn
@@ -235,11 +275,19 @@ pub async fn create_link(
     let expires_at = match req.expires_at.as_deref() {
         Some(raw) => {
             let parsed = chrono::DateTime::parse_from_rfc3339(raw).map_err(|_| {
-                err(locale, StatusCode::BAD_REQUEST, "error-validation-date-future")
+                err(
+                    locale,
+                    StatusCode::BAD_REQUEST,
+                    "error-validation-date-future",
+                )
             })?;
             let deadline = parsed.with_timezone(&chrono::Utc);
             if deadline <= chrono::Utc::now() {
-                return Err(err(locale, StatusCode::BAD_REQUEST, "error-validation-date-future"));
+                return Err(err(
+                    locale,
+                    StatusCode::BAD_REQUEST,
+                    "error-validation-date-future",
+                ));
             }
             Some(deadline)
         }
@@ -302,7 +350,11 @@ pub async fn list_links(
 ) -> Result<Json<Vec<LinkItem>>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let mut conn = state
         .conn

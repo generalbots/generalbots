@@ -13,8 +13,7 @@
 
 use super::*;
 use crate::core::bot::consent_gate::undo::{
-    BatchKey, RevertOperation, UndoError, UndoScope, UndoStore, consume_latest,
-    shared_pool_store,
+    consume_latest, shared_pool_store, BatchKey, RevertOperation, UndoError, UndoScope, UndoStore,
 };
 use uuid::Uuid;
 
@@ -74,7 +73,7 @@ pub(crate) fn undo_plan_for<S: UndoStore>(
 
 /// A restore target is only read from the recorded before-state. The
 /// after-state is diagnostic and can never select a version to restore.
-fn before_version_id(before: &serde_json::Value) -> Option<Uuid> {
+pub(super) fn before_version_id(before: &serde_json::Value) -> Option<Uuid> {
     before
         .get("version_id")
         .and_then(serde_json::Value::as_str)
@@ -84,7 +83,7 @@ fn before_version_id(before: &serde_json::Value) -> Option<Uuid> {
 /// Typed failures map to existing localized error bodies; foreign, missing and
 /// already-consumed batches are indistinguishable to the caller so the route
 /// cannot be used to enumerate another user's batch ids.
-fn undo_error(
+pub(super) fn undo_error(
     locale: &botcore::i18n::Locale,
     error: UndoError,
 ) -> (StatusCode, Json<serde_json::Value>) {
@@ -210,7 +209,10 @@ pub async fn undo_last_batch_for_chat(
     let restored = restore_plan(state, &user, &locale, &resolved.revert_plan)
         .await
         .map_err(|(status, _)| {
-            log::error!("chat undo version restore failed with HTTP {}", status.as_u16());
+            log::error!(
+                "chat undo version restore failed with HTTP {}",
+                status.as_u16()
+            );
             UndoError::Storage
         })?;
     Ok(UndoResult {

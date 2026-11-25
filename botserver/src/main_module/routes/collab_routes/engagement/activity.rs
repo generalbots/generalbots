@@ -39,7 +39,11 @@ pub async fn list_activity(
     // #2768 — the audit timeline can contain sensitive payloads; never expose
     // it for a resource the caller cannot access.
     if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     // A NULL `before` means "start from the newest"; the single 4-bind query
@@ -115,7 +119,11 @@ pub async fn record_activity_event(
     // #2768 — a client-supplied event must not be attributable to a foreign
     // resource; the actor is verified but the resource must be gated too.
     if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     // #2452 criterion 4 — the server-supplied peer address is the only IP

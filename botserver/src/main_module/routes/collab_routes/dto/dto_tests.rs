@@ -70,10 +70,7 @@ fn link_expiry_fields_are_independently_optional() {
         "expires_at": "2026-12-01T00:00:00Z"
     }));
     assert_eq!(rfc3339.expires_in_hours, None);
-    assert_eq!(
-        rfc3339.expires_at.as_deref(),
-        Some("2026-12-01T00:00:00Z")
-    );
+    assert_eq!(rfc3339.expires_at.as_deref(), Some("2026-12-01T00:00:00Z"));
 }
 
 #[test]

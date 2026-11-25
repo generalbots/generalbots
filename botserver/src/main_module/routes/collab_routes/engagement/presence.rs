@@ -25,7 +25,11 @@ pub async fn update_presence(
     // #2768 — a presence heartbeat is a write to the resource; verify access
     // before recording it so foreign resources cannot be probed via presence.
     if !has_collab_access(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     diesel::sql_query(
@@ -67,7 +71,11 @@ pub async fn list_presence(
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     // #2768 — presence reveals who is viewing/editing a resource; gate it.
     if !has_collab_access(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
+        return Err(err(
+            locale,
+            StatusCode::FORBIDDEN,
+            "error-collab-owner-only",
+        ));
     }
 
     let rows = diesel::sql_query(

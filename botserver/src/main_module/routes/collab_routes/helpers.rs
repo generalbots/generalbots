@@ -402,13 +402,25 @@ mod tests {
             (("tenant-b", "doc-c"), "commenter"),
             (("tenant-b", "doc-d"), "editor"),
         ];
-        assert!(grants_collab_access(granted_role(&grants, "tenant-a", "doc-a")));
-        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-b")));
-        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-c")));
-        assert!(grants_collab_access(granted_role(&grants, "tenant-b", "doc-d")));
+        assert!(grants_collab_access(granted_role(
+            &grants, "tenant-a", "doc-a"
+        )));
+        assert!(grants_collab_access(granted_role(
+            &grants, "tenant-b", "doc-b"
+        )));
+        assert!(grants_collab_access(granted_role(
+            &grants, "tenant-b", "doc-c"
+        )));
+        assert!(grants_collab_access(granted_role(
+            &grants, "tenant-b", "doc-d"
+        )));
         // Tenant B has no grant on A's document and must be denied.
-        assert!(!grants_collab_access(granted_role(&grants, "tenant-b", "doc-a")));
-        assert!(!grants_collab_access(granted_role(&grants, "tenant-a", "doc-b")));
+        assert!(!grants_collab_access(granted_role(
+            &grants, "tenant-b", "doc-a"
+        )));
+        assert!(!grants_collab_access(granted_role(
+            &grants, "tenant-a", "doc-b"
+        )));
         assert!(!grants_collab_access(None));
     }
 
