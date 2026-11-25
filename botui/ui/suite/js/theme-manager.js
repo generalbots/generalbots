@@ -1,11 +1,4 @@
-// Unified Theme Manager — THE SINGLE OWNER of document.documentElement's
-// data-theme. Every other theme module (identity/theme.js, base/02_theme.js,
-// theme-scheme.js) subscribes to this API; none of them writes the attribute.
-//
-// One authoritative axis: the attribute carries a THEME ID. The light/dark/
-// System preference is resolved to a pair of theme ids (LIGHT_ID / DARK_ID),
-// persisted in ONE localStorage key (gb-theme), and migrated from the legacy
-// gb-theme-<botId> / gb-theme-data-<botId> values without losing the choice.
+// Single owner of document.documentElement's data-theme; other modules subscribe.
 const ThemeManager = (() => {
   const STORAGE_KEY = "gb-theme";
   const LIGHT_ID = "light";
@@ -16,15 +9,8 @@ const ThemeManager = (() => {
   let subscribers = [];
   let mediaQuery = null;
 
-  // Bot ID to theme mapping (configured via config.csv theme-base field)
-  const botThemeMap = {
-    // Default bot uses the suite identity theme (assistant look, #2567)
-    default: "default",
-    // Cristo bot uses typewriter theme (classic typewriter style)
-    cristo: "typewriter",
-    // Salesianos bot uses light theme with blue accents
-    salesianos: "light",
-  };
+  // Bot ID to theme mapping (config.csv theme-base)
+  const botThemeMap = { default: "default", cristo: "typewriter", salesianos: "light" };
 
   function getCurrentBotId() {
     const path = window.location.pathname;
@@ -33,20 +19,8 @@ const ThemeManager = (() => {
   }
 
   const themes = [
-    {
-      // #2567 — the suite's identity theme: a faithful copy of the assistant
-      // module's look (paper, ink, orange accent, Fira Sans / Inter).
-      id: "default",
-      name: "Default",
-      file: "default.css",
-      category: "recommended",
-    },
-    {
-      id: "mindfulness",
-      name: "Mindfulness",
-      file: "mindfulness.css",
-      category: "recommended",
-    },
+    { id: "default", name: "Default", file: "default.css", category: "recommended" },
+    { id: "mindfulness", name: "Mindfulness", file: "mindfulness.css", category: "recommended" },
     { id: "aurora", name: "🌌 Aurora", file: "aurora.css", category: "fluent" },
     { id: "mica", name: "🪟 Mica", file: "mica.css", category: "fluent" },
     { id: "sonoma", name: "🍏 Sonoma", file: "sonoma.css", category: "fluent" },
@@ -71,25 +45,15 @@ const ThemeManager = (() => {
     { id: "jazzage", name: "🎺 Jazz", file: "jazzage.css" },
     { id: "mellowgold", name: "🌻 Mellow", file: "mellowgold.css" },
     { id: "midcenturymod", name: "🏠 Mid Century", file: "midcenturymod.css" },
-    {
-      id: "polaroidmemories",
-      name: "📷 Polaroid",
-      file: "polaroidmemories.css",
-    },
-    {
-      id: "saturdaycartoons",
-      name: "📺 Cartoons",
-      file: "saturdaycartoons.css",
-    },
+    { id: "polaroidmemories", name: "📷 Polaroid", file: "polaroidmemories.css" },
+    { id: "saturdaycartoons", name: "📺 Cartoons", file: "saturdaycartoons.css" },
     { id: "seasidepostcard", name: "🏖️ Seaside", file: "seasidepostcard.css" },
     { id: "typewriter", name: "⌨️ Typewriter", file: "typewriter.css" },
     { id: "xeroxui", name: "📠 Xerox", file: "xeroxui.css" },
     { id: "xtreegold", name: "📁 XTree", file: "xtreegold.css" },
   ];
 
-  // Colour-scheme helpers (state-free) live in theme-scheme.js, loaded before
-  // this module in desktop.html. They read computed styles and bridge token
-  // vocabularies; only this module writes data-theme.
+  // scheme helpers are state-free; only this module writes data-theme.
   const scheme = window.GBThemeScheme || {
     sync: () => {}, watch: () => {}, clearInline: () => {}, bridge: () => {},
   };
@@ -97,41 +61,30 @@ const ThemeManager = (() => {
 
   function known(id) { return themes.some((t) => t.id === id); }
 
-  /* The ONLY write of document.documentElement's data-theme in the suite. */
   function applyThemeId(id) {
-    // Drop the previous theme's inline tokens before the new :root tokens can
-    // be read; otherwise a stale inline --background keeps the old scheme.
     scheme.clearInline();
     document.documentElement.setAttribute("data-theme", id);
-    // Legacy body writers cannot override the shell once base CSS is scoped
-    // to :root, but clear it anyway so fragments never carry a stale theme.
     if (document.body) document.body.removeAttribute("data-theme");
     syncColorScheme();
   }
 
-  /* Read one key, migrating the three legacy stores once. */
+  /* Read one key. */
   function storedPreference() {
     let value = null;
     try {
       value = localStorage.getItem(STORAGE_KEY);
       if (!value) {
         const botId = getCurrentBotId();
-        value =
-          localStorage.getItem(`gb-theme-${botId}`) ||
-          localStorage.getItem(`gb-theme-data-${botId}`);
+        value = localStorage.getItem(`gb-theme-${botId}`) || localStorage.getItem(`gb-theme-data-${botId}`);
         if (value && value.charAt(0) === "{") {
           try {
             const data = JSON.parse(value);
             value = data.theme_base || null;
-          } catch (e) {
-            value = null;
-          }
+          } catch (e) { value = null; }
         }
         if (value) localStorage.setItem(STORAGE_KEY, value);
       }
-    } catch (e) {
-      /* storage unavailable */
-    }
+    } catch (e) { /* storage unavailable */ }
     if (VALID_PREF[value] || known(value)) return value;
     return SYSTEM;
   }
@@ -152,7 +105,7 @@ const ThemeManager = (() => {
     return value;
   }
 
-  /* The preference is one key; the attribute always carries a theme id. */
+  /* The preference is one key. */
   function setPreference(pref) {
     const value = VALID_PREF[pref] || known(pref) ? pref : SYSTEM;
     try { localStorage.setItem(STORAGE_KEY, value); } catch (e) { /* */ }
@@ -166,20 +119,14 @@ const ThemeManager = (() => {
       return;
     }
     applyThemeId(theme.id);
-
     const old = document.getElementById("theme-css");
     if (old) old.remove();
-
-    // A theme without a stylesheet still gets both token vocabularies from
-    // the scoped base CSS (:root[data-theme=<id>]); bridge them inline so
-    // late-loading apps read the new surface, never the old one's tokens.
     if (!theme.file) {
       currentThemeId = theme.id;
       scheme.bridge(theme.id, theme.name, announce);
       updateDropdown();
       return;
     }
-
     const link = document.createElement("link");
     link.id = "theme-css";
     link.rel = "stylesheet";
@@ -188,8 +135,6 @@ const ThemeManager = (() => {
       if (document.getElementById("theme-css") !== link) return;
       gbLog.debug("✓ Theme loaded:", theme.name);
       currentThemeId = id;
-      // Small delay to ensure the theme CSS variables are applied before the
-      // bridge reads them.
       setTimeout(() => {
         scheme.bridge(id, theme.name, announce);
         updateDropdown();
@@ -233,7 +178,6 @@ const ThemeManager = (() => {
     const saved = pref || botThemeMap[botId] || "default";
     currentThemeId = resolve(saved);
     loadTheme(currentThemeId);
-
     const container = document.getElementById("themeSelectorContainer");
     if (container) {
       container.innerHTML = "";
@@ -244,10 +188,7 @@ const ThemeManager = (() => {
 
   function setThemeFromServer(data) {
     if (!data) return;
-    // Theme choice is never re-persisted here: gb-theme is the only theme key.
-    if (data.theme_base) {
-      setPreference(data.theme_base);
-    }
+    if (data.theme_base) setPreference(data.theme_base);
     if (data.logo_url) {
       const logoImg = document.querySelector(".logo-icon-img");
       const logoSvg = document.querySelector(".logo-icon-svg");
@@ -264,12 +205,8 @@ const ThemeManager = (() => {
         el.style.backgroundPosition = "center";
       });
     }
-    if (data.color1) {
-      document.documentElement.style.setProperty("--color1", data.color1);
-    }
-    if (data.color2) {
-      document.documentElement.style.setProperty("--color2", data.color2);
-    }
+    if (data.color1) document.documentElement.style.setProperty("--color1", data.color1);
+    if (data.color2) document.documentElement.style.setProperty("--color2", data.color2);
     if (data.title) document.title = data.title;
     if (data.logo_text) {
       document.querySelectorAll(".logo span, .logo-text").forEach((el) => {
@@ -278,16 +215,13 @@ const ThemeManager = (() => {
     }
   }
 
-  // Legacy read-only cache of server customizations (logo/title/colours).
-  // It never supplies a theme choice — storedPreference() does that.
+  // Read-only cache of server customizations; never supplies a theme choice.
   function loadSavedTheme() {
     const botId = getCurrentBotId();
     let saved = null;
     try {
       saved = localStorage.getItem(`gb-theme-data-${botId}`);
-    } catch (e) {
-      return;
-    }
+    } catch (e) { return; }
     if (!saved) return;
     try {
       setThemeFromServer(JSON.parse(saved));
@@ -297,36 +231,25 @@ const ThemeManager = (() => {
     }
   }
 
-  function applyCustomizations() {
-    // Called by modules if needed.
-  }
-
+  function applyCustomizations() {}
   function subscribe(cb) { subscribers.push(cb); }
 
-  /* Follow the OS live only while the persisted preference is "system". */
   function watchSystem() {
     try {
       if (!mediaQuery) mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       mediaQuery.addEventListener("change", () => {
         if (storedPreference() === SYSTEM) loadTheme(resolve(SYSTEM));
       });
-    } catch (e) {
-      /* matchMedia or addEventListener not supported */
-    }
+    } catch (e) { /* matchMedia or addEventListener not supported */ }
   }
 
   scheme.watch();
   watchSystem();
 
   const api = {
-    init,
-    loadTheme,
-    setThemeFromServer,
-    loadSavedTheme,
-    applyCustomizations,
-    subscribe,
+    init, loadTheme, setThemeFromServer, loadSavedTheme,
+    applyCustomizations, subscribe,
     getAvailableThemes: () => themes,
-    // The light/dark/system preference surface used by Settings/assistant.
     set: setPreference,
     get: storedPreference,
     current: () => (currentThemeId === LIGHT_ID ? "light" : "dark"),
@@ -335,8 +258,6 @@ const ThemeManager = (() => {
   };
 
   window.ThemeManager = api;
-  // Pages that load identity/theme.js use this handle to delegate instead of
-  // opening a second write path to data-theme.
   window.GBTheme = api;
   return api;
 })();

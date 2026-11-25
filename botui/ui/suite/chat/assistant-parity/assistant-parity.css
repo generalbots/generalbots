@@ -1,15 +1,5 @@
-/* =============================================================================
-   CHAT / ASSISTANT PARITY — appearance only.
-
-   Gives the *new* `gb-parity-*` elements the assistant visual language (warm
-   paper, hairline cards, flat pills, one accent) without touching chat's own
-   look: every selector is scoped to a `gb-parity-*` class or its children.
-   Nothing targets #messages, .message, .input-container or #modelPicker.
-
-   Tokens read from the identity layer (--id-*) with literal light fallbacks so
-   the layer renders before identity CSS loads. Dark swaps only the fallbacks;
-   a loaded theme still wins through var().
-   ========================================================================== */
+/* CHAT / ASSISTANT PARITY — appearance only. Selectors scoped to gb-parity-*;
+   identity tokens (--id-*) carry light fallbacks until theme CSS loads. */
 
 /* == 0. Self-contained token bridge ===================================== */
 .gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare, .gb-parity-model-btn,
