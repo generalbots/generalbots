@@ -39,7 +39,16 @@
           col: p.col,
           value: value
         })
-      }).then(function (r) { return r.json(); }).catch(function () { return null; });
+      }).then(function (r) {
+        if (r.ok) return r.json(); // success shape unchanged: raw server JSON
+        // #2435 criterion 6 — the scale guardrail replies 400 with {"error":"..."}.
+        // Return a discriminated failure instead of swallowing status/body.
+        return r.json().then(function (body) {
+          const out = { ok: false };
+          if (body && typeof body.error === "string") out.error = body.error;
+          return out;
+        }).catch(function () { return { ok: false }; });
+      }).catch(function () { return null; });
     },
 
     evaluateFormula: function (formula, ctx) {

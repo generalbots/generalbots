@@ -55,6 +55,7 @@ chat-open = Ouvrir
 chat-expand = Développer
 chat-collapse = Réduire
 chat-preview = Aperçu
+chat-consent-affected-count = Enregistrements concernés
 chat-close-preview = Fermer l'aperçu
 chat-preview-load-failed = Impossible de charger l'aperçu.
 chat-show-more = Afficher plus

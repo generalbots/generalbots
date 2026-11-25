@@ -55,6 +55,7 @@ chat-open = 開く
 chat-expand = 展開
 chat-collapse = 折りたたむ
 chat-preview = プレビュー
+chat-consent-affected-count = 影響を受けるレコード
 chat-close-preview = プレビューを閉じる
 chat-preview-load-failed = プレビューを読み込めませんでした。
 chat-show-more = もっと見る

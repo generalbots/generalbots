@@ -55,6 +55,7 @@ chat-open = 打开
 chat-expand = 展开
 chat-collapse = 收起
 chat-preview = 预览
+chat-consent-affected-count = 受影响的记录
 chat-close-preview = 关闭预览
 chat-preview-load-failed = 无法加载预览。
 chat-show-more = 显示更多

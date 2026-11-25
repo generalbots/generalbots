@@ -146,7 +146,9 @@ async fn handle_export_websocket(socket: WebSocket, export_id: Uuid) {
                                     "gbdrive_path": event.gbdrive_path
                                 });
 
-                                let _ = sender.send(Message::Text(final_msg.to_string())).await;
+                                if let Err(e) = sender.send(Message::Text(final_msg.to_string())).await {
+                                    log::warn!("Failed to send final export update: {e}");
+                                }
                                 break;
                             }
                         }

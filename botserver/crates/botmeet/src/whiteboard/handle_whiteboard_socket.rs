@@ -191,7 +191,13 @@ pub(super) async fn handle_whiteboard_socket(
         }
     });
 
-    let _ = tokio::join!(send_task, receive_task);
+    let (send_result, recv_result) = tokio::join!(send_task, receive_task);
+    if let Err(e) = send_result {
+        log::warn!("Whiteboard {whiteboard_id}: send task failed: {e}");
+    }
+    if let Err(e) = recv_result {
+        log::warn!("Whiteboard {whiteboard_id}: receive task failed: {e}");
+    }
 
     manager.user_leave(&whiteboard_id, user_id).await;
 }

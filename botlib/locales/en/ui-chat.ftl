@@ -63,6 +63,7 @@ chat-open = Open
 chat-expand = Expand
 chat-collapse = Collapse
 chat-preview = Preview
+chat-consent-affected-count = Affected records
 chat-close-preview = Close preview
 chat-preview-load-failed = Could not load the preview.
 chat-show-more = Show more

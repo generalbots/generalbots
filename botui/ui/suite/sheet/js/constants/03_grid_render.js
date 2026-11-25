@@ -80,6 +80,12 @@
     host.appendChild(this.root);
     this.updateViewport();
     this.renderHeaders();
+    // #2435 — ensure the bounded /window prefetch is installed before the first
+    // viewport change reaches requestRange. The window-cache module also
+    // self-installs when loaded last; this is a defensive no-op otherwise.
+    if (window.SheetWindowCache && typeof window.SheetWindowCache.ensureInstalled === "function") {
+      window.SheetWindowCache.ensureInstalled();
+    }
     this.requestRange();
     // Select first cell by default — unless the window was opened by a deep
     // link that asked for a specific cell (#2271), which must not be undone by

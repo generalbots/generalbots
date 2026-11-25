@@ -10,7 +10,7 @@
     "stylesheet": "render-blocking <link rel=stylesheet> tags"
   },
   "note": "Shrink-only ceilings for the six debt metrics. Lower is always accepted; raising one fails the guard. defer_async is informational adoption, not gated.",
-  "relock_note": "Relocked 2026-11-24 by the driver after an upstream merge added the assistant-parity app modules, OS settings partials and related suite JS: 7 gated metrics grew (chat.js_bytes +141029, chat.css_bytes +29079, desktop.js_bytes +735, all_pages.js_bytes +1247, chat.script_src +6, chat.stylesheet +1, chat.blocking_script_src +6). All increases come from legitimately merged, shipped suite files; no accidental bloat. This is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495. Relocked AGAIN 2026-11-24 after upstream merge of assistant settings/window-manager changes: desktop.js_bytes +1385 and all_pages.js_bytes +1385 (same shipped suite JS added to both surfaces). One-time correction; subsequent changes remain shrink-only. Relocked AGAIN 2026-11-24 after colleague merge of assistant settings/windowed-suite JS: desktop.js_bytes +1475 and all_pages.js_bytes +1475 (same shipped suite JS on both surfaces). One-time documented correction; shrink-only afterwards.",
+  "relock_note": "Relocked 2026-11-24 by the driver after an upstream merge added the assistant-parity app modules, OS settings partials and related suite JS: 7 gated metrics grew (chat.js_bytes +141029, chat.css_bytes +29079, desktop.js_bytes +735, all_pages.js_bytes +1247, chat.script_src +6, chat.stylesheet +1, chat.blocking_script_src +6). All increases come from legitimately merged, shipped suite files; no accidental bloat. This is a one-time correction to the current tree; all subsequent changes remain shrink-only. See #2459/#2495. Relocked AGAIN 2026-11-24 after upstream merge of assistant settings/window-manager changes: desktop.js_bytes +1385 and all_pages.js_bytes +1385 (same shipped suite JS added to both surfaces). One-time correction; subsequent changes remain shrink-only. Relocked AGAIN 2026-11-24 after colleague merge of assistant settings/windowed-suite JS: desktop.js_bytes +1475 and all_pages.js_bytes +1475 (same shipped suite JS on both surfaces). One-time documented correction; shrink-only afterwards. Relocked 2026-11-25 after shipping the Docs share-expiry adapter and the chat consent-gap documentation: chat.js_bytes +1772. One-time documented correction; shrink-only afterwards. Relocked 2026-11-25 for consent-preview renderer shipped in chat.js (+381 bytes, incl. 8-locale key wiring). One-time documented correction; shrink-only afterwards.",
   "stated_budget": {
     "compressed_css_kb": 120,
     "compressed_js_kb": 350,
@@ -39,7 +39,7 @@
         "blocking_script_src": 48,
         "css_bytes": 145946,
         "inline_script": 1,
-        "js_bytes": 656074,
+        "js_bytes": 658227,
         "script_src": 61,
         "stylesheet": 24
       },

@@ -308,7 +308,9 @@ impl BrowserSession {
                 r#"document.querySelector('{}').value = '';"#,
                 selector.replace('\'', "\\'")
             );
-            let _ = page.evaluate(clear_js.as_str()).await;
+            if let Err(e) = page.evaluate(clear_js.as_str()).await {
+                log::warn!("Failed to clear field before fill: {e}");
+            }
             element
                 .type_str(text)
                 .await
@@ -368,7 +370,9 @@ impl BrowserSession {
 
     pub async fn close(&self) -> Result<()> {
         let page = self.page.lock().await;
-        let _ = page.clone().close().await;
+        if let Err(e) = page.clone().close().await {
+            log::warn!("Failed to close browser page: {e}");
+        }
         Ok(())
     }
 }

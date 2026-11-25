@@ -80,6 +80,85 @@ pub fn verb_endpoint(name: &str) -> Option<&'static VerbEndpoint> {
     table::all().iter().find(|binding| binding.verb == name)
 }
 
+/// True when a catalog verb marked `admin_only` binds to this concrete
+/// `(method, path)`. The trusted `api.exec` path uses it so a prompt injection
+/// cannot reach the admin verb's REST route by naming the path instead of the
+/// verb (#2448 criterion 5).
+pub fn admin_only_verb_binding(method: &str, path: &str) -> bool {
+    table::all().iter().any(|binding| {
+        binding.method.eq_ignore_ascii_case(method)
+            && path_matches_template(path, binding.path)
+            && crate::apps::commands::command_by_name(binding.verb)
+                .is_some_and(|command| command.admin_only)
+    })
+}
+
+/// Compares a filled path with a bind template. `:name` and `{name}` template
+/// segments are wildcards; all other segments must match case-insensitively.
+fn path_matches_template(path: &str, template: &str) -> bool {
+    let actual: Vec<&str> = path.split('/').collect();
+    let expected: Vec<&str> = template.split('/').collect();
+    actual.len() == expected.len()
+        && actual.iter().zip(expected).all(|(segment, pattern)| {
+            pattern.starts_with(':')
+                || (pattern.starts_with('{') && pattern.ends_with('}'))
+                || segment.eq_ignore_ascii_case(pattern)
+        })
+}
+
+#[cfg(test)]
+mod admin_binding_tests {
+    use super::*;
+
+    #[test]
+    fn admin_only_verbs_match_their_bound_routes() {
+        assert!(admin_only_verb_binding(
+            "POST",
+            "/api/docs/track-changes/accept-reject-all"
+        ));
+        assert!(admin_only_verb_binding(
+            "POST",
+            "/api/sheet/worksheets/delete"
+        ));
+    }
+
+    #[test]
+    fn other_routes_and_methods_are_not_admin_only() {
+        assert!(!admin_only_verb_binding(
+            "POST",
+            "/api/docs/comment/reply"
+        ));
+        assert!(!admin_only_verb_binding(
+            "GET",
+            "/api/docs/track-changes/accept-reject-all"
+        ));
+        assert!(!admin_only_verb_binding(
+            "POST",
+            "/api/docs/unknown-route"
+        ));
+    }
+
+    /// Non-vacuous guard: an admin-only verb that gains a REST binding must be
+    /// denied through `api.exec` on that very route.
+    #[test]
+    fn every_admin_only_binding_is_denied_on_its_own_route() {
+        let mut gated = 0usize;
+        for binding in table::all() {
+            if crate::apps::commands::command_by_name(binding.verb)
+                .is_some_and(|command| command.admin_only)
+            {
+                assert!(
+                    admin_only_verb_binding(binding.method, binding.path),
+                    "admin-only verb {} is not gated on its bound route",
+                    binding.verb
+                );
+                gated += 1;
+            }
+        }
+        assert!(gated > 0, "no admin-only verb bindings found");
+    }
+}
+
 /// Docs exposes one route per export format; the verb's `format` selects the
 /// registered path (the list is closed, never an arbitrary one).
 pub fn docs_export_path(format: &str) -> Result<&'static str, String> {

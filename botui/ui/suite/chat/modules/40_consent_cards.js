@@ -10,6 +10,11 @@
  * requests so they survive a page reload.
  */
 
+  // #2448 criterion 3 — destructive markers now carry an OPTIONAL bounded,
+  // content-free preview (server: consent_gate.rs marker_content), rendered
+  // read-only above the buttons. The explicit confirm/cancel resolution gate
+  // is a separate open gap; the five permission decisions below are unchanged.
+
 (function () {
   function escapeHtml(value) {
     if (typeof window.escapeHtml === "function") return window.escapeHtml(value);
@@ -86,6 +91,45 @@
     }
   }
 
+  // Client-side caps mirror the server bounds (PREVIEW_MAX_ENTRIES / _VALUE_CHARS).
+  var PREVIEW_MAX_ROWS = 10, PREVIEW_VALUE_CHARS = 80;
+
+  function t(k, fb) { return typeof gbT === "function" ? gbT(k, fb) : fb; }
+
+  function pv(v) {
+    var s = v === null || v === undefined ? "" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+    return s.length > PREVIEW_VALUE_CHARS ? s.slice(0, PREVIEW_VALUE_CHARS - 1) + "\u2026" : s;
+  }
+
+  function buildPreview(preview) {
+    if (!preview || typeof preview !== "object") return null;
+    var rows = Array.isArray(preview.entries) ? preview.entries.slice(0, PREVIEW_MAX_ROWS) : [];
+    var count = preview.affected_count;
+    if (!rows.length && (count === undefined || count === null)) return null;
+    var region = document.createElement("div");
+    region.className = "gb-consent-preview";
+    region.setAttribute("role", "status");
+    region.setAttribute("aria-live", "polite");
+    var title = document.createElement("div");
+    title.className = "gb-consent-preview-title";
+    title.textContent = t("chat-preview", "Preview");
+    region.appendChild(title);
+    if (count !== undefined && count !== null) {
+      var line = document.createElement("div");
+      line.className = "gb-consent-preview-count";
+      line.textContent = t("chat-consent-affected-count", "Affected records") + ": " + count;
+      region.appendChild(line);
+    }
+    rows.forEach(function (e) {
+      if (!e || typeof e !== "object") return;
+      var row = document.createElement("div");
+      row.className = "gb-consent-preview-row";
+      row.textContent = pv(e.label) + ": " + pv(e.before) + " \u2192 " + pv(e.after);
+      region.appendChild(row);
+    });
+    return region;
+  }
+
   function buildCard(req) {
     var card = document.createElement("div");
     card.className = "gb-consent-card";
@@ -118,6 +162,8 @@
     var risk = card.querySelector(".gb-consent-risk");
     risk.textContent = req.risk_tier ? "Risk: " + req.risk_tier : "";
     risk.className = "gb-consent-risk risk-" + (req.risk_tier || "unknown");
+    var previewRegion = buildPreview(req.preview);
+    if (previewRegion) card.insertBefore(previewRegion, risk);
     card.addEventListener("click", function (e) {
       var btn = e.target.closest(".gb-consent-btn");
       if (!btn) return;

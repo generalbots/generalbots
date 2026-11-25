@@ -1,11 +1,5 @@
 use super::*;
-
-/// #2752 — catalog-level RBAC gate, testable without a database pool.
-pub(super) fn requires_admin(name: &str) -> bool {
-    commands_list()
-        .iter()
-        .any(|c| c.name == name && c.admin_only)
-}
+use super::command_auth::{authorize_admin_command, requires_admin, resolve_gated_role};
 
 /// Executes a catalog command in-process against the backend state. Enforces
 /// the RBAC matrix: admin-only commands and admin-only endpoints are denied
@@ -24,9 +18,13 @@ pub async fn execute_command(
     name: &str,
     params: &Value,
 ) -> Result<Value, String> {
-    let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
-    if role != crate::security::user_role::ROLE_ADMIN && requires_admin(name) {
-        return Err(format!("command '{name}' requires the admin role"));
+    // #2448 — the catalog's `admin_only` flag is enforced here, in the trusted
+    // in-process path. An unresolved role is denied, never treated as a user.
+    let gated = requires_admin(name);
+    let role = gated.then(|| resolve_gated_role(state, user_id)).flatten();
+    if let Err(error) = authorize_admin_command(role.as_deref(), gated) {
+        botlog::safe_info!("command '{name}' denied: {}", error.sanitized_message());
+        return Err(error.into());
     }
     let obj = match params {
         Value::Object(map) => map,
@@ -262,6 +260,20 @@ pub async fn execute_command(
         "api.exec" => {
             let method = str_of("method").ok_or_else(|| "params.method is required".to_string())?;
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
+            // #2448 — a prompt injection can name the REST route of an
+            // admin-only verb instead of the verb. The catalog flag is the
+            // authority here too, so the loopback hop is denied in-process
+            // before any HTTP call is made.
+            if crate::apps::commands::admin_only_verb_binding(&method, &path) {
+                let role = resolve_gated_role(state, user_id);
+                if let Err(error) = authorize_admin_command(role.as_deref(), true) {
+                    botlog::safe_info!(
+                        "api.exec '{method} {path}' denied: {}",
+                        error.sanitized_message()
+                    );
+                    return Err(error.into());
+                }
+            }
             let mut params = serde_json::Map::new();
             if let Some(Value::Object(map)) = obj.get("params") {
                 params = map.clone();
@@ -400,48 +412,6 @@ pub async fn execute_command(
             } else {
                 Err(format!("unknown command '{name}'"))
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod admin_gate_tests {
-    use super::*;
-
-    /// #2752 — non-admins are rejected before any handler runs.
-    #[test]
-    fn state_changing_commands_require_admin() {
-        for name in [
-            "database.rows.insert",
-            "database.rows.update",
-            "database.rows.import",
-            "database.rows.delete",
-            "database.rows.batch_delete",
-            "database.table.create",
-            "database.column.add",
-            "database.connections.create",
-            "compliance.framework.create",
-            "compliance.control.add",
-            "compliance.evidence.attach",
-            "integrations.api-keys.create",
-            "integrations.webhooks.create",
-        ] {
-            assert!(requires_admin(name), "{name} is not gated for admin");
-        }
-        // `database.query` is admin-only at HEAD (read-only but SQL-capable);
-        // only the harmless listing verb stays open to regular users.
-        assert!(!requires_admin("database.tables.list"));
-    }
-
-    /// #2752 — adding a database verb without `admin_only: true` fails here.
-    #[cfg(feature = "database")]
-    #[test]
-    fn every_database_verb_is_admin_only() {
-        for name in database_verbs::declared_verbs() {
-            assert!(
-                requires_admin(name),
-                "database verb {name} needs admin_only"
-            );
         }
     }
 }
