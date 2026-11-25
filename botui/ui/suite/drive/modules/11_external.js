@@ -139,6 +139,10 @@ function renderExternalFiles(provider, payload) {
 }
 
 async function loadExternalTab() {
+    // #2925 — the Connected tab is a desktop-only surface: a cloud host has no
+    // OAuth connector routes, so never request them even if a stale saved tab
+    // or a programmatic tab switch reaches this loader.
+    if (!isDesktopLocal()) return;
     var content = extContent();
     if (!content) return;
     if (externalProvider) {

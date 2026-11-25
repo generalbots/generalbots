@@ -259,12 +259,15 @@ function parseLocalBucket(bucket) {
     return bucket.slice(LOCAL_BUCKET_PREFIX.length) || "home";
 }
 
-// The Home tab is a desktop-only surface: the local backend is disabled on a
-// multi-tenant server and must not be advertised there.
+// Single capability gate for every desktop-only Drive surface (Home, Connected
+// and Removable). It reads only the product config served by /api/product — no
+// host/port/URL heuristics and no per-bot visibility flag — so a cloud host
+// (even one serving a public bot) never advertises or calls those surfaces.
+// The config arrives asynchronously; surfaces re-apply the gate on
+// `gb-product-config` when they can be created before that event.
 function isDesktopLocal() {
     var product = window.productConfig || {};
-    return window.__BOT_IS_PUBLIC__ === true ||
-        product.no_security === true ||
+    return product.no_security === true ||
         product.shell_mode === true ||
         product.desktop_local === true ||
         product.is_desktop === true;

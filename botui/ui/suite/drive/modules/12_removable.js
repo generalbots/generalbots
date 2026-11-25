@@ -57,6 +57,7 @@
     if (list) list.textContent = msg;
   }
   function eject(device) {
+    if (!isDesktopLocal()) return;
     fetch("/api/os/removable/eject", {
       method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, tokenHeaders()),
       credentials: "same-origin", body: JSON.stringify({ device: device })
@@ -66,6 +67,7 @@
     }).catch(function () { showStatus(t("drive-removable-eject-failed", "Could not eject the device.")); });
   }
   function load() {
+    if (!isDesktopLocal()) return;
     fetch("/api/os/removable", { headers: tokenHeaders(), credentials: "same-origin" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (data) {
@@ -82,8 +84,12 @@
       .catch(function (e) { showStatus(t("drive-removable-unavailable", "Removable devices unavailable: ") + e.message); });
   }
   function init() {
+    if (!isDesktopLocal()) return;
     if (!document.getElementById("driveRemovablePanel")) { panel(); load(); }
   }
+  // #2925 — the product config can arrive after Drive is injected over HTMX;
+  // retry once the capability is known so desktop keeps the panel on a late boot.
+  document.addEventListener("gb-product-config", init);
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {

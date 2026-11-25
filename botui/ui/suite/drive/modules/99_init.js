@@ -1,7 +1,21 @@
 /* Drive Module v2.0 — 99 Init */
 "use strict";
 
+// #2925 — Home and Connected are desktop-only surfaces. Both tabs ship hidden
+// in the markup so a cloud/multi-tenant host never advertises them before the
+// product config arrives. isDesktopLocal() reads that /api/product capability;
+// re-apply when it lands asynchronously (Drive is injected over HTMX).
+function applyDesktopOnlyTabs() {
+    var display = isDesktopLocal() ? "flex" : "none";
+    ["tab-home", "tab-external"].forEach(function (tabId) {
+        var tab = document.getElementById(tabId);
+        if (tab) tab.style.display = display;
+    });
+}
+document.addEventListener("gb-product-config", applyDesktopOnlyTabs);
+
 async function init() {
+    applyDesktopOnlyTabs();
     // Bind the shell first: a slow or failing user lookup must never leave the
     // tabs and buttons unresponsive (seen when Drive is injected over HTMX).
     bindTopTabs();
@@ -28,11 +42,8 @@ async function init() {
     var rootTab = document.getElementById("tab-root");
     if (rootTab) rootTab.style.display = isAdmin ? "flex" : "none";
 
-    // #1801 — the Home tab browses the desktop user's real home folder. The
-    // server disables the local backend outside the desktop edition, so the
-    // tab is never advertised there.
-    var homeTab = document.getElementById("tab-home");
-    if (homeTab) homeTab.style.display = isDesktopLocal() ? "flex" : "none";
+    // Home and Connected are revealed by applyDesktopOnlyTabs() above only for
+    // the desktop capability; on a cloud host they stay hidden in the markup.
 
     var savedTab = sessionStorage.getItem("drive-tab") || TAB_MYFILES;
     if (["branchdrive", "bots", "root", "desktop", "external"].indexOf(savedTab) !== -1) {
