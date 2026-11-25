@@ -47,6 +47,7 @@ require("./webtest-office-fidelity/41_consent_preview_ui");
 require("./webtest-office-fidelity/42_fidelity_coverage_matrix");
 require("./webtest-office-fidelity/43_citation_directive");
 require("./webtest-office-fidelity/44_sharing_acl_gaps");
+require("./webtest-office-fidelity/45_sheet_scale_fixes");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
