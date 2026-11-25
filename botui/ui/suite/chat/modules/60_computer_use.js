@@ -262,8 +262,11 @@
   // GB7-19 — poll the action queue and replay entries as the same frames the
   // pipeline emits. A server producer therefore reaches the consent UI without
   // a new WebSocket message type.
+  // #2933 — hidden tabs do no work and overlapping polls never stack up; the
+  // 3 s cadence also forced layout for every consent card it replayed.
+  var POLL_MS = 10000, polling = false;
   function pollPendingBrowser() {
-    if (document.hidden) return;
+    if (document.hidden || polling) return;
     var pc = window.productConfig;
     if (!pc || pc.agent_backend_unavailable) return;
     var sid = window.ChatState && ChatState.currentSessionId;
@@ -271,6 +274,7 @@
     var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
       (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
       sessionStorage.getItem("gb-access-token") || "";
+    polling = true;
     fetch("/api/computer/actions/pending?kind=browser&session_id=" + encodeURIComponent(sid), {
       headers: token ? { Authorization: "Bearer " + token } : {},
     })
@@ -286,9 +290,10 @@
           }));
         });
       })
-      .catch(function () { /* offline: nothing to collect */ });
+      .catch(function () { /* offline: nothing to collect */ })
+      .then(function () { polling = false; });
   }
-  setInterval(pollPendingBrowser, 3000);
+  setInterval(pollPendingBrowser, POLL_MS);
 
   window.GBBrowserUse = {
     show: showBrowserPanel,

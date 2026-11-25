@@ -6,13 +6,11 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  // #2087 — the cache key carries the server build version instead of a manual
-  // constant, so a deploy that changes the catalogue invalidates every client
-  // cache without anyone remembering to bump a number.
+  // #2087 — the cache key carries the server build version so a deploy that
+  // changes the catalogue invalidates every client cache automatically.
   let cacheBuild = "dev";
   const CACHE_TTL_MS = 3600000;
-  // Server-provided locale list (the catalogue is the source of truth); the
-  // bundled list is only a first-paint fallback before /api/i18n/locales.
+  // Server list wins; the bundled one is only a first-paint fallback.
   let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
 
   const MINIMAL_FALLBACK = {
@@ -24,13 +22,12 @@
   let currentLocale = DEFAULT_LOCALE;
   let translations = {};
   let isInitialized = false;
-  // #2542 — the English catalogue is the last resort before the raw key: a
-  // string the active locale does not ship renders in English instead of an
-  // identifier. `fallbackLocale` names the catalogue that fills the gaps, and
-  // every gap is logged once so it can be translated.
+  // #2542 — English is the last resort before the raw key; gaps logged once.
   let englishFallback = {};
   let fallbackLocale = DEFAULT_LOCALE;
   const missingKeysReported = new Set();
+  // #2921 — early gbT() misses are held until the catalogue arrives.
+  const earlyKeys = new Set();
 
   function detectBrowserLocale() {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -151,19 +148,31 @@
     }
   }
 
+  // #2921 — re-resolve early misses; only still-absent keys really warn.
+  function reportMissing(key) {
+    if (missingKeysReported.has(key)) return;
+    missingKeysReported.add(key);
+    console.warn(
+      `i18n: Missing translation key: ${key} in ${currentLocale}` +
+        (fallbackLocale !== currentLocale ? ` (English fallback has no entry either)` : ""),
+    );
+  }
+  function resolveEarlyKeys() {
+    earlyKeys.forEach((key) => {
+      if (translations[key] === undefined && englishFallback[key] === undefined &&
+          MINIMAL_FALLBACK[key] === undefined) reportMissing(key);
+    });
+    earlyKeys.clear();
+  }
+
   function t(key, params) {
     let text = translations[key];
     if (text === undefined) text = englishFallback[key];
     if (text === undefined) text = MINIMAL_FALLBACK[key];
     if (text === undefined) {
       text = key;
-      if (!missingKeysReported.has(key)) {
-        missingKeysReported.add(key);
-        console.warn(
-          `i18n: Missing translation key: ${key} in ${currentLocale}` +
-            (fallbackLocale !== currentLocale ? ` (English fallback has no entry either)` : ""),
-        );
-      }
+      if (!isInitialized) earlyKeys.add(key);
+      else reportMissing(key);
     }
 
     if (params && typeof params === "object") {
@@ -185,27 +194,19 @@
   // Shared with i18n-elements.js (element/page translation).
   window.__gbI18nShared = { t: t };
 
-  // Translation with an authored fallback for dynamically built strings.
-  // `t()` intentionally returns the key when the catalogue is missing it; UI
-  // code that renders its own DOM should use this helper so a missing
-  // translation never leaks an identifier into the interface.
+  // Authored fallback: t() returns the key on a miss, so DOM-building callers
+  // use this helper to avoid leaking identifiers.
   function tOr(key, fallback, params) {
     const value = t(key, params);
     if (value !== key) return value;
-    // Catalogue miss (e.g. backend down before i18n loads): t() returns the
-    // bare key, so substitute params into the authored fallback ourselves —
-    // otherwise literal {param} tokens leak into the DOM (#2503,#2548).
-    // A missing null/undefined fallback must never render the literal words
-    // "null"/"undefined"; other non-string fallbacks stringify as before.
+    // Catalogue miss: substitute params into the authored fallback ourselves
+    // so literal {param} tokens never leak (#2503,#2548). Null/undefined must
+    // not render as words; other fallbacks stringify as before.
     if (fallback === null || fallback === undefined) return fallback;
     if (!params || typeof params !== "object") return String(fallback);
-    // One pass with a function replacer:
-    //  - {p} and { $p } share one pattern and any param name is accepted;
-    //  - a function replacement never interprets $&, $', $$ inside a value
-    //    (real callers pass e.g. { amount: '$' + total.toFixed(2) });
-    //  - inserted text is not re-scanned, so a value like "{q}" cannot be
-    //    substituted again by a later param (no double substitution);
-    //  - params with no matching key are left literal.
+    // One function-replacer pass: {p}/{ $p } share a pattern, $&/$'/$$ in
+    // values stay literal, inserted text is not rescanned (no double
+    // substitution), and unmatched tokens are left as-is.
     return String(fallback).replace(
       /\{\s*\$?([^{}]+?)\s*\}/g,
       (token, name) =>
@@ -222,9 +223,7 @@
     }
 
     localStorage.setItem(STORAGE_KEY, locale);
-    // #2087 — persist the choice server-side so other devices and
-    // server-rendered messages follow it. Best effort: an unauthenticated
-    // visitor still gets the local switch.
+    // #2087 — best-effort server persistence; local switch still applies.
     try {
       fetch("/api/i18n/preference", {
         method: "POST",
@@ -241,9 +240,7 @@
     window.__gbI18nShared.translatePage();
 
     const lang = locale.split("-")[0];
-    // Keep the full BCP-47 tag on <html> so font/line-breaking and assistive
-    // technology can distinguish e.g. pt-BR from pt-PT; `dir` only needs the
-    // primary language.
+    // Keep the full BCP-47 tag on <html>; `dir` needs only the primary tag.
     document.documentElement.setAttribute("lang", locale);
     document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
@@ -308,8 +305,11 @@
       return;
     }
 
-    // #2087 — the build version keys the cache and the catalogue owns the
-    // locale list; both are best-effort (offline boot keeps the fallbacks).
+    // #2933 — capture the language the shell was rendered with, before the
+    // overwrite below: the boot announce re-renders ~20 imperative surfaces.
+    var renderedLang = document.documentElement.getAttribute("lang");
+
+    // #2087 — build version keys the cache; both fetches are best-effort.
     let productVersion = null;
     try {
       const product = window.productConfig || (await (await fetch("/api/product")).json());
@@ -322,11 +322,8 @@
     if (productVersion) {
       cacheBuild = productVersion;
     } else {
-      // #2921 — without a product version the cache key falls back to "dev".
-      // An older deploy wrote its catalogue under that same key, so reusing it
-      // pins this client to stale strings for a whole CACHE_TTL_MS. Discard the
-      // unversioned entries once and fetch the catalogue from the current
-      // server. A successful versioned boot keeps its cache untouched.
+      // #2921 — discard stale unversioned "dev" entries once; a versioned
+      // boot keeps its cache untouched.
       cacheBuild = "dev";
       clearCache();
     }
@@ -342,9 +339,7 @@
       /* offline: keep the bundled list */
     }
 
-    // #2087 — when this device has no explicit choice, prefer the locale the
-    // user persisted server-side (settings, another device, a server-rendered
-    // email) before falling back to the browser language.
+    // #2087 — without a local choice, prefer the server-persisted locale.
     let locale = null;
     try {
       if (!localStorage.getItem(STORAGE_KEY)) {
@@ -372,13 +367,15 @@
     document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
     isInitialized = true;
+    resolveEarlyKeys();
     gbLog.debug(`i18n: Initialization complete, current locale: ${currentLocale}`);
 
-    // Late-binding consumers (sidebar sections, generated chips) render their
-    // own DOM and cannot be reached by data-i18n attributes. Announce that
-    // the catalogue is ready AFTER the DOM translation pass so listeners that
-    // boot on DOMContentLoaded are already registered.
+    // Late-binding consumers (chips, rail) render their own DOM; announce
+    // readiness after translatePage so DOMContentLoaded listeners are set.
     function announceLocale() {
+      // No user action happened: every listener would render the same copy it
+      // already did at boot. setLocale() still announces real switches.
+      if (sameRenderedLocale(currentLocale, renderedLang)) return;
       try {
         window.dispatchEvent(new CustomEvent("localeChanged", {
           detail: { locale: currentLocale },
@@ -416,6 +413,12 @@
     return currentLocale;
   }
 
+  // #2933 — compare primary tags only (pt-BR vs pt changes no copy).
+  function sameRenderedLocale(locale, renderedLang) {
+    if (!renderedLang) return false;
+    return locale.split("-")[0].toLowerCase() === renderedLang.split("-")[0].toLowerCase();
+  }
+
   function clearCache() {
     const keys = Object.keys(localStorage);
     keys.forEach((key) => {
@@ -438,8 +441,7 @@
     clearCache,
   };
 
-  // Short alias for call sites that build DOM strings outside a translated
-  // element (window chrome, launcher, spotlights, toasts).
+  // Short alias for call sites that build their own DOM strings.
   window.gbT = tOr;
 
   init().catch((e) => console.error("i18n: Initialization failed", e));

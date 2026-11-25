@@ -18,9 +18,11 @@
 (function () {
   if (window.GBAutotasks) return;
 
-  var POLL_MS = 30000;
+  // #2933 — hidden tabs and overlapping refreshes do no layout work; a
+  // 60 s cadence is plenty for a background-job indicator.
+  var POLL_MS = 60000;
   var AT = (window.GBAutotasks = {
-    state: { bySession: {}, timer: null, lastError: null },
+    state: { bySession: {}, timer: null, lastError: null, refreshing: false },
   });
 
   function token() {
@@ -184,7 +186,11 @@
   }
 
   function poll() {
-    refresh(activeSessionId());
+    if (document.hidden || AT.state.refreshing) return;
+    var sessionId = activeSessionId();
+    if (!sessionId) return;
+    AT.state.refreshing = true;
+    refresh(sessionId).then(function () { AT.state.refreshing = false; });
   }
 
   function start() {

@@ -13,7 +13,7 @@
   var COOLDOWN_MS = 30 * 1000, AUDIT_LIMIT = 50;
 
   var initialized = false, idleTimer = null, clockTimer = null, observer = null;
-  var pendingUnlock = false, hiddenState = [];
+  var pendingUnlock = false, overlayEl = null, locked = false, lastReason = "manual";
 
   // #2933 — visibilitychange did 1 s+ of synchronous overlay construction.
   // Handlers only capture a flag; every DOM/storage step runs on idle.
@@ -67,7 +67,9 @@
   }
   function getState() { return get(STATE_KEY, "session"); }
   function setState(value) { put(STATE_KEY, value, "session"); }
-  function isLocked() { return document.getElementById("gb-lock-screen") !== null; }
+  // #2933 — the overlay is a permanent DOM node; lock state is a boolean, not
+  // the presence of a freshly built element.
+  function isLocked() { return locked; }
 
   function audit(event) {
     var list = jsonGet(AUDIT_KEY, []);
@@ -99,8 +101,11 @@
     if (document.getElementById("gb-lock-style")) return;
     var style = document.createElement("style");
     style.id = "gb-lock-style";
+    // #2933 — no body-wide visibility rule: invalidating every descendant's
+    // style on each lock was the 2 s forced reflow. The opaque fixed backdrop
+    // in chrome.css already covers the shell; only the node's own flag flips.
     style.textContent = [
-      "body.gb-session-locked > *:not(#gb-lock-screen){visibility:hidden!important;pointer-events:none!important;user-select:none!important}",
+      "#gb-lock-screen[hidden]{display:none!important}",
       ".gb-lock-screen{cursor:default!important}.gb-lock-widget{max-width:380px;width:calc(100% - 40px)}",
       ".gb-lock-reason{font-size:var(--text-xs,12px);color:#94a3b8;margin-top:10px}", ".gb-lock-form{margin-top:28px;display:flex;flex-direction:column;gap:12px;text-align:left}",
       ".gb-lock-field{display:block}.gb-lock-label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:5px}",
@@ -113,53 +118,8 @@
     ].join("");
     (document.head || document.body).appendChild(style);
   }
-  function remember(child) {
-    hiddenState.push({ el: child, inert: child.hasAttribute("inert"), aria: child.getAttribute("aria-hidden") });
-    child.setAttribute("inert", ""); child.setAttribute("aria-hidden", "true");
-  }
-  function setContentHidden(hidden) {
-    var body = document.body;
-    if (!body) return;
-    if (hidden) {
-      if (body.classList.contains("gb-session-locked")) return;
-      body.classList.add("gb-session-locked"); hiddenState = [];
-      Array.prototype.forEach.call(body.children, function (child) {
-        if (child.id !== "gb-lock-screen") remember(child);
-      });
-      return;
-    }
-    body.classList.remove("gb-session-locked");
-    hiddenState.forEach(function (item) {
-      if (!item.el || !item.el.isConnected) return;
-      if (!item.inert) item.el.removeAttribute("inert");
-      if (item.aria == null) item.el.removeAttribute("aria-hidden"); else item.el.setAttribute("aria-hidden", item.aria);
-    });
-    hiddenState = [];
-  }
-  function hideNewChildren() {
-    if (!isLocked() || !document.body) return;
-    Array.prototype.forEach.call(document.body.children, function (child) {
-      if (child.id === "gb-lock-screen" || child.id === "gb-lock-style") return;
-      if (!child.hasAttribute("inert")) remember(child);
-      else if (child.getAttribute("aria-hidden") !== "true") child.setAttribute("aria-hidden", "true");
-    });
-  }
-  function stopWatch() { if (observer) { observer.disconnect(); observer = null; } }
-  function watchTamper() {
-    stopWatch();
-    if (typeof MutationObserver !== "function") return;
-    observer = new MutationObserver(function () {
-      if (!isLocked()) return;
-      var overlay = document.getElementById("gb-lock-screen");
-      if (!overlay || !document.body.classList.contains("gb-session-locked")) {
-        // Deleting the node or marker class cannot dismiss a session lock.
-        audit("tamper:rebuild"); if (overlay) overlay.remove(); lock("restore"); return;
-      }
-      hideNewChildren();
-    });
-    observer.observe(document.body, { childList: true, attributes: true, attributeFilter: ["id", "class"] });
-  }
   function focusPassword() {
+    if (!locked) return;
     var field = document.getElementById("gbLockPassword");
     if (field) { try { field.focus(); } catch { /* hidden webview */ } }
   }
@@ -198,9 +158,9 @@
     overlay.innerHTML =
       '<div class="gb-lock-widget"><div class="gb-lock-time" id="gbLockTime">--:--</div>' + '<div class="gb-lock-date" id="gbLockDate"></div>' +
       '<div class="gb-lock-reason" id="gbLockReason">' + esc(reasonText(reason)) + '</div>' + '<form class="gb-lock-form" id="gbLockForm" autocomplete="off">' +
-      '<label class="gb-lock-field"><span class="gb-lock-label">' + esc(t("auth-login-email", "Email Address")) + '</span>' +
+      '<label class="gb-lock-field"><span class="gb-lock-label" id="gbLockEmailLabel">' + esc(t("auth-login-email", "Email Address")) + '</span>' +
       '<input id="gbLockEmail" type="email" name="email" autocomplete="username" required value="' + esc(identityEmail()) + '" /></label>' +
-      '<label class="gb-lock-field"><span class="gb-lock-label">' + esc(t("auth-login-password", "Password")) + '</span>' +
+      '<label class="gb-lock-field"><span class="gb-lock-label" id="gbLockPasswordLabel">' + esc(t("auth-login-password", "Password")) + '</span>' +
       '<input id="gbLockPassword" type="password" name="password" autocomplete="current-password" required /></label>' +
       '<div class="gb-lock-actions"><button type="submit" id="gbLockSubmit">' + esc(t("auth-login-submit", "Sign In")) + '</button>' +
       '<button type="button" id="gbLockSignout">' + esc(t("user-menu-sign-out", "Sign out")) + '</button></div>' +
@@ -217,6 +177,38 @@
     });
     if (form) form.addEventListener("submit", function (event) { event.preventDefault(); attemptUnlock(); });
     if (signout) signout.addEventListener("click", signOut);
+  }
+  // #2933 — one-time construction. The dialog stays in the DOM (hidden) so
+  // lock/unlock are a single `hidden` flip; no innerHTML, no style injection,
+  // no storage re-read and no layout-forcing focus on the visibility path.
+  function ensureOverlay() {
+    if (overlayEl && overlayEl.isConnected) return overlayEl;
+    if (!document.body) return null;
+    ensureStyles();
+    var existing = document.getElementById("gb-lock-screen");
+    if (existing) { overlayEl = existing; wireOverlay(existing); return existing; }
+    var overlay = buildOverlay("manual");
+    overlay.hidden = true;
+    document.body.appendChild(overlay);
+    overlayEl = overlay;
+    wireOverlay(overlay);
+    return overlay;
+  }
+  function setReason(reason) {
+    var el = document.getElementById("gbLockReason");
+    if (el) el.textContent = reasonText(reason);
+  }
+  function refreshLabels() {
+    if (!overlayEl) return;
+    [["gbLockEmailLabel", "auth-login-email", "Email Address"],
+      ["gbLockPasswordLabel", "auth-login-password", "Password"],
+      ["gbLockSubmit", "auth-login-submit", "Sign In"],
+      ["gbLockSignout", "user-menu-sign-out", "Sign out"]].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (el) el.textContent = t(pair[1], pair[2]);
+    });
+    overlayEl.setAttribute("aria-label", t("taskbar-lock", "Lock screen"));
+    if (locked) setReason(lastReason);
   }
   function attemptsState() {
     var value = jsonGet(ATTEMPT_KEY, null, "session");
@@ -293,26 +285,37 @@
     catch (error) { logErr(error, "lock:logout"); }
     window.location.href = window.GB_LOGIN_URL || "/login";
   }
-  function unlock() {
-    var overlay = document.getElementById("gb-lock-screen");
-    if (overlay) overlay.remove();
-    var style = document.getElementById("gb-lock-style"); if (style) style.remove();
-    setContentHidden(false);
-    document.removeEventListener("keydown", blockWhileLocked, true);
-    window.removeEventListener("beforeunload", onBeforeUnload);
-    stopWatch(); if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-    setState("unlocked"); armIdle();
+  function setLocked(on, reason) {
+    var overlay = ensureOverlay();
+    if (!overlay) return;
+    locked = on;
+    if (on) {
+      setState("locked"); audit("lock:" + String(reason || "manual"));
+      setReason(reason);
+      overlay.hidden = false;
+      tick();
+      if (!clockTimer) clockTimer = setInterval(tick, 1000);
+      document.addEventListener("keydown", blockWhileLocked, true);
+      window.addEventListener("beforeunload", onBeforeUnload);
+      watchTamper(); armIdle();
+      // #2933 — focus() forces a synchronous layout of the whole shell; move
+      // it to idle so the lock task itself only flips one attribute.
+      deferIdle(focusPassword);
+    } else {
+      overlay.hidden = true;
+      var field = document.getElementById("gbLockPassword");
+      if (field) field.value = "";
+      document.removeEventListener("keydown", blockWhileLocked, true);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      stopWatch(); if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+      setState("unlocked"); armIdle();
+    }
   }
+  function unlock() { if (locked) setLocked(false); }
   function lock(reason) {
-    if (isLocked()) return;
-    setState("locked"); audit("lock:" + String(reason || "manual"));
-    ensureStyles(); setContentHidden(true);
-    var overlay = buildOverlay(reason);
-    document.body.appendChild(overlay); wireOverlay(overlay); tick();
-    clockTimer = setInterval(tick, 1000);
-    document.addEventListener("keydown", blockWhileLocked, true);
-    window.addEventListener("beforeunload", onBeforeUnload);
-    watchTamper(); armIdle(); focusPassword();
+    if (locked) return;
+    lastReason = String(reason || "manual");
+    setLocked(true, lastReason);
   }
   function armIdle() {
     if (idleTimer) clearTimeout(idleTimer);
@@ -322,8 +325,29 @@
   function onStorage(event) {
     if (event && event.key === STATE_KEY && event.newValue === "locked" && !isLocked()) lock("cross-tab");
   }
+  function stopWatch() { if (observer) { observer.disconnect(); observer = null; } }
+  function watchTamper() {
+    stopWatch();
+    if (typeof MutationObserver !== "function") return;
+    observer = new MutationObserver(function () {
+      if (!locked) return;
+      var overlay = document.getElementById("gb-lock-screen");
+      if (!overlay || overlay.hidden || !overlay.isConnected) {
+        // Deleting the node or hiding it cannot dismiss a session lock.
+        audit("tamper:rebuild");
+        if (overlay) overlay.remove();
+        overlayEl = null;
+        var rebuilt = ensureOverlay();
+        if (rebuilt) { rebuilt.hidden = false; deferIdle(focusPassword); }
+        return;
+      }
+    });
+    observer.observe(document.body, { childList: true, attributes: true, attributeFilter: ["id", "hidden"] });
+  }
   // Resume does not re-lock: the old path called lock("resume") inline and
-  // built the whole overlay in the event (1072 ms violation). Defer all work.
+  // built the whole overlay in the event (1072 ms violation). The deferred
+  // callback now only flips the node's flag — construction happened once in
+  // ensureOverlay() and is never on this path (even inside the idle callback).
   function onVisibilityChange() {
     var hidden = document.hidden;
     deferIdle(function () {
@@ -349,10 +373,18 @@
     window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("localeChanged", refreshLabels);
     ["mousemove", "keydown", "mousedown", "touchstart", "scroll"].forEach(function (name) {
       document.addEventListener(name, resetIdle, { passive: true });
     });
     armIdle();
+    // #2933 — construct once on boot idle, so neither a visibility change nor
+    // a later lock ever builds layout on its own path. Labels refresh if the
+    // catalogue finished loading after this callback was scheduled.
+    deferIdle(function () {
+      ensureOverlay();
+      if (window.i18n && typeof window.i18n.getLocale === "function") refreshLabels();
+    });
     // A locked state survives a webview reload: re-arm before content is read.
     if (getState() === "locked") lock("restore");
   }

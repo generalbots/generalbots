@@ -220,8 +220,11 @@
 
   // GB7-20 — the server no longer needs to push over the WebSocket: the action
   // queue is polled and replayed as the same frames the pipeline emits.
+  // #2933 — hidden tabs do no work and overlapping polls never stack up; the
+  // 3 s cadence also forced layout for every consent card it replayed.
+  var POLL_MS = 10000, polling = false;
   function pollPendingTerminal() {
-    if (document.hidden) return;
+    if (document.hidden || polling) return;
     var pc = window.productConfig;
     if (!pc || pc.agent_backend_unavailable) return;
     var sid = window.ChatState && ChatState.currentSessionId;
@@ -229,6 +232,7 @@
     var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
       (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
       sessionStorage.getItem("gb-access-token") || "";
+    polling = true;
     fetch("/api/computer/actions/pending?kind=terminal&session_id=" + encodeURIComponent(sid), {
       headers: token ? { Authorization: "Bearer " + token } : {},
     })
@@ -244,9 +248,10 @@
           }));
         });
       })
-      .catch(function () { /* offline: nothing to collect */ });
+      .catch(function () { /* offline: nothing to collect */ })
+      .then(function () { polling = false; });
   }
-  setInterval(pollPendingTerminal, 3000);
+  setInterval(pollPendingTerminal, POLL_MS);
 
   // #1645 — the durable trail is visible without a console: a taskbar button
   // opens the last 50 commands with decision, exit code and timestamp.

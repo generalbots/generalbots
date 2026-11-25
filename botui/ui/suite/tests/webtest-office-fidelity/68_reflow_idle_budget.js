@@ -10,11 +10,16 @@
  *   (b) non-critical paint in the named long handlers runs on an idle callback
  *       with a setTimeout fallback — rail, keyboard flag, widget chrome,
  *       post-reveal clamp, empty-state card, marker overlay;
- *   (c) the lock-screen visibilitychange handler does no overlay work: it only
- *       captures document.hidden and defers every DOM/storage step to idle.
+ *   (c) the lock-screen dialog is built exactly once and kept in the DOM;
+ *       lock/unlock and the deferred visibilitychange path only flip its
+ *       `hidden` flag, with no markup parse, style injection or layout read;
+ *   (d) i18n skips its boot `localeChanged` announce when the resolved locale
+ *       matches the language the shell was already rendered in;
+ *   (e) the four named setInterval ticks skip hidden/overlapping work and
+ *       never rewrite unchanged text or read layout.
  *
  * Every case is a literal source assertion. Non-vacuity: restoring any of the
- * removed inline calls, or removing an idle deferral, flips a case to FAIL.
+ * removed inline calls, or removing a guard, flips a case to FAIL.
  * No server, browser, cargo or network. The driver owns issue closure/UAT.
  */
 "use strict";
@@ -29,7 +34,13 @@ var AUTH = "botui/ui/suite/desktop-inline/04_auth_fullscreen_a.js";
 var LOCK = "botui/ui/suite/js/lock-screen.js";
 var CHAT_INIT = "botui/ui/suite/chat/chat-init_b.js";
 var SCROLL = "botui/ui/suite/chat/messages/10_scroll.js";
-var EDITED = [SCHEME, SIDEBAR, VIEWPORT, WCHROME, AUTH, LOCK, CHAT_INIT, SCROLL];
+var I18N = "botui/ui/suite/js/i18n.js";
+var CLOCK = "botui/ui/suite/desktop-inline/04_auth_fullscreen_b.js";
+var COMPUTER = "botui/ui/suite/chat/modules/60_computer_use.js";
+var TERMINAL = "botui/ui/suite/chat/modules/61_terminal_use.js";
+var AUTOTASKS = "botui/ui/suite/chat/modules/23_autotasks.js";
+var EDITED = [SCHEME, SIDEBAR, VIEWPORT, WCHROME, AUTH, LOCK, CHAT_INIT, SCROLL,
+  I18N, CLOCK, COMPUTER, TERMINAL, AUTOTASKS];
 
 function contains(src, needle, msg) {
   h.assert(src.indexOf(needle) !== -1, (msg || "source must contain") + " <" + needle + ">");
@@ -152,24 +163,24 @@ h.staticTest("#2933 non-critical paint defers to requestIdleCallback with a setT
     "the old inline empty-state render is gone");
 });
 
-// (c) visibilitychange never builds the overlay inline. The handler captures
-// document.hidden; every storage/DOM step lives in the deferred callback.
-h.staticTest("#2933 lock-screen visibilitychange does no synchronous overlay layout", function () {
+// (c) The dialog is built once and cached. Neither the deferred visibility
+// path nor lock/unlock constructs layout: they flip one `hidden` attribute.
+h.staticTest("#2933 lock-screen builds the overlay once; visibility/lock paths only flip hidden", function () {
   var src = h.readRepo(LOCK);
   contains(src, "document.addEventListener(\"visibilitychange\", onVisibilityChange);",
     "the visibility handler is registered");
   contains(src, "function deferIdle(fn) {", "lock-screen defer helper ships");
-  contains(src, "window.requestIdleCallback(fn, { timeout: 1000 })", "unlock restore uses idle time");
-  contains(src, "window.setTimeout(fn, 1)", "unlock restore has a timer fallback");
+  contains(src, "window.requestIdleCallback(fn, { timeout: 1000 })", "restore uses idle time");
+  contains(src, "window.setTimeout(fn, 1)", "restore has a timer fallback");
 
   var vis = span(src, "function onVisibilityChange() {", "function listenTauri() {");
   contains(vis, "var hidden = document.hidden;", "only a cheap flag is read inline");
   var deferAt = vis.indexOf("deferIdle(");
   h.assert(deferAt !== -1, "visibilitychange must defer its work");
-  var sync = vis.slice(0, deferAt);
-  ["lock(", "buildOverlay(", "wireOverlay(", "appendChild(", "tick(",
-    "setContentHidden(", "ensureStyles(", "focusPassword(", "getState("].forEach(function (call) {
-    absent(sync, call, "no synchronous overlay work in the event handler: <" + call + ">");
+  // No construction on this path AT ALL — including inside the idle callback.
+  ["buildOverlay(", "wireOverlay(", "ensureStyles(", "appendChild(", "innerHTML",
+    "setContentHidden(", "focusPassword(", "tick(", "setInterval("].forEach(function (call) {
+    absent(vis, call, "no overlay construction on the visibility path: <" + call + ">");
   });
   var deferred = vis.slice(deferAt);
   contains(deferred, "if (getState() === \"locked\") { if (!isLocked()) lock(\"restore\"); }",
@@ -177,16 +188,131 @@ h.staticTest("#2933 lock-screen visibilitychange does no synchronous overlay lay
   contains(deferred, "else if (!isLocked()) resetIdle();", "resume re-arms idle without re-locking");
   absent(deferred, "lock(\"resume\")", "resume never re-locks");
 
-  // The overlay builder and its i18n contract are untouched.
+  // One idempotent builder; the node is appended hidden and wired once.
+  h.assertEqual(countIn(src, "buildOverlay("), 2,
+    "dialog is constructed in exactly one place (definition + one call)");
+  var ensure = span(src, "function ensureOverlay() {", "function setReason(reason) {");
+  contains(ensure, "if (overlayEl && overlayEl.isConnected) return overlayEl;", "building is once-only");
+  contains(ensure, "overlay.hidden = true;", "the cached node starts hidden");
+  contains(ensure, "wireOverlay(overlay);", "listeners are attached once");
+  var initSpan = span(src, "function init() {", "window.LockScreen = {");
+  contains(initSpan, "deferIdle(function () {", "construction is scheduled on boot idle");
+  contains(initSpan, "ensureOverlay();", "the dialog exists before any lock/visibility event");
+
+  // lock/unlock are attribute flips, never a rebuild or a layout read.
+  var setLocked = span(src, "function setLocked(on, reason) {", "function unlock() {");
+  contains(setLocked, "overlay.hidden = false;", "lock reveals the cached node");
+  contains(setLocked, "overlay.hidden = true;", "unlock hides the cached node");
+  ["buildOverlay(", "ensureStyles(", "innerHTML", "focusPassword();"].forEach(function (call) {
+    absent(setLocked, call, "no synchronous construction/focus on lock: <" + call + ">");
+  });
+  contains(setLocked, "deferIdle(focusPassword);", "focus() moved off the lock task");
+  var unlockSpan = span(src, "function unlock() {", "function lock(reason) {");
+  absent(unlockSpan, ".remove(", "unlock keeps the dialog in the DOM");
+
+  // The clock tick stays bounded: text writes only, no layout reads.
+  var tickSpan = span(src, "function tick() {", "function setStatus(");
+  ["getBoundingClientRect", "getComputedStyle", "offsetWidth", "offsetHeight", "scrollTop"].forEach(function (read) {
+    absent(tickSpan, read, "tick never reads layout: <" + read + ">");
+  });
+  absent(src, "visibility:hidden", "no body-wide visibility invalidation per lock");
+  contains(src, "window.addEventListener(\"localeChanged\", refreshLabels);",
+    "cached labels follow a runtime locale switch");
+
+  // The overlay's i18n contract and public API are untouched.
   var overlay = span(src, "function buildOverlay(reason) {", "function wireOverlay(overlay) {");
   contains(overlay, "t(\"taskbar-lock\", \"Lock screen\")", "lock dialog label preserved");
   contains(overlay, "t(\"auth-login-password\", \"Password\")", "password label preserved");
   contains(overlay, "role=\"status\" aria-live=\"polite\"", "status region contract preserved");
-  contains(src, "function lock(reason) {", "the explicit lock path still builds the overlay");
+  contains(src, "function lock(reason) {", "the explicit lock path still locks");
   contains(src, "window.LockScreen = { init: init, lock: lock,", "public API preserved");
 });
 
-// (d) Non-vacuity: no hardcoded user-facing strings were added, all edited
+// (d) The boot announce re-rendered ~20 imperative surfaces with text that was
+// already correct. Skip it when the locale matches the rendered <html lang>.
+h.staticTest("#2933 i18n skips the redundant boot announce when the locale is unchanged", function () {
+  var src = h.readRepo(I18N);
+  contains(src, "function sameRenderedLocale(locale, renderedLang) {", "locale comparison helper ships");
+  contains(src, "var renderedLang = document.documentElement.getAttribute(\"lang\");",
+    "rendered language is captured before it is overwritten");
+  var announce = span(src, "function announceLocale() {", "if (document.readyState === \"loading\") {");
+  contains(announce, "if (sameRenderedLocale(currentLocale, renderedLang)) return;",
+    "unchanged locale skips the redundant re-render pass");
+  contains(announce, "window.dispatchEvent(new CustomEvent(\"localeChanged\"", "real switches still announce");
+  contains(src, "window.__gbI18nShared.translatePage();", "static DOM translation preserved");
+  contains(src, "setupBodyListeners();", "late-node observer setup preserved");
+  var setLocale = span(src, "async function setLocale(locale) {", "function setupBodyListeners() {");
+  contains(setLocale, "new CustomEvent(\"i18n:localeChanged\"", "runtime switches keep both events");
+  contains(setLocale, "await loadTranslations(locale);", "runtime switches still load the catalogue");
+});
+
+// #2921 — an early gbT() miss is queued, not warned. Once the catalogue is
+// live, every queued key is re-resolved and only genuinely absent keys warn.
+h.staticTest("#2921 early gbT calls do not warn when the key resolves later", function () {
+  var src = h.readRepo(I18N);
+  contains(src, "const earlyKeys = new Set();", "early misses are queued");
+  var flush = span(src, "function reportMissing(key) {", "function t(key, params) {");
+  contains(flush, "function resolveEarlyKeys() {", "a re-resolution pass ships");
+  contains(flush, "earlyKeys.forEach((key) => {", "queued keys are revisited");
+  contains(flush, "translations[key] === undefined && englishFallback[key] === undefined &&",
+    "all catalogues are consulted before warning");
+  contains(flush, "MINIMAL_FALLBACK[key] === undefined) reportMissing(key);",
+    "only keys still absent everywhere are warned");
+  contains(flush, "earlyKeys.clear();", "the queue is drained once");
+  contains(flush, "console.warn(", "genuinely missing keys still warn");
+  contains(flush, "missingKeysReported.add(key);", "one warning per key is preserved");
+
+  var tSpan = span(src, "function t(key, params) {", "window.__gbI18nShared = { t: t };");
+  var missAt = tSpan.indexOf("text = key;");
+  h.assert(missAt !== -1, "t() still returns the key on a miss");
+  var miss = tSpan.slice(missAt, tSpan.indexOf("if (params &&"));
+  contains(miss, "if (!isInitialized) earlyKeys.add(key);", "early call queues instead of warning");
+  absent(miss, "console.warn", "the early-call branch emits no warning");
+  contains(tSpan.slice(missAt), "else reportMissing(key);", "post-boot misses still warn directly");
+
+  var initSpan = span(src, "async function init() {", "async function getAvailableLocales() {");
+  ordered(initSpan, "await loadTranslations(locale);", "resolveEarlyKeys();",
+    "re-resolution runs after the catalogue arrives");
+  ordered(initSpan, "isInitialized = true;", "resolveEarlyKeys();",
+    "the queue is drained with live catalogues");
+});
+
+// (e) setInterval ticks: hidden tabs and overlapping requests skip; unchanged
+// clock text is not rewritten; no tick reads layout.
+h.staticTest("#2933 setInterval ticks are bounded and skip hidden tabs", function () {
+  [["BCOMP", COMPUTER, "pollPendingBrowser", 10000],
+    ["BTERM", TERMINAL, "pollPendingTerminal", 10000]].forEach(function (spec) {
+    var src = h.readRepo(spec[1]);
+    var poll = span(src, "function " + spec[2] + "() {", "setInterval(");
+    contains(poll, "document.hidden || polling", "hidden tabs and in-flight polls skip");
+    contains(poll, "polling = true;", "in-flight flag is set before fetch");
+    contains(poll, "polling = false;", "in-flight flag is cleared on settle");
+    contains(src, "var POLL_MS = " + spec[3] + ", polling = false;", "poll cadence raised above 3 s");
+    contains(src, "setInterval(" + spec[2] + ", POLL_MS);", "interval uses the bounded cadence");
+    ["getBoundingClientRect", "getComputedStyle", "offsetWidth", "offsetHeight"].forEach(function (read) {
+      absent(poll, read, spec[0] + " poll never reads layout: <" + read + ">");
+    });
+  });
+
+  var at = h.readRepo(AUTOTASKS);
+  contains(at, "var POLL_MS = 60000;", "autotask cadence raised to 60 s");
+  var pollAt = span(at, "function poll() {", "function start() {");
+  contains(pollAt, "document.hidden || AT.state.refreshing", "hidden tabs and in-flight refreshes skip");
+  contains(pollAt, "AT.state.refreshing = true;", "refresh flag is set");
+  contains(pollAt, "AT.state.refreshing = false;", "refresh flag is cleared");
+
+  var clock = h.readRepo(CLOCK);
+  var render = span(clock, "function renderClock() {", "renderClock();");
+  contains(render, "if (document.hidden) return;", "hidden tab skips the clock tick");
+  contains(render, "if (key === last) return;", "unchanged clock text is not rewritten");
+  ["getBoundingClientRect", "getComputedStyle", "offsetWidth", "offsetHeight"].forEach(function (read) {
+    absent(render, read, "clock tick never reads layout: <" + read + ">");
+  });
+  contains(clock, "if (timeEl) timeEl.textContent = formatted.time;", "clock still paints");
+  contains(clock, "setInterval(renderClock, 1000);", "minute-precision cadence preserved");
+});
+
+// (f) Non-vacuity: no hardcoded user-facing strings were added, all edited
 // modules stay under 450 lines, and the shipped APIs/behaviour remain.
 h.staticTest("#2933 non-vacuity: no new user strings, small modules, preserved behaviour", function () {
   EDITED.forEach(function (path) {
@@ -210,4 +336,4 @@ h.staticTest("#2933 non-vacuity: no new user strings, small modules, preserved b
   contains(h.readRepo(WCHROME), "_clampWindowIntoView(id) {", "clamp API preserved");
 });
 
-h.note("FOLLOW-UP #2933: static guard only — batched token reads, idle-deferred non-critical paint and a layout-free visibilitychange. Chrome CPU profiling (no [Violation] ... took > 100 ms during boot, unlock and one deep-link open) still needs a driver browser run; no browser/server/cargo was used here.");
+h.note("FOLLOW-UP #2933: static guard only — batched token reads, once-built lock overlay with flag-only visibility/lock paths, skipped redundant boot announce and bounded setInterval ticks. Chrome CPU profiling (no [Violation] ... took > 100 ms during boot, unlock and one deep-link open) still needs a driver browser run; no browser/server/cargo was used here.");
