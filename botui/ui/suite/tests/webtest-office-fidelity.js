@@ -43,6 +43,7 @@ require("./webtest-office-fidelity/37_sheet_toolbar_theme");
 require("./webtest-office-fidelity/38_chunker_prose");
 require("./webtest-office-fidelity/39_admin_verb_rbac");
 require("./webtest-office-fidelity/40_agent_parity_gaps");
+require("./webtest-office-fidelity/41_consent_preview_ui");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
