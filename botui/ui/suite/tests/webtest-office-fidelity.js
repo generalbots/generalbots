@@ -55,6 +55,7 @@ require("./webtest-office-fidelity/49_track_changes_admin_gate");
 require("./webtest-office-fidelity/50_docs_collab_docid");
 require("./webtest-office-fidelity/51_docs_collab_lifecycle");
 require("./webtest-office-fidelity/52_docs_blank_collab");
+require("./webtest-office-fidelity/53_interop_gaps");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
