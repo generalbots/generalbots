@@ -49,6 +49,20 @@ check(parsed.hash.indexOf("gb_token=SECRET") !== -1, "token present in fragment 
 check(parsed.hash.indexOf("gb_state=s") !== -1, "state present in fragment");
 check(parsed.hash.indexOf("INJECTED") === -1 && parsed.hash.indexOf("old") === -1, "injected params discarded");
 
+// Browser call sites omit _doc: gbSsoCreate must default to the page document
+// so the receiver can consume the one-time state and keep the token.
+const browserDoc = { _value: "", get cookie() { return this._value; }, set cookie(v) {
+  const m = /^([^=]+)=([^;]*)/.exec(String(v));
+  if (m && m[1] === SSO.KEY) this._value = m[2] ? m[1] + "=" + m[2] : "";
+} };
+global.document = browserDoc;
+global.location = { hostname: "login.pragmatismo.com.br", protocol: "https:" };
+const bh = SSO.create({ _host: "login.pragmatismo.com.br", _secure: true });
+check(browserDoc.cookie.indexOf(SSO.KEY + "=") === 0, "browser handoff writes state cookie without an explicit _doc");
+check(SSO.consume(bh.state, bh.ts, { _doc: browserDoc }) === true, "browser-issued state is consumable");
+delete global.document;
+delete global.location;
+
 // Trusted-origin parser refuses hostile schemes/credentials.
 check(SSO.trustedOrigin("javascript:alert(1)", "https://login.example") === null, "javascript: origin rejected");
 check(SSO.trustedOrigin("https://u:p@cloud.example", "https://login.example") === null, "credentialed origin rejected");
