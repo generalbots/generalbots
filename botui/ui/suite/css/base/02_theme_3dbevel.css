@@ -1,5 +1,5 @@
 /* Tech Themes */
-[data-theme="3dbevel"] {
+:root[data-theme="3dbevel"] {
     --primary: #0000ff;
     --primary-hover: #0000cc;
     --primary-light: rgba(0, 0, 255, 0.15);
@@ -14,7 +14,7 @@
     --text-secondary: #404040;
 }
 
-[data-theme="xeroxui"] {
+:root[data-theme="xeroxui"] {
     --primary: #4a86cf;
     --primary-hover: #3a76bf;
     --primary-light: rgba(74, 134, 207, 0.15);
@@ -29,7 +29,7 @@
     --text-secondary: #606060;
 }
 
-[data-theme="xtreegold"] {
+:root[data-theme="xtreegold"] {
     --primary: #ffff00;
     --primary-hover: #cccc00;
     --primary-light: rgba(255, 255, 0, 0.15);

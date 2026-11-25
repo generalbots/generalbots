@@ -4,7 +4,7 @@
 @import url("/suite/css/base/01_root-themes.css");
 
 
-[data-theme="arcadeflash"] {
+:root[data-theme="arcadeflash"] {
     --primary: #ffff00;
     --primary-hover: #cccc00;
     --primary-light: rgba(255, 255, 0, 0.15);
@@ -22,7 +22,7 @@
     --text-tertiary: #00cc00;
 }
 
-[data-theme="discofever"] {
+:root[data-theme="discofever"] {
     --primary: #ff1493;
     --primary-hover: #ff69b4;
     --primary-light: rgba(255, 20, 147, 0.15);
@@ -40,7 +40,7 @@
     --text-tertiary: #00a5a5;
 }
 
-[data-theme="grungeera"] {
+:root[data-theme="grungeera"] {
     --primary: #8b4513;
     --primary-hover: #a0522d;
     --primary-light: rgba(139, 69, 19, 0.15);
@@ -59,7 +59,7 @@
 }
 
 /* Classic Themes */
-[data-theme="jazzage"] {
+:root[data-theme="jazzage"] {
     --primary: #d4af37;
     --primary-hover: #b8960c;
     --primary-light: rgba(212, 175, 55, 0.15);
@@ -77,7 +77,7 @@
     --text-tertiary: #a06530;
 }
 
-[data-theme="mellowgold"] {
+:root[data-theme="mellowgold"] {
     --primary: #daa520;
     --primary-hover: #b8860b;
     --primary-light: rgba(218, 165, 32, 0.15);
@@ -92,7 +92,7 @@
     --text-secondary: #d2b48c;
 }
 
-[data-theme="midcenturymod"] {
+:root[data-theme="midcenturymod"] {
     --primary: #e07b39;
     --primary-hover: #c56a2d;
     --primary-light: rgba(224, 123, 57, 0.15);
@@ -107,7 +107,7 @@
     --text-secondary: #8fbc8f;
 }
 
-[data-theme="polaroidmemories"] {
+:root[data-theme="polaroidmemories"] {
     --primary: #e6b89c;
     --primary-hover: #d4a384;
     --primary-light: rgba(230, 184, 156, 0.15);
@@ -122,7 +122,7 @@
     --text-secondary: #8b7355;
 }
 
-[data-theme="saturdaycartoons"] {
+:root[data-theme="saturdaycartoons"] {
     --primary: #ff6347;
     --primary-hover: #ff4500;
     --primary-light: rgba(255, 99, 71, 0.15);
@@ -137,7 +137,7 @@
     --text-secondary: #00ff00;
 }
 
-[data-theme="seasidepostcard"] {
+:root[data-theme="seasidepostcard"] {
     --primary: #20b2aa;
     --primary-hover: #008b8b;
     --primary-light: rgba(32, 178, 170, 0.15);
@@ -152,7 +152,7 @@
     --text-secondary: #5f9ea0;
 }
 
-[data-theme="typewriter"] {
+:root[data-theme="typewriter"] {
     --primary: #2f2f2f;
     --primary-hover: #1a1a1a;
     --primary-light: rgba(47, 47, 47, 0.15);

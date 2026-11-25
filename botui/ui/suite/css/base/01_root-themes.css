@@ -5,11 +5,19 @@
 /* THEME VARIABLES (6 THEMES)                   */
 /* ============================================ */
 
+/* #2930 — base tokens are keyed to the ONE authoritative attribute:
+ * `:root[data-theme]`, written only by js/theme-manager.js. Scoping to :root
+ * means a legacy `body[data-theme]` writer can never override the shell.
+ * Both token vocabularies are emitted so late-loading apps (which read
+ * --background/--foreground) never fall back to the dark :root defaults.
+ */
 :root {
     /* Default Dark Theme */
     --primary: #3b82f6;
     --primary-hover: #2563eb;
     --primary-light: rgba(59, 130, 246, 0.1);
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
     --bg: #0f172a;
     --surface: #1e293b;
     --surface-hover: #334155;
@@ -38,10 +46,12 @@
     --focus-ring: var(--primary);
 }
 
-[data-theme="dark"] {
+:root[data-theme="dark"] {
     --primary: #3b82f6;
     --primary-hover: #2563eb;
     --primary-light: rgba(59, 130, 246, 0.1);
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
     --bg: #0f172a;
     --surface: #1e293b;
     --surface-hover: #334155;
@@ -56,7 +66,9 @@
     --text-tertiary: #64748b;
 }
 
-[data-theme="light"] {
+:root[data-theme="light"] {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
     --bg: #f8fafc;
     --surface: #ffffff;
     --surface-hover: #f1f5f9;
@@ -71,7 +83,7 @@
     --text-tertiary: #94a3b8;
 }
 
-[data-theme="blue"] {
+:root[data-theme="blue"] {
     --primary: #0ea5e9;
     --primary-hover: #0284c7;
     --primary-light: rgba(14, 165, 233, 0.1);
@@ -89,7 +101,7 @@
     --text-tertiary: #64748b;
 }
 
-[data-theme="purple"] {
+:root[data-theme="purple"] {
     --primary: #a855f7;
     --primary-hover: #9333ea;
     --primary-light: rgba(168, 85, 247, 0.1);
@@ -107,7 +119,7 @@
     --text-tertiary: #8b5cf6;
 }
 
-[data-theme="green"] {
+:root[data-theme="green"] {
     --primary: #22c55e;
     --primary-hover: #16a34a;
     --primary-light: rgba(34, 197, 94, 0.1);
@@ -125,7 +137,7 @@
     --text-tertiary: #4ade80;
 }
 
-[data-theme="orange"] {
+:root[data-theme="orange"] {
     --primary: #f97316;
     --primary-hover: #ea580c;
     --primary-light: rgba(249, 115, 22, 0.1);
@@ -143,7 +155,24 @@
     --text-tertiary: #fb923c;
 }
 
-[data-theme="sentient"] {
+/* The default identity theme is warm paper (default.css), not the dark
+ * :root fallback — pin its base tokens explicitly. */
+:root[data-theme="default"] {
+    --background: 28 100% 97%;
+    --foreground: 0 0% 17%;
+    --bg: #fff8f2;
+    --surface: #fffdfb;
+    --surface-hover: #f3f4f6;
+    --border: #e5e7eb;
+    --border-light: #f1f5f9;
+    --text: #2c2c2c;
+    --text-secondary: #5f6673;
+    --text-tertiary: #6b7280;
+}
+
+:root[data-theme="sentient"] {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 100%;
     --primary: #d4f505;
     --primary-hover: #bfdd04;
     --primary-light: rgba(212, 245, 5, 0.15);
@@ -166,7 +195,7 @@
 }
 
 /* Retro Themes */
-[data-theme="cyberpunk"] {
+:root[data-theme="cyberpunk"] {
     --primary: #ff00ff;
     --primary-hover: #cc00cc;
     --primary-light: rgba(255, 0, 255, 0.15);
@@ -184,7 +213,7 @@
     --text-tertiary: #cc5aa0;
 }
 
-[data-theme="retrowave"] {
+:root[data-theme="retrowave"] {
     --primary: #ff6b9d;
     --primary-hover: #ff4081;
     --primary-light: rgba(255, 107, 157, 0.15);
@@ -202,7 +231,7 @@
     --text-tertiary: #817bce;
 }
 
-[data-theme="vapordream"] {
+:root[data-theme="vapordream"] {
     --primary: #a29bfe;
     --primary-hover: #6c5ce7;
     --primary-light: rgba(162, 155, 254, 0.15);
@@ -220,7 +249,7 @@
     --text-tertiary: #cd6188;
 }
 
-[data-theme="y2kglow"] {
+:root[data-theme="y2kglow"] {
     --primary: #00ff00;
     --primary-hover: #00cc00;
     --primary-light: rgba(0, 255, 0, 0.15);

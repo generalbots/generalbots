@@ -118,11 +118,12 @@ document.body.addEventListener("htmx:afterSwap", (e) => {
 });
 
 const themeOptions = document.querySelectorAll(".theme-option");
-const savedTheme = localStorage.getItem("gb-theme") || "sentient";
-document.body.setAttribute("data-theme", savedTheme);
-document
-  .querySelector(`.theme-option[data-theme="${savedTheme}"]`)
-  ?.classList.add("active");
+// #2930 — no data-theme write here. ThemeManager (js/theme-manager.js) is the
+// single owner; this legacy fragment only mirrors its state into the meta
+// theme-color and the active highlight.
+function activeThemeId() {
+  return document.documentElement.getAttribute("data-theme") || "sentient";
+}
 
 function updateThemeColor(theme) {
   const themeColors = {
@@ -156,41 +157,46 @@ function updateThemeColor(theme) {
     metaTheme.setAttribute("content", themeColors[theme] || "#d4f505");
   }
 }
-updateThemeColor(savedTheme);
+function reflectTheme(theme) {
+  themeOptions.forEach((o) => {
+    o.classList.toggle("active", o.getAttribute("data-theme") === theme);
+  });
+  document.querySelectorAll(".theme-option").forEach((opt) => {
+    opt.classList.toggle("active", opt.getAttribute("data-theme") === theme);
+  });
+  updateThemeColor(theme);
+}
+updateThemeColor(activeThemeId());
+reflectTheme(activeThemeId());
 
 themeOptions.forEach((option) => {
   option.addEventListener("click", () => {
     const theme = option.getAttribute("data-theme");
-    document.body.setAttribute("data-theme", theme);
-    localStorage.setItem("gb-theme", theme);
-    themeOptions.forEach((o) => o.classList.remove("active"));
-    option.classList.add("active");
-    updateThemeColor(theme);
+    // Route through the single owner; never write the attribute here.
+    if (window.GBTheme && typeof window.GBTheme.set === "function") {
+      window.GBTheme.set(theme);
+    } else if (window.ThemeManager && typeof window.ThemeManager.loadTheme === "function") {
+      window.ThemeManager.loadTheme(theme);
+    }
+  });
+});
+
+// Subscribe instead of writing: the owner announces every change.
+["gb:themechange", "gb-theme-changed"].forEach((eventName) => {
+  window.addEventListener(eventName, (e) => {
+    const id = e && e.detail && (e.detail.themeId || e.detail.theme) || activeThemeId();
+    reflectTheme(id);
   });
 });
 
 window.setTheme = function (theme, element) {
-  document.body.setAttribute("data-theme", theme);
-  localStorage.setItem("gb-theme", theme);
-
-  // Update theme options in header settings panel
-  themeOptions.forEach((o) => {
-    o.classList.toggle("active", o.getAttribute("data-theme") === theme);
-  });
-
-  // Update theme options in settings page (if present)
-  document.querySelectorAll(".theme-option").forEach((opt) => {
-    opt.classList.toggle("active", opt.getAttribute("data-theme") === theme);
-  });
-
-  // If element was passed, ensure it's marked active
-  if (element) {
-    element.classList.add("active");
+  if (window.GBTheme && typeof window.GBTheme.set === "function") {
+    window.GBTheme.set(theme);
+  } else if (window.ThemeManager && typeof window.ThemeManager.loadTheme === "function") {
+    window.ThemeManager.loadTheme(theme);
   }
-
-  updateThemeColor(theme);
-
-  // Show toast notification if available
+  reflectTheme(theme);
+  if (element) element.classList.add("active");
   if (window.showNotification) {
     window.showNotification("Theme updated", "success");
   }

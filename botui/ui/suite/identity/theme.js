@@ -1,85 +1,119 @@
 "use strict";
-/* Theme manager — light, dark, system. Applies data-theme on <html>,
- * persists to localStorage, follows prefers-color-scheme live.
- * Plain script, no modules. Exposes window.GBTheme.
+/* Light/dark/System preference adapter for pages that do not load the shell's
+ * ThemeManager (assistant.html, login.html).
  *
- * MUST run BEFORE first paint (loaded in <head> after tokens.css).
- * Reads gb-theme from localStorage and applies data-theme immediately
- * so the page never flashes white in dark mode.
+ * #2930 — js/theme-manager.js is the SINGLE owner of
+ * document.documentElement's data-theme attribute. This script never writes
+ * that attribute: where the owner is present it delegates to window.GBTheme,
+ * and on standalone pages it applies the preference through the state-free
+ * data-color-scheme axis plus inline root tokens, which the identity CSS and
+ * accent derivation already consume. The storage key is gb-theme everywhere.
+ *
+ * Loaded before first paint so the standalone pages never flash the wrong
+ * surface.
  */
 (function () {
     var STORAGE_KEY = "gb-theme";
     var VALID = { light: 1, dark: 1, system: 1 };
+    var TOKENS = {
+        light: {
+            "--background": "0 0% 100%",
+            "--foreground": "222 47% 11%",
+            "--bg": "#f8fafc",
+            "--surface": "#ffffff",
+            "--text": "#1e293b",
+        },
+        dark: {
+            "--background": "222 47% 11%",
+            "--foreground": "210 40% 98%",
+            "--bg": "#0f172a",
+            "--surface": "#1e293b",
+            "--text": "#f8fafc",
+        },
+    };
     var mql = null;
+    var owner = window.GBTheme;
 
-    /** Read the persisted preference or fall back to "system". */
     function stored() {
         try {
             var v = localStorage.getItem(STORAGE_KEY);
-            if (v && VALID[v]) { return v; }
+            if (v && VALID[v]) return v;
         } catch (e) { /* storage unavailable */ }
         return "system";
     }
 
-    /** Whether the OS prefers dark. */
     function osDark() {
-        if (!mql) { mql = window.matchMedia("(prefers-color-scheme: dark)"); }
-        return mql.matches;
-    }
-
-    /** Resolve "system" into "light" or "dark". */
-    function resolve(pref) {
-        if (pref === "system") { return osDark() ? "dark" : "light"; }
-        return pref;
-    }
-
-    /** Set data-theme on <html> and re-derive accent for the new surface. */
-    function applyTheme(pref) {
-        var effective = resolve(pref);
-        document.documentElement.setAttribute("data-theme", effective);
-        /* Re-derive accent so contrast checks use the correct paper. The
-           accent in use may be the product's default (never stored): the
-           one last applied counts, the stored choice is the fallback. */
-        if (window.GBIdentity) {
-            var hex = null;
-            try { hex = localStorage.getItem("gb-accent"); } catch (e) { /* */ }
-            if (typeof window.GBIdentity.reapply === "function" && window.GBIdentity.reapply()) {
-                return;
-            }
-            if (hex) {
-                window.GBIdentity.apply(hex);
-            }
+        if (!mql && window.matchMedia) {
+            mql = window.matchMedia("(prefers-color-scheme: dark)");
         }
+        return !!(mql && mql.matches);
     }
 
-    /** Public: set and persist the preference ("light" | "dark" | "system"). */
+    function resolve(pref) {
+        if (pref === "system") return osDark() ? "dark" : "light";
+        return VALID[pref] ? pref : (osDark() ? "dark" : "light");
+    }
+
+    /* Standalone apply path — data-color-scheme + inline tokens only. */
+    function applyLocal(pref) {
+        var effective = resolve(pref);
+        var tokens = TOKENS[effective];
+        document.documentElement.setAttribute("data-color-scheme", effective);
+        Object.keys(tokens).forEach(function (name) {
+            document.documentElement.style.setProperty(name, tokens[name]);
+        });
+        if (window.GBIdentity && typeof window.GBIdentity.reapply === "function") {
+            window.GBIdentity.reapply();
+        }
+        window.dispatchEvent(new CustomEvent("gb:themechange", {
+            detail: { themeId: effective, preference: pref },
+        }));
+    }
+
     function set(pref) {
-        if (!VALID[pref]) { pref = "system"; }
-        try { localStorage.setItem(STORAGE_KEY, pref); } catch (e) { /* */ }
-        applyTheme(pref);
+        var value = VALID[pref] ? pref : "system";
+        try { localStorage.setItem(STORAGE_KEY, value); } catch (e) { /* */ }
+        if (owner && typeof owner.set === "function") {
+            owner.set(value);
+            return;
+        }
+        applyLocal(value);
     }
 
-    /** Public: current preference as stored. */
     function get() { return stored(); }
-
-    /** Public: current resolved theme ("light" or "dark"). */
     function current() { return resolve(stored()); }
 
-    /* Apply immediately so the first paint matches. */
-    applyTheme(stored());
+    if (owner && typeof owner.set === "function") {
+        // The shell owns data-theme; just mirror the stored choice into it.
+        set(owner.get() || stored());
+    } else {
+        window.GBTheme = {
+            set: set,
+            get: get,
+            current: current,
+            resolve: resolve,
+            apply: applyLocal,
+        };
+        applyLocal(stored());
+    }
 
-    /* Follow the OS live when preference is "system". */
+    // Follow the OS live only while the preference is "system".
     try {
-        if (!mql) { mql = window.matchMedia("(prefers-color-scheme: dark)"); }
-        mql.addEventListener("change", function () {
-            if (stored() === "system") { applyTheme("system"); }
-        });
+        if (!mql && window.matchMedia) {
+            mql = window.matchMedia("(prefers-color-scheme: dark)");
+        }
+        if (mql && mql.addEventListener) {
+            mql.addEventListener("change", function () {
+                if (stored() === "system") set("system");
+            });
+        }
     } catch (e) { /* matchMedia or addEventListener not supported */ }
 
-    window.GBTheme = {
-        set: set,
-        get: get,
-        current: current,
-        resolve: resolve
-    };
+    // Keep a cross-tab preference change in sync without writing data-theme.
+    window.addEventListener("storage", function (e) {
+        if (e.key === STORAGE_KEY && e.newValue && VALID[e.newValue]) {
+            if (owner && typeof owner.set === "function") owner.set(e.newValue);
+            else applyLocal(e.newValue);
+        }
+    });
 })();
