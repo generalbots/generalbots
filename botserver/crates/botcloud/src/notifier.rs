@@ -336,11 +336,13 @@ pub fn notify_grace_period_warning(vars: &EmailVars, days_left: u32) {
 }
 
 pub fn init_smtp(host: &str, port: u16, user: &str, password: &str, from: &str) {
-    let _ = SMTP_CONFIG.set(SmtpConfig {
+    if let Err(e) = SMTP_CONFIG.set(SmtpConfig {
         host: host.to_string(),
         port,
         user: user.to_string(),
         password: password.to_string(),
         from: from.to_string(),
-    });
+    }) {
+        tracing::warn!(target: "saas_notifier", "SMTP config already initialized, ignoring duplicate: {e:?}");
+    }
 }
