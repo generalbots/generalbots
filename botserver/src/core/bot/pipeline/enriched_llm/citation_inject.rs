@@ -21,6 +21,18 @@ use uuid::Uuid;
 /// Hard ceiling on citation lines added to one turn (also the search limit).
 const MAX_CITATIONS: usize = 3;
 
+/// #2499 — the identity JSON lines are inert on their own. Without a directive
+/// the model treats them as unrelated context and follows the KB-only answer
+/// rule, replying "no document found in Drive" even though the lines are in the
+/// prompt. This text makes the records authoritative and tells the model
+/// exactly which identity fields to render. It deliberately avoids the word
+/// "content" so the no-document-content guarantee stays testable.
+const CITATION_DIRECTIVE: &str = "SAVED DOCUMENT CITATIONS (authoritative identity metadata)\n\
+- These records prove the listed documents EXIST in the user's Drive. Treat them as valid evidence for this answer.\n\
+- You MUST cite the relevant document by its exact file name, version, section and page from the records below (include the document id when useful). Never omit the citation when a record matches the question.\n\
+- Do NOT say the document was not found, is missing, or is absent from Drive when a record matches.\n\
+- Only identity fields are available here - never fabricate or reproduce the document's text, clauses or body.";
+
 /// Same principal derivation as `kb_search.rs::principal_for`: the verified
 /// user id plus the server's own bucket as tenant. A chat turn only holds a
 /// `Uuid`, so the `local-` spelling is passed as the alternate identifier the
@@ -63,7 +75,9 @@ fn append_lines(messages: &mut serde_json::Value, lines: &[String]) {
         log::warn!("chat citation injection skipped: prompt is not a message array");
         return;
     };
-    let block = lines.join("\n");
+    // Directive first, then the identity records, so the model cannot read the
+    // JSON as inert KB context and cannot miss the "MUST cite" instruction.
+    let block = format!("{CITATION_DIRECTIVE}\n{}", lines.join("\n"));
     if let Some(index) = array.iter().position(|m| m["role"] == "system") {
         if let Some(content) = array[index]["content"].as_str() {
             array[index]["content"] =
@@ -211,5 +225,76 @@ mod tests {
         .await;
 
         assert_eq!(system_content(&messages), "base prompt");
+    }
+
+    /// #2499 — the directive must be rendered before the identity records, and
+    /// the original system prompt must still lead the message. Bare JSON lines
+    /// with no instruction are what caused the "not found in Drive" answer.
+    #[tokio::test]
+    async fn rendered_prompt_has_citation_instruction_before_identity_lines() {
+        let docs = test_docs_state(TENANT);
+        docs.project_to_kb(OWNER, "doc-1", "Employment", HTML);
+
+        let extensions = Extensions::new();
+        extensions.insert(docs).await;
+        let mut messages = serde_json::json!([{ "role": "system", "content": "You are helpful." }]);
+
+        inject_saved_doc_citations(
+            &extensions,
+            TENANT,
+            uuid(OWNER),
+            "ZANZIBARCLAUSE notice",
+            &mut messages,
+        )
+        .await;
+
+        let system = system_content(&messages);
+        assert!(system.contains("SAVED DOCUMENT CITATIONS"), "{system}");
+        assert!(system.contains("MUST cite"), "{system}");
+        assert!(
+            system.contains("file name, version, section and page"),
+            "{system}"
+        );
+        assert!(
+            system.contains("Do NOT say the document was not found"),
+            "{system}"
+        );
+        let base_at = system.find("You are helpful.").unwrap_or(usize::MAX);
+        let directive_at = system.find("SAVED DOCUMENT CITATIONS").unwrap_or(usize::MAX);
+        let first_json_at = system.find("\"document_id\"").unwrap_or(usize::MAX);
+        assert!(base_at < directive_at, "base prompt must lead: {system}");
+        assert!(
+            directive_at < first_json_at,
+            "directive must precede citation lines: {system}"
+        );
+    }
+
+    /// #2499 — when no system message exists the injected block is created at
+    /// index 0 with the same instruction-first ordering (same seam as KB).
+    #[tokio::test]
+    async fn created_system_message_keeps_instruction_first() {
+        let docs = test_docs_state(TENANT);
+        docs.project_to_kb(OWNER, "doc-3", "Employment", HTML);
+
+        let extensions = Extensions::new();
+        extensions.insert(docs).await;
+        let mut messages = serde_json::json!([{ "role": "user", "content": "previous turn" }]);
+
+        inject_saved_doc_citations(
+            &extensions,
+            TENANT,
+            uuid(OWNER),
+            "ZANZIBARCLAUSE notice",
+            &mut messages,
+        )
+        .await;
+
+        assert_eq!(messages[0]["role"], "system");
+        let system = system_content(&messages);
+        let directive_at = system.find("SAVED DOCUMENT CITATIONS").unwrap_or(usize::MAX);
+        let first_json_at = system.find("\"document_id\"").unwrap_or(usize::MAX);
+        assert!(directive_at < first_json_at, "directive must precede citation lines: {system}");
+        assert!(system.contains("\"document_id\":\"doc-3\""), "{system}");
+        assert_eq!(messages[1]["role"], "user");
     }
 }
