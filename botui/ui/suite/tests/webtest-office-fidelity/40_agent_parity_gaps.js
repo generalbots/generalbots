@@ -164,26 +164,24 @@ h.knownBug("anchored comment add has no review-request verb or reviewer notifica
     "request_review", "review_request"], "reviewer field on docs.comment.add");
 });
 
-// 3. The consent marker's diff was missing; a params-only preview has since
-//    been added, but the chat card still has no diff region and no explicit
-//    confirm/cancel pair. Passes while either half is missing.
-h.knownBug("destructive consent shows no diff-first gate in marker or chat card", function () {
+// 3. The marker now carries a bounded preview and the chat card renders it,
+//    but the card is still a permission GRANT (allow once/run/hour/always/
+//    deny) with no explicit confirm/cancel that resumes a staged mutation.
+//    This case flips to FAIL when that resolution gate lands.
+h.knownBug("destructive consent preview is read-only: no explicit confirm/cancel resolution gate", function () {
   contains(CONSENT_GATE, "pub fn marker_content(", "marker renderer is shipped");
-  contains(CONSENT_GATE, '"request_id": request.request_id,', "marker payload is shipped");
-  contains(CONSENT_GATE, '"app_id": request.app_id,', "marker app id is shipped");
-  contains(CONSENT_GATE, '"action_class": request.action_class,', "marker action class is shipped");
+  contains(CONSENT_GATE, 'payload["preview"] = preview;', "marker carries a bounded preview");
   contains(CONSENT_GATE, "GB-CONSENT-REQUEST:{encoded}", "marker protocol is shipped");
-  contains(CONSENT_CARD, "  function buildCard(req) {", "chat consent card is shipped");
-  contains(CONSENT_CARD, 'data-decision="allow_once"', "card decision buttons are shipped");
+  contains(CONSENT_CARD, "function buildPreview(preview)", "card preview renderer is shipped");
+  contains(CONSENT_CARD, "gb-consent-preview", "card preview region is shipped");
+  contains(CONSENT_CARD, 'data-decision="allow_once"', "grant-based decisions are shipped");
 
-  var marker = between(CONSENT_GATE, "pub fn marker_content(", "#[cfg(test)]");
   var card = between(CONSENT_CARD, "  function buildCard(req) {", "  window.GBBuildConsentCard = buildCard;");
-  var markerHasNoDiff = hasNone(marker, ['"preview"', '"diff"', '"before"', '"after"']);
-  var cardHasNoDiff = hasNone(card, ["preview", "diff", "before", "after", "affected_count",
-    "action-confirm", "action-cancel", "gbT("]);
+  var hasExplicitGate = ["action-confirm", "action-cancel", "decision=confirm", "decision=cancel"]
+    .some(function (token) { return card.indexOf(token) !== -1; });
   h.assert(
-    markerHasNoDiff || cardHasNoDiff,
-    "criterion 3 must still lack a diff-first gate in the marker OR the chat card"
+    !hasExplicitGate,
+    "criterion 3 must still lack an explicit confirm/cancel resolution gate"
   );
 });
 

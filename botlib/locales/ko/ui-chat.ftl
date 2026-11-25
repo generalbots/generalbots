@@ -55,6 +55,7 @@ chat-open = 열기
 chat-expand = 펼치기
 chat-collapse = 접기
 chat-preview = 미리보기
+chat-consent-affected-count = 영향 받는 레코드
 chat-close-preview = 미리보기 닫기
 chat-preview-load-failed = 미리보기를 불러올 수 없습니다.
 chat-show-more = 더 보기

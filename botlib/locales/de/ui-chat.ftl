@@ -55,6 +55,7 @@ chat-open = Öffnen
 chat-expand = Erweitern
 chat-collapse = Einklappen
 chat-preview = Vorschau
+chat-consent-affected-count = Betroffene Datensätze
 chat-close-preview = Vorschau schließen
 chat-preview-load-failed = Vorschau konnte nicht geladen werden.
 chat-show-more = Mehr anzeigen
