@@ -6,6 +6,22 @@
   var WindowManager = WM.WindowManager;
   var APPS_REGISTRY = WM.APPS_REGISTRY;
 
+  // #2933 — all non-critical chrome load work joins ONE coalesced idle/rAF pass.
+  var chromeWork = [], chromeWorkQueued = false;
+  function drainChromeWork() {
+    chromeWorkQueued = false;
+    var jobs = chromeWork;
+    chromeWork = [];
+    jobs.forEach(function (job) { job(); });
+  }
+  function queueChromeWork(job) {
+    chromeWork.push(job);
+    if (chromeWorkQueued) return;
+    chromeWorkQueued = true;
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(drainChromeWork, { timeout: 800 });
+    else window.requestAnimationFrame(drainChromeWork);
+  }
+
   WM.defineMethods(WindowManager.prototype, {
 
   // #2410 — one geometry source for clamping, sheet mode and the resize grip.
@@ -74,29 +90,31 @@
     win.style.maxWidth = "";
     win.style.maxHeight = "";
 
-    let rect = win.getBoundingClientRect();
-    const availW = b.width - b.margin * 2;
-    // Constrain oversized windows so they remain reachable on small/rotated viewports.
-    if (rect.height > b.height || rect.width > availW) {
-      if (rect.height > b.height) {
-        win.style.height = `${Math.floor(b.height)}px`;
-        win.style.maxHeight = `${Math.floor(b.height)}px`;
-      }
-      if (rect.width > availW) {
-        win.style.width = `${Math.floor(availW)}px`;
-        win.style.maxWidth = `${Math.floor(availW)}px`;
-      }
-      rect = win.getBoundingClientRect();
-    }
-
+    // READ PHASE — one box read; the resized rect is derived, not re-read.
+    const rect = win.getBoundingClientRect();
     const curTop = parseInt(win.style.top || "0", 10) || 0;
     const curLeft = parseInt(win.style.left || "0", 10) || 0;
+    const availW = b.width - b.margin * 2;
+    const clampH = rect.height > b.height ? Math.floor(b.height) : null;
+    const clampW = rect.width > availW ? Math.floor(availW) : null;
+    const finalH = clampH === null ? rect.height : clampH;
+    const finalW = clampW === null ? rect.width : clampW;
     let top = curTop;
     let left = curLeft;
     if (rect.top < b.top) top = curTop + (b.top - rect.top);
     if (rect.left < b.margin) left = curLeft + (b.margin - rect.left);
-    if (rect.right > b.width - b.margin) left = curLeft - (rect.right - (b.width - b.margin));
-    if (rect.bottom > b.bottom) top = curTop - (rect.bottom - b.bottom);
+    if (rect.left + finalW > b.width - b.margin) left = curLeft - (rect.left + finalW - (b.width - b.margin));
+    if (rect.top + finalH > b.bottom) top = curTop - (rect.top + finalH - b.bottom);
+
+    // WRITE PHASE
+    if (clampH !== null) {
+      win.style.height = `${clampH}px`;
+      win.style.maxHeight = `${clampH}px`;
+    }
+    if (clampW !== null) {
+      win.style.width = `${clampW}px`;
+      win.style.maxWidth = `${clampW}px`;
+    }
     win.style.top = `${Math.max(b.top, top)}px`;
     win.style.left = `${Math.max(b.margin, left)}px`;
   },
@@ -243,8 +261,10 @@
       }
     };
     if (!links.length) {
-      body.classList.add("gb-window-ready");
-      reclampAfterReveal();
+      queueChromeWork(function () {
+        body.classList.add("gb-window-ready");
+        reclampAfterReveal();
+      });
       return;
     }
     const sheetReady = (link) => {
@@ -265,9 +285,9 @@
     };
     const onOne = () => {
       remaining -= 1;
-      if (remaining <= 0) finish();
+      if (remaining <= 0) queueChromeWork(finish);
     };
-    const timer = setTimeout(finish, 3000);
+    const timer = setTimeout(function () { queueChromeWork(finish); }, 3000);
     links.forEach((link) => {
       if (sheetReady(link)) {
         onOne();
@@ -279,20 +299,21 @@
   },
 
   _addTaskbarDockItem(id) {
-    const center = this.getTaskbarCenter();
-    if (!center) return;
-    const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === id);
-    const dockItem = document.createElement("div");
-    dockItem.id = `dock-item-${id}`;
-    dockItem.className = "taskbar-dock-item";
-    dockItem.title = app
-      ? window.gbAppTitle
-        ? window.gbAppTitle(app)
-        : app.title
-      : id;
-    dockItem.onclick = () => this.toggleMinimize(id);
-    dockItem.innerHTML = this.getIconSvg(id);
-    center.appendChild(dockItem);
+    queueChromeWork(() => {
+      const center = this.getTaskbarCenter();
+      if (!center) return;
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === id);
+      const title = app ? (window.gbAppTitle ? window.gbAppTitle(app) : app.title) : id;
+      const icon = this.getIconSvg(id);
+      // READ PHASE done
+      const dockItem = document.createElement("div");
+      dockItem.id = `dock-item-${id}`;
+      dockItem.className = "taskbar-dock-item";
+      dockItem.title = title;
+      dockItem.onclick = () => this.toggleMinimize(id);
+      dockItem.innerHTML = icon;
+      center.appendChild(dockItem);
+    });
   },
 
   _trackRecent(id, title) {

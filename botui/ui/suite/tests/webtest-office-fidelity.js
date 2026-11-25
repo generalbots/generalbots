@@ -78,6 +78,8 @@ require("./webtest-office-fidelity/72_ai_endpoints");
 require("./webtest-office-fidelity/73_drive_cloud_surface_gate");
 require("./webtest-office-fidelity/74_boot_reflow_scope");
 require("./webtest-office-fidelity/75_chat_boot_incremental");
+require("./webtest-office-fidelity/76_boot_idle_chunks");
+require("./webtest-office-fidelity/77_settings_partials_route");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

@@ -536,6 +536,16 @@ jobs:
           python3 scripts/check_sales_route_contract.py --self-test
           python3 scripts/check_sales_route_contract.py --check
 
+      # #2935 — the ten /suite/settings/partials/*.html files must ship in the
+      # tree, be requested by the Settings boot document without a query string,
+      # and be reachable through the botui proxy -> botserver ServeDir chain in
+      # the release packaging. A stale BOTUI_PATH is the documented root cause
+      # of a source-vs-host 404; this offline source-chain guard makes that
+      # contract blocking without a server, browser or cargo. The live half runs
+      # in `static-precheck` below.
+      - name: Settings partials route guard (#2935)
+        run: python3 scripts/check_settings_partials_route.py
+
       # #2543 — error-handling ratchet: unwrap/expect/panic and swallowed
       # Results only move down. The self-test proves a raised count fails;
       # the check enforces the committed baseline over production Rust.
@@ -1162,7 +1172,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      - name: Serve and audit the static desktop markup
+      - name: Serve the static desktop markup
         run: |
           set -euo pipefail
           # The auth gate is a runtime script: without its /api endpoints it
@@ -1179,9 +1189,11 @@ jobs:
             /tmp/a11y-static/suite/desktop.html
           sed -i 's#</head>#<style>html.gb-auth-gate body > * { visibility: visible !important; } html.gb-auth-gate::after { display: none !important; }</style></head>#' \
             /tmp/a11y-static/suite/desktop.html
-          python3 -m http.server 3000 --directory /tmp/a11y-static >/tmp/suite-http.log 2>&1 &
-          SERVER=$!
-          trap 'kill $SERVER' EXIT
+          # Keep the server alive across the steps below: record its PID so the
+          # final step can stop it even when an audit fails. No new server is
+          # started here — this is the same static suite origin as before.
+          nohup python3 -m http.server 3000 --directory /tmp/a11y-static >/tmp/suite-http.log 2>&1 &
+          echo $! > /tmp/suite-http.pid
           for _ in $(seq 1 20); do
             curl -sf http://127.0.0.1:3000/suite/desktop.html >/dev/null && break
             sleep 1
@@ -1189,8 +1201,22 @@ jobs:
           curl -sf http://127.0.0.1:3000/suite/desktop.html >/dev/null || {
             echo "suite did not start"; tail -20 /tmp/suite-http.log; exit 1;
           }
+      - name: Audit the static desktop markup
+        run: |
           node .github/scripts/a11y_perf_gate.mjs \
             http://127.0.0.1:3000/suite/desktop.html --require-desktop
+      # #2935 — with the suite already served at port 3000, assert all ten
+      # Settings partial URLs return 200 text/html (not 404) through the real
+      # static suite tree. This is the live half of the offline source-chain
+      # guard wired into `guard` above.
+      - name: "Guard: Settings partials are served live (#2935)"
+        run: python3 scripts/check_settings_partials_route.py --base-url http://127.0.0.1:3000
+      - name: Stop the static server
+        if: always()
+        run: |
+          if [ -f /tmp/suite-http.pid ]; then
+            kill "$(cat /tmp/suite-http.pid)" 2>/dev/null || true
+          fi
 
   served-desktop:
     name: Lighthouse served desktop (botserver desktop-local)

@@ -14,12 +14,31 @@
 
   var initialized = false, idleTimer = null, clockTimer = null, observer = null;
   var pendingUnlock = false, overlayEl = null, locked = false, lastReason = "manual";
+  var pendingShell = null;
 
   // #2933 — visibilitychange did 1 s+ of synchronous overlay construction.
   // Handlers only capture a flag; every DOM/storage step runs on idle.
   function deferIdle(fn) {
     if (typeof window.requestIdleCallback === "function") return window.requestIdleCallback(fn, { timeout: 1000 });
     return window.setTimeout(fn, 1);
+  }
+
+  // #2933 — a single idle callback that built styles + markup + labels + focus
+  // cost 177-282 ms. Construction is now a queue of tiny steps: one idle task
+  // performs exactly one step, so no chunk parses markup AND writes styles AND
+  // localizes labels. The queue is coalesced — bursts schedule only one task.
+  var overlayChunks = [], overlayChunkQueued = false;
+  function drainOverlayChunks() {
+    overlayChunkQueued = false;
+    var step = overlayChunks.shift();
+    if (step) step();
+    if (overlayChunks.length) queueOverlayChunk();
+  }
+  function queueOverlayChunk(fn) {
+    if (fn) overlayChunks.push(fn);
+    if (overlayChunkQueued) return;
+    overlayChunkQueued = true;
+    deferIdle(drainOverlayChunks);
   }
 
   function logErr(error, context) {
@@ -151,7 +170,7 @@
     if (!isLocked()) return; event.preventDefault(); event.returnValue = "";
   }
   function buildOverlay(reason) {
-    var overlay = document.createElement("div");
+    var overlay = pendingShell || document.createElement("div");
     overlay.id = "gb-lock-screen"; overlay.className = "gb-lock-screen";
     overlay.setAttribute("role", "dialog"); overlay.setAttribute("aria-modal", "true");
     overlay.setAttribute("aria-label", t("taskbar-lock", "Lock screen"));
@@ -178,20 +197,32 @@
     if (form) form.addEventListener("submit", function (event) { event.preventDefault(); attemptUnlock(); });
     if (signout) signout.addEventListener("click", signOut);
   }
-  // #2933 — one-time construction. The dialog stays in the DOM (hidden) so
-  // lock/unlock are a single `hidden` flip; no innerHTML, no style injection,
-  // no storage re-read and no layout-forcing focus on the visibility path.
+  // #2933 — one-time construction, split across tiny idle chunks. The shell
+  // is a single empty node here (no markup parse, no style injection); styles,
+  // markup, listener wiring and label localization each run in their own task.
+  // The dialog stays in the DOM (hidden) so lock/unlock are a `hidden` flip.
   function ensureOverlay() {
     if (overlayEl && overlayEl.isConnected) return overlayEl;
     if (!document.body) return null;
-    ensureStyles();
     var existing = document.getElementById("gb-lock-screen");
     if (existing) { overlayEl = existing; wireOverlay(existing); return existing; }
-    var overlay = buildOverlay("manual");
+    var overlay = document.createElement("div");
+    overlay.id = "gb-lock-screen";
+    overlay.className = "gb-lock-screen";
     overlay.hidden = true;
     document.body.appendChild(overlay);
     overlayEl = overlay;
-    wireOverlay(overlay);
+    // One step per idle task — never one callback doing all four jobs.
+    queueOverlayChunk(function () { ensureStyles(); });
+    queueOverlayChunk(function () {
+      pendingShell = overlay;
+      buildOverlay(lastReason);
+      pendingShell = null;
+    });
+    queueOverlayChunk(function () {
+      wireOverlay(overlay);
+      if (window.i18n && typeof window.i18n.getLocale === "function") refreshLabels();
+    });
     return overlay;
   }
   function setReason(reason) {
@@ -378,12 +409,11 @@
       document.addEventListener(name, resetIdle, { passive: true });
     });
     armIdle();
-    // #2933 — construct once on boot idle, so neither a visibility change nor
-    // a later lock ever builds layout on its own path. Labels refresh if the
-    // catalogue finished loading after this callback was scheduled.
+    // #2933 — boot schedules the shell only; styles, markup, wiring and label
+    // refresh each run in their own tiny idle task from ensureOverlay(). No
+    // visibility change or later lock builds layout on its own path.
     deferIdle(function () {
       ensureOverlay();
-      if (window.i18n && typeof window.i18n.getLocale === "function") refreshLabels();
     });
     // A locked state survives a webview reload: re-arm before content is read.
     if (getState() === "locked") lock("restore");
