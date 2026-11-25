@@ -47,6 +47,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import tomllib
 
 ROOT = os.path.abspath(
@@ -64,6 +65,66 @@ TRACKED = {
 }
 LINT_KEYS = tuple(TRACKED.values())
 BASELINE_VALUE_RE = re.compile(r"^(\s*(unwrap_used|expect_used|panic)\s*=\s*)\d+(\s*(?:#.*)?)$")
+
+# Tables the textual ratchet regenerates from source. Everything else in the
+# shared baseline file — notably this script's [clippy] table — must survive
+# regeneration verbatim (issue #2543 regression).
+GENERATED_TABLES = {"rules", "rule_notes"}
+TABLE_HEADER_RE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
+
+
+def extract_unknown_sections(raw: str) -> list[str]:
+    """Verbatim lines of table blocks the ratchet generator does not own.
+
+    Blank/comment lines trailing a previous table are carried into the next
+    block, so [clippy] keeps its documentation header. Generated tables
+    ([rules], [rule_notes], [files.*]) and the root preamble are dropped.
+    """
+    kept: list[str] = []
+    pending: list[str] = []
+    block: list[str] = []
+    name = ""
+    for line in raw.split("\n"):
+        header = TABLE_HEADER_RE.match(line)
+        if header:
+            if name and name not in GENERATED_TABLES and not name.startswith("files."):
+                kept.extend(pending + block)
+            index = len(block)
+            while index and (not block[index - 1].strip()
+                             or block[index - 1].lstrip().startswith("#")):
+                index -= 1
+            pending = block[index:] if name else []
+            name, block = header.group(1).strip(), [line]
+        elif name:
+            block.append(line)
+    if name and name not in GENERATED_TABLES and not name.startswith("files."):
+        kept.extend(pending + block)
+    return kept
+
+
+def self_test_preservation(check, write_baseline) -> None:
+    """Double regeneration keeps [clippy] and its comment (#2543)."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = os.path.join(tmp_dir, "clippy-baseline.toml")
+        totals = {rule: 0 for rule in ("unwrap", "expect", "panic", "unwrap_or_default")}
+        totals["discarded_result"] = 7
+        write_baseline(path, totals, {})
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write("\n# doc for clippy\n[clippy]\nunwrap_used = 0\n"
+                         "expect_used = 0\npanic = 0\n")
+        for generation in (1, 2):
+            write_baseline(path, totals, {})
+            with open(path, "rb") as handle:
+                data = tomllib.load(handle)
+            with open(path, "r", encoding="utf-8") as handle:
+                text = handle.read()
+            check(
+                f"regeneration #{generation} preserves [clippy] and its comment",
+                data.get("clippy") == {
+                    "unwrap_used": 0, "expect_used": 0, "panic": 0,
+                } and "# doc for clippy" in text,
+            )
+            check(f"regeneration #{generation} keeps [rules]", data.get("rules") == totals)
 
 
 def normalize_rel(file_name: str, root: str = ROOT) -> str:
