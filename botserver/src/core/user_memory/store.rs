@@ -80,16 +80,18 @@ pub fn render_rows(rows: Vec<UserMemoryRow>) -> String {
     block
 }
 
-/// Persists the fact for this person, sealed, under its opaque key.
+/// Persists the fact for this person, sealed, under its opaque key. Returns
+/// the key and whether an entry with that key was already stored.
 pub(super) fn store_memory(
     pool: &DbPool,
     user_id: Uuid,
     bot_id: Option<Uuid>,
     fact: &str,
-) -> Result<(), String> {
+) -> Result<(String, bool), String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
     let key = memory_store::fact_key(user_id, fact);
-    memory_store::save(&mut conn, user_id, bot_id, &key, fact)
+    let existed = memory_store::save(&mut conn, user_id, bot_id, &key, fact)?;
+    Ok((key, existed))
 }
 
 #[cfg(test)]

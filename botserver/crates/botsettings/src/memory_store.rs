@@ -149,15 +149,16 @@ pub fn list(
         .collect())
 }
 
-/// Stores `value` under `key`, sealed. UPDATE-then-INSERT works with the
-/// COALESCE expression index on (user, bot, key).
+/// Stores `value` under `key`, sealed; true when an entry with that key was
+/// already there. UPDATE-then-INSERT works with the COALESCE expression index
+/// on (user, bot, key).
 pub fn save(
     conn: &mut PgConnection,
     user_id: Uuid,
     bot_id: Option<Uuid>,
     key: &str,
     value: &str,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let sealed = seal_with(&load_master_encryption_key(), user_id, value)?;
     let updated = diesel::sql_query(
         "UPDATE chat_preferences SET memory_value = $3, updated_at = NOW() \
@@ -171,7 +172,7 @@ pub fn save(
     .execute(conn)
     .map_err(|error| error.to_string())?;
     if updated > 0 {
-        return Ok(());
+        return Ok(true);
     }
     diesel::sql_query(
         "INSERT INTO chat_preferences (user_id, bot_id, memory_key, memory_value) \
@@ -182,7 +183,7 @@ pub fn save(
     .bind::<Text, _>(key)
     .bind::<Text, _>(&sealed)
     .execute(conn)
-    .map(|_| ())
+    .map(|_| false)
     .map_err(|error| error.to_string())
 }
 

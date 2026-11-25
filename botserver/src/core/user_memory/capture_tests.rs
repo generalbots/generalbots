@@ -1,4 +1,5 @@
-use super::capture::{compose_note, fact_to_remember, strip_lead_in, MemoryTurn};
+use super::capture::{compose_note, MemoryTurn};
+use super::lasting::{fact_to_remember, strip_lead_in};
 
 #[test]
 fn tags_and_greetings_before_the_request_are_ignored() {
@@ -44,7 +45,8 @@ fn the_note_states_what_is_remembered_and_what_this_turn_did() {
     let empty = compose_note(true, "", &MemoryTurn::Untouched);
     assert!(empty.contains("Nothing is stored yet"));
     assert!(empty.contains("Never say you cannot remember"));
-    assert!(!empty.contains("THIS TURN"));
+    assert!(empty.contains("THIS TURN: nothing was saved"));
+    assert!(empty.contains("Never say you noted, saved or will remember"));
     let failed = compose_note(true, "", &MemoryTurn::Failed);
     assert!(failed.contains("never say it was saved"));
 }

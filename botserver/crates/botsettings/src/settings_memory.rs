@@ -102,7 +102,7 @@ pub async fn upsert(
     };
     let key = given_key.map_or_else(|| memory_store::fact_key(user_id, value), str::to_string);
     match memory_store::save(&mut conn, user_id, body.bot_id, &key, value) {
-        Ok(()) => (StatusCode::OK, AxumJson(json!({ "success": true, "key": key }))),
+        Ok(_) => (StatusCode::OK, AxumJson(json!({ "success": true, "key": key }))),
         Err(failure) => {
             log::warn!("user memory upsert failed: {failure}");
             error(StatusCode::INTERNAL_SERVER_ERROR, "Memory could not be saved")
