@@ -1,19 +1,10 @@
 "use strict";
 
 /**
- * Consent card renderer (#1176-fe).
- * Renders a .gb-consent-card for bot frames carrying
- * consent_request:{request_id,app_id,action_class,detail}. The three
- * actions (Allow once / Always allow / Deny) POST /api/consent/resolve
- * {request_id,decision} with the suite Bearer token and swap the card to an
- * outcome summary. At boot, GET /api/consent/pending revives unresolved
- * requests so they survive a page reload.
+ * Consent card renderer (#1176-fe). Cards POST {request_id,decision} to
+ * /api/consent/resolve; GET /api/consent/pending revives them on reload.
  */
-
-  // #2448 criterion 3 — destructive markers now carry an OPTIONAL bounded,
-  // content-free preview (server: consent_gate.rs marker_content), rendered
-  // read-only above the buttons. The explicit confirm/cancel resolution gate
-  // is a separate open gap; the five permission decisions below are unchanged.
+  // #2448 criterion 3 — destructive cards render Confirm/Cancel, not grants.
 
 (function () {
   function escapeHtml(value) {
@@ -33,6 +24,17 @@
     always: { label: "Always allow", outcome: "Always allowed" },
     deny: { label: "Deny", outcome: "Denied" },
   };
+
+  // The wire accepts five decisions (botconsent::models::Decision); confirm
+  // reuses `allow_once` (stages the request id, resumes) and cancel reuses
+  // `deny` (never staged) — no new enum/crate needed.
+  var CONFIRM_WIRE_DECISION = "allow_once", CANCEL_WIRE_DECISION = "deny";
+  function wireDecision(d) {
+    return d === "confirm" ? CONFIRM_WIRE_DECISION : (d === "cancel" ? CANCEL_WIRE_DECISION : d);
+  }
+  function isConfirmGate(r) {
+    return !!(r && (r.confirm_required === true || r.action_class === "delete"));
+  }
 
   var lastConsentRequest = null;
 
@@ -56,10 +58,8 @@
     return h;
   }
 
-  // The payload's detail is a JSON object (e.g. {command:"api.exec",
-  // params:{method:"GET",path:"/api/..."}}). Rendering it directly printed
-  // "[object Object]" and left the user unable to see WHAT was being approved
-  // (UAT billing/products runs). Summarise it into one readable line.
+  // Summarise detail objects into one readable line: raw JSON printed
+  // "[object Object]" and hid WHAT was being approved.
   function describeDetail(detail) {
     if (detail === null || detail === undefined) return "";
     if (typeof detail === "string") return detail;
@@ -131,8 +131,13 @@
   }
 
   function buildCard(req) {
+    var confirmGate = isConfirmGate(req);
+    // Destructive commands must never be satisfiable by a permission grant.
+    var actions = confirmGate
+      ? '<button type="button" class="gb-consent-btn primary" data-decision="confirm">' + escapeHtml(t("action-confirm", "Confirm")) + '</button><button type="button" class="gb-consent-btn danger" data-decision="cancel">' + escapeHtml(t("action-cancel", "Cancel")) + '</button>'
+      : '<button type="button" class="gb-consent-btn primary" data-decision="allow_once">Allow once</button><button type="button" class="gb-consent-btn" data-decision="allow_run">This run</button><button type="button" class="gb-consent-btn" data-decision="allow_workspace">1 hour</button><button type="button" class="gb-consent-btn" data-decision="always">Always allow</button><button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button>';
     var card = document.createElement("div");
-    card.className = "gb-consent-card";
+    card.className = "gb-consent-card" + (confirmGate ? " gb-consent-confirm-gate" : "");
     card.setAttribute("data-request-id", String(req.request_id));
     card.innerHTML =
       '<div class="gb-consent-head">' +
@@ -143,13 +148,7 @@
       "</div></div>" +
       '<div class="gb-consent-detail"></div>' +
       '<div class="gb-consent-risk"></div>' +
-      '<div class="gb-consent-actions">' +
-      '<button type="button" class="gb-consent-btn primary" data-decision="allow_once">Allow once</button>' +
-      '<button type="button" class="gb-consent-btn" data-decision="allow_run">This run</button>' +
-      '<button type="button" class="gb-consent-btn" data-decision="allow_workspace">1 hour</button>' +
-      '<button type="button" class="gb-consent-btn" data-decision="always">Always allow</button>' +
-      '<button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button>' +
-      "</div>";
+      '<div class="gb-consent-actions">' + actions + "</div>";
     var detail = req.detail && typeof req.detail === "object" ? req.detail : {};
     var appName = typeof req.app_id === "string" && req.app_id
       ? req.app_id
@@ -176,27 +175,22 @@
 
   function swapToOutcome(card, decision, ok) {
     var meta = DECISIONS[decision] || { outcome: decision };
+    var text = decision === "confirm" ? t("action-confirm", "Confirm")
+      : decision === "cancel" ? t("status-cancelled", "Cancelled") : meta.outcome;
     card.classList.add("resolved", ok ? "granted" : "failed");
     card.innerHTML =
       '<div class="gb-consent-outcome">' +
       '<span class="gb-consent-outcome-icon">' + (ok ? "\u2705" : "\u26A0\uFE0F") + "</span>" +
       '<span class="gb-consent-outcome-text">' +
-      escapeHtml(ok ? meta.outcome : "Could not record your decision") +
+      escapeHtml(ok ? text : "Could not record your decision") +
       "</span>" +
       '<span class="gb-consent-outcome-time">' +
       gbFormatTime(new Date()) +
       "</span></div>";
   }
 
-  /**
-   * A granted decision must RESUME the turn. The server ends the turn with the
-   * consent marker, so the assistant never retries the gated call by itself:
-   * "Allow once" used to grant the capability and then sit there, and UAT runs
-   * for billing/tax/products stalled on a card that had already been approved.
-   * Sending the continuation through `window.sendMessage` routes to the tab
-   * that owns the card (multichat wraps that global), so the retry lands in the
-   * same conversation and session the approval is bound to.
-   */
+  // A grant must RESUME the turn: the server ends it on the marker, and the
+  // assistant never retries alone. `sendMessage` routes to the owning tab.
   function resumeAfterGrant(decision) {
     if (decision === "deny") return;
     if (typeof window.sendMessage !== "function") return;
@@ -213,22 +207,31 @@
     fetch("/api/consent/resolve", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ request_id: requestId, decision: decision }),
+      body: JSON.stringify({ request_id: requestId, decision: wireDecision(decision) }),
     })
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         swapToOutcome(card, decision, true);
-        resumeAfterGrant(decision);
+        // Cancel never resumes: `deny` stages no approval and no sendMessage
+        // goes out, so the model cannot re-emit the destructive command.
+        if (decision === "cancel") {
+          lastConsentRequest = null;
+          try { if (window.addMessage) window.addMessage("bot", t("status-cancelled", "Cancelled")); } catch (e) {}
+        } else if (decision === "confirm") {
+          // Confirm resumes on the one-shot approval carrying the payload.
+          if (typeof window.sendMessage === "function") setTimeout(function () {
+            try { window.sendMessage("Confirmed. Continue and run the previously requested command now with the same parameters."); } catch (e) {}
+          }, 200);
+        } else {
+          resumeAfterGrant(decision);
+        }
       })
       .catch(function () {
         swapToOutcome(card, decision, false);
       });
   }
 
-  /**
-   * Renders one consent request into a message element.
-   * Idempotent per request id within the conversation.
-   */
+  // Renders one request into a message; idempotent per request id.
   window.GBRenderConsentCard = function (msgEl, req) {
     if (!msgEl || !req || !req.request_id) return;
     var pane = document.getElementById("messages");
@@ -260,16 +263,14 @@
   }
 
   function revivePending() {
-    // Builds without the consent route would answer 404; the manifest says
-    // so up front, and the browser logs every failed request (#1693).
+    // A missing consent route answers 404 (#1693); check the manifest first.
     if (featureCompiled("consent") === false) {
       window.__gbConsentApiAvailable = false;
       return;
     }
     fetch("/api/consent/pending", { headers: authHeaders() })
       .then(function (r) {
-        // Builds without the optional `consent` feature have no such route;
-        // do not retry or log a 404 on every boot.
+        // No route in builds without `consent`; do not retry the 404.
         if (r.status === 404) {
           window.__gbConsentApiAvailable = false;
           return null;
@@ -286,8 +287,7 @@
       .catch(function () { /* revival is best-effort */ });
   }
 
-  // Hook: wrap the global addMessage (assignment preservation). This module
-  // loads after 30_citations.js, chaining on top of any earlier wrapper.
+  // Wrap addMessage, chaining on top of 30_citations.js's wrapper.
   var MARKER = "GB-CONSENT-REQUEST:";
 
   function decodeMarker(content) {
@@ -313,10 +313,8 @@
     }
   }
 
-  // Shared by every render path (stock addMessage, parallel-tab panes,
-  // streaming preview, history replay). `GBConsentStrip` guarantees the raw
-  // `GB-CONSENT-REQUEST:<base64>` payload never reaches the user even when a
-  // path cannot render the card (truncated chunk, legacy pane).
+  // Every render path uses GBConsentStrip so the raw marker never reaches
+  // the user, even when no card can be built (truncated chunk, legacy pane).
   var MARKER_RE = /GB-CONSENT-REQUEST:[A-Za-z0-9+/=_-]+/g;
 
   window.GBConsentExtract = decodeMarker;
@@ -347,17 +345,14 @@
           if (cleaned !== arguments[1]) arguments[1] = cleaned;
         }
         if (sender === "bot" && req) {
-          // #2229 — during history replay, addMessage appends into a
-          // DocumentFragment (ChatState.appendTarget), not #messages. Look in
-          // the same container the message actually went into, otherwise the
-          // card is attached to the wrong bubble and the marker text leaks.
+          // #2229 — history replay appends into ChatState.appendTarget, not
+          // #messages; use that container or the card lands on the wrong bubble.
           var pane = (window.ChatState && ChatState.appendTarget) || document.getElementById("messages");
           var lastMsgEl = pane ? pane.lastElementChild : null;
           if (lastMsgEl && lastMsgEl.classList && lastMsgEl.classList.contains("bot")) {
             var body = lastMsgEl.querySelector(".message-content");
             if (body) {
-              // Replace the marker payload with the interactive card; the
-              // leading sentence stays for screen readers and copy-out.
+              // Keep the leading sentence for screen readers / copy-out.
               var lead = typeof arguments[1] === "string"
                 ? window.GBConsentStrip(arguments[1])
                 : "";
@@ -378,9 +373,7 @@
     window.addMessage = wrapped;
   }
 
-  // chat-send.js defines `addMessage` after this module loads, so a single
-  // install at parse time found nothing and every consent prompt leaked its
-  // raw `GB-CONSENT-REQUEST:<base64>` marker into the bubble (#2194).
+  // chat-send.js defines addMessage later (#2194); retry the install.
   function installHookWhenReady(attempt) {
     var tries = attempt || 0;
     if (typeof window.addMessage === "function") {
@@ -399,11 +392,8 @@
     document.addEventListener("DOMContentLoaded", function () { installHookWhenReady(0); });
   }
 
-  // Render-path independent sweep. Wrapping `window.addMessage` is fragile:
-  // the chat reassigns that global from several modules (citations,
-  // multichat) and history replay batches through a DocumentFragment, so a
-  // marker could still reach the bubble as raw text (#2194). The observer
-  // watches the transcript itself, so every path ends up with a real card.
+  // Sweep the transcript itself: addMessage is reassigned by other modules and
+  // history replay batches via a DocumentFragment (#2194).
   function renderMessageMarker(msgEl) {
     if (!msgEl || msgEl.dataset.gbConsentDone === "1") return;
     var body = msgEl.querySelector(".message-content") || msgEl;
