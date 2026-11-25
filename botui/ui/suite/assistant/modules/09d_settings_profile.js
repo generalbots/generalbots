@@ -211,27 +211,54 @@
         return '<div class="gb-sp-k">' + esc(key) + '</div><div class="gb-sp-v' + (missing ? " gb-sp-none" : "") + '">' + esc(value) + '</div>';
     }
 
-    /* Collaborators of github.com/GeneralBots/generalbots (2026-11-25). Kept
-     * in the page: the app works offline, so nothing is fetched and no
-     * avatar is loaded from GitHub. Maintainers are the repository admins. */
+    /* Collaborators of github.com/GeneralBots/generalbots with their commits
+     * on the default branch (GitHub, 2026-11-25), most first. Kept in the
+     * page: the app works offline, so nothing is fetched and no avatar is
+     * loaded from GitHub. Maintainers are the repository admins. */
     var collaborators = [
-        "AnaPaulaGil", "AtyllaL", "christopherdecastilho", "ChristopherCastilho", "danielolima96",
-        "Dariojunior3", "flavioandrade91", "HeraldoAlmeida", "jonathasc", "jramos-br", "lpicanco",
-        "marcosvelasco", "oerlabshenrique", "operations-pragmatismo", "othonlima", "RobsonDantasE",
-        "rodrigorodriguez", "thipatriota", "ZuilhoSe"
+        ["rodrigorodriguez", 4257, true], ["thipatriota", 242, true], ["jramos-br", 22],
+        ["ChristopherCastilho", 11], ["danielolima96", 5], ["ZuilhoSe", 2],
+        ["AnaPaulaGil", 0], ["AtyllaL", 0], ["christopherdecastilho", 0], ["Dariojunior3", 0],
+        ["flavioandrade91", 0], ["HeraldoAlmeida", 0], ["jonathasc", 0], ["lpicanco", 0],
+        ["marcosvelasco", 0], ["oerlabshenrique", 0], ["operations-pragmatismo", 0, true],
+        ["othonlima", 0], ["RobsonDantasE", 0]
     ];
-    var maintainers = ["operations-pragmatismo", "rodrigorodriguez", "thipatriota"];
+    /* How many the card shows before "Mostrar todos"; the stylesheet hides
+     * the rest (`.gb-sp-people:not(.is-all) > li:nth-child(n + 7)`). */
+    var collaboratorsShown = 6;
+    var collaboratorsOpen = false;
 
     function collaboratorsCard() {
-        var items = collaborators.map(function (login) {
-            var role = maintainers.indexOf(login) >= 0 ? '<span class="gb-sp-person-role">' + esc(tr("Mantenedor", "Maintainer")) + '</span>' : '';
+        var items = collaborators.map(function (person) {
+            var login = person[0];
+            var commits = person[1];
+            var facts = [];
+            if (commits > 0) {
+                facts.push(commits.toLocaleString(A.locale) + " " + (commits === 1 ? "commit" : "commits"));
+            }
+            if (person[2]) { facts.push(tr("Mantenedor", "Maintainer")); }
             return '<li><a class="gb-sp-person" href="https://github.com/' + encodeURIComponent(login) + '" target="_blank" rel="noopener noreferrer">' +
                 '<span class="gb-sp-person-badge" aria-hidden="true">' + esc(login.charAt(0).toUpperCase()) + '</span>' +
-                '<span class="gb-sp-person-name">' + esc(login) + '</span>' + role + '</a></li>';
+                '<span class="gb-sp-person-text"><span class="gb-sp-person-name">' + esc(login) + '</span>' +
+                (facts.length ? '<span class="gb-sp-person-facts">' + esc(facts.join(" · ")) + '</span>' : '') + '</span></a></li>';
         }).join("");
+        var more = collaborators.length > collaboratorsShown ? '<div class="gb-sp-people-foot"><button type="button" class="gb-sp-btn" id="gbPeopleToggle" aria-controls="gbPeopleList" aria-expanded="' +
+            collaboratorsOpen + '">' + esc(collaboratorsOpen ? tr("Mostrar menos", "Show less") : tr("Mostrar todos", "Show all") + " (" + collaborators.length + ")") + '</button></div>' : '';
         return '<section class="gb-sp-card gb-sp-clip" aria-labelledby="gbPeopleTitle"><div class="gb-sp-head"><strong id="gbPeopleTitle">' +
-            esc(tr("Colaboradores", "Collaborators")) + '</strong><span class="gb-sp-people-count">' + collaborators.length +
-            ' · github.com/GeneralBots/generalbots</span></div><ul class="gb-sp-people">' + items + '</ul></section>';
+            esc(tr("Colaboradores", "Collaborators")) + '</strong><span class="gb-sp-people-count">' + esc(tr("por contribuição", "by contribution")) +
+            ' · github.com/GeneralBots/generalbots</span></div><ul class="gb-sp-people' + (collaboratorsOpen ? ' is-all' : '') +
+            '" id="gbPeopleList">' + items + '</ul>' + more + '</section>';
+    }
+
+    function bindCollaborators(panel) {
+        var toggle = panel.querySelector("#gbPeopleToggle");
+        if (!toggle) { return; }
+        toggle.onclick = function () {
+            collaboratorsOpen = !collaboratorsOpen;
+            panel.querySelector("#gbPeopleList").classList.toggle("is-all", collaboratorsOpen);
+            toggle.setAttribute("aria-expanded", String(collaboratorsOpen));
+            toggle.textContent = collaboratorsOpen ? tr("Mostrar menos", "Show less") : tr("Mostrar todos", "Show all") + " (" + collaborators.length + ")";
+        };
     }
 
     function known(value) { return value && !/^unknown$/i.test(String(value)) ? String(value) : ""; }
@@ -262,6 +289,7 @@
             '<div class="gb-sp-about-foot"><span>' + tr("Código aberto, escrito em Rust.", "Open source, written in Rust.") +
             '</span><a href="https://github.com/GeneralBots" target="_blank" rel="noopener noreferrer">' + tr("Ver o código", "View the code") +
             A.settingsIcon("M7 17 17 7M8 7h9v9", 11, 3) + '</a></div></section>' + collaboratorsCard();
+        bindCollaborators(panel);
         var button = panel.querySelector("#gbCheckUpdate");
         button.onclick = async function () {
             if (!tauri || typeof tauri.invoke !== "function") {
