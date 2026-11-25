@@ -156,19 +156,50 @@ jobs:
       - name: Install libpq (PostgreSQL client libraries)
         shell: pwsh
         run: |
-          choco install postgresql16 --no-progress -y
+          # The default Chocolatey V2 feed is intermittently unreachable on
+          # windows-latest ("Unable to find package 'postgresql16'"), and a
+          # transient failure used to abort the whole check. Try each known
+          # feed explicitly (one per attempt, then both combined in a single
+          # semicolon-separated --source) before treating this as fatal.
+          $sourceSets = @(
+            'https://community.chocolatey.org/api/v2/',
+            'https://www.myget.org/F/chocolatey/api/v2/',
+            'https://community.chocolatey.org/api/v2/;https://www.myget.org/F/chocolatey/api/v2/'
+          )
+          $installed = $false
+          for ($attempt = 1; $attempt -le $sourceSets.Count; $attempt++) {
+            $chocoArgs = @(
+              'install', 'postgresql16',
+              '--no-progress', '--limit-output', '-y',
+              '--source', $sourceSets[$attempt - 1]
+            )
+            Write-Host "Installing postgresql16 (attempt $attempt of $($sourceSets.Count))"
+            & choco @chocoArgs
+            if ($LASTEXITCODE -eq 0) {
+              $installed = $true
+              break
+            }
+            Write-Host "::warning::postgresql16 install attempt $attempt failed with exit $LASTEXITCODE"
+            if ($attempt -lt $sourceSets.Count) { Start-Sleep -Seconds 10 }
+          }
+          if (-not $installed) {
+            throw "Chocolatey could not install postgresql16 after $($sourceSets.Count) attempts (feeds unreachable?)"
+          }
           # The image may already carry another major version whose `lib` does
-          # not ship libpq.dll, so pick a directory that really has it instead
-          # of the highest-looking folder name.
+          # not ship libpq.dll, so pick a directory that really has the DLL
+          # (older packages put it in lib\, newer ones in bin\) instead of the
+          # highest-looking folder name.
           $candidates = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
-            Where-Object { Test-Path (Join-Path $_.FullName "lib\libpq.dll") } |
+            Where-Object {
+              (Test-Path (Join-Path $_.FullName "lib\libpq.dll")) -or
+              (Test-Path (Join-Path $_.FullName "bin\libpq.dll"))
+            } |
             Sort-Object Name
           if (-not $candidates) {
-            throw "No PostgreSQL installation provides lib\libpq.dll"
+            throw "No PostgreSQL installation provides libpq.dll (checked lib\ and bin\)"
           }
           $pg = $candidates[-1]
-          $lib = Join-Path $pg.FullName "lib"
-          "PQ_LIB_DIR=$lib" >> $env:GITHUB_ENV
+          "PQ_LIB_DIR=$(Join-Path $pg.FullName 'lib')" >> $env:GITHUB_ENV
           "$($pg.FullName)\bin" >> $env:GITHUB_PATH
 
       - name: Check the Windows agent/VM adapters

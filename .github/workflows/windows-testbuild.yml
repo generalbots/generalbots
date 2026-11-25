@@ -50,7 +50,36 @@ jobs:
           # so generate one here and stage it outside the repo for that step.
           $pgAdminPass = [guid]::NewGuid().ToString('N')
           Set-Content -Path "$env:RUNNER_TEMP\gb-pgadmin.pass" -Value $pgAdminPass -NoNewline
-          choco install postgresql16 --no-progress -y --params "/Password:$pgAdminPass"
+          # The default Chocolatey V2 feed is intermittently unreachable on
+          # windows-latest ("Unable to find package 'postgresql16'"). Try each
+          # known feed explicitly (one per attempt, then both combined in a
+          # single semicolon-separated --source) before treating this as fatal;
+          # the generated password is staged once and reused on every attempt.
+          $sourceSets = @(
+            'https://community.chocolatey.org/api/v2/',
+            'https://www.myget.org/F/chocolatey/api/v2/',
+            'https://community.chocolatey.org/api/v2/;https://www.myget.org/F/chocolatey/api/v2/'
+          )
+          $installed = $false
+          for ($attempt = 1; $attempt -le $sourceSets.Count; $attempt++) {
+            $chocoArgs = @(
+              'install', 'postgresql16',
+              '--no-progress', '--limit-output', '-y',
+              '--params', "/Password:$pgAdminPass",
+              '--source', $sourceSets[$attempt - 1]
+            )
+            Write-Host "Installing postgresql16 (attempt $attempt of $($sourceSets.Count))"
+            & choco @chocoArgs
+            if ($LASTEXITCODE -eq 0) {
+              $installed = $true
+              break
+            }
+            Write-Host "::warning::postgresql16 install attempt $attempt failed with exit $LASTEXITCODE"
+            if ($attempt -lt $sourceSets.Count) { Start-Sleep -Seconds 10 }
+          }
+          if (-not $installed) {
+            throw "Chocolatey could not install postgresql16 after $($sourceSets.Count) attempts (feeds unreachable?)"
+          }
           $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
             Sort-Object Name | Select-Object -Last 1
           if (-not $pg) { throw "PostgreSQL install directory not found" }
@@ -157,11 +186,46 @@ jobs:
             if (-not $pgRoot) { throw "PostgreSQL install directory not found" }
             $pgBin = Join-Path $pgRoot.FullName 'bin'
             $env:PATH = "$pgBin;$env:PATH"
-            $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
+            # Prefer an already-running instance: a windows-latest image can
+            # ship several majors and a broken image service must not mask a
+            # healthy sibling.
+            $svc = @(Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue) |
+              Sort-Object { if ($_.Status -eq 'Running') { 0 } else { 1 } } |
+              Select-Object -First 1
             if (-not $svc) { throw "PostgreSQL service not found" }
             if ($svc.Status -ne 'Running') {
-              Start-Service $svc.Name
-              Start-Sleep -Seconds 5
+              # Startup can be transiently blocked (e.g. the image service is
+              # still settling). Retry a bounded number of times, then diagnose
+              # and fail — the smoke test must never continue without a DB.
+              $started = $false
+              for ($attempt = 1; $attempt -le 5; $attempt++) {
+                try {
+                  Start-Service -Name $svc.Name -ErrorAction Stop
+                } catch {
+                  Write-Host "::warning::PostgreSQL service $($svc.Name) start attempt $attempt/5 failed: $($_.Exception.Message)"
+                }
+                Start-Sleep -Seconds 5
+                $svc.Refresh()
+                if ($svc.Status -eq 'Running') {
+                  $started = $true
+                  break
+                }
+              }
+              if (-not $started) {
+                $svcState = @(Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue) |
+                  Format-Table Name, Status, StartType -AutoSize | Out-String
+                Write-Host "::error::PostgreSQL service $($svc.Name) failed to start after 5 attempts (status: $($svc.Status))"
+                Write-Host $svcState
+                $svcEvents = Get-WinEvent -FilterHashtable @{
+                  LogName = 'System'
+                  ProviderName = 'Service Control Manager'
+                  StartTime = (Get-Date).AddMinutes(-15)
+                } -MaxEvents 20 -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Message -match 'PostgreSQL' } |
+                  Format-List TimeCreated, Id, Message | Out-String
+                Write-Host $svcEvents
+                throw "Could not start PostgreSQL service '$($svc.Name)' after 5 attempts"
+              }
             }
             $roleSql = 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''gb'') THEN CREATE ROLE gb LOGIN PASSWORD ''gb''; ELSE ALTER ROLE gb WITH LOGIN PASSWORD ''gb''; END IF; END $$;'
             & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c $roleSql
