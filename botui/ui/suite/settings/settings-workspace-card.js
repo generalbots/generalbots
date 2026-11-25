@@ -87,7 +87,7 @@
    * every later render (including afterSwap) gets that exact promise back, so
    * a failed terminal result is also cached: after MAX_RETRIES the module
    * stops instead of restarting a 429 storm on the next fragment swap. */
-  function memoFetch(key, url, options) {
+  function memoFetch(key, url, options, parser) {
     var id = cacheId(key);
     var hit = fetchCache[id];
     if (hit) { return hit; }
@@ -100,7 +100,10 @@
           attempt += 1;
           return new Promise(function (resolve) { setTimeout(resolve, wait); }).then(run);
         }
-        return response;
+        if (!response.ok) { throw new Error("HTTP " + response.status); }
+        // Cache the PARSED payload: a Response body can only be consumed once,
+        // so re-renders after htmx:afterSwap must not call .json() again.
+        return parser(response);
       });
     }
     var pending = Promise.resolve().then(run);
@@ -114,7 +117,11 @@
 
   function setText(id, value) {
     var node = byId(id);
-    if (node) { node.textContent = value; }
+    if (!node) { return; }
+    // The HTML ships a data-i18n loading placeholder; once real data lands,
+    // drop it so a later locale re-apply cannot overwrite the rendered value.
+    if (node.hasAttribute("data-i18n")) { node.removeAttribute("data-i18n"); }
+    node.textContent = value;
   }
 
   function renderEdition() {
@@ -135,11 +142,7 @@
   }
 
   function renderIdentity() {
-    memoFetch("identity", "/api/auth/me", { headers: headers(), cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) { throw new Error("HTTP " + response.status); }
-        return response.json();
-      })
+    memoFetch("identity", "/api/auth/me", { headers: headers(), cache: "no-store" }, function (response) { return response.json(); })
       .then(function (payload) {
         var user = payload && (payload.user || payload);
         if (!user) { throw new Error("no user"); }
@@ -156,11 +159,7 @@
   function renderVersions() {
     var chip = document.querySelector('[data-workspace-goto="versions"]');
     if (!chip) { return; }
-    memoFetch("versions", "/api/system/versions", { headers: headers(), cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) { throw new Error("HTTP " + response.status); }
-        return response.json();
-      })
+    memoFetch("versions", "/api/system/versions", { headers: headers(), cache: "no-store" }, function (response) { return response.json(); })
       .then(function (versions) {
         var value = (versions && (versions.botserver || versions.version)) || "";
         chip.textContent = value ? "Version: " + value : "Versions";
@@ -174,11 +173,7 @@
     if (edition() !== "cloud") { return; }
     var chip = byId("workspace-plan");
     if (!chip) { return; }
-    memoFetch("plan", "/api/user/billing/plan", { headers: headers(), cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) { throw new Error("HTTP " + response.status); }
-        return response.text();
-      })
+    memoFetch("plan", "/api/user/billing/plan", { headers: headers(), cache: "no-store" }, function (response) { return response.text(); })
       .then(function (html) {
         var text = String(html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
         if (!text) {

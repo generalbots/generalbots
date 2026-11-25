@@ -70,8 +70,8 @@ h.staticTest("#2936 one memoized panel-load fetch path serves identity, versions
   contains(keyFn, 'return key + "|" + token() + "|" + edition();',
     "cache is keyed by auth token plus active edition");
 
-  contains(src, "function memoFetch(key, url, options) {", "memoized fetch ships");
-  var memo = span(src, "function memoFetch(key, url, options) {", "function clearFetchCache() {");
+  contains(src, "function memoFetch(key, url, options, parser) {", "memoized fetch ships");
+  var memo = span(src, "function memoFetch(key, url, options, parser) {", "function clearFetchCache() {");
   contains(memo, "var id = cacheId(key);", "cache id is derived from the panel load");
   contains(memo, "var hit = fetchCache[id];", "cache is read first");
   contains(memo, "if (hit) { return hit; }", "a cache hit returns before any network call");
@@ -90,11 +90,11 @@ h.staticTest("#2936 one memoized panel-load fetch path serves identity, versions
     "there must be exactly one raw fetch() call, inside memoFetch");
   h.assert(countIn(src, 'memoFetch("') === 3,
     "there must be exactly three memoFetch chip call sites, got " + countIn(src, 'memoFetch("'));
-  contains(src, 'memoFetch("identity", "/api/auth/me", { headers: headers(), cache: "no-store" })',
+  contains(src, 'memoFetch("identity", "/api/auth/me", { headers: headers(), cache: "no-store" },',
     "identity chip uses the memoized /api/auth/me read");
-  contains(src, 'memoFetch("versions", "/api/system/versions", { headers: headers(), cache: "no-store" })',
+  contains(src, 'memoFetch("versions", "/api/system/versions", { headers: headers(), cache: "no-store" },',
     "versions chip uses the memoized read");
-  contains(src, 'memoFetch("plan", "/api/user/billing/plan", { headers: headers(), cache: "no-store" })',
+  contains(src, 'memoFetch("plan", "/api/user/billing/plan", { headers: headers(), cache: "no-store" },',
     "plan chip uses the memoized read");
   absent(src, 'fetch("/api/auth/me"', "the old per-render /api/auth/me fetch must be gone");
 });
@@ -156,19 +156,19 @@ h.staticTest("#2936 Retry-After seconds/date parsing with bounded backoff and a 
     "return Math.min(1000 * Math.pow(2, attempt), BACKOFF_CAP_MS);",
     "Retry-After must be preferred over the computed backoff");
 
-  var retryable = span(src, "function isRetryable(response) {", "function memoFetch(key, url, options) {");
+  var retryable = span(src, "function isRetryable(response) {", "function memoFetch(key, url, options, parser) {");
   contains(retryable, "var status = response ? response.status : 0;", "status is read defensively");
   contains(retryable, "return status === 429 || (status >= 500 && status < 600);",
     "only 429 and 5xx are retried");
 
-  var memo = span(src, "function memoFetch(key, url, options) {", "function clearFetchCache() {");
+  var memo = span(src, "function memoFetch(key, url, options, parser) {", "function clearFetchCache() {");
   contains(memo, "if (isRetryable(response) && attempt < MAX_RETRIES) {",
     "retry is gated by the hard cap");
   contains(memo, "var wait = retryDelayMs(response, attempt);", "the delay comes from the parser");
   contains(memo, "attempt += 1;", "each retry increments the attempt counter");
   contains(memo, "return new Promise(function (resolve) { setTimeout(resolve, wait); }).then(run);",
     "a retry waits for the computed delay before re-running");
-  contains(memo, "return response;", "exhausted or non-retryable responses stop the loop");
+  contains(memo, "return parser(response);", "exhausted or non-retryable responses are parsed once and cached");
   ordered(memo, "if (isRetryable(response) && attempt < MAX_RETRIES) {", "attempt += 1;",
     "the cap check must precede the counter increment");
   ordered(memo, "attempt += 1;",
@@ -203,7 +203,9 @@ h.staticTest("#2936 non-vacuity: original chip strings and endpoints survive, no
 
   // The shipped card has no catalogue keys: the fix must not add any.
   absent(src, "gbT(", "no new gbT key/user-facing literal was introduced");
-  absent(src, "data-i18n", "no new data-i18n key was introduced");
+  absent(src, 'setAttribute("data-i18n"', "no new data-i18n key was introduced");
+  contains(src, 'return parser(response);', "memo caches the parsed payload, not a single-use Response");
+  contains(src, 'removeAttribute("data-i18n")', "the loading placeholder is removed once real identity renders");
   contains(src, 'setText("workspace-identity", name + " · " + where);',
     "the visible identity chip is still rendered from the fetched user");
   contains(src, "renderIdentity();", "identity chip still renders");
