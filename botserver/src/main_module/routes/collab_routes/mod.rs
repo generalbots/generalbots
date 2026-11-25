@@ -32,6 +32,7 @@ mod comments;
 mod dto;
 mod engagement;
 mod helpers;
+mod link_inventory;
 // The platform sender is shared by mention email and the weekly digest
 // (#1813); compile it whenever either delivery path is enabled.
 #[cfg(any(feature = "mail", feature = "digest"))]
@@ -43,6 +44,7 @@ pub use comments::*;
 pub use dto::*;
 pub use engagement::*;
 pub(crate) use helpers::*;
+pub use link_inventory::*;
 pub use permissions::*;
 pub use versions::*;
 
@@ -71,6 +73,10 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
         .route("/api/collab/permissions/transfer", post(transfer_ownership))
         .route("/api/collab/permissions/me", get(my_role))
         .route("/api/collab/links", get(list_links).post(create_link))
+        // #2452 — registration order matters: axum matches paths in insertion
+        // order, so the static inventory path must precede `/:token` or "all"
+        // would be parsed as a link token.
+        .route("/api/collab/links/all", get(list_all_links))
         .route("/api/collab/links/:token", delete(revoke_link))
         .route(
             "/api/collab/presence",
