@@ -135,14 +135,41 @@ fn a_clean_workbook_package_reaches_the_parser() {
                 .to_vec(),
         ),
     ]);
+    // `HostileFilePolicy::default()` requires a registered malware scanner;
+    // unit tests have none, so only the scanner requirement is relaxed here.
+    // Bombs, macros, XXE and unsafe relationship targets stay enforced by the
+    // same structural gates (see the negative tests in this file).
     let result = audit_hostile_upload(
         &bytes,
         "clean.xlsx",
         &axum::http::HeaderMap::new(),
         "test",
-        &upload_policy::HostileFilePolicy::default(),
+        &unscanned_policy(),
     );
     assert!(result.is_ok());
+}
+
+#[test]
+fn a_clean_workbook_still_requires_a_scanner_under_the_production_policy() {
+    // Guards the fixture change above: relaxing the scanner requirement only
+    // in isolated structural tests never relaxes the production default.
+    let bytes = zip_with(&[(
+        "xl/worksheets/sheet1.xml",
+        b"<worksheet><sheetData/></worksheet>".to_vec(),
+    )]);
+    match audit_hostile_upload(
+        &bytes,
+        "clean.xlsx",
+        &axum::http::HeaderMap::new(),
+        "test",
+        &upload_policy::HostileFilePolicy::default(),
+    ) {
+        Err((status, Json(body))) => {
+            assert_eq!(status, StatusCode::BAD_REQUEST);
+            assert_eq!(body["code"], "error-file-upload-failed");
+        }
+        Ok(()) => assert!(false, "production policy must require a scanner"),
+    }
 }
 
 #[test]
@@ -165,12 +192,14 @@ fn a_macro_workbook_is_stripped_and_noticed_before_conversion() {
         &unscanned_policy(),
     )
     .expect("sanitized workbook must pass the shared gate");
+    // Structural checks stay fully enforced; only the scanner requirement is
+    // relaxed, because no malware scanner is registered inside a unit test.
     let result = audit_hostile_upload(
         &stripped.bytes,
         &upload.filename,
         &axum::http::HeaderMap::new(),
         "test",
-        &upload_policy::HostileFilePolicy::default(),
+        &unscanned_policy(),
     );
     assert!(result.is_ok(), "no executable parts may remain");
     let notice =

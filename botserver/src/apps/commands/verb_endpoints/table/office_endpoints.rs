@@ -415,14 +415,14 @@ pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
     // #2448 — genuinely unbound office-suite verb with a safe field rename:
     // delete_element needs no JSON body, only the two path params. `file_id`
     // is the curated targeting key for `:canvas_id`; `element_id` already
-    // matches the second path segment. The self-rename makes that path-param
-    // mapping explicit for the static audit (path segments are not struct
-    // fields), so no defaulting is required.
+    // matches the second path segment and passes through unrenamed. Path
+    // segments are not struct fields, so the static audit sees `element_id`
+    // through the binding's default rather than a self-rename.
     bind(
         "canvas.element.delete",
         "DELETE",
         "/api/canvas/:canvas_id/elements/:element_id",
-        &[("file_id", "canvas_id"), ("element_id", "element_id")],
-        &[],
+        &[("file_id", "canvas_id")],
+        &[("element_id", "element_id")],
     ),
 ];
