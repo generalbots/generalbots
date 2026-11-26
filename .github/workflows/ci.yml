@@ -811,6 +811,37 @@ jobs:
           print(f"office memory: {n} ceilings ratcheted; over-ceiling detection OK")
           '
 
+      # #2459/#2463 — machine-readable Office performance budgets and the
+      # interop conversion-report validator. Self-tests prove both gates fail
+      # closed on a regression (non-vacuous), and the budget config is schema
+      # checked on every PR. A CI perf report is evaluated when one is uploaded
+      # to bottest/tools/perf/reports/latest.json; until the hardware job
+      # produces it, only config/self-tests run and no measurement is claimed.
+      - name: "Guard: office perf budgets and interop report (#2459/#2463)"
+        run: |
+          set -euo pipefail
+          python3 bottest/tools/perf/check_perf_budgets.py --validate-config
+          python3 bottest/tools/perf/check_perf_budgets.py --self-test
+          python3 bottest/tools/interop/interop.py --self-test
+          if [ -f bottest/tools/perf/reports/latest.json ]; then
+            python3 bottest/tools/perf/check_perf_budgets.py \
+              --report bottest/tools/perf/reports/latest.json
+          else
+            echo "no perf report uploaded; config + self-tests only (no measurement claimed)"
+          fi
+
+      # Office static audits (enterprise surface, interop paths, large-file
+      # readiness) are read-only and non-vacuous. Running them together makes
+      # the source-level half of the Office acceptance criteria continuously
+      # observable in the PR check. They explicitly claim no browser/hardware
+      # PASS; the measured halves stay attached to #2435/#2459/#2531.
+      - name: "Guard: office static evidence audits (#2476/#2463/#2534)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_office_enterprise_audit.py
+          python3 scripts/check_office_interop_audit.py
+          python3 scripts/check_office_scale_audit.py
+
       # #2481 — the OS image must keep Mesa/VA-API packages and the software
       # (swrast/GBM) fallback for WebKit. The guard's self-test covers its own
       # parsing; this step runs it against the shipped image recipe.
