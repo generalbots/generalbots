@@ -194,7 +194,9 @@ jobs:
             # Manual dispatch from an already published release (works on
             # GitHub and ALM — both use the same release asset URL shape).
             base="${SERVER_URL}/${REPOSITORY}/releases/download/${RELEASE_TAG}"
-            TARBALL=/tmp/general-bots.tar.gz
+            # Keep the release asset's basename: the pin check below verifies
+            # it belongs to the pinned tag (generalbots-linux-x86_64.tar.gz).
+            TARBALL=/tmp/generalbots-linux-x86_64.tar.gz
             curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
               -o "$TARBALL" "${base}/generalbots-linux-x86_64.tar.gz"
             SUMS=/tmp/SHA256SUMS-linux
