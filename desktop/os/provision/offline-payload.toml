@@ -35,12 +35,12 @@ payload_dir = "desktop/os/mkosi.extra/opt/general-bots/installers"
 
 [[payload]]
 id = "vault"
-key = "vault"
+key = "openbao"
 section = "components"
-filename = "vault_2.2.1_linux_amd64.zip"
-sha256 = "079435de8ff146bdec4cdbe3be71d672ef4e59e4df6af0f2dba672e71be21a68"
+filename = "openbao_2.7.3_linux_amd64.tar.gz"
+sha256 = "131df9a21cf3dd2dff47107110b369c9974cbdaa482bcbc723b81b3403c68ecd"
 group = "core"
-source = "component_plan.rs:vault; 3rdparty.toml:[components.vault]"
+source = "component_plan.rs:vault; 3rdparty.toml:[components.openbao] (download_entry maps vault -> openbao)"
 
 [[payload]]
 id = "tables"
