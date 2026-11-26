@@ -9,6 +9,7 @@ pub mod storage;
 pub mod handlers;
 pub mod accounts_pix;
 pub mod routes;
+pub(crate) mod branch_scope;
 pub mod intent;
 
 pub use intent::{

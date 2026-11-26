@@ -433,3 +433,9 @@ pub(crate) fn super_admin_routes() -> Vec<RoutePermission> {
             .with_roles(vec!["SuperAdmin".into()]),
     ]
 }
+
+// #2948 — separate file keeps this module below the 450-line limit while the
+// banking RBAC decision table stays next to its route entries.
+#[cfg(test)]
+#[path = "routes_admin_banking_tests.rs"]
+mod banking_routes_tests;

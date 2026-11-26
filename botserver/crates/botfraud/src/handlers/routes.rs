@@ -4,6 +4,7 @@ use crate::types::*;
 use axum::{extract::State, http::HeaderMap, routing::get, Json, Router};
 use std::sync::Arc;
 
+use super::reports::{generate_report, list_reports, FRAUD_REPORTS_PATH};
 use super::rule_handlers::{
     add_blocklist, create_rule, list_blocklist, list_events, list_rules, remove_blocklist,
     toggle_rule,
@@ -22,6 +23,7 @@ pub fn configure_fraud_routes() -> Router<Arc<FraudState>> {
         .route("/api/fraud/blocklist", get(list_blocklist).post(add_blocklist))
         .route("/api/fraud/blocklist/:id", axum::routing::delete(remove_blocklist))
         .route("/api/fraud/stats", get(stats))
+        .route(FRAUD_REPORTS_PATH, get(list_reports).post(generate_report))
 }
 
 async fn assess(

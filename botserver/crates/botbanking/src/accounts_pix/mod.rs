@@ -9,7 +9,6 @@ pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use uuid::Uuid;
 pub(crate) use diesel::prelude::*;
 pub(crate) use crate::db;
-pub(crate) use botcore::shared::tenant::branch_from_claims;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BankAccount {

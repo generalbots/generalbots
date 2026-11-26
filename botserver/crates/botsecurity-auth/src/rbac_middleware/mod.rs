@@ -38,6 +38,11 @@ mod cache_invalidation_tests;
 mod ops_routes_tests;
 #[cfg(test)]
 mod routes_billing_tests;
+// #2959 — handoff catalogue decisions live next to the route table without
+// pushing `routes_admin.rs` past the 450-line limit.
+#[cfg(test)]
+#[path = "routes_handoff_tests.rs"]
+mod routes_handoff_tests;
 #[cfg(test)]
 mod tests;
 

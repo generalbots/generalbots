@@ -18,6 +18,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
+#[cfg(all(test, feature = "fraud"))]
+#[path = "fraud_route_contract_tests.rs"]
+mod fraud_route_contract_tests;
+
 use super::events_scope::caller_scope;
 
 type NativeEventStream = Pin<Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>>;

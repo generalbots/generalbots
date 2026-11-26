@@ -1,4 +1,5 @@
 pub mod calculator;
+pub(crate) mod branch_scope;
 pub mod db;
 pub mod handlers;
 pub mod models;

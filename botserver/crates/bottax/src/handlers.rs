@@ -5,30 +5,10 @@ use diesel::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::branch_scope::resolve_branch;
 use crate::db;
 use crate::models::{CTe, NFe, NFSe, NewCTe, NewNFe, NewNFSe, Sped, TaxCalculationRequest};
 use crate::storage::{ensure_schema_sync, load_rates_from_billing, parse_decimal};
-
-/// Resolves the caller's tenant branch from the verified JWT claims (#2875).
-///
-/// A missing (or nil) branch claim is refused with 401 instead of silently
-/// degrading to the global nil branch: every fiscal document and tax
-/// calculation must be bound to a verified tenant. Nil is reserved for
-/// explicit desktop-local or system callers — never inferred from an absent claim.
-fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
-    require_branch(botcore::shared::tenant::branch_from_claims(headers))
-}
-
-/// Pure branch resolver (#2875): only a verified, non-nil claim is accepted.
-fn require_branch(claim: Option<Uuid>) -> Result<Uuid, (StatusCode, String)> {
-    match claim {
-        Some(branch) if branch != Uuid::nil() => Ok(branch),
-        _ => Err((
-            StatusCode::UNAUTHORIZED,
-            "missing tenant claims: sign in again".to_string(),
-        )),
-    }
-}
 
 pub async fn list_nfe(headers: HeaderMap) -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
@@ -393,31 +373,7 @@ pub async fn list_calculations(
 
 #[cfg(test)]
 mod tests {
-    use super::{require_branch, require_cnpj};
-    use axum::http::StatusCode;
-    use uuid::Uuid;
-
-    #[test]
-    fn branch_resolver_accepts_verified_non_nil_claim() {
-        let branch = Uuid::new_v4();
-        assert_eq!(require_branch(Some(branch)), Ok(branch));
-    }
-
-    #[test]
-    fn branch_resolver_refuses_missing_claim_with_401() {
-        assert_eq!(
-            require_branch(None).err().map(|(status, _)| status),
-            Some(StatusCode::UNAUTHORIZED)
-        );
-    }
-
-    #[test]
-    fn branch_resolver_refuses_nil_claim_with_401() {
-        assert_eq!(
-            require_branch(Some(Uuid::nil())).err().map(|(status, _)| status),
-            Some(StatusCode::UNAUTHORIZED)
-        );
-    }
+    use super::require_cnpj;
 
     #[test]
     fn valid_cnpj_passes_the_check_digit_test() {
