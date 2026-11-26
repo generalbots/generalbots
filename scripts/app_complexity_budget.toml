@@ -1,12 +1,13 @@
 # ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# Rises justified by merged work: settings +42 (#2470), chat +31 (#2933/#2945
-# and admin-account gating), automations +19 (#2945), mail +2 modules/+428 loc
-# (#2953 sanitizer; CDN-like strings are split hostile-input fixtures), slides
-# +22 (#2945), browser +59/desktop +49/integrations +3/project +7/tickets +8
-# (4400f641e), designer +39 (ad5974c96), handoff +20 (097b85bd1), pos +20
-# (43e77f678), notepad +8/store +12 (ec3d670bb), events +19 (admin-only DLQ
-# gating, including the is-admin body-class contract). No route ceiling changed.
+# Rises justified by merged work: settings +42 (#2470), chat +40 (#2933/#2945
+# and admin/console-smoke gating), automations +19 (#2945), mail +2 modules/
+# +428 loc (#2953 sanitizer fixtures), slides +22 (#2945), browser +59,
+# desktop +49, integrations +3, project +7, tickets +8 (4400f641e), designer +39
+# (ad5974c96), handoff +20 (097b85bd1), pos +20 (43e77f678), notepad +8,
+# store +12 (ec3d670bb), events +19 (admin-only DLQ gating). The latest merge
+# also applied the mandatory DESIGN-SYSTEM.md token contract, which grew chat
+# and desktop UI surfaces. No route ceiling changed.
 # Tightened: calendar -1, crm -23, docs -9. Future growth needs an owner note.
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-app complexity budget (#2120).
@@ -87,7 +88,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30958
+loc = 30968
 
 [apps."clock"]
 routes = 0
@@ -127,7 +128,7 @@ loc = 4940
 [apps."desktop"]
 routes = 6
 js_modules = 62
-loc = 28132
+loc = 28139
 
 [apps."docs"]
 routes = 0
@@ -187,7 +188,7 @@ loc = 419
 [apps."learn"]
 routes = 12
 js_modules = 1
-loc = 1646
+loc = 1644
 
 [apps."lists"]
 routes = 0

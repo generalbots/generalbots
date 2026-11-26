@@ -176,3 +176,11 @@ h.staticTest("#2925 no Drive module issues LAN-exposure or unguarded OS probes",
   contains(readSrc(RUNNER), 'require("./webtest-office-fidelity/73_drive_cloud_surface_gate")',
     "this guard is no longer required by the runner");
 });
+
+h.staticTest("LAN-exposure requests are admin-gated on every page (#2441)", function () {
+  var src = h.readRepo("botui/ui/suite/js/network-security.js");
+  contains(src, "function adminSurface()", "the shared admin predicate must ship");
+  var gates = src.split("if (!adminSurface()) return;").length - 1;
+  h.assert(gates >= 2, "both LAN-exposure fetches must be admin-gated (got " + gates + ")");
+  contains(src, "gb:auth:login", "an admin signing in late must re-read the flag");
+});
