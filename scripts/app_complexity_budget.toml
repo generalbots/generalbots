@@ -1,21 +1,16 @@
-# ─── Complexity ceiling relock — 2026-11-26 (OS slice + pulled suite fixes) ──
+# ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# Ceilings that ROSE, each justified by the commit that grew the surface:
-#   settings: 13450 -> 13492 (+42) — #2470 data-protection safety in
-#     settings-os-appliance.js (replace-on-status token/scope, sanitized errors,
-#     fail-closed export/snapshot/reset, role=status + aria-live from JS). The
-#     regression harness lives under suite/tests, not the UI surface.
-#   chat: 30928 -> 30954 (+26) — 1a096a20c (#2933 reflow/theme perf, +22) and
-#     a0cd2ee23 (#2945–#2953 app poller/route fixes, +4). No route added.
-#   automations: 1144 -> 1163 (+19) — a0cd2ee23 app-scoped poller gate.
-#   mail: js_modules 6 -> 8 (+2), loc 4395 -> 4823 (+428) — a0cd2ee23 ships
-#     00_mail_sanitize.js and its test module; the only strings matching the
-#     CDN guard are hostile-input fixtures, split in source to keep the guard
-#     strict for shipped assets (adequacy_guard stays at baseline 0).
-#   slides: 21752 -> 21774 (+22) — a0cd2ee23 caption/route-contract work.
-# Ceilings TIGHTENED because the surface shrank: calendar -1, crm -23, docs -9.
-# No route ceiling changed. Future changes may only hold or lower these numbers;
-# a rise needs an owner note in the same PR or a code split/delete.
+# Rises justified by the commit that grew each surface:
+#   settings +42 (#2470 data-protection safety in settings-os-appliance.js);
+#   chat +26 (#2933 reflow/theme perf, #2945–#2953 poller/route fixes);
+#   automations +19 (#2945 app-scoped poller gate);
+#   mail js_modules +2, loc +428 (#2953 sanitizer module + test; its CDN-like
+#     strings are hostile-input fixtures, split so adequacy_guard stays at 0);
+#   slides +22 (#2945 caption/route contract);
+#   browser +59, desktop +49, integrations +3, project +7, tickets +8
+#     (4400f641e: VM-tab poller gate, single-flight auth/me, classList guards).
+# Tightened because the surface shrank: calendar -1, crm -23, docs -9.
+# No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-app complexity budget (#2120).
 #
@@ -70,7 +65,7 @@ loc = 1787
 [apps."browser"]
 routes = 17
 js_modules = 3
-loc = 1101
+loc = 1160
 
 [apps."calculator"]
 routes = 0
@@ -135,7 +130,7 @@ loc = 4901
 [apps."desktop"]
 routes = 6
 js_modules = 62
-loc = 28083
+loc = 28132
 
 [apps."docs"]
 routes = 0
@@ -180,7 +175,7 @@ loc = 1299
 [apps."integrations"]
 routes = 7
 js_modules = 23
-loc = 7053
+loc = 7056
 
 [apps."jukebox"]
 routes = 6
@@ -290,7 +285,7 @@ loc = 1619
 [apps."project"]
 routes = 0
 js_modules = 4
-loc = 2367
+loc = 2374
 
 [apps."recycle"]
 routes = 0
@@ -355,7 +350,7 @@ loc = 695
 [apps."tickets"]
 routes = 5
 js_modules = 1
-loc = 1720
+loc = 1728
 
 [apps."timeclock"]
 routes = 19
