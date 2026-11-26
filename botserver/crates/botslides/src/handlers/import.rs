@@ -1,26 +1,27 @@
 use crate::auth::SlidesUser;
 use crate::storage::{
-    load_presentation_pptx, save_presentation_pptx, save_presentation_to_drive, DriveOps,
+    load_presentation_by_id, load_presentation_pptx, save_presentation_pptx,
+    save_presentation_to_drive, DriveOps,
 };
 use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
 use axum::{extract::State, http::StatusCode, Json};
 use botcore::{ImportSize, WorkClass};
+use botsecurity_core::error_sanitizer::log_and_sanitize_json;
 use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// #2522 — run the hostile-file gate explicitly at this import boundary and
-/// audit its report before any parser (PPTX/JSON/markdown) touches the payload.
+/// Test-only hostile-file gate inspection used by the offline corpus tests.
 ///
-/// `upload_policy::validate_upload` already applies the gate centrally to zip
-/// containers; this second inspection is defence in depth and, more
-/// importantly, yields the report so every accepted import records its entry
-/// count, compression ratio and malware decision. Rejections use the shared
-/// localized, sanitized response; archive internals stay server-side.
+/// `upload_policy::validate_upload` applies this gate centrally to every
+/// import; the request path relies on that single pass so the payload is never
+/// scanned twice (#2927). This helper keeps the refusal contract assertable
+/// without a live scanner and never leaks archive internals to the client.
+#[cfg(test)]
 fn audit_hostile_upload(
     bytes: &[u8],
     filename: &str,
@@ -39,14 +40,30 @@ fn audit_hostile_upload(
         return Ok(());
     }
 
-    let report =
-        upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(|error| {
-            log::warn!(
-                "{context}: hostile-file gate refused upload: {}",
-                error.log_detail()
-            );
-            upload_policy::rejection_json(&error, headers)
-        })?;
+    audit_hostile_upload_with_scanner(bytes, filename, headers, context, policy, None)
+}
+
+/// Test seam: an explicit scanner makes the fail-closed assertion independent
+/// of whatever hook another test installed process-wide.
+#[cfg(test)]
+fn audit_hostile_upload_with_scanner(
+    bytes: &[u8],
+    filename: &str,
+    headers: &axum::http::HeaderMap,
+    context: &str,
+    policy: &upload_policy::HostileFilePolicy,
+    scanner: Option<&botsecurity_core::upload_hostile::MalwareScanner>,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    let report = botsecurity_core::upload_hostile::inspect_hostile_upload_with_scanner(
+        bytes, filename, policy, scanner,
+    )
+    .map_err(|error| {
+        log::warn!(
+            "{context}: hostile-file gate refused upload: {}",
+            error.log_detail()
+        );
+        upload_policy::rejection_json(&error, headers)
+    })?;
 
     if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
         log::warn!(
@@ -74,6 +91,51 @@ fn stable_source_id(bucket: &str, path: &str) -> String {
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
     format!("source-{hash:016x}")
+}
+
+/// Storage failures are infrastructure errors: log the cause server-side and
+/// answer with the shared sanitized envelope, never with the raw Drive error.
+fn storage_rejection(error: &str, context: &str) -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({
+            "error": log_and_sanitize_json(&error, context, None)
+        })),
+    )
+}
+
+/// The one persistence gate for every accepted import.
+///
+/// #2927 — the sanitized package used to be written to Drive without writing
+/// the presentation metadata row on some paths (or with the failure only
+/// logged), so `/api/slides/list` stayed empty and no notice reached the
+/// caller. Both the new-deck path and the re-opened-Drive-source path now call
+/// this function, which writes the JSON row first, then the sanitized PPTX,
+/// and attaches the security notice to the returned presentation.
+async fn persist_import<D: DriveOps>(
+    drive: Option<&D>,
+    user_id: &str,
+    presentation: &Presentation,
+    pptx_bytes: Option<&[u8]>,
+    notices: Vec<crate::import_notice::SecurityNotice>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(drive) = drive {
+        save_presentation_to_drive(drive, user_id, presentation)
+            .await
+            .map_err(|error| {
+                log::error!("botslides::import: metadata save failed: {error}");
+                storage_rejection(&error, "botslides::handlers::import::metadata")
+            })?;
+        if let Some(bytes) = pptx_bytes {
+            save_presentation_pptx(drive, user_id, &presentation.id, bytes)
+                .await
+                .map_err(|error| {
+                    log::error!("botslides::import: package save failed: {error}");
+                    storage_rejection(&error, "botslides::handlers::import::package")
+                })?;
+        }
+    }
+    crate::import_notice::with_notices(presentation, notices)
 }
 
 pub async fn handle_import_presentation<D: DriveOps>(
@@ -183,6 +245,8 @@ pub async fn handle_import_presentation<D: DriveOps>(
     };
 
     // #2132 — the extension, the declared type and the magic bytes must agree.
+    // `validate_upload` runs the hostile-file gate (including the malware
+    // scan) exactly once; auditing it again below used to scan a second time.
     let upload = match upload_policy::validate_upload(
         UploadClass::PresentationImport,
         &filename,
@@ -201,19 +265,12 @@ pub async fn handle_import_presentation<D: DriveOps>(
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
+    log::info!(
+        "botslides::import: hostile-file gate passed: bytes={}, malware={:?}",
+        upload.size,
+        upload.malware_scan
+    );
     let filename = upload.filename;
-
-    // #2522 — inspect and audit before any parser runs. The shared default
-    // requires a malware scanner, so a deck is refused when none is registered;
-    // there is no opt-out. The helper skips Markdown/JSON decks, which are
-    // plain text and are scanned by the central upload gate instead.
-    audit_hostile_upload(
-        effective,
-        &filename,
-        &headers,
-        "botslides::import",
-        &upload_policy::HostileFilePolicy::default(),
-    )?;
 
     // #2530 — admit before any format parser materialises the deck. The permit
     // is held for the parse below and released by RAII on every exit.
@@ -284,39 +341,14 @@ pub async fn handle_import_presentation<D: DriveOps>(
     } else {
         Some(stable_source_id(&source_bucket, &source_path))
     };
-    if let (Some(id), Some(drive)) = (source_id.as_ref(), state.drive.as_ref()) {
-        if let Ok(mut existing) = crate::storage::load_presentation_by_id(drive, &user_id, id).await
-        {
-            // Decks imported before the source fields existed have no identity:
-            // record it on re-open so their next save also writes the sibling
-            // .gbslides.pptx (#1710).
-            if existing.source_bucket.is_none() || existing.source_path.is_none() {
-                existing.source_bucket = Some(source_bucket.clone());
-                existing.source_path = Some(source_path.clone());
-                if let Err(e) = save_presentation_to_drive(drive, &user_id, &existing).await {
-                    log::warn!("slides import: source backfill save failed: {e}");
-                }
-            }
-            // #2041 — a deck imported before the original package was kept
-            // (JSON only) gets it on the next open, so its first save already
-            // preserves theme, notes and media. #2522 — store the sanitized
-            // package, never the macro-bearing original.
-            if ext == "pptx"
-                && load_presentation_pptx(drive, &user_id, &existing.id)
-                    .await
-                    .is_none()
-            {
-                if let Err(e) =
-                    save_presentation_pptx(drive, &user_id, &existing.id, effective).await
-                {
-                    log::warn!("slides import: could not store the original PPTX: {e}");
-                }
-            }
-            return crate::import_notice::with_notices(existing, notices);
-        }
-    }
-    let presentation = Presentation {
-        id: source_id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+    // #2522 — this is the sanitized package; the macro-bearing original is
+    // never persisted on either the new-deck or the re-open path.
+    let pptx_bytes: Option<&[u8]> = if ext == "pptx" { Some(effective) } else { None };
+
+    let mut presentation = Presentation {
+        id: source_id
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
         name,
         owner_id: user_id.clone(),
         slides,
@@ -327,32 +359,50 @@ pub async fn handle_import_presentation<D: DriveOps>(
         source_path: Some(source_path.clone()).filter(|value| !value.is_empty()),
     };
 
-    if let Some(drive) = &state.drive {
-        if let Err(e) = save_presentation_to_drive(drive, &user_id, &presentation).await {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::import", None)}),
-                ),
-            ));
-        }
-        // #2041 — keep the uploaded package. The JSON model is what the canvas
-        // edits; the sanitized bytes are what a save writes back (patched for
-        // text edits, untouched when nothing changed). #2522 — executable
-        // parts were removed from these bytes above, never from the original.
-        if ext == "pptx" {
-            if let Err(e) =
-                save_presentation_pptx(drive, &user_id, &presentation.id, effective).await
-            {
-                log::warn!(
-                    "slides import: could not store the original PPTX for {}: {e}",
-                    presentation.id
-                );
+    if let (Some(id), Some(drive)) = (source_id.as_ref(), state.drive.as_ref()) {
+        if let Ok(mut existing) = load_presentation_by_id(drive, &user_id, id).await {
+            // Decks imported before the source fields existed have no identity:
+            // record it on re-open so their next save also writes the sibling
+            // .gbslides.pptx (#1710). The save itself happens in
+            // `persist_import`, so a failure is a typed error, not a warning.
+            if existing.source_bucket.is_none() || existing.source_path.is_none() {
+                existing.source_bucket = Some(source_bucket.clone());
+                existing.source_path = Some(source_path.clone());
             }
+            // #2041 — a deck imported before the original package was kept
+            // (JSON only) gets it on the next open, so its first save already
+            // preserves theme, notes and media. #2522 — never replace an
+            // already sanitized package with the macro-bearing original.
+            let stored_pptx = match pptx_bytes {
+                Some(bytes)
+                    if load_presentation_pptx(drive, &user_id, &existing.id)
+                        .await
+                        .is_none() =>
+                {
+                    Some(bytes)
+                }
+                _ => None,
+            };
+            presentation = existing;
+            return persist_import(
+                state.drive.as_ref(),
+                &user_id,
+                &presentation,
+                stored_pptx,
+                notices,
+            )
+            .await;
         }
     }
 
-    crate::import_notice::with_notices(presentation, notices)
+    persist_import(
+        state.drive.as_ref(),
+        &user_id,
+        &presentation,
+        pptx_bytes,
+        notices,
+    )
+    .await
 }
 
 #[cfg(test)]

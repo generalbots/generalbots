@@ -71,7 +71,6 @@
                     }
                 });
 
-                // Close dropdown on outside click
                 document.addEventListener("click", (e) => {
                     if (!e.target.closest("#attendantStatus")) {
                         const dropdown = document.getElementById("statusDropdown");
