@@ -1,6 +1,6 @@
 # ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# Rises justified by the commit that grew each surface:
+# Rises justified by the merged commit that grew each surface:
 #   settings +42 (#2470 data-protection safety); chat +26 (#2933/#2945–#2953);
 #   automations +19 (#2945 poller gate); mail js_modules +2, loc +428 (#2953
 #   sanitizer module — CDN-like strings are split hostile-input fixtures, so
@@ -9,7 +9,8 @@
 #     (4400f641e VM-tab/auth/classList fixes);
 #   designer +39 (ad5974c96 app-kit/designer reopen);
 #   handoff +20 (097b85bd1 branch scope/fraud route/token fallback);
-#   pos +20 (43e77f678 retail POS work).
+#   pos +20 (43e77f678 retail POS work);
+#   notepad +8, store +12 (ec3d670bb suite work).
 # Tightened because the surface shrank: calendar -1, crm -23, docs -9.
 # No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -226,7 +227,7 @@ loc = 8304
 [apps."notepad"]
 routes = 0
 js_modules = 2
-loc = 181
+loc = 189
 
 [apps."notes"]
 routes = 0
@@ -326,7 +327,7 @@ loc = 1353
 [apps."store"]
 routes = 35
 js_modules = 1
-loc = 413
+loc = 425
 
 [apps."tasks"]
 routes = 0
