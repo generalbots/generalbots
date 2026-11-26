@@ -212,6 +212,11 @@
   function hydrateAccounts() {
     var select = picker();
     if (!select) return;
+    // Provider accounts are an admin surface. Requesting it for a normal user
+    // produces a browser-console 403 on every chat open; skip it until an
+    // admin identity is known (gb:auth:login re-runs this hydration).
+    if (window.GBAuth && typeof window.GBAuth.isAdmin === "function" &&
+        !window.GBAuth.isAdmin()) return;
     fetch("/api/llm/accounts", { cache: "no-store", headers: authHeaders() })
       .then(function (response) {
         if (response.status === 404) {

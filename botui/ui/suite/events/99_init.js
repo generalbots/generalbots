@@ -92,8 +92,19 @@
     bindApp();
   }
 
+  function adminKnown() {
+    return !!(window.GBAuth && typeof window.GBAuth.isAdmin === "function");
+  }
+
   function init() {
     if (!document.getElementById("events-app")) return;
+    // The DLQ / replay API and the native events socket are admin-only. A
+    // non-admin turn would get a 403 on every app open (browser console error),
+    // so keep the documented in-page mirror until an admin identity resolves.
+    if (adminKnown() && !window.GBAuth.isAdmin()) {
+      useSimulation();
+      return;
+    }
     markSource("connecting");
     if (!NS.api || typeof NS.api.list !== "function") {
       useSimulation();
@@ -109,6 +120,12 @@
       useSimulation();
     }
   }
+
+  // An admin may sign in after the shell has already fallen back to the
+  // mirror; retry the real surface only when an admin identity arrives.
+  window.addEventListener("gb:auth:login", function () {
+    if (document.getElementById("events-app") && adminKnown() && window.GBAuth.isAdmin()) init();
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
