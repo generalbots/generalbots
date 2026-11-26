@@ -127,15 +127,25 @@ fn extract_app_context(headers: &HeaderMap, path: &str) -> Option<String> {
 
 pub async fn proxy_api(
     State(state): State<AppState>,
-    original_uri: OriginalUri,
+    OriginalUri(uri): OriginalUri,
     req: Request<Body>,
 ) -> Response<Body> {
-    let path = original_uri.path();
-    let query = original_uri
-        .query()
-        .map_or_else(String::new, |q| format!("?{q}"));
+    let path = uri.path();
+    let query = uri.query().map_or_else(String::new, |q| format!("?{q}"));
     let method = req.method().clone();
     let headers = req.headers().clone();
+
+    // #2935 — the four `/suite/{dir}/{partials,fragments,modals,forms}/*`
+    // suffixes are routed here so they beat the `ServeDir` nests. Answer the
+    // shipped static assets from botui's own `ui/` tree first; the backend's
+    // BOTUI_PATH must never be a second point of failure for the Settings
+    // partials. Everything else still takes the proxy path below unchanged
+    // (`/api/*`, `/ws`, `/cloud/partials/*`, writes, dynamic fragments).
+    if let Some(local) =
+        crate::ui_server::local_static::try_serve_local_suite_asset(&uri, &method).await
+    {
+        return local;
+    }
 
     let app_context = extract_app_context(&headers, path);
 

@@ -9,7 +9,7 @@
   // #2087 — key carries the server build version; catalogue-only edits keep it.
   // #2923/#2935-smoke — explicit revision discards stale version-keyed entries exactly once.
   let cacheBuild = "dev";
-  const CATALOG_REVISION = "r2";
+  const CATALOG_REVISION = "r3";
   const CACHE_TTL_MS = 3600000;
   // Server list wins; the bundled one is only a first-paint fallback.
   let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];

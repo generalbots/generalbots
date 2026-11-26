@@ -2,6 +2,7 @@ pub mod assets;
 pub mod cloud;
 pub mod constants;
 pub mod js_escape;
+pub mod local_static;
 pub mod login;
 pub mod proxy;
 pub mod safe_path;

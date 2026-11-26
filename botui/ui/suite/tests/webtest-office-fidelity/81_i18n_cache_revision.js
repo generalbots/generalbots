@@ -69,7 +69,7 @@ h.staticTest("#2923/#2935-smoke the revision is declared once with its reason co
   h.assertEqual(countIn(src, "const CATALOG_REVISION"), 1,
     "exactly one revision declaration (no scattered/duplicated bump)");
   var decl = span(src, "const CATALOG_REVISION", ";");
-  contains(decl, '= "r2"', "the pinned catalogue revision value is r2");
+  contains(decl, '= "r3"', "the pinned catalogue revision value is r3");
   var comment = span(src, "// #2087", "const CATALOG_REVISION");
   h.assert(comment.length > 100,
     "non-vacuity: the reason comment must be substantial, got " + comment.length);
