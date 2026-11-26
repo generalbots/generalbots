@@ -103,7 +103,7 @@
     // The DLQ / replay API and the native events socket are admin-only. A
     // non-admin turn would get a 403 on every app open (browser console error),
     // so keep the documented in-page mirror until an admin identity resolves.
-    if (adminKnown() && !window.GBAuth.isAdmin()) {
+    if (!adminKnown() || !window.GBAuth.isAdmin()) {
       useSimulation();
       return;
     }
