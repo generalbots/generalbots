@@ -159,7 +159,7 @@ fn empty_prompt_and_context_are_omitted_from_the_message_list() {
 }
 
 #[test]
-fn system_messages_are_merged_into_the_first_position() {
+fn the_system_prompt_leads_and_turn_blocks_follow_the_history() {
     let messages = serde_json::json!([
         message("system", "You are the assistant."),
         message("user", "first question"),
@@ -169,8 +169,8 @@ fn system_messages_are_merged_into_the_first_position() {
     ]);
     let merged = OpenAIClient::lead_with_one_system_message(&messages);
     assert_eq!(roles(&merged), ["system", "user", "assistant", "user"]);
-    assert_eq!(merged[0]["content"], "You are the assistant.\n\nWeb results: ...");
-    assert_eq!(merged[3]["content"], "hi");
+    assert_eq!(merged[0]["content"], "You are the assistant.");
+    assert_eq!(merged[3]["content"], "Web results: ...\n\nhi");
 }
 
 #[test]

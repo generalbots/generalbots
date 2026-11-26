@@ -1,16 +1,16 @@
 //! Boot-time enforcement of the stored local model choice (#2561).
 //!
-//! Called once from `main_body` after the package manager has spawned the
-//! llm component (which starts with a hardcoded default model).  When the
-//! stored choice is a different local model, the chat runtime is replaced.
+//! Called once from `main_body` after the legacy launcher.  On the Lite
+//! edition (Windows) the legacy launcher is told that the chat engine is
+//! managed elsewhere (`set_chat_engine_managed_elsewhere`), so it leaves
+//! port 8081 free.  This module then starts the chat runtime from scratch
+//! with the launch plan (context size and GPU layers sized from free video
+//! memory).  When the stored model is not a local `.gguf`, this module
+//! releases any orphan engine instead.
 //!
-//! The package manager spawns the llm component during `bootstrap.start_all()`
-//! (`lifecycle.rs:105`), which runs at `main_body.rs:152` via `run_bootstrap`.
-//! `ensure_llama_servers_running` runs later (`main_body.rs:361`), finds the
-//! port already answering, and returns early.  This module runs after both
-//! (`main_body.rs:367+`), so the package manager's process is guaranteed to
-//! have been spawned (though it may still be loading).  `runtime_ctl::ensure`
-//! handles the loading case with `wait_for_initial_probe`.
+//! `runtime_ctl::ensure` handles both a free port (cold start) and an
+//! already-loading engine (orphan from a previous session) through
+//! `wait_for_initial_probe`.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -39,6 +39,10 @@ pub async fn enforce_stored_model(state: Arc<AppState>) {
     // In own-key mode it holds whatever model name the user configured.
     // Neither is a .gguf file, so is_local_model_name returns false.
     if !runtime_ctl::is_local_model_name(&model) {
+        // The package manager started the bundled chat model anyway; it
+        // would hold video memory that nothing uses.
+        let choices = botsettings::on_device_ai::runtime_release::stored_choices(&cfg);
+        botsettings::on_device_ai::runtime_release::release_if_not_local(&choices, "no setting routes to a local model").await;
         return;
     }
 

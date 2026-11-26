@@ -373,6 +373,13 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         error!("Failed to mount bots: {}", e);
     }
 
+    // On the Lite edition (Windows) the chat engine lifecycle belongs to
+    // runtime control, not the legacy launcher.  Set the flag before the
+    // first `ensure_llama_servers_running` call so neither the main-body
+    // invocation nor the background-services one touches port 8081.
+    #[cfg(all(windows, feature = "gbgov"))]
+    crate::llm::local::set_chat_engine_managed_elsewhere(true);
+
     #[cfg(feature = "llm")]
     {
         let app_state_for_llm = app_state.clone();
@@ -383,10 +390,11 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         trace!("ensure_llama_servers_running completed");
     }
 
-    // After the legacy launcher has had a chance to start the runtime (or
-    // discover an orphan on the port), enforce the stored model choice.
-    // An orphan from a previous session that loaded a different model is
-    // replaced.  This is edition-gated because runtime_ctl lives in
+    // After the legacy launcher has completed, enforce the stored model
+    // choice.  With the managed-elsewhere flag the launcher left port 8081
+    // untouched, so runtime control starts it fresh with the launch plan
+    // (context size and GPU layers from free video memory).
+    // This is edition-gated because runtime_ctl lives in
     // botsettings::on_device_ai which is gbgov-only.
     #[cfg(feature = "gbgov")]
     {

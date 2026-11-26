@@ -11,6 +11,8 @@ pub(crate) mod agent_limit;
 mod attempt;
 pub(crate) mod error_classify;
 mod markdown;
+mod local_profile;
+mod prompt_sizes;
 pub(crate) mod message_meta;
 mod stream;
 pub(crate) mod stream_errors;

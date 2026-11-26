@@ -177,6 +177,17 @@
 .gb-of-mn b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gb-of-mn > div:first-child > span { font: 600 11px/normal var(--id-font-mono); color: var(--id-muted); flex: none; }
 .gb-of-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+/* Where the model in use runs (10c placeLine / placeNotice) */
+.gb-of-place { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--id-muted); }
+.gb-of-place svg { color: var(--of-ok); flex: none; }
+.gb-of-placen { display: flex; gap: 12px; padding: 12px 14px; border-radius: 6px; line-height: 1.5;
+    background: color-mix(in srgb, var(--of-warn) 7%, var(--of-sf)); border: 1px solid color-mix(in srgb, var(--of-warn) 30%, transparent); }
+.gb-of-placen-i { color: var(--of-warn); flex: none; padding-top: 2px; }
+.gb-of-placen > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gb-of-placen b { font-weight: 600; }
+.gb-of-placen p, .gb-of-placen ul { margin: 0; font-size: 13px; }
+.gb-of-placen ul { padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.gb-of-placen small { font-size: 11.5px; color: var(--id-muted); }
 .gb-of-box { align-self: stretch; margin: 7px 0; background: var(--id-paper); border: 1px solid var(--id-line); border-radius: 6px; overflow: hidden; }
 .gb-of-box > div, .gb-of-box > span { padding: 0 10px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; }
 .gb-of-box > :not(:first-child) { border-left: 1px solid var(--id-line); }

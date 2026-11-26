@@ -84,24 +84,29 @@ fn desired_from_config_gpu_layers_auto_means_omit() {
 #[test]
 fn desired_from_config_normalizes_ctx_size() {
     let check = |input: &str| match input.trim() {
-        "" | "0" => "8192".to_string(),
+        "" | "0" => String::new(),
         other => other.to_string(),
     };
-    assert_eq!(check(""), "8192");
-    assert_eq!(check("0"), "8192");
+    assert_eq!(check(""), "", "sized from free video memory at start");
+    assert_eq!(check("0"), "");
     assert_eq!(check("32768"), "32768");
 }
 
 #[test]
-fn the_default_context_follows_the_room_left_on_the_card() {
-    const GB: u64 = 1024 * 1024 * 1024;
-    let nine_b_q4 = 5_680_522_464;
-    assert_eq!(ctx_size_for(nine_b_q4, Some(8)), 16384);
-    assert_eq!(ctx_size_for(nine_b_q4, Some(6)), 8192);
-    assert_eq!(ctx_size_for(nine_b_q4, Some(12)), 32768);
-    assert_eq!(ctx_size_for(7 * GB, Some(8)), 8192);
-    assert_eq!(ctx_size_for(nine_b_q4, None), 8192, "no graphics card");
-    assert_eq!(ctx_size_for(0, Some(24)), 8192, "model size unknown");
+fn build_args_opens_one_slot_and_lowers_the_fit_margin_when_layers_are_automatic() {
+    let d = DesiredRuntime {
+        model_file: "model.gguf".into(),
+        model_path: "/data/llm/model.gguf".into(),
+        server_dir: "/bin/llm".into(),
+        gpu_layers: String::new(),
+        ctx_size: "8192".into(),
+    };
+    let args = build_args(&d);
+    let after = |flag: &str| args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).cloned();
+    assert_eq!(after("--parallel").as_deref(), Some("1"));
+    assert_eq!(after("--fit-target").as_deref(), Some("512"));
+    let explicit = build_args(&DesiredRuntime { gpu_layers: "20".into(), ..d });
+    assert!(!explicit.contains(&"--fit-target".to_string()), "an explicit layer count is not refitted");
 }
 
 #[test]
@@ -121,6 +126,20 @@ fn a_failed_start_is_classified_from_the_engine_log() {
     assert_eq!(classify_failure("ggml_backend_cuda_buffer_type_alloc_buffer: allocating 5200.00 MiB on device 0: cudaMalloc failed: out of memory"), CODE_NOT_ENOUGH_MEMORY);
     assert_eq!(classify_failure("main: exiting due to model loading error"), CODE_START_FAILED);
     assert_eq!(classify_failure(""), CODE_START_FAILED);
+}
+
+#[test]
+fn handle_start_failure_classifies_from_the_log_and_records_it() {
+    // No real log file exists in the test; llm_log_since returns empty.
+    clear_last_failure();
+    let msg = handle_start_failure("model.gguf", u64::MAX, "Chat runtime exited");
+    assert!(msg.starts_with(CODE_START_FAILED), "generic when log is empty: {msg}");
+    let (model, code) = last_failure().expect("failure must be recorded");
+    assert_eq!(model, "model.gguf");
+    assert_eq!(code, CODE_START_FAILED);
+    // A good start clears it.
+    clear_last_failure();
+    assert!(last_failure().is_none());
 }
 
 #[test]

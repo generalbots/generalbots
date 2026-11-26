@@ -21,6 +21,21 @@ pub async fn ensure_llama_servers_running(
         return Ok(());
     }
 
+    let managed = chat_engine_managed_elsewhere();
+    let embedding_wanted = !botcore::product::is_service_off("vector_db");
+
+    // Fast exit: when the chat engine belongs to runtime control and the
+    // product does not need a local embedding service, the legacy launcher
+    // has nothing to manage.  Skip config reads so it cannot log misleading
+    // "model not found" messages or persist default values it did not own.
+    if managed && !embedding_wanted {
+        info!(
+            "Legacy launcher idle: chat engine managed by runtime control, \
+             embedding service not required by product configuration"
+        );
+        return Ok(());
+    }
+
     let config_values = {
         let conn_arc = app_state.conn.clone();
         let (default_bot_id, _default_bot_name) =
@@ -151,45 +166,63 @@ pub async fn ensure_llama_servers_running(
     } else {
         is_server_running(&embedding_url).await
     };
-    if llm_running && embedding_running {
-        info!("Both LLM and Embedding servers are already running");
-        if !embedding_model.is_empty() {
+    let decision = super::decide(&super::LauncherInput {
+        chat_managed_elsewhere: managed,
+        llm_url_is_https: llm_url.starts_with("https://"),
+        chat_port_answering: llm_running,
+        embedding_wanted,
+        embedding_url_is_https: embedding_url.starts_with("https://"),
+        embedding_port_answering: embedding_running,
+    });
+
+    if !decision.start_chat && !decision.start_embedding {
+        if decision.mark_embedding_ready && !embedding_model.is_empty() {
             set_embedding_server_ready(true);
+        }
+        if managed {
+            info!(
+                "Legacy launcher idle: chat engine managed by runtime control; \
+                 embedding already available"
+            );
+        } else {
+            info!("Both LLM and Embedding servers are already running");
         }
         return Ok(());
     }
 
-    info!("Killing existing llama-server processes to restart with correct args...");
-    // Only the llama-server this stack started is restarted: a model server
-    // the user runs from another directory keeps running. `pkill` does not
-    // exist on Windows, so the stack-scoped kill is used there.
-    #[cfg(windows)]
-    {
-        let killed = botcore::bootstrap::bootstrap_utils::kill_stack_component_windows("llm");
-        if killed > 0 {
-            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-            info!("Existing llama-server processes terminated ({killed})");
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        let pkill_result = SafeCommand::new("sh")
-            .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
-        match pkill_result {
-            Ok(cmd) => {
-                if let Err(e) = cmd.execute() {
-                    log::error!("Failed to execute pkill for llama-server: {e}");
-                } else {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    info!("Existing llama-server processes terminated");
-                }
+    if decision.kill_allowed {
+        info!("Killing existing llama-server processes to restart with correct args...");
+        // Only the llama-server this stack started is restarted: a model server
+        // the user runs from another directory keeps running. `pkill` does not
+        // exist on Windows, so the stack-scoped kill is used there.
+        #[cfg(windows)]
+        {
+            let killed = botcore::bootstrap::bootstrap_utils::kill_stack_component_windows("llm");
+            if killed > 0 {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                info!("Existing llama-server processes terminated ({killed})");
             }
-            Err(e) => log::error!("Failed to build pkill command: {e}"),
+        }
+        #[cfg(not(windows))]
+        {
+            let pkill_result = SafeCommand::new("sh")
+                .and_then(|c| c.arg("-c"))
+                .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
+            match pkill_result {
+                Ok(cmd) => {
+                    if let Err(e) = cmd.execute() {
+                        log::error!("Failed to execute pkill for llama-server: {e}");
+                    } else {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                        info!("Existing llama-server processes terminated");
+                    }
+                }
+                Err(e) => log::error!("Failed to build pkill command: {e}"),
+            }
         }
     }
     let mut tasks = vec![];
-    if !llm_running && !llm_model.is_empty() {
+    if decision.start_chat && !llm_model.is_empty() {
         if !std::path::Path::new(&llm_model_path).exists() {
             log::error!(
                 "LLM model file not found at {llm_model_path}; cannot start the local LLM server. \
@@ -213,7 +246,7 @@ pub async fn ensure_llama_servers_running(
     } else if llm_model.is_empty() {
         info!("LLM_MODEL not set, skipping LLM server");
     }
-    if !embedding_running && !embedding_model.is_empty() {
+    if decision.start_embedding && !embedding_model.is_empty() {
         // The local llama-server needs the GGUF model on disk. Deployments that
         // embed through a remote provider (Cloudflare/OpenAI-compatible) never
         // install it, so a missing file is an expected configuration, not a

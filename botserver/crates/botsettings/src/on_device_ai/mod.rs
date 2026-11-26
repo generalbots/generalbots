@@ -25,7 +25,10 @@ use std::sync::Arc;
 pub(crate) mod catalog;
 pub(crate) mod hardware;
 mod jobs;
+pub mod launch_plan;
 pub mod runtime_ctl;
+pub mod runtime_release;
+pub mod runtime_restart;
 pub mod runtime_spawn;
 pub mod runtime_stop;
 pub(crate) mod vault_store;
@@ -56,6 +59,7 @@ pub fn configure_routes() -> Router<Arc<AppState>> {
         .route("/api/llm/local/jobs/:id", get(job_status))
         .route("/api/llm/local/jobs/:id/cancel", post(cancel_job))
         .route("/api/llm/local/activate", post(activate))
+        .route("/api/llm/local/restart", post(runtime_restart::handle))
         .route("/api/llm/local/profiles", get(list_profiles))
 }
 
@@ -96,6 +100,7 @@ async fn list_models(
         "recommended_verdict": catalog::fit_verdict(recommended, probe.vram_gb, probe.ram_gb),
         "models_dir": dir.to_string_lossy(),
         "free_bytes": hardware::free_bytes_for(&dir),
+        "last_launch": launch_plan::last_launch(),
         "tiers": tiers,
     })))
 }
