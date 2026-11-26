@@ -34,6 +34,9 @@ tauri-plugin-notification = "2.8"
 tauri-plugin-http = "2.8"
 opener = "0.7"
 tauri-plugin-geolocation = "2.3"
+# One running copy per person (desktop/single_instance.rs). The gbgov merge
+# added the call site without the manifest entry, breaking desktop builds.
+tauri-plugin-single-instance = "2.5"
 
 # Common
 anyhow = { workspace = true }
