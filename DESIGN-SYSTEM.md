@@ -1,12 +1,14 @@
 # Sistema de design — General Bots Desktop (edição gbgov)
 
-Padrão de design obrigatório para toda a UI da General Bots (suite, cloud, login, assistant, splash e aplicativos de desktop). Descreve o que está **no código hoje** (branch `gbgov`, HEAD `a566f55f9`, 2026-11-20). Nada aqui é proposta; cada valor vem de um arquivo, citado como `arquivo:linha`.
+Padrão de design obrigatório para toda a UI da General Bots (suite, cloud, login, assistant, splash e aplicativos de desktop). Descreve o que está **no código hoje** (árvore de trabalho, 2026-11-26). Nada aqui é proposta; cada valor vem de um arquivo, citado como `arquivo:linha`. A fonte canônica de todos os tokens `--id-*` é `suite/css/identity-tokens.css` — o arquivo `suite/identity/tokens.css` é apenas um shim de três linhas que o importa.
 
 Legenda de caminhos (todos sob `botui/ui/`):
 
 | Abreviação | Caminho |
 |---|---|
-| `tokens.css`, `accent.js`, `theme.js`, `textsize.js`, `fonts.css` | `suite/identity/` |
+| `identity-tokens.css` | `suite/css/identity-tokens.css` (shim: `suite/identity/tokens.css` → `@import`) |
+| `accent.js`, `theme.js`, `textsize.js`, `fonts.css` | `suite/identity/` |
+| `default.css` | `suite/public/themes/` |
 | `assistant*.css`, `titlebar.css`, `assistant.html` | `suite/assistant/` |
 | `NN_*.js` | `suite/assistant/modules/` |
 | `splash.html` | `botui/ui/splash.html` |
@@ -38,9 +40,9 @@ O General Bots Desktop é um **assistente de inteligência artificial que roda n
 
 ## 1. Princípios (só os escritos no código ou no plano)
 
-- **Identidade por tokens `--id-*`**: neutros, raios, sombras, movimento, escala de tipo e fontes são fixos; só o acento muda em tempo de execução (`tokens.css:1-8`).
-- **Acento derivado de uma só cor**, com contraste WCAG 2 ≥ 4,5:1 para o texto de acento (`accent.js:1,191-206`).
-- **Sem flash no primeiro quadro**: tema e tamanho do texto são aplicados no `<head>` antes da pintura (`theme.js:1-8`, `assistant.html:12-14`).
+- **Identidade por tokens `--id-*`**: neutros, raios, sombras, movimento, escala de tipo e fontes são fixos; só o acento muda em tempo de execução (`identity-tokens.css:1-9`). O tema Default não define paleta paralela: ele só apelida variáveis legadas para os tokens (`default.css:17-126`).
+- **Acento derivado de uma só cor**, com contraste WCAG 2 ≥ 4,5:1 para o texto de acento (`accent.js:1,160-231`).
+- **Sem flash no primeiro quadro**: tema e tamanho do texto são aplicados no `<head>` antes da pintura (`theme.js:1-11`, `textsize.js:1-7`, `assistant.html:11-14`).
 - **Offline**: ícones e logos inline, "no font, no CDN, no sprite file" (`11_icons.js:5-6`; `10f_provider_logos.js:3`); fontes woff2 locais (`fonts.css:1-7`).
 - **Barra de qualidade**: "a experiência, o design e a utilidade dos melhores assistentes de desktop; o diferencial é a soberania dos dados, visível e verificável" (`GBGOV/PLAN.md` §1).
 
@@ -48,103 +50,114 @@ O General Bots Desktop é um **assistente de inteligência artificial que roda n
 
 ## 2. Tokens
 
+Fonte canônica: `identity-tokens.css` (carregada em `desktop.html:17`). `:root` contém o claro; `:root[data-color-scheme="dark"]` (`:167-227`) contém o escuro — um único bloco, sem duplicação. `default.css` só apelida variáveis legadas da suíte (`--background`, `--primary`, `--win-*`, `--sentient-*`) para estes tokens.
+
 ### 2.1 Cores — acento (padrão claro; `accent.js` sobrescreve)
 
 | Token | Claro (padrão) | Escuro | Fonte |
 |---|---|---|---|
-| `--id-accent` | `#F28C28` | L+0,05 (máx. 0,82), C×1,05 | `tokens.css:15`, `accent.js:104-106` |
-| `--id-accent-hover` | `#D4751C` | L+0,06 | `tokens.css:16`, `accent.js:109-110` |
-| `--id-accent-light` | `#FDB96A` | tinta suave | `tokens.css:17`, `accent.js:113-115` |
-| `--id-accent-text` | `#B45309` | clareia até 4,5:1 sobre o papel escuro | `tokens.css:18`, `accent.js:121-133` |
-| `--id-accent-soft` | `rgb(242 140 40 / .1)` | mesma cor `/ .15` | `tokens.css:19`, `accent.js:138` |
-| `--id-accent-glow` | `rgb(242 140 40 / .26)` | `/ .3` | `tokens.css:20`, `accent.js:139` |
-| `--id-on-accent` | `#ffffff` | branco ou `#2C2C2C`, o de maior contraste | `tokens.css:21`, `accent.js:142-146` |
-| `--id-paper` (fundo da página) | `#FFF8F2` | fixo `#1c1c28` | `tokens.css:22`, `accent.js:89,118` |
-| `--id-paper-band` | — (só via JS) | papel a 88 % | `accent.js:251-254` |
-| `--id-focus` | `0 0 0 2px var(--id-accent-text)` (é um box-shadow) | idem | `tokens.css:129` |
+| `--id-accent` | `#F28C28` | `hsl(30 89% 55%)` (L+0,05 máx. 0,82, C×1,05 em `deriveDark`) | `identity-tokens.css:19`, `:169`; `accent.js:98-106` |
+| `--id-accent-hover` | `#D4751C` | acento a 86 % com preto (L+0,06) | `:20`, `:170`; `accent.js:109-110` |
+| `--id-accent-light` | `#FDB96A` | acento a 68 % com branco | `:21`, `:171`; `accent.js:112-115` |
+| `--id-accent-text` | `#B45309` | `hsl(32 96% 72%)` (clareia até 4,5:1) | `:22`, `:172`; `accent.js:120-133` |
+| `--id-accent-soft` | `rgb(242 140 40 / .1)` | acento a 12 %, transparente | `:23`, `:173`; `accent.js:138` |
+| `--id-accent-glow` | `rgb(242 140 40 / .26)` | acento a 26 %, transparente | `:24`, `:174`; `accent.js:139` |
+| `--id-on-accent` | `#2C2C2C` (tinta, não branco) | `hsl(0 0% 17%)` | `:27`, `:175`; `accent.js:141-146` |
+| `--id-paper` (fundo da página) | `#FFF8F2` | `hsl(34 11% 12%)` no CSS; `accent.js` deriva `#1c1c28` | `:28`, `:176`; `accent.js:89,117-118` |
+| `--id-paper-band` | — (só via JS) | papel a 88 % | `accent.js:257-260` |
+| `--id-accent-muted` | `color-mix(accent 55 %, transparent)` | idem, sobre o acento escuro | `:142`, `:192` |
+| `--id-accent-rgb` | `242, 140, 40` (triplet com vírgulas, para `rgba(var(--id-accent-rgb), a)`) | mesmo triplet; `accent.js` reescreve com o acento aplicado | `:145`, `:195`; `accent.js:251-256` |
+| `--id-accent-bg` | `var(--id-accent-soft)` | idem | `:146`, `:196` |
+| `--id-focus` | `0 0 0 2px var(--id-accent-text)` (é um **box-shadow**) | idem | `:156`; use `box-shadow: var(--id-focus)`, nunca `outline` |
 
 ### 2.2 Cores — tinta, neutros, superfícies, bordas
 
 | Token | Claro | Escuro | Fonte (claro / escuro) |
 |---|---|---|---|
-| `--id-ink` (título, texto forte) | `#2C2C2C` | `#e4e4ea` | `:25` / `:135` |
-| `--id-text` (corpo) | `#4B5563` | `#a8adb8` | `:26` / `:136` |
-| `--id-muted` | `#5F6673` | `#808898` | `:27` / `:137` |
-| `--id-gray-100…500` | `#f3f4f6 #e5e7eb #d1d5db #9ca3af #6b7280` | `#2a2a36 #353542 #45455a #6a6a80 #8888a0` | `:28-32` / `:138-142` |
-| `--id-surface` (translúcida) | `rgb(255 255 255 / .9)` | `rgb(36 36 48 / .92)` | `:35` / `:143` |
-| `--id-surface-solid` (cartões) | `#ffffff` | `#262633` | `:36` / `:144` |
-| `--id-line` (borda) | `rgb(229 231 235 / .8)` | `rgb(255 255 255 / .1)` | `:37` / `:145` |
-| `--id-line-soft` (divisória) | `rgb(243 244 246 / .9)` | `rgb(255 255 255 / .06)` | `:38` / `:146` |
-| `--id-fill` (hover, fundo leve) | `rgb(243 244 246 / .8)` | `rgb(255 255 255 / .06)` | `:39` / `:147` |
-| `--id-overlay` / `-heavy` | `rgb(0 0 0/.3)` / `.7` | `.5` / `.8` | `:107-108` / `:164-165` |
-| `--id-scrollbar-thumb` | `var(--id-gray-300)` | `var(--id-gray-400)` | `:123` / `:174` |
+| `--id-ink` (título, texto forte) | `#2C2C2C` | `hsl(240 12% 91%)` (≈ `#e4e4ea`) | `:31` / `:177` |
+| `--id-text` (corpo) | `#4B5563` | mistura de 82 % ink com papel | `:32` / `:178` |
+| `--id-muted` | `#5F6673` | `hsl(226 11% 56%)` (≈ `#808898`) | `:33` / `:179` |
+| `--id-text-secondary` | `var(--id-text)` | `var(--id-text)` | `:143` / `:193` |
+| `--id-fg` | `var(--id-ink)` | `var(--id-ink)` | `:144` / `:194` |
+| `--id-gray-100…500` | `#f3f4f6 #e5e7eb #d1d5db #9ca3af #6b7280` | tons escuros derivados de ink e papel | `:34-38` / `:180-184` |
+| `--id-surface` (translúcida) | `rgb(255 255 255 / .9)` | superfície escura a 90 % | `:41` / `:185` |
+| `--id-surface-solid` (cartões) | `#ffffff` | `hsl(240 15% 17%)` (≈ `#262633`) | `:42` / `:186` |
+| `--id-surface-alt` / `-hover` | `var(--id-fill)` | `var(--id-fill)` | `:149-150` / `:199-200` |
+| `--id-line` (borda) / `--id-border` | `rgb(229 231 235 / .8)` | borda escura a 90 % | `:43`,`:147` / `:187`,`:197` |
+| `--id-line-soft` (divisória) | `rgb(243 244 246 / .9)` | borda escura a 55 % | `:44` / `:188` |
+| `--id-fill` (hover, fundo leve) | `rgb(243 244 246 / .8)` | superfície escura a 80 % | `:45` / `:189` |
+| `--id-overlay` / `-heavy` | `rgb(0 0 0/.3)` / `.7` | `.5` / `.8` | `:118-119` / `:217-218` |
+| `--id-scrollbar-thumb` | `var(--id-gray-300)` | `var(--id-gray-300)` (já escuro) | `:134` / `:182` |
+| `--id-radius` | `var(--id-radius-control)` | idem | `:148` / `:198` |
 | `--gb-field` (fundo de campo, local) | `color-mix(surface-solid 97 %, ink)` | idem (fica mais claro) | `assistant-settings.css:287` |
 
 ### 2.3 Cores — estados
 
 | Estado | Token | Claro | Escuro | Fonte |
 |---|---|---|---|---|
-| Erro | `--id-danger` / `-text` / `-icon` | `#dc2626` / `#b91c1c` / `#ef4444` | `#f87171` / `#fca5a5` / `#f87171` | `tokens.css:94-98`, `:151-155` |
-| | `--id-danger-soft` / `-line` | `rgb(220 38 38/.06)` / `.3` | `.12` / `.4` | |
-| Sucesso | `--id-success` / `-text` | `#22c55e` / `#16a34a` | `#4ade80` / `#86efac` | `tokens.css:99-102`, `:156-159` |
-| | `--id-success-soft` / `-line` | `rgb(34 197 94/.06)` / `.25` | `.12` / `.35` | |
-| Aviso | `--id-warn` / `-text` | `#d97706` / `#92400e` | `#fbbf24` / `#fde68a` | `tokens.css:103-106`, `:160-163` |
-| | `--id-warn-soft` / `-bg` | `rgb(234 179 8/.08)` / `#fef3c7` | `.15` / `rgb(120 80 10/.3)` | |
+| Erro | `--id-danger` / `-text` / `-icon` | `#dc2626` / `#b91c1c` / `#ef4444` | `#f87171` / `#fca5a5` / `#f87171` | `identity-tokens.css:105-109`, `:204-208` |
+| | `--id-danger-soft` / `-line` | `rgb(220 38 38/.06)` / `.3` | `.12` / `.4` | `:107-108` / `:206-207` |
+| Sucesso | `--id-success` / `-text` | `#22c55e` / `#16a34a` | `#4ade80` / `#86efac` | `:110-113`, `:209-212` |
+| | `--id-success-soft` / `-line` | `rgb(34 197 94/.06)` / `.25` | `.12` / `.35` | `:112-113` / `:211-212` |
+| Aviso | `--id-warn` / `-text` | `#d97706` / `#92400e` | `#fbbf24` / `#fde68a` | `:114-117`, `:213-216` |
+| | `--id-warn-soft` / `-bg` | `rgb(234 179 8/.08)` / `#fef3c7` | `.15` / `rgb(120 80 10/.3)` | `:116-117` / `:215-216` |
 
-Realce de sintaxe: `--id-hl-*` (`tokens.css:111-120`, escuro `:166-173`); a palavra-chave usa `--id-accent-text`.
+Realce de sintaxe: `--id-hl-*` (`identity-tokens.css:122-131`, escuro `:219-226`); a palavra-chave usa `--id-accent-text`.
 
 ### 2.4 Tipografia
 
 | Item | Valor | Fonte |
 |---|---|---|
-| Corpo | `'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif` (Inter variável 100–900) | `tokens.css:42`, `fonts.css:76` |
-| Títulos e marca | `'Fira Sans', …` (400, 500, 600, 700) | `tokens.css:43-44`, `fonts.css:10` |
-| Monoespaçada | **sem token**: `monospace` ou `var(--id-font-mono, monospace)`, que não está definido | `assistant-settings.css:84`, `assistant-providers.css:52,120` |
+| Corpo | `var(--id-font-sans)` = `'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif` (Inter variável 100–900) | `identity-tokens.css:48`, `fonts.css:76-92` |
+| Títulos e marca | `var(--id-font-heading)` = `'Fira Sans', …` (400, 500, 600, 700) | `:49-50`, `fonts.css:10-74` |
+| Monoespaçada | `var(--id-font-mono)` = pilha de sistema (`ui-monospace`, `SFMono-Regular`, `Consolas`, `Liberation Mono`, `monospace`) — sem download | `:151`, `:201`; uso em `assistant-settings.css:84`, `assistant-providers.css:52,120` |
 | Pesos usados | 400, 500 (rótulos, ativo), 600 (títulos, marca), 700 (marcas ✓, %) | p.ex. `assistant.css:128,270`, `assistant-garage.css:38,173` |
 | Altura de linha | 1.5 base; 1.6 balão do usuário; 1.7 resposta | `assistant.css:12`, `assistant-chat.css:106,122` |
 
-Escala. `tokens.css` define os valores-base (desenho em 14 px), mas `textsize.js` reescreve seis deles antes do primeiro quadro a partir do tamanho escolhido (pequeno 14, **padrão 16**, grande 18, extra 20; `textsize.js:10,20-31`). Valores efetivos:
+Escala. `identity-tokens.css:57-66` define os valores-base em **rem** (para seguir o zoom do navegador/SO), com piso de 0,75rem (12px). `textsize.js` reescreve os seis primeiros em **px** antes do primeiro quadro, a partir do tamanho escolhido (pequeno 14, **padrão 16**, grande 18, extra 20; `textsize.js:10,20-31`). Valores efetivos:
 
-| Token | `tokens.css` | Efetivo no padrão (16) | Regra em `textsize.js` |
+| Token | CSS | Efetivo no padrão (16) | Regra em `textsize.js` |
 |---|---|---|---|
-| `--id-text-xs` | 10px (`:47`) | 12px | max(10, px−4) |
-| `--id-text-sm` | 12px (`:48`) | 14px | max(11, px−2) |
-| `--id-text-base` | 14px (`:49`) | 16px | px |
-| `--id-text-md` | 15px (`:50`) | 17px | px+1 |
-| `--id-text-lg` | 16px (`:51`) | 18px | px+2 |
-| `--id-text-xl` | 17px (`:52`) | 19px | px+3 |
-| `--id-text-2xl` / `3xl` / `4xl` / `5xl` | 20 / 24 / 32 / 36px (`:53-56`) | iguais (não escalam) | — |
+| `--id-text-xs` | 0.75rem (`:57`) | 12px | max(10, px−4) |
+| `--id-text-sm` | 0.75rem (`:58`) | 14px | max(11, px−2) |
+| `--id-text-base` | 0.875rem (`:59`) | 16px | px |
+| `--id-text-md` | 0.9375rem (`:60`) | 17px | px+1 |
+| `--id-text-lg` | 1rem (`:61`) | 18px | px+2 |
+| `--id-text-xl` | 1.0625rem (`:62`) | 19px | px+3 |
+| `--id-text-2xl` / `3xl` / `4xl` / `5xl` | 1,25 / 1,5 / 2 / 2,25rem (`:63-66`) | iguais (não escalam) | — |
 
 Atalhos: Ctrl+= / Ctrl+− / Ctrl+0 (`textsize.js`). Saudação: Fira 600 em `--id-text-4xl`, 3xl abaixo de 960px e 2xl abaixo de 600px (`assistant-chat.css:15-17,486-492`).
 
-### 2.5 Espaçamento (base 4px) — `tokens.css:84-91`
+### 2.5 Espaçamento (base 4px) — `identity-tokens.css:94-102`
 
 `--id-space-1` 4 · `-2` 8 · `-3` 12 · `-4` 16 · `-5` 20 · `-6` 24 · `-8` 32 · `-10` 40 (px). Coluna da conversa: `max-width: 760px` (`assistant-chat.css:88`, `:393`); cartão do compositor vazio: 680px (`:27`); barra lateral: 280px (`assistant.css:88`); navegação de Configurações: 200px (`assistant-settings.css:14`).
 
-### 2.6 Raios — `tokens.css:59-65`
+### 2.6 Raios — `identity-tokens.css:69-76`
 
-| Token | px | Uso típico |
-|---|---|---|
-| `--id-radius-hero` | 24 | (não encontrado no shell) |
-| `--id-radius-card` | 20 | `.gb-set-card`, compositor, linhas de provedor |
-| `--id-radius-panel` | 18 | balão do usuário (canto inferior direito em `-sm`) |
-| `--id-radius-bar` | 16 | — |
-| `--id-radius-control` | 12 | botão enviar/parar, cartão de modo, campo de busca |
-| `--id-radius-sm` | 8 | botões pequenos, campos, itens de navegação, anel de foco |
-| `--id-radius-pill` | 999 | chips, badges, botão de modelo |
+Derivados de `--radius` (0,75rem no tema Default, `default.css:38`). Valores efetivos no Default:
 
-### 2.7 Sombras — `tokens.css:68-72` (escuro `:148-150`)
+| Token | Definição | px efetivo | Uso típico |
+|---|---|---|---|
+| `--id-radius-hero` | `calc(var(--radius, .75rem) + 12px)` (`:70`) | 24 | — |
+| `--id-radius-card` | `calc(var(--radius, .75rem) + 8px)` (`:71`) | 20 | `.gb-set-card`, compositor, linhas de provedor |
+| `--id-radius-panel` | `calc(var(--radius, .75rem) + 6px)` (`:72`) | 18 | balão do usuário (canto inferior direito em `-sm`) |
+| `--id-radius-bar` | `calc(var(--radius, .75rem) + 4px)` (`:73`) | 16 | — |
+| `--id-radius-control` / `--id-radius` | `var(--radius, .75rem)` (`:74`, `:148`) | 12 | botão enviar/parar, cartão de modo, campo de busca |
+| `--id-radius-sm` | `max(4px, calc(var(--radius, .75rem) - 4px))` (`:75`) | 8 | botões pequenos, campos, itens de navegação, anel de foco |
+| `--id-radius-pill` | `999px` (`:76`) | 999 | chips, badges, botão de modelo |
 
-`--id-shadow-card` `0 1px 2px rgb(0 0 0/.05)`; `--id-shadow-card-hover` `0 8px 20px -10px rgb(0 0 0/.12), 0 1px 2px …`; `--id-shadow-float` (menus) `0 10px 15px -3px rgb(0 0 0/.04), 0 4px 6px -4px …`. No escuro a opacidade sobe para .3/.5.
+### 2.7 Sombras — `identity-tokens.css:78-83` (sem substituição no escuro)
 
-### 2.8 Movimento — `tokens.css:75-81`
+`--id-shadow-card` `0 1px 2px rgb(0 0 0/.05)`; `--id-shadow-card-hover` `0 8px 20px -10px rgb(0 0 0/.12), 0 1px 2px …`; `--id-shadow-float` (menus) `0 10px 15px -3px rgb(0 0 0/.04), 0 4px 6px -4px …`. As mesmas três sombras valem para claro e escuro; `--win-*` e `--sentient-*` as apelidam em `default.css:73-74,114-116`.
+
+### 2.8 Movimento — `identity-tokens.css:85-92`
 
 | Token | Valor |
 |---|---|
 | `--id-ease` | `cubic-bezier(.22, 1, .36, 1)` (o mais usado) |
 | `--id-ease-standard` | `cubic-bezier(.25, .1, .25, 1)` |
 | `--id-dur-fast` / `-normal` / `-medium` / `-slow` | 150 / 200 / 350 / 450 ms |
-| `--id-dur-glow` | 20s (0s com reduced-motion, `tokens.css:223-227`) |
+| `--id-dur-glow` | 20s (0s com reduced-motion, `identity-tokens.css:229-233`) |
 
 Animações nomeadas: deriva do padrão de fundo 30s (`assistant.css:39-44`), cursor de streaming `gb-blink` 1s (`assistant-chat.css:196-200`), pulso de "pensando" 1,4s (`:213-221`), shimmer do chip "Executando" 2s (`assistant-blocks.css:61-68`), abertura do bloco em `--id-dur-medium` (`:77-79`), spinner `gbSetSpin` .8s e barra de espera `gbDlWait` 1,4s (`assistant-settings.css:236-271`). Todas têm bloco `prefers-reduced-motion: reduce` (19 blocos nos CSS do shell).
 
@@ -166,8 +179,9 @@ Animações nomeadas: deriva do padrão de fundo 30s (`assistant.css:39-44`), cu
 
 ## 3. Temas
 
-- **Claro / escuro / sistema**: `theme.js` grava `gb-theme` no localStorage, põe `data-theme` em `<html>` e acompanha o sistema ao vivo (`theme.js:11,37-53,72-77`). Os tokens escuros estão em `:root[data-theme="dark"]` e repetidos em `@media (prefers-color-scheme: dark) :root:not([data-theme="light"])` (`tokens.css:134-175`, `178-220`).
-- **Acento**: oito predefinidos — Laranja `#F28C28`, Azul `#2563EB`, Verde `#059669`, Azul-petróleo `#0D9488`, Roxo `#7C3AED`, Vermelho `#DC2626`, Grafite `#6B7280`, Âmbar `#D97706` (`accent.js:260-269`) — e um seletor de cor livre (`09_settings.js:204-229`). A derivação é feita em OKLCH: hover L−0,078; light L+0,099 com C×0,77; paper L 0,983 com croma ≤ 0,012; texto escurece até 4,5:1 (`accent.js:175-206`). O laranja de referência devolve os literais exatos (`accent.js:163-170`). `apply()` grava as variáveis em `document.documentElement.style` (`accent.js:239-256`); ao trocar o tema, `reapply()` deriva de novo (`theme.js:46`).
+- **Claro / escuro / sistema**: `theme.js` grava `gb-theme` no localStorage, aplica `data-color-scheme` em `<html>` e acompanha o sistema ao vivo (`theme.js:6-11,28-42,64-81`). Há **um único** bloco escuro de tokens, `:root[data-color-scheme="dark"]` (`identity-tokens.css:167-227`), sem duplicação e sem bloco `@media` paralelo. `theme-scheme.js` decide o esquema pela cor de fundo do tema ativo; o esquema nunca é escolhido pelo id do tema no token layer.
+- **Tema Default**: não traz paleta própria — só apelida `--background`, `--primary`, `--win-*`, `--sentient-*` para os tokens (`default.css:17-126`). O `--radius` do contrato da suíte é o único escalar concreto (`default.css:35`), do qual derivam os raios `--id-*`.
+- **Acento**: oito predefinidos — Laranja `#F28C28`, Azul `#2563EB`, Verde `#059669`, Azul-petróleo `#0D9488`, Roxo `#7C3AED`, Vermelho `#DC2626`, Grafite `#6B7280`, Âmbar `#D97706` (`accent.js:266-275`) — e um seletor de cor livre (`09_settings.js:204-229`). A derivação é feita em OKLCH: hover L−0,078; light L+0,099 com C×0,77; paper L 0,983 com croma ≤ 0,012; texto escurece até 4,5:1 (`accent.js:160-206`). O laranja de referência devolve os literais exatos (`accent.js:163-170`). `apply()` grava as variáveis em `document.documentElement.style` (`accent.js:239-262`), incluindo `--id-accent-rgb`; ao trocar o tema, `reapply()` deriva de novo (`theme.js:40`).
 - **Origem do acento**: primeiro `productConfig.accent` (gravado pelo assistente de primeira execução em `<stack>/conf/system/appearance.json`, `botserver/crates/botcore/src/product/appearance.rs:1-6`), depois `localStorage gb-accent` (`09_settings.js:439-445`). Ao escolher um acento em Configurações, ele é salvo no localStorage e enviado a `/api/appearance` (`09_settings.js:303-310`).
 - **Fundos** (Configurações > Aparência): `none`, `image` (padrão, `pattern.png` usado como máscara sobre um gradiente do acento, opacidade .32), `dots`, `microdots`, `grid`, `blueprint`, `weave`, `mosaic` (`09b_patterns.js:12-22`; `assistant.css:32-40`). Três controles deslizantes: opacidade 20–300 %, escala 50–300 %, véu fosco 0–100 % (desfoque até 16px e papel até 45 %) (`09b_patterns.js:67-69`; `assistant-patterns.css:21-33`). Uma faixa de papel a 88 % cobre só a coluna da conversa, 808px, com 80px de esmaecimento em cada lado (`assistant.css:48-60`); abaixo de 960px o papel é sólido.
 - **Splash**: tema escuro próprio, sem tokens. Fundo `#0a0a0e` com `splash/splash-bg.jpg`, marca em Fira Sans 500 20px a 72 % de branco e barra de progresso com gradiente arco-íris (`splash.html:6-54`); spinner e brilho param com reduced-motion (`:66-69`).
@@ -193,7 +207,7 @@ Animações nomeadas: deriva do padrão de fundo 30s (`assistant.css:39-44`), cu
 
 ### 4.2 Campos
 
-`.gb-set-input` usa fundo `--gb-field`, borda `line`, raio sm e `text-sm`; no foco a borda fica acento, sem anel (`assistant-settings.css:288-293`). `.gb-set-textarea` usa fundo `--id-paper` e foco com `--id-focus` (`:348-356`). A busca de provedor `.gb-prov-search` tem borda de 1,5px, raio card e, no foco, halo `0 0 0 3px accent-soft` (`assistant-providers.css:7-13`). A busca da barra lateral `.gb-search-input` tem ícone a 10px (`assistant.css:179-203`).
+`.gb-set-input` usa fundo `--gb-field`, borda `line`, raio sm e `text-sm`; no foco a borda fica acento, sem anel (`assistant-settings.css:288-293`). `.gb-set-textarea` usa fundo `--id-paper` e foco com `box-shadow: var(--id-focus)` (`assistant-settings.css:354`). O mesmo padrão aparece em `.gb-prov-btn`/`.gb-prov-row` (`assistant-providers.css:41,114`), `.gb-block-header` (`assistant-blocks.css:40`), `.gb-gar-choice` (`assistant-garage.css:72,109`) e `.gb-agent-toggle` (`assistant-chat-ui.css:175`) — sempre `box-shadow`, nunca `outline: var(--id-focus)`. A busca de provedor `.gb-prov-search` tem borda de 1,5px, raio card e, no foco, halo `0 0 0 3px accent-soft` (`assistant-providers.css:7-13`). A busca da barra lateral `.gb-search-input` tem ícone a 10px (`assistant.css:179-203`).
 
 ### 4.3 Badges, pills e chips
 
@@ -269,26 +283,29 @@ Contrato: evento `gb.activity` com `{id, kind, status: started|completed|failed|
 
 ## 7. Lacunas e inconsistências observadas
 
-**Tokens inexistentes em uso** (não definidos em `tokens.css`):
+**Tokens antes inexistentes em uso — resolvidos na camada de tokens.** Todos passaram a ter uma definição única nos **dois** blocos de `identity-tokens.css`; os consumidores usam `var(--id-*)`, então os antigos fallbacks literais deixaram de ser necessários.
 
-| Token | Onde | Efeito |
-|---|---|---|
-| `--id-accent-muted` | `assistant-chat.css:465` | o box-shadow fica inválido e o **toggle de agente perde o anel de foco** |
-| `--id-text-secondary` | `assistant-chat.css:456`; `assistant-drive.css:362` (fallback `#64748b`) | cor herdada / cinza fixo |
-| `--id-fg` | `assistant-chat.css:270,289` | cor herdada |
-| `--id-accent-rgb` | `assistant-drive.css:297` | a sobreposição de soltar do Drive fica sempre índigo (99,102,241), não no acento |
-| `--id-accent-bg` | `assistant-drive.css:369` | aba ativa em azul fixo `rgba(37,99,235,.08)` |
-| `--id-border`, `--id-radius`, `--id-surface-alt`, `--id-surface-hover`, `--id-font-mono` | `assistant-blocks.css:287-306`, `assistant-drive.css:356-365`, `assistant-feedback.css:14,46`, `assistant-providers.css:52,120` | caem em literais Tailwind/slate (`#e2e8f0`, `#f1f5f9`, 6px) |
+| Token | Definição (claro / escuro) | Consumidor | Estado |
+|---|---|---|---|
+| `--id-accent-muted` | `identity-tokens.css:142` / `:192` | `.gb-agent-toggle:focus-visible` (`assistant-chat-ui.css:175`) | resolvido |
+| `--id-text-secondary` | `:143` / `:193` | `assistant-chat-ui.css:166`, `assistant-drive.css:362` | resolvido |
+| `--id-fg` | `:144` / `:194` | `assistant-chat.css:270,289` | resolvido |
+| `--id-accent-rgb` | `:145` / `:195`, sincronizado em `accent.js:251-256` | `assistant-drive.css:297` (sobreposição de soltar) | resolvido |
+| `--id-accent-bg` | `:146` / `:196` | `assistant-drive.css:369` (aba ativa) | resolvido |
+| `--id-border` | `:147` / `:197` | `assistant-blocks.css:295,303`, `assistant-drive.css:356` | resolvido |
+| `--id-radius` | `:148` / `:198` | `assistant-blocks.css:287,296,304`, `assistant-drive.css:363` | resolvido |
+| `--id-surface-alt` / `--id-surface-hover` | `:149-150` / `:199-200` | `assistant-feedback.css:14,46`, `assistant-drive.css:365` | resolvido |
+| `--id-font-mono` | `:151` / `:201` | `assistant-chat-ui.css:223`, `assistant-providers.css:50,111` | resolvido |
 
-**`--id-focus` usado como cor de outline**: `--id-focus` é um box-shadow (`tokens.css:129`), mas aparece em `outline: 2px solid var(--id-focus)` em `assistant-garage.css:72,110` e `assistant-providers.css:43,107,123`. A declaração fica inválida, e esses elementos ficam só com o anel global de `:focus-visible` (`assistant.css:78-82`), quando este não é sobrescrito.
+**`--id-focus` usado como box-shadow — resolvido.** É um box-shadow (`identity-tokens.css:156`) e todos os consumidores o aplicam com `box-shadow: var(--id-focus)`: `assistant-settings.css:354`, `assistant-providers.css:41,114`, `assistant-garage.css:72,109`, `assistant-blocks.css:40`, `assistant-chat-ui.css:175`, `assistant-sidebar.css:80`, `titlebar.css:46,96`. Não resta `outline: var(--id-focus)`; o anel global usa a cor `var(--id-accent-text)` (`default.css:151-154`).
 
 **Cores fixas fora dos tokens**: `#fff` no quadro do PDF (`assistant-blocks.css:296`); `white` no botão do toggle (`assistant-settings.css:368`) e no texto do botão de feedback (`assistant-feedback.css:28`); o chip "Precisa de você" com `rgb(234 179 8/.25)` em vez de um token de linha de aviso (`assistant-blocks.css:73`); a sombra do painel e o hover do bloco em rgb literal (`assistant-blocks.css:33,229`); o lightbox em `rgb(0 0 0/.5)` em vez de `--id-overlay` (`:325-328`); os tons por extensão de arquivo em JS (`12_blocks.js:89-95`); erros em linha `#dc2626`/`#a16207` (`12_blocks.js:148,336`; `06a_drive_actions.js:204`); o fallback de `--id-warn` é vermelho (`assistant-drive.css:196`); `.gb-gar-soon` traz fallbacks que não existem nos tokens (`assistant-garage.css:184`). A barra de título escura usa rgba fixos e é decidida por `isDark()` na montagem, sem seguir mudanças de tema (`titlebar.css:110-120`, `titlebar.js:39`). Splash e impressão (`assistant-feedback.css:70-93`) ficam fora do sistema de propósito.
 
 **Tamanhos em px que não escalam com o tamanho do texto**: `.gb-badge` 10px (`assistant-settings.css:252`), `.gb-set-bg-name` 10px (`:345`), contador 11px (`:357`), blocos 13/12/11/10px (`assistant-blocks.css:50,52,57,114,119-120,180`), `kbd` 11px (`assistant-chat.css:513`), Drive `0.8125rem` (`assistant-drive.css:362`). O raio do bloco é 12px literal, em vez de `--id-radius-control` (`assistant-blocks.css:24`).
 
-**Documentação desatualizada no código**: `tokens.css:9` e `assistant.css:2` dizem "Light theme only", mas há tema escuro completo (`tokens.css:132-221`); o bloco escuro está duplicado, sem fonte única (`:134-175` e `:178-220`). Os valores de tipo de `tokens.css` não são os efetivos, porque `textsize.js` redefine a base para 16px (§2.4).
+**Documentação no código — resolvida.** O cabeçalho de `identity-tokens.css:1-9` descreve corretamente claro e escuro; não há mais comentário "Light theme only" na camada de tokens, nem bloco escuro duplicado — existe um único `:root[data-color-scheme="dark"]` (`identity-tokens.css:167-227`). A escala de tipos em rem (`:57-66`) está documentada junto com a reescrita em px feita por `textsize.js` (§2.4). Se `assistant.css:2` ainda contiver o comentário antigo, ele pertence à pele (skin) do assistente e não à camada de tokens.
 
-**Acento e papel**: o literal padrão `--id-on-accent: #ffffff` (`tokens.css:21`) difere do que `derive("#F28C28")` devolve (`#2C2C2C`, `accent.js:168`). Assim, antes ou sem `apply()`, o texto sobre o laranja é branco; depois, é escuro. `--id-paper` não tem valor escuro em CSS: só `accent.js` o troca para `#1c1c28`. Se nenhum acento vier do servidor nem do localStorage, `restoreAccent()` não chama `apply()` (`09_settings.js:439-445`), e no escuro o papel continua `#FFF8F2`.
+**Acento e papel — resolvidos.** O padrão `--id-on-accent` é `#2C2C2C` (`identity-tokens.css:27`), o mesmo que `derive("#F28C28")` devolve (`accent.js:163-170`): não há mais troca branco→escuro após `apply()`. `--id-paper` tem valor escuro no CSS (`identity-tokens.css:176`); `accent.js` pode refiná-lo para `#1c1c28` quando um acento é aplicado (`accent.js:117-118`). Sem `apply()`, o escuro ainda é correto pelo bloco `data-color-scheme`, sem depender de `restoreAccent()` (`09_settings.js:439-445`).
 
 **Padrões duplicados**: `@keyframes gb-pulse` é definido duas vezes com corpos diferentes (`assistant-chat.css:218` e `:508`; vale o último, o que muda o pulso de "pensando"). Há três mecânicas de acordeão diferentes (§4.6) e três tratamentos de foco (anel global, borda acento sem anel em `.gb-set-input`, halo soft em `.gb-prov-search`). Convivem dois sistemas de ícones (§5). `--gb-field` é definido em `assistant-settings.css:287` e usado em `assistant-providers.css:8`, o que depende da ordem de carga.
 

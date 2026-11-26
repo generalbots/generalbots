@@ -1,202 +1,128 @@
 /*
  * Default — the suite's identity theme.
  *
- * A faithful copy of the assistant module's look expressed in the classic
- * suite's theme contract: warm paper (#FFF8F2), ink text, the orange accent
- * engine, hairline borders, 18-20px panels and the Fira Sans / Inter pairing.
- * Pure CSS on purpose: every value is literal so the theme also works on
- * pages that never load /suite/identity/tokens.css.
+ * This theme IS the design system: it declares no parallel palette. Every
+ * colour, radius, shadow and font below is an alias of an --id-* token from
+ * /suite/css/identity-tokens.css (loaded by desktop.html before any theme).
+ * Only the accent may vary per theme; neutrals, surfaces, shape and motion
+ * stay in the token layer. Dark values live in the single
+ * :root[data-color-scheme="dark"] block of identity-tokens.css — never under
+ * a theme id here (#2591).
  *
- * Dark surfaces keep the same warmth and accent; they are keyed off
- * data-color-scheme, which theme-scheme.js derives from this theme.
+ * --radius is the theme's base radius scalar (the classic suite contract);
+ * the identity radii derive from it. It is intentionally not an alias of
+ * --id-radius-control, which would be a circular custom-property reference.
  */
 
 :root {
-    /* == Core palette ================================================= */
-    --background: 28 100% 97%; /* #FFF8F2 paper */
-    --foreground: 0 0% 17%; /* #2C2C2C ink */
-    --card: 30 100% 99%; /* #FFFDFB */
-    --card-foreground: 0 0% 17%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 17%;
-    --primary: 30 89% 55%; /* #F28C28 accent */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%; /* #F3F4F6 */
-    --secondary-foreground: 0 0% 17%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 219 10% 41%; /* #5F6673 */
-    --accent: 30 100% 94%; /* warm accent-soft wash */
-    --accent-foreground: 26 90% 37%; /* #B45309 */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%; /* #E5E7EB hairline */
-    --input: 0 0% 100%;
-    --ring: 30 89% 55%;
+    /* == Classic suite contract -> identity tokens ====================== */
+    --background: var(--id-paper);
+    --foreground: var(--id-ink);
+    --card: var(--id-surface-solid);
+    --card-foreground: var(--id-ink);
+    --popover: var(--id-surface-solid);
+    --popover-foreground: var(--id-ink);
+    --primary: var(--id-accent);
+    --primary-foreground: var(--id-on-accent);
+    --secondary: var(--id-fill);
+    --secondary-foreground: var(--id-ink);
+    --muted: var(--id-fill);
+    --muted-foreground: var(--id-muted);
+    --accent: var(--id-accent-soft);
+    --accent-foreground: var(--id-accent-text);
+    --destructive: var(--id-danger);
+    --destructive-foreground: var(--id-surface-solid);
+    --border: var(--id-border);
+    --input: var(--id-surface-solid);
+    --ring: var(--id-accent-text);
     --radius: 0.75rem;
-    --chart-1: 30 89% 55%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 262 83% 58%;
-    --chart-5: 199 89% 48%;
 
-    /* == Identity aliases ============================================= */
-    --accent-color: #F28C28;
-    --id-accent: #F28C28;
-    --id-accent-hover: #D4751C;
-    --id-accent-soft: rgb(242 140 40 / .1);
-    --id-paper: #FFF8F2;
+    --chart-1: var(--id-accent);
+    --chart-2: var(--id-success);
+    --chart-3: var(--id-warn);
+    --chart-4: var(--id-hl-attr);
+    --chart-5: var(--id-hl-function);
 
-    /* == Desktop wallpaper ============================================ */
+    /* == Accent colour used by JS bridges ============================== */
+    --accent-color: var(--id-accent);
+
+    /* == Desktop wallpaper ============================================= */
     /* Warm paper with the accent glow bleeding from the top corners — the
-       calm surface the assistant conversation sits on. */
+       calm surface the assistant conversation sits on. Every stop is a
+       token (or a token mix), so dark mode recolours it for free. */
     --wall:
-        radial-gradient(ellipse at 12% 0%, rgb(242 140 40 / .1) 0%, transparent 55%),
-        radial-gradient(ellipse at 88% 8%, rgb(253 185 106 / .14) 0%, transparent 50%),
-        linear-gradient(165deg, #FFF8F2 0%, #FDF4EA 55%, #F7EEE5 100%);
+        radial-gradient(ellipse at 12% 0%, var(--id-accent-soft) 0%, transparent 55%),
+        radial-gradient(ellipse at 88% 8%, var(--id-accent-glow) 0%, transparent 50%),
+        linear-gradient(165deg,
+            var(--id-paper) 0%,
+            color-mix(in srgb, var(--id-paper) 92%, var(--id-accent)) 55%,
+            color-mix(in srgb, var(--id-paper) 85%, var(--id-ink)) 100%);
     --wall-vignette:
-        radial-gradient(ellipse at 50% 110%, rgb(242 140 40 / .07) 0%, transparent 60%);
+        radial-gradient(ellipse at 50% 110%, var(--id-accent-soft) 0%, transparent 60%);
 
-    /* == Window chrome ================================================ */
-    --win-radius: 20px;
+    /* == Window chrome ================================================= */
+    --win-radius: var(--id-radius-card);
     --win-border-width: 1px;
-    --win-border-color: rgb(229 231 235 / .9);
-    --win-border-active: #F28C28;
-    --win-bg: rgb(255 255 255 / .92);
-    --win-titlebar-bg: rgb(255 255 255 / .86);
-    --win-titlebar-text: #4B5563;
-    --win-titlebar-sep: rgb(229 231 235 / .8);
-    --win-caption-hover: rgb(242 140 40 / .12);
-    --win-shadow:
-        0 1px 2px rgb(0 0 0 / .05),
-        0 10px 15px -3px rgb(0 0 0 / .04),
-        0 4px 6px -4px rgb(0 0 0 / .04);
-    --win-shadow-active:
-        0 8px 20px -10px rgb(0 0 0 / .12),
-        0 1px 2px rgb(0 0 0 / .05);
+    --win-border-color: var(--id-line);
+    --win-border-active: var(--id-accent);
+    --win-bg: var(--id-surface);
+    --win-titlebar-bg: color-mix(in srgb, var(--id-surface) 95%, transparent);
+    --win-titlebar-text: var(--id-text);
+    --win-titlebar-sep: var(--id-line);
+    --win-caption-hover: var(--id-accent-soft);
+    --win-shadow: var(--id-shadow-card), var(--id-shadow-float);
+    --win-shadow-active: var(--id-shadow-card-hover);
 
-    /* == Taskbar / sidebar shell ====================================== */
-    --shell-bg: rgb(255 255 255 / .82);
-    --shell-border: rgb(229 231 235 / .9);
+    /* == Taskbar / sidebar shell ======================================= */
+    --shell-bg: color-mix(in srgb, var(--id-surface) 92%, transparent);
+    --shell-border: var(--id-line);
     --shell-blur: blur(24px) saturate(160%);
-    --glass-bg: rgb(255 255 255 / .82);
-    --glass-border-color: rgb(229 231 235 / .9);
+    --glass-bg: color-mix(in srgb, var(--id-surface) 92%, transparent);
+    --glass-border-color: var(--id-line);
 
-    /* == Sentient bridge (Sheet, Docs, Slides) ======================== */
-    --sentient-bg-primary: #FFF8F2;
-    --sentient-bg-secondary: #FFFDFB;
-    --sentient-bg-tertiary: #F3F4F6;
-    --sentient-bg-hover: rgb(242 140 40 / .1);
-    --sentient-bg-active: rgb(242 140 40 / .16);
-    --sentient-text-primary: #2C2C2C;
-    --sentient-text-secondary: #4B5563;
-    --sentient-text-tertiary: #5F6673;
-    --sentient-text-muted: #9CA3AF;
-    --sentient-accent: #F28C28;
-    --sentient-accent-hover: #D4751C;
-    --sentient-accent-light: rgb(242 140 40 / .1);
-    --sentient-accent-dark: #B45309;
-    --sentient-border: #E5E7EB;
-    --sentient-border-light: #F3F4F6;
-    --sentient-border-accent: rgb(242 140 40 / .3);
-    --sentient-surface: #FFFDFB;
-    --sentient-surface-hover: #FFF8F2;
-    --sentient-surface-active: #FDF0E1;
-    --sentient-surface-elevated: #FFFFFF;
-    --sentient-input-bg: #FFFFFF;
-    --sentient-input-border: #E5E7EB;
-    --sentient-input-focus: #F28C28;
-    --sentient-success: #22C55E;
-    --sentient-success-bg: rgb(34 197 94 / .12);
-    --sentient-warning: #D97706;
-    --sentient-warning-bg: rgb(234 179 8 / .14);
-    --sentient-error: #DC2626;
-    --sentient-error-bg: rgb(220 38 38 / .1);
-    --sentient-font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --sentient-shadow-sm: 0 1px 2px rgb(0 0 0 / .05);
-    --sentient-shadow-md: 0 8px 20px -10px rgb(0 0 0 / .12), 0 1px 2px rgb(0 0 0 / .05);
-    --sentient-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .04), 0 4px 6px -4px rgb(0 0 0 / .04);
-    --sentient-radius: 0.75rem;
-    --sentient-radius-sm: 0.5rem;
-    --sentient-radius-md: 0.75rem;
-    --sentient-radius-lg: 1rem;
-    --sentient-radius-xl: 1.25rem;
+    /* == Sentient bridge (Sheet, Docs, Slides) ========================= */
+    --sentient-bg-primary: var(--id-paper);
+    --sentient-bg-secondary: var(--id-surface-solid);
+    --sentient-bg-tertiary: var(--id-fill);
+    --sentient-bg-hover: var(--id-accent-soft);
+    --sentient-bg-active: var(--id-accent-glow);
+    --sentient-text-primary: var(--id-ink);
+    --sentient-text-secondary: var(--id-text);
+    --sentient-text-tertiary: var(--id-muted);
+    --sentient-text-muted: var(--id-gray-400);
+    --sentient-accent: var(--id-accent);
+    --sentient-accent-hover: var(--id-accent-hover);
+    --sentient-accent-light: var(--id-accent-soft);
+    --sentient-accent-dark: var(--id-accent-text);
+    --sentient-border: var(--id-line);
+    --sentient-border-light: var(--id-line-soft);
+    --sentient-border-accent: color-mix(in srgb, var(--id-accent) 30%, transparent);
+    --sentient-surface: var(--id-surface-solid);
+    --sentient-surface-hover: var(--id-surface-hover);
+    --sentient-surface-active: var(--id-fill);
+    --sentient-surface-elevated: var(--id-surface-solid);
+    --sentient-input-bg: var(--id-surface-solid);
+    --sentient-input-border: var(--id-line);
+    --sentient-input-focus: var(--id-accent);
+    --sentient-success: var(--id-success);
+    --sentient-success-bg: var(--id-success-soft);
+    --sentient-warning: var(--id-warn);
+    --sentient-warning-bg: var(--id-warn-soft);
+    --sentient-error: var(--id-danger);
+    --sentient-error-bg: var(--id-danger-soft);
+    --sentient-font-family: var(--id-font-sans);
+    --sentient-shadow-sm: var(--id-shadow-card);
+    --sentient-shadow-md: var(--id-shadow-card-hover);
+    --sentient-shadow-lg: var(--id-shadow-float);
+    --sentient-radius: var(--id-radius-control);
+    --sentient-radius-sm: var(--id-radius-sm);
+    --sentient-radius-md: var(--id-radius-control);
+    --sentient-radius-lg: var(--id-radius-card);
+    --sentient-radius-xl: var(--id-radius-hero);
 
     /* == Typography =================================================== */
-    --gb-font-heading: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --gb-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-
-/* == Dark surfaces =================================================== */
-/* Same warmth, same accent; only the paper and ink flip. */
-
-:root[data-color-scheme="dark"] {
-    --background: 34 11% 12%;
-    --foreground: 240 12% 91%;
-    --card: 240 15% 17%;
-    --card-foreground: 240 12% 91%;
-    --popover: 240 15% 19%;
-    --popover-foreground: 240 12% 91%;
-    --primary: 30 89% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 15% 21%;
-    --secondary-foreground: 240 12% 91%;
-    --muted: 240 15% 21%;
-    --muted-foreground: 226 11% 56%;
-    --accent: 30 60% 22%;
-    --accent-foreground: 32 96% 72%;
-    --border: 240 12% 26%;
-    --input: 240 15% 19%;
-    --ring: 32 96% 72%;
-    --accent-color: #FDB96A;
-    --id-accent: #F28C28;
-    --id-accent-soft: rgb(242 140 40 / .16);
-    --id-paper: #221F1B;
-    --wall:
-        radial-gradient(ellipse at 12% 0%, rgb(242 140 40 / .12) 0%, transparent 55%),
-        linear-gradient(165deg, #221F1B 0%, #1E1C1A 55%, #1A1917 100%);
-    --wall-vignette:
-        radial-gradient(ellipse at 50% 110%, rgb(242 140 40 / .06) 0%, transparent 60%);
-    --win-border-color: rgb(255 255 255 / .1);
-    --win-border-active: #F28C28;
-    --win-bg: rgb(38 38 51 / .94);
-    --win-titlebar-bg: rgb(38 38 51 / .9);
-    --win-titlebar-text: #A8ADB8;
-    --win-titlebar-sep: rgb(255 255 255 / .1);
-    --win-caption-hover: rgb(255 255 255 / .08);
-    --win-shadow:
-        0 1px 3px rgb(0 0 0 / .3),
-        0 10px 15px -3px rgb(0 0 0 / .3),
-        0 4px 6px -4px rgb(0 0 0 / .2);
-    --win-shadow-active:
-        0 8px 20px -10px rgb(0 0 0 / .5),
-        0 1px 3px rgb(0 0 0 / .3);
-    --shell-bg: rgb(30 30 40 / .84);
-    --shell-border: rgb(255 255 255 / .1);
-    --glass-bg: rgb(30 30 40 / .84);
-    --glass-border-color: rgb(255 255 255 / .1);
-    --sentient-bg-primary: #221F1B;
-    --sentient-bg-secondary: #262633;
-    --sentient-bg-tertiary: #2A2A36;
-    --sentient-bg-hover: rgb(242 140 40 / .16);
-    --sentient-bg-active: rgb(242 140 40 / .24);
-    --sentient-text-primary: #E4E4EA;
-    --sentient-text-secondary: #A8ADB8;
-    --sentient-text-tertiary: #808898;
-    --sentient-text-muted: #6A6A80;
-    --sentient-accent: #F28C28;
-    --sentient-accent-hover: #FDB96A;
-    --sentient-accent-light: rgb(242 140 40 / .16);
-    --sentient-accent-dark: #FDB96A;
-    --sentient-border: rgb(255 255 255 / .1);
-    --sentient-border-light: rgb(255 255 255 / .06);
-    --sentient-border-accent: rgb(242 140 40 / .4);
-    --sentient-surface: #262633;
-    --sentient-surface-hover: #2E2E3E;
-    --sentient-surface-active: #353542;
-    --sentient-surface-elevated: #2A2A36;
-    --sentient-input-bg: #2A2A36;
-    --sentient-input-border: rgb(255 255 255 / .12);
-    --sentient-input-focus: #FDB96A;
+    --gb-font-heading: var(--id-font-heading);
+    --gb-font-body: var(--id-font-sans);
 }
 
 /* == One accent, no per-app hues =================================== */
@@ -208,69 +134,21 @@
 :root[data-theme="default"] [data-gb-app] {
     --gb-identity-line: transparent;
     --gb-identity-wash: transparent;
-    --gb-identity-accent: var(--text);
-    --gb-identity-tint: var(--border);
+    --gb-identity-accent: var(--id-ink);
+    --gb-identity-tint: var(--id-line);
 }
 
 /* == Selection & focus ============================================== */
+/* --id-focus is a box-shadow token (identity-tokens.css). Component focus
+   states use `box-shadow: var(--id-focus)`; the global ring below colours an
+   outline with --id-accent-text instead — --id-focus is never an outline. */
 
 ::selection {
-    background: rgb(242 140 40 / .22);
+    background: var(--id-accent-soft);
     color: inherit;
 }
 
 :focus-visible {
-    outline: 2px solid #B45309;
+    outline: 2px solid var(--id-accent-text);
     outline-offset: 2px;
-}
-
-/* == Identity bridge (assistant look) ==============================
- * The suite's UI (every app, chat included) is expressed in --id-*
- * tokens. Each theme declares its own values here so the assistant look
- * comes back recoloured to this palette instead of falling back to the
- * reference orange and paper. Generated from the palette declared above;
- * regenerate when the palette changes.
- *
- * #2591 — this generated block was derived from the DARK palette but lived
- * in an unqualified `:root`, so it overrode the light `--id-paper`/`--id-ink`
- * declared above for every colour scheme. `#chat-app.chat-layout` then painted
- * its header strip with the dark `--id-paper` even in the light theme (the
- * "black lines" in chat). Scope the dark surface/ink tokens to the dark
- * colour scheme; light keeps the warm paper values from above and from
- * identity-tokens.css.
- */
-
-:root[data-color-scheme="dark"] {
-    /* Accent — the theme's primary, with the reference shades derived. */
-    --id-accent: hsl(30 89% 55%);
-    --id-accent-hover: color-mix(in srgb, hsl(30 89% 55%) 86%, #000);
-    --id-accent-light: color-mix(in srgb, hsl(30 89% 55%) 68%, #fff);
-    --id-accent-text: hsl(32 96% 72%);
-    --id-accent-soft: color-mix(in srgb, hsl(30 89% 55%) 12%, transparent);
-    --id-accent-glow: color-mix(in srgb, hsl(30 89% 55%) 26%, transparent);
-    /* Ink, not white: white on this accent is 2.45:1 (see accent.js). */
-    --id-on-accent: hsl(0 0% 17%);
-
-    /* Surfaces and ink. */
-    --id-paper: hsl(34 11% 12%);
-    --id-ink: hsl(240 12% 91%);
-    --id-text: color-mix(in srgb, hsl(240 12% 91%) 82%, hsl(34 11% 12%));
-    --id-muted: hsl(226 11% 56%);
-    --id-gray-100: hsl(240 15% 21%);
-    --id-gray-200: color-mix(in srgb, hsl(240 12% 91%) 12%, hsl(34 11% 12%));
-    --id-gray-300: color-mix(in srgb, hsl(240 12% 91%) 22%, hsl(34 11% 12%));
-    --id-gray-400: color-mix(in srgb, hsl(240 12% 91%) 46%, hsl(34 11% 12%));
-    --id-gray-500: color-mix(in srgb, hsl(240 12% 91%) 62%, hsl(34 11% 12%));
-    --id-surface: color-mix(in srgb, hsl(240 15% 17%) 90%, transparent);
-    --id-surface-solid: hsl(240 15% 17%);
-    --id-line: color-mix(in srgb, hsl(240 12% 26%) 90%, transparent);
-    --id-line-soft: color-mix(in srgb, hsl(240 12% 26%) 55%, transparent);
-    --id-fill: color-mix(in srgb, hsl(240 15% 21%) 80%, transparent);
-
-    /* Shape follows the theme's own radius. */
-    --id-radius-card: calc(0.75rem + 8px);
-    --id-radius-panel: calc(0.75rem + 6px);
-    --id-radius-bar: calc(0.75rem + 4px);
-    --id-radius-control: 0.75rem;
-    --id-radius-sm: max(4px, calc(0.75rem - 4px));
 }

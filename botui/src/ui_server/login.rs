@@ -172,8 +172,9 @@ pub async fn serve_login_cloud(axum::extract::Path(path): axum::extract::Path<St
 }
 
 /// `/suite/:dir/*path` on the login server, restricted to the shared static
-/// trees the auth pages actually link: the palette tokens
-/// (`/suite/css/palette-tokens.css`) and the touch icons
+/// trees the auth pages actually link: the palette/identity tokens
+/// (`/suite/css/identity-tokens.css`), the local identity fonts
+/// (`/suite/identity/fonts.css`) and the touch icons
 /// (`/suite/assets/icons/apple-touch-icon.png`). The login router has no
 /// catch-all static mount, so those requests used to fall through to
 /// `serve_login_index` and the browser refused the HTML body as a stylesheet
@@ -181,7 +182,7 @@ pub async fn serve_login_cloud(axum::extract::Path(path): axum::extract::Path<St
 pub async fn serve_login_suite(
     axum::extract::Path((dir, path)): axum::extract::Path<(String, String)>,
 ) -> Response {
-    if !matches!(dir.as_str(), "css" | "assets") || !is_safe_relative_path(&path) {
+    if !matches!(dir.as_str(), "css" | "assets" | "identity") || !is_safe_relative_path(&path) {
         return StatusCode::NOT_FOUND.into_response();
     }
     let suite_root = get_ui_root().join("suite");
@@ -285,6 +286,12 @@ mod tests {
         let suite =
             serve_login_suite(Path(("css".to_string(), "palette-tokens.css".to_string()))).await;
         assert_eq!(suite.status(), StatusCode::OK);
+        let tokens =
+            serve_login_suite(Path(("css".to_string(), "identity-tokens.css".to_string()))).await;
+        assert_eq!(tokens.status(), StatusCode::OK);
+        let fonts =
+            serve_login_suite(Path(("identity".to_string(), "fonts.css".to_string()))).await;
+        assert_eq!(fonts.status(), StatusCode::OK);
     }
 
     #[cfg(unix)]
