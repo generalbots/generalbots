@@ -98,6 +98,14 @@ pub fn select_model(
     )
 }
 
+/// USD per 1K input tokens from the llm-prices list price table, 0.01 when the
+/// model is not listed.
+pub fn cost_per_1k_input_tokens(model: &str) -> f64 {
+    llm_prices::lookup(model)
+        .and_then(|p| p.cost(1000, 0))
+        .unwrap_or(0.01)
+}
+
 pub struct SmartLLMRouter {
     performance_cache: Arc<tokio::sync::RwLock<HashMap<String, ModelPerformance>>>,
     _app_state: Arc<AppState>,
@@ -207,13 +215,7 @@ pub async fn enhanced_llm_call(
 
     // Track performance
     let latency = start_time.elapsed().as_millis() as u64;
-    let cost_per_token = match actual_model.as_str() {
-        "gpt-5.6-sol" => 0.00125,
-        "gpt-4o-mini" => 0.0015,
-        "claude-sonnet-5-5" => 0.003,
-        "claude-3-sonnet" => 0.015,
-        _ => 0.01,
-    };
+    let cost_per_token = cost_per_1k_input_tokens(&actual_model);
 
     router
         .track_performance(&actual_model, latency, cost_per_token, true)

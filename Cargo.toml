@@ -296,6 +296,7 @@ botgit = { path = "botserver/crates/botgit" }
 anyhow = "1.0"
 thiserror = "2.0"
 log = "0.4"
+llm-prices = "1.8.0"
 rust_decimal = { version = "1.36", default-features = false }
 rust_decimal_macros = "1.36"
 env_logger = "0.11"
