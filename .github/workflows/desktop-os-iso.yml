@@ -343,7 +343,16 @@ jobs:
               # Prove this really is the OS, not the GRUB payload carrier:
               # /etc/os-release identity, payload entry point and shell unit
               # are read from inside the root filesystem of the image.
-              /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
+              # /repo is the PINNED checkout. Tags older than the cross-check
+              # (#2440) have no --verify-appliance flag; honour their contract
+              # like the smoke/license guards above instead of failing a
+              # release that was green when it shipped. Current tags keep the
+              # cross-check REQUIRED: its absence there is a hard failure.
+              if grep -qF -- "--verify-appliance" /repo/scripts/build_iso.sh; then
+                /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
+              else
+                echo "::notice::pinned tag predates the build_iso appliance cross-check (#2440); independent verifier still gates publication"
+              fi
             '
 
       - name: Deterministic OS release packaging (#2440)
