@@ -1,18 +1,31 @@
-function getContrastYIQ(hexcolor) {
-  if (!hexcolor) return "#ffffff";
-  var temp = document.createElement("div");
-  temp.style.color = hexcolor;
-  temp.style.display = "none";
-  document.body.appendChild(temp);
-  var style = window.getComputedStyle(temp).color;
-  document.body.removeChild(temp);
+/* #2933 — parse the colour instead of appending a probe node and reading its
+ * computed style: the old probe forced a synchronous style/layout pass twice
+ * inside the boot-time theme response handler. */
+function parseColor(color) {
+  if (!color) return null;
+  var value = String(color).trim().toLowerCase();
+  if (value === "black") return [0, 0, 0];
+  if (value === "white") return [255, 255, 255];
+  var hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (hex) {
+    var raw = hex[1].length === 3
+      ? hex[1].split("").map(function (c) { return c + c; }).join("")
+      : hex[1];
+    return [
+      parseInt(raw.slice(0, 2), 16),
+      parseInt(raw.slice(2, 4), 16),
+      parseInt(raw.slice(4, 6), 16),
+    ];
+  }
+  var rgb = value.match(/^rgba?\(\s*([0-9.]+)\s*[, ]\s*([0-9.]+)\s*[, ]\s*([0-9.]+)/);
+  if (rgb) return [parseFloat(rgb[1]), parseFloat(rgb[2]), parseFloat(rgb[3])];
+  return null;
+}
 
-  var rgb = style.match(/\d+/g);
-  if (!rgb || rgb.length < 3) return "#ffffff";
-  var r = parseInt(rgb[0]);
-  var g = parseInt(rgb[1]);
-  var b = parseInt(rgb[2]);
-  var yiq = (r * 299 + g * 587 + b * 114) / 1000;
+function getContrastYIQ(color) {
+  var rgb = parseColor(color);
+  if (!rgb) return "#ffffff";
+  var yiq = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
   return yiq >= 128 ? "#000000" : "#ffffff";
 }
 
@@ -48,16 +61,7 @@ function loadBotConfig() {
       var logo = config.theme_logo || config["theme-logo"] || "";
 
       document.documentElement.setAttribute("data-has-bot-colors", "true");
-      document.documentElement.style.setProperty("--chat-color1", color1);
-      document.documentElement.style.setProperty("--chat-color2", color2);
-      document.documentElement.style.setProperty("--suggestion-color", color1);
-      document.documentElement.style.setProperty("--suggestion-bg", color2);
-      document.documentElement.style.setProperty("--color1", color1);
-      document.documentElement.style.setProperty("--color2", color2);
-      document.documentElement.style.setProperty("--primary", color1);
-      document.documentElement.style.setProperty("--accent", color1);
-      document.documentElement.style.setProperty("--chat-fg1", getContrastYIQ(color1));
-      document.documentElement.style.setProperty("--chat-fg2", getContrastYIQ(color2));
+      applyThemeData({ color1: color1, color2: color2, title: title, logo_url: logo });
 
       if (logo) {
         var logoImg = document.querySelector(".logo-icon-img");

@@ -193,8 +193,19 @@ class WindowManager {
     // be laying out; an app auto-opened on load (e.g. ?app=vibe) can land
     // with a stale/negative offset that pushes it off-screen. Clamp the
     // window into the visible workspace so it can never be unreachable.
-    this._clampWindowIntoView(id);
-    this._applyWindowPreference(id);
+    // #2933 — the clamp and the stored preference both read layout; run them
+    // off the open task so injecting a large app fragment never forces a
+    // synchronous layout in the response continuation. The reveal path below
+    // re-clamps after the fragment's own stylesheets settle.
+    const settleLayout = () => {
+      this._clampWindowIntoView(id);
+      this._applyWindowPreference(id);
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(settleLayout, { timeout: 800 });
+    } else {
+      window.setTimeout(settleLayout, 1);
+    }
     // #1432/#1439/#1434 — the open event carries the deep-link params
     // snapshot so the session restore can reopen windows to WHERE they
     // were (conversation id, person, project).

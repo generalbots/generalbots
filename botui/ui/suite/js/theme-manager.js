@@ -122,26 +122,38 @@ const ThemeManager = (() => {
     }
     applyThemeId(theme.id);
     const old = document.getElementById("theme-css");
-    if (old) old.remove();
+    // #2933 — repeated init() calls must not remove and re-fetch the stylesheet
+    // (each load re-ran the bridge after a full-document style resolution).
+    if (theme.file && old && old.getAttribute("data-gb-theme-id") === theme.id) {
+      currentThemeId = theme.id;
+      updateDropdown();
+      return;
+    }
     if (!theme.file) {
+      if (old) old.remove();
       currentThemeId = theme.id;
       scheme.bridge(theme.id, theme.name, announce);
       updateDropdown();
       return;
     }
     const link = document.createElement("link");
-    link.id = "theme-css";
     link.rel = "stylesheet";
     link.href = `/suite/public/themes/${theme.file}?v=2`;
+    link.setAttribute("data-gb-theme-id", theme.id);
+    // Keep the outgoing stylesheet applied until the new one has loaded, then
+    // hand over its id so the onload guard below targets this link.
+    if (old) old.removeAttribute("id");
     // #2933 — the stylesheet's load event already guarantees style resolution;
     // the old 50 ms timer only delayed the batched read/compute/write bridge
     // onto a later task and left the newly loaded theme unbridged for 50 ms.
+    link.id = "theme-css";
     link.onload = () => {
       if (document.getElementById("theme-css") !== link) return;
       gbLog.debug("✓ Theme loaded:", theme.name);
       currentThemeId = id;
       scheme.bridge(id, theme.name, announce);
       updateDropdown();
+      if (old && old !== link) old.remove();
     };
     link.onerror = () => console.error("✗ Failed:", theme.name);
     document.head.appendChild(link);
