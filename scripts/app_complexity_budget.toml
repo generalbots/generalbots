@@ -1,20 +1,13 @@
 # ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# Rises justified by the commit that grew each surface:
-#   settings +42 (#2470 data-protection safety); chat +31 (#2933/#2945–#2953
-#   poller/route fixes and the console-smoke admin-gate for /api/llm/accounts);
-#   automations +19 (#2945 poller gate); mail js_modules +2, loc +428 (#2953
-#   sanitizer module — CDN-like strings are split hostile-input fixtures, so
-#   adequacy_guard stays at 0); slides +22 (#2945);
-#   browser +59, desktop +49, integrations +3, project +7, tickets +8
-#     (4400f641e VM-tab/auth/classList fixes);
-#   designer +39 (ad5974c96 app-kit/designer reopen);
-#   handoff +20 (097b85bd1 branch scope/fraud route/token fallback);
-#   pos +20 (43e77f678 retail POS work);
-#   notepad +8, store +12 (ec3d670bb suite work);
-#   events +17 (admin-only DLQ gating to stop 403 console errors in CI).
-# Tightened because the surface shrank: calendar -1, crm -23, docs -9.
-# No route ceiling changed. Future growth needs an owner note or a code split.
+# Rises justified by merged work: settings +42 (#2470), chat +31 (#2933/#2945
+# and admin-account gating), automations +19 (#2945), mail +2 modules/+428 loc
+# (#2953 sanitizer; CDN-like strings are split hostile-input fixtures), slides
+# +22 (#2945), browser +59/desktop +49/integrations +3/project +7/tickets +8
+# (4400f641e), designer +39 (ad5974c96), handoff +20 (097b85bd1), pos +20
+# (43e77f678), notepad +8/store +12 (ec3d670bb), events +19 (admin-only DLQ
+# gating, including the is-admin body-class contract). No route ceiling changed.
+# Tightened: calendar -1, crm -23, docs -9. Future growth needs an owner note.
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-app complexity budget (#2120).
 #
@@ -94,7 +87,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30959
+loc = 30958
 
 [apps."clock"]
 routes = 0
@@ -154,7 +147,7 @@ loc = 967
 [apps."events"]
 routes = 0
 js_modules = 6
-loc = 840
+loc = 842
 
 [apps."fraud"]
 routes = 8

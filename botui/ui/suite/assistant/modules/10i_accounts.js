@@ -73,5 +73,7 @@
     }
 
     /* Best effort on boot: settings can read A.accounts as soon as it opens. */
-    A.refreshAccounts();
+    // Provider accounts are an admin-only surface; calling it for a normal
+    // user produces a browser-console 403 on every chat open.
+    if (document.body.classList.contains("is-admin")) A.refreshAccounts();
 })();

@@ -93,7 +93,9 @@
   }
 
   function adminKnown() {
-    return !!(window.GBAuth && typeof window.GBAuth.isAdmin === "function");
+    // auth-service sets this class only after its isAdmin() verdict; a bare
+    // GBAuth object with unresolved roles would still issue a 403 request.
+    return document.body.classList.contains("is-admin");
   }
 
   function init() {
