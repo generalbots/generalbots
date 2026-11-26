@@ -12,6 +12,17 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         .or_else(|_| std::env::var("VALKEY_URL"))
         .ok();
 
+    if uses_built_in_cache() {
+        if env_url.is_none() {
+            // This edition has no cache service. When the built-in cache
+            // cannot start, the server runs without a cache: falling through
+            // would connect to whatever answers on the old service's port
+            // (a leftover from an earlier version, or someone else's Redis).
+            return start_built_in_cache().await;
+        }
+        info!("Cache: an external cache URL is set in the environment; the built-in cache is not used");
+    }
+
     // Check for Redis database number for namespace isolation
     let redis_db = std::env::var("REDIS_DB")
         .ok()
@@ -155,6 +166,45 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                     return None;
                 }
             }
+        }
+    }
+}
+
+/// Whether this build serves the cache from inside the server instead of an
+/// external Redis/Valkey; CACHE_URL, REDIS_URL or VALKEY_URL still win. The
+/// product file's `services_off=cache` is the source of truth; on Windows it
+/// must also be the gbgov edition.
+fn uses_built_in_cache() -> bool {
+    cfg!(all(windows, feature = "gbgov")) && botcore::product::uses_builtin_cache()
+}
+
+async fn start_built_in_cache() -> Option<Arc<redis::Client>> {
+    let url = match super::embedded_cache::start_process_cache() {
+        Ok(url) => url,
+        Err(e) => {
+            warn!("Built-in cache could not start: {e}");
+            return None;
+        }
+    };
+    let checked = tokio::task::spawn_blocking(move || {
+        let client = redis::Client::open(url.as_str())?;
+        let mut conn = client.get_connection_with_timeout(std::time::Duration::from_secs(3))?;
+        redis::cmd("PING").query::<String>(&mut conn)?;
+        Ok::<_, redis::RedisError>(client)
+    })
+    .await;
+    match checked {
+        Ok(Ok(client)) => {
+            info!("Cache initialized - built-in cache on the loopback interface");
+            Some(Arc::new(client))
+        }
+        Ok(Err(e)) => {
+            warn!("Built-in cache did not answer: {e}");
+            None
+        }
+        Err(e) => {
+            warn!("Built-in cache check failed: {e}");
+            None
         }
     }
 }
