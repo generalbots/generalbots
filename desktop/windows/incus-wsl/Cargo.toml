@@ -1,0 +1,13 @@
+[package]
+name = "incus"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Runs Incus inside the product's WSL2 distro for the agent workspace on Windows"
+
+[workspace]
+
+[profile.release]
+opt-level = "z"
+strip = true

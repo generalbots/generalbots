@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+mod agent_env;
 mod bootlog;
 mod paths;
 pub(crate) mod port_holder;
@@ -272,6 +273,7 @@ impl Sidecar {
             // Single-user desktop: there is no sign-in screen, so the local
             // identity must be allowed to provision the agent workspace.
             .env("AGENT_ALLOW_UNREGISTERED_IDENTITIES", "1");
+        command.envs(agent_env::agent_env(&installers, &stack));
         if let Some(ref ui) = packaged_ui {
             command.env("BOTUI_PATH", ui);
         }

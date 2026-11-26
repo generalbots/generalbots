@@ -61,15 +61,27 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
         // consent/vibe/agent-vm. Do not append here: a second copy made the
         // manifest disagree with the Cargo feature set.
         // #1747 — tell the desktop/wizard why terminal, browser and VM actions
-        // cannot run (missing Incus/WSL wrapper). `null` means the backend is
-        // available; the reason is shown instead of a generic VM failure.
+        // cannot run. `agent_backend_unavailable` is the operator reason
+        // (`null` when available); `agent_runtime_state` is the stable code
+        // the UI branches on (unsupported, wsl_missing, distro_missing,
+        // runtime_not_installed, ready).
         #[cfg(feature = "agent-vm")]
         {
+            let runtime = botagent::runtime_state::agent_runtime();
             object.insert(
                 "agent_backend_unavailable".to_string(),
-                serde_json::json!(botagent::agent_backend_unavailable()),
+                serde_json::json!(runtime.reason),
+            );
+            object.insert(
+                "agent_runtime_state".to_string(),
+                serde_json::json!(runtime.state.code()),
             );
         }
+        #[cfg(not(feature = "agent-vm"))]
+        object.insert(
+            "agent_runtime_state".to_string(),
+            serde_json::json!("unsupported"),
+        );
     }
     Json(value)
 }

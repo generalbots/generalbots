@@ -8,6 +8,7 @@ default-members = ["botserver", "botui", "botlib", "botschema"]
 exclude = [
   "3rdparty/docx-rs",
   "3rdparty/umya-spreadsheet",
+  "desktop/windows/incus-wsl",
 ]
 members = [
   "botlib",
