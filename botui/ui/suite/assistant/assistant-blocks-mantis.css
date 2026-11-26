@@ -88,7 +88,7 @@
 
 /* Generated file */
 .gb-chat-view .gb-block-out { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
-.gb-chat-view .gb-block-out .gb-file-badge { min-width: 34px; height: 34px; font-size: 10.5px; }
+.gb-chat-view .gb-block-out .gb-file-badge { min-width: 34px; height: 34px; font-size: var(--text-2xs); }
 .gb-block-out-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .gb-block-out-name { font-weight: 500; color: var(--id-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-block-out-meta { font-size: var(--id-text-xs); color: var(--id-muted); }
