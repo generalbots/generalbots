@@ -1598,6 +1598,10 @@ jobs:
       GB_API_BASE: http://127.0.0.1:8080
       GB_MOCK_ZITADEL_URL: http://127.0.0.1:8099
       GB_ACCOUNT_FILE: /tmp/gb-smoke-account.json
+      # Drive/MinIO is intentionally absent in this job. The sidebar's
+      # /api/files/recent call therefore returns 503; report it as an
+      # environment note without masking any other console error or 404.
+      GB_SMOKE_ALLOW_503: /api/files/recent
       # Blocking chat computer-use UAT: real terminal consent flow against a
       # CI-only Incus test double (GitHub-hosted runners have no Incus daemon).
       GB_CI_INCUS_ROOT: /tmp/gb-ci-incus-root

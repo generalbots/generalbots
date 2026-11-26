@@ -81,11 +81,16 @@ async def run(args) -> int:
     token = args.token or os.environ.get("GB_TEST_TOKEN", "")
     target = args.base.rstrip("/") + "/" + args.bot.strip("/") + "/"
 
-    def write_report(results, total, stopped_at, console_errors, recoveries):
+    # Endpoints that are expected to return 503 in this environment (e.g. Drive
+    # is not provisioned in the console-smoke job) are reported, never hidden.
+    allow_503 = [v.strip() for v in os.environ.get("GB_SMOKE_ALLOW_503", "").split(",") if v.strip()]
+
+    def write_report(results, total, stopped_at, console_errors, recoveries, allowed_503):
         os.makedirs(os.path.dirname(args.report), exist_ok=True)
         with open(args.report, "w") as out:
             json.dump({"base": args.base, "apps": total, "results": results,
                        "stopped_at": stopped_at, "console_errors": console_errors,
+                       "allowed_503": allowed_503,
                        "shell_re_navigations": recoveries}, out, indent=1)
 
     async with async_playwright() as p:
@@ -105,10 +110,14 @@ async def run(args) -> int:
                 " })()")
         bucket = {"items": []}
         console_bucket = {"items": []}
+        server_bucket = {"items": []}
+        allowed_bucket = {"items": []}
 
         def on_response(response):
             if response.status == 404:
                 bucket["items"].append(response.url)
+            if response.status == 503:
+                server_bucket["items"].append(response.url)
 
         def on_console(message):
             if message.type in ("error", "warning"):
@@ -147,10 +156,22 @@ async def run(args) -> int:
             boot_404s = classify(bucket["items"])
             bucket["items"] = []
             results = [{"app": "<shell-boot>", "not_found": boot_404s}]
+            # A 503 from an explicitly allowed optional backend is recorded as
+            # an environment note; any OTHER console error still stops the sweep.
+            urls = server_bucket["items"]
+            server_bucket["items"] = []
+            benign_503 = bool(allow_503) and bool(urls) and all(
+                any(url.startswith(prefix) for prefix in allow_503) for url in urls)
+            if benign_503:
+                allowed_bucket["items"] = [
+                    {"source": "http.503 (allowed by GB_SMOKE_ALLOW_503)", "text": url}
+                    for url in urls]
+                console_bucket["items"] = [item for item in console_bucket["items"]
+                                           if "503" not in item["text"]]
             hits = console_bucket["items"]
             console_bucket["items"] = []
             if hits and not args.allow_console:
-                write_report(results, 0, "<shell-boot>", hits, 0)
+                write_report(results, 0, "<shell-boot>", hits, 0, allowed_bucket["items"])
                 print("FAIL: console error/warning during shell boot; stopping sweep")
                 for hit in hits:
                     print(f"  {hit['source']}: {hit['text'][:200]}")
@@ -204,14 +225,14 @@ async def run(args) -> int:
                 hits = console_bucket["items"]
                 console_bucket["items"] = []
                 if hits and not args.allow_console:
-                    write_report(results, len(apps), app_id, hits, recoveries)
+                    write_report(results, len(apps), app_id, hits, recoveries, allowed_bucket["items"])
                     print(f"FAIL: console error/warning in app {app_id}; stopping sweep")
                     for hit in hits:
                         print(f"  {hit['source']}: {hit['text'][:200]}")
                     print(f"Report: {args.report}")
                     return 1
 
-            write_report(results, len(apps), "", [], recoveries)
+            write_report(results, len(apps), "", [], recoveries, allowed_bucket["items"])
             failures = [r for r in results if r["not_found"]]
             print(f"RESULT: {len(apps)} apps, {len(failures)} with 404s, "
                   f"{recoveries} shell re-navigations. Report: {args.report}")
