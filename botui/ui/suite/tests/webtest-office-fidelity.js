@@ -98,6 +98,8 @@ require("./webtest-office-fidelity/92_app_scoped_pollers");
 require("./webtest-office-fidelity/93_vm_tabs_poller_gate");
 require("./webtest-office-fidelity/94_auth_fetch_budget");
 require("./webtest-office-fidelity/95_open_close_null_classlist");
+require("./webtest-office-fidelity/96_designer_reopen");
+require("./webtest-office-fidelity/97_browser_toolbar_resolve");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

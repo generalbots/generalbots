@@ -1,26 +1,35 @@
 (function(){var root=(document.currentScript&&document.currentScript.closest('[id^="window-body-"]'))||null,b=root?root.querySelector('#btn-edit-text'):document.getElementById('btn-edit-text'),ds=(root&&root.dataset)||{},wid=ds.windowId||(root&&root.id?root.id.replace('window-body-',''):''),m=(window.__GB_WINDOW_FILE_CTX&&wid&&window.__GB_WINDOW_FILE_CTX[wid])||{};if(b&&(ds.gbFilePath||m.path||window.__EDITOR_FILE_PATH))b.style.display='';})();
-// Designer State
-        const state = {
-            nodes: new Map(),
-            connections: [],
-            selectedNode: null,
-            selectedConnection: null,
-            isDragging: false,
-            isConnecting: false,
-            connectionStart: null,
-            zoom: 1,
-            pan: { x: 0, y: 0 },
-            history: [],
-            historyIndex: -1,
-            clipboard: null,
-            nextNodeId: 1,
-            driveSource: null
-        };
+// Designer State — #2956: the window manager re-evaluates these classic app
+        // scripts on every Designer open. A top-level `const state` threw
+        // "Identifier 'state' has already been declared" on the second evaluation
+        // and also collided with other apps that own a global `state`. Keep the
+        // shared objects on a uniquely named, guarded namespace: re-opening the
+        // window reuses the live state instead of resetting or redeclaring it.
+        if (!window.GBDesignerState) {
+            window.GBDesignerState = {
+                nodes: new Map(),
+                connections: [],
+                selectedNode: null,
+                selectedConnection: null,
+                isDragging: false,
+                isConnecting: false,
+                connectionStart: null,
+                zoom: 1,
+                pan: { x: 0, y: 0 },
+                history: [],
+                historyIndex: -1,
+                clipboard: null,
+                nextNodeId: 1,
+                driveSource: null
+            };
+        }
+        var GBDesignerState = window.GBDesignerState;
 
         // Node Templates
         // One line per node type: kept compact so this state module stays
         // below the 450-line limit (the interaction code below needs room).
-        const nodeTemplates = {
+        if (!window.GBDesignerTemplates) {
+            window.GBDesignerTemplates = {
             'TALK': { fields: [{ name: 'message', label: 'Message', type: 'textarea', default: 'Hello!' }], hasInput: true, hasOutput: true },
             'HEAR': { fields: [{ name: 'variable', label: 'Variable', type: 'text', default: 'response' }, { name: 'type', label: 'Type', type: 'select', options: ['STRING', 'NUMBER', 'DATE', 'EMAIL', 'PHONE'], default: 'STRING' }], hasInput: true, hasOutput: true },
             'SET': { fields: [{ name: 'variable', label: 'Variable', type: 'text', default: 'value' }, { name: 'expression', label: 'Expression', type: 'text', default: '' }], hasInput: true, hasOutput: true },
@@ -37,7 +46,9 @@
             'GET BOT MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'value' }], hasInput: true, hasOutput: true },
             'SET USER MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'value', label: 'Value', type: 'text', default: '' }], hasInput: true, hasOutput: true },
             'GET USER MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'value' }], hasInput: true, hasOutput: true }
-        };
+            };
+        }
+        var GBDesignerTemplates = window.GBDesignerTemplates;
 
         // Pointer capture is shared by the canvas and the node/port drag code
         // in designer-inline-nodes.js (loaded after this file).
@@ -65,19 +76,38 @@
             loadFromUrlParams();
         }
 
+        // #2956 — publish the initializer from the script that owns it. The
+        // bootstrap in designer-inline-search.js calls the published function,
+        // so an evaluation-order change can no longer produce
+        // "initDesigner is not defined".
+        window.initDesigner = initDesigner;
+
+        // #2956 — node counts must tolerate a missing/partially built state
+        // (e.g. an older app still holding a foreign global). Never dereference
+        // `.size` on an undefined nodes collection.
+        function gbDesignerNodeCount() {
+            return (window.GBDesignerState && window.GBDesignerState.nodes)
+                ? window.GBDesignerState.nodes.size : 0;
+        }
+        window.gbDesignerNodeCount = gbDesignerNodeCount;
+
         // The auto-run bootstrap lives at the end of the last part
         // (designer-inline-search.js). This file is evaluated before p2/p3 define
         // initKeyboardShortcuts and initContextMenu, so initializing here threw
         // "initKeyboardShortcuts is not defined" whenever the designer was
         // injected via HTMX (#1342).
 
-        // Also run when HTMX swaps content
-        document.body.addEventListener('htmx:afterSwap', (e) => {
-            if (e.detail.target.id === 'main-content') {
-                gbLog.debug('htmx:afterSwap detected for main-content');
-                initDesigner();
-            }
-        });
+        // Also run when HTMX swaps content — bind once per document so a
+        // re-open cannot stack duplicate initializers (idempotent init guard).
+        if (!window.__gbDesignerSwapBound) {
+            window.__gbDesignerSwapBound = true;
+            document.body.addEventListener('htmx:afterSwap', (e) => {
+                if (e.detail.target.id === 'main-content') {
+                    gbLog.debug('htmx:afterSwap detected for main-content');
+                    window.initDesigner();
+                }
+            });
+        }
 
         // #2282 — Drive passes file context on the window body; accept URL/hash for direct opens.
         async function loadFromUrlParams() {
@@ -110,7 +140,7 @@
                 document.getElementById('current-filename').value = path;
                 document.getElementById('selected-file').value = path;
 
-                state.driveSource = { bucket, path };
+                GBDesignerState.driveSource = { bucket, path };
 
                 try {
                     // Fetch file content directly from drive API
@@ -146,9 +176,9 @@
         // Parse BASIC code and create visual nodes
         function parseBasicCodeToNodes(content) {
             gbLog.debug('parseBasicCodeToNodes called');
-            state.nodes.clear();
-            state.connections = [];
-            state.nextNodeId = 1;
+            GBDesignerState.nodes.clear();
+            GBDesignerState.connections = [];
+            GBDesignerState.nextNodeId = 1;
 
             const lines = content.split('\n');
             let yPos = 100;
@@ -206,7 +236,7 @@
                     fields.type = match ? match[2] : 'string';
                 }
 
-                if (nodeType && nodeTemplates[nodeType]) {
+                if (nodeType && GBDesignerTemplates[nodeType]) {
                     const node = createNode(nodeType, 400, yPos);
                     if (node) {
                         Object.assign(node.fields, fields);
@@ -281,8 +311,8 @@
                 const nodeType = e.dataTransfer.getData('nodeType');
                 if (nodeType) {
                     const rect = canvas.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / state.zoom;
-                    const y = (e.clientY - rect.top) / state.zoom;
+                    const x = (e.clientX - rect.left) / GBDesignerState.zoom;
+                    const y = (e.clientY - rect.top) / GBDesignerState.zoom;
                     createNode(nodeType, snapToGrid(x), snapToGrid(y));
                 }
             });
@@ -319,13 +349,13 @@
                 pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 gbCapturePointer(canvas, e.pointerId);
                 if (pointers.size === 1) {
-                    panStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
+                    panStart = { x: e.clientX - GBDesignerState.pan.x, y: e.clientY - GBDesignerState.pan.y };
                     canvas.style.cursor = 'grabbing';
                 } else if (pointers.size === 2) {
                     panStart = null;
                     const p = points();
                     const gap = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
-                    pinchStart = { gap: gap, zoom: state.zoom };
+                    pinchStart = { gap: gap, zoom: GBDesignerState.zoom };
                 }
             });
 
@@ -335,14 +365,14 @@
                 if (pointers.size >= 2 && pinchStart) {
                     const p = points();
                     const gap = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
-                    state.zoom = Math.min(Math.max(pinchStart.zoom * gap / pinchStart.gap, 0.25), 2);
+                    GBDesignerState.zoom = Math.min(Math.max(pinchStart.zoom * gap / pinchStart.gap, 0.25), 2);
                     updateCanvasTransform();
                     updateZoomDisplay();
                     return;
                 }
                 if (panStart) {
-                    state.pan.x = e.clientX - panStart.x;
-                    state.pan.y = e.clientY - panStart.y;
+                    GBDesignerState.pan.x = e.clientX - panStart.x;
+                    GBDesignerState.pan.y = e.clientY - panStart.y;
                     updateCanvasTransform();
                 }
             });
@@ -354,7 +384,7 @@
                 if (pointers.size < 2) pinchStart = null;
                 if (pointers.size === 1) {
                     const remaining = points()[0];
-                    panStart = { x: remaining.x - state.pan.x, y: remaining.y - state.pan.y };
+                    panStart = { x: remaining.x - GBDesignerState.pan.x, y: remaining.y - GBDesignerState.pan.y };
                 } else if (pointers.size === 0) {
                     panStart = null;
                     canvas.style.cursor = 'default';
@@ -367,8 +397,8 @@
             container.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                const newZoom = Math.min(Math.max(state.zoom + delta, 0.25), 2);
-                state.zoom = newZoom;
+                const newZoom = Math.min(Math.max(GBDesignerState.zoom + delta, 0.25), 2);
+                GBDesignerState.zoom = newZoom;
                 updateCanvasTransform();
                 updateZoomDisplay();
             });
@@ -376,11 +406,11 @@
 
         function updateCanvasTransform() {
             const inner = document.getElementById('canvas-inner');
-            inner.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+            inner.style.transform = `translate(${GBDesignerState.pan.x}px, ${GBDesignerState.pan.y}px) scale(${GBDesignerState.zoom})`;
         }
 
         function updateZoomDisplay() {
-            document.getElementById('zoom-value').textContent = Math.round(state.zoom * 100) + '%';
+            document.getElementById('zoom-value').textContent = Math.round(GBDesignerState.zoom * 100) + '%';
         }
 
         // Grid snapping

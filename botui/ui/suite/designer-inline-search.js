@@ -27,8 +27,8 @@
             if (!query.trim()) { results.innerHTML = ''; return; }
             var q = query.toLowerCase();
             var found = [];
-            state.nodes.forEach(function(node) {
-                var template = nodeTemplates[node.type];
+            GBDesignerState.nodes.forEach(function(node) {
+                var template = GBDesignerTemplates[node.type];
                 var label = node.type;
                 var fieldText = Object.values(node.fields).join(' ').toLowerCase();
                 if (label.toLowerCase().includes(q) || fieldText.includes(q)) {
@@ -49,23 +49,23 @@
 
         function selectAndPan(nodeId) {
             selectNode(nodeId);
-            var node = state.nodes.get(nodeId);
+            var node = GBDesignerState.nodes.get(nodeId);
             if (node) {
-                state.pan.x = -node.x * state.zoom + 400;
-                state.pan.y = -node.y * state.zoom + 300;
+                GBDesignerState.pan.x = -node.x * GBDesignerState.zoom + 400;
+                GBDesignerState.pan.y = -node.y * GBDesignerState.zoom + 300;
                 updateCanvasTransform();
             }
         }
 
         async function deployFlow() {
             var filename = document.getElementById('current-filename').value;
-            if (!filename && !state.driveSource) {
+            if (!filename && !GBDesignerState.driveSource) {
                 GBModal.alert('Save the flow first before deploying.');
                 return;
             }
             var basCode = generateBasCode();
-            var path = state.driveSource ? state.driveSource.path : filename;
-            var bucket = state.driveSource ? state.driveSource.bucket : null;
+            var path = GBDesignerState.driveSource ? GBDesignerState.driveSource.path : filename;
+            var bucket = GBDesignerState.driveSource ? GBDesignerState.driveSource.bucket : null;
 
             if (!bucket) {
                 // #2297 — themed modal input; the native prompt blocks the shell.
@@ -121,12 +121,12 @@
             if (!content) return;
             content.innerHTML = '<div style="text-align:center;color:var(--text-secondary)">Loading versions...</div>';
             var filename = document.getElementById('current-filename').value;
-            if (!filename && !state.driveSource) {
+            if (!filename && !GBDesignerState.driveSource) {
                 content.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px">No file saved yet. Save your flow first.</div>';
                 return;
             }
-            var path = state.driveSource ? state.driveSource.path : filename;
-            var bucket = state.driveSource ? state.driveSource.bucket : 'default';
+            var path = GBDesignerState.driveSource ? GBDesignerState.driveSource.path : filename;
+            var bucket = GBDesignerState.driveSource ? GBDesignerState.driveSource.bucket : 'default';
             try {
                 var resp = await fetch('/api/files/versions?bucket=' + encodeURIComponent(bucket) + '&path=' + encodeURIComponent(path));
                 if (resp.ok) {
@@ -153,8 +153,8 @@
             // #2297 — themed confirm; the restore itself runs in the callback.
             GBModal.confirm('Restore this version? Current unsaved changes will be lost.', async function () {
             var filename = document.getElementById('current-filename').value;
-            var path = state.driveSource ? state.driveSource.path : filename;
-            var bucket = state.driveSource ? state.driveSource.bucket : 'default';
+            var path = GBDesignerState.driveSource ? GBDesignerState.driveSource.path : filename;
+            var bucket = GBDesignerState.driveSource ? GBDesignerState.driveSource.bucket : 'default';
             try {
                 var resp = await fetch('/api/files/read', {
                     method: 'POST',
@@ -165,12 +165,12 @@
                     var data = await resp.json();
                     if (data.content) {
                         document.getElementById('canvas-inner').innerHTML = '';
-                        state.nodes.clear();
-                        state.connections = [];
-                        state.selectedNode = null;
-                        state.history = [];
-                        state.historyIndex = -1;
-                        state.nextNodeId = 1;
+                        GBDesignerState.nodes.clear();
+                        GBDesignerState.connections = [];
+                        GBDesignerState.selectedNode = null;
+                        GBDesignerState.history = [];
+                        GBDesignerState.historyIndex = -1;
+                        GBDesignerState.nextNodeId = 1;
                         parseBasicCodeToNodes(data.content);
                         hideVersionsPanel();
                     }
@@ -186,8 +186,16 @@
         // and updateStatusBar in p3, …) is defined before it runs. Starting the
         // designer from p1 threw "initKeyboardShortcuts is not defined" on HTMX
         // injection because p2/p3 had not been evaluated yet (#1342).
+        // #2956 — call the published initializer, never a bare identifier: a
+        // failed earlier evaluation used to surface "initDesigner is not defined".
+        function gbDesignerBoot() {
+            if (typeof window.initDesigner === 'function') window.initDesigner();
+        }
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initDesigner);
+            if (!window.__gbDesignerDomReadyBound) {
+                window.__gbDesignerDomReadyBound = true;
+                document.addEventListener('DOMContentLoaded', gbDesignerBoot);
+            }
         } else {
-            initDesigner();
+            gbDesignerBoot();
         }

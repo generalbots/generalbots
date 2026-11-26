@@ -1,10 +1,10 @@
         function createNode(type, x, y) {
-            const template = nodeTemplates[type];
+            const template = GBDesignerTemplates[type];
             if (!template) { console.warn('No template found for node type:', type); return null; }
-            const id = 'node-' + state.nextNodeId++;
+            const id = 'node-' + GBDesignerState.nextNodeId++;
             const node = { id, type, x, y, fields: {} };
             template.fields.forEach(field => { node.fields[field.name] = field.default; });
-            state.nodes.set(id, node);
+            GBDesignerState.nodes.set(id, node);
             renderNode(node);
             saveToHistory();
             updateStatusBar();
@@ -13,7 +13,7 @@
 
         // Render Node
         function renderNode(node) {
-            const template = nodeTemplates[node.type];
+            const template = GBDesignerTemplates[node.type];
             const typeClass = node.type.toLowerCase().replace(/\s+/g, '-');
 
             let fieldsHtml = '';
@@ -103,13 +103,13 @@
                     const under = document.elementFromPoint(e.clientX, e.clientY);
                     const target = under && under.closest ? under.closest('.node-port') : null;
                     if (target) endConnection(target.closest('.node').id, target.dataset.port);
-                    else { state.isConnecting = false; state.connectionStart = null; }
+                    else { GBDesignerState.isConnecting = false; GBDesignerState.connectionStart = null; }
                 });
                 port.addEventListener('pointercancel', (e) => {
                     if (activePortPointer !== e.pointerId) return;
                     activePortPointer = null;
-                    state.isConnecting = false;
-                    state.connectionStart = null;
+                    GBDesignerState.isConnecting = false;
+                    GBDesignerState.connectionStart = null;
                 });
             });
 
@@ -141,7 +141,7 @@
         function startNodeDrag(e, node, el) {
             const nodeEl = el || document.getElementById(node.id);
             if (!nodeEl) return;
-            state.isDragging = true;
+            GBDesignerState.isDragging = true;
             const pointerId = e.pointerId;
             const startX = e.clientX;
             const startY = e.clientY;
@@ -151,8 +151,8 @@
 
             function onMove(ev) {
                 if (ev.pointerId !== pointerId) return;
-                node.x = snapToGrid(origX + (ev.clientX - startX) / state.zoom);
-                node.y = snapToGrid(origY + (ev.clientY - startY) / state.zoom);
+                node.x = snapToGrid(origX + (ev.clientX - startX) / GBDesignerState.zoom);
+                node.y = snapToGrid(origY + (ev.clientY - startY) / GBDesignerState.zoom);
                 nodeEl.style.left = node.x + 'px';
                 nodeEl.style.top = node.y + 'px';
                 updateConnections();
@@ -160,7 +160,7 @@
 
             function onUp(ev) {
                 if (ev.pointerId !== pointerId) return;
-                state.isDragging = false;
+                GBDesignerState.isDragging = false;
                 nodeEl.removeEventListener('pointermove', onMove);
                 nodeEl.removeEventListener('pointerup', onUp);
                 nodeEl.removeEventListener('pointercancel', onUp);
@@ -175,57 +175,57 @@
 
         // Node selection
         function selectNode(id) {
-            if (state.selectedNode) {
-                const prevEl = document.getElementById(state.selectedNode);
+            if (GBDesignerState.selectedNode) {
+                const prevEl = document.getElementById(GBDesignerState.selectedNode);
                 if (prevEl) prevEl.classList.remove('selected');
             }
-            state.selectedNode = id;
+            GBDesignerState.selectedNode = id;
             const nodeEl = document.getElementById(id);
             if (nodeEl) nodeEl.classList.add('selected');
             updatePropertiesPanel();
         }
 
         function deselectAll() {
-            if (state.selectedNode) {
-                const el = document.getElementById(state.selectedNode);
+            if (GBDesignerState.selectedNode) {
+                const el = document.getElementById(GBDesignerState.selectedNode);
                 if (el) el.classList.remove('selected');
             }
-            state.selectedNode = null;
-            state.selectedConnection = null;
+            GBDesignerState.selectedNode = null;
+            GBDesignerState.selectedConnection = null;
             updatePropertiesPanel();
         }
 
         // Connections
         function startConnection(nodeId, portType) {
-            state.isConnecting = true;
-            state.connectionStart = { nodeId, portType };
+            GBDesignerState.isConnecting = true;
+            GBDesignerState.connectionStart = { nodeId, portType };
         }
 
         function endConnection(nodeId, portType) {
-            if (!state.isConnecting || !state.connectionStart) return;
-            if (state.connectionStart.nodeId === nodeId) {
-                state.isConnecting = false;
-                state.connectionStart = null;
+            if (!GBDesignerState.isConnecting || !GBDesignerState.connectionStart) return;
+            if (GBDesignerState.connectionStart.nodeId === nodeId) {
+                GBDesignerState.isConnecting = false;
+                GBDesignerState.connectionStart = null;
                 return;
             }
 
             // Only allow output to input connections
-            if (state.connectionStart.portType === 'input' || portType !== 'input') {
-                state.isConnecting = false;
-                state.connectionStart = null;
+            if (GBDesignerState.connectionStart.portType === 'input' || portType !== 'input') {
+                GBDesignerState.isConnecting = false;
+                GBDesignerState.connectionStart = null;
                 return;
             }
 
             const connection = {
-                from: state.connectionStart.nodeId,
-                fromPort: state.connectionStart.portType,
+                from: GBDesignerState.connectionStart.nodeId,
+                fromPort: GBDesignerState.connectionStart.portType,
                 to: nodeId,
                 toPort: portType
             };
 
-            state.connections.push(connection);
-            state.isConnecting = false;
-            state.connectionStart = null;
+            GBDesignerState.connections.push(connection);
+            GBDesignerState.isConnecting = false;
+            GBDesignerState.connectionStart = null;
             updateConnections();
             saveToHistory();
         }
@@ -234,7 +234,7 @@
             const svg = document.getElementById('connections-svg');
             let paths = '';
 
-            state.connections.forEach((conn, index) => {
+            GBDesignerState.connections.forEach((conn, index) => {
                 const fromEl = document.getElementById(conn.from);
                 const toEl = document.getElementById(conn.to);
                 if (!fromEl || !toEl) return;
@@ -247,10 +247,10 @@
                 const toRect = toPort.getBoundingClientRect();
                 const canvasRect = document.getElementById('canvas-inner').getBoundingClientRect();
 
-                const x1 = (fromRect.left + fromRect.width / 2 - canvasRect.left) / state.zoom;
-                const y1 = (fromRect.top + fromRect.height / 2 - canvasRect.top) / state.zoom;
-                const x2 = (toRect.left + toRect.width / 2 - canvasRect.left) / state.zoom;
-                const y2 = (toRect.top + toRect.height / 2 - canvasRect.top) / state.zoom;
+                const x1 = (fromRect.left + fromRect.width / 2 - canvasRect.left) / GBDesignerState.zoom;
+                const y1 = (fromRect.top + fromRect.height / 2 - canvasRect.top) / GBDesignerState.zoom;
+                const x2 = (toRect.left + toRect.width / 2 - canvasRect.left) / GBDesignerState.zoom;
+                const y2 = (toRect.top + toRect.height / 2 - canvasRect.top) / GBDesignerState.zoom;
 
                 const midX = (x1 + x2) / 2;
                 const d = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
@@ -273,16 +273,16 @@
             const content = document.getElementById('properties-content');
             const empty = document.getElementById('properties-empty');
 
-            if (!state.selectedNode) {
+            if (!GBDesignerState.selectedNode) {
                 content.style.display = 'none';
                 empty.style.display = 'block';
                 return;
             }
 
-            const node = state.nodes.get(state.selectedNode);
+            const node = GBDesignerState.nodes.get(GBDesignerState.selectedNode);
             if (!node) return;
 
-            const template = nodeTemplates[node.type];
+            const template = GBDesignerTemplates[node.type];
             empty.style.display = 'none';
             content.style.display = 'block';
 
@@ -327,7 +327,7 @@
             // Add change handlers
             content.querySelectorAll('.property-input:not([readonly]), .property-textarea').forEach(input => {
                 input.addEventListener('change', (e) => {
-                    const n = state.nodes.get(e.target.dataset.node);
+                    const n = GBDesignerState.nodes.get(e.target.dataset.node);
                     if (n) {
                         n.fields[e.target.dataset.field] = e.target.value;
                         // Update node view
@@ -342,26 +342,26 @@
         // History (Undo/Redo)
         function saveToHistory() {
             const snapshot = {
-                nodes: Array.from(state.nodes.entries()).map(([id, node]) => ({...node})),
-                connections: [...state.connections]
+                nodes: Array.from(GBDesignerState.nodes.entries()).map(([id, node]) => ({...node})),
+                connections: [...GBDesignerState.connections]
             };
-            state.history = state.history.slice(0, state.historyIndex + 1);
-            state.history.push(snapshot);
-            state.historyIndex = state.history.length - 1;
+            GBDesignerState.history = GBDesignerState.history.slice(0, GBDesignerState.historyIndex + 1);
+            GBDesignerState.history.push(snapshot);
+            GBDesignerState.historyIndex = GBDesignerState.history.length - 1;
         }
 
         function undo() {
-            if (state.historyIndex > 0) {
-                state.historyIndex--;
-                restoreSnapshot(state.history[state.historyIndex]);
+            if (GBDesignerState.historyIndex > 0) {
+                GBDesignerState.historyIndex--;
+                restoreSnapshot(GBDesignerState.history[GBDesignerState.historyIndex]);
             }
         }
         window.undo = undo;
 
         function redo() {
-            if (state.historyIndex < state.history.length - 1) {
-                state.historyIndex++;
-                restoreSnapshot(state.history[state.historyIndex]);
+            if (GBDesignerState.historyIndex < GBDesignerState.history.length - 1) {
+                GBDesignerState.historyIndex++;
+                restoreSnapshot(GBDesignerState.history[GBDesignerState.historyIndex]);
             }
         }
         window.redo = redo;
@@ -369,17 +369,17 @@
         function restoreSnapshot(snapshot) {
             // Clear canvas
             document.getElementById('canvas-inner').innerHTML = '';
-            state.nodes.clear();
-            state.connections = [];
+            GBDesignerState.nodes.clear();
+            GBDesignerState.connections = [];
 
             // Restore nodes
             snapshot.nodes.forEach(node => {
-                state.nodes.set(node.id, {...node});
+                GBDesignerState.nodes.set(node.id, {...node});
                 renderNode(node);
             });
 
             // Restore connections
-            state.connections = [...snapshot.connections];
+            GBDesignerState.connections = [...snapshot.connections];
             updateConnections();
             updateStatusBar();
         }
@@ -407,19 +407,19 @@
                             redo();
                             break;
                         case 'c':
-                            if (state.selectedNode) {
+                            if (GBDesignerState.selectedNode) {
                                 e.preventDefault();
-                                state.clipboard = {...state.nodes.get(state.selectedNode)};
+                                GBDesignerState.clipboard = {...GBDesignerState.nodes.get(GBDesignerState.selectedNode)};
                             }
                             break;
                         case 'v':
-                            if (state.clipboard) {
+                            if (GBDesignerState.clipboard) {
                                 e.preventDefault();
-                                const newNode = {...state.clipboard};
-                                newNode.id = 'node-' + state.nextNodeId++;
+                                const newNode = {...GBDesignerState.clipboard};
+                                newNode.id = 'node-' + GBDesignerState.nextNodeId++;
                                 newNode.x += 40;
                                 newNode.y += 40;
-                                state.nodes.set(newNode.id, newNode);
+                                GBDesignerState.nodes.set(newNode.id, newNode);
                                 renderNode(newNode);
                                 selectNode(newNode.id);
                                 saveToHistory();
@@ -428,7 +428,7 @@
                     }
                 }
 
-                if (e.key === 'Delete' && state.selectedNode) {
+                if (e.key === 'Delete' && GBDesignerState.selectedNode) {
                     deleteSelectedNode();
                 }
 

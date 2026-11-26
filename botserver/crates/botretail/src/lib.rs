@@ -43,6 +43,10 @@ pub fn configure() -> Router {
             "/api/retail/suppliers",
             get(mutations::list_suppliers).post(mutations::create_supplier),
         )
+        // #2955 — these two GETs were only present in the unmounted stub
+        // router (src/retail/mod.rs), so the Retail app got a 404 on open.
+        .route("/api/retail/stock", get(mutations::list_stock))
+        .route("/api/retail/top-products", get(mutations::list_top_products))
 }
 
 #[cfg(test)]

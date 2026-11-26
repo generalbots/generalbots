@@ -1,4 +1,5 @@
-//! HTTP handlers for creating/updating retail branches, promotions and suppliers.
+//! HTTP handlers for creating/updating retail branches, promotions and
+//! suppliers, plus the stock/top-products reads the Retail app makes on open.
 
 use axum::extract::{Json, Path};
 use axum::http::{HeaderMap, StatusCode};
@@ -292,4 +293,26 @@ pub async fn list_suppliers(
         "lead_time_days": r.lead_time_days, "rating": r.rating.to_string(),
     })).collect();
     Ok(axum::Json(serde_json::json!({ "items": items })))
+}
+
+// ---------------------------------------------------------------------------
+// Stock & top products (#2955)
+// ---------------------------------------------------------------------------
+
+/// Lists stock levels for the caller's branch.
+///
+/// Stock movements are not persisted by this crate yet, so the dataset is
+/// empty. The fix here is the route registration: before #2955 this path
+/// existed only in the never-mounted stub router, yielding a 404 on app open.
+/// The bare array matches what `retail.js` expects from its list calls.
+pub async fn list_stock() -> axum::Json<Value> {
+    axum::Json(Value::Array(Vec::new()))
+}
+
+/// Lists top-selling products for the caller's branch.
+///
+/// Same rationale as [`list_stock`]: the Retail dashboard calls this on open
+/// and the path used to be absent from the mounted router as well.
+pub async fn list_top_products() -> axum::Json<Value> {
+    axum::Json(Value::Array(Vec::new()))
 }

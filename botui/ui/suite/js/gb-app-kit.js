@@ -40,12 +40,12 @@
   function getAuthToken() {
     try {
       if (global.GBSecurity && typeof global.GBSecurity.getToken === "function") {
-        var t = global.GBSecurity.getToken();
-        if (t) return t;
+        var securityToken = global.GBSecurity.getToken();
+        if (securityToken) return securityToken;
       }
       if (typeof global.getGBAccessToken === "function") {
-        var t2 = global.getGBAccessToken();
-        if (t2) return t2;
+        var legacyToken = global.getGBAccessToken();
+        if (legacyToken) return legacyToken;
       }
     } catch (e) { window.gbLogError ? gbLogError(e, "getAuthToken") : console.error("getAuthToken", e); }
     var keys = ["gb-access-token", "management_token", "token", "id_token", "gb_token"];
@@ -109,8 +109,10 @@
       opts.headers = headers;
       var r = await fetch(url, opts);
       if (!r.ok) throw new Error("HTTP " + r.status);
-      var t = await r.text();
-      return t ? JSON.parse(t) : null;
+      // #2955 — never name this `t`: it shadows the module-level i18n helper
+      // and turns every error path below into `TypeError: t is not a function`.
+      var body = await r.text();
+      return body ? JSON.parse(body) : null;
     } catch (e) {
       showFeedback(appId, t("app-kit-api-error", "API error") + ": " + e.message, "error");
       return null;
