@@ -1,0 +1,95 @@
+General Bots Lite para Windows — avisos de terceiros
+General Bots Lite for Windows — third-party notices
+
+PORTUGUÊS
+
+O General Bots Lite é software livre, sob a licença MIT
+(LICENSE-General-Bots.txt). Copyright (c) General Bots.
+
+O instalador também traz programas de outros autores. Cada um continua
+sob a licença do próprio autor. Os textos completos ficam nesta pasta:
+"licenses", dentro da pasta onde o aplicativo foi instalado. No
+aplicativo: Configurações > Sobre > Licenças de terceiros.
+
+- LICENSES-desktop.md: a lista completa (componente, versão, licença,
+  origem e código de verificação de cada arquivo).
+- SOURCE-OFFER.md: onde obter o código-fonte exato dos componentes com
+  licença copyleft (AGPL, MPL, LGPL).
+
+Nenhuma dessas licenças muda a licença do código do General Bots, que é
+MIT.
+
+ENGLISH
+
+General Bots Lite is free software under the MIT License
+(LICENSE-General-Bots.txt). Copyright (c) General Bots.
+
+The installer also carries programs by other authors. Each keeps its
+author's licence. The full texts are in this folder: "licenses", inside
+the folder where the app is installed. In the app: Settings > About >
+Third-party licenses.
+
+- LICENSES-desktop.md: the full record (component, version, licence,
+  source and checksum of each file).
+- SOURCE-OFFER.md: where to get the exact source of the copyleft
+  components (AGPL, MPL, LGPL).
+
+None of these licences changes the licence of General Bots' own code,
+which is MIT.
+
+COMPONENTS / COMPONENTES
+
+Inside the installer / Dentro do instalador:
+
+  OpenBao 2.7.3                         MPL-2.0
+      openbao-LICENSE.txt
+  MinIO RELEASE.2025-10-15T17-29-55Z    AGPL-3.0-or-later
+      minio-LICENSE.txt, minio-NOTICE.txt
+  MinIO Client RELEASE.2025-08-13T08-35-41Z
+                                        AGPL-3.0-or-later
+      mc-LICENSE.txt, mc-NOTICE.txt
+  Zitadel 4.20.1                        AGPL-3.0-only; login UI MIT
+      zitadel-LICENSE.txt, zitadel-LICENSING.md,
+      zitadel-login-LICENSE.txt
+  Redis for Windows 3.0.504             BSD-3-Clause
+      redis-license.txt, redis-COPYING.txt
+      bundled sources / fontes incluídas: redis-hiredis-COPYING.txt,
+      redis-jemalloc-COPYING.txt, redis-jemalloc-win-COPYING.txt,
+      redis-jemalloc-win-LICENSE.txt, redis-lua-COPYRIGHT.txt,
+      redis-linenoise-LICENSE.txt
+  Qdrant 1.20.0                         Apache-2.0
+      qdrant-LICENSE.txt
+  Caddy 2.11.9                          Apache-2.0
+      caddy-LICENSE.txt
+  PostgreSQL client libpq (EDB 17.4-1)  PostgreSQL
+      postgresql-COPYRIGHT.txt
+  OpenSSL 3.x (libcrypto, libssl)       Apache-2.0
+      openssl-LICENSE.txt
+  GNU libiconv (libiconv-2.dll)         LGPL
+  GNU gettext libintl (libintl-9.dll)   LGPL
+      LGPL-2.1.txt, LGPL-2.0.txt
+  mingw-w64 winpthreads                 MIT AND BSD-3-Clause
+      winpthreads-COPYING.txt
+  LZ4 (liblz4.dll)                      BSD-2-Clause
+      lz4-lib-LICENSE.txt
+  Zstandard (libzstd.dll)               BSD-3-Clause
+      zstd-LICENSE.txt
+  zlib (zlib1.dll)                      Zlib
+      zlib-LICENSE.txt
+
+Downloaded on first use, not inside the installer /
+Baixados no primeiro uso, fora do instalador:
+
+  PostgreSQL server 18.6-1 (EDB)        PostgreSQL
+      postgresql-COPYRIGHT.txt
+  llama.cpp b12483                      MIT
+      llama.cpp-LICENSE.txt
+  NVIDIA CUDA runtime (CUDA builds only / só nas versões CUDA)
+                                        NVIDIA CUDA EULA (proprietary)
+      https://docs.nvidia.com/cuda/eula/
+  DeepSeek-R1-Distill-Qwen-1.5B         MIT
+      deepseek-r1-distill-qwen-1.5b-LICENSE.txt
+      base model / modelo base Qwen2.5-Math-1.5B: Apache-2.0,
+      qwen2.5-math-1.5b-LICENSE.txt
+  bge-small-en-v1.5                     MIT (stated on the model card;
+                                        upstream publishes no licence file)

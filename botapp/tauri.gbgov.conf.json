@@ -13,7 +13,11 @@
     "resources": {
       "../botserver/.product.gbgov": ".product.gbgov",
       "../botserver/botserver-installers/*": "installers/",
-      "../botui/ui": "ui"
+      "../botui/ui": "ui",
+      "../desktop/windows/licenses/*": "licenses/",
+      "../desktop/os/licenses/NOTICE": "licenses/NOTICE",
+      "../LICENSES-desktop.md": "licenses/LICENSES-desktop.md",
+      "../LICENSE": "licenses/LICENSE-General-Bots.txt"
     },
     "externalBin": [
       "binaries/botserver"
