@@ -26,12 +26,20 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
         openTicketsModal();
     });
 
+    // #2954 — the Escape listener below is a document-level listener that
+    // outlives this window. Once the app is closed #tickets-modal is gone, so
+    // the lookup returns null; dereferencing .classList there threw an uncaught
+    // TypeError. Fail closed when the modal is absent (already closed).
     window.openTicketsModal = function () {
-        document.getElementById("tickets-modal").classList.add("open");
+        var modal = document.getElementById("tickets-modal");
+        if (!modal) return;
+        modal.classList.add("open");
     };
 
     window.closeTicketsModal = function () {
-        document.getElementById("tickets-modal").classList.remove("open");
+        var modal = document.getElementById("tickets-modal");
+        if (!modal) return;
+        modal.classList.remove("open");
     };
 
     window.selectTicket = function (ticketId) {

@@ -390,16 +390,33 @@
     }
   }
 
+  // #2968 — identity is session-scoped, but the desktop shell calls
+  // updateLoginButton() after EVERY htmx:afterRequest. Without a guard this
+  // re-issues GET /api/auth/me on every fragment swap (187 calls in a CRM/Mail
+  // sweep) and trips IMP-07's 10 req/s auth rate limit. Single-flight per auth
+  // token: the first caller in a session issues the one fetch, every later
+  // caller reuses the in-flight promise and its terminal result.
+  var identityCache = Object.create(null);
+
+  function clearIdentityCache() {
+    identityCache = Object.create(null);
+  }
+
   function refreshUser() {
     var token = authToken();
-    if (!token) { renderUserSignedOut(); return; }
-    fetch("/api/auth/me", { headers: authHeaders() })
-      .then(function (resp) {
-        if (!resp.ok) throw new Error("Not authenticated");
-        return resp.json();
-      })
-      .then(renderUserSignedIn)
-      .catch(renderUserSignedOut);
+    if (!token) { clearIdentityCache(); renderUserSignedOut(); return; }
+    var pending = identityCache[token];
+    if (!pending) {
+      pending = fetch("/api/auth/me", { headers: authHeaders() })
+        .then(function (resp) {
+          if (!resp.ok) throw new Error("Not authenticated");
+          return resp.json();
+        })
+        .then(renderUserSignedIn)
+        .catch(renderUserSignedOut);
+      identityCache[token] = pending;
+    }
+    return pending;
   }
   window.updateLoginButton = refreshUser;
 

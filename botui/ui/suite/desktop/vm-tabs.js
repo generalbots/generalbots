@@ -9,6 +9,8 @@
 
 (function () {
     let vmName = 'default';
+    let vmEnabled = false;
+    let pollTimer = null;
     let conversationId = null;
     let tabs = [];
     let callbacks = {};
@@ -18,10 +20,17 @@
     const list = document.getElementById('vm-tabstrip-list');
     const hint = document.getElementById('vm-tabstrip-hint');
 
+    // #2967 — the canonical accessor is the only session authority. A stale
+    // storage token would pin a chat-only credential and 401 every poll.
+    function hasSession() {
+        try {
+            return typeof window.getGBAccessToken === 'function' && !!window.getGBAccessToken();
+        } catch (e) { return false; }
+    }
+
     function authHeaders() {
-        const token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) ||
-            localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token') || '';
-        return token ? { 'Authorization': 'Bearer ' + token } : {};
+        if (!hasSession()) return {};
+        return { 'Authorization': 'Bearer ' + window.getGBAccessToken() };
     }
 
     function queryParam(name) {
@@ -31,13 +40,28 @@
     function resolveVm() {
         const params = window.__gbAppParams__ || {};
         const explicit = params.vm || queryParam('vm');
-        if (explicit) return Promise.resolve(String(explicit));
+        if (explicit) {
+            vmEnabled = true;
+            return Promise.resolve(String(explicit));
+        }
+        // #2967 — no session: no status call. No agent VM: no tab surface, so
+        // return null instead of falling back to "default" and polling forever.
+        if (!hasSession()) return Promise.resolve(null);
         return fetch('/api/agent/vm/status', { headers: authHeaders() })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
-                return data && data.has_vm && data.vm_name ? String(data.vm_name) : 'default';
+                if (data && data.has_vm && data.vm_name) {
+                    vmEnabled = true;
+                    return String(data.vm_name);
+                }
+                return null;
             })
-            .catch(function () { return 'default'; });
+            .catch(function () { return null; });
+    }
+
+    // #2967 — never fetch once the owning Browser surface is gone or hidden.
+    function vmAppActive() {
+        return !!(strip && strip.isConnected && !document.hidden);
     }
 
     function resolveConversation() {
@@ -52,6 +76,7 @@
     }
 
     function refresh() {
+        if (!vmEnabled || !vmAppActive() || !hasSession()) return Promise.resolve(null);
         return fetch(path(), { headers: authHeaders() })
             .then(function (r) {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -160,16 +185,40 @@
             });
     }
 
+    function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (window.GBAppLifecycle) window.GBAppLifecycle.end('browser');
+        vmEnabled = false;
+        if (strip) strip.style.display = 'none';
+    }
+
     function init(opts) {
         callbacks = opts || {};
         resolveConversation();
         resolveVm().then(function (name) {
+            if (!name) {
+                if (strip) strip.style.display = 'none';
+                return;
+            }
             vmName = name;
+            if (!vmAppActive()) return;
+            if (window.GBAppLifecycle) window.GBAppLifecycle.begin('browser');
             render();
             refresh();
-            setInterval(refresh, POLL_MS);
+            var poll = function () { refresh(); };
+            if (window.GBAppLifecycle) {
+                window.GBAppLifecycle.interval('browser', poll, POLL_MS);
+            } else {
+                pollTimer = setInterval(poll, POLL_MS);
+            }
         });
     }
+
+    // #2967 — the window manager emits this when the Browser window closes.
+    document.addEventListener('gb-window-close', function (event) {
+        var id = event && event.detail && event.detail.id;
+        if (id === 'browser' || (typeof id === 'string' && id.indexOf('browser-') === 0)) stopPolling();
+    });
 
     window.GBDesktopVMTabs = {
         init: init,

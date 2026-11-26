@@ -70,13 +70,18 @@ function fitGanttToScreen() {
 }
 
 function toggleDetailsPanel() {
+    // #2954 — a stale click or a late async continuation can reach this after
+    // the app window (and #details-panel) was removed. Fail closed.
     const panel = document.getElementById('details-panel');
+    if (!panel) return;
     panel.classList.toggle('collapsed');
 }
 
 async function loadProjectData(projectId) {
     currentProjectId = projectId;
-    document.querySelector('.project-app').classList.add('has-project');
+    // #2954 — #project-app can be gone when a late fetch resolves after close.
+    const appRoot = document.querySelector('.project-app');
+    if (appRoot) appRoot.classList.add('has-project');
     document.getElementById('add-task-btn').disabled = false;
     const exportBtn = document.getElementById('project-export-btn');
     if (exportBtn) exportBtn.disabled = false;
@@ -425,6 +430,8 @@ function showTaskDetail(taskId) {
             </div>
         </div>
     `;
-    document.getElementById('details-panel').classList.remove('collapsed');
+    // #2954 — the detail panel may have been removed with the app window.
+    const detailsPanel = document.getElementById('details-panel');
+    if (detailsPanel) detailsPanel.classList.remove('collapsed');
 }
 

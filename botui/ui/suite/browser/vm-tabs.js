@@ -21,6 +21,8 @@
     if (!strip || !list || !viewport) return;
 
     var vm = DEFAULT_VM;
+    var vmEnabled = false;
+    var pollTimer = null;
     var conversationId = null;
     var tabs = [];
     var currentTabId = null;
@@ -31,11 +33,21 @@
     var stateEl = null;
     var timer = null;
 
+    // #2967 — getGBAccessToken() is the single session authority. A stale
+    // storage token pre-attached here pins a chat-only credential (the central
+    // interceptor will not overwrite an existing Authorization header), so
+    // every VM tabs poll would answer 401.
+    function hasSession() {
+        try {
+            return typeof window.getGBAccessToken === "function" && !!window.getGBAccessToken();
+        } catch (e) {
+            return false;
+        }
+    }
+
     function authHeaders() {
-        var token = "";
-        if (typeof window.getGBAccessToken === "function") token = window.getGBAccessToken() || "";
-        if (!token) token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
-        return token ? { "Authorization": "Bearer " + token } : {};
+        if (!hasSession()) return {};
+        return { "Authorization": "Bearer " + window.getGBAccessToken() };
     }
 
     function appParams() {
@@ -57,19 +69,30 @@
     function resolveVm() {
         var p = appParams();
         var explicit = p.vm || queryParam("vm");
-        if (explicit) return Promise.resolve(String(explicit));
-        // The agent workspace name is per user. Fall back to "default" for the
-        // desktop-local build, where the VM browser is the only browser.
+        if (explicit) {
+            vmEnabled = true;
+            return Promise.resolve(String(explicit));
+        }
+        // #2967 — no session means no status call and no poller. With the agent
+        // VM off there is no tab surface to list, so do not silently fall back
+        // to "default" and hammer /api/browser/vm/*/tabs from every app.
+        if (!hasSession()) return Promise.resolve(null);
         return fetch("/api/agent/vm/status", { headers: authHeaders() })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
-                if (data && data.has_vm && data.vm_name) return String(data.vm_name);
-                return DEFAULT_VM;
+                if (data && data.has_vm && data.vm_name) {
+                    vmEnabled = true;
+                    return String(data.vm_name);
+                }
+                return null;
             })
-            .catch(function () { return DEFAULT_VM; });
+            .catch(function () { return null; });
     }
 
     function api(path, method, body) {
+        // #2967 — a request without the canonical token is a guaranteed 401;
+        // drop it before fetch instead of leaving a console flood behind.
+        if (!hasSession()) return Promise.resolve(null);
         var opts = { method: method || "GET", headers: authHeaders() };
         if (body) {
             opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers);
@@ -85,7 +108,16 @@
         return "/api/browser/vm/" + encodeURIComponent(vm) + "/tabs" + (suffix || "");
     }
 
+    // #2967 — this module lives in the Browser app fragment. The window
+    // manager detaches that root on close but a raw interval would survive and
+    // keep polling the VM tabs route from inside every subsequently open app.
+    function browserAppActive() {
+        var root = document.querySelector('.gb-app[data-gb-app="browser"]');
+        return !!(root && root.isConnected && !document.hidden);
+    }
+
     function loadTabs() {
+        if (!vmEnabled || !browserAppActive()) return Promise.resolve(null);
         return api(tabPath()).then(function (data) {
             tabs = (data && data.tabs) || [];
             render();
@@ -314,11 +346,38 @@
         if (input) input.addEventListener("focus", hidePage);
 
         resolveVm().then(function (name) {
+            if (!name) {
+                // Agent VM off: no tab surface, no timer, no 401 flood.
+                if (strip) strip.style.display = "none";
+                return;
+            }
             vm = name;
+            if (!browserAppActive()) return;
+            if (window.GBAppLifecycle) window.GBAppLifecycle.begin("browser");
             render();
             loadTabs();
-            setInterval(loadTabs, POLL_MS);
+            var poll = function () { loadTabs(); };
+            if (window.GBAppLifecycle) {
+                window.GBAppLifecycle.interval("browser", poll, POLL_MS);
+            } else {
+                pollTimer = setInterval(poll, POLL_MS);
+            }
         });
+    }
+
+    // #2967 — GBAppLifecycle clears the timer on gb-window-close; this listener
+    // also covers the small window before the close event is dispatched.
+    document.addEventListener("gb-window-close", function (event) {
+        var id = event && event.detail && event.detail.id;
+        if (id === "browser" || (typeof id === "string" && id.indexOf("browser-") === 0)) stopPolling();
+    });
+
+    function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (window.GBAppLifecycle) window.GBAppLifecycle.end("browser");
+        vmEnabled = false;
+        stopStream();
+        if (strip) strip.style.display = "none";
     }
 
     if (document.readyState === "loading") {

@@ -289,7 +289,13 @@
             window.gbDeferIdle = deferIdle;
 
             // Listen to HTMX afterRequest event
-            document.body.addEventListener("htmx:afterRequest", function (evt) {
+            // #2968 — HTMX swaps only replace fragments; they never change the
+            // signed-in identity. This listener used to re-evaluate auth on
+            // EVERY swap, re-issuing the identity read on each CRM/Mail swap
+            // and causing the 429 storm. Auth state is re-evaluated on the
+            // explicit gb:auth:* events below and at init; the identity read
+            // itself is single-flight per session in sidebar_a_core.js.
+            document.body.addEventListener("htmx:afterRequest", function () {
                 // Ensure Theme dropdown is re-injected if wiped
                 if (window.ThemeManager) {
                     const container = document.getElementById(
@@ -298,10 +304,6 @@
                     if (container && !container.hasChildNodes()) {
                         window.ThemeManager.init();
                     }
-                }
-                // Re-evaluate auth state after every HTMX navigation
-                if (typeof updateLoginButton === 'function') {
-                    updateLoginButton();
                 }
             });
 

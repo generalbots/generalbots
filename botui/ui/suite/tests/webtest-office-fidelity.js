@@ -95,6 +95,9 @@ require("./webtest-office-fidelity/89_cloud_shared_assets");
 require("./webtest-office-fidelity/90_session_gated_pollers");
 require("./webtest-office-fidelity/91_chrome_idle_task_budget");
 require("./webtest-office-fidelity/92_app_scoped_pollers");
+require("./webtest-office-fidelity/93_vm_tabs_poller_gate");
+require("./webtest-office-fidelity/94_auth_fetch_budget");
+require("./webtest-office-fidelity/95_open_close_null_classlist");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

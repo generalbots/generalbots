@@ -57,6 +57,9 @@
         var state = namespace.getState(root);
         var health = query(root, "[data-catalog-health]");
         var healthText = query(root, "[data-catalog-health-text]");
+        // #2954 — a render can be invoked after the window (and its catalog
+        // health slots) was removed. Fail closed instead of dereferencing null.
+        if (!health || !healthText) return;
         health.classList.remove("is-ready", "is-error");
         if (state.catalogStatus === "ready") {
             var actions = state.providers.reduce(function (total, provider) { return total + provider.action_count; }, 0);
