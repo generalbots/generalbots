@@ -4,11 +4,12 @@
 #   settings +42 (#2470 data-protection safety in settings-os-appliance.js);
 #   chat +26 (#2933 reflow/theme perf, #2945–#2953 poller/route fixes);
 #   automations +19 (#2945 app-scoped poller gate);
-#   mail js_modules +2, loc +428 (#2953 sanitizer module + test; its CDN-like
+#   mail js_modules +2, loc +428 (#2953 sanitizer module + test; CDN-like
 #     strings are hostile-input fixtures, split so adequacy_guard stays at 0);
 #   slides +22 (#2945 caption/route contract);
 #   browser +59, desktop +49, integrations +3, project +7, tickets +8
-#     (4400f641e: VM-tab poller gate, single-flight auth/me, classList guards).
+#     (4400f641e: VM-tab poller gate, single-flight auth/me, classList guards);
+#   designer +39 (ad5974c96: shared app-kit/shadowing and designer reopen).
 # Tightened because the surface shrank: calendar -1, crm -23, docs -9.
 # No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ loc = 1457
 [apps."designer"]
 routes = 0
 js_modules = 21
-loc = 4901
+loc = 4940
 
 [apps."desktop"]
 routes = 6
