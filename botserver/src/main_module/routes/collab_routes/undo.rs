@@ -4,16 +4,18 @@
 //! is its only HTTP consumer and also hosts the shared in-process service used
 //! by the chat-native `docs.undo` verb. The request body carries a single batch id:
 //! user, bot and session are derived exclusively from the verified
-//! `AuthenticatedUser` inserted by the auth middleware. A batch is consumed
-//! once (`UndoStore::consume`, conditional UPDATE) and reverted in LIFO order
-//! from recorded before-states (`UndoBatch::revert_plan`). Where a before-state
-//! names a collaboration version, the restore is performed by the existing
+//! `AuthenticatedUser` inserted by the auth middleware. A batch is reverted in
+//! LIFO order from recorded before-states (`UndoBatch::revert_plan`) and only
+//! then consumed once (`UndoStore::consume`, conditional UPDATE): a failed
+//! restore leaves the batch active and retryable. Where a before-state names a
+//! collaboration version, the restore is performed by the existing
 //! `restore_version` handler with the same server-side identity — never with
 //! an owner/bot supplied by the caller.
 
 use super::*;
 use crate::core::bot::consent_gate::undo::{
-    consume_latest, shared_pool_store, BatchKey, RevertOperation, UndoError, UndoScope, UndoStore,
+    consume_after_restore, peek, peek_latest, shared_pool_store, BatchKey, RevertOperation,
+    UndoError, UndoScope, UndoStore,
 };
 use uuid::Uuid;
 
@@ -61,6 +63,9 @@ pub(crate) fn verified_scope(user: &AuthenticatedUser) -> Result<UndoScope, Undo
 }
 
 /// Single-use + LIFO core shared by the handler and its deterministic tests.
+///
+/// Both callers peek first and invoke this unconditional consume primitive only
+/// after a successful restore, so a failed restore leaves the batch active.
 pub(crate) fn undo_plan_for<S: UndoStore>(
     store: &S,
     scope: &UndoScope,
@@ -110,7 +115,8 @@ pub(super) fn undo_error(
     }
 }
 
-/// `POST /api/collab/undo` — consume the caller's active batch and revert it.
+/// `POST /api/collab/undo` — peek and revert the caller's active batch, then
+/// consume it once on success.
 pub async fn undo_batch(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -132,13 +138,21 @@ pub async fn undo_batch(
             "error-db-unavailable",
         )
     })?;
-    let plan =
-        undo_plan_for(&store, &scope, &body.batch_id).map_err(|error| undo_error(locale, error))?;
+    // Peek (ownership-checked, read-only) so a failed restore cannot eat the
+    // caller's only copy of the batch; consume only after restore succeeds.
+    let key = BatchKey::new(scope.clone(), &body.batch_id)
+        .map_err(|error| undo_error(locale, error))?;
+    let plan = peek(&store, &key)
+        .map_err(|error| undo_error(locale, error))?
+        .revert_plan();
 
     let restored = restore_plan(&state, &user, locale, &plan).await?;
+    // Restore succeeded: apply the scoped single-use consume gate now.
+    let reverted = undo_plan_for(&store, &scope, &body.batch_id)
+        .map_err(|error| undo_error(locale, error))?;
     let result = UndoResult {
         batch_id: body.batch_id,
-        reverted: plan,
+        reverted,
         restored,
     };
     let value = serde_json::to_value(result).map_err(|_| {
@@ -188,25 +202,61 @@ async fn restore_plan(
     Ok(restored)
 }
 
+/// Resolves the verified chat principal's account email from the server-side
+/// user record. `user_id` comes from the trusted command executor's verified
+/// session, never from command params or a client-supplied header. The email is
+/// required because `collab_user_id()` resolves the collab grant by email when
+/// one exists; without it the restore ran as a bare UUID and 404'd on a version
+/// owned by the same user's account (#2448 live UAT).
+fn verified_user_email(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
+    use diesel::sql_types::{Text, Uuid as SqlUuid};
+    use diesel::{OptionalExtension, RunQueryDsl};
+
+    #[derive(diesel::QueryableByName)]
+    struct EmailRow {
+        #[diesel(sql_type = Text)]
+        email: String,
+    }
+
+    let mut conn = state.conn.get().ok()?;
+    let row: Option<EmailRow> = diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
+        .bind::<SqlUuid, _>(user_id)
+        .get_result::<EmailRow>(&mut conn)
+        .optional()
+        .ok()
+        .flatten();
+    let email = row?.email.trim().to_string();
+    if email.is_empty() {
+        return None;
+    }
+    Some(email)
+}
+
 /// Shared service for the chat-native "undo my last agent batch" verb (#2448).
 ///
 /// The scope is built from the authenticated chat identity only — `user_id` and
 /// `bot_id` come from the trusted command executor, never from command params.
-/// With no session claim the verifier derives the same stable UUIDv5 the
-/// loopback HTTP hop uses, so chat and the consent card address one batch.
-/// The newest active batch of that scope is consumed once and reverted through
-/// the same restore path as the HTTP endpoint.
+/// The verified account email is carried into that identity so collab grants
+/// resolve to the same principal that authored the restored version. With no
+/// session claim the verifier derives the same stable UUIDv5 the loopback HTTP
+/// hop uses, so chat and the consent card address one batch. The newest active
+/// batch of that scope is reverted through the same restore path as the HTTP
+/// endpoint and consumed once only after the restore succeeds.
 pub async fn undo_last_batch_for_chat(
     state: &Arc<AppState>,
     user_id: Uuid,
     bot_id: Uuid,
 ) -> Result<UndoResult, UndoError> {
     let user = AuthenticatedUser::new(user_id, "chat".to_string()).with_current_bot(bot_id);
+    let user = match verified_user_email(state, user_id) {
+        Some(email) => user.with_email(email),
+        None => user,
+    };
     let scope = verified_scope(&user)?;
     let store = shared_pool_store().ok_or(UndoError::Storage)?;
-    let resolved = consume_latest(&store, &scope)?;
+    let resolved = peek_latest(&store, &scope)?;
     let locale = botcore::i18n::Locale::new("en").ok_or(UndoError::InvalidScope)?;
-    let restored = restore_plan(state, &user, &locale, &resolved.revert_plan)
+    let restore = restore_plan(state, &user, &locale, &resolved.revert_plan)
         .await
         .map_err(|(status, _)| {
             log::error!(
@@ -214,7 +264,8 @@ pub async fn undo_last_batch_for_chat(
                 status.as_u16()
             );
             UndoError::Storage
-        })?;
+        });
+    let restored = consume_after_restore(&store, &resolved.key, restore, |error| error)?;
     Ok(UndoResult {
         batch_id: resolved.key.batch_id,
         reverted: resolved.revert_plan,
@@ -314,6 +365,23 @@ mod tests {
             before_version_id(&after),
             before_version_id(&plan[0].before)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn email_carrying_chat_identity_resolves_the_verified_collab_principal(
+    ) -> Result<(), UndoError> {
+        let user_id = Uuid::from_u128(11);
+        let bot_id = Uuid::from_u128(22);
+        let bare = AuthenticatedUser::new(user_id, "chat".to_string()).with_current_bot(bot_id);
+        assert_eq!(collab_user_id(&bare), user_id.to_string());
+
+        let with_email = bare.clone().with_email("admin@localhost");
+        assert_eq!(collab_user_id(&with_email), "admin@localhost");
+        assert_eq!(with_email.email.as_deref(), Some("admin@localhost"));
+        // The account email must not change the batch scope: the chat verb and
+        // the HTTP consent card still address the very same batch.
+        assert_eq!(verified_scope(&with_email)?, verified_scope(&bare)?);
         Ok(())
     }
 

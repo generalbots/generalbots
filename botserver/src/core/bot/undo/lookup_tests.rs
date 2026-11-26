@@ -6,8 +6,8 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::{
-    BatchKey, BatchStatus, InMemoryUndoStore, UndoError, UndoOperation, UndoScope, UndoStore,
-    consume_latest, latest_batch_key,
+    consume_after_restore, consume_latest, latest_batch_key, peek, peek_latest, BatchKey,
+    BatchStatus, InMemoryUndoStore, UndoError, UndoOperation, UndoScope, UndoStore,
 };
 
 fn scope(session: &str) -> UndoScope {
@@ -107,5 +107,91 @@ fn chat_undo_restores_before_state_only() -> Result<(), UndoError> {
     // A revert plan has no `after` field at all, so restore cannot pick it.
     let encoded = serde_json::to_value(&resolved.revert_plan).map_err(|_| UndoError::Storage)?;
     assert!(encoded[0].get("after").is_none());
+    Ok(())
+}
+
+#[test]
+fn peek_never_consumes_and_a_failed_restore_leaves_the_batch_active(
+) -> Result<(), UndoError> {
+    let store = InMemoryUndoStore::new();
+    record(&store, "session-1", "peek-failed", 0, json!({ "version_id": "v1" }))?;
+    let verified = scope("session-1");
+
+    let resolved = peek_latest(&store, &verified)?;
+    assert_eq!(resolved.key.batch_id, "peek-failed");
+    assert_eq!(
+        peek(&store, &resolved.key)?.status,
+        BatchStatus::Active,
+        "peek must be read-only"
+    );
+
+    // The restore failed (e.g. no collab grant for the chat identity).
+    let failed = consume_after_restore(&store, &resolved.key, Err(UndoError::Storage), |error| {
+        error
+    });
+    assert_eq!(failed, Err(UndoError::Storage));
+    let still_active = store.find(&resolved.key)?.ok_or(UndoError::NotFound)?;
+    assert_eq!(still_active.status, BatchStatus::Active);
+    assert_eq!(peek_latest(&store, &verified)?.key.batch_id, "peek-failed");
+    Ok(())
+}
+
+#[test]
+fn retry_after_grant_fix_consumes_once_and_a_second_undo_is_denied(
+) -> Result<(), UndoError> {
+    let store = InMemoryUndoStore::new();
+    record(&store, "session-1", "retry-grant", 0, json!({ "version_id": "v1" }))?;
+    let verified = scope("session-1");
+    let resolved = peek_latest(&store, &verified)?;
+
+    // Model the owner grant being fixed between the two attempts.
+    let granted = std::cell::Cell::new(false);
+    let restore = || -> Result<Vec<String>, UndoError> {
+        if granted.get() {
+            Ok(vec!["restored-version".to_string()])
+        } else {
+            Err(UndoError::Storage)
+        }
+    };
+    assert_eq!(
+        consume_after_restore(&store, &resolved.key, restore(), |error| error),
+        Err(UndoError::Storage)
+    );
+    assert_eq!(peek_latest(&store, &verified)?.key.batch_id, "retry-grant");
+
+    granted.set(true);
+    assert_eq!(
+        consume_after_restore(&store, &resolved.key, restore(), |error| error),
+        Ok(vec!["restored-version".to_string()])
+    );
+    assert_eq!(
+        peek(&store, &resolved.key)?.status,
+        BatchStatus::Undone,
+        "a successful restore consumes the batch exactly once"
+    );
+    assert_eq!(peek_latest(&store, &verified), Err(UndoError::NotFound));
+    assert_eq!(
+        consume_after_restore(&store, &resolved.key, restore(), |error| error),
+        Err(UndoError::AlreadyUndone),
+        "the retried batch must still be single-use"
+    );
+    Ok(())
+}
+
+#[test]
+fn cross_session_peek_is_denied_and_leaves_the_owners_batch_active() -> Result<(), UndoError> {
+    let store = InMemoryUndoStore::new();
+    record(&store, "session-1", "peek-foreign", 0, json!({ "version_id": "v1" }))?;
+
+    // A foreign scope never resolves a candidate batch through `latest`.
+    assert_eq!(peek_latest(&store, &scope("session-2")), Err(UndoError::NotFound));
+    // Even with a guessed batch id, the store's ownership check denies it.
+    assert_eq!(
+        peek(&store, &BatchKey::new(scope("session-2"), "peek-foreign")?),
+        Err(UndoError::ScopeMismatch)
+    );
+    let owner = peek_latest(&store, &scope("session-1"))?;
+    assert_eq!(owner.key.batch_id, "peek-foreign");
+    assert_eq!(peek(&store, &owner.key)?.status, BatchStatus::Active);
     Ok(())
 }

@@ -17,7 +17,9 @@ use uuid::Uuid;
 mod lookup;
 pub mod store;
 
-pub use lookup::{consume_latest, latest_batch_key, LatestUndo};
+pub use lookup::{
+    consume_after_restore, consume_latest, latest_batch_key, peek, peek_latest, LatestUndo,
+};
 pub use store::{shared_pool_store, InMemoryUndoStore, PgUndoStore, UndoStore};
 
 /// Bounds keep persisted records predictable and stop oversized ids from
