@@ -1,0 +1,329 @@
+name: gbgov agent runtime
+
+# Agent mode runtime of General Bots Lite (Windows desktop): the two files the
+# desktop app downloads and imports, plus their manifest.
+#
+#   GeneralBotsLite-agent-rootfs-<v>-x86_64.tar.gz
+#       WSL2 root filesystem for the distro `GeneralBotsLite`: Debian 13 from a
+#       pinned snapshot.debian.org timestamp, systemd, Incus, one-time Incus
+#       preseed on first boot (scripts/gbgov/build_wsl_rootfs.sh).
+#   GeneralBotsLite-agent-workspace-office-<v>-x86_64.tar.xz
+#       Incus unified image of the agent workspace (alias gb-workspace-office,
+#       scripts/build_vm_image.sh --profile office). Agent CLIs are not baked
+#       in; they install from npm at first use, as today.
+#   agent-runtime-manifest.json + SHA256SUMS
+#       versions, sizes, SHA-256 and the image fingerprint
+#       (schema: scripts/gbgov/README.md).
+#
+# A `gbgov-agent-runtime-v1.2.3` tag builds and publishes a pre-release of
+# that name (never marked Latest). A push to `gbgov-agent-runtime-dryrun`
+# builds the same files and keeps them as workflow artifacts only.
+
+on:
+  push:
+    tags: ["gbgov-agent-runtime-v*"]
+    branches: ["gbgov-agent-runtime-dryrun"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gbgov-agent-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PRODUCT_FILE: GeneralBotsLite
+  WORKSPACE_PROFILE: office
+
+jobs:
+  prepare:
+    name: Version and script checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      snapshot: ${{ steps.version.outputs.snapshot }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Resolve the runtime version and the Debian snapshot
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            case "$GITHUB_REF_NAME" in
+              gbgov-agent-runtime-v*) version=${GITHUB_REF_NAME#gbgov-agent-runtime-v} ;;
+              *) echo "::error::tag $GITHUB_REF_NAME is not a gbgov-agent-runtime-v* tag"; exit 1 ;;
+            esac
+          else
+            version="0.0.0-dryrun.${GITHUB_SHA:0:7}"
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::version '$version' is not major.minor.patch[-prerelease]"
+            exit 1
+          fi
+          # The pin lives in one place: the build script's default.
+          snapshot=$(sed -n 's/^DEFAULT_SNAPSHOT=//p' scripts/gbgov/build_wsl_rootfs.sh)
+          [[ "$snapshot" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || { echo "::error::no DEFAULT_SNAPSHOT pin in build_wsl_rootfs.sh"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "snapshot=$snapshot" >> "$GITHUB_OUTPUT"
+          echo "Agent runtime $version, Debian snapshot $snapshot" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check the build scripts
+        run: |
+          set -euo pipefail
+          scripts=(scripts/build_vm_image.sh scripts/gbgov/build_wsl_rootfs.sh
+                   scripts/gbgov/rootfs/customize.sh
+                   scripts/gbgov/rootfs/overlay/usr/local/libexec/gb-incus-firstboot)
+          for s in "${scripts[@]}"; do bash -n "$s"; done
+          shellcheck -S warning "${scripts[@]}"
+          python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' \
+            scripts/gbgov/rootfs/overlay/usr/local/share/generalbots/incus-preseed.yaml
+          python3 scripts/gbgov/agent_runtime_manifest.py --self-test
+          bash scripts/build_vm_image.sh --profile "$WORKSPACE_PROFILE" --verify
+
+  rootfs:
+    name: WSL root filesystem
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      SNAPSHOT: ${{ needs.prepare.outputs.snapshot }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install mmdebstrap
+        run: |
+          set -euo pipefail
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends mmdebstrap debian-archive-keyring
+          mmdebstrap --version
+
+      - name: Build the root filesystem
+        run: |
+          set -euo pipefail
+          file="$PRODUCT_FILE-agent-rootfs-$VERSION-x86_64.tar.gz"
+          mkdir -p dist meta
+          sudo bash scripts/gbgov/build_wsl_rootfs.sh \
+            --snapshot "$SNAPSHOT" --version "$VERSION" \
+            --out "dist/$file" --info "$RUNNER_TEMP/rootfs.info"
+          sudo chown -R "$(id -u):$(id -g)" dist "$RUNNER_TEMP/rootfs.info"
+          fact() { sed -n "s/^$1=//p" "$RUNNER_TEMP/rootfs.info"; }
+          python3 scripts/gbgov/agent_runtime_manifest.py asset \
+            --role wsl_rootfs --file "dist/$file" --out meta/wsl_rootfs.asset.json \
+            --set "distro_name=$PRODUCT_FILE" --set compression=gzip \
+            --set debian_suite=trixie --set "debian_snapshot=$SNAPSHOT" \
+            --set "incus_version=$(fact INCUS_VERSION)" \
+            --set "systemd_version=$(fact SYSTEMD_VERSION)" \
+            --set first_boot_unit=gb-incus-firstboot.service \
+            --set first_boot_status=/var/lib/generalbots/incus-firstboot.status \
+            --set-int "installed_bytes=$(fact INSTALLED_BYTES)"
+          {
+            echo "### WSL root filesystem"
+            echo "- \`$file\`: $(du -h "dist/$file" | cut -f1) compressed, $(( $(fact INSTALLED_BYTES) / 1048576 )) MiB installed"
+            echo "- Incus $(fact INCUS_VERSION), systemd $(fact SYSTEMD_VERSION)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the root filesystem
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-runtime-rootfs
+          path: dist/*.tar.gz
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Keep the manifest fragment
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-runtime-meta-rootfs
+          path: meta/*.asset.json
+          retention-days: 30
+          if-no-files-found: error
+
+  workspace:
+    name: Agent workspace image
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install and initialise Incus
+        run: |
+          set -euo pipefail
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends incus
+          sudo incus admin init --auto
+          # Docker on the runner sets the FORWARD policy to DROP, which cuts
+          # the builder container off the network behind incusbr0.
+          sudo iptables -P FORWARD ACCEPT
+          sudo ip6tables -P FORWARD ACCEPT || true
+          sudo incus version
+
+      - name: Build and export the workspace image
+        run: |
+          set -euo pipefail
+          sudo bash scripts/build_vm_image.sh --profile "$WORKSPACE_PROFILE" \
+            --cache "$RUNNER_TEMP/vm-artifacts" --compression xz \
+            --export "$RUNNER_TEMP/export" --info "$RUNNER_TEMP/workspace.info"
+          fact() { sed -n "s/^$1=//p" "$RUNNER_TEMP/workspace.info"; }
+          exported=$(fact EXPORT_FILE)
+          file="$PRODUCT_FILE-agent-workspace-$WORKSPACE_PROFILE-$VERSION-x86_64.tar.xz"
+          mkdir -p dist meta
+          sudo mv "$exported" "dist/$file"
+          sudo chown -R "$(id -u):$(id -g)" dist
+          python3 scripts/gbgov/agent_runtime_manifest.py asset \
+            --role workspace_image --file "dist/$file" --out meta/workspace_image.asset.json \
+            --set "incus_fingerprint=$(fact FINGERPRINT)" \
+            --set "alias=$(fact ALIAS)" --set "profile=$(fact PROFILE)" \
+            --set "provisioned_marker=$(fact MARKER)" \
+            --set format=unified --set compression=xz \
+            --set "base_image=$(fact BASE_IMAGE)" \
+            --set "base_image_fingerprint=$(fact BASE_FINGERPRINT)" \
+            --set "chromium=$(fact CHROMIUM)" \
+            --set "builder_incus_version=$(sudo incus version | sed -n 's/^Server version: //p')"
+          {
+            echo "### Agent workspace image"
+            echo "- \`$file\`: $(du -h "dist/$file" | cut -f1), fingerprint \`$(fact FINGERPRINT)\`"
+            echo "- base $(fact BASE_IMAGE) \`$(fact BASE_FINGERPRINT)\`, chromium: $(fact CHROMIUM)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the workspace image
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-runtime-workspace
+          path: dist/*.tar.xz
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Keep the manifest fragment
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-runtime-meta-workspace
+          path: meta/*.asset.json
+          retention-days: 30
+          if-no-files-found: error
+
+  manifest:
+    name: Manifest
+    needs: [prepare, rootfs, workspace]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      SNAPSHOT: ${{ needs.prepare.outputs.snapshot }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Download the manifest fragments
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: agent-runtime-meta-*
+          path: meta
+          merge-multiple: true
+
+      - name: Write the manifest and SHA256SUMS
+        run: |
+          set -euo pipefail
+          tag=""
+          [ "$GITHUB_REF_TYPE" = "tag" ] && tag="$GITHUB_REF_NAME"
+          built_at=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)
+          mkdir -p out
+          python3 scripts/gbgov/agent_runtime_manifest.py merge \
+            --fragments meta --version "$VERSION" --tag "$tag" --commit "$GITHUB_SHA" \
+            --built-at "$built_at" --snapshot "$SNAPSHOT" \
+            --out out/agent-runtime-manifest.json --sums out/SHA256SUMS
+          {
+            echo "### agent-runtime-manifest.json"
+            echo '```json'
+            cat out/agent-runtime-manifest.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the manifest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-runtime-manifest
+          path: |
+            out/agent-runtime-manifest.json
+            out/SHA256SUMS
+          retention-days: 30
+          if-no-files-found: error
+
+  publish:
+    name: Publish the runtime release
+    needs: [prepare, manifest]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/gbgov-agent-runtime-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Download the root filesystem
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: agent-runtime-rootfs
+          path: dist
+
+      - name: Download the workspace image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: agent-runtime-workspace
+          path: dist
+
+      - name: Download the manifest
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: agent-runtime-manifest
+          path: dist
+
+      - name: Verify the files against the manifest
+        run: |
+          set -euo pipefail
+          ls -l dist
+          python3 scripts/gbgov/agent_runtime_manifest.py verify \
+            --manifest dist/agent-runtime-manifest.json --dir dist
+          (cd dist && sha256sum -c SHA256SUMS)
+
+      - name: Create the GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # A published runtime is immutable: the desktop app pins its
+          # checksums. Ship a fix as a new version tag instead.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::release $TAG already exists; tag a new runtime version instead of replacing its files"
+            exit 1
+          fi
+          gh release create "$TAG" dist/* \
+            --title "General Bots Lite agent runtime $VERSION" \
+            --prerelease \
+            --latest=false \
+            --verify-tag \
+            --notes "General Bots Lite agent runtime $VERSION (Agent mode on Windows): WSL2 root filesystem and agent workspace image, imported by the desktop app. Verify the downloads with SHA256SUMS or agent-runtime-manifest.json."

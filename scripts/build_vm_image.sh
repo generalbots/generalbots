@@ -27,6 +27,10 @@
 #   --alias NAME     published image alias            (default: gb-workspace-<profile>)
 #   --offline        never touch the network; fail when an artifact is missing
 #   --check-size     enforce base + 200 MB after publishing
+#   --compression A  image compression for `incus publish` (gzip, xz, zstd, none)
+#   --export DIR     after publishing, `incus image export` the unified tarball
+#                    into DIR (the General Bots Lite agent runtime asset)
+#   --info FILE      write KEY=value build facts (fingerprints, marker, file)
 #   --verify         only check this script against the profile table in Rust
 #   --keep           keep the builder container for inspection
 #   --dry-run        print the plan and exit
@@ -44,6 +48,9 @@ CHECK_SIZE=0
 VERIFY_ONLY=0
 KEEP=0
 DRY_RUN=0
+COMPRESSION=
+EXPORT_DIR=
+INFO_FILE=
 SIZE_LIMIT_MB=200
 
 log() { printf '[build_vm_image] %s\n' "$*"; }
@@ -57,10 +64,13 @@ while [ $# -gt 0 ]; do
         --alias) ALIAS=${2:?--alias needs a value}; shift 2 ;;
         --offline) OFFLINE=1; shift ;;
         --check-size) CHECK_SIZE=1; shift ;;
+        --compression) COMPRESSION=${2:?--compression needs a value}; shift 2 ;;
+        --export) EXPORT_DIR=${2:?--export needs a value}; shift 2 ;;
+        --info) INFO_FILE=${2:?--info needs a value}; shift 2 ;;
         --verify) VERIFY_ONLY=1; shift ;;
         --keep) KEEP=1; shift ;;
         --dry-run) DRY_RUN=1; shift ;;
-        -h|--help) sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,37p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) die "unknown option '$1' (try --help)" ;;
     esac
 done
@@ -70,6 +80,10 @@ case "$PROFILE" in
     *) die "invalid --profile '$PROFILE' (base|office|media|data)" ;;
 esac
 ALIAS=${ALIAS:-gb-workspace-$PROFILE}
+case "$COMPRESSION" in
+    ''|gzip|xz|zstd|bzip2|none) ;;
+    *) die "invalid --compression '$COMPRESSION' (gzip|xz|zstd|bzip2|none)" ;;
+esac
 
 # Artifact ids this script installs. `--verify` keeps them in sync with the
 # Rust table, which is the source of truth for sizes and probes.
@@ -123,8 +137,37 @@ trap cleanup EXIT
 
 run() { incus exec "$BUILDER" -- "$@"; }
 
+# Pin the base image by fingerprint: a remote alias such as images:debian/13
+# moves daily, and the build must record exactly what it started from.
+LAUNCH_IMAGE=$BASE_IMAGE
+BASE_FINGERPRINT=$(incus image info "$BASE_IMAGE" 2>/dev/null | awk '/^Fingerprint:/ {print $2; exit}') || BASE_FINGERPRINT=
+if [ -n "$BASE_FINGERPRINT" ]; then
+    case "$BASE_IMAGE" in
+        *:*) LAUNCH_IMAGE="${BASE_IMAGE%%:*}:$BASE_FINGERPRINT" ;;
+        *) LAUNCH_IMAGE=$BASE_FINGERPRINT ;;
+    esac
+    log "base image $BASE_IMAGE is $BASE_FINGERPRINT"
+else
+    log "warning: could not resolve the fingerprint of $BASE_IMAGE; launching the alias"
+fi
+
 log "launching builder container"
-incus launch "$BASE_IMAGE" "$BUILDER" --config limits.cpu=2 --config limits.memory=2GiB
+incus launch "$LAUNCH_IMAGE" "$BUILDER" --config limits.cpu=2 --config limits.memory=2GiB
+
+# A fresh Debian container can come up before DHCP/DNS are ready, or without
+# /etc/resolv.conf at all; apt then fails. Wait for the network, and point the
+# resolver at the bridge gateway when name resolution still fails.
+log "waiting for the builder network"
+net_ready=0
+for _ in $(seq 1 60); do
+    # /proc/net/route needs no iproute2: destination 00000000 is the default route.
+    if run sh -c 'grep -q "^[^[:space:]]*[[:space:]]00000000[[:space:]]" /proc/net/route'; then net_ready=1; break; fi
+    sleep 2
+done
+[ "$net_ready" -eq 1 ] || die "the builder container has no default route after 120 s"
+if ! run sh -c 'getent hosts deb.debian.org >/dev/null 2>&1'; then
+    run sh -c 'GW=$(ip route | awk "/^default/ {print \$3; exit}"); { [ -n "$GW" ] && echo "nameserver $GW"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf'
+fi
 
 run mkdir -p /opt/vibe/artifacts /opt/vibe/conversations
 if [ -d "$CACHE" ] && [ -n "$(ls -A "$CACHE" 2>/dev/null)" ]; then
@@ -160,12 +203,57 @@ if [ "$PROFILE" = data ]; then
     run python3 -m pip install --break-system-packages --no-cache-dir --quiet numpy pandas matplotlib scipy
 fi
 
-run sh -c "id -u runner >/dev/null 2>&1 || useradd -m -s /bin/bash runner; chown -R runner:runner /opt/vibe; echo v7-$PROFILE > /opt/vibe/.provisioned"
+MARKER="v7-$PROFILE"
+# The two identities of #1658 (`claude` owns subscription credentials,
+# `runner` executes generated code). The marker below makes the server skip
+# its workspace preparation, so the image must already carry both users.
+run sh -c "id -u runner >/dev/null 2>&1 || useradd -m -s /bin/bash runner; id -u claude >/dev/null 2>&1 || useradd -m -s /bin/bash claude; mkdir -p /home/claude/.claude; chown -R claude:claude /home/claude; chmod 700 /home/claude /home/claude/.claude; chown -R runner:runner /opt/vibe; echo $MARKER > /opt/vibe/.provisioned"
+
+# Leave no caches, logs or host identity in the image: every workspace
+# launched from it must get its own machine id, and the download stays small.
+log "cleaning the builder before publishing"
+run sh -c 'apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache /root/.npm /tmp/* /var/tmp/*; find /var/log -type f -delete; : > /etc/machine-id; rm -f /var/lib/dbus/machine-id'
 
 log "publishing $ALIAS"
 incus stop "$BUILDER" >/dev/null
-incus publish "$BUILDER" --alias "$ALIAS" --reuse >/dev/null
-log "image ready: $ALIAS (launch it with AGENT_VM_IMAGE=$ALIAS)"
+publish_args=(publish "$BUILDER" --alias "$ALIAS" --reuse)
+[ -n "$COMPRESSION" ] && publish_args+=(--compression "$COMPRESSION")
+publish_args+=("description=General Bots workspace ($PROFILE profile, $MARKER)")
+incus "${publish_args[@]}" >/dev/null
+FINGERPRINT=$(incus image info "$ALIAS" | awk '/^Fingerprint:/ {print $2; exit}')
+[ -n "$FINGERPRINT" ] || die "cannot read the fingerprint of $ALIAS"
+log "image ready: $ALIAS $FINGERPRINT (launch it with AGENT_VM_IMAGE=$ALIAS)"
+
+EXPORT_FILE=
+if [ -n "$EXPORT_DIR" ]; then
+    mkdir -p "$EXPORT_DIR"
+    log "exporting $ALIAS to $EXPORT_DIR"
+    # A published image is unified: the export is one tarball named after
+    # its fingerprint, and that fingerprint is the tarball's SHA-256.
+    incus image export "$ALIAS" "$EXPORT_DIR/" >/dev/null
+    for candidate in "$EXPORT_DIR/$FINGERPRINT".tar*; do
+        [ -f "$candidate" ] && EXPORT_FILE=$candidate
+    done
+    [ -n "$EXPORT_FILE" ] || die "incus image export left no $FINGERPRINT.tar* in $EXPORT_DIR (split image?)"
+    actual=$(sha256sum "$EXPORT_FILE" | awk '{print $1}')
+    [ "$actual" = "$FINGERPRINT" ] || die "exported $EXPORT_FILE hashes to $actual, not the fingerprint $FINGERPRINT"
+    log "exported $EXPORT_FILE ($(du -h "$EXPORT_FILE" | cut -f1))"
+fi
+
+if [ -n "$INFO_FILE" ]; then
+    {
+        printf 'ALIAS=%s\n' "$ALIAS"
+        printf 'PROFILE=%s\n' "$PROFILE"
+        printf 'MARKER=%s\n' "$MARKER"
+        printf 'FINGERPRINT=%s\n' "$FINGERPRINT"
+        printf 'BASE_IMAGE=%s\n' "$BASE_IMAGE"
+        printf 'BASE_FINGERPRINT=%s\n' "$BASE_FINGERPRINT"
+        printf 'COMPRESSION=%s\n' "${COMPRESSION:-default}"
+        if [ "$PROFILE" = base ]; then chromium=none; elif [ -f "$CHROMIUM_TARBALL" ]; then chromium=static; else chromium=distro; fi
+        printf 'CHROMIUM=%s\n' "$chromium"
+        printf 'EXPORT_FILE=%s\n' "$EXPORT_FILE"
+    } > "$INFO_FILE"
+fi
 
 if [ "$CHECK_SIZE" -eq 1 ]; then
     log "checking the +${SIZE_LIMIT_MB} MB budget"

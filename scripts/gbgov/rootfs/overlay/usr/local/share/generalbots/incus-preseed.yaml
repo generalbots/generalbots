@@ -1,0 +1,27 @@
+# Incus preseed of the General Bots Lite agent runtime, applied once by
+# /usr/local/libexec/gb-incus-firstboot. `config` sets no core.https_address:
+# the Incus API is reachable only through the local unix socket.
+config: {}
+networks:
+  - name: incusbr0
+    type: bridge
+    description: General Bots workspaces (NAT)
+    config:
+      ipv4.address: auto
+      ipv4.nat: "true"
+      ipv6.address: none
+storage_pools:
+  - name: default
+    driver: dir
+    description: General Bots workspaces
+profiles:
+  - name: default
+    devices:
+      root:
+        path: /
+        pool: default
+        type: disk
+      eth0:
+        name: eth0
+        network: incusbr0
+        type: nic

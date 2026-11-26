@@ -1,0 +1,14 @@
+[Unit]
+Description=General Bots Lite: one-time Incus initialisation
+Wants=incus.service
+After=incus.socket incus.service
+ConditionPathExists=!/var/lib/generalbots/incus-firstboot.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/gb-incus-firstboot
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
