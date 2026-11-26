@@ -115,8 +115,9 @@ function tr(key, fallback) {
   return fallback;
 }
 
-// A private bot's 401 upgrade is hidden by the browser WS API; probe first so
-// an anonymous visitor sees the real reason instead of an endless reconnect.
+// A private bot's 401 is hidden by the browser WS API; probe first for a real error.
+// Retry handlers reset ChatState.botAccess, so remember a terminal result separately.
+var chatAccessTerminal = "";
 function probeBotAccess(done) {
   if (window.__BOT_IS_PUBLIC__) { ChatState.botAccess = "allowed"; done("allowed"); return; }
   // Cache only resolved states. Probe errors stay retryable.
@@ -141,11 +142,13 @@ function probeBotAccess(done) {
       var token = (window.GBSecurity && typeof GBSecurity.getToken === "function")
         ? GBSecurity.getToken() : null;
       ChatState.botAccess = (isPublic || token) ? "allowed" : "auth_required";
+      chatAccessTerminal = ChatState.botAccess === "allowed" ? "" : "auth";
       done(ChatState.botAccess);
     })
     .catch(function (err) {
       // Fail closed at the SOURCE: connectWebSocket may drop this callback via seq.
       ChatState.botAccess = "probe_error";
+      chatAccessTerminal = "probe";
       if (typeof window.clearBlockedChatTurn === "function") window.clearBlockedChatTurn();
       if (typeof window.gbRestoreBlockedComposer === "function" && window.gbRestoreBlockedComposer()) notify(chatFriendlyError("Failed to connect to chat server"), "error");
       console.warn("[WS] bot access probe failed for '" + bot + "':", err);
@@ -237,8 +240,7 @@ function showProbeError(botName) {
   console.warn("[WS] bot access probe failed for '" + botName + "'; WebSocket not attempted");
 }
 
-// #2153 — an unknown bot used to leave "Connecting…" forever with a generic toast.
-// Say what is wrong and offer an in-app recovery that keeps the desktop shell intact.
+// #2153 — an unknown bot left "Connecting…" forever; recover inside the desktop shell.
 function recoverFromUnavailableBot() {
   var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
   try { localStorage.removeItem("gb_selected_bot"); } catch (e) { window.gbLogError ? gbLogError(e, "recoverFromUnavailableBot") : console.error("recoverFromUnavailableBot", e); }

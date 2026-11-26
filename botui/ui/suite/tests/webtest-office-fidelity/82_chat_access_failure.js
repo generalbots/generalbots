@@ -86,9 +86,9 @@ h.staticTest("terminal bot access fails the send before any turn or queue is sta
   var send = span(src, "function sendMessage(messageContent, extra) {",
     "// #1275 — messages composed while the socket is down");
   h.assert(send.length > 2000, "non-vacuity: sendMessage body must be substantial, got " + send.length);
-  var branch = span(send, "var blocked = ChatState.botAccess", "  // #1947");
-  contains(branch, 'ChatState.botAccess === "auth_required" ? "auth"', "private bot maps to auth");
-  contains(branch, 'ChatState.botAccess === "probe_error" ? "probe"', "failed probe maps to probe");
+  var branch = span(send, "var blocked = (ChatState.botAccess", "  // #1947");
+  contains(branch, 'ChatState.botAccess === "auth_required" || window.chatAccessTerminal === "auth"', "private bot maps to auth");
+  contains(branch, 'ChatState.botAccess === "probe_error" || window.chatAccessTerminal === "probe"', "failed probe maps to probe");
   contains(branch, "if (blocked) {", "a terminal state gates the branch");
   contains(branch, "clearBlockedChatTurn();", "the failure path resets sending state");
   contains(branch, "blockedInput.value = content", "the composer keeps the text for a retry");
@@ -96,7 +96,7 @@ h.staticTest("terminal bot access fails the send before any turn or queue is sta
   contains(branch, "notify(", "the failure is surfaced, not silent");
   contains(branch, "return;", "the send stops here");
   absent(branch, "queueOfflineMessage(", "no silent offline retry on terminal access");
-  var atBranch = send.indexOf("var blocked = ChatState.botAccess");
+  var atBranch = send.indexOf("var blocked = (ChatState.botAccess");
   var atTurn = send.indexOf("GBTurn.start(");
   var atBubble = send.indexOf('addMessage("user", display)');
   var atQueue = send.indexOf("queueOfflineMessage(payload)");
@@ -161,6 +161,22 @@ h.staticTest("offline queue never promises delivery in a terminal access state",
   contains(queue, "chat-reconnecting-queued", "normal reconnect keeps its existing queued toast");
 });
 
+h.staticTest("terminal access is sticky across retry resets of botAccess", function () {
+  var ws = readSrc(WS_A);
+  contains(ws, 'var chatAccessTerminal = "";', "module-level sticky flag exists");
+  var probe = span(ws, "function probeBotAccess(done) {", "function chatPrivateSigninMessage()");
+  contains(probe, 'chatAccessTerminal = "probe";', "probe failure latches the terminal reason");
+  contains(probe, 'chatAccessTerminal = ChatState.botAccess === "allowed" ? "" : "auth";',
+    "only a successful allowed probe clears the latch");
+  h.assertEqual(countIn(ws, "ChatState.botAccess = null;"), 2,
+    "both existing retry resets are preserved (the latch survives them)");
+  var send = readSrc(SEND_A);
+  contains(send, 'window.chatAccessTerminal === "auth"', "auth latch reaches the send fail-fast");
+  contains(send, 'window.chatAccessTerminal === "probe"', "probe latch reaches the send fail-fast");
+  var queue = readSrc(SEND_B);
+  contains(queue, "|| window.chatAccessTerminal)", "queue guard honours the latch");
+});
+
 h.staticTest("the reused auth-failure key is catalogued in all eight locales", function () {
   LOCALES.forEach(function (locale) {
     var dir = path.join(h.REPO_DIR, "botlib", "locales", locale);
@@ -172,11 +188,11 @@ h.staticTest("the reused auth-failure key is catalogued in all eight locales", f
 
 /** Deterministic composer sandbox: real shipped send modules, stubbed globals. */
 function makeChat(access, authed) {
-  var calls = { turnStart: [], forceHide: 0, sent: [], notify: [], status: [], queued: 0 };
+  var calls = { turnStart: [], forceHide: 0, sent: [], notify: [], status: [], queued: 0, bubbles: 0 };
   function el(id) {
     return {
       id: id, value: "", tagName: "TEXTAREA", style: {},
-      files: [], focus: function () {},
+      files: [], focus: function () {}, appendChild: function () {},
       querySelector: function () { return null; },
     };
   }
@@ -201,7 +217,7 @@ function makeChat(access, authed) {
     gbT: function (key, fallback) { return "LOC:" + key + ":" + fallback; },
     chatPrivateSigninMessage: function () { return "LOC:" + KEY + ":" + FALLBACK; },
     notify: function (message, type) { calls.notify.push({ message: message, type: type }); },
-    addMessage: function () {}, hideMentionDropdown: function () {}, scrollToBottom: function () {},
+    addMessage: function () { calls.bubbles++; }, hideMentionDropdown: function () {}, scrollToBottom: function () {},
     setChatStatus: function (v) { calls.status.push(v); },
     connectWebSocket: function () { calls.queued++; },
     queueOfflineMessage: function () { calls.queued++; state.offlineQueue.push("queued"); },
@@ -209,8 +225,10 @@ function makeChat(access, authed) {
   };
   sandbox.window = sandbox;
   sandbox.addEventListener = function () {};
+  var elements = {};
   sandbox.document = {
-    getElementById: function (id) { return id === "messageInput" ? input : el(id); },
+    getElementById: function (id) { if (!elements[id]) elements[id] = id === "messageInput" ? input : el(id); return elements[id]; },
+    createElement: function () { return el("created"); },
     addEventListener: function () {}, dispatchEvent: function () {},
   };
   sandbox.window.GBTurn = {
@@ -224,7 +242,7 @@ function makeChat(access, authed) {
   [SEND_A, SEND_B].forEach(function (rel) {
     h.vm.runInContext(readSrc(rel), sandbox, { filename: rel });
   });
-  return { sandbox: sandbox, state: state, input: input, calls: calls };
+  return { sandbox: sandbox, state: state, input: input, calls: calls, elements: elements };
 }
 
 h.test("auth_required send resets state, restores the composer and never retries", function () {
@@ -326,6 +344,40 @@ h.test("composer recovery is idempotent and drops the stranded payload", functio
   h.assertEqual(t.input.value, "stranded", "text restored to the composer");
   h.assertEqual(t.state.offlineQueue.length, 0, "payload removed so a later socket cannot duplicate it");
   h.assertEqual(t.sandbox.gbRestoreBlockedComposer(), false, "a second call is a no-op");
+});
+
+/** Boot-failure sandbox: failed probe first, then a retry reset, then a send. */
+function makeBootFailureChat() {
+  var t = makeChat(null, false);
+  t.sandbox.fetch = function () { return { then: function () { return this; }, catch: function (fn) { fn(new Error("probe_failed")); return this; } }; };
+  t.sandbox.console = { warn: function () {}, error: function () {}, info: function () {} };
+  t.sandbox.window.GBSecurity = { getToken: function () { return null; } };
+  h.vm.runInContext(readSrc(WS_A), t.sandbox, { filename: WS_A });
+  t.sandbox.notify = function (m, ty) { t.calls.notify.push({ message: m, type: ty }); };
+  return t;
+}
+
+h.test("boot probe failure stays terminal after the retry resets botAccess to null", function () {
+  var t = makeBootFailureChat();
+  t.sandbox.probeBotAccess(function () { /* stale boot callback: no UI handler runs */ });
+  h.assertEqual(t.sandbox.chatAccessTerminal, "probe", "the terminal reason is latched at boot");
+  // Drive the SHIPPED retry handler: showProbeError installs statusEl.onclick.
+  t.sandbox.showProbeError("default");
+  t.elements["connectionStatus"].onclick();
+  h.assertEqual(t.state.botAccess, null, "the shipped retry reset botAccess to null");
+  h.assertEqual(t.sandbox.chatAccessTerminal, "probe", "resetting botAccess does not clear the latch");
+  t.calls.forceHide = 0;
+  t.calls.notify = [];
+  t.calls.queued = 0;
+  t.input.value = "after boot failure";
+  t.sandbox.sendMessage();
+  h.assertEqual(t.calls.bubbles, 0, "no user bubble was added");
+  h.assertEqual(t.calls.turnStart.length, 0, "no Sending… turn was started");
+  h.assertEqual(t.state.offlineQueue.length, 0, "nothing was queued");
+  h.assertEqual(t.calls.queued, 0, "no reconnect promise or silent retry loop");
+  h.assertEqual(t.input.value, "after boot failure", "the typed text stayed in the composer");
+  h.assertEqual(t.calls.forceHide, 1, "any stale turn was cleared on send");
+  h.assertEqual(t.calls.notify.length, 0, "no false delivery promise was shown");
 });
 
 h.staticTest("non-vacuity: shipped modules, pinned APIs and required guard", function () {

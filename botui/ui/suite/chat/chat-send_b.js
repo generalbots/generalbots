@@ -7,10 +7,10 @@ function formatAttachSize(bytes) {
 
 function queueOfflineMessage(payload) {
   // A terminal access state will never open a socket: do not queue or promise delivery.
-  if (ChatState.botAccess === "auth_required" || ChatState.botAccess === "probe_error") {
+  if (ChatState.botAccess === "auth_required" || ChatState.botAccess === "probe_error" || window.chatAccessTerminal) {
     if (typeof window.clearBlockedChatTurn === "function") window.clearBlockedChatTurn();
     if (typeof window.gbRestoreBlockedComposer === "function") window.gbRestoreBlockedComposer();
-    if (ChatState.botAccess === "auth_required") notify(chatPrivateSigninMessage(), "error"); return;
+    if (ChatState.botAccess === "auth_required" || window.chatAccessTerminal === "auth") notify(chatPrivateSigninMessage(), "error"); return;
   }
   if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
   ChatState.offlineQueue.push(payload);

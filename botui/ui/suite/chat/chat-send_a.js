@@ -99,7 +99,7 @@ function sendMessage(messageContent, extra) {
 
   // A private bot or a failed probe never dials a socket: fail fast instead of
   // painting "Sending…" and queueing with only a console warning.
-  var blocked = ChatState.botAccess === "auth_required" ? "auth" : ChatState.botAccess === "probe_error" ? "probe" : "";
+  var blocked = (ChatState.botAccess === "auth_required" || window.chatAccessTerminal === "auth") ? "auth" : (ChatState.botAccess === "probe_error" || window.chatAccessTerminal === "probe") ? "probe" : "";
   if (blocked) {
     clearBlockedChatTurn();
     if (!messageContent) { var blockedInput = document.getElementById("messageInput"); if (blockedInput) blockedInput.value = content; }
@@ -154,8 +154,7 @@ function sendMessage(messageContent, extra) {
 
   var modelPicker = document.getElementById("modelPicker");
   var selectedModel = modelPicker ? modelPicker.value : "auto";
-  // #1753 — the switcher set follows the active conversation. Parallel tabs
-  // resolve to their own set; the stock tab keeps ChatState.activeSwitchers.
+  // #1753 — the switcher set follows the active conversation tab.
   var outgoingSwitchers = typeof activeSwitcherIds === "function"
     ? activeSwitcherIds()
     : Array.from(ChatState.activeSwitchers || []);
