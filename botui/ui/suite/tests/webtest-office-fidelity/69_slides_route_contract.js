@@ -143,3 +143,71 @@ h.staticTest("#2922 affected Slides handlers do not leak raw Drive errors", func
     contains(src, "log_and_sanitize_json", rel + " must use the shared sanitizer");
   });
 });
+
+h.staticTest("#2947 the media/list preloader is gated to the Slides app", function () {
+  var init = h.readRepo("botui/ui/suite/slides/modules/45_stm_captions_init.js");
+  h.assert(init.length > 400, "non-vacuity: captions init module is non-trivial");
+  var flat = compact(init);
+
+  // bind() installs a body-level htmx:afterSwap listener that survives the
+  // Slides window being closed. It must check the swapped element belongs to
+  // Slides before scheduling refreshAll(), otherwise every app's swaps fire
+  // GET /api/slides/media/list and log a console 404.
+  contains(flat, 'document.body.addEventListener("htmx:afterSwap"',
+    "the global swap listener must remain for live Slides swaps");
+  contains(flat, 'if(!isSlidesNode(target))return;window.setTimeout(refreshAll,0);',
+    "the swap listener must gate on the swapped element being inside Slides");
+  contains(flat, 'functionrefreshAll(){if(!slidesMounted())return;',
+    "refreshAll must be a no-op when the Slides app is not mounted");
+  contains(flat, 'functionslidesMounted(){returnisSlidesNode(document.getElementById("slides-app"));',
+    "mount detection must be anchored on the Slides app root");
+
+  // Only the gated refreshAll and the user-initiated captions button may call
+  // the endpoint; no third, unconditional caller may creep back in.
+  h.assertEqual(countIn(flat, "STM.loadSlideMedia()"), 2,
+    "loadSlideMedia is called only by the gated refreshAll and the captions hub");
+  // The body listener is installed once, even if Slides is reopened.
+  contains(flat, 'if(!STM.captionsSwapBound){STM.captionsSwapBound=true;',
+    "the global body listener must be installed only once");
+
+  // The route the gated preloader calls must still be registered (#2922).
+  var routes = compact(h.readRepo(ROUTES));
+  route(routes, "/api/slides/media/list", "get(handle_list_media::<D>)");
+  var inventory = compact(h.readRepo(
+    "botserver/src/core/bot/endpoint_inventory_minutes/slides_and_office.rs"));
+  contains(inventory, '"GET",path:"/api/slides/media/list"',
+    "media/list must stay in the API inventory");
+});
+
+h.test("#2947 an unrelated app's HTMX swap never calls the media/list preloader", function () {
+  var calls = 0;
+  var swapListener = null;
+  var timers = [];
+  var sandbox = {
+    setTimeout: function (fn) { timers.push(fn); return timers.length; },
+  };
+  sandbox.window = sandbox;
+  sandbox.SlidesTableMedia = {
+    loadSlideMedia: function () { calls++; return Promise.resolve([]); },
+    tableElements: function () { return []; },
+    renderMediaOverlay: function () {},
+  };
+  sandbox.document = {
+    readyState: "complete", // -> bind() runs immediately, as on a loaded window
+    getElementById: function () { return null; }, // no #slides-app in a non-Slides app
+    addEventListener: function () {},
+    body: {
+      addEventListener: function (name, fn) {
+        if (name === "htmx:afterSwap") swapListener = fn;
+      },
+    },
+  };
+  h.loadModules(["slides/modules/45_stm_captions_init.js"], sandbox);
+
+  h.assert(swapListener !== null, "the global swap listener must still be installed");
+  h.assertEqual(calls, 0, "binding outside Slides must not call loadSlideMedia");
+  // Simulate an HTMX swap in Tasks/Paper/CRM: the target is not in Slides.
+  swapListener({ detail: { target: { closest: function () { return null; } } } });
+  h.assertEqual(timers.length, 0, "unrelated swap must not schedule a refresh");
+  h.assertEqual(calls, 0, "unrelated swap must not issue GET /api/slides/media/list");
+});

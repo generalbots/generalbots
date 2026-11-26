@@ -120,7 +120,13 @@
         if (sig.content_html) {
           var body = document.getElementById("compose-body");
           if (body) {
-            body.innerHTML += "<br><br>" + sig.content_html;
+            // #2953: signatures are user-authored HTML. Strip remote fonts,
+            // stylesheets and tracking pixels before inserting them into the
+            // suite document; fail closed if the sanitizer did not load.
+            var clean = window.GBMailSanitize
+              ? window.GBMailSanitize.html(sig.content_html)
+              : "";
+            body.innerHTML += "<br><br>" + clean;
           }
         }
       })

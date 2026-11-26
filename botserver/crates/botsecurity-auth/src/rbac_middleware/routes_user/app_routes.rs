@@ -91,6 +91,19 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/conversations/**", "GET", ""),
         RoutePermission::new("/api/conversations/**", "POST", ""),
         RoutePermission::new("/api/conversation-autotasks/**", "POST", ""),
+        // #2945 — the automations dashboard reads all of the caller's jobs via
+        // GET /api/conversation-autotasks. Only POST was catalogued, so an
+        // authenticated admin got 403 "No matching route permission found"
+        // before list_all ran.
+        RoutePermission::new("/api/conversation-autotasks/**", "GET", ""),
+        // #2945 — the native automations dashboard had no catalogue entry at
+        // all (/api/automations/schedules, /runs, /:id/run, /:id/events).
+        // Every request 403'd for every authenticated user. botautomation::api
+        // scopes each handler to the verified caller; none are anonymous.
+        RoutePermission::new("/api/automations/**", "GET", ""),
+        RoutePermission::new("/api/automations/**", "POST", ""),
+        RoutePermission::new("/api/automations/**", "PUT", ""),
+        RoutePermission::new("/api/automations/**", "DELETE", ""),
         // Workspace tab mirror (chat tab strip).
         RoutePermission::new("/api/user/workspace/**", "GET", ""),
         RoutePermission::new("/api/user/workspace/**", "PUT", ""),
@@ -351,3 +364,59 @@ mod approvals_tests {
 #[cfg(test)]
 #[path = "app_routes_sandbox_tests.rs"]
 mod sandbox_status_tests;
+
+#[cfg(test)]
+mod automations_catalogue_tests {
+    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
+    use crate::{AuthenticatedUser, Role};
+    use uuid::Uuid;
+
+    /// #2945 — the shell-level pollers issued three requests on every app
+    /// open. Two of them were default-denied by RBAC (403) even for an
+    /// authenticated admin. Cover every verb the automations dashboard uses
+    /// so a catalogue regression cannot silently turn the app into a 403
+    /// factory again.
+    #[tokio::test]
+    async fn automations_and_autotasks_catalogue_admits_authenticated_users() {
+        let manager = RbacManager::with_defaults();
+        manager
+            .register_routes(build_default_route_permissions())
+            .await;
+        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+            .with_role(Role::Admin);
+        let anonymous = AuthenticatedUser::anonymous();
+
+        let cases = [
+            ("GET", "/api/automations/schedules"),
+            ("GET", "/api/automations/runs"),
+            ("POST", "/api/automations/schedules"),
+            (
+                "PUT",
+                "/api/automations/schedules/00000000-0000-0000-0000-000000000001",
+            ),
+            (
+                "DELETE",
+                "/api/automations/schedules/00000000-0000-0000-0000-000000000001",
+            ),
+            ("GET", "/api/conversation-autotasks"),
+            (
+                "POST",
+                "/api/conversation-autotasks/00000000-0000-0000-0000-000000000001/cancel",
+            ),
+        ];
+
+        for (method, path) in cases {
+            let allowed = manager.check_route_access(path, method, &admin).await;
+            assert!(
+                allowed.is_allowed(),
+                "{method} {path} must be allowed for an authenticated admin: {}",
+                allowed.reason
+            );
+            let denied = manager.check_route_access(path, method, &anonymous).await;
+            assert!(
+                !denied.is_allowed(),
+                "{method} {path} must be denied for an anonymous caller"
+            );
+        }
+    }
+}

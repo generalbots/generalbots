@@ -94,6 +94,7 @@ require("./webtest-office-fidelity/88_calendar_events_normalize");
 require("./webtest-office-fidelity/89_cloud_shared_assets");
 require("./webtest-office-fidelity/90_session_gated_pollers");
 require("./webtest-office-fidelity/91_chrome_idle_task_budget");
+require("./webtest-office-fidelity/92_app_scoped_pollers");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();

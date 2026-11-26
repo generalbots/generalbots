@@ -8,6 +8,10 @@
 ))]
 use super::*;
 
+#[cfg(all(test, feature = "instagram"))]
+#[path = "instagram_route_contract_tests.rs"]
+mod instagram_route_contract_tests;
+
 #[cfg(feature = "saas")]
 pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     use botcloud::{api, cloud_ui, stripe::StripeClient, SaasConfig, SaasService};
@@ -271,9 +275,18 @@ pub(crate) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
         attendant_broadcast: None,
     }))
 }
+
+/// Single assembly seam for the Instagram router. Both production wiring and
+/// the #2949 route-contract test drive this function, so the campaign routes
+/// cannot be mounted in production but absent from the guard.
+#[cfg(feature = "instagram")]
+fn instagram_router_with_state(state: Arc<botinstagram::ChannelState>) -> Router<()> {
+    crate::instagram::configure_instagram_router().with_state(state)
+}
+
 #[cfg(feature = "instagram")]
 pub(crate) fn make_instagram_router(app_state: &Arc<AppState>) -> Router<()> {
-    crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
+    instagram_router_with_state(Arc::new(botinstagram::state::ChannelState {
         get_config:
             crate::main_module::routes::channel_support::make_channel_config_reader_by_handle(
                 app_state,

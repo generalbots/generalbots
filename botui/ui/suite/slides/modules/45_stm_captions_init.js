@@ -261,7 +261,20 @@
     });
   };
 
+  function isSlidesNode(node) {
+    return !!(node && node.closest &&
+      node.closest('#slides-app, [data-gb-app="slides"]'));
+  }
+
+  function slidesMounted() {
+    return isSlidesNode(document.getElementById("slides-app"));
+  }
+
+  // #2947 — the body-level htmx:afterSwap listener outlives the Slides
+  // window. Never issue GET /api/slides/media/list unless the Slides app
+  // is actually mounted, so other apps do not log a 404 on open.
   function refreshAll() {
+    if (!slidesMounted()) return;
     STM.tableElements().forEach(function (table) { STM.restoreTable(table); });
     STM.loadSlideMedia().then(function () { STM.renderMediaOverlay(); });
   }
@@ -272,9 +285,18 @@
       event.preventDefault();
       STM.openHub();
     });
-    document.body.addEventListener("htmx:afterSwap", function () {
-      window.setTimeout(refreshAll, 0);
-    });
+    // #2947 — also gate on the swapped element: a lingering Slides window
+    // must not fetch media for swaps that belong to another app, and the
+    // global body listener must be installed only once across reopens.
+    if (!STM.captionsSwapBound) {
+      STM.captionsSwapBound = true;
+      document.body.addEventListener("htmx:afterSwap", function (event) {
+        var target = (event && event.detail && event.detail.target) ||
+          (event && event.target);
+        if (!isSlidesNode(target)) return;
+        window.setTimeout(refreshAll, 0);
+      });
+    }
     refreshAll();
   }
 

@@ -259,38 +259,85 @@ pub async fn mark_comments_read(
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
+/// Optional query for the unread badge (#2946). Unlike `CommentQuery` — used
+/// by the list/read handlers, where a resource is mandatory — the shell polls
+/// this endpoint on every app open, before any app establishes a collab scope.
+/// Missing or blank resource parts are therefore not a client error here.
+#[derive(Debug, Deserialize)]
+pub struct UnreadQuery {
+    resource_type: Option<String>,
+    resource_id: Option<String>,
+    #[serde(default)]
+    include_children: bool,
+}
+
+/// Pure validation of the optional unread query: only a named resource of a
+/// known shape counts as a collab scope. `None`/blank (the shell's scope-less
+/// poll) and malformed values are treated as "no scope" instead of a 400
+/// (#2946).
+pub(crate) fn unread_params_valid(resource_type: Option<&str>, resource_id: Option<&str>) -> bool {
+    sanitize_resource(resource_type.unwrap_or(""), resource_id.unwrap_or(""))
+}
+
+/// Pure decision for the badge: run the scoped count only when the query names
+/// a valid resource *and* the caller has access to it. A foreign-tenant
+/// resource is answered with a zero count, so no cross-tenant count leaks and
+/// no error is raised in the console (#2946).
+pub(crate) fn unread_should_count(
+    resource_type: Option<&str>,
+    resource_id: Option<&str>,
+    has_access: bool,
+) -> bool {
+    has_access && unread_params_valid(resource_type, resource_id)
+}
+
 /// `GET /api/collab/comments/unread?resource_type=&resource_id=&include_children=`
 /// — count of non-deleted comments (excluding the reader's own) created since
-/// the reader last marked the resource read.
+/// the reader last marked the resource read. A session with no collab scope
+/// gets a valid zero payload (200) rather than a 400 (#2946).
 pub async fn unread_count(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
-    Query(params): Query<CommentQuery>,
+    Query(params): Query<UnreadQuery>,
     request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
-    if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            locale,
-            StatusCode::BAD_REQUEST,
-            "error-collab-invalid-resource",
-        ));
+    let ty = params.resource_type.as_deref();
+    let id = params.resource_id.as_deref();
+    // #2946 — the shell preloads this poll for apps that never use comments.
+    // Return before touching the pool: no scope means no unread comments.
+    if !unread_params_valid(ty, id) {
+        return Ok(Json(serde_json::json!({ "count": 0 })));
     }
-    let uid = collab_user_id(&user);
-    let ty_prefix = if params.include_children {
-        format!("{}:%", params.resource_type)
-    } else {
-        String::new()
-    };
-    let id_prefix = if params.include_children {
-        format!("{}:%", params.resource_id)
-    } else {
-        String::new()
+    let (ty, id) = match (ty, id) {
+        (Some(ty), Some(id)) => (ty, id),
+        _ => return Ok(Json(serde_json::json!({ "count": 0 }))),
     };
     let mut conn = state
         .conn
         .get()
         .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // Keep the same verified-claims tenant gate as list_comments/create_comment
+    // (#2768): a foreign resource yields a zero count, never a leaked count.
+    if !unread_should_count(
+        Some(ty),
+        Some(id),
+        has_collab_access(&mut conn, &user, ty, id),
+    ) {
+        return Ok(Json(serde_json::json!({ "count": 0 })));
+    }
+
+    let uid = collab_user_id(&user);
+    let ty_prefix = if params.include_children {
+        format!("{ty}:%")
+    } else {
+        String::new()
+    };
+    let id_prefix = if params.include_children {
+        format!("{id}:%")
+    } else {
+        String::new()
+    };
 
     #[derive(QueryableByName)]
     struct CountRow {
@@ -308,8 +355,8 @@ pub async fn unread_count(
                   WHERE resource_type = $1 AND resource_id = $2 AND user_id = $5), \
                  TIMESTAMPTZ 'epoch')",
     )
-    .bind::<Text, _>(&params.resource_type)
-    .bind::<Text, _>(&params.resource_id)
+    .bind::<Text, _>(ty)
+    .bind::<Text, _>(id)
     .bind::<Text, _>(&ty_prefix)
     .bind::<Text, _>(&id_prefix)
     .bind::<Text, _>(&uid)
@@ -317,4 +364,48 @@ pub async fn unread_count(
     .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(serde_json::json!({ "count": row.count })))
+}
+
+#[cfg(test)]
+mod unread_tests {
+    use super::{unread_params_valid, unread_should_count};
+
+    #[test]
+    fn missing_or_blank_scope_is_not_a_collab_scope() {
+        assert!(!unread_params_valid(None, None));
+        assert!(!unread_params_valid(Some(""), Some("")));
+        assert!(!unread_params_valid(Some("docs"), None));
+        assert!(!unread_params_valid(None, Some("doc-1")));
+        assert!(!unread_params_valid(Some("  "), Some("doc-1")));
+        assert!(!unread_should_count(None, None, true));
+    }
+
+    #[test]
+    fn valid_scope_is_counted_when_access_is_granted() {
+        assert!(unread_params_valid(Some("docs"), Some("doc-1")));
+        assert!(unread_params_valid(Some("sheet:cell"), Some("cell-1")));
+        assert!(unread_should_count(Some("docs"), Some("doc-1"), true));
+        assert!(unread_should_count(
+            Some("sheet:cell"),
+            Some("cell-1"),
+            true
+        ));
+    }
+
+    #[test]
+    fn foreign_tenant_resource_never_produces_a_badge_count() {
+        assert!(!unread_should_count(
+            Some("docs"),
+            Some("foreign-doc"),
+            false
+        ));
+        assert!(!unread_should_count(Some("docs"), Some("doc-1"), false));
+    }
+
+    #[test]
+    fn malformed_resource_parameters_are_treated_as_no_scope() {
+        assert!(!unread_params_valid(Some("docs;drop"), Some("doc-1")));
+        assert!(!unread_should_count(Some("docs;drop"), Some("doc-1"), true));
+        assert!(!unread_params_valid(Some("docs"), Some(&"r".repeat(256))));
+    }
 }

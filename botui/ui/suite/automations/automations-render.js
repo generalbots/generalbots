@@ -325,15 +325,31 @@ function tickElapsedTimers() {
     });
 }
 
+// #2945 — a poller must never issue requests once its owning window is gone.
+// The window manager removes the app root and emits `gb-window-close`;
+// GBAppLifecycle clears every timer registered under this id, and this extra
+// guard covers the small window between the two.
+function autoAppActive() {
+    const root = document.getElementById("automations-app");
+    return !!(root && root.isConnected && !document.hidden);
+}
+
 function startPolling() {
     stopPolling();
-    AutoState.pollTimer = setInterval(loadSchedulesAndRender, 15000);
-    setInterval(tickElapsedTimers, 1000);
+    const poll = function () { if (autoAppActive()) loadSchedulesAndRender(); };
+    if (window.GBAppLifecycle) {
+        AutoState.pollTimer = window.GBAppLifecycle.interval("automations", poll, 15000);
+        window.GBAppLifecycle.interval("automations", tickElapsedTimers, 1000);
+    } else {
+        AutoState.pollTimer = setInterval(poll, 15000);
+        setInterval(tickElapsedTimers, 1000);
+    }
     const dot = document.getElementById("auto-poll-dot");
     if (dot) dot.classList.remove("paused");
 }
 
 function stopPolling() {
+    if (window.GBAppLifecycle) window.GBAppLifecycle.end("automations");
     if (AutoState.pollTimer) clearInterval(AutoState.pollTimer);
     AutoState.pollTimer = null;
 }
@@ -355,6 +371,9 @@ document.addEventListener("click", function (event) {
 (function initAutomationsApp() {
     const root = document.getElementById("automations-app");
     if (!root) return;
+    // #2945 — own the timers so closing this window tears them down instead
+    // of letting them poll /api/automations/* from inside every other app.
+    if (window.GBAppLifecycle) window.GBAppLifecycle.begin("automations");
     document.getElementById("auto-new").addEventListener("click", function () { openScheduleModal(null); });
     document.getElementById("auto-refresh").addEventListener("click", loadSchedulesAndRender);
     document.getElementById("auto-form").addEventListener("submit", saveSchedule);

@@ -404,13 +404,15 @@
     </div>
 </dialog>
 
-<link rel="stylesheet" href="/suite/mail/mail.css" />
 <link rel="stylesheet" href="/suite/css/gb-panes.css?v=1" />
 <script src="/suite/js/panes/01_contract.js?v=1"></script>
 <div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
 <div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/gb-modal.js?v=1"></script>
 <script src="/suite/js/gb-toasts.js?v=3"></script>
+<!-- #2953: local sanitizers must be present before any HTML is inserted. -->
+<script src="/suite/chat/chat-sanitize.js?v=2"></script>
+<script src="/suite/mail/modules/00_mail_sanitize.js?v=1"></script>
 <script src="/suite/mail/mail-templates.js?v=1"></script>
 <script src="/suite/mail/modules/01_compose.js?v=2"></script>
 <script src="/suite/mail/modules/02_panels_compose.js?v=2"></script>

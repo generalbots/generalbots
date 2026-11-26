@@ -22,6 +22,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// Canonical path the Campaigns suite app calls. Shared by the router and the
+/// route/caller parity guard so a rename cannot silently reintroduce #2949.
+pub const INSTAGRAM_CAMPAIGNS_PATH: &'static str = "/api/instagram/campaigns";
+
 /// Upper bound on the images one campaign request may produce: the endpoint
 /// fans out to an image backend, so an unbounded `num_images` would turn a
 /// single HTTP call into an unbounded generation bill.
@@ -237,7 +241,7 @@ pub fn configure_campaign_routes() -> axum::Router<Arc<ChannelState>> {
  use axum::routing::{get, post};
 
  axum::Router::new()
- .route("/api/instagram/campaigns", get(list_campaigns))
+ .route(INSTAGRAM_CAMPAIGNS_PATH, get(list_campaigns))
  .route("/api/instagram/campaigns/create", post(create_campaign))
  .route("/api/instagram/campaigns/:campaign_id/images/:image_id", get(get_campaign_media))
  .route("/api/instagram/campaigns/:campaign_id/publish", post(publish_campaign))

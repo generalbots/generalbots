@@ -109,8 +109,18 @@
       .then(function (res) {
         if (res && Array.isArray(res.suggestions) && res.suggestions.length) {
           var chips = res.suggestions.map(function (s) {
+            // #2953: model-produced text is untrusted; escape it before it
+            // becomes markup, otherwise an <img> tracking pixel can load.
+            var safeJs = window.GBMailSanitize
+              ? window.GBMailSanitize.escapeJsAttr(s)
+              : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "\\'");
+            var safeHtml = window.GBMailSanitize
+              ? window.GBMailSanitize.escapeText(s)
+              : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
             return '<button class="smart-reply-chip" onclick="useSmartReply(\'' +
-              s.replace(/'/g, "\\'") + '\')">' + s + '</button>';
+              safeJs + '\')">' + safeHtml + '</button>';
           }).join("");
           container.innerHTML =
             '<div class="smart-reply-label">Smart replies</div>' + chips;
@@ -150,8 +160,22 @@
           var mine = res.nudges.filter(function (n) { return n.email_id === emailId; });
           if (mine.length) {
             banner.innerHTML = mine.map(function (n) {
-              return '<div class="nudge-item">No reply sent for ' + n.days_ago +
-                ' day(s) — <button onclick="dismissNudge(\'' + n.email_id + '\')">Dismiss</button></div>';
+              // #2953: never interpolate raw API values into an HTML string.
+              var escape = window.GBMailSanitize
+                ? window.GBMailSanitize.escapeText
+                : function (v) {
+                  return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+                };
+              var escapeAttr = window.GBMailSanitize
+                ? window.GBMailSanitize.escapeJsAttr
+                : function (v) {
+                  return escape(v).replace(/&#39;/g, "'")
+                    .replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+                };
+              return '<div class="nudge-item">No reply sent for ' + escape(n.days_ago) +
+                ' day(s) — <button onclick="dismissNudge(\'' + escapeAttr(n.email_id) +
+                '\')">Dismiss</button></div>';
             }).join("");
           }
         }

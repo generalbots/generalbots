@@ -42,13 +42,27 @@ struct Caller {
     branch_id: Option<Uuid>,
 }
 
+/// Maps a verified `sub` to the owner id used by memory rows. Cloud-login
+/// JWTs carry either a UUID or a Zitadel user id; the latter is mapped to the
+/// same UUIDv5 the auth provider uses (`Uuid::new_v5(NAMESPACE_DNS,
+/// "zitadel:{sub}")`), so an admin with a Zitadel subject sees their own rows
+/// instead of a 401. This never invents a tenant scope: `org_id`/`branch_id`
+/// still come only from the verified claims.
+fn stable_user_uuid(sub: &str) -> Uuid {
+    let trimmed = sub.trim();
+    match Uuid::parse_str(trimmed) {
+        Ok(id) => id,
+        Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{trimmed}").as_bytes()),
+    }
+}
+
 /// Resolves the caller from the `Authorization: Bearer` header, or `None`.
 ///
 /// Fails closed: an unverifiable token (wrong key, `alg: none`, expired,
 /// missing `exp`, malformed) yields `None`, never the unverified payload.
 fn caller_from_headers(headers: &HeaderMap) -> Option<Caller> {
     let verified = verify_saas_jwt(bearer_token(headers)?).ok()?;
-    let user_id = Uuid::parse_str(verified.sub.trim()).ok()?;
+    let user_id = stable_user_uuid(&verified.sub);
     Some(Caller {
         user_id,
         org_id: verified.org_id,

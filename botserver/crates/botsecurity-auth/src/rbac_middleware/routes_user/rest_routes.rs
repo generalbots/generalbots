@@ -197,6 +197,18 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/user/**", "GET", ""),
         RoutePermission::new("/api/user/**", "PUT", ""),
 
+        // Personal memory (#2952). The botmemory router scopes every row to the
+        // verified JWT `sub` and only widens a listing to branch-shared rows
+        // when the verified `branch_id` claim matches; writes derive org/branch
+        // from that same verified token. No bot/session context is required, so
+        // any authenticated caller (admin or regular user) may reach the
+        // handler, which fails closed on foreign tenants. Without these rows
+        // the default-deny RBAC gate answered 403 before the handler ran.
+        RoutePermission::new("/api/memory/**", "GET", ""),
+        RoutePermission::new("/api/memory/**", "POST", ""),
+        RoutePermission::new("/api/memory/**", "PUT", ""),
+        RoutePermission::new("/api/memory/**", "DELETE", ""),
+
         // Agent VM (per-user VM, #1580)
         RoutePermission::new("/api/agent/**", "GET", ""),
         RoutePermission::new("/api/agent/**", "POST", ""),
@@ -204,4 +216,83 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/agent/**", "DELETE", ""),
 
     ]
+}
+
+#[cfg(test)]
+mod memory_routes_tests {
+    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
+    use crate::{AuthenticatedUser, Role};
+    use uuid::Uuid;
+
+    /// Pure catalogue check: every verb mounted by `botmemory::api` must be
+    /// present, authenticated-only and free of extra role/permission gates —
+    /// the handler owns owner/tenant scoping, not the route table.
+    #[test]
+    fn memory_prefix_is_registered_for_every_mounted_verb() {
+        let routes = super::routes();
+        for method in ["GET", "POST", "PUT", "DELETE"] {
+            let route = routes
+                .iter()
+                .find(|r| r.path_pattern == "/api/memory/**" && r.method == method);
+            assert!(
+                route.is_some(),
+                "/api/memory/** {method} must be in the authenticated catalogue"
+            );
+            let route = route.expect("memory route");
+            assert!(route.required_permission.is_empty(), "{method} permission gate");
+            assert!(route.required_roles.is_empty(), "{method} role gate");
+            assert!(!route.allow_anonymous, "{method} must require a session");
+        }
+    }
+
+    #[test]
+    fn the_memory_route_matches_only_its_own_prefix() {
+        let route = super::routes()
+            .into_iter()
+            .find(|r| r.path_pattern == "/api/memory/**" && r.method == "GET")
+            .expect("memory GET route");
+        assert!(route.matches_path("/api/memory/items"));
+        assert!(route.matches_path("/api/memory/items/42"));
+        assert!(route.matches_path("/api/memory/export"));
+        assert!(!route.matches_path("/api/memoryx/items"));
+        assert!(!route.matches_path("/api/memorying/items"));
+    }
+
+    #[tokio::test]
+    async fn memory_routes_admit_authenticated_users_and_admins_but_not_anonymous() {
+        let manager = RbacManager::with_defaults();
+        manager
+            .register_routes(build_default_route_permissions())
+            .await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "member@example.com".to_string())
+            .with_role(Role::User);
+        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+            .with_role(Role::Admin);
+
+        for (method, path) in [
+            ("GET", "/api/memory/items"),
+            ("GET", "/api/memory/export"),
+            ("POST", "/api/memory/items"),
+            ("PUT", "/api/memory/items/00000000-0000-0000-0000-000000000001"),
+            ("DELETE", "/api/memory/items/00000000-0000-0000-0000-000000000001"),
+            ("POST", "/api/memory/import"),
+        ] {
+            for principal in [&user, &admin] {
+                let decision = manager.check_route_access(path, method, principal).await;
+                assert!(
+                    decision.is_allowed(),
+                    "{method} {path} must be allowed for {} : {}",
+                    principal.username,
+                    decision.reason
+                );
+            }
+            let denied = manager
+                .check_route_access(path, method, &AuthenticatedUser::anonymous())
+                .await;
+            assert!(
+                !denied.is_allowed(),
+                "{method} {path} must stay closed to anonymous callers"
+            );
+        }
+    }
 }

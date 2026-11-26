@@ -404,10 +404,26 @@
     </div>
 </div>
 
-<!-- Shared modal + campaign form template, split into an HTMX fragment to keep
-     this file under the 450-line limit (both nodes are read from event
-     handlers only, so loading them with the app is safe). -->
-<div hx-get="/suite/crm/partials/overlays.html?v=1" hx-trigger="load" hx-swap="innerHTML"></div>
+<!-- Shared modal + campaign create form. Inlined instead of fetched through
+     HTMX: the extra /suite/crm/partials/* GET 404s on hosts whose suite tree is
+     stale, and leaves the modal missing until the fragment settles (#2950). -->
+<div id="crm-modal" class="crm-modal">
+    <div class="crm-modal-backdrop" onclick="closeCrmModal()"></div>
+    <div class="crm-modal-content" id="crm-modal-content"></div>
+</div>
+<!-- #1453 — campaign create form, cloned into the shared modal on demand -->
+<template id="campaign-form-template">
+    <form id="campaignForm" class="crm-form">
+        <div class="crm-form-group"><label class="crm-form-label" data-i18n="label-name">Name</label><input type="text" name="name" class="crm-form-input" required></div>
+        <div class="crm-form-group"><label class="crm-form-label" data-i18n="crm-field-channel">Channel</label><select name="channel" class="crm-form-select"><option value="email" data-i18n="attendant-channel-email">Email</option><option value="whatsapp">WhatsApp</option></select></div>
+        <div class="crm-form-group"><label class="crm-form-label" data-i18n="crm-field-budget">Budget</label><input type="number" name="budget" class="crm-form-input" min="0" step="0.01"></div>
+        <div class="crm-form-group"><label class="crm-form-label" data-i18n="crm-field-scheduled-at">Scheduled at</label><input type="datetime-local" name="scheduled_at" class="crm-form-input"></div>
+        <div class="crm-form-actions">
+            <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()" data-i18n="action-cancel">Cancel</button>
+            <button type="submit" class="crm-form-btn primary" data-i18n="action-create">Create</button>
+        </div>
+    </form>
+</template>
 
 <!-- Record detail drawer (#1441 C1) — the fragment is loaded per record type -->
 <div id="record-detail-panel" class="crm-detail-panel gb-pane gb-pane-detail" role="region" aria-live="polite" aria-label="Record details"></div>

@@ -221,9 +221,11 @@
     if (!pc || pc.agent_backend_unavailable) return;
     var sid = window.ChatState && ChatState.currentSessionId;
     if (!sid) return;
-    var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
-      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
-      sessionStorage.getItem("gb-access-token") || "";
+    // #2945 — use the canonical admin accessor (SSO/localStorage token), not
+    // the chat-only one. The central fetch interceptor will not overwrite an
+    // Authorization header pre-set with a stale chat token, which 401s on the
+    // desktop shell even though the session gate passed.
+    var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
     polling = true;
     fetch("/api/computer/actions/pending?kind=terminal&session_id=" + encodeURIComponent(sid), {
       headers: token ? { Authorization: "Bearer " + token } : {},

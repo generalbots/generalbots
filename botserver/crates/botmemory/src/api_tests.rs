@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use botsecurity_core::verified_jwt::resolve_saas_jwt_secret;
 
-use super::{bad_request, caller_from_headers, labeled_memory, require_caller};
+use super::{bad_request, caller_from_headers, labeled_memory, require_caller, stable_user_uuid};
 
 const USER: Uuid = Uuid::from_u128(0xaa);
 const BRANCH: Uuid = Uuid::from_u128(0xbb);
@@ -124,12 +124,35 @@ fn a_token_signed_with_another_key_is_refused() {
 }
 
 #[test]
-fn a_verified_token_whose_subject_is_not_a_uuid_is_refused() {
+fn a_verified_zitadel_subject_maps_to_the_platform_stable_owner_id() {
+    // Cloud-login JWTs carry Zitadel ids, not UUIDs. The auth provider maps
+    // them with UUIDv5(NAMESPACE_DNS, "zitadel:{sub}"); #2952 pins that the
+    // memory API uses the very same owner id, otherwise the signed-in admin
+    // gets a 401 even after the RBAC route is admitted.
     let claims = serde_json::json!({
         "sub": "zitadel-user-42",
         "exp": chrono::Utc::now().timestamp() + 3600,
     });
-    assert_eq!(caller_from_headers(&headers_with(&token(claims))), None);
+    let caller = caller_from_headers(&headers_with(&token(claims))).expect("caller");
+    assert_eq!(
+        caller.user_id,
+        Uuid::new_v5(&Uuid::NAMESPACE_DNS, b"zitadel:zitadel-user-42")
+    );
+    assert_eq!(caller.org_id, None);
+    assert_eq!(caller.branch_id, None);
+}
+
+#[test]
+fn the_owner_id_predicate_keeps_uuid_subjects_and_is_stable_and_distinct() {
+    // A UUID subject passes through unchanged; a non-UUID subject resolves to a
+    // deterministic, identity-specific id (no tenant claim is synthesized).
+    assert_eq!(stable_user_uuid(&USER.to_string()), USER);
+    assert_eq!(stable_user_uuid(&format!("  {}  ", USER)), USER);
+
+    let first = Uuid::new_v5(&Uuid::NAMESPACE_DNS, b"zitadel:380726576955786242");
+    assert_eq!(stable_user_uuid("380726576955786242"), first);
+    assert_eq!(stable_user_uuid("380726576955786242"), first);
+    assert_ne!(stable_user_uuid("380726576955786243"), first);
 }
 
 #[test]

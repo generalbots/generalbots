@@ -51,6 +51,15 @@ fn client() -> Result<reqwest::Client, String> {
         .map_err(|error| format!("Could not create BotModels client: {error}"))
 }
 
+// The health probe must not hold the app open for the full 35s generation
+// timeout when the optional ACE-Step backend is not running (#2951).
+fn health_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))
+        .build()
+        .map_err(|error| format!("Could not create Jukebox health client: {error}"))
+}
+
 fn status_from_upstream(status: reqwest::StatusCode) -> StatusCode {
     StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::BAD_GATEWAY)
 }
@@ -162,8 +171,59 @@ async fn models() -> axum::response::Response {
     proxy_get("/api/music/models").await
 }
 
+/// Pure health decision for the Jukebox probe (#2951).
+///
+/// This endpoint is a liveness probe used by the Suite app poller, not a
+/// reverse proxy for the optional ACE-Step engine. An absent or unhealthy
+/// backend is a *degraded* state reported with HTTP 200 and `healthy: false`,
+/// never a 502 that surfaces as a console error when the app opens. The
+/// `healthy` field is kept for the existing frontend (`checkEngine()`).
+fn health_decision(upstream: Option<&Value>) -> (StatusCode, Value) {
+    let healthy = upstream
+        .and_then(|body| body.get("healthy"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if healthy {
+        (StatusCode::OK, json!({ "status": "ok", "healthy": true }))
+    } else {
+        (
+            StatusCode::OK,
+            json!({
+                "status": "degraded",
+                "healthy": false,
+                "reason": "backend unavailable",
+            }),
+        )
+    }
+}
+
 async fn health() -> axum::response::Response {
-    proxy_get("/api/music/health").await
+    let client = match health_client() {
+        Ok(client) => client,
+        Err(error) => {
+            tracing::warn!(%error, "jukebox health probe client unavailable");
+            let (status, payload) = health_decision(None);
+            return (status, Json(payload)).into_response();
+        }
+    };
+    let upstream = match client
+        .get(format!("{}/api/music/health", botmodels_url()))
+        .header("X-API-Key", botmodels_key())
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => response.json::<Value>().await.ok(),
+        Ok(response) => {
+            tracing::warn!(status = %response.status(), "jukebox backend health check failed");
+            None
+        }
+        Err(error) => {
+            tracing::warn!(%error, "jukebox backend is unreachable");
+            None
+        }
+    };
+    let (status, payload) = health_decision(upstream.as_ref());
+    (status, Json(payload)).into_response()
 }
 
 async fn proxy_get(path: &str) -> axum::response::Response {
@@ -233,4 +293,50 @@ pub fn configure_jukebox_routes() -> Router {
         .route("/api/jukebox/models", get(models))
         .route("/api/jukebox/health", get(health))
         .route("/api/jukebox/audio", get(audio))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn absent_backend_is_degraded_without_502() {
+        let (status, payload) = health_decision(None);
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["status"], "degraded");
+        assert_eq!(payload["healthy"], false);
+        assert_eq!(payload["reason"], "backend unavailable");
+    }
+
+    #[test]
+    fn healthy_backend_reports_ok() {
+        let upstream = json!({ "healthy": true, "engine": "ace-step" });
+        let (status, payload) = health_decision(Some(&upstream));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["status"], "ok");
+        assert_eq!(payload["healthy"], true);
+    }
+
+    #[test]
+    fn unhealthy_backend_body_is_degraded() {
+        let upstream = json!({ "healthy": false, "detail": "model not loaded" });
+        let (status, payload) = health_decision(Some(&upstream));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["status"], "degraded");
+        assert_eq!(payload["healthy"], false);
+    }
+
+    #[test]
+    fn malformed_backend_body_is_degraded() {
+        let missing_field = json!({ "engine": "ace-step" });
+        let (status, payload) = health_decision(Some(&missing_field));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["status"], "degraded");
+
+        let wrong_type = json!({ "healthy": "yes" });
+        let (status, payload) = health_decision(Some(&wrong_type));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["status"], "degraded");
+        assert_eq!(payload["healthy"], false);
+    }
 }
