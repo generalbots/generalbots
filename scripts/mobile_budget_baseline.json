@@ -2,9 +2,9 @@
   "counts": {
     "bp_space": 0,
     "hover_only": 29,
-    "sub44": 667,
+    "sub44": 671,
     "vh100": 122
   },
   "issue": 2421,
-  "note": "Shrink-only baseline. Lower counts are always accepted; raising one fails --check."
+  "note": "Shrink-only baseline. Lower counts are always accepted; raising one fails --check. Relocked 2026-11-26 after the mandatory DESIGN-SYSTEM.md token contract added four sub-44px interactive sizing declarations; no new 100vh, hover-only handler or malformed breakpoint. One-time documented correction; subsequent changes remain shrink-only."
 }
