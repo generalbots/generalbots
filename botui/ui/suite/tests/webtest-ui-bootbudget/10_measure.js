@@ -26,6 +26,10 @@
 // Re-locked 2026-11-26: merged suite commits removed one shipped HTML file and
 // added four script references; no per-entry-page baseline changed. One-time
 // observation correction; subsequent changes are reviewed in the same PR.
+// Re-locked 2026-11-26 after the gbgov edition merge: one new HTML file,
+// four new chat scripts and 35 new suite-wide scripts/stylesheets. The
+// assistant JS size split (10l) added one blocking script to assistant.html.
+// No entry-page budget threshold changed; this is observation drift only.
 
 var h = require("./00_harness");
 var test = h.test;
@@ -38,9 +42,9 @@ var DESKTOP = "desktop.html";
 var CHAT = "partials/chat.html";
 var PROJECTOR = "chat/projector.html";
 
-test("[BASELINE-OBSERVE] 214 shipped suite HTML files scanned, tests/ excluded", function () {
+test("[BASELINE-OBSERVE] 215 shipped suite HTML files scanned, tests/ excluded", function () {
   var a = all();
-  equal(a.files.length, 214, "HTML file count");
+  equal(a.files.length, 215, "HTML file count");
   assert(a.files.every(function (rel) { return rel.indexOf("tests/") !== 0 && rel.indexOf("tests/") < 0; }),
     "tests/ leaked into the scan set");
 });
@@ -58,11 +62,11 @@ test("[BASELINE-OBSERVE] desktop.html: 43 stylesheet links", function () {
   equal(measure(DESKTOP).stylesheet, 43, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] partials/chat.html: 62 script tags, 61 src, 48 blocking, 1 inline, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] partials/chat.html: 66 script tags, 65 src, 52 blocking, 1 inline, 13 defer/async", function () {
   var c = measure(CHAT);
-  equal(c.scripts, 62, "scripts");
-  equal(c.scriptSrc, 61, "scriptSrc");
-  equal(c.blockingScriptSrc, 48, "blockingScriptSrc");
+  equal(c.scripts, 66, "scripts");
+  equal(c.scriptSrc, 65, "scriptSrc");
+  equal(c.blockingScriptSrc, 52, "blockingScriptSrc");
   equal(c.inlineScript, 1, "inlineScript");
   equal(c.deferAsync, 13, "deferAsync");
 });
@@ -81,13 +85,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 3 style
   equal(p.stylesheet, 3, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1183 scripts, 1130 src, 1117 blocking, 53 inline, 513 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1218 scripts, 1165 src, 1152 blocking, 53 inline, 527 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1183, "scripts");
-  equal(t.scriptSrc, 1130, "scriptSrc");
-  equal(t.blockingScriptSrc, 1117, "blockingScriptSrc");
+  equal(t.scripts, 1218, "scripts");
+  equal(t.scriptSrc, 1165, "scriptSrc");
+  equal(t.blockingScriptSrc, 1152, "blockingScriptSrc");
   equal(t.inlineScript, 53, "inlineScript");
-  equal(t.stylesheet, 513, "stylesheet");
+  equal(t.stylesheet, 527, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
@@ -104,7 +108,7 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 103/43 and 48/24", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 103/43 and 52/24", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
@@ -112,6 +116,6 @@ test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted f
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
   assert(d.blockingScriptSrc === 103 && d.stylesheet === 43 &&
-         c.blockingScriptSrc === 48 && c.stylesheet === 24,
+         c.blockingScriptSrc === 52 && c.stylesheet === 24,
     "current measured counts changed — update this observation deliberately");
 });
