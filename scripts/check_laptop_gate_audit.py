@@ -12,9 +12,11 @@ conflate:
     [GAP] when the only trace is a comment, a SKIP reason or a data placeholder.
 
 A [GAP] never fails this audit. That is the point: exit 0 means "the guarantees
-that exist are present", NOT "laptop acceptance is satisfied". The real laptop
-UAT (booted ISO, QEMU device profile, mouse+keyboard scenarios, screenshots and
-five physical machines) is hardware-blocked and stays OPEN.
+that exist are present", NOT "laptop acceptance is satisfied". The scripted
+QEMU laptop profile and mouse+keyboard shell UAT harnesses are now hard
+guarantees (their presence and static self-checks are asserted), but they are
+only harnesses: a booted ISO/VM run, screenshots on closure, and five physical
+machines are still hardware-blocked and stay OPEN.
 
 Pure stdlib, read-only, no network, no cargo, no browser, no commits.
 Usage: python3 scripts/check_laptop_gate_audit.py [--root DIR]
@@ -39,6 +41,8 @@ P = {
     "build_image": "desktop/os/build-image.sh",
     "acceptance": "desktop/os/tests/laptop-acceptance.sh",
     "matrix": "desktop/os/tests/hardware-matrix.psv",
+    "qemu_profile": "desktop/os/tests/qemu-laptop-profile.sh",
+    "shell_uat": "desktop/os/tests/shell-uat.sh",
 }
 
 SCREENSHOT_RX = r"screenshot|scrot|xwd|grim|screencopy|import\s+-window"
@@ -94,7 +98,8 @@ def find_any(root: Path, paths: list[str], pattern: str):
 
 def source_paths(root: Path) -> list[str]:
     """Executable-looking sources where a scripted laptop check could live."""
-    paths = [P[key] for key in ("workflow", "build_image", "build_iso", "acceptance")]
+    paths = [P[key] for key in ("workflow", "build_image", "build_iso",
+                                "qemu_profile", "shell_uat", "acceptance")]
     for pattern in ("desktop/os/**/*.sh", "desktop/os/**/*.conf"):
         paths.extend(str(p.relative_to(root)) for p in sorted(root.glob(pattern)))
     return list(dict.fromkeys(paths))
@@ -200,6 +205,55 @@ def g_gate_wiring(root: Path):
     return True, f"{P['workflow']}:{find(workflow, parts[3])[0]} gates the image job on the offline harness"
 
 
+# Hard guarantees for the scripted harnesses added in #2471. These assert that
+# the harness EXISTS and is statically sound, never that it ran on hardware.
+QEMU_PROFILE_TOKENS = (
+    "-acpitable file=", "acpi-battery", "mac80211_hwsim",
+    "-device virtio-net-pci", "-device intel-hda", "-device hda-duplex",
+    "-device virtio-gpu-pci,max_outputs=2", "second head", "-net none",
+    "if=pflash", "OVMF_VARS", '-serial "file:', "SCREENSHOT=", "--check",
+)
+
+SHELL_UAT_TOKENS = (
+    "DISPLAY", "command -v xdotool", "scenario_shell_visible()",
+    "scenario_chat_roundtrip()", "scenario_tray_indicators_present()",
+    "scenario_power_menu_opens()", "scenario_lock_requires_credential_test()",
+    "scenario_app_launch()", "assert_app_launch()", "xdotool mousemove",
+    "xdotool click", "xdotool type", "xdotool key", "import -window root",
+    "scrot", "--check",
+)
+
+
+def token_guarantee(root: Path, key: str, tokens: tuple[str, ...], label: str):
+    text = read(root, key)
+    if not text:
+        return False, f"{P[key]} missing or unreadable"
+    code = code_text(text)
+    missing = [tok for tok in tokens if not find(code, re.escape(tok))]
+    if missing:
+        return False, "missing " + label + " tokens: " + ", ".join(missing)
+    return True, f"{P[key]}: {label} present ({len(tokens)} tokens; static only, no VM run)"
+
+
+def g_qemu_laptop_profile(root: Path):
+    return token_guarantee(root, "qemu_profile", QEMU_PROFILE_TOKENS, "laptop QEMU profile")
+
+
+def g_scripted_shell_uat(root: Path):
+    return token_guarantee(root, "shell_uat", SHELL_UAT_TOKENS, "scripted shell UAT")
+
+
+def g_app_launch_assertion(root: Path):
+    code = code_text(read(root, "shell_uat"))
+    launcher = find(code, r"assert_app_launch\(\)\s*\{")
+    assertion = find(code, r"\[\s*\"\$after\"\s*-gt\s*\"\$before\"\s*\]")
+    input_hit = find(code, r"xdotool\s+mousemove")
+    if not launcher or not assertion or not input_hit:
+        return False, "app-launch function, window-count assertion or mouse input missing in the scripted shell UAT"
+    return True, (f"{P['shell_uat']}:{launcher[0]} asserts an app window after scripted input "
+                  f"(assertion at :{assertion[0]}, input at :{input_hit[0]}; runtime still unverified)")
+
+
 GUARANTEES = (
     ("QEMU_SMOKE_GATE", g_smoke),
     ("SMOKE_BOOT_TO_SHELL_MARKER", g_boot_marker),
@@ -208,6 +262,9 @@ GUARANTEES = (
     ("VERIFIER_MIN_MARKER_ROWS", g_min_markers),
     ("VERIFIER_ROOT_MOUNT_FAIL_CLOSED", g_root_mount_fail),
     ("PR_AND_RELEASE_GATE_WIRING", g_gate_wiring),
+    ("QEMU_LAPTOP_PROFILE", g_qemu_laptop_profile),
+    ("SCRIPTED_SHELL_UAT", g_scripted_shell_uat),
+    ("APP_LAUNCH_ASSERTION", g_app_launch_assertion),
 )
 
 
@@ -219,6 +276,15 @@ def criterion(root: Path, sources: list[str], rx: str, gap_detail: str,
     if hit:
         return "AUTOMATED", evidence(hit) + " — " + auto_detail
     return "GAP", "no script/test found — " + gap_detail
+
+
+def harness_gap(root: Path, paths: list[str], rx: str):
+    """A scripted harness is not runtime evidence: report GAP either way."""
+    hit = find_any(root, paths, rx)
+    if hit:
+        return "GAP", (f"scripted harness PRESENT at {evidence(hit)}; runtime-unverified "
+                       "(no booted VM/shell evidence or attached artifacts)")
+    return "GAP", "no scripted harness found and no runtime evidence"
 
 
 def matrix_rows(root: Path):
@@ -241,11 +307,9 @@ def criteria(root: Path):
                  "AUTOMATED" if hit else "GAP",
                  evidence(hit) + " — text marker only; no visual desktop proof"))
 
-    status, detail = criterion(
+    status, detail = harness_gap(
         root, sources,
-        r"(?:launch|open)\s+(?:an?\s+)?(?:app|chat|shell)|app.{0,20}launch|TOOL_EXEC",
-        "no smoke/test launches an app and asserts it opened",
-        "app launch assertion found in code")
+        r"(?:launch|open)\s+(?:an?\s+)?(?:app|chat|shell)|app.{0,20}launch|TOOL_EXEC")
     rows.append(("SMOKE-APP", "at least one app launch assertion in the smoke", status, detail))
 
     status = "GAP"
@@ -262,9 +326,7 @@ def criteria(root: Path):
         ("C1.4", "QEMU profile: second head", r"second head|two heads|dual.?head"),
     )
     for cid, title, rx in device_checks:
-        status, detail = criterion(root, sources, rx,
-                                   "mentioned only in a SKIP reason/comment, if at all",
-                                   "QEMU device argument found in executable code")
+        status, detail = harness_gap(root, sources, rx)
         rows.append((cid, title, status, detail))
 
     scripted = (
@@ -277,16 +339,14 @@ def criteria(root: Path):
          r"lock.{0,40}(?:credential|password).{0,40}(?:assert|expect|test)"),
     )
     for cid, title, rx in scripted:
-        status, detail = criterion(root, sources, rx,
-                                   "static markers/SKIP rows exist; no booted-shell assertion",
-                                   "assertion found in code (inspect whether it is booted-shell evidence)")
+        status, detail = harness_gap(root, sources, rx)
         rows.append((cid, title, status, detail))
 
     serial = find_any(root, workflow, r"vm-smoke\.log")
     screenshot = find_any(root, sources, SCREENSHOT_RX)
     rows.append(("C2", "screenshots + serial log on every OS-shell closure", "GAP",
                  f"serial log artifact {evidence(serial)}; screenshots {evidence(screenshot)}; "
-                 "no issue-closure attachment automation"))
+                 "capture is scripted but runtime-unverified; no issue-closure attachment automation"))
 
     matrix = matrix_rows(root)
     required_classes = ("intel laptop", "amd laptop", "wi-fi-only", "external-display")
@@ -322,9 +382,7 @@ def criteria(root: Path):
                                "image job depends on the offline gate")
     rows.append(("C4b", "gate blocks publishing a release ISO on failure", status, detail))
 
-    status, detail = criterion(root, sources, INPUT_RX,
-                               "only static no-getty/no-rescue markers; no input injection",
-                               "input injection script found")
+    status, detail = harness_gap(root, sources, INPUT_RX)
     rows.append(("C5", "no terminal: every scenario uses mouse+keyboard", status, detail))
 
     return rows

@@ -31,6 +31,8 @@ lock_unit="$repo_root/desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-
 tray_js="$repo_root/botui/ui/suite/desktop-inline/08_os_tray.js"
 power_js="$repo_root/botui/ui/suite/js/power-menu.js"
 lock_js="$repo_root/botui/ui/suite/js/lock-screen.js"
+qemu_profile="$here/qemu-laptop-profile.sh"
+shell_uat="$here/shell-uat.sh"
 
 results_dir="${UAT_RESULTS_DIR:-/tmp/opencode/uat-laptop}"
 results="$results_dir/results.tsv"
@@ -68,6 +70,37 @@ require_token() {
         missing="$missing [$label:missing-token]"
     fi
 }
+
+qemu_tokens=(
+    '-acpitable file='
+    'acpi-battery'
+    'mac80211_hwsim'
+    '-device virtio-net-pci'
+    '-device intel-hda'
+    '-device hda-duplex'
+    '-device virtio-gpu-pci,max_outputs=2'
+    'second head'
+    '-net none'
+    'if=pflash'
+    'OVMF_VARS'
+    '-serial "file:'
+)
+
+shell_uat_tokens=(
+    'scenario_shell_visible()'
+    'scenario_chat_roundtrip()'
+    'scenario_tray_indicators_present()'
+    'scenario_power_menu_opens()'
+    'scenario_lock_requires_credential_test()'
+    'scenario_app_launch()'
+    'assert_app_launch()'
+    'xdotool mousemove'
+    'xdotool click'
+    'xdotool type'
+    'xdotool key'
+    'import -window root'
+    'scrot'
+)
 
 # --- Static check 1: QEMU smoke invocation shape -----------------------------
 check_smoke_shape() {
@@ -154,6 +187,62 @@ check_gate_wiring() {
     printf 'gate runs on PRs touching OS/shell/botsettings and blocks the release image job'
 }
 
+# --- Static check 5: scripted laptop QEMU profile ----------------------------
+check_qemu_profile() {
+    local out rc tok
+    if [ ! -f "$qemu_profile" ]; then
+        printf 'laptop QEMU profile script missing: %s' "$qemu_profile"
+        return 1
+    fi
+    if ! bash -n "$qemu_profile" >/dev/null 2>&1; then
+        printf 'laptop QEMU profile script is not bash -n clean'
+        return 1
+    fi
+    out="$(bash "$qemu_profile" --check 2>&1)"
+    rc=$?
+    if [ "$rc" -ne 0 ] || ! grep -Fq -- 'qemu-laptop-profile --check: PASS' <<< "$out"; then
+        printf 'laptop QEMU profile --check did not report PASS: %s' "$(printf '%s' "$out" | tail -n 2)"
+        return 1
+    fi
+    missing=""
+    for tok in "${qemu_tokens[@]}"; do
+        if ! grep -Fq -- "$tok" "$qemu_profile"; then missing="$missing [$tok]"; fi
+    done
+    if [ -n "$missing" ]; then
+        printf 'laptop QEMU profile device/option tokens absent:%s' "$missing"
+        return 1
+    fi
+    printf 'laptop QEMU profile present, bash -n clean, --check PASS; %d device/option tokens verified' "${#qemu_tokens[@]}"
+}
+
+# --- Static check 6: scripted shell UAT (mouse+keyboard only) ----------------
+check_shell_uat() {
+    local out rc tok
+    if [ ! -f "$shell_uat" ]; then
+        printf 'scripted shell UAT script missing: %s' "$shell_uat"
+        return 1
+    fi
+    if ! bash -n "$shell_uat" >/dev/null 2>&1; then
+        printf 'scripted shell UAT script is not bash -n clean'
+        return 1
+    fi
+    out="$(bash "$shell_uat" --check 2>&1)"
+    rc=$?
+    if [ "$rc" -ne 0 ] || ! grep -Fq -- 'shell-uat --check: PASS' <<< "$out"; then
+        printf 'scripted shell UAT --check did not report PASS: %s' "$(printf '%s' "$out" | tail -n 2)"
+        return 1
+    fi
+    missing=""
+    for tok in "${shell_uat_tokens[@]}"; do
+        if ! grep -Fq -- "$tok" "$shell_uat"; then missing="$missing [$tok]"; fi
+    done
+    if [ -n "$missing" ]; then
+        printf 'scripted shell UAT scenario/input tokens absent:%s' "$missing"
+        return 1
+    fi
+    printf 'scripted shell UAT present, bash -n clean, --check PASS; %d scenario/input tokens verified' "${#shell_uat_tokens[@]}"
+}
+
 run_static() {
     local id="$1" title="$2" fn="$3" reason rc
     reason="$("$fn")"
@@ -173,20 +262,23 @@ run_static GATE_SMOKE_SHAPE 'QEMU smoke invocation shape' check_smoke_shape
 run_static GATE_SHELL_MARKERS 'Shell/kiosk marker presence' check_shell_markers
 run_static GATE_BUDGETS 'Disk/RAM budget assertions' check_budgets
 run_static GATE_WIRING 'CI gate wiring' check_gate_wiring
+run_static GATE_QEMU_PROFILE 'Scripted laptop QEMU profile' check_qemu_profile
+run_static GATE_SHELL_UAT 'Scripted mouse+keyboard shell UAT' check_shell_uat
 
 # --- Runtime scenarios: SKIP offline, with the precise missing evidence -------
 while IFS='|' read -r id title reason; do
     case "$id" in ''|'#'*|id) continue ;; esac
     record "$id" SKIP "$title — $reason"
 done <<'SCENARIOS'
-SCENARIO_QEMU_PROFILE|Laptop QEMU profile (fake battery, mac80211_hwsim, audio, second head)|not defined in recipe; workflow only runs a plain mkosi vm text-console smoke; needs a booted VM with those devices
-SCENARIO_SHELL_VISIBLE|Shell visible in booted image|needs a booted ISO and a screenshot
-SCENARIO_CHAT_ROUNDTRIP|Chat message round-trip with mouse+keyboard|needs a booted ISO, provisioned stack and a screenshot
-SCENARIO_TRAY_INDICATORS|Tray indicators present and live|needs a booted shell and a screenshot
-SCENARIO_POWER_MENU|Power menu opens (no instant poweroff)|needs a booted shell with input injection
-SCENARIO_LOCK_CREDENTIAL|Lock requires the directory credential|needs a booted shell and a credential test
-SCENARIO_NO_TERMINAL|Every scenario done only with mouse+keyboard|needs a real shell session with input injection; only static no-getty/no-rescue markers are checked here
-SCENARIO_EVIDENCE|Serial log + screenshots on every OS-shell issue closure|needs a real closure with attached artifacts
+SCENARIO_QEMU_PROFILE|Laptop QEMU profile (fake battery, mac80211_hwsim, audio, second head)|scripted profile harness PRESENT and statically checked; runtime-unverified — needs a booted VM with those devices and a serial log
+SCENARIO_SHELL_VISIBLE|Shell visible in booted image|scripted assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted ISO and a screenshot
+SCENARIO_CHAT_ROUNDTRIP|Chat message round-trip with mouse+keyboard|scripted assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted ISO, provisioned stack and a screenshot
+SCENARIO_TRAY_INDICATORS|Tray indicators present and live|scripted assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted shell and a screenshot
+SCENARIO_POWER_MENU|Power menu opens (no instant poweroff)|scripted assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted shell with input injection
+SCENARIO_LOCK_CREDENTIAL|Lock requires the directory credential|scripted assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted shell and a credential supplied via env
+SCENARIO_NO_TERMINAL|Every scenario done only with mouse+keyboard|scripted xdotool harness PRESENT; runtime-unverified — needs a real shell session with input injection
+SCENARIO_APP_LAUNCH|At least one app launch asserted after scripted input|scripted app-launch assertion PRESENT in shell-uat.sh; runtime-unverified — needs a booted shell
+SCENARIO_EVIDENCE|Serial log + screenshots on every OS-shell issue closure|screenshot capture scripted; runtime-unverified — needs a real closure with attached artifacts
 SCENARIOS
 
 # --- Physical hardware matrix: every case stays SKIP offline ------------------

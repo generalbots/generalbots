@@ -169,6 +169,7 @@ fi
 if [ "$root_ok" -ne 1 ]; then
     skip identity.markers "skipped: root filesystem not mountable (see root.mount FAIL)"
     skip unit.markers "skipped: root filesystem not mountable (see root.mount FAIL)"
+    skip unit.enabled "skipped: root filesystem not mountable (see root.mount FAIL)"
 else
 identity_file=$(manifest_get identity.file)
 unit_file=$(manifest_get unit.file)
@@ -192,6 +193,22 @@ while IFS= read -r marker; do
         && pass "unit$(printf '%s' "$marker" | tr -cd '[:alnum:]' | cut -c1-24)" "$marker" \
         || fail "unit$(printf '%s' "$marker" | tr -cd '[:alnum:]' | cut -c1-24)" "missing '${marker}' in ${unit_file}"
 done < <(manifest_all unit.marker)
+
+# --- kiosk shell unit must be ENABLED for boot ------------------------------
+# A unit file on disk is not enough: systemd starts it only when a symlink in
+# a target's .wants/ directory enables it. Read the expected link from the
+# manifest and assert it exists, is a symlink and points at the unit file.
+enabled_path=$(manifest_get unit.enabled_path)
+[ -n "$enabled_path" ] || die "manifest has no unit.enabled_path entry"
+link_exists="$(gf_root exists "$enabled_path" 2>&1)" || link_exists=""
+link_islink="$(gf_root islink "$enabled_path" 2>&1)" || link_islink=""
+link_target="$(gf_root readlink "$enabled_path" 2>&1)" || link_target=""
+if [ "$link_exists" = "true" ] && [ "$link_islink" = "true" ] \
+    && [ "$(basename "$link_target")" = "$(basename "$unit_file")" ]; then
+    pass unit.enabled "${enabled_path} -> ${link_target}"
+else
+    fail unit.enabled "expected ${enabled_path} symlink -> ${unit_file}, got exists=${link_exists:-no} islink=${link_islink:-no} target=${link_target:-none}"
+fi
 fi
 
 # --- El Torito boot records (optional tool) --------------------------------

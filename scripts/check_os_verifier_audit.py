@@ -207,6 +207,35 @@ def g_root_mount_fail(root: Path):
                   f":{gate_hit[0]} fails the run with failed > 0")
 
 
+def g_enabled_unit_check(root: Path):
+    """The kiosk shell unit must be ENABLED for boot, from manifest data only.
+
+    Presence of a unit file is not enough: systemd starts a unit only when a
+    symlink in a target's .wants/ directory enables it. The check must read
+    that link from the manifest, assert it is a symlink to the unit, and SKIP
+    as a root-dependent group when the root filesystem cannot be mounted.
+    """
+    text = read(root, "verifier")
+    parts = (
+        r'enabled_path=\$\(manifest_get unit\.enabled_path\)',
+        r'gf_root islink',
+        r'gf_root readlink',
+        r'pass unit\.enabled',
+        r'fail unit\.enabled',
+    )
+    skip_parts = (r"skip unit\.enabled .*root\.mount FAIL",)
+    missing = missing_fragments(text, parts)
+    missing += [rx for rx in skip_parts if not find_skip(text, rx)]
+    declared = [value for key, value in manifest_rows(root) if key == "unit.enabled_path"]
+    if len(declared) != 1 or not declared[0]:
+        missing.append(f"manifest unit.enabled_path={declared!r}, expected exactly one non-empty value")
+    if missing:
+        return False, f"[GAP] enabled-unit check absent: {', '.join(missing)} — no fake PASS"
+    hit = find(text, parts[3])
+    return True, (f"{P['verifier']}:{hit[0]} asserts the enablement symlink "
+                  f"{declared[0]} read from the manifest; SKIP when root is unmountable")
+
+
 def g_verifier_in_release_build(root: Path):
     """The release builder verifies the image before giving it the final name."""
     text = read(root, "release")
@@ -276,6 +305,7 @@ GUARANTEES = (
     ("SCHEMA_GUARD", g_schema_guard),
     ("MIN_MARKER_ROWS", g_min_markers),
     ("ROOT_MOUNT_FAIL_CLOSED", g_root_mount_fail),
+    ("ENABLED_UNIT_CHECK", g_enabled_unit_check),
     ("VERIFIER_IN_RELEASE_BUILD", g_verifier_in_release_build),
     ("VERIFIER_IN_CI", g_verifier_in_ci),
     ("EVIDENCE_SURFACED_IN_CI", g_evidence_surfaced_in_ci),

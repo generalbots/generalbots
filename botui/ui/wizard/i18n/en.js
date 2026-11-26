@@ -162,6 +162,8 @@ window.GBWizardLocales["en"] = {
   "install.stopped": "Setup stopped: {reason}. Retry or open the log folder.",
   "install.all-ready": "All {count} components are ready.",
   "install.installing": "Installing {ready} of {total} components…",
+  "install.from-medium": "Installing {name} from this medium",
+  "install.downloading": "Downloading {name}",
   "install.waiting": "Waiting to start.",
   "install.complete": "Setup complete",
   "install.stack-ready": "Stack is ready",

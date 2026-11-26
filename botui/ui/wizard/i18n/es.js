@@ -153,6 +153,8 @@ window.GBWizardLocales["es"] = {
   "install.stopped": "La configuración se detuvo: {reason}. Reintenta o abre la carpeta de registros.",
   "install.all-ready": "Los {count} componentes están listos.",
   "install.installing": "Instalando {ready} de {total} componentes…",
+  "install.from-medium": "Instalando {name} desde este medio",
+  "install.downloading": "Descargando {name}",
   "install.waiting": "Esperando para iniciar.",
   "install.complete": "Configuración completa",
   "install.stack-ready": "Pila lista",

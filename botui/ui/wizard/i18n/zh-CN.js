@@ -153,6 +153,8 @@ window.GBWizardLocales["zh-CN"] = {
   "install.stopped": "设置已停止：{reason}。请重试或打开日志文件夹。",
   "install.all-ready": "全部 {count} 个组件已就绪。",
   "install.installing": "正在安装 {ready}/{total} 个组件…",
+  "install.from-medium": "正在从此介质安装 {name}",
+  "install.downloading": "正在下载 {name}",
   "install.waiting": "等待开始。",
   "install.complete": "设置完成",
   "install.stack-ready": "堆栈就绪",

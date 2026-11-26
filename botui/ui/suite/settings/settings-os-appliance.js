@@ -21,7 +21,8 @@
     body: "os-data-status-body"
   };
   var resetToken = "";
-  var manifestScope = "full-archive";
+  var manifestScope = "";
+  var protectionReady = false;
 
   function t(key, fallback, params) {
     var v = fallback;
@@ -39,9 +40,14 @@
 
   function byId(id) { return document.getElementById(id); }
 
+  // #2470 — every region this module writes is a live status region. The
+  // shipped partial already carries these attributes, but set them from JS as
+  // well so the contract holds even when the HTML is swapped by another owner.
   function setBody(id, text) {
     var el = byId(id);
     if (!el) return;
+    if (el.getAttribute("role") !== "status") el.setAttribute("role", "status");
+    if (el.getAttribute("aria-live") !== "polite") el.setAttribute("aria-live", "polite");
     el.textContent = text;
   }
 
@@ -96,12 +102,14 @@
 
   function captureDataProtection(data) {
     if (!data || typeof data !== "object") return;
-    if (data.reset && data.reset.confirmation_token) {
-      resetToken = String(data.reset.confirmation_token);
-    }
-    if (data.export && data.export.contract && data.export.contract.request) {
-      manifestScope = String(data.export.contract.request.scope || manifestScope);
-    }
+    if (!data.reset && !data.export) return;
+    // A fresh status payload replaces the previous one: a rotated token or a
+    // removed export scope must never leave a stale credential/scope usable.
+    resetToken = data.reset && data.reset.confirmation_token
+      ? String(data.reset.confirmation_token) : "";
+    manifestScope = data.export && data.export.contract && data.export.contract.request
+      ? String(data.export.contract.request.scope || "") : "";
+    protectionReady = true;
     syncResetButton();
   }
 
@@ -174,6 +182,24 @@
   // #2470 — bounded, non-destructive data-protection actions. The server
   // returns the human-readable descriptor/failure text; this file adds no
   // UI copy of its own beyond existing i18n keys.
+  function unavailableMessage() {
+    return t("os-backend-unavailable", "OS backend endpoint unavailable in this build. No change was made.");
+  }
+
+  // Server text is untrusted: never echo back a typed confirmation token or
+  // snapshot reason that a response happened to include verbatim.
+  function sanitizeStatusText(text) {
+    var value = String(text == null ? "" : text);
+    var reason = byId("osDataReason");
+    var secrets = [resetToken, reason ? reason.value : ""];
+    secrets.forEach(function (secret) {
+      if (secret && String(secret).length > 3) {
+        value = value.split(String(secret)).join("");
+      }
+    });
+    return value;
+  }
+
   function postJson(path, payload) {
     return fetch(path, {
       method: "POST",
@@ -187,30 +213,46 @@
     }).catch(function () { return { ok: false, data: {} }; });
   }
 
-  function showStatus(id, data) {
-    var text = data && (data.message || data.error);
-    setBody(id, text ? String(text) : t("os-data-not-implemented", "Not implemented"));
+  function showStatus(id, result) {
+    if (!result || result.ok === false) {
+      // A failed request gets a localized generic message only: no raw error
+      // body and no secret can reach the status region on this path.
+      setBody(id, sanitizeStatusText(unavailableMessage()));
+      return;
+    }
+    var data = result.data || {};
+    var text = data.message || data.error;
+    setBody(id, sanitizeStatusText(text ? String(text) : t("os-data-not-implemented", "Not implemented")));
   }
 
   function requestManifest() {
+    if (!protectionReady || !manifestScope) {
+      setBody("osDataExportStatus", unavailableMessage());
+      return Promise.resolve();
+    }
     return postJson("/api/os/data-protection/export", { scope: manifestScope })
-      .then(function (result) { showStatus("osDataExportStatus", result.data); });
+      .then(function (result) { showStatus("osDataExportStatus", result); });
   }
 
   function requestSnapshot() {
     var input = byId("osDataReason");
-    return postJson("/api/os/data-protection/snapshots", { reason: input ? input.value : "" })
-      .then(function (result) { showStatus("osDataSnapshotStatus", result.data); });
+    var reason = input ? input.value : "";
+    if (!protectionReady || !reason) {
+      setBody("osDataSnapshotStatus", unavailableMessage());
+      return Promise.resolve();
+    }
+    return postJson("/api/os/data-protection/snapshots", { reason: reason })
+      .then(function (result) { showStatus("osDataSnapshotStatus", result); });
   }
 
   function requestReset() {
     var input = byId("osDataResetToken");
+    // Fail closed: no POST unless the exact server-issued token was typed.
     if (!resetToken || !input || input.value !== resetToken) {
-      setBody("osDataResetStatus", t("os-data-not-implemented", "Not implemented"));
       return Promise.resolve();
     }
     return postJson("/api/os/data-protection/reset", { confirmation: input.value })
-      .then(function (result) { showStatus("osDataResetStatus", result.data); });
+      .then(function (result) { showStatus("osDataResetStatus", result); });
   }
 
   function initDataProtection() {

@@ -16,6 +16,7 @@ unit.file	/usr/lib/systemd/system/generalbots-shell.service
 unit.marker	Description=General Bots kiosk shell
 unit.marker	/opt/general-bots/start.sh
 unit.marker	Conflicts=getty@tty1.service
+unit.enabled_path	/etc/systemd/system/multi-user.target.wants/generalbots-shell.service
 required.path	/etc/os-release
 required.path	/opt/general-bots/start.sh
 required.path	/opt/general-bots/generalbots

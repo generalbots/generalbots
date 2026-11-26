@@ -58,20 +58,33 @@ command -v openssl >/dev/null 2>&1 \
 # Locate the repository root so we can refuse to write secrets inside it.
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$repo_root" ] && [ "$(basename -- "$script_dir")" = "os" ] \
+        && [ "$(basename -- "$(dirname -- "$script_dir")")" = "desktop" ]; then
+    # Outside a git checkout the desktop/os layout still identifies the repo;
+    # never skip the "no private keys in the tree" guard just because git is absent.
+    repo_root="$(cd -- "$script_dir/../.." && pwd -P)"
+fi
 
 if [ -z "$output_dir" ]; then
     output_dir="$(mktemp -d "${TMPDIR:-/tmp}/gb-secure-boot.XXXXXX")"
 fi
-mkdir -p -m 0700 -- "$output_dir"
-chmod 0700 -- "$output_dir"
-
-abs_dir="$(cd -- "$output_dir" && pwd -P)"
+# Canonicalise before creating anything: a refused in-tree path must not leave
+# a directory behind.
+if [ -d "$output_dir" ]; then
+    abs_dir="$(cd -- "$output_dir" && pwd -P)"
+else
+    parent="$(dirname -- "$output_dir")"
+    [ -d "$parent" ] || die "output parent directory does not exist: $parent"
+    abs_dir="$(cd -- "$parent" && pwd -P)/$(basename -- "$output_dir")"
+fi
 if [ -n "$repo_root" ]; then
     case "$abs_dir/" in
         "$(cd -- "$repo_root" && pwd -P)/"*) \
             die "refusing to write private keys inside the repository ($abs_dir)" ;;
     esac
 fi
+mkdir -p -m 0700 -- "$output_dir"
+chmod 0700 -- "$output_dir"
 
 key="$abs_dir/db.key"
 crt="$abs_dir/db.crt"

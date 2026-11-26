@@ -11,7 +11,8 @@
 # In both cases the image is verified against appliance-manifest.tsv BEFORE it
 # is copied to its final name; a failing check leaves no generalbots-os.iso
 # behind. SHA256SUMS-os and a deterministic generalbots-os.manifest.txt are
-# written next to the published artifact.
+# written next to the published artifact, together with the Secure Boot
+# fallback runbook (#2478) when the diagnostics artifact is available.
 #
 # Preflight is fail-safe in the CI sense: if mkosi/its inputs (build mode) or
 # the image input (publish mode) are unavailable, the script prints an explicit
@@ -21,8 +22,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../../.." && pwd)"
 MANIFEST="$SCRIPT_DIR/appliance-manifest.tsv"
 VERIFIER="$SCRIPT_DIR/verify-image.sh"
+BUILD_ISO="$REPO_ROOT/scripts/build_iso.sh"
 OUT_DIR="dist"
 IMAGE=
 MKOSI="${GB_OS_MKOSI:-mkosi}"
@@ -74,6 +77,7 @@ done
 
 [ -f "$MANIFEST" ] || die "appliance manifest not found: $MANIFEST"
 [ -f "$VERIFIER" ] || die "image verifier not found: $VERIFIER"
+[ -f "$BUILD_ISO" ] || die "carrier builder not found: $BUILD_ISO"
 
 # --- preflight: explicit SKIP when inputs are unavailable ------------------
 build_dir=
@@ -124,6 +128,32 @@ log "verifying ${IMAGE} against ${MANIFEST}"
 bash "$VERIFIER" --image "$IMAGE" --manifest "$MANIFEST" \
     --evidence "$stage_dir/evidence.tsv"
 
+# --- independent cross-check on the SAME image -----------------------------
+# A second, separately implemented gate. The primary verifier above is never
+# weakened: a missing guestfish here is an explicit SKIP, while any failure
+# from build_iso.sh aborts publication before the final name is created.
+CROSSCHECK=SKIP
+if command -v guestfish >/dev/null 2>&1; then
+    log "cross-checking ${IMAGE} with ${BUILD_ISO} --verify-appliance"
+    bash "$BUILD_ISO" --verify-appliance "$IMAGE"
+    CROSSCHECK=PASS
+else
+    printf '[release-os] SKIP: guestfish unavailable; appliance cross-check skipped (primary verifier unchanged)\n'
+fi
+
+# --- Secure Boot fallback artifact (#2478) ---------------------------------
+# Ships next to the release image so a machine that refuses to boot with
+# Secure Boot on has an offline runbook; the recovery screen (#2468) can show
+# the same file. Absence is explicit in the manifest, never silently implied.
+FALLBACK=SKIP
+fallback_source="$SOURCE_DIR/diagnostics/secure-boot-fallback.txt"
+if [ -s "$fallback_source" ]; then
+    cp -- "$fallback_source" "$stage_dir/generalbots-os-secure-boot-fallback.txt"
+    FALLBACK=PASS
+else
+    printf '[release-os] SKIP: Secure Boot fallback artifact unavailable: %s\n' "$fallback_source"
+fi
+
 # --- deterministic manifest ------------------------------------------------
 sha256="$(sha256sum "$IMAGE" | cut -d' ' -f1)"
 size_bytes="$(stat -c %s "$IMAGE")"
@@ -135,6 +165,8 @@ size_bytes="$(stat -c %s "$IMAGE")"
     printf 'size_bytes=%s\n' "$size_bytes"
     printf 'pin=%s\n' "$RELEASE"
     printf 'verification=PASS\n'
+    printf 'crosscheck=%s\n' "$CROSSCHECK"
+    printf 'fallback=%s\n' "$FALLBACK"
     printf 'image_source=%s\n' "$(basename "$IMAGE")"
     while IFS=$'\t' read -r name status detail; do
         printf 'check.%s=%s\n' "$name" "$status"
@@ -153,5 +185,9 @@ mkdir -p -- "$OUT_DIR"
 mv -f -- "$stage_dir/generalbots-os.iso" "$OUT_DIR/generalbots-os.iso"
 mv -f -- "$stage_dir/SHA256SUMS-os" "$OUT_DIR/SHA256SUMS-os"
 mv -f -- "$stage_dir/generalbots-os.manifest.txt" "$OUT_DIR/generalbots-os.manifest.txt"
+if [ "$FALLBACK" = PASS ]; then
+    mv -f -- "$stage_dir/generalbots-os-secure-boot-fallback.txt" \
+        "$OUT_DIR/generalbots-os-secure-boot-fallback.txt"
+fi
 log "published ${OUT_DIR}/generalbots-os.iso (sha256 ${sha256})"
 cat "$OUT_DIR/generalbots-os.manifest.txt"

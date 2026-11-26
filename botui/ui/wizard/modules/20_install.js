@@ -131,10 +131,32 @@
 
   /* -- component template and rendering ------------------------------- */
 
+  /* #2441 — only claim "from this medium" when the bridge actually reports
+     a bundled/offline source. With no source flag the install may still hit
+     the network, so the safe label is "downloading" (never a false offline
+     claim). A per-component hint wins over the global context flag. */
+  function componentFromMedium(component) {
+    if (component && typeof component === "object") {
+      if (component.from_medium === true || component.bundled === true ||
+          component.source === "medium" || component.source === "cache" ||
+          component.source === "installers") { return true; }
+      if (component.from_medium === false || component.bundled === false ||
+          component.source === "download" || component.source === "network") { return false; }
+    }
+    var ctx = state.context || {};
+    return ctx.installers_bundled === true || ctx.offline_payload === true ||
+      ctx.payload_staged === true || ctx.desktop_offline === true ||
+      ctx.offline === true;
+  }
+
   function componentTemplate(component) {
+    var source = componentFromMedium(component)
+      ? t("install.from-medium", { name: component.label })
+      : t("install.downloading", { name: component.label });
     return '<div class="install-step-item" data-comp="' + esc(component.id) + '">' +
       '<span class="install-step-icon" aria-hidden="true"></span>' +
       '<span class="install-step-name">' + esc(component.label) + "</span>" +
+      '<span class="install-step-source">' + esc(source) + "</span>" +
       '<span class="install-step-dur"></span></div>';
   }
 
@@ -356,6 +378,7 @@
   App.renderHostCheck = renderHostCheck;
   App.checkHost = checkHost;
   App.componentTemplate = componentTemplate;
+  App.componentFromMedium = componentFromMedium;
   App.renderComponents = renderComponents;
   App.plannedComponents = plannedComponents;
   App.updateInstallProgress = updateInstallProgress;

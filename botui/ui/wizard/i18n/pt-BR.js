@@ -153,6 +153,8 @@ window.GBWizardLocales["pt-BR"] = {
   "install.stopped": "Configuração parou: {reason}. Tente novamente ou abra a pasta de logs.",
   "install.all-ready": "Todos os {count} componentes estão prontos.",
   "install.installing": "Instalando {ready} de {total} componentes…",
+  "install.from-medium": "Instalando {name} a partir deste meio",
+  "install.downloading": "Baixando {name}",
   "install.waiting": "Aguardando início.",
   "install.complete": "Configuração concluída",
   "install.stack-ready": "Pilha pronta",

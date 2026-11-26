@@ -153,6 +153,8 @@ window.GBWizardLocales["fr"] = {
   "install.stopped": "Configuration arrêtée : {reason}. Réessayez ou ouvrez le dossier des journaux.",
   "install.all-ready": "Les {count} composants sont prêts.",
   "install.installing": "Installation de {ready} composants sur {total}…",
+  "install.from-medium": "Installation de {name} depuis ce support",
+  "install.downloading": "Téléchargement de {name}",
   "install.waiting": "En attente de démarrage.",
   "install.complete": "Configuration terminée",
   "install.stack-ready": "Pile prête",

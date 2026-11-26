@@ -133,6 +133,56 @@ payloads.forEach(function (p, i) {
   }
 });
 
+// 4. #2441 wizard wording: the per-component source label must exist in every
+// locale catalog and be used by the installer module (no hardcoded strings).
+var LOCALES = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+var I18N_DIR = path.resolve(ROOT, "botui/ui/wizard/i18n");
+var INSTALL_JS = path.resolve(ROOT, "botui/ui/wizard/modules/20_install.js");
+var WORDING_KEYS = ["install.from-medium", "install.downloading"];
+var englishValues = {};
+
+function quotedValue(text, key) {
+  var pattern = new RegExp('"' + key.replace(/\./g, "\\.") + '"\\s*:\\s*"([^"]*)"');
+  var match = text.match(pattern);
+  return match ? match[1] : null;
+}
+
+LOCALES.forEach(function (locale) {
+  var file = path.join(I18N_DIR, locale + ".js");
+  var text = fs.readFileSync(file, "utf8");
+  WORDING_KEYS.forEach(function (key) {
+    var value = quotedValue(text, key);
+    check(locale + " defines " + key + " with {name}",
+      !!value && value.indexOf("{name}") !== -1,
+      value === null ? "key missing" : "no {name} placeholder");
+    if (locale === "en") {
+      englishValues[key] = value;
+    } else {
+      check(locale + " genuinely translates " + key,
+        !!value && value !== englishValues[key],
+        value === null ? "key missing" : "identical to English fallback");
+    }
+  });
+  check(locale + " catalog contains no external URL", !/\bhttps?:\/\//i.test(text));
+});
+
+var installSrc = fs.readFileSync(INSTALL_JS, "utf8");
+WORDING_KEYS.forEach(function (key) {
+  var used = new RegExp('t\\(\\s*"' + key.replace(/\./g, "\\.") + '"').test(installSrc);
+  check("20_install.js translates " + key + " via t()", used);
+});
+check("20_install.js contains no external URL", !/\bhttps?:\/\//i.test(installSrc));
+
+var wizardSecretHits = [];
+[INSTALL_JS].concat(LOCALES.map(function (locale) {
+  return path.join(I18N_DIR, locale + ".js");
+})).forEach(function (file) {
+  var hit = fs.readFileSync(file, "utf8").match(SECRET_VALUE);
+  if (hit) { wizardSecretHits.push(path.basename(file) + ": " + hit[0].slice(0, 8)); }
+});
+check("wizard wording files contain no secret-looking value",
+  wizardSecretHits.length === 0, wizardSecretHits.join(", "));
+
 console.log("=".repeat(64));
 console.log("TOTAL: " + (PASS + FAIL) + " | PASS: " + PASS + " | FAIL: " + FAIL);
 console.log("=".repeat(64));

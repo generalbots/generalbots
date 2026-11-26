@@ -105,14 +105,22 @@ scope root itself is refused. An injected script can therefore no longer wipe
 
 ## What the image still does not do
 
-- Secure Boot signing, TPM-sealed unseal keys and A/B updates are future work.
-  The current image is unsigned (`SecureBoot=no`, unsigned UKI); on machines
-  that refuse to boot with Secure Boot enabled, disable Secure Boot in firmware
-  as a temporary fallback (see `desktop/os/README.md`).
-- Data at rest is not encrypted in the image recipe: there is no LUKS mapping,
-  no TPM-sealed disk key, and no `systemd-cryptenroll` provisioning flow.
-  Scheduled snapshot/backup, "Export my data", and "Reset this PC" are not
-  implemented yet.
+- The published image is still unsigned (`SecureBoot=no`, unsigned UKI). A
+  signed release path (`desktop/os/mkosi.profiles/secure-boot-release.conf`,
+  `desktop/os/build-image.sh --mode release`) and an OVMF Secure Boot smoke are
+  wired in CI, but no signed image has been observed booting. On machines that
+  refuse to boot with Secure Boot enabled, disable Secure Boot in firmware as a
+  temporary fallback; the runbook ships next to the release image as
+  `generalbots-os-secure-boot-fallback.txt` and is documented in
+  `desktop/os/README-secure-boot.md`. TPM-sealed unseal keys and A/B updates
+  remain future work.
+- The image recipe ships scripts for first-boot LUKS2/btrfs provisioning,
+  snapshots, encrypted archives, restore and reset under
+  `desktop/os/data-protection/`, and the Settings actions live in
+  `settings-os-appliance.js`. No encrypted first boot, scheduled backup or
+  destructive restore has been verified on a real image, and the Settings
+  actions degrade to a localized "backend unavailable" message until the
+  `/api/os/data-protection` route exists.
 - Peripheral, accessibility, and display runtime integration is incomplete:
   image groundwork packages/config exist for Bluetooth/printing/input tools,
   AT-SPI/Orca/Squeekboard, and brightness/display sensors, but Settings/UI

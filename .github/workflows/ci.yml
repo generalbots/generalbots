@@ -1155,6 +1155,7 @@ jobs:
         run: |
           set -euo pipefail
           node botui/ui/suite/tests/webtest-data-protection.js
+          node botui/ui/suite/tests/webtest-os-data-protection-ui.js
 
       # #2441 — the offline payload manifest must stay consistent with
       # 3rdparty.toml (filenames + checksums) and carry no network URL/secret.
@@ -1162,6 +1163,20 @@ jobs:
         run: |
           set -euo pipefail
           node botui/ui/suite/tests/webtest-offline-payload.js
+
+      # #2440/#2441/#2470/#2471/#2478 — the OS-shell static audits were only
+      # run ad-hoc. Each one asserts its hard guarantees with file:line evidence
+      # and prints honest GAP lines for hardware/runtime work it cannot prove.
+      # They fail the PR when a guarantee regresses, but never fabricate a
+      # real-image, firmware or laptop PASS. No browser, VM or cargo here.
+      - name: "Guard: OS appliance static audits (#2440/#2441/#2470/#2471/#2478)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_os_verifier_audit.py
+          python3 scripts/check_offline_first_boot_audit.py
+          python3 scripts/check_data_protection_audit.py
+          python3 scripts/check_laptop_gate_audit.py
+          python3 scripts/check_secure_boot_audit.py
 
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it

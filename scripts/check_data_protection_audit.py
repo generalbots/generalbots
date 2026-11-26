@@ -2,9 +2,10 @@
 """Offline static audit of the OS image's user-data protection (issue #2470).
 
 Reads the working tree only. Runs no cargo, no browser, no server, no disk
-encryption and no destructive disk command. The only child process is the
-read-only suite webtest (`node ...webtest-data-protection.js`), whose own only
-child is `bash -n` on restore.sh.
+encryption and no destructive disk command. The only child processes are the
+two read-only suite webtests: `node ...webtest-data-protection.js` (its own only
+child is `bash -n` on restore.sh) and `node ...webtest-os-data-protection-ui.js`
+(a `vm` sandbox with stubbed window/document/fetch).
 
 The audit separates two kinds of rows:
 
@@ -33,6 +34,8 @@ from pathlib import Path
 GD = "desktop/os/data-protection/extra"
 BIN = f"{GD}/usr/local/libexec/gb-data"
 WEBTEST = "botui/ui/suite/tests/webtest-data-protection.js"
+WEBTEST_UI = "botui/ui/suite/tests/webtest-os-data-protection-ui.js"
+SETTINGS_JS = "botui/ui/suite/settings/settings-os-appliance.js"
 RESTORE = f"{BIN}/restore.sh"
 PROVISION = f"{BIN}/provision.sh"
 SNAPSHOT = f"{BIN}/snapshot.sh"
@@ -44,10 +47,11 @@ CONFIG = f"{GD}/etc/generalbots/data-protection.conf"
 SECURE_BOOT = "desktop/os/mkosi.conf.d/20-secure-boot.conf"
 
 WEBTEST_EXPECTED_CASES = 16
+WEBTEST_UI_MIN_CASES = 30
 
 # id -> (title, label). GAP rows have no static check and never fail the audit.
 STATIC_ROWS = (
-    ("A1", "suite webtest 16/16 regression", "[AUTOMATED]"),
+    ("A1", "both suite webtests (restore + Settings UI)", "[AUTOMATED]"),
     ("A2", "restore requires --confirm (typed error)", "[AUTOMATED]"),
     ("A3", "path args validated; metacharacters rejected", "[AUTOMATED]"),
     ("A4", "no silent overwrite: pre-restore snapshot first", "[AUTOMATED]"),
@@ -56,6 +60,7 @@ STATIC_ROWS = (
     ("A7", "backup schedule + retention declared", "[AUTOMATED]"),
     ("A8", "reset requires RESET-THIS-PC token", "[AUTOMATED]"),
     ("A9", "honest docs: no false first-boot sealing claim", "[AUTOMATED]"),
+    ("A10", "Settings UI typed-token gate + aria-live status", "[AUTOMATED]"),
 )
 GAP_ROWS = (
     ("G1", "LUKS unlock at first boot (TPM/token/passphrase, wrong-passphrase, no-TPM) on a real image"),
@@ -99,7 +104,7 @@ class Audit:
         self.results[aid] = (bool(ok), detail)
 
     def run(self) -> None:
-        self.a1_webtest()
+        self.a1_webtests()
         restore = self.read(RESTORE)
         self.a2_confirm(restore)
         self.a3_path_validation(restore)
@@ -110,13 +115,14 @@ class Audit:
         self.a7_backup_schedule(self.read(SNAPSHOT), self.read(SNAP_TIMER), self.read(CONFIG))
         self.a8_reset_token(self.read(RESET))
         self.a9_honest_docs(self.read(SECURE_BOOT))
+        self.a10_ui_safety(self.read(SETTINGS_JS))
 
-    # -- A1: the committed suite regression harness still passes 16/16 --------
-    def a1_webtest(self) -> None:
+    # -- A1: BOTH committed suite regression harnesses must pass ---------------
+    def _run_webtest(self, rel: str) -> tuple[bool, str, int]:
         node = shutil.which("node") or "node"
         try:
             proc = subprocess.run(
-                [node, WEBTEST],
+                [node, rel],
                 cwd=str(self.root),
                 capture_output=True,
                 text=True,
@@ -124,21 +130,31 @@ class Audit:
                 check=False,
             )
         except (OSError, subprocess.SubprocessError) as exc:
-            self.static("A1", False, f"cannot run node webtest: {exc}")
-            return
+            return False, f"cannot run {rel}: {exc}", 0
         out = proc.stdout + proc.stderr
         match = re.search(
             r"(?m)^TOTAL:\s*(\d+)\s*\|\s*PASS:\s*(\d+)\s*\|\s*FAIL:\s*(\d+)\s*$", out
         )
         if not match:
-            self.static("A1", False, f"no TOTAL line in webtest output (rc={proc.returncode})")
-            return
+            return False, f"no TOTAL line in {rel} output (rc={proc.returncode})", 0
         total, passed, failed = (int(value) for value in match.groups())
-        ok = proc.returncode == 0 and total == WEBTEST_EXPECTED_CASES and passed == total and failed == 0
+        ok = proc.returncode == 0 and passed == total and failed == 0
+        return ok, f"TOTAL={total} PASS={passed} FAIL={failed} rc={proc.returncode}", total
+
+    def a1_webtests(self) -> None:
+        ok_restore, detail_restore, total_restore = self._run_webtest(WEBTEST)
+        ok_ui, detail_ui, total_ui = self._run_webtest(WEBTEST_UI)
+        ok = (
+            ok_restore
+            and total_restore == WEBTEST_EXPECTED_CASES
+            and ok_ui
+            and total_ui >= WEBTEST_UI_MIN_CASES
+        )
         self.static(
             "A1",
             ok,
-            f"TOTAL={total} PASS={passed} FAIL={failed} rc={proc.returncode} (expected 16/16, rc 0)",
+            f"restore: {detail_restore}; Settings UI: {detail_ui} "
+            f"(expected {WEBTEST_EXPECTED_CASES} and >= {WEBTEST_UI_MIN_CASES} cases, rc 0)",
         )
 
     # -- A2: destructive restore needs an explicit, typed confirmation -------
@@ -257,6 +273,36 @@ class Audit:
             ok,
             f"{SECURE_BOOT}:{body_start} states no LUKS/TPM flow; false claim absent"
             if ok else f"honesty marker missing ({body_start}) or false claim still present (:{false_claim})",
+        )
+
+    # -- A10: the Settings UI wires both safety actions in the shipped module -
+    def a10_ui_safety(self, src: str) -> None:
+        # Scope the gate to requestReset(): syncResetButton() also compares the
+        # token, but only the handler's comparison can stop a POST.
+        start = src.find("function requestReset")
+        end = src.find("\n  }", start) if start >= 0 else -1
+        body = src[start:end] if start >= 0 and end > start else ""
+        gate_at = body.find("input.value !== resetToken")
+        post_at = body.find('postJson("/api/os/data-protection/reset"')
+        gate_line = src.count("\n", 0, start + gate_at) + 1 if gate_at >= 0 else 0
+        post_line = src.count("\n", 0, start + post_at) + 1 if post_at >= 0 else 0
+        role = line_of(src, 'setAttribute("role", "status")')
+        live = line_of(src, 'setAttribute("aria-live", "polite")')
+        fallback = re_line_of(src, r't\("os-backend-unavailable",\s*"[^"]+"')
+        ok = (
+            gate_at >= 0
+            and post_at > gate_at
+            and role > 0
+            and live > 0
+            and fallback > 0
+        )
+        self.static(
+            "A10",
+            ok,
+            f"{SETTINGS_JS}:{gate_line} typed-token gate before :{post_line} reset POST; "
+            f":{role}/:{live} live status; :{fallback} localized failure fallback"
+            if ok else f"Settings UI safety wiring missing "
+            f"(gate={gate_line}, post={post_line}, role={role}, live={live}, i18n={fallback})",
         )
 
 

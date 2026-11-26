@@ -1,0 +1,40 @@
+General Bots OS - Secure Boot boot failure fallback (#2478, #2468)
+
+IF THE MACHINE REFUSES TO BOOT: disable Secure Boot in firmware.
+
+The development/published image is unsigned. On a laptop that ships with
+Secure Boot enabled, firmware may refuse to start it. To boot the medium:
+
+  1. Power off the machine and open firmware/UEFI setup.
+  2. Find "Secure Boot" and set it to Disabled. Prefer the explicit Disable
+     toggle; clear/unenroll keys only if your firmware requires it.
+  3. Save changes and boot the General Bots OS medium again.
+
+Keep UEFI mode enabled; do not enable legacy/CSM as part of this fallback.
+Disabling Secure Boot is a temporary workaround for the unsigned image, not a
+security recommendation. A signed release image is built with the tooling in
+README-secure-boot.md; for that image prefer enrolling our key instead.
+
+Firmware setup keys (vary by vendor/model/firmware revision):
+
+| Vendor / firmware        | Setup key(s)                         | Secure Boot location (typical)        |
+|---------------------------|--------------------------------------|---------------------------------------|
+| Dell                      | F2 (Setup), F12 (Boot menu)          | Boot Configuration / Secure Boot      |
+| HP                        | Esc then F10 (BIOS Setup)            | Security / Secure Boot Configuration  |
+| Lenovo ThinkPad           | F1 or Enter+F1                       | Security / Secure Boot                |
+| Lenovo IdeaPad            | F2 or Fn+F2                          | Security / Secure Boot                |
+| ASUS                      | F2 or Del                            | Boot or Security / OS Type (Other OS) |
+| Acer                      | F2 (may need Supervisor password)    | Security / Secure Boot                |
+| MSI                       | Del                                  | Settings / Security / Secure Boot     |
+| Microsoft Surface         | hold Volume Up + Power               | Security / Secure Boot profile        |
+| Generic UEFI/AMI/Award    | Del, F2, Esc, F10 or F12             | Boot / Security / Secure Boot         |
+
+For the signed image and the machine-owner key (MOK) enrolment path, see
+README-secure-boot.md in this directory: copy the DER certificate to the
+machine and run sudo mokutil --import db.cer, then complete the MokManager
+enrolment after reboot. That path is preferred to disabling Secure Boot when
+a signed image is available.
+
+This file is copied next to the release artifacts and is the text shown by the
+recovery screen (#2468) when the shell cannot start. It contains no keys,
+credentials or host-specific data.

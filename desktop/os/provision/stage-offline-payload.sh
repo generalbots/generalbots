@@ -15,6 +15,7 @@
 #     --repo DIR         repository root (default: three levels above this script)
 #     --dest DIR         image tree destination (default: manifest payload_dir)
 #     --include-model    also stage the ~1.8 GB local-model group (opt-in)
+#     --max-mib N        payload budget in MiB (default: 4096); fail closed if exceeded
 #     --require-cache    fail instead of SKIP when the cache is absent/empty
 #
 # Exit: 0 on success or on a documented SKIP; 1 on a bad/missing/tampered
@@ -29,10 +30,11 @@ DEST=""
 CACHE=""
 INCLUDE_MODEL=0
 REQUIRE_CACHE=0
+MAX_MIB=4096
 THIRDPARTY_SET=0
 
 usage() {
-  sed -n '2,21p' "${BASH_SOURCE[0]}"
+  sed -n '2,22p' "${BASH_SOURCE[0]}"
 }
 
 skip() {
@@ -52,12 +54,19 @@ while [ "$#" -gt 0 ]; do
     --thirdparty)   THIRDPARTY="${2:-}"; THIRDPARTY_SET=1; shift 2 ;;
     --repo)         REPO_ROOT="${2:-}"; shift 2 ;;
     --dest)         DEST="${2:-}"; shift 2 ;;
+    --max-mib)      MAX_MIB="${2:-}"; shift 2 ;;
     --include-model) INCLUDE_MODEL=1; shift ;;
     --require-cache) REQUIRE_CACHE=1; shift ;;
     -h|--help)      usage; exit 0 ;;
     *) printf 'unexpected argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# A malformed budget is a usage error, never an implicit "unlimited" pass.
+case "$MAX_MIB" in
+  ''|*[!0-9]*) printf 'error: --max-mib must be a positive integer (MiB)\n' >&2; exit 2 ;;
+esac
+[ "$MAX_MIB" -gt 0 ] || { printf 'error: --max-mib must be a positive integer (MiB)\n' >&2; exit 2; }
 
 # --repo moves the whole default tree (checksum source and image destination).
 if [ "$THIRDPARTY_SET" -eq 0 ]; then
@@ -220,7 +229,13 @@ done < "$PLAN"
 
 sort -u -- "$NEW_LIST" > "$LIST_FILE"
 sort -u -- "$NEW_SUMS" > "$DEST/SHA256SUMS.offline"
-printf '#2441 staged %s artifact(s), %s bytes into %s\n' "$count" "$total" "$DEST"
+mib=$(( total / 1048576 ))
+printf '#2441 staged %s artifact(s), %s bytes (%s MiB), budget %s MiB into %s\n' \
+  "$count" "$total" "$mib" "$MAX_MIB" "$DEST"
+max_bytes=$(( MAX_MIB * 1048576 ))
+if [ "$total" -gt "$max_bytes" ]; then
+  die "staged payload $total bytes ($mib MiB) exceeds --max-mib $MAX_MIB MiB"
+fi
 if [ "$INCLUDE_MODEL" -ne 1 ]; then
   printf '#2441 NOTE the ~1.8 GB local model group was NOT staged (use --include-model)\n'
 fi

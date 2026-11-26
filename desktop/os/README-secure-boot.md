@@ -58,6 +58,42 @@ diagnostics bundle) is a second, independent profile:
 desktop/os/build-image.sh --mode release -- --profile=secure-boot-measured
 ```
 
+## Diagnostics and release artifacts (#2478, #2468)
+
+Two plain-text artifacts next to this runbook make the fallback and measured
+boot evidence shippable without adding a build dependency or a network call:
+
+- `desktop/os/diagnostics/secure-boot-fallback.txt` is the release-note and
+  recovery-screen copy of the fallback: "if the machine refuses to boot,
+  disable Secure Boot", the firmware setup-key table for common vendors, and a
+  pointer to this runbook for `sudo mokutil --import`. Copy it next to the ISO /
+  release artifacts (the same directory as `appliance-manifest.tsv`) so the
+  recovery screen (#2468) can display it when the shell cannot start. It holds
+  no keys, credentials or host-specific data.
+- `desktop/os/diagnostics/capture-measured-boot.sh` records measured-boot state
+  into the diagnostics bundle. Run it on a machine with a TPM:
+
+  ```bash
+  desktop/os/diagnostics/capture-measured-boot.sh \
+    --out /path/to/diagnostics/measured-boot.json
+  desktop/os/diagnostics/capture-measured-boot.sh \
+    --out /path/to/diagnostics/measured-boot.json --check
+  ```
+
+  It reads PCRs with `tpm2_pcrread`, falling back to a bounded parse of
+  `/sys/kernel/security/tpm0/binary_bios_measurements`, and writes **only**
+  sha256 digests of the raw PCR values, the PCR indices and a UTC timestamp.
+  Raw values and event bytes are never logged or stored. With no TPM/tools it
+  writes an explicit `status: skip` with a reason — no values are invented —
+  and `--check` validates the JSON without exposing digests. Attach the
+  resulting `measured-boot.json` to the diagnostics bundle alongside the
+  `pcrs` artifact from the measured profile.
+
+These are static artifacts: they make the fallback and the capture path real
+and testable offline. Actually observing PCR values on a TPM-equipped machine,
+enrolling a MOK in firmware, and seeing the recovery screen render the fallback
+still require the runtime UAT listed below.
+
 ## MOK enrolment on a stock laptop
 
 The signed image uses the distro's **Microsoft-signed shim** (`shim-signed`)

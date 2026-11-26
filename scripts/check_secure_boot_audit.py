@@ -6,9 +6,10 @@ Two different things are easy to conflate, so they are kept separate:
   * static guarantees that exist in the tree today (a signed UKI recipe and
     signing-key injection, a fail-loud release / bootable dev split, an MOK
     runbook, a fail-closed appliance verifier, a wired OVMF smoke, an optional
-    measured-boot profile). Each is asserted with its exact config line; a
-    missing one is printed as an explicit [GAP] (never a fake PASS) and fails
-    the audit.
+    measured-boot profile, a sanitized PCR-capture script and a shippable
+    Secure-Boot fallback artifact). Each is asserted with its exact config
+    line; a missing one is printed as an explicit [GAP] (never a fake PASS)
+    and fails the audit.
   * the issue's real acceptance criteria. Each is printed as [AUTOMATED] only
     when a script/config in the tree really exercises it, and as [GAP] when the
     only remaining trace is hardware, firmware or an unobserved CI run.
@@ -40,6 +41,8 @@ P = {
     "keygen": "desktop/os/generate-secure-boot-keys.sh",
     "readme": "desktop/os/README.md",
     "runbook": "desktop/os/README-secure-boot.md",
+    "pcr_capture": "desktop/os/diagnostics/capture-measured-boot.sh",
+    "fallback_artifact": "desktop/os/diagnostics/secure-boot-fallback.txt",
     "verifier": "desktop/os/release/verify-image.sh",
     "manifest": "desktop/os/release/appliance-manifest.tsv",
     "workflow": ".github/workflows/desktop-os-iso.yml",
@@ -88,6 +91,12 @@ def find_any(root: Path, paths: list[str], pattern: str):
         if hit:
             return rel, hit[0], hit[1]
     return None
+
+
+def raw_code_lines(text: str) -> list[str]:
+    """Non-blank, non-comment lines; unlike is_code() it keeps SKIP sentinels."""
+    return [ln.strip() for ln in text.splitlines()
+            if ln.strip() and not ln.lstrip().startswith(("#", "//"))]
 
 
 def evidence(hit) -> str:
@@ -268,6 +277,46 @@ def g_measured_boot_profile(root: Path):
     return True, f"{P['measured_profile']}:{hit[0]} declares signed PCRs and a pcrs artifact"
 
 
+def g_pcr_capture_artifact(root: Path):
+    """Observed PCR capture is sanitized, explicit on skip and never dumps raw data."""
+    lines = raw_code_lines(read(root, "pcr_capture"))
+    if not lines:
+        return False, "[GAP] PCR-capture script absent or empty — no fake PASS"
+    parts = (
+        ("tpm2 source", r"command -v tpm2_pcrread"), ("kernel event-log fallback", r"binary_bios_measurements"),
+        ("sha256 sanitisation", r"hashlib\.sha256\(\)"), ("explicit skip status", r'"status": "skip"'),
+        ("--out option", r"--out\)"), ("--check option", r"--check\)"),
+        ("sanitized JSON schema", r"gb-measured-boot/1"),
+    )
+    absent = [name for name, rx in parts if not any(re.search(rx, ln) for ln in lines)]
+    banned = (
+        ("binary log dumped with cat", r"\bcat\s+.*binary_bios_measurements"),
+        ("binary log dumped with od/xxd", r"\b(od|xxd)\b"),
+        ("python prints raw data", r"\bprint\([^)]*\b(data|event|raw|digest)\b"),
+    )
+    leaks = [name for name, rx in banned if any(re.search(rx, ln, re.I) for ln in lines)]
+    if absent or leaks:
+        detail = [f"absent: {', '.join(absent)}"] if absent else []
+        detail += [f"unsafe raw-data output: {', '.join(leaks)}"] if leaks else []
+        return False, f"[GAP] PCR-capture guarantees failed ({'; '.join(detail)}) — no fake PASS"
+    return True, (f"{P['pcr_capture']}: tpm2_pcrread + bounded binary_bios_measurements fallback, "
+                  "sha256-only JSON, explicit skip status, --out/--check; raw data never dumped")
+
+
+def g_fallback_artifact(root: Path):
+    """A shippable fallback text: disable-SB guidance, vendor keys, MOK pointer."""
+    lines = raw_code_lines(read(root, "fallback_artifact"))
+    parts = (
+        ("disable-SB guidance", r"disable Secure Boot"), ("Dell setup key", r"Dell.*F2"),
+        ("Lenovo setup key", r"Lenovo.*F1"), ("ASUS setup key", r"ASUS.*(F2|Del)"),
+        ("MOK enrolment pointer", r"mokutil --import"), ("runbook pointer", r"README-secure-boot\.md"),
+    )
+    absent = [name for name, rx in parts if not any(re.search(rx, ln, re.I) for ln in lines)]
+    if absent:
+        return False, f"[GAP] fallback artifact missing ({', '.join(absent)}) — no fake PASS"
+    return True, (f"{P['fallback_artifact']}: disable-SB guidance + vendor key table + MOK/runbook pointer")
+
+
 GUARANTEES = (
     ("UKI_AND_SIGNING_KEY_PATH", g_uki_and_signing_key_path),
     ("DEV_UNSIGNED_BOOTABLE", g_dev_unsigned_bootable),
@@ -278,6 +327,8 @@ GUARANTEES = (
     ("VERIFIER_BOOT_MARKERS", g_verifier_boot_markers),
     ("OVMF_SB_SMOKE_WIRED_IN_CI", g_smoke_ci_wired),
     ("MEASURED_BOOT_PROFILE", g_measured_boot_profile),
+    ("PCR_CAPTURE_SANITIZED_ARTIFACT", g_pcr_capture_artifact),
+    ("FALLBACK_RELEASE_ARTIFACT", g_fallback_artifact),
 )
 
 
@@ -326,8 +377,10 @@ def criteria(root: Path):
         rows.append(("AC3a", "documented fallback + firmware-specific key names",
                      "GAP", f"{P['readme']}: fallback/vendor table incomplete"))
 
+    fb_ok, fb_detail = g_fallback_artifact(root)
     rows.append(("AC3b", "fallback in release-note artifacts + recovery screen (#2468)",
-                 "GAP", "repo docs only; release artifacts/recovery screen not wired offline"))
+                 "AUTOMATED" if fb_ok else "GAP",
+                 fb_detail + " — shippable static artifact; on-screen rendering needs runtime UAT"))
 
     hit = find(wf, r"--smoke")
     rows.append(("AC4a", "QEMU/OVMF SB smoke with MS keys wired in CI",
@@ -343,8 +396,13 @@ def criteria(root: Path):
     rows.append(("AC5a", "optional measured-boot profile declares signed PCRs",
                  "AUTOMATED" if hit else "GAP", evidence(hit) + " — static config"))
 
-    rows.append(("AC5b", "TPM PCR values recorded into diagnostics bundle", "GAP",
-                 "pcrs artifact declared; bundle wiring + measured values unverified offline"))
+    pcr_ok, pcr_detail = g_pcr_capture_artifact(root)
+    rows.append(("AC5b", "TPM PCR values recorded into diagnostics bundle",
+                 "AUTOMATED" if pcr_ok else "GAP",
+                 pcr_detail + " — capture path + measured profile; real values need a TPM"))
+
+    rows.append(("AC5c", "real PCR values observed on a TPM-equipped machine", "GAP",
+                 "no TPM/tools in this environment; capture script emits an explicit skip, never fabricated values"))
     return rows
 
 

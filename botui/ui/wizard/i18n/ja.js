@@ -153,6 +153,8 @@ window.GBWizardLocales["ja"] = {
   "install.stopped": "セットアップが停止しました: {reason}。再試行するかログフォルダを開いてください。",
   "install.all-ready": "{count} 個のコンポーネントがすべて準備完了です。",
   "install.installing": "{total} 個中 {ready} 個をインストール中…",
+  "install.from-medium": "このメディアから {name} をインストール中",
+  "install.downloading": "{name} をダウンロード中",
   "install.waiting": "開始待ちです。",
   "install.complete": "セットアップ完了",
   "install.stack-ready": "スタック準備完了",

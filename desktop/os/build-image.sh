@@ -90,6 +90,20 @@ Development builds without keys: desktop/os/build-image.sh --mode dev"
     grep -q -- 'BEGIN CERTIFICATE' "$cert" \
         || die "signing certificate is not PEM: $cert"
 
+    # A key/cert pair that does not match yields an image signed by a key the
+    # shipped certificate cannot verify — a silent boot failure. Check it when
+    # openssl is available (keygen/CI have it); mkosi still performs the signing.
+    if command -v openssl >/dev/null 2>&1; then
+        if openssl pkey -in "$key" -noout >/dev/null 2>&1 \
+                && openssl x509 -in "$cert" -noout >/dev/null 2>&1; then
+            key_fp="$(openssl pkey -in "$key" -pubout -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1 || true)"
+            cert_fp="$(openssl x509 -in "$cert" -pubkey -noout 2>/dev/null | openssl pkey -pubin -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1 || true)"
+            if [ -n "$key_fp" ] && [ -n "$cert_fp" ] && [ "$key_fp" != "$cert_fp" ]; then
+                die "signing key and certificate do not match: the signed image would not boot"
+            fi
+        fi
+    fi
+
     profile="$SCRIPT_DIR/mkosi.profiles/secure-boot-release.conf"
     [ -f "$profile" ] || die "missing release signing policy: $profile"
     args+=(

@@ -153,6 +153,8 @@ window.GBWizardLocales["de"] = {
   "install.stopped": "Einrichtung gestoppt: {reason}. Erneut versuchen oder Log-Ordner öffnen.",
   "install.all-ready": "Alle {count} Komponenten sind bereit.",
   "install.installing": "{ready} von {total} Komponenten werden installiert…",
+  "install.from-medium": "{name} wird von diesem Datenträger installiert",
+  "install.downloading": "{name} wird heruntergeladen",
   "install.waiting": "Warten auf Start.",
   "install.complete": "Einrichtung abgeschlossen",
   "install.stack-ready": "Stack bereit",

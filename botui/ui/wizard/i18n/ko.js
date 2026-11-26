@@ -153,6 +153,8 @@ window.GBWizardLocales["ko"] = {
   "install.stopped": "설정이 중단되었습니다: {reason}. 다시 시도하거나 로그 폴더를 여세요.",
   "install.all-ready": "{count}개 구성 요소가 모두 준비되었습니다.",
   "install.installing": "{total}개 중 {ready}개 구성 요소 설치 중…",
+  "install.from-medium": "이 미디어에서 {name} 설치 중",
+  "install.downloading": "{name} 다운로드 중",
   "install.waiting": "시작 대기 중.",
   "install.complete": "설정 완료",
   "install.stack-ready": "스택 준비됨",

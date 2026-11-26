@@ -6,7 +6,8 @@ non-vacuous: it fails when its specific guarantee is removed from the tree.
 
     python3 scripts/check_offline_first_boot_audit.py [--root PATH]
 
-Exit 0 = all assertions PASS, 1 = at least one FAIL (printed by id + detail).
+Exit 0 = all runnable assertions PASS (SKIP is allowed), 1 = at least one
+FAIL (printed by id + detail).
 """
 
 from __future__ import annotations
@@ -55,6 +56,10 @@ class Audit:
 
     def check(self, aid: str, ok: bool, detail: str) -> None:
         self.results[aid] = (bool(ok), detail)
+
+    def skip(self, aid: str, reason: str) -> None:
+        """Record a guarantee that has nothing to check in this tree (None)."""
+        self.results[aid] = (None, reason)
 
     def read_or_fail(self, rel: str, aid: str) -> str:
         try:
@@ -183,6 +188,12 @@ class Audit:
         installer_dir = self.bundled_installer_dir()
         if installer_dir is None:
             self.check(aid, False, "no botserver-installers/* resource mapping in tauri config")
+            return
+        # A development checkout legitimately has no staged installer cache;
+        # that is a SKIP, not a broken guarantee. Once the directory exists,
+        # every archive in it still needs a sha256 pin (hard FAIL below).
+        if not installer_dir.is_dir():
+            self.skip(aid, f"installer cache absent at {installer_dir}; nothing staged to audit")
             return
         try:
             bundled = sorted(p.name for p in installer_dir.iterdir() if p.is_file())
@@ -331,11 +342,22 @@ def main(argv: list[str] | None = None) -> int:
     audit.run()
 
     print(f"OFFLINE-FIRST-BOOT AUDIT  root={root}")
+    passed = 0
+    skipped = 0
+    failed: list[str] = []
     for aid, title in ASSERTIONS:
-        ok, detail = audit.results.get(aid, (False, "assertion did not run"))
-        print(f"{'PASS' if ok else 'FAIL'} {aid} {title}: {detail}")
-    failed = [aid for aid, _ in ASSERTIONS if not audit.results.get(aid, (False, ""))[0]]
-    print(f"RESULT: {len(ASSERTIONS) - len(failed)}/{len(ASSERTIONS)} PASS")
+        status, detail = audit.results.get(aid, (False, "assertion did not run"))
+        if status is True:
+            label = "PASS"
+            passed += 1
+        elif status is None:
+            label = "SKIP"
+            skipped += 1
+        else:
+            label = "FAIL"
+            failed.append(aid)
+        print(f"{label} {aid} {title}: {detail}")
+    print(f"RESULT: {passed} PASS, {skipped} SKIP, {len(failed)} FAIL")
     return 1 if failed else 0
 
 
