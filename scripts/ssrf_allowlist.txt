@@ -92,3 +92,4 @@ botserver/src/botmodels_gateway/mod.rs # BotModels gateway upstream URL from con
 botserver/src/core/bot/kb_context/kb_context_search.rs # Qdrant health URL from the KB configuration
 botserver/src/jukebox/mod.rs # BotModels endpoint from configuration
 botserver/src/main_module/git_bot_monitor/loop_ops.rs # ALM (Forgejo) health URL built from botcoresecrets::alm_config() (Vault), never from a request
+botserver/src/core/bot/pipeline/llm/free_model_fallback.rs # Kilo model-list URL derived from the FREE_ENDPOINT compile-time constant (api.kilo.ai); no caller input reaches the host

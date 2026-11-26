@@ -12,6 +12,10 @@
 // Re-locked 2026-11-26: merged retail/POS and suite work added 10 router Rust
 // files, one .route( call and three parsed registrations (three new paths).
 // No route was removed; this is a one-time observation correction.
+// Re-locked 2026-11-26 after the gbgov edition merge and subsequent debt
+// splits: +164 Rust files, +9 .route( calls, +2 router files, +13 parsed
+// registrations and +13 unique method+path. .nest( is unchanged; every
+// drifted count grew, so no route was removed or renamed.
 
 var h = require("./00_harness");
 var test = h.test;
@@ -51,7 +55,7 @@ function count(text, regex) {
 // collab_message.rs (4 new Rust files). #2459 registers GET /metrics, a
 // single additional parsed registration. The .route(/.nest( counts are
 // unchanged; no route was removed or renamed.
-test("[BASELINE-OBSERVE] 4,720 router Rust files, 2,454 .route( and 9 .nest( calls", function () {
+test("[BASELINE-OBSERVE] 4,896 router Rust files, 2,465 .route( and 9 .nest( calls", function () {
   var files = rustFiles();
   var routeCalls = 0;
   var nestCalls = 0;
@@ -80,24 +84,24 @@ test("[BASELINE-OBSERVE] 4,720 router Rust files, 2,454 .route( and 9 .nest( cal
   // 2454, nestCalls 9, routeFiles 224, registrations 2798, unique 2765 —
   // every other count is unchanged and no route was added or removed.
   // One-time documented correction; shrink-only afterwards.
-  equal(files.length, 4732, "shipped router .rs file count");
-  equal(routeCalls, 2456, "raw .route( call count");
+  equal(files.length, 4896, "shipped router .rs file count");
+  equal(routeCalls, 2465, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
-  equal(routeFiles, 225, "files containing .route(");
+  equal(routeFiles, 227, "files containing .route(");
   observe("Rust files / .route( calls / .nest( calls / router files",
     files.length + " / " + routeCalls + " / " + nestCalls + " / " + routeFiles);
 });
 
 // Re-locked for the same reason: +1 parsed registration is GET /metrics.
-test("[BASELINE-OBSERVE] 2,802 parsed registrations (2,768 unique method+path)", function () {
+test("[BASELINE-OBSERVE] 2,815 parsed registrations (2,781 unique method+path)", function () {
   var registrations = routeRegistrations();
   var keys = registrations.map(function (r) {
     return r.method + " " + h.canonical(r.path);
   });
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
-  equal(registrations.length, 2802, "parsed registration count");
-  equal(Object.keys(unique).length, 2768, "unique method+path count");
+  equal(registrations.length, 2815, "parsed registration count");
+  equal(Object.keys(unique).length, 2781, "unique method+path count");
   var sources = {};
   registrations.forEach(function (r) { sources[r.source] = true; });
   observe("parsed registrations / unique method+path / owning files",

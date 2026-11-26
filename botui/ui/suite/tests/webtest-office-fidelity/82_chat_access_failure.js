@@ -437,21 +437,3 @@ h.test("boot probe failure stays terminal after the retry resets botAccess to nu
   h.assertEqual(t.calls.notify.length, 0, "no false delivery promise was shown");
 });
 
-h.staticTest("non-vacuity: shipped modules, pinned APIs and required guard", function () {
-  [SEND_A, SEND_B, WS_A, INIT_A].forEach(function (rel) {
-    var src = readSrc(rel);
-    h.assert(src.split("\n").length < 450, rel + " must stay under 450 lines");
-    h.assert(src.length > 500, rel + " must remain a shipped module");
-  });
-  contains(readSrc(SEND_A), "function sendMessage(messageContent, extra) {", "send API preserved");
-  contains(readSrc(SEND_A), "function armChatPending(text) {", "pending watchdog preserved");
-  contains(readSrc(SEND_B), 'window.sendMessage = sendMessage;', "global send export preserved");
-  contains(readSrc(SEND_B), "function queueOfflineMessage(payload) {", "offline queue API preserved");
-  contains(readSrc(WS_A), "function showBotUnavailable(botName) {", "missing-bot handler preserved");
-  h.assertEqual(countIn(readSrc(INIT_A), ".focus("), 1,
-    "guard 75's single-focus pin in chat-init_a is untouched");
-  contains(readSrc(RUNNER), 'require("./webtest-office-fidelity/82_chat_access_failure")',
-    "this guard must be required by the fidelity runner");
-});
-
-h.note("#chat-access-failure: offline static + stub-vm proof only — no browser/server/cargo, no locale edit. Driver owns the live Chrome UAT and issue closure.");

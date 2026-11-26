@@ -51,30 +51,35 @@ var metrics = require("./10_scan").metrics;
 // Re-locked 2026-11-26: merged suite work changed the observed HTML/JS
 // surface and live-region counts. All a11y invariants below are unchanged; this
 // is an observation correction, not a suppression.
+// Re-locked 2026-11-26 after the gbgov edition merge (Chat/Drive/Settings
+// parity): one new HTML file, 44 new JS files, +14 live-region mentions,
+// +14 declarations, +23 role=status and +21 data-i18n attrs. Every drifted
+// counter grew or stayed equal — no announcement fixture was removed. The
+// four documented gaps and all a11y invariants are unchanged.
 var EXPECTED = {
-  filesScanned: 1587,
-  htmlFiles: 214,
-  jsFiles: 1373,
+  filesScanned: 1632,
+  htmlFiles: 215,
+  jsFiles: 1417,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 730,
-  ariaLiveFiles: 258,
-  ariaLiveDeclarations: 680,
-  livePolite: 610,
+  ariaLiveMentions: 744,
+  ariaLiveFiles: 266,
+  ariaLiveDeclarations: 694,
+  livePolite: 624,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 545,
-  roleAlert: 106,
+  roleStatus: 568,
+  roleAlert: 115,
   roleLog: 12,
-  roleStatusAlertFiles: 255,
-  dataI18nAttrs: 5872,
-  htmlWithI18n: 203,
+  roleStatusAlertFiles: 275,
+  dataI18nAttrs: 5893,
+  htmlWithI18n: 204,
   gbTCalls: 390, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 126,
-  dynamicWrites: 4338,
-  writesInRegionFiles: 1272,
-  writesOutsideRegionFiles: 3066,
-  filesWithWritesNoRegion: 612,
+  dynamicWrites: 4537,
+  writesInRegionFiles: 1406,
+  writesOutsideRegionFiles: 3131,
+  filesWithWritesNoRegion: 628,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {

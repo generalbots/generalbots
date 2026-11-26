@@ -5,12 +5,12 @@ Two modes:
 
 * Offline (default): pin the source chain that decides whether the ten
   ``/suite/settings/partials/*.html`` requests are 200 or 404 in a deployment:
-  the ten shipped files, the exact clean URLs in the Settings boot document,
+  the eleven shipped files, the exact clean URLs in the Settings boot document,
   the botui ``/suite/:dir/partials/*path`` proxy to botserver, the botserver
   ``ServeDir`` rooted at ``BOTUI_PATH``, and the whole-suite-tree release
   packaging. A stale/unset ``BOTUI_PATH`` on a host is the documented root
   cause of the source-vs-host gap; the offline checks make that chain visible.
-* Live (``--base-url``): request the same ten URLs over HTTP and require 200
+* Live (``--base-url``): request the same eleven URLs over HTTP and require 200
   with ``text/html`` (zero 404s) — the smoke test CI runs against a started
   suite. Requests go through botui, exercising the proxy chain end to end.
 
@@ -45,13 +45,14 @@ LINUX_PKG = ROOT / "desktop/linux/package.sh"
 RELEASE = ROOT / ".github/workflows/release.yml"
 
 # The exact ten URLs from issue #2935 (browser console on the host).
-TEN = (
+BOOT_PARTIALS = (
     "01_profile_security.html",
     "06_dialogs.html",
     "07_os.html",
     "08_shared_links.html",
     "10_system.html",
     "12_model.html",
+    "17_limits.html",
     "13_instructions.html",
     "14_shortcuts.html",
     "15_os_appliance.html",
@@ -97,8 +98,8 @@ def count_in(src: str, needle: str) -> int:
 
 
 def check_shipped_files() -> None:
-    check("#2935 the issue names ten partials", len(TEN) == 10)
-    for name in TEN:
+    check("#2935 the issue names ten partials plus the gbgov limits tab", len(BOOT_PARTIALS) == 11)
+    for name in BOOT_PARTIALS:
         path = PARTIAL_DIR / name
         if not path.is_file():
             check(f"#2935 partial {name} ships", False, "file missing")
@@ -112,9 +113,9 @@ def check_shipped_files() -> None:
 def check_boot_urls() -> None:
     index = read(INDEX)
     refs = partial_refs(index)
-    expected = [BOOT_PREFIX + name for name in TEN]
-    check("#2935 boot document issues exactly ten partial requests",
-          len(refs) == 10, f"found {len(refs)}: {refs}")
+    expected = [BOOT_PREFIX + name for name in BOOT_PARTIALS]
+    check("#2935 boot document issues exactly eleven partial requests",
+          len(refs) == 11, f"found {len(refs)}: {refs}")
     check("#2935 boot document requests each partial once",
           len(set(refs)) == len(refs))
     for url in expected:
@@ -187,7 +188,7 @@ def check_packaging() -> None:
 def check_live(base_url: str) -> None:
     """GET the ten partials through the suite and require 200 text/html."""
     base = base_url.rstrip("/") + "/"
-    for name in TEN:
+    for name in BOOT_PARTIALS:
         path = BOOT_PREFIX + name
         request = urllib.request.Request(
             urljoin(base, path.lstrip("/")),

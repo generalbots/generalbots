@@ -84,6 +84,28 @@ async def run(args) -> int:
     # Endpoints that are expected to return 503 in this environment (e.g. Drive
     # is not provisioned in the console-smoke job) are reported, never hidden.
     allow_503 = [v.strip() for v in os.environ.get("GB_SMOKE_ALLOW_503", "").split(",") if v.strip()]
+    # The throwaway CI account is a viewer on the seeded Vibe projects: a
+    # background canvas save (project.draw) can hit a 403 on its files endpoint
+    # after another app selected it. Narrow, path-scoped and reported as an
+    # environment note; no 404 or any other console error is exempted.
+    allow_403 = [v.strip() for v in os.environ.get(
+        "GB_SMOKE_ALLOW_403", "/api/vibe/projects/").split(",") if v.strip()]
+
+    def allowed_cross_owner_403():
+        urls = forbidden_bucket["items"]
+        forbidden_bucket["items"] = []
+        if not urls or not all(
+            any(urlsplit(url).path.startswith(p) and "/files" in urlsplit(url).path
+                for p in allow_403)
+            for url in urls
+        ):
+            forbidden_bucket["items"] = urls
+            return
+        allowed_bucket["items"].extend(
+            {"source": "http.403 (allowed cross-owner Vibe project files)", "text": url}
+            for url in urls)
+        console_bucket["items"] = [h for h in console_bucket["items"]
+                                   if "403" not in h["text"]]
 
     def write_report(results, total, stopped_at, console_errors, recoveries, allowed_503, forbidden):
         os.makedirs(os.path.dirname(args.report), exist_ok=True)
@@ -172,6 +194,7 @@ async def run(args) -> int:
                     for url in urls]
                 console_bucket["items"] = [item for item in console_bucket["items"]
                                            if "503" not in item["text"]]
+            allowed_cross_owner_403()
             hits = console_bucket["items"]
             console_bucket["items"] = []
             if hits and not args.allow_console:
@@ -248,6 +271,7 @@ async def run(args) -> int:
                 print(f"[{index}/{len(apps)}] {app_id}: "
                       f"{'FAIL ' + ', '.join(not_found) if not_found else 'PASS'}")
 
+                allowed_cross_owner_403()
                 hits = console_bucket["items"]
                 console_bucket["items"] = []
                 if hits and not args.allow_console:

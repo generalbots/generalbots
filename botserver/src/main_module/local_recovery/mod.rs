@@ -13,6 +13,7 @@ mod secret;
 use axum::routing::post;
 use axum::Router;
 use botcore::shared::state::AppState;
+use crate::security::headers::{with_security_headers, SecurityHeadersConfig};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
@@ -38,12 +39,18 @@ async fn serve(app: Arc<AppState>) -> std::io::Result<()> {
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
     let port = listener.local_addr()?.port();
     let store = Arc::new(secret::SecretStore::create(path, port)?);
-    let router = Router::new()
-        .route("/local-recovery/reset", post(handler::reset))
-        .with_state(handler::RecoveryState {
-            app,
-            store: Arc::clone(&store),
-        });
+    // IMP-09 applies to every server, even this loopback-only one: the Tauri
+    // shell calls it over plain HTTP, so HSTS is dropped to avoid pinning
+    // 127.0.0.1 to HTTPS in the WebView.
+    let router = with_security_headers(
+        Router::new()
+            .route("/local-recovery/reset", post(handler::reset))
+            .with_state(handler::RecoveryState {
+                app,
+                store: Arc::clone(&store),
+            }),
+        SecurityHeadersConfig::from_env().disable_hsts(),
+    );
     log::info!("Local password recovery listens on the loopback interface only");
     let served = axum::serve(
         listener,
