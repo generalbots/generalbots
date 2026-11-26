@@ -8,7 +8,8 @@
 #   browser +59, desktop +49, integrations +3, project +7, tickets +8
 #     (4400f641e VM-tab/auth/classList fixes);
 #   designer +39 (ad5974c96 app-kit/designer reopen);
-#   handoff +20 (097b85bd1 banking branch scope/fraud route/token fallback).
+#   handoff +20 (097b85bd1 branch scope/fraud route/token fallback);
+#   pos +20 (43e77f678 retail POS work).
 # Tightened because the surface shrank: calendar -1, crm -23, docs -9.
 # No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +271,7 @@ loc = 176
 [apps."pos"]
 routes = 0
 js_modules = 1
-loc = 352
+loc = 372
 
 [apps."preview"]
 routes = 0
