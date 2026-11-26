@@ -1,18 +1,11 @@
 /* Chat send path: composer payload, privacy gate and offline queue entry. */
 "use strict";
 
-// #1691 — advertise the client's real surfaces and Preview mode; keep a visible
-// waiting state + retry hint so a 503 storm never looks like a dead chat.
+// #1691 — advertise real surfaces + preview; keep a visible wait/retry hint so 503 storms never look dead.
 function clearChatPending() {
   ChatState.pendingResponseAt = null;
-  if (ChatState.responseWatchdog) {
-    clearTimeout(ChatState.responseWatchdog);
-    ChatState.responseWatchdog = null;
-  }
-  if (ChatState.pendingHardTimeout) {
-    clearTimeout(ChatState.pendingHardTimeout);
-    ChatState.pendingHardTimeout = null;
-  }
+  if (ChatState.responseWatchdog) { clearTimeout(ChatState.responseWatchdog); ChatState.responseWatchdog = null; }
+  if (ChatState.pendingHardTimeout) { clearTimeout(ChatState.pendingHardTimeout); ChatState.pendingHardTimeout = null; }
   if (typeof setChatStatus === "function") setChatStatus("");
 }
 window.clearChatPending = clearChatPending;
@@ -26,13 +19,9 @@ window.clearBlockedChatTurn = clearBlockedChatTurn;
     if (typeof setChatStatus === "function") setChatStatus("");
   }
   if (typeof document !== "undefined" && document.addEventListener) {
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible") clearStale();
-    });
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") clearStale(); });
   }
-  if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("focus", clearStale);
-  }
+  if (typeof window !== "undefined" && window.addEventListener) window.addEventListener("focus", clearStale);
 })();
 
 // A terminal probe can strand a composed message after the composer was cleared.
@@ -49,9 +38,7 @@ function armChatPending(text) {
     // #2098 — keep the SAME progress element; the status bar alone looked frozen.
     if (window.GBTurn && GBTurn.slow()) return;
     if (ChatState.isStreaming) return;
-    if (typeof setChatStatus === "function") {
-      setChatStatus("Waiting for the model… the provider may be busy.");
-    }
+    if (typeof setChatStatus === "function") setChatStatus("Waiting for the model… the provider may be busy.");
   }, slowAfter);
   // #2244 — no terminal frame must leave the pending turn stuck forever.
   if (ChatState.pendingHardTimeout) clearTimeout(ChatState.pendingHardTimeout);
@@ -70,10 +57,7 @@ function clientCapabilities() {
   var caps = {
     surfaces: surfaces,
     input: "text,file,audio,camera",
-    locale: (function () {
-      try { return localStorage.getItem("gb-locale") || navigator.language || "en"; }
-      catch (e) { return "en"; }
-    })(),
+    locale: (function () { try { return localStorage.getItem("gb-locale") || navigator.language || "en"; } catch (e) { return "en"; } })(),
     preview_mode: !!(window.GBPreviewMode && window.GBPreviewMode.isOn()),
     max_live_apps: 2,
     ui_automation: controls.appAutomation !== false,
@@ -166,11 +150,8 @@ function sendMessage(messageContent, extra) {
   var isAnonymous = !!(window.__BOT_IS_PUBLIC__ && !(window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()));
 
   function generateTurnMessageId() {
-    try {
-      if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
-      }
-    } catch (e) { window.gbLogError ? gbLogError(e, "generateTurnMessageId") : console.error("generateTurnMessageId", e); }
+    try { if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID(); }
+    catch (e) { window.gbLogError ? gbLogError(e, "generateTurnMessageId") : console.error("generateTurnMessageId", e); }
     return "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   }
 
@@ -187,10 +168,7 @@ function sendMessage(messageContent, extra) {
     drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? { source: "user_drive", untrusted: true, files: driveFiles.slice(0, 20) } : undefined,
     // #1545: Drive is part of the prompt context by default; the setting is
     // stored as a string so a future Settings toggle can flip it.
-    index_all_drive: (function () {
-      try { return localStorage.getItem("gb-index-all-drive") !== "false"; }
-      catch (e) { return true; }
-    })(),
+    index_all_drive: (function () { try { return localStorage.getItem("gb-index-all-drive") !== "false"; } catch (e) { return true; } })(),
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
     client_capabilities: clientCapabilities(),
     // #1593/#2238 — explicit per-conversation switches.
@@ -201,12 +179,7 @@ function sendMessage(messageContent, extra) {
     // #1642 — the prompt reads chat_preferences server-side; the old
     // `user_memory` payload was ignored by the server and is gone.
     mentions: selectedMentions.map(function (mention) {
-      return {
-        kind: mention.kind,
-        id: mention.id,
-        label: mention.name,
-        project_id: mention.project_id || null,
-      };
+      return { kind: mention.kind, id: mention.id, label: mention.name, project_id: mention.project_id || null };
     }),
     timestamp: new Date().toISOString(),
   };
@@ -261,6 +234,16 @@ function sendMessage(messageContent, extra) {
 
   // #2360 — keep the structured payload so a failed turn retries without prose.
   ChatState.lastUserTurnPayload = payload;
+
+  // #2936 — the probe can settle while the payload is built: re-check here so
+  // an unsent message is never painted as a .message.user bubble. No queue.
+  var lateBlocked = (ChatState.botAccess === "auth_required" || window.chatAccessTerminal === "auth") ? "auth" : (ChatState.botAccess === "probe_error" || window.chatAccessTerminal === "probe") ? "probe" : "";
+  if (lateBlocked) {
+    clearBlockedChatTurn();
+    if (!messageContent) { var lateInput = document.getElementById("messageInput"); if (lateInput) lateInput.value = content; }
+    if (lateBlocked === "auth") notify(chatPrivateSigninMessage(), "error");
+    return;
+  }
 
   addMessage("user", display);
   // #2098 — the turn state machine keeps feedback until the final answer.

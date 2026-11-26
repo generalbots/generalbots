@@ -1,37 +1,21 @@
 /**
  * Anonymous chat send regression guard (offline, no browser/server/cargo).
+ * A private bot never dials a socket: a send must fail fast with no stuck
+ * turn, no false delivery promise and no lost composer draft.
  *
- * In an unauthenticated tab a private `default` bot is exempted from the
- * login redirect (chat-init_a.js logs "bot access could not be verified"),
- * the WS probe settles on `auth_required`, and showAuthRequired() refuses to
- * dial. Before the fix the composer still accepted a message: sendMessage()
- * painted "Sending…", queued the payload and called connectWebSocket(), which
- * re-ran the cached auth_required branch. No frame ever ended the turn and the
- * only trace was a console warning — a stuck "Sending…" with no visible cause.
+ * #2936 — a probe can settle while the outgoing payload is assembled, after
+ * the first fail-fast. The paint boundary re-checks both latch signals before
+ * addMessage(): no `.message.user` bubble may claim delivery for a message
+ * refused at the queue/socket boundary.
  *
- * The fix fails fast while the access state is terminal: clear the turn and
- * pending timers, keep the text in the composer, surface the existing
- * `chat-bot-private-signin` catalogue key (shipped in all 8 locales) and
- * return before addMessage()/GBTurn.start()/queueOfflineMessage(). The same
- * reset runs when a late probe denies access, covering the race where the
- * message was composed before the probe resolved.
+ * Probes: (a) reset helper; (b) block branch precedes turn/bubble/queue;
+ * (c) late probe handlers reset; (d) one existing i18n key in 8 locales;
+ * (e) probe_failed cleared at source; (f) no delivery promise when blocked;
+ * (g) runtime auth/probe/allowed paths; (h) non-vacuity + guard-75 focus pin;
+ * (i) no unsent bubble (static + DOM query in every blocked path).
  *
- * Probes:
- *   (a) a shared reset helper clears GBTurn + pending state;
- *   (b) the block branch precedes every turn/queue call and never queues;
- *   (c) late auth_required / probe_error handlers also reset state;
- *   (d) only an existing i18n key is reused (all catalogs verified);
- *   (e) probe_failed is cleared at its source, even when connectWebSocket_b's
- *       seq guard drops the callback so no UI handler runs;
- *   (f) a terminal access state never queues or promises "will be sent";
- *   (g) runtime: auth_required -> reset + restored composer + one error toast,
- *       no turn, no send, no retry; probe_error -> reset, no turn; allowed ->
- *       the authenticated send path is untouched; stranded payload is dropped;
- *   (h) non-vacuity: small modules, pinned APIs, guard-75 .focus() count,
- *       runner require.
- *
- * GB_CHAT_ACCESS_PROBE_ROOT can point at a /tmp tree for mutation probes
- * without touching the repository. The driver owns UAT and issue closure.
+ * GB_CHAT_ACCESS_PROBE_ROOT points at a /tmp tree for mutation probes.
+ * The driver owns UAT and issue closure.
  */
 "use strict";
 
@@ -50,10 +34,8 @@ var FALLBACK = "This bot is private — sign in to continue";
 
 function readSrc(rel) {
   var probe = process.env.GB_CHAT_ACCESS_PROBE_ROOT;
-  if (probe) {
-    var candidate = path.join(probe, path.basename(rel));
-    if (fs.existsSync(candidate)) return fs.readFileSync(candidate, "utf8");
-  }
+  var candidate = probe ? path.join(probe, path.basename(rel)) : "";
+  if (candidate && fs.existsSync(candidate)) return fs.readFileSync(candidate, "utf8");
   return h.readRepo(rel);
 }
 function contains(src, needle, msg) {
@@ -96,6 +78,7 @@ h.staticTest("terminal bot access fails the send before any turn or queue is sta
   contains(branch, "notify(", "the failure is surfaced, not silent");
   contains(branch, "return;", "the send stops here");
   absent(branch, "queueOfflineMessage(", "no silent offline retry on terminal access");
+  absent(branch, "addMessage(", "a blocked send paints no user bubble");
   var atBranch = send.indexOf("var blocked = (ChatState.botAccess");
   var atTurn = send.indexOf("GBTurn.start(");
   var atBubble = send.indexOf('addMessage("user", display)');
@@ -105,6 +88,25 @@ h.staticTest("terminal bot access fails the send before any turn or queue is sta
     " turn=" + atTurn + " queue=" + atQueue + ")");
   h.assertEqual(countIn(branch, "gbT("), 0,
     "block branch adds no gbT call (the aria baseline pins the suite-wide count)");
+});
+
+h.staticTest("the paint boundary re-checks the latch so no unsent bubble is rendered", function () {
+  var send = readSrc(SEND_A);
+  var late = span(send, "var lateBlocked = (ChatState.botAccess", '\n  addMessage("user", display);');
+  h.assert(late.length > 250, "non-vacuity: paint-boundary guard must be substantial");
+  [
+    'ChatState.botAccess === "auth_required" || window.chatAccessTerminal === "auth"',
+    'ChatState.botAccess === "probe_error" || window.chatAccessTerminal === "probe"',
+    "clearBlockedChatTurn();", "lateInput.value = content",
+    'notify(chatPrivateSigninMessage(), "error")', "return;",
+  ].forEach(function (needle) { contains(late, needle, "paint guard needs " + needle); });
+  absent(late, "addMessage(", "the paint-boundary guard paints no bubble");
+  var atLate = send.indexOf("var lateBlocked = (ChatState.botAccess");
+  var atBubble = send.indexOf('addMessage("user", display);');
+  h.assert(atLate !== -1 && atBubble > atLate, "the re-check must run before the bubble");
+  h.assertEqual(countIn(send, 'addMessage("user", display)'), 1, "one user-bubble paint site");
+  var queue = span(readSrc(SEND_B), "function queueOfflineMessage(payload) {", "// #2155 UI-REG-01b");
+  absent(queue, "addMessage(", "the blocked queue branch paints no bubble either");
 });
 
 h.staticTest("late auth denial and probe failure also clear a stuck turn", function () {
@@ -197,52 +199,61 @@ function makeChat(access, authed) {
     };
   }
   var input = el("messageInput");
+  // Minimal DOM for the transcript: addMessage() appends a `.message user`
+  // node here, so blocked paths can be checked against real DOM queries.
+  var messages = {
+    id: "messages", children: [], appendChild: function (node) { this.children.push(node); },
+    querySelector: function () { return null; },
+    querySelectorAll: function (sel) {
+      var classes = sel.replace(/^\./, "").split(".");
+      return this.children.filter(function (n) {
+        return classes.every(function (c) { return (n.classList || []).indexOf(c) !== -1; });
+      });
+    },
+  };
   var ws = { readyState: authed ? 1 : 0, send: function (raw) { calls.sent.push(raw); } };
   var state = {
-    botAccess: access, botUnavailable: false, ws: ws,
-    pendingResponseAt: null, pendingText: "", pendingSend: null,
-    offlineQueue: [], isStreaming: false, selectedMentions: [],
-    activeSwitchers: [], currentBotId: "b", currentUserId: "u",
-    currentSessionId: "s", clientId: "c", reconnectAttempts: 0,
-    maxReconnectAttempts: 5,
+    botAccess: access, botUnavailable: false, ws: ws, pendingResponseAt: null,
+    pendingText: "", pendingSend: null, offlineQueue: [], isStreaming: false,
+    selectedMentions: [], activeSwitchers: [], currentBotId: "b", currentUserId: "u",
+    currentSessionId: "s", clientId: "c", reconnectAttempts: 0, maxReconnectAttempts: 5,
   };
   var sandbox = {
-    console: console, Math: Math, Date: Date, JSON: JSON, Array: Array, Object: Object,
-    String: String, Promise: Promise,
+    console: console, Math: Math, Date: Date, JSON: JSON, Array: Array, Object: Object, String: String, Promise: Promise,
     setTimeout: function () { return 1; }, clearTimeout: function () {}, setInterval: function () { return 1; },
     localStorage: { getItem: function () { return null; }, setItem: function () {}, removeItem: function () {} },
-    navigator: { language: "en" },
-    MessageType: { USER: 1 }, WebSocket: { OPEN: 1, CONNECTING: 0 },
-    ChatState: state,
+    navigator: { language: "en" }, MessageType: { USER: 1 }, WebSocket: { OPEN: 1, CONNECTING: 0 }, ChatState: state,
     gbT: function (key, fallback) { return "LOC:" + key + ":" + fallback; },
     chatPrivateSigninMessage: function () { return "LOC:" + KEY + ":" + FALLBACK; },
     notify: function (message, type) { calls.notify.push({ message: message, type: type }); },
-    addMessage: function () { calls.bubbles++; }, hideMentionDropdown: function () {}, scrollToBottom: function () {},
+    addMessage: function (sender) {
+      calls.bubbles++;
+      messages.appendChild({ className: "message " + sender, classList: ["message", sender] });
+    },
+    hideMentionDropdown: function () {}, scrollToBottom: function () {},
     setChatStatus: function (v) { calls.status.push(v); },
     connectWebSocket: function () { calls.queued++; },
-    queueOfflineMessage: function () { calls.queued++; state.offlineQueue.push("queued"); },
-    activeSwitcherIds: null,
+    queueOfflineMessage: function () { calls.queued++; state.offlineQueue.push("queued"); }, activeSwitcherIds: null,
   };
   sandbox.window = sandbox;
   sandbox.addEventListener = function () {};
   var elements = {};
   sandbox.document = {
-    getElementById: function (id) { if (!elements[id]) elements[id] = id === "messageInput" ? input : el(id); return elements[id]; },
-    createElement: function () { return el("created"); },
-    addEventListener: function () {}, dispatchEvent: function () {},
+    getElementById: function (id) {
+      if (!elements[id]) elements[id] = id === "messageInput" ? input : (id === "messages" ? messages : el(id));
+      return elements[id];
+    },
+    createElement: function () { return el("created"); }, addEventListener: function () {}, dispatchEvent: function () {},
   };
   sandbox.window.GBTurn = {
-    SLOW_AFTER_MS: 12000,
-    start: function () { calls.turnStart.push("start"); },
+    SLOW_AFTER_MS: 12000, start: function () { calls.turnStart.push("start"); },
     forceHide: function () { calls.forceHide++; },
   };
   sandbox.window.CustomEvent = function (type, opts) { this.type = type; this.detail = opts.detail; };
   sandbox.window.dispatchEvent = function () {};
   h.vm.createContext(sandbox);
-  [SEND_A, SEND_B].forEach(function (rel) {
-    h.vm.runInContext(readSrc(rel), sandbox, { filename: rel });
-  });
-  return { sandbox: sandbox, state: state, input: input, calls: calls, elements: elements };
+  [SEND_A, SEND_B].forEach(function (rel) { h.vm.runInContext(readSrc(rel), sandbox, { filename: rel }); });
+  return { sandbox: sandbox, state: state, input: input, calls: calls, elements: elements, messages: messages };
 }
 
 h.test("auth_required send resets state, restores the composer and never retries", function () {
@@ -261,6 +272,9 @@ h.test("auth_required send resets state, restores the composer and never retries
   h.assertEqual(t.calls.queued, 0, "no offline queue / silent reconnect loop");
   h.assertEqual(t.calls.sent.length, 0, "nothing was written into a socket");
   h.assertEqual(t.state.offlineQueue.length, 0, "no payload was queued");
+  h.assertEqual(t.calls.bubbles, 0, "addMessage() was never called");
+  h.assertEqual(t.messages.querySelectorAll(".message.user").length, 0,
+    "no .message.user bubble was painted for a blocked send");
 });
 
 h.test("probe_error send resets state without starting a turn", function () {
@@ -274,6 +288,34 @@ h.test("probe_error send resets state without starting a turn", function () {
   h.assertEqual(t.input.value, "still here", "composer keeps the message");
   h.assertEqual(t.calls.queued, 0, "no silent retry");
   h.assertEqual(t.calls.sent.length, 0, "nothing was sent");
+  h.assertEqual(t.calls.bubbles, 0, "addMessage() was never called");
+  h.assertEqual(t.messages.querySelectorAll(".message.user").length, 0,
+    "no .message.user bubble was painted for a blocked send");
+});
+
+h.test("a latch settling during payload assembly suppresses the user bubble", function () {
+  var t = makeChat(null, true);
+  t.state.pendingResponseAt = 789;
+  t.input.value = "late latch";
+  // getState() runs while the payload is assembled, after the first blocked
+  // branch but before addMessage(). The probe settles auth_required there.
+  t.sandbox.window.GBChatControls = { getState: function () {
+    t.sandbox.chatAccessTerminal = "auth";
+    return { web: true, mediaType: "auto", agent: true, appAutomation: true };
+  } };
+  t.sandbox.sendMessage();
+  h.assertEqual(t.sandbox.chatAccessTerminal, "auth", "the latch settled mid-send");
+  h.assertEqual(t.calls.bubbles, 0, "no user bubble was painted");
+  h.assertEqual(t.messages.querySelectorAll(".message.user").length, 0, "no .message.user node");
+  h.assertEqual(t.calls.turnStart.length, 0, "no Sending… turn was started");
+  h.assertEqual(t.calls.forceHide, 1, "the stale turn was cleared");
+  h.assertEqual(t.state.pendingResponseAt, null, "pending state was cleared");
+  h.assertEqual(t.input.value, "late latch", "composer text was restored");
+  h.assertEqual(t.calls.sent.length + t.calls.queued + t.state.offlineQueue.length, 0,
+    "nothing was sent, queued or retried");
+  h.assertEqual(t.calls.notify.length, 1, "one localized error");
+  h.assert(t.calls.notify[0].message.indexOf("LOC:" + KEY + ":") === 0, "existing auth key reused");
+  h.assertEqual(t.calls.notify[0].type, "error", "error toast, not info");
 });
 
 h.test("allowed access keeps the authenticated send path unchanged", function () {
@@ -285,6 +327,9 @@ h.test("allowed access keeps the authenticated send path unchanged", function ()
   h.assertEqual(t.state.pendingResponseAt !== null, true, "pending state is armed");
   h.assertEqual(t.input.value, "", "the composer was cleared after a real send");
   h.assertEqual(t.calls.notify.length, 0, "no auth failure for a signed-in user");
+  h.assertEqual(t.calls.bubbles, 1, "the authenticated path still paints its user bubble");
+  h.assertEqual(t.messages.querySelectorAll(".message.user").length, 1,
+    "exactly one .message.user bubble is rendered for a real send");
 });
 
 /** Probe sandbox: real shipped WS module, failing /api/bot/public fetch. */
@@ -372,6 +417,8 @@ h.test("boot probe failure stays terminal after the retry resets botAccess to nu
   t.input.value = "after boot failure";
   t.sandbox.sendMessage();
   h.assertEqual(t.calls.bubbles, 0, "no user bubble was added");
+  h.assertEqual(t.messages.querySelectorAll(".message.user").length, 0,
+    "no .message.user node survives the boot-failure retry");
   h.assertEqual(t.calls.turnStart.length, 0, "no Sending… turn was started");
   h.assertEqual(t.state.offlineQueue.length, 0, "nothing was queued");
   h.assertEqual(t.calls.queued, 0, "no reconnect promise or silent retry loop");
