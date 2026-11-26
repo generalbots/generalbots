@@ -4,7 +4,8 @@ name: gbgov release
 # (branch `gbgov`). It runs only on the edition's own tags (`gbgov-v1.2.3`) and
 # by hand; the platform's `v*.*.*` tags and release workflow are not involved.
 #
-# A tag builds and publishes a pre-release named for the tag. A manual run
+# A tag builds and publishes a pre-release named for the tag, and only when
+# every installer carries a valid code signature. A manual run
 # builds the same files and keeps them as workflow artifacts; it publishes only
 # with `publish=true` and only when it runs on a `gbgov-v*` tag.
 #
@@ -46,6 +47,10 @@ jobs:
     env:
       # `secrets` cannot be read in a step condition; this flag can.
       HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT != '' }}
+      # Public name of the edition: release files carry it, never `gbgov`.
+      PRODUCT_FILE: GeneralBotsLite
+    outputs:
+      signed: ${{ steps.collect.outputs.signed }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -239,10 +244,6 @@ jobs:
       - name: Install the Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
-      # Product name and app identifier stay as today until the owner decides
-      # them (decision D1). TODO(D1): change `productName` and `identifier` in
-      # botapp/tauri.gbgov.conf.json before the first public release; changing
-      # them later breaks upgrades and moves the data folder.
       - name: Package the NSIS and MSI installers
         shell: pwsh
         working-directory: botapp
@@ -254,25 +255,39 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "cargo tauri build failed with exit code $LASTEXITCODE" }
 
       - name: Collect the release files
+        id: collect
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $v = $env:GBGOV_VERSION
+          $p = $env:PRODUCT_FILE
           New-Item -ItemType Directory -Force dist | Out-Null
           $bundles = @('target\release\bundle', 'botapp\target\release\bundle')
           $msi = Get-ChildItem ($bundles | ForEach-Object { "$_\msi\*.msi" }) -ErrorAction SilentlyContinue | Select-Object -First 1
           $setup = Get-ChildItem ($bundles | ForEach-Object { "$_\nsis\*-setup.exe" }) -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $msi) { throw 'the bundler produced no MSI' }
           if (-not $setup) { throw 'the bundler produced no NSIS installer' }
-          Copy-Item $msi.FullName "dist\generalbots-gbgov-$v-windows-x64.msi"
-          Copy-Item $setup.FullName "dist\generalbots-gbgov-$v-windows-x64-setup.exe"
-          Copy-Item target\release\botapp.exe "dist\generalbots-gbgov-$v-windows-x64.exe"
-          Copy-Item target\release\botserver.exe "dist\botserver-gbgov-$v-windows-x64.exe"
+          Copy-Item $msi.FullName "dist\$p-$v-windows-x64.msi"
+          Copy-Item $setup.FullName "dist\$p-$v-windows-x64-setup.exe"
+          Copy-Item target\release\botapp.exe "dist\$p-$v-windows-x64.exe"
+          Copy-Item target\release\botserver.exe "dist\$p-botserver-$v-windows-x64.exe"
           foreach ($f in Get-ChildItem dist -File) {
             if ($f.Name -match '(msi|setup\.exe)$' -and $f.Length -lt 1MB) {
               throw "$($f.Name) is suspiciously small ($($f.Length) bytes)"
             }
           }
+          # Publishing needs every executable validly signed (Authenticode);
+          # an unsigned build is kept as a workflow artifact only.
+          $signed = $true
+          foreach ($f in Get-ChildItem dist -File | Where-Object { $_.Name -match '\.(exe|msi)$' }) {
+            $status = (Get-AuthenticodeSignature $f.FullName).Status
+            Write-Host "signature $($f.Name): $status"
+            if ($status -ne 'Valid') { $signed = $false }
+          }
+          if ($env:HAS_WINDOWS_CERT -eq 'true' -and -not $signed) {
+            throw 'a signing certificate is configured but not every file is validly signed'
+          }
+          "signed=$($signed.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
 
       - name: Software bill of materials (CycloneDX)
         shell: pwsh
@@ -289,13 +304,13 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "cargo cyclonedx failed for $($b.Crate)" }
             $sbom = Get-ChildItem $b.Crate -Filter '*.cdx.json' -File | Select-Object -First 1
             if (-not $sbom) { throw "no SBOM was written for $($b.Crate)" }
-            Copy-Item $sbom.FullName "dist\$($b.Crate)-gbgov-$env:GBGOV_VERSION.cdx.json" -Force
+            Copy-Item $sbom.FullName "dist\$env:PRODUCT_FILE-$($b.Crate)-$env:GBGOV_VERSION.cdx.json" -Force
           }
 
       - name: SHA-256 sums
         shell: pwsh
         run: |
-          $sums = "SHA256SUMS-gbgov-$env:GBGOV_VERSION-windows.txt"
+          $sums = "SHA256SUMS-$env:PRODUCT_FILE-$env:GBGOV_VERSION-windows.txt"
           Get-ChildItem dist -File | Where-Object { $_.Name -ne $sums } | Sort-Object Name |
             ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
             Set-Content (Join-Path dist $sums) -Encoding ascii
@@ -329,6 +344,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Require a signed build
+        env:
+          SIGNED: ${{ needs.build.outputs.signed }}
+        run: |
+          if [ "$SIGNED" != "true" ]; then
+            echo "::error::the installers are not signed; a public release waits for the code-signing certificate (secrets WINDOWS_CERT and WINDOWS_CERT_PASSWORD)"
+            exit 1
+          fi
+
       - name: Require an edition tag
         run: |
           if [ "$GITHUB_REF_TYPE" != "tag" ] || [[ "$GITHUB_REF_NAME" != gbgov-v* ]]; then
@@ -354,8 +378,8 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "$TAG" \
+              --title "General Bots Lite ${TAG#gbgov-v}" \
               --prerelease \
               --verify-tag \
-              --notes "Windows installers of the desktop edition (Chat + Drive). Verify the downloads with the SHA256SUMS file attached to this release."
+              --notes "General Bots Lite ${TAG#gbgov-v}: Windows installers (Chat + Drive). Verify the downloads with the SHA256SUMS file attached to this release."
           fi
