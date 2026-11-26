@@ -59,8 +59,14 @@ pub fn convert_date_to_iso_format(value: &str) -> String {
 
             if all_numeric {
                 // Parse the three parts
-                let a = parts[0].parse::<u32>().ok();
-                let b = parts[1].parse::<u32>().ok();
+                let a = match parts[0].parse::<u32>() {
+                    Ok(v) => Some(v),
+                    Err(e) => { log::debug!("invalid date component: {e}"); None }
+                };
+                let b = match parts[1].parse::<u32>() {
+                    Ok(v) => Some(v),
+                    Err(e) => { log::debug!("invalid date component: {e}"); None }
+                };
                 let c = if parts[2].len() == 2 {
                     // Convert 2-digit year to 4-digit
                     parts[2].parse::<u32>().ok().map(|y| {

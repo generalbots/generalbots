@@ -218,7 +218,8 @@ pub(super) async fn prepare_messages_and_maybe_finish(
     // #1545/#1547: grounding context goes LAST, immediately before the model
     // call, so it is the freshest instruction in the prompt.
     #[cfg(feature = "drive")]
-    super::super::drive_context::inject(state, &bot_uuid, user_id, user_text, messages).await;
+    super::super::drive_context::inject(state, &bot_uuid, user_id, user_text, parsed, messages)
+        .await;
 
     // #1632 item 3 / #2238 — the composer's Web switch is the decision.
     // When explicitly off, do not search (even for informational requests).

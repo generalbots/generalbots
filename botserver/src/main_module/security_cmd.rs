@@ -106,7 +106,7 @@ pub async fn handle_security_command(args: &[String]) {
         }
     }
     #[cfg(not(feature = "security"))]
-    let _ = args;
+    std::hint::black_box(args);
 }
 
 /// `OK` / `FAIL` are operator-facing verdicts, not log text.

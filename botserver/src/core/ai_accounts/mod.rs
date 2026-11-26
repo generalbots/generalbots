@@ -16,6 +16,9 @@ pub const CODEX_CLI: &str = "codex-cli";
 pub const ANTIGRAVITY: &str = "antigravity";
 pub const PROVIDERS: [&str; 4] = [CLAUDE_CODE, CHATGPT_PLAN, CODEX_CLI, ANTIGRAVITY];
 
+#[cfg(feature = "agent-vm")]
+pub mod models;
+
 /// Where a resolved LLM configuration came from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedLlm {
@@ -63,7 +66,7 @@ pub fn normalize_provider(value: &str) -> Option<&'static str> {
 mod db;
 pub use db::{
     choose_for_request, default_model, ensure_user, is_linked, is_subscription_provider,
-    linked_account, list_accounts, mark_linked, update_status, LinkedAccount,
+    linked_account, list_accounts, mark_linked, provider_label, update_status, LinkedAccount,
 };
 
 #[cfg(test)]

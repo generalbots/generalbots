@@ -103,7 +103,10 @@ pub(crate) async fn run_turn_tracked<H: Approvals>(
     let ended = |result, completed| TurnEnd { result, started: true, completed };
     let mut turn: Turn<H::Ticket> = Turn {
         thread_id: thread_id.to_string(),
-        turn_id: proto::turn_id_of(&started).unwrap_or_default(),
+        turn_id: proto::turn_id_of(&started).unwrap_or_else(|| {
+            tracing::debug!("Codex turn/start answered without an id; using an empty id");
+            String::new()
+        }),
         items: HashMap::new(),
         asked: HashSet::new(),
         tickets: HashMap::new(),
@@ -214,7 +217,10 @@ async fn approve_files<H: Approvals>(
     turn: &mut Turn<H::Ticket>,
     handler: &H,
 ) -> Result<Answer, BridgeError> {
-    let changes = turn.items.get(item_id).map(proto::file_changes).unwrap_or_default();
+    let changes = turn.items.get(item_id).map(proto::file_changes).unwrap_or_else(|| {
+        tracing::debug!("Codex file change {item_id} is not in the turn; no paths to approve");
+        Vec::new()
+    });
     if changes.is_empty() {
         tracing::warn!("codex bridge: file change without known paths declined");
         return Ok(Answer::Decline);
@@ -278,7 +284,10 @@ async fn notified<H: Approvals>(
             if let Some(tickets) = turn.tickets.remove(&item_id) {
                 let mut outcome = ActionOutcome::of_item(&item);
                 if outcome.files.is_empty() {
-                    outcome.files = turn.items.get(&item_id).map(proto::file_changes).unwrap_or_default()
+                    outcome.files = turn.items.get(&item_id).map(proto::file_changes).unwrap_or_else(|| {
+                        tracing::debug!("Codex file change {item_id} is not in the turn; no paths to report");
+                        Vec::new()
+                    })
                         .into_iter().map(|change| change.path).collect();
                 }
                 for ticket in tickets {

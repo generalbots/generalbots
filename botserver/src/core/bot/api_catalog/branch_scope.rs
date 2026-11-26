@@ -48,7 +48,7 @@ pub(crate) fn mentioned_project(
     };
     let branch = branch_scope(state, bot_uuid).unwrap_or_else(|_| Uuid::nil());
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-    let row = diesel::sql_query(
+    let row = match diesel::sql_query(
         "SELECT id AS project_id, name AS project_name FROM vibe_projects \
          WHERE lower(name) = $1 OR branch_id = ANY($2) AND lower(name) = $1 \
          ORDER BY created_at DESC LIMIT 1",
@@ -56,7 +56,13 @@ pub(crate) fn mentioned_project(
     .bind::<diesel::sql_types::Text, _>(name.clone())
     .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
     .get_result::<ProjectNameRow>(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("latest project lookup failed: {e}");
+            None
+        }
+    };
     Ok(row.map(|r| (r.project_id.to_string(), r.project_name)))
 }
 /// Executes one registered provider action from the chat command path (#950).

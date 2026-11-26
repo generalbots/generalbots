@@ -99,6 +99,6 @@ fn deliver_telegram(state: &Arc<AppState>, response: &BotResponse) -> bool {
         "channel delivery: telegram support not compiled in; reply for session {} not delivered",
         response.session_id
     );
-    let _ = state;
+    std::hint::black_box(state);
     false
 }

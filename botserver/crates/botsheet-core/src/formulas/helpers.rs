@@ -119,8 +119,14 @@ pub fn evaluate_condition(condition: &str, worksheet: &Worksheet) -> bool {
                 worksheet,
             );
 
-            let left_num = left.parse::<f64>().ok();
-            let right_num = right.parse::<f64>().ok();
+            let left_num = match left.parse::<f64>() {
+                Ok(v) => Some(v),
+                Err(e) => { log::debug!("left operand is not numeric: {e}"); None }
+            };
+            let right_num = match right.parse::<f64>() {
+                Ok(v) => Some(v),
+                Err(e) => { log::debug!("right operand is not numeric: {e}"); None }
+            };
 
             return match (*op, left_num, right_num) {
                 (">=", Some(l), Some(r)) => l >= r,

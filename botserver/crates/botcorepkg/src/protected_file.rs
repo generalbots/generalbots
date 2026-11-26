@@ -51,7 +51,9 @@ pub fn write_secret(path: &Path, content: &str) -> io::Result<()> {
     let staging = path.with_file_name(format!("{}.sealing", file_label(path)));
     std::fs::write(&staging, &sealed)?;
     std::fs::rename(&staging, path).inspect_err(|_| {
-        let _ = std::fs::remove_file(&staging);
+        if let Err(e) = std::fs::remove_file(&staging) {
+            log::debug!("cannot remove staging file {}: {e}", staging.display());
+        }
     })
 }
 

@@ -31,7 +31,7 @@ pub fn inject_recall(
     query_hint: &str,
     messages_val: &mut serde_json::Value,
 ) {
-    let _ = state;
+    std::hint::black_box(state);
     let Some(service) = service() else { return };
     if !service.enabled {
         return;

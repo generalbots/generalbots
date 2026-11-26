@@ -30,7 +30,9 @@ impl Drop for Shared {
     /// The last handle is gone: close stdin (the writer queue drops with
     /// `self`) and let the supervisor wait the grace period, then kill.
     fn drop(&mut self) {
-        let _ = self.control.send(Control::Close);
+        if self.control.send(Control::Close).is_err() {
+            tracing::debug!("duplex control channel closed before Close could be sent");
+        }
     }
 }
 
@@ -101,7 +103,9 @@ impl DuplexSender {
     /// [`Self::wait_ended`] for the result.
     pub fn close(&self) {
         self.close_stdin();
-        let _ = self.shared.control.send(Control::Close);
+        if self.shared.control.send(Control::Close).is_err() {
+            tracing::debug!("duplex control channel closed before close_stdin could finish");
+        }
     }
 
     /// `Some` once the session ended ("peer exited" signal, non-blocking).

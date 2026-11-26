@@ -443,3 +443,20 @@ voice-mode-fallback-thinking = Thinking
 voice-mode-live-listening = Listening
 voice-mode-live-ready = Ready
 voice-mode-live-speaking = Speaking
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = The answer is still being written
+chat-busy-send-text = Wait for the answer to finish, or stop it and send your message now.
+chat-busy-send-wait = Keep waiting
+chat-busy-send-stop = Stop and send
+chat-engine-error-not-linked = Your %label account is not connected. Choose another model or connect the account in Settings.
+chat-engine-error-switch-off = %label needs the Agent switch on in this conversation.
+chat-engine-error-unavailable = Subscription agents are not available on this computer. Choose another model.
+chat-engine-error-model-unavailable = The model %model is not available on %label. Choose another model.
+chat-engine-error-workspace-failed = The agent's virtual machine could not be started. Check its status and try again.
+chat-engine-error-account-model-off = The model %model is not enabled for %label. Choose another model.
+chat-engine-error-free-unavailable = The free model is unavailable right now. Try again later or choose another model.
+chat-engine-error-limit-reached = You reached your plan's usage limit on %label. %when Choose another model.
+chat-engine-error-unsafe-version = This version of %label (%version) was blocked because it did not ask permission before acting. Choose another model.
+chat-engine-error-choose-model = Choose another model
+chat-engine-error-back-at = It comes back %when.

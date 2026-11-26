@@ -197,7 +197,7 @@ pub async fn apply_replacement(_state: &Arc<AppState>, new_model: &str) {
     let mut central: std::collections::HashMap<String, String> = secrets
         .get_secret(central_path)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for central vault secret: {e}"); Default::default() });
     central.insert("model".into(), new_model.to_string());
     central.insert("provider".into(), FREE_PROVIDER.into());
     if let Err(e) = secrets.put_secret(central_path, central).await {
@@ -210,10 +210,13 @@ pub async fn apply_replacement(_state: &Arc<AppState>, new_model: &str) {
     let mut per_bot: std::collections::HashMap<String, String> = secrets
         .get_secret(&bot_path)
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for per-bot vault secret: {e}"); Default::default() });
     per_bot.insert("llm-model".into(), new_model.to_string());
     per_bot.insert("llm-provider".into(), FREE_PROVIDER.into());
-    let _ = secrets.put_secret(&bot_path, per_bot).await;
+    if let Err(write_err) = secrets.put_secret(&bot_path, per_bot).await
+    {
+        log::debug!("per-bot vault write failed: {write_err}");
+    }
 
     log::info!("[free_fallback] model replaced: {new_model}");
 }

@@ -146,6 +146,15 @@
                 </svg>
                 <span data-i18n="settings-ai-accounts">AI accounts</span>
             </a>
+            <!-- Usage & limits: one vocabulary for the four engine types and the
+                 quota reported by /api/llm/limits, with a Refresh control. -->
+            <a href="#limits" class="nav-item"
+                onclick="showSection('limits', this); window.loadLimitsPanel && window.loadLimitsPanel()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20V10M18 20V4M6 20v-4"></path>
+                </svg>
+                <span data-i18n="settings-limits">Usage &amp; limits</span>
+            </a>
             <!-- #2109 — on-device models: catalogue grouped by VRAM tier, download
                  and activate per row. Admin-only; the API repeats the gate. -->
             <a href="#on-device-ai" class="nav-item" data-admin-only="true"
@@ -381,6 +390,7 @@
              to the version information, not inside Appearance. -->
         <div hx-get="/suite/settings/partials/10_system.html" hx-trigger="load" hx-swap="outerHTML"></div>
         <div hx-get="/suite/settings/partials/12_model.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <div hx-get="/suite/settings/partials/17_limits.html" hx-trigger="load" hx-swap="outerHTML"></div>
         <div hx-get="/suite/settings/partials/13_instructions.html" hx-trigger="load" hx-swap="outerHTML"></div>
         <div hx-get="/suite/settings/partials/14_shortcuts.html" hx-trigger="load" hx-swap="outerHTML"></div>
     </main>
@@ -389,8 +399,8 @@
 <!-- Dialogs (loaded in parallel; opened on demand) -->
 <div hx-get="/suite/settings/partials/06_dialogs.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
-<link rel="stylesheet" href="/suite/settings/settings-forms.css" /> <link rel="stylesheet" href="/suite/settings/settings-controls.css" /> <link rel="stylesheet" href="/suite/settings/settings-responsive.css" /> <link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" /> <link rel="stylesheet" href="/suite/settings/settings-on-device-ai.css" /> <link rel="stylesheet" href="/suite/settings/settings-model.css" /> <link rel="stylesheet" href="/suite/settings/settings-model-providers.css" /> <link rel="stylesheet" href="/suite/settings/settings-extra.css" /> <link rel="stylesheet" href="/suite/css/settings-identity.css?v=1" /> <link rel="stylesheet" href="/suite/settings/settings-os-appliance.css?v=1" />
-<script src="/suite/settings/settings-os-appliance.js?v=1"></script> <script src="/suite/js/os-first-run.js?v=3"></script> <script src="/suite/js/display-controls.js?v=1"></script> <script src="/suite/js/time-controls.js?v=1"></script> <script src="/suite/js/power-firmware.js?v=1"></script> <script src="/suite/js/sound-controls.js?v=1"></script> <script src="/suite/js/wifi-controls.js?v=1"></script> <script src="/suite/js/os-update.js?v=2"></script> <script src="/suite/js/peripherals.js?v=1"></script> <script src="/suite/js/session-status.js?v=1"></script> <script src="/suite/js/sandbox-probe.js?v=1"></script> <script src="/suite/js/weba-builder.js?v=1"></script> <script src="/suite/settings/settings-media-permissions.js?v=1"></script> <script src="/suite/settings/settings-workspace-card.js?v=1"></script> <script src="/suite/js/gb-datetime.js?v=3"></script> <script src="/suite/settings/settings-nav.js?v=1"></script> <script src="/suite/settings/settings-protection.js?v=1"></script> <script src="/suite/settings/settings-model.js?v=1"></script> <script src="/suite/settings/settings-model-providers.js?v=1"></script> <script src="/suite/settings/settings-model-key-models.js?v=1"></script> <script src="/suite/settings/settings-instructions.js?v=1"></script> <script src="/suite/js/chat-pattern.js?v=1"></script> <script src="/suite/settings/settings-textsize.js?v=1"></script> <script src="/suite/settings/settings-chatbg.js?v=1"></script>
+<link rel="stylesheet" href="/suite/settings/settings-forms.css" /> <link rel="stylesheet" href="/suite/settings/settings-controls.css" /> <link rel="stylesheet" href="/suite/settings/settings-responsive.css" /> <link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" /> <link rel="stylesheet" href="/suite/settings/settings-on-device-ai.css" /> <link rel="stylesheet" href="/suite/settings/settings-model.css" /> <link rel="stylesheet" href="/suite/settings/settings-model-providers.css" /> <link rel="stylesheet" href="/suite/settings/settings-limits.css?v=1" /> <link rel="stylesheet" href="/suite/settings/settings-extra.css" /> <link rel="stylesheet" href="/suite/css/settings-identity.css?v=1" /> <link rel="stylesheet" href="/suite/settings/settings-os-appliance.css?v=1" />
+<script src="/suite/settings/settings-os-appliance.js?v=1"></script> <script src="/suite/js/os-first-run.js?v=3"></script> <script src="/suite/js/display-controls.js?v=1"></script> <script src="/suite/js/time-controls.js?v=1"></script> <script src="/suite/js/power-firmware.js?v=1"></script> <script src="/suite/js/sound-controls.js?v=1"></script> <script src="/suite/js/wifi-controls.js?v=1"></script> <script src="/suite/js/os-update.js?v=2"></script> <script src="/suite/js/peripherals.js?v=1"></script> <script src="/suite/js/session-status.js?v=1"></script> <script src="/suite/js/sandbox-probe.js?v=1"></script> <script src="/suite/js/weba-builder.js?v=1"></script> <script src="/suite/settings/settings-media-permissions.js?v=1"></script> <script src="/suite/settings/settings-workspace-card.js?v=1"></script> <script src="/suite/js/gb-datetime.js?v=3"></script> <script src="/suite/settings/settings-nav.js?v=1"></script> <script src="/suite/settings/settings-protection.js?v=1"></script> <script src="/suite/settings/settings-engine-names.js?v=1"></script> <script src="/suite/settings/settings-model.js?v=2"></script> <script src="/suite/settings/settings-limits.js?v=1"></script> <script src="/suite/settings/settings-model-providers.js?v=1"></script> <script src="/suite/settings/settings-model-key-models.js?v=1"></script> <script src="/suite/settings/settings-instructions.js?v=1"></script> <script src="/suite/js/chat-pattern.js?v=1"></script> <script src="/suite/settings/settings-textsize.js?v=1"></script> <script src="/suite/settings/settings-chatbg.js?v=1"></script>
 
 <!-- Sidebar overlay for mobile -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSettingsSidebar()"></div>

@@ -57,7 +57,7 @@ pub async fn emit(
             envelope.rev,
             delivered
         );
-        let _ = state;
+        std::hint::black_box(state);
     }
 }
 

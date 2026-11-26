@@ -111,7 +111,7 @@ impl Api {
                 .get("errors")
                 .and_then(Value::as_array)
                 .map(|list| list.iter().filter_map(Value::as_str).collect())
-                .unwrap_or_default();
+                .unwrap_or_else(|| { log::debug!("OpenBao error body has no errors list"); Default::default() });
             let mut reason = reasons.join("; ");
             reason.truncate(300);
             Err(anyhow!("{} answered {status} {reason}", segments.join("/")))
@@ -183,12 +183,14 @@ impl Api {
             json.get(name)
                 .and_then(Value::as_array)
                 .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-                .unwrap_or_default()
+                .unwrap_or_else(|| { log::debug!("OpenBao init response has no {name}"); Default::default() })
         };
         let data = InitData {
             keys_b64: strings("keys_base64"),
             keys_hex: strings("keys"),
-            root_token: json.get("root_token").and_then(Value::as_str).unwrap_or_default().to_string(),
+            root_token: json.get("root_token").and_then(Value::as_str)
+                .unwrap_or_else(|| { log::debug!("OpenBao init response has no root_token"); Default::default() })
+                .to_string(),
         };
         if data.root_token.is_empty() || data.keys_b64.len() != usize::from(shares) {
             return Err(anyhow!("sys/init answered without the expected keys"));
@@ -279,7 +281,7 @@ fn keys_of(json: &Value) -> Vec<String> {
     json.pointer("/data/keys")
         .and_then(Value::as_array)
         .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("no unseal keys in response"); Default::default() })
 }
 
 /// KV mounts in a `sys/mounts` table.

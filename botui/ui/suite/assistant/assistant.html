@@ -153,7 +153,7 @@
     </div>
     <div class="gb-rail-middle">
         <div class="gb-rail-chat">
-            <h2 class="gb-strip gb-strip-count"><span data-i18n="shell.conversations">Conversas</span><span class="gb-strip-num" id="gbConvCount"></span></h2>
+            <h2 class="gb-strip gb-strip-count"><span data-i18n="shell-conversations">Conversas</span><span class="gb-strip-num" id="gbConvCount"></span></h2>
             <div class="gb-rail-new">
             <button class="gb-new-chat-btn" id="gbNewChat" aria-keyshortcuts="Control+N"><i><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></i><span data-i18n="assistant.new-chat">Nova conversa</span><kbd class="gb-kbd" aria-hidden="true">Ctrl N</kbd></button>
             <div class="gb-sidebar-search" id="gbSearchWrap"><i class="gb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></i><input type="search" id="gbSearchInput" class="gb-search-input" data-i18n-placeholder="assistant.search" data-i18n-aria="assistant.search" aria-keyshortcuts="Control+K" /><kbd class="gb-kbd" aria-hidden="true">Ctrl K</kbd></div>
@@ -161,11 +161,11 @@
             <div class="gb-sidebar-conversations" id="gbConversations"></div>
         </div>
         <nav class="gb-rail-drive" id="gbDriveNav" aria-label="Drive"></nav>
-        <nav class="gb-rail-machine" id="gbMachineNav" data-i18n-aria="shell.machine"></nav>
+        <nav class="gb-rail-machine" id="gbMachineNav" data-i18n-aria="shell-machine"></nav>
         <nav class="gb-rail-settings" id="gbSettingsNav" data-i18n-aria="assistant.settings"></nav>
     </div>
     <div class="gb-rail-foot">
-        <button type="button" class="gb-nav-item gb-machine-link" id="gbNavMachine" data-view="machine" data-i18n-aria="shell.machine"><i class="gb-machine-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v12H3zM8 20h8M12 16v4"/></svg></i><span><strong data-i18n="shell.machine">Máquina Virtual</strong><span class="gb-rail-meta"><span class="gb-cpu-spark" id="gbRailCpu" hidden></span><small id="gbRailMachineState"></small></span></span><i class="gb-health-mark" aria-hidden="true"></i><i class="gb-machine-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></i></button>
+        <button type="button" class="gb-nav-item gb-machine-link" id="gbNavMachine" data-view="machine" data-i18n-aria="shell-machine"><i class="gb-machine-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v12H3zM8 20h8M12 16v4"/></svg></i><span><strong data-i18n="shell-machine">Máquina Virtual</strong><span class="gb-rail-meta"><span class="gb-cpu-spark" id="gbRailCpu" hidden></span><small id="gbRailMachineState"></small></span></span><i class="gb-health-mark" aria-hidden="true"></i><i class="gb-machine-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></i></button>
         <div class="gb-account-tools">
             <button type="button" class="gb-sidebar-user" id="gbUserSection" aria-expanded="false"><b class="gb-user-avatar" id="gbUserAvatar"></b><span class="gb-user-text"><span class="gb-user-name" id="gbUserName"></span><small class="gb-user-role" id="gbUserRole"></small></span></button>
             <button type="button" class="gb-btn-icon" id="gbNavAppearance" data-i18n-aria="settings.appearance" data-i18n-title="settings.appearance"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg></i></button>
@@ -278,7 +278,7 @@
 </div><!-- .gb-app -->
 
 <footer class="gb-shell-status"><span class="gb-status-server"><span class="gb-status-dot" id="gbStatusDot"></span><span id="gbStatusPort">botserver</span></span><div class="gb-status-line" id="gbStatusLine"><span class="gb-status-text" id="gbStatusText"></span></div><span class="gb-status-usage" id="gbStatusUsage"></span><span class="gb-status-fill"></span><span id="gbStatusLang"></span><span class="gb-status-clock" id="gbStatusClock"></span><span id="gbStatusDate"></span></footer>
-<dialog id="gbAppearanceDialog" class="gb-appearance-dialog" aria-labelledby="gbAppearanceTitle"><header><h2 id="gbAppearanceTitle" data-i18n="settings.appearance">Aparência</h2><button type="button" id="gbAppearanceClose" class="gb-btn-icon" data-i18n-aria="shell.close"><i data-icon="x"></i></button></header><div id="gbAppearanceContent"></div></dialog>
+<dialog id="gbAppearanceDialog" class="gb-appearance-dialog" aria-labelledby="gbAppearanceTitle"><header><h2 id="gbAppearanceTitle" data-i18n="settings.appearance">Aparência</h2><button type="button" id="gbAppearanceClose" class="gb-btn-icon" data-i18n-aria="shell-close"><i data-icon="x"></i></button></header><div id="gbAppearanceContent"></div></dialog>
 <!-- Screen-reader announcements -->
 <div id="gbSrLive" class="gb-sr-only" aria-live="polite" role="status"></div>
 

@@ -340,7 +340,7 @@
                 (hasAnyDate ? '<div class="gb-drv-date-cell">' + D.fmtDate(f.modified) + '</div>' : '') +
                 '<div class="gb-drv-action-cell">' +
                 '<button type="button" class="gb-drv-row-menu" aria-haspopup="true" aria-expanded="false" aria-label="' +
-                esc(A.t("drive.actions", "File actions")) + '">' +
+                esc(A.t("drive-actions", "File actions")) + '">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>' +
                 '</button></div></div>';
         }

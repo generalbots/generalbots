@@ -144,16 +144,12 @@ impl UserProvisioningService {
     async fn create_s3_home(&self, account: &UserAccount, bot_access: &BotAccess) -> Result<()> {
         #[cfg(feature = "drive")]
         {
-            let _ = account;
-            let _ = bot_access;
-            log::info!("S3 home creation would happen here for drive feature");
+            log::info!("S3 home creation would happen here for drive feature (bot={}, {} bots)", bot_access.bot_name, account.bots.len());
         }
 
         #[cfg(not(feature = "drive"))]
         {
-            let _ = account;
-            let _ = bot_access;
-            log::debug!("Drive feature not enabled, skipping S3 home creation");
+            log::debug!("Drive feature not enabled, skipping S3 home creation (bot={}, {} bots)", bot_access.bot_name, account.bots.len());
         }
 
         Ok(())
@@ -267,14 +263,12 @@ impl UserProvisioningService {
     async fn remove_s3_data(&self, username: &str) -> Result<()> {
         #[cfg(feature = "drive")]
         {
-            let _ = username;
-            log::info!("S3 data removal would happen here for drive feature");
+            log::info!("S3 data removal would happen here for drive feature (user id length={})", username.len());
         }
 
         #[cfg(not(feature = "drive"))]
         {
-            let _ = username;
-            log::debug!("Drive feature not enabled, bypassing S3 data removal");
+            log::debug!("Drive feature not enabled, bypassing S3 data removal (user id length={})", username.len());
         }
 
         Ok(())

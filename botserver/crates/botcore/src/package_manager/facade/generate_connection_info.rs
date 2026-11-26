@@ -205,7 +205,7 @@ Store credentials in Vault:
     }
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let _ = safe_incus(&["stop", &container_name]);
+        drop(safe_incus(&["stop", &container_name]));
         let output = safe_incus(&["delete", &container_name]);
         if let Some(o) = output {
             if !o.status.success() {

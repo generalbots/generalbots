@@ -93,7 +93,10 @@ impl PackageManager {
         }
         if !component.data_download_list.is_empty() {
             let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
-            let cache = DownloadCache::new(cache_base).ok();
+            let cache = match DownloadCache::new(cache_base) {
+                Ok(c) => Some(c),
+                Err(e) => { log::debug!("cannot initialise download cache: {e}"); None }
+            };
 
             for url in &component.data_download_list {
                 let filename = cache
@@ -218,7 +221,7 @@ impl PackageManager {
     pub fn install_container_only(&self, component_name: &str) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component_name);
 
-        let _ = safe_incus_admin(&["init", "--auto"]);
+        drop(safe_incus_admin(&["init", "--auto"]));
 
         let images = [
             "ubuntu:24.04",
@@ -253,7 +256,7 @@ impl PackageManager {
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
 
-            let _ = safe_incus(&["delete", &container_name, "--force"]);
+            drop(safe_incus(&["delete", &container_name, "--force"]));
         }
 
         if !success {

@@ -219,7 +219,9 @@ pub async fn delete(
         .ok_or_else(|| api_error(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
     drop(conn);
 
-    let _ = workspace::remove(&row).await;
+    if workspace::remove(&row).await.is_none() {
+        log::debug!("autotask workspace had nothing to remove");
+    }
     let mut conn = state
         .conn
         .get()

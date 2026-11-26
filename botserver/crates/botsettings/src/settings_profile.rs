@@ -49,11 +49,14 @@ pub async fn user_profile_get(
         email: String,
     }
 
-    let user: Option<UserRow> =
+    let user: Option<UserRow> = match
         diesel::sql_query("SELECT username, email FROM users WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(user_id)
             .get_result::<UserRow>(&mut conn)
-            .ok();
+        {
+            Ok(u) => Some(u),
+            Err(e) => { log::debug!("user lookup failed: {e}"); None }
+        };
 
     let display_name = read_pref(&mut conn, user_id, "display_name")
         .as_str()
@@ -248,11 +251,14 @@ pub async fn user_password(
         password_hash: Option<String>,
     }
 
-    let stored: Option<HashRow> =
+    let stored: Option<HashRow> = match
         diesel::sql_query("SELECT password_hash FROM users WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(user_id)
             .get_result(&mut conn)
-            .ok();
+        {
+            Ok(s) => Some(s),
+            Err(e) => { log::debug!("password hash lookup failed: {e}"); None }
+        };
 
     let stored_hash = stored.and_then(|r| r.password_hash);
     let Some(stored_hash) = stored_hash else {

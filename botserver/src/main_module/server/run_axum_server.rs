@@ -169,7 +169,13 @@ pub async fn run_axum_server(
     // Resolution order is env → Vault → ephemeral (development only); in
     // production a missing secret refuses to start rather than degrading.
     let csrf_manager = {
-        let env_secret = std::env::var(ENV_CSRF_SECRET).ok();
+        let env_secret = match std::env::var(ENV_CSRF_SECRET) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                log::debug!("CSRF secret env not set: {e}");
+                None
+            }
+        };
         let vault_secret = botcoresecrets::csrf_secret_sync();
         let resolved = match resolve_secret(
             env_secret.as_deref(),
@@ -295,7 +301,7 @@ pub(super) fn build_base_router(
     site_path: &str,
 ) -> Router {
     #[cfg(feature = "vibe")]
-    let _ = site_path;
+    std::hint::black_box(site_path);
     #[cfg(feature = "deployment")]
     let base_router = {
         Router::new()

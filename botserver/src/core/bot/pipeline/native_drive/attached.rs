@@ -53,7 +53,7 @@ pub fn staged_for(session_id: Uuid) -> Vec<StagedFile> {
         .lock()
         .ok()
         .and_then(|map| map.get(&session_id).cloned())
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("using default for staged files"); Default::default() })
 }
 
 /// Forgets the previous message's attachments.

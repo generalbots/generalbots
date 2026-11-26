@@ -73,7 +73,7 @@ pub(super) fn readable_text(html: &str) -> (String, String) {
         .ok()
         .and_then(|selector| document.select(&selector).next())
         .map(|element| collapse(&element.text().collect::<String>()))
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("using default for page title"); Default::default() });
     let mut raw = String::new();
     for node in document.root_element().descendants() {
         match node.value() {

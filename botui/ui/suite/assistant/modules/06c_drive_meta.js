@@ -107,8 +107,8 @@
                 var used = q && typeof q.used_bytes === "number" ? q.used_bytes : null;
                 node.hidden = used === null;
                 if (used === null) return;
-                node.textContent = (used ? D.fmtBytes(used) : "0 KB") + " " + A.t("drive.used", "used");
-                node.title = A.t("drive.usage-hint", "Space taken by your files in Drive");
+                node.textContent = (used ? D.fmtBytes(used) : "0 KB") + " " + A.t("drive-used", "used");
+                node.title = A.t("drive-usage-hint", "Space taken by your files in Drive");
             })
             .catch(function () { var node = crumbMeta(); if (node) node.hidden = true; });
     };
@@ -118,7 +118,7 @@
         if (!box) return;
         var dirs = files.filter(function (f) { return f.is_dir; });
         box.hidden = !dirs.length;
-        box.innerHTML = '<span class="gb-strip">' + esc(A.t("drive.folders", "Folders").toUpperCase()) + '</span>' +
+        box.innerHTML = '<span class="gb-strip">' + esc(A.t("drive-folders", "Folders").toUpperCase()) + '</span>' +
             dirs.map(function (f) {
                 var path = f.path || f.name;
                 var name = f.name || path.replace(/\/$/, "").split("/").pop();

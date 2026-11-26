@@ -23,7 +23,9 @@ pub(super) async fn consume_control_frame(identity: &SessionIdentity<'_>, parsed
                 &status,
                 identity.sink.channel_type(),
             );
-            let _ = identity.sink.send_bot_response(&resp).await;
+            if let Err(e) = identity.sink.send_bot_response(&resp).await {
+                log::debug!("computer-use status response failed: {e}");
+            }
             return true;
         }
     }
@@ -42,8 +44,10 @@ pub(super) async fn consume_control_frame(identity: &SessionIdentity<'_>, parsed
             .and_then(|v| v.as_str())
             .and_then(|value| Uuid::parse_str(value).ok());
         if let Some(id) = action_id {
-            let result = parsed.get("result").cloned().unwrap_or_default();
-            let _ = crate::core::computer_use::complete(id, identity.user_id, result).await;
+            let result = parsed.get("result").cloned().unwrap_or_else(|| { log::debug!("using default for tool result"); Default::default() });
+            if crate::core::computer_use::complete(id, identity.user_id, result).await.is_none() {
+                log::debug!("computer-use action returned no result");
+            }
         }
         return true;
     }
@@ -64,7 +68,9 @@ pub(super) async fn consume_tool_frame(identity: &SessionIdentity<'_>, msg_type:
                 botcore::i18n::t_args(&locale, "error-tool-not-available", &[("name", &tool_name)]),
                 "web",
             );
-            let _ = identity.sink.send_bot_response(&resp).await;
+            if let Err(e) = identity.sink.send_bot_response(&resp).await {
+                log::debug!("tool error response failed: {e}");
+            }
         }
         return true;
     }
@@ -84,7 +90,9 @@ pub(super) async fn consume_tool_frame(identity: &SessionIdentity<'_>, msg_type:
                     format!("<p>{text}</p>"),
                     "web",
                 );
-                let _ = identity.sink.send_bot_response(&resp).await;
+            if let Err(e) = identity.sink.send_bot_response(&resp).await {
+                log::debug!("tool error response failed: {e}");
+            }
                 return true;
             }
         };

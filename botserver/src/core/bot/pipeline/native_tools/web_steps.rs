@@ -137,12 +137,12 @@ pub(crate) fn parse_marker(chunk: &str) -> Option<(&'static str, String, Vec<Str
     let value: serde_json::Value = serde_json::from_str(chunk.trim()).ok()?;
     let step = value.get(botllm::claude::web_search::WEB_STEP_MARKER)?;
     let tool = kind_of(step.get("tool")?.as_str()?)?;
-    let text = step.get("text").and_then(serde_json::Value::as_str).unwrap_or_default().to_string();
+    let text = step.get("text").and_then(serde_json::Value::as_str).unwrap_or_else(|| { log::debug!("using default for step text"); Default::default() }).to_string();
     let sites = step
         .get("urls")
         .and_then(serde_json::Value::as_array)
         .map(|urls| urls.iter().filter_map(serde_json::Value::as_str).filter_map(site_of).collect::<Vec<_>>())
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("using default for step sites"); Default::default() });
     let mut unique: Vec<String> = Vec::new();
     for site in sites {
         if !unique.contains(&site) {

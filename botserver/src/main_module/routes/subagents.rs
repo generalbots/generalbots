@@ -289,7 +289,7 @@ fn update_status(pool: &DbPool, id: &str, status: &str, result: Option<&str>, er
     let Ok(mut conn) = pool.get() else {
         return;
     };
-    let _ = diesel::sql_query(
+    let outcome = diesel::sql_query(
         "UPDATE subagent_runs SET status = $2, result = $3, error = $4, updated_at = NOW() \
          WHERE id = $1::uuid",
     )
@@ -298,6 +298,9 @@ fn update_status(pool: &DbPool, id: &str, status: &str, result: Option<&str>, er
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(result.map(str::to_string))
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(error.map(str::to_string))
     .execute(&mut conn);
+    if let Err(e) = outcome {
+        log::debug!("subagent status update failed: {e}");
+    }
 }
 
 fn publish(thread_id: &str, id: &str, title: &str, status: &str, result: Option<&str>) {

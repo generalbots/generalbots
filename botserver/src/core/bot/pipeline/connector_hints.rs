@@ -50,7 +50,7 @@ const STOPWORDS: &[&str] = &[
 fn connected_providers(state: &Arc<AppState>, bot_uuid: Uuid) -> Vec<(String, usize)> {
     #[cfg(not(feature = "integrations"))]
     {
-        let _ = (state, bot_uuid);
+        std::hint::black_box((state, bot_uuid));
         return Vec::new();
     }
     #[cfg(feature = "integrations")]

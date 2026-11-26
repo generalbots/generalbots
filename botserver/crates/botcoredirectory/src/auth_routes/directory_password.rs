@@ -87,7 +87,7 @@ pub(super) async fn sync_directory_admin_password(
         .ok()
         .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
         .and_then(|json| json.get("password_hash").and_then(|v| v.as_str()).map(String::from))
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("no stored directory password hash"); Default::default() });
     match set_directory_password(&state, &user_id, &password).await {
         Some(status) if status.is_success() => {
             mark_synced(&path, &expected_hash);

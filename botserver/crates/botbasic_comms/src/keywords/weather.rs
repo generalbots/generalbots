@@ -363,14 +363,16 @@ fn format_forecast_response(weather: &WeatherData) -> String {
     let mut response = format!("Weather forecast for {}:\n\n", weather.location);
 
     for day in &weather.forecast {
-        let _ = write!(
+        if let Err(e) = write!(
             response,
             " {}\n\
              High: {:.1}°C, Low: {:.1}°C\n\
              {}\n\
              Rain chance: {}%\n\n",
             day.date, day.temp_high, day.temp_low, day.description, day.rain_chance
-        );
+        ) {
+            log::debug!("cannot format forecast row: {e}");
+        }
     }
 
     response

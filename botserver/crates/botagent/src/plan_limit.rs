@@ -152,7 +152,13 @@ fn clock(text: &str) -> Option<(u32, u32)> {
             && bytes.get(end + 1).is_some_and(u8::is_ascii_digit)
             && bytes.get(end + 2).is_some_and(u8::is_ascii_digit)
         {
-            minute = text[end + 1..end + 3].parse::<u32>().ok();
+            minute = match text[end + 1..end + 3].parse::<u32>() {
+                Ok(value) => Some(value),
+                Err(error) => {
+                    tracing::debug!("plan usage time has an unreadable minute: {error}");
+                    None
+                }
+            };
             end += 3;
         }
         let tail = text[end..].trim_start();

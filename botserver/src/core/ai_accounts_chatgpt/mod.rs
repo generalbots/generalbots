@@ -247,9 +247,12 @@ use oauth::exchange;
 /// Removes the Vault token and marks the account unlinked.
 pub async fn disconnect(pool: &DbPool, user_id: Uuid) -> Result<(), String> {
     if let Ok(manager) = botcoresecrets::SecretsManager::get() {
-        let _ = manager
+        if let Err(e) = manager
             .delete_secret(&crate::llm::subscription::chatgpt_vault_path(user_id))
-            .await;
+            .await
+        {
+            log::debug!("chatgpt Vault token delete failed: {e}");
+        }
     }
     ai_accounts::update_status(
         pool,

@@ -86,12 +86,15 @@ pub async fn user_profile(
         created_at: DateTime<Utc>,
     }
 
-    let user: Option<UserRow> = diesel::sql_query(
+    let user: Option<UserRow> = match diesel::sql_query(
         "SELECT username, email, is_admin, is_active, created_at FROM users WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(u) => Some(u),
+        Err(e) => { log::debug!("user lookup failed: {e}"); None }
+    };
 
     match user {
         Some(u) => Html(format!(
@@ -208,12 +211,15 @@ pub async fn user_edit_form(
         is_active: bool,
     }
 
-    let user: Option<UserRow> = diesel::sql_query(
+    let user: Option<UserRow> = match diesel::sql_query(
         "SELECT username, email, is_admin, is_active FROM users WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(u) => Some(u),
+        Err(e) => { log::debug!("user lookup failed: {e}"); None }
+    };
 
     match user {
         Some(u) => Html(format!(

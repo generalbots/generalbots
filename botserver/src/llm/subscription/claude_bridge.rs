@@ -260,7 +260,10 @@ impl BridgeGate for Gate<'_> {
 
     async fn thinking(&self, chunk: &str) {
         if let Some(tx) = self.tx {
-            let _ = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await;
+            if let Err(send_err) = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await
+            {
+                log::debug!("claude reasoning chunk send failed: {send_err}");
+            }
         }
     }
 

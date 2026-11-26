@@ -53,7 +53,13 @@ pub const AGENT_INCUS_BIN_ENV: &str = "AGENT_INCUS_BIN";
 /// Incus so the caller gets this reason instead of the generic sanitized
 /// agent-workspace failure.
 pub fn agent_backend_unavailable() -> Option<String> {
-    let configured = std::env::var(AGENT_INCUS_BIN_ENV).ok();
+    let configured = match std::env::var(AGENT_INCUS_BIN_ENV) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            tracing::debug!("{AGENT_INCUS_BIN_ENV} is not set or is not unicode: {error}");
+            None
+        }
+    };
     agent_backend_unavailable_for(std::env::consts::OS, configured.as_deref(), binary_on_path)
 }
 

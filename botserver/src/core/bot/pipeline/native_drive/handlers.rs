@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::bot::pipeline::native_tools::{persist, send};
 
 pub(super) async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
     let parsed = parse(args);
@@ -67,7 +68,8 @@ pub(super) async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) 
         .map(sanitize_name)
         .unwrap_or_else(|| sanitize_name(&relative));
     let target = format!("data/{name}");
-    let written = agent_vm_hook::write_session_file(user_id, session_id, &target, &bytes).await;
+    let ticket = super::super::vm_consent::VmConsent::for_person_request(session_id, &target);
+    let written = agent_vm_hook::write_session_file(ticket, user_id, session_id, &target, &bytes).await;
     let message = match written {
         Ok(size) => {
             let listing = agent_vm_hook::list_session_folder(user_id, session_id, "data")

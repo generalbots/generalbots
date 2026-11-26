@@ -291,3 +291,38 @@ function dialChatSocket(seq) {
     updateConnectionStatus("disconnected");
   };
 }
+
+/* gbgov assistant parity (#2562): optimistic cancellation.
+ * GBTurn.cancel() removes the turn immediately, but frames already in flight
+ * can still arrive. Without a guard, a late content frame re-enters
+ * processMessage(), sets ChatState.isStreaming and strands the composer as if
+ * the cancelled turn were running again. Suppress those frames for a short
+ * bounded window; the next send clears the marker. */
+(function () {
+  "use strict";
+  var WINDOW_MS = 3000;
+
+  function suppressed(data) {
+    var cs = window.ChatState;
+    if (!cs || !cs.cancelledAt) return false;
+    if (Date.now() - Number(cs.cancelledAt) > WINDOW_MS) return false;
+    // A live turn belongs to the new request, never to the cancelled one.
+    if (window.GBTurn && typeof GBTurn.active === "function" && GBTurn.active()) return false;
+    return !!(data && (
+      data.is_complete || data.content || data.thinking || data.message_type === 2
+    ));
+  }
+
+  var original = window.processMessage;
+  if (typeof original !== "function" || original.__gbCancelGuard) return;
+  var wrapped = function (data) {
+    if (suppressed(data)) return;
+    return original.apply(this, arguments);
+  };
+  wrapped.__gbCancelGuard = true;
+  window.processMessage = wrapped;
+
+  window.addEventListener("gb-chat-message-sent", function () {
+    if (window.ChatState) window.ChatState.cancelledAt = 0;
+  });
+})();

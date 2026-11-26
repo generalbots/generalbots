@@ -69,7 +69,7 @@
                 });
                 renderSection(currentSection);
             });
-        }
+        });
         renderSection(currentSection);
     };
 
@@ -164,9 +164,9 @@
         /* Theme selector */
         var curTheme = window.GBTheme ? window.GBTheme.get() : "system";
         var themeOpts = [
-            { id: "light", key: "settings.theme-light" },
-            { id: "dark", key: "settings.theme-dark" },
-            { id: "system", key: "settings.theme-system" },
+            { id: "light", key: "settings-theme-light" },
+            { id: "dark", key: "settings-theme-dark" },
+            { id: "system", key: "settings-theme-system" },
         ];
         var html = '<div class="gb-set-card">' +
             '<h2 class="gb-set-title">' + esc(A.t("settings.appearance", "Appearance")) + '</h2>' +
@@ -183,10 +183,10 @@
         /* Text size selector */
         var curSize = window.GBTextSize ? window.GBTextSize.get() : "default";
         var sizeOpts = [
-            { id: "small", key: "settings.text-small" },
-            { id: "default", key: "settings.text-default" },
-            { id: "large", key: "settings.text-large" },
-            { id: "xlarge", key: "settings.text-xlarge" },
+            { id: "small", key: "settings-text-small" },
+            { id: "default", key: "settings-text-default" },
+            { id: "large", key: "settings-text-large" },
+            { id: "xlarge", key: "settings-text-xlarge" },
         ];
         html += '<div class="gb-set-card">' +
             '<p class="gb-set-desc">' + esc(A.t("settings.text-size-label", "Text size")) + '</p>' +

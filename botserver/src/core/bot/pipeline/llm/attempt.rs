@@ -80,8 +80,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         style_css,
         budget,
         attempt,
-        engine_type,
-        engine_provider,
+        ..
     } = request;
 
     let mut full_response = String::new();

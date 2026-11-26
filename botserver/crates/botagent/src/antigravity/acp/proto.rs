@@ -188,7 +188,10 @@ pub(super) fn update_of(params: &Value) -> Update {
         Some("agent_message_chunk") => Update::Text(chunk_text(&update)),
         Some("agent_thought_chunk") => Update::Thought(chunk_text(&update)),
         Some("tool_call" | "tool_call_update") => Update::Tool {
-            id: text("toolCallId").unwrap_or_default(),
+            id: text("toolCallId").unwrap_or_else(|| {
+                tracing::debug!("ACP tool update has no toolCallId; using an empty id");
+                String::new()
+            }),
             kind: text("kind"),
             status: text("status"),
             call: update.clone(),
@@ -235,7 +238,10 @@ fn paths_of(call: &Value) -> Vec<String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            tracing::debug!("ACP tool call has no locations; starting with no paths");
+            Vec::new()
+        });
     if paths.is_empty() {
         let raw = call.get("rawInput").cloned().unwrap_or(Value::Null);
         if let Some(path) = first_text(&raw, &["path", "file_path", "filePath", "AbsolutePath", "TargetFile"]) {
@@ -310,7 +316,10 @@ pub(super) enum Choice {
 /// never the agent's), or `cancelled` when no option fits.
 #[must_use]
 pub(super) fn permission_result(params: &Value, choice: Choice) -> Value {
-    let options = params.get("options").and_then(Value::as_array).cloned().unwrap_or_default();
+    let options = params.get("options").and_then(Value::as_array).cloned().unwrap_or_else(|| {
+        tracing::debug!("ACP permission request has no options; nothing to offer");
+        Vec::new()
+    });
     let find = |kind: &str| {
         options
             .iter()

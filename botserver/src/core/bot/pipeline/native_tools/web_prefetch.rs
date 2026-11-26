@@ -35,7 +35,7 @@ fn engine_calls_tools(
     }
     let provider = botcore::config::ConfigManager::new(state.conn.clone())
         .get_config(&bot_uuid, "llm-provider", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for llm-provider config: {e}"); Default::default() });
     !crate::core::ai_accounts::is_subscription_provider(&provider)
 }
 
@@ -93,7 +93,7 @@ async fn read_named_pages(
         return;
     }
     for address in addresses {
-        let site = site_of(&address).unwrap_or_default();
+        let site = site_of(&address).unwrap_or_else(|| { log::debug!("using default for address site"); Default::default() });
         let step = super::web_steps::WebStep::begin(identity, super::web_steps::FETCH, &address).await;
         let (status, title, text) = read_page(&address, &site).await;
         if let Some(step) = step {

@@ -55,7 +55,7 @@ pub(super) async fn parse_recipient(
     recipient: &str,
 ) -> Result<(String, String), Box<dyn std::error::Error + Send + Sync>> {
     #[cfg(not(feature = "cache"))]
-    let _ = state;
+    drop(state);
     if recipient.contains(':') {
         let parts: Vec<&str> = recipient.splitn(2, ':').collect();
         if parts.len() == 2 {
@@ -147,7 +147,7 @@ pub(super) async fn send_whatsapp_file(
     // values and still sent the request, so every call failed with an opaque
     // provider error after leaking an empty bearer token. Fail closed with a
     // clear message instead of issuing an unauthenticated request.
-    let _ = (state, user, recipient, file_data, caption);
+    drop((state, user, recipient, file_data, caption));
     Err("WhatsApp file sending is not available in this runtime: the media-upload adapter is not configured".into())
 }
 #[cfg(feature = "drive")]
@@ -178,8 +178,8 @@ pub(super) async fn send_teams_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = user;
-    let _ = TeamsAdapter::new();
+    drop(user);
+    drop(TeamsAdapter::new());
 
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;
 

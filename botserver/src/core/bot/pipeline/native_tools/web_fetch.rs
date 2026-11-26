@@ -113,7 +113,7 @@ fn refusal(session_id: Uuid, address: &str) -> Option<String> {
             "The limit of {PAGES_PER_TURN} pages for this answer was reached; answer with what you read."
         ));
     }
-    let site = site_of(address).unwrap_or_default();
+    let site = site_of(address).unwrap_or_else(|| { log::debug!("using default for address site"); Default::default() });
     if !offer.open && !offer.sites.iter().any(|allowed| *allowed == site) {
         return Some(
             "That address is not on a site the person wrote and the Web switch is off, so it was \
@@ -159,7 +159,7 @@ pub(crate) async fn run(identity: &SessionIdentity<'_>, args: &str) {
         super::tell_model(session_id, &reason);
         return;
     }
-    let site = site_of(&address).unwrap_or_default();
+    let site = site_of(&address).unwrap_or_else(|| { log::debug!("using default for address site"); Default::default() });
     let step = super::web_steps::WebStep::begin(identity, super::web_steps::FETCH, &address).await;
     let (status, title, result) = read_page(&address, &site).await;
     if let Some(step) = step {
@@ -213,7 +213,7 @@ pub(super) async fn read_page(address: &str, site: &str) -> (&'static str, Strin
     let kind = response
         .content_type
         .clone()
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("using default for content type"); Default::default() })
         .to_ascii_lowercase();
     let (title, text) = if kind.contains("html") || kind.is_empty() {
         readable_text(&response.text())

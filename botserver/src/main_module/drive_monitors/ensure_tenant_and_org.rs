@@ -92,7 +92,7 @@ pub(super) fn ensure_tenant_and_org(
             // No existing org — create the legacy "{slug}-org" naming.
             let org_id = Uuid::new_v4();
             let org_slug = format!("{tenant_slug}-org");
-            sql_query(format!(
+            if let Err(e) = sql_query(format!(
                 "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
                  VALUES ('{oid}', '{tid}', '{slug}', '{orgslug}', NOW()) \
                  ON CONFLICT (slug) DO NOTHING",
@@ -102,7 +102,9 @@ pub(super) fn ensure_tenant_and_org(
                 orgslug = org_slug
             ))
             .execute(&mut conn)
-            .ok();
+           {
+                log::debug!("organization insert failed: {e}");
+            }
 
             let row: OrgRow = diesel::sql_query(
                 "SELECT org_id, tenant_id FROM organizations WHERE tenant_id = $1 AND slug = $2 LIMIT 1"
@@ -278,11 +280,14 @@ pub(super) fn create_bot_from_drive(
     }
 
     let db_name = format!("bot_{}", bot_name.replace('-', "_"));
-    let _ = sql_query(format!(
+    if let Err(e) = sql_query(format!(
         "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '{db}') THEN EXECUTE 'CREATE DATABASE {db}'; END IF; END $$;",
         db = db_name
     ))
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::debug!("project database creation failed: {e}");
+    }
 
     info!(
         "Bot '{}' created (org: {}, branch: {})",

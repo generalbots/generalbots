@@ -119,7 +119,10 @@ impl Migration {
             (Ok(keys), Ok(root)) if keys.len() >= usize::from(THRESHOLD) => (keys, root),
             _ => return Outcome::Skipped("the sealed init data or unseal keys cannot be read".into()),
         };
-        let config = std::fs::read_to_string(self.stack.join(CONFIG_FILE)).ok();
+        let config = match std::fs::read_to_string(self.stack.join(CONFIG_FILE)) {
+            Ok(v) => Some(v),
+            Err(e) => { log::debug!("cannot read secrets server config: {e}"); None }
+        };
         let Some(openbao_config) = config.as_deref().and_then(crate::openbao_config::file_storage_to_raft) else {
             return Outcome::Skipped("the secrets server config has no file storage to move".into());
         };

@@ -130,7 +130,7 @@ pub async fn create_app_state(
 
     let config_manager = ConfigManager::new(pool.clone());
 
-    let _ = pool
+    pool
         .get()
         .map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
     let (default_bot_id_str, default_bot_name) = crate::core::bot::get_default_bot();
@@ -141,7 +141,13 @@ pub async fn create_app_state(
     );
 
     // Check environment variables first for LLM configuration
-    let llm_url_env = std::env::var("LLM_URL").ok();
+    let llm_url_env = match std::env::var("LLM_URL") {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("LLM_URL not set: {e}");
+            None
+        }
+    };
     let llm_url = if let Some(url) = llm_url_env {
         info!("Using LLM URL from environment variable: {}", url);
         url
@@ -152,7 +158,13 @@ pub async fn create_app_state(
     };
     info!("LLM URL: {}", llm_url);
 
-    let llm_model_env = std::env::var("LLM_MODEL").ok();
+    let llm_model_env = match std::env::var("LLM_MODEL") {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("LLM_MODEL not set: {e}");
+            None
+        }
+    };
     let llm_model = if let Some(model) = llm_model_env {
         info!("Using LLM model from environment variable: {}", model);
         model

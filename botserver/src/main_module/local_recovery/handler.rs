@@ -55,7 +55,7 @@ pub async fn reset(
     let presented = headers
         .get(SECRET_HEADER)
         .and_then(|v| v.to_str().ok())
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("using default for recovery header"); Default::default() });
     if !state.store.consume(presented) {
         log::warn!("Local recovery: refused a request without the current recovery secret");
         return refused();

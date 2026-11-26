@@ -39,14 +39,20 @@ pub(super) async fn create(
     let step = match body.step_value {
         Some(step) if step > 0.0 => step,
         _ => {
-            let row = diesel::sql_query(
+            let row = match diesel::sql_query(
                 "SELECT start_value::double precision AS start_value, \
                         target_value::double precision AS target_value \
                  FROM okr_key_results WHERE id = $1",
             )
             .bind::<diesel::sql_types::Uuid, _>(body.key_result_id.unwrap_or_else(Uuid::nil))
             .get_result::<KrValues>(&mut conn)
-            .ok();
+            {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    log::debug!("key result lookup failed: {e}");
+                    None
+                }
+            };
             match row {
                 Some(values) if values.target_value != values.start_value => {
                     ((values.target_value - values.start_value) / 10.0)

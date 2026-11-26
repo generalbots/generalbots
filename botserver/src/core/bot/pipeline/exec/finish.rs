@@ -71,7 +71,7 @@ pub(super) async fn stream_and_finalize(
     }
 
     #[cfg(not(all(feature = "agent-vm", feature = "drive")))]
-    let _ = agent_enabled;
+    std::hint::black_box(agent_enabled);
 
     Ok(())
 }

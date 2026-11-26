@@ -38,7 +38,13 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         "WS frame received: session={session_id} bytes={}",
         text.len()
     );
-    let parsed: Option<Value> = serde_json::from_str(&text).ok();
+    let parsed: Option<Value> = match serde_json::from_str(&text) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("WS inbound frame parse failed: {e}");
+            None
+        }
+    };
     let frame_type = parsed
         .as_ref()
         .and_then(|value| value.get("type"))
@@ -105,22 +111,26 @@ pub(super) async fn handle(frame: Inbound<'_>) {
 
     // #1677 — a message sent during a run is steering: queue it, acknowledge
     // and deliver at the next turn boundary instead of interleaving two agents.
-    if bus::bus().is_running(thread_id) {
-        bus::bus().push_steering(thread_id, &text);
-        let queued = serde_json::json!({
-            "type": "gb.steering_queued",
-            "session_id": session_id,
-            "message": "Queued. The agent will pick this up at the next step.",
-        });
-        if let Err(e) = ws_sender
-            .lock()
-            .await
-            .send(Message::Text(queued.to_string()))
-            .await
-        {
-            botlog::safe_warn!("steering queued notice send failed: {e}");
+    // A card waiting for a decision replaces the turn instead of queueing.
+    let run_id = Uuid::new_v4().to_string();
+    match bus::bus().admit(thread_id, &text, card_waiting(thread_id).await, &run_id) {
+        bus::Admission::Start => {}
+        bus::Admission::Steer | bus::Admission::Replace => {
+            let queued = serde_json::json!({
+                "type": "gb.steering_queued",
+                "session_id": session_id,
+                "message": "Queued. The agent will pick this up at the next step.",
+            });
+            if let Err(e) = ws_sender
+                .lock()
+                .await
+                .send(Message::Text(queued.to_string()))
+                .await
+            {
+                botlog::safe_warn!("steering queued notice send failed: {e}");
+            }
+            return;
         }
-        return;
     }
 
     let task_start_bas_ran = *start_bas_ran;

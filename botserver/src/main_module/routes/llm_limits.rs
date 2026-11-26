@@ -64,7 +64,7 @@ fn engine(kind: &str, provider: &str, label: &str, seen: Option<&HostLimits>) ->
         "unlimited": false,
         "source": if seen.is_some() { json!("response-headers") } else { Value::Null },
         "observed_at": rfc3339(seen.map(|s| s.observed_at)),
-        "windows": seen.map(|s| s.windows.iter().map(window_json).collect::<Vec<_>>()).unwrap_or_default(),
+        "windows": seen.map(|s| s.windows.iter().map(window_json).collect::<Vec<_>>()).unwrap_or_else(|| { log::debug!("using default for observed windows"); Default::default() }),
     })
 }
 
@@ -110,10 +110,10 @@ async fn provider_accounts() -> Vec<AccountRef> {
     let Ok(secrets) = botcoresecrets::SecretsManager::get_clone() else {
         return Vec::new();
     };
-    let map = secrets.get_secret(ACCOUNTS_PATH).await.unwrap_or_default();
+    let map = secrets.get_secret(ACCOUNTS_PATH).await.unwrap_or_else(|e| { log::debug!("using default for accounts vault secret: {e}"); Default::default() });
     map.get("accounts")
         .and_then(|raw| serde_json::from_str(raw).ok())
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("using default for account references"); Default::default() })
 }
 
 /// What each subscription engine can report, for the page's wording:
@@ -320,7 +320,7 @@ async fn limits(
     let config = botcore::config::ConfigManager::new(state.conn.clone());
     let main_url = config
         .get_config(&uuid::Uuid::nil(), "llm-url", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for llm-url config: {e}"); Default::default() });
     let accounts = provider_accounts().await;
     engines.extend(http_engines(&main_url, &accounts, &rate_limits::all()));
     let local_configured = is_loopback(&rate_limits::host_of(&main_url));

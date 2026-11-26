@@ -19,9 +19,10 @@ pub async fn dashboard_health(State(state): State<Arc<AppState>>) -> Html<String
         })
         .unwrap_or(false);
     let drive_ok = state.drive.is_some();
-    let llm_url = std::env::var("LLM_URL")
-        .or_else(|_| std::env::var("OLLAMA_HOST"))
-        .ok();
+    let llm_url = match std::env::var("LLM_URL").or_else(|_| std::env::var("OLLAMA_HOST")) {
+        Ok(v) => Some(v),
+        Err(e) => { log::debug!("no LLM endpoint configured: {e}"); None }
+    };
     let llm_ok = llm_url.is_some();
 
     let mut items = String::new();

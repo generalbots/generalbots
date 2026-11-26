@@ -70,6 +70,12 @@ async function init() {
         case TAB_MYFILES:
             await loadMyFilesTab();
             break;
+        case "conversations":
+            await loadConversationFilesTab();
+            break;
+        case "attachments":
+            await loadChatAttachmentsTab();
+            break;
         case TAB_BOTS:
             await loadBotsTab();
             break;
@@ -155,6 +161,8 @@ window.DriveModule = {
     loadBotsTab: loadBotsTab,
     loadRootTab: loadRootTab,
     loadExternalTab: loadExternalTab,
+    loadConversationFilesTab: loadConversationFilesTab,
+    loadChatAttachmentsTab: loadChatAttachmentsTab,
 };
 
 // Deep-link from a desktop shortcut or a chat link: jump straight to the

@@ -168,7 +168,7 @@ impl AntigravityBridgeProvider {
             }
         }
         #[cfg(not(feature = "drive"))]
-        let _ = (conversation, quoted);
+        std::hint::black_box((conversation, quoted));
         (images, resources)
     }
 }
@@ -302,13 +302,19 @@ impl AcpGate for Gate<'_> {
 
     async fn text(&self, chunk: &str) {
         if let Some(tx) = self.tx {
-            let _ = tx.send(chunk.to_string()).await;
+            if let Err(send_err) = tx.send(chunk.to_string()).await
+            {
+                log::debug!("antigravity text chunk send failed: {send_err}");
+            }
         }
     }
 
     async fn thought(&self, chunk: &str) {
         if let Some(tx) = self.tx {
-            let _ = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await;
+            if let Err(send_err) = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await
+            {
+                log::debug!("antigravity reasoning chunk send failed: {send_err}");
+            }
         }
     }
 

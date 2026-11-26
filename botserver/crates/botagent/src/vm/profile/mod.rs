@@ -251,7 +251,13 @@ pub(super) fn profile_for_bot(kind: &str, env_override: Option<&str>) -> VmProfi
 
 /// The profile this process provisions with, from `GB_VM_PROFILE`.
 pub(super) fn active_profile() -> VmProfile {
-    let requested = std::env::var(PROFILE_ENV).ok();
+    let requested = match std::env::var(PROFILE_ENV) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            tracing::debug!("{PROFILE_ENV} is not set or is not unicode: {error}");
+            None
+        }
+    };
     let profile = profile_for_bot(KIND_BOT, requested.as_deref());
     if let Some(value) = requested.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
         if VmProfile::parse(value).is_none() {

@@ -12,6 +12,48 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
+/// Stored user memory as a bounded prompt block (GB7-16). The memory
+/// subsystem keeps its renderer private because it also composes the per-turn
+/// note; the prompt needs the same bounded lines without that note. A pool or
+/// read failure is non-fatal: an older answer must still be generated.
+fn memory_prompt_block(state: &AppState, user_id: Uuid, bot_uuid: Uuid) -> String {
+    const MAX_ENTRIES: i64 = 24;
+    const MAX_CHARS: usize = 2000;
+    let Ok(mut conn) = state.conn.get() else {
+        log::warn!("user memory could not be read for the prompt: pool error");
+        return String::new();
+    };
+    if !botsettings::memory_store::is_enabled(&mut conn, user_id) {
+        return String::new();
+    }
+    let rows = match botsettings::memory_store::list(
+        &mut conn,
+        user_id,
+        Some(bot_uuid),
+        MAX_ENTRIES,
+    ) {
+        Ok(rows) => rows,
+        Err(error) => {
+            log::warn!("user memory could not be read for the prompt: {error}");
+            return String::new();
+        }
+    };
+    let mut block = String::new();
+    for entry in rows {
+        let line = if botsettings::memory_store::is_entry_key(&entry.key) {
+            format!("- {}\n", entry.value)
+        } else {
+            format!("- {}: {}\n", entry.key, entry.value)
+        };
+        if block.len() + line.len() > MAX_CHARS {
+            block.push_str("- (more entries available in Settings › Memory)\n");
+            break;
+        }
+        block.push_str(&line);
+    }
+    block
+}
+
 /// Builds the system prompt for one turn.
 ///
 /// * `channel` is the sink's channel type (`web`, `whatsapp`, …).
@@ -46,8 +88,7 @@ pub(super) fn build(
     };
     // GB7-16 — persisted user preferences are part of the system prompt, so a
     // fresh conversation starts with what the user already taught the bot.
-    let memory_block =
-        crate::core::user_memory::render_for_prompt(&state.conn, user_id, Some(bot_uuid));
+    let memory_block = memory_prompt_block(state, user_id, bot_uuid);
     let system_prompt = if memory_block.is_empty() {
         system_prompt
     } else {

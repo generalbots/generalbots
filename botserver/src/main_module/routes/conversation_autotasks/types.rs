@@ -103,7 +103,7 @@ pub(super) fn next_run_for(schedule: &str) -> Option<DateTime<Utc>> {
     }
     #[cfg(not(feature = "automation"))]
     {
-        let _ = schedule;
+        std::hint::black_box(schedule);
         None
     }
 }

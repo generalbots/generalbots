@@ -226,7 +226,10 @@ fn read_via_helper(name: &str) -> Result<String> {
 fn audit_open(name: &str) {
     #[cfg(unix)]
     {
-        let expected = std::env::var("GB_SIDECAR_UID").ok();
+        let expected = match std::env::var("GB_SIDECAR_UID") {
+            Ok(v) => Some(v),
+            Err(e) => { log::debug!("GB_SIDECAR_UID not set: {e}"); None }
+        };
         let current = nix_current_uid();
         if let (Some(expected), Some(current)) = (expected, current) {
             if expected != current.to_string() {

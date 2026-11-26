@@ -64,13 +64,19 @@ pub async fn handle_bot_config_get(
         is_public: bool,
     }
 
-    let bot: Option<BotRow> = diesel::sql_query(
+    let bot: Option<BotRow> = match diesel::sql_query(
         "SELECT name, description, llm_provider, enabled_tabs_json, org_id, is_public \
          FROM bots WHERE id = $1 LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .get_result::<BotRow>(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("bot config lookup failed: {e}");
+            None
+        }
+    };
 
     let Some(bot) = bot else {
         return (
@@ -255,7 +261,7 @@ pub async fn handle_bot_config_put(
     ];
     llm_settings.retain(|(_, v)| v.is_some());
     for (key, value) in llm_settings {
-        let _ = diesel::sql_query(
+        let result = diesel::sql_query(
             "INSERT INTO bot_configuration (id, bot_id, branch_id, config_key, config_value, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) \
              ON CONFLICT (branch_id, bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()",
@@ -266,6 +272,9 @@ pub async fn handle_bot_config_put(
         .bind::<diesel::sql_types::Text, _>(key)
         .bind::<diesel::sql_types::Text, _>(value.unwrap_or(Default::default()))
         .execute(&mut conn);
+        if let Err(e) = result {
+            log::debug!("bot configuration upsert failed: {e}");
+        }
     }
 
     // #1427 — platform credential setters: `embedding-key` (KB embedding

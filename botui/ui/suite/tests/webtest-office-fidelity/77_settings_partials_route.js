@@ -47,6 +47,7 @@ var TEN = [
   "14_shortcuts.html",
   "15_os_appliance.html",
   "16_protection.html",
+  "17_limits.html",
 ];
 
 function contains(src, needle, msg) {
@@ -93,7 +94,7 @@ function htmlFiles(dir, out) {
 
 // (a) The ten files named in #2935 must exist as non-trivial HTML documents.
 h.staticTest("#2935 all ten Settings partials from the host console ship as non-trivial HTML files", function () {
-  h.assertEqual(TEN.length, 10, "the issue names exactly ten partials");
+  h.assertEqual(TEN.length, 11, "ten issue partials plus the #2959 limits panel");
   TEN.forEach(function (name) {
     var rel = PARTIAL_DIR + name;
     h.assert(h.fileExistsRepo(rel), "missing shipped partial <" + rel + ">");
@@ -111,9 +112,9 @@ h.staticTest("#2935 all ten Settings partials from the host console ship as non-
 h.staticTest("#2935 Settings boot document references exactly the ten partial URLs, no stale path and no ?v= query", function () {
   var index = h.readRepo(INDEX);
   var refs = partialRefs(index);
-  h.assertEqual(refs.length, 10, "the boot document must issue exactly ten partial requests");
+  h.assertEqual(refs.length, 11, "the boot document must issue exactly eleven partial requests (11th: #2959 limits panel)");
   var unique = refs.filter(function (url, i) { return refs.indexOf(url) === i; });
-  h.assertEqual(unique.length, 10, "each partial must be requested once");
+  h.assertEqual(unique.length, 11, "each partial must be requested once");
   var expected = TEN.map(function (name) { return "/suite/settings/partials/" + name; });
   expected.forEach(function (url) {
     h.assert(refs.indexOf(url) !== -1, "boot document lost partial <" + url + ">");

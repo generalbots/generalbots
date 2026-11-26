@@ -178,17 +178,22 @@ async fn run_tool(state: &Arc<AppState>, pool: &DbPool, event: &PendingEvent, to
         lock_pin_hash: None,
     };
     let tool_name = tool.to_string();
-    let _ = tokio::task::spawn_blocking(move || {
+    if let Err(e) = tokio::task::spawn_blocking(move || {
         let mut svc = crate::basic::ScriptService::new(state_for_tool.clone(), session);
         svc.load_bot_config_params(&state_for_tool, bot_id);
         for (key, value) in variables {
-            let _ = svc.set_variable(&key, &value);
+            if let Err(e) = svc.set_variable(&key, &value) {
+                log::debug!("[event_dispatcher] set_variable failed: {e}");
+            }
         }
         if let Err(e) = svc.run(&source) {
             log::warn!("[event_dispatcher] {tool_name} failed: {e}");
         }
     })
-    .await;
+    .await
+   {
+        log::debug!("[event_dispatcher] worker task failed: {e}");
+    }
 }
 
 /// Session a subscribed tool runs under: the conversation that published the

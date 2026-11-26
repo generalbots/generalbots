@@ -3,12 +3,15 @@ use super::*;
 pub(super) fn delegate_to_bot(state: &dyn BasicRuntime, session_id: Uuid, bot_name: &str) -> Result<String, String> {
     let mut conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
 
-    let bot_config: Option<BotConfigRow> = diesel::sql_query(
+    let bot_config: Option<BotConfigRow> = match diesel::sql_query(
         "SELECT id, name, system_prompt, model_config FROM bots WHERE name = $1 AND is_active = true",
     )
     .bind::<diesel::sql_types::Text, _>(bot_name)
     .get_result(&mut *conn)
-    .ok();
+    {
+        Ok(row) => Some(row),
+        Err(e) => { log::debug!("bot lookup failed: {e}"); None }
+    };
 
     let Some(config) = bot_config else {
         return Err(format!("Bot '{bot_name}' not found"));

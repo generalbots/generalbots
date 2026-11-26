@@ -53,7 +53,7 @@ pub trait Approvals: Send + Sync {
     fn noted(&self, kind: &str, text: &str, ok: bool) -> impl Future<Output = ()> + Send;
     /// A piece of the model's reasoning summary, shown while it thinks.
     fn reasoning(&self, chunk: &str) -> impl Future<Output = ()> + Send {
-        let _ = chunk;
+        tracing::trace!("codex bridge: no reasoning consumer; dropping {} byte(s)", chunk.len());
         async {}
     }
     /// The person stopped the turn (or nobody reads the answer any more).

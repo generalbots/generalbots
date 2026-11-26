@@ -302,7 +302,7 @@ impl PackageManager {
             std::fs::create_dir_all(&host_path)?;
             let device_name = format!("{}-{}", component, dir);
             let container_path = format!("/opt/gbo/{}", dir);
-            let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
+            drop(safe_incus(&["config", "device", "remove", container, &device_name]));
             let source_arg = format!("source={}", host_path);
             let path_arg = format!("path={}", container_path);
             let output = safe_incus(&[
@@ -368,7 +368,7 @@ impl PackageManager {
                 .replace("{{BIN_PATH}}", "/opt/gbo/bin")
                 .replace("{{CONF_PATH}}", "/opt/gbo/conf")
                 .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
-            let _ = writeln!(env_section, "Environment={key}={rendered_value}");
+            if let Err(e) = writeln!(env_section, "Environment={key}={rendered_value}") { log::debug!("cannot write environment section: {e}"); }
         }
         let service_content = format!(
             "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",

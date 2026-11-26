@@ -10,9 +10,9 @@ pub(super) async fn merge_office_tail(
     api_router: &mut Router<Arc<AppState>>,
     sub_router: &mut Router<()>,
 ) {
-    let _ = &app_state;
-    let _ = &api_router;
-    let _ = &sub_router;
+    std::hint::black_box(&app_state);
+    std::hint::black_box(&api_router);
+    std::hint::black_box(&sub_router);
     #[cfg(any(feature = "research", feature = "llm"))]
     {
         *api_router = api_router.clone().route(

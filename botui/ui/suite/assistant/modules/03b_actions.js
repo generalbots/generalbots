@@ -136,7 +136,7 @@
            Edit does: the tooltip says so before the click. */
         function regenTitle() {
             var older = el.matches(":has(~ .gb-msg-user)");
-            var label = older ? A.t("assistant.regenerate-older", "Regenerate from here: the messages after it leave the conversation")
+            var label = older ? A.t("assistant-regenerate-older", "Regenerate from here: the messages after it leave the conversation")
                 : t("Regenerar", "Regenerate");
             regen.title = label;
             regen.setAttribute("aria-label", label);

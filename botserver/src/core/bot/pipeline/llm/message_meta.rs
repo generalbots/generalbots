@@ -82,7 +82,13 @@ pub fn decode(stored: &str) -> (&str, Option<MessageMeta>) {
     if let Some(pos) = stored.find(META_SEPARATOR) {
         let content = stored[..pos].trim_end_matches('\n');
         let json_part = &stored[pos + META_SEPARATOR.len()..];
-        let meta = serde_json::from_str(json_part).ok();
+        let meta = match serde_json::from_str(json_part) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                log::debug!("message meta parse failed: {e}");
+                None
+            }
+        };
         (content, meta)
     } else {
         (stored, None)

@@ -33,7 +33,7 @@ pub(super) async fn merge_platform_routers(
 ) {
     // Only the banking/m365 blocks merge into the authenticated API router;
     // a build without those features (the default) leaves it untouched.
-    let _ = &api_router;
+    std::hint::black_box(&api_router);
     governance::merge_governance(app_state, sub_router).await;
     #[cfg(any(
         feature = "vibe",

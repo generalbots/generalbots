@@ -185,7 +185,7 @@ fn needs_workspace(identity: &SessionIdentity<'_>, model_preference: &str) -> bo
         Some((agent, _)) => agent.to_string(),
         None => botcore::config::ConfigManager::new(identity.state.conn.clone())
             .get_config(&identity.bot_uuid, "llm-provider", Some(""))
-            .unwrap_or_default(),
+            .unwrap_or_else(|e| { log::debug!("using default for llm-provider config: {e}"); Default::default() }),
     };
     is_workspace_provider(&provider)
 }
@@ -278,7 +278,7 @@ fn workspace_refusal(
         .unwrap_or_else(|| {
             botcore::config::ConfigManager::new(identity.state.conn.clone())
                 .get_config(&identity.bot_uuid, "llm-provider", Some(""))
-                .unwrap_or_default()
+                .unwrap_or_else(|e| { log::debug!("using default for llm-provider config: {e}"); Default::default() })
         });
     let label = acc::provider_label(&agent);
     botlog::safe_warn!(

@@ -65,7 +65,10 @@ impl ChatPanel {
         let (tx, rx) = mpsc::channel::<BotResponse>(100);
         self.response_rx = Some(rx);
         let orchestrator = crate::core::bot::BotOrchestrator::new(app_state.clone());
-        let _ = orchestrator.stream_response(user_message, tx).await;
+        if let Err(e) = orchestrator.stream_response(user_message, tx).await
+        {
+            log::debug!("console chat stream failed: {e}");
+        }
         Ok(())
     }
     pub fn poll_response(&mut self, _bot_name: &str) -> Result<()> {

@@ -131,9 +131,15 @@ pub(super) async fn merge_governance(
 
                 // LLM
                 {
-                    let url = std::env::var("LLM_URL")
+                    let url = match std::env::var("LLM_URL")
                         .or_else(|_| std::env::var("OLLAMA_HOST"))
-                        .ok();
+                    {
+                        Ok(v) => Some(v),
+                        Err(e) => {
+                            log::debug!("LLM URL env lookup failed: {e}");
+                            None
+                        }
+                    };
                     let start = Instant::now();
                     let healthy = url
                         .and_then(|u| crate::monitoring::host_port_from_url(&u, 8081))

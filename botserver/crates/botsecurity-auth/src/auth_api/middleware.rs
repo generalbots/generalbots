@@ -107,7 +107,7 @@ pub async fn auth_middleware_with_providers(
     }
 
     // Only presence and scheme are logged: no part of the credential itself.
-    match request
+    let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok());

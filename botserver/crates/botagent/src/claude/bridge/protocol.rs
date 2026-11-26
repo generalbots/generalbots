@@ -54,7 +54,10 @@ pub(super) enum Incoming {
 }
 
 fn text_of(value: Option<&Value>) -> String {
-    value.and_then(Value::as_str).unwrap_or_default().to_string()
+    value.and_then(Value::as_str).unwrap_or_else(|| {
+        tracing::debug!("Claude protocol message has no string value; using empty text");
+        ""
+    }).to_string()
 }
 
 /// Text of a `tool_result` content: a string or a list of text blocks.
@@ -77,7 +80,10 @@ fn blocks(message: &Value) -> &[Value] {
         .and_then(|m| m.get("content"))
         .and_then(Value::as_array)
         .map(Vec::as_slice)
-        .unwrap_or_default()
+        .unwrap_or_else(|| {
+            tracing::debug!("Claude message has no content blocks; using an empty list");
+            &[]
+        })
 }
 
 fn assistant(message: &Value) -> Vec<Incoming> {

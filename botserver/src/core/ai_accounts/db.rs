@@ -41,13 +41,16 @@ pub fn ensure_user(pool: &DbPool, user_id: Uuid, email: Option<&str>) -> Result<
     // #1839 — the row may already exist from an earlier connect (inserted with
     // `is_admin = false`). Only ever promote; never demote an existing admin.
     if is_bootstrap_admin {
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "UPDATE users SET is_admin = TRUE, is_active = TRUE, updated_at = NOW() \
              WHERE id = $1 OR lower(email) = lower($2)",
         )
         .bind::<DieselUuid, _>(user_id)
         .bind::<Text, _>(email)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        {
+            log::debug!("admin promotion update failed: {e}");
+        }
     }
     Ok(())
 }

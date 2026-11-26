@@ -9,7 +9,7 @@ pub(super) async fn merge_office_ai_os(
     app_state: &Arc<AppState>,
     api_router: &mut Router<Arc<AppState>>,
 ) {
-    let _ = &app_state;
+    std::hint::black_box(&app_state);
     // ===== AI OS routers (issues #1167-#1179) =====
     #[cfg(feature = "agent-vm")]
     {

@@ -37,6 +37,16 @@ fn workspace_disabled_error() -> (u16, String) {
     )
 }
 
+/// A consent ticket for a different conversation cannot authorize a workspace
+/// action here. Shared by the ticketed entry points (`ops`, `wake`, `ticketed`)
+/// through `use super::*`.
+fn not_allowed_here() -> WorkspaceError {
+    (
+        403,
+        "the workspace action was not approved for this conversation".to_string(),
+    )
+}
+
 /// Runs a shell script inside the user's conversation folder (#1613).
 ///
 /// Used by conversation autotasks to install and inspect cron/systemd entries
@@ -210,13 +220,18 @@ pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::U
 }
 
 mod ops;
+mod rig_fake;
+mod ticketed;
 mod wake;
 
 pub use ops::WorkspaceError;
 pub(crate) use ops::{
-    ensure_agent_vm_result, exec_in_user_vm, exec_in_user_vm_result, exec_in_user_vm_with_timeout,
-    list_session_folder, list_session_folder_meta, list_user_vm_output,
+    ensure_agent_vm_result, exec_in_user_vm_result, list_session_folder, list_session_folder_meta,
+    list_user_vm_output,
 };
 #[cfg(feature = "agent-vm")]
-pub use ops::{read_session_file, user_vm_name, write_session_file};
+pub use ops::{read_session_file, user_vm_name};
+pub(crate) use ticketed::{exec_in_user_vm, exec_in_user_vm_with_timeout};
+#[cfg(feature = "agent-vm")]
+pub use ticketed::write_session_file;
 pub(crate) use wake::{exec_with_wake_events, exec_with_wake_result};

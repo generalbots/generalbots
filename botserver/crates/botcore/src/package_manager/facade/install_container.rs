@@ -4,7 +4,7 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-        let _ = safe_incus_admin(&["init", "--auto"]);
+        drop(safe_incus_admin(&["init", "--auto"]));
 
         let images = [
             "ubuntu:24.04",
@@ -39,7 +39,7 @@ impl PackageManager {
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
 
-            let _ = safe_incus(&["delete", &container_name, "--force"]);
+            drop(safe_incus(&["delete", &container_name, "--force"]));
         }
 
         if !success {

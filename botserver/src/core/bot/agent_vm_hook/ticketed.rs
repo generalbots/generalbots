@@ -108,7 +108,7 @@ pub(crate) async fn run_in_terminal(
     let thread_id = crate::core::bot::runs::bus::thread_id(session_id);
     let run_id = crate::core::bot::runs::bus::bus()
         .current_run_id(&thread_id)
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("using default for current run id"); Default::default() });
     let (events, mut lines) = tokio::sync::mpsc::unbounded_channel();
     let publisher = tokio::spawn(async move {
         while let Some(event) = lines.recv().await {
@@ -122,7 +122,10 @@ pub(crate) async fn run_in_terminal(
     let args = ["sh".to_string(), "-c".to_string(), terminal_script(&command, timeout_secs)];
     let limit = std::time::Duration::from_secs(timeout_secs.saturating_add(30));
     let outcome = botagent::vm::exec_in_vm_streaming(service, &vm_name, &args, Some(limit), None, Some(events)).await;
-    let _ = publisher.await;
+    if let Err(join_err) = publisher.await
+    {
+        log::debug!("publisher task failed: {join_err}");
+    }
     let outcome = outcome.map_err(|(_, error)| error)?;
     Ok(TerminalRun {
         output: format!("{}{}", outcome.stdout, outcome.stderr),

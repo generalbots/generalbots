@@ -38,7 +38,7 @@ fn start_trial_promotion_guard(app_state: Arc<AppState>) {
         });
     }
     #[cfg(not(feature = "billing"))]
-    let _ = app_state;
+    std::hint::black_box(app_state);
 }
 
 pub async fn start_background_services(

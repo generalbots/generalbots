@@ -120,7 +120,6 @@ HEADER = """# Rust error-handling ratchet baseline (issue #2543).
 # Never raise a number by hand: the guard refuses growth.
 """
 
-
 def strip_comments(text: str) -> str:
     """Remove // and /* */ comments, preserving line numbers.
 
@@ -129,7 +128,6 @@ def strip_comments(text: str) -> str:
     """
     text = BLOCK_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), text)
     return "\n".join(line.split("//", 1)[0] for line in text.split("\n"))
-
 
 def strip_cfg_test(text: str) -> str:
     """Remove `#[cfg(test)]` items by brace matching, preserving line numbers."""
@@ -159,7 +157,6 @@ def strip_cfg_test(text: str) -> str:
     pieces.append(text[pos:])
     return "".join(pieces)
 
-
 def is_production_path(rel: str) -> bool:
     """Best-effort path heuristic: skip tests directories and test file stems."""
     parts = rel.split("/")
@@ -167,7 +164,6 @@ def is_production_path(rel: str) -> bool:
         return False
     stem = os.path.splitext(parts[-1])[0]
     return stem not in SKIP_FILE_STEMS and not stem.endswith(("_test", "_tests"))
-
 
 def count_text(text: str) -> dict[str, int]:
     """Count all rules on one (already cleaned) source string."""
@@ -182,11 +178,27 @@ def count_text(text: str) -> dict[str, int]:
             counts["discarded_result"] += len(OK_CALL_RE.findall(line))
     return counts
 
+CFG_TEST_MOD_RE = re.compile(r"#\[cfg\(\s*test\s*\)\]\s*mod\s+([A-Za-z0-9_]+)\s*;")
+
+def test_only_modules() -> set[str]:
+    """Stems declared only via a parent's ``#[cfg(test)] mod <name>;``."""
+    stems: set[str] = set()
+    for scan_dir in SCAN_DIRS:
+        for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, scan_dir)):
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+            for name in (n for n in filenames if n.endswith(".rs")):
+                try:
+                    stems.update(CFG_TEST_MOD_RE.findall(
+                        strip_comments(open(os.path.join(dirpath, name), encoding="utf-8", errors="replace").read())))
+                except OSError:
+                    continue
+    return stems
 
 def count_sites() -> tuple[dict[str, int], dict[str, dict[str, int]]]:
     """Return (totals, per_file) over the first-party scan scope."""
     totals = {rule: 0 for rule in RULES}
     per_file: dict[str, dict[str, int]] = {}
+    test_modules = test_only_modules()
     for scan_dir in SCAN_DIRS:
         base = os.path.join(ROOT, scan_dir)
         if not os.path.isdir(base):
@@ -199,6 +211,8 @@ def count_sites() -> tuple[dict[str, int], dict[str, dict[str, int]]]:
                 path = os.path.join(dirpath, name)
                 rel = os.path.relpath(path, ROOT).replace(os.sep, "/")
                 if not is_production_path(rel):
+                    continue
+                if os.path.splitext(rel.split("/")[-1])[0] in test_modules:
                     continue
                 try:
                     with open(path, "r", encoding="utf-8", errors="replace") as handle:
@@ -213,11 +227,9 @@ def count_sites() -> tuple[dict[str, int], dict[str, dict[str, int]]]:
                     totals[rule] += counts[rule]
     return totals, per_file
 
-
 def growth_rules(current: dict[str, int], ceilings: dict[str, int]) -> list[str]:
     """Rules whose current count exceeds its ceiling (pure, shrink-only)."""
     return [rule for rule in RULES if current[rule] > ceilings[rule]]
-
 
 def load_baseline(path: str) -> dict | None:
     """Parse the TOML ceiling, or return None after printing a reason."""
@@ -244,11 +256,9 @@ def load_baseline(path: str) -> dict | None:
         totals[rule] = value
     return {"totals": totals, "per_file": data.get("files", {})}
 
-
 from ratchet_baseline_history import (  # noqa: E402
     parse_ceilings, read_git_file, ceiling_raises, check_baseline_history, self_test_history,
 )
-
 
 def write_baseline(path: str, totals: dict[str, int], per_file: dict[str, dict[str, int]]) -> None:
     """Write a shrink-only baseline; carry unknown tables (e.g. [clippy]) over verbatim."""
@@ -283,13 +293,11 @@ def write_baseline(path: str, totals: dict[str, int], per_file: dict[str, dict[s
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(content)
 
-
 def show_top(per_file: dict[str, dict[str, int]], rule: str, limit: int = 10) -> None:
     ranked = sorted(per_file.items(), key=lambda item: (-item[1][rule], item[0]))
     for rel, counts in ranked[:limit]:
         if counts[rule]:
             print(f"  {counts[rule]:4d}  {rel}")
-
 
 def self_test() -> int:
     """Prove counting, exclusion, shrink-only and history logic on synthetic input."""
@@ -335,6 +343,8 @@ pub fn production() -> u8 {
         and not is_production_path("botserver/crates/botcore/src/foo_test.rs")
         and is_production_path("botserver/crates/botcore/src/foo.rs"),
     )
+    check("cfg(test)-only modules recognised",
+          CFG_TEST_MOD_RE.findall("#[cfg(test)]\nmod rehearsal;\nmod production;") == ["rehearsal"])
     parsed = tomllib.loads('[rules]\nunwrap = 4\nexpect = 3\npanic = 2\n'
                            'unwrap_or_default = 9\ndiscarded_result = 6\n')
     ceilings = {rule: parsed["rules"][rule] for rule in RULES}
@@ -353,7 +363,6 @@ pub fn production() -> u8 {
         return 1
     print(f"check_rust_error_ratchet: self-test OK — {len(checks)} checks passed")
     return 0
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Rust error-handling ratchet (#2543)")
@@ -425,7 +434,6 @@ def main() -> int:
     for line in drops:
         print(f"  note: {line} — lower it with --update (counts only move down)")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

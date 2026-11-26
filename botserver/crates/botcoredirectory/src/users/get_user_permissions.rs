@@ -68,12 +68,15 @@ pub async fn get_user_presence(
         last_activity: Option<DateTime<Utc>>,
     }
 
-    let row: Option<LastActivityRow> = diesel::sql_query(
+    let row: Option<LastActivityRow> = match diesel::sql_query(
         "SELECT last_activity FROM user_sessions WHERE user_id = $1 ORDER BY last_activity DESC LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_uuid)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(r) => Some(r),
+        Err(e) => { log::debug!("last-activity lookup failed: {e}"); None }
+    };
 
     let last_seen = row.as_ref().and_then(|r| r.last_activity);
     let online = last_seen

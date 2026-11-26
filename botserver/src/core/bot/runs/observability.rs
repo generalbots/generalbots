@@ -208,14 +208,17 @@ pub fn begin_run_row(
         return;
     };
     let plan = serde_json::json!({ "agent": agent });
-    let _ = diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO agent_runs (id, bot_id, trigger_kind, status, plan, started_at) \
          VALUES ($1, $2, 'chat', 'running', $3, NOW()) ON CONFLICT (id) DO NOTHING",
     )
     .bind::<diesel::sql_types::Uuid, _>(run_uuid)
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Jsonb, _>(plan)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    {
+        log::debug!("agent run insert failed: {e}");
+    }
 }
 
 /// Closes the `agent_runs` row created by [`begin_run_row`].
@@ -226,11 +229,14 @@ pub fn finish_run_row(pool: &botlib::db_pool::DbPool, run_id: &str, status: &str
     let Ok(mut conn) = pool.get() else {
         return;
     };
-    let _ =
+    if let Err(e) =
         diesel::sql_query("UPDATE agent_runs SET status = $2, finished_at = NOW() WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(run_uuid)
             .bind::<diesel::sql_types::Text, _>(status)
-            .execute(&mut conn);
+            .execute(&mut conn)
+   {
+        log::debug!("agent run finish update failed: {e}");
+    }
 }
 
 pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {
@@ -338,7 +344,7 @@ fn persist_spans(pool: &botlib::db_pool::DbPool, run_id: &str, spans: &[Finished
             .and_then(|value| value.parse::<i32>().ok());
         let duration_ms =
             i64::try_from((span.end_unix_nano - span.start_unix_nano) / 1_000_000).unwrap_or(0);
-        let _ = diesel::sql_query(
+        if let Err(e) = diesel::sql_query(
             "INSERT INTO agent_spans (id, run_id, kind, name, tokens_in, tokens_out, status, started_at, finished_at) \
              VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 'ok', NOW() - ($6 || ' milliseconds')::interval, NOW())",
         )
@@ -348,7 +354,10 @@ fn persist_spans(pool: &botlib::db_pool::DbPool, run_id: &str, spans: &[Finished
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Int4>, _>(tokens_in)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Int4>, _>(tokens_out)
         .bind::<diesel::sql_types::BigInt, _>(duration_ms)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        {
+            log::debug!("agent span insert failed: {e}");
+        }
     }
 }
 

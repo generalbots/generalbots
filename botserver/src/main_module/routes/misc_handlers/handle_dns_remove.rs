@@ -117,12 +117,18 @@ pub async fn handle_user_current_org(
         #[diesel(sql_type = diesel::sql_types::Text)]
         value: String,
     }
-    let saved: Option<PrefRow> = diesel::sql_query(
+    let saved: Option<PrefRow> = match diesel::sql_query(
         "SELECT preference_value::text AS value FROM user_preferences \
          WHERE preference_key = 'current_org_id' ORDER BY updated_at DESC LIMIT 1",
     )
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("notification pref lookup failed: {e}");
+            None
+        }
+    };
     if let Some(p) = saved {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&p.value) {
             if let Some(id_str) = parsed
@@ -138,12 +144,18 @@ pub async fn handle_user_current_org(
                         #[diesel(sql_type = diesel::sql_types::Text)]
                         name: String,
                     }
-                    let row: Option<OrgRow> = diesel::sql_query(
+                    let row: Option<OrgRow> = match diesel::sql_query(
                         "SELECT org_id AS id, name FROM organizations WHERE org_id = $1 LIMIT 1",
                     )
                     .bind::<diesel::sql_types::Uuid, _>(org_id)
                     .get_result(&mut conn)
-                    .ok();
+                    {
+                        Ok(v) => Some(v),
+                        Err(e) => {
+                            log::debug!("org lookup failed: {e}");
+                            None
+                        }
+                    };
                     if let Some(r) = row {
                         return Ok(Json(serde_json::json!({ "id": r.id, "name": r.name })));
                     }
@@ -161,11 +173,17 @@ pub async fn handle_user_current_org(
         name: String,
     }
 
-    let row: Option<OrgRow> = diesel::sql_query(
+    let row: Option<OrgRow> = match diesel::sql_query(
         "SELECT org_id AS id, name FROM organizations ORDER BY created_at ASC LIMIT 1",
     )
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("default org lookup failed: {e}");
+            None
+        }
+    };
 
     match row {
         Some(r) => Ok(Json(serde_json::json!({ "id": r.id, "name": r.name }))),

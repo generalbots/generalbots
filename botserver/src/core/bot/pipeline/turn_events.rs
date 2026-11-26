@@ -40,7 +40,7 @@ pub(crate) fn record(session_id: Uuid, key: &str, frame: Value) {
 
 /// The events waiting for this session's answer; empty when none.
 pub(crate) fn take(session_id: Uuid) -> Map<String, Value> {
-    events().remove(&session_id).unwrap_or_default()
+    events().remove(&session_id).unwrap_or_else(|| { log::debug!("using default for session events"); Default::default() })
 }
 
 /// Sends `frame` to the shell and keeps it for the stored answer.
@@ -112,7 +112,7 @@ pub(crate) fn note_request(session_id: Uuid, text: &str) {
 
 /// The person's message of this session's current turn ("" when unknown).
 pub(crate) fn request_of(session_id: Uuid) -> String {
-    requests().get(&session_id).cloned().unwrap_or_default()
+    requests().get(&session_id).cloned().unwrap_or_else(|| { log::debug!("using default for session request"); Default::default() })
 }
 
 /// Merges `extra` into a stored meta object's fields.

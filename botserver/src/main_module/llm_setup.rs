@@ -24,9 +24,15 @@ pub(crate) fn init_llm_provider(
         let embedding_model = config_manager
             .get_config(&bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
             .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());
-        let embedding_key = config_manager
+        let embedding_key = match config_manager
             .get_config(&bot_id, "embedding-key", None)
-            .ok();
+        {
+            Ok(v) => Some(v),
+            Err(e) => {
+                log::debug!("embedding key config lookup failed: {e}");
+                None
+            }
+        };
         let semantic_cache_enabled = config_manager
             .get_config(&bot_id, "llm-cache-semantic", Some("false"))
             .unwrap_or_else(|_| "false".to_string())

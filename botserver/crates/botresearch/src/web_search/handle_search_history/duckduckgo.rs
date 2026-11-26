@@ -38,7 +38,10 @@ pub(super) async fn search_duckduckgo(
     let lite = post_form(&client, LITE_ENDPOINT, &body, query).await?;
     let results = lite
         .map(|page| parse_duckduckgo_lite(&page, max_results))
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            log::debug!("duckduckgo lite fetch failed, using empty result set");
+            Vec::new()
+        });
     info!(
         "DuckDuckGo lite for query_chars={} returned {} results",
         query.chars().count(),

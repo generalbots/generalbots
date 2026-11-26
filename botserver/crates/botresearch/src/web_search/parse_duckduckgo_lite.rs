@@ -45,11 +45,17 @@ pub(super) fn parse_duckduckgo_lite(html: &str, max_results: usize) -> Vec<WebSe
                 let end = text.find("</td>").unwrap_or(text.len());
                 Some(html_decode(&strip_html_inline(&text[..end])))
             })
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                log::debug!("duckduckgo lite: no result cell, using empty title");
+                String::new()
+            });
 
         let url = quoted_attr(open_tag, "href")
             .map(|raw| decode_ddg_url(&html_decode(&raw)))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                log::debug!("duckduckgo lite: no href attribute, using empty URL");
+                String::new()
+            });
         if !title.trim().is_empty() && url.starts_with("http") && !is_ad(&url) {
             let domain = extract_domain(&url);
             results.push(WebSearchResult {

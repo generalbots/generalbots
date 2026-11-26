@@ -35,9 +35,9 @@ pub fn check_single_instance() -> Result<bool, Box<dyn std::error::Error>> {
 
     let pid = std::process::id();
     if let Some(parent) = lock_file.parent() {
-        fs::create_dir_all(parent).ok();
+        if let Err(e) = fs::create_dir_all(parent) { log::debug!("cannot create lock dir: {e}"); }
     }
-    fs::write(&lock_file, pid.to_string()).ok();
+    if let Err(e) = fs::write(&lock_file, pid.to_string()) { log::debug!("cannot write instance lock: {e}"); }
     Ok(true)
 }
 
@@ -46,6 +46,6 @@ pub fn release_instance_lock() {
     let stack_path = get_stack_path();
     let lock_file = PathBuf::from(&stack_path).join(".lock");
     if lock_file.exists() {
-        fs::remove_file(&lock_file).ok();
+        if let Err(e) = fs::remove_file(&lock_file) { log::debug!("cannot remove instance lock: {e}"); }
     }
 }

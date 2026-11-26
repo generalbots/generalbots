@@ -124,9 +124,9 @@ pub fn generate_all_certs(base_path: &Path) -> Result<()> {
         ))?;
 
         // Cleanup CSRs and ext
-        std::fs::remove_file(svc_dir.join("server.csr")).ok();
-        std::fs::remove_file(svc_dir.join("client.csr")).ok();
-        std::fs::remove_file(&ext_file).ok();
+        if let Err(e) = std::fs::remove_file(svc_dir.join("server.csr")) { log::debug!("cannot remove server.csr: {e}"); }
+        if let Err(e) = std::fs::remove_file(svc_dir.join("client.csr")) { log::debug!("cannot remove client.csr: {e}"); }
+        if let Err(e) = std::fs::remove_file(&ext_file) { log::debug!("cannot remove ext file: {e}"); }
 
         info!("Certificates generated for {}", svc.name);
     }

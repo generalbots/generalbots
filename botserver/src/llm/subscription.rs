@@ -36,7 +36,10 @@ async fn send_in_chunks(tx: &mpsc::Sender<String>, text: &str) {
         }
     }
     if !buffer.is_empty() {
-        let _ = tx.send(buffer).await;
+        if let Err(send_err) = tx.send(buffer).await
+        {
+            log::debug!("subscription chunk send failed: {send_err}");
+        }
     }
 }
 
@@ -209,7 +212,7 @@ pub async fn build(
             .map(|provider| Arc::new(provider) as Arc<dyn botlib::traits::LLMProvider>)
         }
         other => {
-            let _ = state;
+            std::hint::black_box(state);
             Err(format!("Unsupported subscription provider: {other}"))
         }
     }

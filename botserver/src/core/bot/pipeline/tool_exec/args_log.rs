@@ -9,7 +9,7 @@ pub(crate) fn args_summary(tool: &str, args: &str) -> String {
     let site = if tool == web_fetch::TOOL {
         web_fetch::site_in_args(args)
             .map(|site| format!(" site={site}"))
-            .unwrap_or_default()
+            .unwrap_or_else(|| { log::debug!("using default for tool site"); Default::default() })
     } else {
         String::new()
     };

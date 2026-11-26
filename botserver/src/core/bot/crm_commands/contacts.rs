@@ -71,13 +71,19 @@ pub(super) fn ensure_contact(
     let Some(mail) = email.clone() else {
         return Err("params.email is required".to_string());
     };
-    let existing: Option<ContactIdRow> = diesel::sql_query(
+    let existing: Option<ContactIdRow> = match diesel::sql_query(
         "SELECT id AS contact_id FROM crm_contacts WHERE branch_id = $1 AND email ILIKE $2 LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .bind::<diesel::sql_types::Text, _>(&mail)
     .get_result(conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("contact lookup failed: {e}");
+            None
+        }
+    };
     if let Some(row) = existing {
         return Ok(row.contact_id);
     }
@@ -99,7 +105,7 @@ pub(super) fn ensure_contact(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(str_p("job_title"))
     .execute(conn)
     .map_err(|e| format!("insert contact: {e}"))?;
-    let _ = state;
+    std::hint::black_box(state);
     Ok(cid)
 }
 
@@ -109,13 +115,19 @@ pub(super) fn ensure_account(
     branch: Uuid,
     company: &str,
 ) -> Result<Uuid, String> {
-    let existing: Option<ContactIdRow> = diesel::sql_query(
+    let existing: Option<ContactIdRow> = match diesel::sql_query(
         "SELECT id AS contact_id FROM crm_accounts WHERE branch_id = $1 AND name ILIKE $2 LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .bind::<diesel::sql_types::Text, _>(company)
     .get_result(conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("account lookup failed: {e}");
+            None
+        }
+    };
     if let Some(row) = existing {
         return Ok(row.contact_id);
     }

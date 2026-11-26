@@ -30,7 +30,8 @@ impl Notes {
 /// secrets server or a stack without the former binary.
 pub async fn prepare(stack: &Path) -> Notes {
     let mut notes = Notes::default();
-    let configured = std::env::var("VAULT_ADDR").unwrap_or_default();
+    let configured = std::env::var("VAULT_ADDR")
+        .unwrap_or_else(|e| { log::debug!("VAULT_ADDR not set: {e}"); Default::default() });
     if !configured.is_empty() && !configured.contains("127.0.0.1") && !configured.contains("localhost") {
         return notes;
     }

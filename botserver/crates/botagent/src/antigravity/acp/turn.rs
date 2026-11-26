@@ -318,7 +318,10 @@ async fn updated<H: AcpGate>(
         Update::Tool { id, kind, status, call } => {
             trace::tool_update(&call);
             trace::remember(&mut turn.calls, &id, &call);
-            let status = status.unwrap_or_default();
+            let status = status.unwrap_or_else(|| {
+                tracing::debug!("ACP tool update has no status; treating it as unknown");
+                String::new()
+            });
             if !matches!(status.as_str(), "completed" | "failed") {
                 return Ok(());
             }

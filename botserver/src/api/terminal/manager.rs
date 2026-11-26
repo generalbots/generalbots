@@ -159,7 +159,13 @@ impl TerminalManager {
     }
 
     pub fn reap(&self) {
-        let mut guard = self.sessions.lock().ok();
+        let mut guard = match self.sessions.lock() {
+            Ok(guard) => Some(guard),
+            Err(e) => {
+                log::debug!("sessions lock poisoned: {e}");
+                None
+            }
+        };
         if let Some(m) = guard.as_mut() {
             let dead: Vec<String> = m
                 .iter()

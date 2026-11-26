@@ -100,7 +100,7 @@ pub async fn handle_products_pricelists(
         botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn).unwrap_or(Uuid::nil());
     #[cfg(not(feature = "contacts"))]
     let branch_id = {
-        let _ = &headers;
+        std::hint::black_box(&headers);
         Uuid::nil()
     };
 
@@ -164,7 +164,7 @@ pub async fn handle_contacts_search(
         botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn).unwrap_or(Uuid::nil());
     #[cfg(not(feature = "contacts"))]
     let branch_id = {
-        let _ = &headers;
+        std::hint::black_box(&headers);
         Uuid::nil()
     };
 

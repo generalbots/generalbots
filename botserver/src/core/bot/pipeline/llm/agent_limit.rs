@@ -34,7 +34,7 @@ pub(crate) struct AgentLimit {
 impl AgentLimit {
     #[cfg(any(feature = "agent-vm", test))]
     pub(crate) fn encode(&self) -> String {
-        format!("{PREFIX}{}", serde_json::to_string(self).unwrap_or_default())
+        format!("{PREFIX}{}", serde_json::to_string(self).unwrap_or_else(|e| { log::debug!("using default for agent limit encoding: {e}"); Default::default() }))
     }
 
     fn decode(error: &str) -> Option<Self> {

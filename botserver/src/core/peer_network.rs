@@ -78,7 +78,10 @@ pub fn persist_network_mode(mode: &str) -> Result<(), String> {
             if let Ok(metadata) = std::fs::metadata(&env_path) {
                 let mut permissions = metadata.permissions();
                 permissions.set_mode(0o600);
-                let _ = std::fs::set_permissions(&env_path, permissions);
+                if let Err(e) = std::fs::set_permissions(&env_path, permissions)
+                {
+                    log::debug!("peer network env permissions failed: {e}");
+                }
             }
         }
     }
@@ -162,10 +165,16 @@ impl PeerNetwork {
     fn persist_mode(&self, value: bool) {
         if let Some(path) = &self.mode_file {
             if let Some(parent) = path.parent() {
-                let _ = std::fs::create_dir_all(parent);
+                if let Err(e) = std::fs::create_dir_all(parent)
+                {
+                    log::debug!("peer network parent dir creation failed: {e}");
+                }
             }
             let payload = if value { "p2p" } else { "offline" };
-            let _ = std::fs::write(path, payload);
+            if let Err(e) = std::fs::write(path, payload)
+            {
+                log::debug!("peer network mode write failed: {e}");
+            }
         }
     }
 

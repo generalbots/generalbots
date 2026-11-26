@@ -7,7 +7,7 @@
     A.updateBreadcrumb = function () {
         var screen = A.currentView;
         var section = screen === "settings" ? A.t("assistant.settings") :
-            screen === "machine" ? A.t("shell.machine") : screen === "drive" ? "Drive" : "Chat";
+            screen === "machine" ? A.t("shell-machine") : screen === "drive" ? "Drive" : "Chat";
         var active;
         if (screen === "settings") active = id("gbSettingsNav").querySelector(".active, [aria-current=page]");
         if (screen === "drive") active = id("gbDriveNav").querySelector(".active");

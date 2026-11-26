@@ -137,11 +137,13 @@ impl Drop for ServerRequest {
                 "server request {} dropped without an answer: denied",
                 self.method
             );
-            let _ = sender.send_json(&error_reply(
+            if let Err(error) = sender.send_json(&error_reply(
                 &self.id,
                 INTERNAL_ERROR,
                 "request was not answered",
-            ));
+            )) {
+                tracing::debug!("server request {} could not report its denial: {error}", self.method);
+            }
         }
     }
 }
@@ -197,7 +199,9 @@ impl RpcShared {
             std::mem::take(&mut pending.waiters)
         };
         for (_, waiter) in waiters {
-            let _ = waiter.send(Err(RpcError::SessionEnded(end.clone())));
+            if waiter.send(Err(RpcError::SessionEnded(end.clone()))).is_err() {
+                tracing::debug!("a pending request was already gone when the session ended");
+            }
         }
     }
 }

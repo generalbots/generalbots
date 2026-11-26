@@ -114,7 +114,10 @@ pub fn generate(state: &AppState, prompt: &str, model: &str, api_key: &str) -> R
                 }),
                 Err(e) => Err(format!("LLM runtime unavailable: {e}")),
             };
-            let _ = tx.send(outcome);
+            if let Err(send_err) = tx.send(outcome)
+            {
+                log::debug!("LLM outcome send failed: {send_err}");
+            }
         })
     {
         return Err(format!("LLM worker could not start: {e}"));

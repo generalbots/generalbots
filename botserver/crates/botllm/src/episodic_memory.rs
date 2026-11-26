@@ -129,12 +129,14 @@ async fn process_episodic_memory(
             if role == "episodic" || role == "compact" {
                 continue;
             }
-            let _ = writeln!(
+            if let Err(e) = writeln!(
                 conversation,
                 "{}: {}",
                 if role == "user" { "user" } else { "assistant" },
                 content
-            );
+            ) {
+                log::debug!("cannot append conversation line: {e}");
+            }
         }
         conversation.push_str("\n *****]]] \n Give me full points only, no explanations.");
 

@@ -8,7 +8,7 @@ pub trait ChannelSink: Send + Sync {
     async fn send_bot_response(&self, response: &BotResponse) -> PipelineResult<()>;
 
     async fn send_raw_json(&self, json: &serde_json::Value) -> PipelineResult<()> {
-        let _ = json;
+        std::hint::black_box(json);
         Err(PipelineError::Transport(
             "raw JSON not supported by this channel".into(),
         ))

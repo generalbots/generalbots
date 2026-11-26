@@ -136,7 +136,7 @@ fn pdf_text(bytes: &[u8]) -> Option<String> {
 
 #[cfg(not(feature = "drive"))]
 fn pdf_text(bytes: &[u8]) -> Option<String> {
-    let _ = bytes;
+    std::hint::black_box(bytes);
     None
 }
 

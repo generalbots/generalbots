@@ -42,7 +42,7 @@
         var sortArrow = '<span class="gb-drv-sort-arrow">' + D.svg(P.sort, 10, 3, "square") + '</span>';
         container.innerHTML =
             '<div class="gb-drv-header">' +
-                '<div class="gb-drv-heading"><span class="gb-drv-eyebrow"><span class="gb-drv-slash">//</span>DRIVE</span>' +
+                '<div class="gb-drv-heading"><span class="gb-drv-eyebrow"><span class="gb-drv-slash">//</span>' + esc(A.t("drive-label", "Drive")) + '</span>' +
                 '<h1 class="gb-drv-title">' + (portuguese ? "Seus arquivos, neste computador." : "Your files, on this computer.") + '</h1></div>' +
                 '<div class="gb-drv-tabs" id="gbDrvTabs">' + tab("files", myFiles) + tab("inbox", attachments) + tab("conversations", convFiles) + '</div>' +
             '</div>' +
@@ -81,7 +81,7 @@
 
         var rail = document.getElementById("gbDriveNav");
         if (rail) {
-            rail.innerHTML = '<span class="gb-strip">DRIVE</span>' + tab("files", myFiles, P.folder) + tab("inbox", attachments, P.clip) + tab("conversations", convFiles, P.folder) +
+            rail.innerHTML = '<span class="gb-strip">' + esc(A.t("drive-label", "Drive")) + '</span>' + tab("files", myFiles, P.folder) + tab("inbox", attachments, P.clip) + tab("conversations", convFiles, P.folder) +
                 '<div class="gb-drv-rail-folders" id="gbDrvRailFolders" hidden></div>';
             rail.onclick = switchTab;
         }

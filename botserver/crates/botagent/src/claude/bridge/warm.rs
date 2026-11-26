@@ -65,7 +65,9 @@ pub(super) fn refuse_idle(process: &mut ClaudeWarm) -> bool {
                 _ => continue,
             };
             tracing::warn!("claude warm: a control request arrived between turns; refused");
-            let _ = process.sender.send_json(&reply);
+            if let Err(error) = process.sender.send_json(&reply) {
+                tracing::debug!("claude warm: could not send the refusal: {error}");
+            }
         }
     }
     process.alive()

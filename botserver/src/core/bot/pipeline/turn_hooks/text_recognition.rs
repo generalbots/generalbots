@@ -180,7 +180,7 @@ mod platform {
 #[cfg(not(windows))]
 mod platform {
     pub(super) fn recognize(data: &[u8], pdf: bool) -> Result<String, String> {
-        let _ = (data, pdf);
+        std::hint::black_box((data, pdf));
         Ok(String::new())
     }
 }

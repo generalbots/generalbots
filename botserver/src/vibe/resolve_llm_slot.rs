@@ -7,7 +7,10 @@ impl VibeState for VibeStateImpl {
 
     fn broadcast_progress(&self, event: VibeProgressEvent) {
         if let Some(tx) = &self.progress {
-            let _ = tx.send(event);
+            if let Err(send_err) = tx.send(event)
+            {
+                log::debug!("vibe progress send failed: {send_err}");
+            }
         }
     }
 

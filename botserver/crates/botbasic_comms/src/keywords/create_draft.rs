@@ -6,7 +6,7 @@ use rhai::Engine;
 
 pub fn create_draft_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CREATE_DRAFT", "$expr$", ",", "$expr$", ",", "$expr$"],
             true,
@@ -39,7 +39,9 @@ pub fn create_draft_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, e
                 Ok(Dynamic::from(result))
             },
         )
-        .ok();
+    {
+        log::debug!("CREATE_DRAFT keyword registration failed: {e}");
+    }
 }
 
 async fn execute_create_draft(

@@ -8,6 +8,8 @@
 
 (function () {
     var A = window.GBAssistant;
+    var THEME_KEYS = { light: "settings-theme-light", dark: "settings-theme-dark", system: "settings-theme-system" };
+    var TEXT_KEYS = { small: "settings-text-small", "default": "settings-text-default", large: "settings-text-large", xlarge: "settings-text-xlarge" };
     var root = document.documentElement;
     var mantis = root.dataset.identity === "mantis";
 
@@ -233,7 +235,7 @@
         var short = { small: tr("P", "S"), "default": tr("M", "M"), large: tr("G", "L"), xlarge: tr("XG", "XL") };
         container.innerHTML = '<div class="gb-ap">' +
             '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Tema", "Theme") + '</span>' +
-            seg("appearance-theme", ["light", "dark", "system"].map(function (id) { return [id, A.escapeHtml(A.t("settings.theme-" + id, id))]; }), theme.get()) + '</div>' +
+            seg("appearance-theme", ["light", "dark", "system"].map(function (id) { return [id, A.escapeHtml(A.t(THEME_KEYS[id] || "settings-theme-light", id))]; }), theme.get()) + '</div>' +
             (window.GBZoom ? zoomRow(tr("Zoom do aplicativo", "App zoom")) : '') +
             '<div class="gb-ap-sec"><div class="gb-ap-label gb-ap-pair"><span>' + tr("Acento", "Accent") + '</span><span class="gb-ap-ink" id="gbAppearanceAccentName">' +
             A.escapeHtml(accentName(activeAccent)) + '</span></div><div class="gb-ap-swatches">' + identity.presets.map(function (preset) {
@@ -255,7 +257,7 @@
             '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Tamanho do texto", "Text size") + '</span>' +
             seg("appearance-size", size.steps.map(function (id) {
                 return [id, '<span aria-hidden="true">' + short[id] + '</span><small aria-hidden="true">' + (px[id] || "") +
-                    '</small><span class="gb-sr-only">' + A.escapeHtml(A.t("settings.text-" + id, id)) + '</span>'];
+                    '</small><span class="gb-sr-only">' + A.escapeHtml(A.t(TEXT_KEYS[id] || "settings-text-default", id)) + '</span>'];
             }), size.get()) + '</div></div>';
 
         var panel = container.querySelector(".gb-ap");

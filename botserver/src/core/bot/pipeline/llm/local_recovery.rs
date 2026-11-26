@@ -79,7 +79,9 @@ pub async fn preflight(
         return;
     }
     log::info!("[local_recovery] preflight: port closed, starting inline recovery");
-    let _ = recover_inline_with_progress(identity, state, session_id_s).await;
+    if !recover_inline_with_progress(identity, state, session_id_s).await {
+        log::debug!("[local_recovery] inline recovery did not start");
+    }
 }
 
 // ── inline recovery with progress frames ────────────────────────────────
@@ -164,16 +166,16 @@ async fn recover_inline_with_progress(
 fn desired_from_state(state: &Arc<AppState>) -> Option<runtime_ctl::DesiredRuntime> {
     let cfg = ConfigManager::new(state.conn.clone());
     let nil = uuid::Uuid::nil();
-    let model = cfg.get_config(&nil, "llm-model", Some("")).unwrap_or_default();
+    let model = cfg.get_config(&nil, "llm-model", Some("")).unwrap_or_else(|e| { log::debug!("using default for llm-model config: {e}"); Default::default() });
     if !runtime_ctl::is_local_model_name(&model) {
         return None;
     }
     let gpu_layers = cfg
         .get_config(&nil, "llm-server-gpu-layers", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for gpu layers config: {e}"); Default::default() });
     let ctx_size = cfg
         .get_config(&nil, "llm-server-ctx-size", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("using default for context size config: {e}"); Default::default() });
     runtime_ctl::desired_from_config(&model, &gpu_layers, &ctx_size)
 }
 

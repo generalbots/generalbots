@@ -58,7 +58,7 @@ fn lenient_call(text: &str) -> Option<Value> {
     let open = text.len() - after.len();
     let close = text.trim_end().rfind('}').filter(|close| *close > open)?;
     let arguments = text[open..close].trim_end();
-    Some(serde_json::json!({ "name": salvaged.get("name").cloned().unwrap_or_default(), "arguments": arguments }))
+    Some(serde_json::json!({ "name": salvaged.get("name").cloned().unwrap_or_else(|| { log::debug!("using default for salvaged name"); Default::default() }), "arguments": arguments }))
 }
 
 #[cfg(test)]

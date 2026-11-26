@@ -4,7 +4,7 @@ impl PackageManager {
     pub fn setup_port_forwarding(&self, container: &str, ports: &[u16]) -> Result<()> {
         for port in ports {
             let device_name = format!("port-{}", port);
-            let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
+            drop(safe_incus(&["config", "device", "remove", container, &device_name]));
             let listen_arg = format!("listen=tcp:0.0.0.0:{port}");
             let connect_arg = format!("connect=tcp:127.0.0.1:{port}");
             let output = safe_incus(&[

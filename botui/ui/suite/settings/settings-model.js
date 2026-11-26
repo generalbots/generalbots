@@ -108,6 +108,12 @@
   }
 
   function modeLabel(id) {
+    // The engine vocabulary is the single source of truth shared with the
+    // Usage & limits panel; the detail tier maps to the same mdl-* keys.
+    var names = window.GBSettingsEngineNames;
+    if (names && typeof names.engineName === "function") {
+      return names.engineName(id, "detail");
+    }
     if (id === "local") return t("mdl-local", "On this computer");
     if (id === "own_key") return t("mdl-own", "Your server or provider key");
     return t("mdl-free", "Free hosted model");

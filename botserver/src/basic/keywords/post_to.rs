@@ -85,7 +85,10 @@ fn post_to_impl(
         } else {
             Err(crate::channels::ChannelError::NetworkError("Failed to create runtime".to_string()))
         };
-        let _ = tx.send(result);
+        if let Err(send_err) = tx.send(result)
+        {
+            log::debug!("post_to result send failed: {send_err}");
+        }
     });
 
     let result = rx.recv().unwrap_or(Err(crate::channels::ChannelError::NetworkError("Channel error".to_string())));
@@ -156,7 +159,10 @@ fn post_to_multiple_impl(
         } else {
             Vec::new()
         };
-        let _ = tx.send(results);
+        if let Err(send_err) = tx.send(results)
+        {
+            log::debug!("post_to results send failed: {send_err}");
+        }
     });
 
     let results = rx.recv().unwrap_or(Default::default());
@@ -289,7 +295,10 @@ fn post_to_advanced_impl(
         } else {
             Err(crate::channels::ChannelError::NetworkError("Failed to create runtime".to_string()))
         };
-        let _ = tx.send(result);
+        if let Err(send_err) = tx.send(result)
+        {
+            log::debug!("post_to result send failed: {send_err}");
+        }
     });
 
     let result = rx.recv().unwrap_or(Err(crate::channels::ChannelError::NetworkError("Channel error".to_string())));

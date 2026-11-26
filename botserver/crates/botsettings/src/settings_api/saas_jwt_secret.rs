@@ -65,14 +65,17 @@ pub fn resolve_user_id(
         user_data: String,
     }
 
-    let row: Option<SessionRow> = diesel::sql_query(
+    let row: Option<SessionRow> = match diesel::sql_query(
         // user_data is jsonb: cast to text so the Text decode always succeeds
         // (a raw jsonb result would silently fail and reject valid sessions).
         "SELECT user_data::text AS user_data FROM login_sessions WHERE token = $1 LIMIT 1",
     )
     .bind::<diesel::sql_types::Text, _>(&token)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(r) => Some(r),
+        Err(e) => { log::debug!("login session lookup failed: {e}"); None }
+    };
 
     let Some(row) = row else {
         // #1457 — cloud-login tokens are stateless SaaS JWTs (HS256, signed

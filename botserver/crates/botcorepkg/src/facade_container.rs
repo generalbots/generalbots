@@ -47,7 +47,7 @@ pub fn install_container(
     _base_path: &std::path::Path,
 ) -> Result<InstallResult> {
     let container_name = format!("{}-{}", tenant, component.name);
-    let _ = safe_incus_admin(&["init", "--auto"]);
+    drop(safe_incus_admin(&["init", "--auto"]));
     let images = [
         "ubuntu:24.04",
         "ubuntu:22.04",
@@ -72,7 +72,7 @@ pub fn install_container(
         }
         last_error = String::from_utf8_lossy(&output.stderr).to_string();
         warn!("Failed to create container with {}: {}", image, last_error);
-        let _ = safe_incus(&["delete", &container_name, "--force"]);
+        drop(safe_incus(&["delete", &container_name, "--force"]));
     }
     if !success {
         return Err(anyhow::anyhow!(
@@ -230,7 +230,7 @@ pub fn mount_container_directories(container: &str, component: &str, tenant: &st
         std::fs::create_dir_all(&host_path)?;
         let device_name = format!("{}-{}", component, dir);
         let container_path = format!("/opt/gbo/{}", dir);
-        let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
+        drop(safe_incus(&["config", "device", "remove", container, &device_name]));
         let source_arg = format!("source={}", host_path);
         let path_arg = format!("path={}", container_path);
         let output = safe_incus(&[
@@ -332,7 +332,7 @@ pub fn create_container_service(
 pub fn setup_port_forwarding(container: &str, ports: &[u16]) -> Result<()> {
     for port in ports {
         let device_name = format!("port-{}", port);
-        let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
+        drop(safe_incus(&["config", "device", "remove", container, &device_name]));
         let listen_arg = format!("listen=tcp:0.0.0.0:{port}");
         let connect_arg = format!("connect=tcp:127.0.0.1:{port}");
         let output = safe_incus(&[

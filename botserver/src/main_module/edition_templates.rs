@@ -93,7 +93,10 @@ pub fn extract_edition_templates() -> bool {
         for existing in walker {
             if !shipped.contains(&existing) {
                 info!("removing stale edition template: {}", existing.display());
-                let _ = std::fs::remove_file(&existing);
+                if let Err(e) = std::fs::remove_file(&existing)
+                {
+                    log::debug!("stale template removal failed: {e}");
+                }
             }
         }
     }

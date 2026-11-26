@@ -185,7 +185,10 @@ fn insert_pending(
 ) -> Result<Uuid, String> {
     let mut conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
     let id = Uuid::new_v4();
-    let user_id = Uuid::parse_str(&user.user_id).ok();
+    let user_id = match Uuid::parse_str(&user.user_id) {
+        Ok(id) => Some(id),
+        Err(e) => { log::debug!("invalid user id for social post: {e}"); None }
+    };
     diesel::sql_query(
         "INSERT INTO social_external_posts
             (id, bot_id, user_id, platform, content, media_url, status, scheduled_at, created_at, updated_at)

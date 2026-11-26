@@ -41,7 +41,7 @@ pub fn host_of(url: &str) -> String {
     reqwest::Url::parse(url.trim())
         .ok()
         .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("cannot parse host from URL"); Default::default() })
 }
 
 /// Remembers the limit headers of a response from `url`. Responses without
@@ -71,7 +71,7 @@ pub fn all() -> Vec<HostLimits> {
     let mut out: Vec<HostLimits> = store()
         .read()
         .map(|map| map.values().cloned().collect())
-        .unwrap_or_default();
+        .unwrap_or_else(|e| { log::debug!("rate-limit store lock poisoned: {e}"); Default::default() });
     out.sort_by(|a, b| a.host.cmp(&b.host));
     out
 }

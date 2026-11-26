@@ -100,7 +100,7 @@
         else { btn.removeAttribute("aria-disabled"); }
         if (!locked) { closeHint(); }
         btn.title = locked
-            ? A.t("assistant.agent-locked-tip", "The selected agent runs in the Virtual Machine; choose another model to turn it off")
+            ? A.t("assistant-agent-locked-tip", "The selected agent runs in the Virtual Machine; choose another model to turn it off")
             : on
             ? A.t("assistant.agent-on-tip", "Agente ativado: o assistente pode executar comandos no computador")
             : A.t("assistant.agent-off-tip", "Agente desativado: o assistente responde apenas com texto");
@@ -138,7 +138,7 @@
 
     function showLockedHint(btn) {
         closeHint();
-        var text = A.t("assistant.agent-locked-hint",
+        var text = A.t("assistant-agent-locked-hint",
             "{agent} runs in the Virtual Machine, so the Agent stays on while it is selected. To turn it off, choose another model.")
             .replace("{agent}", selectedAgentName());
         hint = document.createElement("div");

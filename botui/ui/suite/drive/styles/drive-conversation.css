@@ -1,0 +1,59 @@
+/* Parity with the assistant Drive: format badges and conversation groups. */
+
+.drive-file-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 22px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: var(--palette-1e293b);
+    color: var(--palette-94a3b8);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+.drive-file-badge-dir { background: transparent; color: var(--palette-60a5fa); font-size: 12px; }
+.drive-file-badge-danger { color: var(--palette-f87171); background: rgba(248, 113, 113, 0.14); }
+.drive-file-badge-image { color: var(--palette-86efac); background: rgba(134, 239, 172, 0.14); }
+.drive-file-badge-ink { color: var(--palette-93c5fd); background: rgba(147, 197, 253, 0.14); }
+.drive-file-badge-ok { color: var(--palette-6ee7b7); background: rgba(110, 231, 183, 0.14); }
+.file-card-preview .drive-file-badge { position: absolute; top: 6px; left: 6px; }
+.file-name-col .drive-file-badge { margin-right: 4px; }
+
+.drive-conv-list { padding: 4px 8px 12px; }
+.drive-conv-group { margin-bottom: 14px; }
+.drive-conv-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    color: var(--palette-e2e8f0);
+    font-size: var(--text-sm);
+}
+.drive-conv-title { font-weight: 600; }
+.drive-conv-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--palette-1e293b);
+    color: var(--palette-94a3b8);
+    font-size: var(--text-2xs);
+}
+.drive-conv-row .file-name-col { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.drive-conv-row-sub {
+    margin-left: 4px;
+    color: var(--palette-64748b);
+    font-size: var(--text-2xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.drive-conv-empty svg { color: var(--palette-94a3b8); }

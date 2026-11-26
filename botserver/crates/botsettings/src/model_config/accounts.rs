@@ -6,7 +6,7 @@
 //! `acct:<provider>/<model>` is answered by that account (see
 //! [`resolve_choice`]); every other preference keeps the bot's own model.
 
-use axum::{extract::{Extension, Path}, http::StatusCode, response::Json, routing, Router};
+use axum::{extract::{Extension, Path, State}, http::StatusCode, response::Json, routing, Router};
 use botcore::shared::state::AppState;
 use botcoresecrets::SecretsManager;
 use botsecurity::auth::AuthenticatedUser;
@@ -119,10 +119,10 @@ pub async fn resolve_own_key_fallback(
     let old_url = secrets
         .get_secret(central_path)
         .await
-        .unwrap_or_default()
+        .unwrap_or_else(|e| { log::debug!("cannot read central LLM config: {e}"); Default::default() })
         .get("url")
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or_else(|| { log::debug!("central LLM config has no url"); Default::default() });
     if super::write_sets::same_host(&old_url, endpoint) {
         return None; // write_sets::compute preserves the existing key
     }
@@ -251,6 +251,7 @@ fn safe_detail(body: &str) -> Option<String> {
 
 /// Asks the provider which models this key can use.
 async fn handle_models(
+    State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<ModelsRequest>,
 ) -> ApiResult {
@@ -309,13 +310,17 @@ async fn handle_models(
 /// The key of the main "own key" model when it points at the same provider
 /// host, so a key typed once in Modelo also lists that provider's models.
 pub(super) fn configured_key(state: &Arc<AppState>, url: &str) -> String {
-    let cfg = ConfigManager::new(state.conn.clone());
+    let cfg = botcore::config::ConfigManager::new(state.conn.clone());
     let nil = uuid::Uuid::nil();
-    let main_url = cfg.get_config(&nil, "llm-url", Some("")).unwrap_or_default();
+    let main_url = cfg.get_config(&nil, "llm-url", Some(""))
+        .unwrap_or_else(|e| { log::debug!("no main llm-url configured: {e}"); Default::default() });
     if main_url.is_empty() || !super::write_sets::same_host(&main_url, url) {
         return String::new();
     }
-    cfg.get_config(&nil, "llm-key", Some("")).unwrap_or_default().trim().to_string()
+    cfg.get_config(&nil, "llm-key", Some(""))
+        .unwrap_or_else(|e| { log::debug!("no main llm-key configured: {e}"); Default::default() })
+        .trim()
+        .to_string()
 }
 
 
@@ -334,10 +339,22 @@ pub fn model_ids(body: &str) -> Vec<String> {
                 })
                 .collect()
         })
-        .unwrap_or_else(Vec::new);
-    ids.sort();
-    ids.dedup();
-    ids
+        .unwrap_or_else(|| { log::debug!("model list has no data/models array"); Vec::new() });
+    // Stable sort: undated models keep the provider order after dated ones.
+    rows.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut seen = std::collections::HashSet::new();
+    rows.into_iter().map(|(id, _)| id).filter(|id| seen.insert(id.clone())).collect()
+}
+
+/// A sortable release stamp: unix seconds (OpenAI `created`) or an RFC 3339
+/// date (Anthropic `created_at`), both as a zero-padded string.
+fn release_key(m: &Value) -> String {
+    if let Some(n) = m.get("created").and_then(Value::as_i64) {
+        return chrono::DateTime::from_timestamp(n, 0)
+            .map(|d| d.to_rfc3339())
+            .unwrap_or_else(|| { log::debug!("bad model created timestamp"); String::new() });
+    }
+    m.get("created_at").and_then(Value::as_str).unwrap_or("").to_string()
 }
 
 #[derive(Deserialize)]

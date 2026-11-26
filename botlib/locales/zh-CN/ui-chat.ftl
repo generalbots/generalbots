@@ -421,3 +421,20 @@ voice-mode-fallback-thinking = 正在思考
 voice-mode-live-listening = 正在聆听
 voice-mode-live-ready = 就绪
 voice-mode-live-speaking = 正在说话
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = 回答仍在生成中
+chat-busy-send-text = 请等待回答完成，或停止当前回答并立即发送你的消息。
+chat-busy-send-wait = 继续等待
+chat-busy-send-stop = 停止并发送
+chat-engine-error-not-linked = 你的 %label 账户尚未连接。请选择其他模型，或在设置中连接账户。
+chat-engine-error-switch-off = 此对话中需要打开 %label 的“代理”开关。
+chat-engine-error-unavailable = 此计算机上无法使用订阅代理。请选择其他模型。
+chat-engine-error-model-unavailable = 模型 %model 在 %label 上不可用。请选择其他模型。
+chat-engine-error-workspace-failed = 无法启动代理的虚拟机。请检查其状态后重试。
+chat-engine-error-account-model-off = 模型 %model 未对 %label 启用。请选择其他模型。
+chat-engine-error-free-unavailable = 免费模型当前不可用。请稍后重试或选择其他模型。
+chat-engine-error-limit-reached = 你已达到 %label 套餐的使用上限。%when 请选择其他模型。
+chat-engine-error-unsafe-version = %label（%version）版本因在操作前未请求许可而被阻止。请选择其他模型。
+chat-engine-error-choose-model = 选择其他模型
+chat-engine-error-back-at = 将于 %when 恢复。

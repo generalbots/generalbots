@@ -203,7 +203,7 @@ pub async fn run() -> Result<()> {
             let component = &args[2];
 
             if component == "protection" {
-                let _ = verify_protection();
+                verify_protection();
                 return Ok(());
             }
 

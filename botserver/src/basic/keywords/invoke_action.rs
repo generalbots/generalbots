@@ -39,7 +39,10 @@ fn http_invoke(
         let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
             Ok(rt) => rt,
             Err(e) => {
-                let _ = tx.send(Err(format!("runtime: {e}")));
+                if let Err(send_err) = tx.send(Err(format!("runtime: {e}")))
+                {
+                    log::debug!("invoke_action runtime error send failed: {send_err}");
+                }
                 return;
             }
         };
@@ -67,7 +70,10 @@ fn http_invoke(
             serde_json::from_str::<serde_json::Value>(&text)
                 .map_err(|e| format!("parse: {e}"))
         });
-        let _ = tx.send(result);
+        if let Err(send_err) = tx.send(result)
+        {
+            log::debug!("invoke_action result send failed: {send_err}");
+        }
     });
 
     rx.recv()

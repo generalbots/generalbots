@@ -421,3 +421,20 @@ voice-mode-fallback-thinking = Réflexion
 voice-mode-live-listening = Écoute
 voice-mode-live-ready = Prêt
 voice-mode-live-speaking = Parole
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = La réponse est encore en cours de rédaction
+chat-busy-send-text = Attendez la fin de la réponse, ou arrêtez-la et envoyez votre message maintenant.
+chat-busy-send-wait = Continuer à attendre
+chat-busy-send-stop = Arrêter et envoyer
+chat-engine-error-not-linked = Votre compte %label n'est pas connecté. Choisissez un autre modèle ou connectez le compte dans les paramètres.
+chat-engine-error-switch-off = %label nécessite l'interrupteur Agent activé dans cette conversation.
+chat-engine-error-unavailable = Les agents par abonnement ne sont pas disponibles sur cet ordinateur. Choisissez un autre modèle.
+chat-engine-error-model-unavailable = Le modèle %model n'est pas disponible sur %label. Choisissez un autre modèle.
+chat-engine-error-workspace-failed = La machine virtuelle de l'agent n'a pas pu démarrer. Vérifiez son état et réessayez.
+chat-engine-error-account-model-off = Le modèle %model n'est pas activé pour %label. Choisissez un autre modèle.
+chat-engine-error-free-unavailable = Le modèle gratuit est indisponible pour le moment. Réessayez plus tard ou choisissez un autre modèle.
+chat-engine-error-limit-reached = Vous avez atteint la limite d'utilisation de votre forfait sur %label. %when Choisissez un autre modèle.
+chat-engine-error-unsafe-version = Cette version de %label (%version) a été bloquée car elle n'a pas demandé d'autorisation avant d'agir. Choisissez un autre modèle.
+chat-engine-error-choose-model = Choisir un autre modèle
+chat-engine-error-back-at = Revient %when.

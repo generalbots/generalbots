@@ -443,3 +443,20 @@ voice-mode-fallback-thinking = Pensando
 voice-mode-live-listening = Ouvindo
 voice-mode-live-ready = Pronto
 voice-mode-live-speaking = Falando
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = A resposta ainda está sendo escrita
+chat-busy-send-text = Aguarde a resposta terminar, ou pare a resposta para enviar esta mensagem agora.
+chat-busy-send-wait = Continuar esperando
+chat-busy-send-stop = Parar e enviar
+chat-engine-error-not-linked = Sua conta %label não está conectada. Escolha outro modelo ou conecte a conta em Configurações.
+chat-engine-error-switch-off = %label precisa do interruptor Agente ligado nesta conversa.
+chat-engine-error-unavailable = Agentes por assinatura não estão disponíveis neste computador. Escolha outro modelo.
+chat-engine-error-model-unavailable = O modelo %model não está disponível no %label. Escolha outro modelo.
+chat-engine-error-workspace-failed = A máquina virtual do agente não pôde ser iniciada. Verifique o estado e tente de novo.
+chat-engine-error-account-model-off = O modelo %model não está ligado para %label. Escolha outro modelo.
+chat-engine-error-free-unavailable = O modelo gratuito está indisponível no momento. Tente de novo mais tarde ou escolha outro modelo.
+chat-engine-error-limit-reached = Você atingiu o limite de uso do seu plano no %label. %when Escolha outro modelo.
+chat-engine-error-unsafe-version = Esta versão do %label (%version) foi bloqueada porque não pediu permissão antes de agir. Escolha outro modelo.
+chat-engine-error-choose-model = Escolher outro modelo
+chat-engine-error-back-at = Volta %when.

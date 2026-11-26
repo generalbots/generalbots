@@ -175,7 +175,13 @@ pub(super) async fn launch_and_wait(
 async fn resolve_launch_image(state: &Arc<AgentService>) -> (String, bool) {
     let prefab = std::env::var(PREFAB_IMAGE_ENV)
         .unwrap_or_else(|_| profile::DEFAULT_PREFAB_IMAGE.to_string());
-    let requested = std::env::var(IMAGE_ENV).ok();
+    let requested = match std::env::var(IMAGE_ENV) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            tracing::debug!("{IMAGE_ENV} is not set or is not unicode: {error}");
+            None
+        }
+    };
     let aliases = match requested {
         Some(_) => Vec::new(),
         None => installed_image_aliases(state).await,

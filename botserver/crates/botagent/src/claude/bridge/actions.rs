@@ -143,7 +143,10 @@ pub fn exit_code(is_error: bool, text: &str) -> Option<i32> {
 /// The result text without the code line and the CLI's own reminders.
 #[must_use]
 pub fn output_text(text: &str) -> String {
-    let body = text.split("<system-reminder>").next().unwrap_or_default();
+    let body = text.split("<system-reminder>").next().unwrap_or_else(|| {
+        tracing::debug!("Claude output has no content before the reminder; using the whole text");
+        text
+    });
     let mut lines = body.lines().peekable();
     if lines.peek().is_some_and(|l| l.trim().starts_with("Exit code ")) {
         lines.next();

@@ -156,9 +156,12 @@ pub(super) async fn refresh(state: &AppState, row: &AutotaskRow) {
             return;
         }
     };
-    let _ = diesel::update(table::table.find(row.id))
+    if let Err(e) = diesel::update(table::table.find(row.id))
         .set((table::status.eq(next), table::updated_at.eq(Utc::now())))
-        .execute(&mut conn);
+        .execute(&mut conn)
+    {
+        log::debug!("autotask status update failed: {e}");
+    }
 }
 
 /// Removes the schedule and the script from the workspace.

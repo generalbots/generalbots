@@ -421,3 +421,20 @@ voice-mode-fallback-thinking = 考え中
 voice-mode-live-listening = 聞き取り中
 voice-mode-live-ready = 準備完了
 voice-mode-live-speaking = 話している
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = 回答を作成中です
+chat-busy-send-text = 回答が完了するまで待つか、停止して今すぐメッセージを送信してください。
+chat-busy-send-wait = 待ち続ける
+chat-busy-send-stop = 停止して送信
+chat-engine-error-not-linked = %label アカウントが接続されていません。別のモデルを選ぶか、設定でアカウントを接続してください。
+chat-engine-error-switch-off = この会話では %label のエージェント切り替えをオンにする必要があります。
+chat-engine-error-unavailable = サブスクリプション エージェントはこのコンピューターでは利用できません。別のモデルを選んでください。
+chat-engine-error-model-unavailable = モデル %model は %label では利用できません。別のモデルを選んでください。
+chat-engine-error-workspace-failed = エージェントの仮想マシンを起動できませんでした。状態を確認して、もう一度お試しください。
+chat-engine-error-account-model-off = モデル %model は %label で有効になっていません。別のモデルを選んでください。
+chat-engine-error-free-unavailable = 無料モデルは現在利用できません。しばらくしてから再試行するか、別のモデルを選んでください。
+chat-engine-error-limit-reached = %label のプラン使用量の上限に達しました。%when 別のモデルを選んでください。
+chat-engine-error-unsafe-version = %label (%version) は操作前に許可を求めなかったためブロックされました。別のモデルを選んでください。
+chat-engine-error-choose-model = 別のモデルを選ぶ
+chat-engine-error-back-at = %when に戻ります。

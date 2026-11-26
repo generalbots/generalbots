@@ -95,7 +95,10 @@ fn is_missing_session(report: &DriveReport) -> bool {
 
 /// The turn's verdict from what the session did.
 pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, String)> {
-    let stderr = report.end.as_ref().map(|e| e.stderr_tail.clone()).unwrap_or_default();
+    let stderr = report.end.as_ref().map(|e| e.stderr_tail.clone()).unwrap_or_else(|| {
+        tracing::debug!("Claude session ended without a stderr tail");
+        String::new()
+    });
     let cli = format!("{}\n{}", report.cli_text, report.result.as_ref().map(|r| r.text.as_str()).unwrap_or(""));
     let answer = BridgedAnswer {
         session_id: report.session_id.clone(),
@@ -106,7 +109,10 @@ pub fn interpret(report: DriveReport) -> Result<BridgedAnswer, (StatusCode, Stri
         return Ok(answer);
     }
     let Some(result) = report.result.as_ref() else {
-        let reason = report.end.as_ref().map(|e| format!("{:?}", e.reason)).unwrap_or_default();
+        let reason = report.end.as_ref().map(|e| format!("{:?}", e.reason)).unwrap_or_else(|| {
+            tracing::debug!("Claude session ended without a recorded reason");
+            String::new()
+        });
         return Err(failed(&format!("the session ended without a result ({reason})")));
     };
     if result.is_error || report.answer.trim().is_empty() {

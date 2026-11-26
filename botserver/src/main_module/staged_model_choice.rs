@@ -31,7 +31,9 @@ pub async fn apply() {
         .unwrap_or("")
         .trim();
     if url.is_empty() || model.is_empty() {
-        let _ = std::fs::remove_file(&path);
+        if let Err(e) = std::fs::remove_file(&path) {
+            log::debug!("stale wizard model choice removal failed: {e}");
+        }
         return;
     }
     let explicit_provider = parsed
@@ -83,7 +85,9 @@ pub async fn apply() {
     match manager.put_secret("gbo/llm", data).await {
         Ok(()) => {
             log::info!("Applied the wizard model choice: {model} at {url}");
-            let _ = std::fs::remove_file(&path);
+            if let Err(e) = std::fs::remove_file(&path) {
+                log::debug!("applied wizard model choice removal failed: {e}");
+            }
         }
         Err(e) => log::warn!("could not apply the model choice: {e}"),
     }

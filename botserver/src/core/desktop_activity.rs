@@ -66,7 +66,10 @@ fn write_snapshot(active: usize) {
     let path = dir.join("desktop-activity.json");
     let temporary = dir.join("desktop-activity.json.tmp");
     if std::fs::write(&temporary, payload.to_string()).is_ok() {
-        let _ = std::fs::rename(&temporary, &path);
+        if let Err(e) = std::fs::rename(&temporary, &path)
+        {
+            log::debug!("desktop activity rename failed: {e}");
+        }
     }
 }
 

@@ -92,12 +92,18 @@ pub fn resolve_user_role_with_email(pool: &DbPool, user_id: Uuid, email: Option<
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         id: Uuid,
     }
-    let canonical: Option<IdRow> = diesel::sql_query(
+    let canonical: Option<IdRow> = match diesel::sql_query(
         "SELECT id FROM users WHERE lower(email) = lower($1) AND is_active = true LIMIT 1",
     )
     .bind::<diesel::sql_types::Text, _>(email)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("canonical user lookup failed: {e}");
+            None
+        }
+    };
     match canonical {
         Some(row) if row.id != user_id => resolve_user_role(pool, row.id),
         _ => ROLE_USER.to_string(),

@@ -78,7 +78,7 @@ pub fn hold(held: &mut Held, files: &[OutputFile]) {
 
 /// `candidates` minus what this conversation already holds back.
 pub(super) fn fresh(session_id: Uuid, candidates: Vec<OutputFile>) -> Vec<OutputFile> {
-    let held = with_pending(session_id, |entry| entry.held.clone()).unwrap_or_default();
+    let held = with_pending(session_id, |entry| entry.held.clone()).unwrap_or_else(|| { log::debug!("using default for held files"); Default::default() });
     not_held(candidates, &held)
 }
 
@@ -115,7 +115,7 @@ pub(super) fn take_turn(session_id: Uuid) -> TurnPending {
         published: std::mem::take(&mut entry.published),
         unsaved: std::mem::take(&mut entry.unsaved),
     })
-    .unwrap_or_default()
+    .unwrap_or_else(|| { log::debug!("using default for turn pending"); Default::default() })
 }
 
 /// The turn's end for `files`, given the answer of the stored-grant lookup

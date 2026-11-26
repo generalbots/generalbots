@@ -164,16 +164,22 @@ pub(super) fn spawn_stdout_reader(
                 }
                 Ok(LineRead::Eof) => break,
                 Ok(LineRead::TooLong) => {
-                    let _ = control.send(Control::Abort(EndReason::LineTooLong));
+                    if control.send(Control::Abort(EndReason::LineTooLong)).is_err() {
+                        tracing::debug!("duplex stdout reader: supervisor gone before the long line was reported");
+                    }
                     break;
                 }
                 Err(_) => {
-                    let _ = control.send(Control::Abort(EndReason::ReadFailed));
+                    if control.send(Control::Abort(EndReason::ReadFailed)).is_err() {
+                        tracing::debug!("duplex stdout reader: supervisor gone before the read failure was reported");
+                    }
                     break;
                 }
             }
         }
-        let _ = done.send(());
+        if done.send(()).is_err() {
+            tracing::debug!("duplex stdout reader: nobody is waiting for the finish signal");
+        }
     });
     finished
 }
@@ -197,7 +203,9 @@ pub(super) fn spawn_stderr_reader(
                 Err(_) => break,
             }
         }
-        let _ = done.send(());
+        if done.send(()).is_err() {
+            tracing::debug!("duplex stderr reader: nobody is waiting for the finish signal");
+        }
     });
     finished
 }
@@ -248,8 +256,12 @@ fn supervise(mut run: Supervision) {
         }
     }
     // Every line read before the end is delivered before `Ended`.
-    let _ = run.stdout_done.recv_timeout(READER_GRACE);
-    let _ = run.stderr_done.recv_timeout(STDERR_GRACE);
+    if let Err(error) = run.stdout_done.recv_timeout(READER_GRACE) {
+        tracing::debug!("duplex stdout reader did not finish in time: {error}");
+    }
+    if let Err(error) = run.stderr_done.recv_timeout(STDERR_GRACE) {
+        tracing::debug!("duplex stderr reader did not finish in time: {error}");
+    }
     let end = SessionEnd {
         reason,
         exit_code,
@@ -263,7 +275,9 @@ fn supervise(mut run: Supervision) {
         end.elapsed.as_millis()
     );
     run.ended.send_replace(Some(end.clone()));
-    let _ = run.events.blocking_send(DuplexEvent::Ended(end));
+    if let Err(error) = run.events.blocking_send(DuplexEvent::Ended(end)) {
+        tracing::debug!("duplex event listener is gone before the end was delivered: {error}");
+    }
 }
 
 fn watch_child(run: &mut Supervision, started: Instant) -> (EndReason, Option<i32>) {

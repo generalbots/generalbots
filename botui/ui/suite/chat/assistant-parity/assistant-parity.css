@@ -246,3 +246,38 @@
     [class*="gb-parity-"], [class*="gb-parity-"] *, [class*="gb-parity-"]::before, [class*="gb-parity-"]::after { animation-duration: 0s; animation-iteration-count: 1; transition-duration: 0s; transition-delay: 0s; scroll-behavior: auto; }
     .gb-parity-guide-choice:hover, .gb-parity-compare-head:hover:not(:disabled) { transform: none; }
 }
+
+/* == 11. VM consent, allow-all bar and subscription lock ================= */
+.gb-parity-vm-consent { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--id-line, #e5e7eb); border-radius: var(--id-radius-card, 12px); background: var(--id-surface-solid, #fff); color: var(--id-text, #4b5563); box-sizing: border-box; }
+.gb-parity-vm-consent.resolved { border-color: var(--id-success-text, #16a34a); }
+.gb-parity-vm-consent.gb-parity-vm-failed { border-color: var(--id-danger-line, rgb(220 38 38 / .3)); }
+.gb-parity-vm-head { display: flex; gap: 10px; align-items: flex-start; }
+.gb-parity-vm-shield { flex-shrink: 0; font-size: 16px; }
+.gb-parity-vm-headings { min-width: 0; }
+.gb-parity-vm-kicker { font-size: var(--id-text-xs, .75rem); font-weight: 600; color: var(--id-warn-text, #92400e); }
+.gb-parity-vm-title { font-size: var(--id-text-sm, .875rem); font-weight: 600; color: var(--id-ink, #2c2c2c); overflow-wrap: anywhere; }
+.gb-parity-vm-subtitle { font-size: var(--id-text-xs, .75rem); color: var(--id-muted, #5f6673); }
+.gb-parity-vm-body { min-width: 0; }
+.gb-parity-vm-code { margin: 0 0 6px; padding: 8px 10px; max-height: 180px; overflow: auto; background: var(--id-fill, #f3f4f6); border-radius: 6px; font-size: var(--id-text-xs, .75rem); white-space: pre-wrap; overflow-wrap: anywhere; }
+.gb-parity-vm-meta { padding: 2px 0; font-size: var(--id-text-xs, .75rem); color: var(--id-muted, #5f6673); }
+.gb-parity-vm-meta span { font-weight: 600; color: var(--id-ink, #2c2c2c); }
+.gb-parity-vm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.gb-parity-vm-btn { padding: 5px 11px; border: 1px solid var(--id-line, #e5e7eb); border-radius: var(--id-radius-sm, 6px); background: var(--id-surface-solid, #fff); color: var(--id-text, #4b5563); font: inherit; font-size: var(--id-text-sm, .75rem); cursor: pointer; }
+.gb-parity-vm-btn--primary { background: var(--id-accent, #f28c28); border-color: var(--id-accent, #f28c28); color: var(--id-on-accent, #2c2c2c); }
+.gb-parity-vm-btn--deny { color: var(--id-danger-text, #b91c1c); }
+.gb-parity-vm-btn:disabled { opacity: .55; cursor: default; }
+.gb-parity-vm-note { margin: 0; font-size: var(--id-text-xs, .75rem); color: var(--id-muted, #5f6673); }
+.gb-parity-vm-note--warn { color: var(--id-warn-text, #92400e); }
+.gb-parity-vm-outcome { font-size: var(--id-text-sm, .875rem); font-weight: 600; }
+.gb-parity-vm-announcer { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gb-parity-vm-allbar { margin: 6px 12px; padding: 6px 10px; border: 1px solid var(--id-warn-text, #92400e); border-radius: 8px; background: var(--id-warn-soft, rgb(234 179 8 / .08)); color: var(--id-warn-text, #92400e); font-size: var(--id-text-sm, .75rem); }
+.gb-parity-vm-allbar[hidden] { display: none; }
+.gb-parity-vm-allbar-item { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gb-parity-vm-allbar-scope { color: var(--id-muted, #5f6673); }
+.gb-parity-vm-allbar-revoke { padding: 2px 8px; border: 1px solid currentColor; border-radius: var(--id-radius-sm, 6px); background: transparent; color: inherit; font: inherit; font-size: var(--id-text-xs, .75rem); cursor: pointer; }
+.gb-parity-vm-status { margin: 4px 12px; font-size: var(--id-text-xs, .75rem); color: var(--id-muted, #5f6673); }
+.gb-parity-vm-status:empty { display: none; }
+.gb-parity-vm-confirm-send { position: relative; z-index: var(--z-top, 60); margin: 6px 12px; padding: 10px 12px; border: 1px solid var(--id-warn, #d97706); border-radius: 10px; background: var(--id-warn-soft, #fff7e6); color: var(--id-warn-text, #7c4a03); font-size: var(--id-text-sm, 13px); }
+.gb-parity-vm-confirm-head { font-weight: 600; }
+.gb-parity-vm-confirm-text { margin: 6px 0 10px; line-height: 1.4; }
+.gb-parity-vm-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; }

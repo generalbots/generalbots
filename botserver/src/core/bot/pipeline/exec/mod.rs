@@ -5,11 +5,9 @@ pub use super::types::PipelineFn;
 use super::types::{PipelineResult, SessionIdentity};
 use log::info;
 
-mod context;
-mod finish;
-
 mod attachment;
 mod context;
+mod finish;
 mod frames;
 mod prompt;
 
@@ -76,7 +74,9 @@ pub async fn process_message_internal(
             .and_then(|value| Uuid::parse_str(value).ok());
         if let Some(id) = action_id {
             let result = parsed.get("result").cloned().map_or_else(Default::default, |v| v);
-            let _ = crate::core::computer_use::complete(id, user_id, result).await;
+            if crate::core::computer_use::complete(id, user_id, result).await.is_none() {
+                log::debug!("computer-use action returned no result");
+            }
         }
         return Ok(());
     }
@@ -134,7 +134,10 @@ pub async fn process_message_internal(
 
     super::turn_watch::bounded("session lookup", super::turn_watch::STEP_LIMIT, async {
         let mut sm = state.session_manager.lock().await;
-        let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
+        if let Err(e) = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "")
+        {
+            log::debug!("session creation failed: {e}");
+        }
     })
     .await;
 
@@ -154,9 +157,15 @@ pub async fn process_message_internal(
     if msg_type == 8 {
         let last_user_msg = super::turn_watch::bounded("session history", super::turn_watch::STEP_LIMIT, async {
             let mut sm = state.session_manager.lock().await;
-            let history = sm
+            let history = match sm
                 .get_conversation_history(session_id, user_id, Some(1))
-                .ok();
+            {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    log::debug!("session history lookup failed: {e}");
+                    None
+                }
+            };
             history.and_then(|h| {
                 h.into_iter()
                     .find(|(role, _)| role == "user")
@@ -263,6 +272,9 @@ pub async fn process_message_internal(
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
+    // #2561 — a stored file whose media could not be read still has to be
+    // reported as a failed attachment instead of a successful one.
+    let media_fail_reason = attachment.media_fail_reason;
 
     // Emit the completed/failed attachment activity.
     if let Some(act) = attach_activity {
@@ -317,6 +329,25 @@ pub async fn process_message_internal(
             super::activity::emit_activity(sink, &early_run, &fail).await;
         }
     }
+    // #1642 — a "remember …" turn (or a lasting preference) is stored for the
+    // person; #1790 — a forget turn answers with the real outcome instead of
+    // letting the model claim it removed something. The newer user-memory API
+    // reports the turn as `MemoryTurn` and derives the answer from it.
+    super::turn_events::take(session_id);
+    super::turn_events::note_request(session_id, &user_text);
+    let memory_turn = if msg_type == 1 {
+        crate::core::user_memory::capture_from_message(
+            &state.conn,
+            user_id,
+            Some(bot_uuid),
+            &user_text,
+        )
+    } else {
+        crate::core::user_memory::MemoryTurn::Untouched
+    };
+    if let Some(frame) = super::turn_events::memory_frame(user_id, &memory_turn) {
+        super::turn_events::emit(identity, super::turn_events::MEMORY_EVENT, frame).await;
+    }
     if let Some(reply) = crate::core::user_memory::forget_reply(&state.conn, user_id, &memory_turn) {
         let resp = botlib::models::BotResponse::new(
             bot_uuid.to_string(),
@@ -325,25 +356,10 @@ pub async fn process_message_internal(
             format!("<p>{reply}</p>"),
             "web",
         );
-        // #1790 — a forget turn must answer with the real outcome (including
-        // "no stored memory matched") instead of letting the LLM claim it
-        // removed something. Remember turns keep the normal LLM path.
-        if crate::core::user_memory::extract_forget_directive(&user_text).is_some() {
-            let reply = memory_reply.unwrap_or_else(|| {
-                "I could not update your stored memory. Please try again.".to_string()
-            });
-            let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(),
-                session_id.to_string(),
-                user_id.to_string(),
-                format!("<p>{reply}</p>"),
-                "web",
-            );
-            if let Err(e) = sink.send_bot_response(&resp).await {
-                log::warn!("exec: response frame not delivered: {e}");
-            }
-            return Ok(());
+        if let Err(e) = sink.send_bot_response(&resp).await {
+            log::warn!("exec: response frame not delivered: {e}");
         }
+        return Ok(());
     }
 
     // #1644/#1645 — an explicit URL or command request becomes a consent card.

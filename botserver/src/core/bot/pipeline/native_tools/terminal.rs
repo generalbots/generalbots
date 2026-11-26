@@ -53,22 +53,26 @@ pub(super) async fn run_terminal_run(
         ..
     } = *identity;
     let Some(vm_name) = crate::core::bot::agent_vm_hook::user_vm_name(user_id).await else {
-        send(
+        super::send(
             identity,
             "No running workspace VM. Open the workspace first.",
         )
         .await;
-        return;
+        return VmOutcome {
+            reason: Some(reason::WORKSPACE_UNAVAILABLE),
+            ..VmOutcome::default()
+        };
     };
     let thread_id = session_id.to_string();
     let run_id = crate::core::bot::runs::bus::bus()
         .current_run_id(&thread_id)
         .map_or_else(Default::default, |v| v);
     let vm_for_task = vm_name.clone();
+    let command_for_task = command.clone();
     let thread_for_task = thread_id.clone();
     let run_for_task = run_id.clone();
 
-    let result = tokio::task::spawn_blocking(move || -> Result<String, String> {
+    let result = tokio::task::spawn_blocking(move || -> Result<(String, Option<i32>), String> {
         let pty_system = portable_pty::native_pty_system();
         let pair = pty_system
             .openpty(portable_pty::PtySize {
@@ -87,7 +91,7 @@ pub(super) async fn run_terminal_run(
             &format!("{timeout_secs}s"),
             "bash",
             "-lc",
-            &command,
+            &command_for_task,
         ]);
         let mut child = pair
             .slave
@@ -137,16 +141,25 @@ pub(super) async fn run_terminal_run(
                 );
             }
         }
-        if let Err(e) = child.wait() {
+        let wait = child.wait();
+        let exit_code = match wait.as_ref() {
+            Ok(status) if status.signal().is_none() => Some(status.exit_code() as i32),
+            _ => None,
+        };
+        if let Err(e) = wait {
             log::warn!("terminal: child wait failed: {e}");
         }
-        Ok(output)
+        Ok((output, exit_code))
     })
     .await;
-    let outcome = match run {
-        Ok(run) => finished(&run.output, run.exit_code),
-        Err(error) => {
+    let outcome = match result {
+        Ok(Ok((output, exit_code))) => finished(&output, exit_code),
+        Ok(Err(error)) => {
             tell_model(identity.session_id, &format!("terminal_run failed: {error}"));
+            VmOutcome { reason: Some(reason::WORKSPACE_UNAVAILABLE), ..VmOutcome::default() }
+        }
+        Err(error) => {
+            tell_model(identity.session_id, &format!("terminal task failed: {error}"));
             VmOutcome { reason: Some(reason::WORKSPACE_UNAVAILABLE), ..VmOutcome::default() }
         }
     };

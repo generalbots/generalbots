@@ -223,7 +223,13 @@ pub async fn conversation_file(
         return refuse(StatusCode::BAD_REQUEST, "path_missing");
     };
     let person_folder = person_area::folder_of(path);
-    let bot_folder = validate_path(path).ok();
+    let bot_folder = match validate_path(path) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("bot path validation failed: {e:?}");
+            None
+        }
+    };
     if person_folder.is_none() && bot_folder.is_none() {
         return refuse(StatusCode::BAD_REQUEST, "invalid_path");
     }

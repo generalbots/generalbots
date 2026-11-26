@@ -271,7 +271,7 @@
             item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
             if (m.disabled) {
                 item.disabled = true;
-                item.title = backendReason || A.t("assistant.agent-backend-off", "Subscription agents unavailable on this computer");
+                item.title = backendReason || A.t("assistant-agent-backend-off", "Subscription agents unavailable on this computer");
                 item.classList.add("gb-model-menu-disabled");
             } else {
                 item.addEventListener("click", function () { onPick(m.value); });

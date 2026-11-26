@@ -421,3 +421,20 @@ voice-mode-fallback-thinking = 생각하는 중
 voice-mode-live-listening = 듣는 중
 voice-mode-live-ready = 준비됨
 voice-mode-live-speaking = 말하는 중
+
+# gbgov assistant parity: busy-send and actionable engine refusals (#2563)
+chat-busy-send-head = 답변을 작성하는 중입니다
+chat-busy-send-text = 답변이 끝날 때까지 기다리거나, 중지하고 지금 메시지를 보내세요.
+chat-busy-send-wait = 계속 기다리기
+chat-busy-send-stop = 중지하고 보내기
+chat-engine-error-not-linked = %label 계정이 연결되지 않았습니다. 다른 모델을 선택하거나 설정에서 계정을 연결하세요.
+chat-engine-error-switch-off = 이 대화에서 %label 에이전트 스위치를 켜야 합니다.
+chat-engine-error-unavailable = 구독 에이전트는 이 컴퓨터에서 사용할 수 없습니다. 다른 모델을 선택하세요.
+chat-engine-error-model-unavailable = %model 모델은 %label 에서 사용할 수 없습니다. 다른 모델을 선택하세요.
+chat-engine-error-workspace-failed = 에이전트 가상 머신을 시작할 수 없습니다. 상태를 확인하고 다시 시도하세요.
+chat-engine-error-account-model-off = %model 모델이 %label 에 대해 활성화되지 않았습니다. 다른 모델을 선택하세요.
+chat-engine-error-free-unavailable = 무료 모델을 현재 사용할 수 없습니다. 나중에 다시 시도하거나 다른 모델을 선택하세요.
+chat-engine-error-limit-reached = %label 요금제의 사용 한도에 도달했습니다. %when 다른 모델을 선택하세요.
+chat-engine-error-unsafe-version = %label (%version) 버전은 작업 전에 권한을 요청하지 않아 차단되었습니다. 다른 모델을 선택하세요.
+chat-engine-error-choose-model = 다른 모델 선택
+chat-engine-error-back-at = %when 에 다시 사용할 수 있습니다.

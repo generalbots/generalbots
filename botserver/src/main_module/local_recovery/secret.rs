@@ -80,7 +80,10 @@ impl SecretStore {
     }
 
     pub fn remove_file(&self) {
-        let _ = std::fs::remove_file(&self.path);
+        if let Err(e) = std::fs::remove_file(&self.path)
+        {
+            log::debug!("recovery secret removal failed: {e}");
+        }
     }
 }
 

@@ -272,13 +272,16 @@ pub async fn webhooks_test(
         secret_vault_path: Option<String>,
     }
 
-    let row: Option<HookRow> = diesel::sql_query(
+    let row: Option<HookRow> = match diesel::sql_query(
         "SELECT url, secret_vault_path FROM webhooks WHERE id = $1 AND user_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(r) => Some(r),
+        Err(e) => { log::debug!("webhook lookup failed: {e}"); None }
+    };
 
     let Some(row) = row else {
         return (StatusCode::NOT_FOUND, Html("Webhook not found".to_string()));

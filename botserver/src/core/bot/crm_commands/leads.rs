@@ -35,14 +35,20 @@ pub(crate) async fn crm_create_lead_command(
     let now = chrono::Utc::now();
     let contact_id: Option<Uuid> = match &email {
         Some(mail) => {
-            let existing: Option<Uuid> = diesel::sql_query(
+            let existing: Option<Uuid> = match diesel::sql_query(
                 "SELECT id AS contact_id FROM crm_contacts WHERE branch_id = $1 AND email ILIKE $2 LIMIT 1",
             )
             .bind::<diesel::sql_types::Uuid, _>(branch)
             .bind::<diesel::sql_types::Text, _>(mail)
             .get_result::<ContactIdRow>(&mut conn)
             .map(|r| r.contact_id)
-            .ok();
+            {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    log::debug!("lead contact lookup failed: {e}");
+                    None
+                }
+            };
             match existing {
                 Some(id) => Some(id),
                 None => {

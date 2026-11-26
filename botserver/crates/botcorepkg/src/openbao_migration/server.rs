@@ -44,9 +44,9 @@ pub fn start(engine: Engine, stack: &Path) -> Result<Child> {
 /// Stops a server started by [`start`] and waits for it to exit.
 pub fn stop(child: &mut Child) {
     if matches!(child.try_wait(), Ok(None)) {
-        let _ = child.kill();
+        if let Err(e) = child.kill() { log::debug!("cannot stop secrets server: {e}"); }
     }
-    let _ = child.wait();
+    if let Err(e) = child.wait() { log::debug!("cannot wait for secrets server: {e}"); }
 }
 
 /// Stops a server left running by an interrupted move, by process id. The
@@ -65,7 +65,7 @@ pub fn stop_pid(pid: u32, stack: &Path) {
         SafeCommand::new("kill").and_then(|c| c.args(&["-9", &pid]))
     };
     if let Ok(command) = command {
-        let _ = command.execute();
+        if let Err(e) = command.execute() { log::debug!("cannot signal secrets server: {e}"); }
     }
 }
 

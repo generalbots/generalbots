@@ -97,7 +97,7 @@ pub(super) fn merge_same_conversation(entries: Vec<Value>) -> Vec<Value> {
             merged.push(entry);
             continue;
         };
-        let extra = entry.get("files").and_then(Value::as_array).cloned().unwrap_or_default();
+        let extra = entry.get("files").and_then(Value::as_array).cloned().unwrap_or_else(|| { log::debug!("using default for extra files"); Default::default() });
         if let Some(files) = merged[index].get_mut("files").and_then(Value::as_array_mut) {
             for file in extra {
                 if !files.iter().any(|kept| kept.get("name") == file.get("name")) {

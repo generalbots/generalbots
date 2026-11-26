@@ -94,7 +94,8 @@ pub fn compute(
         } => {
             // No key typed: the stored one stays when it belongs to the same
             // provider host; a key never follows the person to another host.
-            let old_url = central.get("url").cloned().unwrap_or_default();
+            let old_url = central.get("url").cloned()
+                .unwrap_or_else(|| { log::debug!("no previous url in central config"); Default::default() });
             central.insert("url".into(), endpoint.clone());
             central.insert("model".into(), model.clone());
             match key {

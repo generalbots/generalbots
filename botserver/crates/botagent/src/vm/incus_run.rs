@@ -49,8 +49,14 @@ pub fn capped(deadline: Duration) -> Duration {
 
 /// The deadline of one `incus <args>` call, before any budget cap.
 pub(crate) fn base_deadline(args: &[String]) -> Duration {
-    let verb = args.first().map(String::as_str).unwrap_or_default();
-    let sub = args.get(1).map(String::as_str).unwrap_or_default();
+    let verb = args.first().map(String::as_str).unwrap_or_else(|| {
+        tracing::debug!("incus call has no verb; using the default deadline");
+        ""
+    });
+    let sub = args.get(1).map(String::as_str).unwrap_or_else(|| {
+        tracing::debug!("incus call has no subcommand; using the default deadline");
+        ""
+    });
     let read_only_sub = matches!(sub, "list" | "show" | "info" | "get");
     match verb {
         "launch" | "init" => Duration::from_secs(super::incus::cold_launch_wait_secs()),
@@ -155,8 +161,14 @@ fn wait_output(mut child: Child, deadline: Duration) -> Result<Output, RunFailur
             Ok(Some(status)) => {
                 return Ok(Output {
                     status,
-                    stdout: drain(&stdout).unwrap_or_default(),
-                    stderr: drain(&stderr).unwrap_or_default(),
+                    stdout: drain(&stdout).unwrap_or_else(|| {
+                        tracing::debug!("incus stdout reader did not answer; using empty output");
+                        Vec::new()
+                    }),
+                    stderr: drain(&stderr).unwrap_or_else(|| {
+                        tracing::debug!("incus stderr reader did not answer; using empty output");
+                        Vec::new()
+                    }),
                 });
             }
             Ok(None) => {}
@@ -180,12 +192,18 @@ fn pipe_reader<R: Read + Send + 'static>(pipe: Option<R>) -> mpsc::Receiver<Vec<
         Some(mut pipe) => {
             std::thread::spawn(move || {
                 let mut buffer = Vec::new();
-                let _ = pipe.read_to_end(&mut buffer);
-                let _ = sender.send(buffer);
+                if let Err(error) = pipe.read_to_end(&mut buffer) {
+                    tracing::debug!("incus pipe read failed: {error}");
+                }
+                if sender.send(buffer).is_err() {
+                    tracing::debug!("incus pipe reader: no consumer for the captured output");
+                }
             });
         }
         None => {
-            let _ = sender.send(Vec::new());
+            if sender.send(Vec::new()).is_err() {
+                tracing::debug!("incus pipe reader: no consumer for the empty output");
+            }
         }
     }
     receiver
@@ -214,8 +232,12 @@ pub(crate) fn kill_tree(child: &mut Child) {
             Err(error) => tracing::warn!("taskkill for incus pid {pid} rejected: {error}"),
         }
     }
-    let _ = child.kill();
-    let _ = child.wait();
+    if let Err(error) = child.kill() {
+        tracing::debug!("kill_tree: child was already gone: {error}");
+    }
+    if let Err(error) = child.wait() {
+        tracing::debug!("kill_tree: could not reap the child: {error}");
+    }
 }
 
 #[cfg(test)]

@@ -122,11 +122,14 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                                 if let Ok(mut json) = content.clone().parse::<serde_json::Value>() {
                                     json["service_token"] =
                                         serde_json::Value::String(new_token.clone());
-                                    let _ = std::fs::write(
+                                    if let Err(e) = std::fs::write(
                                         &config_path,
                                         serde_json::to_string_pretty(&json)
                                             .unwrap_or(content.clone()),
-                                    );
+                                    )
+                                    {
+                                        log::debug!("service token file write failed: {e}");
+                                    }
                                 }
                             }
                         }

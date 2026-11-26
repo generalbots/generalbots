@@ -269,9 +269,12 @@ pub(super) async fn send_via_custom_webhook(
             )
         })?;
 
-    let api_key = config_manager
+    let api_key = match config_manager
         .get_config(bot_id, &format!("{}-api-key", webhook_name), None)
-        .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => { log::debug!("SMS webhook key lookup failed: {e}"); None }
+    };
 
     // #2640 — validate the destination BEFORE a client or request carrying
     // the provider key exists. HTTPS is required everywhere except an explicit

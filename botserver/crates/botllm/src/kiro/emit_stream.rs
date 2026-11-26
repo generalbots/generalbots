@@ -52,9 +52,8 @@ impl KiroClient {
                                 log::warn!("kiro: reasoning send failed: {e}");
                             }
                         }
-                    } else if let Some(tool) = parsed.get("toolUseId").cloned() {
+                    } else if parsed.get("toolUseId").is_some() {
                         // toolUse events: {"toolUseId":…,"name":…,"input":…}
-                        let _ = tool;
                         if let (Some(name), Some(input)) = (
                             parsed.get("name").and_then(|n| n.as_str()),
                             parsed.get("input").cloned(),

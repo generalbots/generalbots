@@ -281,6 +281,10 @@ var GBTurn = (function () {
         }));
       }
     } catch (e) { /* socket already gone */ }
+    // gbgov parity (#2562): frames already in flight after a cancel must not
+    // re-open a streaming bubble. The bounded window is cleared by the next send.
+    var current = chatState();
+    if (current) current.cancelledAt = Date.now();
     turn.alive = false;
     if (ind()) ind().stopTimer(turn);
     turn.state = "cancelled";
@@ -316,6 +320,9 @@ var GBTurn = (function () {
       if (turn.container && turn.container.dataset) turn.container.dataset.turnState = "idle";
       return false;
     });
+    // The cancel acknowledgement arrives here too: suppress its late siblings.
+    var current = chatState();
+    if (current) current.cancelledAt = Date.now();
     if (typeof window.clearChatPending === "function") window.clearChatPending();
   }
 

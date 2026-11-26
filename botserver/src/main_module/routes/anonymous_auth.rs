@@ -29,7 +29,7 @@ pub async fn anonymous_auth_handler(
         // Never reuse a client-supplied id for an unauthenticated caller: a
         // stale page value used to create a guest row under a real account's
         // UUID, which then scoped Drive/files to guest_*@anonymous.local.
-        let _ = existing_user_id;
+        std::hint::black_box(existing_user_id);
         uuid::Uuid::new_v4().to_string()
     };
     let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -44,7 +44,13 @@ pub async fn anonymous_auth_handler(
     }
 
     let found_bot_id = {
-        let conn = state.conn.get().ok();
+        let conn = match state.conn.get() {
+            Ok(c) => Some(c),
+            Err(e) => {
+                log::debug!("DB pool checkout failed: {e}");
+                None
+            }
+        };
         if let Some(mut db_conn) = conn {
             use botcore::shared::models::schema::bots::dsl::*;
             use diesel::prelude::*;
@@ -93,7 +99,9 @@ pub async fn anonymous_auth_handler(
 
     {
         let mut sm = state.session_manager.lock().await;
-        sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
+        if let Err(e) = sm.get_or_create_anonymous_user(Some(user_uuid)) {
+            log::debug!("anonymous user creation failed: {e}");
+        }
         let session_uuid = uuid::Uuid::parse_str(&final_session_id).unwrap_or(session_uuid);
         let session =
             sm.get_or_create_session_by_id(session_uuid, user_uuid, found_bot_id, "Anonymous Chat");

@@ -135,12 +135,18 @@ pub async fn handle_dns_edit_form(
         ttl: i32,
     }
 
-    let row: Option<DnsRow> = diesel::sql_query(
+    let row: Option<DnsRow> = match diesel::sql_query(
         "SELECT hostname, record_type, target, ttl FROM dns_records WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("DNS record lookup failed: {e}");
+            None
+        }
+    };
 
     let not_found = || {
         (

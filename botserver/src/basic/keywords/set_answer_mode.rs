@@ -36,7 +36,10 @@ pub fn register_set_answer_mode_keyword(
                 } else {
                     Err("Failed to create tokio runtime".to_string())
                 };
-                let _ = tx.send(result);
+                if let Err(send_err) = tx.send(result)
+                {
+                    log::debug!("answer-mode result send failed: {send_err}");
+                }
             });
 
             match rx.recv() {

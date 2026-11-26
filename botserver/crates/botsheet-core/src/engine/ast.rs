@@ -121,7 +121,7 @@ impl<'a> Parser<'a> {
             if let TokenKind::Op(ref op) = tok.kind {
                 if op == "%" {
                     // Postfix percent: divides the value so far by 100.
-                    let _ = self.next();
+                    self.next();
                     left = Expr::Unary {
                         op: "%".to_string(),
                         expr: Box::new(left),
@@ -132,7 +132,7 @@ impl<'a> Parser<'a> {
                     if l < min_power {
                         break;
                     }
-                    let _ = self.next();
+                    self.next();
                     let right = self.parse_expr(r)?;
                     left = Expr::Binary {
                         op: op.clone(),
@@ -157,7 +157,7 @@ impl<'a> Parser<'a> {
                 let first = Reference::parse(&r).ok_or_else(|| format!("bad reference {r}"))?;
                 // Range?
                 if matches!(self.peek().kind, TokenKind::Colon) {
-                    let _ = self.next();
+                    self.next();
                     let end_tok = self.next().clone();
                     if let TokenKind::Reference(r2) = end_tok.kind {
                         let second =
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
                 let first = Reference::parse(&s)
                     .ok_or_else(|| format!("bad sheet reference {s}"))?;
                 if matches!(self.peek().kind, TokenKind::Colon) {
-                    let _ = self.next();
+                    self.next();
                     let end_tok = self.next().clone();
                     let raw = match end_tok.kind {
                         TokenKind::Reference(r2) => r2,
@@ -198,7 +198,7 @@ impl<'a> Parser<'a> {
                 }
                 // Function call?
                 if matches!(self.peek().kind, TokenKind::LParen) {
-                    let _ = self.next();
+                    self.next();
                     let arg_start = self.pos;
                     let mut args: Vec<Expr> = Vec::new();
                     let mut depth = 0usize;
@@ -210,19 +210,19 @@ impl<'a> Parser<'a> {
                         match self.peek().kind {
                             TokenKind::RParen if depth == 0 => {
                                 arg_end = self.pos;
-                                let _ = self.next();
+                                self.next();
                                 break;
                             }
                             TokenKind::LParen => {
                                 depth += 1;
-                                let _ = self.next();
+                                self.next();
                             }
                             TokenKind::RParen => {
                                 depth = depth.saturating_sub(1);
-                                let _ = self.next();
+                                self.next();
                             }
                             TokenKind::Comma if depth == 0 => {
-                                let _ = self.next();
+                                self.next();
                             }
                             _ => {
                                 args.push(self.parse_expr(0)?);
@@ -252,7 +252,7 @@ TokenKind::Op(ref op) => Err(format!("cannot start expression with operator '{op
                 if !matches!(self.peek().kind, TokenKind::RParen) {
                     return Err("expected ')'".to_string());
                 }
-                let _ = self.next();
+                self.next();
                 Ok(inner)
             }
 TokenKind::Comma | TokenKind::Colon => Err(format!("unexpected {tok:?}")),

@@ -102,10 +102,6 @@ pub async fn ensure_agent_vm_result(
     }
 }
 
-/// Executes a program, waking the workspace VM first when it is not running.
-/// A stopped/idle workspace is normal; failing with "not available" after the
-/// model already produced a program loses the whole turn.
-#[cfg(feature = "agent-vm")]
 /// Container name of the caller's running agent VM, if any. Used by the
 /// terminal app to open a shell inside the user's own workspace.
 #[cfg(feature = "agent-vm")]

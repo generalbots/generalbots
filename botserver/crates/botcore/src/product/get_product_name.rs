@@ -88,7 +88,10 @@ pub fn get_product_config_json() -> serde_json::Value {
     let build_date = super::build_info::build_date();
 
     // Get current config
-    let config = PRODUCT_CONFIG.read().ok();
+    let config = match PRODUCT_CONFIG.read() {
+        Ok(guard) => Some(guard),
+        Err(e) => { log::debug!("product config lock poisoned: {e}"); None }
+    };
 
     // Effective apps come straight from the .product file. There is no runtime
     // guard: the `apps` list controls what the launcher and sidebar show, and

@@ -147,3 +147,130 @@ window.ChatSend.sendStructured = function (detail) {
     question_id: detail.surface_id || null,
   });
 };
+
+/* gbgov assistant parity (#2563): the send-busy guard.
+ * Classic chat silently finalized the streaming bubble and sent the new turn,
+ * so the previous answer vanished without explanation. The assistant shell
+ * asks first: keep waiting, or stop the running turn and send now. Kept in the
+ * already-loaded send bundle so no loader change is needed. */
+(function () {
+  "use strict";
+
+  function t(key, fallback) {
+    return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+  }
+  function ensureStyles() {
+    if (document.getElementById("gbChatBusySendStyles")) return;
+    var style = document.createElement("style");
+    style.id = "gbChatBusySendStyles";
+    style.textContent = [
+      ".gb-chat-busy-send{position:relative;z-index:var(--z-top,60);margin:8px 12px;padding:10px 12px;border:1px solid var(--id-warn,#d97706);border-radius:10px;background:var(--id-warn-soft,#fff7e6);color:var(--id-warn-text,#7c4a03);font-size:var(--id-text-sm,13px)}",
+      ".gb-chat-busy-head{display:flex;align-items:center;gap:8px;font-weight:600}",
+      ".gb-chat-busy-text{margin:6px 0 10px;line-height:1.4}",
+      ".gb-chat-busy-actions{display:flex;gap:8px;flex-wrap:wrap}",
+      ".gb-chat-busy-actions button{padding:5px 11px;border:1px solid var(--id-line,#d7dde5);border-radius:7px;background:var(--id-surface-solid,#fff);color:inherit;cursor:pointer;font:inherit}",
+      ".gb-chat-busy-actions button:focus-visible{outline:2px solid var(--id-focus,#2563eb);outline-offset:2px}"
+    ].join("");
+    (document.head || document.documentElement).appendChild(style);
+  }
+  function focusComposer() {
+    var input = document.getElementById("messageInput");
+    if (!input || typeof input.focus !== "function") return;
+    try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+  }
+  function busy() {
+    var cs = window.ChatState;
+    if (!cs) return false;
+    // A terminal access failure has no answer worth waiting for: let chat's
+    // own send path clear the stuck turn and show its failure notice.
+    if (cs.botAccess === "auth_required" || cs.botAccess === "probe_error"
+        || window.chatAccessTerminal === "auth" || window.chatAccessTerminal === "probe") return false;
+    if (cs.isStreaming) return true;
+    // A stale pendingResponseAt with an idle turn is a stuck turn, not a busy
+    // one — chat's send path clears it. Only a live turn deserves the dialog.
+    var state = window.GBTurn && typeof GBTurn.state === "function" ? GBTurn.state() : "idle";
+    return ["queued", "thinking", "tool", "streaming", "progress"].indexOf(state) !== -1;
+  }
+  function stopTurn() {
+    var cs = window.ChatState;
+    // Keep chat's normal cleanup: the streaming bubble would otherwise stay
+    // aria-hidden and collide with the bubble of the message being sent.
+    if (cs && cs.isStreaming && typeof window.finalizeStreaming === "function") {
+      window.finalizeStreaming();
+    }
+    if (window.GBTurn && typeof window.GBTurn.cancel === "function") window.GBTurn.cancel();
+    if (cs) {
+      cs.isStreaming = false;
+      cs.pendingResponseAt = null;
+      cs.streamingMessageId = null;
+    }
+    if (typeof window.clearChatPending === "function") window.clearChatPending();
+  }
+  function ask(go) {
+    Array.prototype.forEach.call(document.querySelectorAll(".gb-chat-busy-send"), function (old) {
+      if (old.parentNode) old.parentNode.removeChild(old);
+    });
+    ensureStyles();
+    var box = document.createElement("div");
+    box.className = "gb-chat-busy-send";
+    box.setAttribute("role", "alertdialog");
+    box.setAttribute("aria-labelledby", "gbChatBusyHead");
+    box.setAttribute("aria-describedby", "gbChatBusyText");
+    var head = document.createElement("div");
+    head.className = "gb-chat-busy-head";
+    head.id = "gbChatBusyHead";
+    head.textContent = t("chat-busy-send-head", "The answer is still being written");
+    var text = document.createElement("p");
+    text.className = "gb-chat-busy-text";
+    text.id = "gbChatBusyText";
+    text.textContent = t("chat-busy-send-text", "Wait for the answer to finish, or stop it and send your message now.");
+    var bar = document.createElement("div");
+    bar.className = "gb-chat-busy-actions";
+    var wait = document.createElement("button");
+    wait.type = "button";
+    wait.textContent = t("chat-busy-send-wait", "Keep waiting");
+    var send = document.createElement("button");
+    send.type = "button";
+    send.textContent = t("chat-busy-send-stop", "Stop and send");
+    function close() {
+      if (box.parentNode) box.parentNode.removeChild(box);
+      clearInterval(watch);
+      document.removeEventListener("keydown", onKey, true);
+    }
+    function onKey(event) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      focusComposer();
+    }
+    wait.addEventListener("click", function () { close(); focusComposer(); });
+    send.addEventListener("click", function () { close(); focusComposer(); go(); });
+    bar.appendChild(wait);
+    bar.appendChild(send);
+    box.appendChild(head);
+    box.appendChild(text);
+    box.appendChild(bar);
+    // The answer may finish while the person is still deciding.
+    var watch = setInterval(function () {
+      if (!box.isConnected) { clearInterval(watch); return; }
+      if (!busy()) close();
+    }, 500);
+    var form = document.getElementById("chatForm");
+    var host = form || document.getElementById("messageInput");
+    if (host && host.parentNode) host.parentNode.insertBefore(box, host);
+    else document.body.appendChild(box);
+    document.addEventListener("keydown", onKey, true);
+    wait.focus();
+  }
+
+  var original = window.sendMessage;
+  if (typeof original !== "function" || original.__gbBusySendGuard) return;
+  var guarded = function () {
+    if (!busy()) return original.apply(this, arguments);
+    var self = this, args = arguments;
+    ask(function () { stopTurn(); return original.apply(self, args); });
+  };
+  guarded.__gbBusySendGuard = true;
+  window.sendMessage = guarded;
+})();

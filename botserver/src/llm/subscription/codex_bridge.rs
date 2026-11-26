@@ -179,13 +179,19 @@ impl Approvals for Gate<'_> {
 
     async fn text(&self, chunk: &str) {
         if let Some(tx) = self.tx {
-            let _ = tx.send(chunk.to_string()).await;
+            if let Err(send_err) = tx.send(chunk.to_string()).await
+            {
+                log::debug!("codex text chunk send failed: {send_err}");
+            }
         }
     }
 
     async fn reasoning(&self, chunk: &str) {
         if let Some(tx) = self.tx {
-            let _ = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await;
+            if let Err(send_err) = tx.send(serde_json::json!({ "__reasoning__": chunk }).to_string()).await
+            {
+                log::debug!("codex reasoning chunk send failed: {send_err}");
+            }
         }
     }
 

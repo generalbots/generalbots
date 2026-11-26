@@ -71,7 +71,7 @@ pub struct SearchSteps {
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> &'a str {
-    value.get(key).and_then(Value::as_str).unwrap_or_default()
+    value.get(key).and_then(Value::as_str).unwrap_or_else(|| { log::debug!("claude: missing string key {key}"); Default::default() })
 }
 
 /// The part of a tool's input a step shows: the query or the address.
@@ -132,7 +132,8 @@ impl SearchSteps {
                             return None;
                         }
                         let id = text(block, "id").to_string();
-                        let given = block.get("input").map(|input| input_text(tool, input)).unwrap_or_default();
+                        let given = block.get("input").map(|input| input_text(tool, input))
+                            .unwrap_or_else(|| { log::debug!("claude: tool block has no input"); Default::default() });
                         if given.is_empty() {
                             self.open.insert(index?, (id, tool.to_string(), String::new()));
                         } else {
@@ -159,7 +160,7 @@ impl SearchSteps {
                 let given = serde_json::from_str::<Value>(&input)
                     .ok()
                     .map(|value| input_text(&tool, &value))
-                    .unwrap_or_default();
+                    .unwrap_or_else(|| { log::debug!("claude: unreadable tool input"); Default::default() });
                 self.queries.insert(id, given);
                 None
             }
@@ -170,12 +171,13 @@ impl SearchSteps {
     /// The marker for one `web_search_tool_result`: a list of results, or an
     /// error object (HTTP 200 with `error_code`).
     fn search_result(&mut self, block: &Value) -> String {
-        let query = self.queries.remove(text(block, "tool_use_id")).unwrap_or_default();
+        let query = self.queries.remove(text(block, "tool_use_id"))
+            .unwrap_or_else(|| { log::debug!("claude: no query for web_search result"); Default::default() });
         let content = block.get("content");
         let urls: Vec<&str> = content
             .and_then(Value::as_array)
             .map(|items| items.iter().map(|item| text(item, "url")).filter(|url| !url.is_empty()).collect())
-            .unwrap_or_default();
+            .unwrap_or_else(|| { log::debug!("claude: no web_search result URLs"); Default::default() });
         let ok = content.is_some_and(Value::is_array);
         json!({ WEB_STEP_MARKER: { "tool": "web_search", "text": query, "urls": urls, "ok": ok } }).to_string()
     }
@@ -183,8 +185,10 @@ impl SearchSteps {
     /// The marker for one `web_fetch_tool_result`: a `web_fetch_result`, or a
     /// `web_fetch_tool_result_error`.
     fn fetch_result(&mut self, block: &Value) -> String {
-        let asked = self.queries.remove(text(block, "tool_use_id")).unwrap_or_default();
-        let content = block.get("content").cloned().unwrap_or_default();
+        let asked = self.queries.remove(text(block, "tool_use_id"))
+            .unwrap_or_else(|| { log::debug!("claude: no query for web_fetch result"); Default::default() });
+        let content = block.get("content").cloned()
+            .unwrap_or_else(|| { log::debug!("claude: web_fetch result has no content"); Default::default() });
         let ok = text(&content, "type") == "web_fetch_result";
         let read = text(&content, "url");
         let url = if read.is_empty() { asked } else { read.to_string() };

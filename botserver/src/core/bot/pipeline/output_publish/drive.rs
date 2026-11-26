@@ -8,12 +8,30 @@ use super::super::native_tools::{persist, send};
 use super::super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
-struct DrivePublisher {
+pub(super) struct DrivePublisher {
     state: Arc<AppState>,
     bot_uuid: Uuid,
     user_id: Uuid,
     session_id: Uuid,
     folder: String,
+}
+
+/// Publisher for the in-turn Drive offer: the same guarded upload the turn's
+/// end uses, with the conversation folder chosen by the consent step.
+pub(super) fn publisher(
+    state: &Arc<AppState>,
+    bot_uuid: Uuid,
+    user_id: Uuid,
+    session_id: Uuid,
+    folder: String,
+) -> DrivePublisher {
+    DrivePublisher {
+        state: state.clone(),
+        bot_uuid,
+        user_id,
+        session_id,
+        folder,
+    }
 }
 
 #[async_trait]

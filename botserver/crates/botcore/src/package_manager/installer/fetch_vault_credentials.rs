@@ -5,9 +5,13 @@ impl PackageManager {
         let mut credentials = HashMap::new();
 
         if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
-        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
+        if let Err(e) = dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")) {
+            log::debug!("cannot load stack .env: {e}");
+        }
     } else {
-        dotenvy::dotenv().ok();
+        if let Err(e) = dotenvy::dotenv() {
+            log::debug!("cannot load .env: {e}");
+        }
     }
 
         let base_path = std::env::var("BOTSERVER_STACK_PATH")
@@ -124,7 +128,7 @@ impl PackageManager {
                     scope.spawn(move || {
                         read_kv_json(vault_bin, vault_addr, vault_token, ca_cert, vault_path)
                             .map(|json| credentials_from_kv(service_name, &json))
-                            .unwrap_or_default()
+                            .unwrap_or_else(|| { log::debug!("vault kv read failed for {service_name}"); Default::default() })
                     })
                 })
                 .collect();
@@ -208,7 +212,7 @@ fn credentials_from_kv(service_name: &str, json: &serde_json::Value) -> Vec<(Str
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("no vault credentials collected"); Default::default() })
 }
 
 #[cfg(test)]

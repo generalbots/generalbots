@@ -192,10 +192,17 @@ h.staticTest("the reused auth-failure key is catalogued in all eight locales", f
 function makeChat(access, authed) {
   var calls = { turnStart: [], forceHide: 0, sent: [], notify: [], status: [], queued: 0, bubbles: 0 };
   function el(id) {
+    var classes = [];
+    classes.add = function (name) { if (classes.indexOf(name) < 0) classes.push(name); };
+    classes.remove = function (name) { var at = classes.indexOf(name); if (at >= 0) classes.splice(at, 1); };
+    classes.toggle = function (name) { if (classes.indexOf(name) >= 0) classes.remove(name); else classes.add(name); };
     return {
       id: id, value: "", tagName: "TEXTAREA", style: {},
       files: [], focus: function () {}, appendChild: function () {},
-      querySelector: function () { return null; },
+      querySelector: function () { return null; }, querySelectorAll: function () { return []; },
+      classList: classes, setAttribute: function () {}, removeAttribute: function () {},
+      addEventListener: function () {}, removeEventListener: function () {},
+      dispatchEvent: function () {}, click: function () {},
     };
   }
   var input = el("messageInput");
@@ -239,11 +246,14 @@ function makeChat(access, authed) {
   sandbox.addEventListener = function () {};
   var elements = {};
   sandbox.document = {
+    head: { appendChild: function () {} },
+    body: { appendChild: function () {} },
     getElementById: function (id) {
       if (!elements[id]) elements[id] = id === "messageInput" ? input : (id === "messages" ? messages : el(id));
       return elements[id];
     },
     createElement: function () { return el("created"); }, addEventListener: function () {}, dispatchEvent: function () {},
+    querySelectorAll: function () { return []; },
   };
   sandbox.window.GBTurn = {
     SLOW_AFTER_MS: 12000, start: function () { calls.turnStart.push("start"); },

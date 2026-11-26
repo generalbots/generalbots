@@ -131,7 +131,7 @@ impl ConfigManager {
             // "default"), so an unfiltered LIMIT 1 can return a stale
             // nil-branch duplicate and shadow the bot's own config.
             let (_, branch_id) = self.resolve_bot_identity(bot_id);
-            let row: Option<ConfigRow> = diesel::sql_query(
+            let row: Option<ConfigRow> = match diesel::sql_query(
                 "SELECT config_value FROM bot_configuration \
                  WHERE bot_id = $1 AND config_key = $2 AND branch_id = $3 \
                  ORDER BY updated_at DESC LIMIT 1"
@@ -139,33 +139,45 @@ impl ConfigManager {
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
             .bind::<diesel::sql_types::Uuid, _>(branch_id)
-            .get_result(&mut conn).ok();
+            .get_result(&mut conn)
+        {
+            Ok(r) => Some(r),
+            Err(e) => { log::debug!("bot configuration lookup failed: {e}"); None }
+        };
             if let Some(r) = row {
                 if !is_placeholder_value(&r.config_value) {
                     return Some(r.config_value);
                 }
             }
             // fallback: any branch for this bot
-            let row: Option<ConfigRow> = diesel::sql_query(
+            let row: Option<ConfigRow> = match diesel::sql_query(
                 "SELECT config_value FROM bot_configuration \
                  WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
-            .get_result(&mut conn).ok();
+            .get_result(&mut conn)
+        {
+            Ok(r) => Some(r),
+            Err(e) => { log::debug!("bot configuration lookup failed: {e}"); None }
+        };
             if let Some(r) = row {
                 if !is_placeholder_value(&r.config_value) {
                     return Some(r.config_value);
                 }
             }
             // fallback: nil bot default
-            let row: Option<ConfigRow> = diesel::sql_query(
+            let row: Option<ConfigRow> = match diesel::sql_query(
                 "SELECT config_value FROM bot_configuration \
                  WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
             .bind::<diesel::sql_types::Text, _>(key)
-            .get_result(&mut conn).ok();
+            .get_result(&mut conn)
+        {
+            Ok(r) => Some(r),
+            Err(e) => { log::debug!("bot configuration lookup failed: {e}"); None }
+        };
             if let Some(r) = row {
                 if !is_placeholder_value(&r.config_value) {
                     return Some(r.config_value);

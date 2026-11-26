@@ -52,8 +52,14 @@
         return '<div class="gb-consent-meta"><span>' + esc(A.t(key, fallback)) + '</span> ' + esc(text) + '</div>';
     }
 
+    var VM_WANTS_KEYS = {
+        command: "assistant-vm-wants-command", shell: "assistant-vm-wants-command",
+        read_file: "assistant-vm-wants", write_file: "assistant-vm-wants",
+        network: "assistant-vm-wants", drive_save: "assistant-vm-wants"
+    };
+
     function title(d) {
-        var t = A.t("assistant.vm-wants-" + d.kind, A.t("assistant.vm-wants-command", "{agent} quer executar um comando na Máquina Virtual"));
+        var t = A.t(VM_WANTS_KEYS[d.kind] || "assistant-vm-wants", A.t("assistant-vm-wants-command", "{agent} quer executar um comando na Máquina Virtual"));
         return t.replace("{agent}", subject(d.agent)).replace("{provider}", d.provider || "");
     }
 

@@ -67,7 +67,7 @@ pub(super) async fn render_result_for_person(
 async fn output_files(user_id: uuid::Uuid, session_id: uuid::Uuid) -> Vec<String> {
     crate::core::bot::agent_vm_hook::list_user_vm_output(user_id, session_id)
         .await
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("using default for vm output files"); Default::default() })
 }
 
 fn format_result(
@@ -98,9 +98,6 @@ fn format_result(
             message.push_str("\n```\n");
         }
     }
-    let files = crate::core::bot::agent_vm_hook::list_user_vm_output(user_id, session_id)
-        .await
-        .unwrap_or_else(Vec::new);
     if !files.is_empty() {
         let conversation = session_id.to_string();
         message.push('\n');

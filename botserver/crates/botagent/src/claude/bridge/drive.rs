@@ -49,7 +49,7 @@ pub trait BridgeGate: Sync {
     fn text(&self, chunk: &str) -> impl Future<Output = bool> + Send;
     /// The model's thinking, shown while it works.
     fn thinking(&self, chunk: &str) -> impl Future<Output = ()> + Send {
-        let _ = chunk;
+        tracing::trace!("claude bridge: no thinking consumer; dropping {} byte(s)", chunk.len());
         async {}
     }
     /// Whether the person pressed Stop.
@@ -137,7 +137,10 @@ impl<'g, G: BridgeGate> Turn<'g, G> {
     async fn tool_result(&mut self, tool_use_id: &str, is_error: bool, text: &str) {
         let Some(tool) = self.pending.remove(tool_use_id) else {
             if !is_error && !self.asked_ids.iter().any(|id| id == tool_use_id) {
-                let name = self.uses.get(tool_use_id).cloned().unwrap_or_default();
+                let name = self.uses.get(tool_use_id).cloned().unwrap_or_else(|| {
+                    tracing::debug!("claude bridge: unknown tool use {tool_use_id}; using its id as the name");
+                    tool_use_id.to_string()
+                });
                 tracing::warn!("claude bridge: {} ran without a permission request", label(&name));
                 self.report.unasked.push(name);
             }
@@ -258,11 +261,15 @@ pub(crate) async fn drive_on<G: BridgeGate>(
                 }
                 Incoming::CanUseTool { request_id, request } => {
                     let reply = turn.answer(&request_id, &request, stop_sent.is_some()).await;
-                    let _ = sender.send_json(&reply);
+                    if let Err(error) = sender.send_json(&reply) {
+                        tracing::debug!("claude bridge: could not send reply {request_id}: {error}");
+                    }
                 }
                 Incoming::OtherControl { request_id, subtype } => {
                     tracing::warn!("claude bridge: refused control request {}", label(&subtype));
-                    let _ = sender.send_json(&protocol::unsupported(&request_id));
+                    if let Err(error) = sender.send_json(&protocol::unsupported(&request_id)) {
+                        tracing::debug!("claude bridge: could not refuse control request {request_id}: {error}");
+                    }
                 }
                 Incoming::Result(result) => {
                     if result.session_id.is_some() {

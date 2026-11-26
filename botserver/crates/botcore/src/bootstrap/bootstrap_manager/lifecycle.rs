@@ -86,12 +86,14 @@ impl BootstrapManager {
             } else {
                 info!("Starting vault...");
                 let vault_pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-                tokio::task::spawn_blocking(move || match vault_pm.start("vault") {
+                if let Err(e) = tokio::task::spawn_blocking(move || match vault_pm.start("vault") {
                     Ok(_) => info!("vault started and initialized"),
                     Err(e) => warn!("Failed to start vault: {}", e),
                 })
                 .await
-                .ok();
+                {
+                    log::debug!("vault start task failed: {e}");
+                }
             }
         }
 

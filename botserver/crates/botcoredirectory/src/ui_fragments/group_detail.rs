@@ -22,12 +22,15 @@ pub async fn group_detail(
         is_active: bool,
     }
 
-    let group: Option<GroupRow> = diesel::sql_query(
+    let group: Option<GroupRow> = match diesel::sql_query(
         "SELECT name, display_name, description, is_active FROM rbac_groups WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(g) => Some(g),
+        Err(e) => { log::debug!("group lookup failed: {e}"); None }
+    };
 
     match group {
         Some(g) => Html(format!(

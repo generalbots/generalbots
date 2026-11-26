@@ -140,14 +140,20 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) -> DriveOutcome {
                     .to_string();
                 send(identity, &message).await;
                 persist(state, session_id, user_id, &message).await;
-                return;
+                return DriveOutcome {
+                    reason: Some(reason::DRIVE_UNAVAILABLE),
+                    ..DriveOutcome::default()
+                };
             }
             Err(error) => {
                 botlog::safe_warn!("external save: branch lookup failed: {error}");
                 let message = "Could not resolve your workspace for this save.".to_string();
                 send(identity, &message).await;
                 persist(state, session_id, user_id, &message).await;
-                return;
+                return DriveOutcome {
+                    reason: Some(reason::DRIVE_UNAVAILABLE),
+                    ..DriveOutcome::default()
+                };
             }
         };
         let connection = external_db::get_connection(&mut conn, branch_id, provider)

@@ -32,7 +32,7 @@ pub(super) fn staged_paths(session_id: Uuid) -> Vec<String> {
     }
     #[cfg(not(feature = "drive"))]
     {
-        let _ = session_id;
+        std::hint::black_box(session_id);
         Vec::new()
     }
 }
@@ -112,7 +112,7 @@ pub(super) async fn attachments(
         }
     }
     #[cfg(not(feature = "drive"))]
-    let _ = (service, vm_name, &conversation, quoted);
+    std::hint::black_box((service, vm_name, &conversation, quoted));
     out
 }
 

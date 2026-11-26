@@ -57,7 +57,7 @@ pub async fn billing_plan(
     // persisted in `description` as `{plan} - {detail}` (see
     // botvibe::metering and botbilling::process_expiring_subscriptions), so the
     // first segment is the plan name.
-    let plan: Option<PlanRow> = diesel::sql_query(
+    let plan: Option<PlanRow> = match diesel::sql_query(
         "SELECT COALESCE(NULLIF(split_part(description, ' - ', 1), ''), 'free') AS plan,
                 COALESCE(status, 'active') AS status,
                 amount
@@ -65,7 +65,10 @@ pub async fn billing_plan(
     )
     .bind::<diesel::sql_types::Uuid, _>(scope_branch)
     .get_result(&mut conn)
-    .ok();
+    {
+        Ok(p) => Some(p),
+        Err(e) => { log::debug!("billing plan lookup failed: {e}"); None }
+    };
 
     match plan {
         Some(p) => Html(format!(
@@ -134,7 +137,7 @@ pub async fn billing_invoices(State(state): State<Arc<AppState>>) -> impl IntoRe
 /// GET /api/user/billing/payment-methods — honest empty state; no payment
 /// instrument storage exists in the settings scope.
 pub async fn billing_payment_methods(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let _ = state;
+    drop(state);
     Html(
         r#"<div class="payment-methods"><div class="payment-method"><span class="method-icon">💳</span><span class="method-label">No payment method on file</span></div></div>"#
             .to_string(),

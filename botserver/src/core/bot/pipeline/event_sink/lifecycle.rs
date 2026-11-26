@@ -20,7 +20,7 @@ pub async fn run_started(sink: &dyn ChannelSink, context: &RunContext, title: Op
         "agent": context.agent,
         "title": title,
     });
-    let _ = emit(sink, context, EventType::RunStarted, data).await;
+    emit(sink, context, EventType::RunStarted, data).await;
 }
 
 pub async fn run_finished(
@@ -44,7 +44,7 @@ pub async fn run_finished(
         "duration_ms": duration_ms,
         "exit_code": exit_code,
     });
-    let _ = emit(sink, context, EventType::RunFinished, data).await;
+    emit(sink, context, EventType::RunFinished, data).await;
 }
 
 pub async fn run_error(
@@ -66,5 +66,5 @@ pub async fn run_error(
         "message": message,
         "code": code,
     });
-    let _ = emit(sink, context, EventType::RunError, data).await;
+    emit(sink, context, EventType::RunError, data).await;
 }

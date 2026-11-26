@@ -20,6 +20,10 @@
     safe("modelDock");
     safe("driveActions");
     safe("attachPanel");
+    safe("consentVm");
+    safe("vmWait");
+    safe("vmAllBar");
+    safe("agentSubscribe");
     return P;
   }
 

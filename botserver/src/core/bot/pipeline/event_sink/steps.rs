@@ -44,7 +44,7 @@ pub async fn step_started_with(
         step_id,
         vec![("gb.step.name".to_string(), name.to_string())],
     );
-    let _ = emit(sink, context, EventType::StepStarted, data).await;
+    emit(sink, context, EventType::StepStarted, data).await;
 }
 
 pub async fn step_finished(
@@ -90,7 +90,7 @@ pub async fn step_finished_with(
         step_id,
         vec![("gb.step.status".to_string(), status.to_string())],
     );
-    let _ = emit(sink, context, EventType::StepFinished, data).await;
+    emit(sink, context, EventType::StepFinished, data).await;
 }
 
 fn merge_extra(data: &mut Value, extra: &Value) {
@@ -120,7 +120,7 @@ pub async fn tool_started(
         call_id,
         vec![("gen_ai.tool.name".to_string(), name.to_string())],
     );
-    let _ = emit(sink, context, EventType::ToolCallStart, data).await;
+    emit(sink, context, EventType::ToolCallStart, data).await;
 }
 
 pub async fn tool_result(
@@ -143,7 +143,7 @@ pub async fn tool_result(
         call_id,
         vec![("gb.tool.status".to_string(), status.to_string())],
     );
-    let _ = emit(sink, context, EventType::ToolCallResult, data).await;
+    emit(sink, context, EventType::ToolCallResult, data).await;
 }
 
 pub async fn text_delta(
@@ -156,7 +156,7 @@ pub async fn text_delta(
         "message_id": message_id,
         "delta": delta,
     });
-    let _ = emit(sink, context, EventType::TextMessageContent, data).await;
+    emit(sink, context, EventType::TextMessageContent, data).await;
 }
 
 pub async fn text_end(
@@ -169,5 +169,5 @@ pub async fn text_end(
         "message_id": message_id,
         "content": content,
     });
-    let _ = emit(sink, context, EventType::TextMessageEnd, data).await;
+    emit(sink, context, EventType::TextMessageEnd, data).await;
 }

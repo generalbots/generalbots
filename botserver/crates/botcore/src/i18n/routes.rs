@@ -117,13 +117,16 @@ async fn handle_get_preference(
 /// the default locale is returned when nothing is stored.
 #[must_use]
 pub fn locale_for_user(conn: &mut diesel::PgConnection, user_id: Uuid) -> Locale {
-    let row: Option<PreferenceRow> = diesel::sql_query(
+    let row: Option<PreferenceRow> = match diesel::sql_query(
         "SELECT preference_value::text AS value FROM user_preferences \
          WHERE user_id = $1 AND preference_key = 'locale' LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .get_result(conn)
-    .ok();
+    {
+        Ok(r) => Some(r),
+        Err(e) => { log::debug!("locale preference lookup failed: {e}"); None }
+    };
 
     match row
         .and_then(|r| r.value)

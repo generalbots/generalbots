@@ -133,7 +133,10 @@ fn load_wa_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
                         self_owned.get_secret(&vault_path).await.ok()
                     })
                 } else { None };
-                let _ = tx.send(result);
+                if let Err(send_err) = tx.send(result)
+                {
+                    log::debug!("whatsapp config send failed: {send_err}");
+                }
             });
             if let Ok(Some(secrets)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
                 log::info!("WhatsApp config loaded from Vault path: {}", vault_path_for_log);
@@ -302,9 +305,9 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
                         buffer: Arc::new(tokio::sync::Mutex::new(String::new())),
                     };
 
-                    let _ = pipeline::run_pipeline_for_channel(
-                        &state, &msg, &sink,
-                    ).await;
+                    if let Err(e) = pipeline::run_pipeline_for_channel(&state, &msg, &sink).await {
+                        log::debug!("whatsapp pipeline failed: {e}");
+                    }
 
                     Ok(())
                 })

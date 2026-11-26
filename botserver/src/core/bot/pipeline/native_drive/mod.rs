@@ -14,8 +14,10 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
 
-use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
+pub mod attached;
+mod outcome;
+pub(crate) use outcome::DriveOutcome;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 const TEXT_EXTENSIONS: &[&str] = &[
@@ -157,6 +159,9 @@ fn matches_drive_query(item: &crate::core::bot::drive_bridge::DriveListItem, que
         .all(|token| hay.contains(token))
 }
 
+mod gated;
+pub(crate) use gated::{run_drive_fetch, run_drive_save};
+
 mod handlers;
 
 /// File names a user typed that are plausible Drive references.
@@ -233,7 +238,8 @@ pub async fn fetch_referenced(
             continue;
         }
         let local = format!("data/{}", sanitize_name(&name));
-        if agent_vm_hook::write_session_file(user_id, session_id, &local, &bytes)
+        let ticket = super::vm_consent::VmConsent::for_person_request(session_id, &local);
+        if agent_vm_hook::write_session_file(ticket, user_id, session_id, &local, &bytes)
             .await
             .is_ok()
         {

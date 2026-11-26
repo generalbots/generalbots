@@ -42,8 +42,7 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = path;
-            let _ = mode;
+            log::debug!("set_permissions unavailable: path={path:?}, mode={mode:?}");
             Err("set_permissions not supported on this platform".to_string())
         }
     }
@@ -55,7 +54,7 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = path;
+            log::debug!("set_executable unavailable: path={path:?}");
             Err("set_executable not supported on this platform".to_string())
         }
     }
@@ -67,7 +66,7 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = path;
+            log::debug!("set_readonly_owner unavailable: path={path:?}");
             Err("set_readonly_owner not supported on this platform".to_string())
         }
     }

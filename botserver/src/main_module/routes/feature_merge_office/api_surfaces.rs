@@ -10,8 +10,8 @@ pub(super) async fn merge_office_api_surfaces(
     port: u16,
     api_router: &mut Router<Arc<AppState>>,
 ) {
-    let _ = port;
-    let _ = &app_state;
+    std::hint::black_box(port);
+    std::hint::black_box(&app_state);
     #[cfg(feature = "directory")]
     {
         let directory_api_state = Arc::new(crate::directory::api::DirectoryApiState {

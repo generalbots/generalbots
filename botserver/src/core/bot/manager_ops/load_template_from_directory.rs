@@ -300,11 +300,17 @@ pub async fn get_bot_config(
         "api-key",
     ];
     let mut map: HashMap<String, String> = if let Some(name) = params.get("bot_name") {
-        let bot_uuid = bots::table
+        let bot_uuid = match bots::table
             .filter(bots::name.eq(name))
             .select(bots::id)
             .first::<Uuid>(&mut conn)
-            .ok();
+        {
+            Ok(v) => Some(v),
+            Err(e) => {
+                log::debug!("bot id lookup failed: {e}");
+                None
+            }
+        };
         if let Some(bid) = bot_uuid {
             cfg.get_all_config(&bid)
         } else {

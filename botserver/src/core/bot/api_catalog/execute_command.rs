@@ -211,12 +211,18 @@ pub async fn execute_command(
                         // branch; the default-bot scope may be the nil branch. Try
                         // both so the fallback finds the user's latest project
                         // regardless of which scope it was created under.
-                        let latest = diesel::sql_query(
+                        let latest = match diesel::sql_query(
                             "SELECT id AS project_id, name AS project_name FROM vibe_projects WHERE branch_id = ANY($1) ORDER BY created_at DESC LIMIT 1",
                         )
                         .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
                         .get_result::<ProjectNameRow>(&mut conn)
-                        .ok();
+                        {
+                            Ok(v) => Some(v),
+                            Err(e) => {
+                                log::debug!("latest project lookup failed: {e}");
+                                None
+                            }
+                        };
                         match latest {
                             Some(row) => (row.project_id.to_string(), row.project_name),
                             None => {

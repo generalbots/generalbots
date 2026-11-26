@@ -11,7 +11,9 @@ static SERVICE: OnceLock<Arc<botconsent::ConsentService>> = OnceLock::new();
 pub fn init(pool: botconsent::DbPool) {
     let service = Arc::new(botconsent::ConsentService::new(pool));
     service.ensure_sweeper();
-    let _ = SERVICE.set(service);
+    if SERVICE.set(service).is_err() {
+        log::debug!("consent service already initialized");
+    }
 }
 
 fn service() -> Option<&'static Arc<botconsent::ConsentService>> {
@@ -179,7 +181,13 @@ fn preview_affected_count(params: &serde_json::Map<String, serde_json::Value>) -
         "limit",
     ] {
         if let Some(value) = params.get(key).and_then(serde_json::Value::as_u64) {
-            return usize::try_from(value).ok();
+            return match usize::try_from(value) {
+                Ok(n) => Some(n),
+                Err(e) => {
+                    log::debug!("quantity limit out of range: {e}");
+                    None
+                }
+            };
         }
     }
     for key in ["ids", "items", "records", "targets", "selection"] {

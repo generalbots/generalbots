@@ -265,6 +265,7 @@ pub async fn handle_chat_models(
     use botcore::shared::schema::{bots, user_organizations};
     use diesel::prelude::*;
 
+    let extensions = req.extensions().clone();
     let requested = query.bot.unwrap_or(Default::default()).trim().to_string();
 
     let bot_uuid = if requested.is_empty() {
@@ -299,9 +300,7 @@ pub async fn handle_chat_models(
             }
         };
 
-        let user = req
-            .extensions()
-            .get::<crate::security::auth_api::types::AuthenticatedUser>();
+        let user = extensions.get::<crate::security::auth_api::types::AuthenticatedUser>();
         let is_platform_admin = user.is_some_and(|u| u.is_super_admin())
             || user
                 .and_then(|u| u.email.as_deref())

@@ -13,6 +13,8 @@
         '/suite/drive/modules/05c_upload_queue.js',
         '/suite/drive/modules/05_upload.js',
         '/suite/drive/modules/06_render.js',
+        '/suite/drive/modules/06_file_badge.js',
+        '/suite/drive/modules/05_files_conversation.js',
         '/suite/drive/modules/07_events.js',
         '/suite/drive/modules/07b_events_menus.js',
         '/suite/drive/modules/08_modals.js',

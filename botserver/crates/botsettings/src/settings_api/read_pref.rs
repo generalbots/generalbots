@@ -22,7 +22,9 @@ pub fn write_pref(
     key: &str,
     value: &serde_json::Value,
 ) {
-    let _ = try_write_pref(conn, user_id, key, value);
+    if let Err(e) = try_write_pref(conn, user_id, key, value) {
+        log::debug!("cannot persist user preference {key}: {e}");
+    }
 }
 
 pub fn try_write_pref(
@@ -32,7 +34,7 @@ pub fn try_write_pref(
     value: &serde_json::Value,
 ) -> diesel::QueryResult<usize> {
     let json = value.to_string();
-    if let Err(e) = diesel::sql_query(
+    let result = diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at)
          VALUES ($1, $2, $3, $4::jsonb, NOW(), NOW())
          ON CONFLICT (user_id, preference_key)
@@ -42,8 +44,9 @@ pub fn try_write_pref(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(key)
     .bind::<diesel::sql_types::Text, _>(&json)
-    .execute(conn)
-    {
+    .execute(conn);
+    if let Err(ref e) = result {
         log::warn!("Failed to persist user preference {key}: {e}");
     }
+    result
 }

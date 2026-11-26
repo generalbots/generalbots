@@ -9,10 +9,16 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     use crate::core::secrets::{SecretPaths, SecretsManager};
 
     // Try environment variables first
-    let env_url = std::env::var("CACHE_URL")
+    let env_url = match std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
         .or_else(|_| std::env::var("VALKEY_URL"))
-        .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("cache URL env lookup failed: {e}");
+            None
+        }
+    };
 
     // Check for Redis database number for namespace isolation
     let redis_db = std::env::var("REDIS_DB")

@@ -108,7 +108,8 @@ impl PackageManager {
                 return Err(anyhow::anyhow!("Local database startup failed; check pgctl.log"));
             }
         }
-        let hba = std::fs::read_to_string(tables.pgdata.join("pg_hba.conf")).unwrap_or_default();
+        let hba = std::fs::read_to_string(tables.pgdata.join("pg_hba.conf"))
+            .unwrap_or_else(|e| { log::debug!("cannot read pg_hba.conf: {e}"); Default::default() });
         if tables.password.is_none() {
             if pg_hba_is_hardened(&hba) {
                 info!("local database is up; its password is read from Vault once Vault answers");

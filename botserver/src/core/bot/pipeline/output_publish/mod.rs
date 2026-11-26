@@ -42,7 +42,8 @@ use uuid::Uuid;
 
 use crate::core::bot::bounded::{self, BoundedMap};
 
-use super::native_tools::{persist, send};
+use super::types::SessionIdentity;
+use super::vm_consent::{self, VmAction, VmActionKind, VmDecision, VmDenial, VmOutcome, VmReceipt};
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 /// Most artifacts one turn publishes. A program that writes a hundred files
@@ -295,11 +296,105 @@ pub async fn publish_candidates(
     published
 }
 
+/// New or changed files of `output/` nobody declined; `None` when the
+/// workspace cannot be listed.
+async fn fresh_output(identity: &SessionIdentity<'_>) -> Option<Vec<OutputFile>> {
+    let SessionIdentity {
+        user_id, session_id, ..
+    } = *identity;
+    let listing: Vec<OutputFile> =
+        agent_vm_hook::list_session_folder_meta(user_id, session_id, "output")
+            .await?
+            .into_iter()
+            .map(|(name, size, modified)| OutputFile {
+                name,
+                size,
+                modified,
+            })
+            .collect();
+    let seen = snapshot(session_id);
+    Some(offer::fresh(session_id, candidates(&listing, &seen)))
+}
+
+fn drive_save_action(files: &[OutputFile]) -> VmAction {
+    let names = files.iter().map(|file| file.name.clone()).collect();
+    VmAction::native(VmActionKind::DriveSave {
+        files: names,
+        folder: None,
+    })
+}
+
+/// Copies `files` to Drive, advances the ledger and closes the step of
+/// `receipt`. Returns the conversation folder and what reached Drive.
+async fn copy_to_drive(
+    identity: &SessionIdentity<'_>,
+    receipt: &VmReceipt,
+    files: Vec<OutputFile>,
+) -> (String, Vec<PublishedArtifact>) {
+    let SessionIdentity {
+        state,
+        bot_uuid,
+        user_id,
+        session_id,
+        ..
+    } = *identity;
+    let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
+    let mut seen = snapshot(session_id);
+    let folder = drive_bridge::conversation_title(state, session_id).await;
+    let publisher = drive::publisher(state, bot_uuid, user_id, session_id, folder.clone());
+    let published = publish_candidates(session_id, files, &mut seen, &publisher).await;
+    // Store even when every upload failed: successful and identical files
+    // advanced, failed ones kept their old stamp and stay candidates.
+    store(session_id, seen);
+    let outcome = VmOutcome {
+        ok: !published.is_empty(),
+        files: names,
+        ..VmOutcome::default()
+    };
+    vm_consent::report(identity, receipt, &outcome).await;
+    (folder, published)
+}
+
+/// What the model reads when the person declined copying files to Drive.
+const DECLINED_FOR_MODEL: &str = "The person did not allow copying the new files of output/ to \
+    Drive. They stay in this conversation; do not save them another way. Tell the person, in \
+    their language, that the files can be saved with the \"Save to Drive\" button of the file \
+    panel (\"Salvar no Drive\" in Portuguese).";
+
+/// Asks, inside the turn, whether the new files a step just left in `output/`
+/// may be copied to Drive. Called when a `vm_exec` step closes; a stored grant
+/// answers without a card. Allowed files are copied now and linked at the end
+/// of the turn; declined ones stay in the conversation.
+pub async fn offer_in_turn(identity: &SessionIdentity<'_>) {
+    let Some(files) = fresh_output(identity).await else {
+        return;
+    };
+    if files.is_empty() {
+        return;
+    }
+    let session_id = identity.session_id;
+    match vm_consent::ask(identity, &drive_save_action(&files)).await {
+        VmDecision::Allowed(ticket) => {
+            let receipt = ticket.receipt();
+            let (folder, published) = copy_to_drive(identity, &receipt, files).await;
+            offer::keep_published(session_id, folder, published);
+        }
+        VmDecision::Denied(VmDenial::ByPerson) => {
+            offer::hold_back(session_id, &files, true);
+            super::native_tools::tell_model(session_id, DECLINED_FOR_MODEL);
+        }
+        // Undecided (stopped turn, no answer): the turn's end lists them.
+        VmDecision::Denied(_) => {}
+    }
+}
+
 mod drive;
 pub use drive::{publish_and_attach, publish_turn_output};
 
+mod offer;
+
 mod ledger;
-pub use ledger::{load_durable, save_durable, DEFAULT_LEDGER_TTL_DAYS};
+pub use ledger::{load_durable, output_link, save_durable, DEFAULT_LEDGER_TTL_DAYS};
 
 #[cfg(test)]
 #[path = "../output_publish_tests.rs"]

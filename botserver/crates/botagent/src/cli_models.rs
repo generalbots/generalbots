@@ -133,7 +133,10 @@ pub fn parse_codex_catalog(json: &str) -> Vec<CliModel> {
                 })
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            tracing::debug!("CLI returned no model list; starting from an empty set");
+            Vec::new()
+        });
     rows.sort_by_key(|(priority, _)| *priority);
     rows.into_iter().map(|(_, model)| model).collect()
 }
@@ -155,7 +158,10 @@ pub fn parse_agy_models(text: &str) -> Vec<CliModel> {
             continue;
         }
         let mut parts = line.splitn(2, char::is_whitespace);
-        let id = parts.next().unwrap_or_default().trim_end_matches([':', ',']);
+        let id = parts.next().unwrap_or_else(|| {
+            tracing::debug!("CLI model line '{line}' has no id; skipping it");
+            ""
+        }).trim_end_matches([':', ',']);
         if !usable_id(id) || !id.chars().any(|c| c.is_ascii_lowercase()) {
             continue;
         }

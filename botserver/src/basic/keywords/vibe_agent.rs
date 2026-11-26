@@ -34,7 +34,10 @@ fn http_json(
         let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
             Ok(rt) => rt,
             Err(e) => {
-                let _ = tx.send(Err(format!("runtime: {e}")));
+                if let Err(send_err) = tx.send(Err(format!("runtime: {e}")))
+                {
+                    log::debug!("vibe_agent runtime error send failed: {send_err}");
+                }
                 return;
             }
         };
@@ -70,7 +73,10 @@ fn http_json(
             serde_json::from_str::<serde_json::Value>(&text)
                 .map_err(|e| format!("parse response: {e}"))
         });
-        let _ = tx.send(result);
+        if let Err(send_err) = tx.send(result)
+        {
+            log::debug!("vibe_agent result send failed: {send_err}");
+        }
     });
 
     match rx.recv() {

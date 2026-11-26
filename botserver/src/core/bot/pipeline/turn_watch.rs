@@ -97,7 +97,7 @@ tokio::task_local! {
 fn enter_stage(name: &'static str, limit: Duration) {
     let logged = CURRENT.try_with(|shared| {
         let spent = shared.update(|progress| progress.enter(name, limit, Instant::now()));
-        let spent_ms = spent.unwrap_or_default().as_millis();
+        let spent_ms = spent.unwrap_or_else(|| { log::debug!("using default for stage progress"); Default::default() }).as_millis();
         let session_id = shared.session_id;
         botlog::safe_info!("turn stage: {name} session={session_id} previous_ms={spent_ms}");
     });

@@ -38,6 +38,12 @@ function bindTopTabs() {
                 case TAB_MYFILES:
                     loadMyFilesTab();
                     break;
+                case "conversations":
+                    loadConversationFilesTab();
+                    break;
+                case "attachments":
+                    loadChatAttachmentsTab();
+                    break;
                 case TAB_HOME:
                     loadHomeTab();
                     break;

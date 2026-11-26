@@ -104,7 +104,7 @@ impl InvitationService {
         {
             // Without the `mail` feature nothing is delivered, but the locale
             // stays part of the contract so callers do not branch on features.
-            let _ = locale;
+            log::debug!("mail feature disabled; locale={locale}");
         }
     }
 }

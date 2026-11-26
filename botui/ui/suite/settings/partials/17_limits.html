@@ -1,0 +1,26 @@
+<!-- Settings → Usage & limits. Ported from the gbgov assistant's Limits page:
+     one vocabulary for the four engine types, the quota /api/llm/limits reports
+     and a Refresh control. The endpoint is best-effort (honest notice on 404). -->
+<section id="limits-section" class="settings-section" data-section="limits">
+    <div class="section-header">
+        <h1 data-i18n="lim-title">Usage &amp; limits</h1>
+        <p class="subtitle" data-i18n="lim-subtitle">How much each engine can use.</p>
+    </div>
+
+    <div class="setting-card gb-limits-card">
+        <div class="card-header">
+            <h2 data-i18n="lim-intro">
+                Each engine type has a different limit: subscription quota, your key's
+                spending, the free service limit or this computer's capacity.
+            </h2>
+        </div>
+        <div class="gb-limits-types" id="gbLimitsTypes" role="group"
+            data-i18n-aria-label="lim-engine-types" aria-label="Engine types"></div>
+        <div class="gb-limits-head">
+            <strong id="gbLimitsName"></strong>
+            <span class="gb-limits-refresh-slot" id="gbLimitsRefresh"></span>
+        </div>
+        <div class="gb-limits-status" id="gbLimitsStatus" role="status" aria-live="polite"></div>
+        <div class="gb-limits-detail" id="gbLimitsDetail"></div>
+    </div>
+</section>

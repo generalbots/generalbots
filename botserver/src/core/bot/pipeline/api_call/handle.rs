@@ -141,7 +141,7 @@ pub(crate) async fn handle_api_call(
         let synthetic = format!(
             "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
         );
-        let _ = crate::core::bot::pipeline::tool_exec::run_llm_tool_call(
+        crate::core::bot::pipeline::tool_exec::run_llm_tool_call(
             identity, rx, &synthetic, user_text,
         )
         .await;

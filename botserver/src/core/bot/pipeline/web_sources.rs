@@ -235,7 +235,7 @@ fn site(address: &str) -> String {
     url::Url::parse(address)
         .ok()
         .and_then(|parsed| parsed.host_str().map(str::to_string))
-        .unwrap_or_default()
+        .unwrap_or_else(|| { log::debug!("using default for hit host"); Default::default() })
 }
 
 /// Removes index pages and repeated stories, then fills in the publish date of

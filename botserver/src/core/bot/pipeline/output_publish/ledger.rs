@@ -18,6 +18,11 @@ use super::{snapshot, store, PublishedFile};
 /// Default lifetime of a conversation's publish ledger, in days.
 pub const DEFAULT_LEDGER_TTL_DAYS: u64 = 30;
 
+/// Markdown link to an output file stored in the conversation's VM folder.
+pub fn output_link(name: &str, conversation: Uuid) -> String {
+    format!("[{name}](vmfile:{conversation}/output/{name})")
+}
+
 #[cfg(feature = "cache")]
 fn redis_key(session_id: Uuid) -> String {
     format!("output_publish:{session_id}")

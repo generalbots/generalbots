@@ -8,13 +8,19 @@ fn notification_email_enabled(conn: &mut PgConnection, user_id: &str, flag: &str
         pub(crate) value: Option<String>,
     }
 
-    let row = diesel::sql_query(
+    let row = match diesel::sql_query(
         "SELECT preference_value::text AS value FROM user_preferences \
          WHERE user_id::text = $1 AND preference_key = 'notifications' LIMIT 1",
     )
     .bind::<Text, _>(user_id)
     .get_result::<PrefRow>(conn)
-    .ok();
+    {
+        Ok(v) => Some(v),
+        Err(e) => {
+            log::debug!("notification preference lookup failed: {e}");
+            None
+        }
+    };
     let Some(row) = row else { return true };
     let Some(value) = row.value else { return true };
     let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&value) else {

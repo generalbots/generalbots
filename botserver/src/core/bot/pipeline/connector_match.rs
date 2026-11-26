@@ -197,7 +197,7 @@ pub(super) fn split_matches(
 ) -> (Vec<ConnectorMatch>, Vec<LlmProviderSummary>) {
     #[cfg(not(feature = "integrations"))]
     {
-        let _ = (user_id, query, tokens, connected);
+        std::hint::black_box((user_id, query, tokens, connected));
         (Vec::new(), Vec::new())
     }
     #[cfg(feature = "integrations")]

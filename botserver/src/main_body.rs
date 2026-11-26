@@ -167,9 +167,13 @@ pub(super) async fn main() -> std::io::Result<()> {
     #[cfg(windows)]
     {
         let stack = std::path::PathBuf::from(botcore::shared::utils::get_stack_path());
-        tokio::task::spawn_blocking(move || botcore::package_manager::server_token::ensure_scoped_token(&stack))
-            .await
-            .ok();
+        if let Err(e) = tokio::task::spawn_blocking(move || {
+            botcore::package_manager::server_token::ensure_scoped_token(&stack)
+        })
+        .await
+       {
+            log::debug!("scoped token background task failed: {e}");
+        }
     }
 
     trace!("Bootstrap config phase complete");

@@ -39,7 +39,7 @@ impl DocumentProcessor {
             let mut content = String::new();
             for sheet_name in workbook.sheet_names() {
                 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-                    let _ = writeln!(&mut content, "=== {} ===", sheet_name);
+                    if let Err(e) = writeln!(&mut content, "=== {} ===", sheet_name) { log::debug!("cannot write sheet header: {e}"); }
 
                     for row in range.rows() {
                         let row_text: Vec<String> = row
@@ -100,7 +100,7 @@ impl DocumentProcessor {
             let mut content = String::new();
             for sheet_name in workbook.sheet_names() {
                 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-                    let _ = writeln!(&mut content, "=== {} ===", sheet_name);
+                    if let Err(e) = writeln!(&mut content, "=== {} ===", sheet_name) { log::debug!("cannot write sheet header: {e}"); }
 
                     for row in range.rows() {
                         let row_text: Vec<String> = row

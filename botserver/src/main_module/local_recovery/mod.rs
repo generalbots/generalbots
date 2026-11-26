@@ -31,7 +31,10 @@ pub fn spawn(app: Arc<AppState>) {
 async fn serve(app: Arc<AppState>) -> std::io::Result<()> {
     let path = secret::secret_path();
     // A file left by an earlier run names a port nobody may be serving now.
-    let _ = std::fs::remove_file(&path);
+    if let Err(e) = std::fs::remove_file(&path)
+    {
+        log::debug!("stale recovery secret removal failed: {e}");
+    }
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
     let port = listener.local_addr()?.port();
     let store = Arc::new(secret::SecretStore::create(path, port)?);

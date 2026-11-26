@@ -108,17 +108,17 @@ pub(crate) fn detect_date_format(code: &str) -> Option<String> {
                 last_was_hour = false;
             }
             'd' => {
-                let _ = count_run(&mut chars, &['d', 'D']);
+                count_run(&mut chars, &['d', 'D']);
                 out.push_str("%d");
                 last_was_hour = false;
             }
             'h' => {
-                let _ = count_run(&mut chars, &['h', 'H']);
+                count_run(&mut chars, &['h', 'H']);
                 out.push_str("%H");
                 last_was_hour = true;
             }
             's' => {
-                let _ = count_run(&mut chars, &['s', 'S']);
+                count_run(&mut chars, &['s', 'S']);
                 out.push_str("%S");
                 last_was_hour = false;
             }

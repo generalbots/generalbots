@@ -101,7 +101,7 @@ pub(crate) fn from_coded(error: &str) -> Option<RefusalError> {
     let value: serde_json::Value = serde_json::from_str(error[at + CODED_PREFIX.len()..].trim()).ok()?;
     let code = value.get("code").and_then(serde_json::Value::as_str)?;
     let code = CODED.iter().copied().find(|known| *known == code)?;
-    let message = value.get("message").and_then(serde_json::Value::as_str).unwrap_or_default();
+    let message = value.get("message").and_then(serde_json::Value::as_str).unwrap_or_else(|| { log::debug!("using default for refusal message"); Default::default() });
     let mut refusal = RefusalError::new(code, message);
     for key in CODED_PARAMS {
         if let Some(param) = value.get("params").and_then(|p| p.get(key)).and_then(serde_json::Value::as_str) {

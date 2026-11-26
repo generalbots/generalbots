@@ -269,9 +269,15 @@ pub fn turn_failure(turn: &Value, last_error: Option<&str>) -> String {
         .and_then(|e| e.get("codexErrorInfo"))
         .map(|info| match info {
             Value::String(s) => s.clone(),
-            other => other.as_object().and_then(|o| o.keys().next().cloned()).unwrap_or_default(),
+            other => other.as_object().and_then(|o| o.keys().next().cloned()).unwrap_or_else(|| {
+                tracing::debug!("codexErrorInfo object has no key; using empty detail");
+                String::new()
+            }),
         })
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            tracing::debug!("Codex turn has no codexErrorInfo; using empty detail");
+            String::new()
+        });
     let joined = [message, details, info.as_str()]
         .iter()
         .filter(|part| !part.trim().is_empty())

@@ -204,7 +204,13 @@ pub async fn handle_ws(
                         // #cross-browser-sync — broadcast the user's input to every
                         // subscriber of this session so other browsers see the
                         // turn in real time, not just the bot's reply.
-                        let parsed_msg = serde_json::from_str::<serde_json::Value>(&text).ok();
+                        let parsed_msg = match serde_json::from_str::<serde_json::Value>(&text) {
+                            Ok(v) => Some(v),
+                            Err(e) => {
+                                log::debug!("WS broadcast frame parse failed: {e}");
+                                None
+                            }
+                        };
                         let frame_type = parsed_msg
                             .as_ref()
                             .and_then(|v| v.get("type").and_then(|t| t.as_str()))

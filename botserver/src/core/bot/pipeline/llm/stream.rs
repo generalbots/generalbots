@@ -58,6 +58,7 @@ async fn stream_llm_response_inner(
     {
         Ok(provider) => provider,
         Err(refusal) => {
+            let refusal = super::refusal::RefusalError::from(refusal);
             super::stream_errors::send_refusal_error(sink, identity, &refusal).await;
             return Ok(());
         }
@@ -70,6 +71,37 @@ async fn stream_llm_response_inner(
     {
         return Ok(());
     }
+
+    // Classify engine type once for per-engine usage grouping. Kept here,
+    // before the provider match, so every retry and every persisted turn uses
+    // the same classification as the attempt that produced the answer.
+    let (engine_type, engine_provider) = {
+        let cfg = botcore::config::ConfigManager::new(state.conn.clone());
+        let config_value = |key: &str| -> String {
+            match cfg.get_config(&bot_uuid, key, Some("")) {
+                Ok(value) => value,
+                Err(error) => {
+                    log::warn!("engine classification: {key} could not be read: {error}");
+                    String::new()
+                }
+            }
+        };
+        let bp = config_value("llm-provider");
+        let mut eu = config_value("llm-url");
+        let mut em = config_value("llm-model");
+        if let Ok(v) = std::env::var("LLM_URL") {
+            if !v.is_empty() {
+                eu = v;
+            }
+        }
+        if let Ok(v) = std::env::var("LLM_MODEL") {
+            if !v.is_empty() {
+                em = v;
+            }
+        }
+        let cls = botsettings::usage_engine::classify_preference(model_preference, &bp, &eu, &em);
+        (cls.as_ref().map(|(e, _)| *e), cls.map(|(_, p)| p))
+    };
 
     let env_key = std::env::var("LLM_KEY").unwrap_or(Default::default());
     let env_model = std::env::var("LLM_MODEL").unwrap_or(Default::default());
