@@ -341,6 +341,8 @@ GET /api/product | product-handlers (legacy + current router both mounted)
 GET /api/retail/branches | botretail (retail/mod.rs + botretail/lib.rs)
 GET /api/retail/promotions | botretail (retail/mod.rs + botretail/lib.rs)
 GET /api/retail/suppliers | botretail (retail/mod.rs + botretail/lib.rs)
+GET /api/retail/stock | botretail (#2955 GET added to botretail/lib.rs; unmounted src/retail/mod.rs stub still declares it)
+GET /api/retail/top-products | botretail (#2955 GET added to botretail/lib.rs; unmounted src/retail/mod.rs stub still declares it)
 POST /api/dns/register | misc-handlers (duplicate legacy router)
 POST /api/dns/remove | misc-handlers (duplicate legacy router)
 """
