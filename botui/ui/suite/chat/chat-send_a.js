@@ -1,11 +1,8 @@
-/* Chat send path: composer payload, privacy gate and offline queue entry.
- * Split out of chat-init.js so every chat script stays under 450 lines. */
+/* Chat send path: composer payload, privacy gate and offline queue entry. */
 "use strict";
 
-// #1691 — the server needs the client's real surfaces and the Preview-mode
-// switch to advertise only the applications this session can actually use.
-// Visible waiting state + one retry hint. The provider can return 503 and
-// retry for a while; without this the chat looked dead.
+// #1691 — advertise the client's real surfaces and Preview mode; keep a visible
+// waiting state + retry hint so a 503 storm never looks like a dead chat.
 function clearChatPending() {
   ChatState.pendingResponseAt = null;
   if (ChatState.responseWatchdog) {
@@ -19,8 +16,10 @@ function clearChatPending() {
   if (typeof setChatStatus === "function") setChatStatus("");
 }
 window.clearChatPending = clearChatPending;
-// #2244 — safety net: if the tab regains visibility and no request is pending,
-// drop any stale "Waiting for the model…" status that survived a missed frame.
+// A private bot or a failed probe dials no socket: clear the stuck turn so the composer stays usable.
+function clearBlockedChatTurn() { if (window.GBTurn && GBTurn.forceHide) GBTurn.forceHide(); if (typeof clearChatPending === "function") clearChatPending(); }
+window.clearBlockedChatTurn = clearBlockedChatTurn;
+// #2244 — on tab focus, drop a stale "Waiting for the model…" status.
 (function () {
   function clearStale() {
     if (ChatState && ChatState.pendingResponseAt) return;
@@ -43,18 +42,14 @@ function armChatPending(text) {
   var slowAfter = (window.GBTurn && GBTurn.SLOW_AFTER_MS) || 12000;
   ChatState.responseWatchdog = setTimeout(function () {
     if (!ChatState.pendingResponseAt) return;
-    // #2098 — the watchdog keeps the SAME progress element and says why the
-    // wait is long; it never only updates the status bar (which the next frame
-    // wiped, leaving the chat looking frozen).
+    // #2098 — keep the SAME progress element; the status bar alone looked frozen.
     if (window.GBTurn && GBTurn.slow()) return;
     if (ChatState.isStreaming) return;
     if (typeof setChatStatus === "function") {
       setChatStatus("Waiting for the model… the provider may be busy.");
     }
   }, slowAfter);
-  // #2244 — hard safety net: even if no terminal frame ever arrives (provider
-  // timeout/error, dropped WS message, turn-state desync), never leave the
-  // "Waiting for the model…" status (or a pending turn) stuck forever.
+  // #2244 — no terminal frame must leave the pending turn stuck forever.
   if (ChatState.pendingHardTimeout) clearTimeout(ChatState.pendingHardTimeout);
   ChatState.pendingHardTimeout = setTimeout(function () {
     if (!ChatState.pendingResponseAt) return;
@@ -98,9 +93,17 @@ function sendMessage(messageContent, extra) {
 
   if (!content && !files.length) return;
 
-  // #1947 — attachments travel inline over the WebSocket as base64, so an
-  // oversized file fails the frame instead of the request and the chat simply
-  // stays silent. Refuse it up front with an actionable message.
+  // A private bot or a failed probe never dials a socket: fail fast instead of
+  // painting "Sending…" and queueing with only a console warning.
+  var blocked = ChatState.botAccess === "auth_required" ? "auth" : ChatState.botAccess === "probe_error" ? "probe" : "";
+  if (blocked) {
+    clearBlockedChatTurn();
+    if (!messageContent) { var blockedInput = document.getElementById("messageInput"); if (blockedInput) blockedInput.value = content; }
+    if (blocked === "auth") notify(chatPrivateSigninMessage(), "error");
+    return;
+  }
+
+  // #1947 — base64 attachments fail the frame silently when oversized; refuse up front.
   var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
   var tooBig = files.filter(function (file) { return file.size > MAX_ATTACH_BYTES; });
   if (tooBig.length) {
@@ -121,8 +124,7 @@ function sendMessage(messageContent, extra) {
     hideMentionDropdown();
     input.value = "";
     if (input.tagName === "TEXTAREA") input.style.height = "auto";
-    // #2163 — a plain focus() scrolls every scrollable ancestor to reveal the
-    // composer, which was visible as the whole window jumping after Enter.
+    // #2163 — preventScroll stops the whole window jumping after Enter.
     input.focus({ preventScroll: true });
   }
 
@@ -258,15 +260,11 @@ function sendMessage(messageContent, extra) {
     payload.project_name = payload.project_context.project_name;
   }
 
-  // #2360 — keep the structured turn payload on the user bubble so a failed
-  // turn can be retried without re-reading rendered prose (which includes
-  // attachment markers and loses original file payloads).
+  // #2360 — keep the structured payload so a failed turn retries without prose.
   ChatState.lastUserTurnPayload = payload;
 
   addMessage("user", display);
-  // Immediate feedback: the provider may take seconds (or minutes) before the
-  // first thinking frame, and the chat used to look frozen after Enter. The
-  // turn state machine keeps this element until the final answer (#2098).
+  // #2098 — the turn state machine keeps feedback until the final answer.
   if (window.GBTurn) GBTurn.start(content || fileNames);
   else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
   // Sending returns to the live edge only when the reader was already there.

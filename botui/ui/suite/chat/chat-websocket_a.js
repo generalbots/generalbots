@@ -115,10 +115,8 @@ function tr(key, fallback) {
   return fallback;
 }
 
-// A private bot refuses the WebSocket upgrade with 401, and the browser
-// WebSocket API hides that response — the window only saw an endless
-// "Disconnected / connecting" flap. Probe the bot first so a private bot with
-// an anonymous visitor explains the real reason and offers a way in.
+// A private bot's 401 upgrade is hidden by the browser WS API; probe first so
+// an anonymous visitor sees the real reason instead of an endless reconnect.
 function probeBotAccess(done) {
   if (window.__BOT_IS_PUBLIC__) { ChatState.botAccess = "allowed"; done("allowed"); return; }
   // Cache only resolved states. Probe errors stay retryable.
@@ -153,7 +151,11 @@ function probeBotAccess(done) {
     });
 }
 
+function chatPrivateSigninMessage() { return (typeof gbT === "function") ? gbT("chat-bot-private-signin", "This bot is private — sign in to continue") : "This bot is private — sign in to continue"; }
+
 function showAuthRequired(botName) {
+  // A late probe can deny access after a message started a turn: clear it.
+  if (typeof window.clearBlockedChatTurn === "function") window.clearBlockedChatTurn();
   var statusEl = document.getElementById("connectionStatus");
   if (statusEl) {
     statusEl.className = "connection-status disconnected";
@@ -169,7 +171,7 @@ function showAuthRequired(botName) {
   if (statusEl) {
     statusEl.title = gbT("chat-str-sign-in-at", "Sign in at ") + login;
   }
-  var privateMsg = (typeof gbT === "function") ? gbT("chat-bot-private-signin", "This bot is private — sign in to continue") : "This bot is private — sign in to continue";
+  var privateMsg = chatPrivateSigninMessage();
   if (window.GBAppLifecycle) {
     GBAppLifecycle.setState("error", privateMsg);
   }
@@ -178,6 +180,7 @@ function showAuthRequired(botName) {
 }
 
 function showProbeError(botName) {
+  if (typeof window.clearBlockedChatTurn === "function") window.clearBlockedChatTurn();
   var message = "Could not verify bot access";
   var detail = "The server did not respond or returned an invalid response. Bot access is unknown, so chat will not connect automatically.";
   var retryProbe = function () {
@@ -232,11 +235,8 @@ function showProbeError(botName) {
   console.warn("[WS] bot access probe failed for '" + botName + "'; WebSocket not attempted");
 }
 
-// #2153 — a route segment or a stale selection can name a bot that does not
-// exist. The server refuses the upgrade and the page used to sit on
-// "Connecting…" forever while a generic "Reconnecting…" toast blamed the
-// network. Say what is wrong and offer an in-app recovery that keeps the
-// desktop shell intact.
+// #2153 — an unknown bot used to leave "Connecting…" forever with a generic toast.
+// Say what is wrong and offer an in-app recovery that keeps the desktop shell intact.
 function recoverFromUnavailableBot() {
   var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
   try { localStorage.removeItem("gb_selected_bot"); } catch (e) { window.gbLogError ? gbLogError(e, "recoverFromUnavailableBot") : console.error("recoverFromUnavailableBot", e); }
