@@ -35,6 +35,16 @@
     );
   }
 
+  /* #2943 — no session, no authenticated request: an unauthenticated tab must
+   * not issue the guaranteed-401 autotasks poll at boot. */
+  function hasSession() {
+    try {
+      return !!(typeof window.getGBAccessToken === "function" && window.getGBAccessToken());
+    } catch (error) {
+      return false;
+    }
+  }
+
   function escapeHtml(value) {
     var host = document.createElement("div");
     host.textContent = value == null ? "" : String(value);
@@ -144,7 +154,7 @@
   }
 
   async function refresh(sessionId) {
-    if (!sessionId) return;
+    if (!sessionId || !hasSession()) return;
     try {
       var t = token();
       var headers = t ? { Authorization: "Bearer " + t } : {};
@@ -186,6 +196,7 @@
   }
 
   function poll() {
+    if (!hasSession()) return;
     if (document.hidden || AT.state.refreshing) return;
     var sessionId = activeSessionId();
     if (!sessionId) return;
@@ -194,9 +205,20 @@
   }
 
   function start() {
-    if (AT.state.timer) return;
+    if (AT.state.timer || !hasSession()) return;
     AT.state.timer = setInterval(poll, POLL_MS);
   }
+
+  window.addEventListener("gb:auth:login", function () {
+    poll();
+    start();
+  });
+  window.addEventListener("gb:auth:logout", function () {
+    if (AT.state.timer) clearInterval(AT.state.timer);
+    AT.state.timer = null;
+    AT.state.bySession = {};
+    decorateTabs();
+  });
 
   document.addEventListener("click", function (event) {
     var button = event.target.closest ? event.target.closest("[data-autotask-id]") : null;

@@ -15,11 +15,27 @@
     "/api/client-errors",
   ];
 
+  /* #2943 — the i18n prefix stays public for the catalogue endpoints, but the
+   * caller-scoped preference route is denied anonymously by the server
+   * (`public_routes.rs`), so it must never bypass the session gate. */
+  var NO_SESSION_PRIVATE = ["/api/i18n/preference"];
+
   function hasSession() {
     try {
       return !!(typeof window.getGBAccessToken === "function" && window.getGBAccessToken());
     } catch (e) {
       return false;
+    }
+  }
+
+  /* #2943 — only API calls can be guaranteed-401. Static suite assets and
+   * HTMX fragments must load without a session (Settings fetches its index
+   * through window.fetch; gating it blanked the whole window). */
+  function isApiPath(url) {
+    try {
+      return new URL(url, window.location.href).pathname.indexOf("/api/") === 0;
+    } catch (e) {
+      return url.indexOf("/api/") === 0;
     }
   }
 
@@ -30,6 +46,12 @@
       path = new URL(url, window.location.href).pathname;
     } catch (e) {
       // Opaque URLs still match the literal prefixes.
+    }
+    for (var p = 0; p < NO_SESSION_PRIVATE.length; p++) {
+      var priv = NO_SESSION_PRIVATE[p];
+      if (path === priv || path.indexOf(priv + "?") === 0 || path.indexOf(priv + "/") === 0) {
+        return false;
+      }
     }
     for (var i = 0; i < NO_SESSION_PUBLIC.length; i++) {
       var prefix = NO_SESSION_PUBLIC[i];
@@ -140,6 +162,18 @@
       }
 
       document.addEventListener("htmx:configRequest", function (event) {
+        // #2943 — HTMX uses XHR, so the fetch gate cannot see it. Drop
+        // guaranteed-401 private API requests before they are sent; static
+        // /suite fragments stay untouched.
+        if (
+          !hasSession() &&
+          isApiPath(event.detail.path) &&
+          !self.isPublicEndpoint(event.detail.path) &&
+          !isPublicNoSessionPath(event.detail.path)
+        ) {
+          event.preventDefault();
+          return;
+        }
         var token = self.getToken();
         var sessionId = self.getSessionId();
 
@@ -191,6 +225,7 @@
 
         // #2943: drop guaranteed-401 private fetches; public routes pass.
         if (
+          isApiPath(url) &&
           self.isSameOrigin(url) &&
           !self.isPublicEndpoint(url) &&
           !isPublicNoSessionPath(url) &&

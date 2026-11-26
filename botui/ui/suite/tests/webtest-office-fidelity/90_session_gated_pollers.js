@@ -245,8 +245,10 @@ h.staticTest("#2943 follow-up one central fetch gate drops guaranteed-401 reques
   h.assert(fetchFn.length > 1500, "non-vacuity: interceptor body must be substantial, got " + fetchFn.length);
   var gate = span(fetchFn, "        // #2943: drop guaranteed-401 private fetches", "\n        }");
   var flat = gate.replace(/\s/g, "");
-  contains(flat, "self.isSameOrigin(url)&&!self.isPublicEndpoint(url)&&!isPublicNoSessionPath(url)&&!hasSession()",
-    "the gate must require a same-origin private endpoint and no session");
+  contains(flat, "isApiPath(url)&&self.isSameOrigin(url)&&!self.isPublicEndpoint(url)&&!isPublicNoSessionPath(url)&&!hasSession()",
+    "the gate must require an API path, same origin, a private endpoint and no session");
+  contains(src.replace(/\s/g, ""), 'pathname.indexOf("/api/")===0',
+    "static /suite assets must never be dropped by the API gate");
   contains(flat, "returnPromise.resolve(noSessionResponse(url));",
     "no network request may be issued without a session");
 
@@ -258,6 +260,14 @@ h.staticTest("#2943 follow-up one central fetch gate drops guaranteed-401 reques
     "(gate=" + atGate + " return=" + atReturn + " fetch=" + atFetch + ")");
   absent(gate, "GBToasts", "the central gate must not emit a second toast");
   absent(gate, "showPollHintOnce", "the single hint stays owned by GBCollabPollScheduler");
+
+  // HTMX issues XHR, which the fetch interceptor never sees: private API
+  // requests must be cancelled at htmx:configRequest when no session exists.
+  var htmxFn = span(src, "document.addEventListener(\"htmx:configRequest\", function (event) {",
+    "\n      });");
+  contains(htmxFn.replace(/\s/g, ""),
+    "if(!hasSession()&&isApiPath(event.detail.path)&&!self.isPublicEndpoint(event.detail.path)&&!isPublicNoSessionPath(event.detail.path)){event.preventDefault();return;}",
+    "htmx must cancel guaranteed-401 private API requests without a session");
 });
 
 h.staticTest("#2943 follow-up public endpoints stay reachable without a session", function () {
