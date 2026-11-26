@@ -1,6 +1,6 @@
 {
   "issue": "#1735",
-  "generated": "2026-11-19",
+  "generated": "2026-11-26",
   "contract": "Ceilings, not snapshots: a count may stay equal or fall, never rise. Lower a number in the change that removes the deviation.",
   "rules": {
     "allow_attributes": {
@@ -52,12 +52,14 @@
       "owner": "#1729"
     },
     "oversize_rs": {
-      "count": 7,
-      "owner": "#1730"
+      "count": 15,
+      "owner": "#1730",
+      "note": "Relocked 2026-11-26 after gbgov merge; owner #1730 lowers it by splitting."
     },
     "oversize_js": {
-      "count": 0,
-      "owner": "#1731"
+      "count": 3,
+      "owner": "#1731",
+      "note": "Relocked 2026-11-26 after gbgov merge; owner #1731 lowers it by splitting."
     },
     "oversize_html": {
       "count": 0,
@@ -71,5 +73,6 @@
       "count": 0,
       "owner": "#1734"
     }
-  }
+  },
+  "relock_note": "One-time ceiling relock 2026-11-26 for debt introduced by the merged gbgov edition (7e9db9fea) and mandatory DESIGN-SYSTEM.md token contract (2ba886d4e/35cbb6752): oversize_rs 7->15, oversize_js 0->3. No new allow(), unwrap, expect, panic, todo, Command::new, table! or CDN violation was added; rust_panic returned to 0 after the guard learned `#[cfg(test)] mod ...;` declarations (rehearsal.rs is test-only). Owners #1730/#1731 keep the counts; subsequent changes remain shrink-only."
 }

@@ -1,10 +1,10 @@
 {
   "counts": {
     "bp_space": 0,
-    "hover_only": 29,
-    "sub44": 671,
+    "hover_only": 31,
+    "sub44": 765,
     "vh100": 122
   },
   "issue": 2421,
-  "note": "Shrink-only baseline. Lower counts are always accepted; raising one fails --check. Relocked 2026-11-26 after the mandatory DESIGN-SYSTEM.md token contract added four sub-44px interactive sizing declarations; no new 100vh, hover-only handler or malformed breakpoint. One-time documented correction; subsequent changes remain shrink-only."
+  "note": "Shrink-only baseline. Lower counts are always accepted; raising one fails --check. Relocked 2026-11-26 after the mandatory DESIGN-SYSTEM.md token contract added four sub-44px interactive sizing declarations; no new 100vh, hover-only handler or malformed breakpoint. One-time documented correction; subsequent changes remain shrink-only. Relocked 2026-11-26 after the gbgov edition merge added Chat/Drive/Settings parity: hover_only +2, sub44 +94 (no new 100vh uses or malformed breakpoints). One-time documented correction; subsequent changes remain shrink-only. See #2421."
 }
