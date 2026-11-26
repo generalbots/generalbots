@@ -15,10 +15,14 @@ use serde_json::Value;
 use uuid::Uuid;
 
 mod lookup;
+mod restore_plan;
 pub mod store;
 
 pub use lookup::{
     consume_after_restore, consume_latest, latest_batch_key, peek, peek_latest, LatestUndo,
+};
+pub use restore_plan::{
+    apply_restore_plan, before_version_id, history_has_newer_restore, RestoreSink,
 };
 pub use store::{shared_pool_store, InMemoryUndoStore, PgUndoStore, UndoStore};
 
@@ -159,12 +163,7 @@ pub struct UndoOperation {
 }
 
 impl UndoOperation {
-    pub fn new(
-        op_id: &str,
-        app_id: &str,
-        target: &str,
-        before: Value,
-    ) -> Result<Self, UndoError> {
+    pub fn new(op_id: &str, app_id: &str, target: &str, before: Value) -> Result<Self, UndoError> {
         let operation = Self {
             op_id: op_id.to_string(),
             app_id: app_id.to_string(),

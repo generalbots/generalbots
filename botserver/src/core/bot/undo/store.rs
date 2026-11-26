@@ -15,9 +15,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{
-    BatchKey, BatchStatus, UndoBatch, UndoError, UndoOperation, UndoScope,
-};
+use super::{BatchKey, BatchStatus, UndoBatch, UndoError, UndoOperation, UndoScope};
 
 /// `consent_audit.outcome` is `VARCHAR(24)`; both markers fit.
 pub const OUTCOME_ACTIVE: &str = "undo_batch_active";
@@ -45,11 +43,8 @@ impl UndoRecord {
 
 /// Ownership-safe, single-use contract shared by both implementations.
 pub trait UndoStore {
-    fn record(
-        &self,
-        key: BatchKey,
-        operations: Vec<UndoOperation>,
-    ) -> Result<UndoBatch, UndoError>;
+    fn record(&self, key: BatchKey, operations: Vec<UndoOperation>)
+        -> Result<UndoBatch, UndoError>;
 
     fn find(&self, key: &BatchKey) -> Result<Option<UndoBatch>, UndoError>;
 
@@ -99,9 +94,10 @@ impl InMemoryUndoStore {
     }
 
     fn foreign_batch(&self, key: &BatchKey) -> Result<bool, UndoError> {
-        Ok(self.rows()?.values().any(|batch| {
-            batch.key.batch_id == key.batch_id && !batch.matches(key)
-        }))
+        Ok(self
+            .rows()?
+            .values()
+            .any(|batch| batch.key.batch_id == key.batch_id && !batch.matches(key)))
     }
 }
 
@@ -157,9 +153,7 @@ impl UndoStore for InMemoryUndoStore {
     }
 }
 
-type PgConn = diesel::r2d2::PooledConnection<
-    diesel::r2d2::ConnectionManager<diesel::PgConnection>,
->;
+type PgConn = diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 /// Production store bound to the consent gate's process-wide pool, so the
 /// undo routes and the consent gate always see the same database.
@@ -192,10 +186,7 @@ impl PgUndoStore {
 
     /// Returns the audit row id together with its decoded batch. Only active
     /// rows are returned; a same-id batch in another scope is a typed mismatch.
-    fn find_row(
-        &self,
-        key: &BatchKey,
-    ) -> Result<Option<(Uuid, UndoBatch)>, UndoError> {
+    fn find_row(&self, key: &BatchKey) -> Result<Option<(Uuid, UndoBatch)>, UndoError> {
         use consent_audit::dsl;
         let mut conn = self.conn()?;
         let rows = dsl::consent_audit
@@ -281,9 +272,7 @@ impl UndoStore for PgUndoStore {
         Ok(rows
             .iter()
             .filter_map(|row| UndoRecord::decode(&row.request))
-            .filter(|record| {
-                record.kind == ENVELOPE_KIND && record.batch.key.scope.matches(scope)
-            })
+            .filter(|record| record.kind == ENVELOPE_KIND && record.batch.key.scope.matches(scope))
             .map(|record| record.batch)
             .max_by(|left, right| newest(left, right)))
     }

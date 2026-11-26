@@ -13,9 +13,10 @@
 //! an owner/bot supplied by the caller.
 
 use super::*;
+pub(super) use crate::core::bot::consent_gate::undo::before_version_id;
 use crate::core::bot::consent_gate::undo::{
-    consume_after_restore, peek, peek_latest, shared_pool_store, BatchKey, RevertOperation,
-    UndoError, UndoScope, UndoStore,
+    apply_restore_plan, consume_after_restore, peek, peek_latest, shared_pool_store, BatchKey,
+    RestoreSink, RevertOperation, UndoError, UndoScope, UndoStore,
 };
 use uuid::Uuid;
 
@@ -76,15 +77,6 @@ pub(crate) fn undo_plan_for<S: UndoStore>(
     Ok(batch.revert_plan())
 }
 
-/// A restore target is only read from the recorded before-state. The
-/// after-state is diagnostic and can never select a version to restore.
-pub(super) fn before_version_id(before: &serde_json::Value) -> Option<Uuid> {
-    before
-        .get("version_id")
-        .and_then(serde_json::Value::as_str)
-        .and_then(|value| Uuid::parse_str(value).ok())
-}
-
 /// Typed failures map to existing localized error bodies; foreign, missing and
 /// already-consumed batches are indistinguishable to the caller so the route
 /// cannot be used to enumerate another user's batch ids.
@@ -140,16 +132,16 @@ pub async fn undo_batch(
     })?;
     // Peek (ownership-checked, read-only) so a failed restore cannot eat the
     // caller's only copy of the batch; consume only after restore succeeds.
-    let key = BatchKey::new(scope.clone(), &body.batch_id)
-        .map_err(|error| undo_error(locale, error))?;
+    let key =
+        BatchKey::new(scope.clone(), &body.batch_id).map_err(|error| undo_error(locale, error))?;
     let plan = peek(&store, &key)
         .map_err(|error| undo_error(locale, error))?
         .revert_plan();
 
     let restored = restore_plan(&state, &user, locale, &plan).await?;
     // Restore succeeded: apply the scoped single-use consume gate now.
-    let reverted = undo_plan_for(&store, &scope, &body.batch_id)
-        .map_err(|error| undo_error(locale, error))?;
+    let reverted =
+        undo_plan_for(&store, &scope, &body.batch_id).map_err(|error| undo_error(locale, error))?;
     let result = UndoResult {
         batch_id: body.batch_id,
         reverted,
@@ -174,32 +166,77 @@ pub struct UndoResult {
     pub restored: Vec<String>,
 }
 
-/// Reverts a consumed plan through the existing version-restore handler.
-///
-/// The restore handler derives the target resource from the stored version and
-/// the actor from the verified session. No caller-supplied owner, bot or
-/// resource id is ever passed through this call.
+type RestoreError = (StatusCode, Json<serde_json::Value>);
+
+/// Thin, fail-open wrapper around the undo module's version-history probe. A
+/// probe error is logged and ignored: the restore itself surfaces any real
+/// database failure, so a transient probe outage can never block a restore.
+fn already_restored(state: &Arc<AppState>, actor_id: &str, version_id: Uuid) -> bool {
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(error) => {
+            log::error!("undo restore idempotency: pool error: {error}");
+            return false;
+        }
+    };
+    match crate::core::bot::consent_gate::undo::history_has_newer_restore(
+        &mut conn, actor_id, version_id,
+    ) {
+        Ok(found) => found,
+        Err(error) => {
+            log::error!("undo restore idempotency: history query failed: {error}");
+            false
+        }
+    }
+}
+
+struct PgRestoreSink<'a> {
+    state: &'a Arc<AppState>,
+    user: &'a AuthenticatedUser,
+    locale: &'a botcore::i18n::Locale,
+    actor_id: String,
+}
+
+impl RestoreSink<RestoreError> for PgRestoreSink<'_> {
+    fn was_restored(&self, version_id: Uuid) -> bool {
+        already_restored(self.state, &self.actor_id, version_id)
+    }
+
+    fn restore(
+        &self,
+        version_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<String, RestoreError>> + '_ {
+        let state = self.state;
+        let user = self.user;
+        let locale = self.locale;
+        async move {
+            let response = super::restore_version(
+                State(state.clone()),
+                Extension(user.clone()),
+                Path(version_id),
+                botcore::i18n::RequestLocale(locale.clone()),
+            )
+            .await?;
+            Ok(response.id.clone())
+        }
+    }
+}
+
+/// Reverts a plan through the existing handler, skipping already restored
+/// operations so a failed batch can be retried without duplicate versions.
 async fn restore_plan(
     state: &Arc<AppState>,
     user: &AuthenticatedUser,
     locale: &botcore::i18n::Locale,
     plan: &[RevertOperation],
-) -> Result<Vec<String>, (StatusCode, Json<serde_json::Value>)> {
-    let mut restored = Vec::new();
-    for operation in plan {
-        let Some(version_id) = before_version_id(&operation.before) else {
-            continue;
-        };
-        let response = super::restore_version(
-            State(state.clone()),
-            Extension(user.clone()),
-            Path(version_id),
-            botcore::i18n::RequestLocale(locale.clone()),
-        )
-        .await?;
-        restored.push(response.id.clone());
-    }
-    Ok(restored)
+) -> Result<Vec<String>, RestoreError> {
+    let sink = PgRestoreSink {
+        state,
+        user,
+        actor_id: collab_user_id(user),
+        locale,
+    };
+    apply_restore_plan(&sink, plan).await
 }
 
 /// Resolves the verified chat principal's account email from the server-side
@@ -369,8 +406,8 @@ mod tests {
     }
 
     #[test]
-    fn email_carrying_chat_identity_resolves_the_verified_collab_principal(
-    ) -> Result<(), UndoError> {
+    fn email_carrying_chat_identity_resolves_the_verified_collab_principal() -> Result<(), UndoError>
+    {
         let user_id = Uuid::from_u128(11);
         let bot_id = Uuid::from_u128(22);
         let bare = AuthenticatedUser::new(user_id, "chat".to_string()).with_current_bot(bot_id);

@@ -77,7 +77,7 @@ test("[BASELINE-OBSERVE] 4,720 router Rust files, 2,454 .route( and 9 .nest( cal
   // 2454, nestCalls 9, routeFiles 224, registrations 2798, unique 2765 —
   // every other count is unchanged and no route was added or removed.
   // One-time documented correction; shrink-only afterwards.
-  equal(files.length, 4720, "shipped router .rs file count");
+  equal(files.length, 4721, "shipped router .rs file count");
   equal(routeCalls, 2454, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 224, "files containing .route(");

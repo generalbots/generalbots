@@ -12,10 +12,7 @@ use super::{BatchKey, RevertOperation, UndoBatch, UndoError, UndoScope, UndoStor
 /// `UndoStore::latest` filters on the exact `(user, bot, session)` triple, so a
 /// foreign session never even sees a candidate batch. The scope is validated
 /// before the lookup, rejecting nil identities and empty/oversized sessions.
-pub fn latest_batch_key<S: UndoStore>(
-    store: &S,
-    scope: &UndoScope,
-) -> Result<BatchKey, UndoError> {
+pub fn latest_batch_key<S: UndoStore>(store: &S, scope: &UndoScope) -> Result<BatchKey, UndoError> {
     scope.validate()?;
     let batch = store.latest(scope)?.ok_or(UndoError::NotFound)?;
     Ok(batch.key)
@@ -33,10 +30,7 @@ pub fn peek<S: UndoStore>(store: &S, key: &BatchKey) -> Result<UndoBatch, UndoEr
 /// The scope is checked before the lookup, so a foreign session never sees a
 /// candidate; the returned key still goes through the store's ownership check
 /// when it is finally consumed.
-pub fn peek_latest<S: UndoStore>(
-    store: &S,
-    scope: &UndoScope,
-) -> Result<LatestUndo, UndoError> {
+pub fn peek_latest<S: UndoStore>(store: &S, scope: &UndoScope) -> Result<LatestUndo, UndoError> {
     let key = latest_batch_key(store, scope)?;
     let batch = peek(store, &key)?;
     Ok(LatestUndo {
@@ -76,10 +70,7 @@ pub struct LatestUndo {
 /// Consumes the verified scope's newest active batch exactly once and returns
 /// its LIFO revert plan. The `after` state is diagnostic and is never carried
 /// into the plan, so restore can only target recorded `before` state.
-pub fn consume_latest<S: UndoStore>(
-    store: &S,
-    scope: &UndoScope,
-) -> Result<LatestUndo, UndoError> {
+pub fn consume_latest<S: UndoStore>(store: &S, scope: &UndoScope) -> Result<LatestUndo, UndoError> {
     let key = latest_batch_key(store, scope)?;
     let batch = store.consume(&key)?;
     Ok(LatestUndo {

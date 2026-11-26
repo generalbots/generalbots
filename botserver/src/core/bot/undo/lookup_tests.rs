@@ -59,22 +59,23 @@ fn chat_undo_resolves_only_the_verified_scopes_newest_batch() -> Result<(), Undo
     let foreign = latest_batch_key(&store, &scope("session-2"))?;
     assert_eq!(foreign.batch_id, "foreign");
     assert_eq!(
-        store
-            .find(&foreign)?
-            .ok_or(UndoError::NotFound)?
-            .status,
+        store.find(&foreign)?.ok_or(UndoError::NotFound)?.status,
         BatchStatus::Active
     );
     Ok(())
 }
 
 #[test]
-fn chat_undo_denies_a_foreign_session_without_consuming_the_owners_batch() -> Result<(), UndoError> {
+fn chat_undo_denies_a_foreign_session_without_consuming_the_owners_batch() -> Result<(), UndoError>
+{
     let store = InMemoryUndoStore::new();
     record(&store, "session-1", "owned", 0, json!("old"))?;
 
     let foreign = consume_latest(&store, &scope("session-2"));
-    assert!(foreign.is_err(), "a different session must never resolve the batch");
+    assert!(
+        foreign.is_err(),
+        "a different session must never resolve the batch"
+    );
 
     // The rightful session still owns an active batch afterwards.
     let resolved = consume_latest(&store, &scope("session-1"))?;
@@ -90,14 +91,23 @@ fn chat_undo_second_invocation_is_denied() -> Result<(), UndoError> {
     let first = consume_latest(&store, &scope("session-1"))?;
     assert_eq!(first.key.batch_id, "single-use");
     let second = consume_latest(&store, &scope("session-1"));
-    assert!(second.is_err(), "a consumed batch must not be restorable twice");
+    assert!(
+        second.is_err(),
+        "a consumed batch must not be restorable twice"
+    );
     Ok(())
 }
 
 #[test]
 fn chat_undo_restores_before_state_only() -> Result<(), UndoError> {
     let store = InMemoryUndoStore::new();
-    record(&store, "session-1", "scope-check", 0, json!({ "version_id": "before" }))?;
+    record(
+        &store,
+        "session-1",
+        "scope-check",
+        0,
+        json!({ "version_id": "before" }),
+    )?;
 
     let resolved = consume_latest(&store, &scope("session-1"))?;
     assert_eq!(
@@ -111,10 +121,15 @@ fn chat_undo_restores_before_state_only() -> Result<(), UndoError> {
 }
 
 #[test]
-fn peek_never_consumes_and_a_failed_restore_leaves_the_batch_active(
-) -> Result<(), UndoError> {
+fn peek_never_consumes_and_a_failed_restore_leaves_the_batch_active() -> Result<(), UndoError> {
     let store = InMemoryUndoStore::new();
-    record(&store, "session-1", "peek-failed", 0, json!({ "version_id": "v1" }))?;
+    record(
+        &store,
+        "session-1",
+        "peek-failed",
+        0,
+        json!({ "version_id": "v1" }),
+    )?;
     let verified = scope("session-1");
 
     let resolved = peek_latest(&store, &verified)?;
@@ -137,10 +152,15 @@ fn peek_never_consumes_and_a_failed_restore_leaves_the_batch_active(
 }
 
 #[test]
-fn retry_after_grant_fix_consumes_once_and_a_second_undo_is_denied(
-) -> Result<(), UndoError> {
+fn retry_after_grant_fix_consumes_once_and_a_second_undo_is_denied() -> Result<(), UndoError> {
     let store = InMemoryUndoStore::new();
-    record(&store, "session-1", "retry-grant", 0, json!({ "version_id": "v1" }))?;
+    record(
+        &store,
+        "session-1",
+        "retry-grant",
+        0,
+        json!({ "version_id": "v1" }),
+    )?;
     let verified = scope("session-1");
     let resolved = peek_latest(&store, &verified)?;
 
@@ -181,10 +201,19 @@ fn retry_after_grant_fix_consumes_once_and_a_second_undo_is_denied(
 #[test]
 fn cross_session_peek_is_denied_and_leaves_the_owners_batch_active() -> Result<(), UndoError> {
     let store = InMemoryUndoStore::new();
-    record(&store, "session-1", "peek-foreign", 0, json!({ "version_id": "v1" }))?;
+    record(
+        &store,
+        "session-1",
+        "peek-foreign",
+        0,
+        json!({ "version_id": "v1" }),
+    )?;
 
     // A foreign scope never resolves a candidate batch through `latest`.
-    assert_eq!(peek_latest(&store, &scope("session-2")), Err(UndoError::NotFound));
+    assert_eq!(
+        peek_latest(&store, &scope("session-2")),
+        Err(UndoError::NotFound)
+    );
     // Even with a guessed batch id, the store's ownership check denies it.
     assert_eq!(
         peek(&store, &BatchKey::new(scope("session-2"), "peek-foreign")?),

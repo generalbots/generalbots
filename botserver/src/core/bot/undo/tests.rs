@@ -43,14 +43,17 @@ fn operation(op_id: &str, before: Value) -> UndoOperation {
 fn record_then_lookup_returns_the_exact_scoped_batch() -> Result<(), UndoError> {
     let store = InMemoryUndoStore::new();
     let batch_key = key("batch-1");
-    let op = operation("op-1", json!({ "title": "before" }))
-        .with_after(json!({ "title": "after" }));
+    let op =
+        operation("op-1", json!({ "title": "before" })).with_after(json!({ "title": "after" }));
     let recorded = store.record(batch_key.clone(), vec![op.clone()])?;
 
     assert_eq!(recorded.key, batch_key);
     assert_eq!(recorded.status, BatchStatus::Active);
     let found = store.find(&batch_key)?;
-    assert!(found.is_some(), "a recorded batch must be findable by its key");
+    assert!(
+        found.is_some(),
+        "a recorded batch must be findable by its key"
+    );
     assert_eq!(found.map(|batch| batch.operations), Some(vec![op]));
     assert_eq!(store.find(&key("other-batch"))?, None);
     Ok(())
@@ -95,7 +98,11 @@ fn consume_succeeds_once_and_second_undo_is_rejected() -> Result<(), UndoError> 
     assert_eq!(consumed.status, BatchStatus::Undone);
     assert_eq!(consumed.revert_plan().len(), 1);
     assert_eq!(store.consume(&batch_key), Err(UndoError::AlreadyUndone));
-    assert_eq!(store.latest(&scope())?, None, "undone batches are not active");
+    assert_eq!(
+        store.latest(&scope())?,
+        None,
+        "undone batches are not active"
+    );
     let stored = match store.find(&batch_key)? {
         Some(batch) => batch,
         None => return Err(UndoError::NotFound),
@@ -213,14 +220,16 @@ fn destructive_marker_carries_only_an_explicit_batch_id() {
 #[test]
 fn nil_identity_and_empty_ids_are_rejected_before_storage() -> Result<(), UndoError> {
     let nil_user = UndoScope::new(Uuid::nil(), Uuid::from_u128(22), "session-1");
-    assert_eq!(BatchKey::new(nil_user, "batch-1"), Err(UndoError::InvalidScope));
     assert_eq!(
-        BatchKey::new(scope(), "  "),
-        Err(UndoError::InvalidBatch)
+        BatchKey::new(nil_user, "batch-1"),
+        Err(UndoError::InvalidScope)
     );
+    assert_eq!(BatchKey::new(scope(), "  "), Err(UndoError::InvalidBatch));
     let store = InMemoryUndoStore::new();
     assert_eq!(
-        store.record(key("batch-7"), vec![operation("op-1", json!(1))])?.status,
+        store
+            .record(key("batch-7"), vec![operation("op-1", json!(1))])?
+            .status,
         BatchStatus::Active
     );
     Ok(())

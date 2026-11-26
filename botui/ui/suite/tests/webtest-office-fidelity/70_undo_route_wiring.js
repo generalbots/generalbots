@@ -106,7 +106,7 @@ h.staticTest("#2448 undo consumes once and reverts LIFO before-states through th
   var route = h.readRepo(ROUTE), model = h.readRepo(MODEL), store = h.readRepo(STORE);
   contains(route, "pub(crate) fn undo_plan_for<S: UndoStore>(", "single-use core ships");
   var core = span(route, "pub(crate) fn undo_plan_for<S: UndoStore>(",
-    "/// A restore target is only read");
+    "/// Typed failures map to existing localized error bodies");
   contains(core, "let batch = store.consume(&key)?;", "consume is the single-use gate");
   contains(core, "Ok(batch.revert_plan())", "the plan is the LIFO revert plan");
   ordered(core, "store.consume(&key)?", "batch.revert_plan()",
@@ -123,9 +123,10 @@ h.staticTest("#2448 undo consumes once and reverts LIFO before-states through th
     "conditional single-use store ships");
   contains(store, "if changed == 0 {", "zero-row update is handled");
 
-  contains(route, "fn before_version_id(before: &serde_json::Value)", "restore target reader ships");
-  var reader = span(route, "fn before_version_id(before: &serde_json::Value)",
-    "/// Typed failures map");
+  var restorePlan = h.readRepo("botserver/src/core/bot/undo/restore_plan.rs");
+  contains(restorePlan, "pub fn before_version_id(before: &Value)", "restore target reader ships");
+  var reader = span(restorePlan, "pub fn before_version_id(before: &Value)",
+    "/// Version-history probe for idempotent restore");
   contains(reader, '.get("version_id")', "only the before-state selects a version");
   absent(reader, "after", "the after-state can never select a restore target");
 
@@ -138,7 +139,7 @@ h.staticTest("#2448 undo consumes once and reverts LIFO before-states through th
     "let restored = restore_plan(&state, &user, locale, &plan).await?;",
     "the batch is peeked before any restore is attempted");
   ordered(handler, "let restored = restore_plan(&state, &user, locale, &plan).await?;",
-    "let reverted = undo_plan_for(&store, &scope, &body.batch_id)",
+    "undo_plan_for(&store, &scope, &body.batch_id)",
     "restore succeeds BEFORE the single-use consume (a failed restore leaves the batch active)");
   absent(handler, "store.consume", "the handler must not consume before restore");
   ["req.user_id", "body.user_id", "body.bot_id", "body.owner"].forEach(function (forbidden) {
