@@ -1,15 +1,14 @@
 # ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
 # Rises justified by the commit that grew each surface:
-#   settings +42 (#2470 data-protection safety in settings-os-appliance.js);
-#   chat +26 (#2933 reflow/theme perf, #2945–#2953 poller/route fixes);
-#   automations +19 (#2945 app-scoped poller gate);
-#   mail js_modules +2, loc +428 (#2953 sanitizer module + test; CDN-like
-#     strings are hostile-input fixtures, split so adequacy_guard stays at 0);
-#   slides +22 (#2945 caption/route contract);
+#   settings +42 (#2470 data-protection safety); chat +26 (#2933/#2945–#2953);
+#   automations +19 (#2945 poller gate); mail js_modules +2, loc +428 (#2953
+#   sanitizer module — CDN-like strings are split hostile-input fixtures, so
+#   adequacy_guard stays at 0); slides +22 (#2945);
 #   browser +59, desktop +49, integrations +3, project +7, tickets +8
-#     (4400f641e: VM-tab poller gate, single-flight auth/me, classList guards);
-#   designer +39 (ad5974c96: shared app-kit/shadowing and designer reopen).
+#     (4400f641e VM-tab/auth/classList fixes);
+#   designer +39 (ad5974c96 app-kit/designer reopen);
+#   handoff +20 (097b85bd1 banking branch scope/fraud route/token fallback).
 # Tightened because the surface shrank: calendar -1, crm -23, docs -9.
 # No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,7 +165,7 @@ loc = 1961
 [apps."handoff"]
 routes = 5
 js_modules = 5
-loc = 803
+loc = 823
 
 [apps."hr"]
 routes = 4
