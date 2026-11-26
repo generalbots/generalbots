@@ -9,11 +9,11 @@
   <script src="/cloud/js/i18n-lite.js"></script>
   <script src="/cloud/js/i18n-switcher.js"></script>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="stylesheet" href="/cloud/css/cloud-store.css">
   <script src="/cloud/js/store/00_schema.js"></script>
   <link rel="stylesheet" href="/cloud/css/store-inline.css">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>
@@ -318,7 +318,7 @@
 
           <!-- WhatsApp bonus -->
           <div class="calc-bonus" id="calc-whatsapp-bonus" style="display:none">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#34d399" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--palette-34d399)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>WhatsApp incl. · <strong id="calc-whatsapp-msgs">1000</strong> msg/mo free</span>
           </div>
 
@@ -388,8 +388,8 @@
     <div class="mgmt-modal-title" id="signup-modal-title" data-i18n="cloud-store-create-account">Create Free Account</div>
     <button class="mgmt-modal-close" onclick="closeEmbeddedSignup()" aria-label="Close">&times;</button>
     <iframe id="signup-iframe" title="Sign up"
-      style="width:100%;height:520px;border:none;border-radius:10px;background:#fff"></iframe>
-    <p style="text-align:center;font-size:12px;color:#667;margin:8px 0 0">
+      style="width:100%;height:520px;border:none;border-radius:10px;background:var(--id-surface-solid)"></iframe>
+    <p style="text-align:center;font-size:12px;color:var(--id-muted);margin:8px 0 0">
       Already have an account?
       <a href="#" onclick="switchEmbeddedAuth('login');return false;" data-i18n="cloud-checkout-signin">Sign in</a>
     </p>

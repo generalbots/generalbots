@@ -15,7 +15,7 @@
     }
     .provider-header:hover { border-color: var(--border-hover); }
     .provider-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
-    .provider-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .provider-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: var(--id-surface-solid); flex-shrink: 0; }
     .provider-info { flex: 1; }
     .provider-name { font-size: 1rem; font-weight: 700; color: var(--text); }
     .provider-desc { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
@@ -37,7 +37,7 @@
     .model-desc { font-size: .75rem; color: var(--muted); line-height: 1.45; }
     .model-pricing { font-size: .72rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .model-pricing .free { color: var(--accent2); font-weight: 600; }
-    .model-pricing .paid { color: #fbbf24; font-weight: 600; }
+    .model-pricing .paid { color: var(--palette-fbbf24); font-weight: 600; }
 
     .llm-page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
     .llm-page-header h1 { font-size: 1.4rem; font-weight: 800; color: var(--text); margin: 0; }
@@ -45,13 +45,13 @@
     .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn { font-size: .78rem; padding: .35rem .85rem; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; }
     .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
-    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-btn.active { background: var(--accent); color: var(--id-surface-solid); border-color: var(--accent); }
     .provider-connect { display:flex; gap:.4rem; align-items:center; }
     .connect-btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:7px; padding:.42rem .68rem; font-size:.72rem; font-weight:700; cursor:pointer; }
     .connect-btn:hover { border-color:var(--accent); color:var(--accent2); }
-    .llm-connect-mask { display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,.5); align-items:center; justify-content:center; padding:1rem; }
+    .llm-connect-mask { display:none; position:fixed; inset:0; z-index:1000; background:color-mix(in srgb, var(--palette-0f172a) 50%, transparent); align-items:center; justify-content:center; padding:1rem; }
     .llm-connect-mask.open { display:flex; }
-    .llm-connect-dialog { width:min(480px,100%); background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 24px 80px rgba(0,0,0,.28); padding:1.25rem; }
+    .llm-connect-dialog { width:min(480px,100%); background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 24px 80px color-mix(in srgb, var(--palette-000000) 28%, transparent); padding:1.25rem; }
     .llm-connect-dialog h2 { margin:0 0 .35rem; font-size:1.05rem; }
     .llm-connect-dialog p { color:var(--muted); font-size:.78rem; line-height:1.5; }
     .llm-connect-tabs { display:flex; gap:.45rem; margin:1rem 0; }
@@ -60,12 +60,12 @@
     .llm-connect-input { width:100%; box-sizing:border-box; padding:.72rem; border:1px solid var(--border); background:var(--bg3); color:var(--text); border-radius:7px; }
     .llm-connect-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }
     @media (prefers-color-scheme: dark) {
-      .filter-btn.active { color: #000; }
+      .filter-btn.active { color: var(--palette-000000); }
     }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>
@@ -125,16 +125,16 @@
   const token = getToken();
 
   const PROV_ICONS = {
-    glm: { bg: '#2563eb', label: 'GL' },
-    qwen: { bg: '#dc2626', label: 'QW' },
-    deepseek: { bg: '#0891b2', label: 'DS' },
-    minimax: { bg: '#7c3aed', label: 'MX' },
-    yi: { bg: '#059669', label: 'YI' },
-    openai: { bg: '#000000', label: 'AI' },
-    anthropic: { bg: '#d97706', label: 'CL' },
+    glm: { bg: 'var(--palette-2563eb)', label: 'GL' },
+    qwen: { bg: 'var(--id-danger)', label: 'QW' },
+    deepseek: { bg: 'var(--palette-0891b2)', label: 'DS' },
+    minimax: { bg: 'var(--palette-7c3aed)', label: 'MX' },
+    yi: { bg: 'var(--palette-059669)', label: 'YI' },
+    openai: { bg: 'var(--palette-000000)', label: 'AI' },
+    anthropic: { bg: 'var(--id-warn)', label: 'CL' },
     gb: { bg: 'var(--accent)', label: 'GB' },
-    google: { bg: '#4285F4', label: 'G' },
-    groq: { bg: '#f97316', label: 'GQ' },
+    google: { bg: 'var(--palette-4285f4)', label: 'G' },
+    groq: { bg: 'var(--palette-f97316)', label: 'GQ' },
   };
 
   const FILTER_PROVIDERS = {
@@ -199,11 +199,11 @@
   }
 
   function renderProvider(prov) {
-    const icon = PROV_ICONS[prov.icon] || { bg: '#6b7280', label: '?' };
+    const icon = PROV_ICONS[prov.icon] || { bg: 'var(--id-gray-500)', label: '?' };
     const badge = prov.requires_byok
       ? '<span class="provider-badge byok">' + gbT('cloud-llm-requires-byok', 'Requires BYOK') + '</span>'
       : prov.models && prov.models.some(m => m.pricing === 'token-package')
-        ? '<a href="/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">' + gbT('cloud-llm-token-packages', 'Token packages ↗') + '</a>'
+        ? '<a href="/store?calc=1#calc-llm-grid" class="provider-badge" style="background:color-mix(in srgb, var(--palette-ec4899) 10%, transparent);color:var(--accent);text-decoration:none">' + gbT('cloud-llm-token-packages', 'Token packages ↗') + '</a>'
         : '<span class="provider-badge included">' + gbT('cloud-llm-included', 'Included') + '</span>';
 
     const modelsHtml = (prov.models || []).map(m => {

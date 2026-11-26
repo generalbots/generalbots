@@ -4,27 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account — General Bots Cloud</title>
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
+  <link rel="stylesheet" href="/suite/identity/fonts.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Oxygen,sans-serif;
+    html,body{height:100%;font-family:var(--id-font-sans);
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
-    :root{--bg:#ffffff;--fg:#0a0a0e;--muted:#64646e;--card-bg:#ffffff;--card-border:#e4e4ea;
-      --input-bg:#fafafa;--input-border:#d4d4da;--bar-bg:#040404;--bar-fg:rgba(245,245,249,.5);
-      --bar-link:rgba(245,245,249,.55);--toggle-bg:rgba(0,0,0,.6);--placeholder:#8e8e96;
-      --label:#3a3a42;--plan-bg:#fafafa;--plan-border:#d4d4da;
-      --plan-selected-bg:#f0f0f4;--plan-selected-border:#0a0a0e}
-    [data-theme="dark"]{--bg:#0d0d12;--fg:#e8e8ee;--muted:#8a8a96;--card-bg:#16161e;
-      --card-border:#2a2a34;--input-bg:#1a1a24;--input-border:#2a2a34;--bar-bg:#f0f0f4;
-      --bar-fg:rgba(10,10,14,.5);--bar-link:rgba(10,10,14,.55);--toggle-bg:rgba(255,255,255,.15);
-      --placeholder:#6a6a76;--label:#b0b0ba;
-      --plan-bg:#1a1a24;--plan-border:#2a2a34;--plan-selected-bg:#22222e;--plan-selected-border:#e8e8ee}
+    /* Auth-page aliases to the mandatory identity tokens (DESIGN-SYSTEM.md). */
+    :root{
+      --bg:var(--id-paper);--fg:var(--id-ink);--muted:var(--id-muted);
+      --card-bg:var(--id-surface-solid);--card-border:var(--id-line);
+      --input-bg:var(--id-surface-solid);--input-border:var(--id-line);
+      --bar-bg:var(--id-ink);--bar-fg:var(--id-muted);--bar-link:var(--id-muted);
+      --toggle-bg:var(--id-ink);--toggle-fg:var(--id-surface-solid);
+      --placeholder:var(--id-gray-400);--label:var(--id-text);
+      --plan-bg:var(--id-surface-solid);--plan-border:var(--id-line);
+      --plan-selected-bg:var(--id-accent-soft);--plan-selected-border:var(--id-accent)}
+    /* Dark surfaces reuse the fixed identity neutrals — no bespoke palette. */
+    :root[data-theme="dark"]{
+      --bg:var(--id-ink);--fg:var(--id-gray-100);--muted:var(--id-gray-300);
+      --card-bg:var(--id-ink);--card-border:var(--id-gray-500);
+      --input-bg:var(--id-ink);--input-border:var(--id-gray-500);
+      --bar-bg:var(--id-gray-100);--bar-fg:var(--id-gray-300);--bar-link:var(--id-gray-200);
+      --toggle-bg:var(--id-gray-200);--toggle-fg:var(--id-ink);
+      --placeholder:var(--id-gray-400);--label:var(--id-gray-200);
+      --plan-bg:var(--id-ink);--plan-border:var(--id-gray-500);
+      --plan-selected-bg:var(--id-accent-soft);--plan-selected-border:var(--id-accent)}
 
-    body{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--fg);transition:background .3s,color .3s}
-    .bar{background:var(--bar-bg);height:4px;flex-shrink:0;transition:background .3s}
-    .gb-preview-banner{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1917;text-align:center;padding:3px 12px;font-size:0.7rem;font-weight:500;line-height:1.3}
-    [data-theme="dark"] .gb-preview-banner{background:linear-gradient(135deg,#fbbf24,#f59e0b)!important}
-    .gb-preview-banner a{color:#1c1917;font-weight:600}
+    body{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--fg);transition:background var(--id-dur-normal),color var(--id-dur-normal)}
+    .bar{background:var(--bar-bg);height:4px;flex-shrink:0;transition:background var(--id-dur-normal)}
+    .gb-preview-banner{background:var(--id-warn-bg);color:var(--id-warn-text);text-align:center;padding:3px 12px;font-size:0.7rem;font-weight:500;line-height:1.3}
+    .gb-preview-banner a{color:var(--id-warn-text);font-weight:600}
     .gb-preview-banner a:hover{opacity:.8}
 
     .middle{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 24px}
@@ -47,16 +58,15 @@
     .form-label{font-size:.7rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
     /* 16px minimum stops iOS Safari auto-zooming the viewport on input focus. */
     .form-input{width:100%;min-height:44px;padding:10px 12px;font-size:16px;font-family:inherit;
-      border:1.5px solid var(--input-border);border-radius:7px;background:var(--input-bg);
-      color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
-    .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
+      border:1.5px solid var(--input-border);border-radius:var(--id-radius-sm);background:var(--input-bg);
+      color:var(--fg);transition:border-color var(--id-dur-fast),box-shadow var(--id-dur-fast);outline:none}
+    .form-input:focus{border-color:var(--id-accent);box-shadow:var(--id-focus)}
     .form-input::placeholder{color:var(--placeholder)}
     .form-help{font-size:.62rem;color:var(--muted);margin-top:1px}
 
     .btn{width:100%;min-height:44px;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
-      border:none;border-radius:7px;cursor:pointer;transition:opacity .15s,transform .1s;
-      background:#0a0a0e;color:#fff;margin-top:4px}
-    [data-theme="dark"] .btn{background:#0a0a0e;color:#fff}
+      border:none;border-radius:var(--id-radius-sm);cursor:pointer;transition:opacity var(--id-dur-fast),transform var(--id-dur-fast);
+      background:var(--id-accent);color:var(--id-on-accent);margin-top:4px}
     .btn:active{transform:scale(.98)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
     .btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
@@ -64,7 +74,7 @@
        swaps, so the animation stays visible for the whole request. */
     .btn.is-busy::before{content:"";display:inline-block;width:13px;height:13px;
       margin-right:8px;vertical-align:-2px;border-radius:50%;
-      border:2px solid rgba(255,255,255,.45);border-top-color:#fff;
+      border:2px solid currentColor;border-top-color:transparent;
       animation:gb-spin .7s linear infinite}
     @keyframes gb-spin{to{transform:rotate(360deg)}}
     @media (prefers-reduced-motion: reduce){.btn.is-busy::before{display:none}}
@@ -72,9 +82,9 @@
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
       overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-    .error-box{width:100%;display:none;background:rgba(217,48,62,.08);
-      border:1px solid rgba(217,48,62,.25);border-radius:7px;
-      padding:7px 11px;font-size:.75rem;color:#b91c1c;margin-bottom:8px}
+    .error-box{width:100%;display:none;background:var(--id-danger-soft);
+      border:1px solid var(--id-danger-line);border-radius:var(--id-radius-sm);
+      padding:7px 11px;font-size:.75rem;color:var(--id-danger-text);margin-bottom:8px}
 
     .alt{width:100%;text-align:center;font-size:.75rem;color:var(--muted);margin-top:12px}
     .alt a{color:var(--fg);font-weight:600;text-decoration:none}
@@ -82,8 +92,8 @@
 
     .plan-chooser{width:100%;display:flex;gap:8px;margin-bottom:8px}
     .plan-option{flex:1;display:flex;flex-direction:column;gap:1px;padding:7px 8px;
-      border:1.5px solid var(--plan-border);border-radius:8px;cursor:pointer;
-      transition:border-color .15s,background .15s;background:var(--plan-bg);
+      border:1.5px solid var(--plan-border);border-radius:var(--id-radius-sm);cursor:pointer;
+      transition:border-color var(--id-dur-fast),background var(--id-dur-fast);background:var(--plan-bg);
       position:relative}
     .plan-option input{position:absolute;opacity:0;pointer-events:none}
     .plan-option.selected{border-color:var(--plan-selected-border);background:var(--plan-selected-bg)}
@@ -92,11 +102,11 @@
     .plan-option-price{font-weight:800;font-size:.8rem;color:var(--fg)}
     .plan-option-desc{font-size:.58rem;color:var(--muted);line-height:1.2}
     .plan-option-private{border-style:dashed}
-    .plan-option-private.selected{border-style:solid;border-color:#7c3aed;background:rgba(124,58,237,.06)}
-    .plan-option-private .plan-option-price{color:#7c3aed;font-size:.7rem}
+    .plan-option-private.selected{border-style:solid;border-color:var(--id-accent);background:var(--id-accent-soft)}
+    .plan-option-private .plan-option-price{color:var(--id-accent-text);font-size:.7rem}
 
-    .info-box{width:100%;background:rgba(0,119,182,.06);border:1px solid rgba(0,119,182,.2);
-      border-radius:7px;padding:7px 11px;font-size:.72rem;color:var(--muted);margin-bottom:6px}
+    .info-box{width:100%;background:var(--id-accent-soft);border:1px solid var(--id-line);
+      border-radius:var(--id-radius-sm);padding:7px 11px;font-size:.72rem;color:var(--muted);margin-bottom:6px}
 
     .bottom-links{display:flex;align-items:center;justify-content:space-between;padding:6px 24px}
     .bottom-links a{font-size:.65rem;color:var(--bar-link);text-decoration:none;letter-spacing:.02em}
@@ -105,16 +115,15 @@
     .bottombar{height:4px;flex-shrink:0}
 
     .theme-btn{position:fixed;top:8px;right:12px;z-index:100;width:30px;height:30px;
-      border-radius:99px;border:none;cursor:pointer;font-size:.9rem;display:flex;
+      border-radius:var(--id-radius-pill);border:none;cursor:pointer;font-size:.9rem;display:flex;
       align-items:center;justify-content:center;background:var(--toggle-bg);
-      color:#fff;transition:background .2s,transform .2s}
+      color:var(--toggle-fg);transition:background var(--id-dur-normal),transform var(--id-dur-normal)}
     .theme-btn:hover{transform:scale(1.1)}
     .theme-btn:active{transform:scale(.95)}
     .theme-btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <script>
   /* #2594 — resolve the theme synchronously in <head>, before the body paints.

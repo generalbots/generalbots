@@ -24,8 +24,8 @@
     #save-message { margin-top: .75rem; font-size: .85rem; min-height: 1.2em; }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>
@@ -131,7 +131,7 @@
       form.style.display = 'block';
       await loadCalls(botId);
     } catch (e) {
-      msg.style.color = '#ef4444';
+      msg.style.color = 'var(--id-danger-icon)';
       msg.textContent = gbT('cloud-bindings-load-error', 'Could not load current bindings.');
     }
   }
@@ -156,15 +156,15 @@
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        msg.style.color = '#34d399';
+        msg.style.color = 'var(--palette-34d399)';
         msg.textContent = gbT('cloud-bindings-saved', 'Bindings saved.');
         showToast(gbT('cloud-bindings-saved-toast', 'Channel bindings saved.'), 'success');
       } else {
-        msg.style.color = '#ef4444';
+        msg.style.color = 'var(--id-danger-icon)';
         msg.textContent = gbT('cloud-bindings-save-failed', 'Save failed.');
       }
     } catch (err) {
-      msg.style.color = '#ef4444';
+      msg.style.color = 'var(--id-danger-icon)';
       msg.textContent = gbT('cloud-bindings-save-error', 'Connection error while saving.');
     }
   };

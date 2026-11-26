@@ -14,7 +14,7 @@
     }
     .offer-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
     .offer-card.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%); }
-    .offer-card.highlight::before { content: 'Recommended'; position: absolute; top: -.5rem; right: 1rem; background: var(--accent); color: #fff; font-size: .65rem; font-weight: 700; padding: .15rem .65rem; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; }
+    .offer-card.highlight::before { content: 'Recommended'; position: absolute; top: -.5rem; right: 1rem; background: var(--accent); color: var(--id-surface-solid); font-size: .65rem; font-weight: 700; padding: .15rem .65rem; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; }
     .offer-name { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: .35rem; }
     .offer-desc { font-size: .82rem; color: var(--muted); line-height: 1.55; margin-bottom: 1rem; flex: 1; }
     .offer-price-row { display: flex; align-items: baseline; gap: .75rem; margin-bottom: .75rem; }
@@ -25,15 +25,15 @@
     .offer-addons { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: 1.25rem; }
     .offer-addon-tag { font-size: .7rem; background: var(--bg3); color: var(--muted); padding: .2rem .55rem; border-radius: 99px; border: 1px solid var(--border); }
     .offer-btn { width: 100%; text-align: center; padding: .65rem; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
-    .offer-btn.primary { background: var(--accent); color: #fff; }
+    .offer-btn.primary { background: var(--accent); color: var(--id-surface-solid); }
     .offer-btn.primary:hover { filter: brightness(1.15); }
     .offer-btn.outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
     .offer-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
     .offers-section-title { font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 2rem 0 1rem; }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>

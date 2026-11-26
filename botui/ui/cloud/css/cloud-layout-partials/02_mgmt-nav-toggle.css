@@ -141,7 +141,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--id-surface-solid);
   font-weight: 700;
   font-size: 0.8rem;
   flex-shrink: 0;
@@ -174,7 +174,7 @@
 
 .mgmt-logout:hover {
   color: var(--accent3);
-  background: rgba(217, 48, 62, 0.08);
+  background: color-mix(in srgb, var(--id-danger) 8%, transparent);
 }
 
 .mgmt-logout svg {
@@ -254,7 +254,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: var(--prism-gradient);
-  color: #fff;
+  color: var(--id-surface-solid);
   line-height: 1.6;
 }
 
@@ -280,7 +280,7 @@
 .anon-cta-btn {
   display: inline-block;
   background: var(--accent);
-  color: #fff !important;
+  color: var(--id-surface-solid);
   font-weight: 700;
   font-size: .78rem;
   padding: .45rem 1.1rem;
@@ -327,7 +327,7 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--palette-000000) 22%, transparent);
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -336,7 +336,7 @@
 
 .mgmt-menu-fab:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--palette-000000) 28%, transparent);
 }
 
 .mgmt-menu-fab svg {
@@ -359,7 +359,7 @@
     position: fixed;
     inset: 0;
     z-index: 900;
-    background: rgba(0, 0, 0, 0.45);
+    background: color-mix(in srgb, var(--palette-000000) 45%, transparent);
   }
 
   .mgmt-sidebar.open + .mgmt-sidebar-backdrop.open {

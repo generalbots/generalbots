@@ -199,20 +199,20 @@
     style.id = DIALOG_CSS_ID;
     style.textContent = [
       "#" + DIALOG_ID + "{position:fixed;inset:0;z-index:100000;display:flex;",
-      "align-items:center;justify-content:center;background:rgba(0,0,0,.45)}",
-      "#" + DIALOG_ID + " .gb-dialog-box{background:var(--card,#fff);",
-      "color:var(--text,#111);border:1px solid var(--border,#d5d9e0);",
+      "align-items:center;justify-content:center;background:color-mix(in srgb, var(--palette-000000) 45%, transparent)}",
+      "#" + DIALOG_ID + " .gb-dialog-box{background:var(--card,var(--id-surface-solid));",
+      "color:var(--text,var(--palette-000000));border:1px solid var(--border,var(--palette-d1d5db));",
       "border-radius:12px;max-width:min(420px,92vw);width:100%;padding:1.25rem;",
-      "box-shadow:0 18px 48px rgba(0,0,0,.28)}",
+      "box-shadow:0 18px 48px color-mix(in srgb, var(--palette-000000) 28%, transparent)}",
       "#" + DIALOG_ID + " h2{margin:0 0 .6rem;font-size:1rem;font-weight:700}",
       "#" + DIALOG_ID + " p{margin:0 0 1rem;font-size:.9rem;line-height:1.45;",
       "white-space:pre-wrap;word-break:break-word}",
       "#" + DIALOG_ID + " input{width:100%;box-sizing:border-box;padding:.55rem .7rem;",
-      "border:1px solid var(--border,#d5d9e0);border-radius:8px;margin-bottom:1rem;font:inherit}",
+      "border:1px solid var(--border,var(--palette-d1d5db));border-radius:8px;margin-bottom:1rem;font:inherit}",
       "#" + DIALOG_ID + " .gb-dialog-actions{display:flex;gap:.5rem;justify-content:flex-end}",
       "#" + DIALOG_ID + " button{font:inherit;padding:.5rem 1rem;border-radius:8px;cursor:pointer;",
-      "border:1px solid var(--border,#d5d9e0);background:transparent;color:inherit}",
-      "#" + DIALOG_ID + " button.primary{background:var(--accent,#3b7ddd);border-color:transparent;color:#fff}"
+      "border:1px solid var(--border,var(--palette-d1d5db));background:transparent;color:inherit}",
+      "#" + DIALOG_ID + " button.primary{background:var(--accent,var(--palette-3b82f6));border-color:transparent;color:var(--id-surface-solid)}"
     ].join("");
     document.head.appendChild(style);
   }

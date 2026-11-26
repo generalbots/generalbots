@@ -75,5 +75,5 @@ function escapeHtml(value) {
 }
 
 function showError(msg) {
-  document.getElementById('cards-list').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
+  document.getElementById('cards-list').innerHTML = '<div class="saas-loading" style="color:var(--id-danger)">' + escapeHtml(msg) + '</div>';
 }

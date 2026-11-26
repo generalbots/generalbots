@@ -198,7 +198,7 @@
       background: var(--accent);
       border: none;
       border-radius: 10px;
-      color: #fff;
+      color: var(--id-surface-solid);
       font-family: inherit;
       font-size: .88rem;
       font-weight: 700;
@@ -215,7 +215,7 @@
 
     @media (prefers-color-scheme: dark) {
       .calc-cta-btn {
-        color: #000;
+        color: var(--palette-000000);
       }
     }
 

@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         banner.innerHTML = '<div class="anon-cta-content">' +
           '<span>' + escapeHtml(gbT('cloud-anon-banner', 'Browse freely — <strong>create a free account</strong> to manage bots, domains and services.')) + '</span>' +
           '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">' + escapeHtml(gbT('cloud-signin', 'Sign In')) + '</a>' +
-          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">' + escapeHtml(gbT('cloud-create-free-account', 'Create Free Account')) + '</a>' +
+          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, var(--palette-00d4aa));color:var(--palette-052e1c)">' + escapeHtml(gbT('cloud-create-free-account', 'Create Free Account')) + '</a>' +
           '</div>';
         main.insertBefore(banner, main.firstChild);
       }
@@ -416,9 +416,9 @@ function showToast(message, type) {
   const item = document.createElement('div');
   item.className = 'cloud-toast-item ' + type;
   const icons = {
-    success: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00d4aa" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    error:   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ff6b6b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    info:    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6c63ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    success: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--palette-00d4aa)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    error:   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--palette-ff6b6b)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--palette-6366f1)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
   };
   item.innerHTML = (icons[type] || icons.info) + '<span>' + escapeHtml(message) + '</span>';
   container.appendChild(item);

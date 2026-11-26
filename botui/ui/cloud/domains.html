@@ -21,15 +21,15 @@
     .domains-table th { font-weight: 700; color: var(--muted); }
     .domain-badge { font-family: monospace; background: var(--accent-dim); color: var(--accent2); padding: .2rem .5rem; border-radius: 4px; font-weight: 600; font-size: .8rem; }
     .btn-sm { padding: .35rem .65rem; font-size: .75rem; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-danger { background: #ef4444; color: #fff; }
-    .btn-danger:hover { background: #dc2626; }
-    .btn-edit { background: var(--accent); color: #fff; margin-right: .4rem; }
+    .btn-danger { background: var(--id-danger-icon); color: var(--id-surface-solid); }
+    .btn-danger:hover { background: var(--id-danger); }
+    .btn-edit { background: var(--accent); color: var(--id-surface-solid); margin-right: .4rem; }
     .btn-edit:hover { opacity: .8; }
     .actions-cell { display: flex; gap: .4rem; }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>
@@ -176,7 +176,7 @@
 
     if (!bot_id) {
       const msg = document.getElementById('create-message');
-      msg.style.color = '#ef4444';
+      msg.style.color = 'var(--id-danger-icon)';
       msg.textContent = gbT('cloud-domains-select-bot', 'Select a bot to map the domain to.');
       return;
     }
@@ -201,17 +201,17 @@
       });
       const data = await res.json();
       if (res.ok) {
-        msg.style.color = '#34d399';
+        msg.style.color = 'var(--palette-34d399)';
         msg.innerHTML = gbT('cloud-domains-created', 'Domain mapping created:') + ` <span class="domain-badge">${domain}</span>`;
         showToast(gbT('cloud-domains-mapped', 'Domain mapped!'), 'success');
         document.getElementById('create-domain-form').reset();
         await loadDomains();
       } else {
-        msg.style.color = '#ef4444';
+        msg.style.color = 'var(--id-danger-icon)';
         msg.textContent = gbT('cloud-error-prefix', 'Error:') + ' ' + (data.error || data.message || gbT('cloud-error-create-failed', 'Failed to create.'));
       }
     } catch (err) {
-      msg.style.color = '#ef4444';
+      msg.style.color = 'var(--id-danger-icon)';
       msg.textContent = gbT('cloud-error-processing', 'Error processing creation.');
     }
   };

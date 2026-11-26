@@ -28,120 +28,69 @@
 }
 
 /* ----------------------------------------------------------
-   1. DESIGN TOKENS — Light (default)
+   1. DESIGN TOKENS — one source of truth
+
+   Cloud semantic aliases resolve exclusively to the canonical --id-*
+   (identity-tokens.css) and --palette-* (palette-tokens.css) tokens.
+   light-dark() follows the active colour scheme, so the light and dark
+   palettes live in this single block instead of three duplicated :root
+   blocks. cloud-theme.js still owns gb-cloud-theme and keeps setting
+   data-theme; the two rules below only map that attribute to the colour
+   scheme, leaving the theme logic and the 4000 no-login routing untouched.
    ---------------------------------------------------------- */
 
-:root,
-:root[data-theme="light"] {
+:root {
+  color-scheme: light dark;
+
   /* Surface */
-  --bg:            #f8f8fa;
-  --bg2:           #efefef;
-  --bg3:           #e2e2e6;
-  --surface:       #ffffff;
-  --card:          #ffffff;
+  --bg:       light-dark(var(--id-paper), var(--palette-0a0a0a));
+  --bg2:      light-dark(var(--id-gray-100), var(--palette-0e0e12));
+  --bg3:      light-dark(var(--id-gray-200), var(--palette-17171d));
+  --surface:  light-dark(var(--id-surface-solid), var(--palette-111111));
+  --card:     light-dark(var(--id-surface-solid), var(--palette-0e0e12));
 
   /* Typography */
-  --text:          #0c0c0e;
-  --muted:         #64646e;
+  --text:     light-dark(var(--id-ink), var(--palette-e4e4ea));
+  --muted:    light-dark(var(--id-muted), var(--palette-808898));
 
   /* Borders */
-  --border:        rgba(0, 0, 0, 0.07);
-  --border-hover:  rgba(0, 0, 0, 0.18);
+  --border:       light-dark(var(--id-line), color-mix(in srgb, var(--id-surface-solid) 7%, transparent));
+  --border-hover: light-dark(var(--id-gray-300), color-mix(in srgb, var(--id-surface-solid) 18%, transparent));
 
-  /* Accent palette */
-  --accent:        #555;
-  --accent2:       #777;
-  --accent3:       #999;
-  --accent-dim:    rgba(0, 0, 0, 0.06);
-  --accent-glow:   rgba(0, 0, 0, 0.12);
+  /* Accent — the identity accent is the only hue that may vary; secondary
+     steps stay on identity tokens so contrast follows the design system. */
+  --accent:      var(--id-accent);
+  --accent2:     light-dark(var(--id-accent-light), var(--id-accent-hover));
+  --accent3:     var(--id-gray-400);
+  --accent-dim:  light-dark(var(--id-fill), color-mix(in srgb, var(--id-surface-solid) 6%, transparent));
+  --accent-glow: light-dark(var(--id-accent-glow), color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
 
-  /* Shadows */
-  --shadow:        0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Shadows — the identity token is the only shadow definition */
+  --shadow:        var(--id-shadow-card);
   --shadow-accent: 0 0 0 3px var(--accent-glow);
 
   /* Topbar */
-  --topbar-bg:     rgba(248, 248, 250, 0.82);
+  --topbar-bg: light-dark(var(--id-surface), color-mix(in srgb, var(--palette-0a0a0a) 82%, transparent));
 
   /* Scrollbar */
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb: light-dark(var(--id-scrollbar-thumb), color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
 
-  /* Prism spectrum — solid accent (replaced rainbow gradient) */
-  --prism-gradient: #0077b6;
-  --neon-magenta:  #ff2d55;
-  --neon-violet:   #bf5af2;
+  /* Prism spectrum — brand colours from the canonical palette */
+  --prism-gradient: var(--palette-0369a1);
+  --neon-magenta:   var(--palette-ec4899);
+  --neon-violet:    var(--palette-a855f7);
 
-  /* Radii */
-  --radius:        14px;
-  --radius-sm:     10px;
-
-  /* Layout */
-  --nav-w:         240px;
+  /* Radii / layout (non-colour, unchanged) */
+  --radius:    14px;
+  --radius-sm: 10px;
+  --nav-w:     240px;
 }
 
-/* ----------------------------------------------------------
-   2. DESIGN TOKENS — Dark (OS preference)
-   ---------------------------------------------------------- */
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg:            #08080a;
-    --bg2:           #0e0e12;
-    --bg3:           #17171d;
-    --surface:       #111116;
-    --card:          #0e0e12;
-
-    --text:          #ededf0;
-    --muted:         #7e7e8a;
-
-    --border:        rgba(255, 255, 255, 0.07);
-    --border-hover:  rgba(255, 255, 255, 0.18);
-
-    --accent:        #aaa;
-    --accent2:       #888;
-    --accent3:       #666;
-    --accent-dim:    rgba(255, 255, 255, 0.06);
-    --accent-glow:   rgba(255, 255, 255, 0.12);
-
-    --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-accent: 0 0 0 3px var(--accent-glow);
-
-    --topbar-bg:     rgba(8, 8, 10, 0.82);
-    --scrollbar-thumb: rgba(255, 255, 255, 0.12);
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
 
 /* ----------------------------------------------------------
-   3. DESIGN TOKENS — Dark (explicit)
-   ---------------------------------------------------------- */
-
-:root[data-theme="dark"] {
-  --bg:            #08080a;
-  --bg2:           #0e0e12;
-  --bg3:           #17171d;
-  --surface:       #111116;
-  --card:          #0e0e12;
-
-  --text:          #ededf0;
-  --muted:         #7e7e8a;
-
-  --border:        rgba(255, 255, 255, 0.07);
-  --border-hover:  rgba(255, 255, 255, 0.18);
-
-  --accent:        #aaa;
-  --accent2:       #888;
-  --accent3:       #666;
-  --accent-dim:    rgba(255, 255, 255, 0.06);
-  --accent-glow:   rgba(255, 255, 255, 0.12);
-
-  --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-accent: 0 0 0 3px var(--accent-glow);
-
-  --topbar-bg:     rgba(8, 8, 10, 0.82);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
-}
-
-/* ----------------------------------------------------------
-   4. BASE RESET & TYPOGRAPHY
+   2. BASE RESET & TYPOGRAPHY
    ---------------------------------------------------------- */
 
 *,
@@ -184,7 +133,7 @@ img {
 }
 
 /* ----------------------------------------------------------
-   5. SCROLLBAR
+   3. SCROLLBAR
    ---------------------------------------------------------- */
 
 ::-webkit-scrollbar {
@@ -212,7 +161,7 @@ img {
 }
 
 /* ----------------------------------------------------------
-   6. LAYOUT SHELL
+   4. LAYOUT SHELL
    ---------------------------------------------------------- */
 
 .mgmt-layout {
@@ -226,7 +175,7 @@ img {
 }
 
 /* ----------------------------------------------------------
-   7. SIDEBAR
+   5. SIDEBAR
    ---------------------------------------------------------- */
 
 .mgmt-sidebar {
@@ -263,7 +212,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: var(--palette-000000);
   padding: 6px 16px 4px;
   user-select: none;
 }
@@ -287,7 +236,7 @@ img {
 .mgmt-logo-icon {
   width: 20px;
   height: 20px;
-  color: #fff;
+  color: var(--id-surface-solid);
   position: relative;
   z-index: 1;
 }

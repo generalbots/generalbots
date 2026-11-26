@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--id-surface-solid);
   font-weight: 800;
   font-size: 1.4rem;
 }
@@ -33,7 +33,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--palette-000000) 15%, transparent);
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text);
@@ -50,11 +50,11 @@
 }
 
 .mgmt-toast.success {
-  border-left: 3px solid #30d158;
+  border-left: 3px solid var(--palette-34d399);
 }
 
 .mgmt-toast.error {
-  border-left: 3px solid #ff3b30;
+  border-left: 3px solid var(--palette-ff3b30);
 }
 
 .mgmt-toast.info {

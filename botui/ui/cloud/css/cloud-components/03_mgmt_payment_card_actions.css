@@ -86,11 +86,11 @@
 }
 
 .mgmt-machine-meter-fill.warning {
-  background: #ff9500;
+  background: var(--palette-f97316);
 }
 
 .mgmt-machine-meter-fill.danger {
-  background: #ff3b30;
+  background: var(--palette-ff3b30);
 }
 
 /* ----------------------------------------------------------
@@ -222,7 +222,7 @@
   margin-top: 20px;
   padding: 10px 16px;
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   border: none;
   border-radius: 8px;
   font-size: 0.85rem;

@@ -8,24 +8,24 @@
   <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
-    .card-item { background:var(--surface,#fff); border:1px solid var(--border,#e5e7eb); border-radius:12px; padding:1.25rem; display:flex; flex-direction:column; gap:.75rem; }
+    .card-item { background:var(--surface,var(--id-surface-solid)); border:1px solid var(--border,var(--palette-e5e7eb)); border-radius:12px; padding:1.25rem; display:flex; flex-direction:column; gap:.75rem; }
     .card-brand { font-size:1.6rem; }
     .card-number { font-family:var(--mono,monospace); font-size:1.05rem; font-weight:600; }
-    .card-exp { color:var(--muted,#6b7280); font-size:.9rem; }
-    .card-default { display:inline-block; background:#eef2ff; color:#4f46e5; border-radius:999px; padding:.15rem .6rem; font-size:.75rem; font-weight:600; }
+    .card-exp { color:var(--muted,var(--id-gray-500)); font-size:.9rem; }
+    .card-default { display:inline-block; background:var(--palette-eef2ff); color:var(--palette-4f46e5); border-radius:999px; padding:.15rem .6rem; font-size:.75rem; font-weight:600; }
     .card-actions { display:flex; gap:.5rem; margin-top:auto; }
     .card-actions .btn { flex:1; }
-    .card-actions .btn-danger { background:transparent; border:1px solid #fca5a5; color:#dc2626; }
-    .card-actions .btn-danger:hover { background:#fef2f2; }
+    .card-actions .btn-danger { background:transparent; border:1px solid var(--palette-fca5a5); color:var(--id-danger); }
+    .card-actions .btn-danger:hover { background:var(--palette-fef2f2); }
     .add-card-bar { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-    .hint { color:var(--muted,#6b7280); font-size:.85rem; max-width:34rem; }
-    .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:#111827; color:#fff; padding:.75rem 1.25rem; border-radius:8px; font-size:.9rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; }
+    .hint { color:var(--muted,var(--id-gray-500)); font-size:.85rem; max-width:34rem; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:var(--palette-111827); color:var(--id-surface-solid); padding:.75rem 1.25rem; border-radius:8px; font-size:.9rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; }
     .toast.show { opacity:1; }
-    .toast.error { background:#b91c1c; }
+    .toast.error { background:var(--id-danger-text); }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>

@@ -7,8 +7,8 @@
   <script src="/cloud/js/i18n-lite.js"></script>
   <script src="/cloud/js/i18n-switcher.js"></script>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>
@@ -40,7 +40,7 @@
         <button class="btn btn-secondary btn-sm" onclick="changePassword()" data-i18n="cloud-profile-update-password">Update Password</button>
       </div>
 
-      <div class="profile-section" style="border-color:rgba(255,107,107,.25)">
+      <div class="profile-section" style="border-color:color-mix(in srgb, var(--palette-ff6b6b) 25%, transparent)">
         <div class="profile-section-title" style="color:var(--accent3)" data-i18n="cloud-profile-danger-zone">Danger Zone</div>
         <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem" data-i18n="cloud-profile-danger-body">Permanently delete your account and all associated data. This action cannot be undone.</p>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete()" data-i18n="cloud-profile-delete-account">Delete Account</button>

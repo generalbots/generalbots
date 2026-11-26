@@ -205,13 +205,13 @@
 }
 
 .service-badge.active {
-  background: rgba(0, 212, 170, .12);
+  background: color-mix(in srgb, var(--palette-00d4aa) 12%, transparent);
   color: var(--accent2);
 }
 
 .service-badge.trialing {
-  background: rgba(255, 180, 0, .12);
-  color: #ffb400;
+  background: color-mix(in srgb, var(--palette-fbbf24) 12%, transparent);
+  color: var(--palette-fbbf24);
 }
 
 .service-body p {
@@ -238,7 +238,7 @@
 .btn-text {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--id-danger-icon);
   font-size: .78rem;
   cursor: pointer;
   text-decoration: underline;
@@ -262,21 +262,21 @@
 .mgmt-status-badge--active,
 .mgmt-status-badge--online,
 .mgmt-status-badge--paid {
-  background: rgba(48, 209, 88, 0.1);
-  color: #30d158;
+  background: color-mix(in srgb, var(--palette-34d399) 10%, transparent);
+  color: var(--palette-34d399);
 }
 
 .mgmt-status-badge--warning,
 .mgmt-status-badge--pending {
-  background: rgba(255, 149, 0, 0.1);
-  color: #ff9500;
+  background: color-mix(in srgb, var(--palette-f97316) 10%, transparent);
+  color: var(--palette-f97316);
 }
 
 .mgmt-status-badge--error,
 .mgmt-status-badge--offline,
 .mgmt-status-badge--overdue {
-  background: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
+  background: color-mix(in srgb, var(--palette-ff3b30) 10%, transparent);
+  color: var(--palette-ff3b30);
 }
 
 .mgmt-status-badge--neutral,

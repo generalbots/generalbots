@@ -91,7 +91,7 @@
       position: absolute;
       top: .75rem; right: .75rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--id-surface-solid);
       font-size: .6rem;
       font-weight: 800;
       letter-spacing: .07em;
@@ -127,8 +127,8 @@
       cursor: pointer;
       transition: all .15s;
     }
-    .plan-cta:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .plan-card.featured .plan-cta { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .plan-cta:hover { background: var(--accent); border-color: var(--accent); color: var(--id-surface-solid); }
+    .plan-card.featured .plan-cta { background: var(--accent); border-color: var(--accent); color: var(--id-surface-solid); }
 
     /* Number search bar */
     .number-search {
@@ -205,11 +205,11 @@
     }
     .numbers-table td {
       padding: .75rem 1rem;
-      border-bottom: 1px solid rgba(255,255,255,.04);
+      border-bottom: 1px solid color-mix(in srgb, var(--id-surface-solid) 4%, transparent);
       font-size: .875rem;
       color: var(--text);
     }
-    .numbers-table tr:hover td { background: rgba(255,255,255,.03); }
+    .numbers-table tr:hover td { background: color-mix(in srgb, var(--id-surface-solid) 3%, transparent); }
 
     /* ── Mission Banner ── */
     .mission-banner {
@@ -223,7 +223,7 @@
       align-items: center;
       gap: .35rem;
       background: var(--accent);
-      color: #fff;
+      color: var(--id-surface-solid);
       font-size: .65rem;
       font-weight: 800;
       letter-spacing: .09em;
@@ -321,7 +321,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   font-size: .82rem;
   font-weight: 800;
   flex-shrink: 0;
@@ -378,11 +378,11 @@
 
 .calc-prof-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   border-color: var(--accent);
 }
 
-.calc-prof-btn.active svg { stroke: #fff; }
+.calc-prof-btn.active svg { stroke: var(--id-surface-solid); }
 
 /* VPS grid */
 .calc-vps-grid {
