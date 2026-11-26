@@ -1598,6 +1598,16 @@ jobs:
       GB_API_BASE: http://127.0.0.1:8080
       GB_MOCK_ZITADEL_URL: http://127.0.0.1:8099
       GB_ACCOUNT_FILE: /tmp/gb-smoke-account.json
+      # Blocking chat computer-use UAT: real terminal consent flow against a
+      # CI-only Incus test double (GitHub-hosted runners have no Incus daemon).
+      GB_CI_INCUS_ROOT: ${{ runner.temp }}/gb-ci-incus-root
+      GB_VM_PROFILE: base
+      # Free Kilo endpoint, no key. state_builder only falls back to a local
+      # LLM for z.ai/openai.com/anthropic.com URLs without a key, so this URL
+      # is used as-is; the terminal proposal itself bypasses the LLM.
+      LLM_URL: https://api.kilo.ai/api/gateway/chat/completions
+      LLM_MODEL: dots-studio/dots-3-note-preview:free
+      LLM_KEY: ""
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: ./.github/actions/rust-setup
@@ -1612,6 +1622,22 @@ jobs:
         run: |
           cargo build -p botserver
           cargo build -p botui
+      # CI-ONLY TEST DOUBLE. The runner has no Incus; `botagent` shells out to
+      # `incus`, so a tiny shim is installed on PATH before botserver starts.
+      # It is never copied into an artifact, image or package.
+      - name: Install the CI-only Incus test double on PATH
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/incus-stub-bin"
+          cp scripts/ci-incus-stub.sh "$RUNNER_TEMP/incus-stub-bin/incus"
+          chmod +x "$RUNNER_TEMP/incus-stub-bin/incus"
+          echo "$RUNNER_TEMP/incus-stub-bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/incus-stub-bin:$PATH"
+          bash -n scripts/ci-incus-stub.sh
+          "$RUNNER_TEMP/incus-stub-bin/incus" self-test
+          command -v incus
+          mkdir -p "$GB_CI_INCUS_ROOT/opt/vibe/app/data" \
+            "$GB_CI_INCUS_ROOT/opt/vibe/app/output"
       - name: Start the mock identity provider
         run: |
           nohup python3 scripts/ci-mock-zitadel.py > /tmp/mock-zitadel.log 2>&1 &
@@ -1670,6 +1696,20 @@ jobs:
           /tmp/gbvenv/bin/python botui/ui/suite/audit/app-404-smoke.py \
             --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
             --wait 1 --report /tmp/opencode/app-404-smoke-report.json
+      # BLOCKING: one chat turn uploads the PDF and proposes a terminal action,
+      # the consent card is approved, and the harness asserts the document was
+      # really created from the uploaded bytes. Any FAIL exits non-zero.
+      - name: Chat VM PDF UAT (blocking, Incus test double)
+        run: |
+          set -euo pipefail
+          BOT=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["bot_name"])')
+          GB_TEST_TOKEN=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["token"])')
+          export GB_TEST_TOKEN
+          /tmp/gbvenv/bin/python botui/ui/suite/tests/chat-vm-pdf-uat.py --self-test
+          /tmp/gbvenv/bin/python botui/ui/suite/tests/chat-vm-pdf-uat.py \
+            --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
+            --pdf botui/ui/suite/tests/fixtures/sample-upload.pdf \
+            --report /tmp/opencode/chat-vm-pdf-uat-report.json
       - name: Destroy the throwaway account
         if: always()
         run: python3 scripts/ci-suite-account.py cleanup
@@ -1680,6 +1720,8 @@ jobs:
           name: suite-app-console-smoke
           path: |
             /tmp/opencode/app-404-smoke-report.json
+            /tmp/opencode/chat-vm-pdf-uat-report.json
+            /tmp/opencode/uat-vm-pdf-*.png
             /tmp/botserver-smoke.log
             /tmp/botui-smoke.log
             /tmp/chrome-smoke.log
