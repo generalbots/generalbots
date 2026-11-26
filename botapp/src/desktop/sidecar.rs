@@ -5,8 +5,11 @@ use std::sync::{Arc, Mutex};
 
 mod bootlog;
 mod paths;
+pub(crate) mod port_holder;
 pub(crate) mod probe;
 mod product;
+mod supervise;
+pub use supervise::ChildState;
 
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
 use product::sync_product_file;
@@ -129,6 +132,9 @@ impl Sidecar {
                 return Ok(());
             }
             StartDecision::AttachPort => {
+                if let Some(conflict) = port_holder::foreign_conflict() {
+                    return Err(conflict.into());
+                }
                 let port = sidecar_port();
                 info!(
                     "port {port} is already held by an assistant that is still booting; attaching to it instead of starting a second one"

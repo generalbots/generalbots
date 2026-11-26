@@ -112,5 +112,8 @@ pub static WINDOWS_ONLY_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::ne
         // reach the binary via the stack path (pkill pattern), not via
         // SafeCommand::new(<bare name>).
         "zitadel",
+        // Read-only: the desktop shell names the program holding the sidecar
+        // port before it starts the assistant.
+        "netstat",
     ])
 });

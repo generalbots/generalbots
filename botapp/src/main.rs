@@ -170,44 +170,6 @@ fn create_tray_with_mode(mode: String) -> Result<String, String> {
     Ok(manager.get_mode_string())
 }
 
-/// Starts the botserver sidecar and reveals the suite once the API answers.
-#[cfg(feature = "desktop-local")]
-fn start_sidecar_and_show(app: &tauri::App) {
-    let resource_dir = app.path().resource_dir().ok();
-    desktop::splash_progress::watch(app.handle());
-
-    let handle = app.handle().clone();
-    tauri::async_runtime::spawn(async move {
-        // A previous run may have left the sidecar alive (for example when the
-        // window was closed without a graceful exit). Reuse it instead of
-        // starting a second listener on the same port.
-        let product_url = desktop::sidecar::probe::api_product_url();
-        let already_running = Sidecar::wait_for_api(&product_url, 5).await;
-        if !already_running {
-            let sidecar = handle.state::<Sidecar>().inner().clone();
-            if let Err(e) = sidecar.start(resource_dir.clone()) {
-                log::error!("Failed to start botserver sidecar: {e}");
-            }
-        }
-        // A cold start (services stopped, first run after a reboot) can take
-        // several minutes. Revealing the window before the server answers
-        // showed the bundled page, which cannot reach the API; keep waiting
-        // behind the splash instead.
-        let mut ready = false;
-        for round in 1..=5u32 {
-            ready = Sidecar::wait_for_api(&desktop::sidecar::probe::api_product_url(), 120).await;
-            if ready {
-                break;
-            }
-            log::warn!("botserver has not answered after {}s; still waiting", round * 120);
-        }
-        if !ready {
-            log::error!("botserver did not respond within 600s");
-        }
-        desktop::wizard::reveal_suite(&handle);
-    });
-}
-
 fn main() {
     if let Some(code) = desktop::payload::handle_cli() {
         std::process::exit(code);
@@ -371,10 +333,10 @@ fn main() {
                     info!("First run detected: opening the setup wizard");
                     if let Err(e) = desktop::wizard::open_window(&app.handle()) {
                         log::error!("Could not open the setup wizard: {e}");
-                        start_sidecar_and_show(app);
+                        desktop::boot_supervisor::start_sidecar_and_show(app);
                     }
                 } else {
-                    start_sidecar_and_show(app);
+                    desktop::boot_supervisor::start_sidecar_and_show(app);
                 }
             }
 

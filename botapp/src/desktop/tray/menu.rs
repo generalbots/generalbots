@@ -196,7 +196,7 @@ pub(super) fn toggle_main_window(app: &AppHandle) {
 
 /// Stops the sidecar and exits the process. The exit-request handler in
 /// `main` checks [`quit_requested`] so it does not veto this request.
-pub(super) fn quit(app: &AppHandle) {
+pub(crate) fn quit(app: &AppHandle) {
     QUIT_REQUESTED.store(true, Ordering::SeqCst);
     info!("tray: quitting General Bots");
 

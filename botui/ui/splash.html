@@ -119,6 +119,26 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:t
   border-top:1px solid #262626;background:#0a0a0a}
 .legal{flex:1;min-width:0;font-size:10px;line-height:1.45;color:#8a8a8a;text-wrap:pretty}
 
+/* Failure: the progress row gives way to what happened, the server log and
+   the two actions; the running step is marked as failed and the cogs stop. */
+.fail{display:none;align-items:center;gap:16px}
+.card.failed .fail{display:flex}
+.card.failed .progress-row,.card.failed .track{display:none}
+.card.failed .glass{animation-play-state:paused}
+.step.fail{color:#ffffff}
+.step.fail .status{color:#ff5a1f}
+.fail-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.fail-msg{font-size:12.5px;line-height:1.35;color:#ededed;text-wrap:pretty}
+.fail-log{display:flex;gap:8px;min-width:0;font-size:10.5px;color:#a1a1a1}
+.fail-log .label{color:#8a8a8a}
+.fail-path{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:text;-webkit-user-select:text}
+.fail-actions{flex:none;display:flex;gap:8px}
+.btn{height:26px;padding:0 10px;border:1px solid #3a3a3a;border-radius:4px;background:transparent;color:#ededed;
+  font-size:11px;letter-spacing:.06em;cursor:pointer}
+.btn.primary{background:#ededed;border-color:#ededed;color:#0a0a0a}
+.btn:focus-visible{outline:1px solid #ededed;outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+
 @media (prefers-reduced-motion:reduce){
   .glass,[data-mq] > span{animation:none!important}
   .steps-list,.fill{transition:none}
@@ -177,6 +197,16 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:t
       <div class="track" role="progressbar" id="bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="fill" id="fill"></div>
       </div>
+      <div class="fail">
+        <div class="fail-text">
+          <span class="fail-msg" id="failMsg" role="alert"></span>
+          <span class="fail-log mono"><span class="label" id="failLogLabel"></span><span class="fail-path" id="failLog"></span></span>
+        </div>
+        <div class="fail-actions">
+          <button type="button" class="btn mono primary" id="retry"></button>
+          <button type="button" class="btn mono" id="close"></button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -209,6 +239,12 @@ var T=pt?{
   done:"CONCLUÍDO",on:"EXECUTANDO",queued:"NA FILA",
   ready:"Pronto.",
   progress:"Progresso da inicialização",
+  failTitle:"FALHA NA INICIALIZAÇÃO",fail:"FALHOU",
+  failExited:function(c){return "O servidor do assistente foi encerrado durante a inicialização"+(c==null?"":" (código "+c+")")+"."},
+  failDeadline:function(s){return "O servidor do assistente não respondeu em "+s+" segundos."},
+  failPort:function(p,n){return "A porta "+p+" já está em uso por outro programa"+(n?" ("+n+")":"")+"; feche-o e tente de novo."},
+  failStart:"Não foi possível iniciar o servidor do assistente.",
+  failLog:"REGISTRO",retry:"Tentar de novo",close:"Fechar",
   legal:"© General Bots · Pragmatismo. Inclui componentes de terceiros sob suas próprias licenças. "
     +"Fornecido no estado em que se encontra, sem garantias. Mantis Design System © Sentient LTDA: "
     +"feito no Brasil por humanos, para super-humanos."
@@ -224,6 +260,12 @@ var T=pt?{
   done:"DONE",on:"RUNNING",queued:"QUEUED",
   ready:"Ready.",
   progress:"Startup progress",
+  failTitle:"STARTUP FAILED",fail:"FAILED",
+  failExited:function(c){return "The assistant's server stopped while starting"+(c==null?"":" (exit code "+c+")")+"."},
+  failDeadline:function(s){return "The assistant's server did not answer within "+s+" seconds."},
+  failPort:function(p,n){return "Port "+p+" is already in use by another program"+(n?" ("+n+")":"")+"; close it and try again."},
+  failStart:"The assistant's server could not be started.",
+  failLog:"LOG",retry:"Try again",close:"Close",
   legal:"© General Bots · Pragmatismo. Includes third-party components under their own licenses. "
     +"Provided as is, without warranty. Mantis Design System © Sentient LTDA: "
     +"made in Brazil by humans, for superhumans."
@@ -243,6 +285,9 @@ $("stepsTitle").textContent=T.title;
 $("legal").textContent=T.legal;
 $("bar").setAttribute("aria-label",T.progress);
 $("version").textContent=T.version("");
+$("failLogLabel").textContent=T.failLog;
+$("retry").textContent=T.retry;
+$("close").textContent=T.close;
 
 var list=$("stepList"), rows=[];
 T.steps.forEach(function(name){
@@ -259,7 +304,7 @@ T.steps.forEach(function(name){
 var isPreview=false;
 try{isPreview=new URLSearchParams(location.search).get("preview")==="1"}catch(e){}
 
-var bootAt, active, stepAt, realSteps, ready, readyAt, floor, pct;
+var bootAt, active, stepAt, realSteps, ready, readyAt, floor, pct, failed=null;
 function reset(){
   bootAt=performance.now();active=0;stepAt=bootAt;realSteps=false;
   ready=false;readyAt=0;floor=0;pct=0;
@@ -272,6 +317,7 @@ function advance(index,now){
 function ceiling(){return (active+CREEP_SPAN)/N*100}
 
 function tick(){
+  if(failed)return;
   var now=performance.now();
   if(!ready&&!realSteps)advance(Math.min(N-1,Math.floor((now-bootAt)/1000/STEP_SECONDS)),now);
   if(isPreview){
@@ -291,13 +337,14 @@ function set(key,value,apply){if(shown[key]!==value){shown[key]=value;apply(valu
 function render(){
   var doneN=0;
   rows.forEach(function(r,i){
-    var s=ready||i<active?"done":i===active?"on":"queued";
+    var s=ready||i<active?"done":i===active?(failed?"fail":"on"):"queued";
     if(s==="done")doneN++;
     if(r.state!==s){r.state=s;r.el.className="step "+s;r.st.textContent=T[s]}
   });
   var ai=ready?N-1:active;
   set("y",-(Math.max(0,Math.min(N-VISIBLE,ai-1))*ROW),function(v){list.style.transform="translateY("+v+"px)"});
   set("count",doneN+T.of+N,function(v){$("count").textContent=v});
+  if(failed)return;
   set("current",ready?T.ready:T.steps[active]+"…",function(v){$("current").textContent=v;marquee()});
   set("fill",pct.toFixed(1)+"%",function(v){$("fill").style.width=v});
   set("pct",Math.floor(pct),function(v){$("pct").textContent=v+"%";$("bar").setAttribute("aria-valuenow",String(v))});
@@ -330,7 +377,7 @@ function marquee(){
    The first call ends the timed fallback; the index never goes back. */
 window.gbSplashStep=function(index){
   var i=Math.floor(Number(index));
-  if(ready||!isFinite(i))return;
+  if(ready||failed||!isFinite(i))return;
   realSteps=true;
   advance(Math.max(0,Math.min(N-1,i)),performance.now());
   tick();
@@ -340,11 +387,47 @@ window.gbSplashStep=function(index){
 var READY_KEYS={"splash-ready":1,"splash-opening-workspace":1};
 window.gbSplashProgress=function(value,text,key){
   var v=Number(value);
-  if(!isFinite(v))return;
+  if(failed||!isFinite(v))return;
   if(v>=100&&READY_KEYS[key]){ready=true;readyAt=performance.now()}
   else floor=Math.max(floor,Math.min(100,v));
   tick();
 };
+/* gbSplashFail({kind,code,seconds,port,program,log}): the boot failed. The
+   page words it and offers the two actions, answered through the URL
+   fragment the shell polls (#splash-action=retry|close). */
+function failText(f){
+  if(f.kind==="exited")return T.failExited(f.code);
+  if(f.kind==="deadline")return T.failDeadline(f.seconds);
+  if(f.kind==="port")return T.failPort(f.port,f.program);
+  return T.failStart;
+}
+function buttons(enabled){$("retry").disabled=!enabled;$("close").disabled=!enabled}
+window.gbSplashFail=function(info){
+  failed=info||{};
+  $("splash").classList.add("failed");
+  $("stepsTitle").textContent=T.failTitle;
+  $("failMsg").textContent=failText(failed);
+  $("failLog").textContent=String(failed.log||"");
+  $("failLog").title=String(failed.log||"");
+  buttons(true);
+  render();
+  $("retry").focus();
+};
+/* gbSplashRestart(): the shell is starting again; back to the progress state. */
+window.gbSplashRestart=function(){
+  failed=null;
+  $("splash").classList.remove("failed");
+  $("stepsTitle").textContent=T.title;
+  try{history.replaceState(null,"","#splash-painted")}catch(e){}
+  reset();
+  tick();
+};
+function act(action){
+  buttons(false);
+  try{history.replaceState(null,"","#splash-action="+action)}catch(e){}
+}
+$("retry").addEventListener("click",function(){act("retry")});
+$("close").addEventListener("click",function(){act("close")});
 /* gbSplashVersion("Versão 7.0.37" | "Version 7.0.37") */
 window.gbSplashVersion=function(text){
   var m=/\d+(?:\.\d+)+[^\s]*/.exec(String(text||""));

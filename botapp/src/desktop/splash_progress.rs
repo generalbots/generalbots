@@ -7,21 +7,31 @@
 use super::boot_steps::{LogTail, StepTracker, LAST_STEP};
 use super::sidecar::Sidecar;
 use log::info;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 use tauri::{Manager, WebviewWindow};
 
 const POLL: Duration = Duration::from_millis(400);
 
+/// Bumped by every `watch`; a watcher from an earlier boot attempt sees the
+/// change and stops, so a retried boot is followed by one watcher only.
+static GENERATION: AtomicU32 = AtomicU32::new(0);
+
 /// Starts following the sidecar log. Call it before the sidecar is spawned:
 /// the tail opens at the current end of the log, so earlier runs are ignored.
-/// The thread ends with the splash window, or once the last step is shown.
+/// The thread ends with the splash window, once the last step is shown, or
+/// when a later `watch` replaces it.
 pub fn watch(app: &tauri::AppHandle) {
+    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     let mut tail = LogTail::at_end(Sidecar::log_path());
     let handle = app.clone();
     std::thread::spawn(move || {
         let mut tracker = StepTracker::default();
         let mut shown: Option<u8> = None;
         loop {
+            if GENERATION.load(Ordering::SeqCst) != generation {
+                return;
+            }
             let Some(splash) = handle.get_webview_window("splash") else {
                 return;
             };

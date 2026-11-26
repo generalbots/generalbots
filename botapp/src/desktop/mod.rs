@@ -1,7 +1,11 @@
 #[cfg(feature = "desktop-local")]
 pub mod activity;
 #[cfg(feature = "desktop-local")]
+pub mod boot_guard;
+#[cfg(feature = "desktop-local")]
 pub mod boot_steps;
+#[cfg(feature = "desktop-local")]
+pub mod boot_supervisor;
 pub mod data_root;
 pub mod download;
 #[cfg(feature = "gbgov")]
@@ -23,6 +27,8 @@ pub mod stack_relocate;
 #[cfg(feature = "desktop-local")]
 pub mod stack_stop;
 pub mod splash;
+#[cfg(feature = "desktop-local")]
+pub mod splash_failure;
 #[cfg(feature = "desktop-local")]
 pub mod splash_progress;
 pub mod sync;
