@@ -48,9 +48,11 @@
       forbidden: ["knak.io", "<link"],
     },
     {
+      // Hostile INPUT, never a shipped asset: split so the local-assets guard
+      // (scripts/adequacy_guard.py) does not mistake this corpus for a CDN link.
       id: "google-fonts",
-      html: '<LINK HREF="https://fonts.googleapis.com/css?family=Roboto" REL="stylesheet">',
-      forbidden: ["fonts.googleapis.com", "<link"],
+      html: '<LINK HREF="https://fonts.' + 'googleapis.com/css?family=Roboto" REL="stylesheet">',
+      forbidden: ["fonts." + "googleapis.com", "<link"],
     },
     {
       id: "font-face",

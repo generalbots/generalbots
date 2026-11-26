@@ -54,13 +54,17 @@ pub fn is_local_suite_asset(method: &Method, path: &str) -> bool {
         return false;
     };
     let mut segments = rest.split('/');
-    let _dir = segments.next();
-    let Some(kind) = segments.next() else {
-        return false;
+    let first = segments.next();
+    let second = segments.next();
+    // Two shapes are shipped: /suite/<dir>/<partials|fragments|modals|forms>/<file>
+    // and the top-level /suite/<partials|fragments|modals|forms>/<file> nest
+    // (e.g. /suite/partials/chat.html). In the latter the first segment is the
+    // kind, not a suite directory. Accept both, never a bare directory path.
+    let kind = match (first, second) {
+        (_, Some(segment)) if LOCAL_SEGMENTS.contains(&segment) => segment,
+        (Some(segment), _) if LOCAL_SEGMENTS.contains(&segment) => segment,
+        _ => return false,
     };
-    if !LOCAL_SEGMENTS.contains(&kind) {
-        return false;
-    }
     if !is_safe_relative_path(rest) {
         return false;
     }

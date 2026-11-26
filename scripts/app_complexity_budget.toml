@@ -1,21 +1,21 @@
-# ─── Complexity ceiling relock — 2026-11-25 (Settings showToast smoke fix) ───
+# ─── Complexity ceiling relock — 2026-11-26 (OS slice + pulled suite fixes) ──
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# One ceiling ROSE and is justified here:
-#   settings: loc 13448 -> 13450 (+2) — commit 2b39abb87 "fix(settings): guard
-#   showToast calls until the global exists" (Settings-open pageerror smoke
-#   follow-up to the #2933/#2935 Settings partial gating work). The +2 is
-#   exactly settings/main/08_preview.js:19: one assignment became a two-line
-#   rationale comment plus the guard-pinned
-#   `if (typeof showToast === "function") window.showToast = showToast;`.
-#   The five inline hx-on sites in partials 01/03/06 were in-place edits (zero
-#   LOC delta). Guard 79 pins the statement verbatim and the comment lines are
-#   outside this maintenance change's file ownership, so the +2 cannot be
-#   compacted without dropping the clobber guard's rationale. No route added.
-# One ceiling TIGHTENED because code shrank since the prior relock:
-#   chat: 30960 -> 30928 (-32). The earlier drive +26 (/api/product capability
-#   gate, #2925) remains justified; every other metric is unchanged.
-# Future changes may only hold or lower these numbers; any rise needs an owner
-# note in the same PR or a code split/delete. No blanket suppression.
+# Ceilings that ROSE, each justified by the commit that grew the surface:
+#   settings: 13450 -> 13492 (+42) — #2470 data-protection safety in
+#     settings-os-appliance.js (replace-on-status token/scope, sanitized errors,
+#     fail-closed export/snapshot/reset, role=status + aria-live from JS). The
+#     regression harness lives under suite/tests, not the UI surface.
+#   chat: 30928 -> 30954 (+26) — 1a096a20c (#2933 reflow/theme perf, +22) and
+#     a0cd2ee23 (#2945–#2953 app poller/route fixes, +4). No route added.
+#   automations: 1144 -> 1163 (+19) — a0cd2ee23 app-scoped poller gate.
+#   mail: js_modules 6 -> 8 (+2), loc 4395 -> 4823 (+428) — a0cd2ee23 ships
+#     00_mail_sanitize.js and its test module; the only strings matching the
+#     CDN guard are hostile-input fixtures, split in source to keep the guard
+#     strict for shipped assets (adequacy_guard stays at baseline 0).
+#   slides: 21752 -> 21774 (+22) — a0cd2ee23 caption/route-contract work.
+# Ceilings TIGHTENED because the surface shrank: calendar -1, crm -23, docs -9.
+# No route ceiling changed. Future changes may only hold or lower these numbers;
+# a rise needs an owner note in the same PR or a code split/delete.
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-app complexity budget (#2120).
 #
@@ -55,7 +55,7 @@ loc = 3550
 [apps."automations"]
 routes = 9
 js_modules = 2
-loc = 1144
+loc = 1163
 
 [apps."banking"]
 routes = 9
@@ -80,7 +80,7 @@ loc = 910
 [apps."calendar"]
 routes = 7
 js_modules = 4
-loc = 3522
+loc = 3521
 
 [apps."campaigns"]
 routes = 2
@@ -95,7 +95,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30928
+loc = 30954
 
 [apps."clock"]
 routes = 0
@@ -120,7 +120,7 @@ loc = 238
 [apps."crm"]
 routes = 54
 js_modules = 8
-loc = 3978
+loc = 3955
 
 [apps."database"]
 routes = 11
@@ -140,7 +140,7 @@ loc = 28083
 [apps."docs"]
 routes = 0
 js_modules = 109
-loc = 20853
+loc = 20844
 
 [apps."drive"]
 routes = 26
@@ -204,8 +204,8 @@ loc = 2138
 
 [apps."mail"]
 routes = 36
-js_modules = 6
-loc = 4395
+js_modules = 8
+loc = 4823
 
 [apps."meet"]
 routes = 13
@@ -310,7 +310,7 @@ loc = 561
 [apps."settings"]
 routes = 52
 js_modules = 35
-loc = 13450
+loc = 13492
 
 [apps."sheet"]
 routes = 0
@@ -320,7 +320,7 @@ loc = 28451
 [apps."slides"]
 routes = 0
 js_modules = 97
-loc = 21752
+loc = 21774
 
 [apps."social"]
 routes = 6
