@@ -104,7 +104,7 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
                 "if not exist \"{{DATA_PATH}}\\pgdata\\PG_VERSION\" \"{{BIN_PATH}}\\bin\\initdb.exe\" --encoding=UTF8 --no-locale -D \"{{DATA_PATH}}\\pgdata\" -U gbuser --auth=trust".to_string(),
                 "echo data_directory = '{{DATA_PATH}}\\pgdata' > \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo port = 5432 >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
-                "echo listen_addresses = '127.0.0.1' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
+                "echo listen_addresses = '127.0.0.1,::1' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo log_directory = '{{LOGS_PATH}}' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo logging_collector = on >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo host all all 127.0.0.1/32 scram-sha-256 > \"{{CONF_PATH}}\\pg_hba.conf\"".to_string(),

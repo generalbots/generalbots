@@ -57,7 +57,7 @@ fn postgres_listen_addresses_is_set_once_to_loopback() {
     let text = "data_directory = 'x' \r\nport = 5432 \r\nlisten_addresses = '*' \r\nlisten_addresses = 'localhost'\r\n";
     let hardened = harden_postgresql_conf(text).unwrap_or_default();
     assert_eq!(hardened.matches("listen_addresses").count(), 1);
-    assert!(hardened.contains("listen_addresses = '127.0.0.1'"));
+    assert!(hardened.contains("listen_addresses = '127.0.0.1,::1'"));
     assert_eq!(harden_postgresql_conf(&hardened), None);
 }
 
@@ -66,7 +66,7 @@ fn postgres_commented_default_gets_an_active_line() {
     let text = "#listen_addresses = 'localhost'\t\t# what IP address(es)\nport = 5432\n";
     let hardened = harden_postgresql_conf(text).unwrap_or_default();
     assert!(hardened.contains("#listen_addresses = 'localhost'"));
-    assert!(hardened.ends_with("listen_addresses = '127.0.0.1'\n"));
+    assert!(hardened.ends_with("listen_addresses = '127.0.0.1,::1'\n"));
 }
 
 #[test]

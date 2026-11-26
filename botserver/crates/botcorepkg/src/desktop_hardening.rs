@@ -96,9 +96,16 @@ pub fn harden_qdrant_yaml(text: &str) -> Option<String> {
     Some(rejoin(out))
 }
 
+/// PostgreSQL listens on both loopback addresses. Clients reach it as
+/// `localhost`, which Windows resolves to `::1` first; with only 127.0.0.1
+/// bound, every connection first waited about 2 s for the refused `::1`, and
+/// the server's connection pool (5 s per connection) timed out at startup.
+/// `pg_hba.conf` already admits `::1/128` with a password.
+pub const POSTGRES_LISTEN: &str = "127.0.0.1,::1";
+
 /// PostgreSQL: one active `listen_addresses` line, set to loopback.
 pub fn harden_postgresql_conf(text: &str) -> Option<String> {
-    let wanted = format!("listen_addresses = '{LOOPBACK}'");
+    let wanted = format!("listen_addresses = '{POSTGRES_LISTEN}'");
     let mut out = Vec::new();
     let mut found = false;
     let mut changed = false;
