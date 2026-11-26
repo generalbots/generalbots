@@ -45,6 +45,18 @@ class Handler(BaseHTTPRequestHandler):
             user_id = "zitadel-" + uuid.uuid4().hex
             USERS[email] = {"id": user_id, "password": data.get("password", "")}
             self._send(200, {"userId": user_id, "verifiedEmail": email})
+        elif path.endswith("/password") and "/management/v1/users/" in path:
+            # Signup provisions the human via _import, then persists the
+            # password with the v1 management endpoint (v2 leaves an empty
+            # hash). Update the stored record so the follow-up session check
+            # in signup.rs can actually verify it.
+            user_id = path.rsplit("/users/", 1)[1].rsplit("/password", 1)[0]
+            password = data.get("password", "")
+            for record in USERS.values():
+                if record["id"] == user_id:
+                    record["password"] = password
+                    break
+            self._send(200, {"status": "ok"})
         elif path.endswith("/v2/sessions"):
             checks = data.get("checks", {})
             login = checks.get("user", {}).get("loginName", "")
