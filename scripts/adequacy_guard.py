@@ -146,6 +146,12 @@ RULE_META = {
 
 BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 CFG_TEST_RE = re.compile(r"#\[cfg\(\s*test\s*\)\]")
+# `#[cfg(test)] mod name;` in a parent module makes the whole child file a
+# test module. The in-file stripper cannot see that declaration, so a separate
+# pre-pass collects those paths before scanning.
+CFG_TEST_MOD_RE = re.compile(
+    r"#\[cfg\(\s*test\s*\)\]\s*mod\s+([A-Za-z_]\w*)\s*;"
+)
 Violation = tuple[str, int, str]
 
 
@@ -197,7 +203,37 @@ def is_production_path(rel: str) -> bool:
     if any(part in {"tests", "test", "testdata", "benches"} for part in parts[:-1]):
         return False
     stem = os.path.splitext(parts[-1])[0]
+    # The documented test-path contract includes `tests_*.rs` fixtures (for
+    # example botagent/claude/bridge/tests_drive.rs); treat them as tests so
+    # expect/panic in those files are not counted as production debt.
+    if stem.startswith(("test_", "tests_")):
+        return False
     return stem not in {"test", "tests"} and not stem.endswith(("_test", "_tests"))
+
+
+def cfg_test_module_paths() -> set[str]:
+    """Return rel paths of Rust files declared behind `#[cfg(test)] mod ...;`."""
+    result: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = sorted(
+            name for name in dirnames if name not in SKIP_DIRS and not name.startswith(".")
+        )
+        for name in filenames:
+            if name not in {"mod.rs", "lib.rs", "main.rs"}:
+                continue
+            path = os.path.join(dirpath, name)
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                    text = strip_comments(handle.read())
+            except OSError:
+                continue
+            parent_rel = os.path.relpath(dirpath, ROOT).replace(os.sep, "/")
+            for match in CFG_TEST_MOD_RE.finditer(text):
+                module = match.group(1)
+                for candidate in (module + ".rs", module + "/mod.rs"):
+                    rel = f"{parent_rel}/{candidate}" if parent_rel != "." else candidate
+                    result.add(rel)
+    return result
 
 
 def is_part_suffixed_rust(path: str) -> bool:
@@ -242,6 +278,7 @@ def count_lines(text: str) -> int:
 def scan_tree() -> tuple[dict[str, list[Violation]], int]:
     found: dict[str, list[Violation]] = {rule: [] for rule in RULE_META}
     scanned = 0
+    test_modules = cfg_test_module_paths()
     for dirpath, dirnames, filenames in os.walk(ROOT):
         dirnames[:] = sorted(
             name for name in dirnames if name not in SKIP_DIRS and not name.startswith(".")
@@ -298,7 +335,11 @@ def scan_tree() -> tuple[dict[str, list[Violation]], int]:
                         (rel, _line_of(cleaned, match.start()), "")
                     )
 
-            production = strip_cfg_test(cleaned) if is_production_path(rel) else None
+            production = (
+                strip_cfg_test(cleaned)
+                if is_production_path(rel) and rel not in test_modules
+                else None
+            )
             if production is not None:
                 command_allowed = (
                     rel in COMMAND_ALLOWED_FILES

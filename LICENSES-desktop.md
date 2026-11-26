@@ -43,7 +43,7 @@ upstream binary and carry the same license as their non-cached counterpart.
 | `vector_db` | Qdrant Vector Database | 1.20.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
 | `vector_db_1_12_0_cached` | Qdrant Vector Database (bundled cache copy) | 1.12.0 | Apache-2.0 | https://github.com/qdrant/qdrant | payload `LICENSE` |
 | `timeseries_db` | InfluxDB Time Series Database | 2.7.10 | MIT | https://github.com/influxdata/influxdb | payload `LICENSE` |
-| `vault` | HashiCorp Vault | 2.2.1 | BUSL-1.1 | https://github.com/hashicorp/vault | payload `LICENSE` |
+| `openbao` | OpenBao (secrets server) | 2.7.3 | MPL-2.0 | https://github.com/openbao/openbao | payload `LICENSE` |
 | `vault_1_18_2_cached` | HashiCorp Vault (bundled cache copy) | 1.18.2 | BUSL-1.1 | https://github.com/hashicorp/vault | payload `LICENSE` |
 | `observability` | Vector Log Aggregator | 0.61.0 | MPL-2.0 | https://github.com/vectordotdev/vector | payload `LICENSE` |
 | `botmodels` | BotModels Python Service (pythonbox) | release tag | MIT | https://github.com/generalbots/generalbots | payload `LICENSE` |
@@ -82,9 +82,10 @@ this record and at the per-component texts.
   source URLs above and the offer must be documented next to the license texts.
   Do not describe our own code as AGPL — only these notices are.
 - **GPL-3.0** (`alm`, `alm_ci`, `webmail`): same source-availability rule.
-- **BUSL-1.1** (`vault`): not an open-source license. Redistribution is allowed
-  for non-production use; a production deployment needs a HashiCorp license.
-  This is a product constraint, not a documentation one.
+- **BUSL-1.1** (`vault_1_18_2_cached`): the legacy cached HashiCorp Vault copy
+  is not an open-source license. Redistribution is allowed for non-production
+  use; a production deployment needs a HashiCorp license. The shipped secrets
+  server is OpenBao (`openbao`, MPL-2.0).
 - **LicenseRef-NVIDIA-CUDA** (`cudart_win_*`): proprietary, redistributable
   under the CUDA Toolkit EULA. Windows payload only; not in the Linux image.
 

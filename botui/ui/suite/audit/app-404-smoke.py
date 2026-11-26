@@ -212,11 +212,11 @@ async def run(args) -> int:
                     recoveries += 1
                 bucket["items"] = []
                 forbidden_bucket["items"] = []
-                # Each app is an independent test case. Persisted app state
-                # (notably the Vibe project selection, which the throwaway CI
-                # user is only a viewer of) leaks between launches and causes
-                # 403s on /api/vibe/projects/<id>/files. Reset web storage but
-                # keep the injected auth tokens.
+                # Each app is an independent test case. Persisted state leaks
+                # between launches: the throwaway CI user is only a viewer of
+                # the seeded Vibe project, and a stale `project` deep-link
+                # param makes canvas POST project.draw to it (403). Reset web
+                # storage and in-memory deep-link params, but keep auth tokens.
                 try:
                     await page.evaluate("""() => {
                       var keep = ['gb-access-token', 'management_token', 'gb-ws-token', 'token', 'id_token'];
@@ -227,6 +227,7 @@ async def run(args) -> int:
                           });
                         } catch (e) { /* storage may be unavailable */ }
                       });
+                      window.__gbAppParams__ = {};
                     }""")
                 except Exception:
                     pass
