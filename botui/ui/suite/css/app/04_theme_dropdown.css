@@ -77,11 +77,11 @@
 }
 
 .app-item:hover {
-    background: var(--surface-hover, var(--bg-hover, rgba(255, 255, 255, 0.1)));
+    background: var(--surface-hover, var(--bg-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent)));
 }
 
 .app-item.active {
-    background: var(--primary-light, rgba(212, 245, 5, 0.15));
+    background: var(--primary-light, color-mix(in srgb, var(--palette-d4f505) 15%, transparent));
 }
 
 .app-icon {
@@ -180,7 +180,7 @@
 }
 
 .settings-link:hover {
-    background: var(--surface-hover, var(--bg-hover, rgba(255, 255, 255, 0.1)));
+    background: var(--surface-hover, var(--bg-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent)));
 }
 
 .settings-link svg {

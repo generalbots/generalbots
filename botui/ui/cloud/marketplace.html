@@ -113,7 +113,7 @@
 
     .mkt-modal { display: none; position: fixed; inset: 0; z-index: 1000; }
     .mkt-modal.open { display: block; }
-    .mkt-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+    .mkt-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--palette-000000) 55%, transparent); }
     .mkt-drawer {
       position: relative;
       margin: 5vh auto;
@@ -137,7 +137,7 @@
       letter-spacing: .06em; color: var(--muted); margin: 1rem 0 .4rem;
     }
     .mkt-perm-row { display: flex; align-items: center; gap: .55rem; font-size: .78rem; color: var(--text); padding: .28rem 0; }
-    .mkt-perm-row svg { color: var(--warn, #f59e0b); flex-shrink: 0; }
+    .mkt-perm-row svg { color: var(--warn, var(--palette-f59e0b)); flex-shrink: 0; }
     .mkt-shot {
       width: 100%; aspect-ratio: 16/9; border-radius: var(--radius-sm);
       background: var(--bg3); display: flex; align-items: center; justify-content: center;
@@ -152,7 +152,7 @@
     #mkt-install-btn {
       font-family: inherit; font-size: .84rem; font-weight: 700;
       padding: .6rem 1.2rem; border-radius: var(--radius-sm);
-      border: none; background: var(--accent); color: #fff; cursor: pointer;
+      border: none; background: var(--accent); color: var(--id-surface-solid); cursor: pointer;
     }
     #mkt-install-btn:hover { filter: brightness(1.12); }
     @media (max-width: 720px) {
@@ -162,8 +162,8 @@
     }
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
+  <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="/cloud/css/cloud-responsive.css?v=1">
 </head>

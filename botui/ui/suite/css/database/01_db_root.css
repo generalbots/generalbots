@@ -115,7 +115,7 @@
 
 .db-table-item.active .db-table-icon {
   background: var(--primary);
-  color: #fff;
+  color: var(--palette-ffffff);
 }
 
 .db-table-info {
@@ -194,13 +194,13 @@
 .db-btn-primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--palette-ffffff);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 .db-btn-primary:hover {
-  background: color-mix(in srgb, var(--primary) 85%, #000);
-  border-color: color-mix(in srgb, var(--primary) 85%, #000);
+  background: color-mix(in srgb, var(--primary) 85%, var(--palette-000000));
+  border-color: color-mix(in srgb, var(--primary) 85%, var(--palette-000000));
 }
 
 .db-btn-danger-outline {

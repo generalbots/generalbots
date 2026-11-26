@@ -12,6 +12,11 @@
     });
   }
   function id(x) { return document.getElementById(x); }
+  // LAN exposure is an admin-only OS setting. A normal user opening any app
+  // must not request it: the RBAC 403 becomes a browser-console error.
+  function adminSurface() {
+    return document.body.classList.contains("is-admin");
+  }
   function headers() {
     var h = { "Content-Type": "application/json", Accept: "application/json" };
     var tok = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
@@ -34,12 +39,14 @@
     }));
   }
   function refresh() {
+    if (!adminSurface()) return;
     fetch("/api/os/network/lan-exposure", { headers: headers(), credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (d) { reflect(!!d.enabled, d.remaining_seconds); })
       .catch(function () { /* keep the last known state */ });
   }
   function setLanExposure(enabled) {
+    if (!adminSurface()) return;
     fetch("/api/os/network/lan-exposure", {
       method: "POST", headers: headers(), credentials: "same-origin",
       body: JSON.stringify({ enabled: !!enabled })
@@ -51,6 +58,11 @@
     refresh();
     document.addEventListener("gb:lan-exposure-set", function (e) {
       reflect(!!(e.detail && e.detail.enabled), e.detail && e.detail.remaining_seconds);
+    });
+    // auth-service sets is-admin after the shell boots; re-read the flag when
+    // an admin session resolves so the indicator is not left stale.
+    window.addEventListener("gb:auth:login", function () {
+      if (adminSurface()) refresh();
     });
   }
   if (document.readyState === "loading") {

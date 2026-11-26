@@ -31,7 +31,7 @@
   width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--ok, var(--palette-34d399));
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, .18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-34d399) 18%, transparent);
 }
 .auto-poll-dot.paused { background: var(--warn, var(--palette-f59e0b)); box-shadow: none; }
 
@@ -52,7 +52,7 @@
 .auto-btn.primary {
   background: var(--accent);
   border-color: transparent;
-  color: #fff;
+  color: var(--id-surface-solid);
 }
 .auto-btn.primary:hover { filter: brightness(1.12); }
 .auto-btn.ghost { background: transparent; }
@@ -117,7 +117,7 @@
   letter-spacing: .05em;
   padding: .14rem .42rem;
   border-radius: 999px;
-  background: rgba(52, 211, 153, .16);
+  background: color-mix(in srgb, var(--palette-34d399) 16%, transparent);
   color: var(--ok, var(--palette-34d399));
 }
 .auto-enabled-badge.off {
@@ -170,15 +170,15 @@
   color: var(--muted);
 }
 .auto-run-card.st-running { border-left-color: var(--info, var(--palette-60a5fa)); }
-.auto-run-card.st-running .auto-run-status { background: rgba(96, 165, 250, .16); color: var(--info, var(--palette-60a5fa)); }
+.auto-run-card.st-running .auto-run-status { background: color-mix(in srgb, var(--palette-60a5fa) 16%, transparent); color: var(--info, var(--palette-60a5fa)); }
 .auto-run-card.st-succeeded { border-left-color: var(--ok, var(--palette-34d399)); }
-.auto-run-card.st-succeeded .auto-run-status { background: rgba(52, 211, 153, .16); color: var(--ok, var(--palette-34d399)); }
+.auto-run-card.st-succeeded .auto-run-status { background: color-mix(in srgb, var(--palette-34d399) 16%, transparent); color: var(--ok, var(--palette-34d399)); }
 .auto-run-card.st-failed { border-left-color: var(--err, var(--palette-f87171)); }
-.auto-run-card.st-failed .auto-run-status { background: rgba(248, 113, 113, .16); color: var(--err, var(--palette-f87171)); }
+.auto-run-card.st-failed .auto-run-status { background: color-mix(in srgb, var(--palette-f87171) 16%, transparent); color: var(--err, var(--palette-f87171)); }
 .auto-run-card.st-cancelled,
 .auto-run-card.st-canceled { border-left-color: var(--warn, var(--palette-f59e0b)); }
 .auto-run-card.st-cancelled .auto-run-status,
-.auto-run-card.st-canceled .auto-run-status { background: rgba(245, 158, 11, .16); color: var(--warn, var(--palette-f59e0b)); }
+.auto-run-card.st-canceled .auto-run-status { background: color-mix(in srgb, var(--palette-f59e0b) 16%, transparent); color: var(--warn, var(--palette-f59e0b)); }
 .auto-run-card.st-queued { border-left-color: var(--muted); }
 
 .auto-run-trigger { font-size: var(--text-2xs); color: var(--muted); }

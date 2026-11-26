@@ -1,136 +1,176 @@
-:root {
-    /* Light Theme - Clean white background */
-    --background: 0 0% 100%; /* Pure white */
-    --foreground: 222 47% 11%; /* Dark blue-gray text */
-    --card: 0 0% 98%; /* Slightly off-white */
-    --card-foreground: 222 47% 11%;
+/*
+ * Light — accent-only variant of the identity theme.
+ *
+ * The only visual difference from default.css is the accent family below.
+ * Every other token aliases the fixed identity tokens in
+ * /suite/css/identity-tokens.css (paper, ink, greys, radii, shadows, type),
+ * so themes can never drift the design system. Accent shades are derived with
+ * the same OKLCH/WCAG rules as identity/accent.js. Dark accents are keyed by
+ * data-color-scheme (written by theme-scheme.js), never by a theme id — see
+ * the #2591 note in default.css.
+ *
+ * Theme id: "light"  •  source accent: #3C83F6
+ */
+:root[data-theme="light"] {
+    /* == Accent (light) — OKLCH derivation ============================== */
+    --id-accent: #3C83F6;
+    --id-accent-hover: #226DD3;
+    --id-accent-light: #83A0FF;
+    --id-accent-text: #0075CD; /* 4.51:1 on identity paper */
+    --id-accent-soft: rgb(60 131 246 / .1);
+    --id-accent-glow: rgb(60 131 246 / .26);
+    --id-on-accent: #000000; /* 5.77:1 on accent */
+
+    /* == Legacy HSL palette — compatibility triplets ===================
+     * Many suite consumers call hsl(var(--background)), hsl(var(--primary)),
+     * hsl(var(--border)) ... and theme-scheme.js reads the same channels, so
+     * these names MUST stay as raw 'H S% L%' values, never resolved colours.
+     * Neutral triplets are the design-system defaults (identical in every
+     * theme); --primary/--ring/--accent/--chart-1 carry this theme's accent.
+     * See the token-to-HSL bridge note in base/01_root-themes.css. */
+    --background: 28 100% 97%;
+    --foreground: 0 0% 17%;
+    --card: 30 100% 99%;
+    --card-foreground: 0 0% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 60%; /* Blue */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 214 32% 91%; /* Light gray */
-    --secondary-foreground: 222 47% 11%;
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 214 32% 91%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 91%;
-    --win-border-width: 1px;
-    --win-border-color: rgba(0,0,0,0.12);
-    --win-border-active: #2563eb;
+    --popover-foreground: 0 0% 17%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 219 10% 41%;
+    --accent: 226 100% 94%;
+    --accent-foreground: 206 100% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
     --input: 0 0% 100%;
     --ring: 217 91% 60%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --chart-1: 217 91% 60%;
-    --chart-2: 142 76% 36%;
-    --chart-3: 47 96% 53%;
-    --chart-4: 280 83% 57%;
-    --chart-5: 27 87% 67%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 199 89% 48%;
 
-    /* ============================================ */
-    /* SENTIENT BRIDGE VARIABLES                   */
-    /* For Sheet, Docs, Slides theme support       */
-    /* ============================================ */
+    /* Full-colour legacy vocabulary — aliases of the fixed identity look. */
+    --accent-color: var(--id-accent);
+    --primary-hover: var(--id-accent-hover);
+    --primary-light: var(--id-accent-soft);
+    --bg: var(--id-paper);
+    --bg-primary: var(--id-paper);
+    --bg-secondary: var(--id-surface-solid);
+    --bg-tertiary: var(--id-gray-100);
+    --surface: var(--id-surface);
+    --surface-hover: var(--id-fill);
+    --surface-active: var(--id-accent-soft);
+    --surface-elevated: var(--id-surface-solid);
+    --text: var(--id-ink);
+    --text-secondary: var(--id-text);
+    --text-tertiary: var(--id-muted);
+    --text-muted: var(--id-muted);
+    --text-accent: var(--id-accent-text);
+    --success: var(--id-success);
+    --success-bg: var(--id-success-soft);
+    --warning: var(--id-warn);
+    --warning-bg: var(--id-warn-soft);
+    --error: var(--id-danger);
+    --error-bg: var(--id-danger-soft);
+    --info: var(--id-hl-function);
+    --danger: var(--id-danger);
+    --border-color: var(--id-line);
+    --border-light: var(--id-line-soft);
+    --border-hover: var(--id-accent);
+    --shadow: var(--id-shadow-card);
+    --shadow-sm: var(--id-shadow-card);
+    --shadow-md: var(--id-shadow-card-hover);
+    --shadow-lg: var(--id-shadow-float);
+    --shadow-accent: var(--id-accent-glow);
+    --shadow-glow: var(--id-accent-glow);
 
-    /* Backgrounds */
-    --sentient-bg-primary: #ffffff;
-    --sentient-bg-secondary: #fafafa;
-    --sentient-bg-tertiary: #f5f5f5;
-    --sentient-bg-hover: rgba(37, 99, 235, 0.08);
-    --sentient-bg-active: rgba(37, 99, 235, 0.15);
+    /* Window chrome and shell — identity surfaces, accent on active only. */
+    --win-radius: var(--id-radius-card);
+    --win-border-width: 1px;
+    --win-border-color: var(--id-line);
+    --win-border-active: var(--id-accent);
+    --win-bg: var(--id-surface);
+    --win-titlebar-bg: var(--id-surface);
+    --win-titlebar-text: var(--id-text);
+    --win-titlebar-sep: var(--id-line);
+    --win-caption-hover: var(--id-accent-soft);
+    --win-shadow: var(--id-shadow-float);
+    --win-shadow-active: var(--id-shadow-card-hover);
+    --shell-bg: var(--id-surface);
+    --shell-border: var(--id-line);
+    --shell-blur: blur(24px) saturate(160%);
+    --glass-bg: var(--id-surface);
+    --glass-border-color: var(--id-line);
+    --wall:
+        radial-gradient(ellipse at 12% 0%, var(--id-accent-soft) 0%, transparent 55%),
+        radial-gradient(ellipse at 88% 8%, var(--id-accent-glow) 0%, transparent 50%),
+        linear-gradient(165deg, var(--id-paper) 0%, var(--id-surface-solid) 100%);
+    --wall-vignette:
+        radial-gradient(ellipse at 50% 110%, var(--id-accent-soft) 0%, transparent 60%);
 
-    /* Text */
-    --sentient-text-primary: #1e293b;
-    --sentient-text-secondary: #64748b;
-    --sentient-text-tertiary: #94a3b8;
-    --sentient-text-muted: #cbd5e1;
+    /* Sentient bridge (Sheet, Docs, Slides) — identity-only, accent varies. */
+    --sentient-bg-primary: var(--id-paper);
+    --sentient-bg-secondary: var(--id-surface-solid);
+    --sentient-bg-tertiary: var(--id-gray-100);
+    --sentient-bg-hover: var(--id-accent-soft);
+    --sentient-bg-active: var(--id-accent-glow);
+    --sentient-text-primary: var(--id-ink);
+    --sentient-text-secondary: var(--id-text);
+    --sentient-text-tertiary: var(--id-muted);
+    --sentient-text-muted: var(--id-gray-400);
+    --sentient-accent: var(--id-accent);
+    --sentient-accent-hover: var(--id-accent-hover);
+    --sentient-accent-light: var(--id-accent-soft);
+    --sentient-accent-dark: var(--id-accent-text);
+    --sentient-border: var(--id-line);
+    --sentient-border-light: var(--id-line-soft);
+    --sentient-border-accent: var(--id-accent-glow);
+    --sentient-surface: var(--id-surface-solid);
+    --sentient-surface-hover: var(--id-fill);
+    --sentient-surface-active: var(--id-accent-soft);
+    --sentient-surface-elevated: var(--id-surface);
+    --sentient-input-bg: var(--id-surface-solid);
+    --sentient-input-border: var(--id-line);
+    --sentient-input-focus: var(--id-accent);
+    --sentient-success: var(--id-success);
+    --sentient-success-bg: var(--id-success-soft);
+    --sentient-warning: var(--id-warn);
+    --sentient-warning-bg: var(--id-warn-soft);
+    --sentient-error: var(--id-danger);
+    --sentient-error-bg: var(--id-danger-soft);
+    --sentient-font-family: var(--id-font-sans);
+    --sentient-shadow-sm: var(--id-shadow-card);
+    --sentient-shadow-md: var(--id-shadow-card-hover);
+    --sentient-shadow-lg: var(--id-shadow-float);
+    --sentient-radius: var(--id-radius-control);
+    --sentient-radius-sm: var(--id-radius-sm);
+    --sentient-radius-md: var(--id-radius-control);
+    --sentient-radius-lg: var(--id-radius-panel);
+    --sentient-radius-xl: var(--id-radius-card);
+    --gb-font-heading: var(--id-font-heading);
+    --gb-font-body: var(--id-font-sans);
 
-    /* Accent Colors */
-    --sentient-accent: #2563eb;
-    --sentient-accent-hover: #1d4ed8;
-    --sentient-accent-light: rgba(37, 99, 235, 0.1);
-    --sentient-accent-dark: #1e40af;
-
-    /* Borders */
-    --sentient-border: #e2e8f0;
-    --sentient-border-light: #f1f5f9;
-    --sentient-border-accent: rgba(37, 99, 235, 0.3);
-
-    /* Surfaces */
-    --sentient-surface: #fafafa;
-    --sentient-surface-hover: #f1f5f9;
-    --sentient-surface-active: #e2e8f0;
-    --sentient-surface-elevated: #ffffff;
-
-    /* Inputs */
-    --sentient-input-bg: #ffffff;
-    --sentient-input-border: #e2e8f0;
-    --sentient-input-focus: #2563eb;
-
-    /* Status Colors */
-    --sentient-success: #22c55e;
-    --sentient-success-bg: rgba(34, 197, 94, 0.15);
-    --sentient-warning: #f59e0b;
-    --sentient-warning-bg: rgba(245, 158, 11, 0.15);
-    --sentient-error: #ef4444;
-    --sentient-error-bg: rgba(239, 68, 68, 0.15);
-
-    /* Typography */
-    --sentient-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-    /* Shadows */
-    --sentient-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --sentient-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --sentient-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-
-    /* Border Radius */
-    --sentient-radius: 0.5rem;
-    --sentient-radius-sm: 0.25rem;
-    --sentient-radius-md: 0.5rem;
-    --sentient-radius-lg: 0.75rem;
-    --sentient-radius-xl: 1rem;
+    /* App identity: surfaces carry no per-app hue; only launcher tiles do. */
+    --gb-identity-line: transparent;
+    --gb-identity-wash: transparent;
+    --gb-identity-accent: var(--id-accent-text);
+    --gb-identity-tint: var(--id-line);
 }
 
-/* == Identity bridge (assistant look) ==============================
- * The suite's UI (every app, chat included) is expressed in --id-*
- * tokens. Each theme declares its own values here so the assistant look
- * comes back recoloured to this palette instead of falling back to the
- * reference orange and paper. Generated from the palette declared above;
- * regenerate when the palette changes.
- */
 
-:root {
-    /* Accent — the theme's primary, with the reference shades derived. */
-    --id-accent: hsl(217 91% 60%);
-    --id-accent-hover: color-mix(in srgb, hsl(217 91% 60%) 86%, #000);
-    --id-accent-light: color-mix(in srgb, hsl(217 91% 60%) 68%, #fff);
-    --id-accent-text: hsl(222 47% 11%);
-    --id-accent-soft: color-mix(in srgb, hsl(217 91% 60%) 12%, transparent);
-    --id-accent-glow: color-mix(in srgb, hsl(217 91% 60%) 26%, transparent);
-    --id-on-accent: hsl(0 0% 100%);
-
-    /* Surfaces and ink. */
-    --id-paper: hsl(0 0% 100%);
-    --id-ink: hsl(222 47% 11%);
-    --id-text: color-mix(in srgb, hsl(222 47% 11%) 82%, hsl(0 0% 100%));
-    --id-muted: hsl(215 16% 47%);
-    --id-gray-100: hsl(214 32% 91%);
-    --id-gray-200: color-mix(in srgb, hsl(222 47% 11%) 12%, hsl(0 0% 100%));
-    --id-gray-300: color-mix(in srgb, hsl(222 47% 11%) 22%, hsl(0 0% 100%));
-    --id-gray-400: color-mix(in srgb, hsl(222 47% 11%) 46%, hsl(0 0% 100%));
-    --id-gray-500: color-mix(in srgb, hsl(222 47% 11%) 62%, hsl(0 0% 100%));
-    --id-surface: color-mix(in srgb, hsl(0 0% 98%) 90%, transparent);
-    --id-surface-solid: hsl(0 0% 98%);
-    --id-line: color-mix(in srgb, hsl(214 32% 91%) 90%, transparent);
-    --id-line-soft: color-mix(in srgb, hsl(214 32% 91%) 55%, transparent);
-    --id-fill: color-mix(in srgb, hsl(214 32% 91%) 80%, transparent);
-
-    /* Shape follows the theme's own radius. */
-    --id-radius-card: calc(0.5rem + 8px);
-    --id-radius-panel: calc(0.5rem + 6px);
-    --id-radius-bar: calc(0.5rem + 4px);
-    --id-radius-control: 0.5rem;
-    --id-radius-sm: max(4px, calc(0.5rem - 4px));
+/* == Dark accent — scheme keyed, never theme id (#2591) ================= */
+/* Same identity surfaces; only the accent family brightens on dark paper. */
+:root[data-color-scheme="dark"] {
+    --id-accent: #4792FF;
+    --id-accent-hover: #57A8FF;
+    --id-accent-light: #5A6DA6;
+    --id-accent-text: #85B8FF; /* 8.26:1 on dark paper */
+    --id-accent-soft: rgb(60 131 246 / .15);
+    --id-accent-glow: rgb(60 131 246 / .3);
+    --id-on-accent: #2C2C2C; /* 4.54:1 on accent */
 }

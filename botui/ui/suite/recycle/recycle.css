@@ -11,12 +11,12 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid color-mix(in srgb, var(--id-ink) 8%, transparent);
 }
 .gb-recycle .recycle-toolbar h2 { margin: 0; font-size: var(--text-md); }
 .gb-recycle .recycle-empty-btn {
     background: var(--palette-ef4444);
-    color: #fff;
+    color: var(--id-surface-solid);
     border: none;
     border-radius: 8px;
     padding: 7px 14px;
@@ -26,7 +26,7 @@
 }
 .gb-recycle .recycle-refresh {
     background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid color-mix(in srgb, var(--id-ink) 20%, transparent);
     border-radius: 8px;
     padding: 7px 14px;
     font-size: var(--text-2xs);
@@ -38,8 +38,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--card-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--card-bg, var(--id-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--id-ink) 8%, transparent);
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 8px;
@@ -49,7 +49,7 @@
 .gb-recycle .recycle-time { font-size: var(--text-2xs); color: var(--palette-9ca3af); }
 .gb-recycle .recycle-restore {
     background: var(--palette-3b82f6);
-    color: #fff;
+    color: var(--id-surface-solid);
     border: none;
     border-radius: 7px;
     padding: 6px 12px;
@@ -65,7 +65,7 @@
 
 @media (prefers-color-scheme: dark) {
     .gb-recycle { background: var(--palette-14161d); color: var(--palette-e6e8ee); }
-    .gb-recycle .recycle-toolbar { border-bottom-color: rgba(255, 255, 255, 0.08); }
-    .gb-recycle .recycle-refresh { border-color: rgba(255, 255, 255, 0.2); color: var(--palette-e6e8ee); }
-    .gb-recycle .recycle-item { background: var(--palette-1d2029); border-color: rgba(255, 255, 255, 0.08); }
+    .gb-recycle .recycle-toolbar { border-bottom-color: color-mix(in srgb, var(--id-surface-solid) 8%, transparent); }
+    .gb-recycle .recycle-refresh { border-color: color-mix(in srgb, var(--id-surface-solid) 20%, transparent); color: var(--palette-e6e8ee); }
+    .gb-recycle .recycle-item { background: var(--palette-1d2029); border-color: color-mix(in srgb, var(--id-surface-solid) 8%, transparent); }
 }

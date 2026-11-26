@@ -224,11 +224,11 @@
         const wrapper = document.createElement('div');
         wrapper.style.textAlign = 'center';
         wrapper.style.padding = '40px';
-        wrapper.style.color = 'var(--text-muted, #888)';
+        wrapper.style.color = 'var(--text-muted, var(--palette-888888))';
         wrapper.innerHTML = `
         <div style="font-size: 64px; margin-bottom: 20px;">📁</div>
         <div style="font-size: 18px; margin-bottom: 10px;">Cannot preview this file type</div>
-        <a href="${data.source_url}" download style="color: var(--accent, #667eea); text-decoration: none;">
+        <a href="${data.source_url}" download style="color: var(--accent, var(--palette-667eea)); text-decoration: none;">
             ⬇️ Download File
         </a>
     `;

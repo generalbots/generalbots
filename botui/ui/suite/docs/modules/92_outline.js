@@ -76,19 +76,19 @@
     style.id = STYLE_ID;
     style.textContent = [
       "#" + PANEL_ID + "{margin:6px 0 8px;padding:6px;border:1px solid var(--palette-334155,#334155);" +
-        "border-radius:4px;background:var(--palette-1e293b,#1e293b);}",
+        "border-radius:4px;background:var(--palette-1e293b,var(--palette-1e293b));}",
       "#" + PANEL_ID + " .gb-outline-header{display:flex;align-items:center;padding:2px 4px 6px;" +
-        "color:var(--palette-f8fafc,#f8fafc);font-size:12px;font-weight:600;}",
+        "color:var(--palette-f8fafc,var(--palette-f8fafc));font-size:12px;font-weight:600;}",
       "#" + PANEL_ID + " .gb-outline-tree{display:flex;flex-direction:column;max-height:280px;overflow-y:auto;}",
       "#" + PANEL_ID + " .gb-outline-item{display:block;width:100%;text-align:left;padding:4px 6px;" +
-        "border:0;border-radius:3px;background:transparent;color:var(--palette-cbd5e1,#cbd5e1);" +
+        "border:0;border-radius:3px;background:transparent;color:var(--palette-cbd5e1,var(--palette-cbd5e1));" +
         "font:inherit;font-size:12px;line-height:1.4;cursor:pointer;overflow:hidden;" +
         "text-overflow:ellipsis;white-space:nowrap;}",
       "#" + PANEL_ID + " .gb-outline-item:hover{background:var(--palette-334155,#334155);" +
-        "color:var(--palette-f8fafc,#f8fafc);}",
-      "#" + PANEL_ID + " .gb-outline-item." + ACTIVE_CLASS + "{background:#0f766e;color:#fff;}",
-      "#" + PANEL_ID + " .gb-outline-item:focus-visible{outline:2px solid #3b82f6;outline-offset:-2px;}",
-      "#" + PANEL_ID + " .gb-outline-empty{padding:6px 4px;color:var(--palette-94a3b8,#94a3b8);" +
+        "color:var(--palette-f8fafc,var(--palette-f8fafc));}",
+      "#" + PANEL_ID + " .gb-outline-item." + ACTIVE_CLASS + "{background:var(--palette-0f766e);color:var(--id-surface-solid);}",
+      "#" + PANEL_ID + " .gb-outline-item:focus-visible{outline:2px solid var(--palette-3b82f6);outline-offset:-2px;}",
+      "#" + PANEL_ID + " .gb-outline-empty{padding:6px 4px;color:var(--palette-94a3b8,var(--palette-94a3b8));" +
         "font-size:11px;font-style:italic;}"
     ].join("\n");
     (document.head || document.documentElement).appendChild(style);

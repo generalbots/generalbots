@@ -88,8 +88,8 @@ function renderSwitcherChips(tabId) {
     var isActive = active.has(sw.id);
     return '<div class="switcher-chip' + (isActive ? ' active' : '') + '" ' +
       'data-switch-id="' + sw.id + '" ' +
-      'style="--switcher-color: ' + (sw.color || '#666') + '; ' +
-      (isActive ? 'color: white; background: ' + (sw.color || '#666') + '; ' : '') + '">' +
+      'style="--switcher-color: ' + (sw.color || 'var(--palette-666666)') + '; ' +
+      (isActive ? 'color: white; background: ' + (sw.color || 'var(--palette-666666)') + '; ' : '') + '">' +
       '<span class="switcher-chip-icon">' + (sw.icon || '\u{1F500}') + '</span>' +
       '<span>' + sw.label + '</span></div>';
   }).join('');
@@ -150,7 +150,7 @@ function renderBotSwitchers(switchers, tabId) {
         id: sw.id,
         label: sw.label || sw.id,
         icon: sw.icon || SWITCHER_ICONS[sw.id] || "\u{1F500}",
-        color: sw.color || "#666",
+        color: sw.color || "var(--palette-666666)",
       });
       existingIds[sw.id] = true;
     }

@@ -28,26 +28,26 @@
 }
 
 .gb-desktop-icon:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.09));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 9%, transparent));
 }
 
 .gb-desktop-icon.selected {
-  background: rgba(132, 214, 105, 0.16);
-  border-color: rgba(132, 214, 105, 0.45);
+  background: color-mix(in srgb, var(--palette-84d669) 16%, transparent);
+  border-color: color-mix(in srgb, var(--palette-84d669) 45%, transparent);
 }
 
 .gb-dicon-glyph {
   position: relative;
   width: 38px;
   height: 38px;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--palette-000000) 35%, transparent));
 }
 
 .gb-dicon-glyph svg {
   width: 100%;
   height: 100%;
   stroke: currentColor;
-  fill: rgba(255, 255, 255, 0.06);
+  fill: color-mix(in srgb, var(--palette-ffffff) 6%, transparent);
 }
 
 .gb-dicon-arrow {
@@ -56,7 +56,7 @@
   bottom: -2px;
   font-size: var(--text-2xs);
   line-height: 1;
-  color: #fff;
+  color: var(--palette-ffffff);
   background: var(--primary);
   border-radius: 50%;
   width: 14px;
@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--palette-000000) 40%, transparent);
 }
 
 .gb-dicon-label {
@@ -73,7 +73,7 @@
   line-height: 1.25;
   text-align: center;
   color: var(--text);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--palette-000000) 70%, transparent);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;

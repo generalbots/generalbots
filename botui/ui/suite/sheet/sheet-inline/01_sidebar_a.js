@@ -113,18 +113,18 @@ function loadSidebar(arg) {
     if (!el) return;
     fetch('/api/sheet/list').then(function(r){ return r.json(); }).then(function(items){
         if (!items || items.length === 0) {
-            el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sheet-none', 'No spreadsheets yet. Create one to start.') + '</div>';
+            el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:var(--sheet-muted, var(--id-gray-400));font-style:italic;">' + _t('sheet-none', 'No spreadsheets yet. Create one to start.') + '</div>';
             return;
         }
-        var html = '<div class="ss-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, #334155);"><h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:14px;">' + _t('sheet-my-sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sheet-new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
+        var html = '<div class="ss-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, var(--id-ink));"><h3 style="margin:0;color:var(--sheet-fg, var(--id-gray-100));font-size:14px;">' + _t('sheet-my-sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:var(--id-success);color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sheet-new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
         for (var i = 0; i < items.length; i++) {
             var m = items[i];
-            html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid var(--sheet-border, #334155);border-radius:6px;background:var(--sheet-bg-elevated, #1e293b);cursor:pointer;"><div style="font-weight:600;color:var(--sheet-fg, #f8fafc);">' + escHtml(m.name) + '</div><div style="font-size:12px;color:var(--sheet-muted, #94a3b8);margin-top:4px;">' + _t('sheet-sheets-count', '{0} sheet(s)', { count: m.worksheet_count || 0 }) + '</div></div>';
+            html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid var(--sheet-border, var(--id-ink));border-radius:6px;background:var(--sheet-bg-elevated, var(--id-ink));cursor:pointer;"><div style="font-weight:600;color:var(--sheet-fg, var(--id-gray-100));">' + escHtml(m.name) + '</div><div style="font-size:12px;color:var(--sheet-muted, var(--id-gray-400));margin-top:4px;">' + _t('sheet-sheets-count', '{0} sheet(s)', { count: m.worksheet_count || 0 }) + '</div></div>';
         }
         html += '</div></div>';
         el.innerHTML = html;
     }).catch(function(){
-        el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sheet-sidebar-load-error', 'Error loading sheets.') + '</div>';
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--sheet-muted, var(--id-gray-400));font-style:italic;">' + _t('sheet-sidebar-load-error', 'Error loading sheets.') + '</div>';
     });
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -133,14 +133,14 @@ function openSheetPanel(panel) {
     var sheet = (ctx.inst && ctx.inst.loadedSheet) || window.__LOADED_SHEET;
     if (!sheet) {
         var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
-        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-sidebar-load-first', 'Load a spreadsheet first.') + '</div>';
+        if (host) host.innerHTML = '<div style="padding:20px;color:var(--id-danger-icon);text-align:center;">' + _t('sheet-sidebar-load-first', 'Load a spreadsheet first.') + '</div>';
         return;
     }
     var panelHost = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
     if (!panelHost) return;
     if (window.GBSheetRefreshPanel) {
         window.GBSheetRefreshPanel(panel).catch(function () {
-            panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>';
+            panelHost.innerHTML = '<div style="padding:20px;color:var(--id-danger-icon);text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>';
         });
         return;
     }
@@ -149,7 +149,7 @@ function openSheetPanel(panel) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sheet)
     }).then(function(r){ return r.text(); }).then(function(html){ panelHost.innerHTML = html; })
-    .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>'; });
+    .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:var(--id-danger-icon);text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>'; });
 }
 function loadSheet(id, cell) {
     var ctx = _sheetCtx();
@@ -162,7 +162,7 @@ function loadSheet(id, cell) {
     try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) { window.gbLogError ? gbLogError(_, "loadSheet") : console.error("loadSheet", _); }
     document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0, windowId: ctx.winId }, bubbles: true }));
     var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
-    if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';
+    if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, var(--id-gray-400));text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';
     fetch('/api/sheet/load?id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(sheet){
         if (ctx.inst) { ctx.inst.loadedSheet = sheet; ctx.inst.sheetId = sheet.id || id; }
         window.__LOADED_SHEET = sheet;
@@ -200,7 +200,7 @@ function loadSheet(id, cell) {
             if (cell) gbSheetGotoCell(cell, ctx.inst || VG);
         }
     }).catch(function(){
-        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Error loading sheet.</div>';
+        if (host) host.innerHTML = '<div style="padding:20px;color:var(--id-danger-icon);text-align:center;">Error loading sheet.</div>';
     });
 }
 function getLiveSheetId(arg) {

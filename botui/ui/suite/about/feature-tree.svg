@@ -2,21 +2,21 @@
   <defs>
     <!-- Gradients -->
     <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.2"/>
-      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0.05"/>
+      <stop offset="0%" style="stop-color:var(--id-success);stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:var(--id-success);stop-opacity:0.05"/>
     </linearGradient>
     <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#d4f505;stop-opacity:0.3"/>
-      <stop offset="100%" style="stop-color:#d4f505;stop-opacity:0.1"/>
+      <stop offset="0%" style="stop-color:var(--palette-d4f505);stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:var(--palette-d4f505);stop-opacity:0.1"/>
     </linearGradient>
     <linearGradient id="bundleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.2"/>
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.05"/>
+      <stop offset="0%" style="stop-color:var(--palette-3b82f6);stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:var(--palette-3b82f6);stop-opacity:0.05"/>
     </linearGradient>
     
     <!-- Arrow marker -->
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--ft-muted, #64748b)"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--ft-muted, var(--palette-64748b))"/>
     </marker>
     
     <!-- Glow filter -->
@@ -32,35 +32,35 @@
   <style data-gb-icon-theme="1">
     :root, svg {
       --ft-text: #334155;
-      --ft-muted: #64748b;
-      --ft-legend-bg: #f8fafc;
-      --ft-legend-stroke: #cbd5e1;
-      --ft-edge: #94a3b8;
-      --ft-edge-deps: #cbd5e1;
+      --ft-muted: var(--palette-64748b);
+      --ft-legend-bg: var(--palette-f8fafc);
+      --ft-legend-stroke: var(--palette-cbd5e1);
+      --ft-edge: var(--palette-94a3b8);
+      --ft-edge-deps: var(--palette-cbd5e1);
     }
     @media (prefers-color-scheme: dark) {
       :root, svg {
-        --ft-text: #e0e0e0;
-        --ft-muted: #94a3b8;
-        --ft-legend-bg: #1a1a2e;
+        --ft-text: var(--palette-e0e0e0);
+        --ft-muted: var(--palette-94a3b8);
+        --ft-legend-bg: var(--palette-1a1a2e);
         --ft-legend-stroke: #334155;
-        --ft-edge: #64748b;
+        --ft-edge: var(--palette-64748b);
         --ft-edge-deps: #475569;
       }
     }
     .title { font: bold 24px sans-serif; fill: var(--ft-text, #334155); }
-    .subtitle { font: 14px sans-serif; fill: var(--ft-muted, #64748b); }
+    .subtitle { font: 14px sans-serif; fill: var(--ft-muted, var(--palette-64748b)); }
     .node-label { font: bold 11px monospace; fill: var(--ft-text, #334155); text-anchor: middle; }
-    .category-label { font: bold 12px sans-serif; fill: var(--ft-muted, #64748b); text-anchor: middle; }
-    .dep-text { font: 10px sans-serif; fill: var(--ft-muted, #64748b); }
-    .legend-text { font: 11px sans-serif; fill: var(--ft-muted, #64748b); }
+    .category-label { font: bold 12px sans-serif; fill: var(--ft-muted, var(--palette-64748b)); text-anchor: middle; }
+    .dep-text { font: 10px sans-serif; fill: var(--ft-muted, var(--palette-64748b)); }
+    .legend-text { font: 11px sans-serif; fill: var(--ft-muted, var(--palette-64748b)); }
     .node { stroke-width: 2; }
-    .node-core { fill: url(#coreGradient); stroke: #d4f505; }
-    .node-app { fill: url(#nodeGradient); stroke: #22c55e; }
-    .node-bundle { fill: url(#bundleGradient); stroke: #3b82f6; }
-    .edge { stroke: var(--ft-edge, #94a3b8); stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
-    .edge-deps { stroke: var(--ft-edge-deps, #cbd5e1); stroke-width: 1; stroke-dasharray: 4,2; }
-    .legend-bg { fill: var(--ft-legend-bg, #f8fafc); stroke: var(--ft-legend-stroke, #cbd5e1); }
+    .node-core { fill: url(#coreGradient); stroke: var(--palette-d4f505); }
+    .node-app { fill: url(#nodeGradient); stroke: var(--id-success); }
+    .node-bundle { fill: url(#bundleGradient); stroke: var(--palette-3b82f6); }
+    .edge { stroke: var(--ft-edge, var(--palette-94a3b8)); stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .edge-deps { stroke: var(--ft-edge-deps, var(--palette-cbd5e1)); stroke-width: 1; stroke-dasharray: 4,2; }
+    .legend-bg { fill: var(--ft-legend-bg, var(--palette-f8fafc)); stroke: var(--ft-legend-stroke, var(--palette-cbd5e1)); }
   </style>
 
   <!-- Title -->

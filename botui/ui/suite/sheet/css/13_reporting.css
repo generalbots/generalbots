@@ -15,7 +15,7 @@
   color: var(--sheet-fg, var(--palette-f8fafc));
   border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 8px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--id-ink) 45%, transparent);
   font-size: var(--text-xs);
 }
 
@@ -57,7 +57,7 @@
   padding: 8px 16px;
   color: var(--sheet-muted, var(--palette-94a3b8));
   font-size: var(--text-2xs);
-  background: rgba(148, 163, 184, 0.08);
+  background: color-mix(in srgb, var(--id-gray-400) 8%, transparent);
 }
 
 .ss-rpt-tabs {
@@ -161,7 +161,7 @@
   border: 1px solid var(--palette-3b82f6);
   border-radius: 4px;
   background: var(--palette-3b82f6);
-  color: #fff;
+  color: var(--id-surface-solid);
   cursor: pointer;
   font-size: var(--text-2xs);
 }

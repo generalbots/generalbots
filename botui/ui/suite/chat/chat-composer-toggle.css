@@ -41,9 +41,9 @@
     padding: 0 14px;
     gap: 6px;
     border-radius: 999px;
-    background: var(--surface-2, var(--surface, #fff));
+    background: var(--surface-2, var(--surface, var(--id-surface-solid)));
     border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
-    color: var(--text, #333);
+    color: var(--text, var(--palette-333333));
     font-size: var(--text-2xs);
     font-weight: 500;
     line-height: 1;
@@ -61,9 +61,9 @@
 .suggestion-button:hover {
     border-color: var(--accent, var(--palette-2563eb));
     color: var(--accent, var(--palette-2563eb));
-    background: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 8%, var(--surface, #fff));
+    background: color-mix(in srgb, var(--accent, var(--palette-2563eb)) 8%, var(--surface, var(--id-surface-solid)));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-000000) 8%, transparent);
 }
 
 .suggestion-chip:active,
@@ -87,10 +87,10 @@ form.input-container {
     padding: 7px 7px 7px 8px;
     border-radius: 28px;
     border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
-    background: var(--surface-2, var(--surface, #fff));
+    background: var(--surface-2, var(--surface, var(--id-surface-solid)));
     box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.04),
-        0 8px 28px rgba(0, 0, 0, 0.07);
+        0 1px 2px color-mix(in srgb, var(--palette-000000) 4%, transparent),
+        0 8px 28px color-mix(in srgb, var(--palette-000000) 7%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     transition:
@@ -102,7 +102,7 @@ form.input-container {
     border-color: var(--accent, var(--palette-2563eb));
     box-shadow:
         0 0 0 4px color-mix(in srgb, var(--accent, var(--palette-2563eb)) 16%, transparent),
-        0 8px 28px rgba(0, 0, 0, 0.08);
+        0 8px 28px color-mix(in srgb, var(--palette-000000) 8%, transparent);
 }
 
 #messageInput,
@@ -115,14 +115,14 @@ textarea#messageInput {
     border: none;
     border-radius: 0;
     background: transparent;
-    color: var(--text, #222);
+    color: var(--text, var(--palette-222222));
     font-size: var(--text-md);
     line-height: 1.45;
     resize: none;
 }
 
 #messageInput::placeholder {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 /* ── Tool buttons ────────────────────────────────────────────────────── */
@@ -135,7 +135,7 @@ textarea#messageInput {
     height: 38px;
     margin-bottom: 2px;
     border-radius: 50%;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     transition:
         background 0.18s ease,
@@ -160,7 +160,7 @@ textarea#messageInput {
     border: 1px solid transparent;
     border-radius: 999px;
     background: transparent;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     font-weight: 600;
 }
@@ -172,7 +172,7 @@ textarea#messageInput {
 }
 
 .chat-tool-toggle.web-search-toggle.is-off {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     background: transparent;
     border-color: var(--border, var(--border-color, var(--palette-d0d0d0)));
 }
@@ -192,21 +192,21 @@ textarea#messageInput {
     border: 1px solid transparent;
     border-radius: 999px;
     background: transparent;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 .chat-tool-toggle.voice-toggle:hover,
 .chat-tool-toggle.voice-duplex-toggle:hover {
-    color: var(--text, #222);
-    background: color-mix(in srgb, var(--text, #222) 7%, transparent);
+    color: var(--text, var(--palette-222222));
+    background: color-mix(in srgb, var(--text, var(--palette-222222)) 7%, transparent);
 }
 
 .chat-tool-toggle.voice-toggle.is-recording {
     color: var(--palette-dc2626);
-    border-color: rgba(220, 38, 38, 0.35);
-    background: rgba(220, 38, 38, 0.10);
+    border-color: color-mix(in srgb, var(--id-danger) 35%, transparent);
+    background: color-mix(in srgb, var(--id-danger) 10%, transparent);
     animation: gb-voice-pulse 1.4s ease-in-out infinite;
 }
 
@@ -223,8 +223,8 @@ textarea#messageInput {
 }
 
 @keyframes gb-voice-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.25); }
-    50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--id-danger) 25%, transparent); }
+    50% { box-shadow: 0 0 0 6px transparent; }
 }
 
 /* Visually hidden text that still reaches screen readers. */
@@ -249,7 +249,7 @@ textarea#messageInput {
     border-radius: 999px;
     border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
     background: transparent;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
 }
 

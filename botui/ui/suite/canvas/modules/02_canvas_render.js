@@ -4,11 +4,11 @@
     C.drawGrid = function drawGrid() {
         if (!C.ctx) return;
         C.ctx.save();
-        C.ctx.strokeStyle = "var(--border-color, #d1d5db)";
+        C.ctx.strokeStyle = "var(--border-color, var(--id-gray-300))";
         C.ctx.lineWidth = 0.5;
         const gridSize = 20;
         if (C.gridType === "dots") {
-            C.ctx.fillStyle = "var(--border-color, #d1d5db)";
+            C.ctx.fillStyle = "var(--border-color, var(--id-gray-300))";
             for (let x = 0; x < C.canvas.width; x += gridSize) {
                 for (let y = 0; y < C.canvas.height; y += gridSize) {
                     C.ctx.fillRect(x, y, 1, 1);
@@ -59,7 +59,7 @@
         var mctx = mm.getContext("2d");
         var W = mm.width || 160, H = mm.height || 100;
         mctx.clearRect(0, 0, W, H);
-        mctx.fillStyle = "rgba(255,255,255,0.6)";
+        mctx.fillStyle = "color-mix(in srgb, var(--id-surface-solid) 60%, transparent)";
         mctx.fillRect(0, 0, W, H);
         if (!C.elements.length) return;
         var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -71,7 +71,7 @@
         var pad = 8;
         var scale = Math.min((W - pad * 2) / cw, (H - pad * 2) / ch);
         mctx.setTransform(scale, 0, 0, scale, pad, pad);
-        mctx.fillStyle = "#3b82f6";
+        mctx.fillStyle = "var(--palette-3b82f6)";
         C.elements.forEach(function (el) {
             if (el.x == null) return;
             mctx.fillRect(el.x, el.y, Math.max(2, el.width || 10), Math.max(2, el.height || 8));
@@ -221,10 +221,10 @@
                 C.ctx.fillText(el.text || "", el.x, el.y + (el.fontSize || 18));
                 break;
             case "sticky":
-                C.ctx.fillStyle = "#fff9c4";
+                C.ctx.fillStyle = "var(--palette-fef9c3)";
                 C.ctx.fillRect(el.x, el.y, el.width, el.height);
                 C.ctx.strokeRect(el.x, el.y, el.width, el.height);
-                C.ctx.fillStyle = "#5b5700";
+                C.ctx.fillStyle = "var(--palette-6b4b00)";
                 C.ctx.font = "14px Inter, sans-serif";
                 C.ctx.fillText(el.text || "", el.x + 6, el.y + 20);
                 break;
@@ -248,7 +248,7 @@
     }
 
     C.drawSelection = function drawSelection(el) {
-        C.ctx.strokeStyle = "#007bff";
+        C.ctx.strokeStyle = "var(--palette-0a84ff)";
         C.ctx.lineWidth = 1;
         C.ctx.setLineDash([5, 5]);
         C.ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
@@ -285,8 +285,8 @@
         set("prop-height", Math.round(el.height));
         set("prop-rotation", el.rotation || 0);
         set("prop-opacity", Math.round((el.opacity == null ? 1 : el.opacity) * 100));
-        set("prop-stroke", el.stroke || "#000000");
-        set("prop-fill", el.fill || "#ffffff");
+        set("prop-stroke", el.stroke || "var(--palette-000000)");
+        set("prop-fill", el.fill || "var(--id-surface-solid)");
     }
 
     C.hideElementProperties = function hideElementProperties() {

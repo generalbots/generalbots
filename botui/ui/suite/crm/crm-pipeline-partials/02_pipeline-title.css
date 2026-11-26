@@ -7,11 +7,11 @@
 
 .pipeline-count {
     padding: 2px 8px;
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     border-radius: 12px;
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .pipeline-cards {
@@ -24,7 +24,7 @@
 }
 
 .pipeline-cards.drag-over {
-    background: rgba(212, 245, 5, 0.05);
+    background: color-mix(in srgb, var(--palette-d4f505) 5%, transparent);
 }
 
 /* Drag feedback (#1298) */
@@ -45,7 +45,7 @@
 .pipeline-card:hover {
     border-color: var(--accent, var(--palette-d4f505));
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--id-overlay);
 }
 
 .pipeline-card:active {
@@ -74,7 +74,7 @@
 
 .pipeline-card-company {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     margin-bottom: 8px;
 }
 
@@ -83,7 +83,7 @@
     align-items: center;
     justify-content: space-between;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .pipeline-card-owner {
@@ -126,7 +126,7 @@
     background: transparent;
     border: 1px dashed var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -135,7 +135,7 @@
 .pipeline-add:hover {
     border-color: var(--accent, var(--palette-d4f505));
     color: var(--accent, var(--palette-d4f505));
-    background: rgba(212, 245, 5, 0.05);
+    background: color-mix(in srgb, var(--palette-d4f505) 5%, transparent);
 }
 
 /* Pipeline Summary */
@@ -144,7 +144,7 @@
     gap: 16px;
     padding: 16px 24px;
     border-top: 1px solid var(--border, var(--palette-2a2a2a));
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
 }
 
 .summary-card {
@@ -160,7 +160,7 @@
 
 .summary-label {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -186,7 +186,7 @@
 
 .list-filters select {
     padding: 8px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -209,10 +209,10 @@
 .crm-table th {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
     position: sticky;
     top: 0;
 }

@@ -116,7 +116,7 @@
 }
 
 .chat-input::placeholder {
-    color: var(--sentient-text-muted, #999);
+    color: var(--sentient-text-muted, var(--id-muted));
 }
 
 @media (prefers-reduced-motion: reduce) {

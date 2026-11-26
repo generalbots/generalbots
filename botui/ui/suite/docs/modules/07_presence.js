@@ -78,8 +78,8 @@
     tag.textContent = name;
     tag.style.cssText =
       "position:absolute;top:-20px;left:0;padding:1px 6px;font-size:10px;line-height:16px;" +
-      "font-weight:600;color:#fff;background:" + color + ";border-radius:3px 3px 3px 0;" +
-      "white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.4);";
+      "font-weight:600;color:var(--id-surface-solid);background:" + color + ";border-radius:3px 3px 3px 0;" +
+      "white-space:nowrap;box-shadow:0 1px 2px color-mix(in srgb, var(--palette-000000) 40%, transparent);";
     return tag;
   }
 
@@ -146,7 +146,7 @@
       if (typeof msg.position !== "number") { cursors.delete(msg.user_id); scheduleRender(); return; }
       cursors.set(msg.user_id, {
         name: msg.user_name || "User",
-        color: msg.user_color || "#3b82f6",
+        color: msg.user_color || "var(--palette-3b82f6)",
         position: msg.position
       });
       scheduleRender();
@@ -166,7 +166,7 @@
         selections.delete(msg.user_id);
         cursors.set(msg.user_id, {
           name: msg.user_name || "User",
-          color: msg.user_color || "#3b82f6",
+          color: msg.user_color || "var(--palette-3b82f6)",
           position: sel.start
         });
         scheduleRender();
@@ -174,7 +174,7 @@
       }
       selections.set(msg.user_id, {
         name: msg.user_name || "User",
-        color: msg.user_color || "#3b82f6",
+        color: msg.user_color || "var(--palette-3b82f6)",
         start: Math.min(sel.start, sel.end),
         end: Math.max(sel.start, sel.end)
       });

@@ -154,12 +154,12 @@
   });
 
   function indicatorColor(state) {
-    if (state === "synced") return "#22c55e";
-    if (state === "syncing" || state === "conflict") return "#f59e0b";
-    if (state === "error") return "#ef4444";
-    if (state === "unsupported" || state === "no-folder" || state === "idle") return "#64748b";
-    if (state === "offline") return "#94a3b8";
-    return "#64748b";
+    if (state === "synced") return "var(--id-success)";
+    if (state === "syncing" || state === "conflict") return "var(--palette-f59e0b)";
+    if (state === "error") return "var(--id-danger-icon)";
+    if (state === "unsupported" || state === "no-folder" || state === "idle") return "var(--palette-64748b)";
+    if (state === "offline") return "var(--palette-94a3b8)";
+    return "var(--palette-64748b)";
   }
 
   function updateIndicator() {

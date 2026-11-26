@@ -5,8 +5,8 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.1);
+        0 12px 40px color-mix(in srgb, var(--palette-000000) 20%, transparent),
+        0 4px 12px color-mix(in srgb, var(--palette-000000) 10%, transparent);
     min-width: 200px;
     z-index: var(--z-context-menu, 1100);
     padding: 6px;
@@ -54,8 +54,8 @@
 .context-menu-item:hover {
     background: linear-gradient(
         135deg,
-        var(--primary-light, rgba(99, 102, 241, 0.1)) 0%,
-        var(--surface-hover, rgba(99, 102, 241, 0.05)) 100%
+        var(--primary-light, color-mix(in srgb, var(--palette-6366f1) 10%, transparent)) 0%,
+        var(--surface-hover, color-mix(in srgb, var(--palette-6366f1) 5%, transparent)) 100%
     );
     color: var(--primary, var(--palette-6366f1));
 }
@@ -81,8 +81,8 @@
 .context-menu-item.danger:hover {
     background: linear-gradient(
         135deg,
-        rgba(239, 68, 68, 0.15) 0%,
-        rgba(239, 68, 68, 0.05) 100%
+        color-mix(in srgb, var(--id-danger-icon) 15%, transparent) 0%,
+        color-mix(in srgb, var(--id-danger-icon) 5%, transparent) 100%
     );
     color: var(--error, var(--palette-ef4444));
 }

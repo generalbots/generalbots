@@ -24,11 +24,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
    identity aliases, so it was removed to let the themed pattern apply. */
 .btn-outline { background: transparent; border-color: var(--pm-primary); color: var(--pm-primary); }
 .btn-outline:hover { background: color-mix(in srgb, var(--pm-primary) 15%, transparent); }
-.btn-danger { background: var(--pm-danger); color: #fff; }
+.btn-danger { background: var(--pm-danger); color: var(--id-surface-solid); }
 .btn-danger:hover { background: var(--pm-danger-hover); }
 .btn-sm { padding: 6px 12px; font-size: var(--text-2xs); }
 #plugin-list { display: grid; gap: 16px; }
-.plugin-card { background: var(--pm-surface); border: 1px solid var(--pm-border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.plugin-card { background: var(--pm-surface); border: 1px solid var(--pm-border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 20%, transparent); }
 .plugin-card.active { border-left: 4px solid var(--pm-success); }
 .plugin-card.inactive { border-left: 4px solid var(--pm-danger); }
 .plugin-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px; }

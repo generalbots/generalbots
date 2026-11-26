@@ -12,7 +12,7 @@
     .kpi-value {
         font-size: var(--text-5xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .kpi-trend,
@@ -52,7 +52,7 @@
     .time-item span:first-child,
     .stat-label {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .detail-value,
@@ -60,7 +60,7 @@
     .stat-value {
         font-size: var(--text-lg);
         font-weight: 600;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .donut-chart-container {
@@ -90,13 +90,13 @@
     .donut-total {
         font-size: var(--text-2xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         display: block;
     }
 
     .donut-label {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .donut-legend {
@@ -110,7 +110,7 @@
         align-items: center;
         gap: 8px;
         font-size: var(--text-xs);
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .legend-color {
@@ -136,7 +136,7 @@
 
     .revenue-label {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
         display: block;
         margin-bottom: 8px;
     }
@@ -144,7 +144,7 @@
     .revenue-value {
         font-size: var(--text-2xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         display: block;
     }
 
@@ -184,13 +184,13 @@
     .aging-label,
     .category-name {
         font-size: var(--text-xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .aging-bar-container,
     .category-bar-container {
         height: 8px;
-        background: var(--hover, rgba(255, 255, 255, 0.05));
+        background: var(--hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
         border-radius: 4px;
         overflow: hidden;
     }
@@ -226,7 +226,7 @@
     .category-count {
         font-size: var(--text-xs);
         font-weight: 600;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         text-align: right;
     }
 
@@ -241,7 +241,7 @@
         align-items: center;
         gap: 12px;
         padding: 12px;
-        background: var(--hover, rgba(255, 255, 255, 0.03));
+        background: var(--hover, color-mix(in srgb, var(--id-surface-solid) 3%, transparent));
         border-radius: 8px;
     }
 
@@ -252,24 +252,24 @@
     .priority-label {
         flex: 1;
         font-size: var(--text-sm);
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .priority-count {
         font-size: var(--text-lg);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .time-value {
         font-size: var(--text-5xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .time-unit {
         font-size: var(--text-md);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
         margin-left: 4px;
     }
 
@@ -279,7 +279,7 @@
 
     .comparison-label {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
         margin-right: 8px;
     }
 
@@ -299,7 +299,7 @@
     .gauge-value {
         font-size: var(--text-3xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         margin-top: -10px;
     }
 
@@ -321,7 +321,7 @@
         align-items: center;
         width: 40px;
         height: var(--height);
-        background: var(--accent-glow, rgba(59, 130, 246, 0.3));
+        background: var(--accent-glow, color-mix(in srgb, var(--palette-3b82f6) 30%, transparent));
         border-radius: 4px 4px 0 0;
         position: relative;
         transition: height 0.3s;
@@ -335,7 +335,7 @@
         position: absolute;
         top: -20px;
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
         white-space: nowrap;
     }
 
@@ -343,7 +343,7 @@
         position: absolute;
         bottom: -20px;
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .sparkline-container {
@@ -364,13 +364,13 @@
 
     .summary-label {
         font-size: var(--text-xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .summary-value {
         font-size: var(--text-xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .forecast-display {
@@ -383,7 +383,7 @@
 
     .forecast-label {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
         display: block;
         margin-bottom: 4px;
     }
@@ -391,12 +391,12 @@
     .forecast-value {
         font-size: var(--text-4xl);
         font-weight: 700;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     .forecast-bar {
         height: 8px;
-        background: var(--hover, rgba(255, 255, 255, 0.1));
+        background: var(--hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
         border-radius: 4px;
         margin-bottom: 8px;
         position: relative;
@@ -411,7 +411,7 @@
 
     .forecast-target {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .forecast-breakdown {
@@ -430,12 +430,12 @@
 
     .breakdown-item span:first-child {
         font-size: var(--text-2xs);
-        color: var(--text-secondary, #888);
+        color: var(--text-secondary, var(--palette-888888));
     }
 
     .breakdown-item span:last-child {
         font-size: var(--text-md);
         font-weight: 600;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

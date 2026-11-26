@@ -39,7 +39,7 @@
     padding: 0;
     background: var(--sentient-bg-secondary, var(--palette-f1f5f9));
     border-bottom: 2px solid var(--sentient-border, var(--palette-cbd5e1));
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--id-ink) 8%, transparent);
     gap: 0;
     flex-shrink: 0;
     min-height: 52px;
@@ -81,7 +81,7 @@
 }
 .sheet-toolbar-row-format .btn-icon[aria-pressed="true"] {
     background: var(--sentient-accent, var(--palette-4285f4));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 .sheet-numfmt {
     font: 600 12px/1 system-ui, sans-serif;
@@ -191,7 +191,7 @@
     height: 32px;
     border: none;
     background: transparent;
-    color: var(--sentient-text-secondary, #666);
+    color: var(--sentient-text-secondary, var(--id-text));
     border-radius: var(--sentient-radius-sm, 4px);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -261,7 +261,7 @@
 }
 
 .toolbar-select:hover {
-    border-color: var(--sentient-text-muted, #999);
+    border-color: var(--sentient-text-muted, var(--id-muted));
 }
 
 .toolbar-select:focus {
@@ -329,7 +329,7 @@
     border: 1px solid var(--sentient-border, var(--palette-cbd5e1));
     border-radius: 8px;
     background: var(--sentient-bg-primary, var(--palette-ffffff));
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 18%, transparent);
     display: flex;
     flex-direction: column;
     gap: 4px;

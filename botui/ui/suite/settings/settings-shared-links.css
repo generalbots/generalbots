@@ -6,7 +6,7 @@
     border: 1px solid var(--palette-f59e0b);
     border-left-width: 4px;
     border-radius: 8px;
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--id-accent) 10%, transparent);
     color: var(--text, var(--palette-e5e7eb));
     font-size: var(--text-xs);
     line-height: 1.55;
@@ -91,8 +91,8 @@
 }
 
 .shared-status-ready {
-    border-color: rgba(34, 197, 94, 0.45);
-    background: rgba(34, 197, 94, 0.12);
+    border-color: color-mix(in srgb, var(--id-success) 45%, transparent);
+    background: color-mix(in srgb, var(--id-success) 12%, transparent);
     color: var(--palette-4ade80);
 }
 
@@ -101,8 +101,8 @@
 }
 
 .shared-status-warn {
-    border-color: rgba(245, 158, 11, 0.45);
-    background: rgba(245, 158, 11, 0.12);
+    border-color: color-mix(in srgb, var(--id-accent) 45%, transparent);
+    background: color-mix(in srgb, var(--id-accent) 12%, transparent);
     color: var(--palette-fbbf24);
 }
 

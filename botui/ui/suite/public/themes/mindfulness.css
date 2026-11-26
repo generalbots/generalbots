@@ -1,314 +1,176 @@
-:root {
-  color-scheme: light;
-
-  /* Canonical raw HSL tokens consumed through hsl(var(--token)). */
-  --background: 43 29% 93%;
-  --foreground: 157 18% 18%;
-  --card: 45 33% 98%;
-  --card-foreground: 157 18% 18%;
-  --popover: 45 33% 98%;
-  --popover-foreground: 157 18% 18%;
-  --primary: 155 25% 33%;
-  --primary-foreground: 45 33% 98%;
-  --secondary: 132 14% 88%;
-  --secondary-foreground: 157 18% 22%;
-  --muted: 43 17% 89%;
-  --muted-foreground: 153 10% 36%;
-  --accent: 158 22% 82%;
-  --accent-foreground: 157 22% 22%;
-  --destructive: 0 43% 43%;
-  --destructive-foreground: 45 33% 98%;
-  --border: 116 10% 79%;
-  --input: 45 29% 97%;
-  --ring: 155 25% 33%;
-  --radius: 0.75rem;
-  --chart-1: 155 25% 33%;
-  --chart-2: 181 25% 39%;
-  --chart-3: 39 48% 43%;
-  --chart-4: 203 24% 42%;
-  --chart-5: 8 34% 48%;
-
-  /* Canonical direct-use GeneralBots aliases. */
-  --gb-background: hsl(var(--background));
-  --gb-foreground: hsl(var(--foreground));
-  --gb-card: hsl(var(--card));
-  --gb-card-foreground: hsl(var(--card-foreground));
-  --gb-popover: hsl(var(--popover));
-  --gb-popover-foreground: hsl(var(--popover-foreground));
-  --gb-bg: hsl(var(--background));
-  --gb-bg-primary: hsl(var(--background));
-  --gb-bg-secondary: hsl(var(--muted));
-  --gb-bg-card: hsl(var(--card));
-  --gb-surface: hsl(var(--card));
-  --gb-surface-hover: hsl(137 17% 94%);
-  --gb-surface-active: hsl(139 17% 89%);
-  --gb-surface-elevated: hsl(var(--popover));
-  --gb-text: hsl(var(--foreground));
-  --gb-text-primary: hsl(var(--foreground));
-  --gb-text-secondary: hsl(var(--muted-foreground));
-  --gb-text-muted: hsl(150 8% 40%);
-  --gb-primary: hsl(var(--primary));
-  --gb-primary-hover: hsl(155 27% 28%);
-  --gb-primary-active: hsl(155 29% 24%);
-  --gb-primary-foreground: hsl(var(--primary-foreground));
-  --gb-secondary: hsl(var(--secondary));
-  --gb-secondary-foreground: hsl(var(--secondary-foreground));
-  --gb-muted: hsl(var(--muted));
-  --gb-muted-foreground: hsl(var(--muted-foreground));
-  --gb-accent: var(--primary);
-  --gb-accent-soft: hsl(var(--accent));
-  --gb-accent-foreground: hsl(var(--accent-foreground));
-  --gb-destructive: hsl(var(--destructive));
-  --gb-destructive-foreground: hsl(var(--destructive-foreground));
-  --gb-border: hsl(var(--border));
-  --gb-border-light: hsl(110 12% 87%);
-  --gb-border-hover: hsl(150 15% 58%);
-  --gb-border-dark: hsl(151 10% 52%);
-  --gb-input: hsl(var(--input));
-  --gb-ring: hsl(var(--ring));
-
-  /* Semantic colors retain readable contrast on the light surfaces. */
-  --gb-success: hsl(151 38% 30%);
-  --gb-success-bg: hsl(145 28% 91%);
-  --gb-warning: hsl(37 71% 30%);
-  --gb-warning-bg: hsl(40 60% 91%);
-  --gb-error: hsl(0 43% 42%);
-  --gb-error-bg: hsl(2 45% 93%);
-  --gb-info: hsl(190 38% 32%);
-  --gb-info-bg: hsl(186 29% 91%);
-  --success: var(--gb-success);
-  --success-color: var(--gb-success);
-  --success-bg: var(--gb-success-bg);
-  --warning: var(--gb-warning);
-  --warning-color: var(--gb-warning);
-  --warning-bg: var(--gb-warning-bg);
-  --error: var(--gb-error);
-  --error-color: var(--gb-error);
-  --error-bg: var(--gb-error-bg);
-  --info: var(--gb-info);
-  --info-color: var(--gb-info);
-  --info-bg: var(--gb-info-bg);
-
-  /* Legacy application bridge. Raw HSL names above stay raw. */
-  --bg: var(--gb-bg);
-  --bg-primary: var(--gb-bg-primary);
-  --bg-secondary: var(--gb-bg-secondary);
-  --bg-card: var(--gb-bg-card);
-  --primary-bg: var(--gb-bg-primary);
-  --primary-fg: var(--gb-text-primary);
-  --secondary-bg: var(--gb-bg-card);
-  --secondary-fg: var(--gb-text-secondary);
-  --surface: var(--gb-surface);
-  --surface-hover: var(--gb-surface-hover);
-  --surface-active: var(--gb-surface-active);
-  --surface-elevated: var(--gb-surface-elevated);
-  --card-bg: var(--gb-bg-card);
-  --bg-hover: var(--gb-surface-hover);
-  --bg-active: var(--gb-surface-active);
-  --bg-disabled: hsl(var(--muted));
-  --hover-bg: var(--gb-surface-hover);
-  --active-bg: var(--gb-surface-active);
-  --text: var(--gb-text);
-  --text-primary: var(--gb-text-primary);
-  --text-secondary: var(--gb-text-secondary);
-  --text-tertiary: var(--gb-text-muted);
-  --text-muted: var(--gb-text-muted);
-  --border-color: var(--gb-border);
-  --border-light: var(--gb-border-light);
-  --border-hover: var(--gb-border-hover);
-  --border-dark: var(--gb-border-dark);
-  --accent-color: var(--gb-accent);
-  --accent-hover: var(--gb-primary-hover);
-  --accent-active: var(--gb-primary-active);
-  --accent-light: var(--gb-accent-soft);
-  --accent-dark: var(--gb-primary-active);
-  --accent-gradient: var(--gb-accent);
-  --primary-color: var(--gb-primary);
-
-  /* Sentient compatibility bridge used by office and shared apps. */
-  --sentient-bg-primary: var(--gb-bg-primary);
-  --sentient-bg-secondary: var(--gb-bg-card);
-  --sentient-bg-tertiary: var(--gb-bg-secondary);
-  --sentient-bg-hover: var(--gb-surface-hover);
-  --sentient-bg-active: var(--gb-surface-active);
-  --sentient-text-primary: var(--gb-text-primary);
-  --sentient-text-secondary: var(--gb-text-secondary);
-  --sentient-text-tertiary: var(--gb-text-muted);
-  --sentient-text-muted: var(--gb-text-muted);
-  --sentient-accent: var(--gb-accent);
-  --sentient-accent-hover: var(--gb-primary-hover);
-  --sentient-accent-light: var(--gb-accent-soft);
-  --sentient-accent-dark: var(--gb-primary-active);
-  --sentient-border: var(--gb-border);
-  --sentient-border-light: var(--gb-border-light);
-  --sentient-border-accent: hsl(155 25% 33% / 0.35);
-  --sentient-surface: var(--gb-surface);
-  --sentient-surface-hover: var(--gb-surface-hover);
-  --sentient-surface-active: var(--gb-surface-active);
-  --sentient-surface-elevated: var(--gb-surface-elevated);
-  --sentient-input-bg: var(--gb-input);
-  --sentient-input-border: var(--gb-border);
-  --sentient-input-focus: var(--gb-ring);
-  --sentient-success: var(--gb-success);
-  --sentient-success-bg: var(--gb-success-bg);
-  --sentient-warning: var(--gb-warning);
-  --sentient-warning-bg: var(--gb-warning-bg);
-  --sentient-error: var(--gb-error);
-  --sentient-error-bg: var(--gb-error-bg);
-  --sentient-info: var(--gb-info);
-  --sentient-info-bg: var(--gb-info-bg);
-  --sentient-font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Inputs, overlays, and structural surfaces. */
-  --input-bg: var(--gb-input);
-  --input-border: var(--gb-border);
-  --input-focus-border: var(--gb-ring);
-  --input-placeholder: var(--gb-text-muted);
-  --input-text: var(--gb-text-primary);
-  --modal-bg: var(--gb-surface-elevated);
-  --modal-overlay: hsl(157 18% 18% / 0.42);
-  --modal-border: var(--gb-border);
-  --modal-text: var(--gb-text-primary);
-  --modal-header-bg: var(--gb-bg-secondary);
-  --header-bg: hsl(45 33% 98% / 0.96);
-  --header-border: var(--gb-border);
-  --header-text: var(--gb-text-primary);
-  --header-hover: var(--gb-surface-hover);
-  --sidebar-bg: hsl(45 25% 96%);
-  --sidebar-border: var(--gb-border);
-  --sidebar-item-hover: var(--gb-surface-hover);
-  --sidebar-item-active: hsl(var(--accent));
-  --sidebar-text: var(--gb-text-primary);
-  --sidebar-text-muted: var(--gb-text-muted);
-
-  /* Opaque app canvas and restrained glass for desktop chrome only. */
-  --app-bg: hsl(var(--card));
-  --glass-opacity: 0.82;
-  --glass-blur: 16px;
-  --glass-bg: hsl(43 24% 92% / 0.82);
-  --glass-border: hsl(150 12% 62% / 0.42);
-  --glass-border-color: hsl(150 12% 62% / 0.42);
-  --glass-highlight: hsl(45 33% 100% / 0.56);
-  --glass-shadow: 0 10px 30px hsl(157 18% 18% / 0.12);
-  --glass-backdrop: blur(16px) saturate(115%);
-
-  --win-bg: var(--glass-bg);
-  --win-body-bg: var(--app-bg);
-  --win-blur: var(--glass-backdrop);
-  --win-radius: 14px;
-  --win-border-width: 1px;
-  --win-border-color: hsl(150 12% 54% / 0.55);
-  --win-border-active: var(--gb-primary);
-  --win-titlebar-bg: hsl(43 24% 92% / 0.88);
-  --win-titlebar-text: var(--gb-text-secondary);
-  --win-titlebar-sep: hsl(150 12% 62% / 0.45);
-  --win-caption-hover: hsl(155 25% 33% / 0.09);
-
-  --shell-bg: hsl(43 24% 92% / 0.84);
-  --shell-border: hsl(150 12% 62% / 0.46);
-  --shell-radius: 16px;
-  --shell-margin: 10px;
-  --shell-blur: blur(18px) saturate(112%);
-  --taskbar-bg: var(--shell-bg);
-  --taskbar-border: var(--shell-border);
-  --taskbar-text: var(--gb-text-primary);
-  --taskbar-hover: var(--gb-surface-hover);
-  --taskbar-active: var(--gb-surface-active);
-
-  /* Quiet contour lines meet a low sea-glass horizon. */
-  --wall:
-    radial-gradient(80% 34% at 12% 105%, transparent 68%, hsl(154 18% 45% / 0.10) 68.5%, transparent 69.2%),
-    radial-gradient(72% 30% at 86% 104%, transparent 64%, hsl(181 21% 47% / 0.09) 64.5%, transparent 65.3%),
-    linear-gradient(180deg, hsl(43 29% 93%) 0 61%, hsl(144 17% 89%) 61.4% 62%, hsl(151 18% 91%) 62.4% 100%);
-  --wall-vignette:
-    repeating-radial-gradient(ellipse 76% 38% at 50% 112%, transparent 0 38px, hsl(154 18% 45% / 0.055) 39px 40px, transparent 41px 68px);
-  --wallpaper-bg: var(--wall);
-  --wallpaper-overlay: var(--wall-vignette);
-
-  /* Geometry and elevation. */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 24px;
-  --radius-full: 9999px;
-  --gb-radius-sm: var(--radius-sm);
-  --gb-radius-md: var(--radius-md);
-  --gb-radius-lg: var(--radius-lg);
-  --shadow-sm: 0 1px 2px hsl(157 18% 18% / 0.07);
-  --shadow-md: 0 5px 16px hsl(157 18% 18% / 0.09);
-  --shadow-lg: 0 12px 32px hsl(157 18% 18% / 0.12);
-  --shadow-xl: 0 22px 52px hsl(157 18% 18% / 0.15);
-  --gb-shadow-sm: var(--shadow-sm);
-  --gb-shadow-md: var(--shadow-md);
-  --gb-shadow-lg: var(--shadow-lg);
-  --sentient-shadow-sm: var(--shadow-sm);
-  --sentient-shadow-md: var(--shadow-md);
-  --sentient-shadow-lg: var(--shadow-lg);
-  --sentient-radius: var(--radius-md);
-  --sentient-radius-sm: var(--radius-sm);
-  --sentient-radius-md: var(--radius-md);
-  --sentient-radius-lg: var(--radius-lg);
-  --sentient-radius-xl: var(--radius-xl);
-  --modal-shadow: var(--shadow-xl);
-  --win-shadow: 0 4px 14px hsl(157 18% 18% / 0.10), 0 18px 46px hsl(157 18% 18% / 0.13);
-  --win-shadow-active: 0 6px 18px hsl(157 18% 18% / 0.12), 0 24px 60px hsl(157 18% 18% / 0.16);
-
-  --scrollbar-track: hsl(var(--muted));
-  --scrollbar-thumb: hsl(151 10% 52% / 0.55);
-  --scrollbar-thumb-hover: hsl(151 12% 44% / 0.72);
-  --transition-fast: 140ms ease;
-  --transition-smooth: 240ms ease;
-  --transition-slow: 400ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --transition-fast: 0ms;
-    --transition-smooth: 0ms;
-    --transition-slow: 0ms;
-    --win-open-dur: 0ms;
-  }
-}
-
-/* == Identity bridge (assistant look) ==============================
- * The suite's UI (every app, chat included) is expressed in --id-*
- * tokens. Each theme declares its own values here so the assistant look
- * comes back recoloured to this palette instead of falling back to the
- * reference orange and paper. Generated from the palette declared above;
- * regenerate when the palette changes.
+/*
+ * Mindfulness — accent-only variant of the identity theme.
+ *
+ * The only visual difference from default.css is the accent family below.
+ * Every other token aliases the fixed identity tokens in
+ * /suite/css/identity-tokens.css (paper, ink, greys, radii, shadows, type),
+ * so themes can never drift the design system. Accent shades are derived with
+ * the same OKLCH/WCAG rules as identity/accent.js. Dark accents are keyed by
+ * data-color-scheme (written by theme-scheme.js), never by a theme id — see
+ * the #2591 note in default.css.
+ *
+ * Theme id: "mindfulness"  •  source accent: #3F6958
  */
+:root[data-theme="mindfulness"] {
+    /* == Accent (light) — OKLCH derivation ============================== */
+    --id-accent: #3F6958;
+    --id-accent-hover: #2D5242;
+    --id-accent-light: #61847B;
+    --id-accent-text: #466652; /* 6.08:1 on identity paper */
+    --id-accent-soft: rgb(63 105 88 / .1);
+    --id-accent-glow: rgb(63 105 88 / .26);
+    --id-on-accent: #FFFFFF; /* 6.23:1 on accent */
 
-:root {
-    /* Accent — the theme's primary, with the reference shades derived. */
-    --id-accent: hsl(155 25% 33%);
-    --id-accent-hover: color-mix(in srgb, hsl(155 25% 33%) 86%, #000);
-    --id-accent-light: color-mix(in srgb, hsl(155 25% 33%) 68%, #fff);
-    --id-accent-text: hsl(157 22% 22%);
-    --id-accent-soft: color-mix(in srgb, hsl(155 25% 33%) 12%, transparent);
-    --id-accent-glow: color-mix(in srgb, hsl(155 25% 33%) 26%, transparent);
-    --id-on-accent: hsl(45 33% 98%);
+    /* == Legacy HSL palette — compatibility triplets ===================
+     * Many suite consumers call hsl(var(--background)), hsl(var(--primary)),
+     * hsl(var(--border)) ... and theme-scheme.js reads the same channels, so
+     * these names MUST stay as raw 'H S% L%' values, never resolved colours.
+     * Neutral triplets are the design-system defaults (identical in every
+     * theme); --primary/--ring/--accent/--chart-1 carry this theme's accent.
+     * See the token-to-HSL bridge note in base/01_root-themes.css. */
+    --background: 28 100% 97%;
+    --foreground: 0 0% 17%;
+    --card: 30 100% 99%;
+    --card-foreground: 0 0% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
+    --primary: 156 25% 33%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 219 10% 41%;
+    --accent: 165 15% 94%;
+    --accent-foreground: 142 19% 34%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 0 0% 100%;
+    --ring: 156 25% 33%;
+    --radius: 0.75rem;
+    --chart-1: 156 25% 33%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 199 89% 48%;
 
-    /* Surfaces and ink. */
-    --id-paper: hsl(43 29% 93%);
-    --id-ink: hsl(157 18% 18%);
-    --id-text: color-mix(in srgb, hsl(157 18% 18%) 82%, hsl(43 29% 93%));
-    --id-muted: hsl(153 10% 36%);
-    --id-gray-100: hsl(43 17% 89%);
-    --id-gray-200: color-mix(in srgb, hsl(157 18% 18%) 12%, hsl(43 29% 93%));
-    --id-gray-300: color-mix(in srgb, hsl(157 18% 18%) 22%, hsl(43 29% 93%));
-    --id-gray-400: color-mix(in srgb, hsl(157 18% 18%) 46%, hsl(43 29% 93%));
-    --id-gray-500: color-mix(in srgb, hsl(157 18% 18%) 62%, hsl(43 29% 93%));
-    --id-surface: color-mix(in srgb, hsl(45 33% 98%) 90%, transparent);
-    --id-surface-solid: hsl(45 33% 98%);
-    --id-line: color-mix(in srgb, hsl(116 10% 79%) 90%, transparent);
-    --id-line-soft: color-mix(in srgb, hsl(116 10% 79%) 55%, transparent);
-    --id-fill: color-mix(in srgb, hsl(43 17% 89%) 80%, transparent);
+    /* Full-colour legacy vocabulary — aliases of the fixed identity look. */
+    --accent-color: var(--id-accent);
+    --primary-hover: var(--id-accent-hover);
+    --primary-light: var(--id-accent-soft);
+    --bg: var(--id-paper);
+    --bg-primary: var(--id-paper);
+    --bg-secondary: var(--id-surface-solid);
+    --bg-tertiary: var(--id-gray-100);
+    --surface: var(--id-surface);
+    --surface-hover: var(--id-fill);
+    --surface-active: var(--id-accent-soft);
+    --surface-elevated: var(--id-surface-solid);
+    --text: var(--id-ink);
+    --text-secondary: var(--id-text);
+    --text-tertiary: var(--id-muted);
+    --text-muted: var(--id-muted);
+    --text-accent: var(--id-accent-text);
+    --success: var(--id-success);
+    --success-bg: var(--id-success-soft);
+    --warning: var(--id-warn);
+    --warning-bg: var(--id-warn-soft);
+    --error: var(--id-danger);
+    --error-bg: var(--id-danger-soft);
+    --info: var(--id-hl-function);
+    --danger: var(--id-danger);
+    --border-color: var(--id-line);
+    --border-light: var(--id-line-soft);
+    --border-hover: var(--id-accent);
+    --shadow: var(--id-shadow-card);
+    --shadow-sm: var(--id-shadow-card);
+    --shadow-md: var(--id-shadow-card-hover);
+    --shadow-lg: var(--id-shadow-float);
+    --shadow-accent: var(--id-accent-glow);
+    --shadow-glow: var(--id-accent-glow);
 
-    /* Shape follows the theme's own radius. */
-    --id-radius-card: calc(0.75rem + 8px);
-    --id-radius-panel: calc(0.75rem + 6px);
-    --id-radius-bar: calc(0.75rem + 4px);
-    --id-radius-control: 0.75rem;
-    --id-radius-sm: max(4px, calc(0.75rem - 4px));
+    /* Window chrome and shell — identity surfaces, accent on active only. */
+    --win-radius: var(--id-radius-card);
+    --win-border-width: 1px;
+    --win-border-color: var(--id-line);
+    --win-border-active: var(--id-accent);
+    --win-bg: var(--id-surface);
+    --win-titlebar-bg: var(--id-surface);
+    --win-titlebar-text: var(--id-text);
+    --win-titlebar-sep: var(--id-line);
+    --win-caption-hover: var(--id-accent-soft);
+    --win-shadow: var(--id-shadow-float);
+    --win-shadow-active: var(--id-shadow-card-hover);
+    --shell-bg: var(--id-surface);
+    --shell-border: var(--id-line);
+    --shell-blur: blur(24px) saturate(160%);
+    --glass-bg: var(--id-surface);
+    --glass-border-color: var(--id-line);
+    --wall:
+        radial-gradient(ellipse at 12% 0%, var(--id-accent-soft) 0%, transparent 55%),
+        radial-gradient(ellipse at 88% 8%, var(--id-accent-glow) 0%, transparent 50%),
+        linear-gradient(165deg, var(--id-paper) 0%, var(--id-surface-solid) 100%);
+    --wall-vignette:
+        radial-gradient(ellipse at 50% 110%, var(--id-accent-soft) 0%, transparent 60%);
+
+    /* Sentient bridge (Sheet, Docs, Slides) — identity-only, accent varies. */
+    --sentient-bg-primary: var(--id-paper);
+    --sentient-bg-secondary: var(--id-surface-solid);
+    --sentient-bg-tertiary: var(--id-gray-100);
+    --sentient-bg-hover: var(--id-accent-soft);
+    --sentient-bg-active: var(--id-accent-glow);
+    --sentient-text-primary: var(--id-ink);
+    --sentient-text-secondary: var(--id-text);
+    --sentient-text-tertiary: var(--id-muted);
+    --sentient-text-muted: var(--id-gray-400);
+    --sentient-accent: var(--id-accent);
+    --sentient-accent-hover: var(--id-accent-hover);
+    --sentient-accent-light: var(--id-accent-soft);
+    --sentient-accent-dark: var(--id-accent-text);
+    --sentient-border: var(--id-line);
+    --sentient-border-light: var(--id-line-soft);
+    --sentient-border-accent: var(--id-accent-glow);
+    --sentient-surface: var(--id-surface-solid);
+    --sentient-surface-hover: var(--id-fill);
+    --sentient-surface-active: var(--id-accent-soft);
+    --sentient-surface-elevated: var(--id-surface);
+    --sentient-input-bg: var(--id-surface-solid);
+    --sentient-input-border: var(--id-line);
+    --sentient-input-focus: var(--id-accent);
+    --sentient-success: var(--id-success);
+    --sentient-success-bg: var(--id-success-soft);
+    --sentient-warning: var(--id-warn);
+    --sentient-warning-bg: var(--id-warn-soft);
+    --sentient-error: var(--id-danger);
+    --sentient-error-bg: var(--id-danger-soft);
+    --sentient-font-family: var(--id-font-sans);
+    --sentient-shadow-sm: var(--id-shadow-card);
+    --sentient-shadow-md: var(--id-shadow-card-hover);
+    --sentient-shadow-lg: var(--id-shadow-float);
+    --sentient-radius: var(--id-radius-control);
+    --sentient-radius-sm: var(--id-radius-sm);
+    --sentient-radius-md: var(--id-radius-control);
+    --sentient-radius-lg: var(--id-radius-panel);
+    --sentient-radius-xl: var(--id-radius-card);
+    --gb-font-heading: var(--id-font-heading);
+    --gb-font-body: var(--id-font-sans);
+
+    /* App identity: surfaces carry no per-app hue; only launcher tiles do. */
+    --gb-identity-line: transparent;
+    --gb-identity-wash: transparent;
+    --gb-identity-accent: var(--id-accent-text);
+    --gb-identity-tint: var(--id-line);
+}
+
+
+/* == Dark accent — scheme keyed, never theme id (#2591) ================= */
+/* Same identity surfaces; only the accent family brightens on dark paper. */
+:root[data-color-scheme="dark"] {
+    --id-accent: #4B7866;
+    --id-accent-hover: #608976;
+    --id-accent-light: #4A5F59;
+    --id-accent-text: #779487; /* 5.11:1 on dark paper */
+    --id-accent-soft: rgb(63 105 88 / .15);
+    --id-accent-glow: rgb(63 105 88 / .3);
+    --id-on-accent: #FFFFFF; /* 5.03:1 on accent */
 }

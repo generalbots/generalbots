@@ -65,16 +65,16 @@
     function renderMembers(members) {
         var listEl = document.getElementById("vibeMembersList");
         if (members.length === 0) {
-            listEl.innerHTML = "<div style='color:#999;font-size:13px;'>No members yet. Add a member below.</div>";
+            listEl.innerHTML = "<div style='color:var(--id-muted);font-size:13px;'>No members yet. Add a member below.</div>";
             return;
         }
         var roleBadge = { owner: "#f7b500", admin: "#4a9eff", developer: "#84d669", viewer: "#888" };
         listEl.innerHTML = members.map(function (m) {
             var color = roleBadge[m.role] || "#888";
-            return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border,#333);font-size:13px;'>"
-                + "<span style='color:var(--text,#eee);'>"
+            return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border,var(--id-ink));font-size:13px;'>"
+                + "<span style='color:var(--text,var(--id-gray-100));'>"
                 + (m.user_name ? "<span style='font-weight:600;'>" + esc(m.user_name) + "</span>"
-                    + (m.email ? " <span style='color:var(--text-muted,#999);'>· " + esc(m.email) + "</span>" : "")
+                    + (m.email ? " <span style='color:var(--text-muted,var(--id-muted));'>· " + esc(m.email) + "</span>" : "")
                     : esc(displayName(m)))
                 + "</span>"
                 + "<span style='color:" + color + ";text-transform:uppercase;font-size:11px;font-weight:700;'>" + esc(m.role) + "</span>"
@@ -86,13 +86,13 @@
         var listEl = document.getElementById("vibeMembersList");
         var pid = projectId();
         if (!pid) {
-            listEl.innerHTML = "<div style='color:#999;font-size:13px;'>No project selected. Create a project first.</div>";
+            listEl.innerHTML = "<div style='color:var(--id-muted);font-size:13px;'>No project selected. Create a project first.</div>";
             return;
         }
-        listEl.innerHTML = "<div style='color:#999;font-size:13px;'>Loading…</div>";
+        listEl.innerHTML = "<div style='color:var(--id-muted);font-size:13px;'>Loading…</div>";
         var data = await api("/api/vibe/projects/" + pid + "/members");
         if (!data.success) {
-            listEl.innerHTML = "<div style='color:#f88;font-size:13px;'>" + esc(data.error || t("vibe-members-load-failed", "Failed to load members")) + "</div>";
+            listEl.innerHTML = "<div style='color:var(--id-danger-icon);font-size:13px;'>" + esc(data.error || t("vibe-members-load-failed", "Failed to load members")) + "</div>";
             return;
         }
         loadMeter(pid);
@@ -119,15 +119,15 @@
                 api("/api/vibe/users/search?q=" + encodeURIComponent(q)).then(function (data) {
                     var users = (data && data.users) || [];
                     if (!users.length) {
-                        box.innerHTML = "<div style='padding:8px 10px;color:#888;font-size:12px;'>No users found</div>";
+                        box.innerHTML = "<div style='padding:8px 10px;color:var(--id-muted);font-size:12px;'>No users found</div>";
                         box.style.display = "block";
                         return;
                     }
                     box.innerHTML = users.map(function (u) {
                         var label = u.username + (u.email ? " · " + u.email : "");
-                        return "<div data-id='" + esc(u.id) + "' style='padding:8px 10px;cursor:pointer;font-size:13px;color:var(--text,#eee);border-bottom:1px solid var(--border,#333);'>"
+                        return "<div data-id='" + esc(u.id) + "' style='padding:8px 10px;cursor:pointer;font-size:13px;color:var(--text,var(--id-gray-100));border-bottom:1px solid var(--border,var(--id-ink));'>"
                             + "<span style='font-weight:600;'>" + esc(u.username) + "</span>"
-                            + " <span style='color:var(--text-muted,#999);'>" + esc(u.email) + "</span></div>";
+                            + " <span style='color:var(--text-muted,var(--id-muted));'>" + esc(u.email) + "</span></div>";
                     }).join("");
                     box.style.display = "block";
                 });

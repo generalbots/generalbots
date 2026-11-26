@@ -30,17 +30,17 @@
 }
 
 .health-status.healthy .status-icon {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .health-status.degraded .status-icon {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--palette-f59e0b) 10%, transparent);
     color: var(--warning);
 }
 
 .health-status.unhealthy .status-icon {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 
@@ -68,17 +68,17 @@
 }
 
 .status-badge.healthy {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .status-badge.degraded {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--palette-f59e0b) 10%, transparent);
     color: var(--warning);
 }
 
 .status-badge.unhealthy {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 
@@ -112,12 +112,12 @@
 }
 
 .stat-icon.success {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .stat-icon.warning {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--palette-f59e0b) 10%, transparent);
     color: var(--warning);
 }
 
@@ -251,17 +251,17 @@
 }
 
 .check-badge.healthy {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .check-badge.degraded {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--palette-f59e0b) 10%, transparent);
     color: var(--warning);
 }
 
 .check-badge.unhealthy {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 
@@ -324,17 +324,17 @@
 }
 
 .health-status-badge.healthy {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .health-status-badge.unhealthy {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 
 .health-status-badge.degraded {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--palette-f59e0b) 10%, transparent);
     color: var(--warning);
 }
 
@@ -417,12 +417,12 @@
 }
 
 .dependency-badge.healthy {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .dependency-badge.unhealthy {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 

@@ -1,117 +1,114 @@
-/* Y2K Glow Theme for General Bots */
+/* Y2K Glow — legacy --color-* theme, now an accent-only identity variant.
+ *
+ * Paper, ink, greys, radii and shadows come from the identity tokens in
+ * /suite/css/identity-tokens.css. Only the seven accent tokens below differ
+ * from the design system; every --color-* name is an alias of an identity
+ * token so legacy components keep working with the identity look. Neon glows,
+ * literal shadows and the animation were removed — the accent glow token is
+ * the only glow.
+ */
+
 :root {
-  --color-primary: #ff00ff;
-  --color-secondary: #00ffff;
-  --color-accent: #ffff00;
+    /* Accent (light) — OKLCH derivation of #FF00FF. */
+    --id-accent: #FF00FF;
+    --id-accent-hover: #DA00E3;
+    --id-accent-light: #FF6FF3;
+    --id-accent-text: #C007E7; /* 4.51:1 on identity paper */
+    --id-accent-soft: rgb(255 0 255 / .1);
+    --id-accent-glow: rgb(255 0 255 / .26);
+    --id-on-accent: #000000; /* 6.70:1 on accent */
 
-  --color-bg: #0a0a1a;
-  --color-bg-secondary: #1a0a2e;
-  --color-bg-tertiary: #2d1b4e;
-
-  --color-text: #00ff00;
-  --color-text-secondary: #ff00ff;
-  --color-text-muted: #00ffff;
-
-  --color-border: #ff00ff;
-  --color-border-light: #00ffff;
-
-  --color-success: #00ff00;
-  --color-warning: #ffff00;
-  --color-error: #ff0066;
-  --color-info: #00ffff;
-
-  --shadow-glow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
-  --shadow-sm: 0 0 5px rgba(255, 0, 255, 0.5);
-  --shadow: 0 0 10px rgba(255, 0, 255, 0.7);
-  --shadow-md: 0 0 15px rgba(255, 0, 255, 0.8);
-  --shadow-lg: 0 0 25px rgba(255, 0, 255, 0.9);
-
-  --radius-sm: 0.25rem;
-  --radius: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+    /* Legacy --color-* vocabulary — aliases, no theme-specific surfaces. */
+    --color-primary: var(--id-accent);
+    --color-primary-hover: var(--id-accent-hover);
+    --color-secondary: var(--id-accent-light);
+    --color-accent: var(--id-accent);
+    --color-bg: var(--id-paper);
+    --color-bg-secondary: var(--id-surface-solid);
+    --color-bg-tertiary: var(--id-gray-100);
+    --color-text: var(--id-ink);
+    --color-text-secondary: var(--id-text);
+    --color-text-muted: var(--id-muted);
+    --color-border: var(--id-line);
+    --color-border-light: var(--id-line-soft);
+    --color-success: var(--id-success);
+    --color-warning: var(--id-warn);
+    --color-error: var(--id-danger);
+    --color-info: var(--id-hl-function);
+    --shadow-sm: var(--id-shadow-card);
+    --shadow: var(--id-shadow-card);
+    --shadow-md: var(--id-shadow-card-hover);
+    --shadow-lg: var(--id-shadow-float);
+    --shadow-glow: var(--id-accent-glow);
+    --radius-sm: var(--id-radius-sm);
+    --radius: var(--id-radius-control);
+    --radius-md: var(--id-radius-control);
+    --radius-lg: var(--id-radius-panel);
+    --radius-xl: var(--id-radius-card);
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  text-shadow: 0 0 5px var(--color-text);
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 a {
-  color: var(--color-secondary);
-  text-shadow: 0 0 5px var(--color-secondary);
+    color: var(--color-accent);
 }
 
 a:hover {
-  color: var(--color-primary);
-  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+    color: var(--id-accent-hover);
 }
 
 .btn-primary {
-  background: linear-gradient(45deg, var(--color-primary), var(--color-secondary));
-  color: var(--color-bg);
-  border: 2px solid var(--color-primary);
-  box-shadow: var(--shadow-glow);
-  text-shadow: none;
+    background-color: var(--color-primary);
+    color: var(--id-on-accent);
+    border: 1px solid var(--id-accent);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(45deg, var(--color-secondary), var(--color-accent));
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 15px var(--color-secondary), 0 0 30px var(--color-secondary);
+    background-color: var(--id-accent-hover);
 }
 
 .card {
-  background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-bg-tertiary));
-  border: 2px solid var(--color-primary);
-  box-shadow: var(--shadow);
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 5px var(--color-primary), 0 0 10px var(--color-primary);
-  }
-  to {
-    box-shadow: 0 0 10px var(--color-secondary), 0 0 20px var(--color-secondary);
-  }
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
 }
 
 input, textarea, select {
-  background: var(--color-bg-secondary);
-  border: 2px solid var(--color-border);
-  color: var(--color-text);
-  box-shadow: 0 0 5px var(--color-border);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
 }
 
 input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 10px var(--color-accent), 0 0 20px var(--color-accent), 0 0 30px var(--color-accent);
-}
-
-input::placeholder, textarea::placeholder {
-  color: var(--color-text-muted);
-  text-shadow: 0 0 3px var(--color-text-muted);
+    outline: none;
+    border-color: var(--id-accent);
+    box-shadow: var(--id-focus);
 }
 
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+    width: 12px;
+    height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg);
+    background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(var(--color-primary), var(--color-secondary));
-  border-radius: 6px;
-  box-shadow: 0 0 10px var(--color-primary);
+    background: var(--id-accent);
+    border-radius: var(--id-radius-sm);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(var(--color-secondary), var(--color-accent));
+/* Dark accents are scheme-keyed, never theme-id-keyed (#2591). */
+:root[data-color-scheme="dark"] {
+    --id-accent: #FF19FF;
+    --id-accent-hover: #FF54FF;
+    --id-accent-light: #B64F9C;
+    --id-accent-text: #FF93FF; /* 8.72:1 on dark paper */
+    --id-accent-soft: rgb(255 0 255 / .15);
+    --id-accent-glow: rgb(255 0 255 / .3);
+    --id-on-accent: #2C2C2C; /* 4.55:1 on accent */
 }

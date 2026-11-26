@@ -165,17 +165,17 @@
 }
 
 .status-badge.active {
-    background: rgba(16, 185, 129, 0.1);
+    background: color-mix(in srgb, var(--palette-10b981) 10%, transparent);
     color: var(--palette-10b981);
 }
 
 .status-badge.inactive {
-    background: rgba(107, 114, 128, 0.1);
+    background: color-mix(in srgb, var(--id-gray-500) 10%, transparent);
     color: var(--palette-6b7280);
 }
 
 .status-badge.suspended {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--palette-ef4444);
 }
 
@@ -196,17 +196,17 @@
 }
 
 .role-badge.admin {
-    background: rgba(168, 85, 247, 0.1);
+    background: color-mix(in srgb, var(--palette-a855f7) 10%, transparent);
     color: var(--palette-a855f7);
 }
 
 .role-badge.moderator {
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--palette-3b82f6) 10%, transparent);
     color: var(--palette-3b82f6);
 }
 
 .role-badge.user {
-    background: rgba(107, 114, 128, 0.1);
+    background: color-mix(in srgb, var(--id-gray-500) 10%, transparent);
     color: var(--palette-6b7280);
 }
 
@@ -232,7 +232,7 @@
 }
 
 .action-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     border-color: var(--palette-ef4444);
     color: var(--palette-ef4444);
 }

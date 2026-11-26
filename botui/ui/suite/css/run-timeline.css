@@ -183,7 +183,7 @@
     padding: 6px 8px;
     border: 1px solid var(--warning);
     border-radius: 8px;
-    background: rgba(245, 158, 11, 0.08);
+    background: color-mix(in srgb, var(--palette-f59e0b) 8%, transparent);
 }
 .run-takeover[hidden] { display: none; }
 .run-takeover-hint {

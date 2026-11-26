@@ -21,7 +21,7 @@
     --sheet-muted: var(--palette-94a3b8);
     --sheet-border: var(--palette-334155);
     --sheet-selection: var(--palette-3b82f6);
-    --sheet-selection-wash: rgba(59, 130, 246, 0.08);
+    --sheet-selection-wash: color-mix(in srgb, var(--id-accent) 8%, transparent);
 }
 
 :root[data-color-scheme="light"] {
@@ -31,7 +31,7 @@
     --sheet-muted: var(--palette-59636e);
     --sheet-border: var(--palette-d0d7de);
     --sheet-selection: var(--palette-0969da);
-    --sheet-selection-wash: rgba(9, 105, 218, 0.1);
+    --sheet-selection-wash: color-mix(in srgb, var(--id-accent) 10%, transparent);
 }
 
 /* The status bar and formula bar sit on the elevated surface, and the active

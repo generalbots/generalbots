@@ -150,19 +150,19 @@ dialog.modal[open] {
 }
 
 .stat-icon.users {
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--palette-3b82f6) 10%, transparent);
     color: var(--palette-3b82f6);
 }
 .stat-icon.groups {
-    background: rgba(16, 185, 129, 0.1);
+    background: color-mix(in srgb, var(--palette-10b981) 10%, transparent);
     color: var(--palette-10b981);
 }
 .stat-icon.bots {
-    background: rgba(168, 85, 247, 0.1);
+    background: color-mix(in srgb, var(--palette-a855f7) 10%, transparent);
     color: var(--palette-a855f7);
 }
 .stat-icon.storage {
-    background: rgba(249, 115, 22, 0.1);
+    background: color-mix(in srgb, var(--palette-f97316) 10%, transparent);
     color: var(--palette-f97316);
 }
 

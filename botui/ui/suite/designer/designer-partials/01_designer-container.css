@@ -83,7 +83,7 @@
   background: var(--surface, var(--palette-1e293b));
   border: 1px solid var(--border, var(--palette-334155));
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent);
   z-index: var(--z-dropdown);
   display: none;
   flex-direction: column;
@@ -100,7 +100,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, rgba(203,166,247,0.1), rgba(137,180,250,0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--palette-cba6f7) 10%, transparent), color-mix(in srgb, var(--palette-89b4fa) 10%, transparent));
 }
 
 .magic-header svg {
@@ -173,10 +173,10 @@
   justify-content: center;
 }
 
-.magic-suggestion-icon.ux { background: rgba(166,227,161,0.2); color: var(--success, var(--palette-22c55e)); }
-.magic-suggestion-icon.perf { background: rgba(249,226,175,0.2); color: var(--warning, var(--palette-f59e0b)); }
-.magic-suggestion-icon.a11y { background: rgba(137,180,250,0.2); color: var(--primary, var(--palette-3b82f6)); }
-.magic-suggestion-icon.feature { background: rgba(203,166,247,0.2); color: var(--primary, var(--palette-a855f7)); }
+.magic-suggestion-icon.ux { background: color-mix(in srgb, var(--palette-a6e3a1) 20%, transparent); color: var(--success, var(--palette-22c55e)); }
+.magic-suggestion-icon.perf { background: color-mix(in srgb, var(--palette-f9e2af) 20%, transparent); color: var(--warning, var(--palette-f59e0b)); }
+.magic-suggestion-icon.a11y { background: color-mix(in srgb, var(--palette-89b4fa) 20%, transparent); color: var(--primary, var(--palette-3b82f6)); }
+.magic-suggestion-icon.feature { background: color-mix(in srgb, var(--palette-cba6f7) 20%, transparent); color: var(--primary, var(--palette-a855f7)); }
 
 .magic-suggestion-title {
   font-weight: 600;
@@ -364,17 +364,17 @@
   border-radius: 8px;
   cursor: move;
   user-select: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px var(--id-overlay);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .node:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--palette-000000) 40%, transparent);
 }
 
 .node.selected {
   border-color: var(--primary, var(--palette-3b82f6));
-  box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-89b4fa) 30%, transparent);
 }
 
 .node-header {

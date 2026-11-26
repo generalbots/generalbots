@@ -5,7 +5,7 @@
         border: none;
         border-radius: 16px;
         background: var(--surface);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--id-ink) 25%, transparent);
         max-width: 480px;
         width: 90%;
     }
@@ -16,7 +16,7 @@
     }
 
     dialog.modal::backdrop {
-        background: rgba(0, 0, 0, 0.5);
+        background: color-mix(in srgb, var(--id-ink) 50%, transparent);
     }
 
     dialog.modal form {
@@ -291,7 +291,7 @@
     .form-group textarea:focus {
         outline: none;
         border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--id-accent) 10%, transparent);
     }
 
     .form-row {
@@ -356,8 +356,8 @@
         margin: 10px 0 0;
         padding: 10px 14px;
         border-radius: 6px;
-        background: rgba(59, 130, 246, 0.07);
-        border: 1px solid rgba(59, 130, 246, 0.2);
+        background: color-mix(in srgb, var(--id-accent) 7%, transparent);
+        border: 1px solid color-mix(in srgb, var(--id-accent) 20%, transparent);
         color: var(--text-secondary, var(--palette-9ca3af));
         font-size: var(--text-2xs);
         line-height: 1.55;
@@ -386,8 +386,8 @@
         flex: 0 0 auto;
         padding: 2px 8px;
         border-radius: 999px;
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid color-mix(in srgb, var(--id-accent) 40%, transparent);
+        background: color-mix(in srgb, var(--id-accent) 10%, transparent);
         color: var(--palette-fbbf24);
         font-size: var(--text-2xs);
         font-weight: 600;

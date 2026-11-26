@@ -126,7 +126,7 @@
     background: var(--sentient-accent);
     border: none;
     border-radius: var(--sentient-radius-sm);
-    color: #000;
+    color: var(--palette-000000);
     font-family: var(--sentient-font-family);
     font-size: var(--text-xs);
     font-weight: 600;
@@ -282,7 +282,7 @@
 
 .ai-message.user .ai-message-bubble {
     background: var(--sentient-accent);
-    color: #000;
+    color: var(--palette-000000);
     border-bottom-right-radius: 4px;
 }
 
@@ -296,7 +296,7 @@
     display: inline-block;
     padding: 8px 12px;
     background: var(--sentient-accent);
-    color: #000;
+    color: var(--palette-000000);
     border-radius: var(--sentient-radius-sm);
     font-size: var(--text-2xs);
     font-weight: 500;

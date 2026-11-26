@@ -71,7 +71,7 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 8px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 12%, transparent);
         z-index: var(--z-sticky);
     }
 

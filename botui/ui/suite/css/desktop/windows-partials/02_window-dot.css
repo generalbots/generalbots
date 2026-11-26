@@ -89,7 +89,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 3px solid var(--shell-border, rgba(128, 128, 140, 0.25));
+  border: 3px solid var(--shell-border, color-mix(in srgb, var(--palette-7d8391) 25%, transparent));
   border-top-color: var(--accent-color, var(--gb-accent, var(--primary)));
   animation: gbWindowSpin 800ms linear infinite;
 }
@@ -137,9 +137,9 @@ body.window-maximized .window-element.window-maximized-target {
   border-radius: 0 0 var(--win-radius, 10px) 0;
   background-color: transparent;
   background-image:
-    linear-gradient(135deg, transparent 30%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 30%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 40%, transparent 40%),
-    linear-gradient(135deg, transparent 48%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 48%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 58%, transparent 58%),
-    linear-gradient(135deg, transparent 66%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 66%, var(--win-border-color, rgba(120, 130, 145, 0.8)) 76%, transparent 76%);
+    linear-gradient(135deg, transparent 30%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 30%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 40%, transparent 40%),
+    linear-gradient(135deg, transparent 48%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 48%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 58%, transparent 58%),
+    linear-gradient(135deg, transparent 66%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 66%, var(--win-border-color, color-mix(in srgb, var(--palette-7d8391) 80%, transparent)) 76%, transparent 76%);
   background-size: 22px 22px;
   background-position: bottom right;
   background-repeat: no-repeat;

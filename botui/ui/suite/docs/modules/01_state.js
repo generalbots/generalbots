@@ -3,7 +3,7 @@
 
 var SIDEBAR_TAB_KEY = "docs_sidebar_tab";
 var SAVE_DEBOUNCE_MS = 1500;
-var TITLE_BG = "#0f172a";
+var TITLE_BG = "var(--palette-0f172a)";
 var TITLE_COLOR = "#f8fafc";
 var TITLE_BORDER = "#334155";
 var SAVE_OK_COLOR = "#94a3b8";

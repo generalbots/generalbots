@@ -17,7 +17,7 @@
 .vdi-quick-connect,
 .vdi-canvas-toolbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--win-scroll-thumb, rgba(128,128,128,0.45)) transparent;
+  scrollbar-color: var(--win-scroll-thumb, color-mix(in srgb, var(--palette-808789) 45%, transparent)) transparent;
 }
 
 .gb-window-content::-webkit-scrollbar,
@@ -55,7 +55,7 @@
 .magic-content::-webkit-scrollbar-thumb,
 .vdi-dashboard::-webkit-scrollbar-thumb,
 .vdi-quick-connect::-webkit-scrollbar-thumb {
-  background: var(--win-scroll-thumb, rgba(128,128,128,0.45));
+  background: var(--win-scroll-thumb, color-mix(in srgb, var(--palette-808789) 45%, transparent));
   border-radius: 6px;
 }
 
@@ -64,6 +64,6 @@
 .toolbox-panel::-webkit-scrollbar-thumb:hover,
 .magic-content::-webkit-scrollbar-thumb:hover,
 .vdi-dashboard::-webkit-scrollbar-thumb:hover {
-  background: var(--win-scroll-thumb-hover, rgba(128,128,128,0.70));
+  background: var(--win-scroll-thumb-hover, color-mix(in srgb, var(--palette-808789) 70%, transparent));
 }
 

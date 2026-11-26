@@ -17,12 +17,12 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  background: var(--glass-bg, rgba(20, 22, 35, 0.72));
+  background: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 72%, transparent));
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: var(--radius-md, 10px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--palette-000000) 35%, transparent);
   color: var(--text);
   min-width: 220px;
   min-height: 140px;
@@ -30,7 +30,7 @@
 }
 
 .gb-widget:hover {
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 36px color-mix(in srgb, var(--palette-000000) 45%, transparent);
 }
 
 .gb-widget-header {
@@ -40,8 +40,8 @@
   padding: 6px 8px;
   cursor: grab;
   user-select: none;
-  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.04));
+  border-bottom: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 4%, transparent));
   border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
 }
 
@@ -97,12 +97,12 @@
 }
 
 .gb-widget-btn:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
   color: var(--text);
 }
 
 .gb-widget-btn[data-action="close"]:hover {
-  background: rgba(239, 68, 68, 0.18);
+  background: color-mix(in srgb, var(--palette-ef4444) 18%, transparent);
   color: var(--error);
 }
 
@@ -131,8 +131,8 @@
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(100, 116, 139, 0.35);
-  color: #fff;
+  background: color-mix(in srgb, var(--palette-64748b) 35%, transparent);
+  color: var(--palette-ffffff);
   pointer-events: none;
 }
 
@@ -182,7 +182,7 @@
   align-items: center;
   gap: 4px;
   padding: 0 6px;
-  border-right: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  border-right: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
   margin-right: 6px;
 }
 
@@ -200,7 +200,7 @@
 }
 
 .taskbar-pinned-item:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
   color: var(--text);
   transform: translateY(-1px);
 }
@@ -223,7 +223,7 @@
 .desktop-context-separator {
   height: 1px;
   margin: 5px 8px;
-  background: var(--shell-border, rgba(255, 255, 255, 0.1));
+  background: var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
 }
 
 }

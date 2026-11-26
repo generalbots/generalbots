@@ -38,7 +38,7 @@
 
   function renderTerminalOutput(text) {
     var el = document.createElement("pre");
-    el.style.cssText = "background:#0f172a;color:#e2e8f0;padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.5;max-height:300px;overflow:auto;margin-top:8px;white-space:pre-wrap;word-break:break-all;";
+    el.style.cssText = "background:var(--palette-0f172a);color:var(--palette-e2e8f0);padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.5;max-height:300px;overflow:auto;margin-top:8px;white-space:pre-wrap;word-break:break-all;";
     el.textContent = text;
     return el;
   }
@@ -175,8 +175,8 @@
     var cmdDisplay = action.command.length > 120 ? action.command.substring(0, 117) + "..." : action.command;
     card.innerHTML =
       '<div class="gb-consent-head"><span class="gb-consent-glyph">💻</span><div class="gb-consent-headings"><div class="gb-consent-title">Terminal Command</div><div class="gb-consent-app">shell</div></div></div>'
-      + '<div class="gb-consent-detail" style="font-family:monospace;font-size:13px;background:#0f172a;padding:10px 14px;border-radius:6px;margin-bottom:10px;">' + escapeHtml(action.command) + '</div>'
-      + (action.reason ? '<div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">' + escapeHtml(action.reason) + '</div>' : '')
+      + '<div class="gb-consent-detail" style="font-family:monospace;font-size:13px;background:var(--palette-0f172a);padding:10px 14px;border-radius:6px;margin-bottom:10px;">' + escapeHtml(action.command) + '</div>'
+      + (action.reason ? '<div style="color:var(--palette-94a3b8);font-size:12px;margin-bottom:10px;">' + escapeHtml(action.reason) + '</div>' : '')
       + '<div class="gb-consent-actions"><button type="button" class="gb-consent-btn primary" data-decision="allow">Run</button><button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button></div>';
 
     if (window.GBSandbox) {
@@ -283,13 +283,13 @@
     if (existing) { existing.remove(); return; }
     var overlay = document.createElement("div");
     overlay.id = "gb-terminal-audit";
-    overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:var(--z-system);display:flex;align-items:center;justify-content:center;";
+    overlay.style.cssText = "position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 80%, transparent);z-index:var(--z-system);display:flex;align-items:center;justify-content:center;";
     var panel = document.createElement("div");
-    panel.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:760px;max-height:80vh;overflow:auto;padding:20px;color:#e2e8f0;font:13px system-ui;";
+    panel.style.cssText = "background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:90%;max-width:760px;max-height:80vh;overflow:auto;padding:20px;color:var(--palette-e2e8f0);font:13px system-ui;";
     panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
       '<strong>Terminal audit trail</strong>' +
-      '<button id="gbTerminalAuditClose" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:6px 12px;cursor:pointer;">Close</button></div>' +
-      '<p style="color:#94a3b8;margin:0 0 12px;">Last 50 commands · retained 90 days. Denied requests are listed too.</p>' +
+      '<button id="gbTerminalAuditClose" style="background:#334155;border:none;border-radius:6px;color:var(--palette-f8fafc);padding:6px 12px;cursor:pointer;">Close</button></div>' +
+      '<p style="color:var(--palette-94a3b8);margin:0 0 12px;">Last 50 commands · retained 90 days. Denied requests are listed too.</p>' +
       '<div id="gbTerminalAuditBody">Loading…</div>';
     overlay.appendChild(panel);
     overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
@@ -308,14 +308,14 @@
       var entries = payload.entries || [];
       var body = panel.querySelector("#gbTerminalAuditBody");
       if (!entries.length) {
-        body.innerHTML = '<p style="color:#94a3b8;" data-i18n="chat-str-no-terminal-command-has-been-requested-yet"></p>';
+        body.innerHTML = '<p style="color:var(--palette-94a3b8);" data-i18n="chat-str-no-terminal-command-has-been-requested-yet"></p>';
         return;
       }
       body.innerHTML = '<table style="width:100%;border-collapse:collapse;">' +
-        '<thead><tr style="text-align:left;color:#94a3b8;"><th style="padding:6px;">When</th><th>Command</th><th>Decision</th><th>Exit</th></tr></thead><tbody>' +
+        '<thead><tr style="text-align:left;color:var(--palette-94a3b8);"><th style="padding:6px;">When</th><th>Command</th><th>Decision</th><th>Exit</th></tr></thead><tbody>' +
         entries.map(function (entry) {
           return '<tr style="border-top:1px solid #334155;">' +
-            '<td style="padding:6px;color:#94a3b8;">' + escapeHtml(entry.created_at || "") + '</td>' +
+            '<td style="padding:6px;color:var(--palette-94a3b8);">' + escapeHtml(entry.created_at || "") + '</td>' +
             '<td style="padding:6px;"><code>' + escapeHtml(entry.command || "") + '</code></td>' +
             '<td style="padding:6px;">' + escapeHtml(entry.decision || "") + '</td>' +
             '<td style="padding:6px;">' + (entry.exit_code == null ? "—" : escapeHtml(String(entry.exit_code))) + '</td>' +

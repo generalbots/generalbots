@@ -49,11 +49,11 @@
     color: var(--gb-text);
     font-size: var(--text-xs);
     font-weight: 500;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--palette-111827) 4%, transparent);
 }
 
 .chat-sidebar-new-chat:hover {
-    border-color: rgba(22, 163, 74, 0.5);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 50%, transparent);
     color: var(--gb-accent);
     background: var(--gb-surface);
 }
@@ -351,7 +351,7 @@
     /* The light theme used a 72% navy border, which reads as black. */
     border: 1px solid var(--gb-border-strong, var(--border));
     border-radius: 12px;
-    box-shadow: 0 18px 48px rgba(16, 24, 40, 0.12);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--palette-111827) 12%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

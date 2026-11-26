@@ -24,7 +24,7 @@
         tbody.innerHTML = '';
         const trunks = (data && data.trunks) || [];
         if (!trunks.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#888">No trunks provisioned yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="color:var(--palette-888888)">No trunks provisioned yet.</td></tr>';
             return;
         }
         for (const t of trunks) {

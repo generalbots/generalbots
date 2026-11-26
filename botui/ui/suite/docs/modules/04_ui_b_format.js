@@ -265,14 +265,14 @@ function openHeaderFooterModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   host.innerHTML = [
-    "<div class=\"docs-modal\" id=\"docs-hf-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);\">",
-    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:520px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
+    "<div class=\"docs-modal\" id=\"docs-hf-modal\" style=\"position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);\">",
+    "<div style=\"background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:520px;max-width:90vw;padding:20px;color:var(--palette-f8fafc);display:flex;flex-direction:column;gap:14px;\">",
     "<h3 style=\"margin:0;font-size:16px;\">Cabeçalho e Rodapé</h3>",
-    "<label style=\"font-size:12px;color:#94a3b8;\">Cabeçalho (aparece no topo de cada página)<input id=\"hf-header\" type=\"text\" placeholder=\"Cabeçalho...\" style=\"width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;\"/></label>",
-    "<label style=\"font-size:12px;color:#94a3b8;\">Rodapé (aparece no final de cada página)<input id=\"hf-footer\" type=\"text\" placeholder=\"Rodapé...\" style=\"width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;\"/></label>",
+    "<label style=\"font-size:12px;color:var(--palette-94a3b8);\">Cabeçalho (aparece no topo de cada página)<input id=\"hf-header\" type=\"text\" placeholder=\"Cabeçalho...\" style=\"width:100%;padding:8px;background:var(--palette-0f172a);border:1px solid #334155;color:var(--palette-f8fafc);border-radius:4px;margin-top:4px;\"/></label>",
+    "<label style=\"font-size:12px;color:var(--palette-94a3b8);\">Rodapé (aparece no final de cada página)<input id=\"hf-footer\" type=\"text\" placeholder=\"Rodapé...\" style=\"width:100%;padding:8px;background:var(--palette-0f172a);border:1px solid #334155;color:var(--palette-f8fafc);border-radius:4px;margin-top:4px;\"/></label>",
     "<div style=\"display:flex;gap:8px;justify-content:flex-end;\">",
-    "<button id=\"hf-cancel\" type=\"button\" style=\"background:#334155;color:#f8fafc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;\">" + (window.gbT ? window.gbT("action-cancel", "Cancel") : "Cancel") + "</button>",
-    "<button id=\"hf-apply\" type=\"button\" style=\"background:#3b82f6;color:white;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;\">" + (window.gbT ? window.gbT("action-apply", "Apply") : "Apply") + "</button>",
+    "<button id=\"hf-cancel\" type=\"button\" style=\"background:#334155;color:var(--palette-f8fafc);border:none;padding:8px 14px;border-radius:4px;cursor:pointer;\">" + (window.gbT ? window.gbT("action-cancel", "Cancel") : "Cancel") + "</button>",
+    "<button id=\"hf-apply\" type=\"button\" style=\"background:var(--palette-3b82f6);color:white;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;\">" + (window.gbT ? window.gbT("action-apply", "Apply") : "Apply") + "</button>",
     "</div></div></div>"
   ].join("");
   document.getElementById("hf-cancel").onclick = function () { host.innerHTML = ""; };

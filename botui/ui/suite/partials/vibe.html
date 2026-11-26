@@ -51,63 +51,63 @@
 <div id="vibeNewProjectModal" style="display: none; position: absolute; inset: 0; z-index: 90;"></div>
 
 <div id="vibeMembersModal" style="display: none; position: absolute; inset: 0; z-index: 95; align-items: center; justify-content: center;">
-  <div style="width: 520px; max-height: 80vh; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 20px;">
+  <div style="width: 520px; max-height: 80vh; overflow-y: auto; background: var(--bg, var(--id-ink)); border: 1px solid var(--border, var(--id-ink)); border-radius: 8px; padding: 20px;">
     <!-- No in-panel title/close: the WindowManager chrome already carries
          the "Project Members" title and the ✕ button. -->
-    <div id="vibeMembersRole" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
-    <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
+    <div id="vibeMembersRole" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, var(--id-muted));"></div>
+    <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, var(--id-muted));"></div>
     <div id="vibeMembersList" style="margin-bottom: 16px;"></div>
-    <div style="border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+    <div style="border-top: 1px solid var(--border, var(--id-ink)); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
       <div style="position: relative; flex: 1; min-width: 200px;">
-        <input id="vibeMemberTarget" data-i18n-placeholder="vibe-members-search-placeholder" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #999); font-size: 13px;" />
-        <div id="vibeMemberSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+        <input id="vibeMemberTarget" data-i18n-placeholder="vibe-members-search-placeholder" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; background: var(--bg, var(--id-ink)); color: var(--text, var(--id-muted)); font-size: 13px;" />
+        <div id="vibeMemberSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, var(--id-ink)); border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);"></div>
       </div>
-      <select id="vibeMemberRole" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
+      <select id="vibeMemberRole" style="padding: 8px 10px; border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; background: var(--bg, var(--id-ink)); color: var(--text, var(--id-gray-100)); font-size: 13px;">
         <option value="viewer" data-i18n="vibe-role-viewer">viewer</option>
         <option value="developer" data-i18n="vibe-role-developer">developer</option>
         <option value="admin" data-i18n="vibe-role-admin">admin</option>
       </select>
-      <select id="vibeMemberKind" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
+      <select id="vibeMemberKind" style="padding: 8px 10px; border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; background: var(--bg, var(--id-ink)); color: var(--text, var(--id-gray-100)); font-size: 13px;">
         <option value="user" data-i18n="vibe-role-user">user</option>
         <option value="group" data-i18n="vibe-role-group">group</option>
       </select>
-      <button onclick="window.VibeMembers && window.VibeMembers.add()" data-i18n="action-add" style="padding: 8px 14px; border: none; border-radius: 6px; background: var(--accent, #4a6cf7); color: white; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+      <button onclick="window.VibeMembers && window.VibeMembers.add()" data-i18n="action-add" style="padding: 8px 14px; border: none; border-radius: 6px; background: var(--accent, var(--id-accent)); color: white; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
     </div>
-    <div style="margin-top: 12px; border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; align-items: center;">
+    <div style="margin-top: 12px; border-top: 1px solid var(--border, var(--id-ink)); padding-top: 12px; display: flex; gap: 8px; align-items: center;">
       <div style="position: relative; flex: 1;">
-        <input id="vibeTransferTarget" data-i18n-placeholder="vibe-transfer-search-placeholder" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
-        <div id="vibeTransferSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+        <input id="vibeTransferTarget" data-i18n-placeholder="vibe-transfer-search-placeholder" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; background: var(--bg, var(--id-ink)); color: var(--text, var(--id-gray-100)); font-size: 13px;" />
+        <div id="vibeTransferSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, var(--id-ink)); border: 1px solid var(--border, var(--id-ink)); border-radius: 6px; box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);"></div>
       </div>
-      <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding: 8px 14px; border: 1px solid #f77; background: transparent; color: #f88; border-radius: 6px; font-size: 13px; cursor: pointer;" data-i18n="vibe-transfer-ownership">Transfer Ownership</button>
+      <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding: 8px 14px; border: 1px solid var(--id-danger-icon); background: transparent; color: var(--id-danger-icon); border-radius: 6px; font-size: 13px; cursor: pointer;" data-i18n="vibe-transfer-ownership">Transfer Ownership</button>
     </div>
   </div>
 </div>
 
 <!-- Vibe Graph Panel + Capabilities -->
-<div id="vibeGraphPanel" style="display: none; position: absolute; left: 5%; top: 6%; width: 90%; height: 90%; z-index: 80; border: 1px solid var(--border, #d8dee9); border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 12px 40px rgba(15,23,42,0.18); flex-direction: column;">
+<div id="vibeGraphPanel" style="display: none; position: absolute; left: 5%; top: 6%; width: 90%; height: 90%; z-index: 80; border: 1px solid var(--border, var(--id-gray-200)); border-radius: 10px; overflow: hidden; background: var(--id-surface-solid); box-shadow: 0 12px 40px color-mix(in srgb, var(--id-ink) 18%, transparent); flex-direction: column;">
   <!-- Slim toolbar (no title/✕ — the tool window chrome carries them). -->
-  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, #333); font-size: var(--text-2xs); color: var(--text-muted, #888);">
+  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, var(--id-ink)); font-size: var(--text-2xs); color: var(--text-muted, var(--id-muted));">
     <span style="margin-right: auto"><span id="vibeGraphUseCaseLabel">software_development</span></span>
-    <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
+    <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background: transparent; border: 1px solid var(--border, var(--id-ink)); color: var(--text, var(--id-gray-100)); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
   </div>
-  <div style="padding: 8px 14px; border-bottom: 1px solid var(--border, #d8dee9); color: var(--text-muted, #64748b); font-size: var(--text-2xs); line-height: 1.45;">
+  <div style="padding: 8px 14px; border-bottom: 1px solid var(--border, var(--id-gray-200)); color: var(--text-muted, var(--id-muted)); font-size: var(--text-2xs); line-height: 1.45;">
     Shows the selected use case, its execution runs, and the tools each run triggered. Double-click a run to inspect it.
-    <span style="float:right; white-space:nowrap"><b style="color:#2563eb">■</b> <span data-i18n="vibe-graph-legend-use-case">use case</span> &nbsp; <b style="color:#7c3aed">■</b> <span data-i18n="vibe-graph-legend-run">run</span> &nbsp; <b style="color:#d97706">■</b> <span data-i18n="vibe-graph-legend-tool">tool</span></span>
+    <span style="float:right; white-space:nowrap"><b style="color:var(--id-hl-function)">■</b> <span data-i18n="vibe-graph-legend-use-case">use case</span> &nbsp; <b style="color:var(--id-accent)">■</b> <span data-i18n="vibe-graph-legend-run">run</span> &nbsp; <b style="color:var(--id-warn)">■</b> <span data-i18n="vibe-graph-legend-tool">tool</span></span>
   </div>
   <div style="flex: 1; min-height: 0; position: relative;">
     <canvas id="vibeGraphCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
   </div>
-  <div id="vibeCapabilities" style="max-height: 72px; overflow-y: auto; border-top: 1px solid var(--border, #333); padding: 8px 12px; font-size: var(--text-2xs); color: var(--text-muted, #aaa);"></div>
+  <div id="vibeCapabilities" style="max-height: 72px; overflow-y: auto; border-top: 1px solid var(--border, var(--id-ink)); padding: 8px 12px; font-size: var(--text-2xs); color: var(--text-muted, var(--id-gray-400));"></div>
 </div>
 
 <!-- Vibe Metrics Panel (real run telemetry, not the knowledge graph) -->
-<div id="vibeMetricsPanel" style="display: none; position: absolute; right: 24px; bottom: 24px; width: 480px; height: 400px; z-index: 80; border: 1px solid var(--border, #333); border-radius: 10px; overflow: hidden; background: var(--surface, #14142a); box-shadow: 0 12px 40px rgba(0,0,0,0.45); flex-direction: column;">
+<div id="vibeMetricsPanel" style="display: none; position: absolute; right: 24px; bottom: 24px; width: 480px; height: 400px; z-index: 80; border: 1px solid var(--border, var(--id-ink)); border-radius: 10px; overflow: hidden; background: var(--surface, var(--id-ink)); box-shadow: 0 12px 40px color-mix(in srgb, var(--id-ink) 45%, transparent); flex-direction: column;">
   <!-- Slim toolbar (no title/✕ — the tool window chrome carries them). -->
-  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, #333); font-size: var(--text-2xs); color: var(--text-muted, #888);">
+  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, var(--id-ink)); font-size: var(--text-2xs); color: var(--text-muted, var(--id-muted));">
     <span style="margin-right: auto" data-i18n="vibe-run-telemetry">run telemetry</span>
-    <button onclick="VibeMetrics && VibeMetrics.refresh()" title="Refresh" data-i18n-title="action-refresh" aria-label="Refresh" data-i18n-aria-label="action-refresh" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
+    <button onclick="VibeMetrics && VibeMetrics.refresh()" title="Refresh" data-i18n-title="action-refresh" aria-label="Refresh" data-i18n-aria-label="action-refresh" style="background: transparent; border: 1px solid var(--border, var(--id-ink)); color: var(--text, var(--id-gray-100)); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
   </div>
-  <div id="vibeMetricsBody" style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; font-size: 12px; color: var(--text, #eee);"></div>
+  <div id="vibeMetricsBody" style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; font-size: 12px; color: var(--text, var(--id-gray-100));"></div>
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>

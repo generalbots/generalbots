@@ -3,55 +3,55 @@
   <defs>
     <!-- Gradients -->
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a"/>
-      <stop offset="50%" style="stop-color:#1e293b"/>
-      <stop offset="100%" style="stop-color:#0f172a"/>
+      <stop offset="0%" style="stop-color:var(--palette-0f172a)"/>
+      <stop offset="50%" style="stop-color:var(--palette-1e293b)"/>
+      <stop offset="100%" style="stop-color:var(--palette-0f172a)"/>
     </linearGradient>
 
     <linearGradient id="coreGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6"/>
-      <stop offset="50%" style="stop-color:#6366f1"/>
-      <stop offset="100%" style="stop-color:#8b5cf6"/>
+      <stop offset="0%" style="stop-color:var(--palette-3b82f6)"/>
+      <stop offset="50%" style="stop-color:var(--palette-6366f1)"/>
+      <stop offset="100%" style="stop-color:var(--palette-8b5cf6)"/>
     </linearGradient>
 
     <linearGradient id="greenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#10b981"/>
-      <stop offset="100%" style="stop-color:#22c55e"/>
+      <stop offset="0%" style="stop-color:var(--palette-10b981)"/>
+      <stop offset="100%" style="stop-color:var(--id-success)"/>
     </linearGradient>
 
     <linearGradient id="amberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f59e0b"/>
-      <stop offset="100%" style="stop-color:#fbbf24"/>
+      <stop offset="0%" style="stop-color:var(--palette-f59e0b)"/>
+      <stop offset="100%" style="stop-color:var(--palette-fbbf24)"/>
     </linearGradient>
 
     <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ef4444"/>
-      <stop offset="100%" style="stop-color:#f87171"/>
+      <stop offset="0%" style="stop-color:var(--id-danger-icon)"/>
+      <stop offset="100%" style="stop-color:var(--palette-f87171)"/>
     </linearGradient>
 
     <linearGradient id="dbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6"/>
-      <stop offset="100%" style="stop-color:#1d4ed8"/>
+      <stop offset="0%" style="stop-color:var(--palette-3b82f6)"/>
+      <stop offset="100%" style="stop-color:var(--palette-1d4ed8)"/>
     </linearGradient>
 
     <linearGradient id="vectorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#6d28d9"/>
+      <stop offset="0%" style="stop-color:var(--palette-8b5cf6)"/>
+      <stop offset="100%" style="stop-color:var(--palette-6d28d9)"/>
     </linearGradient>
 
     <linearGradient id="storageGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f59e0b"/>
-      <stop offset="100%" style="stop-color:#d97706"/>
+      <stop offset="0%" style="stop-color:var(--palette-f59e0b)"/>
+      <stop offset="100%" style="stop-color:var(--id-warn)"/>
     </linearGradient>
 
     <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ec4899"/>
-      <stop offset="100%" style="stop-color:#db2777"/>
+      <stop offset="0%" style="stop-color:var(--palette-ec4899)"/>
+      <stop offset="100%" style="stop-color:var(--palette-db2777)"/>
     </linearGradient>
 
     <linearGradient id="cacheGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#06b6d4"/>
-      <stop offset="100%" style="stop-color:#0891b2"/>
+      <stop offset="0%" style="stop-color:var(--palette-06b6d4)"/>
+      <stop offset="100%" style="stop-color:var(--palette-0891b2)"/>
     </linearGradient>
 
     <!-- Filters -->

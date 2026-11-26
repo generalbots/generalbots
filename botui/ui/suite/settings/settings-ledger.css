@@ -20,7 +20,7 @@
 #ledger-section .ledger-tab.active {
     background: var(--accent, var(--palette-2563eb));
     border-color: var(--accent, var(--palette-2563eb));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 #ledger-section .ledger-list {

@@ -21,7 +21,7 @@
     --integrations-radius-sm: var(--sentient-radius-sm, 8px);
     --integrations-radius: var(--sentient-radius-md, var(--radius, 12px));
     --integrations-radius-lg: var(--sentient-radius-lg, 18px);
-    --integrations-shadow: var(--sentient-shadow-sm, var(--shadow-sm, 0 1px 3px rgba(22, 35, 27, .08)));
+    --integrations-shadow: var(--sentient-shadow-sm, var(--shadow-sm, 0 1px 3px color-mix(in srgb, var(--palette-12261a) 8%, transparent)));
     position: relative;
     width: 100%;
     height: 100%;

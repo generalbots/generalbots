@@ -13,7 +13,7 @@
     padding: var(--id-space-6); gap: var(--id-space-5);
     position: relative; z-index: 1; }
 .gb-greeting {
-    font-family: var(--id-font); font-size: var(--id-text-4xl);
+    font-family: var(--id-font-heading); font-size: var(--id-text-4xl);
     font-weight: 600; color: var(--id-ink); text-align: center; line-height: 1.2; max-width: 480px; }
 .gb-greeting-sub {
     font-size: var(--id-text-md); color: var(--id-muted);
@@ -26,7 +26,7 @@
 .gb-composer-card {
     width: 100%; max-width: 680px;
     background: var(--id-surface); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-panel); box-shadow: var(--id-shadow-card);
+    border-radius: var(--id-radius-card); box-shadow: var(--id-shadow-card);
     padding: var(--id-space-4);
     transition: box-shadow var(--id-dur-normal) var(--id-ease);
 }
@@ -35,7 +35,7 @@
 }
 .gb-input-empty, .gb-input-dock {
     border: none; outline: none; resize: none;
-    font-family: var(--id-font); font-size: var(--id-text-md);
+    font-family: var(--id-font-sans); font-size: var(--id-text-md);
     color: var(--id-ink); background: transparent; line-height: 1.6;
 }
 .gb-input-empty { width: 100%; }
@@ -59,9 +59,9 @@
 }
 .gb-suggestion-chip {
     padding: var(--id-space-2) var(--id-space-4);
-    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-pill);
     background: var(--id-surface); color: var(--id-text);
-    font-size: var(--id-text-sm); font-family: var(--id-font);
+    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
     cursor: pointer; white-space: nowrap;
     transition: background var(--id-dur-fast) var(--id-ease),
                 border-color var(--id-dur-fast) var(--id-ease);
@@ -109,7 +109,7 @@
     display: inline-flex; align-items: center; gap: 4px;
     margin-top: var(--id-space-1);
     padding: 2px 8px; background: var(--id-fill);
-    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-pill);
     font-size: var(--id-text-xs); color: var(--id-text);
 }
 
@@ -174,7 +174,7 @@
     border-radius: var(--id-radius-sm) var(--id-radius-sm) 0 0; }
 .gb-code-lang { color: var(--id-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; flex: 1; }
 .gb-code-copy, .gb-code-wrap {
-    padding: 2px 8px; font-size: var(--id-text-xs); font-family: var(--id-font);
+    padding: 2px 8px; font-size: var(--id-text-xs); font-family: var(--id-font-sans);
     border: 1px solid var(--id-line); border-radius: 4px; background: var(--id-surface-solid);
     color: var(--id-text); cursor: pointer; opacity: 0; transition: opacity var(--id-dur-fast) var(--id-ease); }
 .gb-msg-assistant pre:hover .gb-code-copy, .gb-msg-assistant pre:hover .gb-code-wrap,
@@ -211,14 +211,11 @@
     color: var(--id-muted); font-size: var(--id-text-sm);
 }
 .gb-thinking-pulse {
-    flex: none; width: 9px; height: 9px; border-radius: 50%;
-    background: var(--id-accent-text);
-    box-shadow: 0 0 0 3px var(--id-accent-glow);
-    animation: gb-thinking-pulse 1.4s ease-in-out infinite;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--id-accent-light);
+    animation: gb-pulse 1.4s ease-in-out infinite;
 }
-/* Its own name: the reconnect banner's keyframes (assistant-composer.css,
-   loaded later) used to replace these under a shared name. */
-@keyframes gb-thinking-pulse {
+@keyframes gb-pulse {
     0%, 100% { transform: scale(.8); opacity: .5; }
     50% { transform: scale(1.2); opacity: 1; }
 }
@@ -243,15 +240,10 @@
 }
 .gb-reasoning summary::-webkit-details-marker { display: none; }
 .gb-reasoning-icon { flex-shrink: 0; color: var(--id-accent); }
-.gb-reasoning-spin { animation: gb-reasoning-spin 1s linear infinite; transform-origin: 50% 50%; }
-@keyframes gb-reasoning-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-    .gb-reasoning-spin { animation: none; opacity: .75; }
-}
 .gb-reasoning-body {
     padding: var(--id-space-2) var(--id-space-3);
     margin-top: var(--id-space-1); white-space: pre-wrap;
-    font-family: var(--id-font); background: var(--id-fill);
+    font-family: var(--id-font-sans); background: var(--id-fill);
     border-radius: var(--id-radius-sm); max-height: 200px; overflow-y: auto;
 }
 
@@ -275,7 +267,7 @@
 .gb-error-actions button {
     background: none; border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
-    font-size: var(--id-text-xs); color: var(--id-ink);
+    font-size: var(--id-text-xs); color: var(--id-fg, var(--id-text));
     cursor: pointer; transition: background .15s;
 }
 .gb-error-actions button:hover { background: var(--id-fill); }
@@ -294,7 +286,7 @@
 .gb-load-error .gb-btn-retry {
     background: none; border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
-    font-size: var(--id-text-xs); color: var(--id-ink);
+    font-size: var(--id-text-xs); color: var(--id-fg, var(--id-text));
     cursor: pointer; transition: background .15s;
 }
 .gb-load-error .gb-btn-retry:hover { background: var(--id-fill); }

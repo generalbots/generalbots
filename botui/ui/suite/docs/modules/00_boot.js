@@ -163,7 +163,7 @@
         ? docsT("docs-no-documents-yet", "No documents yet. Click + New.")
         : "No documents yet. Click + New.";
       host.innerHTML =
-        '<div style="padding:14px;color:#94a3b8;font-size:12px;">' +
+        '<div style="padding:14px;color:var(--palette-94a3b8);font-size:12px;">' +
         escapeHtml(emptyMsg) +
         "</div>";
       return Promise.resolve();
@@ -206,7 +206,7 @@
       return (
         '<button type="button" class="dc-file-row" data-doc-id="' +
         escapeHtml(item.id) +
-        '" style="display:block;width:100%;text-align:left;padding:10px 12px;margin:0 0 4px;border:0;border-radius:6px;background:transparent;color:#e2e8f0;font-size:13px;cursor:pointer;">' +
+        '" style="display:block;width:100%;text-align:left;padding:10px 12px;margin:0 0 4px;border:0;border-radius:6px;background:transparent;color:var(--palette-e2e8f0);font-size:13px;cursor:pointer;">' +
         escapeHtml(title) +
         "</button>"
       );
@@ -314,7 +314,7 @@
       .catch(function () {
         if (host) {
           host.innerHTML =
-            '<div class="gb-state gb-state-error" style="padding:32px;color:#f87171;">' +
+            '<div class="gb-state gb-state-error" style="padding:32px;color:var(--palette-f87171);">' +
             escapeHtml(
               docsT(
                 "docs-shared-unavailable",

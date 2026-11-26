@@ -79,7 +79,7 @@ Object.assign((window.VibeGraph = window.VibeGraph || {}), {
             box.innerHTML = runs.slice(0, 8).map((run) => {
                 const st = String(run.state || '').toLowerCase();
                 const dot = st === 'completed' ? '#22c55e' : st === 'failed' || st === 'cancelled' ? '#ef4444' : '#3b82f6';
-                return '<div style="display:flex;gap:7px;align-items:flex-start;padding:4px 0;border-bottom:1px solid rgba(128,128,128,.15);">' +
+                return '<div style="display:flex;gap:7px;align-items:flex-start;padding:4px 0;border-bottom:1px solid color-mix(in srgb, var(--id-muted) 15%, transparent);">' +
                     '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';margin-top:4px;flex:0 0 auto;"></span>' +
                     '<span style="word-break:break-word;">' + this.esc(String(run.intent || 'run').substring(0, 120)) + '</span></div>';
             }).join('');

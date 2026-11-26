@@ -64,7 +64,7 @@ async function loadInvoicesAndBalance(token, email) {
             <td style="font-family:monospace;font-size:.85rem">${inv.number}</td>
             <td>${inv.issue_date}</td>
             <td style="color:var(--accent2);font-weight:700">+$${parseFloat(inv.total).toFixed(2)}</td>
-            <td><span class="badge badge-active" style="background:rgba(0,212,170,.15);color:var(--accent2)">${escapeHtml(gbT('cloud-offers-paid', 'Paid'))}</span></td>
+            <td><span class="badge badge-active" style="background:color-mix(in srgb, var(--palette-00d4aa) 15%, transparent);color:var(--accent2)">${escapeHtml(gbT('cloud-offers-paid', 'Paid'))}</span></td>
           </tr>
         `).join('');
       }
@@ -171,7 +171,7 @@ function copyPromoCode(code, elementId) {
       el.textContent = gbT('cloud-offers-copied', 'Copied!');
       el.style.background = 'var(--accent2)';
       el.style.borderColor = 'var(--accent2)';
-      el.style.color = '#000';
+      el.style.color = 'var(--palette-000000)';
       
       setTimeout(() => {
         el.textContent = originalText;
@@ -199,7 +199,7 @@ function escapeHtml(value) {
 function showToast(msg, type = 'success') {
   const t = document.createElement('div');
   t.textContent = msg;
-  const borderCol = type === 'success' ? 'var(--accent2)' : 'var(--red)';
+  const borderCol = type === 'success' ? 'var(--accent2)' : 'var(--id-danger)';
   Object.assign(t.style, {
     position: 'fixed',
     bottom: '1.5rem',
@@ -212,7 +212,7 @@ function showToast(msg, type = 'success') {
     fontSize: '.875rem',
     fontWeight: '600',
     zIndex: 1000,
-    boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+    boxShadow: '0 8px 24px color-mix(in srgb, var(--palette-000000) 40%, transparent)',
     animation: 'modalIn .2s ease'
   });
   document.body.appendChild(t);

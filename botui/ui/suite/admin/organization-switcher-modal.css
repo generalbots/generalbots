@@ -10,7 +10,7 @@
         .modal-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
             backdrop-filter: blur(4px);
         }
 
@@ -22,7 +22,7 @@
             padding: 24px;
             width: 90%;
             max-width: 480px;
-            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 16px 64px color-mix(in srgb, var(--palette-000000) 50%, transparent);
         }
 
         .modal-header {

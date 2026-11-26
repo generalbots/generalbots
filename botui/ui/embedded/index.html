@@ -4,34 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=320, height=240">
     <title>GB Embedded</title>
+    <link rel="stylesheet" href="/suite/css/identity-tokens.css" />
     <style>
         /* Optimized for LCD displays: 320x240, 128x64, 16x2 character displays */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
+        /* Identity tokens. The bespoke --bg/--fg/--border names stay as aliases
+           so every consumer below keeps working; fallbacks cover the offline
+           display case where the token stylesheet is unavailable. */
         :root {
-            --bg: #000;
-            --fg: #0f0;
-            --border: #0a0;
+            --bg: var(--id-ink, #000);
+            --fg: var(--id-success, #0f0);
+            --border: var(--id-success-text, #0a0);
             --font-size: 14px;
             --line-height: 1.2;
         }
         
         /* High contrast mode for outdoor/industrial displays */
         .high-contrast {
-            --bg: #000;
-            --fg: #fff;
-            --border: #fff;
+            --bg: var(--id-ink, #000);
+            --fg: var(--id-surface-solid, #fff);
+            --border: var(--id-surface-solid, #fff);
         }
         
         /* E-ink mode */
         .eink {
-            --bg: #fff;
-            --fg: #000;
-            --border: #000;
+            --bg: var(--id-surface-solid, #fff);
+            --fg: var(--id-ink, #000);
+            --border: var(--id-ink, #000);
         }
         
         body {
-            font-family: 'Courier New', monospace;
+            font-family: var(--id-font-mono, 'Courier New', monospace);
             background: var(--bg);
             color: var(--fg);
             font-size: var(--font-size);

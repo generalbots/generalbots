@@ -28,7 +28,7 @@
         var MAPPABLE = { rect: 1, circle: 1, ellipse: 1, line: 1, text: 1, polyline: 1, polygon: 1, path: 1 };
         var STRUCTURAL = { svg: 1, g: 1, title: 1, desc: 1, defs: 1, style: 1, metadata: 1, switch: 1, marker: 1 };
         var num = function (v, d) { var n = parseFloat(v); return isNaN(n) ? (d || 0) : n; };
-        var strokeOf = function (n) { var v = n.getAttribute("stroke"); return v && v !== "none" ? v : "#000000"; };
+        var strokeOf = function (n) { var v = n.getAttribute("stroke"); return v && v !== "none" ? v : "var(--palette-000000)"; };
         var fillOf = function (n) { var v = n.getAttribute("fill"); return v && v !== "none" ? v : "transparent"; };
         var swOf = function (n) { return num(n.getAttribute("stroke-width"), 2); };
         var parsePoints = function (raw) {
@@ -108,7 +108,7 @@
             var fs = num(n.getAttribute("font-size"), 18), fill = n.getAttribute("fill");
             var content = (n.textContent || "").trim();
             add("text", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")) - fs, fontSize: fs, text: content,
-                width: content.length * fs * 0.6, height: fs * 1.4, stroke: fill && fill !== "none" ? fill : "#000000" });
+                width: content.length * fs * 0.6, height: fs * 1.4, stroke: fill && fill !== "none" ? fill : "var(--palette-000000)" });
         });
         root.querySelectorAll("polyline, polygon").forEach(function (n) {
             var ps = parsePoints(n.getAttribute("points"));

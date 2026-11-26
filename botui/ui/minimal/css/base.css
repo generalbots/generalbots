@@ -1,33 +1,36 @@
-        /* Using system fonts - no external font loading */
+        /* Identity tokens (see /suite/css/identity-tokens.css). The bespoke
+           --bg/--fg/--border names stay as aliases so existing consumers keep
+           working while the palette follows the design system. Fallbacks keep
+           the page usable when tokens are not loaded. */
         :root {
-            --bg: #ffffff;
-            --fg: #000000;
-            --border: #e0e0e0;
-            --accent: #0066ff;
-            --glass: rgba(0, 0, 0, 0.02);
-            --shadow: rgba(0, 0, 0, 0.05);
+            --bg: var(--id-surface-solid, #ffffff);
+            --fg: var(--id-ink, #000000);
+            --border: var(--id-line, #e0e0e0);
+            --accent: var(--id-accent, #0066ff);
+            --glass: var(--id-fill, rgba(0, 0, 0, 0.02));
+            --shadow: var(--id-shadow-card, rgba(0, 0, 0, 0.05));
             --logo-url: url("/cloud/images/logo-square.svg");
             --gradient-1: linear-gradient(135deg,
-                    rgba(0, 102, 255, 0.05) 0%,
-                    rgba(0, 102, 255, 0) 100%);
+                    var(--id-accent-soft, rgba(0, 102, 255, 0.05)) 0%,
+                    transparent 100%);
             --gradient-2: linear-gradient(45deg,
-                    rgba(0, 0, 0, 0.02) 0%,
-                    rgba(0, 0, 0, 0) 100%);
+                    var(--id-fill, rgba(0, 0, 0, 0.02)) 0%,
+                    transparent 100%);
         }
 
         [data-theme="dark"] {
-            --bg: #1a1a1a;
-            --fg: #ffffff;
-            --border: #333333;
-            --accent: #ffffff;
-            --glass: rgba(255, 255, 255, 0.05);
-            --shadow: rgba(0, 0, 0, 0.5);
+            --bg: var(--id-ink, #1a1a1a);
+            --fg: var(--id-surface-solid, #ffffff);
+            --border: var(--id-gray-500, #333333);
+            --accent: var(--id-surface-solid, #ffffff);
+            --glass: var(--id-overlay, rgba(255, 255, 255, 0.05));
+            --shadow: var(--id-overlay-heavy, rgba(0, 0, 0, 0.5));
             --gradient-1: linear-gradient(135deg,
-                    rgba(255, 255, 255, 0.08) 0%,
-                    rgba(255, 255, 255, 0) 100%);
+                    var(--id-overlay, rgba(255, 255, 255, 0.08)) 0%,
+                    transparent 100%);
             --gradient-2: linear-gradient(45deg,
-                    rgba(255, 255, 255, 0.03) 0%,
-                    rgba(255, 255, 255, 0) 100%);
+                    var(--id-overlay, rgba(255, 255, 255, 0.03)) 0%,
+                    transparent 100%);
         }
 
         * {
@@ -37,7 +40,7 @@
         }
 
         body {
-            font-family: "Inter", sans-serif;
+            font-family: var(--id-font-sans, "Inter", system-ui, sans-serif);
             background: var(--bg);
             color: var(--fg);
             overflow: hidden;

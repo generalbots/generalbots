@@ -17,9 +17,7 @@
     transition: width 0.3s ease;
 }
 
-.learn-sidebar.collapsed {
-    width: 60px;
-}
+.learn-sidebar.collapsed { width: 60px; }
 
 .learn-sidebar.collapsed .sidebar-header h2,
 .learn-sidebar.collapsed .user-stats-card,
@@ -339,7 +337,7 @@
     border-radius: 8px;
     font-size: var(--text-2xs);
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
 }
 
 .tab:not(.active) .badge {

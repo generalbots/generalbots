@@ -3,7 +3,7 @@
 .integrations-run-history {
     margin-top: 0.6rem;
     padding: 0.7rem;
-    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    border: 1px solid var(--integrations-border, color-mix(in srgb, var(--palette-94a3b8) 28%, transparent));
     border-radius: 10px;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .integrations-run-outcome-view {
-    border-top: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    border-top: 1px solid var(--integrations-border, color-mix(in srgb, var(--palette-94a3b8) 28%, transparent));
     padding-top: 0.5rem;
 }
 

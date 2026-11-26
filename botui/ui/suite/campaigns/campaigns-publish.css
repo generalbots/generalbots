@@ -18,7 +18,7 @@
 }
 .studio-img-tool-btn:hover {
     background: var(--palette-22c55e);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 .studio-media-strip {
     display: flex;
@@ -28,12 +28,12 @@
 }
 .studio-media-empty {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 .studio-media-item {
     position: relative;
     width: 120px;
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 8px;
     overflow: hidden;
     background: var(--surface-2, var(--palette-111827));

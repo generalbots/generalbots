@@ -213,7 +213,7 @@
 }
 
 .log-entry[data-level="debug"] .log-level {
-    background: rgba(107, 114, 128, 0.15);
+    background: color-mix(in srgb, var(--id-gray-500) 15%, transparent);
     color: var(--text-secondary);
 }
 
@@ -223,17 +223,17 @@
 }
 
 .log-entry[data-level="warn"] .log-level {
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in srgb, var(--palette-f59e0b) 15%, transparent);
     color: var(--warning);
 }
 
 .log-entry[data-level="error"] .log-level {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger-icon) 15%, transparent);
     color: var(--error);
 }
 
 .log-entry[data-level="fatal"] .log-level {
-    background: rgba(220, 38, 38, 0.2);
+    background: color-mix(in srgb, var(--id-danger) 20%, transparent);
     color: var(--error);
 }
 
@@ -304,7 +304,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--palette-000000) 15%, transparent);
 }
 
 .scroll-btn:hover {

@@ -123,9 +123,9 @@ tr:hover td { background: var(--bg-tertiary); }
   font-size: var(--text-2xs);
   font-weight: 600;
 }
-.status-badge.approved { background: rgba(63, 185, 80, 0.15); color: var(--success); }
-.status-badge.review { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
-.status-badge.blocked { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+.status-badge.approved { background: color-mix(in srgb, var(--palette-3fb950) 15%, transparent); color: var(--success); }
+.status-badge.review { background: color-mix(in srgb, var(--palette-d29922) 15%, transparent); color: var(--warning); }
+.status-badge.blocked { background: color-mix(in srgb, var(--palette-f85149) 15%, transparent); color: var(--danger); }
 .toggle-switch {
   position: relative;
   width: 40px;
@@ -154,7 +154,7 @@ tr:hover td { background: var(--bg-tertiary); }
   transition: var(--transition);
 }
 .toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
-.toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); background: #fff; }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); background: var(--id-surface-solid); }
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius);
@@ -172,7 +172,7 @@ tr:hover td { background: var(--bg-tertiary); }
    (the shared pattern supplies base layout). Hover is app-specific too. */
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   border-color: var(--accent);
 }
 .btn-primary:hover { background: var(--accent-hover); }
@@ -183,14 +183,14 @@ tr:hover td { background: var(--bg-tertiary); }
 .btn-secondary:hover { background: var(--border-color); }
 .btn-danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--id-surface-solid);
   border-color: var(--danger);
 }
 .btn-sm { padding: 4px 10px; font-size: var(--text-2xs); }
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

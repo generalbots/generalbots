@@ -22,7 +22,7 @@
 .events-schema { color: var(--accent, var(--palette-0ea5e9)); font-family: monospace; font-size: var(--text-xs); }
 .events-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .events-panel {
-  background: var(--surface, rgba(255, 255, 255, 0.03));
+  background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 3%, transparent));
   border: 1px solid var(--border, var(--palette-334155));
   border-radius: 10px;
   padding: 14px 16px;
@@ -41,9 +41,9 @@
 .events-btn {
   border: 1px solid var(--border, var(--palette-334155)); border-radius: 6px;
   padding: 7px 12px; cursor: pointer; font: inherit;
-  background: var(--surface-2, rgba(255, 255, 255, 0.06)); color: inherit;
+  background: var(--surface-2, color-mix(in srgb, var(--id-surface-solid) 6%, transparent)); color: inherit;
 }
-.events-btn.primary { background: var(--accent, var(--palette-0ea5e9)); color: #fff; border-color: transparent; }
+.events-btn.primary { background: var(--accent, var(--palette-0ea5e9)); color: var(--id-surface-solid); border-color: transparent; }
 .events-btn:hover { filter: brightness(1.1); }
 .events-count { color: var(--muted, var(--palette-94a3b8)); font-size: var(--text-xs); }
 .events-status { margin: 10px 0 0; min-height: 1.2em; color: var(--accent, var(--palette-0ea5e9)); }

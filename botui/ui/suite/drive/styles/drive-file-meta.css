@@ -77,7 +77,7 @@
 }
 .cm-mention {
     color: var(--palette-93c5fd);
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--palette-3b82f6) 15%, transparent);
     border-radius: 4px;
     padding: 0 3px;
 }
@@ -104,7 +104,7 @@
     margin-left: auto;
 }
 .cm-del:hover {
-    background: rgba(220, 38, 38, 0.2);
+    background: color-mix(in srgb, var(--id-danger) 20%, transparent);
     color: var(--palette-f87171);
 }
 .cm-reaction-chip {
@@ -149,7 +149,7 @@
     background: var(--palette-3b82f6);
     border: none;
     border-radius: 8px;
-    color: #fff;
+    color: var(--id-surface-solid);
     padding: 0 16px;
     font-weight: 500;
     font-size: var(--text-xs);
@@ -157,15 +157,15 @@
 }
 
 .kb-tag.public {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    border: 1px solid color-mix(in srgb, var(--id-success) 30%, transparent);
 }
 
 .kb-tag.private {
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in srgb, var(--palette-f59e0b) 15%, transparent);
     color: var(--palette-f59e0b);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid color-mix(in srgb, var(--palette-f59e0b) 30%, transparent);
 }
 
 /* Sidebar Actions */
@@ -201,13 +201,13 @@
 }
 
 .btn-secondary-full {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-ffffff));
     border: 1px solid var(--border, var(--palette-2a2a3a));
 }
 
 .btn-secondary-full:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: color-mix(in srgb, var(--id-surface-solid) 15%, transparent);
 }
 
 /* File Card Info */
@@ -250,7 +250,7 @@
 }
 
 .division-item.active {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--palette-3b82f6) 15%, transparent);
     color: var(--palette-60a5fa);
 }
 

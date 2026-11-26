@@ -59,7 +59,7 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 12px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 24px color-mix(in srgb, var(--id-ink) 20%, transparent);
         min-width: 260px;
         z-index: var(--z-dropdown);
         overflow: hidden;
@@ -155,7 +155,7 @@
     }
 
     .user-menu-item.logout:hover {
-        background: rgba(239, 68, 68, 0.1);
+        background: color-mix(in srgb, var(--id-danger) 10%, transparent);
     }
 
     .user-menu-item.logout svg {

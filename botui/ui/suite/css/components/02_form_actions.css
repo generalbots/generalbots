@@ -15,7 +15,7 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--palette-000000) 70%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -177,7 +177,7 @@
 .form-input:focus {
     outline: none;
     border-color: var(--accent, var(--primary));
-    box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-d4f505) 10%, transparent);
 }
 
 .form-input::placeholder {

@@ -46,7 +46,7 @@ function showToast(message, type = "info", duration = 4000, onClick = null) {
         color: white;
         font-size: 14px;
         font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--id-ink) 30%, transparent);
         animation: slideIn 0.3s ease;
     `;
 
@@ -80,13 +80,13 @@ function gbConfirm(message, title) {
       }
     }
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
-    overlay.innerHTML = '<div style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:16px;min-width:280px;max-width:420px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">' +
+    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--id-ink) 45%, transparent)";
+    overlay.innerHTML = '<div style="background:var(--id-ink);color:var(--id-gray-100);border:1px solid var(--id-ink);border-radius:10px;padding:16px;min-width:280px;max-width:420px;font-size:14px;box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent)">' +
       '<div style="font-weight:600;margin-bottom:8px">' + String(t).replace(/</g, "&lt;") + '</div>' +
       '<div style="margin-bottom:14px;white-space:pre-wrap">' + String(message).replace(/</g, "&lt;") + '</div>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end">' +
-      '<button data-gb-cancel style="padding:6px 12px;border-radius:6px;border:1px solid #475569;background:#334155;color:#f8fafc;cursor:pointer">Cancel</button>' +
-      '<button data-gb-ok style="padding:6px 12px;border-radius:6px;border:0;background:#3b82f6;color:#fff;cursor:pointer">OK</button>' +
+      '<button data-gb-cancel style="padding:6px 12px;border-radius:6px;border:1px solid var(--id-text);background:var(--id-ink);color:var(--id-gray-100);cursor:pointer">Cancel</button>' +
+      '<button data-gb-ok style="padding:6px 12px;border-radius:6px;border:0;background:var(--id-accent);color:var(--id-surface-solid);cursor:pointer">OK</button>' +
       '</div></div>';
     const done = (v) => { overlay.remove(); resolve(v); };
     overlay.querySelector("[data-gb-ok]").addEventListener("click", () => done(true));
@@ -119,14 +119,14 @@ function gbPrompt(message, defaultValue, title) {
       } catch (e) { /* fallback */ }
     }
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
-    overlay.innerHTML = '<div style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:16px;min-width:300px;max-width:420px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">' +
+    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--id-ink) 45%, transparent)";
+    overlay.innerHTML = '<div style="background:var(--id-ink);color:var(--id-gray-100);border:1px solid var(--id-ink);border-radius:10px;padding:16px;min-width:300px;max-width:420px;font-size:14px;box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent)">' +
       '<div style="font-weight:600;margin-bottom:8px">' + String(t).replace(/</g, "&lt;") + '</div>' +
       '<div style="margin-bottom:8px;white-space:pre-wrap">' + String(message).replace(/</g, "&lt;") + '</div>' +
-      '<input data-gb-input style="width:100%;box-sizing:border-box;margin-bottom:14px;padding:8px;border-radius:6px;border:1px solid #475569;background:#0f172a;color:#f8fafc" />' +
+      '<input data-gb-input style="width:100%;box-sizing:border-box;margin-bottom:14px;padding:8px;border-radius:6px;border:1px solid var(--id-text);background:var(--id-ink);color:var(--id-gray-100)" />' +
       '<div style="display:flex;gap:8px;justify-content:flex-end">' +
-      '<button data-gb-cancel style="padding:6px 12px;border-radius:6px;border:1px solid #475569;background:#334155;color:#f8fafc;cursor:pointer">Cancel</button>' +
-      '<button data-gb-ok style="padding:6px 12px;border-radius:6px;border:0;background:#3b82f6;color:#fff;cursor:pointer">OK</button>' +
+      '<button data-gb-cancel style="padding:6px 12px;border-radius:6px;border:1px solid var(--id-text);background:var(--id-ink);color:var(--id-gray-100);cursor:pointer">Cancel</button>' +
+      '<button data-gb-ok style="padding:6px 12px;border-radius:6px;border:0;background:var(--id-accent);color:var(--id-surface-solid);cursor:pointer">OK</button>' +
       '</div></div>';
     const input = overlay.querySelector("[data-gb-input]");
     input.value = d;

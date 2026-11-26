@@ -18,7 +18,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: color-mix(in srgb, var(--palette-000000) 90%, transparent);
     z-index: var(--z-system);
     display: flex;
     align-items: center;
@@ -46,7 +46,7 @@
     background: var(--surface, var(--card, var(--palette-1a1a24)));
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 60px color-mix(in srgb, var(--palette-000000) 50%, transparent);
     display: flex;
     flex-direction: column;
 }
@@ -65,7 +65,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    background: var(--surface-hover, rgba(0, 0, 0, 0.2));
+    background: var(--surface-hover, color-mix(in srgb, var(--palette-000000) 20%, transparent));
     border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
@@ -99,7 +99,7 @@
     height: 36px;
     border-radius: 8px;
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     color: var(--text, var(--palette-e5e5e5));
     cursor: pointer;
     display: flex;
@@ -109,7 +109,7 @@
 }
 
 .projector-btn:hover {
-    background: var(--surface-active, rgba(255, 255, 255, 0.1));
+    background: var(--surface-active, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     border-color: var(--accent, var(--palette-2563eb));
 }
 
@@ -136,7 +136,7 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .projector-loading.hidden {
@@ -222,7 +222,7 @@
     width: 40px;
     margin-right: 16px;
     text-align: right;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     border-right: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     padding-right: 12px;
 }

@@ -62,5 +62,5 @@ function escapeHtml(value) {
 }
 
 function showError(msg) {
-  document.getElementById('invoices-list').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
+  document.getElementById('invoices-list').innerHTML = '<div class="saas-loading" style="color:var(--id-danger)">' + escapeHtml(msg) + '</div>';
 }

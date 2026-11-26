@@ -105,13 +105,13 @@
     border: none;
     border-radius: 16px;
     background: var(--surface);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 25%, transparent);
     max-width: 480px;
     width: 90%;
 }
 
 .modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 .modal-content {

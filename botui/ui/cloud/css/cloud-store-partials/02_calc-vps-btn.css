@@ -10,8 +10,8 @@
 }
 
 .calc-vps-btn.recommended {
-  border-color: var(--accent2, #00d4aa);
-  box-shadow: 0 0 0 1px var(--accent2, #00d4aa);
+  border-color: var(--accent2, var(--palette-00d4aa));
+  box-shadow: 0 0 0 1px var(--accent2, var(--palette-00d4aa));
 }
 
 .calc-rec-badge {
@@ -19,8 +19,8 @@
   margin-top: .35rem;
   padding: .12rem .5rem;
   border-radius: 99px;
-  background: var(--accent2, #00d4aa);
-  color: #04241c;
+  background: var(--accent2, var(--palette-00d4aa));
+  color: var(--palette-052e1c);
   font-size: .6rem;
   font-weight: 700;
   letter-spacing: .03em;
@@ -163,7 +163,7 @@
 .calc-compare-save {
   font-size: .8rem;
   font-weight: 600;
-  color: #34d399;
+  color: var(--palette-34d399);
 }
 
 .calc-compare-save strong {
@@ -179,8 +179,8 @@
   color: var(--accent);
   font-weight: 600;
   padding: .5rem .75rem;
-  background: rgba(255,0,128,.08);
-  border: 1px solid rgba(255,0,128,.2);
+  background: color-mix(in srgb, var(--palette-ec4899) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--palette-ec4899) 20%, transparent);
   border-radius: 8px;
   margin-bottom: 1rem;
 }
@@ -290,7 +290,7 @@
   width: 16px; height: 16px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   font-size: .6rem;
   align-items: center;
   justify-content: center;
@@ -337,7 +337,7 @@
   font-size: .85rem;
   font-weight: 700;
   background: var(--accent);
-  color: #fff;
+  color: var(--id-surface-solid);
   border: none;
   border-radius: 999px;
   text-decoration: none;

@@ -2,7 +2,7 @@
 .gb-side-action:hover {
   background: var(--primary, var(--accent, var(--primary)));
   border-color: var(--primary, var(--accent, var(--primary)));
-  color: #111;
+  color: var(--palette-111111);
 }
 
 /* ── 6. Rich user card ── */
@@ -36,7 +36,7 @@
   height: auto;
   border-radius: 999px;
   padding: 1px 8px;
-  background: rgba(34, 197, 94, 0.18);
+  background: color-mix(in srgb, var(--palette-22c55e) 18%, transparent);
   color: var(--success);
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -75,7 +75,7 @@
 .gb-side-apps-count {
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
-  background: var(--surface-hover, rgba(255, 255, 255, 0.07));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 7%, transparent));
   border-radius: 999px;
   padding: 1px 7px;
 }
@@ -100,7 +100,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.14));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 14%, transparent));
   transition: background 150ms;
 }
 
@@ -112,7 +112,7 @@
   left: 2px;
   top: 2px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--palette-ffffff);
   transition: transform 150ms;
 }
 
@@ -140,7 +140,7 @@
   gap: 6px;
   padding: 4px 2px 6px;
   margin-bottom: 2px;
-  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
 }
 
 .gb-side-preview-label {
@@ -156,10 +156,10 @@
     45deg,
     transparent,
     transparent 4px,
-    var(--surface-hover, rgba(255, 255, 255, 0.05)) 4px,
-    var(--surface-hover, rgba(255, 255, 255, 0.05)) 8px
+    var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent)) 4px,
+    var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent)) 8px
   );
-  outline: 1px dashed var(--shell-border, rgba(255, 255, 255, 0.18));
+  outline: 1px dashed var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 18%, transparent));
   outline-offset: -1px;
 }
 
@@ -170,8 +170,8 @@
   padding: 5px 8px;
   font-size: var(--text-2xs);
   border-radius: 6px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent));
   color: var(--text);
   outline: none;
 }
@@ -201,7 +201,7 @@
 }
 
 .gb-side-app-tile:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.09));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 9%, transparent));
 }
 
 .gb-side-app-icon svg {
@@ -240,7 +240,7 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--surface-hover, rgba(0, 0, 0, 0.55));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-000000) 55%, transparent));
   color: var(--text-secondary);
   font-size: var(--text-2xs);
   line-height: 12px;
@@ -256,7 +256,7 @@
 
 .gb-side-app-hide:hover {
   background: var(--error);
-  color: #fff;
+  color: var(--palette-ffffff);
 }
 
 .gb-side-apps-empty {
@@ -271,7 +271,7 @@
 .gb-side-apps-manage {
   padding-top: 6px;
   margin-top: 4px;
-  border-top: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
 }
 
 .gb-side-manage-btn {
@@ -291,7 +291,7 @@
 
 .gb-side-manage-btn:hover,
 .gb-side-manage-btn[aria-expanded="true"] {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.09));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 9%, transparent));
   color: var(--text);
 }
 
@@ -310,9 +310,9 @@
 .gb-side-apps-manage-panel {
   margin-top: 4px;
   padding: 6px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 8px;
-  background: var(--surface, rgba(20, 20, 26, 0.92));
+  background: var(--surface, color-mix(in srgb, var(--palette-12121a) 92%, transparent));
 }
 
 .gb-side-manage-head {
@@ -350,7 +350,7 @@
   width: 100%;
   margin-bottom: 4px;
   padding: 3px 6px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 5px;
   background: transparent;
   color: var(--text-secondary);
@@ -379,7 +379,7 @@
 }
 
 .gb-side-manage-row:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.06));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 6%, transparent));
   border-radius: 4px;
 }
 

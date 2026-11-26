@@ -344,11 +344,11 @@
     max-width: 800px;
     width: 90%;
     background: var(--card-bg);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 60px var(--id-overlay);
 }
 
 .billing-modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 .modal-header {

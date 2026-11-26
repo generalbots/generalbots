@@ -254,7 +254,7 @@ function showPdfFallback(body, name, pdfUrl, fileOrInfo, opts) {
             '<p class="gb-attach-panel-name">' + esc(name) + '</p>' +
             '<p class="gb-attach-panel-info">PDF</p>' +
             (size ? '<p class="gb-attach-panel-info">' + esc(fmtBytes(size)) + '</p>' : '') +
-            '<p class="gb-attach-panel-info" style="margin-top:8px;color:var(--id-warn,#a16207)">' +
+            '<p class="gb-attach-panel-info" style="margin-top:8px;color:var(--id-warn)">' +
                 esc(A.t("attach.pdf-no-preview",
                     "A visualização de PDF não está disponível neste navegador.")) +
             '</p>' +

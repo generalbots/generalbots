@@ -86,7 +86,7 @@
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 10px 40px var(--id-overlay);
                 animation: slideIn 0.3s ease;
             }
 

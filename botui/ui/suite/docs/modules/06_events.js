@@ -7,8 +7,8 @@ document.addEventListener("click", function (e) {
     var which = tab.dataset.sidebarTab;
     $$(".sidebar-tab").forEach(function (b) {
       b.classList.toggle("active", b === tab);
-      b.style.background = b === tab ? "#1e293b" : TITLE_BG;
-      b.style.color = b === tab ? TITLE_COLOR : "#94a3b8";
+      b.style.background = b === tab ? "var(--palette-1e293b)" : TITLE_BG;
+      b.style.color = b === tab ? TITLE_COLOR : "var(--palette-94a3b8)";
     });
     $$(".sidebar-content").forEach(function (c) {
       c.style.display = c.dataset.sidebarContent === which ? "flex" : "none";

@@ -42,7 +42,7 @@ async function loadFiles(path, bucket) {
         var msg = err.message || '';
         // Show a more user-friendly message for missing buckets
         if (msg.indexOf('NoSuchBucket') !== -1 || msg.indexOf('bucket does not exist') !== -1) {
-            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;" data-i18n="drive-state-welcome-to-your-drive"></h3><p style="color:#94a3b8;">Drag files here or click Upload to get started.</p></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:var(--palette-f8fafc);" data-i18n="drive-state-welcome-to-your-drive"></h3><p style="color:var(--palette-94a3b8);">Drag files here or click Upload to get started.</p></div>';
         } else if (currentBackend === "local") {
             content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3 data-i18n="drive-state-could-not-read-this-folder"></h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles(\'' + escapeJs(currentPath || "") + '\', \'' + escapeJs(localBucket(currentLocalRoot)) + '\')">Try again</button></div>';
         } else {
@@ -156,7 +156,7 @@ async function uploadFiles(files) {
         var retry = document.createElement("button");
         retry.type = "button";
         retry.textContent = gbT("drive-retry-failed", "Retry failed");
-        retry.style.cssText = "margin-top:10px;padding:6px 10px;border:0;border-radius:6px;background:#3b82f6;color:#fff;font-size:12px;cursor:pointer;";
+        retry.style.cssText = "margin-top:10px;padding:6px 10px;border:0;border-radius:6px;background:var(--palette-3b82f6);color:var(--id-surface-solid);font-size:12px;cursor:pointer;";
         retry.addEventListener("click", function () {
             if (progressEl && progressEl.parentNode) progressEl.remove();
             uploadFiles(failedFiles.slice());
@@ -178,10 +178,10 @@ function showUploadProgress(total) {
     el.setAttribute("role", "status");
     el.setAttribute("aria-live", "off");
     el.setAttribute("aria-atomic", "true");
-    el.style.cssText = "position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:var(--z-system);box-shadow:0 8px 24px rgba(0,0,0,0.4);";
-    el.innerHTML = '<div style="color:#f8fafc;font-size:13px;margin-bottom:8px;" id="gb-upload-label" data-i18n="drive-state-preparing-upload"></div>'
-        + '<div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:100%;background:#3b82f6;border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
-        + '<div style="color:#64748b;font-size:11px;margin-top:6px;" id="gb-upload-detail">0 / ' + total + '</div>';
+    el.style.cssText = "position:fixed;bottom:24px;right:24px;background:var(--palette-1e293b);border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:var(--z-system);box-shadow:0 8px 24px color-mix(in srgb, var(--palette-000000) 40%, transparent);";
+    el.innerHTML = '<div style="color:var(--palette-f8fafc);font-size:13px;margin-bottom:8px;" id="gb-upload-label" data-i18n="drive-state-preparing-upload"></div>'
+        + '<div style="background:var(--palette-0f172a);border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:100%;background:var(--palette-3b82f6);border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
+        + '<div style="color:var(--palette-64748b);font-size:11px;margin-top:6px;" id="gb-upload-detail">0 / ' + total + '</div>';
     document.body.appendChild(el);
     return el;
 }

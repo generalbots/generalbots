@@ -120,7 +120,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #000;
+        background: var(--id-ink);
         position: relative;
         overflow: hidden;
     }
@@ -185,7 +185,7 @@
         align-items: center;
         justify-content: center;
         background: white;
-        color: #000;
+        color: var(--id-ink);
         padding: 2rem;
     }
 
@@ -197,7 +197,7 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        background: rgba(0, 0, 0, 0.7);
+        background: color-mix(in srgb, var(--id-ink) 70%, transparent);
         padding: 0.5rem 1rem;
         border-radius: 9999px;
         color: white;
@@ -215,7 +215,7 @@
     }
 
     .nav-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
     }
 
     .empty-state {

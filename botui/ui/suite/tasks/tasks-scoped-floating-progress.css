@@ -125,7 +125,7 @@
 }
 
 .metric-value {
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     font-weight: 600;
     font-family: monospace;
 }

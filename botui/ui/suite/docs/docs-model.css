@@ -3,14 +3,14 @@
  * Fluent catalog, so no strings live in this file. */
 
 .gb-model-backdrop {
-  position: fixed; inset: 0; background: rgba(2, 6, 23, .7);
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--palette-020617) 70%, transparent);
   z-index: var(--z-modal-backdrop);
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .gb-model-dialog {
   background: var(--palette-0f172a); color: var(--palette-f8fafc); border: 1px solid var(--palette-334155);
   border-radius: 10px; width: min(920px, 96vw); max-height: 90vh;
-  display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+  display: flex; flex-direction: column; box-shadow: 0 16px 48px color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 .gb-model-dialog-title { margin: 0; padding: 14px 18px 6px; font-size: var(--text-md); }
 .gb-model-local-note { color: var(--palette-94a3b8); font-size: var(--text-2xs); font-style: italic; margin: 0 18px 6px; }

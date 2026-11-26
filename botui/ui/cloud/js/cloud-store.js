@@ -105,5 +105,5 @@ async function confirmPurchase() {
 function hideModal() { document.getElementById('purchase-modal').style.display = 'none'; }
 
 function showError(msg) {
-  document.getElementById('store-grid').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
+  document.getElementById('store-grid').innerHTML = '<div class="saas-loading" style="color:var(--id-danger)">' + escapeHtml(msg) + '</div>';
 }

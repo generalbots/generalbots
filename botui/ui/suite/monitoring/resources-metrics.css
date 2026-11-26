@@ -200,7 +200,7 @@
 }
 
 .process-status.running {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
@@ -210,7 +210,7 @@
 }
 
 .process-status.stopped {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 

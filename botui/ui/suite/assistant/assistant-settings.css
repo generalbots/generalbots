@@ -249,7 +249,7 @@
 .gb-set-model-actions { display: flex; gap: var(--id-space-1); margin-top: var(--id-space-1); }
 .gb-badge {
     display: inline-block; padding: 1px 6px; border-radius: var(--id-radius-pill);
-    font-size: var(--text-2xs); border: 1px solid var(--id-line); background: var(--id-fill); color: var(--id-muted); }
+    font-size: var(--id-text-xs); border: 1px solid var(--id-line); background: var(--id-fill); color: var(--id-muted); }
 .gb-badge-active { background: var(--id-accent-soft); color: var(--id-accent-text); border-color: var(--id-accent); }
 .gb-badge-ok { background: var(--id-success-soft); color: var(--id-success-text); border-color: var(--id-success-line); }
 .gb-set-btn-sm {
@@ -342,7 +342,7 @@
     border: 1px solid var(--id-line); background: var(--id-paper);
     overflow: hidden;
 }
-.gb-set-bg-name { font-size: var(--text-2xs); color: var(--id-muted); text-align: center; }
+.gb-set-bg-name { font-size: var(--id-text-xs); color: var(--id-muted); text-align: center; }
 
 /* ---- Custom instructions ---- */
 .gb-set-textarea {
@@ -354,7 +354,7 @@
     resize: vertical; min-height: 60px;
 }
 .gb-set-textarea:focus { outline: none; border-color: var(--id-accent); box-shadow: var(--id-focus); }
-.gb-set-counter { display: block; text-align: right; font-size: var(--text-2xs); color: var(--id-muted); margin-top: 2px; }
+.gb-set-counter { display: block; text-align: right; font-size: var(--id-text-xs); color: var(--id-muted); margin-top: 2px; }
 .gb-set-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .gb-set-toggle {
     appearance: none; -webkit-appearance: none;
@@ -365,7 +365,7 @@
 .gb-set-toggle::after {
     content: ""; position: absolute; top: 2px; left: 2px;
     width: 16px; height: 16px; border-radius: 50%;
-    background: white; transition: transform var(--id-dur-fast) var(--id-ease);
+    background: var(--id-surface-solid); transition: transform var(--id-dur-fast) var(--id-ease);
 }
 .gb-set-toggle:checked { background: var(--id-accent); }
 .gb-set-toggle:checked::after { transform: translateX(16px); }

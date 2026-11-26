@@ -15,8 +15,8 @@
 
 .mgmt-split-left {
   position: relative;
-  background: #08080a;
-  color: #ededf0;
+  background: var(--palette-0a0a0a);
+  color: var(--palette-e4e4ea);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -30,7 +30,7 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    radial-gradient(circle, color-mix(in srgb, var(--id-surface-solid) 4%, transparent) 1px, transparent 1px);
   background-size: 24px 24px;
   pointer-events: none;
 }
@@ -51,8 +51,8 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #fff;
-  background: #08080a;
+  color: var(--id-surface-solid);
+  background: var(--palette-0a0a0a);
   border: 1px solid transparent;
   background-clip: padding-box;
   position: relative;
@@ -71,7 +71,7 @@
 .split-pitch-title {
   font-size: 2rem;
   font-weight: 900;
-  color: #fff;
+  color: var(--id-surface-solid);
   line-height: 1.2;
   margin-top: 20px;
   letter-spacing: -0.02em;
@@ -82,7 +82,7 @@
 }
 
 .split-pitch-body {
-  color: #a0a0aa;
+  color: var(--palette-9ca3af);
   font-size: 1rem;
   line-height: 1.7;
   margin-top: 16px;
@@ -102,7 +102,7 @@
   align-items: center;
   gap: 10px;
   font-size: 0.92rem;
-  color: #c8c8d0;
+  color: var(--palette-d1d5db);
   position: relative;
   padding-left: 20px;
 }
@@ -124,7 +124,7 @@
 .split-trust {
   display: flex;
   gap: 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--id-surface-solid) 10%, transparent);
   margin-top: 32px;
   padding-top: 24px;
   position: relative;
@@ -145,7 +145,7 @@
 
 .split-trust-label {
   font-size: 0.75rem;
-  color: #7e7e8a;
+  color: var(--palette-808898);
   letter-spacing: 0.02em;
 }
 

@@ -107,7 +107,7 @@
     color: var(--sheet-fg, var(--palette-f8fafc));
     border: 1px solid var(--sheet-border, var(--palette-334155));
     border-radius: 8px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--id-ink) 40%, transparent);
     padding: 12px 14px;
     font-size: var(--text-xs);
 }

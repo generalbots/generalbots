@@ -272,6 +272,10 @@ pub fn configure_cloud_router() -> Router {
                 "/suite/css/palette-tokens.css",
                 get(serve_cloud_shared_asset),
             )
+            .route(
+                "/suite/css/identity-tokens.css",
+                get(serve_cloud_shared_asset),
+            )
             .route("/manifest.webmanifest", get(serve_cloud_shared_asset))
             // API, UI, WS nests
             .nest("/api", create_api_router())

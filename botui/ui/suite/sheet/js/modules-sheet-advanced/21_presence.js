@@ -85,8 +85,8 @@
     tag.textContent = name;
     tag.style.cssText =
       "position:absolute;left:0;top:-16px;padding:1px 6px;font-size:10px;line-height:14px;" +
-      "font-weight:600;color:#fff;background:" + color + ";border-radius:3px 3px 3px 0;" +
-      "white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.4);";
+      "font-weight:600;color:var(--id-surface-solid);background:" + color + ";border-radius:3px 3px 3px 0;" +
+      "white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px color-mix(in srgb, var(--id-ink) 40%, transparent);";
     border.appendChild(tag);
 
     host.appendChild(border);
@@ -109,8 +109,8 @@
     pill.textContent = name + " is typing…";
     pill.style.cssText =
       "position:absolute;padding:2px 8px;font-size:11px;line-height:16px;font-style:italic;" +
-      "color:var(--sheet-fg, #f8fafc);background:" + color + ";border-radius:999px;white-space:nowrap;" +
-      "pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.45);";
+      "color:var(--sheet-fg, var(--id-gray-100));background:" + color + ";border-radius:999px;white-space:nowrap;" +
+      "pointer-events:none;box-shadow:0 2px 6px color-mix(in srgb, var(--id-ink) 45%, transparent);";
     pill.style.left = colXOf(col) + "px";
     pill.style.top = (row * rowHeight() + rowHeight() + 2) + "px";
 

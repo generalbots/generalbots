@@ -1,47 +1,39 @@
-/* Tech Themes */
+/* Tech themes — accent-only variants of the identity theme.
+ *
+ * Paper, ink, greys, radii, shadows and type come from identity-tokens.css.
+ * Each theme below changes only the seven accent tokens; the shared CSS that
+ * follows is the same for every theme. Dark accents are keyed by
+ * data-color-scheme, never by a theme id.
+ */
+
 :root[data-theme="3dbevel"] {
-    --primary: #0000ff;
-    --primary-hover: #0000cc;
-    --primary-light: rgba(0, 0, 255, 0.15);
-    --bg: #c0c0c0;
-    --surface: #d4d4d4;
-    --surface-hover: #e8e8e8;
-    --border: #808080;
-        --win-border-width: 2px;
-        --win-border-color: rgba(128,128,128,0.4);
-        --win-border-active: #0000ff;
-    --text: #000000;
-    --text-secondary: #404040;
+    --id-accent: #0000AA;
+    --id-accent-hover: #000088;
+    --id-accent-light: #383DAF;
+    --id-accent-text: #00219A;
+    --id-accent-soft: rgb(0 0 170 / .1);
+    --id-accent-glow: rgb(0 0 170 / .26);
+    --id-on-accent: #FFFFFF;
 }
 
 :root[data-theme="xeroxui"] {
-    --primary: #4a86cf;
-    --primary-hover: #3a76bf;
-    --primary-light: rgba(74, 134, 207, 0.15);
-    --bg: #e8e8e8;
-    --surface: #ffffff;
-    --surface-hover: #f0f0f0;
-    --border: #a0a0a0;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(160,160,160,0.3);
-        --win-border-active: #4a86cf;
-    --text: #000000;
-    --text-secondary: #606060;
+    --id-accent: #00008A;
+    --id-accent-hover: #01006A;
+    --id-accent-light: #2F3493;
+    --id-accent-text: #00197C;
+    --id-accent-soft: rgb(0 0 138 / .1);
+    --id-accent-glow: rgb(0 0 138 / .26);
+    --id-on-accent: #FFFFFF;
 }
 
 :root[data-theme="xtreegold"] {
-    --primary: #ffff00;
-    --primary-hover: #cccc00;
-    --primary-light: rgba(255, 255, 0, 0.15);
-    --bg: #000080;
-    --surface: #0000a0;
-    --surface-hover: #0000c0;
-    --border: #ffff0033;
-        --win-border-width: 2px;
-        --win-border-color: rgba(255,255,0,0.3);
-        --win-border-active: #ffff00;
-    --text: #ffff00;
-    --text-secondary: #00ffff;
+    --id-accent: #66FFFF;
+    --id-accent-hover: #57E3E0;
+    --id-accent-light: #A7FFFF;
+    --id-accent-text: #008177;
+    --id-accent-soft: rgb(102 255 255 / .1);
+    --id-accent-glow: rgb(102 255 255 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
 /* ============================================ */
@@ -55,9 +47,7 @@
 }
 
 body {
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-        Arial, sans-serif;
+    font-family: var(--id-font-sans);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -99,16 +89,13 @@ body {
 /* No Animations - disables all transitions and animations */
 body.no-animations,
 body.no-animations * {
-    animation: none !important;
-    transition: none !important;
+    animation: none;
+    transition: none;
 }
 
-body.no-animations .htmx-indicator {
-    animation: none !important;
-}
-
+body.no-animations .htmx-indicator,
 body.no-animations .spinner {
-    animation: none !important;
+    animation: none;
 }
 
 /* ============================================ */
@@ -122,7 +109,7 @@ body.no-animations .spinner {
     padding: 0 1rem;
     height: 64px;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
     position: sticky;
     top: 0;
     z-index: var(--z-dropdown);
@@ -157,8 +144,8 @@ body.no-animations .spinner {
 .logo-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--primary), #8b5cf6);
-    border-radius: 8px;
+    background: linear-gradient(135deg, var(--id-accent), var(--id-accent-light));
+    border-radius: var(--id-radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -175,7 +162,7 @@ body.no-animations .spinner {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    border-radius: 8px;
+    border-radius: var(--id-radius-sm);
     cursor: pointer;
     transition:
         background 0.2s,
@@ -197,12 +184,12 @@ body.no-animations .spinner {
 .user-avatar {
     width: 32px;
     height: 32px;
-    background: var(--primary);
-    border-radius: 50%;
+    background: var(--id-accent);
+    border-radius: var(--id-radius-pill);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--id-on-accent);
     font-weight: 500;
     font-size: 0.875rem;
     cursor: pointer;
@@ -224,10 +211,10 @@ body.no-animations .spinner {
     right: 0;
     margin-top: 4px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
     padding: 6px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--id-shadow-float);
     display: none;
     z-index: var(--z-dropdown);
 }
@@ -238,11 +225,11 @@ body.no-animations .spinner {
     right: 0;
     margin-top: 0.5rem;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
     padding: 1rem;
     min-width: 320px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--id-shadow-float);
     display: none;
     z-index: var(--z-dropdown);
 }
@@ -282,7 +269,7 @@ body.no-animations .spinner {
     align-items: center;
     gap: 4px;
     padding: 8px 6px;
-    border-radius: 6px;
+    border-radius: var(--id-radius-sm);
     text-decoration: none;
     color: var(--text);
     transition: background 0.1s;
@@ -305,7 +292,7 @@ body.no-animations .spinner {
 
 .app-item.active {
     background: var(--primary-light);
-    color: var(--primary);
+    color: var(--id-accent-text);
 }
 
 .app-icon {
@@ -399,9 +386,9 @@ body.no-animations .spinner {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

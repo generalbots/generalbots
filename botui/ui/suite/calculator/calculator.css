@@ -42,7 +42,7 @@
 .gb-calc-tab {
   border: none;
   background: transparent;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
   font-size: var(--text-2xs);
   font-family: inherit;
   padding: 6px 12px;
@@ -52,20 +52,20 @@
 }
 
 .gb-calc-tab:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
-  color: var(--text, #eee);
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
+  color: var(--text, var(--palette-f0f0f0));
 }
 
 .gb-calc-tab.active {
-  background: rgba(132, 214, 105, 0.14);
+  background: color-mix(in srgb, var(--palette-84d669) 14%, transparent);
   color: var(--primary, var(--palette-84d669));
   font-weight: 600;
 }
 
 .gb-calc-tool {
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
   background: transparent;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
   font-size: var(--text-2xs);
   font-family: inherit;
   padding: 4px 8px;
@@ -74,8 +74,8 @@
 }
 
 .gb-calc-tool:hover {
-  color: var(--text, #eee);
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text, var(--palette-f0f0f0));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
 }
 
 .gb-calc-tool.active {
@@ -85,8 +85,8 @@
 
 /* Screen */
 .gb-calc-screen {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
   border-radius: 10px;
   padding: 10px 14px;
   text-align: right;
@@ -97,7 +97,7 @@
   border: none;
   outline: none;
   background: transparent;
-  color: var(--text, #eee);
+  color: var(--text, var(--palette-f0f0f0));
   font-family: inherit;
   font-size: var(--text-2xl);
   text-align: right;
@@ -108,7 +108,7 @@
   min-height: 18px;
   margin-top: 2px;
   font-size: var(--text-sm);
-  color: var(--text-secondary, #9aa);
+  color: var(--text-secondary, var(--palette-9fa6a8));
 }
 
 /* Keypads */
@@ -131,9 +131,9 @@
 }
 
 .gb-calc-key {
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #ddd);
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  color: var(--text, var(--palette-d8ddde));
   border-radius: 8px;
   font-family: inherit;
   font-size: var(--text-md);
@@ -142,7 +142,7 @@
 }
 
 .gb-calc-key:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.13));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 13%, transparent));
 }
 
 .gb-calc-key:active {
@@ -151,7 +151,7 @@
 
 .gb-calc-key.op { color: var(--primary, var(--palette-84d669)); }
 .gb-calc-key.fn { font-size: var(--text-xs); }
-.gb-calc-key.warn:hover { background: rgba(239, 68, 68, 0.16); color: var(--palette-f87171); }
+.gb-calc-key.warn:hover { background: color-mix(in srgb, var(--id-danger-icon) 16%, transparent); color: var(--palette-f87171); }
 
 .gb-calc-key.equals {
   background: var(--primary, var(--palette-84d669));
@@ -183,9 +183,9 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #eee);
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  color: var(--text, var(--palette-f0f0f0));
   font-family: inherit;
   font-size: var(--text-md);
   outline: none;
@@ -213,7 +213,7 @@
 .gb-calc-history {
   width: 220px;
   flex-shrink: 0;
-  border-left: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  border-left: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
   display: flex;
   flex-direction: column;
 }
@@ -225,7 +225,7 @@
   padding: 10px 12px;
   font-size: var(--text-2xs);
   font-weight: 600;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
 }
 
 .gb-calc-history-list {
@@ -248,13 +248,13 @@
 }
 
 .gb-calc-history-item:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.07));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 7%, transparent));
 }
 
 .gb-calc-history-item .h-expr {
   display: block;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -264,13 +264,13 @@
   display: block;
   font-size: var(--text-md);
   font-weight: 600;
-  color: var(--text, #eee);
+  color: var(--text, var(--palette-f0f0f0));
 }
 
 .gb-calc-history-empty {
   padding: 18px 12px;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #777);
+  color: var(--text-secondary, var(--palette-73797b));
   text-align: center;
 }
 

@@ -23,7 +23,7 @@
 
 .session-id {
     background: var(--primary-color, var(--palette-0066cc));
-    color: #fff;
+    color: var(--palette-ffffff);
     border-radius: 12px;
     padding: 2px 8px;
     font-size: 0.75rem;
@@ -95,7 +95,7 @@
 }
 
 .viewport-status {
-    color: #666;
+    color: var(--palette-666666);
     text-align: center;
 }
 
@@ -168,7 +168,7 @@
 }
 
 .log-empty {
-    color: #555;
+    color: var(--id-gray-500);
     font-style: italic;
     font-size: 0.8rem;
 }
@@ -266,7 +266,7 @@
     padding: 1px 6px;
     border-radius: 999px;
     background: var(--palette-16a34a);
-    color: #fff;
+    color: var(--palette-ffffff);
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.04em;

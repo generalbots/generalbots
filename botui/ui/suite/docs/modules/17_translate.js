@@ -89,11 +89,11 @@ function openTranslateModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   host.innerHTML = [
-    '<div class="docs-modal" id="translate-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
-    '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:360px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;">',
+    '<div class="docs-modal" id="translate-modal" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
+    '<div style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:360px;max-width:92vw;padding:20px;color:var(--palette-f8fafc);display:flex;flex-direction:column;gap:12px;">',
     '<h3 style="margin:0;font-size:16px;">' + (window.gbT ? window.gbT("docs-translate-title", "Translate document") : "Translate document") + '</h3>',
-    '<label style="font-size:12px;color:#94a3b8;">' + (window.gbT ? window.gbT("docs-translate-target-language", "Target language") : "Target language"),
-    '<select id="translate-lang" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;">',
+    '<label style="font-size:12px;color:var(--palette-94a3b8);">' + (window.gbT ? window.gbT("docs-translate-target-language", "Target language") : "Target language"),
+    '<select id="translate-lang" style="width:100%;padding:8px;background:var(--palette-0f172a);border:1px solid #334155;color:var(--palette-f8fafc);border-radius:4px;margin-top:4px;">',
     '<option value="English">' + (window.gbT ? window.gbT("docs-lang-lang-en", "English") : "English") + '</option>',
     '<option value="Portuguese">' + (window.gbT ? window.gbT("docs-lang-lang-pt", "Portuguese") : "Portuguese") + '</option>',
     '<option value="Spanish">' + (window.gbT ? window.gbT("docs-lang-lang-es", "Spanish") : "Spanish") + '</option>',
@@ -102,8 +102,8 @@ function openTranslateModal() {
     '<option value="Italian">' + (window.gbT ? window.gbT("docs-lang-lang-it", "Italian") : "Italian") + '</option>',
     '</select></label>',
     '<div style="display:flex;gap:8px;justify-content:flex-end;">',
-    '<button type="button" onclick="closeTranslateModal()" style="background:#334155;color:#f8fafc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;">' + (window.gbT ? window.gbT("action-cancel", "Cancel") : "Cancel") + '</button>',
-    '<button type="button" id="translate-apply" style="background:#3b82f6;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;">' + (window.gbT ? window.gbT("docs-translate-action", "Translate") : "Translate") + '</button>',
+    '<button type="button" onclick="closeTranslateModal()" style="background:#334155;color:var(--palette-f8fafc);border:none;padding:8px 14px;border-radius:4px;cursor:pointer;">' + (window.gbT ? window.gbT("action-cancel", "Cancel") : "Cancel") + '</button>',
+    '<button type="button" id="translate-apply" style="background:var(--palette-3b82f6);color:var(--id-surface-solid);border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;">' + (window.gbT ? window.gbT("docs-translate-action", "Translate") : "Translate") + '</button>',
     '</div></div></div>'
   ].join("");
 

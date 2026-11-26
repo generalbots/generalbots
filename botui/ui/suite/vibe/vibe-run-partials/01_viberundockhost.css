@@ -22,7 +22,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 20%, transparent);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -116,13 +116,13 @@
 }
 
 .vibe-chip.state-pending { background: var(--warning-light, var(--palette-fef3c7)); color: var(--palette-92400e); }
-.vibe-chip.state-running { background: rgba(245, 166, 35, 0.18); color: var(--palette-b45309); }
-.vibe-chip.state-awaiting_approval { background: rgba(247, 181, 0, 0.22); color: var(--palette-92400e); }
+.vibe-chip.state-running { background: color-mix(in srgb, var(--id-accent) 18%, transparent); color: var(--palette-b45309); }
+.vibe-chip.state-awaiting_approval { background: color-mix(in srgb, var(--id-accent) 22%, transparent); color: var(--palette-92400e); }
 .vibe-chip.state-completed { background: rgba(132, 214, 105, 0.18); color: var(--palette-3d7a24); }
-.vibe-chip.state-failed { background: rgba(239, 68, 68, 0.18); color: var(--palette-b91c1c); }
+.vibe-chip.state-failed { background: color-mix(in srgb, var(--id-danger) 18%, transparent); color: var(--palette-b91c1c); }
 .vibe-chip.state-cancelled { background: var(--surface-active, var(--palette-e5e7eb)); color: var(--text-muted); }
 
-.vibe-chip.phase-chip { background: rgba(74, 108, 247, 0.15); color: var(--palette-4a6cf7); }
+.vibe-chip.phase-chip { background: color-mix(in srgb, var(--id-accent) 15%, transparent); color: var(--palette-4a6cf7); }
 
 .vibe-rc-intent {
     font-size: var(--text-2xs);
@@ -205,7 +205,7 @@
 
 .vibe-approval-card {
     border: 1px solid var(--palette-f7b500);
-    background: rgba(247, 181, 0, 0.08);
+    background: color-mix(in srgb, var(--id-accent) 8%, transparent);
     border-radius: 8px;
     padding: 10px 12px;
     display: none;

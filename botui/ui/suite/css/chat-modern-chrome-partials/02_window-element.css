@@ -20,11 +20,11 @@
 
 #chat-app .gb-inline-artifact {
     margin: 10px 0 4px;
-    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
+    border: 1px solid var(--gb-border, color-mix(in srgb, var(--palette-18181b) 12%, transparent));
     border-radius: 14px;
     overflow: hidden;
     background: var(--gb-surface, var(--surface));
-    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--palette-0f172a) 8%, transparent);
 }
 
 #chat-app .gb-inline-artifact-head {
@@ -33,7 +33,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--gb-border, rgba(24, 24, 27, 0.10));
+    border-bottom: 1px solid var(--gb-border, color-mix(in srgb, var(--palette-18181b) 10%, transparent));
     background: var(--gb-surface, var(--surface));
 }
 
@@ -50,7 +50,7 @@
     flex: 0 0 auto;
     height: 26px;
     padding: 0 10px;
-    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.14));
+    border: 1px solid var(--gb-border, color-mix(in srgb, var(--palette-18181b) 14%, transparent));
     border-radius: 7px;
     background: transparent;
     color: var(--gb-muted, var(--text-secondary));
@@ -69,7 +69,7 @@
     width: 100%;
     height: 440px;
     border: 0;
-    background: #fff;
+    background: var(--palette-ffffff);
 }
 
 #chat-app .gb-inline-artifact.expanded .gb-inline-artifact-frame {
@@ -159,10 +159,10 @@
 /* #1693 — live SVG/HTML preview while the model draws it. */
 .gb-live-artifact {
     margin-top: 8px;
-    border: 1px solid rgba(24, 24, 27, 0.09);
+    border: 1px solid color-mix(in srgb, var(--palette-18181b) 9%, transparent);
     border-radius: 12px;
     overflow: hidden;
-    background: #fff;
+    background: var(--palette-ffffff);
     max-width: 560px;
 }
 .gb-live-artifact-head {
@@ -170,7 +170,7 @@
     align-items: center;
     gap: 8px;
     padding: 7px 10px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
+    border-bottom: 1px solid color-mix(in srgb, var(--palette-18181b) 6%, transparent);
     background: var(--surface);
 }
 .gb-live-artifact-title {
@@ -184,7 +184,7 @@
     width: 100%;
     height: 280px;
     border: 0;
-    background: #fff;
+    background: var(--palette-ffffff);
 }
 .gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
 /* #2005 — the SVG surface grows in place; it is not an iframe, so it needs its
@@ -202,7 +202,7 @@
     height: 280px;
     padding: 8px;
     box-sizing: border-box;
-    background: #fff;
+    background: var(--palette-ffffff);
     overflow: hidden;
 }
 .gb-live-artifact-svg svg {
@@ -232,7 +232,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.38);
+    background: color-mix(in srgb, var(--palette-0f172a) 38%, transparent);
 }
 .gb-drive-picker {
     width: min(540px, 92vw);
@@ -241,15 +241,15 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    background: var(--palette-ffffff);
+    box-shadow: 0 24px 60px color-mix(in srgb, var(--palette-0f172a) 28%, transparent);
     font-family: inherit;
 }
 .gb-drive-picker-head {
     display: flex;
     align-items: center;
     padding: 12px 14px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+    border-bottom: 1px solid color-mix(in srgb, var(--palette-18181b) 7%, transparent);
 }
 .gb-drive-picker-title {
     flex: 1;
@@ -274,7 +274,7 @@
     padding: 8px 14px;
     font-size: var(--text-2xs);
     color: var(--text-secondary);
-    border-bottom: 1px solid rgba(24, 24, 27, 0.05);
+    border-bottom: 1px solid color-mix(in srgb, var(--palette-18181b) 5%, transparent);
 }
 .gb-drive-picker-crumb-btn {
     border: 0;

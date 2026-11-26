@@ -7,7 +7,7 @@
 /* ── Section wrapper ── */
 .gb-side-sec {
   padding: 0 8px 10px;
-  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
   flex-shrink: 0;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .gb-side-pin:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
   color: var(--text);
   transform: translateY(-1px);
 }
@@ -68,7 +68,7 @@
 }
 
 .gb-side-pin-plus {
-  border: 1px dashed var(--shell-border, rgba(255, 255, 255, 0.22));
+  border: 1px dashed var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 22%, transparent));
   color: var(--primary, var(--accent, var(--primary)));
   font-size: var(--text-md);
   font-weight: 600;
@@ -87,19 +87,19 @@
   padding: 8px 10px;
   border-radius: 9px;
   cursor: pointer;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 3%, transparent));
   transition: background 140ms, border-color 140ms;
   user-select: none;
 }
 
 .gb-side-ws-card:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
 }
 
 .gb-side-ws-card.active {
   border-color: var(--accent, var(--primary));
-  background: rgba(132, 214, 105, 0.08);
+  background: color-mix(in srgb, var(--palette-84d669) 8%, transparent);
 }
 
 .gb-side-ws-dot {
@@ -151,8 +151,8 @@
   margin: 0 10px 8px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
   color: var(--text-secondary);
 }
 
@@ -193,7 +193,7 @@
 }
 
 .gb-file-item:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
 }
 
 .gb-file-icon {

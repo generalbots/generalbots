@@ -73,7 +73,7 @@
 }
 
 .db-toolbar .db-btn:hover {
-  background: var(--win-caption-hover, rgba(148, 163, 184, 0.12));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-94a3b8) 12%, transparent));
   color: var(--text);
 }
 
@@ -91,13 +91,13 @@
 .db-toolbar .db-btn-primary {
   background: var(--primary, var(--accent, var(--primary)));
   border-color: transparent;
-  color: #fff;
+  color: var(--palette-ffffff);
   font-weight: 600;
 }
 
 .db-toolbar .db-btn-primary:hover {
   filter: brightness(1.06);
-  color: #fff;
+  color: var(--palette-ffffff);
 }
 
 .db-toolbar .db-select {

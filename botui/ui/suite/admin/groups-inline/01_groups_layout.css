@@ -124,7 +124,7 @@
 
 .group-card:hover {
     border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 .group-card-header {
@@ -210,17 +210,17 @@
 }
 
 .visibility-badge.public {
-    background: rgba(16, 185, 129, 0.1);
+    background: color-mix(in srgb, var(--palette-10b981) 10%, transparent);
     color: var(--palette-10b981);
 }
 
 .visibility-badge.private {
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--palette-3b82f6) 10%, transparent);
     color: var(--palette-3b82f6);
 }
 
 .visibility-badge.hidden {
-    background: rgba(107, 114, 128, 0.1);
+    background: color-mix(in srgb, var(--id-gray-500) 10%, transparent);
     color: var(--palette-6b7280);
 }
 

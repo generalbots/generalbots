@@ -64,37 +64,37 @@
     if (panel) panel.remove();
     panel = document.createElement("div");
     panel.id = "gb-sandbox-panel";
-    panel.style.cssText = "position:fixed;top:0;right:0;width:380px;height:100vh;background:#1e293b;border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.3);";
+    panel.style.cssText = "position:fixed;top:0;right:0;width:380px;height:100vh;background:var(--palette-1e293b);border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;box-shadow:-4px 0 24px var(--id-overlay);";
 
-    var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:14px;">Sandbox — Pending Approvals</h3><button onclick="document.getElementById(\'gb-sandbox-panel\').remove()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">×</button></div>';
+    var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:var(--palette-f8fafc);font-size:14px;">Sandbox — Pending Approvals</h3><button onclick="document.getElementById(\'gb-sandbox-panel\').remove()" style="background:none;border:none;color:var(--palette-94a3b8);font-size:20px;cursor:pointer;">×</button></div>';
 
     var body = '<div style="flex:1;overflow-y:auto;padding:12px;">';
     if (pendingActions.length === 0) {
-      body += '<p style="color:#64748b;text-align:center;padding:24px;">No pending actions.</p>';
+      body += '<p style="color:var(--palette-64748b);text-align:center;padding:24px;">No pending actions.</p>';
     } else {
       body += '<div style="margin-bottom:12px;display:flex;gap:8px;">'
-        + '<button onclick="GBSandbox.approveAll()" style="flex:1;background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:8px;cursor:pointer;font-size:12px;">Approve All (' + pendingActions.length + ')</button>'
-        + '<button onclick="GBSandbox.denyAll()" style="flex:1;background:#dc2626;border:none;border-radius:6px;color:#fff;padding:8px;cursor:pointer;font-size:12px;">Deny All</button>'
+        + '<button onclick="GBSandbox.approveAll()" style="flex:1;background:var(--palette-3b82f6);border:none;border-radius:6px;color:var(--id-surface-solid);padding:8px;cursor:pointer;font-size:12px;">Approve All (' + pendingActions.length + ')</button>'
+        + '<button onclick="GBSandbox.denyAll()" style="flex:1;background:var(--id-danger);border:none;border-radius:6px;color:var(--id-surface-solid);padding:8px;cursor:pointer;font-size:12px;">Deny All</button>'
         + '</div>';
       pendingActions.forEach(function (a) {
         var cat = ACTION_CATEGORIES[a.category] || { label: a.category, icon: "⚙️", risk: "medium" };
-        var riskColor = a.risk === "high" || cat.risk === "high" ? "#ef4444" : a.risk === "low" || cat.risk === "low" ? "#22c55e" : "#f59e0b";
+        var riskColor = a.risk === "high" || cat.risk === "high" ? "var(--id-danger-icon)" : a.risk === "low" || cat.risk === "low" ? "var(--id-success)" : "var(--palette-f59e0b)";
         body += '<div style="border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:8px;">'
-          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span>' + cat.icon + '</span><span style="color:#f8fafc;font-size:13px;font-weight:500;">' + escapeHtml(cat.label) + '</span><span style="margin-left:auto;font-size:10px;padding:2px 6px;border-radius:4px;background:' + riskColor + '20;color:' + riskColor + ';">' + (cat.risk || "medium") + '</span></div>'
-          + '<div style="color:#94a3b8;font-size:12px;font-family:monospace;margin-bottom:8px;word-break:break-all;">' + escapeHtml((a.detail || a.command || a.url || "").substring(0, 200)) + '</div>'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span>' + cat.icon + '</span><span style="color:var(--palette-f8fafc);font-size:13px;font-weight:500;">' + escapeHtml(cat.label) + '</span><span style="margin-left:auto;font-size:10px;padding:2px 6px;border-radius:4px;background:' + riskColor + '20;color:' + riskColor + ';">' + (cat.risk || "medium") + '</span></div>'
+          + '<div style="color:var(--palette-94a3b8);font-size:12px;font-family:monospace;margin-bottom:8px;word-break:break-all;">' + escapeHtml((a.detail || a.command || a.url || "").substring(0, 200)) + '</div>'
           + '<div style="display:flex;gap:6px;">'
-          + '<button onclick="GBSandbox.approve(\'' + a._id + '\')" style="background:#3b82f6;border:none;border-radius:4px;color:#fff;padding:4px 12px;cursor:pointer;font-size:11px;">Approve</button>'
-          + '<button onclick="GBSandbox.deny(\'' + a._id + '\')" style="background:#334155;border:none;border-radius:4px;color:#f8fafc;padding:4px 12px;cursor:pointer;font-size:11px;">Deny</button>'
+          + '<button onclick="GBSandbox.approve(\'' + a._id + '\')" style="background:var(--palette-3b82f6);border:none;border-radius:4px;color:var(--id-surface-solid);padding:4px 12px;cursor:pointer;font-size:11px;">Approve</button>'
+          + '<button onclick="GBSandbox.deny(\'' + a._id + '\')" style="background:#334155;border:none;border-radius:4px;color:var(--palette-f8fafc);padding:4px 12px;cursor:pointer;font-size:11px;">Deny</button>'
           + '</div></div>';
       });
     }
     body += '</div>';
 
     var logSection = '<div style="border-top:1px solid #334155;padding:12px;max-height:200px;overflow-y:auto;">'
-      + '<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Recent actions</div>';
+      + '<div style="color:var(--palette-64748b);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Recent actions</div>';
     actionLog.slice(0, 20).forEach(function (entry) {
       var icon = entry.decision === "approved" ? "✅" : entry.decision === "denied" ? "🚫" : "⏳";
-      logSection += '<div style="color:#94a3b8;font-size:11px;padding:3px 0;">' + icon + ' ' + escapeHtml(entry.category + ": " + (entry.detail || "").substring(0, 60)) + '</div>';
+      logSection += '<div style="color:var(--palette-94a3b8);font-size:11px;padding:3px 0;">' + icon + ' ' + escapeHtml(entry.category + ": " + (entry.detail || "").substring(0, 60)) + '</div>';
     });
     logSection += '</div>';
 

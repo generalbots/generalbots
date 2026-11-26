@@ -44,7 +44,7 @@
       node.setAttribute("role", "status");
       node.setAttribute("aria-live", "polite");
       node.setAttribute("aria-atomic", "true");
-      node.style.color = "var(--palette-fbbf24, #fbbf24)";
+      node.style.color = "var(--palette-fbbf24, var(--palette-fbbf24))";
       node.style.marginLeft = "12px";
       bar.insertBefore(node, bar.firstChild);
     }
@@ -131,12 +131,12 @@
     close();
     menu = document.createElement("div");
     menu.className = "dc-export-menu";
-    menu.style.cssText = "position:absolute;z-index:80;background:#1e293b;border:1px solid #334155;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:150px;overflow:hidden;";
+    menu.style.cssText = "position:absolute;z-index:80;background:var(--palette-1e293b);border:1px solid #334155;border-radius:6px;box-shadow:0 8px 24px color-mix(in srgb, var(--palette-000000) 40%, transparent);min-width:150px;overflow:hidden;";
     FORMATS.forEach(function (entry) {
       var button = document.createElement("button");
       button.type = "button";
       button.textContent = entry[0];
-      button.style.cssText = "display:block;width:100%;padding:8px 14px;background:none;border:none;color:#f8fafc;text-align:left;font-size:13px;cursor:pointer;";
+      button.style.cssText = "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--palette-f8fafc);text-align:left;font-size:13px;cursor:pointer;";
       button.addEventListener("mouseover", function () { button.style.background = "#334155"; });
       button.addEventListener("mouseout", function () { button.style.background = "none"; });
       button.addEventListener("click", function () { close(); exportAs(entry[1]); });

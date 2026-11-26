@@ -7,7 +7,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--id-overlay-heavy);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,7 +19,7 @@
     background: var(--surface, var(--palette-12121a));
     border-radius: 12px;
     border: 1px solid var(--border, var(--palette-2a2a3a));
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 60px color-mix(in srgb, var(--palette-000000) 50%, transparent);
     max-width: 100%;
     max-height: 100%;
     display: flex;

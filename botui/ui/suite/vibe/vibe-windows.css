@@ -200,7 +200,7 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    background: rgba(4, 6, 12, 0.55);
+    background: color-mix(in srgb, var(--id-ink) 55%, transparent);
     backdrop-filter: blur(2px);
     pointer-events: none;
     transition: opacity 0.25s;

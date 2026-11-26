@@ -93,7 +93,9 @@
   }
 
   function adminKnown() {
-    return !!(window.GBAuth && typeof window.GBAuth.isAdmin === "function");
+    // auth-service sets this class only after its isAdmin() verdict; a bare
+    // GBAuth object with unresolved roles would still issue a 403 request.
+    return document.body.classList.contains("is-admin");
   }
 
   function init() {
@@ -101,7 +103,7 @@
     // The DLQ / replay API and the native events socket are admin-only. A
     // non-admin turn would get a 403 on every app open (browser console error),
     // so keep the documented in-page mirror until an admin identity resolves.
-    if (adminKnown() && !window.GBAuth.isAdmin()) {
+    if (!adminKnown() || !window.GBAuth.isAdmin()) {
       useSimulation();
       return;
     }

@@ -80,7 +80,7 @@
     margin-bottom: 16px;
 }
 .type-card {
-    border: 2px solid var(--border, #e0e0e0);
+    border: 2px solid var(--border, var(--id-gray-200));
     border-radius: 12px;
     padding: 20px 12px;
     text-align: center;
@@ -104,12 +104,12 @@
     display: block;
     font-weight: 600;
     font-size: 14px;
-    color: var(--text, #333);
+    color: var(--text, var(--id-ink));
 }
 .type-desc {
     display: block;
     font-size: 11px;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     margin-top: 4px;
 }
 .publish-status {
@@ -134,9 +134,9 @@
     border: 1px solid #ffeeba;
 }
 .modal-content {
-    background: var(--surface, #fff);
+    background: var(--surface, var(--id-surface-solid));
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 60px color-mix(in srgb, var(--id-ink) 30%, transparent);
 }
 </style>
 

@@ -40,8 +40,8 @@
     chip.textContent = "\uD83D\uDCAC " + docsT("docs-comment", "Comment");
     chip.className = "docs-comment-chip";
     chip.style.cssText =
-      "position:fixed;z-index:var(--z-blocker);background:#3b82f6;color:#fff;border:none;border-radius:999px;" +
-      "padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);";
+      "position:fixed;z-index:var(--z-blocker);background:var(--palette-3b82f6);color:var(--id-surface-solid);border:none;border-radius:999px;" +
+      "padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px color-mix(in srgb, var(--palette-000000) 35%, transparent);";
     chip.style.left = rect.left + "px";
     chip.style.top = Math.max(8, rect.bottom + 6) + "px";
     chip.addEventListener("pointerdown", function (e) { e.preventDefault(); });

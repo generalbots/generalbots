@@ -77,11 +77,11 @@ function getFolderIcon() {
 function getFileIcon(filename) {
     const ext = (filename || "").split(".").pop().toLowerCase();
     const colors = {
-        pdf: "#ea4335", doc: "#4285f4", docx: "#4285f4",
-        xls: "#0f9d58", xlsx: "#0f9d58",
-        ppt: "#fbbc04", pptx: "#fbbc04",
+        pdf: "var(--palette-ea4335)", doc: "var(--palette-4285f4)", docx: "var(--palette-4285f4)",
+        xls: "var(--palette-16a34a)", xlsx: "var(--palette-16a34a)",
+        ppt: "var(--palette-fbbc04)", pptx: "var(--palette-fbbc04)",
     };
-    const color = colors[ext] || "#5f6368";
+    const color = colors[ext] || "var(--palette-606769)";
     return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + color + '" stroke="none"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>';
 }
 
@@ -121,10 +121,10 @@ function showNotification(message, type) {
     const notification = document.createElement("div");
     notification.className = "drive-notification notification-" + (type || "info");
     notification.textContent = message;
-    notification.style.cssText = "position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;background:#333;color:#fff;z-index:var(--z-system);animation:slideIn 0.3s ease;";
-    if (type === "error") notification.style.background = "#ef4444";
-    if (type === "success") notification.style.background = "#22c55e";
-    if (type === "warning") notification.style.background = "#f59e0b";
+    notification.style.cssText = "position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;background:var(--palette-333333);color:var(--id-surface-solid);z-index:var(--z-system);animation:slideIn 0.3s ease;";
+    if (type === "error") notification.style.background = "var(--id-danger-icon)";
+    if (type === "success") notification.style.background = "var(--id-success)";
+    if (type === "warning") notification.style.background = "var(--palette-f59e0b)";
     document.body.appendChild(notification);
     var liveId = type === "error" ? "drive-live-alert" : "drive-live-status";
     var live = document.getElementById(liveId);

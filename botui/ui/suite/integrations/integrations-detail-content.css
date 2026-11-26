@@ -308,9 +308,9 @@
 .integrations-runner {
     margin-top: 0.75rem;
     padding: 0.85rem;
-    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    border: 1px solid var(--integrations-border, color-mix(in srgb, var(--palette-94a3b8) 28%, transparent));
     border-radius: 12px;
-    background: var(--integrations-surface-soft, rgba(148, 163, 184, 0.08));
+    background: var(--integrations-surface-soft, color-mix(in srgb, var(--palette-94a3b8) 8%, transparent));
 }
 
 .integrations-run-grid {
@@ -331,8 +331,8 @@
     color: inherit;
     padding: 0.45rem 0.6rem;
     border-radius: 8px;
-    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.35));
-    background: var(--integrations-surface, #fff);
+    border: 1px solid var(--integrations-border, color-mix(in srgb, var(--palette-94a3b8) 35%, transparent));
+    background: var(--integrations-surface, var(--id-surface-solid));
     width: 100%;
     box-sizing: border-box;
 }
@@ -359,7 +359,7 @@
     line-height: 1.45;
     border-radius: 10px;
     padding: 0.7rem;
-    background: var(--integrations-code-bg, rgba(15, 23, 42, 0.06));
+    background: var(--integrations-code-bg, color-mix(in srgb, var(--palette-0f172a) 6%, transparent));
     white-space: pre-wrap;
     word-break: break-word;
 }

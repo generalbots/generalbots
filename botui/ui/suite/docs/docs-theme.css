@@ -11,56 +11,56 @@
  * and does not depend on which product theme is selected (#docs-theme).
  */
 #docs-app.docs-app {
-  --surface: #0f172a;
+  --surface: var(--palette-0f172a);
   --surface-raised: #111827;
-  --surface-hover: #1e293b;
-  --border: #1f2937;
-  --border-color: #1f2937;
+  --surface-hover: var(--palette-1e293b);
+  --border: var(--palette-1f2937);
+  --border-color: var(--palette-1f2937);
   --sentient-bg-secondary: #111827;
-  --sentient-bg-primary: #0f172a;
-  --sentient-bg: #0f172a;
-  --sentient-bg-elevated: #1e293b;
-  --sentient-text-primary: #e5e7eb;
-  --sentient-text-secondary: #94a3b8;
-  --sentient-border: #1f2937;
-  background: #0f172a;
-  color: #e5e7eb;
+  --sentient-bg-primary: var(--palette-0f172a);
+  --sentient-bg: var(--palette-0f172a);
+  --sentient-bg-elevated: var(--palette-1e293b);
+  --sentient-text-primary: var(--id-gray-200);
+  --sentient-text-secondary: var(--palette-94a3b8);
+  --sentient-border: var(--palette-1f2937);
+  background: var(--palette-0f172a);
+  color: var(--id-gray-200);
 }
 
 #docs-app.docs-app .docs-toolbar {
   background: #111827 !important;
-  border-bottom: 1px solid #1f2937 !important;
-  color: #e5e7eb !important;
+  border-bottom: 1px solid var(--palette-1f2937) !important;
+  color: var(--id-gray-200) !important;
 }
 
 #docs-app.docs-app .docs-status-bar {
   background: #111827;
-  border-top: 1px solid #1f2937;
-  color: #94a3b8;
+  border-top: 1px solid var(--palette-1f2937);
+  color: var(--palette-94a3b8);
 }
 
 #docs-app.docs-app .docs-sidebar {
-  background: #0b1220;
-  border-right: 1px solid #1f2937;
-  color: #cbd5e1;
+  background: var(--palette-0b1220);
+  border-right: 1px solid var(--palette-1f2937);
+  color: var(--palette-cbd5e1);
 }
 
 /* The title lives on the dark toolbar: transparent background with white
  * text was unreadable once the toolbar turned light. */
 #docs-app.docs-app .docs-title-input {
-  background: #0f172a;
+  background: var(--palette-0f172a);
   border: 1px solid #334155;
-  color: #f8fafc;
+  color: var(--palette-f8fafc);
 }
 
 #docs-app.docs-app .docs-title-input:focus {
-  background: #0f172a;
-  border-color: #3b82f6;
+  background: var(--palette-0f172a);
+  border-color: var(--palette-3b82f6);
 }
 
 /* The document itself is paper, never themed with the app surface. */
 #docs-app.docs-app article.docs-doc-view,
 #docs-app.docs-app .docs-doc-view {
-  background: #ffffff !important;
-  color: #1e293b;
+  background: var(--id-surface-solid) !important;
+  color: var(--palette-1e293b);
 }

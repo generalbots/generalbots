@@ -126,7 +126,7 @@
         .then(function () { btn.disabled = false; });
     }
     fetchBtn.addEventListener("click", fetchModels);
-    C.json("/api/llm/accounts")
+    if (document.body.classList.contains("is-admin")) C.json("/api/llm/accounts")
       .then(function (d) {
         var account = ((d && d.accounts) || []).filter(function (a) { return a.id === ctx.id; })[0] || null;
         if (!account) return;

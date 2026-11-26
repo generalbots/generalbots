@@ -40,9 +40,9 @@
     if (existing) { bar = existing; return bar; }
     bar = document.createElement("div");
     bar.className = "ss-status-bar";
-    bar.style.cssText = "display:flex;align-items:center;gap:24px;padding:4px 16px;background:var(--sheet-bg, #0f172a);border-top:1px solid var(--sheet-border, #334155);flex-shrink:0;font-size:12px;color:var(--sheet-muted, #94a3b8);min-height:26px;";
+    bar.style.cssText = "display:flex;align-items:center;gap:24px;padding:4px 16px;background:var(--sheet-bg, var(--id-ink));border-top:1px solid var(--sheet-border, var(--id-ink));flex-shrink:0;font-size:12px;color:var(--sheet-muted, var(--id-gray-400));min-height:26px;";
     bar.innerHTML =
-      '<span class="ss-status-range" style="font-family:monospace;font-weight:600;color:var(--sheet-fg, #f8fafc);min-width:80px;"></span>' +
+      '<span class="ss-status-range" style="font-family:monospace;font-weight:600;color:var(--sheet-fg, var(--id-gray-100));min-width:80px;"></span>' +
       '<span class="ss-status-sum">Σ = <b></b></span>' +
       '<span class="ss-status-avg">AVG = <b></b></span>' +
       '<span class="ss-status-count">COUNT = <b></b></span>';

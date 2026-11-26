@@ -29,7 +29,7 @@
 .integrations-app .integrations-chip[aria-pressed="true"] {
     background: var(--integrations-accent);
     border-color: var(--integrations-accent);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .integrations-app .integrations-sources-grid {
@@ -153,7 +153,7 @@
 .integrations-ui-preview-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: color-mix(in srgb, var(--palette-000000) 45%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -162,7 +162,7 @@
 .integrations-ui-preview-panel {
     width: min(900px, 92vw);
     height: min(640px, 88vh);
-    background: var(--gb-surface, #fff);
+    background: var(--gb-surface, var(--id-surface-solid));
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -176,7 +176,7 @@
     border-bottom: 1px solid var(--gb-border, var(--palette-d7dbe2));
     font-weight: 600;
 }
-.integrations-ui-preview-frame { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
+.integrations-ui-preview-frame { flex: 1 1 auto; width: 100%; border: 0; background: var(--id-surface-solid); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

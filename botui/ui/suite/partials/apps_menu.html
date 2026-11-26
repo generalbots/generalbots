@@ -144,9 +144,9 @@
         top: calc(100% + 8px);
         right: 0;
         background: var(--surface, #1e1e2e);
-        border: 1px solid var(--border, #333);
+        border: 1px solid var(--border, var(--id-ink));
         border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--id-ink) 35%, transparent);
         padding: 16px;
         min-width: 360px;
         max-width: 440px;
@@ -157,24 +157,24 @@
 
     .apps-menu-header { margin-bottom: 12px; }
     .apps-menu-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .apps-menu-title-row h3 { margin: 0; font-size: 14px; color: var(--text-secondary, #999); }
-    .apps-menu-close { background: none; border: none; color: var(--text-secondary, #999); font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .apps-menu-title-row h3 { margin: 0; font-size: 14px; color: var(--text-secondary, var(--id-muted)); }
+    .apps-menu-close { background: none; border: none; color: var(--text-secondary, var(--id-muted)); font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px; }
 
-    .apps-menu-search { display: flex; align-items: center; gap: 8px; background: var(--bg, #151520); border: 1px solid var(--border, #333); border-radius: 8px; padding: 8px 12px; }
-    .apps-menu-search svg { width: 16px; height: 16px; color: var(--text-secondary, #999); }
-    .apps-menu-search input { border: none; background: none; outline: none; color: var(--text, #e5e5e5); font-size: 14px; width: 100%; }
+    .apps-menu-search { display: flex; align-items: center; gap: 8px; background: var(--bg, #151520); border: 1px solid var(--border, var(--id-ink)); border-radius: 8px; padding: 8px 12px; }
+    .apps-menu-search svg { width: 16px; height: 16px; color: var(--text-secondary, var(--id-muted)); }
+    .apps-menu-search input { border: none; background: none; outline: none; color: var(--text, var(--id-gray-200)); font-size: 14px; width: 100%; }
 
     .apps-menu-categories { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
-    .apps-menu-cat { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border, #333); background: transparent; color: var(--text-secondary, #999); font-size: 12px; cursor: pointer; transition: all 0.15s; }
-    .apps-menu-cat:hover { border-color: var(--primary, #88ccff); color: var(--text, #e5e5e5); }
-    .apps-menu-cat.active { background: var(--primary, #88ccff); border-color: var(--primary, #88ccff); color: #000; font-weight: 600; }
+    .apps-menu-cat { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border, var(--id-ink)); background: transparent; color: var(--text-secondary, var(--id-muted)); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+    .apps-menu-cat:hover { border-color: var(--primary, #88ccff); color: var(--text, var(--id-gray-200)); }
+    .apps-menu-cat.active { background: var(--primary, #88ccff); border-color: var(--primary, #88ccff); color: var(--id-ink); font-weight: 600; }
 
     .apps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 340px; overflow-y: auto; }
-    .app-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 8px; text-decoration: none; color: var(--text, #e5e5e5); transition: background 0.15s; }
+    .app-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 8px; text-decoration: none; color: var(--text, var(--id-gray-200)); transition: background 0.15s; }
     .app-item:hover, .app-item:focus { background: var(--surface-hover, #26263a); outline: none; }
     .app-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
     .app-icon svg { width: 22px; height: 22px; }
     .app-name { font-size: 11px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-    .apps-menu-empty { text-align: center; color: var(--text-secondary, #999); padding: 24px; font-size: 13px; }
+    .apps-menu-empty { text-align: center; color: var(--text-secondary, var(--id-muted)); padding: 24px; font-size: 13px; }
 </style>

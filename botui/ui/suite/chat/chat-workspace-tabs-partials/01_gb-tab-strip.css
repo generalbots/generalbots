@@ -31,7 +31,7 @@
     border: 1px solid transparent;
     border-bottom: none;
     border-radius: 8px 8px 0 0;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     line-height: 1;
     cursor: pointer;
@@ -41,7 +41,7 @@
 }
 
 .gb-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--id-surface-solid) 5%, transparent);
     color: var(--text, var(--palette-e5e5e5));
 }
 
@@ -79,8 +79,8 @@
     padding: 2px 4px;
     border: 1px solid var(--accent, var(--palette-2563eb));
     border-radius: 4px;
-    background: var(--bg, #fff);
-    color: var(--text, #111);
+    background: var(--bg, var(--id-surface-solid));
+    color: var(--text, var(--palette-111111));
     outline: none;
 }
 
@@ -134,7 +134,7 @@
     background: none;
     border: 1px dashed var(--border, var(--border-color, var(--palette-2a2a3a)));
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     font-size: var(--text-sm);
     line-height: 1;
@@ -156,7 +156,7 @@
     background: var(--surface, var(--card, var(--palette-1a1a24)));
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);
     display: flex;
     flex-direction: column;
     padding: 4px;
@@ -174,7 +174,7 @@
 }
 
 .gb-context-menu button:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: color-mix(in srgb, var(--id-surface-solid) 7%, transparent);
 }
 
 .gb-tab-picker {
@@ -189,7 +189,7 @@
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     padding: 6px 10px 3px;
 }
 
@@ -207,7 +207,7 @@
 }
 
 .gb-tab-picker-empty {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     padding: 8px 10px;
 }
@@ -246,7 +246,7 @@
     height: 18px;
     border-radius: 50%;
     background: var(--accent, var(--palette-2563eb));
-    color: #fff;
+    color: var(--id-surface-solid);
     font-size: var(--text-2xs);
     font-weight: 700;
     display: inline-flex;
@@ -265,7 +265,7 @@
    carry no date fails the "source + date per item" check even when the prose
    mentions it once. */
 .source-chip-date {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -316,12 +316,12 @@ sup.gb-cite-ref:hover {
 
 .gb-consent-app {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     letter-spacing: 0.03em;
 }
 
 .gb-consent-detail {
-    color: var(--text-secondary, #aaa);
+    color: var(--text-secondary, var(--palette-a6adaf));
     margin-bottom: 10px;
     white-space: pre-wrap;
 }
@@ -355,7 +355,7 @@ sup.gb-cite-ref:hover {
 .gb-consent-btn.primary {
     background: var(--accent, var(--palette-2563eb));
     border-color: var(--accent, var(--palette-2563eb));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .gb-consent-btn.danger {
@@ -373,7 +373,7 @@ sup.gb-cite-ref:hover {
 .gb-consent-outcome-time {
     margin-left: auto;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

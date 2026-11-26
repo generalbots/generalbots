@@ -1,10 +1,10 @@
 /* Slides delivery mode (#2432) — local-only console, custom shows, sections,
  * captions, rehearsal, handouts and recording indicator. */
-.sd-overlay{position:fixed;inset:0;background:rgba(15,23,42,.72);display:flex;align-items:center;
+.sd-overlay{position:fixed;inset:0;background:color-mix(in srgb, var(--id-ink) 72%, transparent);display:flex;align-items:center;
   justify-content:center;z-index:var(--z-blocker,10000);padding:24px;}
 .sd-dialog{width:min(760px,96vw);max-height:88vh;display:flex;flex-direction:column;
   background:var(--palette-0f172a);color:var(--palette-e2e8f0);border:1px solid var(--palette-334155);border-radius:12px;
-  box-shadow:0 24px 64px rgba(0,0,0,.55);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  box-shadow:0 24px 64px color-mix(in srgb, var(--id-ink) 55%, transparent);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 .sd-dialog-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--palette-334155);
   background:var(--palette-1e293b);border-radius:12px 12px 0 0;}
 .sd-dialog-title{flex:1;margin:0;font-size: var(--text-md);font-weight:600;color:var(--palette-f8fafc);}
@@ -23,7 +23,7 @@
 .sd-btn:hover{background:var(--palette-334155);}
 .sd-btn:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{
   outline:2px solid var(--palette-60a5fa);outline-offset:2px;}
-.sd-btn-primary{background:var(--palette-2563eb);border-color:var(--palette-3b82f6);color:#fff;}
+.sd-btn-primary{background:var(--palette-2563eb);border-color:var(--palette-3b82f6);color:var(--id-surface-solid);}
 .sd-btn-primary:hover{background:var(--palette-1d4ed8);}
 .sd-btn-menu{width:100%;text-align:left;padding:10px 14px;font-size: var(--text-xs);}
 .sd-btn-link{background:none;border:none;color:var(--palette-93c5fd);text-align:left;padding:4px 0;}
@@ -80,17 +80,17 @@
 .sd-handout-1{grid-template-columns:1fr;}
 .sd-handout-2{grid-template-columns:1fr 1fr;}
 .sd-handout-4,.sd-handout-6{grid-template-columns:1fr 1fr;}
-.sd-handout-cell{aspect-ratio:16/9;border:1px solid var(--palette-94a3b8);border-radius:2px;background:#fff;
+.sd-handout-cell{aspect-ratio:16/9;border:1px solid var(--palette-94a3b8);border-radius:2px;background:var(--id-surface-solid);
   display:flex;align-items:center;justify-content:center;min-height:26px;}
 .sd-handout-cell-empty{background:var(--palette-e2e8f0);border-style:dashed;}
 .sd-handout-cell-label{font-size: var(--text-2xs);color:var(--palette-475569);}
 .sd-recording-indicator{position:fixed;right:18px;bottom:18px;z-index:var(--z-blocker,10000);
   display:flex;align-items:center;gap:8px;background:var(--palette-450a0a);border:1px solid var(--palette-f87171);
-  border-radius:999px;padding:8px 14px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+  border-radius:999px;padding:8px 14px;box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);}
 .sd-recording-dot{width:10px;height:10px;border-radius:50%;background:var(--palette-ef4444);
-  box-shadow:0 0 0 4px rgba(239,68,68,.2);}
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--id-danger) 20%, transparent);}
 .sd-recording-label{color:var(--palette-fecaca);font-size: var(--text-2xs);}
-.sd-recording-time{color:#fff;font-variant-numeric:tabular-nums;font-size: var(--text-xs);}
+.sd-recording-time{color:var(--id-surface-solid);font-variant-numeric:tabular-nums;font-size: var(--text-xs);}
 .sd-recording-warning{margin:0;padding:10px;border-radius:6px;background:var(--palette-450a0a);
   border:1px solid var(--palette-f87171);color:var(--palette-fecaca);font-size: var(--text-xs);font-weight:600;}
 .sd-recording-meter{display:flex;align-items:center;gap:10px;background:var(--palette-172033);

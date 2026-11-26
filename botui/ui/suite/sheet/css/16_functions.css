@@ -9,11 +9,11 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: var(--gb-surface, #fff);
+  background: var(--gb-surface, var(--id-surface-solid));
   color: var(--gb-text, var(--palette-1c2430));
   border: 1px solid var(--gb-border, var(--palette-ccd3dc));
   border-radius: 10px;
-  box-shadow: 0 18px 60px rgba(10, 20, 35, 0.28);
+  box-shadow: 0 18px 60px color-mix(in srgb, var(--id-ink) 28%, transparent);
   z-index: var(--z-top);
 }
 .ss-fn-dialog:focus { outline: none; }

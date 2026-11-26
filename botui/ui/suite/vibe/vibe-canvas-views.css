@@ -86,9 +86,9 @@
     box-sizing: border-box;
     margin: 0 auto;
     padding: 48px 56px;
-    background: #fff;
+    background: var(--id-surface-solid);
     border: 1px solid var(--palette-cbd5e1);
-    box-shadow: 0 5px 20px rgba(15, 23, 42, .1);
+    box-shadow: 0 5px 20px color-mix(in srgb, var(--id-ink) 10%, transparent);
     font-family: Inter, system-ui, sans-serif;
 }
 
@@ -158,23 +158,23 @@
 .vibe-architecture-grid span { color: var(--palette-64748b); font-size: var(--text-2xs); }
 .vibe-a4-sheet footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 80px; padding-top: 14px; border-top: 1px solid var(--palette-cbd5e1); color: var(--palette-64748b); font-size: var(--text-2xs); }
 
-.vibe-runtime-diagram { width: 100%; min-width: 760px; margin-top: 28px; background: #fff; border: 1px solid var(--palette-cbd5e1); }
+.vibe-runtime-diagram { width: 100%; min-width: 760px; margin-top: 28px; background: var(--id-surface-solid); border: 1px solid var(--palette-cbd5e1); }
 .vibe-diagram-title { font: 700 13px system-ui, sans-serif; fill: var(--palette-0f172a); }
 .vibe-diagram-subtitle { font: 11px system-ui, sans-serif; fill: var(--palette-64748b); }
 .vibe-diagram-edge { fill: none; stroke: var(--palette-64748b); stroke-width: 2; }
 
 .vibe-metric-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 24px 0; }
-.vibe-metric-cards > div { display: flex; flex-direction: column; gap: 5px; padding: 15px; background: #fff; border: 1px solid var(--palette-cbd5e1); border-radius: 6px; }
+.vibe-metric-cards > div { display: flex; flex-direction: column; gap: 5px; padding: 15px; background: var(--id-surface-solid); border: 1px solid var(--palette-cbd5e1); border-radius: 6px; }
 .vibe-metric-cards b { color: var(--palette-2563eb); font-size: var(--text-2xl); }
 .vibe-metric-cards span, .vibe-view-footnote { color: var(--palette-64748b); font-size: var(--text-2xs); }
-.vibe-metric-chart { width: 100%; background: #fff; border: 1px solid var(--palette-cbd5e1); }
+.vibe-metric-chart { width: 100%; background: var(--id-surface-solid); border: 1px solid var(--palette-cbd5e1); }
 .vibe-chart-axis { fill: none; stroke: var(--palette-94a3b8); stroke-width: 1; }
 .vibe-chart-line { fill: none; stroke: var(--palette-2563eb); stroke-width: 4; }
 .vibe-chart-area { fill: var(--palette-dbeafe); opacity: .7; }
 .vibe-metric-chart text { font: 11px system-ui, sans-serif; fill: var(--palette-64748b); }
 
 .vibe-file-list { display: grid; gap: 8px; margin-top: 24px; }
-.vibe-file-list > div { display: flex; align-items: center; gap: 12px; padding: 14px; background: #fff; border: 1px solid var(--palette-cbd5e1); border-radius: 6px; }
+.vibe-file-list > div { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--id-surface-solid); border: 1px solid var(--palette-cbd5e1); border-radius: 6px; }
 .vibe-file-list b { min-width: 180px; font-size: var(--text-2xs); }
 .vibe-file-list > div > span:last-child { color: var(--palette-64748b); font-size: var(--text-2xs); }
 .vibe-file-icon { color: var(--palette-2563eb); }

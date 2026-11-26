@@ -55,7 +55,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: rgba(255, 255, 255, 0.9);
+    color: color-mix(in srgb, var(--id-surface-solid) 90%, transparent);
     font: inherit;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -63,7 +63,7 @@
     cursor: pointer;
 }
 .gb-message-toggle:hover {
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 .bot-message {
     background: var(--surface, var(--card, var(--palette-1a1a24)));
@@ -92,14 +92,14 @@
     margin-bottom: 0;
 }
 .bot-message code {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--id-overlay);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: "Fira Code", monospace;
     font-size: 0.9em;
 }
 .bot-message pre {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--id-overlay);
     padding: 12px;
     border-radius: 8px;
     overflow-x: auto;
@@ -122,7 +122,7 @@
 /* A capture that could not be loaded degrades to text + link (45_bot_images.js). */
 .gb-image-fallback {
     display: inline-block;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
 }
 /* Thinking Section - collapsible reasoning block */
@@ -137,7 +137,7 @@
 .thinking-section summary {
     cursor: pointer;
     padding: 8px 12px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-weight: 600;
     font-size: 0.85em;
     letter-spacing: 0.02em;
@@ -168,7 +168,7 @@
 }
 .thinking-section .thinking-content {
     padding: 0 12px 8px;
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary, var(--palette-73797b));
     line-height: 1.6;
     white-space: pre-wrap;
     font-style: italic;
@@ -205,7 +205,7 @@
     background: var(--surface, var(--card, var(--palette-1a1a24)));
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 12px;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -4px 20px var(--id-overlay);
     margin-bottom: 8px;
     display: none;
     flex-direction: column;
@@ -220,7 +220,7 @@
     border-bottom: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }

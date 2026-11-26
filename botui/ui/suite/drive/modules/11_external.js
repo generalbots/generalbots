@@ -185,23 +185,23 @@ function showConnectorConsent(providerId) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "consent-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var items = scopes.map(function (scope, index) {
-        var detail = descriptions[index] ? '<div style="color:#64748b;font-size:12px;">' + extEscape(descriptions[index]) + '</div>' : "";
-        return '<li style="padding:6px 0;color:#cbd5e1;"><code style="font-size:12px;">' + extEscape(scope) + '</code>' + detail + '</li>';
+        var detail = descriptions[index] ? '<div style="color:var(--palette-64748b);font-size:12px;">' + extEscape(descriptions[index]) + '</div>' : "";
+        return '<li style="padding:6px 0;color:var(--palette-cbd5e1);"><code style="font-size:12px;">' + extEscape(scope) + '</code>' + detail + '</li>';
     }).join("");
     if (!items) {
-        items = '<li style="padding:6px 0;color:#f87171;">This provider is not configured on this deployment.</li>';
+        items = '<li style="padding:6px 0;color:var(--palette-f87171);">This provider is not configured on this deployment.</li>';
     }
-    modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:480px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">'
-        + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:32px;">📁</span><h3 style="margin:0;color:#f8fafc;">Connect ' + extEscape(name) + '</h3></div>'
-        + '<p style="color:#94a3b8;font-size:14px;margin-bottom:12px;">' + extEscape(name) + ' will grant this workspace:</p>'
+    modal.innerHTML = '<div style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:90%;max-width:480px;padding:24px;box-shadow:0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 50%, transparent);">'
+        + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:32px;">📁</span><h3 style="margin:0;color:var(--palette-f8fafc);">Connect ' + extEscape(name) + '</h3></div>'
+        + '<p style="color:var(--palette-94a3b8);font-size:14px;margin-bottom:12px;">' + extEscape(name) + ' will grant this workspace:</p>'
         + '<ul style="list-style:none;padding:0;margin:0 0 16px;">' + items + '</ul>'
-        + '<p style="color:#94a3b8;font-size:13px;margin-bottom:8px;">Mirrored metadata stays <strong>private</strong> to this workspace. Downloads stream from the provider; your account password is never stored.</p>'
-        + '<p style="color:#64748b;font-size:12px;margin-bottom:20px;">You can disconnect at any time; revoking deletes the tokens and the mirrored listing.</p>'
+        + '<p style="color:var(--palette-94a3b8);font-size:13px;margin-bottom:8px;">Mirrored metadata stays <strong>private</strong> to this workspace. Downloads stream from the provider; your account password is never stored.</p>'
+        + '<p style="color:var(--palette-64748b);font-size:12px;margin-bottom:20px;">You can disconnect at any time; revoking deletes the tokens and the mirrored listing.</p>'
         + '<div style="display:flex;gap:10px;justify-content:flex-end;">'
-        + '<button onclick="document.getElementById(\'consent-modal\').remove()" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:10px 20px;cursor:pointer;font-weight:500;">Cancel</button>'
-        + '<button onclick="document.getElementById(\'consent-modal\').remove();DriveExternal.doConnect(\'' + extEscape(providerId) + '\')" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:10px 20px;cursor:pointer;font-weight:500;">Allow &amp; Connect</button>'
+        + '<button onclick="document.getElementById(\'consent-modal\').remove()" style="background:#334155;border:none;border-radius:6px;color:var(--palette-f8fafc);padding:10px 20px;cursor:pointer;font-weight:500;">Cancel</button>'
+        + '<button onclick="document.getElementById(\'consent-modal\').remove();DriveExternal.doConnect(\'' + extEscape(providerId) + '\')" style="background:var(--palette-3b82f6);border:none;border-radius:6px;color:var(--id-surface-solid);padding:10px 20px;cursor:pointer;font-weight:500;">Allow &amp; Connect</button>'
         + '</div></div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);

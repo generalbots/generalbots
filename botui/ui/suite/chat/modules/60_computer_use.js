@@ -21,7 +21,7 @@
     var frame = document.createElement("iframe");
     frame.id = "gb-browser-frame";
     frame.sandbox = "allow-scripts allow-forms";
-    frame.style.cssText = "position:fixed;bottom:60px;right:24px;width:480px;height:360px;border:1px solid #334155;border-radius:10px;z-index:var(--z-overlay);background:#fff;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);";
+    frame.style.cssText = "position:fixed;bottom:60px;right:24px;width:480px;height:360px;border:1px solid #334155;border-radius:10px;z-index:var(--z-overlay);background:var(--id-surface-solid);display:none;box-shadow:0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent);";
     document.body.appendChild(frame);
     browserFrame = frame;
     return frame;
@@ -103,7 +103,7 @@
       var doc = frame.contentDocument || frame.contentWindow.document;
       doc.open();
       doc.write(
-        '<div style="font:14px system-ui;padding:16px;color:#0f172a;">' +
+        '<div style="font:14px system-ui;padding:16px;color:var(--palette-0f172a);">' +
         '<h3 style="margin:0 0 8px;">' + escapeHtml(result.title || result.url || "Page") + "</h3>" +
         '<p style="color:#475569;margin:0 0 12px;">' + escapeHtml(result.url || "") + "</p>" +
         '<pre style="white-space:pre-wrap;font:12px/1.5 monospace;max-height:260px;overflow:auto;">' +

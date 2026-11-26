@@ -8,7 +8,7 @@
     position: absolute;
     inset: 0;
     z-index: var(--z-sticky);
-    background: rgba(4, 6, 12, 0.72);
+    background: color-mix(in srgb, var(--id-ink) 72%, transparent);
     backdrop-filter: blur(3px);
     display: none;
     align-items: center;
@@ -27,9 +27,9 @@
     height: 86%;
     max-height: 780px;
     background: var(--surface, var(--palette-14142a));
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 12px;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 24px 80px color-mix(in srgb, var(--id-ink) 60%, transparent);
     overflow: hidden;
     font-family: "Fira Code", Consolas, monospace;
 }
@@ -39,7 +39,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--id-ink));
     background: var(--surface-hover, var(--palette-1c1c33));
     flex-shrink: 0;
 }
@@ -48,7 +48,7 @@
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.6px;
-    color: var(--text, #eee);
+    color: var(--text, var(--id-gray-100));
     display: flex;
     align-items: center;
     gap: 8px;
@@ -71,7 +71,7 @@
 .vibe-dialog-close {
     border: none;
     background: transparent;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     font-size: var(--text-md);
     cursor: pointer;
     padding: 2px 6px;
@@ -79,8 +79,8 @@
 }
 
 .vibe-dialog-close:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--id-surface-solid);
+    background: color-mix(in srgb, var(--id-surface-solid) 8%, transparent);
 }
 
 .vibe-dialog-body {
@@ -92,7 +92,7 @@
 .vibe-dialog-sidebar {
     width: 260px;
     flex-shrink: 0;
-    border-right: 1px solid var(--border, #333);
+    border-right: 1px solid var(--border, var(--id-ink));
     background: var(--bg, var(--palette-12121f));
     display: flex;
     flex-direction: column;
@@ -112,15 +112,15 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--id-ink));
     background: var(--surface, var(--palette-14142a));
     flex-shrink: 0;
 }
 
 .vibe-btn {
-    border: 1px solid var(--border, #444);
+    border: 1px solid var(--border, var(--id-ink));
     background: var(--surface, var(--palette-1a1a2e));
-    color: var(--text, #eee);
+    color: var(--text, var(--id-gray-100));
     font-family: "Fira Code", monospace;
     font-size: var(--text-2xs);
     padding: 4px 10px;
@@ -162,7 +162,7 @@
 
 .vibe-code-tree-folder {
     color: var(--palette-eab308);
-    filter: drop-shadow(0 0 2px rgba(234, 179, 8, 0.4));
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--id-accent) 40%, transparent));
 }
 
 .vibe-code-tree-file {
@@ -177,13 +177,13 @@
 .vibe-btn.primary {
     background: var(--accent, var(--palette-4a6cf7));
     border-color: var(--accent, var(--palette-4a6cf7));
-    color: #fff;
+    color: var(--id-surface-solid);
     font-weight: 600;
 }
 
 .vibe-btn.primary:hover {
     filter: brightness(1.1);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .vibe-btn.danger {
@@ -192,14 +192,14 @@
 }
 
 .vibe-btn.danger:hover {
-    background: rgba(245, 85, 85, 0.1);
+    background: color-mix(in srgb, var(--id-danger) 10%, transparent);
     color: var(--palette-ff9a9a);
 }
 
 .vibe-input, .vibe-select, .vibe-textarea {
     background: var(--bg, var(--palette-12121f));
-    color: var(--text, #eee);
-    border: 1px solid var(--border, #333);
+    color: var(--text, var(--id-gray-100));
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 5px;
     font-family: "Fira Code", Consolas, monospace;
     font-size: var(--text-2xs);
@@ -233,7 +233,7 @@
     padding: 7px 10px;
     border-radius: 6px;
     font-size: var(--text-2xs);
-    color: var(--text, #eee);
+    color: var(--text, var(--id-gray-100));
     cursor: pointer;
     border-left: 2px solid transparent;
 }
@@ -243,6 +243,6 @@
 }
 
 .vibe-list-item.active {
-    background: rgba(74, 108, 247, 0.12);
+    background: color-mix(in srgb, var(--id-accent) 12%, transparent);
     border-left-color: var(--accent, var(--palette-4a6cf7));
 }

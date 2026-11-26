@@ -1,5 +1,5 @@
 .chat-sidebar-collapsed-icon:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
     color: var(--text);
 }
 
@@ -15,10 +15,10 @@
 
 .toolbar-v15 {
     height: 56px;
-    background: var(--glass-bg, rgba(20, 22, 35, 0.65));
+    background: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 65%, transparent));
     backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
-    border-top: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
+    border-top: 2px solid var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
     display: flex;
     align-items: center;
     padding: 0 12px;
@@ -48,7 +48,7 @@
 }
 
 .toolbar-v15 .taskbar-dock-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
 }
 
 .toolbar-v15 .taskbar-dock-item.active::after {
@@ -109,7 +109,7 @@
 }
 
 .toolbar-v15 .taskbar-widget:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
     color: var(--text);
 }
 
@@ -127,14 +127,14 @@
     position: absolute;
     width: 1000px;
     height: 500px;
-    background: var(--glass-bg, rgba(20, 22, 35, 0.78));
+    background: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 78%, transparent));
     backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
     border-radius: 16px;
-    box-shadow: var(--glass-shadow, 0 12px 48px rgba(0, 0, 0, 0.5));
+    box-shadow: var(--glass-shadow, 0 12px 48px color-mix(in srgb, var(--palette-000000) 50%, transparent));
     display: flex;
     flex-direction: column;
-    border: 3px solid var(--glass-border-color, rgba(255, 255, 255, 0.15));
+    border: 3px solid var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 15%, transparent));
     overflow: hidden;
     z-index: var(--z-sticky);
     animation: windowOpenIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -156,11 +156,11 @@
 
 .window-header-glass {
     height: 48px;
-    background: rgba(255, 255, 255, 0.04);
+    background: color-mix(in srgb, var(--palette-ffffff) 4%, transparent);
     display: flex;
     align-items: center;
     padding: 0 16px;
-    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
+    border-bottom: 2px solid var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
     user-select: none;
     cursor: move;
     flex-shrink: 0;
@@ -206,8 +206,8 @@
 /* Snap layout hints */
 .snap-hint {
     position: fixed;
-    background: rgba(136, 204, 255, 0.2);
-    border: 2px solid rgba(136, 204, 255, 0.5);
+    background: color-mix(in srgb, var(--palette-93c5fd) 20%, transparent);
+    border: 2px solid color-mix(in srgb, var(--palette-93c5fd) 50%, transparent);
     border-radius: 12px;
     z-index: var(--z-blocker);
     pointer-events: none;
@@ -234,8 +234,8 @@
     overflow: hidden;
     background: var(--wall, linear-gradient(135deg,
         var(--bg) 0%,
-        hsla(210, 80%, 60%, 0.04) 30%,
-        hsla(160, 70%, 50%, 0.03) 60%,
+        color-mix(in srgb, var(--palette-4c9ee9) 4%, transparent) 30%,
+        color-mix(in srgb, var(--palette-34d399) 3%, transparent) 60%,
         var(--bg) 100%
     ));
     position: relative;
@@ -245,7 +245,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--wall-vignette, radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%));
+    background: var(--wall-vignette, radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--palette-4c9ee9) 8%, transparent) 0%, transparent 50%));
     pointer-events: none;
     z-index: var(--z-base);
 }
@@ -281,7 +281,7 @@
 }
 .chat-sidebar-conv-delete:hover,
 .chat-sidebar-conv-delete:focus-visible {
-    background: rgba(229, 72, 77, 0.16);
+    background: color-mix(in srgb, var(--palette-e5484d) 16%, transparent);
     color: var(--error);
     outline: none;
 }
@@ -333,7 +333,7 @@
 }
 .chat-sidebar-conv-lock:hover,
 .chat-sidebar-conv-lock:focus-visible {
-    background: rgba(245, 158, 11, 0.18);
+    background: color-mix(in srgb, var(--palette-f59e0b) 18%, transparent);
     outline: none;
 }
 .chat-sidebar-conv-item.locked {
@@ -344,7 +344,7 @@
     width: 100%;
     margin-top: 6px;
     padding: 6px 10px;
-    border: 1px dashed var(--shell-border, rgba(255,255,255,0.15));
+    border: 1px dashed var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 15%, transparent));
     border-radius: 8px;
     background: transparent;
     color: var(--text-secondary);

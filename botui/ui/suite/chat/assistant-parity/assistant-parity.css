@@ -4,55 +4,55 @@
 /* == 0. Self-contained token bridge ===================================== */
 .gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare, .gb-parity-model-btn,
 .gb-parity-action-menu, .gb-parity-confirm, .gb-parity-block-stack, .gb-parity-block, .gb-parity-attach-panel {
-    --gbp-paper: var(--id-paper, #FFF8F2); --gbp-surface: var(--id-surface-solid, #fff);
-    --gbp-surface-soft: var(--id-surface, rgba(255, 255, 255, .9));
-    --gbp-ink: var(--id-ink, #2C2C2C); --gbp-text: var(--id-text, #4B5563);
-    --gbp-muted: var(--id-muted, #5F6673); --gbp-line: var(--id-line, #E5E7EB);
-    --gbp-line-soft: var(--id-line-soft, #F3F4F6); --gbp-fill: var(--id-fill, #F3F4F6);
-    --gbp-gray-300: var(--id-gray-300, #D1D5DB); --gbp-accent: var(--id-accent, #F28C28);
-    --gbp-accent-text: var(--id-accent-text, #B45309);
-    --gbp-accent-soft: var(--id-accent-soft, rgba(242, 140, 40, .1));
-    --gbp-on-accent: var(--id-on-accent, #2C2C2C);
+    --gbp-paper: var(--id-paper, var(--id-paper)); --gbp-surface: var(--id-surface-solid, var(--id-surface-solid));
+    --gbp-surface-soft: var(--id-surface, color-mix(in srgb, var(--id-surface-solid) 90%, transparent));
+    --gbp-ink: var(--id-ink, var(--id-ink)); --gbp-text: var(--id-text, var(--id-text));
+    --gbp-muted: var(--id-muted, var(--id-muted)); --gbp-line: var(--id-line, var(--id-gray-200));
+    --gbp-line-soft: var(--id-line-soft, var(--id-gray-100)); --gbp-fill: var(--id-fill, var(--id-gray-100));
+    --gbp-gray-300: var(--id-gray-300, var(--id-gray-300)); --gbp-accent: var(--id-accent, var(--id-accent));
+    --gbp-accent-text: var(--id-accent-text, var(--id-accent-text));
+    --gbp-accent-soft: var(--id-accent-soft, var(--id-accent-soft));
+    --gbp-on-accent: var(--id-on-accent, var(--id-ink));
     --gbp-radius: var(--id-radius-card, calc(var(--radius, .75rem) + 8px));
     --gbp-radius-sm: var(--id-radius-sm, max(4px, calc(var(--radius, .75rem) - 4px)));
     --gbp-radius-pill: var(--id-radius-pill, 999px);
-    --gbp-shadow: var(--id-shadow-card, 0 1px 2px rgb(0 0 0 / .05));
-    --gbp-shadow-hover: var(--id-shadow-card-hover, 0 8px 20px -10px rgb(0 0 0 / .12));
-    --gbp-shadow-float: var(--id-shadow-float, 0 10px 15px -3px rgb(0 0 0 / .04));
+    --gbp-shadow: var(--id-shadow-card, 0 1px 2px color-mix(in srgb, var(--palette-000000) 5%, transparent));
+    --gbp-shadow-hover: var(--id-shadow-card-hover, 0 8px 20px -10px color-mix(in srgb, var(--palette-000000) 12%, transparent));
+    --gbp-shadow-float: var(--id-shadow-float, 0 10px 15px -3px color-mix(in srgb, var(--palette-000000) 4%, transparent));
     --gbp-font: var(--id-font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
     --gbp-font-heading: var(--id-font-heading, var(--gbp-font));
     --gbp-focus: var(--id-focus, 0 0 0 2px var(--gbp-accent-text));
-    --gbp-overlay: var(--id-overlay, rgb(0 0 0 / .3));
-    --gbp-success-text: var(--id-success-text, #16a34a);
-    --gbp-success-soft: var(--id-success-soft, rgb(34 197 94 / .06));
-    --gbp-warn-text: var(--id-warn-text, #92400e);
-    --gbp-warn-soft: var(--id-warn-soft, rgb(234 179 8 / .08));
-    --gbp-danger-text: var(--id-danger-text, #b91c1c);
-    --gbp-danger-soft: var(--id-danger-soft, rgb(220 38 38 / .06));
-    --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .3));
+    --gbp-overlay: var(--id-overlay, var(--id-overlay));
+    --gbp-success-text: var(--id-success-text, var(--id-success-text));
+    --gbp-success-soft: var(--id-success-soft, color-mix(in srgb, var(--id-success) 6%, transparent));
+    --gbp-warn-text: var(--id-warn-text, var(--id-warn-text));
+    --gbp-warn-soft: var(--id-warn-soft, color-mix(in srgb, var(--palette-eab308) 8%, transparent));
+    --gbp-danger-text: var(--id-danger-text, var(--id-danger-text));
+    --gbp-danger-soft: var(--id-danger-soft, color-mix(in srgb, var(--id-danger) 6%, transparent));
+    --gbp-danger-line: var(--id-danger-line, color-mix(in srgb, var(--id-danger) 30%, transparent));
 }
 
 [data-color-scheme="dark"] :is(.gb-parity-dialog, .gb-parity-gauge, .gb-parity-guide, .gb-parity-compare,
     .gb-parity-model-btn, .gb-parity-action-menu, .gb-parity-confirm, .gb-parity-block-stack,
     .gb-parity-block, .gb-parity-attach-panel) {
-    --gbp-paper: var(--id-paper, #221F1B); --gbp-surface: var(--id-surface-solid, #262633);
-    --gbp-surface-soft: var(--id-surface, rgba(38, 38, 51, .9));
-    --gbp-ink: var(--id-ink, #E4E4EA); --gbp-text: var(--id-text, #CDD0D9);
-    --gbp-muted: var(--id-muted, #808898); --gbp-line: var(--id-line, #3A3A4A);
-    --gbp-line-soft: var(--id-line-soft, #2E2E3E); --gbp-fill: var(--id-fill, #2A2A36);
-    --gbp-gray-300: var(--id-gray-300, #4A4A5A); --gbp-accent-text: var(--id-accent-text, #FDB96A);
-    --gbp-accent-soft: var(--id-accent-soft, rgba(242, 140, 40, .16));
-    --gbp-overlay: var(--id-overlay, rgb(0 0 0 / .5));
-    --gbp-success-text: var(--id-success-text, #86efac);
-    --gbp-success-soft: var(--id-success-soft, rgb(34 197 94 / .12));
-    --gbp-warn-text: var(--id-warn-text, #fde68a);
-    --gbp-warn-soft: var(--id-warn-soft, rgb(234 179 8 / .15));
-    --gbp-danger-text: var(--id-danger-text, #fca5a5);
-    --gbp-danger-soft: var(--id-danger-soft, rgb(220 38 38 / .12));
-    --gbp-danger-line: var(--id-danger-line, rgb(220 38 38 / .4));
+    --gbp-paper: var(--id-paper, var(--palette-221f1b)); --gbp-surface: var(--id-surface-solid, #262633);
+    --gbp-surface-soft: var(--id-surface, color-mix(in srgb, var(--palette-262633) 90%, transparent));
+    --gbp-ink: var(--id-ink, var(--palette-e4e4ea)); --gbp-text: var(--id-text, var(--palette-c9d1d9));
+    --gbp-muted: var(--id-muted, #808898); --gbp-line: var(--id-line, var(--palette-3c4244));
+    --gbp-line-soft: var(--id-line-soft, var(--palette-2a2a3e)); --gbp-fill: var(--id-fill, var(--palette-2a2a36));
+    --gbp-gray-300: var(--id-gray-300, var(--palette-484f58)); --gbp-accent-text: var(--id-accent-text, var(--id-accent-light));
+    --gbp-accent-soft: var(--id-accent-soft, color-mix(in srgb, var(--id-accent) 16%, transparent));
+    --gbp-overlay: var(--id-overlay, color-mix(in srgb, var(--palette-000000) 50%, transparent));
+    --gbp-success-text: var(--id-success-text, var(--palette-86efac));
+    --gbp-success-soft: var(--id-success-soft, color-mix(in srgb, var(--id-success) 12%, transparent));
+    --gbp-warn-text: var(--id-warn-text, var(--palette-feda75));
+    --gbp-warn-soft: var(--id-warn-soft, color-mix(in srgb, var(--palette-eab308) 15%, transparent));
+    --gbp-danger-text: var(--id-danger-text, var(--palette-fca5a5));
+    --gbp-danger-soft: var(--id-danger-soft, color-mix(in srgb, var(--id-danger) 12%, transparent));
+    --gbp-danger-line: var(--id-danger-line, color-mix(in srgb, var(--id-danger) 40%, transparent));
 }
 
-[class*="gb-parity-"]:focus-visible, [class*="gb-parity-"] :focus-visible { outline: 2px solid var(--gbp-accent-text, #B45309); outline-offset: 2px; }
+[class*="gb-parity-"]:focus-visible, [class*="gb-parity-"] :focus-visible { outline: 2px solid var(--gbp-accent-text, var(--id-accent-text)); outline-offset: 2px; }
 
 /* == 1. Workshop dialog ================================================= */
 .gb-parity-dialog { position: fixed; inset: 0; z-index: var(--z-modal, 1000); display: flex; align-items: center; justify-content: center; padding: var(--id-space-4, 16px); box-sizing: border-box; }

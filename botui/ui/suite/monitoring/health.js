@@ -40,7 +40,7 @@ function initUptimeTooltips() {
                 color: var(--text);
                 pointer-events: none;
                 z-index: var(--z-dropdown);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-000000) 15%, transparent);
             `;
             document.body.appendChild(tooltip);
 

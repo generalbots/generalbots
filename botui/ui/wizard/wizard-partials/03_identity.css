@@ -1,16 +1,348 @@
 /*
- * Identity overlay — the edition's visual language applied to the wizard.
+ * Identity overlay — applies the edition's visual language to the wizard.
  *
- * Imported after 01_root.css and 02_model-grid.css. Matches the app's
- * Settings > Modelo page: hairline borders, squared cards, mono labels,
- * the accent picker, and clean light/dark backgrounds without glow or grid.
+ * Imported last so it wins over 01_root.css and 02_model-grid.css.
+ * Uses --id-* tokens from /suite/identity/tokens.css and the fonts
+ * declared in /suite/identity/fonts.css.
+ *
+ * The paper + grid + glow pattern, white-90% panels, Inter everywhere,
+ * accent-derived colours and calm list style are all defined here.
  */
 
-/* == No decorative paper grid or glow (removed) ======================== */
-.wizard::before,
-.wizard::after { display: none; }
+/* == Remap legacy variables to identity tokens ======================== */
+/* 01_root.css and 02_model-grid.css use --accent / --accent-ink.
+   Remap them so every old reference follows the identity accent. */
+:root {
+  --accent: var(--id-accent);
+  --accent-ink: var(--id-on-accent);
+  --focus: var(--id-focus);
+  --border: var(--id-line);
+  --muted: var(--id-muted);
+  --surface: var(--id-surface);
+  --text: var(--id-ink);
+}
 
-/* == Accent picker ====================================================== */
+/* == Page shell ======================================================= */
+
+html, body {
+  background: var(--id-paper);
+  color: var(--id-ink);
+  font-family: var(--id-font-sans);
+  font-size: var(--id-text-base);
+  line-height: 1.55;
+}
+
+/* Replace the rainbow line with nothing — the paper+glow is the brand. */
+body::before { display: none; }
+
+/* Paper grid (20px, 4% opacity) and one drifting glow. */
+.wizard::before,
+.wizard::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+.wizard::before {
+  inset: 0;
+  opacity: .04;
+  background-image:
+    linear-gradient(var(--id-gray-500) 1px, transparent 1px),
+    linear-gradient(90deg, var(--id-gray-500) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.wizard::after {
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  top: 18%;
+  right: -80px;
+  background: radial-gradient(circle, var(--id-accent-glow) 0%, transparent 70%);
+  filter: blur(40px);
+  animation: id-glow-drift var(--id-dur-glow) ease-in-out infinite alternate;
+}
+@keyframes id-glow-drift {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(-60px, 40px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wizard::after { animation: none; }
+}
+
+/* All direct children above the backdrop. */
+.wizard > * { position: relative; z-index: 1; }
+
+/* == Rail (light, calm list) ========================================== */
+
+.rail {
+  background: var(--id-surface);
+  border-right: 1px solid var(--id-line);
+  color: var(--id-ink);
+  padding: var(--id-space-6) var(--id-space-5);
+  gap: var(--id-space-5);
+}
+
+.rail-brand {
+  gap: var(--id-space-2);
+}
+.rail-mark {
+  filter: none;
+  height: 24px;
+}
+.rail-wordmark {
+  filter: none;
+  height: 11px;
+}
+
+.rail-steps { gap: 2px; }
+
+.rail-step {
+  color: var(--id-muted);
+  border: none;
+  border-radius: var(--id-radius-sm);
+  padding: 7px 10px;
+  transition: background-color var(--id-dur-fast) var(--id-ease-standard);
+}
+.rail-step .num {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--id-gray-300);
+  background: transparent;
+  color: var(--id-muted);
+}
+.rail-step .name {
+  font-size: var(--id-text-sm);
+  font-weight: 500;
+}
+
+/* Current step */
+.rail-step[aria-current="step"] {
+  color: var(--id-ink);
+  background: var(--id-accent-soft);
+  border-color: transparent;
+}
+.rail-step[aria-current="step"] .num {
+  background: var(--id-accent);
+  border-color: var(--id-accent);
+  color: var(--id-on-accent);
+}
+
+/* Done step */
+.rail-step.done {
+  color: var(--id-text);
+}
+.rail-step.done .num {
+  background: transparent;
+  border-color: var(--id-accent-light);
+  color: var(--id-accent-text);
+}
+
+.rail-note {
+  color: var(--id-muted);
+  font-size: 11px;
+}
+
+/* == Pane ============================================================= */
+
+.pane {
+  background: transparent;
+}
+
+.pane-head {
+  padding: var(--id-space-5) var(--id-space-8) 0;
+}
+
+.pane-lang select {
+  border-radius: var(--id-radius-pill);
+  background: var(--id-surface);
+  border-color: var(--id-line);
+  font-size: var(--id-text-sm);
+}
+.pane-lang select:focus-visible {
+  box-shadow: var(--id-focus);
+}
+
+.step-counter {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--id-accent-text);
+}
+
+.step-heading {
+  font-size: var(--id-text-3xl);
+  font-weight: 700;
+  color: var(--id-ink);
+  font-family: var(--id-font-sans);
+}
+
+.pane-body {
+  padding: var(--id-space-3) var(--id-space-8) var(--id-space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.lead {
+  color: var(--id-text);
+  font-size: var(--id-text-md);
+  line-height: 1.55;
+}
+
+/* == Controls ========================================================= */
+
+.field > label, .field-label {
+  font-size: var(--id-text-sm);
+  font-weight: 600;
+  color: var(--id-ink);
+}
+.field .hint {
+  font-size: var(--id-text-sm);
+  color: var(--id-muted);
+}
+.field input[type="text"],
+.field input[type="password"],
+.field input[type="email"],
+.field input[type="number"],
+.field select {
+  padding: 10px 12px;
+  border-radius: var(--id-radius-control);
+  border: 1px solid var(--id-line);
+  background: var(--id-surface);
+  font-family: var(--id-font-sans);
+  transition: border-color var(--id-dur-fast);
+}
+.field input:focus, .field select:focus {
+  border-color: var(--id-accent);
+  box-shadow: var(--id-focus);
+}
+.field input[aria-invalid="true"] {
+  border-color: #b3352a;
+}
+
+/* Choices and cards */
+.choice {
+  border-radius: var(--id-radius-control);
+  border-color: var(--id-line);
+  background: var(--id-surface);
+  transition: border-color var(--id-dur-fast), box-shadow var(--id-dur-fast);
+}
+.choice:hover { border-color: var(--id-gray-300); }
+.choice.selected {
+  border-color: var(--id-accent);
+  background: var(--id-accent-soft);
+  box-shadow: 0 0 0 1px var(--id-accent);
+}
+.choice input { accent-color: var(--id-accent); }
+
+.card {
+  border: 1px solid var(--id-line);
+  border-radius: var(--id-radius-card);
+  background: var(--id-surface);
+  box-shadow: var(--id-shadow-card);
+  padding: var(--id-space-4) var(--id-space-5);
+}
+.card + .card { margin-top: var(--id-space-3); }
+
+/* Buttons */
+.btn {
+  border-radius: var(--id-radius-control);
+  font-weight: 600;
+  font-family: var(--id-font-sans);
+  transition: background-color var(--id-dur-fast), color var(--id-dur-fast),
+              transform var(--id-dur-fast);
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:focus-visible { box-shadow: var(--id-focus); outline: none; }
+.btn-primary {
+  background: var(--id-accent);
+  color: var(--id-on-accent);
+}
+.btn-primary:hover:not(:disabled) { background: var(--id-accent-hover); }
+.btn-secondary {
+  border-color: var(--id-line);
+  background: transparent;
+  color: var(--id-ink);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--id-fill); }
+.btn-text { color: var(--id-muted); }
+.btn-text:hover { color: var(--id-ink); }
+
+/* Badges */
+.badge {
+  border-radius: var(--id-radius-pill);
+  border-color: var(--id-line);
+  color: var(--id-muted);
+  font-size: 11px;
+}
+.badge.ok { color: #1f7a4d; border-color: color-mix(in srgb, var(--id-text) 35%, transparent); }
+.badge.run { color: var(--id-accent-text); border-color: var(--id-accent-soft); }
+
+/* Notes */
+.note { font-size: var(--id-text-sm); color: var(--id-muted); }
+
+/* Model cards */
+.model-card {
+  border-radius: var(--id-radius-card);
+  border-color: var(--id-line);
+  background: var(--id-surface);
+  box-shadow: var(--id-shadow-card);
+  transition: border-color var(--id-dur-fast), transform var(--id-dur-fast),
+              box-shadow var(--id-dur-fast);
+}
+.model-card:hover {
+  border-color: var(--id-gray-300);
+  box-shadow: var(--id-shadow-card-hover);
+}
+.model-card.selected {
+  border-color: var(--id-accent);
+  background: var(--id-accent-soft);
+  box-shadow: 0 0 0 1px var(--id-accent);
+}
+
+/* Checkbox accent */
+.checkbox-row input { accent-color: var(--id-accent); }
+
+/* Install step identity is in 04_identity-install.css. */
+
+/* == Footer =========================================================== */
+
+.pane-foot {
+  border-top: 1px solid var(--id-line);
+  background: var(--id-surface);
+  padding: 11px var(--id-space-8);
+}
+.foot-progress {
+  background: var(--id-gray-200);
+}
+.foot-progress-fill {
+  background: var(--id-accent);
+}
+.foot-label { color: var(--id-muted); }
+
+/* == Modal ============================================================ */
+
+.modal {
+  border-radius: var(--id-radius-card);
+  border-color: var(--id-line);
+  box-shadow: var(--id-shadow-float);
+}
+
+/* == Summary & data map =============================================== */
+
+.summary-row {
+  border-bottom-color: var(--id-line);
+}
+.summary-row span:first-child { color: var(--id-muted); }
+
+table.datamap th { color: var(--id-muted); }
+table.datamap th, table.datamap td {
+  border-bottom-color: var(--id-line);
+}
+
+/* == Accent picker ==================================================== */
 
 .accent-picker {
   display: flex;
@@ -32,9 +364,6 @@
 .accent-swatch:hover {
   transform: scale(1.1);
 }
-@media (prefers-reduced-motion: reduce) {
-  .accent-swatch:hover { transform: none; }
-}
 .accent-swatch:focus-visible {
   outline: 2px solid var(--id-accent-text);
   outline-offset: 2px;
@@ -43,10 +372,35 @@
   border-color: var(--id-ink);
   box-shadow: 0 0 0 2px var(--id-surface-solid), 0 0 0 4px var(--id-ink);
 }
-/* == Welcome greeting =================================================== */
+.accent-custom-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--id-space-2);
+  margin-left: var(--id-space-2);
+}
+.accent-custom-input {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--id-line);
+  border-radius: var(--id-radius-control);
+  padding: 2px;
+  cursor: pointer;
+  background: var(--id-surface);
+}
+.accent-custom-input::-webkit-color-swatch-wrapper { padding: 0; }
+.accent-custom-input::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--id-radius-control) - 3px);
+}
+.accent-custom-label {
+  font-size: var(--id-text-sm);
+  color: var(--id-muted);
+}
+
+/* == Welcome greeting ================================================= */
 
 .welcome-greeting {
-  font-family: var(--id-font);
+  font-family: var(--id-font-heading);
   font-size: var(--id-text-3xl);
   font-weight: 600;
   color: var(--id-accent-text);
@@ -54,211 +408,19 @@
   line-height: 1.3;
 }
 
-/* == Radio labels (network step) ======================================== */
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: var(--id-space-2);
-  font-weight: 600;
-  cursor: pointer;
-}
-.radio-label input { accent-color: var(--id-accent); }
+/* == Narrow viewport ================================================== */
 
-/* == Engine overview (the app's Settings > Modelo card anatomy) ========= */
+@media (max-width: 900px) {
+  .rail {
+    background: var(--id-surface);
+    border-right: 0;
+    border-bottom: 1px solid var(--id-line);
+  }
+  .rail-mark { filter: none; }
+  .rail-wordmark { filter: none; }
 
-.wiz-engine-lead { max-width: 90ch; }
-.wiz-engine-section {
-  display: flex;
-  flex-direction: column;
+  .pane-head { padding: var(--id-space-5) var(--id-space-4) 0; }
+  .pane-body { padding: var(--id-space-3) var(--id-space-4) var(--id-space-5); }
+  .pane-foot { padding: 12px var(--id-space-4); }
+  .step-heading { font-size: var(--id-text-2xl); }
 }
-.wiz-engine-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--id-space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--id-space-2);
-}
-.wiz-engine-label {
-  font-family: var(--id-font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .06em;
-  color: var(--id-ink);
-}
-.wiz-engine-hint {
-  font-size: 12.5px;
-  color: var(--id-muted);
-}
-
-/* One white card with hairline borders; the four engines share its grid
-   lines. 2 x 2 at the real window width (content ~740 px) and at the
-   900 x 560 minimum, one row of four only when there is room for it. */
-.wiz-engine-card {
-  background: var(--id-surface-solid);
-  border: var(--id-stroke) solid var(--id-line);
-  border-radius: var(--id-radius-panel);
-  overflow: hidden;
-}
-.wiz-engine-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--id-line);
-  border-bottom: var(--id-stroke) solid var(--id-line);
-}
-@media (min-width: 1240px) {
-  .wiz-engine-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-.wiz-engine {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  padding: 16px 14px 14px;
-  min-height: 140px;
-  background: var(--id-surface-solid);
-  color: var(--id-ink);
-}
-.wiz-engine.start::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: var(--id-accent);
-}
-
-.wiz-engine-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-.wiz-engine-ico {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: var(--id-stroke) solid var(--id-line);
-  background: var(--id-surface-solid);
-  color: var(--id-text);
-  flex: none;
-}
-.wiz-engine.start .wiz-engine-ico { color: var(--id-accent-text); }
-.wiz-engine-num {
-  font: 600 10.5px/normal var(--id-font-mono);
-  color: var(--id-muted);
-}
-.wiz-engine-sp { flex: 1; }
-.wiz-engine-tag {
-  font: 600 10px/1.4 var(--id-font-mono);
-  letter-spacing: .04em;
-  padding: 2px 6px;
-  background: var(--id-accent);
-  color: var(--id-on-accent);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.wiz-engine-txt {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.wiz-engine-txt strong {
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -.2px;
-}
-.wiz-engine-txt span {
-  font-size: 12.5px;
-  color: var(--id-muted);
-  line-height: 1.4;
-}
-.wiz-engine-foot {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.wiz-engine-dest {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.wiz-engine-sq {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: currentColor;
-  display: inline-block;
-}
-.wiz-engine-dest[data-tone="ok"] { color: var(--id-success-text); }
-.wiz-engine-dest[data-tone="mid"] { color: var(--id-warn-text); }
-.wiz-engine-dest[data-tone="out"] { color: var(--id-danger-text); }
-
-/* Privacy meter: five segments, the app's small size */
-.wiz-segs { display: flex; gap: 2px; flex: none; }
-.wiz-segs i {
-  display: block;
-  width: 8px;
-  height: 4px;
-  background: var(--id-line);
-}
-.wiz-segs[data-tone="ok"] i.on { background: var(--id-success-text); }
-.wiz-segs[data-tone="mid"] i.on { background: var(--id-warn-text); }
-.wiz-segs[data-tone="out"] i.on { background: var(--id-danger-text); }
-
-/* Details strip for the engine in use at the start */
-.wiz-engine-dhead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 50px;
-  padding: 8px 16px;
-  border-bottom: var(--id-stroke) solid var(--id-line);
-}
-.wiz-engine-dhead > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.wiz-engine-k {
-  font-family: var(--id-font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .06em;
-  color: var(--id-muted);
-}
-.wiz-engine-dname {
-  font-weight: 600;
-  font-size: 15px;
-}
-.wiz-engine-now {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 600 11px/normal var(--id-font-mono);
-  color: var(--id-success-text);
-  white-space: nowrap;
-}
-.wiz-engine-dbody {
-  padding: 12px 16px 14px;
-}
-.wiz-engine-dbody p {
-  margin: 0;
-  max-width: 68ch;
-  font-size: var(--id-text-base);
-  line-height: 1.55;
-  color: var(--id-text);
-}
-.wiz-engine-dbody p + p { margin-top: 6px; }

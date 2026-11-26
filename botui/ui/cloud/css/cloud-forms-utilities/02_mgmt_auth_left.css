@@ -1,7 +1,7 @@
 .mgmt-auth-left {
   flex: 1;
   position: relative;
-  background: #08080a;
+  background: var(--palette-0a0a0a);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,7 +18,7 @@
   right: -10%;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(0, 199, 255, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--palette-06b6d4) 12%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -30,7 +30,7 @@
   left: -10%;
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle, rgba(191, 90, 242, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--palette-a855f7) 10%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -152,9 +152,9 @@
   top: 50%;
   width: 35%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--id-surface-solid) 70%, transparent);
   transform: translateY(-50%);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--id-surface-solid) 30%, transparent);
 }
 
 .prism-triangle {
@@ -164,9 +164,9 @@
   transform: translate(-50%, -50%);
   width: 80px;
   height: 70px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--id-surface-solid) 8%, transparent), color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--id-surface-solid) 30%, transparent));
 }
 
 .prism-spectrum {
@@ -177,18 +177,18 @@
   height: 70%;
   background: linear-gradient(
     180deg,
-    #ff2d55 0%,
-    #ff9500 16%,
-    #ffd60a 32%,
-    #30d158 48%,
-    #00c7ff 64%,
-    #5856d6 80%,
-    #bf5af2 100%
+    var(--palette-ec4899) 0%,
+    var(--palette-f97316) 16%,
+    var(--palette-fbbf24) 32%,
+    var(--palette-34d399) 48%,
+    var(--palette-06b6d4) 64%,
+    var(--palette-6366f1) 80%,
+    var(--palette-a855f7) 100%
   );
   opacity: 0.5;
   filter: blur(8px);
-  mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, var(--palette-000000) 30%, var(--palette-000000) 70%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, var(--palette-000000) 30%, var(--palette-000000) 70%, transparent);
   animation: prismPulse 4s ease-in-out infinite alternate;
 }
 
@@ -243,7 +243,7 @@
 .theme-toggle button.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 .theme-toggle button svg {

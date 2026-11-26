@@ -125,7 +125,7 @@
     if (!toast) {
       toast = document.createElement("div");
       toast.id = id;
-      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;z-index:var(--z-system);box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--id-success-text);color:var(--id-surface-solid);padding:10px 18px;border-radius:6px;font-size:13px;z-index:var(--z-system);box-shadow:0 4px 12px color-mix(in srgb, var(--id-ink) 30%, transparent);";
       document.body.appendChild(toast);
     }
     toast.textContent = msg;
@@ -140,8 +140,8 @@
     menu = document.createElement("div");
     menu.className = "ss-export-menu";
     menu.style.cssText =
-      "position:absolute;z-index:60;background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:6px;" +
-      "box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:180px;overflow:hidden;";
+      "position:absolute;z-index:60;background:var(--sheet-bg-elevated, var(--id-ink));border:1px solid var(--sheet-border, var(--id-ink));border-radius:6px;" +
+      "box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);min-width:180px;overflow:hidden;";
     const item = function (label, fn) {
       const b = document.createElement("button");
       b.type = "button";
@@ -150,7 +150,7 @@
       // the item exports (the plain "CSV" is ambiguous once the menu closes).
       b.setAttribute("aria-label", "Export " + label);
       b.style.cssText =
-        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, #f8fafc);" +
+        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, var(--id-gray-100));" +
         "text-align:left;font-size:13px;cursor:pointer;";
       b.addEventListener("mouseover", function () { b.style.background = "var(--sheet-border, #334155)"; });
       b.addEventListener("mouseout", function () { b.style.background = "none"; });

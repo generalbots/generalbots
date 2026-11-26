@@ -19,8 +19,8 @@
     align-items: center;
     justify-content: center;
     font-size: var(--text-2xl);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    color: var(--id-surface-solid);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-3b82f6) 40%, transparent);
 }
 .gb-concierge h1 { margin: 0 0 6px; font-size: var(--text-2xl); }
 .gb-concierge .concierge-hero p { margin: 0; color: var(--text-secondary); font-size: var(--text-xs); }
@@ -42,7 +42,7 @@
 .gb-concierge .concierge-input-row input:focus { border-color: var(--primary); }
 .gb-concierge .concierge-input-row button {
     background: var(--primary);
-    color: #fff;
+    color: var(--id-surface-solid);
     border: none;
     border-radius: 10px;
     padding: 0 22px;

@@ -71,7 +71,7 @@
 
 .course-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 12%, transparent);
 }
 
 .course-thumbnail {
@@ -111,7 +111,7 @@
     top: 12px;
     right: 12px;
     padding: 4px 10px;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
     color: white;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -322,7 +322,7 @@
 
 .certificate-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 .certificate-card-header {
@@ -376,7 +376,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;

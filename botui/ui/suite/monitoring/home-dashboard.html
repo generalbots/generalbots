@@ -5,28 +5,28 @@
 <stop offset="0%" class="bg-stop-dark"/> <stop offset="50%" class="bg-stop-surface"/>
 <stop offset="100%" class="bg-stop-dark"/> </linearGradient>
  <linearGradient id="coreGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#3b82f6"/> <stop offset="50%" style="stop-color:#6366f1"/>
-<stop offset="100%" style="stop-color:#8b5cf6"/> </linearGradient>
+<stop offset="0%" style="stop-color:var(--palette-3b82f6)"/> <stop offset="50%" style="stop-color:var(--palette-6366f1)"/>
+<stop offset="100%" style="stop-color:var(--palette-8b5cf6)"/> </linearGradient>
  <linearGradient id="greenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#10b981"/> <stop offset="100%" style="stop-color:#22c55e"/>
+<stop offset="0%" style="stop-color:var(--palette-10b981)"/> <stop offset="100%" style="stop-color:var(--id-success)"/>
 </linearGradient> 
-<linearGradient id="amberGlow" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:#f59e0b"/>
-<stop offset="100%" style="stop-color:#fbbf24"/> </linearGradient>
+<linearGradient id="amberGlow" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:var(--palette-f59e0b)"/>
+<stop offset="100%" style="stop-color:var(--palette-fbbf24)"/> </linearGradient>
  <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#ef4444"/> <stop offset="100%" style="stop-color:#f87171"/>
+<stop offset="0%" style="stop-color:var(--id-danger-icon)"/> <stop offset="100%" style="stop-color:var(--palette-f87171)"/>
 </linearGradient> 
-<linearGradient id="dbGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:#3b82f6"/>
-<stop offset="100%" style="stop-color:#1d4ed8"/> </linearGradient>
+<linearGradient id="dbGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:var(--palette-3b82f6)"/>
+<stop offset="100%" style="stop-color:var(--palette-1d4ed8)"/> </linearGradient>
  <linearGradient id="vectorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#8b5cf6"/> <stop offset="100%" style="stop-color:#6d28d9"/>
+<stop offset="0%" style="stop-color:var(--palette-8b5cf6)"/> <stop offset="100%" style="stop-color:var(--palette-6d28d9)"/>
 </linearGradient> 
-<linearGradient id="storageGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:#f59e0b"/>
-<stop offset="100%" style="stop-color:#d97706"/> </linearGradient>
+<linearGradient id="storageGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:var(--palette-f59e0b)"/>
+<stop offset="100%" style="stop-color:var(--id-warn)"/> </linearGradient>
  <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#ec4899"/> <stop offset="100%" style="stop-color:#db2777"/>
+<stop offset="0%" style="stop-color:var(--palette-ec4899)"/> <stop offset="100%" style="stop-color:var(--palette-db2777)"/>
 </linearGradient> 
-<linearGradient id="cacheGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:#06b6d4"/>
-<stop offset="100%" style="stop-color:#0891b2"/> </linearGradient>
+<linearGradient id="cacheGradient" x1="0%" y1="0%" x2="100%" y2="100%"> <stop offset="0%" style="stop-color:var(--palette-06b6d4)"/>
+<stop offset="100%" style="stop-color:var(--palette-0891b2)"/> </linearGradient>
  <!-- Filters -->
 <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"> <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
 <feMerge> <feMergeNode in="coloredBlur"/>
@@ -54,7 +54,7 @@
 <path d="M-12 10 Q0 18 12 10" class="icon-stroke" stroke-width="2.5" fill="none"/> <rect x="-3" y="-35" width="6" height="12" rx="3" fill="url(#coreGlow)"/>
 <circle cx="0" cy="-38" r="5" fill="url(#coreGlow)" class="antenna-pulse"/> </g>
  <text y="80" text-anchor="middle" class="label-text" font-family="system-ui" font-size="14" font-weight="600">BotServer</text>
-<text y="98" text-anchor="middle" fill="var(--success, #10b981)" font-family="system-ui" font-size="11" class="status-text" data-service="core">● Running</text> </g>
+<text y="98" text-anchor="middle" fill="var(--success, var(--palette-10b981))" font-family="system-ui" font-size="11" class="status-text" data-service="core">● Running</text> </g>
  <!-- ==================== LEFT: Data Layer ==================== -->
  <!-- PostgreSQL -->
 <g transform="translate(150, 200)" class="service-node" data-service="postgresql"> <circle r="45" class="node-bg" stroke="url(#dbGradient)" stroke-width="2" filter="url(#glow)"/>
@@ -90,7 +90,7 @@
 <!-- Cache --> <g transform="translate(1050, 350)" class="service-node" data-service="cache">
 <circle r="45" class="node-bg" stroke="url(#cacheGradient)" stroke-width="2" filter="url(#glow)"/> <g fill="url(#cacheGradient)">
 <rect x="-20" y="-18" width="40" height="36" rx="3"/> <rect x="-16" y="-14" width="32" height="28" rx="2" class="node-bg"/>
-<text x="0" y="5" text-anchor="middle" font-family="system-ui" font-size="18" fill="var(--primary, #22d3ee)">⚡</text> </g>
+<text x="0" y="5" text-anchor="middle" font-family="system-ui" font-size="18" fill="var(--primary, var(--palette-38bdf8))">⚡</text> </g>
 <text y="65" text-anchor="middle" class="label-text" font-family="system-ui" font-size="12" font-weight="500">Cache</text> <circle cx="35" cy="-35" r="6" class="status-dot running" data-status="cache"/>
 </g> 
 <!-- Vault --> <g transform="translate(1050, 500)" class="service-node" data-service="vault">
@@ -124,7 +124,7 @@
 <rect x="0" y="0" width="160" height="85" rx="10" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/> <text x="12" y="24" class="label-secondary" font-family="system-ui" font-size="10" font-weight="500">ACTIVE SESSIONS</text>
 <text x="12" y="58" class="label-text" font-family="system-ui" font-size="32" font-weight="700" hx-get="/api/monitoring/metric/sessions"
 hx-trigger="load, every 5s" hx-swap="innerHTML">--</text>
-<text x="148" y="70" fill="var(--success, #10b981)" font-family="system-ui" font-size="11" text-anchor="end" hx-get="/api/monitoring/trend/sessions"
+<text x="148" y="70" fill="var(--success, var(--palette-10b981))" font-family="system-ui" font-size="11" text-anchor="end" hx-get="/api/monitoring/trend/sessions"
 hx-trigger="load, every 5s" hx-swap="innerHTML">↑ 0%</text>
 </g> 
 <!-- Messages --> <g transform="translate(500, 80)">
@@ -158,7 +158,7 @@ hx-swap="innerHTML"> <!-- CPU -->
 </g> </g>
  <!-- ==================== ACTIVITY TICKER ==================== -->
  <g transform="translate(320, 630)">
-<rect x="0" y="0" width="520" height="40" rx="8" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/> <circle cx="18" cy="20" r="5" fill="var(--success, #10b981)" class="pulse-dot"/>
+<rect x="0" y="0" width="520" height="40" rx="8" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/> <circle cx="18" cy="20" r="5" fill="var(--success, var(--palette-10b981))" class="pulse-dot"/>
 <text x="34" y="25" class="label-secondary" font-family="system-ui" font-size="12" hx-get="/api/monitoring/activity/latest"
 hx-trigger="load, every 5s" hx-swap="innerHTML">System monitoring active...</text>
 </g> 

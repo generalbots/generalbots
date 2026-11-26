@@ -13,7 +13,7 @@
 
 .studio-editor:empty::before {
     content: attr(data-placeholder);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     pointer-events: none;
 }
 
@@ -21,7 +21,7 @@
 .studio-editor p { margin: 0 0 8px; }
 
 .studio-preview-area {
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 16px;
@@ -33,7 +33,7 @@
     justify-content: space-between;
     padding: 6px 12px;
     background: var(--surface-2, var(--palette-111827));
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--palette-333333));
 }
 
 .studio-preview-title {
@@ -51,17 +51,17 @@
     min-height: 260px;
     padding: 18px;
     background:
-        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0) 0 0 / 18px 18px,
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--id-surface-solid) 6%, transparent) 1px, transparent 0) 0 0 / 18px 18px,
         var(--surface-3, var(--palette-0f172a));
     display: flex;
     align-items: flex-start;
 }
 
 .studio-device {
-    background: #fff;
+    background: var(--id-surface-solid);
     color: var(--palette-1e293b);
     border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);
     overflow: hidden;
     flex-shrink: 0;
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -82,12 +82,12 @@
     line-height: 1.45;
 }
 .wa-time {
-    text-align: right; font-size: var(--text-2xs); color: rgba(233, 237, 239, 0.6); margin-top: 4px;
+    text-align: right; font-size: var(--text-2xs); color: color-mix(in srgb, var(--palette-e9edef) 60%, transparent); margin-top: 4px;
 }
 
 /* Instagram / Facebook post */
-.studio-device-instagram { background: #fff; }
-.studio-device-facebook { background: #fff; }
+.studio-device-instagram { background: var(--id-surface-solid); }
+.studio-device-facebook { background: var(--id-surface-solid); }
 .ig-head {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 10px; border-bottom: 1px solid var(--palette-f0f0f0);
@@ -108,7 +108,7 @@
 .ig-caption .ig-user { margin-right: 4px; }
 
 /* SMS */
-.studio-device-sms { background: #fff; padding: 12px; }
+.studio-device-sms { background: var(--id-surface-solid); padding: 12px; }
 .sms-preview { display: flex; flex-direction: column; gap: 8px; }
 .sms-bubble {
     background: var(--palette-e5e7eb); color: var(--palette-1f2937);
@@ -140,9 +140,9 @@
 }
 
 .studio-chip {
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     background: transparent;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     border-radius: 999px;
     padding: 4px 14px;
     font-size: var(--text-2xs);
@@ -158,13 +158,13 @@
 .studio-chip.active {
     background: var(--accent, var(--palette-3b82f6));
     border-color: var(--accent, var(--palette-3b82f6));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .studio-monitor-totals {
     padding: 0 24px 8px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .studio-table-wrap {
@@ -177,7 +177,7 @@
     border-collapse: collapse;
     font-size: var(--text-xs);
     background: var(--surface, var(--palette-1a1a1a));
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 8px;
     overflow: hidden;
 }
@@ -186,16 +186,16 @@
     text-align: left;
     padding: 10px 14px;
     background: var(--surface-2, var(--palette-111827));
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--palette-333333));
 }
 
 .studio-monitor-table td {
     padding: 10px 14px;
-    border-bottom: 1px solid var(--border, #222);
+    border-bottom: 1px solid var(--border, var(--palette-222222));
     color: var(--text, var(--palette-e2e8f0));
 }
 
@@ -214,11 +214,11 @@
 }
 .studio-ai-tool-btn:hover {
     background: var(--palette-8b5cf6);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 .studio-ai-channel-hint {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     padding-top: 8px;
 }
 @media (prefers-reduced-motion: reduce) {

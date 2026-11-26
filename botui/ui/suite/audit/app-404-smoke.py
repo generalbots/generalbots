@@ -85,12 +85,12 @@ async def run(args) -> int:
     # is not provisioned in the console-smoke job) are reported, never hidden.
     allow_503 = [v.strip() for v in os.environ.get("GB_SMOKE_ALLOW_503", "").split(",") if v.strip()]
 
-    def write_report(results, total, stopped_at, console_errors, recoveries, allowed_503):
+    def write_report(results, total, stopped_at, console_errors, recoveries, allowed_503, forbidden):
         os.makedirs(os.path.dirname(args.report), exist_ok=True)
         with open(args.report, "w") as out:
             json.dump({"base": args.base, "apps": total, "results": results,
                        "stopped_at": stopped_at, "console_errors": console_errors,
-                       "allowed_503": allowed_503,
+                       "allowed_503": allowed_503, "forbidden": forbidden,
                        "shell_re_navigations": recoveries}, out, indent=1)
 
     async with async_playwright() as p:
@@ -112,10 +112,13 @@ async def run(args) -> int:
         console_bucket = {"items": []}
         server_bucket = {"items": []}
         allowed_bucket = {"items": []}
+        forbidden_bucket = {"items": []}
 
         def on_response(response):
             if response.status == 404:
                 bucket["items"].append(response.url)
+            if response.status == 403:
+                forbidden_bucket["items"].append(response.url)
             if response.status == 503:
                 server_bucket["items"].append(response.url)
 
@@ -172,10 +175,12 @@ async def run(args) -> int:
             hits = console_bucket["items"]
             console_bucket["items"] = []
             if hits and not args.allow_console:
-                write_report(results, 0, "<shell-boot>", hits, 0, allowed_bucket["items"])
+                write_report(results, 0, "<shell-boot>", hits, 0, allowed_bucket["items"], forbidden_bucket["items"])
                 print("FAIL: console error/warning during shell boot; stopping sweep")
                 for hit in hits:
                     print(f"  {hit['source']}: {hit['text'][:200]}")
+                for url in forbidden_bucket["items"]:
+                    print(f"  403 URL: {url}")
                 print(f"Report: {args.report}")
                 return 1
 
@@ -206,6 +211,21 @@ async def run(args) -> int:
                         "() => typeof WindowManager !== 'undefined'", timeout=60000)
                     recoveries += 1
                 bucket["items"] = []
+                forbidden_bucket["items"] = []
+                # Each app is an independent test case. A Vibe project selected
+                # by an earlier app is not owned by the throwaway CI user, so
+                # later apps probing /api/vibe/projects/<id>/files get a 403.
+                # Clear only that selection; auth tokens stay intact.
+                try:
+                    await page.evaluate("""() => {
+                      ['gb-vibe-project-id', 'gb-vibe-project-name', 'gb-vibe-project-kind']
+                        .forEach(function (key) {
+                          try { localStorage.removeItem(key); sessionStorage.removeItem(key); }
+                          catch (e) { /* storage may be unavailable */ }
+                        });
+                    }""")
+                except Exception:
+                    pass
                 try:
                     await page.evaluate(
                         "([id,t,u]) => WindowManager.launchFromMenu(id,t,u)",
@@ -226,14 +246,14 @@ async def run(args) -> int:
                 hits = console_bucket["items"]
                 console_bucket["items"] = []
                 if hits and not args.allow_console:
-                    write_report(results, len(apps), app_id, hits, recoveries, allowed_bucket["items"])
+                    write_report(results, len(apps), app_id, hits, recoveries, allowed_bucket["items"], forbidden_bucket["items"])
                     print(f"FAIL: console error/warning in app {app_id}; stopping sweep")
                     for hit in hits:
                         print(f"  {hit['source']}: {hit['text'][:200]}")
                     print(f"Report: {args.report}")
                     return 1
 
-            write_report(results, len(apps), "", [], recoveries, allowed_bucket["items"])
+            write_report(results, len(apps), "", [], recoveries, allowed_bucket["items"], forbidden_bucket["items"])
             failures = [r for r in results if r["not_found"]]
             print(f"RESULT: {len(apps)} apps, {len(failures)} with 404s, "
                   f"{recoveries} shell re-navigations. Report: {args.report}")

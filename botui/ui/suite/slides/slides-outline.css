@@ -24,14 +24,14 @@
 /* Accessible dialog */
 .slides-tools-overlay {
   position: fixed; inset: 0; z-index: var(--z-modal-backdrop);
-  background: rgba(2, 6, 23, .72);
+  background: color-mix(in srgb, var(--id-ink) 72%, transparent);
   display: flex; align-items: center; justify-content: center;
 }
 .slides-tools-dialog {
   width: min(560px, 92vw); max-height: 86vh; overflow: auto;
   background: var(--palette-0f172a); color: var(--palette-f8fafc);
   border: 1px solid var(--palette-334155); border-radius: 8px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, .55);
+  box-shadow: 0 18px 60px color-mix(in srgb, var(--id-ink) 55%, transparent);
 }
 .slides-tools-dialog-head {
   display: flex; align-items: center; gap: 8px;
@@ -67,7 +67,7 @@
 }
 .slides-tools-btn:hover:not(:disabled) { background: var(--palette-334155); color: var(--palette-f8fafc); }
 .slides-tools-btn:disabled { opacity: .45; cursor: default; }
-.slides-tools-btn.primary { background: var(--palette-1d4ed8); border-color: var(--palette-2563eb); color: #fff; }
+.slides-tools-btn.primary { background: var(--palette-1d4ed8); border-color: var(--palette-2563eb); color: var(--id-surface-solid); }
 .slides-tools-btn.danger { background: var(--palette-7f1d1d); border-color: var(--palette-991b1b); color: var(--palette-fecaca); }
 .slides-tools-icon {
   background: transparent; color: var(--palette-94a3b8); border: 1px solid transparent;
@@ -82,7 +82,7 @@
   position: absolute; right: 12px; top: 4px; z-index: var(--z-dropdown);
   width: min(640px, 60vw); max-height: 72vh; overflow: auto;
   background: var(--palette-111c2e); border: 1px solid var(--palette-334155); border-radius: 8px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .5); padding: 10px 12px;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--id-ink) 50%, transparent); padding: 10px 12px;
 }
 .slides-tools-panel-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .slides-tools-panel-head h2 { margin: 0; font-size: var(--text-sm); color: var(--palette-f8fafc); flex: 1; }
@@ -131,7 +131,7 @@
 .sl-thumb[data-section-name]::after {
   content: attr(data-section-name);
   position: absolute; left: 6px; top: 4px; z-index: 3;
-  font-size: var(--text-2xs); color: var(--palette-fbbf24); background: rgba(15, 23, 42, .85);
+  font-size: var(--text-2xs); color: var(--palette-fbbf24); background: color-mix(in srgb, var(--id-ink) 85%, transparent);
   border-radius: 8px; padding: 1px 6px; pointer-events: none;
 }
 
@@ -174,7 +174,7 @@
 .slides-review-menu {
   position: absolute; right: 0; top: 100%; margin-top: 4px; z-index: var(--z-popover);
   min-width: 190px; background: var(--palette-0f172a); border: 1px solid var(--palette-334155);
-  border-radius: 6px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); padding: 4px;
+  border-radius: 6px; box-shadow: 0 10px 32px color-mix(in srgb, var(--id-ink) 50%, transparent); padding: 4px;
 }
 .slides-review-menu[hidden] { display: none; }
 .slides-review-item {

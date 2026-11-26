@@ -27,7 +27,7 @@
         bottom: 0;
         width: 450px;
         z-index: var(--z-sticky);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 60%, transparent);
     }
 
     .topbar-center {
@@ -122,10 +122,10 @@
     bottom: 24px;
     right: 24px;
     width: 400px;
-    background: var(--surface, #111);
+    background: var(--surface, var(--id-ink));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 60%, transparent);
     z-index: var(--z-dropdown);
     overflow: hidden;
     animation: slideInRight 0.3s ease;
@@ -165,7 +165,7 @@
     gap: 10px;
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .floating-progress-title .progress-dot {
@@ -210,7 +210,7 @@
 
 .floating-progress-actions button:hover {
     background: var(--surface-hover, var(--palette-1f1f1f));
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .floating-progress-body {

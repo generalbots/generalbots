@@ -12,9 +12,9 @@
   /* Single source of truth for every layout rule that must clear the bar. */
   --taskbar-h: 30px;
   --gb-chrome-bottom: var(--taskbar-h);
-  --shell-bg: var(--glass-bg, rgba(20, 22, 35, 0.68));
-  --shell-border: var(--glass-border-color, rgba(255, 255, 255, 0.12));
-  --shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shell-bg: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 68%, transparent));
+  --shell-border: var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
+  --shell-shadow: 0 4px 24px color-mix(in srgb, var(--palette-000000) 30%, transparent);
   --shell-radius: 18px;
   --shell-margin: 10px;
   --shell-blur: blur(24px) saturate(170%);
@@ -117,7 +117,7 @@
 }
 
 .toolbar-v15 .tray-btn:hover {
-  background: rgba(127, 127, 127, 0.14);
+  background: color-mix(in srgb, var(--palette-747a7c) 14%, transparent);
   color: var(--text);
 }
 
@@ -156,7 +156,7 @@
   height: 24px;
   padding: 0 8px;
   margin: 0;
-  background: rgba(127, 127, 127, 0.10);
+  background: color-mix(in srgb, var(--palette-747a7c) 10%, transparent);
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--muted, var(--text-secondary));
@@ -165,13 +165,13 @@
 }
 
 .toolbar-v15 .taskbar-search:hover {
-  background: rgba(127, 127, 127, 0.14);
+  background: color-mix(in srgb, var(--palette-747a7c) 14%, transparent);
 }
 
 .toolbar-v15 .taskbar-search:focus-within {
   background: var(--surface);
   border-color: var(--accent, var(--primary));
-  box-shadow: 0 0 0 2px rgba(132, 214, 105, 0.18);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--palette-84d669) 18%, transparent);
 }
 
 .toolbar-v15 .taskbar-search svg {
@@ -213,7 +213,7 @@
 }
 
 .toolbar-v15 .taskbar-dock-item:hover {
-  background: rgba(127, 127, 127, 0.16);
+  background: color-mix(in srgb, var(--palette-747a7c) 16%, transparent);
 }
 
 .toolbar-v15 .taskbar-dock-item.active::after {
@@ -288,7 +288,7 @@
 }
 
 #startBtn:hover {
-  background: rgba(127, 127, 127, 0.16);
+  background: color-mix(in srgb, var(--palette-747a7c) 16%, transparent);
 }
 
 #startBtn svg {
@@ -304,7 +304,7 @@
 }
 
 .start-menu-open #startBtn {
-  background: rgba(127, 127, 127, 0.18);
+  background: color-mix(in srgb, var(--palette-747a7c) 18%, transparent);
 }
 
 /* ---------------------------------------- */

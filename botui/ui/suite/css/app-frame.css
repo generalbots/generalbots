@@ -27,7 +27,7 @@
     font: inherit;
     font-size: var(--text-2xs);
 }
-.gb-app-frame { width: 100%; height: 360px; border: 0; display: block; background: #fff; }
+.gb-app-frame { width: 100%; height: 360px; border: 0; display: block; background: var(--palette-ffffff); }
 .gb-app-card.expanded .gb-app-frame { height: min(80vh, 900px); }
 .gb-app-poster {
     width: 100%;

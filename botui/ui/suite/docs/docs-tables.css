@@ -57,7 +57,7 @@
   background: var(--gb-accent-soft, var(--palette-f8fafc));
 }
 .docs-doc-view table.docs-tbl-style-accent th {
-  color: var(--gb-surface, #fff);
+  color: var(--gb-surface, var(--id-surface-solid));
   background: var(--gb-accent, var(--palette-2563eb));
 }
 .docs-doc-view table.docs-tbl-style-accent td { border-color: var(--gb-accent-soft, var(--palette-bfdbfe)); }
@@ -104,7 +104,7 @@
   border-radius: 10px;
   background: var(--gb-pane-bar, var(--palette-1e293b));
   color: var(--gb-surface, var(--palette-f8fafc));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 #gb-docs-tbl-toolbar.gb-dtbl-open { display: flex; }
@@ -133,12 +133,12 @@
 #gb-docs-tbl-toolbar button:hover,
 #gb-docs-tbl-toolbar button:focus-visible {
   background: var(--gb-accent, var(--palette-2563eb));
-  color: var(--gb-surface, #fff);
+  color: var(--gb-surface, var(--id-surface-solid));
   outline: none;
 }
 #gb-docs-tbl-toolbar button[aria-pressed="true"] {
   background: var(--gb-accent-soft, var(--palette-334155));
-  color: var(--gb-surface, #fff);
+  color: var(--gb-surface, var(--id-surface-solid));
 }
 #gb-docs-tbl-toolbar .gb-dtbl-status {
   flex-basis: 100%;
@@ -157,7 +157,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.82);
+  background: color-mix(in srgb, var(--palette-0f172a) 82%, transparent);
 }
 .gb-dtbl-dialog {
   width: 460px;
@@ -204,7 +204,7 @@
 .gb-dtbl-dialog button.gb-dtbl-primary {
   border-color: var(--gb-accent, var(--palette-2563eb));
   background: var(--gb-accent, var(--palette-2563eb));
-  color: var(--gb-surface, #fff);
+  color: var(--gb-surface, var(--id-surface-solid));
   font-weight: 600;
 }
 .gb-dtbl-style-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }

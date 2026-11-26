@@ -31,7 +31,7 @@
     b.textContent = t(labelKey, fallback);
     b.setAttribute("aria-label", t(labelKey, fallback));
     b.style.cssText = "min-width:44px;min-height:44px;padding:0 18px;border:0;border-radius:8px;" +
-      "background:" + bg + ";color:#f8fafc;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;";
+      "background:" + bg + ";color:var(--id-gray-100);font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;";
     b.addEventListener("click", function (e) { e.stopPropagation(); onClick(); });
     return b;
   }
@@ -76,11 +76,11 @@
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-label", t("slides-delivery-console-current", "Presentation"));
     overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-blocker,9999);background:#050914;" +
-      "display:none;flex-direction:column;color:#f8fafc;touch-action:none;";
+      "display:none;flex-direction:column;color:var(--id-gray-100);touch-action:none;";
 
     var bar = document.createElement("div");
     bar.style.cssText = "display:flex;align-items:center;justify-content:space-between;" +
-      "gap:12px;padding:8px 12px;min-height:60px;background:#0f172a;box-sizing:border-box;";
+      "gap:12px;padding:8px 12px;min-height:60px;background:var(--id-ink);box-sizing:border-box;";
     counter = document.createElement("span");
     counter.setAttribute("role", "status");
     counter.setAttribute("aria-live", "polite");
@@ -96,7 +96,7 @@
 
     var nav = document.createElement("div");
     nav.style.cssText = "display:flex;align-items:center;justify-content:space-between;" +
-      "gap:12px;padding:8px 12px;min-height:60px;background:#0f172a;box-sizing:border-box;";
+      "gap:12px;padding:8px 12px;min-height:60px;background:var(--id-ink);box-sizing:border-box;";
     nav.appendChild(button("action-back", "Back", function () { go(-1); }, "#334155"));
     nav.appendChild(button("action-next", "Next", function () { go(1); }, "#3b82f6"));
     overlay.appendChild(nav);

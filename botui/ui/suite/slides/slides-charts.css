@@ -2,18 +2,18 @@
  * canvas chart wrapper and link/a11y indicators. Prefix: gbch-. */
 .gbch-overlay {
   position: fixed; inset: 0; z-index: var(--z-modal-backdrop);
-  background: rgba(15, 23, 42, .55);
+  background: color-mix(in srgb, var(--id-ink) 55%, transparent);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
 }
 .gbch-dialog {
-  background: var(--gb-surface, #fff);
+  background: var(--gb-surface, var(--id-surface-solid));
   color: var(--gb-text, var(--palette-0f172a));
   border-radius: 10px;
   width: min(860px, 96vw);
   max-height: 92vh;
   display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, .3);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--id-ink) 30%, transparent);
   overflow: hidden;
 }
 .gbch-dialog-head {
@@ -37,7 +37,7 @@
 }
 .gbch-btn:hover { background: var(--palette-eef2f7); }
 .gbch-btn:focus-visible { outline: 2px solid var(--palette-3b82f6); outline-offset: 2px; }
-.gbch-btn-primary { background: var(--palette-3b82f6); border-color: var(--palette-3b82f6); color: #fff; }
+.gbch-btn-primary { background: var(--palette-3b82f6); border-color: var(--palette-3b82f6); color: var(--id-surface-solid); }
 .gbch-btn-primary:hover { background: var(--palette-2563eb); }
 .gbch-btn-danger { border-color: var(--palette-fca5a5); color: var(--palette-b91c1c); background: var(--palette-fff1f2); }
 .gbch-btn-danger:hover { background: var(--palette-ffe4e6); }
@@ -57,7 +57,7 @@
 }
 .gbch-field input, .gbch-field select {
   min-width: 130px; padding: 5px 7px; border: 1px solid var(--palette-cbd5e1);
-  border-radius: 5px; font-size: .84rem; background: #fff; color: var(--palette-0f172a);
+  border-radius: 5px; font-size: .84rem; background: var(--id-surface-solid); color: var(--palette-0f172a);
 }
 .gbch-color-field input { width: 62px; height: 30px; padding: 0; border: 1px solid var(--palette-cbd5e1); }
 .gbch-check {
@@ -89,7 +89,7 @@
 .gbch-contrast-warning { color: var(--palette-b91c1c); font-size: .78rem; margin: 4px 0; }
 .gbch-contrast-ok { color: var(--palette-166534); font-size: .78rem; margin: 4px 0; }
 .gbch-preview {
-  border: 1px solid var(--palette-e2e8f0); border-radius: 6px; background: #fff;
+  border: 1px solid var(--palette-e2e8f0); border-radius: 6px; background: var(--id-surface-solid);
   overflow: hidden; max-width: 100%;
 }
 .gbch-preview .gbch-svg { display: block; width: 100%; height: auto; }

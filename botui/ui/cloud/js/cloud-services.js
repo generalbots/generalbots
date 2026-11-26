@@ -179,5 +179,5 @@ function doLogout() {
 /* escapeHtml comes from /cloud/js/gb-shared.js (loaded by the cloud pages). */
 
 function showError(msg) {
-  document.getElementById('services-list').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
+  document.getElementById('services-list').innerHTML = '<div class="saas-loading" style="color:var(--id-danger)">' + escapeHtml(msg) + '</div>';
 }

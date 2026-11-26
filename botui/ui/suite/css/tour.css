@@ -18,8 +18,8 @@
   position: fixed;
   z-index: var(--z-base);
   border-radius: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.92);
-  box-shadow: 0 0 0 9999px rgba(8, 15, 30, 0.78);
+  border: 2px solid color-mix(in srgb, var(--palette-ffffff) 92%, transparent);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--palette-0a0e22) 78%, transparent);
   pointer-events: none;
   transition:
     top 160ms ease,
@@ -34,11 +34,11 @@
   width: min(360px, calc(100vw - 32px));
   box-sizing: border-box;
   padding: 16px 18px 14px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: 1px solid color-mix(in srgb, var(--palette-0f172a) 14%, transparent);
   border-radius: 14px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--palette-000000) 45%, transparent);
   opacity: 1;
   pointer-events: auto;
 }
@@ -138,18 +138,18 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(8, 15, 30, 0.64);
+  background: color-mix(in srgb, var(--palette-0a0e22) 64%, transparent);
 }
 
 .gb-tour-prompt {
   width: min(440px, calc(100vw - 48px));
   box-sizing: border-box;
   padding: 22px 24px 20px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: 1px solid color-mix(in srgb, var(--palette-0f172a) 14%, transparent);
   border-radius: 16px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 28px 80px color-mix(in srgb, var(--palette-000000) 50%, transparent);
   opacity: 1;
 }
 
@@ -182,7 +182,7 @@
 @media (prefers-color-scheme: dark) {
   .gb-tour-callout,
   .gb-tour-prompt {
-    border-color: rgba(148, 163, 184, 0.28);
+    border-color: color-mix(in srgb, var(--palette-94a3b8) 28%, transparent);
     background: var(--bg);
     color: var(--text);
   }

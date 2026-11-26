@@ -24,7 +24,7 @@
 .gb-clock-tab {
   border: none;
   background: transparent;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
   font-size: var(--text-2xs);
   font-family: inherit;
   padding: 6px 12px;
@@ -34,12 +34,12 @@
 }
 
 .gb-clock-tab:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
-  color: var(--text, #eee);
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
+  color: var(--text, var(--palette-f0f0f0));
 }
 
 .gb-clock-tab.active {
-  background: rgba(132, 214, 105, 0.14);
+  background: color-mix(in srgb, var(--palette-84d669) 14%, transparent);
   color: var(--primary, var(--palette-84d669));
   font-weight: 600;
 }
@@ -59,28 +59,28 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.1;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 16px color-mix(in srgb, var(--palette-000000) 35%, transparent);
   font-variant-numeric: tabular-nums;
 }
 
 .gb-clock-date {
   font-size: var(--text-xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
 }
 
 /* #2261 — "GMT-3 · +0h vs local": the offset/diff line under the date. */
 .gb-clock-diff {
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
   font-variant-numeric: tabular-nums;
 }
 
 .gb-clock-select {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #eee);
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  color: var(--text, var(--palette-f0f0f0));
   font-family: inherit;
   font-size: var(--text-xs);
   outline: none;
@@ -94,9 +94,9 @@
 }
 
 .gb-clock-btn {
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #ddd);
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  color: var(--text, var(--palette-d8ddde));
   font-family: inherit;
   font-size: var(--text-xs);
   padding: 8px 18px;
@@ -106,7 +106,7 @@
 }
 
 .gb-clock-btn:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.13));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 13%, transparent));
 }
 
 .gb-clock-btn.primary {
@@ -119,7 +119,7 @@
 .gb-clock-btn.primary:hover { opacity: 0.92; }
 
 .gb-clock-btn.warn:hover {
-  background: rgba(239, 68, 68, 0.16);
+  background: color-mix(in srgb, var(--id-danger-icon) 16%, transparent);
   color: var(--palette-f87171);
 }
 
@@ -142,26 +142,26 @@
   justify-content: space-between;
   padding: 5px 10px;
   border-radius: 6px;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.04));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 4%, transparent));
 }
 
-.gb-clock-laps li span:first-child { color: var(--text-secondary, #999); }
+.gb-clock-laps li span:first-child { color: var(--text-secondary, var(--palette-929798)); }
 
 .gb-clock-timer-inputs {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: var(--text-xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary, var(--palette-929798));
 }
 
 .gb-clock-timer-inputs input {
   width: 74px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #eee);
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
+  color: var(--text, var(--palette-f0f0f0));
   font-family: inherit;
   font-size: var(--text-md);
   text-align: center;
@@ -185,7 +185,7 @@
   max-width: 420px;
   height: 8px;
   border-radius: 4px;
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.12));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
   overflow: hidden;
 }
 

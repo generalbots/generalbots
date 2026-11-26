@@ -177,7 +177,7 @@
 
     .playlist-row-delete:hover {
         color: var(--palette-ef4444);
-        background: rgba(239, 68, 68, 0.12);
+        background: color-mix(in srgb, var(--id-danger) 12%, transparent);
     }
 
     .playlist-header {

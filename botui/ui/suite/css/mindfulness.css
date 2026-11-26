@@ -5,12 +5,12 @@
    ============================================================ */
 
 :root {
-  --mnd-ok: var(--palette-2f9e44);
-  --mnd-warn: var(--palette-e8930c);
-  --mnd-err: var(--palette-d64545);
-  --mnd-info: var(--primary);
-  --mnd-radius: 10px;
-  --mnd-focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary, var(--accent, var(--primary)));
+  --mnd-ok: var(--id-success);
+  --mnd-warn: var(--id-warn);
+  --mnd-err: var(--id-danger);
+  --mnd-info: var(--id-accent);
+  --mnd-radius: var(--id-radius-control);
+  --mnd-focus: var(--id-focus);
 }
 
 .gb-app {
@@ -95,7 +95,7 @@
   margin: 8px 0;
   padding: 8px 12px;
   border: 1px solid var(--mnd-err);
-  border-radius: 8px;
+  border-radius: var(--id-radius-sm);
   color: var(--mnd-err);
   font-size: var(--text-2xs);
 }
@@ -110,9 +110,9 @@
   .gb-app *,
   .gb-app *::before,
   .gb-app *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

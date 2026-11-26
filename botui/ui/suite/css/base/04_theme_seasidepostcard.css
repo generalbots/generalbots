@@ -1,68 +1,78 @@
+/* Theme-picker previews — identity surfaces with an accent-only hint.
+ *
+ * Every preview uses the same identity look; only the accent dot/line carries
+ * the theme's hue. Neutral swatches resolve to identity tokens, so no preview
+ * can drift the design system. No literal shadows, radii or fonts.
+ */
+
+.theme-seasidepostcard .theme-option-inner {
+    background: var(--id-paper);
+    color: var(--id-ink);
+}
 .theme-seasidepostcard .theme-option-header {
-    background: #e0ffff;
+    background: var(--id-surface-solid);
 }
 .theme-seasidepostcard .theme-option-dot {
-    background: #20b2aa;
+    background: #FF8C00;
 }
 .theme-seasidepostcard .theme-option-line {
-    background: #87ceeb;
+    background: #FF8C00;
 }
 
 .theme-typewriter .theme-option-inner {
-    background: #f5f5dc;
-    color: #2f2f2f;
+    background: var(--id-paper);
+    color: var(--id-ink);
 }
 .theme-typewriter .theme-option-header {
-    background: #fffff0;
+    background: var(--id-surface-solid);
 }
 .theme-typewriter .theme-option-dot {
-    background: #2f2f2f;
+    background: #333333;
 }
 .theme-typewriter .theme-option-line {
-    background: #8b8b7a;
+    background: #333333;
 }
 
-/* Tech Theme Previews */
 .theme-3dbevel .theme-option-inner {
-    background: #c0c0c0;
-    color: #000000;
+    background: var(--id-paper);
+    color: var(--id-ink);
 }
 .theme-3dbevel .theme-option-header {
-    background: #d4d4d4;
+    background: var(--id-surface-solid);
 }
 .theme-3dbevel .theme-option-dot {
-    background: #0000ff;
+    background: #0000AA;
 }
 .theme-3dbevel .theme-option-line {
-    background: #808080;
+    background: #0000AA;
 }
 
 .theme-xeroxui .theme-option-inner {
-    background: #e8e8e8;
-    color: #000000;
+    background: var(--id-paper);
+    color: var(--id-ink);
 }
 .theme-xeroxui .theme-option-header {
-    background: #ffffff;
+    background: var(--id-surface-solid);
 }
 .theme-xeroxui .theme-option-dot {
-    background: #4a86cf;
+    background: #00008A;
 }
 .theme-xeroxui .theme-option-line {
-    background: #a0a0a0;
+    background: #00008A;
 }
 
 .theme-xtreegold .theme-option-inner {
-    background: #000080;
-    color: #ffff00;
+    background: var(--id-paper);
+    color: var(--id-ink);
 }
 .theme-xtreegold .theme-option-header {
-    background: #0000a0;
+    background: var(--id-surface-solid);
 }
 .theme-xtreegold .theme-option-dot {
-    background: #ffff00;
+    background: #66FFFF;
 }
 .theme-xtreegold .theme-option-line {
-    background: #ffff0033;
+    background: #66FFFF;
 }
 
 /* ============================================ */
@@ -76,11 +86,11 @@
     width: 320px;
     max-height: 70vh;
     overflow-y: auto;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
     padding: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--id-shadow-float);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
@@ -97,7 +107,7 @@
 .settings-panel-title {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 12px;
@@ -109,7 +119,7 @@
     gap: 8px;
     margin-top: 16px;
     padding: 12px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--id-line);
     color: var(--text-primary, #ffffff);
     text-decoration: none;
     font-size: var(--text-sm);
@@ -157,7 +167,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary);
+    color: var(--id-accent-text);
 }
 
 .settings-shortcut-text {
@@ -208,14 +218,14 @@
     position: relative;
     width: 40px;
     height: 22px;
-    background: var(--border);
+    background: var(--id-line);
     border-radius: 11px;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .toggle-switch.active {
-    background: var(--primary);
+    background: var(--id-accent);
 }
 
 .toggle-switch::after {
@@ -285,8 +295,8 @@
 .loading-spinner-large {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: var(--primary);
+    border: 3px solid var(--id-line);
+    border-top-color: var(--id-accent-text);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -334,7 +344,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background: var(--primary);
+    background: var(--id-accent);
     color: white;
     border: none;
     border-radius: 8px;
@@ -364,9 +374,9 @@
 .skeleton {
     background: linear-gradient(
         90deg,
-        var(--border) 25%,
+        var(--id-line) 25%,
         var(--surface-hover) 50%,
-        var(--border) 75%
+        var(--id-line) 75%
     );
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
@@ -418,9 +428,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

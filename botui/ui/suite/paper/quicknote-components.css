@@ -195,9 +195,9 @@
     font-size: var(--text-md);
 }
 
-.result-item.task .result-item-icon { background: rgba(99, 102, 241, 0.1); }
-.result-item.event .result-item-icon { background: rgba(16, 185, 129, 0.1); }
-.result-item.email .result-item-icon { background: rgba(245, 158, 11, 0.1); }
+.result-item.task .result-item-icon { background: color-mix(in srgb, var(--id-accent) 10%, transparent); }
+.result-item.event .result-item-icon { background: color-mix(in srgb, var(--id-success) 10%, transparent); }
+.result-item.email .result-item-icon { background: color-mix(in srgb, var(--id-accent) 10%, transparent); }
 .result-item.file .result-item-icon { background: rgba(139, 92, 246, 0.1); }
 
 .result-item-content {

@@ -16,7 +16,7 @@
     background: var(--surface, var(--card, var(--palette-1a1a24)));
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px var(--id-overlay);
     min-width: 300px;
     max-width: 450px;
     animation: slideIn 0.3s ease;
@@ -63,7 +63,7 @@
 .toast-close {
     background: none;
     border: none;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     padding: 4px;
     font-size: var(--text-lg);
@@ -234,7 +234,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--palette-000000) 20%, transparent);
 }
 
 .scrollbar-marker:hover .scrollbar-marker-tooltip {

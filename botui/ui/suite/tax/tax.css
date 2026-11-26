@@ -103,10 +103,10 @@ tr:hover td { background: var(--bg-tertiary); }
   font-size: var(--text-2xs);
   font-weight: 600;
 }
-.badge.autorizada { background: rgba(63, 185, 80, 0.15); color: var(--success); }
-.badge.pendente { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
-.badge.rejeitada { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
-.badge.enviada { background: rgba(88, 166, 255, 0.15); color: var(--info); }
+.badge.autorizada { background: color-mix(in srgb, var(--id-success) 15%, transparent); color: var(--success); }
+.badge.pendente { background: color-mix(in srgb, var(--id-accent) 15%, transparent); color: var(--warning); }
+.badge.rejeitada { background: color-mix(in srgb, var(--id-danger) 15%, transparent); color: var(--danger); }
+.badge.enviada { background: color-mix(in srgb, var(--id-accent) 15%, transparent); color: var(--info); }
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius);
@@ -130,14 +130,14 @@ tr:hover td { background: var(--bg-tertiary); }
 .btn-secondary:hover { background: var(--border-color); }
 .btn-danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--id-surface-solid);
   border-color: var(--danger);
 }
 .btn-sm { padding: 4px 10px; font-size: var(--text-2xs); }
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--id-ink) 60%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

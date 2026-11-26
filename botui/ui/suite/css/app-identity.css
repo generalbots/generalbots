@@ -26,10 +26,10 @@
 
 :root {
   --gb-identity-hue: 152;
-  --gb-identity-accent: hsl(var(--gb-identity-hue) 62% 52%);
-  --gb-identity-line: hsl(var(--gb-identity-hue) 62% 52% / 0.55);
-  --gb-identity-wash: hsl(var(--gb-identity-hue) 62% 52% / 0.055);
-  --gb-identity-tint: hsl(var(--gb-identity-hue) 58% 46% / 0.14);
+  --gb-identity-accent: var(--id-accent-text);
+  --gb-identity-line: var(--id-line);
+  --gb-identity-wash: transparent;
+  --gb-identity-tint: var(--id-line-soft);
 }
 
 /* One rule per app so both the app surface and its launcher tile share a hue. */
@@ -97,8 +97,11 @@
   color: var(--gb-identity-accent);
 }
 
-/* Launcher tiles: a 3px identity notch on the tile's leading edge. */
+/* Launcher tiles: a 3px hue notch. Tiles are navigation, not surfaces, so
+   they are the only place a per-app hue may still appear. */
 [data-app-id] {
+  --gb-identity-accent: hsl(var(--gb-identity-hue) 62% 52%);
+  --gb-identity-line: hsl(var(--gb-identity-hue) 62% 52% / 0.55);
   box-shadow: inset 3px 0 0 0 var(--gb-identity-line);
 }
 

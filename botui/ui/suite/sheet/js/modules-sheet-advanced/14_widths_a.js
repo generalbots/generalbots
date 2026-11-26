@@ -208,8 +208,8 @@
         hd.dataset.col = c;
         hd.textContent = g.colName ? g.colName(c) : String.fromCharCode(65 + c);
         hd.style.cssText =
-          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-muted, #94a3b8);text-align:center;line-height:" + defaultRow() + "px;font-size:var(--text-xs);" +
-          "border-right:1px solid var(--sheet-border, #334155);flex-shrink:0;box-sizing:border-box;";
+          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:var(--sheet-bg, var(--id-ink));color:var(--sheet-muted, var(--id-gray-400));text-align:center;line-height:" + defaultRow() + "px;font-size:var(--text-xs);" +
+          "border-right:1px solid var(--sheet-border, var(--id-ink));flex-shrink:0;box-sizing:border-box;";
         h.appendChild(hd);
       }
       g.headerColPool = [];

@@ -26,13 +26,13 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .form-close:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-f8fafc));
 }
 
@@ -63,14 +63,14 @@
 .form-label {
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .form-input,
 .form-select,
 .form-textarea {
     padding: 10px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -99,11 +99,11 @@
     grid-template-columns: 3fr 1fr 1fr 1fr 40px;
     gap: 12px;
     padding: 8px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
     border-radius: 6px 6px 0 0;
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     text-transform: uppercase;
 }
 
@@ -123,7 +123,7 @@
 
 .line-item input {
     padding: 8px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
     color: var(--text, var(--palette-f8fafc));
@@ -149,13 +149,13 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .line-item-remove:hover {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger-icon) 15%, transparent);
     color: var(--error, var(--palette-ef4444));
 }
 
@@ -168,7 +168,7 @@
     background: transparent;
     border: 1px dashed var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -197,7 +197,7 @@
 }
 
 .invoice-total-row .label {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     min-width: 120px;
     text-align: right;
 }
@@ -246,13 +246,13 @@
 }
 
 .form-btn.secondary:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .form-btn.primary {
     background: var(--accent, var(--palette-d4f505));
     border: 1px solid var(--accent, var(--palette-d4f505));
-    color: #000;
+    color: var(--palette-000000);
 }
 
 .form-btn.primary:hover {

@@ -129,8 +129,8 @@
     NS.refresh();
     NS.refreshReport();
     container.innerHTML = [
-      '<div class="docs-modal docs-lang-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
-      '<div class="docs-lang-dialog" role="dialog" aria-modal="true" aria-labelledby="docs-lang-heading" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:760px;max-width:94vw;max-height:86vh;padding:18px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;">',
+      '<div class="docs-modal docs-lang-backdrop" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
+      '<div class="docs-lang-dialog" role="dialog" aria-modal="true" aria-labelledby="docs-lang-heading" style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:760px;max-width:94vw;max-height:86vh;padding:18px;color:var(--palette-f8fafc);display:flex;flex-direction:column;gap:12px;">',
       '<div class="docs-lang-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">',
       '<h3 id="docs-lang-heading" style="margin:0;font-size:16px;">' + NS.escapeHtml(NS.tr("docs-lang-title", "Language and writing tools")) + "</h3>",
       '<div style="display:flex;gap:8px;">',

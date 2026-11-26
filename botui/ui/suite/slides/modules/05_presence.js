@@ -38,13 +38,13 @@
     overlay.className = "sl-remote-cursor";
     overlay.style.cssText =
       "position:absolute;inset:0;border:2px solid " + color + ";border-radius:2px;" +
-      "pointer-events:none;z-index:6;box-shadow:0 0 0 1px rgba(255,255,255,.2);";
+      "pointer-events:none;z-index:6;box-shadow:0 0 0 1px color-mix(in srgb, var(--id-surface-solid) 20%, transparent);";
     const tag = document.createElement("div");
     tag.textContent = name;
     tag.style.cssText =
       "position:absolute;top:-18px;left:0;padding:1px 6px;font-size:10px;line-height:14px;" +
-      "font-weight:600;color:#fff;background:" + color + ";border-radius:3px 3px 3px 0;" +
-      "white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.4);";
+      "font-weight:600;color:var(--id-surface-solid);background:" + color + ";border-radius:3px 3px 3px 0;" +
+      "white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px color-mix(in srgb, var(--id-ink) 40%, transparent);";
     overlay.appendChild(tag);
     el.appendChild(overlay);
     cursors.set(userId, { overlay: overlay, elementId: elementId });
@@ -65,8 +65,8 @@
     pill.textContent = name + " is typing…";
     pill.style.cssText =
       "position:absolute;top:-20px;left:0;padding:2px 8px;font-size:11px;line-height:16px;" +
-      "font-style:italic;color:#f8fafc;background:" + color + ";border-radius:999px;" +
-      "white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.45);z-index:7;";
+      "font-style:italic;color:var(--id-gray-100);background:" + color + ";border-radius:999px;" +
+      "white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px color-mix(in srgb, var(--id-ink) 45%, transparent);z-index:7;";
     el.appendChild(pill);
     typings.set(userId, { pill: pill, elementId: elementId });
   }

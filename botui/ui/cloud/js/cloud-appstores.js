@@ -34,9 +34,9 @@ function showToast(msg) {
   t.textContent = msg;
   Object.assign(t.style, {
     position: 'fixed', bottom: '1.5rem', right: '1.5rem',
-    background: 'var(--accent2)', color: '#000', padding: '0.75rem 1.25rem',
+    background: 'var(--accent2)', color: 'var(--palette-000000)', padding: '0.75rem 1.25rem',
     borderRadius: '8px', fontWeight: '600', zIndex: '9999',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.3)', fontSize: '0.9rem',
+    boxShadow: '0 4px 16px var(--id-overlay)', fontSize: '0.9rem',
   });
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);

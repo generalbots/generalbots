@@ -49,10 +49,10 @@
   /* #1970 — the bar now derives from the themed title-bar token instead of a
      fixed dark glass colour, so it follows light and dark themes alike. */
   background: var(--win-statusbar-bg, linear-gradient(180deg, color-mix(in srgb, var(--win-titlebar-bg) 90%, var(--surface) 10%), var(--win-titlebar-bg)));
-  border-top: 1px solid var(--win-titlebar-sep, rgba(128,128,128,0.28));
+  border-top: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--palette-808789) 28%, transparent));
   box-shadow:
-    inset 0 1px 0 var(--win-chrome-highlight, rgba(255,255,255,0.10)),
-    inset 0 -1px 0 var(--win-chrome-shadow, rgba(0,0,0,0.28));
+    inset 0 1px 0 var(--win-chrome-highlight, color-mix(in srgb, var(--palette-ffffff) 10%, transparent)),
+    inset 0 -1px 0 var(--win-chrome-shadow, color-mix(in srgb, var(--palette-000000) 28%, transparent));
   user-select: none;
   flex-shrink: 0;
 }
@@ -66,8 +66,8 @@
   gap: 0.35rem;
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--palette-ffffff) 5%, transparent), color-mix(in srgb, var(--palette-ffffff) 1%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--palette-ffffff) 8%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--palette-000000) 30%, transparent);
   cursor: default;
 }
 
@@ -113,10 +113,10 @@
   font-size: var(--text-2xs);
   line-height: 1.3;
   color: var(--text);
-  background: rgba(10,10,14,0.95);
-  border: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.12));
+  background: color-mix(in srgb, var(--palette-0a0a0f) 95%, transparent);
+  border: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--palette-000000) 50%, transparent), inset 0 1px 0 color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
   pointer-events: none;
 }
 
@@ -229,8 +229,8 @@
   height: 7px;
   overflow: hidden;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.22);
-  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--palette-000000) 22%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--palette-000000) 35%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
 }
 
 .window-statusbar-progress-fill {
@@ -274,8 +274,8 @@
   padding: 1px 7px;
   border-radius: 4px;
   white-space: nowrap;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--palette-ffffff) 5%, transparent), color-mix(in srgb, var(--palette-ffffff) 1%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--palette-ffffff) 8%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--palette-000000) 30%, transparent);
   cursor: help;
 }
 
@@ -325,10 +325,10 @@
   font-size: var(--text-2xs);
   line-height: 1.3;
   color: var(--text);
-  background: rgba(10, 10, 14, 0.95);
-  border: 1px solid var(--win-titlebar-sep, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--palette-0a0a0f) 95%, transparent);
+  border: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--palette-000000) 50%, transparent), inset 0 1px 0 color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
   pointer-events: none;
 }
 
@@ -358,7 +358,7 @@
 .gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
 .gb-confirm-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 .gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 5px; background: var(--gb-surface, var(--surface)); color: inherit; cursor: pointer; font-size: 0.8rem; }
-.gb-confirm-btn.primary { background: var(--gb-accent, var(--primary)); border-color: var(--gb-accent, var(--primary)); color: #fff; }
+.gb-confirm-btn.primary { background: var(--gb-accent, var(--primary)); border-color: var(--gb-accent, var(--primary)); color: var(--palette-ffffff); }
 
 /* #2444 — press-and-hold confirmation for destructive power actions. */
 .gb-power-hold {
@@ -390,7 +390,7 @@
 /* Workspace tabs (#1168): browser-style persistent tab bar. */
 .gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, var(--surface)); border-bottom: 1px solid var(--gb-border, var(--border)); min-height: 34px; }
 .gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, var(--border)); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, var(--surface)); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
-.gb-ws-tab.active { background: var(--gb-surface, var(--surface)); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
+.gb-ws-tab.active { background: var(--gb-surface, var(--surface)); font-weight: 600; box-shadow: 0 -1px 3px color-mix(in srgb, var(--palette-000000) 6%, transparent); }
 .gb-ws-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-ws-tab-x { color: var(--gb-text-dim, var(--text-secondary)); font-weight: 700; padding: 0 2px; }
 .gb-ws-tab-x:hover { color: var(--error); }

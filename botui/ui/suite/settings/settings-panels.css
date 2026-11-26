@@ -75,12 +75,12 @@
 
 .language-option:hover:not(.disabled) {
     border-color: var(--primary, var(--palette-3b82f6));
-    background: rgba(59, 130, 246, 0.05);
+    background: color-mix(in srgb, var(--id-accent) 5%, transparent);
 }
 
 .language-option.active {
     border-color: var(--primary, var(--palette-3b82f6));
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--id-accent) 10%, transparent);
 }
 
 .language-option.disabled {
@@ -342,8 +342,8 @@
 
 .theme-option.active {
     border-color: var(--primary);
-    background: var(--primary-light, rgba(59, 130, 246, 0.1));
-    box-shadow: 0 0 0 2px var(--primary-light, rgba(59, 130, 246, 0.2));
+    background: var(--primary-light, color-mix(in srgb, var(--id-accent) 10%, transparent));
+    box-shadow: 0 0 0 2px var(--primary-light, color-mix(in srgb, var(--id-accent) 20%, transparent));
 }
 
 .theme-option input {

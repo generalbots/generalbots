@@ -337,7 +337,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   vertical-align: middle;
-  color: #fff;
+  color: var(--palette-ffffff);
   opacity: 0.9;
   flex-shrink: 0;
 }

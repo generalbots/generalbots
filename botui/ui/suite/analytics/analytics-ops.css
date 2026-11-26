@@ -232,19 +232,19 @@
 }
 
 .ops-status.ops-ok {
-    background: rgba(16, 185, 129, 0.12);
+    background: color-mix(in srgb, var(--palette-10b981) 12%, transparent);
 }
 
 .ops-status.ops-warn {
-    background: rgba(245, 158, 11, 0.12);
+    background: color-mix(in srgb, var(--palette-f59e0b) 12%, transparent);
 }
 
 .ops-status.ops-page {
-    background: rgba(239, 68, 68, 0.12);
+    background: color-mix(in srgb, var(--id-danger-icon) 12%, transparent);
 }
 
 .ops-status.ops-nodata {
-    background: rgba(148, 163, 184, 0.12);
+    background: color-mix(in srgb, var(--palette-94a3b8) 12%, transparent);
 }
 
 /* Share bar ------------------------------------------------------------- */

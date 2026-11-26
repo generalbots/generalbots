@@ -1,6 +1,6 @@
 
 .priority-badge.urgent {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger) 15%, transparent);
     color: var(--palette-ef4444);
 }
 
@@ -10,7 +10,7 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     padding: 16px 24px;
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
     border-bottom: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
@@ -22,7 +22,7 @@
 
 .info-label {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .info-value {
@@ -48,7 +48,7 @@
     height: 36px;
     border-radius: 50%;
     background: var(--accent, var(--palette-d4f505));
-    color: #000;
+    color: var(--id-ink);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -81,7 +81,7 @@
 
 .ticket-message-time {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .ticket-message-badge {
@@ -134,7 +134,7 @@
 .ticket-reply {
     padding: 16px 24px;
     border-top: 1px solid var(--border, var(--palette-2a2a2a));
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
 }
 
 .ticket-reply textarea {
@@ -176,7 +176,7 @@
     background: transparent;
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;

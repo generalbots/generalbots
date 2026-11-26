@@ -123,7 +123,7 @@
             }
 
             .filter-btn .badge {
-                background: rgba(255, 255, 255, 0.2);
+                background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
                 padding: 2px 6px;
                 border-radius: 10px;
                 font-size: var(--text-2xs);
@@ -156,7 +156,7 @@
             .conversation-item.active .conversation-time,
             .conversation-item.active .conversation-preview,
             .conversation-item.active .channel-tag {
-                color: rgba(255, 255, 255, 0.8);
+                color: color-mix(in srgb, var(--id-surface-solid) 80%, transparent);
             }
 
             .conversation-item.unread::before {

@@ -39,6 +39,9 @@ fn get_platform_domain() -> String {
 /// an allowlist, not a wildcard — no other cloud path becomes file-served.
 const CLOUD_SHARED_ASSETS: &[(&str, &str)] = &[
     ("suite/css/palette-tokens.css", "text/css"),
+    // DESIGN-SYSTEM.md is mandatory on every UI, including the cloud pages:
+    // they link the identity tokens to resolve --id-* instead of ad-hoc colours.
+    ("suite/css/identity-tokens.css", "text/css"),
     ("manifest.webmanifest", "application/manifest+json"),
 ];
 
@@ -292,10 +295,14 @@ mod tests {
             Some("text/css")
         );
         assert_eq!(
+            cloud_shared_asset_mime("suite/css/identity-tokens.css"),
+            Some("text/css")
+        );
+        assert_eq!(
             cloud_shared_asset_mime("manifest.webmanifest"),
             Some("application/manifest+json")
         );
-        assert_eq!(CLOUD_SHARED_ASSETS.len(), 2);
+        assert_eq!(CLOUD_SHARED_ASSETS.len(), 3);
         assert_eq!(cloud_shared_asset_mime("store.html"), None);
         assert_eq!(cloud_shared_asset_mime("suite/css/other.css"), None);
         assert_eq!(cloud_shared_asset_mime("../.env"), None);

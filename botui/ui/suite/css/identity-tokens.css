@@ -1,19 +1,21 @@
 /*
- * Identity tokens for the desktop edition.
+ * Identity tokens — the single source of truth for the General Bots identity.
  *
  * Neutrals, radii, shadows, motion, type scale and font stacks are fixed.
  * Accent tokens have literal defaults (the reference orange family) that
- * accent.js can override at runtime for any hue the person chooses.
+ * identity/accent.js overrides at runtime for any hue the person chooses.
+ * Themes alias their legacy suite variables to these tokens (default.css);
+ * only the accent may vary per theme. Dark values are keyed by
+ * data-color-scheme, never by a theme id.
  *
  * Prefix: --id-
- * Light theme only; no dark theme.
  */
 
 :root {
 
   /* == Accent ==========================================================
-   * Reference identity values. Every theme ships its own --id-* block
-   * (public/themes/*.css), so these only apply when no theme is loaded. */
+   * Reference identity values. accent.js recomputes them on theme change
+   * (OKLCH derivation) and writes the result inline on <html>. */
   --id-accent: #F28C28;
   --id-accent-hover: #D4751C;
   --id-accent-light: #FDB96A;
@@ -42,16 +44,16 @@
   --id-line-soft: rgb(243 244 246 / .9);
   --id-fill: rgb(243 244 246 / .8);
 
-  /* == Font stacks (fixed) ============================================= */
+  /* == Font stacks (fixed, local fonts only) =========================== */
   --id-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --id-font-heading: 'Fira Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --id-font-logo: 'Fira Sans', system-ui, sans-serif;
 
   /* == Type scale =====================================================
-   * rem-based, aligned with the suite scale in css/base/01_root.css
-   * (#2322): identity sizes must follow browser/OS text scaling. The
-   * smallest step is the 0.75rem (12px) readability floor — the runtime
-   * text-size manager (identity/textsize.js) may still scale it up. */
+   * rem-based, aligned with the suite scale in css/base/01_root.css (#2322):
+   * identity sizes must follow browser/OS text scaling. The smallest step is
+   * a 0.75rem (12px) readability floor. identity/textsize.js may raise the
+   * first six steps before first paint from the stored text-size preference. */
   --id-text-xs: 0.75rem;
   --id-text-sm: 0.75rem;
   --id-text-base: 0.875rem;
@@ -64,8 +66,7 @@
   --id-text-5xl: 2.25rem;
 
   /* == Radii ===========================================================
-   * Follow the theme's own --radius (0.5rem light, 0.75rem default, sharper
-   * in the retro themes) and keep the identity look's generous card steps. */
+   * Follow the theme's --radius (0.75rem here) and keep generous card steps. */
   --id-radius-hero: calc(var(--radius, 0.75rem) + 12px);
   --id-radius-card: calc(var(--radius, 0.75rem) + 8px);
   --id-radius-panel: calc(var(--radius, 0.75rem) + 6px);
@@ -77,7 +78,7 @@
   /* == Shadows (fixed) ================================================= */
   --id-shadow-card: 0 1px 2px rgb(0 0 0 / .05);
   --id-shadow-card-hover: 0 8px 20px -10px rgb(0 0 0 / .12),
-                           0 1px 2px rgb(0 0 0 / .05);
+                          0 1px 2px rgb(0 0 0 / .05);
   --id-shadow-float: 0 10px 15px -3px rgb(0 0 0 / .04),
                      0 4px 6px -4px rgb(0 0 0 / .04);
 
@@ -118,7 +119,7 @@
   --id-overlay-heavy: rgb(0 0 0 / .7);
 
   /* == Syntax highlighting ============================================ */
-  --id-hl-keyword: var(--id-accent-text, #6366f1);
+  --id-hl-keyword: var(--id-accent-text);
   --id-hl-string: #059669;
   --id-hl-comment: var(--id-gray-400);
   --id-hl-number: #d97706;
@@ -129,24 +130,77 @@
   --id-hl-deletion-bg: rgb(239 68 68 / .08);
   --id-hl-addition-bg: rgb(5 150 105 / .08);
 
-  /* == Scrollbar ====================================================== */
+  /* == Scrollbar & text-size scale ==================================== */
   --id-scrollbar-thumb: var(--id-gray-300);
-
-  /* == Text-size scale (overridden by theme.js) ======================= */
   --id-scale: 1;
 
-  /* == Focus (accent-derived) ========================================== */
+  /* == Derived aliases ================================================
+   * App CSS uses these names; every one resolves to a base token above so
+   * the token layer stays the single source of truth (no parallel palette).
+   * --id-accent-rgb is the raw triplet of --id-accent's default; accent.js
+   * rewrites it at runtime when the accent changes. */
+  --id-accent-muted: color-mix(in srgb, var(--id-accent) 55%, transparent);
+  --id-text-secondary: var(--id-text);
+  --id-fg: var(--id-ink);
+  --id-accent-rgb: 242, 140, 40;
+  --id-accent-bg: var(--id-accent-soft);
+  --id-border: var(--id-line);
+  --id-radius: var(--id-radius-control);
+  --id-surface-alt: var(--id-fill);
+  --id-surface-hover: var(--id-fill);
+  --id-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  /* == Focus ==========================================================
+   * A box-shadow value. Use `box-shadow: var(--id-focus)` — NEVER
+   * `outline: ... var(--id-focus)` (an outline cannot take a shadow list). */
   --id-focus: 0 0 0 2px var(--id-accent-text);
 }
 
-/* == Dark surfaces ====================================================
- * The colour tokens above are derived from the theme, so a dark theme needs
- * no second palette here. Only the semantic colours are re-tuned for a dark
- * surface, keyed off data-color-scheme (set by theme-scheme.js from the
- * active theme's own background), never off a theme id.
+/* == Dark palette =====================================================
+ * One dark palette, keyed off data-color-scheme — set by theme-scheme.js
+ * from the active theme's own background, never off a theme id. The accent
+ * and surfaces are re-tuned here; accent.js may refine them inline per the
+ * person's chosen accent (deriveDark). Derived aliases repeat the same var()
+ * map so they resolve to these dark bases automatically.
  */
 
 :root[data-color-scheme="dark"] {
+  /* Accent — darker paper, brighter accent and accent text. */
+  --id-accent: hsl(30 89% 55%);
+  --id-accent-hover: color-mix(in srgb, hsl(30 89% 55%) 86%, #000);
+  --id-accent-light: color-mix(in srgb, hsl(30 89% 55%) 68%, #fff);
+  --id-accent-text: hsl(32 96% 72%);
+  --id-accent-soft: color-mix(in srgb, hsl(30 89% 55%) 12%, transparent);
+  --id-accent-glow: color-mix(in srgb, hsl(30 89% 55%) 26%, transparent);
+  --id-on-accent: hsl(0 0% 17%);
+  --id-paper: hsl(34 11% 12%);
+  --id-ink: hsl(240 12% 91%);
+  --id-text: color-mix(in srgb, hsl(240 12% 91%) 82%, hsl(34 11% 12%));
+  --id-muted: hsl(226 11% 56%);
+  --id-gray-100: hsl(240 15% 21%);
+  --id-gray-200: color-mix(in srgb, hsl(240 12% 91%) 12%, hsl(34 11% 12%));
+  --id-gray-300: color-mix(in srgb, hsl(240 12% 91%) 22%, hsl(34 11% 12%));
+  --id-gray-400: color-mix(in srgb, hsl(240 12% 91%) 46%, hsl(34 11% 12%));
+  --id-gray-500: color-mix(in srgb, hsl(240 12% 91%) 62%, hsl(34 11% 12%));
+  --id-surface: color-mix(in srgb, hsl(240 15% 17%) 90%, transparent);
+  --id-surface-solid: hsl(240 15% 17%);
+  --id-line: color-mix(in srgb, hsl(240 12% 26%) 90%, transparent);
+  --id-line-soft: color-mix(in srgb, hsl(240 12% 26%) 55%, transparent);
+  --id-fill: color-mix(in srgb, hsl(240 15% 21%) 80%, transparent);
+
+  /* Derived aliases — same map as :root, now resolving to the dark bases. */
+  --id-accent-muted: color-mix(in srgb, var(--id-accent) 55%, transparent);
+  --id-text-secondary: var(--id-text);
+  --id-fg: var(--id-ink);
+  --id-accent-rgb: 242, 140, 40;
+  --id-accent-bg: var(--id-accent-soft);
+  --id-border: var(--id-line);
+  --id-radius: var(--id-radius-control);
+  --id-surface-alt: var(--id-fill);
+  --id-surface-hover: var(--id-fill);
+  --id-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  /* Semantic colours re-tuned for a dark surface. */
   --id-danger: #f87171;
   --id-danger-text: #fca5a5;
   --id-danger-soft: rgb(220 38 38 / .12);

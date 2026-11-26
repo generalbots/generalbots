@@ -108,12 +108,12 @@ Object.assign(app, {
             </div>
             <div class="csat-score-card">
                 <span class="csat-score-label">Response Score</span>
-                <div class="csat-score-value" style="color:#22c55e">${(c.response_score || 0).toFixed(1)}</div>
+                <div class="csat-score-value" style="color:var(--id-success)">${(c.response_score || 0).toFixed(1)}</div>
                 <span class="csat-score-label">Helpfulness</span>
             </div>
             <div class="csat-score-card">
                 <span class="csat-score-label">Resolution Score</span>
-                <div class="csat-score-value" style="color:#60a5fa">${(c.resolution_score || 0).toFixed(1)}</div>
+                <div class="csat-score-value" style="color:var(--palette-60a5fa)">${(c.resolution_score || 0).toFixed(1)}</div>
                 <span class="csat-score-label">Problem solved</span>
             </div>
             <div class="csat-ratings">

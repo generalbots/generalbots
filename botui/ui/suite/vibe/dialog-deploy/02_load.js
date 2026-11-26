@@ -54,7 +54,7 @@
             body.innerHTML = "";
             binds.forEach(function (b) {
                 var row = D.el("div", "vibe-sec-row");
-                row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--border, #222);";
+                row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--border, var(--id-ink));";
 
                 var d = D.el("a");
                 var proto = location.protocol === "https:" ? "https://" : "http://";

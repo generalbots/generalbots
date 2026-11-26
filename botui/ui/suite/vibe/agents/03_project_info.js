@@ -30,22 +30,22 @@ function projectInfoHtml(p) {
         ["Updated", p.updated_at ? gbFormatDateTime(new Date(p.updated_at)) : "—"],
     ];
     return (
-        '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:360px;max-width:520px">' +
-        '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,#333);padding-bottom:8px"><span style="display:inline-flex;vertical-align:-2px;margin-right:5px" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>' +
+        '<div style="padding:14px 16px;font-size:12px;color:var(--text,var(--id-gray-100));min-width:360px;max-width:520px">' +
+        '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,var(--id-ink));padding-bottom:8px"><span style="display:inline-flex;vertical-align:-2px;margin-right:5px" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>' +
         esc(name) +
         "</div>" +
         '<div id="vibe-pi-tokens" style="margin-bottom:4px">' +
-        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,var(--id-ink))">' +
         '<span style="color:var(--text-muted,#999)">Total tokens</span><b id="vibe-pi-total">…</b></div>' +
-        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,var(--id-ink))">' +
         '<span style="color:var(--text-muted,#999)">Input tokens</span><b id="vibe-pi-input">…</b></div>' +
-        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,var(--id-ink))">' +
         '<span style="color:var(--text-muted,#999)">Output tokens</span><b id="vibe-pi-output">…</b></div>' +
         "</div>" +
         rows
             .map(function (r) {
                 return (
-                    '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+                    '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,var(--id-ink))">' +
                     '<span style="color:var(--text-muted,#999)">' +
                     esc(r[0]) +
                     "</span><b>" +
@@ -56,11 +56,11 @@ function projectInfoHtml(p) {
             .join("") +
         '<div id="vibe-pi-history" style="margin-top:10px">' +
         '<div style="font-weight:800;font-size:12px;margin-bottom:6px">🗂 Run history</div>' +
-        '<div id="vibe-pi-runs" style="max-height:180px;overflow-y:auto;border:1px solid var(--border,#333);border-radius:6px">' +
+        '<div id="vibe-pi-runs" style="max-height:180px;overflow-y:auto;border:1px solid var(--border,var(--id-ink));border-radius:6px">' +
         '<div class="vibe-empty" style="padding:10px">Loading history…</div></div></div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">' +
         '<button type="button" class="vibe-btn" data-pi-close>Close</button>' +
-        '<button type="button" class="vibe-btn" style="background:#ef4444;border-color:#ef4444;color:#fff" data-pi-delete="' +
+        '<button type="button" class="vibe-btn" style="background:var(--id-danger-icon);border-color:var(--id-danger-icon);color:var(--id-surface-solid)" data-pi-delete="' +
         esc(id) +
         '">Delete project</button>' +
         "</div></div>"
@@ -104,10 +104,10 @@ function loadProjectInfoStats(p) {
                 var mode = r.pipeline_mode ? " [" + esc(r.pipeline_mode) + "]" : "";
                 var err = r.error ? ' <span style="color:#f87171">' + esc(String(r.error).substring(0, 90)) + "</span>" : "";
                 return (
-                    '<div style="padding:6px 8px;border-bottom:1px solid var(--border,#222)">' +
+                    '<div style="padding:6px 8px;border-bottom:1px solid var(--border,var(--id-ink))">' +
                     '<div style="display:flex;justify-content:space-between;gap:10px"><b>' +
                     esc(String(r.state || "")) +
-                    '</b><span style="color:var(--text-muted,#999);white-space:nowrap">' +
+                    '</b><span style="color:var(--text-muted,var(--id-muted));white-space:nowrap">' +
                     esc(tok) +
                     " tok" +
                     dur +
@@ -206,8 +206,8 @@ function showProjectInfo(p) {
     var float = document.createElement("div");
     float.className = "vibe-dialog vibe-dialog-float vibe-dialog-host-project";
     float.style.cssText =
-        "position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:var(--z-system);background:var(--gb-surface,#1a1a2e);" +
-        "border:1px solid var(--gb-border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
+        "position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:var(--z-system);background:var(--gb-surface,var(--id-ink));" +
+        "border:1px solid var(--gb-border,var(--id-ink));border-radius:10px;box-shadow:0 12px 40px color-mix(in srgb, var(--id-ink) 40%, transparent);";
     renderProjectInfoHost(float, target, function () { float.remove(); });
     document.body.appendChild(float);
 }

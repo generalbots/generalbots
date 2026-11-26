@@ -391,7 +391,7 @@ select:focus {
     height: 20px;
     border-radius: 50%;
     background: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--palette-000000) 20%, transparent);
     transition: transform 0.2s ease;
 }
 

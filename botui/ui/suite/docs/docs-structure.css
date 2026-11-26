@@ -66,7 +66,7 @@ article.docs-doc-view .gb-structure-list-entry {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.85);
+    background: color-mix(in srgb, var(--palette-0f172a) 85%, transparent);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -81,7 +81,7 @@ article.docs-doc-view .gb-structure-list-entry {
     border-radius: 12px;
     color: var(--palette-f8fafc);
     background: var(--palette-1e293b);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 24px 60px color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 .gb-ds-title {
@@ -95,7 +95,7 @@ article.docs-doc-view .gb-structure-list-entry {
     border-radius: 6px;
     font-size: var(--text-2xs);
     color: var(--palette-fbbf24);
-    background: rgba(251, 191, 36, 0.1);
+    background: color-mix(in srgb, var(--palette-fbbf24) 10%, transparent);
 }
 
 .gb-ds-body {

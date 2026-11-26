@@ -4,7 +4,7 @@
 }
 
 .crm-table tbody tr:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 /* Status badges */
@@ -19,27 +19,27 @@
 }
 
 .status-badge.new {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--palette-3b82f6) 15%, transparent);
     color: var(--palette-3b82f6);
 }
 
 .status-badge.contacted {
-    background: rgba(168, 85, 247, 0.15);
+    background: color-mix(in srgb, var(--palette-a855f7) 15%, transparent);
     color: var(--palette-a855f7);
 }
 
 .status-badge.qualified {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 
 .status-badge.won {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 
 .status-badge.lost {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger-icon) 15%, transparent);
     color: var(--palette-ef4444);
 }
 
@@ -49,7 +49,7 @@
     background: transparent;
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -91,7 +91,7 @@
 .crm-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--id-overlay-heavy);
     backdrop-filter: blur(4px);
 }
 
@@ -140,13 +140,13 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .crm-form-close:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-f8fafc));
 }
 
@@ -158,7 +158,7 @@
     display: block;
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     margin-bottom: 6px;
 }
 
@@ -167,7 +167,7 @@
 .crm-form-textarea {
     width: 100%;
     padding: 10px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -218,7 +218,7 @@
 }
 
 .crm-form-btn.secondary:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .crm-form-btn.primary {

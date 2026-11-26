@@ -140,15 +140,12 @@ bang-important:botui/ui/suite/css/desktop/windows-partials/01_root.css 26
 bang-important:botui/ui/suite/css/desktop/windows-partials/02_window-dot.css 10
 bang-important:botui/ui/suite/css/desktop/windows-partials/03_window_touch.css 16
 bang-important:botui/ui/suite/css/desktop/windows-partials/04_fullscreen.css 16
-bang-important:botui/ui/suite/css/drive-identity.css 2
 bang-important:botui/ui/suite/css/gb-panes.css 4
 bang-important:botui/ui/suite/css/global.css 4
 bang-important:botui/ui/suite/css/home-partials/01_home-container.css 4
 bang-important:botui/ui/suite/css/home-partials/02_app-icon.css 4
 bang-important:botui/ui/suite/css/markdown-message.css 12
-bang-important:botui/ui/suite/css/mindfulness.css 4
 bang-important:botui/ui/suite/css/screensaver.css 5
-bang-important:botui/ui/suite/css/settings-identity.css 2
 bang-important:botui/ui/suite/css/suite.css 6
 bang-important:botui/ui/suite/css/terminal.css 4
 bang-important:botui/ui/suite/css/tour.css 1

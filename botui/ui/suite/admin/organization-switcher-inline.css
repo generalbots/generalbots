@@ -23,7 +23,7 @@
 
         .org-switcher-trigger.active {
             border-color: var(--primary-color, var(--palette-89b4fa));
-            box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--palette-89b4fa) 20%, transparent);
         }
 
         .org-avatar {
@@ -86,7 +86,7 @@
             background: var(--surface-color, var(--palette-1e1e2e));
             border: 1px solid var(--border-color, var(--palette-313244));
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent);
             z-index: var(--z-dropdown);
             opacity: 0;
             visibility: hidden;
@@ -159,7 +159,7 @@
         }
 
         .org-list-item.selected {
-            background: rgba(137, 180, 250, 0.15);
+            background: color-mix(in srgb, var(--palette-89b4fa) 15%, transparent);
         }
 
         .org-list-item.selected .org-name {
@@ -216,12 +216,12 @@
         }
 
         .org-item-role.owner {
-            background: rgba(249, 226, 175, 0.2);
+            background: color-mix(in srgb, var(--palette-f9e2af) 20%, transparent);
             color: var(--palette-f9e2af);
         }
 
         .org-item-role.admin {
-            background: rgba(137, 180, 250, 0.2);
+            background: color-mix(in srgb, var(--palette-89b4fa) 20%, transparent);
             color: var(--palette-89b4fa);
         }
 

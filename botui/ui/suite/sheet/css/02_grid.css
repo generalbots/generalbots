@@ -40,7 +40,7 @@
 }
 
 .formula-icon {
-    color: var(--sentient-text-muted, #999);
+    color: var(--sentient-text-muted, var(--id-muted));
     font-style: italic;
     font-weight: 500;
     font-size: var(--text-sm);
@@ -62,7 +62,7 @@
     border-color: var(--sentient-accent, var(--palette-4285f4));
 }
 .formula-input::placeholder {
-    color: var(--sentient-text-muted, #999);
+    color: var(--sentient-text-muted, var(--id-muted));
 }
 
 /* #2515 — compact-phone guard. Row geometry is owned by the JS TOUCH_MODE
@@ -89,7 +89,7 @@
 
 .ss-row-header.row-selected {
     background: var(--palette-3b82f6);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 /* Column header resize handle */
 .ss-col-resize, .ss-row-resize {
@@ -128,7 +128,7 @@
 .selection-box {
     position: absolute;
     border: 2px solid var(--sentient-accent, var(--palette-4285f4));
-    background: var(--sentient-accent-light, rgba(66, 133, 244, 0.1));
+    background: var(--sentient-accent-light, color-mix(in srgb, var(--id-accent) 10%, transparent));
     pointer-events: none;
     z-index: 10;
     display: none;
@@ -149,7 +149,7 @@
 }
 /* Remote collaborator cursor border (module 21_presence) */
 .ss-remote-cursor {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--id-surface-solid) 18%, transparent);
 }
 
 /* =============================================================================
@@ -232,7 +232,7 @@
 
 .ss-tab-del:hover {
     color: var(--palette-f87171);
-    background: rgba(248, 113, 113, 0.15);
+    background: color-mix(in srgb, var(--id-danger) 15%, transparent);
 }
 
 /* =============================================================================
@@ -240,7 +240,7 @@
    ============================================================================= */
 
 #ss-fill-preview {
-    background: rgba(59, 130, 246, 0.12);
+    background: color-mix(in srgb, var(--id-accent) 12%, transparent);
 }
 
 .ss-fill-handle:hover {

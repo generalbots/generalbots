@@ -48,11 +48,11 @@
     padding: 26px 30px 18px;
     gap: 14px;
     background: var(--gb-bg);
-    scrollbar-color: rgba(24, 24, 27, 0.2) transparent;
+    scrollbar-color: color-mix(in srgb, var(--palette-18181b) 20%, transparent) transparent;
 }
 
 #chat-app #messages::-webkit-scrollbar-thumb {
-    background: rgba(24, 24, 27, 0.18) !important;
+    background: color-mix(in srgb, var(--palette-18181b) 18%, transparent) !important;
     border-radius: 3px;
 }
 
@@ -176,12 +176,12 @@
 #chat-app .tts-speak-btn:hover,
 #chat-app .copy-msg-btn:hover {
     color: var(--gb-accent);
-    border-color: rgba(22, 163, 74, 0.45);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 45%, transparent);
     background: var(--gb-surface);
 }
 #chat-app .copy-msg-btn.copied {
     color: var(--gb-accent);
-    border-color: rgba(22, 163, 74, 0.45);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 45%, transparent);
 }
 @media (hover: none) {
     #chat-app .tts-speak-btn,

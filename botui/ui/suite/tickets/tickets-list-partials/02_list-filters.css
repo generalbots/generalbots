@@ -2,7 +2,7 @@
 .list-filters select {
     flex: 1;
     padding: 6px 10px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -30,11 +30,11 @@
 }
 
 .ticket-item:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .ticket-item.selected {
-    background: var(--surface, rgba(255, 255, 255, 0.08));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
     border-left: 3px solid var(--accent, var(--palette-d4f505));
 }
 
@@ -80,7 +80,7 @@
 
 .ticket-item-time {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .ticket-item-subject {
@@ -98,7 +98,7 @@
     align-items: center;
     gap: 8px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .ticket-item-account {
@@ -109,7 +109,7 @@
 
 .ticket-item-category {
     padding: 2px 6px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border-radius: 4px;
 }
 
@@ -128,7 +128,7 @@
     align-items: center;
     justify-content: center;
     gap: 16px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .ticket-detail-empty svg {
@@ -189,37 +189,37 @@
 }
 
 .status-badge.open {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-3b82f6);
 }
 
 .status-badge.pending {
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-f59e0b);
 }
 
 .status-badge.resolved {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 
 .status-badge.closed {
-    background: rgba(107, 114, 128, 0.15);
+    background: color-mix(in srgb, var(--id-muted) 15%, transparent);
     color: var(--palette-6b7280);
 }
 
 .priority-badge.low {
-    background: rgba(107, 114, 128, 0.15);
+    background: color-mix(in srgb, var(--id-muted) 15%, transparent);
     color: var(--palette-6b7280);
 }
 
 .priority-badge.medium {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-3b82f6);
 }
 
 .priority-badge.high {
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-f59e0b);
 }
 @media (prefers-reduced-motion: reduce) {

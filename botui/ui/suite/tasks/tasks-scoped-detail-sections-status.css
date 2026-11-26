@@ -111,7 +111,7 @@
 .task-url-bar .url-text {
     flex: 1;
     font-size: 0.85rem;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -144,7 +144,7 @@
     font-size: 1.4rem;
     font-weight: 700;
     margin: 0;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     letter-spacing: -0.02em;
 }
 
@@ -160,23 +160,23 @@
 .status-badge-rich.status-running,
 .status-badge-rich.status-pending {
     background: var(--primary, var(--palette-c5f82a));
-    color: var(--bg, #000);
+    color: var(--bg, var(--id-ink));
 }
 
 .status-badge-rich.status-completed {
     background: var(--success, var(--success, var(--palette-22c55e)));
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .status-badge-rich.status-error,
 .status-badge-rich.status-failed {
     background: var(--error, var(--error, var(--palette-ef4444)));
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .status-badge-rich.status-paused {
     background: var(--warning, var(--warning, var(--palette-f59e0b)));
-    color: var(--bg, #000);
+    color: var(--bg, var(--id-ink));
 }
 
 /* Section Boxes */
@@ -192,7 +192,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     margin-bottom: 16px;
     display: flex;
     align-items: center;

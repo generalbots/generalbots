@@ -96,7 +96,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent);
     display: none;
     flex-direction: column;
     z-index: var(--z-dropdown);
@@ -183,7 +183,7 @@
 }
 
 .notification-item.unread {
-    background: rgba(197, 248, 42, 0.05);
+    background: color-mix(in srgb, var(--palette-c5f82a) 5%, transparent);
 }
 
 .notification-icon {
@@ -221,7 +221,7 @@
 
 .notification-action {
     background: var(--primary);
-    color: #000;
+    color: var(--palette-000000);
     border: none;
     padding: 6px 12px;
     border-radius: 6px;
@@ -323,12 +323,12 @@
     text-decoration: none;
     padding: 4px 8px;
     border-radius: 4px;
-    background: rgba(197, 248, 42, 0.1);
+    background: color-mix(in srgb, var(--palette-c5f82a) 10%, transparent);
     white-space: nowrap;
 }
 
 .notification-item-action:hover {
-    background: rgba(197, 248, 42, 0.2);
+    background: color-mix(in srgb, var(--palette-c5f82a) 20%, transparent);
 }
 
 .notification-item-dismiss {

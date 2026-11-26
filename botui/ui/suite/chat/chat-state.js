@@ -67,40 +67,40 @@ var MessageType = {
 };
 
 var EntityTypes = {
-  lead: { icon: "\u{1F464}", color: "#4CAF50", label: "Lead", route: "crm" },
+  lead: { icon: "\u{1F464}", color: "var(--palette-4caf50)", label: "Lead", route: "crm" },
   opportunity: {
     icon: "\u{1F4B0}",
-    color: "#FF9800",
+    color: "var(--palette-ff9800)",
     label: "Opportunity",
     route: "crm",
   },
   account: {
     icon: "\u{1F3E2}",
-    color: "#2196F3",
+    color: "var(--palette-0ea5e9)",
     label: "Account",
     route: "crm",
   },
   contact: {
     icon: "\u{1F4C7}",
-    color: "#9C27B0",
+    color: "var(--palette-9c27b0)",
     label: "Contact",
     route: "crm",
   },
   invoice: {
     icon: "\u{1F4C4}",
-    color: "#F44336",
+    color: "var(--palette-f44336)",
     label: "Invoice",
     route: "billing",
   },
   quote: {
     icon: "\u{1F4CB}",
-    color: "#607D8B",
+    color: "var(--palette-64748b)",
     label: "Quote",
     route: "billing",
   },
   case: {
     icon: "\u{1F3AB}",
-    color: "#E91E63",
+    color: "var(--palette-db2777)",
     label: "Case",
     route: "tickets",
   },
@@ -112,7 +112,7 @@ var EntityTypes = {
   },
   service: {
     icon: "\u2699\uFE0F",
-    color: "#00BCD4",
+    color: "var(--palette-06b6d4)",
     label: "Service",
     route: "products",
   },
@@ -124,7 +124,7 @@ var EntityTypes = {
   },
   project: {
     icon: "\u{1F4BB}",
-    color: "#84d669",
+    color: "var(--palette-84d669)",
     label: "Project",
     route: "vibe",
   },

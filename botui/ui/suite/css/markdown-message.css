@@ -100,13 +100,13 @@
 /* Lists in user messages (white text on colored background) */
 .message.user .message-content ul li::marker,
 .message.user .message-content ol li::marker {
-    color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    color: color-mix(in srgb, var(--palette-ffffff) 95%, transparent);
+    text-shadow: 0 1px 2px color-mix(in srgb, var(--palette-000000) 20%, transparent);
 }
 
 .message.user .message-content ul ul li::marker,
 .message.user .message-content ol ol li::marker {
-    color: rgba(255, 255, 255, 0.85);
+    color: color-mix(in srgb, var(--palette-ffffff) 85%, transparent);
 }
 
 /* Lists in bot messages with better contrast */
@@ -167,18 +167,18 @@
 .message-content pre {
     margin: 6px 0;
     padding: 10px;
-    background: rgba(0, 0, 0, 0.15);
+    background: color-mix(in srgb, var(--palette-000000) 15%, transparent);
     border-radius: 8px;
     overflow-x: auto;
     font-size: var(--text-xs);
     line-height: 1.6;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 /* Inline code */
 .message-content code {
     padding: 3px 7px;
-    background: rgba(0, 0, 0, 0.12);
+    background: color-mix(in srgb, var(--palette-000000) 12%, transparent);
     border-radius: 5px;
     font-size: 0.9em;
     font-family: "Monaco", "Menlo", "Consolas", monospace;
@@ -186,13 +186,13 @@
 }
 
 .message.user .message-content code {
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: color-mix(in srgb, var(--palette-ffffff) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--palette-ffffff) 15%, transparent);
 }
 
 .message.bot .message-content code {
-    background: rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: color-mix(in srgb, var(--palette-000000) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 /* Blockquotes */
@@ -207,7 +207,7 @@
 .message-content hr {
     margin: 8px 0;
     border: none;
-    border-top: 1px solid rgba(128, 128, 128, 0.3);
+    border-top: 1px solid color-mix(in srgb, var(--palette-808789) 30%, transparent);
 }
 
 /* Tables in messages — drawn as real HTML tables */
@@ -217,7 +217,7 @@
     border-collapse: collapse;
     font-size: 0.9em;
     line-height: 1.4;
-    border: 1px solid rgba(128, 128, 128, 0.28);
+    border: 1px solid color-mix(in srgb, var(--palette-808789) 28%, transparent);
 }
 
 .message-content th,
@@ -225,8 +225,8 @@
     padding: 8px 12px;
     text-align: left;
     vertical-align: top;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
-    border-right: 1px solid rgba(128, 128, 128, 0.12);
+    border-bottom: 1px solid color-mix(in srgb, var(--palette-808789) 18%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--palette-808789) 12%, transparent);
 }
 
 .message-content th:last-child,
@@ -242,7 +242,7 @@
 }
 
 .message-content tbody tr:nth-child(even) {
-    background: rgba(128, 128, 128, 0.08);
+    background: color-mix(in srgb, var(--palette-808789) 8%, transparent);
 }
 
 .message-content tbody tr:last-child td {
@@ -259,7 +259,7 @@
 .message-content a {
     color: inherit;
     text-decoration: underline;
-    text-decoration-color: rgba(128, 128, 128, 0.5);
+    text-decoration-color: color-mix(in srgb, var(--palette-808789) 50%, transparent);
     transition: text-decoration-color 0.2s;
 }
 

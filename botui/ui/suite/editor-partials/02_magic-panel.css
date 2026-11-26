@@ -12,7 +12,7 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--palette-000000) 45%, transparent);
     overflow: hidden;
 }
 
@@ -76,7 +76,7 @@
     border-radius: 6px;
     padding: 7px 14px;
     background: var(--accent-color);
-    color: #fff;
+    color: var(--id-surface-solid);
     font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
@@ -230,7 +230,7 @@
     padding: 12px 20px;
     background: var(--bg-tertiary);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--id-overlay);
     border-left: 4px solid var(--accent-color);
     opacity: 0;
     transform: translateX(100%);

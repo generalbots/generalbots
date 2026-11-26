@@ -129,7 +129,7 @@
     while (multiBoxes.length < multiRanges.length) {
       const box = document.createElement("div");
       box.className = "ss-range-box";
-      box.style.cssText = "position:absolute;border:1px solid #38bdf8;background:rgba(56,189,248,0.08);pointer-events:none;z-index:10;display:none;";
+      box.style.cssText = "position:absolute;border:1px solid #38bdf8;background:color-mix(in srgb, var(--id-accent) 8%, transparent);pointer-events:none;z-index:10;display:none;";
       grid.bodyInner.appendChild(box);
       multiBoxes.push(box);
     }
@@ -249,13 +249,13 @@
     if (!rangeBox || !rangeBox.isConnected) {
       rangeBox = document.createElement("div");
       rangeBox.className = "ss-range-box";
-      rangeBox.style.cssText = "position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.10);pointer-events:none;z-index:11;display:none;";
+      rangeBox.style.cssText = "position:absolute;border:2px solid var(--id-accent);background:color-mix(in srgb, var(--id-accent) 10%, transparent);pointer-events:none;z-index:11;display:none;";
       grid.bodyInner.appendChild(rangeBox);
     }
     if (!fillHandle || !fillHandle.isConnected) {
       fillHandle = document.createElement("div");
       fillHandle.className = "ss-fill-handle";
-      fillHandle.style.cssText = "position:absolute;width:9px;height:9px;background:#3b82f6;border:1px solid #fff;cursor:crosshair;z-index:14;display:none;";
+      fillHandle.style.cssText = "position:absolute;width:9px;height:9px;background:var(--id-accent);border:1px solid var(--id-surface-solid);cursor:crosshair;z-index:14;display:none;";
       grid.bodyInner.appendChild(fillHandle);
       // #2419 — pointer events cover mouse, touch and pen. One listener
       // serves every input type; onFillStart de-duplicates synthesised
@@ -377,7 +377,7 @@
     if (document.getElementById("ss-fill-preview")) return;
     const p = document.createElement("div");
     p.id = "ss-fill-preview";
-    p.style.cssText = "position:absolute;border:2px dashed #3b82f6;pointer-events:none;z-index:13;display:none;";
+    p.style.cssText = "position:absolute;border:2px dashed var(--id-accent);pointer-events:none;z-index:13;display:none;";
     if (grid && grid.bodyInner) grid.bodyInner.appendChild(p);
   }
 
@@ -405,7 +405,7 @@
       if (!tabBar || !tabBar.isConnected) {
         tabBar = document.createElement("div");
         tabBar.className = "ss-tab-bar";
-        tabBar.style.cssText = "display:flex;gap:4px;align-items:center;padding:6px 12px;background:var(--sheet-bg, #0f172a);border-top:1px solid var(--sheet-border, #334155);flex-shrink:0;overflow-x:auto;";
+        tabBar.style.cssText = "display:flex;gap:4px;align-items:center;padding:6px 12px;background:var(--sheet-bg, var(--id-ink));border-top:1px solid var(--sheet-border, var(--id-ink));flex-shrink:0;overflow-x:auto;";
         hostEl.appendChild(tabBar);
       }
     }

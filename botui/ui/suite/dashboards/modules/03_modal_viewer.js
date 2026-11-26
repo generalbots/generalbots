@@ -206,7 +206,7 @@
       const total = values.reduce((a, b) => a + b, 0) || 1;
       const segments = values.map((v, i) => {
         const pct = (v / total) * 100;
-        return `<div class="widget-pie-segment" style="background:${(chart.colors && chart.colors[i]) || "var(--accent,#d4f505)"};width:${pct}%"></div>`;
+        return `<div class="widget-pie-segment" style="background:${(chart.colors && chart.colors[i]) || "var(--accent,var(--palette-d4f505))"};width:${pct}%"></div>`;
       }).join("");
       return `<div class="widget-pie">${segments}</div>`;
     }

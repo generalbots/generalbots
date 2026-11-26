@@ -1,7 +1,7 @@
 /* Slides masters / layouts / theme / brand kit (#2429) — local-only UI. */
 .sm-overlay {
     position: fixed; inset: 0; z-index: var(--z-modal-backdrop);
-    background: rgba(2, 6, 23, 0.72);
+    background: color-mix(in srgb, var(--id-ink) 72%, transparent);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
 }
@@ -10,7 +10,7 @@
     display: flex; flex-direction: column;
     background: var(--palette-111827); color: var(--palette-f8fafc);
     border: 1px solid var(--palette-334155); border-radius: 10px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 24px 64px color-mix(in srgb, var(--id-ink) 55%, transparent);
     font-family: system-ui, -apple-system, sans-serif; font-size: var(--text-xs);
 }
 .sm-dialog-head {
@@ -58,7 +58,7 @@
 }
 .sm-btn:hover { background: var(--palette-334155); }
 .sm-btn:focus-visible { outline: 2px solid var(--palette-3b82f6); outline-offset: 1px; }
-.sm-btn-primary { background: var(--palette-2563eb); border-color: var(--palette-2563eb); color: #fff; }
+.sm-btn-primary { background: var(--palette-2563eb); border-color: var(--palette-2563eb); color: var(--id-surface-solid); }
 .sm-btn-primary:hover { background: var(--palette-1d4ed8); }
 .sm-check { display: inline-flex; align-items: center; gap: 6px; color: var(--palette-cbd5e1); font-size: var(--text-2xs); margin: 6px 0; }
 .sm-check input { accent-color: var(--palette-3b82f6); }

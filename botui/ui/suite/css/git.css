@@ -90,11 +90,11 @@
     gap: 8px;
     cursor: pointer;
     font-size: var(--text-xs);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid color-mix(in srgb, var(--palette-ffffff) 5%, transparent);
 }
 
 .botcoder-git-file:hover {
-    background-color: rgba(255,255,255,0.05);
+    background-color: color-mix(in srgb, var(--palette-ffffff) 5%, transparent);
 }
 
 .git-file-name { font-weight: 500; }
@@ -109,7 +109,7 @@
     justify-content: center;
     font-size: var(--text-2xs);
     font-weight: bold;
-    color: #fff;
+    color: var(--palette-ffffff);
 }
 
 .git-badge-modified { background: var(--palette-eab308); }

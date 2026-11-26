@@ -250,7 +250,7 @@
     panel.style.borderRadius = "8px";
     panel.style.background = "var(--palette-0f172a)";
     panel.style.color = "var(--palette-e2e8f0)";
-    panel.style.boxShadow = "0 10px 30px rgba(0,0,0,0.45)";
+    panel.style.boxShadow = "0 10px 30px color-mix(in srgb, var(--palette-000000) 45%, transparent)";
     panel.style.font = "inherit";
 
     var head = document.createElement("div");

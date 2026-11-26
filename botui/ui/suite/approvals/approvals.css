@@ -24,7 +24,7 @@
   cursor: pointer;
 }
 .gb-appr-btn:hover { border-color: var(--palette-38bdf8); }
-.gb-appr-btn-primary { background: var(--palette-0369a1); border-color: var(--palette-0284c7); color: #fff; }
+.gb-appr-btn-primary { background: var(--palette-0369a1); border-color: var(--palette-0284c7); color: var(--id-surface-solid); }
 .gb-appr-btn-danger { border-color: var(--palette-b91c1c); }
 .gb-appr-status {
   min-height: 20px;
@@ -32,9 +32,9 @@
   padding: 6px 10px;
   border-radius: 6px;
   font-size: var(--text-2xs);
-  background: rgba(56, 189, 248, 0.1);
+  background: color-mix(in srgb, var(--palette-38bdf8) 10%, transparent);
 }
-.gb-appr-status.gb-appr-error { background: rgba(239, 68, 68, 0.15); }
+.gb-appr-status.gb-appr-error { background: color-mix(in srgb, var(--id-danger-icon) 15%, transparent); }
 .gb-appr-layout {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr) minmax(280px, 1.4fr);
@@ -46,7 +46,7 @@
   border: 1px solid var(--border-color, var(--palette-334155));
   border-radius: 8px;
   padding: 12px;
-  background: var(--bg-panel, rgba(15, 23, 42, 0.6));
+  background: var(--bg-panel, color-mix(in srgb, var(--palette-0f172a) 60%, transparent));
 }
 .gb-appr-panel h2 { margin: 0 0 10px; font-size: var(--text-md); }
 .gb-appr-panel h3 { margin: 14px 0 8px; font-size: var(--text-xs); }
@@ -76,7 +76,7 @@
   border-radius: 999px;
   font-size: var(--text-2xs);
   background: var(--palette-334155);
-  color: #fff;
+  color: var(--id-surface-solid);
 }
 .gb-appr-badge.signed, .gb-appr-badge.published { background: var(--palette-15803d); }
 .gb-appr-badge.invalidated, .gb-appr-badge.rejected { background: var(--palette-b91c1c); }

@@ -209,7 +209,7 @@ function formatStorage(mb) {
 }
 
 function showError(msg) {
-  document.getElementById('plans-grid').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
+  document.getElementById('plans-grid').innerHTML = '<div class="saas-loading" style="color:var(--id-danger)">' + escapeHtml(msg) + '</div>';
 }
 
 function doLogout() {

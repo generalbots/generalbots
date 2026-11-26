@@ -163,7 +163,7 @@
 .gb-agent-toggle {
     display: inline-flex; align-items: center; gap: 4px;
     border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
-    background: var(--id-surface-solid); color: var(--id-text-secondary);
+    background: var(--id-surface-solid); color: var(--id-text-secondary, var(--id-muted));
     font-family: var(--id-font-sans); font-size: var(--id-text-xs);
     padding: 4px 8px; cursor: pointer; flex-shrink: 0;
     transition: background var(--id-dur-fast) var(--id-ease),
@@ -172,7 +172,7 @@
     outline: none; line-height: 1;
 }
 .gb-agent-toggle:hover { border-color: var(--id-accent); color: var(--id-text); }
-.gb-agent-toggle:focus-visible { border-color: var(--id-accent); box-shadow: 0 0 0 2px var(--id-accent-muted); }
+.gb-agent-toggle:focus-visible { border-color: var(--id-accent); box-shadow: var(--id-focus, 0 0 0 2px var(--id-accent-muted, var(--id-accent-soft))); }
 .gb-agent-toggle.gb-agent-on {
     background: var(--id-accent); color: var(--id-on-accent);
     border-color: var(--id-accent);

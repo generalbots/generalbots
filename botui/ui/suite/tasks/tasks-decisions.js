@@ -313,11 +313,11 @@ function showAppUrlNotification(appUrl) {
       position: fixed;
       top: 80px;
       right: 24px;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      background: linear-gradient(135deg, var(--id-success) 0%, var(--id-success-text) 100%);
       color: white;
       padding: 16px 24px;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(34, 197, 94, 0.4);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--id-success) 40%, transparent);
       z-index: var(--z-system);
       max-width: 400px;
       animation: slideInRight 0.5s ease;
@@ -331,7 +331,7 @@ function showAppUrlNotification(appUrl) {
     <a href="${appUrl}" target="_blank" rel="noopener noreferrer" style="
       display: inline-block;
       background: white;
-      color: #16a34a;
+      color: var(--id-success-text);
       padding: 8px 16px;
       border-radius: 6px;
       text-decoration: none;

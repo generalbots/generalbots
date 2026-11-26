@@ -24,7 +24,7 @@
 
 .session-badge {
     background: var(--primary-color, var(--palette-0066cc));
-    color: #fff;
+    color: var(--palette-ffffff);
     border-radius: 12px;
     padding: 2px 8px;
     font-size: 0.75rem;
@@ -78,7 +78,7 @@
 .connection-card.empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     padding: 2rem;
 }
 
@@ -98,7 +98,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #666;
+    background: var(--palette-666666);
 }
 
 .conn-card-status.online { background: var(--palette-22c55e); }
@@ -106,7 +106,7 @@
 
 .conn-card-details {
     font-size: 0.85rem;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     margin-bottom: 0.75rem;
 }
 
@@ -161,7 +161,7 @@
     flex: 1;
     position: relative;
     overflow: hidden;
-    background: #000;
+    background: var(--palette-000000);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -180,7 +180,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--palette-000000) 70%, transparent);
     gap: 1rem;
     z-index: 10;
 }
@@ -188,7 +188,7 @@
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.2);
+    border: 3px solid color-mix(in srgb, var(--palette-ffffff) 20%, transparent);
     border-top-color: var(--primary-color, var(--palette-0066cc));
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -205,13 +205,13 @@
     background: var(--bg-secondary, var(--palette-16213e));
     border-top: 1px solid var(--border-color, var(--palette-2a2a4a));
     font-size: 0.8rem;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -248,7 +248,7 @@
 .modal-close {
     background: none;
     border: none;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: 1.5rem;
     cursor: pointer;
 }
@@ -312,7 +312,7 @@
    overridden here — layout, sizing and cursor come from the shared pattern. */
 .btn-primary {
     background: var(--primary-color, var(--palette-0066cc));
-    color: #fff;
+    color: var(--palette-ffffff);
 }
 
 .btn-primary:hover {
@@ -331,7 +331,7 @@
 
 .btn-danger {
     background: var(--palette-ef4444);
-    color: #fff;
+    color: var(--palette-ffffff);
 }
 
 .btn-danger:hover {
@@ -340,7 +340,7 @@
 
 .btn-connect {
     background: var(--palette-22c55e);
-    color: #fff;
+    color: var(--palette-ffffff);
     padding: 0.35rem 0.75rem;
     border-radius: 4px;
     border: none;
@@ -354,7 +354,7 @@
 
 .btn-remove {
     background: transparent;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     padding: 0.35rem 0.75rem;
     border-radius: 4px;
     border: 1px solid var(--border-color, var(--palette-2a2a4a));

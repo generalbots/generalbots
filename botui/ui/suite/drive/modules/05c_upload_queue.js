@@ -118,9 +118,9 @@ function gbcQueuePanel(rows) {
     panel.setAttribute("role", "status");
     panel.setAttribute("aria-live", "polite");
     panel.style.cssText = "position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;right:16px;" +
-        "max-width:420px;z-index:var(--z-toast);background:var(--card,#1e293b);color:var(--card-foreground,#f8fafc);" +
+        "max-width:420px;z-index:var(--z-toast);background:var(--card,var(--palette-1e293b));color:var(--card-foreground,var(--palette-f8fafc));" +
         "border:1px solid var(--border,#334155);border-radius:12px;padding:12px 14px;display:flex;" +
-        "flex-direction:column;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;";
+        "flex-direction:column;gap:8px;box-shadow:0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);font-size:13px;";
     var body = document.createElement("span");
     body.textContent = t("drive-upload-queue-body", "{count} upload(s) did not finish. Retry?")
         .replace("{count}", String(rows.length));
@@ -132,7 +132,7 @@ function gbcQueuePanel(rows) {
         btn.textContent = t(key, fallback);
         btn.style.cssText = "font:inherit;padding:6px 12px;border-radius:8px;cursor:pointer;" +
             (primary
-                ? "background:var(--primary,#3b82f6);color:var(--primary-foreground,#fff);border:0;"
+                ? "background:var(--primary,var(--palette-3b82f6));color:var(--primary-foreground,var(--id-surface-solid));border:0;"
                 : "background:transparent;color:inherit;border:1px solid var(--border,#334155);");
         btn.addEventListener("click", onClick);
         return btn;

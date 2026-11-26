@@ -249,6 +249,12 @@
     s.setProperty("--id-accent-glow", d.accentGlow);
     s.setProperty("--id-on-accent", d.onAccent);
     s.setProperty("--id-paper", d.paper);
+    /* Raw triplet for rgba(var(--id-accent-rgb), a) overlays (Drive drop).
+       Keep it in sync with the applied accent, not with the CSS default. */
+    var aRgb = hexToRgb(d.accent);
+    /* Comma-separated: consumers use rgba(var(--id-accent-rgb), .06). */
+    s.setProperty("--id-accent-rgb", Math.round(aRgb[0] * 255) + "," +
+      Math.round(aRgb[1] * 255) + "," + Math.round(aRgb[2] * 255));
     /* Paper band at 88% opacity for the conversation column overlay */
     var pRgb = hexToRgb(d.paper);
     var pr = Math.round(pRgb[0] * 255), pg = Math.round(pRgb[1] * 255), pb = Math.round(pRgb[2] * 255);

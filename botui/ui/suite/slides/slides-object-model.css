@@ -31,16 +31,16 @@
   position: absolute;
   color: var(--text-tertiary, var(--palette-64748b));
   font-size: var(--text-2xs);
-  background: repeating-linear-gradient(to right, transparent 0 49px, rgba(148, 163, 184, 0.25) 49px 50px);
+  background: repeating-linear-gradient(to right, transparent 0 49px, color-mix(in srgb, var(--id-gray-400) 25%, transparent) 49px 50px);
 }
 .sl-om-ruler-x { left: 0; right: 0; top: 0; height: 14px; }
-.sl-om-ruler-y { top: 0; bottom: 0; left: 0; width: 14px; background: repeating-linear-gradient(to bottom, transparent 0 49px, rgba(148, 163, 184, 0.25) 49px 50px); }
+.sl-om-ruler-y { top: 0; bottom: 0; left: 0; width: 14px; background: repeating-linear-gradient(to bottom, transparent 0 49px, color-mix(in srgb, var(--id-gray-400) 25%, transparent) 49px 50px); }
 
 .sl-om-grid { position: absolute; inset: 0; opacity: 0; transition: opacity 0.12s ease; }
 .sl-om-layer.show-grid .sl-om-grid {
   opacity: 1;
-  background-image: linear-gradient(to right, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--id-gray-400) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--id-gray-400) 14%, transparent) 1px, transparent 1px);
 }
 .sl-om-connectors { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .sl-om-guides { position: absolute; inset: 0; pointer-events: none; }
@@ -66,7 +66,7 @@
 .sl-om-node.is-locked { cursor: not-allowed; border-style: double; border-width: 3px; }
 .sl-om-node.is-selected {
   border: 2px solid var(--primary, var(--accent, var(--palette-3b82f6)));
-  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--id-accent) 20%, transparent);
 }
 .sl-om-ellipse { border-radius: 50%; }
 .sl-om-text { font-size: var(--text-sm); padding: 6px; display: inline-block; }
@@ -82,7 +82,7 @@
   position: absolute;
   left: 0; top: 0; width: 0; height: 0;
   border: 1px dashed var(--primary, var(--accent, var(--palette-3b82f6)));
-  background: rgb(59 130 246 / 0.08);
+  background: color-mix(in srgb, var(--id-accent) 8%, transparent);
   pointer-events: none;
   display: none;
 }
@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgb(2 6 23 / 0.62);
+  background: color-mix(in srgb, var(--id-ink) 62%, transparent);
 }
 .sl-om-dialog {
   width: min(980px, 96vw);
@@ -107,7 +107,7 @@
   color: var(--text, var(--palette-f8fafc));
   border: 1px solid var(--border, var(--palette-475569));
   border-radius: 12px;
-  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--id-ink) 45%, transparent);
 }
 .sl-om-dialog-head {
   display: flex;

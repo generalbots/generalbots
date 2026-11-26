@@ -637,6 +637,16 @@ jobs:
           python3 scripts/check_css_hygiene.py --self-test
           python3 scripts/check_css_hygiene.py --check
 
+      # DESIGN-SYSTEM.md is the mandatory standard for every UI: every
+      # documented --id-* token must be defined, the default theme equals the
+      # design system, non-default themes vary ONLY the accent colour, and
+      # --id-focus is a box-shadow (never an outline colour).
+      - name: Design system guard (DESIGN-SYSTEM.md)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_design_system.py --self-test
+          python3 scripts/check_design_system.py --strict
+
       # #2310 — one corrupt localStorage key used to throw inside the desktop
       # boot chain and leave the user with no way to clear it. Every JSON read
       # must go through gbStoreGet(), which self-heals and logs the dropped key.
