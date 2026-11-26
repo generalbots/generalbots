@@ -156,7 +156,9 @@ jobs:
 
       # Same pinned components and digests as the platform's Windows release
       # (botserver/3rdparty.toml). Anything not listed here is still downloaded
-      # on first run.
+      # on first run. minio.exe is MinIO RELEASE.2025-10-15T17-29-55Z (fixes
+      # CVE-2025-62506) built from source by .github/workflows/drive-bin-v4.yml
+      # on main; upstream publishes no binary for that release.
       - name: Stage the offline payload
         shell: pwsh
         run: |
@@ -165,7 +167,7 @@ jobs:
           New-Item -ItemType Directory -Force $payload | Out-Null
           $downloads = @(
             @{ Name = 'openbao_2.7.3_windows_amd64.zip'; Url = 'https://github.com/openbao/openbao/releases/download/v2.7.3/openbao_2.7.3_windows_amd64.zip'; Algo = 'SHA256'; Hash = '969e4872b21eeee7c9b4cd312e77027e624528ca7bc9dc2361311b97e34e6e90' },
-            @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
+            @{ Name = 'minio.exe'; Url = 'https://github.com/generalbots/generalbots/releases/download/drive-bin-v4/minio.exe'; Algo = 'SHA256'; Hash = 'e63f9c4ac8b8697ca679d4864497688c3486aa9ac9370c3569203420c25e5799' },
             @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
             @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = 'SHA256'; Hash = '5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e' },
             @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = 'SHA256'; Hash = '6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be' },

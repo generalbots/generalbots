@@ -33,7 +33,10 @@ name = "MinIO Object Storage"
 # (tag RELEASE.2025-10-15T17-29-55Z, commit 9e49d5e7a648); this URL stays on
 # the last published binary for fresh installs until upstream ships assets.
 url = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
-url_win = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe"
+# Windows: the source-built RELEASE.2025-10-15T17-29-55Z (CVE-2025-62506
+# fixed) from the immutable internal drive-bin-v4 release, digest as listed in
+# its SHA256SUMS-drive-bin.
+url_win = "https://github.com/generalbots/generalbots/releases/download/drive-bin-v4/minio.exe"
 # arm64 asset checksum: minio.linux-arm64...sha256sum in the same release.
 url_arm64 = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-arm64.RELEASE.2025-09-07T16-13-09Z"
 filename = "minio"
@@ -41,7 +44,7 @@ filename_win = "minio.exe"
 filename_arm64 = "minio"
 sha256 = "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
 sha256_arm64 = "5c83cd2cf151717ba0243f73e1c7802ff36e272b67144bdd7f1f7d684fd6f03d"
-sha256_win = "af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4"
+sha256_win = "e63f9c4ac8b8697ca679d4864497688c3486aa9ac9370c3569203420c25e5799"
 
 
 [components.mc]
