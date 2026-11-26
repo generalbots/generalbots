@@ -1,4 +1,3 @@
-
 // Pure HTML-escape helper for untrusted progress messages (#2841).
 function escapeProgressText(value) {
   return String(value == null ? "" : value)
@@ -7,13 +6,10 @@ function escapeProgressText(value) {
     .replace(/'/g, "&#39;");
 }
 
-// Legacy function - errors now shown in detail panel
 function errorFloatingProgress(errorMessage) {
   updateDetailTerminal(null, errorMessage, "error");
 }
-
 function updateActivityMetrics(activity) {
-  // Activity metrics are now shown in terminal output
   if (!activity) return;
   gbLog.debug("[Tasks] Activity update:", activity);
 }
@@ -29,7 +25,6 @@ function logFinalStats(activity) {
 }
 
 function addLLMStreamOutput(text) {
-  // Add LLM streaming output to the floating terminal
   const terminal = document.getElementById("floating-llm-terminal");
   if (!terminal) return;
 
@@ -39,7 +34,6 @@ function addLLMStreamOutput(text) {
   terminal.appendChild(line);
   terminal.scrollTop = terminal.scrollHeight;
 
-  // Keep only last 100 lines to prevent memory issues
   while (terminal.children.length > 100) {
     terminal.removeChild(terminal.firstChild);
   }
@@ -72,13 +66,12 @@ function updateProgressUI(data) {
   }
 }
 
-// =============================================================================
-// EVENT LISTENERS
-// =============================================================================
-
 function setupEventListeners() {
+  var tasksWindow = getTasksWindow();
+  if (!tasksWindow) return;
   // Filter pills
-  document.getElementById("window-tasks").querySelectorAll(".status-pill").forEach((pill) => {
+  tasksWindow.querySelectorAll(".status-pill").forEach((pill) => {
+    if (!tasksBindOnce(pill, "filter-click")) return;
     pill.addEventListener("click", function (e) {
       e.preventDefault();
       const filter = this.dataset.filter;
@@ -87,8 +80,8 @@ function setupEventListeners() {
   }, 100);
 
   // Search input
-  const searchInput = document.getElementById("window-tasks").querySelector(".topbar-search-input");
-  if (searchInput) {
+  const searchInput = tasksWindow.querySelector(".topbar-search-input");
+  if (searchInput && tasksBindOnce(searchInput, "search-input")) {
     searchInput.addEventListener(
       "input",
       debounce(function (e) {
@@ -98,7 +91,8 @@ function setupEventListeners() {
   }
 
   // Nav items
-  document.getElementById("window-tasks").querySelectorAll(".topbar-nav-item").forEach((item) => {
+  tasksWindow.querySelectorAll(".topbar-nav-item").forEach((item) => {
+    if (!tasksBindOnce(item, "nav-click")) return;
     item.addEventListener("click", function () {
       document
         .querySelectorAll(".topbar-nav-item")
@@ -108,14 +102,20 @@ function setupEventListeners() {
   }, 100);
 
   // Progress log toggle
-  const logToggle = document.getElementById("window-tasks").querySelector(".progress-log-toggle");
-  if (logToggle) {
+  const logToggle = tasksWindow.querySelector(".progress-log-toggle");
+  if (logToggle && tasksBindOnce(logToggle, "log-toggle")) {
     logToggle.addEventListener("click", toggleProgressLog);
   }
 }
 
+// #2940 — publish the listener setup to the guarded runtime so the initializer
+// can call it only after this module has been evaluated (no cross-scope race).
+if (!window.TasksRuntime) window.TasksRuntime = { windowEl: null, setupListeners: null, initRetries: 0, bound: new WeakMap() };
+window.TasksRuntime.setupListeners = setupEventListeners;
+
 function setupKeyboardShortcuts() {
-if (tasksWindow) {
+var tasksWindow = getTasksWindow();
+if (tasksWindow && tasksBindOnce(tasksWindow, "keydown")) {
   tasksWindow.addEventListener("keydown", function (e) {
     // Escape: Deselect task
     if (e.key === "Escape") {

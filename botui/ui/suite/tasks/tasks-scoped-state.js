@@ -21,6 +21,39 @@ if (typeof TasksState === "undefined") {
   };
 }
 
+// #2940 — HTMX re-evaluates these classic scripts each time the Tasks window
+// is recreated. Keep cross-script state on a guarded namespace: a top-level
+// const/let would throw "Identifier 'tasksWindow' has already been declared"
+// on the second evaluation.
+if (!window.TasksRuntime) {
+  window.TasksRuntime = {
+    windowEl: null,
+    setupListeners: null,
+    initRetries: 0,
+    bound: new WeakMap(),
+  };
+}
+if (!window.TasksRuntime.bound) window.TasksRuntime.bound = new WeakMap();
+
+function getTasksWindow() {
+  window.TasksRuntime.windowEl = document.getElementById("window-tasks");
+  return window.TasksRuntime.windowEl;
+}
+
+// Bind once per element and purpose so re-initialisation cannot stack
+// duplicate listeners on the same DOM node.
+function tasksBindOnce(el, key) {
+  if (!el) return false;
+  var seen = window.TasksRuntime.bound.get(el);
+  if (!seen) {
+    seen = {};
+    window.TasksRuntime.bound.set(el, seen);
+  }
+  if (seen[key]) return false;
+  seen[key] = true;
+  return true;
+}
+
 // #2934 — the only registered stats route returns an HTMX HTML fragment
 // (botserver/crates/bottasks/src/lib.rs:55), not JSON. Parse the fragment so
 // the filter pills render real numbers without a fetch/parse failure.
@@ -58,40 +91,40 @@ window.parseTaskStatsFragment = parseTaskStatsFragment;
 // INITIALIZATION
 // =============================================================================
 
-setTimeout(function () {
-  // Only init if tasks app is visible
-  if (document.getElementById("window-tasks") && document.getElementById("window-tasks").querySelector(".tasks-app")) {
-    initTasksApp();
+// #2940 — HTMX can evaluate script tags after the first timer fires. Wait for
+// the listener module to register before calling across script boundaries.
+function scheduleTasksInit() {
+  var rt = window.TasksRuntime;
+  var w = getTasksWindow();
+  if (!w || !w.querySelector(".tasks-app")) return;
+  if (tasksBindOnce(w, "boot-afterSwap")) {
+    w.addEventListener("htmx:afterSwap", function (evt) {
+      var current = getTasksWindow();
+      if (evt.detail.target && evt.detail.target.id === "main-content" && current && current.querySelector(".tasks-app")) {
+        gbLog.debug("[Tasks] Detected tasks app loaded via HTMX, initializing...");
+        scheduleTasksInit();
+      }
+    });
   }
-}, 100);
-
-// Reinitialize when tasks page is loaded via HTMX
-const tasksWindow = document.getElementById("window-tasks");
-if (tasksWindow) {
-  tasksWindow.addEventListener("htmx:afterSwap", function (evt) {
-  // Check if tasks app was just loaded
-  if (evt.detail.target && evt.detail.target.id === "main-content") {
-    if (document.getElementById("window-tasks") && document.getElementById("window-tasks").querySelector(".tasks-app")) {
-      gbLog.debug(
-        "[Tasks] Detected tasks app loaded via HTMX, initializing...",
-      );
-      initTasksApp();
-    }
+  if (typeof rt.setupListeners !== "function") {
+    if (rt.initRetries++ < 40) setTimeout(scheduleTasksInit, 50);
+    return;
   }
-});
+  rt.initRetries = 0;
+  initTasksApp();
 }
+
+setTimeout(scheduleTasksInit, 100);
 
 function initTasksApp() {
   // Only init WebSocket if not already connected
-  if (
-    !TasksState.wsConnection ||
-    TasksState.wsConnection.readyState !== WebSocket.OPEN
-  ) {
+  if (!TasksState.wsConnection || TasksState.wsConnection.readyState !== WebSocket.OPEN) {
     initWebSocket();
   } else {
     gbLog.debug("[Tasks] WebSocket already connected, skipping init");
   }
-  setupEventListeners();
+  if (typeof window.TasksRuntime.setupListeners !== "function") return;
+  window.TasksRuntime.setupListeners();
   setupKeyboardShortcuts();
   setupIntentInputHandlers();
   setupHtmxListeners();
@@ -116,7 +149,8 @@ function findPendingManifest(taskId) {
 
 function setupHtmxListeners() {
   // Listen for HTMX content swaps to apply pending manifest updates
-if (tasksWindow) {
+var tasksWindow = getTasksWindow();
+if (tasksWindow && tasksBindOnce(tasksWindow, "detail-afterSwap")) {
   tasksWindow.addEventListener("htmx:afterSwap", function (evt) {
     const target = evt.detail.target;
     if (
@@ -124,28 +158,13 @@ if (tasksWindow) {
       (target.id === "task-detail-content" ||
         target.closest("#task-detail-content"))
     ) {
-      gbLog.debug(
-        "[HTMX] Task detail content loaded, checking for pending manifest updates",
-        "\n  selectedTaskId:",
-        TasksState.selectedTaskId,
-        "\n  pending keys:",
-        Array.from(pendingManifestUpdates.keys()),
-      );
+      gbLog.debug("[HTMX] Task detail content loaded, checking for pending manifest updates", "\n  selectedTaskId:", TasksState.selectedTaskId, "\n  pending keys:", Array.from(pendingManifestUpdates.keys()));
       // Check if there's a pending manifest update for the selected task
       const pending = findPendingManifest(TasksState.selectedTaskId);
       if (pending) {
-        gbLog.debug(
-          "[HTMX] Applying pending manifest for task:",
-          TasksState.selectedTaskId,
-          "from key:",
-          pending.key,
-        );
+        gbLog.debug("[HTMX] Applying pending manifest for task:", TasksState.selectedTaskId, "from key:", pending.key);
         setTimeout(() => {
-          renderManifestProgress(
-            TasksState.selectedTaskId,
-            pending.manifest,
-            0,
-          );
+          renderManifestProgress(TasksState.selectedTaskId, pending.manifest, 0);
         }, 50);
       } else {
         gbLog.debug("[HTMX] No pending manifest found for selected task");
@@ -158,8 +177,9 @@ if (tasksWindow) {
 function setupIntentInputHandlers() {
   const input = document.getElementById("quick-intent-input");
   const btn = document.getElementById("quick-intent-btn");
+  var tasksWindow = getTasksWindow();
 
-  if (input && btn) {
+  if (input && btn && tasksBindOnce(input, "intent-enter")) {
     input.addEventListener("keypress", function (e) {
       if (e.key === "Enter" && input.value.trim()) {
         e.preventDefault();
@@ -168,7 +188,7 @@ function setupIntentInputHandlers() {
     }, 100);
   }
 
-if (tasksWindow) {
+if (tasksWindow && tasksBindOnce(tasksWindow, "intent-beforeRequest")) {
   tasksWindow.addEventListener("htmx:beforeRequest", function (e) {
     if (e.detail.elt.id === "quick-intent-btn") {
       const resultDiv = document.getElementById("intent-result");
@@ -184,7 +204,7 @@ if (tasksWindow) {
   }, 100);
 }
 
-if (tasksWindow) {
+if (tasksWindow && tasksBindOnce(tasksWindow, "intent-afterRequest")) {
   tasksWindow.addEventListener("htmx:afterRequest", function (e) {
     if (e.detail.elt.id === "quick-intent-btn") {
       const resultDiv = document.getElementById("intent-result");
@@ -239,7 +259,7 @@ if (tasksWindow) {
 }
 
   // Save intent text before submit for progress display
-  if (input) {
+  if (input && tasksBindOnce(input, "intent-input")) {
     input.addEventListener("input", function () {
       input.setAttribute("data-last-intent", input.value);
     }, 100);
@@ -284,23 +304,13 @@ function startTaskPolling(taskId) {
       }
 
       const task = await response.json();
-      gbLog.debug(
-        `[POLL] Task ${taskId} status: ${task.status}, progress: ${task.progress || 0}%`,
-      );
+      gbLog.debug(`[POLL] Task ${taskId} status: ${task.status}, progress: ${task.progress || 0}%`);
 
       // Update progress
-      const progress = task.progress || 0;
       const currentStep = task.current_step || 0;
       const totalSteps = task.total_steps || 100;
       const message = task.status || "Processing...";
-      updateFloatingProgressBar(
-        currentStep,
-        totalSteps,
-        message,
-        "poll",
-        null,
-        null,
-      );
+      updateFloatingProgressBar(currentStep, totalSteps, message, "poll", null, null);
 
       // Check if task is complete
       // Update the task card in-place without refreshing entire list
@@ -348,9 +358,7 @@ function initWebSocket() {
   if (window._taskProgressWsConnection) {
     const state = window._taskProgressWsConnection.readyState;
     if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
-      gbLog.debug(
-        "[Tasks WS] Global WebSocket already connected/connecting, reusing",
-      );
+      gbLog.debug("[Tasks WS] Global WebSocket already connected/connecting, reusing");
       // Just update local reference
       TasksState.wsConnection = window._taskProgressWsConnection;
       return;
@@ -393,12 +401,7 @@ function initWebSocket() {
     };
 
     ws.onclose = function (event) {
-      gbLog.debug(
-        "[Tasks WS] WebSocket disconnected, code:",
-        event.code,
-        "reason:",
-        event.reason,
-      );
+      gbLog.debug("[Tasks WS] WebSocket disconnected, code:", event.code, "reason:", event.reason);
       window._taskProgressWsConnection = null;
       TasksState.wsConnection = null;
       setTimeout(initWebSocket, 5000);
@@ -415,10 +418,7 @@ function initWebSocket() {
 // Register a handler to receive WebSocket messages (for ProgressPanel etc.)
 function registerTaskProgressHandler(handler) {
   window._taskProgressWsHandlers.add(handler);
-  gbLog.debug(
-    "[Tasks WS] Registered handler, total:",
-    window._taskProgressWsHandlers.size,
-  );
+  gbLog.debug("[Tasks WS] Registered handler, total:", window._taskProgressWsHandlers.size);
 }
 
 // Unregister a handler
