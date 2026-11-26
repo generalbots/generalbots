@@ -1,73 +1,96 @@
-/* Dark Theme for General Bots */
+/* Dark — legacy --color-* theme, now an accent-only identity variant.
+ *
+ * Paper, ink, greys, radii and shadows come from the identity tokens in
+ * /suite/css/identity-tokens.css. Only the seven accent tokens below differ
+ * from the design system; every --color-* name is an alias of an identity
+ * token so legacy components keep working with the identity look.
+ */
+
 :root {
-  --color-primary: #d4f505;
-  --color-secondary: #00d4aa;
-  --color-accent: #818cf8;
+    /* Accent (light) — OKLCH derivation of #D4F505. */
+    --id-accent: #D4F505;
+    --id-accent-hover: #C1D800;
+    --id-accent-light: #D9FF94;
+    --id-accent-text: #7B7600; /* 4.50:1 on identity paper */
+    --id-accent-soft: rgb(212 245 5 / .1);
+    --id-accent-glow: rgb(212 245 5 / .26);
+    --id-on-accent: #2C2C2C; /* 11.21:1 on accent */
 
-  --color-bg: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-
-  --color-text: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #64748b;
-
-  --color-border: #334155;
-  --color-border-light: #1e293b;
-
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
-
-  --radius-sm: 0.25rem;
-  --radius: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+    /* Legacy --color-* vocabulary — aliases, no theme-specific surfaces. */
+    --color-primary: var(--id-accent);
+    --color-primary-hover: var(--id-accent-hover);
+    --color-secondary: var(--id-accent-light);
+    --color-accent: var(--id-accent);
+    --color-bg: var(--id-paper);
+    --color-bg-secondary: var(--id-surface-solid);
+    --color-bg-tertiary: var(--id-gray-100);
+    --color-text: var(--id-ink);
+    --color-text-secondary: var(--id-text);
+    --color-text-muted: var(--id-muted);
+    --color-border: var(--id-line);
+    --color-border-light: var(--id-line-soft);
+    --color-success: var(--id-success);
+    --color-warning: var(--id-warn);
+    --color-error: var(--id-danger);
+    --color-info: var(--id-hl-function);
+    --shadow-sm: var(--id-shadow-card);
+    --shadow: var(--id-shadow-card);
+    --shadow-md: var(--id-shadow-card-hover);
+    --shadow-lg: var(--id-shadow-float);
+    --radius-sm: var(--id-radius-sm);
+    --radius: var(--id-radius-control);
+    --radius-md: var(--id-radius-control);
+    --radius-lg: var(--id-radius-panel);
+    --radius-xl: var(--id-radius-card);
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 a {
-  color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 a:hover {
-  color: var(--color-primary);
+    color: var(--id-accent-hover);
 }
 
 .btn-primary {
-  background-color: var(--color-primary);
-  color: var(--color-bg);
+    background-color: var(--color-primary);
+    color: var(--id-on-accent);
 }
 
 .btn-primary:hover {
-  background-color: var(--color-secondary);
+    background-color: var(--id-accent-hover);
 }
 
 .card {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
 }
 
 input, textarea, select {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
 }
 
 input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.1);
+    outline: none;
+    border-color: var(--id-accent);
+    box-shadow: var(--id-focus);
+}
+
+/* Dark accents are scheme-keyed, never theme-id-keyed (#2591). */
+:root[data-color-scheme="dark"] {
+    --id-accent: #B6D600;
+    --id-accent-hover: #CFE800;
+    --id-accent-light: #8AAC63;
+    --id-accent-text: #FFFFAC; /* 16.17:1 on dark paper */
+    --id-accent-soft: rgb(212 245 5 / .15);
+    --id-accent-glow: rgb(212 245 5 / .3);
+    --id-on-accent: #2C2C2C; /* 8.38:1 on accent */
 }

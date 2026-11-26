@@ -1,268 +1,302 @@
-/* General Bots Suite - Base Layout & Theme Styles */
-/* Extracted from base.html inline styles - organized and deduplicated */
-
-/* ============================================ */
-/* THEME VARIABLES (6 THEMES)                   */
-/* ============================================ */
-
-/* #2930 — base tokens are keyed to the ONE authoritative attribute:
- * `:root[data-theme]`, written only by js/theme-manager.js. Scoping to :root
- * means a legacy `body[data-theme]` writer can never override the shell.
- * Both token vocabularies are emitted so late-loading apps (which read
- * --background/--foreground) never fall back to the dark :root defaults.
+/* General Bots Suite — base theme tokens.
+ *
+ * identity-tokens.css is the single source of truth for paper, ink, greys,
+ * surfaces, radii, shadows, type and motion. The legacy vocabulary below is
+ * nothing but aliases of those identity tokens, so every theme keeps the same
+ * design-system look. Theme blocks therefore override the seven accent tokens
+ * only — a theme changes the accent and nothing else.
+ *
+ * Dark accents are keyed by data-color-scheme (written by theme-scheme.js),
+ * never by a theme id — see the #2591 note in public/themes/default.css.
  */
-:root {
-    /* Default Dark Theme */
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --primary-light: rgba(59, 130, 246, 0.1);
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface-hover: #334155;
-    --border: #334155;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(80,80,90,0.35);
-        --win-border-active: #3b82f6;
-    --border-light: #475569;
-    --border-hover: #64748b;
-    --text: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
 
-    /* Semantic role aliases (#2324). These roles were referenced by apps but
-       only defined ad-hoc in individual themes, so the same intent resolved
-       to a different colour (or to nothing) outside those themes. Deriving
-       them from the canonical roles above makes them resolve in every theme.
-       No new colour values: a theme only has to tune the base role once. */
+:root {
+    /* Legacy HSL vocabulary — aliases of the fixed identity look. */
+    --accent-color: var(--id-accent);
+    /* HSL compatibility triplets: consumers call hsl(var(--background)),
+     * hsl(var(--primary)), hsl(var(--border)) ... and theme-scheme.js reads
+     * the same channels. Neutral values are the design-system defaults and
+     * identical in every theme; accent triplets are added below per theme. */
+    --background: 28 100% 97%;
+    --foreground: 0 0% 17%;
+    --card: 30 100% 99%;
+    --card-foreground: 0 0% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
+    --primary: 30 89% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 219 10% 41%;
+    --accent: 30 100% 94%;
+    --accent-foreground: 26 90% 37%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 0 0% 100%;
+    --ring: 30 89% 55%;
+    --radius: 0.75rem;
+    --chart-1: 30 89% 55%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 199 89% 48%;
+
+    /* Full-colour aliases for the same legacy roles. */
+    --accent-color: var(--id-accent);
+    --primary-hover: var(--id-accent-hover);
+    --primary-light: var(--id-accent-soft);
+    --border-color: var(--id-line);
+    --border-light: var(--id-line-soft);
+    --border-hover: var(--id-accent);
+
+    /* Legacy role vocabulary — same aliases, no theme-specific surfaces. */
+    --bg: var(--id-paper);
+    --bg-primary: var(--id-paper);
+    --bg-secondary: var(--id-surface-solid);
+    --bg-tertiary: var(--id-gray-100);
+    --surface: var(--id-surface);
+    --surface-hover: var(--id-fill);
+    --surface-active: var(--id-accent-soft);
+    --surface-elevated: var(--id-surface-solid);
+    --text: var(--id-ink);
+    --text-primary: var(--id-ink);
+    --text-secondary: var(--id-text);
+    --text-tertiary: var(--id-muted);
+    --success: var(--id-success);
+    --success-bg: var(--id-success-soft);
+    --warning: var(--id-warn);
+    --warning-bg: var(--id-warn-soft);
+    --error: var(--id-danger);
+    --error-bg: var(--id-danger-soft);
+    --info: var(--id-hl-function);
+    --shadow: var(--id-shadow-card);
+    --shadow-sm: var(--id-shadow-card);
+    --shadow-md: var(--id-shadow-card-hover);
+    --shadow-lg: var(--id-shadow-float);
+    --win-border-width: 1px;
+    --win-border-color: var(--id-line);
+    --win-border-active: var(--id-accent);
+
+    /* Semantic role aliases (#2324) — one identity intent, every theme. */
     --surface-raised: var(--surface-hover);
     --text-muted: var(--text-secondary);
     --danger: var(--error);
     --focus-ring: var(--primary);
 }
 
+/* ========================================================================== *
+ * Theme accents — the ONLY per-theme difference. Neutral/layout tokens above
+ * are inherited from identity-tokens.css by every theme.
+ * ========================================================================== */
+
 :root[data-theme="dark"] {
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --primary-light: rgba(59, 130, 246, 0.1);
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface-hover: #334155;
-    --border: #334155;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(80,80,90,0.35);
-        --win-border-active: #3b82f6;
-    --border-light: #475569;
-    --border-hover: #64748b;
-    --text: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --accent: 217 91% 94%;
+    --accent-foreground: 206 100% 40%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #3B82F6;
+    --id-accent-hover: #206CD3;
+    --id-accent-light: #829FFF;
+    --id-accent-text: #0074CD;
+    --id-accent-soft: rgb(59 130 246 / .1);
+    --id-accent-glow: rgb(59 130 246 / .26);
+    --id-on-accent: #000000;
 }
 
 :root[data-theme="light"] {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --surface-hover: #f1f5f9;
-    --border: #e2e8f0;
-        --win-border-width: 2px;
-        --win-border-color: rgba(15, 23, 42, 0.72);
-        --win-border-active: #2563eb;
-    --border-light: #cbd5e1;
-    --border-hover: #94a3b8;
-    --text: #1e293b;
-    --text-secondary: #64748b;
-    --text-tertiary: #94a3b8;
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --accent: 217 91% 94%;
+    --accent-foreground: 206 100% 40%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #3C83F6;
+    --id-accent-hover: #226DD3;
+    --id-accent-light: #83A0FF;
+    --id-accent-text: #0075CD;
+    --id-accent-soft: rgb(60 131 246 / .1);
+    --id-accent-glow: rgb(60 131 246 / .26);
+    --id-on-accent: #000000;
 }
 
 :root[data-theme="blue"] {
-    --primary: #0ea5e9;
-    --primary-hover: #0284c7;
-    --primary-light: rgba(14, 165, 233, 0.1);
-    --bg: #0c1929;
-    --surface: #1a2f47;
-    --surface-hover: #254063;
-    --border: #2d4a6f;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(45,74,111,0.3);
-        --win-border-active: #0ea5e9;
-    --border-light: #3d5a7f;
-    --border-hover: #4d6a8f;
-    --text: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
+    --primary: 199 89% 48%;
+    --ring: 199 89% 48%;
+    --chart-1: 199 89% 48%;
+    --accent: 199 89% 94%;
+    --accent-foreground: 196 100% 33%;
+    --primary-foreground: 0 0% 17%;
+    --id-accent: #0EA5E9;
+    --id-accent-hover: #008DC8;
+    --id-accent-light: #7ABFFE;
+    --id-accent-text: #007BA7;
+    --id-accent-soft: rgb(14 165 233 / .1);
+    --id-accent-glow: rgb(14 165 233 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
 :root[data-theme="purple"] {
-    --primary: #a855f7;
-    --primary-hover: #9333ea;
-    --primary-light: rgba(168, 85, 247, 0.1);
-    --bg: #1a0a2e;
-    --surface: #2d1b4e;
-    --surface-hover: #3d2566;
-    --border: #4c2f7e;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(76,47,126,0.3);
-        --win-border-active: #a855f7;
-    --border-light: #5c3f8e;
-    --border-hover: #6c4f9e;
-    --text: #f8fafc;
-    --text-secondary: #c4b5fd;
-    --text-tertiary: #8b5cf6;
+    --primary: 271 91% 65%;
+    --ring: 271 91% 65%;
+    --chart-1: 271 91% 65%;
+    --accent: 271 91% 94%;
+    --accent-foreground: 260 72% 61%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #A855F7;
+    --id-accent-hover: #8B42D7;
+    --id-accent-light: #CE80F4;
+    --id-accent-text: #8354E3;
+    --id-accent-soft: rgb(168 85 247 / .1);
+    --id-accent-glow: rgb(168 85 247 / .26);
+    --id-on-accent: #000000;
 }
 
 :root[data-theme="green"] {
-    --primary: #22c55e;
-    --primary-hover: #16a34a;
-    --primary-light: rgba(34, 197, 94, 0.1);
-    --bg: #0a1f15;
-    --surface: #14332a;
-    --surface-hover: #1e4a3d;
-    --border: #28604f;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(40,96,79,0.3);
-        --win-border-active: #22c55e;
-    --border-light: #38705f;
-    --border-hover: #48806f;
-    --text: #f8fafc;
-    --text-secondary: #86efac;
-    --text-tertiary: #4ade80;
+    --primary: 142 71% 45%;
+    --ring: 142 71% 45%;
+    --chart-1: 142 71% 45%;
+    --accent: 142 71% 94%;
+    --accent-foreground: 104 78% 29%;
+    --primary-foreground: 0 0% 17%;
+    --id-accent: #22C55E;
+    --id-accent-hover: #1FA947;
+    --id-accent-light: #5EE2A2;
+    --id-accent-text: #2E8310;
+    --id-accent-soft: rgb(34 197 94 / .1);
+    --id-accent-glow: rgb(34 197 94 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
 :root[data-theme="orange"] {
-    --primary: #f97316;
-    --primary-hover: #ea580c;
-    --primary-light: rgba(249, 115, 22, 0.1);
-    --bg: #1a1008;
-    --surface: #2d1c0f;
-    --surface-hover: #442a16;
-    --border: #5c3a1e;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(92,58,30,0.3);
-        --win-border-active: #f97316;
-    --border-light: #6c4a2e;
-    --border-hover: #7c5a3e;
-    --text: #f8fafc;
-    --text-secondary: #fdba74;
-    --text-tertiary: #fb923c;
+    --primary: 20 86% 46%;
+    --ring: 20 86% 46%;
+    --chart-1: 20 86% 46%;
+    --accent: 20 86% 94%;
+    --accent-foreground: 8 57% 49%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #D95410;
+    --id-accent-hover: #B93F03;
+    --id-accent-light: #E68749;
+    --id-accent-text: #C54A36;
+    --id-accent-soft: rgb(217 84 16 / .1);
+    --id-accent-glow: rgb(217 84 16 / .26);
+    --id-on-accent: #000000;
 }
 
-/* The default identity theme is warm paper (default.css), not the dark
- * :root fallback — pin its base tokens explicitly. */
+/* The default identity theme keeps the design-system literals exactly. */
 :root[data-theme="default"] {
-    --background: 28 100% 97%;
-    --foreground: 0 0% 17%;
-    --bg: #fff8f2;
-    --surface: #fffdfb;
-    --surface-hover: #f3f4f6;
-    --border: #e5e7eb;
-    --border-light: #f1f5f9;
-    --text: #2c2c2c;
-    --text-secondary: #5f6673;
-    --text-tertiary: #6b7280;
+    --primary: 30 89% 55%;
+    --ring: 30 89% 55%;
+    --chart-1: 30 89% 55%;
+    --accent: 30 100% 94%;
+    --accent-foreground: 26 90% 37%;
+    --primary-foreground: 0 0% 100%;
+    --id-accent: #F28C28;
+    --id-accent-hover: #D4751C;
+    --id-accent-light: #FDB96A;
+    --id-accent-text: #B45309;
+    --id-accent-soft: rgb(242 140 40 / .1);
+    --id-accent-glow: rgb(242 140 40 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
 :root[data-theme="sentient"] {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 100%;
-    --primary: #d4f505;
-    --primary-hover: #bfdd04;
-    --primary-light: rgba(212, 245, 5, 0.15);
-    --bg: #0a0a0a;
-    --surface: #161616;
-    --surface-hover: #1e1e1e;
-    --border: #2a2a2a;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(42,42,42,0.5);
-        --win-border-active: #d4f505;
-    --border-light: #3a3a3a;
-    --border-hover: #4a4a4a;
-    --text: #ffffff;
-    --text-secondary: #888888;
-    --text-tertiary: #666666;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
+    --primary: 68 96% 49%;
+    --ring: 68 96% 49%;
+    --chart-1: 68 96% 49%;
+    --accent: 68 96% 94%;
+    --accent-foreground: 58 100% 24%;
+    --primary-foreground: 0 0% 17%;
+    --id-accent: #D4F505;
+    --id-accent-hover: #C1D800;
+    --id-accent-light: #D9FF94;
+    --id-accent-text: #7B7600;
+    --id-accent-soft: rgb(212 245 5 / .1);
+    --id-accent-glow: rgb(212 245 5 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
-/* Retro Themes */
 :root[data-theme="cyberpunk"] {
-    --primary: #ff00ff;
-    --primary-hover: #cc00cc;
-    --primary-light: rgba(255, 0, 255, 0.15);
-    --bg: #0d0221;
-    --surface: #1a0a3e;
-    --surface-hover: #2a1a5e;
-    --border: #ff00ff33;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(255,0,255,0.3);
-        --win-border-active: #ff00ff;
-    --border-light: #ff00ff55;
-    --border-hover: #ff00ff77;
-    --text: #00ffff;
-    --text-secondary: #ff6ec7;
-    --text-tertiary: #cc5aa0;
+    --primary: 327 100% 55%;
+    --ring: 327 100% 55%;
+    --chart-1: 327 100% 55%;
+    --accent: 327 100% 94%;
+    --accent-foreground: 319 73% 48%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #FF1999;
+    --id-accent-hover: #DA0086;
+    --id-accent-light: #FF6E9F;
+    --id-accent-text: #D2219A;
+    --id-accent-soft: rgb(255 25 153 / .1);
+    --id-accent-glow: rgb(255 25 153 / .26);
+    --id-on-accent: #000000;
 }
 
 :root[data-theme="retrowave"] {
-    --primary: #ff6b9d;
-    --primary-hover: #ff4081;
-    --primary-light: rgba(255, 107, 157, 0.15);
-    --bg: #1a0a2e;
-    --surface: #2d1b4e;
-    --surface-hover: #3d2b6e;
-    --border: #ff6b9d33;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(255,107,157,0.3);
-        --win-border-active: #ff6b9d;
-    --border-light: #ff6b9d55;
-    --border-hover: #ff6b9d77;
-    --text: #ffeaa7;
-    --text-secondary: #a29bfe;
-    --text-tertiary: #817bce;
+    --primary: 336 85% 60%;
+    --ring: 336 85% 60%;
+    --chart-1: 336 85% 60%;
+    --accent: 336 85% 94%;
+    --accent-foreground: 327 56% 51%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #F04288;
+    --id-accent-hover: #CD2F76;
+    --id-accent-light: #FF7C94;
+    --id-accent-text: #C73B88;
+    --id-accent-soft: rgb(240 66 136 / .1);
+    --id-accent-glow: rgb(240 66 136 / .26);
+    --id-on-accent: #000000;
 }
 
 :root[data-theme="vapordream"] {
-    --primary: #a29bfe;
-    --primary-hover: #6c5ce7;
-    --primary-light: rgba(162, 155, 254, 0.15);
-    --bg: #2d3436;
-    --surface: #636e72;
-    --surface-hover: #74b9ff;
-    --border: #a29bfe33;
-        --win-border-width: 1.5px;
-        --win-border-color: rgba(162,155,254,0.3);
-        --win-border-active: #a29bfe;
-    --border-light: #a29bfe55;
-    --border-hover: #a29bfe77;
-    --text: #ffeaa7;
-    --text-secondary: #fd79a8;
-    --text-tertiary: #cd6188;
+    --primary: 300 100% 70%;
+    --ring: 300 100% 70%;
+    --chart-1: 300 100% 70%;
+    --accent: 300 100% 94%;
+    --accent-foreground: 287 58% 53%;
+    --primary-foreground: 0 0% 17%;
+    --id-accent: #FF66FF;
+    --id-accent-hover: #DC55E3;
+    --id-accent-light: #FF99FC;
+    --id-accent-text: #AD41CC;
+    --id-accent-soft: rgb(255 102 255 / .1);
+    --id-accent-glow: rgb(255 102 255 / .26);
+    --id-on-accent: #2C2C2C;
 }
 
 :root[data-theme="y2kglow"] {
-    --primary: #00ff00;
-    --primary-hover: #00cc00;
-    --primary-light: rgba(0, 255, 0, 0.15);
-    --bg: #000033;
-    --surface: #000066;
-    --surface-hover: #000099;
-    --border: #00ff0033;
-        --win-border-width: 2px;
-        --win-border-color: rgba(0,255,0,0.25);
-        --win-border-active: #00ff00;
-    --border-light: #00ff0055;
-    --border-hover: #00ff0077;
-    --text: #ffffff;
-    --text-secondary: #00ffff;
-    --text-tertiary: #00cccc;
+    --primary: 195 88% 43%;
+    --ring: 195 88% 43%;
+    --chart-1: 195 88% 43%;
+    --accent: 195 88% 94%;
+    --accent-foreground: 191 100% 30%;
+    --primary-foreground: 0 0% 0%;
+    --id-accent: #0D9DCC;
+    --id-accent-hover: #0085AD;
+    --id-accent-light: #71B7E5;
+    --id-accent-text: #007D9A;
+    --id-accent-soft: rgb(13 157 204 / .1);
+    --id-accent-glow: rgb(13 157 204 / .26);
+    --id-on-accent: #000000;
+}
+
+/* Fallback dark accent when no theme stylesheet is loaded. A loaded theme
+ * overrides these in its own data-color-scheme block (later in the cascade). */
+:root[data-color-scheme="dark"] {
+    --primary: 30 89% 55%;
+    --ring: 30 89% 55%;
+    --chart-1: 30 89% 55%;
+    --accent: 30 100% 94%;
+    --accent-foreground: 32 96% 72%;
+    --id-accent: #F28C28;
+    --id-accent-hover: #D4751C;
+    --id-accent-light: #FDB96A;
+    --id-accent-text: #FDB96A;
+    --id-accent-soft: rgb(242 140 40 / .16);
+    --id-accent-glow: rgb(242 140 40 / .3);
+    --id-on-accent: #2C2C2C;
 }

@@ -1,15 +1,13 @@
-/* Config Color Overrides */
-/* Maps theme-color1 and theme-color2 from config.csv to actual theme variables */
-
+/* Config Color Overrides
+ *
+ * Maps theme-color1 from config.csv onto the identity accent. The fallback is
+ * the identity accent itself, so a bot without a custom colour looks exactly
+ * like the design system. No theme-specific surfaces or raw colours here.
+ */
 :root {
-    /* Use --color1 and --color2 from config.csv, with fallback defaults */
-    --sentient-accent: var(--color1, #2563eb);
-    --primary: var(--color1, #2563eb);
-    --primary-hover: color-mix(in srgb, var(--color1, #2563eb) 85%, black);
-    --primary-light: color-mix(in srgb, var(--color1, #2563eb) 10%, transparent);
-    --chart-1: var(--color1, #2563eb);
-    --ring: var(--color1, #2563eb);
-
-    /* Background can use color2 for subtle tint */
-    /* --sentient-bg-primary stays white/light for text readability */
+    --sentient-accent: var(--color1, var(--id-accent));
+    --accent-color: var(--color1, var(--id-accent));
+    --primary-accent: var(--color1, var(--id-accent));
+    --chart-1: var(--color1, var(--id-accent));
+    --ring-accent: var(--color1, var(--id-accent));
 }

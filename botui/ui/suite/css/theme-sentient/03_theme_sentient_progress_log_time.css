@@ -16,7 +16,7 @@
 [data-theme="sentient"] .sidebar-item {
     color: var(--text-secondary);
     padding: 10px 16px;
-    border-radius: 8px;
+    border-radius: var(--id-radius-sm);
     margin: 4px 8px;
     transition: all 0.2s ease;
 }
@@ -27,8 +27,8 @@
 }
 
 [data-theme="sentient"] .sidebar-item.active {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: var(--id-accent-soft);
+    color: var(--id-accent);
 }
 
 /* ============================================ */
@@ -38,8 +38,8 @@
 [data-theme="sentient"] .apps-dropdown,
 [data-theme="sentient"] .dropdown-menu {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
     box-shadow: var(--shadow-lg);
 }
 
@@ -50,13 +50,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] .app-item {
     color: var(--text);
     padding: 12px;
-    border-radius: 8px;
+    border-radius: var(--id-radius-sm);
     transition: all 0.2s ease;
 }
 
@@ -83,17 +83,17 @@
 }
 
 [data-theme="sentient"] .app-item.active {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: var(--id-accent-soft);
+    color: var(--id-accent);
 }
 
 [data-theme="sentient"] .app-item.active span,
 [data-theme="sentient"] .app-item.active .app-icon {
-    color: var(--accent);
+    color: var(--id-accent);
 }
 
 [data-theme="sentient"] .app-item.active .app-icon svg {
-    stroke: var(--accent);
+    stroke: var(--id-accent);
 }
 
 /* ============================================ */
@@ -106,7 +106,7 @@
     background: var(--surface);
     border: 1px solid var(--input-border);
     color: var(--text);
-    border-radius: 8px;
+    border-radius: var(--id-radius-sm);
     padding: 10px 14px;
     transition: all 0.2s ease;
 }
@@ -114,7 +114,7 @@
 /* Ensure theme dropdown uses surface color in all themes */
 [data-theme="sentient"] select.theme-dropdown,
 [data-theme="sentient"] #themeDropdown {
-    background: var(--surface) !important;
+    background: var(--surface);
 }
 
 [data-theme="sentient"] input:focus,
@@ -122,7 +122,7 @@
 [data-theme="sentient"] select:focus {
     border-color: var(--input-focus-border);
     outline: none;
-    box-shadow: 0 0 0 3px var(--accent-light);
+    box-shadow: 0 0 0 3px var(--id-accent-soft);
 }
 
 [data-theme="sentient"] input::placeholder,
@@ -136,13 +136,13 @@
 
 [data-theme="sentient"] .modal-content {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-panel);
     box-shadow: var(--shadow-lg);
 }
 
 [data-theme="sentient"] .modal-header {
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
     padding: 20px 24px;
 }
 
@@ -155,7 +155,7 @@
 }
 
 [data-theme="sentient"] .modal-footer {
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--id-line);
     padding: 16px 24px;
 }
 
@@ -177,7 +177,7 @@
     letter-spacing: 0.5px;
     padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] td {
@@ -205,11 +205,11 @@
 
 [data-theme="sentient"] ::-webkit-scrollbar-thumb {
     background: var(--surface-hover);
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
 }
 
 [data-theme="sentient"] ::-webkit-scrollbar-thumb:hover {
-    background: var(--border);
+    background: var(--id-line);
 }
 
 /* ============================================ */
@@ -217,12 +217,12 @@
 /* ============================================ */
 
 [data-theme="sentient"] .loading-overlay {
-    background: rgba(10, 10, 10, 0.9);
+    background: var(--id-surface);
 }
 
 [data-theme="sentient"] .loading-spinner {
     border-color: var(--surface-hover);
-    border-top-color: var(--accent);
+    border-top-color: var(--id-accent);
 }
 
 [data-theme="sentient"] .skeleton {
@@ -250,24 +250,24 @@
 /* ============================================ */
 
 [data-theme="sentient"] .message-user {
-    background: var(--accent);
-    color: var(--chat-fg1, var(--text, #ffffff));
+    background: var(--id-accent);
+    color: var(--chat-fg1, var(--text, var(--id-surface-solid)));
 }
 
 [data-theme="sentient"] .message-bot {
     background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border);
+    border: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] .chat-input-container {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
 }
 
 [data-theme="sentient"] .chat-input-container:focus-within {
-    border-color: var(--accent);
+    border-color: var(--id-accent);
 }
 
 /* ============================================ */
@@ -281,7 +281,7 @@
 @keyframes pulse-accent {
     0%,
     100% {
-        box-shadow: 0 0 0 0 var(--accent-glow);
+        box-shadow: 0 0 0 0 var(--id-accent-glow);
     }
     50% {
         box-shadow: 0 0 0 10px transparent;
@@ -294,8 +294,8 @@
 
 [data-theme="sentient"] .stat-card {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
     padding: 20px;
 }
 
@@ -312,7 +312,7 @@
 }
 
 [data-theme="sentient"] .stat-highlight {
-    color: var(--accent);
+    color: var(--id-accent);
 }
 
 /* Time saved indicator */
@@ -321,9 +321,9 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: var(--accent-light);
-    border-radius: 20px;
-    color: var(--accent);
+    background: var(--id-accent-soft);
+    border-radius: var(--id-radius-card);
+    color: var(--id-accent);
     font-weight: 600;
     font-size: var(--text-sm);
 }
@@ -334,8 +334,8 @@
 
 [data-theme="sentient"] .detail-panel {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
 }
 
 [data-theme="sentient"] .detail-header {
@@ -343,7 +343,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] .detail-title {
@@ -379,8 +379,8 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
+    border-radius: var(--id-radius-sm);
+    border: 1px solid var(--id-line);
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
@@ -395,9 +395,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

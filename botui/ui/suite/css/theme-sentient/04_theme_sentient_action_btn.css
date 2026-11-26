@@ -24,7 +24,7 @@
     justify-content: space-between;
     align-items: center;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] .detail-title-rich {
@@ -36,7 +36,7 @@
 
 [data-theme="sentient"] .status-badge-rich {
     padding: 6px 16px;
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -45,31 +45,31 @@
 
 [data-theme="sentient"] .status-badge-rich.status-running,
 [data-theme="sentient"] .status-badge-rich.status-pending {
-    background: var(--accent);
-    color: #000;
+    background: var(--id-accent);
+    color: var(--id-on-accent);
 }
 
 [data-theme="sentient"] .status-badge-rich.status-completed {
     background: var(--success);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 [data-theme="sentient"] .status-badge-rich.status-error,
 [data-theme="sentient"] .status-badge-rich.status-failed {
     background: var(--error);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 [data-theme="sentient"] .status-badge-rich.status-paused {
     background: var(--warning);
-    color: #000;
+    color: var(--id-on-accent);
 }
 
 /* Section Boxes */
 [data-theme="sentient"] .detail-section-box {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
     padding: 16px;
 }
 
@@ -102,9 +102,9 @@
 [data-theme="sentient"] .status-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
+    border-radius: var(--id-radius-pill);
+    background: var(--id-accent);
+    box-shadow: 0 0 8px var(--id-accent);
 }
 
 [data-theme="sentient"] .status-dot.status-running {
@@ -161,7 +161,7 @@
     padding: 10px 14px;
     background: var(--error-bg);
     border: 1px solid var(--error);
-    border-radius: 6px;
+    border-radius: var(--id-radius-sm);
     margin-bottom: 12px;
 }
 
@@ -190,8 +190,8 @@
 [data-theme="sentient"] .status-indicator {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
+    border-radius: var(--id-radius-pill);
+    background: var(--id-accent);
 }
 
 [data-theme="sentient"] .status-indicator.active {
@@ -216,21 +216,21 @@
 [data-theme="sentient"] .progress-bar-rich {
     height: 8px;
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 1px solid var(--id-line);
 }
 
 [data-theme="sentient"] .progress-fill-rich {
     height: 100%;
     background: linear-gradient(
         90deg,
-        var(--accent) 0%,
-        var(--accent-hover) 100%
+        var(--id-accent) 0%,
+        var(--id-accent-hover) 100%
     );
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     transition: width 0.3s ease;
-    box-shadow: 0 0 10px var(--accent-glow);
+    box-shadow: 0 0 10px var(--id-accent-glow);
 }
 
 [data-theme="sentient"] .progress-info-rich {
@@ -264,7 +264,7 @@
     gap: 12px;
     padding: 10px 12px;
     background: var(--surface-hover);
-    border-radius: 6px;
+    border-radius: var(--id-radius-sm);
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -286,18 +286,18 @@
 
 [data-theme="sentient"] .log-step-badge {
     padding: 3px 10px;
-    background: var(--accent);
-    color: #000;
+    background: var(--id-accent);
+    color: var(--id-on-accent);
     font-size: var(--text-2xs);
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
 }
 
 [data-theme="sentient"] .log-status-badge {
     padding: 3px 10px;
     font-size: var(--text-2xs);
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     background: var(--surface-active);
     color: var(--text-secondary);
 }
@@ -309,7 +309,7 @@
 
 [data-theme="sentient"] .log-group-items {
     padding: 8px 0 0 20px;
-    border-left: 2px solid var(--border);
+    border-left: 2px solid var(--id-line);
     margin-left: 12px;
     margin-top: 8px;
 }
@@ -320,15 +320,15 @@
     gap: 10px;
     padding: 8px 12px;
     background: var(--surface);
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     margin-bottom: 6px;
 }
 
 [data-theme="sentient"] .log-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    background: var(--border);
+    border-radius: var(--id-radius-pill);
+    background: var(--id-line);
 }
 
 [data-theme="sentient"] .log-dot.completed {
@@ -336,7 +336,7 @@
 }
 
 [data-theme="sentient"] .log-dot.active {
-    background: var(--accent);
+    background: var(--id-accent);
     animation: pulse-dot 1.5s ease-in-out infinite;
 }
 
@@ -351,7 +351,7 @@
     background: var(--surface-active);
     color: var(--text-secondary);
     font-size: var(--text-2xs);
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
 }
 
 [data-theme="sentient"] .log-item-status {
@@ -370,12 +370,12 @@
 [data-theme="sentient"] .log-subdot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
-    background: var(--border);
+    border-radius: var(--id-radius-pill);
+    background: var(--id-line);
 }
 
 [data-theme="sentient"] .log-subdot.completed {
-    background: var(--accent);
+    background: var(--id-accent);
 }
 
 [data-theme="sentient"] .log-subitem-name {
@@ -390,15 +390,15 @@
 
 /* Terminal Section Rich */
 [data-theme="sentient"] .terminal-section-rich {
-    background: #0d0d0d;
-    border-color: var(--border);
+    background: var(--id-surface-solid);
+    border-color: var(--id-line);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

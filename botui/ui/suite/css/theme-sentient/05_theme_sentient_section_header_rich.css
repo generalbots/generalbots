@@ -8,14 +8,14 @@
 [data-theme="sentient"] .terminal-dot-rich {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: var(--id-radius-pill);
     background: var(--text-tertiary);
     display: inline-block;
 }
 
 [data-theme="sentient"] .terminal-dot-rich.active {
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
+    background: var(--id-accent);
+    box-shadow: 0 0 8px var(--id-accent);
     animation: pulse-dot 1.5s ease-in-out infinite;
 }
 
@@ -33,10 +33,10 @@
 }
 
 [data-theme="sentient"] .terminal-output-rich {
-    background: #000;
-    border-radius: 6px;
+    background: var(--id-paper);
+    border-radius: var(--id-radius-sm);
     padding: 12px 16px;
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-family: var(--id-font-mono, monospace);
     font-size: 0.8rem;
     line-height: 1.6;
     max-height: 150px;
@@ -50,7 +50,7 @@
 }
 
 [data-theme="sentient"] .terminal-line.current {
-    color: var(--accent);
+    color: var(--id-accent);
 }
 
 [data-theme="sentient"] .terminal-line.error {
@@ -71,7 +71,7 @@
 }
 
 [data-theme="sentient"] .terminal-footer-rich strong {
-    color: var(--accent);
+    color: var(--id-accent);
 }
 
 /* Intent Section */
@@ -87,7 +87,7 @@
     display: flex;
     gap: 10px;
     padding-top: 8px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--id-line);
     margin-top: auto;
 }
 
@@ -96,12 +96,12 @@
     align-items: center;
     gap: 6px;
     padding: 10px 18px;
-    border-radius: 6px;
+    border-radius: var(--id-radius-sm);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid var(--border);
+    border: 1px solid var(--id-line);
     background: transparent;
     color: var(--text-secondary);
 }
@@ -131,12 +131,12 @@
 
 [data-theme="sentient"] .btn-action-rich.btn-detailed {
     margin-left: auto;
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--id-accent);
+    color: var(--id-accent);
 }
 
 [data-theme="sentient"] .btn-action-rich.btn-detailed:hover {
-    background: var(--accent-light);
+    background: var(--id-accent-soft);
 }
 
 /* Sentient Scrollbar for task detail */
@@ -149,12 +149,12 @@
 }
 
 [data-theme="sentient"] .task-detail-rich::-webkit-scrollbar-thumb {
-    background: var(--accent);
+    background: var(--id-accent);
     border-radius: 3px;
 }
 
 [data-theme="sentient"] .task-detail-rich::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover);
+    background: var(--id-accent-hover);
 }
 
 [data-theme="sentient"] .progress-log-content::-webkit-scrollbar,
@@ -169,19 +169,19 @@
 
 [data-theme="sentient"] .progress-log-content::-webkit-scrollbar-thumb,
 [data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: var(--id-line);
     border-radius: 2px;
 }
 
 [data-theme="sentient"] .progress-log-content::-webkit-scrollbar-thumb:hover,
 [data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
+    background: var(--id-accent);
 }
 
 /* Task Card Sentient Enhancements */
 [data-theme="sentient"] .task-card {
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
     transition: all 0.2s;
 }
 
@@ -191,12 +191,12 @@
 }
 
 [data-theme="sentient"] .task-card.selected {
-    border-color: var(--accent);
-    box-shadow: 0 0 20px rgba(212, 245, 5, 0.15);
+    border-color: var(--id-accent);
+    box-shadow: var(--id-accent-glow);
 }
 
 [data-theme="sentient"] .task-card::before {
-    background: var(--accent);
+    background: var(--id-accent);
 }
 
 [data-theme="sentient"] .task-card.status-complete::before {
@@ -222,8 +222,8 @@
 /* Tree Section (Level 0) - Main sections like "Database & Models" */
 [data-theme="sentient"] .tree-section {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
     margin: 8px 16px;
     overflow: hidden;
 }
@@ -252,7 +252,7 @@
 [data-theme="sentient"] .tree-level-1 {
     padding-left: 40px;
     background: var(--bg-secondary);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--id-line);
 }
 
 /* Section/Child name */
@@ -272,18 +272,18 @@
 [data-theme="sentient"] .tree-section-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: var(--id-radius-pill);
     flex-shrink: 0;
     background: var(--text-muted);
 }
 
 [data-theme="sentient"] .tree-section-dot.completed {
-    background: var(--accent);
+    background: var(--id-accent);
 }
 
 [data-theme="sentient"] .tree-section-dot.running {
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent-glow);
+    background: var(--id-accent);
+    box-shadow: var(--id-accent-glow);
     animation: sentient-dot-pulse 1.5s ease-in-out infinite;
 }
 
@@ -298,9 +298,9 @@
 /* Step badge - green pill */
 [data-theme="sentient"] .tree-step-badge {
     padding: 4px 12px;
-    background: var(--accent);
+    background: var(--id-accent);
     color: var(--bg);
-    border-radius: 4px;
+    border-radius: var(--id-radius-sm);
     font-size: var(--text-2xs);
     font-weight: 600;
     margin-left: auto;
@@ -328,7 +328,7 @@
 }
 
 [data-theme="sentient"] .tree-status.running {
-    color: var(--accent);
+    color: var(--id-accent);
 }
 
 [data-theme="sentient"] .tree-status.failed {
@@ -390,14 +390,14 @@
 }
 
 [data-theme="sentient"] .tree-item.running {
-    background: rgba(var(--accent-rgb), 0.03);
+    background: var(--id-accent-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

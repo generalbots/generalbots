@@ -1,5 +1,5 @@
 /*
- * Settings — identity surface for the Default theme (#2567, WS2).
+ * Settings — identity surface for every theme (#2567, WS2).
  *
  * The suite Settings screen keeps every feature (identity, security, language,
  * appearance, integrations, ledger, nav registry); this sheet moves its surface
@@ -13,24 +13,24 @@
  * (the active row's white label was invisible on the sidebar).
  */
 
-:root[data-theme="default"] .settings-layout,
-:root[data-theme="default"] .settings-container {
-    --settings-accent: hsl(var(--primary, 30 89% 55%));
+:root .settings-layout,
+:root .settings-container {
+    --settings-accent: var(--id-accent);
     --settings-accent-soft: color-mix(in srgb, var(--settings-accent) 10%, transparent);
     --settings-accent-softer: color-mix(in srgb, var(--settings-accent) 6%, transparent);
     --settings-accent-ink: color-mix(in srgb, var(--settings-accent) 72%, var(--text));
     grid-template-columns: 236px 1fr;
-    font-family: var(--id-font-sans, "Inter", "Fira Sans", system-ui, -apple-system, sans-serif);
+    font-family: var(--id-font-sans);
     color: var(--text);
 }
 
 /* == Sidebar ========================================================= */
-:root[data-theme="default"] .settings-sidebar {
+:root .settings-sidebar {
     background: var(--surface);
     border-right: 1px solid var(--border);
 }
 
-:root[data-theme="default"] .settings-header {
+:root .settings-header {
     padding: 20px 18px 12px;
     margin-bottom: 0;
     border-bottom: none;
@@ -41,15 +41,15 @@
     color: var(--text);
 }
 
-:root[data-theme="default"] .settings-header svg {
+:root .settings-header svg {
     color: var(--settings-accent);
 }
 
-:root[data-theme="default"] .settings-nav {
+:root .settings-nav {
     padding: 4px 10px;
 }
 
-:root[data-theme="default"] .nav-item {
+:root .nav-item {
     padding: 8px 10px;
     margin-bottom: 2px;
     border-radius: 8px;
@@ -61,59 +61,59 @@
     transition: background 0.15s, color 0.15s;
 }
 
-:root[data-theme="default"] .nav-item:hover {
+:root .nav-item:hover {
     background: var(--settings-accent-softer);
     color: var(--text);
 }
 
-:root[data-theme="default"] .nav-item.active {
+:root .nav-item.active {
     background: var(--settings-accent-soft);
     color: var(--settings-accent-ink);
     font-weight: 600;
 }
 
-:root[data-theme="default"] .nav-item.active svg {
+:root .nav-item.active svg {
     color: inherit;
 }
 
-:root[data-theme="default"] .nav-divider {
+:root .nav-divider {
     margin-top: 6px;
     padding: 12px 10px 6px;
     border-top: 1px solid var(--border);
 }
 
-:root[data-theme="default"] .nav-divider span {
+:root .nav-divider span {
     font-size: var(--text-2xs);
     letter-spacing: 0.08em;
     color: var(--text-secondary);
 }
 
-:root[data-theme="default"] .settings-footer {
+:root .settings-footer {
     padding: 12px 16px;
     border-top: 1px solid var(--border);
 }
 
-:root[data-theme="default"] .back-link {
+:root .back-link {
     font-size: var(--text-xs);
     color: var(--text-secondary);
     gap: 6px;
 }
 
-:root[data-theme="default"] .back-link:hover {
+:root .back-link:hover {
     color: var(--settings-accent-ink);
 }
 
 /* == Main column ===================================================== */
-:root[data-theme="default"] .settings-main {
+:root .settings-main {
     padding: 24px 28px 32px;
     max-width: 880px;
 }
 
-:root[data-theme="default"] .section-header {
+:root .section-header {
     margin-bottom: 20px;
 }
 
-:root[data-theme="default"] .section-header h1 {
+:root .section-header h1 {
     font-size: var(--text-2xl);
     font-weight: 600;
     letter-spacing: -0.02em;
@@ -121,53 +121,53 @@
     color: var(--text);
 }
 
-:root[data-theme="default"] .section-header .subtitle {
+:root .section-header .subtitle {
     font-size: var(--text-sm);
     line-height: 1.5;
     color: var(--text-secondary);
     margin: 0;
 }
 
-:root[data-theme="default"] .settings-main a,
-:root[data-theme="default"] .section-header a {
+:root .settings-main a,
+:root .section-header a {
     color: var(--settings-accent-ink);
     text-decoration-color: color-mix(in srgb, var(--settings-accent) 45%, transparent);
     text-underline-offset: 2px;
 }
 
 /* == Cards =========================================================== */
-:root[data-theme="default"] .setting-card,
-:root[data-theme="default"] .workspace-card {
+:root .setting-card,
+:root .workspace-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--id-radius-panel);
     padding: 20px;
     margin-bottom: 16px;
     box-shadow: none;
 }
 
-:root[data-theme="default"] .workspace-card {
+:root .workspace-card {
     max-width: none;
     padding: 16px 18px;
 }
 
-:root[data-theme="default"] .workspace-card-head h2,
-:root[data-theme="default"] .card-header h2 {
+:root .workspace-card-head h2,
+:root .card-header h2 {
     font-size: var(--text-md);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
 }
 
-:root[data-theme="default"] .workspace-line,
-:root[data-theme="default"] .card-header p,
-:root[data-theme="default"] .setting-desc {
+:root .workspace-line,
+:root .card-header p,
+:root .setting-desc {
     font-size: var(--text-xs);
     line-height: 1.5;
     color: var(--text-secondary);
 }
 
-:root[data-theme="default"] .workspace-badge {
+:root .workspace-badge {
     background: var(--settings-accent-soft);
     border-color: color-mix(in srgb, var(--settings-accent) 30%, transparent);
     color: var(--settings-accent-ink);
@@ -176,23 +176,23 @@
     letter-spacing: 0.04em;
 }
 
-:root[data-theme="default"] .setting-row {
+:root .setting-row {
     padding: 12px 0;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
 }
 
-:root[data-theme="default"] .setting-title {
+:root .setting-title {
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text);
 }
 
 /* == Form controls =================================================== */
-:root[data-theme="default"] .form-group {
+:root .form-group {
     margin-bottom: 16px;
 }
 
-:root[data-theme="default"] .form-group label {
+:root .form-group label {
     font-family: inherit;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -201,144 +201,144 @@
     margin-bottom: 6px;
 }
 
-:root[data-theme="default"] .form-group input,
-:root[data-theme="default"] .form-group select,
-:root[data-theme="default"] .form-group textarea,
-:root[data-theme="default"] .settings-main input[type="text"],
-:root[data-theme="default"] .settings-main input[type="email"],
-:root[data-theme="default"] .settings-main input[type="password"],
-:root[data-theme="default"] .settings-main select,
-:root[data-theme="default"] .settings-main textarea {
+:root .form-group input,
+:root .form-group select,
+:root .form-group textarea,
+:root .settings-main input[type="text"],
+:root .settings-main input[type="email"],
+:root .settings-main input[type="password"],
+:root .settings-main select,
+:root .settings-main textarea {
     padding: 9px 12px;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--id-radius-control);
     font-family: inherit;
     font-size: var(--text-sm);
     color: var(--text);
     box-shadow: none;
 }
 
-:root[data-theme="default"] .form-group input:focus,
-:root[data-theme="default"] .form-group select:focus,
-:root[data-theme="default"] .form-group textarea:focus,
-:root[data-theme="default"] .settings-main input:focus,
-:root[data-theme="default"] .settings-main select:focus,
-:root[data-theme="default"] .settings-main textarea:focus {
+:root .form-group input:focus,
+:root .form-group select:focus,
+:root .form-group textarea:focus,
+:root .settings-main input:focus,
+:root .settings-main select:focus,
+:root .settings-main textarea:focus {
     outline: none;
     border-color: var(--settings-accent);
     box-shadow: 0 0 0 3px var(--settings-accent-soft);
 }
 
 /* == Buttons ========================================================= */
-:root[data-theme="default"] .settings-main .btn-primary,
-:root[data-theme="default"] .settings-main button[type="submit"]:not(.btn-secondary):not(.btn-danger),
-:root[data-theme="default"] .settings-main .save-btn {
+:root .settings-main .btn-primary,
+:root .settings-main button[type="submit"]:not(.btn-secondary):not(.btn-danger),
+:root .settings-main .save-btn {
     background: var(--settings-accent);
     border-color: var(--settings-accent);
-    border-radius: 10px;
-    color: #fff;
+    border-radius: var(--id-radius-control);
+    color: var(--id-on-accent);
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: 600;
     box-shadow: none;
 }
 
-:root[data-theme="default"] .settings-main .btn-primary:hover {
-    background: color-mix(in srgb, var(--settings-accent) 88%, #000);
+:root .settings-main .btn-primary:hover {
+    background: var(--id-accent-hover);
     border-color: transparent;
 }
 
-:root[data-theme="default"] .settings-main .btn-secondary,
-:root[data-theme="default"] .settings-main .btn-outline {
+:root .settings-main .btn-secondary,
+:root .settings-main .btn-outline {
     background: transparent;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--id-radius-control);
     color: var(--text);
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: 500;
 }
 
-:root[data-theme="default"] .settings-main .btn-secondary:hover,
-:root[data-theme="default"] .settings-main .btn-outline:hover {
+:root .settings-main .btn-secondary:hover,
+:root .settings-main .btn-outline:hover {
     background: var(--settings-accent-softer);
     border-color: color-mix(in srgb, var(--settings-accent) 35%, var(--border));
     color: var(--settings-accent-ink);
 }
 
 /* == Choice surfaces (language, theme, model) ======================= */
-:root[data-theme="default"] .language-option,
-:root[data-theme="default"] .theme-option,
-:root[data-theme="default"] .model-option {
+:root .language-option,
+:root .theme-option,
+:root .model-option {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
 }
 
-:root[data-theme="default"] .language-option:hover:not(.disabled),
-:root[data-theme="default"] .theme-option:hover,
-:root[data-theme="default"] .model-option:hover {
+:root .language-option:hover:not(.disabled),
+:root .theme-option:hover,
+:root .model-option:hover {
     border-color: color-mix(in srgb, var(--settings-accent) 45%, var(--border));
     background: var(--settings-accent-softer);
 }
 
-:root[data-theme="default"] .language-option.active,
-:root[data-theme="default"] .theme-option.active,
-:root[data-theme="default"] .model-option.active {
+:root .language-option.active,
+:root .theme-option.active,
+:root .model-option.active {
     border-color: var(--settings-accent);
     background: var(--settings-accent-soft);
     color: var(--settings-accent-ink);
 }
 
 /* == Switches ======================================================== */
-:root[data-theme="default"] .settings-main .switch input:checked + .slider,
-:root[data-theme="default"] .settings-main .toggle input:checked + .slider {
+:root .settings-main .switch input:checked + .slider,
+:root .settings-main .toggle input:checked + .slider {
     background: var(--settings-accent);
 }
 
-:root[data-theme="default"] .settings-main .switch .slider:before,
-:root[data-theme="default"] .settings-main .toggle .slider:before {
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+:root .settings-main .switch .slider:before,
+:root .settings-main .toggle .slider:before {
+    box-shadow: var(--id-shadow-card);
 }
 
 /* == Dialogs ========================================================= */
-:root[data-theme="default"] dialog.modal {
-    border-radius: 16px;
+:root dialog.modal {
+    border-radius: var(--id-radius-panel);
     border: 1px solid var(--border);
     background: var(--surface);
     box-shadow:
-        0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+        var(--id-shadow-float);
 }
 
-:root[data-theme="default"] dialog.modal .modal-header {
+:root dialog.modal .modal-header {
     border-bottom: 1px solid var(--border);
 }
 
-:root[data-theme="default"] dialog.modal .modal-footer {
+:root dialog.modal .modal-footer {
     background: transparent;
     border-top: 1px solid var(--border);
 }
 
 /* == Scrollbars ====================================================== */
-:root[data-theme="default"] .settings-main::-webkit-scrollbar {
+:root .settings-main::-webkit-scrollbar {
     width: 8px;
 }
 
-:root[data-theme="default"] .settings-main::-webkit-scrollbar-thumb {
+:root .settings-main::-webkit-scrollbar-thumb {
     background: color-mix(in srgb, var(--text) 16%, transparent);
     border-radius: 999px;
 }
 
-:root[data-theme="default"] .settings-main::-webkit-scrollbar-track {
+:root .settings-main::-webkit-scrollbar-track {
     background: transparent;
 }
 
 /* #2326 — honour the OS reduced-motion setting: the transitions in
    this file carry no information, so they simply stop. */
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="default"] .nav-item {
-    animation: none !important;
-    transition: none !important;
+  :root .nav-item {
+    animation: none;
+    transition: none;
   }
 }
