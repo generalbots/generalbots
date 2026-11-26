@@ -6,9 +6,10 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  // #2087 — the cache key carries the server build version so a deploy that
-  // changes the catalogue invalidates every client cache automatically.
+  // #2087 — key carries the server build version; catalogue-only edits keep it.
+  // #2923/#2935-smoke — explicit revision discards stale version-keyed entries exactly once.
   let cacheBuild = "dev";
+  const CATALOG_REVISION = "r2";
   const CACHE_TTL_MS = 3600000;
   // Server list wins; the bundled one is only a first-paint fallback.
   let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
@@ -48,7 +49,7 @@
   }
 
   function getCacheKey(locale) {
-    return `gb-i18n-cache-${locale}-${cacheBuild}`;
+    return `gb-i18n-cache-${locale}-${cacheBuild}-${CATALOG_REVISION}`;
   }
 
   function getCachedTranslations(locale) {
@@ -215,7 +216,6 @@
           : token,
     );
   }
-
 
   async function setLocale(locale) {
     if (locale === currentLocale && isInitialized) {
