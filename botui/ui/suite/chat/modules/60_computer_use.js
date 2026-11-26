@@ -1,12 +1,9 @@
-/* Computer Use — browser actions (GB7-19).
- * Listens for bot messages with action_type:"browser" and executes safe
- * browser actions after user consent: open URL, extract page text, take
- * screenshot via html2canvas, fill form fields, click elements. */
+/* Computer Use — consent-gated browser actions (GB7-19): open URL, read page
+ * text, fill a field, click an element, scroll. */
 "use strict";
 
 (function () {
-  // #1644 — `screenshot` was a canvas drawing of innerText, not a capture:
-  // removed rather than shown as a fake screenshot.
+  // #1644 — the fake canvas "screenshot" action was removed.
   var BROWSER_ACTIONS = {
     open_url: { label: "Open a web page", icon: "🌐", needs_consent: true },
     extract_text: { label: "Read page content", icon: "📄", needs_consent: true },
@@ -41,13 +38,9 @@
   }
 
   function sendResultToChat(actionId, result) {
-    // The panel shows the outcome; the server records it without starting a
-    // new model turn, so the chat must stop saying "Waiting for the model…".
+    // Persist the outcome for reconnect replay; the WS frame is the live path.
     if (typeof clearChatPending === "function") clearChatPending();
     if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
-    // GB7-19 — persist the outcome for the action the server proposed, so the
-    // assistant can read it even when the tab reconnects. The WS frame below
-    // stays as the live path.
     if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
       var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
         (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
@@ -71,8 +64,7 @@
         timestamp: new Date().toISOString(),
       }));
     }
-    // The consent card used to stay on "executing..." forever because the
-    // result only reached the next prompt. Show the outcome in the chat now.
+    // Show the outcome now, not on the next prompt.
     var summary;
     if (result && result.status === "ok") {
       summary = result.title
@@ -123,8 +115,7 @@
 
   async function executeAction(action) {
     var actionId = action.action_id;
-    // #1644 — approval is a server-side consent record; without it the
-    // executor refuses even when the body says approved=true.
+    // #1644 — approval is a server-side consent record.
     try {
       await postJson("/api/computer/actions/" + encodeURIComponent(actionId) + "/approve", {
         action_id: actionId,
@@ -259,11 +250,8 @@
     }
   });
 
-  // GB7-19 — poll the action queue and replay entries as the same frames the
-  // pipeline emits. A server producer therefore reaches the consent UI without
-  // a new WebSocket message type.
-  // #2933 — hidden tabs do no work and overlapping polls never stack up; the
-  // 3 s cadence also forced layout for every consent card it replayed.
+  // Replay the server-side action queue as ws frames. Hidden/in-flight polls
+  // skip; the slow cadence avoids forced layout per consent card.
   var POLL_MS = 10000, polling = false;
   function pollPendingBrowser() {
     if (document.hidden || polling) return;
@@ -293,7 +281,24 @@
       .catch(function () { /* offline: nothing to collect */ })
       .then(function () { polling = false; });
   }
-  setInterval(pollPendingBrowser, POLL_MS);
+  // #2943 — arm through the shared session gate; it owns the one sign-in hint
+  // and arms nothing without a token. The helper loads lazily on chat tabs.
+  var armed = false;
+  function armPendingPoll() {
+    var s = window.GBCollabPollScheduler;
+    if (s && s.schedule) {
+      if (!armed) { armed = true; window.GBCollabPollScheduler.schedule(pollPendingBrowser, POLL_MS); }
+      return;
+    }
+    (window.__gbGateWaiters || (window.__gbGateWaiters = [])).push(armPendingPoll);
+    if (window.__gbGateLoading) return;
+    window.__gbGateLoading = 1;
+    var el = document.createElement("script");
+    el.src = "/suite/js/collab-comments/01_helpers.js";
+    el.onload = function () { window.__gbGateWaiters.forEach(function (f) { f(); }); };
+    document.head.appendChild(el);
+  }
+  armPendingPoll();
 
   window.GBBrowserUse = {
     show: showBrowserPanel,

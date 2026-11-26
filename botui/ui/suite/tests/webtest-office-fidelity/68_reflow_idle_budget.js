@@ -15,8 +15,9 @@
  *       `hidden` flag, with no markup parse, style injection or layout read;
  *   (d) i18n skips its boot `localeChanged` announce when the resolved locale
  *       matches the language the shell was already rendered in;
- *   (e) the four named setInterval ticks skip hidden/overlapping work and
- *       never rewrite unchanged text or read layout.
+ *   (e) the four named periodic ticks skip hidden/overlapping work and never
+ *       rewrite unchanged text or read layout; the two computer-use ticks arm
+ *       through the shared session scheduler (#2943), not a raw timer.
  *
  * Every case is a literal source assertion. Non-vacuity: restoring any of the
  * removed inline calls, or removing a guard, flips a case to FAIL.
@@ -277,18 +278,21 @@ h.staticTest("#2921 early gbT calls do not warn when the key resolves later", fu
     "the queue is drained with live catalogues");
 });
 
-// (e) setInterval ticks: hidden tabs and overlapping requests skip; unchanged
-// clock text is not rewritten; no tick reads layout.
-h.staticTest("#2933 setInterval ticks are bounded and skip hidden tabs", function () {
+// (e) Periodic ticks: hidden tabs and overlapping requests skip; unchanged
+// clock text is not rewritten; no tick reads layout. #2943 — the two
+// computer-use ticks now arm through the shared session scheduler, never a
+// raw timer, so a tab with no session issues zero guaranteed-401 polls.
+h.staticTest("#2933 periodic ticks are bounded, gated and skip hidden tabs", function () {
   [["BCOMP", COMPUTER, "pollPendingBrowser", 10000],
     ["BTERM", TERMINAL, "pollPendingTerminal", 10000]].forEach(function (spec) {
     var src = h.readRepo(spec[1]);
-    var poll = span(src, "function " + spec[2] + "() {", "setInterval(");
+    var poll = span(src, "function " + spec[2] + "() {", "window.GBCollabPollScheduler.schedule(");
     contains(poll, "document.hidden || polling", "hidden tabs and in-flight polls skip");
     contains(poll, "polling = true;", "in-flight flag is set before fetch");
     contains(poll, "polling = false;", "in-flight flag is cleared on settle");
     contains(src, "var POLL_MS = " + spec[3] + ", polling = false;", "poll cadence raised above 3 s");
-    contains(src, "setInterval(" + spec[2] + ", POLL_MS);", "interval uses the bounded cadence");
+    contains(src, "window.GBCollabPollScheduler.schedule(" + spec[2] + ", POLL_MS);",
+      "interval is armed through the shared session gate");
     ["getBoundingClientRect", "getComputedStyle", "offsetWidth", "offsetHeight"].forEach(function (read) {
       absent(poll, read, spec[0] + " poll never reads layout: <" + read + ">");
     });
@@ -336,4 +340,4 @@ h.staticTest("#2933 non-vacuity: no new user strings, small modules, preserved b
   contains(h.readRepo(WCHROME), "_clampWindowIntoView(id) {", "clamp API preserved");
 });
 
-h.note("FOLLOW-UP #2933: static guard only — batched token reads, once-built lock overlay with flag-only visibility/lock paths, skipped redundant boot announce and bounded setInterval ticks. Chrome CPU profiling (no [Violation] ... took > 100 ms during boot, unlock and one deep-link open) still needs a driver browser run; no browser/server/cargo was used here.");
+h.note("FOLLOW-UP #2933/#2943: static guard only — batched token reads, once-built lock overlay with flag-only visibility/lock paths, skipped redundant boot announce and bounded, session-gated periodic ticks. Chrome CPU profiling (no [Violation] ... took > 100 ms during boot, unlock and one deep-link open) still needs a driver browser run; no browser/server/cargo was used here.");

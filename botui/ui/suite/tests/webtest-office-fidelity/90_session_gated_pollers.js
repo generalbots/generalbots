@@ -15,12 +15,15 @@
  * This guard pins both halves so neither can silently regress:
  *   (1) the gate short-circuits BEFORE the immediate poll and setInterval;
  *   (2) every collab/mentions/actions poller registers through that gate, with
- *       no raw timer left in the poller modules.
+ *       no raw timer left in the poller modules — including the two chat
+ *       actions/pending pollers (60_computer_use.js, 61_terminal_use.js).
  *
  * Non-vacuity: GB_COLLAB_POLL_GATE_PROBE_ROOT may point at a /tmp tree holding
- * a mutated copy named 01_helpers.js (gate removed). The mutation makes case
- * (1) FAIL. No server, browser, cargo or i18n change is involved; the driver
- * owns live UAT, issue closure and CI deployment.
+ * a mutated copy named 01_helpers.js (gate removed); that makes case (1) FAIL.
+ * GB_CHAT_POLL_GATE_PROBE_ROOT may point at a /tmp tree holding a mutated
+ * 60_computer_use.js (raw setInterval); that makes the chat-poller case FAIL.
+ * No server, browser, cargo or i18n change is involved; the driver owns live
+ * UAT, issue closure and CI deployment.
  */
 "use strict";
 
@@ -32,15 +35,25 @@ var HELPERS = "botui/ui/suite/js/collab-comments/01_helpers.js";
 var PANEL = "botui/ui/suite/js/collab-comments/99_panel.js";
 var DATA = "botui/ui/suite/js/collab-comments/02_data.js";
 var CONFLICT = "botui/ui/suite/js/collab-conflict.js";
+var CHAT_BROWSER = "botui/ui/suite/chat/modules/60_computer_use.js";
+var CHAT_TERMINAL = "botui/ui/suite/chat/modules/61_terminal_use.js";
 var RUNNER = "botui/ui/suite/tests/webtest-office-fidelity.js";
 var GUARD = "botui/ui/suite/tests/webtest-office-fidelity/90_session_gated_pollers.js";
 var HINT_KEY = "cloud-settings-signin-first";
 var LOCALES = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
 var PROBE_ROOT = process.env.GB_COLLAB_POLL_GATE_PROBE_ROOT || "";
+var CHAT_PROBE_ROOT = process.env.GB_CHAT_POLL_GATE_PROBE_ROOT || "";
 
 function readSrc(rel) {
   if (PROBE_ROOT && path.basename(rel) === "01_helpers.js") {
     var candidate = path.join(PROBE_ROOT, "01_helpers.js");
+    if (fs.existsSync(candidate)) return fs.readFileSync(candidate, "utf8");
+  }
+  return h.readRepo(rel);
+}
+function readChat(rel) {
+  if (CHAT_PROBE_ROOT) {
+    var candidate = path.join(CHAT_PROBE_ROOT, path.basename(rel));
     if (fs.existsSync(candidate)) return fs.readFileSync(candidate, "utf8");
   }
   return h.readRepo(rel);
@@ -164,8 +177,31 @@ h.staticTest("#2943 no unguarded periodic authenticated registration remains in 
     "non-vacuity: all three pollers must register via the gate");
 });
 
+h.staticTest("#2943 the chat browser/terminal action pollers arm only through the shared gate", function () {
+  var browser = readChat(CHAT_BROWSER);
+  var terminal = readChat(CHAT_TERMINAL);
+  contains(browser, "window.GBCollabPollScheduler.schedule(pollPendingBrowser, POLL_MS);",
+    "the browser pending poller must arm via the shared session gate");
+  contains(terminal, "window.GBCollabPollScheduler.schedule(pollPendingTerminal, POLL_MS);",
+    "the terminal pending poller must arm via the shared session gate");
+  h.assertEqual(countIn(browser, "setInterval("), 0,
+    "no raw timer may arm the browser actions/pending poll");
+  h.assertEqual(countIn(terminal, "setInterval("), 0,
+    "no raw timer may arm the terminal actions/pending poll");
+  // The gate may be loaded lazily on a chat-only tab, but only the shared
+  // helper may supply it — never a locally re-implemented session check.
+  contains(browser, '"/suite/js/collab-comments/01_helpers.js";',
+    "the browser poller must bootstrap the shared gate, not a local one");
+  contains(terminal, '"/suite/js/collab-comments/01_helpers.js";',
+    "the terminal poller must bootstrap the shared gate, not a local one");
+  contains(browser, 'fetch("/api/computer/actions/pending?kind=browser&session_id=" + encodeURIComponent(sid), {',
+    "the browser pending endpoint must stay unchanged");
+  contains(terminal, 'fetch("/api/computer/actions/pending?kind=terminal&session_id=" + encodeURIComponent(sid), {',
+    "the terminal pending endpoint must stay unchanged");
+});
+
 h.staticTest("#2943 guard 90 is registered and its shipped sources stay focused", function () {
-  [HELPERS, PANEL, DATA, CONFLICT].forEach(function (rel) {
+  [HELPERS, PANEL, DATA, CONFLICT, CHAT_BROWSER, CHAT_TERMINAL].forEach(function (rel) {
     var src = h.readRepo(rel);
     h.assert(src.split("\n").length < 450, rel + " must stay under 450 lines");
     h.assert(src.length > 500, rel + " must remain a shipped module");
@@ -179,4 +215,4 @@ h.staticTest("#2943 guard 90 is registered and its shipped sources stay focused"
     "the guard exposes exactly one probe-root hook for mutation testing");
 });
 
-h.note("#2943: offline static proof only — no browser/server/cargo, no locale edit. The driver owns live UAT and the /tmp mutation probe; removing the gate from 01_helpers.js makes case (1) FAIL.");
+h.note("#2943: offline static proof only — no browser/server/cargo, no locale edit. The driver owns live UAT and the /tmp mutation probe; removing the gate from 01_helpers.js makes case (1) FAIL, and GB_CHAT_POLL_GATE_PROBE_ROOT pointing at a mutated 60_computer_use.js (raw setInterval) makes the chat-poller case FAIL.");
