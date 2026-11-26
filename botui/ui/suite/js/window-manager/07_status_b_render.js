@@ -220,4 +220,5 @@
 
   _I.renderStatus = renderStatus; _I.emitStatus = emitStatus; _I.listenApp = listenApp; _I.activeWindowId = activeWindowId;
   _I.setStatus = setStatus; _I.clearStatus = clearStatus; _I.getStatus = getStatus; _I.controller = controller;
+  _I.resolveTarget = resolveTarget;
 })(window);

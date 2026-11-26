@@ -7,6 +7,7 @@
   var translate = _I.translate, escapeHtml = _I.escapeHtml;
   var renderStatus = _I.renderStatus, listenApp = _I.listenApp;
   var setStatus = _I.setStatus, clearStatus = _I.clearStatus, getStatus = _I.getStatus, controller = _I.controller;
+  var resolveTarget = _I.resolveTarget;
 
   function registerHelp(target, key, text) {
     var el = resolveTarget(target);
