@@ -97,7 +97,7 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     info!("wizard: opening {wizard_url:?}");
     let builder = WebviewWindowBuilder::new(app, "wizard", wizard_url)
-        .title("Set up General Bots")
+        .title(format!("Set up {}", app.package_info().name))
         .inner_size(width, height)
         .min_inner_size(900.0, 560.0)
         .resizable(true)
@@ -305,7 +305,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             "main",
             WebviewUrl::External(suite_url_with_token(url, token.as_deref())),
         )
-        .title("General Bots")
+        .title(handle.package_info().name.as_str())
         .inner_size(1340.0, 860.0)
         .min_inner_size(900.0, 560.0)
         .resizable(true);

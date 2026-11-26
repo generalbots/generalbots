@@ -8,6 +8,9 @@ use std::path::Path;
 /// come up logged out on the first launch of the renamed build.
 const LEGACY_IDENTIFIER: &str = "br.com.pragmatismo.botapp";
 
+/// The identifier the legacy folders are carried over to.
+const RENAMED_IDENTIFIER: &str = "org.generalbots.botapp";
+
 /// Carries the legacy app data over to the renamed identifier's folders.
 ///
 /// Runs before the Tauri builder creates any webview (main.rs), so the WebKit
@@ -16,8 +19,9 @@ const LEGACY_IDENTIFIER: &str = "br.com.pragmatismo.botapp";
 /// on Windows to Roaming vs Local AppData, on macOS to Application Support vs
 /// Caches. The move is a plain rename when the source sits on the same volume;
 /// otherwise it falls back to a full copy that keeps the legacy folder intact,
-/// so a partial copy cannot destroy anything.
-pub fn migrate_legacy_data_dir() {
+/// so a partial copy cannot destroy anything. Nothing happens in a root where
+/// this build's own folder (`running_identifier`) already exists.
+pub fn migrate_legacy_data_dir(running_identifier: &str) {
     let mut roots: Vec<std::path::PathBuf> = Vec::new();
     match dirs::data_dir() {
         Some(dir) => roots.push(dir),
@@ -29,7 +33,7 @@ pub fn migrate_legacy_data_dir() {
         }
     }
     for root in roots {
-        migrate_root(&root);
+        migrate_root(&root, running_identifier);
     }
 }
 
@@ -55,16 +59,18 @@ fn plan_migration(new_dir_exists: bool, legacy_is_dir: bool) -> Migration {
     }
 }
 
-fn migrate_root(new_dir: &Path) {
-    let legacy_dir = match new_dir.parent() {
-        Some(parent) => parent.join(LEGACY_IDENTIFIER),
-        None => return,
-    };
-    match plan_migration(new_dir.exists(), legacy_dir.is_dir()) {
+/// `root` is a data root (`dirs::data_dir()` / `data_local_dir()`); the
+/// identifier folders are its children.
+fn migrate_root(root: &Path, running_identifier: &str) {
+    let legacy_dir = root.join(LEGACY_IDENTIFIER);
+    let new_dir = root.join(RENAMED_IDENTIFIER);
+    let owned = new_dir.exists() || root.join(running_identifier).exists();
+    match plan_migration(owned, legacy_dir.is_dir()) {
         Migration::SkipTargetExists => return,
         Migration::SkipNoLegacy => return,
         Migration::Migrate => {}
     }
+    let new_dir = new_dir.as_path();
     if std::fs::rename(&legacy_dir, new_dir).is_ok() {
         log::info!(
             "legacy app data moved from {} to {}",
@@ -103,7 +109,45 @@ pub(crate) fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{plan_migration, Migration, LEGACY_IDENTIFIER};
+    use super::{migrate_root, plan_migration, Migration, LEGACY_IDENTIFIER, RENAMED_IDENTIFIER};
+    use std::path::PathBuf;
+
+    fn temp_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("gb-legacy-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        root
+    }
+
+    fn write(path: &PathBuf, content: &str) {
+        std::fs::create_dir_all(path.parent().expect("parent")).expect("dir");
+        std::fs::write(path, content).expect("file");
+    }
+
+    #[test]
+    fn the_legacy_folder_under_the_data_root_is_carried_over() {
+        let root = temp_root("move");
+        write(&root.join(LEGACY_IDENTIFIER).join("EBWebView").join("Local State"), "legacy");
+        migrate_root(&root, RENAMED_IDENTIFIER);
+        assert!(!root.join(LEGACY_IDENTIFIER).exists());
+        let moved = root.join(RENAMED_IDENTIFIER).join("EBWebView").join("Local State");
+        assert_eq!(std::fs::read_to_string(moved).expect("moved"), "legacy");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_existing_renamed_or_own_folder_keeps_the_legacy_one_untouched() {
+        for owner in [RENAMED_IDENTIFIER, "org.generalbots.lite"] {
+            let root = temp_root("keep");
+            let legacy = root.join(LEGACY_IDENTIFIER).join("flag");
+            write(&legacy, "legacy");
+            write(&root.join(owner).join("flag"), "current");
+            migrate_root(&root, "org.generalbots.lite");
+            assert_eq!(std::fs::read_to_string(&legacy).expect("kept"), "legacy");
+            let current = std::fs::read_to_string(root.join(owner).join("flag")).expect("current");
+            assert_eq!(current, "current");
+            let _ = std::fs::remove_dir_all(&root);
+        }
+    }
 
     #[test]
     fn the_legacy_identifier_is_the_old_bundle_id() {

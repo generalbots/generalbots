@@ -71,6 +71,7 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
 tauri-build = "2"
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

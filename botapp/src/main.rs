@@ -170,6 +170,12 @@ fn create_tray_with_mode(mode: String) -> Result<String, String> {
     Ok(manager.get_mode_string())
 }
 
+/// The compiled Tauri context: config, assets and the identity this binary
+/// carries (build.rs lays the edition's over the base config).
+fn app_context() -> tauri::Context<tauri::Wry> {
+    tauri::generate_context!()
+}
+
 fn main() {
     if let Some(code) = desktop::payload::handle_cli() {
         std::process::exit(code);
@@ -178,13 +184,14 @@ fn main() {
     let version = build_info::version();
     info!("BotApp {version} starting...");
 
+    let context = app_context();
     // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
     // bundle identifier's data folder before any webview opens, so users keep
     // their sessions and settings across the rename.
-    desktop::legacy_data::migrate_legacy_data_dir();
+    desktop::legacy_data::migrate_legacy_data_dir(&context.config().identifier);
     // The Lite edition's own identifier and stack folder (edition_migration).
     #[cfg(feature = "gbgov")]
-    desktop::edition_migration::migrate();
+    desktop::edition_migration::migrate(&context.config().identifier);
 
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());
@@ -304,6 +311,12 @@ fn main() {
 
     let app = builder
         .setup(|app| {
+            // The config windows carry the product name of this build.
+            for window in app.webview_windows().values() {
+                if let Err(e) = window.set_title(&app.package_info().name) {
+                    log::warn!("could not set the title of window {}: {e}", window.label());
+                }
+            }
             // #1827 — show the topmost splash while the (possibly heavy) payload
             // extraction and the server stack boot run.
             desktop::splash::show(&app.handle());
@@ -369,7 +382,7 @@ fn main() {
 
             Ok(())
         })
-        .build(tauri::generate_context!());
+        .build(context);
 
     match app {
         Ok(app) => {

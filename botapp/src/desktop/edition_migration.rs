@@ -49,6 +49,13 @@ fn migration_allowed(stack_override: bool, webview_override: bool, test_rig: boo
     !(stack_override || webview_override || test_rig)
 }
 
+/// Only a binary that carries the edition's identifier may move the profile:
+/// one that still runs as the old identifier would recreate an empty profile
+/// under it right after the move.
+fn identity_matches(compiled_identifier: &str) -> bool {
+    compiled_identifier == IDENTIFIER
+}
+
 fn plan_stack(edition_exists: bool, legacy_owner: StackOwner) -> StackMove {
     if edition_exists {
         return StackMove::TargetExists;
@@ -85,8 +92,15 @@ fn env_set(name: &str) -> bool {
     std::env::var(name).is_ok_and(|value| !value.trim().is_empty())
 }
 
-/// Runs before any webview exists and before the stack is resolved.
-pub fn migrate() {
+/// Runs before any webview exists and before the stack is resolved, with the
+/// identifier compiled into this binary.
+pub fn migrate(compiled_identifier: &str) {
+    if !identity_matches(compiled_identifier) {
+        log::warn!(
+            "this build runs as {compiled_identifier}, not {IDENTIFIER}; the edition migration is skipped"
+        );
+        return;
+    }
     let allowed = migration_allowed(
         env_set("BOTSERVER_STACK_PATH"),
         env_set("WEBVIEW2_USER_DATA_FOLDER"),
@@ -185,6 +199,25 @@ mod tests {
         let conf = include_str!("../../tauri.gbgov.conf.json");
         assert!(conf.contains(&format!("\"identifier\": \"{IDENTIFIER}\"")));
         assert_ne!(DATA_FOLDER, LEGACY_FOLDER);
+    }
+
+    #[test]
+    fn this_build_carries_the_edition_identity() {
+        let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+        let identifier = &context.config().identifier;
+        let name = &context.package_info().name;
+        println!("compiled identity: {identifier} / {name}");
+        assert_eq!(identifier, IDENTIFIER);
+        assert_eq!(name, "General Bots Lite");
+        assert!(identity_matches(identifier));
+    }
+
+    #[test]
+    fn a_build_with_another_identifier_never_migrates() {
+        assert!(!identity_matches(OLD_IDENTIFIER));
+        assert!(!identity_matches(""));
+        assert!(!identity_matches("org.generalbots.lite.dev"));
+        assert!(identity_matches(IDENTIFIER));
     }
 
     #[test]
