@@ -211,6 +211,21 @@ async def run(args) -> int:
                         "() => typeof WindowManager !== 'undefined'", timeout=60000)
                     recoveries += 1
                 bucket["items"] = []
+                forbidden_bucket["items"] = []
+                # Each app is an independent test case. A Vibe project selected
+                # by an earlier app is not owned by the throwaway CI user, so
+                # later apps probing /api/vibe/projects/<id>/files get a 403.
+                # Clear only that selection; auth tokens stay intact.
+                try:
+                    await page.evaluate("""() => {
+                      ['gb-vibe-project-id', 'gb-vibe-project-name', 'gb-vibe-project-kind']
+                        .forEach(function (key) {
+                          try { localStorage.removeItem(key); sessionStorage.removeItem(key); }
+                          catch (e) { /* storage may be unavailable */ }
+                        });
+                    }""")
+                except Exception:
+                    pass
                 try:
                     await page.evaluate(
                         "([id,t,u]) => WindowManager.launchFromMenu(id,t,u)",
