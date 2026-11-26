@@ -71,7 +71,7 @@ body:has(.gb-titlebar-toggle) .gb-expand-sidebar { display: none !important; }
 @media (max-width: 960px) {
     .gb-sidebar {
         position: fixed;
-        z-index: 100;
+        z-index: var(--z-sticky);
         height: calc(100vh / var(--gb-zoom, 1) - 36px);
         top: 36px;
     }

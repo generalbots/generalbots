@@ -357,7 +357,7 @@ dialog.gb-of-guide[open] { position: fixed; inset: 0; margin: auto; height: fit-
 .gb-of-opt b { font-weight: 600; } .gb-of-opt small { font-size: 12.5px; color: var(--id-muted); }
 .gb-of-gend { display: flex; gap: 6px; justify-content: flex-end; }
 .gb-of-gend .gb-of-btn { height: 34px; }
-.gb-of-tip { position: fixed; z-index: 300; max-width: 300px; padding: 8px 10px; background: var(--id-ink); color: var(--of-sf); font: 400 12px/1.5 var(--id-font-sans);
+.gb-of-tip { position: fixed; z-index: var(--z-fixed); max-width: 300px; padding: 8px 10px; background: var(--id-ink); color: var(--of-sf); font: 400 12px/1.5 var(--id-font-sans);
     pointer-events: none; box-shadow: var(--id-shadow-float); }
 @media (prefers-reduced-motion: reduce) {
     .gb-of-wait > i { animation: none; margin-left: 35%; }
