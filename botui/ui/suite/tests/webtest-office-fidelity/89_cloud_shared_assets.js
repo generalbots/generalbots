@@ -1,14 +1,14 @@
 /**
- * #2942 — deterministic static guard for the two shared assets that suite
- * apps request from the cloud origin (port 4000): the palette CSS and the PWA
- * manifest. Both ship in `botui/ui/` and the suite router (:3000) already
+ * #2942 — deterministic static guard for the three shared assets that UIs
+ * request from the cloud origin (port 4000): the palette CSS, the mandatory
+ * DESIGN-SYSTEM identity tokens and the PWA manifest. Both ship in `botui/ui/` and the suite router (:3000) already
  * serves them, but the cloud router had no static route. Both requests fell
  * through to `serve_cloud_fallback`, which returned a 404 with an empty
  * Content-Type; with the global `nosniff` header Chrome refused the stylesheet
  * ("strict MIME checking is enabled") and could not parse the manifest.
  *
  * This guard pins both halves of the fix at the source level:
- *   (1) the cloud router registers two LITERAL routes, without adding broad
+ *   (1) the cloud router registers three LITERAL routes, without adding broad
  *       static nests or weakening the login/signup redirects;
  *   (2) the MIME types are pinned in an allowlist and consumed by a handler
  *       that reads botui/ui (disk or embedded Assets), never the proxy.
@@ -61,19 +61,21 @@ function functionBody(src, signature) {
   h.assert(false, "unbalanced body for <" + signature + ">");
 }
 
-h.staticTest("#2942 cloud router registers the palette CSS and PWA manifest as literal routes", function () {
+h.staticTest("#2942 cloud router registers palette CSS, identity tokens and PWA manifest as literal routes", function () {
   var ui = h.readRepo(UI_ROUTER);
   h.assert(ui.length > 8000, "non-vacuity: mod.rs is the shipped router module, not a stub");
   var body = compact(functionBody(ui, "pub fn configure_cloud_router() -> Router"));
 
-  // The two exact routes. These must survive rustfmt and are the manifest-route
+  // The three exact routes. These must survive rustfmt and are the manifest-route
   // half of the mutation probe.
   contains(body, '.route("/suite/css/palette-tokens.css",get(serve_cloud_shared_asset)',
     "the palette CSS must be a literal cloud route");
+  contains(body, '.route("/suite/css/identity-tokens.css",get(serve_cloud_shared_asset)',
+    "the DESIGN-SYSTEM identity tokens must be a literal cloud route");
   contains(body, '.route("/manifest.webmanifest",get(serve_cloud_shared_asset)',
     "the PWA manifest must be a literal cloud route");
-  h.assertEqual(countIn(body, "get(serve_cloud_shared_asset)"), 2,
-    "exactly two shared-asset routes may be registered on the cloud origin");
+  h.assertEqual(countIn(body, "get(serve_cloud_shared_asset)"), 3,
+    "exactly three shared-asset routes may be registered on the cloud origin");
 
   // No route weakening: login/signup stay redirect-only and the cloud-page
   // fallback that serves static cloud HTML/JS/CSS is untouched.
@@ -87,8 +89,8 @@ h.staticTest("#2942 cloud router registers the palette CSS and PWA manifest as l
   // No broad static serving was smuggled in alongside the two literal routes.
   absent(body, "nest_service", "cloud router must not gain broad ServeDir nests");
   absent(body, "ServeDir", "cloud router must not gain a wildcard static service");
-  h.assertEqual(countIn(body, '"/suite/'), 1,
-    "only the pinned palette CSS path may be a /suite/ route on port 4000");
+  h.assertEqual(countIn(body, '.route("/suite/css/'), 2,
+    "only the two pinned token CSS paths may be /suite/ routes on port 4000");
 });
 
 h.staticTest("#2942 MIME types are pinned in an allowlist and consumed by the handler", function () {
@@ -100,6 +102,8 @@ h.staticTest("#2942 MIME types are pinned in an allowlist and consumed by the ha
     "the shared-asset allowlist must exist");
   contains(src, '("suite/css/palette-tokens.css", "text/css"),',
     "palette CSS must be pinned to text/css");
+  contains(src, '("suite/css/identity-tokens.css", "text/css"),',
+    "identity tokens must be pinned to text/css");
   contains(src, '("manifest.webmanifest", "application/manifest+json"),',
     "the manifest must be pinned to application/manifest+json");
 
@@ -136,12 +140,16 @@ h.staticTest("#2942 MIME types are pinned in an allowlist and consumed by the ha
   contains(unit, 'Some("application/manifest+json")', "unit test must pin the manifest MIME");
 });
 
-h.staticTest("#2942 both pinned assets exist in the local ui tree", function () {
+h.staticTest("#2942 all pinned assets exist in the local ui tree", function () {
   var css = "botui/ui/suite/css/palette-tokens.css";
+  var identity = "botui/ui/suite/css/identity-tokens.css";
   var manifest = "botui/ui/manifest.webmanifest";
   h.assert(h.fileExistsRepo(css), "palette-tokens.css must ship in botui/ui/suite/css");
+  h.assert(h.fileExistsRepo(identity), "identity-tokens.css must ship in botui/ui/suite/css");
   h.assert(h.fileExistsRepo(manifest), "manifest.webmanifest must ship at the ui root");
   h.assert(h.readRepo(css).length > 200, "non-vacuity: the CSS is a real theme file");
+  h.assert(h.readRepo(identity).indexOf("--id-paper:") !== -1,
+    "non-vacuity: the identity CSS defines the design-system tokens");
   var mf = h.readRepo(manifest);
   h.assert(mf.indexOf('"name"') !== -1 && mf.indexOf('"icons"') !== -1,
     "non-vacuity: the manifest is a real PWA document");
@@ -155,4 +163,4 @@ h.staticTest("#2942 shared-assets guard is registered in the harness and stays f
     "the guard must be registered in webtest-office-fidelity.js to run in CI");
 });
 
-h.note("#2942: cloud origin (:4000) now serves the palette CSS as text/css and the PWA manifest as application/manifest+json from botui/ui, with login/signup still redirecting to :5000; live curl UAT belongs to the driver.");
+h.note("#2942: cloud origin (:4000) now serves the palette CSS and DESIGN-SYSTEM identity tokens as text/css and the PWA manifest as application/manifest+json from botui/ui, with login/signup still redirecting to :5000; live curl UAT belongs to the driver.");

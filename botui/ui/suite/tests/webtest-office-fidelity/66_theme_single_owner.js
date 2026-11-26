@@ -147,30 +147,41 @@ h.staticTest("#2930 one localStorage key, theme-id vocabulary, three-way legacy 
     "the adapter delegates to the owner when present");
 });
 
-// (c) Base tokens switch on the canonical attribute for BOTH light and dark,
-// scoped to :root so a legacy body[data-theme] writer cannot win the cascade.
-h.staticTest("#2930 scoped :root light/dark base tokens with both vocabularies", function () {
+// (c) DESIGN-SYSTEM.md: one identity look for every theme. The :root bridge
+// aliases the legacy HSL/full-colour vocabularies to --id-*; theme blocks may
+// only change the accent (dark accents are keyed by data-color-scheme).
+h.staticTest("#2930 scoped :root base tokens and accent-only theme blocks", function () {
   var css = h.readRepo(TOKENS_CSS);
+  var base = between(css, ":root {", " * Theme accents");
+  ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {
+    spanHas(base, token + ":", "base tokens must emit " + token);
+  });
+  spanHas(base, "--bg: var(--id-paper);", "base background aliases identity paper");
+  spanHas(base, "--text: var(--id-ink);", "base ink aliases identity ink");
+  spanHas(base, "--surface: var(--id-surface);", "base surface aliases identity surface");
+  spanHas(base, "--background: 28 100% 97%;",
+    "legacy HSL bridge matches the design-system paper");
+
   var light = between(css, ':root[data-theme="light"] {', ':root[data-theme="blue"] {');
   var dark = between(css, ':root[data-theme="dark"] {', ':root[data-theme="light"] {');
-  ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {
-    spanHas(light, token + ":", "light base tokens must emit " + token);
-    spanHas(dark, token + ":", "dark base tokens must emit " + token);
+  [light, dark].forEach(function (span, index) {
+    var label = index === 0 ? "light" : "dark";
+    spanHas(span, "--id-accent:", label + " theme must override the accent");
+    spanHas(span, "--primary:", label + " theme must keep the HSL accent bridge");
+    ["--bg:", "--surface:", "--text:", "--id-paper:", "--id-radius-",
+      "--id-ink:", "--id-surface:", "--id-gray-"].forEach(function (token) {
+      spanLacks(span, token, label + " theme must not override neutral token " + token);
+    });
   });
-  spanHas(light, "--bg: #f8fafc;", "light surface is light");
-  spanHas(dark, "--bg: #0f172a;", "dark surface is dark");
-  spanHas(light, "--text: #1e293b;", "light ink is dark");
-  spanHas(dark, "--text: #f8fafc;", "dark ink is light");
 
-  // The dark preference resolves to the registered `carbon` theme; its CSS
-  // file must carry both token vocabularies, as must the default paper theme.
-  var darkThemeCss = h.readRepo("botui/ui/suite/public/themes/carbon.css");
-  ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {
-    contains(darkThemeCss, token + ":", "carbon theme must emit " + token);
-  });
   var paper = between(css, ':root[data-theme="default"] {', ':root[data-theme="sentient"] {');
-  ["--background", "--foreground", "--bg", "--surface", "--text"].forEach(function (token) {
-    spanHas(paper, token + ":", "default base tokens must emit " + token);
+  spanHas(paper, "--id-accent: #F28C28;", "default accent equals the design system");
+  spanHas(paper, "--id-on-accent: #2C2C2C;", "default on-accent equals the design system");
+
+  var darkThemeCss = h.readRepo("botui/ui/suite/public/themes/carbon.css");
+  ["--id-accent:", "--bg: var(--id-paper)", "--surface: var(--id-surface)",
+    "--text: var(--id-ink)"].forEach(function (token) {
+    contains(darkThemeCss, token, "carbon theme must emit " + token);
   });
 
   BASE_CSS.forEach(function (path) {
