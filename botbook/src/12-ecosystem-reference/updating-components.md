@@ -46,7 +46,7 @@ botserver Stack Versions:
 | MinIO | [github.com/minio/minio/releases](https://github.com/minio/minio/releases) |
 | Valkey | [github.com/valkey-io/valkey/releases](https://github.com/valkey-io/valkey/releases) |
 | Zitadel | [github.com/zitadel/zitadel/releases](https://github.com/zitadel/zitadel/releases) |
-| Vault | [releases.hashicorp.com/vault](https://releases.hashicorp.com/vault/) |
+| Vault (OpenBao) | [github.com/openbao/openbao/releases](https://github.com/openbao/openbao/releases) |
 | Stalwart | [github.com/stalwartlabs/mail-server/releases](https://github.com/stalwartlabs/mail-server/releases) |
 | Caddy | [github.com/caddyserver/caddy/releases](https://github.com/caddyserver/caddy/releases) |
 | CoreDNS | [github.com/coredns/coredns/releases](https://github.com/coredns/coredns/releases) |
@@ -272,9 +272,9 @@ filename = "zitadel-linux-amd64.tar.gz"
 
 ```bash
 # Update 3rdparty.toml
-[components.vault]
-url = "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip"
-filename = "vault_2.2.1_linux_amd64.zip"
+[components.openbao]
+url = "https://github.com/openbao/openbao/releases/download/v2.7.3/openbao_2.7.3_linux_amd64.tar.gz"
+filename = "openbao_2.7.3_linux_amd64.tar.gz"
 
 # Stop Vault
 ./botserver stop vault

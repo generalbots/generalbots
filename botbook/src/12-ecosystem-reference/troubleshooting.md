@@ -125,6 +125,9 @@ ss -tlnp | grep LISTEN
    ```
 
 3. **Lost unseal keys**
+
+   On Windows, `init.json` is sealed with DPAPI for the Windows user who runs
+   the stack, so `cat` shows unreadable bytes. Check only that it exists there.
    ```bash
    # Check init.json exists
    cat botserver-stack/conf/vault/init.json

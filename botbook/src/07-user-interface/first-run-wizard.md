@@ -46,10 +46,11 @@ needs remote Incus or a Linux VM. Gatekeeper blocks the unsigned app until the
 user right-clicks -> Open or runs
 `xattr -dr com.apple.quarantine "/Applications/General Bots.app"`.
 
-On Windows the payload includes `installers/` for MinIO + mc, Redis (cache),
-Qdrant, Zitadel, Caddy and the Windows BotModels pythonbox
-(`botmodels-pythonbox-windows-x86_64.zip`). The wizard downloads PostgreSQL,
-Vault, llama.cpp and models once unless `GB_DESKTOP_OFFLINE=1`; with that flag
+On Windows the payload includes `installers/` for OpenBao (the secrets server,
+component `vault`), MinIO + mc, Redis (cache), Qdrant, Zitadel, Caddy and the
+Windows BotModels pythonbox (`botmodels-pythonbox-windows-x86_64.zip`). The
+wizard downloads PostgreSQL, llama.cpp and models once unless
+`GB_DESKTOP_OFFLINE=1`; with that flag
 it names the missing file instead of attempting a network call. The AI media
 service builds its virtual environment from the bundled win_amd64 wheelhouse on
 first use, so vision/STT/TTS also work without network access.
@@ -108,8 +109,8 @@ exists. `/api/product` always returns `media_capabilities` with
 service unavailable instead of trying to install (and failing or hanging on) an
 archive that cannot run.
 
-The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel,
-Caddy and the Windows pythonbox under `installers/`; PostgreSQL, Vault and
+The Windows self-extracting payload bundles OpenBao, MinIO + mc, Redis, Qdrant,
+Zitadel, Caddy and the Windows pythonbox under `installers/`; PostgreSQL and
 llama.cpp (when the local model is selected) are downloaded once on first run.
 `GB_DESKTOP_OFFLINE=1` refuses those downloads and names the missing archive.
 The MSI/NSIS packages get the same `installers/` resources from

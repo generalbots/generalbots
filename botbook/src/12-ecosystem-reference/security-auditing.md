@@ -99,7 +99,7 @@ Monitor security advisories for each component:
 | Component | Security Feed |
 |-----------|---------------|
 | PostgreSQL | [postgresql.org/support/security](https://www.postgresql.org/support/security/) |
-| Vault | [security.hashicorp.com](https://www.hashicorp.com/security) |
+| Vault (OpenBao) | [github.com/openbao/openbao/security](https://github.com/openbao/openbao/security/advisories) |
 | MinIO | [github.com/minio/minio/security](https://github.com/minio/minio/security/advisories) |
 | Zitadel | [github.com/zitadel/zitadel/security](https://github.com/zitadel/zitadel/security/advisories) |
 | llama.cpp | [github.com/ggml-org/llama.cpp/security](https://github.com/ggml-org/llama.cpp/security/advisories) |

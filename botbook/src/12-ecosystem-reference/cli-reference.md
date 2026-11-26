@@ -21,7 +21,7 @@ botserver <command> [options]
 | `start` | Start all installed components |
 | `stop` | Stop all components |
 | `restart` | Restart all components |
-| `vault` | Manage secrets in HashiCorp Vault |
+| `vault` | Manage secrets in the secrets server (OpenBao) |
 | `rotate-secret` | Rotate credentials for a component |
 | `rotate-secrets` | Rotate ALL credentials |
 | `version` | Show version information |
@@ -95,7 +95,7 @@ curl http://<vectordb-ip>:6333/health
 
 | Component | Description |
 |-----------|-------------|
-| `vault` | HashiCorp Vault - Secrets management |
+| `vault` | OpenBao - Secrets management (Vault API) |
 | `tables` | PostgreSQL - Primary database |
 | `cache` | Valkey - Redis-compatible cache |
 | `drive` | MinIO - S3-compatible object storage |
@@ -161,7 +161,8 @@ botserver restart [--container] [--tenant <name>]
 
 ## Vault Commands
 
-The `vault` subcommand manages secrets stored in HashiCorp Vault.
+The `vault` subcommand manages secrets stored in the secrets server. The
+bundled server is OpenBao (`bin/vault/bao`); the subcommand keeps the name `vault`.
 
 ### Prerequisites
 

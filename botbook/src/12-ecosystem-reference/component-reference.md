@@ -10,18 +10,24 @@ This reference provides detailed information about each component in the botserv
 
 | Property | Value |
 |----------|-------|
-| **Service** | HashiCorp Vault |
-| **Current Version** | 2.2.1 |
+| **Service** | OpenBao (component id `vault`) |
+| **Current Version** | 2.7.3 |
+| **License** | MPL-2.0 |
 | **Default Port** | 8200 |
-| **Binary Path** | `botserver-stack/bin/vault/vault` |
+| **Binary Path** | `botserver-stack/bin/vault/bao` (`bao.exe` on Windows) |
 | **Config Path** | `botserver-stack/conf/vault/` |
-| **Data Path** | `botserver-stack/data/vault/` |
+| **Data Path** | `botserver-stack/data/vault/` (single-node `raft` storage) |
 | **Log File** | `botserver-stack/logs/vault.log` |
 
 **Download URL:**
 ```
-https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip
+https://github.com/openbao/openbao/releases/download/v2.7.3/openbao_2.7.3_linux_amd64.tar.gz
 ```
+
+OpenBao is the open-source fork of HashiCorp Vault and speaks the same API.
+The `VAULT_*` variables and `secret/gbo/*` paths are unchanged. On Windows the
+unseal keys and init data are sealed with DPAPI for the Windows user. A stack
+created by the former Vault binary is moved to OpenBao on first start.
 
 **Purpose:**
 - Stores all service credentials (database, drive, cache)
@@ -32,7 +38,7 @@ https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip
 **Alternatives:**
 | Alternative | License | Notes |
 |-------------|---------|-------|
-| [OpenBao](https://openbao.org/) | MPL-2.0 | Fork of Vault, fully open source |
+| [HashiCorp Vault](https://developer.hashicorp.com/vault) | BUSL-1.1 | Former bundled server; usable as an external server through `VAULT_ADDR` |
 | [Infisical](https://infisical.com/) | MIT | Modern secrets management |
 | [SOPS](https://github.com/getsops/sops) | MPL-2.0 | File-based encryption |
 | [Doppler](https://doppler.com/) | Proprietary | Cloud-based alternative |

@@ -140,12 +140,30 @@ Note: Most service credentials (database, drive, cache) are fetched automaticall
 
 ### Initial Setup
 
+The bundled secrets server is OpenBao 2.7.3 (MPL-2.0), the open-source fork of
+Vault. It speaks the same HTTP API. The component id is still `vault`, and the
+`VAULT_*` variables and `secret/gbo/*` paths did not change. Only the program
+is different: `bin/vault/bao` (`bao.exe` on Windows).
+
 When you run `./botserver install secrets`, it:
 
-1. Downloads and installs Vault
-2. Initializes with a single unseal key
+1. Downloads and installs OpenBao
+2. Initializes it with 5 unseal key shares; any 3 of them unseal it
 3. Creates initial secret paths
-4. Outputs root token to `conf/vault/init.json`
+4. Writes the unseal keys and the root token to `conf/vault/init.json` and the
+   unseal keys to `vault-unseal-keys`
+
+The server keeps its data in `data/vault` with OpenBao's integrated `raft`
+storage, as a single node. OpenBao has no `file` storage backend.
+
+On Windows, `init.json` and `vault-unseal-keys` are sealed with DPAPI for the
+Windows user who runs the stack. A copy of these files can only be read by that
+user, so `cat` shows unreadable bytes there.
+
+A stack created by the former HashiCorp Vault binary keeps that binary until
+its secrets are moved. On first start, every KV secret and policy is copied
+into a new OpenBao store. The old storage is set aside, not deleted. If the
+move fails, the old storage comes back and the old binary keeps serving.
 
 ```bash
 # Check Vault status
@@ -233,14 +251,20 @@ vault kv put gbo/vdi \
 For emergency situations (lost credentials, key rotation), admins can:
 
 1. **Access Vault UI**: `https://localhost:8200/ui`
-2. **Use Vault CLI**: `vault kv get gbo/llm`
-3. **Check init.json**: Contains unseal key and root token
+2. **Use the CLI**: `bao kv get secret/gbo/llm` (the bundled OpenBao binary)
+3. **Check init.json**: Contains the unseal keys and root token
 
 ```bash
-# Emergency: unseal Vault after restart
-UNSEAL_KEY=$(cat botserver-stack/conf/vault/init.json | jq -r '.unseal_keys_b64[0]')
-vault operator unseal $UNSEAL_KEY
+# Emergency: unseal after restart. Three of the five keys are needed.
+for i in 0 1 2; do
+  UNSEAL_KEY=$(jq -r ".unseal_keys_b64[$i]" botserver-stack/conf/vault/init.json)
+  botserver-stack/bin/vault/bao operator unseal "$UNSEAL_KEY"
+done
 ```
+
+This works where `init.json` is plain text (Linux, macOS). On Windows the file
+is sealed with DPAPI, so this loop cannot read it. There the stack unseals the
+server itself at start, from the sealed files.
 
 ## Vault Auto-Unseal Options
 
@@ -334,8 +358,9 @@ seal "pkcs11" {
   hmac_key_label = "vault-hmac"
 }
 
-storage "file" {
-  path = "/opt/gbo/data/vault"
+storage "raft" {
+  path    = "/opt/gbo/data/vault"
+  node_id = "gbo-local"
 }
 
 listener "tcp" {
