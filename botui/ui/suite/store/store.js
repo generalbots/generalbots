@@ -131,10 +131,12 @@
     });
     nav.innerHTML = Object.keys(cats)
       .map(function (key) {
-        return '<button class="store-cat' + (key === activeCat ? " active" : "") + '" data-cat="' + key + '">' + cats[key] + "</button>";
+        return '<button class="store-cat" data-cat="' + key + '">' + cats[key] + "</button>";
       })
       .join("");
     Array.from(nav.querySelectorAll(".store-cat")).forEach(function (btn) {
+      // #2965 — never dereference classList on a missing/stale node.
+      safeToggleClass(btn, "active", btn.dataset.cat === activeCat);
       btn.addEventListener("click", function () {
         activeCat = btn.dataset.cat;
         renderCats();
@@ -203,6 +205,16 @@
 
   function escapeHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // #2965 — the store is injected as an HTMX fragment, so a shell
+  // re-render can leave a stale element reference behind. A direct
+  // `el.classList.*` on that node throws "Cannot read properties of null
+  // (reading 'classList')". Every class toggle goes through this guard.
+  function safeToggleClass(el, cls, on) {
+    if (!el || !el.classList) return;
+    if (on) el.classList.add(cls);
+    else el.classList.remove(cls);
   }
 
   function bootStore() {

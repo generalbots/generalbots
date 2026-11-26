@@ -86,8 +86,14 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/advisories", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/advisories/{id}", "GET", "").with_anonymous(true),
 
-        // Client error reporting - anonymous to catch all JS errors
-        RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),
+        // Client error reporting (#2962). #2133 made this endpoint
+        // authenticated-only on the client: a signed-in page sends its suite
+        // token, a logged-out one keeps errors local and gets a 401. Both
+        // verbs therefore need an explicit authenticated entry — without one
+        // RBAC's default-deny answers 401 (anonymous) or 403 (signed-in) on
+        // the notepad sweep's GET probe. Anonymous stays denied.
+        RoutePermission::new("/api/client-errors", "GET", ""),
+        RoutePermission::new("/api/client-errors", "POST", ""),
         RoutePermission::new("/api/auth/bootstrap", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/refresh", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/auth/logout", "POST", ""),
@@ -111,4 +117,65 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sessions", "GET", ""),
         RoutePermission::new("/api/sessions/**", "GET", ""),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn client_errors_has_authenticated_get_and_post_entries() {
+        let routes = anonymous_routes();
+        let entries: Vec<&RoutePermission> = routes
+            .iter()
+            .filter(|r| r.path_pattern == "/api/client-errors")
+            .collect();
+        assert_eq!(entries.len(), 2, "GET and POST must both be registered");
+        for entry in &entries {
+            assert!(
+                !entry.allow_anonymous,
+                "{} {} must deny anonymous callers",
+                entry.method, entry.path_pattern
+            );
+            assert!(
+                entry.required_permission.is_empty(),
+                "any authenticated suite user may report a client error"
+            );
+        }
+        assert!(entries.iter().any(|r| r.method == "GET"));
+        assert!(entries.iter().any(|r| r.method == "POST"));
+
+        // Unrelated public routes must not have been tightened by #2962.
+        assert!(routes
+            .iter()
+            .any(|r| { r.path_pattern == "/api/auth" && r.method == "GET" && r.allow_anonymous }));
+        assert!(routes
+            .iter()
+            .any(|r| { r.path_pattern == "/health" && r.method == "GET" && r.allow_anonymous }));
+    }
+
+    #[tokio::test]
+    async fn client_errors_denies_anonymous_and_allows_signed_in() {
+        let manager = RbacManager::with_defaults();
+        manager.register_routes(anonymous_routes()).await;
+        let anonymous = AuthenticatedUser::anonymous();
+        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+            .with_role(Role::Admin);
+        for method in ["GET", "POST"] {
+            assert!(
+                !manager
+                    .check_route_access("/api/client-errors", method, &anonymous)
+                    .await
+                    .is_allowed(),
+                "{method} must be denied without a session"
+            );
+            assert!(
+                manager
+                    .check_route_access("/api/client-errors", method, &admin)
+                    .await
+                    .is_allowed(),
+                "{method} must be allowed for a signed-in admin"
+            );
+        }
+    }
 }

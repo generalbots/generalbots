@@ -58,6 +58,14 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         // but were absent from the default-deny catalogue, so even admins got
         // 403 "No matching route permission found" before reaching the handler.
         RoutePermission::new("/api/commands/stats", "GET", ""),
+        // #2965 — the App Store syncs an install with POST /api/apps/install
+        // and callers probe the same path with GET for status/list. Only the
+        // `/stats` sibling was catalogued, so default-deny rejected both
+        // verbs with 403 "No matching route permission found" before the
+        // handler ran. GET is read-only; POST increments a popularity count;
+        // neither is public (anonymous stays denied).
+        RoutePermission::new("/api/apps/install", "GET", ""),
+        RoutePermission::new("/api/apps/install", "POST", ""),
         RoutePermission::new("/api/apps/install/stats", "GET", ""),
         // Built-in MCP server for generated apps (#1676)
         RoutePermission::new("/api/mcp/**", "GET", ""),
@@ -364,6 +372,11 @@ mod approvals_tests {
 #[cfg(test)]
 #[path = "app_routes_sandbox_tests.rs"]
 mod sandbox_status_tests;
+// #2965 — install catalogue decisions live next to the route table without
+// pushing this file past the 450-line limit.
+#[cfg(test)]
+#[path = "app_routes_install_tests.rs"]
+mod install_catalogue_tests;
 
 #[cfg(test)]
 mod automations_catalogue_tests {

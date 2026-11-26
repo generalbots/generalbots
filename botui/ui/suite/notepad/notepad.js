@@ -14,12 +14,20 @@ window.GBNotepad = window.GBNotepad || {};
   app.init = function () {
     var root = document.getElementById("gb-notepad-root") ||
       (document.currentScript ? document.currentScript.closest(".gb-notepad") : null);
-    if (!root || root.dataset.npInit === "1") return;
-    root.dataset.npInit = "1";
+    // #2962 — a deferred boot or a late delta callback can run after the
+    // notepad window was closed. Fail closed before touching the DOM: the
+    // uncaught "classList" TypeError came from a detached/missing app root.
+    if (!root || !root.classList || root.dataset.npInit === "1") return;
 
     var sel = root.querySelector("#gb-notepad-files");
     var ta = root.querySelector("#gb-notepad-text");
     var status = root.querySelector("#gb-notepad-status");
+    var newBtn = root.querySelector("#gb-notepad-new");
+    var delBtn = root.querySelector("#gb-notepad-del");
+    // A partial HTMX swap can leave the shell without its controls. Never
+    // bind a listener to a missing node (uncaught TypeError on app open).
+    if (!sel || !ta || !status || !newBtn || !delBtn) return;
+    root.dataset.npInit = "1";
 
     function names() { return Object.keys(loadIndex()).sort(); }
     function current() { return sel.value; }
@@ -67,7 +75,7 @@ window.GBNotepad = window.GBNotepad || {};
     ta.addEventListener("input", persist);
     ta.addEventListener("change", persist);
     sel.addEventListener("change", function () { ta.value = loadIndex()[current()] || ""; });
-    root.querySelector("#gb-notepad-new").addEventListener("click", function () {
+    newBtn.addEventListener("click", function () {
       // #2297 — themed modal input; native prompt() blocks the whole desktop.
       GBModal.prompt(
         t("notepad-new-name", "Note name:"),
@@ -80,7 +88,7 @@ window.GBNotepad = window.GBNotepad || {};
         }
       );
     });
-    root.querySelector("#gb-notepad-del").addEventListener("click", function () {
+    delBtn.addEventListener("click", function () {
       if (!current()) return;
       var note = current();
       GBModal.confirm(t("notepad-delete-confirm", "Delete this note?") + " " + note, function () {

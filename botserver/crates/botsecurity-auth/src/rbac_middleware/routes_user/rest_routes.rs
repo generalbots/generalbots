@@ -30,6 +30,17 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/settings/**", "POST", ""),
         RoutePermission::new("/api/settings/**", "PUT", ""),
 
+        // #2960 — the Integrations app opens its connected-services list with
+        // a roleless authenticated GET on this exact prefix. Keep explicit
+        // entries ahead of the broad `/api/bots/{id}/**` GET below: the route
+        // table matches in order, so these rules name the audited pattern and
+        // cannot be silently dropped by a future tightening of the catch-all.
+        // Tenant binding stays in `botintegrations::scope::resolve_scope`: a
+        // foreign or unresolvable bot id is rejected there (403/404), never
+        // by a blanket role gate in front of a caller's own bot.
+        RoutePermission::new("/api/bots/{id}/integration-connections", "GET", ""),
+        RoutePermission::new("/api/bots/{id}/integration-connections/**", "GET", ""),
+
         // Bots (read for all authenticated users)
         RoutePermission::new("/api/bots", "GET", ""),
         RoutePermission::new("/api/bots/{id}", "GET", ""),
@@ -292,6 +303,93 @@ mod memory_routes_tests {
             assert!(
                 !denied.is_allowed(),
                 "{method} {path} must stay closed to anonymous callers"
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod integration_connections_routes_tests {
+    use crate::rbac_middleware::{build_default_route_permissions, RbacManager};
+    use crate::{AuthenticatedUser, Role};
+    use uuid::Uuid;
+
+    const BOT_ID: &str = "f47ac10b-58cc-4372-a567-0e02b2c3d480";
+    const BASE: &str = "/api/bots/{id}/integration-connections";
+    const NESTED: &str = "/api/bots/{id}/integration-connections/**";
+
+    fn find(pattern: &str, method: &str) -> crate::rbac_middleware::RoutePermission {
+        super::routes()
+            .into_iter()
+            .find(|r| r.path_pattern == pattern && r.method == method)
+            .expect("route must be in the catalogue")
+    }
+
+    #[test]
+    fn connections_read_routes_are_explicit_and_roleless() {
+        for pattern in [BASE, NESTED] {
+            let route = find(pattern, "GET");
+            assert!(route.required_roles.is_empty(), "{pattern} role gate");
+            assert!(
+                route.required_permission.is_empty(),
+                "{pattern} permission gate"
+            );
+            assert!(!route.allow_anonymous, "{pattern} must require a session");
+        }
+        // The write verbs stay roleless too; the handler owns tenant scoping.
+        assert!(find(BASE, "POST").required_roles.is_empty());
+        assert!(find(NESTED, "DELETE").required_roles.is_empty());
+    }
+
+    #[test]
+    fn connections_read_patterns_cover_only_their_own_prefix() {
+        let base = find(BASE, "GET");
+        let nested = find(NESTED, "GET");
+        let url = format!("/api/bots/{BOT_ID}/integration-connections");
+
+        assert!(base.matches_path(&url));
+        assert!(!base.matches_path(&format!("{url}/{BOT_ID}")));
+        assert!(!base.matches_path(&format!("{url}-extra")));
+
+        assert!(nested.matches_path(&format!("{url}/{BOT_ID}")));
+        assert!(nested.matches_path(&format!("{url}/{BOT_ID}/events")));
+        assert!(!nested.matches_path(&format!("{url}-extra/{BOT_ID}")));
+    }
+
+    #[tokio::test]
+    async fn connections_reads_admit_members_and_admins_but_not_anonymous() {
+        let manager = RbacManager::with_defaults();
+        manager
+            .register_routes(build_default_route_permissions())
+            .await;
+        let member = AuthenticatedUser::new(Uuid::new_v4(), "member@example.com".to_string())
+            .with_role(Role::User);
+        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+            .with_role(Role::Admin);
+        let url = format!("/api/bots/{BOT_ID}/integration-connections");
+
+        for (method, path) in [
+            ("GET", url.as_str()),
+            ("GET", format!("{url}/{BOT_ID}").as_str()),
+            ("GET", format!("{url}/{BOT_ID}/events").as_str()),
+            ("POST", url.as_str()),
+            ("DELETE", format!("{url}/{BOT_ID}").as_str()),
+        ] {
+            for principal in [&member, &admin] {
+                let decision = manager.check_route_access(path, method, principal).await;
+                assert!(
+                    decision.is_allowed(),
+                    "{method} {path} must be allowed for {} : {}",
+                    principal.username,
+                    decision.reason
+                );
+            }
+            let denied = manager
+                .check_route_access(path, method, &AuthenticatedUser::anonymous())
+                .await;
+            assert!(
+                !denied.is_allowed(),
+                "{method} {path} must stay closed anonymously"
             );
         }
     }

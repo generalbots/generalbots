@@ -65,7 +65,14 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
     let router = router.merge(botuifragments::register(Router::new()));
     let router = router
         .route("/api/apps/catalog", get(catalog_handler))
-        .route("/api/apps/install", post(install_handler))
+        // #2965 — GET is the read-only status/list probe of the install
+        // counters (no mutation, no caller data); it shares the stats
+        // handler. POST records one install. Both verbs need an RBAC
+        // catalogue entry or default-deny answers 403 before routing.
+        .route(
+            "/api/apps/install",
+            get(install_stats_handler).post(install_handler),
+        )
         .route("/api/apps/install/stats", get(install_stats_handler))
         .route("/api/commands/stats", get(command_stats_handler))
         .route("/api/agent/plan", post(agent_plan_handler));
