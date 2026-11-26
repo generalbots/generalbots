@@ -1112,6 +1112,7 @@ jobs:
           set -euo pipefail
           python3 scripts/check_app_transport.py --self-test
           python3 scripts/check_app_transport.py
+          python3 botui/ui/suite/audit/app-404-smoke.py --self-test
           python3 scripts/check_suite_js_size.py
           node botui/ui/suite/tests/webtest-ui-bootbudget.js
           node botui/ui/suite/tests/webtest-sanitize-xss.js
@@ -1515,6 +1516,147 @@ jobs:
         if: always()
         run: |
           for pid_file in /tmp/botserver-smoke.pid /tmp/botui-static.pid; do
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
+
+  suite-app-console-smoke:
+    # Creates a throwaway cloud account through the real signup API, signs the
+    # Suite desktop in with its JWT, opens every available app in a real
+    # browser and FAILS on the first console error/warning or 404. The account
+    # and every row it created are destroyed in the cleanup step, even when
+    # the smoke fails. No shared test account and no CI secret are involved.
+    name: Suite app console smoke (throwaway CI account)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: gb
+          POSTGRES_PASSWORD: gb
+          POSTGRES_DB: botserver
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gb -d botserver"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+      DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+      CACHE_URL: redis://127.0.0.1:6379
+      VAULT_ADDR: https://vault.smoke.invalid:8200
+      BOTSERVER_DISABLE_TLS: "1"
+      BOTSERVER_ENV: development
+      SAAS_DISABLE_CAPACITY_CHECK: "1"
+      BOT_TEMPLATES_REPO: https://example.invalid/templates.git
+      GB_API_BASE: http://127.0.0.1:8080
+      GB_MOCK_ZITADEL_URL: http://127.0.0.1:8099
+      GB_ACCOUNT_FILE: /tmp/gb-smoke-account.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: suite-console-smoke
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev
+      - name: Set up Playwright client
+        run: |
+          python3 -m venv /tmp/gbvenv
+          /tmp/gbvenv/bin/pip install --quiet playwright
+      - name: Build botserver and botui
+        run: |
+          cargo build -p botserver
+          cargo build -p botui
+      - name: Start the mock identity provider
+        run: |
+          nohup python3 scripts/ci-mock-zitadel.py > /tmp/mock-zitadel.log 2>&1 &
+          echo $! > /tmp/mock-zitadel.pid
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8099/health; then break; fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8099/health
+      - name: Start botserver with the CI directory profile
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}/gbstack
+        run: |
+          set -euo pipefail
+          mkdir -p "$BOTSERVER_STACK_PATH/conf/system" "$BOTSERVER_STACK_PATH/conf/directory"
+          cat > "$BOTSERVER_STACK_PATH/conf/system/directory_config.json" <<'JSON'
+          {"base_url":"http://127.0.0.1:8099","saas_base_url":"http://127.0.0.1:8080","service_token":"ci-smoke-token","allow_insecure_http":true,"mc_path":"/tmp/mc"}
+          JSON
+          printf '%s' 'ci-smoke-token' > "$BOTSERVER_STACK_PATH/conf/directory/admin-pat.txt"
+          nohup ./target/debug/botserver --noconsole > /tmp/botserver-smoke.log 2>&1 &
+          echo $! > /tmp/botserver-smoke.pid
+          for _ in $(seq 1 300); do
+            if curl -sf -o /dev/null http://127.0.0.1:8080/health; then break; fi
+            sleep 2
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8080/health
+      - name: Start botui (suite on port 3000)
+        run: |
+          nohup ./target/debug/botui > /tmp/botui-smoke.log 2>&1 &
+          echo $! > /tmp/botui-smoke.pid
+          for _ in $(seq 1 60); do
+            if curl -sf -o /dev/null http://127.0.0.1:3000/; then break; fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:3000/
+      - name: Start headless Chrome with CDP
+        run: |
+          nohup google-chrome --headless=new --no-sandbox --disable-gpu \
+            --remote-debugging-port=9222 --remote-allow-origins='*' \
+            --user-data-dir="$RUNNER_TEMP/chrome-smoke" about:blank \
+            > /tmp/chrome-smoke.log 2>&1 &
+          echo $! > /tmp/chrome-smoke.pid
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:9222/json/version; then break; fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:9222/json/version
+      - name: Create the throwaway account
+        run: python3 scripts/ci-suite-account.py create
+      - name: Smoke every app; fail on the first console error or warning
+        run: |
+          set -euo pipefail
+          BOT=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["bot_name"])')
+          export GB_TEST_TOKEN=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["token"])')
+          /tmp/gbvenv/bin/python botui/ui/suite/audit/app-404-smoke.py \
+            --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
+            --wait 1 --report /tmp/opencode/app-404-smoke-report.json
+      - name: Destroy the throwaway account
+        if: always()
+        run: python3 scripts/ci-suite-account.py cleanup
+      - name: Upload smoke report and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: suite-app-console-smoke
+          path: |
+            /tmp/opencode/app-404-smoke-report.json
+            /tmp/botserver-smoke.log
+            /tmp/botui-smoke.log
+            /tmp/chrome-smoke.log
+            /tmp/mock-zitadel.log
+          if-no-files-found: ignore
+      - name: Stop CI processes
+        if: always()
+        run: |
+          for pid_file in /tmp/mock-zitadel.pid /tmp/botserver-smoke.pid /tmp/botui-smoke.pid /tmp/chrome-smoke.pid; do
             if [ -f "$pid_file" ]; then
               kill "$(cat "$pid_file")" 2>/dev/null || true
             fi
