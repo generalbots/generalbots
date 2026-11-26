@@ -1665,7 +1665,8 @@ jobs:
         run: |
           set -euo pipefail
           BOT=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["bot_name"])')
-          export GB_TEST_TOKEN=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["token"])')
+          GB_TEST_TOKEN=$(/tmp/gbvenv/bin/python -c 'import json;print(json.load(open("/tmp/gb-smoke-account.json"))["token"])')
+          export GB_TEST_TOKEN
           /tmp/gbvenv/bin/python botui/ui/suite/audit/app-404-smoke.py \
             --cdp http://127.0.0.1:9222 --base http://localhost:3000 --bot "$BOT" \
             --wait 1 --report /tmp/opencode/app-404-smoke-report.json

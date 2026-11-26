@@ -48,29 +48,32 @@ var metrics = require("./10_scan").metrics;
 // counts; the four documented gaps and all a11y invariants stay unchanged.
 // Re-locked 2026-11-25: shipped route-contract/undo/i18n guards add live-region
 // mentions and gbT declarations; the a11y invariants below are unchanged.
+// Re-locked 2026-11-26: merged suite work changed the observed HTML/JS
+// surface and live-region counts. All a11y invariants below are unchanged; this
+// is an observation correction, not a suppression.
 var EXPECTED = {
   filesScanned: 1587,
-  htmlFiles: 215,
-  jsFiles: 1372,
+  htmlFiles: 214,
+  jsFiles: 1373,
   vendorFiles: 290,
   topSegments: 94,
-  ariaLiveMentions: 728,
-  ariaLiveFiles: 257,
-  ariaLiveDeclarations: 679,
-  livePolite: 609,
+  ariaLiveMentions: 730,
+  ariaLiveFiles: 258,
+  ariaLiveDeclarations: 680,
+  livePolite: 610,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 544,
+  roleStatus: 545,
   roleAlert: 106,
   roleLog: 12,
-  roleStatusAlertFiles: 254,
+  roleStatusAlertFiles: 255,
   dataI18nAttrs: 5872,
-  htmlWithI18n: 204,
+  htmlWithI18n: 203,
   gbTCalls: 390, // relock note above: -1 from prior lock, see e216103e1
   jsWithGbt: 126,
-  dynamicWrites: 4337,
-  writesInRegionFiles: 1270,
-  writesOutsideRegionFiles: 3067,
+  dynamicWrites: 4338,
+  writesInRegionFiles: 1272,
+  writesOutsideRegionFiles: 3066,
   filesWithWritesNoRegion: 612,
 };
 

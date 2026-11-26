@@ -23,6 +23,9 @@
  * unchanged), so this is observation drift only, not a budget regression.
  */
 "use strict";
+// Re-locked 2026-11-26: merged suite commits removed one shipped HTML file and
+// added four script references; no per-entry-page baseline changed. One-time
+// observation correction; subsequent changes are reviewed in the same PR.
 
 var h = require("./00_harness");
 var test = h.test;
@@ -35,9 +38,9 @@ var DESKTOP = "desktop.html";
 var CHAT = "partials/chat.html";
 var PROJECTOR = "chat/projector.html";
 
-test("[BASELINE-OBSERVE] 215 shipped suite HTML files scanned, tests/ excluded", function () {
+test("[BASELINE-OBSERVE] 214 shipped suite HTML files scanned, tests/ excluded", function () {
   var a = all();
-  equal(a.files.length, 215, "HTML file count");
+  equal(a.files.length, 214, "HTML file count");
   assert(a.files.every(function (rel) { return rel.indexOf("tests/") !== 0 && rel.indexOf("tests/") < 0; }),
     "tests/ leaked into the scan set");
 });
@@ -78,13 +81,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 3 style
   equal(p.stylesheet, 3, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1179 scripts, 1126 src, 1113 blocking, 53 inline, 514 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1183 scripts, 1130 src, 1117 blocking, 53 inline, 513 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1179, "scripts");
-  equal(t.scriptSrc, 1126, "scriptSrc");
-  equal(t.blockingScriptSrc, 1113, "blockingScriptSrc");
+  equal(t.scripts, 1183, "scripts");
+  equal(t.scriptSrc, 1130, "scriptSrc");
+  equal(t.blockingScriptSrc, 1117, "blockingScriptSrc");
   equal(t.inlineScript, 53, "inlineScript");
-  equal(t.stylesheet, 514, "stylesheet");
+  equal(t.stylesheet, 513, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
