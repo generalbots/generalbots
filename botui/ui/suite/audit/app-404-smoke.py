@@ -161,7 +161,8 @@ async def run(args) -> int:
             urls = server_bucket["items"]
             server_bucket["items"] = []
             benign_503 = bool(allow_503) and bool(urls) and all(
-                any(url.startswith(prefix) for prefix in allow_503) for url in urls)
+                any(urlsplit(url).path.startswith(prefix) for prefix in allow_503)
+                for url in urls)
             if benign_503:
                 allowed_bucket["items"] = [
                     {"source": "http.503 (allowed by GB_SMOKE_ALLOW_503)", "text": url}
