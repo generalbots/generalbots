@@ -141,6 +141,18 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
 /// Resolve the authenticated identity from the `gb-access-token` cookie or the
 /// `access_token` query parameter. A verified token is a credential held by the
 /// caller, so it also exempts non-browser clients from the Origin check below.
+fn handshake_user_with<F>(cookie: Option<&str>, query: Option<&str>, resolver: F) -> Option<String>
+where
+    F: Fn(&str) -> Option<(String, Vec<String>)>,
+{
+    [cookie, query]
+        .into_iter()
+        .flatten()
+        .filter(|token| !token.trim().is_empty())
+        .find_map(|token| resolver(token))
+        .map(|(id, _)| id)
+}
+
 fn resolve_ws_token_user(headers: &HeaderMap, params: &WsQuery) -> Option<String> {
     let cookie_token = headers
         .get(axum::http::header::COOKIE)
@@ -153,11 +165,11 @@ fn resolve_ws_token_user(headers: &HeaderMap, params: &WsQuery) -> Option<String
                 (name == "gb-access-token").then(|| value.to_string())
             })
         });
-    cookie_token
-        .as_deref()
-        .or(params.access_token.as_deref())
-        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
-        .map(|(id, _)| id)
+    handshake_user_with(
+        cookie_token.as_deref(),
+        params.access_token.as_deref(),
+        crate::main_module::routes::anonymous_auth::resolve_token_user,
+    )
 }
 
 pub async fn websocket_handler(

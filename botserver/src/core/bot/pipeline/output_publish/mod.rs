@@ -108,24 +108,35 @@ impl PublishedArtifact {
 pub struct PublishReport {
     pub folder: String,
     pub published: Vec<PublishedArtifact>,
+    /// Links to new files that stay in the conversation, not in Drive.
+    pub unsaved: Vec<String>,
 }
 
 impl PublishReport {
     pub fn is_empty(&self) -> bool {
-        self.published.is_empty()
+        self.published.is_empty() && self.unsaved.is_empty()
     }
 
     /// Chat message for the turn. Empty when nothing was published, so the
     /// caller never sends an empty bubble.
     pub fn message(&self) -> String {
-        if self.published.is_empty() {
-            return String::new();
+        let mut message = String::new();
+        if !self.published.is_empty() {
+            let folder = self.folder.as_str();
+            message.push_str(&format!("**Arquivos salvos no seu Drive** (`conversations/{folder}/`)\n"));
+            for artifact in &self.published {
+                let link = artifact.link.as_str();
+                message.push_str(&format!("- {link}\n"));
+            }
         }
-        let folder = self.folder.as_str();
-        let mut message = format!("**Files saved to your Drive** (`conversations/{folder}/`)\n");
-        for artifact in &self.published {
-            let link = artifact.link.as_str();
-            message.push_str(&format!("- {link}\n"));
+        if !self.unsaved.is_empty() {
+            if !message.is_empty() {
+                message.push('\n');
+            }
+            message.push_str("**Arquivos desta conversa, não salvos no Drive** (use «Salvar no Drive» no painel de arquivos)\n");
+            for link in &self.unsaved {
+                message.push_str(&format!("- {link}\n"));
+            }
         }
         message.trim_end().to_string()
     }

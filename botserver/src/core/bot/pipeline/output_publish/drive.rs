@@ -84,7 +84,7 @@ pub async fn publish_turn_output(
     // advanced, failed ones kept their old stamp and stay candidates. The
     // mirrored copy survives a restart; the in-memory copy is the fallback.
     save_durable(state, session_id, &seen).await;
-    PublishReport { folder, published }
+    PublishReport { folder, published, unsaved: Vec::new() }
 }
 
 /// Ceiling on one turn's publishing work (listing + reads + uploads). The
