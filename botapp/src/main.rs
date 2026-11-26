@@ -220,6 +220,9 @@ fn main() {
     // bundle identifier's data folder before any webview opens, so users keep
     // their sessions and settings across the rename.
     desktop::legacy_data::migrate_legacy_data_dir();
+    // The Lite edition's own identifier and stack folder (edition_migration).
+    #[cfg(feature = "gbgov")]
+    desktop::edition_migration::migrate();
 
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());

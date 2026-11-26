@@ -87,7 +87,7 @@ fn migrate_root(new_dir: &Path) {
     }
 }
 
-fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+pub(crate) fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
         let entry = entry?;

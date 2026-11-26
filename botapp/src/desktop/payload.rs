@@ -43,10 +43,7 @@ pub fn stack_dir() -> PathBuf {
     if let Ok(path) = std::env::var("BOTSERVER_STACK_PATH") {
         return PathBuf::from(path);
     }
-    dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("generalbots")
-        .join("stack")
+    super::data_root::default_stack(dirs::data_local_dir())
 }
 
 fn current_exe() -> Result<PathBuf> {

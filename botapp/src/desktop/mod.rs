@@ -2,7 +2,10 @@
 pub mod activity;
 #[cfg(feature = "desktop-local")]
 pub mod boot_steps;
+pub mod data_root;
 pub mod download;
+#[cfg(feature = "gbgov")]
+pub mod edition_migration;
 pub mod drive;
 pub mod i18n;
 #[cfg(feature = "desktop-local")]
@@ -15,6 +18,8 @@ pub mod single_instance;
 pub mod recovery;
 #[cfg(feature = "desktop-local")]
 pub mod sidecar;
+#[cfg(feature = "gbgov")]
+pub mod stack_relocate;
 #[cfg(feature = "desktop-local")]
 pub mod stack_stop;
 pub mod splash;
