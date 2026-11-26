@@ -9,9 +9,29 @@ const PosApp = {
         this.loadProducts();
     },
 
+    // #2964 — the live bearer lives in GBSecurity's closure / sessionStorage;
+    // chat-init deliberately purges the legacy `gb_token` localStorage key.
+    // Reading only that stale key sent `Authorization: Bearer null`, which
+    // auth rejected with 401 before the tenant-scoped POS handler ran. The
+    // canonical accessor wins; the legacy key stays only as a fallback for
+    // standalone / older shell contexts.
+    authToken() {
+        if (typeof window.getGBAccessToken === 'function') {
+            return window.getGBAccessToken() || null;
+        }
+        if (window.GBAppKit && typeof window.GBAppKit.getAuthToken === 'function') {
+            return window.GBAppKit.getAuthToken();
+        }
+        try { return localStorage.getItem('gb_token') || null; } catch (e) { return null; }
+    },
+
     async api(path, opts) {
-        const token = localStorage.getItem('gb_token');
-        const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, ...opts });
+        const options = Object.assign({}, opts || {});
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+        const token = this.authToken();
+        if (token) headers.Authorization = 'Bearer ' + token;
+        options.headers = headers;
+        const res = await fetch(path, options);
         if (!res.ok) throw new Error('API error: ' + res.status);
         return res.json();
     },

@@ -43,6 +43,11 @@ mod routes_billing_tests;
 #[cfg(test)]
 #[path = "routes_handoff_tests.rs"]
 mod routes_handoff_tests;
+// #2964 — POS catalogue decisions live in their own file so the route table
+// stays below the 450-line limit while the products/orders contract is locked.
+#[cfg(test)]
+#[path = "routes_pos_tests.rs"]
+mod routes_pos_tests;
 #[cfg(test)]
 mod tests;
 

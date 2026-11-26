@@ -7,6 +7,7 @@ use uuid::Uuid;
 use diesel::RunQueryDsl;
 use diesel::OptionalExtension;
 
+use crate::branch_scope::resolve_branch;
 use crate::db;
 use crate::storage::ensure_schema_sync;
 
@@ -52,14 +53,6 @@ pub struct NewProduct {
 pub struct NewOrder {
     pub items: Vec<OrderItem>,
     pub payment_method: String,
-}
-
-/// Resolves the caller's tenant branch from the server-minted JWT claims
-/// (issue #734). Falls back to the global nil branch so anonymous/system
-/// callers keep working, but every query is still constrained by the resolved
-/// branch — a tenant can never see another tenant's rows.
-fn resolve_branch(headers: &HeaderMap) -> Uuid {
-    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
 }
 
 fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
@@ -109,7 +102,7 @@ fn items_from_json(value: &serde_json::Value) -> Vec<OrderItem> {
 
 pub async fn list_products(headers: HeaderMap) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -138,7 +131,7 @@ pub async fn list_products(headers: HeaderMap) -> Result<Json<Vec<Product>>, (St
 
 pub async fn create_product(headers: HeaderMap, Json(req): Json<NewProduct>) -> Result<Json<Product>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let price = parse_decimal(&req.price)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
@@ -166,7 +159,7 @@ pub async fn create_product(headers: HeaderMap, Json(req): Json<NewProduct>) -> 
 
 pub async fn list_orders(headers: HeaderMap) -> Result<Json<Vec<Order>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -197,7 +190,7 @@ pub async fn list_orders(headers: HeaderMap) -> Result<Json<Vec<Order>>, (Status
 
 pub async fn create_order(headers: HeaderMap, Json(req): Json<NewOrder>) -> Result<Json<Order>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let total = order_total(&req.items)?;
@@ -228,7 +221,7 @@ pub async fn get_order(headers: HeaderMap, Path(id): Path<String>) -> Result<Jso
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
