@@ -8,7 +8,8 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | Rule | Directive |
 |------|-----------|
 | **Language** | 🌐 ALWAYS respond in English regardless of the user's language — answer directly and concisely |
-| **Temp files** | Stop saving `.png`/files on repo root — use `/tmp/`. NEVER create new files on root |
+| **Design System** | 🎨 `DESIGN-SYSTEM.md` at the repo root is the **mandatory standard for every UI in General Bots** (suite, cloud, login, assistant, splash, desktop). Use the `--id-*` identity tokens, local fonts and the accent-only theming contract. The default theme equals the design system exactly; other themes may vary **only the accent color**. Never introduce ad-hoc colors, fonts, radii or shadows. |
+| **Temp files** | Stop saving `.png`/files on repo root — use `/tmp/`. NEVER create new files on root — **exception:** `DESIGN-SYSTEM.md`, the mandatory UI standard, is committed at the root by explicit decision |
 | **Backups** | NEVER create `.bak`/`.old`/backup dirs in the repo — use `/tmp/` only; never commit them |
 | **Boteval cost** | ✅ Boteval runs on **CI only** (`ci.yml` → `evaluate` / `boteval-run`). ❌ NEVER run `boteval` / `boteval-run` locally or in dev — every task spends paid model calls. Results live in the CI run report only — do not re-run locally for verification, and do not store e2e run history in the repo. |
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
@@ -980,6 +981,16 @@ git push origin main
 ---
 
 ## Frontend & Performance Standards
+
+### Design System — MANDATORY for every UI
+`DESIGN-SYSTEM.md` (repo root) is the single source of truth for the visual language of **every** UI in General Bots — suite apps, cloud pages, login, assistant, splash and desktop shell. Every HTML/CSS change MUST respect it:
+
+- All colors, spacing, radii, shadows, motion, typography and layers come from the `--id-*` identity tokens in `botui/ui/suite/identity/tokens.css`. Never hardcode a color/font/radius/shadow in HTML or CSS; use the token (or `var(--id-…, fallback)` only where the token is intentionally optional).
+- **Themes:** the default theme (`botui/ui/suite/public/themes/default.css`) must be identical to `DESIGN-SYSTEM.md`. Other themes change **only the accent color** (`--id-accent`, `--id-accent-hover`, `--id-accent-text`, `--id-accent-soft`, `--id-accent-glow`, `--id-on-accent`); identity neutrals, typography, spacing, radii, shadows and motion stay identical. No theme may introduce its own layout or component look.
+- Local fonts only (`botui/ui/suite/identity/fonts.css`); inline local icons; no CDN, no external font or sprite file.
+- `--id-focus` is a box-shadow token — use it as `box-shadow: var(--id-focus)`, never as an `outline` color.
+- Any new token must be added to `DESIGN-SYSTEM.md` **and** to `tokens.css` (both light and dark blocks) in the same commit.
+- i18n still applies: visual changes must never add hardcoded user-facing strings — use `data-i18n` / `data-i18n-*` in HTML and `gbT()` in JS, with all locale catalogs updated.
 
 ### HTMX-First Approach
 Use HTMX to minimize JavaScript; server returns HTML fragments, not JSON; use `hx-get`, `hx-post`, `hx-target`, `hx-swap`; WebSocket via htmx-ws extension.
