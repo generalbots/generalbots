@@ -150,7 +150,7 @@ function GBDocsExport(format, id, opts) {
             }
             if (format === "pdf") {
                 // #2251/#2340: A4 page CSS in an off-screen srcdoc frame.
-                var printHtml = "<!doctype html><html><head><meta charset='utf-8'><title>Print</title><style>@page{size:A4;margin:20mm;}body{font:11pt/1.45 Helvetica,Arial,sans-serif;color:#111;}h1{font-size:18pt;}h2{font-size:14pt;}h3{font-size:12.5pt;}h1,h2,h3,h4,h5,h6{break-after:avoid;page-break-after:avoid;}ol,ul{margin:0 0 6pt 18pt;padding:0;}li{margin:0 0 2pt;}p{margin:0 0 5pt;}.gb-doc-page-break,hr.gb-page-break{break-after:page;page-break-after:always;border:0;height:0;margin:0;padding:0;}.gb-doc-page-break::after{content:none;}</style></head><body>" + html + "</body></html>";
+                var printHtml = "<!doctype html><html><head><meta charset='utf-8'><title>Print</title><style>@page{size:A4;margin:20mm;}body{font:11pt/1.45 Helvetica,Arial,sans-serif;color:var(--palette-111111);}h1{font-size:18pt;}h2{font-size:14pt;}h3{font-size:12.5pt;}h1,h2,h3,h4,h5,h6{break-after:avoid;page-break-after:avoid;}ol,ul{margin:0 0 6pt 18pt;padding:0;}li{margin:0 0 2pt;}p{margin:0 0 5pt;}.gb-doc-page-break,hr.gb-page-break{break-after:page;page-break-after:always;border:0;height:0;margin:0;padding:0;}.gb-doc-page-break::after{content:none;}</style></head><body>" + html + "</body></html>";
                 gbPrintHtml(printHtml);
                 settle("fallback");
                 return;
@@ -310,12 +310,12 @@ function GBDocsCompare(event) {
             var comparison = data.comparison || {};
             var summary = comparison.summary || {};
             var differences = comparison.differences || [];
-            var html = '<div style="padding:6px 0;color:#f8fafc;font-weight:600;">' +
+            var html = '<div style="padding:6px 0;color:var(--palette-f8fafc);font-weight:600;">' +
                 (summary.total_changes || 0) + " change(s) · +" +
                 (summary.insertions || 0) + " / −" + (summary.deletions || 0) +
                 " / ~" + (summary.modifications || 0) + "</div>";
             if (!differences.length) {
-                html += '<div style="padding:8px;color:#94a3b8;">' +
+                html += '<div style="padding:8px;color:var(--palette-94a3b8);">' +
                     docsT("docs-compare-no-differences", "No differences found.") +
                     "</div>";
             } else {
@@ -324,10 +324,10 @@ function GBDocsCompare(event) {
                     var before = diff.original_text || "";
                     var after = diff.modified_text || "";
                     html += '<div style="padding:6px;border-bottom:1px solid #334155;">' +
-                        '<div style="color:#94a3b8;font-size:11px;">' +
+                        '<div style="color:var(--palette-94a3b8);font-size:11px;">' +
                         gbDocsEscape(diff.diff_type) + " @ " + (diff.position || 0) + "</div>" +
-                        (before ? '<div style="color:#fca5a5;text-decoration:line-through;">' + gbDocsEscape(before) + "</div>" : "") +
-                        (after ? '<div style="color:#86efac;">' + gbDocsEscape(after) + "</div>" : "") +
+                        (before ? '<div style="color:var(--palette-fca5a5);text-decoration:line-through;">' + gbDocsEscape(before) + "</div>" : "") +
+                        (after ? '<div style="color:var(--palette-86efac);">' + gbDocsEscape(after) + "</div>" : "") +
                         "</div>";
                 });
                 html += "</div>";

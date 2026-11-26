@@ -308,7 +308,7 @@ window.ChatSwitchBot = function (botName) {
     btn.type = "button";
     btn.className = "gb-show-more-messages";
     btn.textContent = (typeof gbT === "function") ? gbT("chat-show-more-history", "show more…") : "show more…";
-    btn.style.cssText = "display:block;margin:8px auto;padding:6px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;cursor:pointer;font-size:13px;";
+    btn.style.cssText = "display:block;margin:8px auto;padding:6px 14px;border:1px solid var(--palette-cbd5e1);border-radius:8px;background:var(--palette-f8fafc);color:#334155;cursor:pointer;font-size:13px;";
     btn.addEventListener("click", function () {
       loadMoreHistory(sessionId);
     });

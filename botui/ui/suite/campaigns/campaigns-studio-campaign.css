@@ -7,7 +7,7 @@
 
 .campaign-card {
     background: var(--surface, var(--palette-1a1a1a));
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 8px;
     padding: 16px;
     transition: all 0.15s ease;
@@ -43,22 +43,22 @@
 }
 
 .campaign-status.draft {
-    background: rgba(251, 191, 36, 0.15);
+    background: color-mix(in srgb, var(--palette-fbbf24) 15%, transparent);
     color: var(--palette-fbbf24);
 }
 
 .campaign-status.scheduled {
-    background: rgba(96, 165, 250, 0.15);
+    background: color-mix(in srgb, var(--palette-60a5fa) 15%, transparent);
     color: var(--palette-60a5fa);
 }
 
 .campaign-status.running {
-    background: rgba(52, 211, 153, 0.15);
+    background: color-mix(in srgb, var(--palette-34d399) 15%, transparent);
     color: var(--palette-34d399);
 }
 
 .campaign-status.completed {
-    background: rgba(156, 163, 175, 0.15);
+    background: color-mix(in srgb, var(--id-gray-400) 15%, transparent);
     color: var(--palette-9ca3af);
 }
 
@@ -73,17 +73,17 @@
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--id-surface-solid) 5%, transparent);
     border-radius: 4px;
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .campaign-metrics {
     display: flex;
     gap: 16px;
     padding-top: 12px;
-    border-top: 1px solid var(--border, #333);
+    border-top: 1px solid var(--border, var(--palette-333333));
 }
 
 .campaign-metric {
@@ -101,7 +101,7 @@
 
 .campaign-metric-label {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     text-transform: uppercase;
     margin-top: 2px;
 }
@@ -111,25 +111,25 @@
     gap: 8px;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid var(--border, #333);
+    border-top: 1px solid var(--border, var(--palette-333333));
 }
 
 .campaign-action-btn {
     flex: 1;
     padding: 6px 12px;
     background: transparent;
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .campaign-action-btn:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     color: var(--text, var(--palette-f8fafc));
-    border-color: var(--text-secondary, #888);
+    border-color: var(--text-secondary, var(--palette-888888));
 }
 
 .campaign-action-btn.primary {
@@ -156,7 +156,7 @@
 }
 
 .studio-editor-area {
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--palette-333333));
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 16px;
@@ -169,7 +169,7 @@
     gap: 4px;
     padding: 6px 8px;
     background: var(--surface-2, var(--palette-111827));
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--palette-333333));
 }
 
 .studio-tool-btn {
@@ -191,13 +191,13 @@
 .studio-tool-sep {
     width: 1px;
     height: 18px;
-    background: var(--border, #333);
+    background: var(--border, var(--palette-333333));
     margin: 0 4px;
 }
 
 .studio-var-label {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     margin-right: 4px;
 }
 
@@ -214,11 +214,11 @@
 
 .studio-var-btn:hover {
     background: var(--accent, var(--palette-3b82f6));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .studio-var {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--palette-3b82f6) 15%, transparent);
     border-radius: 3px;
     padding: 0 3px;
     color: var(--accent, var(--palette-3b82f6));

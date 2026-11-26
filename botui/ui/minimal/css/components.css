@@ -11,7 +11,7 @@
             border-radius: 20px;
             padding: 10px 16px;
             font-size: 14px;
-            font-family: "Inter", sans-serif;
+            font-family: var(--id-font-sans, "Inter", system-ui, sans-serif);
             outline: none;
             transition: all 0.3s;
             background: var(--glass);
@@ -22,7 +22,7 @@
 
         #messageInput:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+            box-shadow: var(--id-focus);
         }
 
         #messageInput::placeholder {

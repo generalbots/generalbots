@@ -230,10 +230,10 @@
             var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
             var iframe = ensureIframe(pageEl);
             if (iframe) {
-                iframe.srcdoc = '<div style="padding:40px;text-align:center;color:#666;font-family:sans-serif">'
+                iframe.srcdoc = '<div style="padding:40px;text-align:center;color:var(--palette-666666);font-family:sans-serif">'
                     + '<h2>Unable to load page</h2>'
                     + '<p>' + sanitizeHtml(e.message) + '</p>'
-                    + '<p style="font-size:13px;color:#999">URL: ' + sanitizeHtml(url) + '</p>'
+                    + '<p style="font-size:13px;color:var(--palette-929798)">URL: ' + sanitizeHtml(url) + '</p>'
                     + '</div>';
             }
         } finally {

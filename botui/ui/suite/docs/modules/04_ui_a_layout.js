@@ -12,34 +12,34 @@ function injectEditorStyles() {
     // everything after page 1 was painted outside the white page: dark text
     // (#1e293b) on the dark app background (#0f172a), i.e. invisible. The page
     // must grow with its content and let the scroller scroll.
-    "article.docs-doc-view{flex-shrink:0;background:#ffffff;color:#1e293b;padding:96px;width:816px;margin:32px auto;border:1px solid #e2e8f0;border-radius:4px;font-family:Georgia,serif;font-size:16px;line-height:1.7;min-height:1056px;outline:none;box-shadow:0 10px 30px rgba(0,0,0,0.25);box-sizing:border-box;}",
-    "article.docs-doc-view h1{font-size:32px;font-weight:700;margin:0.8em 0 0.4em;color:#0f172a;}",
-    "article.docs-doc-view h2{font-size:24px;font-weight:600;margin:0.7em 0 0.35em;color:#0f172a;}",
+    "article.docs-doc-view{flex-shrink:0;background:var(--id-surface-solid);color:var(--palette-1e293b);padding:96px;width:816px;margin:32px auto;border:1px solid var(--palette-e2e8f0);border-radius:4px;font-family:Georgia,serif;font-size:16px;line-height:1.7;min-height:1056px;outline:none;box-shadow:0 10px 30px color-mix(in srgb, var(--palette-000000) 25%, transparent);box-sizing:border-box;}",
+    "article.docs-doc-view h1{font-size:32px;font-weight:700;margin:0.8em 0 0.4em;color:var(--palette-0f172a);}",
+    "article.docs-doc-view h2{font-size:24px;font-weight:600;margin:0.7em 0 0.35em;color:var(--palette-0f172a);}",
     "article.docs-doc-view h3{font-size:20px;font-weight:600;margin:0.6em 0 0.3em;color:#334155;}",
     "article.docs-doc-view p{margin:0.5em 0;}",
-    "article.docs-doc-view blockquote{border-left:3px solid #3b82f6;padding-left:16px;color:#475569;font-style:italic;margin:0.8em 0;}",
+    "article.docs-doc-view blockquote{border-left:3px solid var(--palette-3b82f6);padding-left:16px;color:#475569;font-style:italic;margin:0.8em 0;}",
     "article.docs-doc-view ul,article.docs-doc-view ol{margin:0.5em 0 0.5em 1.5em;}",
     "article.docs-doc-view li{margin:0.25em 0;}",
-    "article.docs-doc-view a{color:#2563eb;text-decoration:underline;}",
-    "article.docs-doc-view code{background:#f1f5f9;padding:2px 6px;border-radius:3px;font-family:'Courier New',monospace;font-size:0.9em;color:#b45309;}",
-    "article.docs-doc-view pre{background:#f1f5f9;padding:12px 16px;border-radius:6px;overflow-x:auto;color:#334155;}",
-    "article.docs-doc-view:focus{outline:2px solid #3b82f6;outline-offset:-2px;}",
-    "article.docs-doc-view .docs-page-break{break-after:page;page-break-after:always;display:block;height:0;border:0;border-top:1px dashed #cbd5e1;margin:24px 0;}",
-    "article.docs-doc-view .docs-header-zone{min-height:32px;padding:6px 0;border-bottom:1px dotted #e2e8f0;margin-bottom:18px;color:#64748b;font-size:12px;font-style:italic;}",
-    "article.docs-doc-view .docs-footer-zone{min-height:32px;padding:6px 0;border-top:1px dotted #e2e8f0;margin-top:18px;color:#64748b;font-size:12px;font-style:italic;}",
+    "article.docs-doc-view a{color:var(--id-hl-function);text-decoration:underline;}",
+    "article.docs-doc-view code{background:var(--palette-f1f5f9);padding:2px 6px;border-radius:3px;font-family:'Courier New',monospace;font-size:0.9em;color:var(--id-accent-text);}",
+    "article.docs-doc-view pre{background:var(--palette-f1f5f9);padding:12px 16px;border-radius:6px;overflow-x:auto;color:#334155;}",
+    "article.docs-doc-view:focus{outline:2px solid var(--palette-3b82f6);outline-offset:-2px;}",
+    "article.docs-doc-view .docs-page-break{break-after:page;page-break-after:always;display:block;height:0;border:0;border-top:1px dashed var(--palette-cbd5e1);margin:24px 0;}",
+    "article.docs-doc-view .docs-header-zone{min-height:32px;padding:6px 0;border-bottom:1px dotted var(--palette-e2e8f0);margin-bottom:18px;color:var(--palette-64748b);font-size:12px;font-style:italic;}",
+    "article.docs-doc-view .docs-footer-zone{min-height:32px;padding:6px 0;border-top:1px dotted var(--palette-e2e8f0);margin-top:18px;color:var(--palette-64748b);font-size:12px;font-style:italic;}",
     "@media print{article.docs-doc-view{box-shadow:none;border:none;margin:0;}.docs-page-break{break-after:page;page-break-after:always;}}",
-    ".docs-content{background:repeating-linear-gradient(to bottom,#0f172a 0px,#0f172a 32px,#0b1220 32px,#0b1220 48px);}",
+    ".docs-content{background:repeating-linear-gradient(to bottom,var(--palette-0f172a) 0px,var(--palette-0f172a) 32px,var(--palette-0b1220) 32px,var(--palette-0b1220) 48px);}",
     // Appearance pass: the header and status bar used the light default while
     // the app body is dark, so Docs looked like two apps stacked together, and
     // the save status was a flex item that wrapped one word per line.
     // #2184 — classic two-row, document-oriented toolbar (title/menus on the
     // first row, character and paragraph formatting on the second), the layout
     // people know from 90s word processors.
-    ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;flex-direction:column;padding:0;min-height:0;overflow:hidden;}",
+    ".docs-toolbar{background:#111827;border-bottom:1px solid var(--palette-1f2937);color:var(--id-gray-200);display:flex;flex-direction:column;padding:0;min-height:0;overflow:hidden;}",
     ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#475569 transparent;position:relative;}",
     ".docs-toolbar-row::-webkit-scrollbar{height:4px;}.docs-toolbar-row::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
-    ".docs-toolbar-row-main{border-bottom:1px solid #1f2937;}",
-    ".docs-toolbar-row-format{background:#0f172a;flex-wrap:wrap;row-gap:2px;overflow-x:visible;}",
+    ".docs-toolbar-row-main{border-bottom:1px solid var(--palette-1f2937);}",
+    ".docs-toolbar-row-format{background:var(--palette-0f172a);flex-wrap:wrap;row-gap:2px;overflow-x:visible;}",
     ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0;}",
     ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#475569 transparent;}",
     ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:4px;}.docs-toolbar .toolbar-center::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
@@ -51,12 +51,12 @@ function injectEditorStyles() {
     "#docs-app .docs-content{overflow:auto;}",
     "#docs-app article.docs-doc-view{margin:24px auto;}",
     ".docs-toolbar .toolbar-group{display:flex;align-items:center;gap:2px;}",
-    ".docs-toolbar .toolbar-divider{width:1px;height:18px;background:#1f2937;margin:0 4px;flex:0 0 auto;}",
-    ".docs-toolbar .btn-icon{color:#cbd5e1;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}",
-    ".docs-toolbar .btn-icon:hover{background:#1f2937;color:#f8fafc;}",
-    ".docs-toolbar .btn-icon[aria-pressed=\"true\"]{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}",
+    ".docs-toolbar .toolbar-divider{width:1px;height:18px;background:var(--palette-1f2937);margin:0 4px;flex:0 0 auto;}",
+    ".docs-toolbar .btn-icon{color:var(--palette-cbd5e1);background:transparent;border:1px solid transparent;border-radius:6px;padding:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}",
+    ".docs-toolbar .btn-icon:hover{background:var(--palette-1f2937);color:var(--palette-f8fafc);}",
+    ".docs-toolbar .btn-icon[aria-pressed=\"true\"]{background:var(--palette-1d4ed8);color:var(--id-surface-solid);border-color:var(--palette-1d4ed8);}",
     ".docs-toolbar .btn-fmt{min-width:26px;height:24px;font:600 13px/1 system-ui,sans-serif;}",
-    ".docs-toolbar .docs-select{background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:6px;padding:3px 6px;font-size:12px;height:26px;}",
+    ".docs-toolbar .docs-select{background:var(--palette-0f172a);color:var(--id-gray-200);border:1px solid #334155;border-radius:6px;padding:3px 6px;font-size:12px;height:26px;}",
     ".docs-toolbar .docs-select-size{width:82px;}",
     // The formatting row packs every character/paragraph control, so its
     // buttons are one step tighter than the command row (#2184).
@@ -65,31 +65,31 @@ function injectEditorStyles() {
     ".docs-toolbar-row-format .toolbar-group{gap:0;}",
     ".docs-toolbar-row-format .toolbar-divider{height:16px;margin:0 2px;}",
     ".docs-toolbar-row-format .docs-color .gb-cp-trigger{height:22px;}",
-    ".docs-toolbar .docs-color{display:inline-flex;align-items:center;} .docs-toolbar .docs-color .gb-cp-trigger{height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;font-size:13px;gap:3px;}",
-    ".docs-toolbar .docs-color .gb-cp-trigger:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-toolbar .docs-color{display:inline-flex;align-items:center;} .docs-toolbar .docs-color .gb-cp-trigger{height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:var(--palette-cbd5e1);font-size:13px;gap:3px;}",
+    ".docs-toolbar .docs-color .gb-cp-trigger:hover{background:var(--palette-1f2937);color:var(--palette-f8fafc);}",
     ".docs-toolbar .docs-color .gb-cp-swatch{width:12px;height:12px;}",
-    ".docs-title-input{background:transparent;border:1px solid transparent;color:#f8fafc;font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
-    ".docs-title-input:focus{border-color:#3b82f6;outline:none;background:#0f172a;}",
+    ".docs-title-input{background:transparent;border:1px solid transparent;color:var(--palette-f8fafc);font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
+    ".docs-title-input:focus{border-color:var(--palette-3b82f6);outline:none;background:var(--palette-0f172a);}",
     ".save-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:320px;}",
-    ".docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
+    ".docs-status-bar{background:#111827;border-top:1px solid var(--palette-1f2937);color:var(--palette-94a3b8);}",
     ".docs-pages{display:flex;flex-direction:column;align-items:center;padding:24px 0;}",
-    ".dc-file-row:hover{background:#1f2937;}",
+    ".dc-file-row:hover{background:var(--palette-1f2937);}",
     // The suite theme exposes light surface tokens, and a later rule painted the
     // header from --sentient-bg-secondary (rgb(252,251,248)) on top of the dark
     // app body. Re-pin the tokens inside the app so every part agrees.
-    "#docs-app{--sentient-bg-secondary:#111827;--sentient-bg-primary:#0f172a;--sentient-bg:#0f172a;--sentient-bg-elevated:#1e293b;--sentient-text-primary:#e5e7eb;--sentient-text-secondary:#94a3b8;--sentient-border:#1f2937;background:#0f172a;color:#e5e7eb;}",
-    "#docs-app .docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;}",
-    "#docs-app .docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
-    "#docs-app .docs-sidebar{background:#0b1220;border-right:1px solid #1f2937;color:#cbd5e1;}",
-    "#docs-app .docs-title-input{color:#f8fafc;}",
-    ".toolbar-overflow-btn{position:sticky;right:0;margin-left:auto;flex:0 0 auto;display:none;align-items:center;justify-content:center;width:28px;min-width:28px;height:28px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#e2e8f0;cursor:pointer;box-shadow:-8px 0 8px -4px #1e293b;z-index:5;}",
+    "#docs-app{--sentient-bg-secondary:#111827;--sentient-bg-primary:var(--palette-0f172a);--sentient-bg:var(--palette-0f172a);--sentient-bg-elevated:var(--palette-1e293b);--sentient-text-primary:var(--id-gray-200);--sentient-text-secondary:var(--palette-94a3b8);--sentient-border:var(--palette-1f2937);background:var(--palette-0f172a);color:var(--id-gray-200);}",
+    "#docs-app .docs-toolbar{background:#111827;border-bottom:1px solid var(--palette-1f2937);color:var(--id-gray-200);}",
+    "#docs-app .docs-status-bar{background:#111827;border-top:1px solid var(--palette-1f2937);color:var(--palette-94a3b8);}",
+    "#docs-app .docs-sidebar{background:var(--palette-0b1220);border-right:1px solid var(--palette-1f2937);color:var(--palette-cbd5e1);}",
+    "#docs-app .docs-title-input{color:var(--palette-f8fafc);}",
+    ".toolbar-overflow-btn{position:sticky;right:0;margin-left:auto;flex:0 0 auto;display:none;align-items:center;justify-content:center;width:28px;min-width:28px;height:28px;border:1px solid #334155;border-radius:6px;background:var(--palette-1e293b);color:var(--palette-e2e8f0);cursor:pointer;box-shadow:-8px 0 8px -4px var(--palette-1e293b);z-index:5;}",
     ".toolbar-overflow-btn.visible{display:inline-flex;}",
-    ".toolbar-overflow-btn:hover{background:#334155;color:#f8fafc;}",
-    ".toolbar-overflow-menu{position:fixed;z-index:var(--z-system);min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:4px;}",
+    ".toolbar-overflow-btn:hover{background:#334155;color:var(--palette-f8fafc);}",
+    ".toolbar-overflow-menu{position:fixed;z-index:var(--z-system);min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:var(--palette-1e293b);color:var(--palette-e2e8f0);box-shadow:0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);display:flex;flex-direction:column;gap:4px;}",
     ".toolbar-overflow-menu[hidden]{display:none;}",
     ".toolbar-overflow-menu .tb-overflow-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;}",
     ".toolbar-overflow-menu .tb-overflow-item:hover,.toolbar-overflow-menu .tb-overflow-item:focus{background:#334155;outline:none;}",
-    "@media screen{body{background:#0f172a;}}"
+    "@media screen{body{background:var(--palette-0f172a);}}"
   ].join("");
   document.head.appendChild(style);
 }
@@ -98,13 +98,13 @@ function openPageLayoutModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   host.innerHTML = [
-    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);\">",
-    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
+    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);\">",
+    "<div style=\"background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:var(--palette-f8fafc);display:flex;flex-direction:column;gap:14px;\">",
     "<h3 style=\"margin:0;font-size:16px;\">Page layout</h3>",
     "<label style=\"font-size:13px;\">Paper size<select id=\"pl-size\" style=\"margin-left:8px;padding:4px;\"><option value=\"a4\">A4</option><option value=\"letter\">Letter</option></select></label>",
     "<label style=\"font-size:13px;\">Orientation<select id=\"pl-orient\" style=\"margin-left:8px;padding:4px;\"><option value=\"portrait\">Portrait</option><option value=\"landscape\">Landscape</option></select></label>",
     "<label style=\"font-size:13px;\">Margins<input id=\"pl-margins\" type=\"number\" value=\"96\" style=\"margin-left:8px;padding:4px;width:70px;\"> px</label>",
-    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button onclick=\"document.getElementById('docs-modal-container').innerHTML='';\" style=\"padding:6px 12px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;cursor:pointer;\">Close</button><button onclick=\"window.DocsEditor.applyPageLayout();\" style=\"padding:6px 12px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;\">Apply</button></div>",
+    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button onclick=\"document.getElementById('docs-modal-container').innerHTML='';\" style=\"padding:6px 12px;border-radius:6px;border:1px solid #334155;background:var(--palette-0f172a);color:var(--palette-f8fafc);cursor:pointer;\">Close</button><button onclick=\"window.DocsEditor.applyPageLayout();\" style=\"padding:6px 12px;border-radius:6px;border:none;background:var(--palette-3b82f6);color:var(--id-surface-solid);cursor:pointer;\">Apply</button></div>",
     "</div></div>"
   ].join("");
 }
@@ -145,8 +145,8 @@ function renderPageGuides(article) {
     var y = Math.round(top + i * guideStep);
     // A dashed rule alone was easy to miss on a dark shell; the band plus the
     // zebra gap makes the boundary read as a real page edge (#2184).
-    html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + width + 'px;top:' + y + 'px;height:0;border-top:2px dashed #94a3b8;box-shadow:0 6px 12px -8px rgba(15,23,42,.45);"></div>';
-    html += '<span class="docs-page-num" style="position:absolute;left:' + Math.round(left + width / 2 - 34) + 'px;top:' + (y - 9) + 'px;font:11px/1.5 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#475569;background:#f8fafc;padding:0 8px;border-radius:9px;border:1px solid #cbd5e1;box-shadow:0 1px 2px rgba(15,23,42,.08);">Page ' + (i + 1) + " of " + pages + "</span>";
+    html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + width + 'px;top:' + y + 'px;height:0;border-top:2px dashed var(--palette-94a3b8);box-shadow:0 6px 12px -8px color-mix(in srgb, var(--palette-0f172a) 45%, transparent);"></div>';
+    html += '<span class="docs-page-num" style="position:absolute;left:' + Math.round(left + width / 2 - 34) + 'px;top:' + (y - 9) + 'px;font:11px/1.5 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#475569;background:var(--palette-f8fafc);padding:0 8px;border-radius:9px;border:1px solid var(--palette-cbd5e1);box-shadow:0 1px 2px color-mix(in srgb, var(--palette-0f172a) 8%, transparent);">Page ' + (i + 1) + " of " + pages + "</span>";
   }
   guide.innerHTML = html;
 }
@@ -272,7 +272,7 @@ function insertPageBreak() {
   var remaining = pageH - (caretOffsetInArticle(article, range) % pageH);
   br.style.cssText =
     "display:block;height:" + Math.max(32, Math.round(remaining)) + "px;" +
-    "border-top:1px dashed #94a3b8;margin:0 0 8px;";
+    "border-top:1px dashed var(--palette-94a3b8);margin:0 0 8px;";
   // Typing after a break needs an editable line: a non-editable spacer alone
   // leaves the caret with nowhere to go.
   var next = document.createElement("p");

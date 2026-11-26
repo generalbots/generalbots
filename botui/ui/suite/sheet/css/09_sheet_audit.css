@@ -13,9 +13,9 @@
   overflow: hidden;
   background: var(--sheet-surface, var(--sentient-bg-primary, var(--palette-ffffff)));
   color: var(--sheet-text, var(--sentient-text-primary, var(--palette-1f2937)));
-  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.35));
+  border: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 35%, transparent));
   border-radius: 10px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 18px 50px color-mix(in srgb, var(--id-ink) 25%, transparent);
   font-size: var(--text-xs)
 }
 
@@ -26,7 +26,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+  border-bottom: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 25%, transparent));
 }
 
 .sheet-audit-title {
@@ -42,7 +42,7 @@
   border-radius: 999px;
   font-size: var(--text-2xs);
   font-weight: 600;
-  background: var(--sheet-accent-soft, rgba(59, 130, 246, 0.14));
+  background: var(--sheet-accent-soft, color-mix(in srgb, var(--id-accent) 14%, transparent));
   color: var(--sheet-accent, var(--palette-2563eb));
   cursor: help;
 }
@@ -59,7 +59,7 @@
   line-height: 1;
   cursor: pointer;
 }
-.sheet-audit-close:hover { background: rgba(127, 127, 127, 0.16); }
+.sheet-audit-close:hover { background: color-mix(in srgb, var(--id-muted) 16%, transparent); }
 
 .sheet-audit-local-note {
   margin: 8px 14px 4px;
@@ -72,7 +72,7 @@
   flex-wrap: wrap;
   gap: 2px;
   padding: 0 10px;
-  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+  border-bottom: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 25%, transparent));
 }
 
 .sheet-audit-tab {
@@ -129,7 +129,7 @@
 .sheet-audit-select {
   min-width: 140px;
   padding: 5px 7px;
-  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.4));
+  border: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 40%, transparent));
   border-radius: 5px;
   background: var(--sheet-bg, inherit);
   color: inherit;
@@ -140,9 +140,9 @@
 .sheet-audit-btn,
 .sheet-audit-btn-small {
   padding: 6px 10px;
-  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.4));
+  border: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 40%, transparent));
   border-radius: 5px;
-  background: var(--sheet-button-bg, rgba(127, 127, 127, 0.1));
+  background: var(--sheet-button-bg, color-mix(in srgb, var(--id-muted) 10%, transparent));
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -177,7 +177,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 7px;
-  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.2));
+  border: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 20%, transparent));
   border-radius: 5px;
 }
 .sheet-audit-trace-ref,
@@ -210,7 +210,7 @@
   font-size: 0.85em;
   font-weight: 600;
   color: var(--sheet-muted, var(--palette-6b7280));
-  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.2));
+  border-bottom: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 20%, transparent));
 }
 .sheet-audit-cycle-item { flex-direction: column; align-items: flex-start; }
 .sheet-audit-cycle-path { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -219,7 +219,7 @@
   margin: 8px 0;
   padding: 8px;
   border-radius: 5px;
-  background: rgba(127, 127, 127, 0.1);
+  background: color-mix(in srgb, var(--id-muted) 10%, transparent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
 }
@@ -244,7 +244,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .sheet-audit-step.is-active {
-  background: rgba(37, 99, 235, 0.14);
+  background: color-mix(in srgb, var(--id-accent) 14%, transparent);
   border-radius: 4px;
 }
 .sheet-audit-result-text { margin: 8px 0 0; font-weight: 600; }
@@ -254,9 +254,9 @@
   padding: 8px;
   max-height: 220px;
   overflow: auto;
-  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+  border: 1px solid var(--sheet-border, color-mix(in srgb, var(--id-muted) 25%, transparent));
   border-radius: 5px;
-  background: rgba(127, 127, 127, 0.08);
+  background: color-mix(in srgb, var(--id-muted) 8%, transparent);
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-2xs)

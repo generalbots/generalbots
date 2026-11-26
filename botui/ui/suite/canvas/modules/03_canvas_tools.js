@@ -201,7 +201,7 @@
     }
 
     C.setCanvasBackground = function setCanvasBackground(color) {
-        C.canvasBg = color || "#ffffff";
+        C.canvasBg = color || "var(--id-surface-solid)";
         const picker = document.getElementById("canvas-bg");
         if (picker) picker.value = C.canvasBg;
         C.redraw();

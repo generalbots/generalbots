@@ -299,7 +299,7 @@ body.gb-printing #chat-app {
     position: fixed;
     inset: 0;
     z-index: var(--z-blocker);
-    background: #fff !important;
+    background: var(--id-surface-solid) !important;
     background-image: none !important;
 }
 
@@ -320,8 +320,8 @@ body.gb-printing #chat-app {
 
     html,
     body {
-        background: #fff !important;
-        color: #000 !important;
+        background: var(--id-surface-solid) !important;
+        color: var(--palette-000000) !important;
     }
 
     #chat-app #messages {
@@ -332,8 +332,8 @@ body.gb-printing #chat-app {
 
     #chat-app .user-message {
         background: var(--palette-f3f4f6) !important;
-        color: #000 !important;
-        border: 1px solid #ddd !important;
+        color: var(--palette-000000) !important;
+        border: 1px solid var(--palette-d8ddde) !important;
         page-break-inside: avoid;
     }
 
@@ -341,14 +341,14 @@ body.gb-printing #chat-app {
     #chat-app .bot-message p,
     #chat-app .bot-message span,
     #chat-app .bot-message li {
-        color: #000 !important;
+        color: var(--palette-000000) !important;
     }
 
     #chat-app .bot-message pre,
     #chat-app .bot-message code {
         background: var(--palette-f5f5f5) !important;
-        color: #000 !important;
-        border: 1px solid #ddd;
+        color: var(--palette-000000) !important;
+        border: 1px solid var(--palette-d8ddde);
         white-space: pre-wrap;
         word-break: break-word;
     }

@@ -35,7 +35,7 @@
     .selection-box {
         position: absolute;
         border: 2px dashed var(--accent-color);
-        background: rgba(59, 130, 246, 0.1);
+        background: color-mix(in srgb, var(--palette-3b82f6) 10%, transparent);
         pointer-events: none;
     }
 
@@ -69,7 +69,7 @@
 
     .cursor-name {
         font-size: 0.75rem;
-        background: rgba(0, 0, 0, 0.7);
+        background: var(--id-overlay-heavy);
         color: white;
         padding: 0.125rem 0.375rem;
         border-radius: 4px;
@@ -97,7 +97,7 @@
     .viewport-indicator {
         position: absolute;
         border: 2px solid var(--accent-color);
-        background: rgba(59, 130, 246, 0.2);
+        background: color-mix(in srgb, var(--palette-3b82f6) 20%, transparent);
         pointer-events: none;
     }
 

@@ -15,7 +15,7 @@
 }
 .product-card .product-stock {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 .product-card .status-active,
 .product-card .status-inactive {
@@ -28,11 +28,11 @@
     text-transform: uppercase;
 }
 .product-card .status-active {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 .product-card .status-inactive {
-    background: rgba(107, 114, 128, 0.15);
+    background: color-mix(in srgb, var(--id-muted) 15%, transparent);
     color: var(--palette-6b7280);
 }
 .product-card .product-actions {
@@ -47,7 +47,7 @@
     background: transparent;
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -58,7 +58,7 @@
     color: var(--accent, var(--palette-d4f505));
 }
 .product-card .btn-sm.btn-secondary {
-    background: var(--surface, rgba(255,255,255,0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 /* List View Card Styles */
@@ -122,10 +122,10 @@
 .products-table th {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
     position: sticky;
     top: 0;
 }
@@ -140,7 +140,7 @@
 }
 
 .products-table tbody tr:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 /* Status badges */
@@ -155,12 +155,12 @@
 }
 
 .status-badge.active {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 
 .status-badge.inactive {
-    background: rgba(107, 114, 128, 0.15);
+    background: color-mix(in srgb, var(--id-muted) 15%, transparent);
     color: var(--palette-6b7280);
 }
 
@@ -176,7 +176,7 @@
 }
 
 .type-badge.hourly {
-    background: rgba(59, 130, 246, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-3b82f6);
 }
 
@@ -186,7 +186,7 @@
 }
 
 .type-badge.recurring {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-22c55e);
 }
 
@@ -209,7 +209,7 @@
     background: transparent;
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 4px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -246,7 +246,7 @@
 .products-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--id-ink) 70%, transparent);
     backdrop-filter: blur(4px);
 }
 
@@ -299,13 +299,13 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .form-close:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-f8fafc));
 }
 
@@ -330,7 +330,7 @@
 .form-label {
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 /* .form-input and its :focus state now come from the shared primitives in
@@ -340,7 +340,7 @@
 .form-select,
 .form-textarea {
     padding: 10px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -371,7 +371,7 @@
     justify-content: center;
     gap: 12px;
     padding: 32px;
-    background: var(--surface, rgba(255, 255, 255, 0.02));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
     border: 2px dashed var(--border, var(--palette-2a2a2a));
     border-radius: 8px;
     cursor: pointer;
@@ -384,12 +384,12 @@
 }
 
 .image-upload svg {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 .image-upload span {
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
 }
 
 /* Form Actions */
@@ -418,13 +418,13 @@
 }
 
 .form-btn.secondary:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .form-btn.primary {
     background: var(--accent, var(--palette-d4f505));
     border: 1px solid var(--accent, var(--palette-d4f505));
-    color: #000;
+    color: var(--id-ink);
 }
 
 .form-btn.primary:hover {

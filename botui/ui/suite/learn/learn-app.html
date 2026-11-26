@@ -120,11 +120,11 @@
     </div>
 </div>
 
-<div id="la-preview-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:var(--z-dropdown)">
-    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow:hidden">
+<div id="la-preview-modal" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-000000) 60%, transparent);display:none;align-items:center;justify-content:center;z-index:var(--z-dropdown)">
+    <div style="background:var(--bg-secondary,var(--palette-1e293b));border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow:hidden">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
             <h3 style="font-size:15px;font-weight:600;margin:0" id="la-preview-title" data-i18n="learn-app-course-preview">Course Preview</h3>
-            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._learnApp.hideModal('la-preview-modal')">&times;</button>
+            <button style="background:none;border:none;color:var(--text-secondary,var(--palette-94a3b8));cursor:pointer;font-size:18px" onclick="window._learnApp.hideModal('la-preview-modal')">&times;</button>
         </div>
         <div style="padding:16px;overflow-y:auto;max-height:60vh" id="la-preview-body"></div>
         <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">

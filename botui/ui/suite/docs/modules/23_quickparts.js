@@ -216,8 +216,8 @@
     }).join("");
     if (!rows) rows = '<div class="gb-nav-empty">' + NS.escapeHtml(tr("docs-qp-empty", "No quick parts yet")) + "</div>";
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
-      '<div class="gb-qp-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-qp-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:560px;max-width:92vw;padding:20px;color:#f8fafc;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
+      '<div class="gb-qp-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-qp-title" style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:560px;max-width:92vw;padding:20px;color:var(--palette-f8fafc);">',
       '<h3 id="gb-qp-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(tr("docs-qp-library", "Content library")) + "</h3>",
       '<div class="gb-qp-list">' + rows + "</div>",
       '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button type="button" id="gb-qp-close" class="gb-fr-btn">' +

@@ -120,7 +120,7 @@
             float.style.minWidth = "340px";
             float.style.maxWidth = "90vw";
             var head = document.createElement("div");
-            head.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--gb-border,#eee);font-weight:600";
+            head.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--gb-border,var(--id-gray-100));font-weight:600";
             head.innerHTML = '<span>' + esc(title || name) + "</span><button data-close style=\"border:none;background:none;cursor:pointer;font-size:1rem\">✕</button>";
             var content = document.createElement("div");
             content.style.padding = "0.75rem";

@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(0, 0, 0, 0.62);
+    background: color-mix(in srgb, var(--palette-000000) 62%, transparent);
     backdrop-filter: blur(4px);
 }
 
@@ -36,7 +36,7 @@
     border-radius: 12px;
     background: var(--surface, var(--palette-1e293b));
     color: var(--text, var(--palette-f8fafc));
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 [data-theme="light"] .gb-preview-shell {
@@ -84,7 +84,7 @@
     padding: 2px 8px;
     border-radius: 999px;
     border: 1px solid var(--border-light, var(--palette-475569));
-    background: var(--primary-light, rgba(59, 130, 246, 0.1));
+    background: var(--primary-light, color-mix(in srgb, var(--palette-3b82f6) 10%, transparent));
     color: var(--text-secondary, var(--palette-94a3b8));
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -121,7 +121,7 @@
 .gb-preview-btn.is-primary {
     background: var(--primary, var(--palette-3b82f6));
     border-color: var(--primary, var(--palette-3b82f6));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 .gb-preview-close {
@@ -213,7 +213,7 @@
 }
 
 .gb-preview-row:hover .gb-preview-td {
-    background: var(--primary-light, rgba(59, 130, 246, 0.12));
+    background: var(--primary-light, color-mix(in srgb, var(--palette-3b82f6) 12%, transparent));
 }
 
 .gb-preview-td {

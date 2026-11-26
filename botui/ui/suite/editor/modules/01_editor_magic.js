@@ -50,7 +50,7 @@
             const code = editor.value;
 
             if (!code.trim()) {
-                content.innerHTML = '<p style="color:var(--text-secondary, #94a3b8);text-align:center;padding:40px;">No code to analyze. Start typing or open a file.</p>';
+                content.innerHTML = '<p style="color:var(--text-secondary, var(--palette-94a3b8));text-align:center;padding:40px;">No code to analyze. Start typing or open a file.</p>';
                 return;
             }
 
@@ -80,7 +80,7 @@
                 content.innerHTML = `
                     <div class="magic-result">
                         <p><strong>${escapeHtml(t('editor-magic-suggested-improvements', 'Suggested improvements:'))}</strong></p>
-                        <p style="color:var(--text-secondary, #94a3b8);margin:8px 0;">${result.explanation || t('editor-magic-default-explanation', 'Improved code structure and patterns.')}</p>
+                        <p style="color:var(--text-secondary, var(--palette-94a3b8));margin:8px 0;">${result.explanation || t('editor-magic-default-explanation', 'Improved code structure and patterns.')}</p>
                         <pre>${escapeHtml(result.improved_code)}</pre>
                         <button class="magic-apply-btn" onclick="applyMagicCode()">${escapeHtml(t('editor-magic-apply', 'Apply Changes'))}</button>
                     </div>
@@ -90,7 +90,7 @@
                 content.innerHTML = result.suggestions.map(s => `
                     <div class="magic-result">
                         <p><strong>${s.title}</strong></p>
-                        <p style="color:var(--text-secondary, #94a3b8);">${s.description}</p>
+                        <p style="color:var(--text-secondary, var(--palette-94a3b8));">${s.description}</p>
                     </div>
                 `).join('');
             } else {

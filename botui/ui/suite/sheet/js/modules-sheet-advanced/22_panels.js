@@ -318,7 +318,7 @@
     var cellValue = function (rowKey, colKey) {
       return formatValue(cells[rowKey + "\u0000" + colKey + "\u0000" + 0]);
     };
-    var th = 'padding:6px 8px;border-bottom:1px solid var(--sheet-border, #334155);text-align:left;color:var(--sheet-fg, #f8fafc);';
+    var th = 'padding:6px 8px;border-bottom:1px solid var(--sheet-border, var(--id-ink));text-align:left;color:var(--sheet-fg, var(--id-gray-100));';
     var td = "padding:6px 8px;border-bottom:1px solid var(--sheet-border, #334155);color:#cbd5e1;";
     var html = '<div style="overflow:auto;max-height:50vh;"><table style="border-collapse:collapse;width:100%;font-size:12px;">';
     html += "<tr><th style=\"" + th + "\">" + escapeHtml(valueLabel) + "</th>";
@@ -350,7 +350,7 @@
     html += "</table></div>";
     if (rowKeys.length > CELL_LIMIT || colKeys.length > CELL_LIMIT) {
       html +=
-        '<div style="margin-top:8px;color:#f59e0b;font-size:12px;">' +
+        '<div style="margin-top:8px;color:var(--id-warn);font-size:12px;">' +
         escapeHtml(label("pivot.truncated", "Showing the first 200 rows/columns.")) +
         "</div>";
     }

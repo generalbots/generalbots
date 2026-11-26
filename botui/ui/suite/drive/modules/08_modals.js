@@ -70,59 +70,59 @@ function shareFile(path) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "share-modal";
-    modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: var(--z-system); backdrop-filter: blur(8px);";
+    modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: color-mix(in srgb, var(--palette-0f172a) 85%, transparent); display: flex; align-items: center; justify-content: center; z-index: var(--z-system); backdrop-filter: blur(8px);";
     const container = document.createElement("div");
-    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 90%; max-width: 560px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);";
+    container.style.cssText = "background: var(--palette-1e293b); border: 1px solid #334155; border-radius: 12px; width: 90%; max-width: 560px; padding: 24px; box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 50%, transparent);";
     container.innerHTML =
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
-        '<h3 style="margin:0; color:#f8fafc; font-size:1.25rem;">Share "' + escapeHtml(fileName) + '"</h3>' +
-        '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer;">\u00D7</button></div>' +
+        '<h3 style="margin:0; color:var(--palette-f8fafc); font-size:1.25rem;">Share "' + escapeHtml(fileName) + '"</h3>' +
+        '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:none; border:none; color:var(--palette-94a3b8); font-size:24px; cursor:pointer;">\u00D7</button></div>' +
         // #1639 — the expiry is chosen here; the old modal never sent one, so
         // the server default ("never") was the only behaviour.
         '<div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">' +
-        '<label for="share-expiry" style="color:#94a3b8; font-size:13px;">Link expires</label>' +
-        '<select id="share-expiry" style="background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:8px 10px; font-size:13px;">' +
+        '<label for="share-expiry" style="color:var(--palette-94a3b8); font-size:13px;">Link expires</label>' +
+        '<select id="share-expiry" style="background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:8px 10px; font-size:13px;">' +
         '<option value="7" selected>In 7 days</option>' +
         '<option value="1">In 1 day</option>' +
         '<option value="30">In 30 days</option>' +
         '<option value="never">Never (not recommended)</option>' +
         '</select>' +
-        '<button id="share-create-btn" onclick="DriveModule.createShareLinkNow(\'' + escapeJs(path) + '\')" style="margin-left:auto; background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:8px 16px; cursor:pointer; font-weight:500; font-size:13px;">Create link</button>' +
+        '<button id="share-create-btn" onclick="DriveModule.createShareLinkNow(\'' + escapeJs(path) + '\')" style="margin-left:auto; background:var(--palette-3b82f6); border:none; border-radius:6px; color:var(--id-surface-solid); padding:8px 16px; cursor:pointer; font-weight:500; font-size:13px;">Create link</button>' +
         '</div>' +
-        '<p id="share-status" style="color:#94a3b8; font-size:13px; margin:0 0 12px;"></p>' +
+        '<p id="share-status" style="color:var(--palette-94a3b8); font-size:13px; margin:0 0 12px;"></p>' +
         '<div id="share-link-row" style="display:none; gap:8px; margin-bottom:16px;">' +
-        '<input type="text" id="share-link-input" readonly value="" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:10px 14px; font-size:13px;" />' +
-        '<button onclick="DriveModule.copyShareLink()" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Copy</button>' +
-        '<button onclick="DriveModule.revokeShareLinkFromModal(\'' + escapeJs(path) + '\')" style="background:#dc2626; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Revoke</button>' +
+        '<input type="text" id="share-link-input" readonly value="" style="flex-grow:1; background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:10px 14px; font-size:13px;" />' +
+        '<button onclick="DriveModule.copyShareLink()" style="background:var(--palette-3b82f6); border:none; border-radius:6px; color:var(--id-surface-solid); padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Copy</button>' +
+        '<button onclick="DriveModule.revokeShareLinkFromModal(\'' + escapeJs(path) + '\')" style="background:var(--id-danger); border:none; border-radius:6px; color:var(--id-surface-solid); padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Revoke</button>' +
         '</div>' +
         '<div id="share-person-section" style="border-top:1px solid #334155; padding-top:14px;">' +
-        '<h4 style="margin:0 0 8px; color:#f8fafc; font-size:14px;">Share with a person</h4>' +
+        '<h4 style="margin:0 0 8px; color:var(--palette-f8fafc); font-size:14px;">Share with a person</h4>' +
         '<div style="display:flex; gap:8px;">' +
-        '<input id="share-recipient-input" type="search" placeholder="Email or username" autocomplete="off" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px;" />' +
-        '<select id="share-role" style="background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 10px; font-size:13px;">' +
+        '<input id="share-recipient-input" type="search" placeholder="Email or username" autocomplete="off" style="flex-grow:1; background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:9px 12px; font-size:13px;" />' +
+        '<select id="share-role" style="background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:9px 10px; font-size:13px;">' +
         '<option value="read">Can view</option>' +
         '<option value="write">Can edit</option>' +
         '</select>' +
         '</div>' +
         '<div id="share-recipient-results" style="margin-top:8px;"></div>' +
-        '<p id="share-recipient-status" style="color:#94a3b8; font-size:12px; margin:8px 0 0;">Type at least two characters to find an account.</p>' +
+        '<p id="share-recipient-status" style="color:var(--palette-94a3b8); font-size:12px; margin:8px 0 0;">Type at least two characters to find an account.</p>' +
         '</div>' +
         '<div style="border-top:1px solid #334155; padding-top:14px; margin-top:14px;">' +
-        '<h4 style="margin:0 0 8px; color:#f8fafc; font-size:14px;">Send the link by email</h4>' +
+        '<h4 style="margin:0 0 8px; color:var(--palette-f8fafc); font-size:14px;">Send the link by email</h4>' +
         '<div style="display:flex; gap:8px; margin-bottom:8px;">' +
-        '<select id="share-email-sender" style="background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 10px; font-size:13px; max-width:220px;">' +
+        '<select id="share-email-sender" style="background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:9px 10px; font-size:13px; max-width:220px;">' +
         '<option value="">Loading senders…</option>' +
         '</select>' +
-        '<input id="share-email-to" type="text" placeholder="name@example.com, other@example.com" autocomplete="off" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px;" />' +
+        '<input id="share-email-to" type="text" placeholder="name@example.com, other@example.com" autocomplete="off" style="flex-grow:1; background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:9px 12px; font-size:13px;" />' +
         '</div>' +
-        '<textarea id="share-email-message" rows="2" placeholder="Optional message" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px; resize:vertical;"></textarea>' +
+        '<textarea id="share-email-message" rows="2" placeholder="Optional message" style="width:100%; box-sizing:border-box; background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); padding:9px 12px; font-size:13px; resize:vertical;"></textarea>' +
         '<div style="display:flex; align-items:center; gap:10px; margin-top:8px;">' +
-        '<button id="share-email-send" onclick="DriveModule.sendShareEmail(\'' + escapeJs(path) + '\')" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:9px 16px; cursor:pointer; font-weight:500; font-size:13px;">Send link</button>' +
-        '<span id="share-email-status" style="color:#94a3b8; font-size:12px;"></span>' +
+        '<button id="share-email-send" onclick="DriveModule.sendShareEmail(\'' + escapeJs(path) + '\')" style="background:var(--palette-3b82f6); border:none; border-radius:6px; color:var(--id-surface-solid); padding:9px 16px; cursor:pointer; font-weight:500; font-size:13px;">Send link</button>' +
+        '<span id="share-email-status" style="color:var(--palette-94a3b8); font-size:12px;"></span>' +
         '</div>' +
         '</div>' +
         '<div style="display:flex; justify-content:flex-end; margin-top:16px;">' +
-        '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:13px;">Close</button>' +
+        '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:var(--palette-f8fafc); padding:10px 20px; cursor:pointer; font-weight:500; font-size:13px;">Close</button>' +
         '</div>';
     modal.appendChild(container);
     document.body.appendChild(modal);
@@ -255,8 +255,8 @@ function bindShareRecipientSearch(path) {
                 results.innerHTML = people.map(function (person) {
                     return '<button type="button" class="btn-primary" data-recipient="' + escapeHtml(person.id) +
                         '" data-email="' + escapeHtml(person.email) +
-                        '" style="display:block; width:100%; text-align:left; margin:4px 0; padding:8px 10px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; cursor:pointer; font-size:13px;">' +
-                        escapeHtml(person.email) + ' <span style="color:#64748b;">' + escapeHtml(person.username || "") + '</span></button>';
+                        '" style="display:block; width:100%; text-align:left; margin:4px 0; padding:8px 10px; background:var(--palette-0f172a); border:1px solid #334155; border-radius:6px; color:var(--palette-f8fafc); cursor:pointer; font-size:13px;">' +
+                        escapeHtml(person.email) + ' <span style="color:var(--palette-64748b);">' + escapeHtml(person.username || "") + '</span></button>';
                 }).join("");
                 Array.prototype.forEach.call(results.querySelectorAll("[data-recipient]"), function (btn) {
                     btn.addEventListener("click", function () {

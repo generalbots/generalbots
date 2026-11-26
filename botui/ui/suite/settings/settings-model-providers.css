@@ -73,7 +73,7 @@
 
 #model-section .gb-prov-row:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--id-ink) 18%, transparent);
     transform: translateY(-1px);
 }
 

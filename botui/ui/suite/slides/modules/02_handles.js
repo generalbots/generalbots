@@ -14,7 +14,7 @@ SlideCanvas.addHandles = function (el) {
     hd.dataset.handle = h.pos;
     var sz = H_SZ;
     hd.style.cssText = "position:absolute;width:"+sz+"px;height:"+sz+
-      "px;background:#3b82f6;border:1px solid #fff;border-radius:2px;"+
+      "px;background:var(--id-accent);border:1px solid var(--id-surface-solid);border-radius:2px;"+
       "cursor:"+h.cursor+";pointer-events:all;z-index:var(--z-sticky);"+
       "top:calc("+(h.cy*100)+"% - "+(sz*h.cy)+"px - 1px);"+
       "left:calc("+(h.cx*100)+"% - "+(sz*h.cx)+"px - 1px);";
@@ -25,10 +25,10 @@ SlideCanvas.addHandles = function (el) {
   var rot = document.createElement("div");
   rot.className = "sl-rotator";
   rot.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - "+ROT_H_SZ+"px + 4px);"+
-    "width:10px;height:10px;border-radius:50%;background:#10b981;border:2px solid #fff;"+
+    "width:10px;height:10px;border-radius:50%;background:var(--id-success);border:2px solid var(--id-surface-solid);"+
     "cursor:grab;pointer-events:all;z-index:var(--z-sticky);";
   var line = document.createElement("div");
-  line.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - 1px);width:2px;height:"+ROT_OFF+"px;background:#10b981;pointer-events:none;z-index:var(--z-sticky);";
+  line.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - 1px);width:2px;height:"+ROT_OFF+"px;background:var(--id-success);pointer-events:none;z-index:var(--z-sticky);";
   container.appendChild(line);
 
   self.makeRotateHandler(rot, line, el);

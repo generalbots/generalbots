@@ -224,8 +224,8 @@ SlideCanvas.insertShape = function (type) {
   var x = 150 + Math.random() * 200;
   var y = 100 + Math.random() * 150;
   el.style.cssText = "position:absolute;left:"+x+"px;top:"+y+"px;width:120px;height:80px;"+
-    "background:#3b82f6;"+shapeStyle+
-    "border:1px solid #2563eb;color:#f8fafc;display:flex;align-items:center;justify-content:center;"+
+    "background:var(--id-accent);"+shapeStyle+
+    "border:1px solid var(--id-hl-function);color:var(--id-gray-100);display:flex;align-items:center;justify-content:center;"+
     "font-size:14px;transform:rotate(0deg);";
   this.canvas.appendChild(el);
   this.bindElement(el);

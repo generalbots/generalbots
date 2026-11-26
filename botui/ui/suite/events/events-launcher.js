@@ -10,7 +10,7 @@
     id: "events",
     title: window.gbT ? window.gbT("events-title", "Events") : "Events",
     category: "system",
-    color: "#0ea5e9",
+    color: "var(--palette-0ea5e9)",
     hxGet: "/suite/events/events.html",
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     enabled: true,

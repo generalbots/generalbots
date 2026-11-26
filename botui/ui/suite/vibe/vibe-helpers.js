@@ -65,7 +65,7 @@ if (!box) return null;
 var div = document.createElement("div");
 if (role === "user") {
 div.style.cssText =
-"align-self:flex-end;background:var(--accent,#2563eb);color:#fff;font-weight:500;padding:6px 10px;border-radius:8px 8px 0 8px;max-width:92%;word-wrap:break-word;font-size:11.5px;line-height:1.45;";
+"align-self:flex-end;background:var(--accent,var(--id-hl-function));color:var(--id-surface-solid);font-weight:500;padding:6px 10px;border-radius:8px 8px 0 8px;max-width:92%;word-wrap:break-word;font-size:11.5px;line-height:1.45;";
 div.textContent = text;
 } else if (role === "system") {
 div.style.cssText =
@@ -198,7 +198,7 @@ function vibeMakeWindowResizable(el, minW, minH) {
     var grip = document.createElement("div");
     grip.style.cssText =
         "position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:se-resize;" +
-        "background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,0.18) 50%);" +
+        "background:linear-gradient(135deg,transparent 50%,color-mix(in srgb, var(--id-surface-solid) 18%, transparent) 50%);" +
         "border-bottom-right-radius:10px;z-index:5;";
     el.style.position = "absolute";
     el.appendChild(grip);

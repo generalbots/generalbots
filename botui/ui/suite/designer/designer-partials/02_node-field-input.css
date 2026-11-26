@@ -239,7 +239,7 @@
   border-radius: 8px;
   padding: 8px 0;
   min-width: 160px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 40%, transparent);
   z-index: var(--z-dropdown);
   display: none;
 }
@@ -276,7 +276,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--id-overlay-heavy);
   display: none;
   align-items: center;
   justify-content: center;
@@ -430,7 +430,7 @@
 .minimap-viewport {
   position: absolute;
   border: 1px solid var(--primary, var(--palette-3b82f6));
-  background: rgba(137, 180, 250, 0.1);
+  background: color-mix(in srgb, var(--palette-89b4fa) 10%, transparent);
 }
 
 .minimap-node {

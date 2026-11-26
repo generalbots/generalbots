@@ -4,7 +4,7 @@
 .tickets-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: color-mix(in srgb, var(--id-ink) 70%, transparent);
     backdrop-filter: blur(4px);
 }
 
@@ -53,13 +53,13 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .form-close:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-f8fafc));
 }
 
@@ -131,7 +131,7 @@
 }
 
 .ai-suggestion-item:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.08));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
 }
 
 .ai-suggestion-item:last-child {
@@ -153,7 +153,7 @@
     display: block;
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     margin-bottom: 6px;
 }
 
@@ -162,7 +162,7 @@
 .form-textarea {
     width: 100%;
     padding: 10px 12px;
-    background: var(--surface, rgba(255, 255, 255, 0.05));
+    background: var(--surface, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
     color: var(--text, var(--palette-f8fafc));
@@ -211,13 +211,13 @@
 }
 
 .form-btn.secondary:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .form-btn.primary {
     background: var(--accent, var(--palette-d4f505));
     border: 1px solid var(--accent, var(--palette-d4f505));
-    color: #000;
+    color: var(--id-ink);
 }
 
 .form-btn.primary:hover {

@@ -31,8 +31,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: color-mix(in srgb, var(--id-ink) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--id-ink) 10%, transparent);
     border-radius: 10px;
     padding: 8px 12px;
 }
@@ -53,7 +53,7 @@
 }
 .gb-store .store-cat {
     background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.15);
+    border: 1px solid color-mix(in srgb, var(--id-ink) 15%, transparent);
     border-radius: 999px;
     padding: 6px 14px;
     font-size: var(--text-2xs);
@@ -63,7 +63,7 @@
 .gb-store .store-cat.active {
     background: var(--palette-3b82f6);
     border-color: var(--palette-3b82f6);
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 .gb-store .store-grid {
     flex: 1;
@@ -74,14 +74,14 @@
     align-content: start;
 }
 .gb-store .store-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--card-bg, var(--id-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--id-ink) 10%, transparent);
     border-radius: 12px;
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--id-ink) 6%, transparent);
 }
 .gb-store .store-card-top {
     display: flex;
@@ -114,7 +114,7 @@
 }
 .gb-store .store-install-btn {
     background: var(--palette-3b82f6);
-    color: #fff;
+    color: var(--id-surface-solid);
     border: none;
     border-radius: 8px;
     padding: 7px 16px;
@@ -123,7 +123,7 @@
     cursor: pointer;
 }
 .gb-store .store-install-btn.installed {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     color: var(--palette-16a34a);
     cursor: default;
 }
@@ -150,9 +150,9 @@
 
 @media (prefers-color-scheme: dark) {
     .gb-store { background: var(--palette-14161d); color: var(--palette-e6e8ee); }
-    .gb-store .store-card { background: var(--palette-1d2029); border-color: rgba(255, 255, 255, 0.08); }
-    .gb-store .store-search { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
-    .gb-store .store-cat { border-color: rgba(255, 255, 255, 0.18); color: var(--palette-e6e8ee); }
+    .gb-store .store-card { background: var(--palette-1d2029); border-color: color-mix(in srgb, var(--id-surface-solid) 8%, transparent); }
+    .gb-store .store-search { background: color-mix(in srgb, var(--id-surface-solid) 6%, transparent); border-color: color-mix(in srgb, var(--id-surface-solid) 12%, transparent); }
+    .gb-store .store-cat { border-color: color-mix(in srgb, var(--id-surface-solid) 18%, transparent); color: var(--palette-e6e8ee); }
     .gb-store .store-app-desc { color: var(--palette-aab0bd); }
     .gb-store .store-app-cat { color: var(--palette-aab0bd); }
 }

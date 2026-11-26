@@ -20,16 +20,16 @@ body.docs-presenting article {
     position: fixed; right: 18px; bottom: 18px; z-index: var(--z-overlay);
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; border-radius: 999px;
-    background: rgba(17, 24, 39, .92); color: var(--palette-f9fafb);
+    background: color-mix(in srgb, var(--palette-111827) 92%, transparent); color: var(--palette-f9fafb);
     font: 12px/1 ui-sans-serif, system-ui, sans-serif;
-    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 35%, transparent);
 }
 .docs-present-legend { font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
 .docs-present-exitbar button {
-    border: 1px solid rgba(255,255,255,.25); background: transparent; color: inherit;
+    border: 1px solid color-mix(in srgb, var(--id-surface-solid) 25%, transparent); background: transparent; color: inherit;
     border-radius: 999px; padding: 4px 10px; cursor: pointer; font: inherit;
 }
-.docs-present-exitbar button:hover { background: rgba(255,255,255,.15); }
+.docs-present-exitbar button:hover { background: color-mix(in srgb, var(--id-surface-solid) 15%, transparent); }
 .docs-present-stop { font-weight: 600; }
 
 /* #2253 — a shared link opens the document read-only; the badge is the only
@@ -37,7 +37,7 @@ body.docs-presenting article {
 .docs-readonly-badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 999px;
-    background: rgba(148, 163, 184, .18); border: 1px solid rgba(148, 163, 184, .5);
+    background: color-mix(in srgb, var(--palette-94a3b8) 18%, transparent); border: 1px solid color-mix(in srgb, var(--palette-94a3b8) 50%, transparent);
     color: var(--palette-cbd5f5); font: 600 10px/1.6 ui-sans-serif, system-ui, sans-serif;
     text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
 }
@@ -51,5 +51,5 @@ body.docs-presenting article {
 .gb-share-active::after {
     content: ""; position: absolute; top: 4px; right: 4px;
     width: 6px; height: 6px; border-radius: 50%;
-    background: var(--palette-34d399); box-shadow: 0 0 0 2px rgba(52, 211, 153, .25);
+    background: var(--palette-34d399); box-shadow: 0 0 0 2px color-mix(in srgb, var(--palette-34d399) 25%, transparent);
 }

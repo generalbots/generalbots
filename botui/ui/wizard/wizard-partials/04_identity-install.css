@@ -234,7 +234,7 @@ pre.log {
 }
 .dot { background: var(--id-gray-300); }
 .dot.run { background: var(--id-accent); }
-.dot.ok { background: #22a559; }
+.dot.ok { background: var(--id-success); }
 
 /* == Responsive ======================================================= */
 

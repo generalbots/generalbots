@@ -28,18 +28,18 @@
     }
     this.root = document.createElement("div");
     this.root.className = "virtual-grid";
-    this.root.style.cssText = "position:relative;display:flex;flex-direction:column;flex:1;background:var(--sheet-bg, var(--sheet-bg, #0f172a));overflow:hidden;";
+    this.root.style.cssText = "position:relative;display:flex;flex-direction:column;flex:1;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));overflow:hidden;";
 
     this.headerRow = document.createElement("div");
     this.headerRow.className = "vg-header-row";
-    this.headerRow.style.cssText = "display:flex;height:24px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));overflow:hidden;flex-shrink:0;";
+    this.headerRow.style.cssText = "display:flex;height:24px;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));border-bottom:1px solid var(--sheet-border, var(--sheet-border, var(--id-ink)));overflow:hidden;flex-shrink:0;";
 
     this.midRow = document.createElement("div");
     this.midRow.style.cssText = "display:flex;flex:1;overflow:hidden;";
 
     this.scrollArea = document.createElement("div");
     this.scrollArea.className = "vg-scroll";
-    this.scrollArea.style.cssText = "flex:1;overflow:auto;background:var(--sheet-bg, var(--sheet-bg, #0f172a));position:relative;";
+    this.scrollArea.style.cssText = "flex:1;overflow:auto;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));position:relative;";
 
     this.body = document.createElement("div");
     this.body.className = "vg-body";
@@ -61,7 +61,7 @@
     // Selection overlay inside bodyInner so it scrolls naturally
     this.selectionOverlay = document.createElement("div");
     this.selectionOverlay.className = "vg-selection";
-    this.selectionOverlay.style.cssText = "position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.08);pointer-events:none;z-index:10;display:none;";
+    this.selectionOverlay.style.cssText = "position:absolute;border:2px solid var(--id-accent);background:color-mix(in srgb, var(--id-accent) 8%, transparent);pointer-events:none;z-index:10;display:none;";
     this.bodyInner.appendChild(this.selectionOverlay);
 
     // Accessibility (#2493): install ARIA grid semantics, live region and the
@@ -109,7 +109,7 @@
     this.headerRow.innerHTML = "";
     const corner = document.createElement("div");
     corner.setAttribute("role", "columnheader");
-    corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;";
+    corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));border-right:1px solid var(--sheet-border, var(--sheet-border, var(--id-ink)));flex-shrink:0;";
     this.headerRow.appendChild(corner);
     // Virtualized headers: absolute-positioned inside the translated header
     // row, so only the visible columns exist in the DOM (#786).
@@ -120,7 +120,7 @@
       h.setAttribute("role", "columnheader");
       h.setAttribute("aria-colindex", String(c + 1));
       h.textContent = colName(c);
-      h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-muted, var(--sheet-muted, #94a3b8));text-align:center;line-height:24px;font-size:11px;border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;box-sizing:border-box;";
+      h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));color:var(--sheet-muted, var(--sheet-muted, var(--id-gray-400)));text-align:center;line-height:24px;font-size:11px;border-right:1px solid var(--sheet-border, var(--sheet-border, var(--id-ink)));flex-shrink:0;box-sizing:border-box;";
       this.headerRow.appendChild(h);
     }
     this.headerColPool = [];
@@ -139,7 +139,7 @@
       node.setAttribute("role", "gridcell");
       node.contentEditable = "false";
       node.tabIndex = -1;
-      node.style.cssText = "position:absolute;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
+      node.style.cssText = "position:absolute;background:var(--sheet-bg, var(--sheet-bg, var(--id-ink)));color:var(--sheet-fg, var(--sheet-fg, var(--id-gray-100)));border-right:1px solid var(--sheet-border, var(--sheet-border, var(--id-ink)));border-bottom:1px solid var(--sheet-border, var(--sheet-border, var(--id-ink)));padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
       node.addEventListener("pointerdown", this.onCellMouseDown.bind(this));
       node.addEventListener("dblclick", this.onCellDblClick.bind(this));
       node.addEventListener("blur", this.onCellBlur.bind(this));

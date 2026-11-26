@@ -5,10 +5,10 @@
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  background: var(--surface, #fff);
+  background: var(--surface, var(--id-surface-solid));
   border: 1px solid var(--border, var(--border-color, var(--palette-d0d0d0)));
   border-radius: 16px;
-  color: #333;
+  color: var(--palette-333333);
   font-size: var(--text-2xs);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -84,7 +84,7 @@ form.input-container {
 
 .input-container:focus-within {
     border-color: var(--accent, var(--palette-2563eb));
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-3b82f6) 10%, transparent);
 }
 
 #messageInput {
@@ -102,7 +102,7 @@ form.input-container {
 }
 
 #messageInput::placeholder {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 #voiceBtn,
@@ -142,7 +142,7 @@ form.input-container {
 }
 
 .chat-tool-toggle.web-search-toggle:hover {
-    background: var(--surface-hover, rgba(37, 99, 235, 0.08));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-hl-function) 8%, transparent));
 }
 
 .chat-tool-toggle.web-search-toggle:focus-visible {
@@ -151,7 +151,7 @@ form.input-container {
 }
 
 .chat-tool-toggle.web-search-toggle.is-off {
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     border-color: var(--border, var(--palette-d0d0d0));
     opacity: 0.75;
 }
@@ -173,8 +173,8 @@ form.input-container {
 }
 
 #voiceBtn {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-    color: var(--text-secondary, #888);
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 #voiceBtn:hover,
@@ -198,7 +198,7 @@ form.input-container {
 
 [data-theme="dark"] #voiceBtn,
 [data-theme="sentient"] #voiceBtn {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
 }
 
 /* Scroll to Bottom Button */
@@ -219,7 +219,7 @@ form.input-container {
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--id-overlay);
     z-index: 50;
 }
 
@@ -266,8 +266,8 @@ textarea#messageInput {
     padding: 6px 14px;
     border: 1px solid var(--border, var(--palette-d0d0d0));
     border-radius: 999px;
-    background: var(--surface, #fff);
-    color: var(--text, #222);
+    background: var(--surface, var(--id-surface-solid));
+    color: var(--text, var(--palette-222222));
     font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;

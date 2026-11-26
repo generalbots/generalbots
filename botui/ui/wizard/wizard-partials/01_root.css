@@ -1,27 +1,30 @@
-/* First-run wizard — static, OS-neutral, no external assets. */
+/* First-run wizard — static, OS-neutral, no external assets.
+   Bespoke names stay as aliases of the identity tokens so every consumer
+   keeps working; fallbacks cover older shells without the token sheet.
+   --radius is intentionally a literal: --id-radius-* derives FROM it. */
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --surface: #f6f6f7;
-  --surface-2: #ececef;
-  --border: #e2e2e7;
-  --text: #16161a;
-  --muted: #6b6b75;
-  --accent: #16161a;
-  --accent-ink: #ffffff;
-  --danger: #b3352a;
-  --warn: #9a6200;
-  --ok: #1f7a4d;
+  --bg: var(--id-surface-solid);
+  --surface: var(--id-gray-100, #f6f6f7);
+  --surface-2: var(--id-gray-200, var(--id-gray-200));
+  --border: var(--id-line, #e2e2e7);
+  --text: var(--id-ink, #16161a);
+  --muted: var(--id-muted, #6b6b75);
+  --accent: var(--id-accent, #16161a);
+  --accent-ink: var(--id-on-accent, #ffffff);
+  --danger: var(--id-danger-text, #b3352a);
+  --warn: var(--id-warn-text, #9a6200);
+  --ok: var(--id-success-text, #1f7a4d);
   /* Graphite rail (the site's black-and-white lockup sits on it). */
-  --rail-bg: #151517;
-  --rail-surface: #1f1f23;
-  --rail-border: #2e2e34;
-  --rail-text: #f7f7f7;
-  --rail-muted: #a6a6ae;
-  /* The thin section rule used across generalbots.org. */
-  --rainbow: linear-gradient(90deg, #ff4d00, #fbbf24, #10b981, #06b6d4, #6366f1, #ec4899, #ff4d00);
+  --rail-bg: var(--id-ink, #151517);
+  --rail-surface: var(--id-ink, #1f1f23);
+  --rail-border: var(--id-ink, #2e2e34);
+  --rail-text: var(--id-surface-solid, #f7f7f7);
+  --rail-muted: var(--id-gray-300, #a6a6ae);
+  /* The thin section rule used across generalbots.org — brand exception. */
+  --rainbow: linear-gradient(90deg, #ff4d00, var(--id-warn), var(--id-success), #06b6d4, #6366f1, #ec4899, #ff4d00);
   --radius: 12px;
-  --focus: 0 0 0 3px rgba(22, 22, 26, 0.18);
+  --focus: var(--id-focus);
 }
 
 * { box-sizing: border-box; }
@@ -67,7 +70,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   gap: 18px;
   padding: 24px 18px;
   border-right: 1px solid var(--rail-border);
-  background: linear-gradient(180deg, #19191c, var(--rail-bg));
+  background: linear-gradient(180deg, var(--id-ink), var(--rail-bg));
   color: var(--rail-text);
 }
 
@@ -134,7 +137,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .rail-step.done { color: var(--rail-text); }
 .rail-step.done .num {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--id-surface-solid) 12%, transparent);
   border-color: var(--rail-text);
   color: var(--rail-text);
 }
@@ -250,8 +253,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
   text-align: left;
 }
-.choice:hover { border-color: #b9b9c2; }
-.choice.selected { border-color: var(--accent); background: #f1f1f4; }
+.choice:hover { border-color: var(--id-gray-300); }
+.choice.selected { border-color: var(--accent); background: var(--id-gray-100); }
 .choice input { margin-top: 3px; accent-color: var(--accent); }
 .choice .choice-title { display: block; font-weight: 600; margin-bottom: 2px; }
 .choice .choice-desc { display: block; font-size: 12.5px; color: var(--muted); }

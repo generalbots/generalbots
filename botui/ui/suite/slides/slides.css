@@ -26,7 +26,7 @@
   padding: 0;
   background: var(--surface-raised-2, var(--palette-334155));
   border-bottom: 2px solid var(--border, var(--palette-475569));
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 25%, transparent);
 }
 
 /* #2184 — classic two-row toolbar: deck/slide commands on the first row,
@@ -63,7 +63,7 @@
 }
 .slides-toolbar-row-format .btn-icon[aria-pressed="true"] {
   background: var(--palette-1d4ed8);
-  color: #fff;
+  color: var(--id-surface-solid);
 }
 /* --- #2247 toolbar polish, #2290 overflow discoverable --- */
 .slides-toolbar .toolbar-center,
@@ -88,7 +88,7 @@
   border-radius: 6px;
 }
 .slides-toolbar .btn-icon:hover {
-  background: rgba(148, 163, 184, 0.16);
+  background: color-mix(in srgb, var(--id-gray-400) 16%, transparent);
   color: var(--palette-f8fafc);
 }
 .slides-toolbar .btn-icon strong,
@@ -126,7 +126,7 @@
   font-size: var(--text-xs);
   gap: 3px;
 }
-.sl-color .gb-cp-trigger:hover { background: rgba(148, 163, 184, 0.14); }
+.sl-color .gb-cp-trigger:hover { background: color-mix(in srgb, var(--id-gray-400) 14%, transparent); }
 .sl-color .gb-cp-swatch { width: 12px; height: 12px; }
 
 .slides-toolbar .toolbar-left {
@@ -168,7 +168,7 @@
 }
 
 .slides-title-input:hover {
-  background: var(--win-caption-hover, rgba(148, 163, 184, 0.12));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--id-gray-400) 12%, transparent));
 }
 
 .slides-title-input:focus {
@@ -238,7 +238,7 @@
     transition: transform 0.2s ease;
     border-right: 0;
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 -10px 30px color-mix(in srgb, var(--id-ink) 45%, transparent);
   }
   .slides-main.sidebar-open > .slides-sidebar { transform: translateY(0); }
 
@@ -247,7 +247,7 @@
     position: absolute;
     inset: 0;
     z-index: var(--z-sticky);
-    background: rgba(2, 6, 23, 0.6);
+    background: color-mix(in srgb, var(--id-ink) 60%, transparent);
   }
   .slides-main.sidebar-open > .slides-backdrop { display: block; }
 
@@ -357,7 +357,7 @@
   border-radius: 8px;
   background: var(--palette-1e293b);
   color: var(--palette-e2e8f0);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 35%, transparent);
   display: flex;
   flex-direction: column;
   gap: 4px;

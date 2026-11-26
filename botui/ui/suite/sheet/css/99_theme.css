@@ -15,7 +15,7 @@
     --sheet-muted: var(--palette-94a3b8);
     --sheet-border: var(--palette-334155);
     --sheet-selection: var(--palette-3b82f6);
-    --sheet-selection-wash: rgba(59, 130, 246, 0.08);
+    --sheet-selection-wash: color-mix(in srgb, var(--id-accent) 8%, transparent);
     --sentient-bg-primary: var(--palette-0f172a);
     --sentient-bg-secondary: var(--palette-111827);
     --sentient-bg-tertiary: var(--palette-1e293b);

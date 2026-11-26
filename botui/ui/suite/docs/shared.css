@@ -36,8 +36,8 @@ html, body { height: 100%; }
 .docs-shared-badge {
     padding: 2px 9px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, .18);
-    border: 1px solid rgba(148, 163, 184, .55);
+    background: color-mix(in srgb, var(--palette-94a3b8) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--palette-94a3b8) 55%, transparent);
     color: var(--palette-cbd5f5);
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -74,7 +74,7 @@ html, body { height: 100%; }
     padding: 72px 80px;
     background: var(--palette-ffffff);
     color: var(--palette-111827);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--palette-000000) 45%, transparent);
     outline: none;
     cursor: default;
     overflow-wrap: break-word;

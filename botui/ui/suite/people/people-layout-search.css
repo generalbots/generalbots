@@ -60,7 +60,7 @@
 .search-box input:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px var(--accent-color-alpha, rgba(99, 102, 241, 0.1));
+    box-shadow: 0 0 0 3px var(--accent-color-alpha, color-mix(in srgb, var(--id-accent) 10%, transparent));
 }
 
 .search-box input::placeholder {

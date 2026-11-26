@@ -22,7 +22,7 @@
 }
 
 .header-left .subtitle {
-    color: #666;
+    color: var(--palette-666666);
     margin-top: 0.25rem;
     font-size: 0.9rem;
 }
@@ -60,7 +60,7 @@
 .role-filters select {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--palette-d8ddde);
     border-radius: 6px;
     font-size: 0.875rem;
 }
@@ -74,7 +74,7 @@
 }
 
 .search-box svg {
-    color: #999;
+    color: var(--palette-929798);
     flex-shrink: 0;
 }
 
@@ -143,7 +143,7 @@
 
 .role-item-meta {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--palette-666666);
     display: flex;
     gap: 0.5rem;
     margin-top: 0.125rem;
@@ -161,7 +161,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #999;
+    color: var(--palette-929798);
     text-align: center;
 }
 
@@ -173,7 +173,7 @@
 .role-detail-placeholder h3 {
     margin: 0 0 0.5rem 0;
     font-size: 1.25rem;
-    color: #666;
+    color: var(--palette-666666);
 }
 
 .role-detail-content {

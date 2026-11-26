@@ -20,7 +20,7 @@
         padding: 8px 16px;
         border-bottom: 2px solid var(--border);
         background: var(--card);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 15%, transparent);
         gap: 16px;
     }
 
@@ -95,7 +95,7 @@
 
     .btn-ai:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--id-ink) 15%, transparent);
     }
 
     .color-picker {
@@ -125,7 +125,7 @@
         padding: 60px 80px;
         background: var(--card);
         border-radius: 2px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 8%, transparent);
     }
 
     .paper-title {
@@ -238,7 +238,7 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 8px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 12%, transparent);
         z-index: var(--z-sticky);
     }
 

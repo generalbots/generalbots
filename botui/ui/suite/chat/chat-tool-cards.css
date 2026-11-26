@@ -1,6 +1,6 @@
-.gb-diff-add { background: rgba(63,185,80,.14); color: var(--palette-7ee787); }
-.gb-diff-del { background: rgba(248,81,73,.14); color: var(--palette-ffa198); }
-.gb-diff-hunk { background: rgba(56,139,253,.18); color: var(--palette-79c0ff); }
+.gb-diff-add { background: color-mix(in srgb, var(--palette-3fb950) 14%, transparent); color: var(--palette-7ee787); }
+.gb-diff-del { background: color-mix(in srgb, var(--palette-f85149) 14%, transparent); color: var(--palette-ffa198); }
+.gb-diff-hunk { background: color-mix(in srgb, var(--palette-3b82f6) 18%, transparent); color: var(--palette-79c0ff); }
 .gb-diff-meta { color: var(--palette-8b949e); font-style: italic; }
 
 .gb-tool-card {
@@ -10,14 +10,14 @@
     padding: 10px 12px;
     margin: 6px 0;
     border-radius: 10px;
-    border: 1px solid var(--border, rgba(128,128,128,.28));
-    background: var(--bg2, rgba(128,128,128,.08));
+    border: 1px solid var(--border, color-mix(in srgb, var(--palette-808789) 28%, transparent));
+    background: var(--bg2, color-mix(in srgb, var(--palette-808789) 8%, transparent));
     max-width: 520px;
 }
 .gb-tool-spinner {
     width: 14px; height: 14px;
     margin-top: 3px;
-    border: 2px solid rgba(128,128,128,.3);
+    border: 2px solid color-mix(in srgb, var(--palette-808789) 30%, transparent);
     border-top-color: var(--palette-58a6ff);
     border-radius: 50%;
     animation: gb-spin 0.8s linear infinite;

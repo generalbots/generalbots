@@ -27,7 +27,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: color-mix(in srgb, var(--id-ink) 50%, transparent);
             z-index: var(--z-sticky);
         }
 

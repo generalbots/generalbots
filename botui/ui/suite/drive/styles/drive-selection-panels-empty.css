@@ -35,7 +35,7 @@
     background: var(--surface, var(--palette-12121a));
     border: 1px solid var(--border, var(--palette-2a2a3a));
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px var(--id-overlay);
     z-index: var(--z-sticky, 100);
 }
 
@@ -68,12 +68,12 @@
 }
 
 .action-btn:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-ffffff));
 }
 
 .action-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.2);
+    background: color-mix(in srgb, var(--id-danger-icon) 20%, transparent);
     color: var(--palette-ef4444);
 }
 
@@ -194,7 +194,7 @@
 }
 
 .btn-icon-sm:hover {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
     color: var(--text, var(--palette-ffffff));
 }
 

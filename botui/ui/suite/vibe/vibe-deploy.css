@@ -11,7 +11,7 @@ background: var(--surface);
 border: 1px solid var(--border);
 border-radius: 8px;
 overflow: hidden;
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+box-shadow: 0 16px 48px color-mix(in srgb, var(--id-ink) 50%, transparent);
 }
 
 .vibe-terminal-close {
@@ -33,7 +33,7 @@ left: 50%;
 transform: translate(-50%, -50%);
 background: var(--surface);
 border-radius: 16px;
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+box-shadow: 0 16px 48px color-mix(in srgb, var(--id-ink) 30%, transparent);
 width: 600px;
 max-width: 90%;
 max-height: 80vh;
@@ -182,22 +182,22 @@ cursor: pointer;
 .vibe-np-overlay {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.55);
+    background: color-mix(in srgb, var(--id-ink) 55%, transparent);
     z-index: 91;
 }
 .vibe-np-dialog {
     width: 480px; max-width: 94%;
     background: var(--surface, var(--palette-151a21));
-    border: 1px solid var(--border, rgba(128,128,128,.3));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 30%, transparent));
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    box-shadow: 0 18px 60px color-mix(in srgb, var(--id-ink) 55%, transparent);
 }
 .vibe-np-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px;
     font-weight: 700;
-    border-bottom: 1px solid var(--border, rgba(128,128,128,.25));
+    border-bottom: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 25%, transparent));
 }
 .vibe-np-close {
     border: none; background: transparent; color: inherit;
@@ -237,7 +237,7 @@ cursor: pointer;
 .vibe-np-input {
     width: 100%; box-sizing: border-box;
     background: var(--bg2, var(--palette-0d1117));
-    border: 1px solid var(--border, rgba(128,128,128,.35));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 35%, transparent));
     color: var(--text, var(--palette-e5e7eb));
     border-radius: 6px; padding: 7px 10px; font-size: var(--text-xs);
 }
@@ -247,7 +247,7 @@ cursor: pointer;
 .vibe-np-kinds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .vibe-np-kind {
     background: var(--bg2, var(--palette-0d1117));
-    border: 1px solid var(--border, rgba(128,128,128,.3));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 30%, transparent));
     color: var(--text, inherit);
     border-radius: 10px; padding: 14px 10px; cursor: pointer;
     text-align: left;
@@ -264,14 +264,14 @@ cursor: pointer;
 .vibe-np-kind-sub { display: block; font-size: var(--text-2xs); color: var(--muted, var(--palette-9ca3af)); margin-top: 2px; }
 .vibe-np-opts { display: flex; gap: 8px; flex-wrap: wrap; }
 .vibe-np-opt {
-    border: 1px solid var(--border, rgba(128,128,128,.3));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 30%, transparent));
     border-radius: 6px; padding: 5px 10px; font-size: var(--text-2xs); cursor: pointer;
 }
 .vibe-np-opt input { display: none; }
 .vibe-np-hooks {
     width: 100%; box-sizing: border-box; min-height: 70px; resize: vertical;
     background: var(--bg2, var(--palette-0d1117));
-    border: 1px solid var(--border, rgba(128,128,128,.35));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 35%, transparent));
     color: var(--text, var(--palette-e5e7eb));
     border-radius: 6px; padding: 7px 10px;
     font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: var(--text-2xs);
@@ -280,10 +280,10 @@ cursor: pointer;
 .vibe-np-foot {
     display: flex; justify-content: flex-end; gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--border, rgba(128,128,128,.25));
+    border-top: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 25%, transparent));
 }
 .vibe-np-cancel {
-    border: 1px solid var(--border, rgba(128,128,128,.4));
+    border: 1px solid var(--border, color-mix(in srgb, var(--id-muted) 40%, transparent));
     background: transparent; color: inherit;
     border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: var(--text-xs);
 }
@@ -296,15 +296,15 @@ cursor: pointer;
 /* Knowledge graph + capabilities (Issue #806) */
 #vibeGraphPanel .vibe-capability {
     padding: 6px 0;
-    border-bottom: 1px solid var(--border, #222);
+    border-bottom: 1px solid var(--border, var(--id-ink));
 }
 #vibeGraphPanel .vibe-cap-title {
     font-weight: 700;
-    color: var(--text, #eee);
+    color: var(--text, var(--id-gray-100));
 }
 #vibeGraphPanel .vibe-cap-title small {
     font-weight: 500;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     margin-left: 6px;
 }
 #vibeGraphPanel .vibe-cap-title .vibe-cap-warn {
@@ -323,7 +323,7 @@ cursor: pointer;
     gap: 4px;
 }
 #vibeGraphPanel .vibe-cap-tool {
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 4px;
     padding: 1px 6px;
     font-size: var(--text-2xs);

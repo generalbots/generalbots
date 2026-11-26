@@ -128,7 +128,7 @@
     right: 0;
     padding: 8px 16px;
     background: var(--warning, var(--palette-f59e0b));
-    color: #000;
+    color: var(--palette-000000);
     font-size: var(--text-2xs);
     font-weight: 500;
     display: flex;
@@ -193,7 +193,7 @@
 }
 
 .message.bot:hover .message-content::before {
-    background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--palette-000000) 5%, transparent));
 }
 
 .message.user .message-content {
@@ -250,7 +250,7 @@
 .typing-indicator span {
     width: 6px;
     height: 6px;
-    background: var(--text-secondary, #888);
+    background: var(--text-secondary, var(--palette-888888));
     border-radius: 50%;
     animation: typing 1.4s infinite ease-in-out;
 }
@@ -292,7 +292,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--palette-888888));
   font-style: italic;
 }
 

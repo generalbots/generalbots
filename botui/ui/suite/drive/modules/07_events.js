@@ -269,7 +269,7 @@ function bindContextMenu() {
             btn.setAttribute("aria-label", window.gbT ? window.gbT("label-more", "More") : "More");
             btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
             // Inline geometry: css/ is owned by another agent in this batch.
-            btn.style.cssText = "position:absolute;top:4px;right:4px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:var(--surface,rgba(0,0,0,.45));color:inherit;cursor:pointer;z-index:2";
+            btn.style.cssText = "position:absolute;top:4px;right:4px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:var(--surface,color-mix(in srgb, var(--palette-000000) 45%, transparent));color:inherit;cursor:pointer;z-index:2";
             btn.addEventListener("click", function(e) {
                 e.preventDefault();
                 e.stopPropagation();

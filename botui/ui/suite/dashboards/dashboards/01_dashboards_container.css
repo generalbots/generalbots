@@ -12,7 +12,7 @@
     align-items: center;
     padding: 16px 24px;
     border-bottom: 1px solid var(--color-border, var(--palette-2a2a2a));
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
 }
 
 .dashboards-header .header-title {
@@ -57,7 +57,7 @@
 }
 
 .dashboards-header .search-box input::placeholder {
-    color: var(--color-text-tertiary, #666);
+    color: var(--color-text-tertiary, var(--palette-666666));
 }
 
 .dashboards-header .filter-select {
@@ -76,7 +76,7 @@
     gap: 6px;
     padding: 8px 16px;
     background: var(--color-accent, var(--palette-d4f505));
-    color: #000;
+    color: var(--palette-000000);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -99,7 +99,7 @@
     width: 260px;
     padding: 16px;
     border-right: 1px solid var(--color-border, var(--palette-2a2a2a));
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     overflow-y: auto;
     flex-shrink: 0;
 }
@@ -113,7 +113,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--palette-929798));
     margin-bottom: 12px;
 }
 
@@ -144,7 +144,7 @@
 
 .dashboard-nav a.active,
 .dashboard-nav-item.active {
-    background: var(--color-accent-dim, rgba(212, 245, 5, 0.1));
+    background: var(--color-accent-dim, color-mix(in srgb, var(--palette-d4f505) 10%, transparent));
     color: var(--color-accent, var(--palette-d4f505));
 }
 
@@ -214,7 +214,7 @@
 }
 
 .dashboard-card {
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 12px;
     overflow: hidden;
@@ -226,7 +226,7 @@
 
 .dashboard-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px var(--id-overlay);
     border-color: var(--color-accent, var(--palette-d4f505));
 }
 
@@ -246,7 +246,7 @@
 .dashboard-card-header p {
     margin: 0;
     font-size: var(--text-xs);
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--palette-929798));
 }
 
 .dashboard-card-actions {
@@ -265,7 +265,7 @@
     background: var(--color-bg-tertiary, var(--palette-1a1a1a));
     border: none;
     border-radius: 6px;
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--palette-929798));
     cursor: pointer;
 }
 
@@ -291,7 +291,7 @@
 }
 
 .preview-widget {
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     border-radius: 6px;
 }
 
@@ -313,12 +313,12 @@
     background: var(--color-bg-tertiary, var(--palette-1a1a1a));
     border-radius: 4px;
     font-size: var(--text-2xs);
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--palette-929798));
 }
 
 .dashboard-card-meta {
     font-size: var(--text-2xs);
-    color: var(--color-text-tertiary, #666);
+    color: var(--color-text-tertiary, var(--palette-666666));
 }
 
 .dashboard-viewer {
@@ -333,7 +333,7 @@
     align-items: center;
     gap: 16px;
     padding: 12px 20px;
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     border-bottom: 1px solid var(--color-border, var(--palette-2a2a2a));
 }
 
@@ -349,7 +349,7 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--color-text-secondary, #999);
+    color: var(--color-text-secondary, var(--palette-929798));
     cursor: pointer;
     transition: all 0.2s;
 }

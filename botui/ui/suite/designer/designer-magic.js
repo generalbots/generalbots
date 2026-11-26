@@ -91,7 +91,7 @@ function renderFallbackSuggestions(dialogData) {
 function renderMagicSuggestions(suggestions) {
   const content = document.getElementById('magic-content');
   if (!suggestions || suggestions.length === 0) {
-    content.innerHTML = '<p style="text-align:center;color:var(--text-secondary, #94a3b8);padding:40px;">Your dialog looks great! No suggestions at this time.</p>';
+    content.innerHTML = '<p style="text-align:center;color:var(--text-secondary, var(--palette-94a3b8));padding:40px;">Your dialog looks great! No suggestions at this time.</p>';
     return;
   }
 

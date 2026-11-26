@@ -24,7 +24,7 @@
     C.ctx = null;
     C.gridType = "dots";
     C.snapToGrid = false;
-    C.canvasBg = "#ffffff";
+    C.canvasBg = "var(--id-surface-solid)";
     // The app body (including the <canvas> element) arrives through HTMX
     // partial swaps that can finish AFTER DOMContentLoaded, and the desktop
     // window manager can re-inject this script on every open. Boot when the

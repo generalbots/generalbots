@@ -12,7 +12,7 @@
 .gb-review-tab:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--palette-60a5fa); outline-offset: 1px;
 }
-.gb-review-btn-primary { background: var(--palette-2563eb); border-color: var(--palette-2563eb); color: #fff; }
+.gb-review-btn-primary { background: var(--palette-2563eb); border-color: var(--palette-2563eb); color: var(--id-surface-solid); }
 .gb-review-btn-primary:hover { background: var(--palette-1d4ed8); }
 .gb-review-textarea {
   width: 100%; min-height: 70px; box-sizing: border-box; background: var(--palette-0f172a);
@@ -25,8 +25,8 @@
 }
 
 /* ---- in-document markup ------------------------------------------------ */
-.gb-review-ins { background: rgba(34, 197, 94, .18); text-decoration: underline; text-decoration-color: var(--palette-22c55e); }
-.gb-review-del { background: rgba(239, 68, 68, .18); text-decoration: line-through; text-decoration-color: var(--palette-f87171); }
+.gb-review-ins { background: color-mix(in srgb, var(--id-success) 18%, transparent); text-decoration: underline; text-decoration-color: var(--palette-22c55e); }
+.gb-review-del { background: color-mix(in srgb, var(--id-danger-icon) 18%, transparent); text-decoration: line-through; text-decoration-color: var(--palette-f87171); }
 .gb-review-mode-simple .gb-review-ins, .gb-review-mode-simple .gb-review-del { text-decoration: none; }
 .gb-review-mode-none .gb-review-ins, .gb-review-mode-none .gb-review-del,
 .gb-review-mode-final .gb-review-del { display: none; }
@@ -43,7 +43,7 @@
 .gb-review-balloon {
   pointer-events: auto; background: var(--palette-1e293b); border: 1px solid var(--palette-475569);
   border-left: 3px solid var(--palette-60a5fa); border-radius: 6px; padding: 8px 10px;
-  font-size: var(--text-2xs); color: var(--palette-e2e8f0); box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+  font-size: var(--text-2xs); color: var(--palette-e2e8f0); box-shadow: 0 4px 12px var(--id-overlay);
 }
 .gb-review-balloon-delete { border-left-color: var(--palette-f87171); }
 .gb-review-balloon-insert { border-left-color: var(--palette-22c55e); }
@@ -58,19 +58,19 @@
 .gb-review-balloon-diff { margin: 4px 0; }
 .gb-review-balloon-actions { margin-top: 6px; }
 .gb-review-balloon-btn {
-  background: var(--palette-2563eb); color: #fff; border: none; border-radius: 4px;
+  background: var(--palette-2563eb); color: var(--id-surface-solid); border: none; border-radius: 4px;
   padding: 3px 8px; font-size: var(--text-2xs); cursor: pointer; margin-right: 4px;
 }
 
 /* ---- dialog shell ------------------------------------------------------ */
 .gb-review-backdrop {
-  position: fixed; inset: 0; background: rgba(2, 6, 23, .7); z-index: var(--z-modal-backdrop);
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--palette-020617) 70%, transparent); z-index: var(--z-modal-backdrop);
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .gb-review-dialog {
   background: var(--palette-0f172a); color: var(--palette-f8fafc); border: 1px solid var(--palette-334155);
   border-radius: 10px; width: min(880px, 96vw); max-height: 90vh;
-  display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+  display: flex; flex-direction: column; box-shadow: 0 16px 48px color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 .gb-review-dialog-title { margin: 0; padding: 14px 18px 6px; font-size: var(--text-md); }
 .gb-review-dialog-body { padding: 6px 18px; overflow-y: auto; flex: 1; }
@@ -92,7 +92,7 @@
   background: var(--palette-1e293b); color: var(--palette-94a3b8); border: 1px solid var(--palette-334155);
   border-radius: 5px 5px 0 0; padding: 6px 12px; font-size: var(--text-2xs); cursor: pointer;
 }
-.gb-review-tab[aria-selected="true"] { background: var(--palette-2563eb); color: #fff; border-color: var(--palette-2563eb); }
+.gb-review-tab[aria-selected="true"] { background: var(--palette-2563eb); color: var(--id-surface-solid); border-color: var(--palette-2563eb); }
 .gb-review-tabpane { padding: 8px 0; }
 .gb-review-tabpane[hidden] { display: none; }
 
@@ -122,7 +122,7 @@
 }
 .gb-review-reply { margin: 6px 0 0 16px; padding: 6px 8px; border-left: 2px solid var(--palette-334155); }
 .gb-review-mention {
-  background: var(--palette-1d4ed8); color: #fff; border-radius: 999px; padding: 1px 6px;
+  background: var(--palette-1d4ed8); color: var(--id-surface-solid); border-radius: 999px; padding: 1px 6px;
   font-size: var(--text-2xs); white-space: nowrap;
 }
 

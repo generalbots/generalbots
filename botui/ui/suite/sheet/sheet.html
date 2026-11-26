@@ -59,7 +59,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                     </button>
                     <button class="btn-icon" id="conditionalFormatBtn" hx-post="/suite/sheet/modals/conditional-format" hx-vals='{"id":"current"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" title="Conditional Formatting" aria-label="Conditional formatting" data-i18n-title="sheet-conditional-format" data-i18n-aria-label="sheet-conditional-format">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" fill="#4CAF50"></rect><rect x="14" y="3" width="7" height="7" fill="#FFC107"></rect><rect x="3" y="14" width="7" height="7" fill="#F44336"></rect><rect x="14" y="14" width="7" height="7" fill="#2196F3"></rect></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" fill="var(--id-success)"></rect><rect x="14" y="3" width="7" height="7" fill="var(--id-warn)"></rect><rect x="3" y="14" width="7" height="7" fill="var(--id-danger)"></rect><rect x="14" y="14" width="7" height="7" fill="#2196F3"></rect></svg>
                     </button>
                     <button class="btn-icon" id="dataValidationBtn" data-i18n-title="sheet-data-validation" hx-post="/suite/sheet/modals/data-validation" hx-vals='{"id":"current"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" title="Data Validation" aria-label="Data validation" data-i18n-aria-label="sheet-data-validation">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
@@ -172,12 +172,12 @@
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
-                    <input type="hidden" id="fillColorBtn" value="#ffffff" />
+                    <input type="hidden" id="fillColorBtn" value="var(--id-surface-solid)" />
                     <button type="button" class="gb-cp-trigger sheet-color-trigger" data-gb-color-for="fillColorBtn" title="Fill color" aria-label="Fill color">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg>
                         <span class="gb-cp-swatch"></span>
                     </button>
-                    <input type="hidden" id="textColorBtn" value="#000000" />
+                    <input type="hidden" id="textColorBtn" value="var(--id-ink)" />
                     <button type="button" class="gb-cp-trigger sheet-color-trigger" data-gb-color-for="textColorBtn" title="Text color" aria-label="Text color">
                         <span style="font-weight:700;" aria-hidden="true">A</span>
                         <span class="gb-cp-swatch"></span>

@@ -246,17 +246,17 @@ body {
     border-radius: 8px;
     cursor: move;
     user-select: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--id-overlay);
     transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .node:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--palette-000000) 40%, transparent);
 }
 
 .node.selected {
     border-color: var(--accent-blue);
-    box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.3);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-89b4fa) 30%, transparent);
 }
 
 .node-header {

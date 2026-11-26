@@ -131,7 +131,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    background: #000;
+    background: var(--palette-000000);
     z-index: var(--z-sticky);
 }
 
@@ -144,7 +144,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.8);
+    background: color-mix(in srgb, var(--palette-000000) 80%, transparent);
 }
 
 .room-info {
@@ -162,7 +162,7 @@
 
 .room-id, .room-timer {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: color-mix(in srgb, var(--id-surface-solid) 60%, transparent);
 }
 
 .room-controls-top {
@@ -175,7 +175,7 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--id-surface-solid) 10%, transparent);
     border: none;
     border-radius: 6px;
     color: white;
@@ -185,7 +185,7 @@
 }
 
 .control-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
 }
 
 .control-btn.active {
@@ -211,12 +211,12 @@
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 0.5rem;
     padding: 0.5rem;
-    background: #111;
+    background: var(--palette-111111);
 }
 
 .video-tile {
     position: relative;
-    background: #222;
+    background: var(--palette-222222);
     border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 16 / 9;
@@ -234,7 +234,7 @@
     left: 0;
     right: 0;
     padding: 0.5rem;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    background: linear-gradient(transparent, var(--id-overlay-heavy));
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -257,7 +257,7 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
     border-radius: 4px;
     color: white;
 }
@@ -358,7 +358,7 @@
     justify-content: center;
     align-items: center;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.9);
+    background: color-mix(in srgb, var(--palette-000000) 90%, transparent);
     gap: 2rem;
 }
 
@@ -373,7 +373,7 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--id-surface-solid) 10%, transparent);
     border: none;
     border-radius: 12px;
     color: white;
@@ -384,7 +384,7 @@
 }
 
 .control-btn-lg:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

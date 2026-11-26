@@ -178,7 +178,7 @@ align-items: center;
 gap: 6px;
 min-height: 38px;
 padding: 6px 14px;
-background: #fff;
+background: var(--id-surface-solid);
 border-bottom: 1px solid var(--palette-d8dee9);
 color: var(--palette-334155);
 position: relative;
@@ -194,7 +194,7 @@ display: none;
 
 .vibe-canvas-toolbar button {
 border: 1px solid var(--palette-cbd5e1);
-background: #fff;
+background: var(--id-surface-solid);
 color: var(--palette-334155);
 border-radius: 5px;
 padding: 5px 9px;

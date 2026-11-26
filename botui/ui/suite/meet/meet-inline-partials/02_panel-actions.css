@@ -43,7 +43,7 @@
         justify-content: center;
         align-items: center;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.9);
+        background: color-mix(in srgb, var(--palette-000000) 90%, transparent);
         gap: 2rem;
     }
 
@@ -60,7 +60,7 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.75rem 1rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--id-surface-solid) 10%, transparent);
         border: none;
         border-radius: 12px;
         color: white;
@@ -71,7 +71,7 @@
     }
 
     .control-btn-lg:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
     }
 
     .control-btn-lg.active {
@@ -112,7 +112,7 @@
     }
 
     .modal::backdrop {
-        background: rgba(0, 0, 0, 0.5);
+        background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
     }
 
     .modal-content {
@@ -196,7 +196,7 @@
 
     .preview-container {
         position: relative;
-        background: #000;
+        background: var(--palette-000000);
         border-radius: 8px;
         overflow: hidden;
         aspect-ratio: 16 / 9;
@@ -271,7 +271,7 @@
         padding: 0.5rem;
         background: var(--surface);
         border-radius: 9999px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px var(--id-overlay);
         z-index: var(--z-sticky);
     }
 

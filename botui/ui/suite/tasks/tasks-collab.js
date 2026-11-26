@@ -13,8 +13,8 @@
     btn.className = "task-comments-btn";
     btn.textContent = "\uD83D\uDCAC Comments";
     btn.style.cssText =
-      "display:block;width:calc(100% - 24px);margin:12px;background:#1e293b;color:#f8fafc;" +
-      "border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;text-align:left;";
+      "display:block;width:calc(100% - 24px);margin:12px;background:var(--id-ink);color:var(--id-gray-100);" +
+      "border:1px solid var(--id-ink);border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;text-align:left;";
     btn.addEventListener("click", function () {
       var taskId = window.TasksState && window.TasksState.selectedTaskId;
       if (!taskId) {

@@ -93,7 +93,7 @@ Object.assign(app, {
         if (!t) {
             t = document.createElement('div');
             t.id = 'banking-toast';
-            t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:10px 16px;border-radius:8px;z-index:var(--z-system);font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+            t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--palette-1f2937);color:var(--id-surface-solid);padding:10px 16px;border-radius:8px;z-index:var(--z-system);font-size:13px;box-shadow:0 4px 12px var(--id-overlay)';
             document.body.appendChild(t);
         }
         t.textContent = msg;

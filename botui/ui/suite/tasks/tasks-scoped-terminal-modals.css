@@ -4,7 +4,7 @@
 .modal-header h3 {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     margin: 0;
 }
 
@@ -25,7 +25,7 @@
 }
 
 .btn-close:hover {
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .modal-body {
@@ -61,7 +61,7 @@
     background: var(--surface-hover, var(--palette-1a1a1a));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     font-family: inherit;
     font-size: var(--text-sm);
     transition: all 0.2s ease;
@@ -85,7 +85,7 @@
 .decision-question h4 {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     margin: 0 0 8px 0;
 }
 
@@ -137,7 +137,7 @@
     display: block;
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     margin-bottom: 4px;
 }
 
@@ -160,12 +160,12 @@
 
 .toast {
     padding: 12px 20px;
-    background: var(--surface, #111);
+    background: var(--surface, var(--id-ink));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 10px;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     font-size: var(--text-sm);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 60%, transparent);
     animation: slideIn 0.3s ease;
 }
 
@@ -195,7 +195,7 @@
 }
 
 .tasks-app ::-webkit-scrollbar-track {
-    background: var(--surface, #111);
+    background: var(--surface, var(--id-ink));
 }
 
 .tasks-app ::-webkit-scrollbar-thumb {

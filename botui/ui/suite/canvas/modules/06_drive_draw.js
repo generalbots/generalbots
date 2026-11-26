@@ -84,8 +84,8 @@
             y: el.y || 0,
             width: w,
             height: h,
-            stroke: "#0f172a",
-            fill: el.text ? "#e0f2fe" : "transparent",
+            stroke: "var(--palette-0f172a)",
+            fill: el.text ? "var(--palette-e3f2fd)" : "transparent",
             strokeWidth: 2,
         };
         if (el.text) { elem.text = el.text; elem.type = "text"; }

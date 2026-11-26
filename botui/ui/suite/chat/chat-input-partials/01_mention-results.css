@@ -23,7 +23,7 @@
 
 .mention-item:hover,
 .mention-item.selected {
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
 }
 
 .mention-item.disabled {
@@ -59,7 +59,7 @@
 
 .mention-item-subtitle {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -67,8 +67,8 @@
 
 .mention-item-hint {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text-secondary, var(--palette-888888));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     padding: 2px 8px;
     border-radius: 4px;
 }
@@ -108,7 +108,7 @@
     padding: 16px;
     min-width: 280px;
     max-width: 350px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent);
     z-index: var(--z-system);
     opacity: 0;
     pointer-events: none;
@@ -152,7 +152,7 @@
 
 .entity-card-details {
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     margin-bottom: 12px;
     line-height: 1.5;
 }
@@ -166,7 +166,7 @@
     flex: 1;
     padding: 8px 12px;
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     color: var(--text, var(--palette-e5e5e5));
     border-radius: 6px;
     font-size: var(--text-xs);
@@ -188,8 +188,8 @@
     gap: 12px;
     padding: 8px 16px;
     flex-wrap: wrap;
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: color-mix(in srgb, var(--palette-000000) 3%, transparent);
+    border: 1px solid color-mix(in srgb, var(--palette-000000) 8%, transparent);
     border-radius: 12px;
     margin-left: auto; /* Push to right side */
 }
@@ -197,7 +197,7 @@
 .switchers-label {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: #888;
+    color: var(--palette-888888);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -215,22 +215,22 @@
     gap: 6px;
     padding: 7px 14px;
     border-radius: 20px;
-    border: 2px solid var(--switcher-color, #888);
+    border: 2px solid var(--switcher-color, var(--palette-888888));
     font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: color-mix(in srgb, var(--switcher-color, #888) 10%, transparent);
-    color: var(--switcher-color, #555);
+    background: color-mix(in srgb, var(--switcher-color, var(--palette-888888)) 10%, transparent);
+    color: var(--switcher-color, var(--palette-505658));
     user-select: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--palette-000000) 10%, transparent);
     opacity: 0.7;
 }
 
 .switcher-chip:hover {
     opacity: 1;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--palette-000000) 15%, transparent);
 }
 
 .switcher-chip.active {
@@ -238,7 +238,7 @@
     border-color: var(--switcher-color, currentColor);
     background: var(--switcher-color, currentColor);
     color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 0 12px var(--switcher-color, currentColor);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--palette-000000) 25%, transparent), 0 0 12px var(--switcher-color, currentColor);
     transform: translateY(-1px);
 }
 

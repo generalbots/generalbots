@@ -52,7 +52,7 @@
     padding: 2px 8px;
     border: 1px solid var(--border, var(--palette-262b36));
     border-radius: 5px;
-    background: rgba(127, 127, 127, 0.08);
+    background: color-mix(in srgb, var(--id-muted) 8%, transparent);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: var(--text-2xs);
 }

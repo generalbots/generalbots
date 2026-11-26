@@ -16,7 +16,7 @@
   color: var(--sheet-fg, var(--palette-f8fafc));
   border: 1px solid var(--sheet-border, var(--palette-334155));
   border-radius: 8px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--id-ink) 45%, transparent);
   font-size: var(--text-xs);
 }
 
@@ -83,7 +83,7 @@
   margin: 0;
   padding: 8px 10px;
   border-left: 3px solid var(--palette-f59e0b);
-  background: rgba(245, 158, 11, 0.08);
+  background: color-mix(in srgb, var(--id-accent) 8%, transparent);
   color: var(--sheet-muted, var(--palette-cbd5e1));
   font-size: var(--text-2xs);
 }

@@ -1,7 +1,7 @@
 .vibe-stage-panel {
     display: none;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border, var(--id-ink));
     background: var(--surface, var(--palette-14142a));
     max-height: 200px;
     overflow-y: auto;
@@ -28,13 +28,13 @@
     justify-content: center;
     font-size: var(--text-2xs);
     font-weight: 700;
-    border: 1px solid var(--border, #444);
-    color: var(--text-muted, #999);
+    border: 1px solid var(--border, var(--id-ink));
+    color: var(--text-muted, var(--id-muted));
     flex-shrink: 0;
 }
 
 .vibe-stage-row.done .idx {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--id-success) 15%, transparent);
     border-color: var(--palette-22c55e);
     color: var(--palette-4ade80);
 }
@@ -44,7 +44,7 @@
 }
 
 .vibe-stage-row.failed .idx {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger) 15%, transparent);
     border-color: var(--palette-ef4444);
     color: var(--palette-f87171);
 }

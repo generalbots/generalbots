@@ -26,7 +26,7 @@
         z-index: var(--z-fixed);
         transform: translateX(-102%);
         transition: transform 0.2s ease;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 10px 30px color-mix(in srgb, var(--palette-000000) 45%, transparent);
     }
     .docs-main.sidebar-open .docs-sidebar { transform: translateX(0); }
 
@@ -35,7 +35,7 @@
         position: absolute;
         inset: 0;
         z-index: var(--z-sticky);
-        background: rgba(2, 6, 23, 0.6);
+        background: color-mix(in srgb, var(--palette-020617) 60%, transparent);
     }
     .docs-main.sidebar-open .docs-backdrop { display: block; }
 

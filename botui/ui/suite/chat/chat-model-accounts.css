@@ -31,7 +31,7 @@
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     background: var(--surface);
-    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 20%);
+    box-shadow: 0 0.5rem 1.5rem var(--palette-000000);
 }
 
 .gb-model-account-groups.open {

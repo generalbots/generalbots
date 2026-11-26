@@ -49,7 +49,7 @@
 }
 
 .projector-markdown code {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--id-overlay);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: "Fira Code", monospace;
@@ -64,7 +64,7 @@
 /* Projector Controls */
 .projector-controls {
     padding: 12px 20px;
-    background: var(--surface-hover, rgba(0, 0, 0, 0.2));
+    background: var(--surface-hover, color-mix(in srgb, var(--palette-000000) 20%, transparent));
     border-top: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
 }
 
@@ -89,7 +89,7 @@
     height: 36px;
     border-radius: 8px;
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     color: var(--text, var(--palette-e5e5e5));
     cursor: pointer;
     display: flex;
@@ -99,7 +99,7 @@
 }
 
 .control-btn:hover {
-    background: var(--surface-active, rgba(255, 255, 255, 0.1));
+    background: var(--surface-active, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
 }
 
 .control-btn.active {
@@ -149,7 +149,7 @@
 
 .time-display {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
     min-width: 80px;
     text-align: center;
     font-family: "Fira Code", monospace;
@@ -186,7 +186,7 @@
 .speed-select,
 .theme-select {
     padding: 6px 12px;
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 6px;
     color: var(--text, var(--palette-e5e5e5));
@@ -199,13 +199,13 @@
 .code-info,
 .zoom-level {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--palette-888888));
 }
 
 .slide-nav input {
     width: 60px;
     padding: 6px 8px;
-    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
     border: 1px solid var(--border, var(--border-color, var(--palette-2a2a2a)));
     border-radius: 6px;
     color: var(--text, var(--palette-e5e5e5));

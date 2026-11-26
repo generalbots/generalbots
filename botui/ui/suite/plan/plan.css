@@ -204,8 +204,8 @@
   transition: transform 0.15s;
 }
 .plan-gantt-bar:hover { transform: translateY(-1px); box-shadow: var(--shadow); z-index: 6; }
-.plan-gantt-bar-progress { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,255,255,0.25); pointer-events: none; }
-.plan-gantt-bar-title { position: relative; padding: 0 8px; font-size: var(--text-2xs); font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plan-gantt-bar-progress { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--id-surface-solid) 25%, transparent); pointer-events: none; }
+.plan-gantt-bar-title { position: relative; padding: 0 8px; font-size: var(--text-2xs); font-weight: 500; color: var(--id-surface-solid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* List view */
 .plan-list-table {
@@ -247,7 +247,7 @@
 /* Modal editor */
 .plan-modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: color-mix(in srgb, var(--id-ink) 70%, transparent);
   z-index: var(--z-sticky);
 }
 .plan-modal {

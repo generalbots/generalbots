@@ -1,10 +1,10 @@
 /* Slides presentation analytics and audience interaction (#2489) — local-only
  * console, report, Q&A, polls, follow-along and export panels. */
-.sa-overlay{position:fixed;inset:0;background:rgba(15,23,42,.72);display:flex;align-items:center;
+.sa-overlay{position:fixed;inset:0;background:color-mix(in srgb, var(--id-ink) 72%, transparent);display:flex;align-items:center;
   justify-content:center;z-index:var(--z-blocker,10000);padding:24px;}
 .sa-dialog{width:min(820px,96vw);max-height:88vh;display:flex;flex-direction:column;
   background:var(--palette-0f172a);color:var(--palette-e2e8f0);border:1px solid var(--palette-334155);border-radius:12px;
-  box-shadow:0 24px 64px rgba(0,0,0,.55);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  box-shadow:0 24px 64px color-mix(in srgb, var(--id-ink) 55%, transparent);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 .sa-dialog-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--palette-334155);
   background:var(--palette-1e293b);border-radius:12px 12px 0 0;}
 .sa-dialog-title{flex:1;margin:0;font-size:var(--text-md);font-weight:600;color:var(--palette-f8fafc);}
@@ -32,7 +32,7 @@
 .sa-btn{background:var(--palette-1e293b);border:1px solid var(--palette-475569);color:var(--palette-e2e8f0);border-radius:6px;
   padding:7px 12px;font-size:var(--text-xs);cursor:pointer;}
 .sa-btn:hover{background:var(--palette-334155);}
-.sa-btn-primary{background:var(--palette-2563eb);border-color:var(--palette-3b82f6);color:#fff;}
+.sa-btn-primary{background:var(--palette-2563eb);border-color:var(--palette-3b82f6);color:var(--id-surface-solid);}
 .sa-btn-primary:hover{background:var(--palette-1d4ed8);}
 .sa-btn-menu{width:100%;text-align:left;padding:10px 14px;}
 .sa-field{display:flex;flex-direction:column;gap:4px;color:var(--palette-cbd5e1);font-size:var(--text-xs);}

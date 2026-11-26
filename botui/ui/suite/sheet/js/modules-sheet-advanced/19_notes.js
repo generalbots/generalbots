@@ -100,14 +100,14 @@
     menu = document.createElement("div");
     menu.className = "ss-cell-menu";
     menu.style.cssText =
-      "position:absolute;z-index:70;background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:6px;" +
-      "box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:180px;overflow:hidden;";
+      "position:absolute;z-index:70;background:var(--sheet-bg-elevated, var(--id-ink));border:1px solid var(--sheet-border, var(--id-ink));border-radius:6px;" +
+      "box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);min-width:180px;overflow:hidden;";
     const item = function (label, fn) {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = label;
       b.style.cssText =
-        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, #f8fafc);" +
+        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, var(--id-gray-100));" +
         "text-align:left;font-size:13px;cursor:pointer;";
       b.addEventListener("mouseover", function () { b.style.background = "var(--sheet-border, #334155)"; });
       b.addEventListener("mouseout", function () { b.style.background = "none"; });

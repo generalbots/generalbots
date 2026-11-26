@@ -106,7 +106,7 @@
 }
 
 .bot-item.active {
-    background: rgba(99, 102, 241, 0.15);
+    background: color-mix(in srgb, var(--palette-6366f1) 15%, transparent);
     color: hsl(var(--primary, 217 91% 60%));
 }
 
@@ -127,7 +127,7 @@
 .bot-card:hover {
     border-color: hsl(var(--primary, 217 91% 60%));
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 15%, transparent);
 }
 
 .bot-card-icon {
@@ -181,7 +181,7 @@
 
 .folder-tile:hover {
     border-color: hsl(var(--primary, 217 91% 60%));
-    background: rgba(99, 102, 241, 0.05);
+    background: color-mix(in srgb, var(--palette-6366f1) 5%, transparent);
     transform: translateY(-1px);
 }
 

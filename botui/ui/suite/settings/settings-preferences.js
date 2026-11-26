@@ -149,16 +149,16 @@
           ];
           var html =
             '<table style="width:100%;border-collapse:collapse">' +
-            '<thead><tr style="text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#2a2a2a)">' +
+            '<thead><tr style="text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary,var(--id-muted));border-bottom:1px solid var(--border,var(--id-ink))">' +
             '<th style="padding:14px 16px">Component</th>' +
             '<th style="padding:14px 16px">Version</th></tr></thead><tbody>';
           comps.forEach(function (c) {
             var ver = versions[c.id] || "N/A";
             html +=
               '<tr style="border-bottom:1px solid var(--border,#2a2a2a)">' +
-              '<td style="padding:14px 16px;font-size:14px;color:var(--text,#e5e5e5)">' +
+              '<td style="padding:14px 16px;font-size:14px;color:var(--text,var(--id-gray-200))">' +
               escapeHtml(c.name) + "</td>" +
-              '<td style="padding:14px 16px;font-size:14px;font-family:\'Fira Code\',monospace;color:var(--text-secondary,#aaa)">' +
+              '<td style="padding:14px 16px;font-size:14px;font-family:\'Fira Code\',monospace;color:var(--text-secondary,var(--id-gray-400))">' +
               escapeHtml(ver) + "</td></tr>";
           });
           html += "</tbody></table>";
@@ -171,7 +171,7 @@
           container.setAttribute("aria-live", "assertive");
           container.setAttribute("aria-atomic", "true");
           container.innerHTML =
-            '<div style="padding:24px;text-align:center;color:var(--text-secondary,#888)">' +
+            '<div style="padding:24px;text-align:center;color:var(--text-secondary,var(--id-muted))">' +
             "<p>Could not load version information.</p>" +
             '<button class="btn-secondary btn-sm" onclick="window.loadVersions()">Retry</button></div>';
         });

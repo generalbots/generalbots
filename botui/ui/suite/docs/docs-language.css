@@ -54,7 +54,7 @@
 }
 
 .docs-lang-btn:hover { background: var(--palette-475569); }
-.docs-lang-primary { background: var(--palette-2563eb); border-color: var(--palette-3b82f6); color: #fff; }
+.docs-lang-primary { background: var(--palette-2563eb); border-color: var(--palette-3b82f6); color: var(--id-surface-solid); }
 .docs-lang-primary:hover { background: var(--palette-1d4ed8); }
 
 .docs-lang-field { display: flex; flex-direction: column; gap: 4px; color: var(--palette-cbd5e1); }

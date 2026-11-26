@@ -11,12 +11,12 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid color-mix(in srgb, var(--id-ink) 8%, transparent);
 }
 .gb-photos .photos-toolbar h2 { margin: 0; font-size: var(--text-md); }
 .gb-photos .photos-refresh {
     background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid color-mix(in srgb, var(--id-ink) 20%, transparent);
     border-radius: 8px;
     padding: 6px 12px;
     font-size: var(--text-2xs);
@@ -38,8 +38,8 @@
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: color-mix(in srgb, var(--id-ink) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--id-ink) 8%, transparent);
 }
 .gb-photos .photo-tile img {
     width: 100%;
@@ -58,7 +58,7 @@
 .gb-photos .photos-lightbox {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: color-mix(in srgb, var(--id-ink) 85%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -73,9 +73,9 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    background: rgba(255, 255, 255, 0.15);
+    background: color-mix(in srgb, var(--id-surface-solid) 15%, transparent);
     border: none;
-    color: #fff;
+    color: var(--id-surface-solid);
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -85,10 +85,10 @@
 
 @media (prefers-color-scheme: dark) {
     .gb-photos { background: var(--palette-14161d); color: var(--palette-e6e8ee); }
-    .gb-photos .photos-toolbar { border-bottom-color: rgba(255, 255, 255, 0.08); }
-    .gb-photos .photos-refresh { border-color: rgba(255, 255, 255, 0.2); color: var(--palette-e6e8ee); }
+    .gb-photos .photos-toolbar { border-bottom-color: color-mix(in srgb, var(--id-surface-solid) 8%, transparent); }
+    .gb-photos .photos-refresh { border-color: color-mix(in srgb, var(--id-surface-solid) 20%, transparent); color: var(--palette-e6e8ee); }
     .gb-photos .photos-count { color: var(--palette-aab0bd); }
-    .gb-photos .photo-tile { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
+    .gb-photos .photo-tile { background: color-mix(in srgb, var(--id-surface-solid) 6%, transparent); border-color: color-mix(in srgb, var(--id-surface-solid) 10%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

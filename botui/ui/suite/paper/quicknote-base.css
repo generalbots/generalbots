@@ -119,7 +119,7 @@
 .paper-note {
     background: var(--paper-note-bg);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 6%, transparent);
     min-height: calc(100vh - 280px);
     position: relative;
 }
@@ -191,7 +191,7 @@
     background: var(--paper-surface);
     border: 1px solid var(--paper-border);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--id-ink) 15%, transparent);
     padding: 4px;
     display: flex;
     align-items: center;
@@ -254,13 +254,13 @@
     font-size: var(--text-md);
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--id-accent) 40%, transparent);
     transition: all 0.3s;
 }
 
 .action-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 6px 24px color-mix(in srgb, var(--id-accent) 50%, transparent);
 }
 
 .action-button:active {
@@ -324,7 +324,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--id-ink) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;

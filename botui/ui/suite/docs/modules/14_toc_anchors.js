@@ -88,7 +88,7 @@
 
   function flash(heading) {
     var previous = heading.style.outline;
-    heading.style.outline = "2px solid #3b82f6";
+    heading.style.outline = "2px solid var(--palette-3b82f6)";
     heading.style.outlineOffset = "2px";
     setTimeout(function () {
       heading.style.outline = previous;
@@ -163,7 +163,7 @@
     title.className = "gb-doc-toc-title";
     title.setAttribute("data-gb-toc", "1");
     title.style.cssText =
-      "margin:0 0 6px;padding:8px 12px 0;font-weight:700;border-top:1px solid #cbd5e1;";
+      "margin:0 0 6px;padding:8px 12px 0;font-weight:700;border-top:1px solid var(--palette-cbd5e1);";
     title.textContent = tocTitle();
     fragment.appendChild(title);
     list.forEach(function (heading) {
@@ -175,7 +175,7 @@
       var link = document.createElement("a");
       link.setAttribute("href", "#" + heading.getAttribute("id"));
       link.textContent = (heading.textContent || "").trim() || heading.getAttribute("id");
-      link.style.cssText = "color:#1d4ed8;text-decoration:none;";
+      link.style.cssText = "color:var(--palette-1d4ed8);text-decoration:none;";
       row.appendChild(link);
       fragment.appendChild(row);
     });
@@ -200,7 +200,7 @@
     button.textContent = (typeof window.gbT === "function" ? window.gbT("docs-toc-insert", "Insert into document") : "Insert into document");
     button.title = (typeof window.gbT === "function" ? window.gbT("docs-toc-insert-title", "Insert a table of contents with links to every heading") : "Insert a table of contents with links to every heading");
     button.style.cssText =
-      "background:#0f766e;color:white;border:none;padding:4px 10px;border-radius:4px;" +
+      "background:var(--palette-0f766e);color:white;border:none;padding:4px 10px;border-radius:4px;" +
       "cursor:pointer;font-size:12px;margin-left:6px;";
     button.addEventListener("click", function (event) {
       event.preventDefault();

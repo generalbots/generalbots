@@ -191,14 +191,14 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
 
     window.requestAiSuggestion = function (ticketId) {
         var el = document.getElementById("ai-suggestions");
-        if (el) el.innerHTML = '<div style="padding:12px;color:#94a3b8">Analyzing...</div>';
+        if (el) el.innerHTML = '<div style="padding:12px;color:var(--id-gray-400)">Analyzing...</div>';
         fetch("/api/tickets/" + ticketId + "/ai-suggest").then(function(r) { return r.json(); }).then(function(data) {
             if (el) {
                 var suggestion = data.reasoning
                     || "Category: " + (data.suggested_category || "-")
                     + ", Priority: " + (data.suggested_priority || "-")
                     + " — No suggestion available.";
-                el.innerHTML = '<div style="padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;border:1px solid rgba(59,130,246,0.2)">'
+                el.innerHTML = '<div style="padding:12px;background:color-mix(in srgb, var(--id-accent) 10%, transparent);border-radius:8px;border:1px solid color-mix(in srgb, var(--id-accent) 20%, transparent)">'
                     + '<strong>AI Suggestion:</strong><br>' + suggestion
                     + '</div>';
             }

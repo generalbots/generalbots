@@ -67,13 +67,13 @@
                 ov.id = "vibeBusyOverlay";
                 ov.style.cssText =
                     "position:fixed;inset:0;z-index:var(--z-top);display:flex;align-items:center;justify-content:center;" +
-                    "background:rgba(8,10,20,.55);backdrop-filter:blur(2px);cursor:progress;";
+                    "background:color-mix(in srgb, var(--id-ink) 55%, transparent);backdrop-filter:blur(2px);cursor:progress;";
                 ov.innerHTML =
-                    '<div style="background:#141628;border:1px solid rgba(255,255,255,.18);border-radius:12px;' +
-                    'padding:22px 34px;text-align:center;color:#eee;font-size:13px;' +
+                    '<div style="background:#141628;border:1px solid color-mix(in srgb, var(--id-surface-solid) 18%, transparent);border-radius:12px;' +
+                    'padding:22px 34px;text-align:center;color:var(--id-gray-100);font-size:13px;' +
                     'box-shadow:0 14px 40px rgba(0,0,0,.5)">' +
-                    '<div style="width:26px;height:26px;margin:0 auto 12px;border:3px solid rgba(255,255,255,.2);' +
-                    'border-top-color:#60a5fa;border-radius:50%;animation:vibe-busy-spin .8s linear infinite"></div>' +
+                    '<div style="width:26px;height:26px;margin:0 auto 12px;border:3px solid color-mix(in srgb, var(--id-surface-solid) 20%, transparent);' +
+                    'border-top-color:var(--id-accent-light);border-radius:50%;animation:vibe-busy-spin .8s linear infinite"></div>' +
                     "<b>" + (label || "Working…") + "</b></div>";
                 if (!document.getElementById("vibeBusySpinStyle")) {
                     var style = toolbarEl("style", null);

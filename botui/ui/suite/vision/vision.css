@@ -52,8 +52,8 @@ body {
   align-items: center;
   gap: 12px;
 }
-.upload-area:hover { border-color: var(--accent); background: rgba(88, 166, 255, 0.05); }
-.upload-area.dragover { border-color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+.upload-area:hover { border-color: var(--accent); background: color-mix(in srgb, var(--id-accent) 5%, transparent); }
+.upload-area.dragover { border-color: var(--accent); background: color-mix(in srgb, var(--id-accent) 10%, transparent); }
 .upload-area .icon { font-size: var(--text-5xl); opacity: 0.5; }
 .upload-area .text { color: var(--text-secondary); font-size: var(--text-sm); }
 .upload-area .hint { color: var(--text-muted); font-size: var(--text-2xs); }

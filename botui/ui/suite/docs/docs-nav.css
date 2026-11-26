@@ -76,7 +76,7 @@
 .gb-fr-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .gb-fr-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--palette-334155); background: var(--palette-0f172a); color: var(--palette-f8fafc); cursor: pointer; font-size: var(--text-2xs) }
 .gb-fr-btn:hover { background: var(--palette-334155); }
-.gb-fr-primary { background: var(--palette-3b82f6); border-color: var(--palette-3b82f6); color: #fff; }
+.gb-fr-primary { background: var(--palette-3b82f6); border-color: var(--palette-3b82f6); color: var(--id-surface-solid); }
 .gb-fr-primary:hover { background: var(--palette-2563eb); }
 .gb-fr-preview { max-height: 160px; overflow-y: auto; border: 1px solid var(--palette-334155); border-radius: 4px; }
 .gb-fr-preview-row { padding: 4px 8px; font-size: var(--text-2xs); color: var(--palette-cbd5e1); }

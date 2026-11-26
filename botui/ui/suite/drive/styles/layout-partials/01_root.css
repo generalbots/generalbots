@@ -5,8 +5,8 @@
   --drive-sidebar-width: 240px;
   --drive-tab-height: 48px;
   --drive-card-radius: 10px;
-  --drive-shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-  --drive-shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --drive-shadow-sm: 0 1px 3px color-mix(in srgb, var(--palette-000000) 20%, transparent);
+  --drive-shadow-md: 0 4px 12px var(--id-overlay);
   --drive-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -245,7 +245,7 @@
 
 .file-card:hover {
     border-color: hsl(var(--primary, 217 91% 60%));
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-000000) 10%, transparent);
 }
 
 .file-card.selected {

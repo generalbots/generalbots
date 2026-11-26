@@ -24,7 +24,7 @@ dialog.modal[open] {
 }
 
 dialog.modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 .modal-content {
@@ -35,7 +35,7 @@ dialog.modal::backdrop {
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px var(--id-overlay);
 }
 
 .modal-large {
@@ -228,7 +228,7 @@ dialog.modal::backdrop {
 .send-group .dropdown-toggle {
     padding: 0.625rem 0.5rem;
     border-radius: 0 6px 6px 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 1px solid color-mix(in srgb, var(--id-surface-solid) 20%, transparent);
 }
 
 .schedule-menu {
@@ -240,7 +240,7 @@ dialog.modal::backdrop {
     border-radius: 8px;
     padding: 0.5rem 0;
     min-width: 240px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 40px var(--id-overlay);
     display: none;
     z-index: 10;
     margin-bottom: 0.5rem;

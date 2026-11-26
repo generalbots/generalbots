@@ -116,7 +116,7 @@ window.VibeMetrics = window.VibeMetrics || {
             '<div style="display: flex; gap: 16px; font-size: 11px; color: var(--text-muted, #888); border-bottom: 1px solid var(--border, #222); padding-bottom: 8px; margin-bottom: 8px;">';
         extras.forEach((e) => {
             html +=
-                "<span><strong style='color: var(--text, #eee);'>" +
+                "<span><strong style='color: var(--text, var(--id-gray-100));'>" +
                 this.esc(e.value) +
                 "</strong> " +
                 this.esc(e.label) +
@@ -143,7 +143,7 @@ window.VibeMetrics = window.VibeMetrics || {
                     "<span>" +
                     this.esc(uc.replace(/_/g, " ")) +
                     "</span>" +
-                    "<span style='color: var(--text-muted, #888);'>" +
+                    "<span style='color: var(--text-muted, var(--id-muted));'>" +
                     this.fmt(ud) +
                     " ok · " +
                     this.fmt(uf) +

@@ -9,7 +9,7 @@
 .task-detail-section h3 {
     font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary, var(--id-muted));
     margin: 0 0 12px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -17,14 +17,14 @@
 
 .task-detail-section .intent-text {
     font-size: var(--text-sm);
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     line-height: 1.6;
     margin: 0;
 }
 
 .task-detail-section.error-section {
-    background: var(--error-light, rgba(239, 68, 68, 0.1));
-    border: 1px solid var(--error-light, rgba(239, 68, 68, 0.2));
+    background: var(--error-light, color-mix(in srgb, var(--id-danger) 10%, transparent));
+    border: 1px solid var(--error-light, color-mix(in srgb, var(--id-danger) 20%, transparent));
 }
 
 .task-detail-section .error-text {
@@ -54,18 +54,18 @@
 .btn-detailed-view:hover,
 .btn-review-decision:hover {
     background: var(--surface-hover, var(--palette-1f1f1f));
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .btn-review-decision {
     background: var(--primary, var(--palette-c5f82a));
     border-color: var(--primary, var(--palette-c5f82a));
-    color: var(--bg, #000);
+    color: var(--bg, var(--id-ink));
 }
 
 .btn-review-decision:hover {
     background: var(--palette-d4ff4a);
-    color: var(--bg, #000);
+    color: var(--bg, var(--id-ink));
 }
 
 /* =============================================================================
@@ -75,7 +75,7 @@
 .task-detail-panel {
     display: flex;
     flex-direction: column;
-    background: var(--surface, #111);
+    background: var(--surface, var(--id-ink));
     overflow-y: auto;
     overflow-x: hidden;
     height: 100%;
@@ -122,14 +122,14 @@
 
 .btn-back:hover {
     background: var(--surface-hover, var(--palette-1f1f1f));
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .detail-title {
     flex: 1;
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     margin: 0;
 }
 
@@ -147,7 +147,7 @@
 }
 
 .status-badge.awaiting {
-    background: var(--warning-light, rgba(245, 158, 11, 0.15));
+    background: var(--warning-light, color-mix(in srgb, var(--id-accent) 15%, transparent));
     color: var(--warning, var(--warning, var(--palette-f59e0b)));
 }
 
@@ -167,7 +167,7 @@
     background: var(--primary, var(--palette-c5f82a));
     border: none;
     border-radius: 6px;
-    color: var(--bg, #000);
+    color: var(--bg, var(--id-ink));
     font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -191,8 +191,8 @@
 /* Decision Alert */
 .decision-alert {
     margin: 20px 24px;
-    background: var(--warning-light, rgba(245, 158, 11, 0.08));
-    border: 1px solid var(--warning-light, rgba(245, 158, 11, 0.25));
+    background: var(--warning-light, color-mix(in srgb, var(--id-accent) 8%, transparent));
+    border: 1px solid var(--warning-light, color-mix(in srgb, var(--id-accent) 25%, transparent));
     border-radius: 16px;
     padding: 20px;
 }
@@ -222,7 +222,7 @@
 
 .decision-description {
     font-size: var(--text-sm);
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     margin: 0;
 }
 

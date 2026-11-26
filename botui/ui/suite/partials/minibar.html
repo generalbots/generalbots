@@ -7,7 +7,7 @@
         right: 0;
         height: 28px;
         background: #f8f8f8;
-        border-bottom: 1px solid #f0f1f2;
+        border-bottom: 1px solid var(--id-gray-100);
         display: flex;
         align-items: center;
         padding: 0 12px;
@@ -21,7 +21,7 @@
         gap: 6px;
         font-size: 12px;
         font-weight: 700;
-        color: #3b3b3b;
+        color: var(--id-ink);
     }
 
     .minibar-brand-icon {
@@ -42,7 +42,7 @@
         border: none;
         border-radius: 4px;
         background: transparent;
-        color: #888;
+        color: var(--id-muted);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -53,8 +53,8 @@
     }
 
     .minibar-btn:hover {
-        background: #e0e0e0;
-        color: #3b3b3b;
+        background: var(--id-gray-200);
+        color: var(--id-ink);
     }
 </style>
 
@@ -87,8 +87,8 @@
                     border-radius: 50%;
                     width: 22px;
                     height: 22px;
-                    background: #ddd;
-                    color: #555;
+                    background: var(--id-gray-200);
+                    color: var(--id-text);
                     font-size: var(--text-2xs);
                     font-weight: bold;
                     overflow: hidden;
@@ -109,9 +109,9 @@
                     top: 100%;
                     margin-top: 4px;
                     background: white;
-                    border: 1px solid #f0f1f2;
+                    border: 1px solid var(--id-gray-100);
                     border-radius: 6px;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 4px 12px color-mix(in srgb, var(--id-ink) 10%, transparent);
                     width: 220px;
                     padding: 12px;
                     z-index: var(--z-system);
@@ -123,7 +123,7 @@
                     style="
                         display: flex;
                         flex-direction: column;
-                        border-bottom: 1px solid #f0f1f2;
+                        border-bottom: 1px solid var(--id-gray-100);
                         padding-bottom: 8px;
                     "
                 >
@@ -131,12 +131,12 @@
                         id="userName"
                         style="
                             font-weight: 600;
-                            color: #3b3b3b;
+                            color: var(--id-ink);
                             font-size: 13px;
                         "
                         >User</span
                     >
-                    <span id="userEmail" style="color: #888; font-size: var(--text-2xs)"
+                    <span id="userEmail" style="color: var(--id-muted); font-size: var(--text-2xs)"
                         >user@example.com</span
                     >
                 </div>
@@ -242,7 +242,7 @@
 
                         var btn = document.getElementById("authAction");
                         btn.href = "#";
-                        btn.style.color = "var(--error, #ef4444)";
+                        btn.style.color = "var(--error, var(--id-danger-icon))";
                         document.getElementById("authText").textContent =
                             "Sign out";
                         document.getElementById("authIcon").innerHTML =

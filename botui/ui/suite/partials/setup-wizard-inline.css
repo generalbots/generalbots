@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--id-ink) 70%, transparent);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -19,7 +19,7 @@
   border: 1px solid var(--border, var(--palette-2a2a2a));
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--id-ink) 50%, transparent);
 }
 
 .setup-wizard-header {
@@ -36,7 +36,7 @@
 
 .setup-wizard-header p {
   margin: 0;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--id-muted));
   font-size: var(--text-sm);
 }
 
@@ -66,7 +66,7 @@
 
 .setup-step {
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--id-muted));
   transition: color 0.3s ease;
 }
 
@@ -92,7 +92,7 @@
 
 .setup-step-content p {
   margin: 0 0 20px;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--id-muted));
   font-size: var(--text-sm);
 }
 
@@ -107,7 +107,7 @@
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.03));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 3%, transparent));
   border: 2px solid var(--border, var(--palette-2a2a2a));
   border-radius: 12px;
   cursor: pointer;
@@ -150,7 +150,7 @@
 
 .setup-option-desc {
   font-size: var(--text-xs);
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--id-muted));
 }
 
 .setup-form {
@@ -173,7 +173,7 @@
 
 .setup-input {
   padding: 12px 16px;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 5%, transparent));
   border: 1px solid var(--border, var(--palette-2a2a2a));
   border-radius: 8px;
   color: var(--text, var(--palette-e5e5e5));
@@ -188,7 +188,7 @@
 }
 
 .setup-input::placeholder {
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary, var(--id-text));
 }
 
 textarea.setup-input {
@@ -212,7 +212,7 @@ textarea.setup-input {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--surface-hover, rgba(255,255,255,0.02));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 2%, transparent));
 }
 .setup-drop-zone:hover,
 .setup-drop-zone.dragover {
@@ -223,18 +223,18 @@ textarea.setup-input {
   stroke: var(--primary, var(--palette-84d669));
 }
 .setup-drop-icon { margin-bottom: 12px; }
-.setup-drop-icon svg { stroke: var(--text-secondary, #888); transition: stroke 0.2s; }
+.setup-drop-icon svg { stroke: var(--text-secondary, var(--id-muted)); transition: stroke 0.2s; }
 .setup-drop-text { font-size: var(--text-sm); color: var(--text, var(--palette-e5e5e5)); margin: 0 0 4px; }
-.setup-drop-hint { font-size: var(--text-2xs); color: var(--text-secondary, #888); margin: 0 0 16px; }
+.setup-drop-hint { font-size: var(--text-2xs); color: var(--text-secondary, var(--id-muted)); margin: 0 0 16px; }
 .setup-file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
 .setup-file-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; background: var(--surface-hover, rgba(255,255,255,0.03));
+  padding: 8px 12px; background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 3%, transparent));
   border: 1px solid var(--border, var(--palette-2a2a2a)); border-radius: 6px;
   font-size: var(--text-xs); color: var(--text, var(--palette-e5e5e5));
 }
 .setup-file-item .file-name { flex: 1; }
-.setup-file-item .file-size { font-size: var(--text-2xs); color: var(--text-secondary, #888); }
+.setup-file-item .file-size { font-size: var(--text-2xs); color: var(--text-secondary, var(--id-muted)); }
 .setup-file-item .file-status { font-size: var(--text-2xs); font-weight: 600; }
 .setup-file-item .file-status.uploaded { color: var(--palette-22c55e); }
 .setup-file-item .file-status.uploading { color: var(--palette-f59e0b); }
@@ -253,7 +253,7 @@ textarea.setup-input {
 
 .setup-btn-primary {
   background: var(--primary, var(--palette-84d669));
-  color: #000;
+  color: var(--id-ink);
 }
 
 .setup-btn-primary:hover {
@@ -262,18 +262,18 @@ textarea.setup-input {
 }
 
 .setup-btn-secondary {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+  background: var(--surface-hover, color-mix(in srgb, var(--id-surface-solid) 10%, transparent));
   color: var(--text, var(--palette-e5e5e5));
   border: 1px solid var(--border, var(--palette-2a2a2a));
 }
 
 .setup-btn-secondary:hover {
-  background: var(--surface-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-active, color-mix(in srgb, var(--id-surface-solid) 15%, transparent));
 }
 
 .setup-btn-text {
   background: none;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary, var(--id-muted));
   margin-right: auto;
 }
 

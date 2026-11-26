@@ -81,7 +81,7 @@
                 <h3 data-i18n="o365-sync-frequency">Sync Frequency</h3>
                 <div class="o365-settings-row">
                     <div><div class="o365-settings-label" data-i18n="o365-calendar-sync">Calendar Sync</div><div class="o365-settings-desc" data-i18n="o365-sync-calendar-events">Sync calendar events</div></div>
-                    <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="calendar">
+                    <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px" data-o365-sync="calendar">
                         <option value="5" data-i18n="o365-every-5-min">Every 5 min</option>
                         <option value="15" selected data-i18n="o365-every-15-min">Every 15 min</option>
                         <option value="30" data-i18n="o365-every-30-min">Every 30 min</option>
@@ -90,7 +90,7 @@
                 </div>
                 <div class="o365-settings-row">
                     <div><div class="o365-settings-label" data-i18n="o365-drive-sync">Drive Sync</div><div class="o365-settings-desc" data-i18n="o365-sync-drive-files">Sync Drive files</div></div>
-                    <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="onedrive">
+                    <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px" data-o365-sync="onedrive">
                         <option value="5" data-i18n="o365-every-5-min">Every 5 min</option>
                         <option value="15" data-i18n="o365-every-15-min">Every 15 min</option>
                         <option value="30" selected data-i18n="o365-every-30-min">Every 30 min</option>
@@ -108,18 +108,18 @@
     </div>
 </div>
 
-<div class="o365-modal-overlay" id="meeting-modal" role="dialog" aria-modal="true" aria-label="Create Meeting" data-i18n-aria-label="o365-create-meeting" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:var(--z-dropdown)">
-    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:500px">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+<div class="o365-modal-overlay" id="meeting-modal" role="dialog" aria-modal="true" aria-label="Create Meeting" data-i18n-aria-label="o365-create-meeting" style="position:fixed;inset:0;background:color-mix(in srgb, var(--id-ink) 60%, transparent);display:none;align-items:center;justify-content:center;z-index:var(--z-dropdown)">
+    <div style="background:var(--bg-secondary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:8px;width:90%;max-width:500px">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,var(--id-ink));display:flex;align-items:center;justify-content:space-between">
             <h3 style="font-size:15px;font-weight:600;margin:0" data-i18n="o365-create-meeting">Create Meeting</h3>
-            <button type="button" style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" data-o365-action="hide-modal" data-o365-modal="meeting-modal" data-i18n-aria-label="action-close" data-i18n-title="action-close">&times;</button>
+            <button type="button" style="background:none;border:none;color:var(--text-secondary,var(--id-gray-400));cursor:pointer;font-size:18px" data-o365-action="hide-modal" data-o365-modal="meeting-modal" data-i18n-aria-label="action-close" data-i18n-title="action-close">&times;</button>
         </div>
         <div style="padding:16px">
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="tickets-subject" for="meeting-subject">Subject</label><input type="text" id="meeting-subject" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="action-start" for="meeting-start">Start</label><input type="datetime-local" id="meeting-start" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" for="meeting-end">End</label><input type="datetime-local" id="meeting-end" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="calendar-event-attendees" for="meeting-attendees">Attendees</label><input type="text" id="meeting-attendees" data-i18n-placeholder="calendar-event-attendees-placeholder" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--border-color,#334155);margin-top:12px">
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,var(--id-gray-400));margin-bottom:6px" data-i18n="tickets-subject" for="meeting-subject">Subject</label><input type="text" id="meeting-subject" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,var(--id-gray-400));margin-bottom:6px" data-i18n="action-start" for="meeting-start">Start</label><input type="datetime-local" id="meeting-start" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,var(--id-gray-400));margin-bottom:6px" for="meeting-end">End</label><input type="datetime-local" id="meeting-end" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,var(--id-gray-400));margin-bottom:6px" data-i18n="calendar-event-attendees" for="meeting-attendees">Attendees</label><input type="text" id="meeting-attendees" data-i18n-placeholder="calendar-event-attendees-placeholder" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,var(--id-ink));border:1px solid var(--border-color,var(--id-ink));border-radius:4px;color:var(--text-primary,var(--id-gray-100));font-size:13px"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--border-color,var(--id-ink));margin-top:12px">
                 <button type="button" class="o365-btn" data-o365-action="hide-modal" data-o365-modal="meeting-modal" data-i18n="action-cancel">Cancel</button>
                 <button type="button" class="o365-btn o365-btn-primary" data-o365-action="create-meeting" data-i18n="action-create">Create</button>
             </div>

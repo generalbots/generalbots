@@ -15,15 +15,15 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: var(--glass-bg, rgba(255,255,255,0.04));
-  border-bottom: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.08));
+  background: var(--glass-bg, color-mix(in srgb, var(--id-surface-solid) 4%, transparent));
+  border-bottom: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
   flex-shrink: 0;
   flex-wrap: wrap;
 }
 
 .photo-editor .pe-statusbar {
   border-bottom: none;
-  border-top: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--id-surface-solid) 8%, transparent));
   font-size: var(--text-2xs);
   color: var(--text-secondary, var(--palette-9aa0ac));
 }
@@ -42,13 +42,13 @@
 .photo-editor .pe-sep {
   width: 1px;
   height: 20px;
-  background: var(--win-titlebar-sep, rgba(255,255,255,0.12));
+  background: var(--win-titlebar-sep, color-mix(in srgb, var(--id-surface-solid) 12%, transparent));
   margin: 0 4px;
 }
 
 .photo-editor .pe-btn {
-  border: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.14));
-  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--id-surface-solid) 14%, transparent));
+  background: color-mix(in srgb, var(--id-surface-solid) 5%, transparent);
   color: var(--text, var(--palette-dfe2ea));
   border-radius: 8px;
   padding: 5px 10px;
@@ -57,7 +57,7 @@
   transition: background 140ms ease, transform 140ms ease;
 }
 
-.photo-editor .pe-btn:hover { background: rgba(255,255,255,0.12); }
+.photo-editor .pe-btn:hover { background: color-mix(in srgb, var(--id-surface-solid) 12%, transparent); }
 .photo-editor .pe-btn:active { transform: scale(0.96); }
 
 .photo-editor .pe-btn.pe-primary {
@@ -82,7 +82,7 @@
   padding: 6px 12px;
   font-size: var(--text-2xs);
   color: var(--text-secondary, var(--palette-9aa0ac));
-  border-bottom: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.06));
+  border-bottom: 1px solid var(--win-titlebar-sep, color-mix(in srgb, var(--id-surface-solid) 6%, transparent));
   flex-shrink: 0;
 }
 
@@ -107,7 +107,7 @@
   overflow: auto;
   padding: 14px;
   background:
-    repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%)
+    repeating-conic-gradient(color-mix(in srgb, var(--id-surface-solid) 4%, transparent) 0% 25%, transparent 0% 50%)
     50% / 22px 22px;
 }
 
@@ -116,7 +116,7 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: 6px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);
   background: transparent;
 }
 

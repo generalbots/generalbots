@@ -141,7 +141,7 @@ Object.assign(window.VibeGraph, {
                 <b style="font-size:12px;">${this.esc(String(node.label || node.id))}</b>
                 <span style="cursor:pointer;opacity:.7;" id="vibeGraphDetailsClose">✕</span>
              </div>
-             <div style="margin-bottom:6px;"><span style="background:${this.nodeColor(node)};border-radius:4px;padding:1px 7px;color:#fff;font-size:10px;">${this.esc(node.node_type)}</span></div>
+             <div style="margin-bottom:6px;"><span style="background:${this.nodeColor(node)};border-radius:4px;padding:1px 7px;color:var(--id-surface-solid);font-size:10px;">${this.esc(node.node_type)}</span></div>
              <table style="border-collapse:collapse;width:100%;">${rows}</table>`;
         const closeBtn = box.querySelector('#vibeGraphDetailsClose');
         if (closeBtn) closeBtn.addEventListener('click', () => this.selectNode(null));

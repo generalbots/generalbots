@@ -5,7 +5,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
+        background: color-mix(in srgb, var(--palette-000000) 80%, transparent);
         z-index: var(--z-system);
         display: flex;
         align-items: center;
@@ -38,7 +38,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 60px color-mix(in srgb, var(--palette-000000) 50%, transparent);
     }
 
     .projector-container.fullscreen {
@@ -56,7 +56,7 @@
         align-items: center;
         padding: 12px 20px;
         background: var(--surface, var(--palette-252525));
-        border-bottom: 1px solid var(--border, #333);
+        border-bottom: 1px solid var(--border, var(--palette-333333));
     }
 
     .projector-title-section {
@@ -70,7 +70,7 @@
     }
 
     .projector-title {
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         font-size: var(--text-md);
         font-weight: 500;
         max-width: 400px;
@@ -87,7 +87,7 @@
     .projector-btn {
         background: transparent;
         border: none;
-        color: var(--text-muted, #aaa);
+        color: var(--text-muted, var(--palette-a6adaf));
         font-size: var(--text-lg);
         padding: 8px;
         cursor: pointer;
@@ -96,13 +96,13 @@
     }
 
     .projector-btn:hover {
-        background: var(--surface-hover, #333);
-        color: var(--text, #fff);
+        background: var(--surface-hover, var(--palette-333333));
+        color: var(--text, var(--id-surface-solid));
     }
 
     .projector-btn.close-btn:hover {
         background: var(--error, var(--palette-e74c3c));
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
     }
 
     /* Content Area */
@@ -113,7 +113,7 @@
         justify-content: center;
         overflow: hidden;
         position: relative;
-        background: var(--bg, #000);
+        background: var(--bg, var(--palette-000000));
     }
 
     /* Loading */
@@ -122,7 +122,7 @@
         flex-direction: column;
         align-items: center;
         gap: 16px;
-        color: var(--text-muted, #888);
+        color: var(--text-muted, var(--palette-888888));
     }
 
     .projector-loading.hidden {
@@ -132,7 +132,7 @@
     .loading-spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid var(--surface-hover, #333);
+        border: 3px solid var(--surface-hover, var(--palette-333333));
         border-top-color: var(--accent, var(--palette-667eea));
         border-radius: 50%;
         animation: spin 1s linear infinite;
@@ -208,7 +208,7 @@
         display: inline-block;
         width: 40px;
         padding-right: 20px;
-        color: var(--text-muted, #666);
+        color: var(--text-muted, var(--palette-666666));
         text-align: right;
     }
 
@@ -222,8 +222,8 @@
     }
 
     .slide-container {
-        background: var(--bg, #fff);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        background: var(--bg, var(--id-surface-solid));
+        box-shadow: 0 4px 20px var(--id-overlay);
         aspect-ratio: 16/9;
         max-width: 90%;
         max-height: 90%;
@@ -244,7 +244,7 @@
         width: 100%;
         height: 100%;
         border: none;
-        background: var(--bg, #fff);
+        background: var(--bg, var(--id-surface-solid));
     }
 
     /* Markdown Viewer */
@@ -253,8 +253,8 @@
         height: 100%;
         overflow: auto;
         padding: 40px;
-        background: var(--bg, #fff);
-        color: var(--text, #333);
+        background: var(--bg, var(--id-surface-solid));
+        color: var(--text, var(--palette-333333));
     }
 
     .projector-markdown h1,
@@ -282,7 +282,7 @@
     .projector-controls {
         padding: 12px 20px;
         background: var(--surface, var(--palette-252525));
-        border-top: 1px solid var(--border, #333);
+        border-top: 1px solid var(--border, var(--palette-333333));
     }
 
     .media-controls,
@@ -303,9 +303,9 @@
     }
 
     .control-btn {
-        background: var(--surface-hover, #333);
+        background: var(--surface-hover, var(--palette-333333));
         border: none;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         padding: 8px 12px;
         border-radius: 6px;
         cursor: pointer;
@@ -314,7 +314,7 @@
     }
 
     .control-btn:hover {
-        background: var(--surface-active, #444);
+        background: var(--surface-active, var(--palette-444444));
     }
 
     .control-btn.active {
@@ -340,7 +340,7 @@
         height: 6px;
         -webkit-appearance: none;
         appearance: none;
-        background: var(--surface-active, #444);
+        background: var(--surface-active, var(--palette-444444));
         border-radius: 3px;
         cursor: pointer;
     }
@@ -364,7 +364,7 @@
     }
 
     .time-display {
-        color: var(--text-muted, #888);
+        color: var(--text-muted, var(--palette-888888));
         font-size: var(--text-2xs);
         min-width: 100px;
         text-align: right;
@@ -376,7 +376,7 @@
         height: 4px;
         -webkit-appearance: none;
         appearance: none;
-        background: var(--surface-active, #444);
+        background: var(--surface-active, var(--palette-444444));
         border-radius: 2px;
         cursor: pointer;
     }
@@ -385,7 +385,7 @@
         -webkit-appearance: none;
         width: 12px;
         height: 12px;
-        background: var(--bg, #fff);
+        background: var(--bg, var(--id-surface-solid));
         border-radius: 50%;
         cursor: pointer;
     }
@@ -393,8 +393,8 @@
     /* Speed/Theme Select */
     .speed-select,
     .theme-select {
-        background: var(--surface-hover, #333);
-        color: var(--text, #fff);
+        background: var(--surface-hover, var(--palette-333333));
+        color: var(--text, var(--id-surface-solid));
         border: none;
         padding: 6px 10px;
         border-radius: 6px;
@@ -406,15 +406,15 @@
     .image-info,
     .code-info,
     .zoom-level {
-        color: var(--text-muted, #888);
+        color: var(--text-muted, var(--palette-888888));
         font-size: var(--text-sm);
     }
 
     .slide-nav input {
         width: 50px;
-        background: var(--surface-hover, #333);
+        background: var(--surface-hover, var(--palette-333333));
         border: none;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         padding: 6px;
         border-radius: 4px;
         text-align: center;
@@ -435,7 +435,7 @@
 
     .projector-error-message {
         font-size: var(--text-md);
-        color: var(--text-muted, #888);
+        color: var(--text-muted, var(--palette-888888));
     }
 
     /* Responsive */

@@ -308,7 +308,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                         // #2837 — label/value come from the API; a quote in
                         // either used to break out of the title attribute.
                         var pct = Number(v.value) || 10;
-                        return '<div style="flex:1;background:var(--accent, #3b82f6);height:' + pct + '%;border-radius:2px 2px 0 0" title="' + escapeAttr(v.label) + ': ' + escapeAttr(v.value) + '"></div>';
+                        return '<div style="flex:1;background:var(--accent, var(--id-accent));height:' + pct + '%;border-radius:2px 2px 0 0" title="' + escapeAttr(v.label) + ': ' + escapeAttr(v.value) + '"></div>';
                     }).join('');
                 }
                 var bt = document.getElementById('best-times');

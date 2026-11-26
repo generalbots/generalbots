@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.78);
+  background: color-mix(in srgb, var(--palette-0f172a) 78%, transparent);
 }
 
 .gb-deq-dialog {
@@ -23,7 +23,7 @@
   background: var(--palette-1e293b);
   border: 1px solid var(--palette-334155);
   border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.55);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--palette-020617) 55%, transparent);
 }
 
 .gb-deq-title {
@@ -174,7 +174,7 @@
 }
 
 .gb-deq-primary {
-  color: #fff;
+  color: var(--id-surface-solid);
   background: var(--palette-2563eb);
   border-color: var(--palette-2563eb);
   font-weight: 600;

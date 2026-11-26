@@ -20,7 +20,7 @@
     .report-card-header h4 {
         font-size: var(--text-sm);
         font-weight: 600;
-        color: var(--text, #fff);
+        color: var(--text, var(--id-surface-solid));
         margin: 0;
     }
 
@@ -30,7 +30,7 @@
         text-transform: uppercase;
         padding: 4px 8px;
         border-radius: 4px;
-        background: var(--accent-glow, rgba(59, 130, 246, 0.15));
+        background: var(--accent-glow, color-mix(in srgb, var(--palette-3b82f6) 15%, transparent));
         color: var(--accent, var(--palette-3b82f6));
     }
 
@@ -58,7 +58,7 @@
 
     .stage-label,
     .stage-value {
-        color: #fff;
+        color: var(--id-surface-solid);
         font-size: var(--text-xs);
         font-weight: 500;
     }

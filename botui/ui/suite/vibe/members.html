@@ -4,36 +4,36 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-deploy.css" />
 
 <div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-members" style="height:100%">
-  <div id="vibeMembersModal" style="display:flex; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(0,0,0,0.5);">
-    <div style="width:520px; max-height:80vh; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:8px; padding:20px;">
+  <div id="vibeMembersModal" style="display:flex; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:color-mix(in srgb, var(--id-ink) 50%, transparent);">
+    <div style="width:520px; max-height:80vh; overflow-y:auto; background:var(--bg,var(--id-ink)); border:1px solid var(--border,var(--id-ink)); border-radius:8px; padding:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 style="margin:0; font-size:15px; color:var(--text,#eee);" data-i18n="vibe-members-title">Project Members</h3>
+        <h3 style="margin:0; font-size:15px; color:var(--text,var(--id-gray-100));" data-i18n="vibe-members-title">Project Members</h3>
       </div>
-      <div id="vibeMembersRole" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);" role="status" aria-live="polite" aria-atomic="true"></div>
-      <div id="vibeMeterUsage" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="vibeMembersRole" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,var(--id-muted));" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="vibeMeterUsage" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,var(--id-muted));" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="vibeMembersList" style="margin-bottom:16px;" aria-live="polite" aria-relevant="additions removals text" aria-label="Project members list" data-i18n-aria-label="vibe-members-list"></div>
-      <div style="border-top:1px solid var(--border,#333); padding-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <div style="border-top:1px solid var(--border,var(--id-ink)); padding-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <div style="position:relative; flex:1; min-width:200px;">
-          <input id="vibeMemberTarget" placeholder="Search user by name or email…" data-i18n-placeholder="vibe-members-search-placeholder" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#999); font-size:13px;" />
-          <div id="vibeMemberSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+          <input id="vibeMemberTarget" placeholder="Search user by name or email…" data-i18n-placeholder="vibe-members-search-placeholder" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,var(--id-ink)); border-radius:6px; background:var(--bg,var(--id-ink)); color:var(--text,var(--id-muted)); font-size:13px;" />
+          <div id="vibeMemberSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,var(--id-ink)); border:1px solid var(--border,var(--id-ink)); border-radius:6px; box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);"></div>
         </div>
-        <select id="vibeMemberRole" style="padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;">
+        <select id="vibeMemberRole" style="padding:8px 10px; border:1px solid var(--border,var(--id-ink)); border-radius:6px; background:var(--bg,var(--id-ink)); color:var(--text,var(--id-gray-100)); font-size:13px;">
           <option value="viewer" data-i18n="vibe-role-viewer">viewer</option>
           <option value="developer" data-i18n="vibe-role-developer">developer</option>
           <option value="admin" data-i18n="vibe-role-admin">admin</option>
         </select>
-        <select id="vibeMemberKind" style="padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;">
+        <select id="vibeMemberKind" style="padding:8px 10px; border:1px solid var(--border,var(--id-ink)); border-radius:6px; background:var(--bg,var(--id-ink)); color:var(--text,var(--id-gray-100)); font-size:13px;">
           <option value="user" data-i18n="vibe-member-kind-user">user</option>
           <option value="group" data-i18n="vibe-member-kind-group">group</option>
         </select>
-        <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding:8px 14px; border:none; border-radius:6px; background:var(--accent,#4a6cf7); color:white; font-size:13px; font-weight:600; cursor:pointer;" data-i18n="vibe-members-add">Add</button>
+        <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding:8px 14px; border:none; border-radius:6px; background:var(--accent,var(--id-accent)); color:white; font-size:13px; font-weight:600; cursor:pointer;" data-i18n="vibe-members-add">Add</button>
       </div>
-      <div style="margin-top:12px; border-top:1px solid var(--border,#333); padding-top:12px; display:flex; gap:8px; align-items:center;">
+      <div style="margin-top:12px; border-top:1px solid var(--border,var(--id-ink)); padding-top:12px; display:flex; gap:8px; align-items:center;">
         <div style="position:relative; flex:1;">
-          <input id="vibeTransferTarget" placeholder="Search new owner by name or email…" data-i18n-placeholder="vibe-members-transfer-placeholder" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;" />
-          <div id="vibeTransferSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+          <input id="vibeTransferTarget" placeholder="Search new owner by name or email…" data-i18n-placeholder="vibe-members-transfer-placeholder" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,var(--id-ink)); border-radius:6px; background:var(--bg,var(--id-ink)); color:var(--text,var(--id-gray-100)); font-size:13px;" />
+          <div id="vibeTransferSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,var(--id-ink)); border:1px solid var(--border,var(--id-ink)); border-radius:6px; box-shadow:0 8px 24px color-mix(in srgb, var(--id-ink) 40%, transparent);"></div>
         </div>
-        <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding:8px 14px; border:1px solid #f77; background:transparent; color:#f88; border-radius:6px; font-size:13px; cursor:pointer;" data-i18n="vibe-members-transfer">Transfer Ownership</button>
+        <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding:8px 14px; border:1px solid var(--id-danger-icon); background:transparent; color:var(--id-danger-icon); border-radius:6px; font-size:13px; cursor:pointer;" data-i18n="vibe-members-transfer">Transfer Ownership</button>
       </div>
     </div>
   </div>

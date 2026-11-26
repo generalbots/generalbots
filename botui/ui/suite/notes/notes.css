@@ -15,7 +15,7 @@
 }
 .gb-notes .notes-add {
     background: var(--warning);
-    color: #fff;
+    color: var(--id-surface-solid);
     border: none;
     border-radius: 8px;
     padding: 8px 16px;
@@ -36,7 +36,7 @@
 .gb-notes .note-card {
     border-radius: 10px;
     padding: 12px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--id-ink) 12%, transparent);
     display: flex;
     flex-direction: column;
     min-height: 120px;
@@ -58,11 +58,11 @@
     align-items: center;
     margin-top: 6px;
 }
-.gb-notes .note-time { font-size: var(--text-2xs); color: rgba(31, 36, 48, 0.55); }
+.gb-notes .note-time { font-size: var(--text-2xs); color: color-mix(in srgb, var(--id-ink) 55%, transparent); }
 .gb-notes .note-del {
     background: transparent;
     border: none;
-    color: rgba(31, 36, 48, 0.55);
+    color: color-mix(in srgb, var(--id-ink) 55%, transparent);
     cursor: pointer;
     font-size: var(--text-xs);
 }

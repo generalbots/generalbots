@@ -12,7 +12,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg, #fff);
+    background: var(--bg, var(--id-surface-solid));
     font-family: 'Fira Code', monospace;
 }
 
@@ -23,7 +23,7 @@
 
 .vibe-ribbon-status {
     font-size: var(--text-2xs);
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     padding: 0 12px;
     white-space: nowrap;
     overflow: hidden;
@@ -94,7 +94,7 @@
     margin: 0;
     font-size: var(--text-2xs);
     font-weight: 700;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -104,7 +104,7 @@
     height: 44px;
     border: none;
     background: transparent;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     cursor: pointer;
     font-size: var(--text-2xs);
     padding: 0;
@@ -141,7 +141,7 @@
 }
 
 .as-status-dot.gray {
-    background: var(--text-muted, #ccc);
+    background: var(--text-muted, var(--id-gray-300));
 }
 
 /* Create Project Button */
@@ -155,7 +155,7 @@
     font-family: 'Fira Code', monospace;
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -193,22 +193,22 @@
 
 .as-workspace-actions button {
     border: none;
-    background: var(--surface-hover, #eee);
+    background: var(--surface-hover, var(--id-gray-100));
     border-radius: 4px;
     padding: 2px 5px;
     font-size: var(--text-2xs);
     line-height: 1;
     cursor: pointer;
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
 }
 
 .as-workspace-actions .as-ws-delete:hover {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--id-danger) 15%, transparent);
     color: var(--palette-ef4444);
 }
 
 .as-workspace-actions .as-ws-info:hover {
-    background: rgba(74, 108, 247, 0.15);
+    background: color-mix(in srgb, var(--id-accent) 15%, transparent);
     color: var(--palette-4a6cf7);
 }
 
@@ -231,12 +231,12 @@
 }
 
 .as-workspace-toggle:hover {
-    background: var(--bg, #fff);
+    background: var(--bg, var(--id-surface-solid));
 }
 
 .as-workspace-arrow {
     font-size: var(--text-2xs);
-    color: var(--text-muted, #888);
+    color: var(--text-muted, var(--id-muted));
     width: 8px;
     transition: transform 0.15s;
 }

@@ -54,10 +54,10 @@
             .message.bot .message-bubble {
                 background: linear-gradient(
                     135deg,
-                    rgba(102, 126, 234, 0.2),
-                    rgba(118, 75, 162, 0.2)
+                    color-mix(in srgb, var(--palette-667eea) 20%, transparent),
+                    color-mix(in srgb, var(--palette-764ba2) 20%, transparent)
                 );
-                border: 1px solid rgba(102, 126, 234, 0.3);
+                border: 1px solid color-mix(in srgb, var(--palette-667eea) 30%, transparent);
             }
 
             .message.system .message-bubble {
@@ -224,7 +224,7 @@
 
             /* AI Insights */
             .ai-insight {
-                background: var(--primary-light, rgba(59, 130, 246, 0.1));
+                background: var(--primary-light, color-mix(in srgb, var(--palette-3b82f6) 10%, transparent));
                 border: 1px solid var(--border, var(--palette-334155));
                 border-radius: 8px;
                 padding: 12px;

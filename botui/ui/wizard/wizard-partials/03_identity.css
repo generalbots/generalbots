@@ -277,7 +277,7 @@ body::before { display: none; }
   color: var(--id-muted);
   font-size: 11px;
 }
-.badge.ok { color: #1f7a4d; border-color: rgba(31, 122, 77, 0.35); }
+.badge.ok { color: #1f7a4d; border-color: color-mix(in srgb, var(--id-text) 35%, transparent); }
 .badge.run { color: var(--id-accent-text); border-color: var(--id-accent-soft); }
 
 /* Notes */

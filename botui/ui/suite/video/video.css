@@ -78,7 +78,7 @@ body {
   top: 8px;
   right: 8px;
   background: var(--danger);
-  color: #fff;
+  color: var(--id-surface-solid);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: var(--text-2xs);
@@ -154,10 +154,10 @@ body {
   font-weight: 600;
   margin-top: 4px;
 }
-.severity-badge.critical { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
-.severity-badge.high { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
-.severity-badge.medium { background: rgba(88, 166, 255, 0.15); color: var(--info); }
-.severity-badge.low { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+.severity-badge.critical { background: color-mix(in srgb, var(--id-danger) 15%, transparent); color: var(--danger); }
+.severity-badge.high { background: color-mix(in srgb, var(--id-accent) 15%, transparent); color: var(--warning); }
+.severity-badge.medium { background: color-mix(in srgb, var(--id-accent) 15%, transparent); color: var(--info); }
+.severity-badge.low { background: color-mix(in srgb, var(--id-gray-400) 15%, transparent); color: var(--text-secondary); }
 .analytics-list { padding: 4px 0; }
 .analytics-item {
   display: flex;
@@ -191,13 +191,13 @@ body {
 .btn-sm { padding: 4px 10px; font-size: var(--text-2xs); }
 .btn-danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--id-surface-solid);
   border-color: var(--danger);
 }
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--id-ink) 60%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

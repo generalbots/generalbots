@@ -79,12 +79,12 @@
 }
 
 .incident-item.resolved .incident-icon {
-    background: rgba(34, 197, 94, 0.1);
+    background: color-mix(in srgb, var(--id-success) 10%, transparent);
     color: var(--success);
 }
 
 .incident-item.ongoing .incident-icon {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
     color: var(--error);
 }
 

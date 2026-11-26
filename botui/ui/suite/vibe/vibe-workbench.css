@@ -36,9 +36,9 @@ user-select: none;
 }
 
 .vibe-design-element.rectangle {
-background: #fff;
+background: var(--id-surface-solid);
 border: 2px solid var(--palette-2563eb);
-box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+box-shadow: 0 2px 8px color-mix(in srgb, var(--id-ink) 8%, transparent);
 }
 
 .vibe-design-element.text {
@@ -92,7 +92,7 @@ right: 24px;
 width: 380px;
 background: var(--surface);
 border-radius: 12px;
-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+box-shadow: 0 8px 24px color-mix(in srgb, var(--id-ink) 20%, transparent);
 display: flex;
 flex-direction: column;
 overflow: hidden;
@@ -208,7 +208,7 @@ background: var(--surface);
 border: 1px solid var(--border);
 border-radius: 8px;
 overflow: hidden;
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+box-shadow: 0 16px 48px color-mix(in srgb, var(--id-ink) 50%, transparent);
 }
 
 .vibe-panel-close {
@@ -239,8 +239,8 @@ z-index: var(--z-sticky);
     border: 1px solid var(--border, var(--palette-d8dee9));
     border-radius: 10px;
     overflow: hidden;
-    background: #fff;
-    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+    background: var(--id-surface-solid);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--id-ink) 18%, transparent);
     flex-direction: column;
 }
 
@@ -252,11 +252,11 @@ z-index: var(--z-sticky);
     width: 480px;
     height: 400px;
     z-index: 80;
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 10px;
     overflow: hidden;
     background: var(--surface, var(--palette-14142a));
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--id-ink) 45%, transparent);
     flex-direction: column;
 }
 
@@ -281,7 +281,7 @@ z-index: var(--z-sticky);
     max-height: 80vh;
     overflow-y: auto;
     background: var(--bg, var(--palette-1a1a2e));
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 8px;
     padding: 20px;
 }

@@ -235,7 +235,7 @@ window.GBSlidesExport = function (event) {
       .then(function (html) {
         var printCss =
           "<style>@page{size:960px 540px;margin:0;}" +
-          "html,body{margin:0!important;padding:0!important;background:#fff!important;}" +
+          "html,body{margin:0!important;padding:0!important;background:var(--id-surface-solid)!important;}" +
           ".slide{margin:0!important;box-shadow:none!important;" +
           "page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;}" +
           ".slide:last-child{page-break-after:auto;break-after:auto;}</style>";

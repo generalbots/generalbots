@@ -34,15 +34,15 @@ function openSpellcheck() {
   }
 
   host.innerHTML = [
-    '<div class="docs-modal" id="spellcheck-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
-    '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;max-height:80vh;">',
+    '<div class="docs-modal" id="spellcheck-modal" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
+    '<div style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:var(--palette-f8fafc);display:flex;flex-direction:column;gap:12px;max-height:80vh;">',
     '<div style="display:flex;align-items:center;justify-content:space-between;">',
     '<h3 style="margin:0;font-size:16px;">' + st('docs-spellcheck-title', 'Spell check') + '</h3>',
-    '<button type="button" onclick="closeSpellcheck()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">×</button>',
+    '<button type="button" onclick="closeSpellcheck()" style="background:none;border:none;color:var(--palette-94a3b8);font-size:20px;cursor:pointer;">×</button>',
     '</div>',
-    '<div id="spellcheck-list" role="status" aria-live="polite" style="flex:1;overflow-y:auto;min-height:80px;color:#cbd5e1;font-size:13px;">' + st('docs-spellcheck-checking', 'Checking…') + '</div>',
+    '<div id="spellcheck-list" role="status" aria-live="polite" style="flex:1;overflow-y:auto;min-height:80px;color:var(--palette-cbd5e1);font-size:13px;">' + st('docs-spellcheck-checking', 'Checking…') + '</div>',
     '<div style="display:flex;gap:8px;justify-content:flex-end;">',
-    '<button type="button" onclick="closeSpellcheck()" style="background:#334155;color:#f8fafc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;">' + st('action-close', 'Close') + '</button>',
+    '<button type="button" onclick="closeSpellcheck()" style="background:#334155;color:var(--palette-f8fafc);border:none;padding:8px 14px;border-radius:4px;cursor:pointer;">' + st('action-close', 'Close') + '</button>',
     '</div>',
     '</div></div>'
   ].join("");
@@ -80,7 +80,7 @@ function renderSpellcheckList() {
   if (!el) return;
   var st = window.gbT || function (_, fb) { return fb; };
   if (!spellcheckCorrections.length) {
-    el.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:16px;">' + st('docs-spellcheck-none', 'No corrections found.') + '</div>';
+    el.innerHTML = '<div style="color:var(--palette-94a3b8);text-align:center;padding:16px;">' + st('docs-spellcheck-none', 'No corrections found.') + '</div>';
     return;
   }
   var html = "";
@@ -88,14 +88,14 @@ function renderSpellcheckList() {
     if (c.accepted) return;
     html += '<div class="sc-item" data-idx="' + idx + '" style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #334155;">' +
       '<div style="flex:1;font-size:13px;">' +
-      '<span style="color:#f87171;text-decoration:line-through;">' + escapeHtmlSc(c.from) + '</span>' +
+      '<span style="color:var(--palette-f87171);text-decoration:line-through;">' + escapeHtmlSc(c.from) + '</span>' +
       ' → ' +
-      '<span style="color:#34d399;">' + escapeHtmlSc(c.to) + '</span>' +
+      '<span style="color:var(--palette-34d399);">' + escapeHtmlSc(c.to) + '</span>' +
       '</div>' +
-      '<button type="button" onclick="acceptSpellcheckCorrection(' + idx + ')" style="background:#10b981;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + st('docs-spellcheck-accept', 'Accept') + '</button>' +
+      '<button type="button" onclick="acceptSpellcheckCorrection(' + idx + ')" style="background:var(--palette-10b981);color:var(--id-surface-solid);border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + st('docs-spellcheck-accept', 'Accept') + '</button>' +
       '</div>';
   });
-  if (!html) html = '<div style="color:#94a3b8;text-align:center;padding:16px;">' + st('docs-spellcheck-all-applied', 'All corrections applied.') + '</div>';
+  if (!html) html = '<div style="color:var(--palette-94a3b8);text-align:center;padding:16px;">' + st('docs-spellcheck-all-applied', 'All corrections applied.') + '</div>';
   el.innerHTML = html;
 }
 

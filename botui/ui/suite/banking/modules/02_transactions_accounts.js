@@ -43,7 +43,7 @@ Object.assign(app, {
                 <td><input type="checkbox" class="tx-check" value="${this.esc(t.id)}"></td>
                 <td>${this.esc(t.date || '-')}</td>
                 <td>${this.esc(t.description || '-')}</td>
-                <td style="font-weight:600;color:${(parseFloat(t.amount)||0)<0?'#ef4444':'#22c55e'}">${this.fmtBRL(parseFloat(t.amount)||0)}</td>
+                <td style="font-weight:600;color:${(parseFloat(t.amount)||0)<0?'var(--id-danger-icon)':'var(--id-success)'}">${this.fmtBRL(parseFloat(t.amount)||0)}</td>
                 <td>${this.esc(t.platform || '-')}</td>
                 <td><span class="badge ${t.matched?'matched':'unmatched'}">${t.matched?'Matched':'Unmatched'}</span></td>
                 <td><span class="badge ${(t.status||'').toLowerCase()==='reconciled'?'matched':'pending'}">${this.esc(t.status||'pending')}</span></td>
@@ -67,7 +67,7 @@ Object.assign(app, {
                 <td><input type="checkbox" class="tx-check" value="${this.esc(t.id)}"></td>
                 <td>${this.esc(t.date || '-')}</td>
                 <td>${this.esc(t.description || '-')}</td>
-                <td style="font-weight:600;color:${(parseFloat(t.amount)||0)<0?'#ef4444':'#22c55e'}">${this.fmtBRL(parseFloat(t.amount)||0)}</td>
+                <td style="font-weight:600;color:${(parseFloat(t.amount)||0)<0?'var(--id-danger-icon)':'var(--id-success)'}">${this.fmtBRL(parseFloat(t.amount)||0)}</td>
                 <td>${this.esc(t.platform || '-')}</td>
                 <td><span class="badge ${t.matched?'matched':'unmatched'}">${t.matched?'Matched':'Unmatched'}</span></td>
                 <td><span class="badge ${(t.status||'').toLowerCase()==='reconciled'?'matched':'pending'}">${this.esc(t.status||'pending')}</span></td>

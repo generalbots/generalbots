@@ -117,11 +117,11 @@
     if (!host) return;
     var restore = document.activeElement;
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
-      '<div class="gb-bm-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-bm-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:360px;max-width:90vw;padding:20px;color:#f8fafc;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
+      '<div class="gb-bm-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-bm-title" style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:360px;max-width:90vw;padding:20px;color:var(--palette-f8fafc);">',
       '<h3 id="gb-bm-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(tr("docs-bm-add", "Add bookmark")) + "</h3>",
       '<label style="font-size:13px;display:block;">' + NS.escapeHtml(tr("docs-bm-name", "Bookmark name")) +
-      '<input id="gb-bm-name" type="text" style="display:block;width:100%;margin-top:6px;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;" /></label>',
+      '<input id="gb-bm-name" type="text" style="display:block;width:100%;margin-top:6px;padding:8px;background:var(--palette-0f172a);border:1px solid #334155;color:var(--palette-f8fafc);border-radius:4px;" /></label>',
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">' +
       '<button type="button" id="gb-bm-cancel" class="gb-fr-btn">' + NS.escapeHtml(tr("docs-find-close", "Close")) + "</button>" +
       '<button type="button" id="gb-bm-create" class="gb-fr-btn gb-fr-primary">' + NS.escapeHtml(tr("docs-bm-create", "Create")) + "</button></div>",

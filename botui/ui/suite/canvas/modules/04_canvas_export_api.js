@@ -102,7 +102,7 @@
         const w = C.canvas.width, h = C.canvas.height;
         let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h +
             '" viewBox="0 0 ' + w + " " + h + '">';
-        if (bg) svg += '<rect width="100%" height="100%" fill="' + (C.canvasBg || "#ffffff") + '"/>';
+        if (bg) svg += '<rect width="100%" height="100%" fill="' + (C.canvasBg || "var(--id-surface-solid)") + '"/>';
         const layer = C.backgroundLayerSvg();
         if (layer) svg += layer;
         C.visibleElements().forEach(function (el) {

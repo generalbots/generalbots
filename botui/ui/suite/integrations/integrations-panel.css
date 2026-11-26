@@ -118,7 +118,7 @@
     height: 100%;
     padding: 0;
     border: 0;
-    background: rgba(12, 19, 15, .48);
+    background: color-mix(in srgb, var(--palette-0d1011) 48%, transparent);
     cursor: default;
     backdrop-filter: blur(3px);
 }
@@ -131,7 +131,7 @@
     border-left: 1px solid var(--integrations-border);
     color: var(--integrations-text);
     background: var(--integrations-elevated);
-    box-shadow: -18px 0 50px rgba(12, 19, 15, .16);
+    box-shadow: -18px 0 50px color-mix(in srgb, var(--palette-0d1011) 16%, transparent);
     animation: integrations-panel-in 180ms ease-out;
 }
 

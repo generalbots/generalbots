@@ -12,7 +12,7 @@
 }
 
 .decision-context strong {
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .decision-actions {
@@ -31,7 +31,7 @@
     background: var(--surface-hover, var(--palette-1a1a1a));
     border: 1px solid var(--border, var(--palette-2a2a2a));
     border-radius: 6px;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: 500;
@@ -58,7 +58,7 @@
 
 .btn-danger:hover {
     background: var(--danger, var(--palette-ef4444));
-    color: #fff;
+    color: var(--id-surface-solid);
 }
 
 /* Detail Scroll Content */
@@ -102,7 +102,7 @@
 }
 
 .btn-collapse:hover {
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 /* Status Section */
@@ -118,7 +118,7 @@
 
 .status-name {
     font-size: var(--text-sm);
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .status-time {
@@ -184,14 +184,14 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--surface, #111);
+    background: var(--surface, var(--id-ink));
 }
 
 .log-name {
     flex: 1;
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #fff);
+    color: var(--text, var(--id-surface-solid));
 }
 
 .log-badge {

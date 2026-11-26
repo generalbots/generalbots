@@ -46,7 +46,7 @@
             var container = cell.querySelector('.month-day-events');
             if (container) {
                 container.innerHTML = dayEvents.map(function (evt) {
-                    var color = evt.color || '#3b82f6';
+                    var color = evt.color || 'var(--palette-3b82f6)';
                     return '<div class="event-chip" data-id="' + evt.id + '" style="background:' + color + '20; border-left:3px solid ' + color + '; color:' + color + '; font-size:10px; padding:2px 4px; margin-top:2px; border-radius:3px; cursor:pointer;" onclick="event.stopPropagation(); window.CalendarModule.showEventPopup(event, \'' + evt.id + '\')">' + escapeHtml(evt.title) + '</div>';
                 }).join('');
             }
@@ -71,7 +71,7 @@
                     var durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
                     var top = (startMinutes / 60) * 48;
                     var height = (durationMinutes / 60) * 48;
-                    var color = evt.color || '#3b82f6';
+                    var color = evt.color || 'var(--palette-3b82f6)';
                     var chip = document.createElement('div');
                     chip.className = 'event-chip-week';
                     chip.style.cssText = 'position:absolute; top:' + top + 'px; left:4px; right:4px; height:' + height + 'px; background:' + color + '20; border-left:3px solid ' + color + '; color:' + color + '; font-size:11px; padding:4px; border-radius:4px; cursor:pointer; overflow:hidden; z-index:2;';
@@ -104,7 +104,7 @@
             var durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
             var top = (startMinutes / 60) * 48;
             var height = (durationMinutes / 60) * 48;
-            var color = evt.color || '#3b82f6';
+            var color = evt.color || 'var(--palette-3b82f6)';
             var chip = document.createElement('div');
             chip.className = 'event-chip-day';
             chip.style.cssText = 'position:absolute; top:' + top + 'px; left:4px; right:4px; height:' + height + 'px; background:' + color + '20; border-left:3px solid ' + color + '; color:' + color + '; font-size:12px; padding:6px; border-radius:4px; cursor:pointer; overflow:hidden; z-index:2;';
@@ -154,7 +154,7 @@
         if (locEl) locEl.textContent = evt.location || 'No location';
         if (locRow) locRow.style.display = evt.location ? '' : 'none';
         if (calEl) calEl.textContent = evt.calendar_id || 'Personal';
-        if (colorEl) colorEl.style.background = evt.color || '#3b82f6';
+        if (colorEl) colorEl.style.background = evt.color || 'var(--palette-3b82f6)';
 
         var start = new Date(evt.start_time);
         var end = new Date(evt.end_time);

@@ -122,13 +122,13 @@
         wrap.style.cssText = [
             "position:absolute", "left:12px", "bottom:12px", "z-index:20",
             "display:flex", "align-items:center", "gap:8px",
-            "background:var(--surface,#14142a)", "border:1px solid var(--border,#333)",
-            "border-radius:10px", "padding:7px 10px", "box-shadow:0 10px 26px rgba(0,0,0,.35)",
+            "background:var(--surface,var(--id-ink))", "border:1px solid var(--border,var(--id-ink))",
+            "border-radius:10px", "padding:7px 10px", "box-shadow:0 10px 26px color-mix(in srgb, var(--id-ink) 35%, transparent)",
         ].join(";");
         wrap.innerHTML = '<span title="Draw by chat" style="font-size:13px;">💬</span>' +
             '<input id="vibeDesignChatInput" type="text" autocomplete="off" placeholder=' +
             '"draw by chat: add rect API · connect UI to API" ' +
-            'style="width:min(340px,42vw);background:transparent;border:none;color:var(--text,#eee);font-size:12px;outline:none;" />' +
+            'style="width:min(340px,42vw);background:transparent;border:none;color:var(--text,var(--id-gray-100));font-size:12px;outline:none;" />' +
             '<span id="vibeDesignChatLog" style="font-size:11px;color:var(--accent,#84d669);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>';
         host.appendChild(wrap);
         var input = wrap.querySelector("#vibeDesignChatInput");
@@ -192,7 +192,7 @@
 
     function svgFromZones(zones, title) {
         var cols = ["Web", "App", "API", "Data"];
-        var colors = { Web: "#2563eb", App: "#16a34a", API: "#d97706", Data: "#7c3aed" };
+        var colors = { Web: "var(--id-hl-function)", App: "var(--id-success-text)", API: "var(--id-warn)", Data: "var(--id-accent)" };
         var h = "";
         cols.forEach(function (col, i) {
             var z = (zones || []).find(function (x) { return String(x.name).toLowerCase() === String(col).toLowerCase(); });

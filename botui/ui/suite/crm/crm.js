@@ -185,8 +185,8 @@
             tr.style.boxShadow = '';
             tr.style.background = '';
         });
-        row.style.boxShadow = '0 0 0 2px #22c55e inset, 0 0 12px rgba(34,197,94,.5)';
-        row.style.background = 'rgba(34,197,94,.12)';
+        row.style.boxShadow = '0 0 0 2px var(--id-success) inset, 0 0 12px color-mix(in srgb, var(--id-success) 50%, transparent)';
+        row.style.background = 'color-mix(in srgb, var(--id-success) 12%, transparent)';
         row.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
 

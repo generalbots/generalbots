@@ -12,7 +12,7 @@
 }
 
 .dashboard-card-skeleton {
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 12px;
     overflow: hidden;
@@ -23,7 +23,7 @@
     background: linear-gradient(
         90deg,
         var(--color-bg-tertiary, var(--palette-1a1a1a)) 25%,
-        var(--color-bg-secondary, #111) 50%,
+        var(--color-bg-secondary, var(--palette-111111)) 50%,
         var(--color-bg-tertiary, var(--palette-1a1a1a)) 75%
     );
     background-size: 200% 100%;
@@ -39,7 +39,7 @@
     background: linear-gradient(
         90deg,
         var(--color-bg-tertiary, var(--palette-1a1a1a)) 25%,
-        var(--color-bg-secondary, #111) 50%,
+        var(--color-bg-secondary, var(--palette-111111)) 50%,
         var(--color-bg-tertiary, var(--palette-1a1a1a)) 75%
     );
     background-size: 200% 100%;
@@ -72,7 +72,7 @@
     bottom: 24px;
     right: 24px;
     padding: 14px 20px;
-    background: var(--color-bg-secondary, #111);
+    background: var(--color-bg-secondary, var(--palette-111111));
     border: 1px solid var(--color-border, var(--palette-2a2a2a));
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -164,7 +164,7 @@
     justify-content: center;
     height: 100%;
     min-height: 96px;
-    color: var(--text-secondary, #999);
+    color: var(--text-secondary, var(--palette-929798));
     font-size: 0.85rem;
     text-align: center;
     padding: 12px;
@@ -188,14 +188,14 @@
 
 .widget-kpi-label {
     font-size: 0.8rem;
-    color: var(--text-secondary, #999);
+    color: var(--text-secondary, var(--palette-929798));
 }
 
 .widget-text {
     padding: 12px;
     font-size: 0.9rem;
     line-height: 1.5;
-    color: var(--text-primary, #eee);
+    color: var(--text-primary, var(--palette-f0f0f0));
 }
 
 .widget-image {
@@ -233,7 +233,7 @@
 }
 
 .widget-table th {
-    color: var(--text-secondary, #999);
+    color: var(--text-secondary, var(--palette-929798));
     font-weight: 500;
     background: var(--color-bg-primary, var(--palette-0d0d0d));
 }
@@ -250,7 +250,7 @@
 .widget-bar {
     flex: 1;
     min-width: 4px;
-    background: linear-gradient(180deg, var(--accent, var(--palette-d4f505)), rgba(212, 245, 5, 0.3));
+    background: linear-gradient(180deg, var(--accent, var(--palette-d4f505)), color-mix(in srgb, var(--palette-d4f505) 30%, transparent));
     border-radius: 3px 3px 0 0;
     transition: height 0.2s ease;
 }
@@ -282,7 +282,7 @@
 }
 
 .empty-message {
-    color: var(--text-secondary, #999);
+    color: var(--text-secondary, var(--palette-929798));
     text-align: center;
     padding: 24px;
 }
@@ -314,7 +314,7 @@
 .edit-widget-form .form-group label {
     font-size: 0.8rem;
     font-weight: 500;
-    color: var(--text-secondary, #999);
+    color: var(--text-secondary, var(--palette-929798));
 }
 
 .edit-widget-form input,
@@ -323,7 +323,7 @@
     border-radius: 8px;
     border: 1px solid var(--color-border, var(--palette-2a2a2a));
     background: var(--color-bg-primary, var(--palette-0d0d0d));
-    color: var(--text-primary, #eee);
+    color: var(--text-primary, var(--palette-f0f0f0));
     font-size: 0.85rem;
 }
 

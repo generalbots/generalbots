@@ -78,7 +78,7 @@
     height: calc(100vh - 64px);
     background: var(--surface);
     border-left: 1px solid var(--border);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+    box-shadow: -4px 0 20px color-mix(in srgb, var(--palette-000000) 20%, transparent);
     z-index: var(--z-header);
     transition: right 0.3s ease;
     display: flex;
@@ -215,7 +215,7 @@
 }
 
 .detail-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--id-danger-icon) 10%, transparent);
 }
 
 /* Responsive */

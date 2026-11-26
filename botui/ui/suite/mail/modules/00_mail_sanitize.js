@@ -61,7 +61,7 @@
     },
     {
       id: "inline-css-url",
-      html: '<div style="background-image:url(https://r.openai.com/pixel.gif);color:#fff">x</div>',
+      html: '<div style="background-image:url(https://r.openai.com/pixel.gif);color:var(--id-surface-solid)">x</div>',
       forbidden: ["r.openai.com", "url("],
     },
     {

@@ -6,13 +6,17 @@
 <meta name="color-scheme" content="dark"/>
 <title>General Bots</title>
 <style>
+/* Splash is a deliberate dark identity exception (DESIGN-SYSTEM.md §3):
+   the #0a0a0e ground, white-alpha overlays and rainbow progress gradient
+   are intentionally kept. Typography, radii and motion use identity tokens. */
+@import url("suite/identity/tokens.css");
 @font-face{font-family:'Fira Sans';font-weight:500;font-style:normal;font-display:swap;
   src:url("suite/identity/fonts/fira-sans-latin-500-normal.woff2") format("woff2")}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0e;
-  font-family:'Fira Sans','Segoe UI',system-ui,-apple-system,sans-serif}
+  font-family:var(--id-font-heading,'Fira Sans','Segoe UI',system-ui,sans-serif)}
 body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;
-  border-radius:20px;overflow:hidden;position:relative}
+  border-radius:var(--id-radius-card,20px);overflow:hidden;position:relative}
 .bg{position:absolute;inset:0;z-index:0;
   background:url("splash/splash-bg.jpg") center/cover no-repeat}
 /* Gradient overlays only where text sits — top-left corner and bottom strip */
@@ -30,11 +34,11 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
 .bottom-info{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
   padding-bottom:6px}
 .bottom-left{display:flex;flex-direction:column;gap:2px;max-width:60%}
-.wordmark{font-family:'Fira Sans',sans-serif;font-weight:500;font-size:20px;
+.wordmark{font-family:var(--id-font-heading,'Fira Sans',sans-serif);font-weight:500;font-size:var(--id-text-2xl,20px);
   color:rgb(255 255 255/.72);letter-spacing:-.02em;line-height:1.3}
-.version{font-size:11px;color:rgb(255 255 255/.38);min-height:1em}
-.slogan{font-size:11px;font-style:italic;color:rgb(255 255 255/.42);line-height:1.4}
-.bottom-right{font-size:10px;color:rgb(255 255 255/.35);text-align:right;white-space:nowrap}
+.version{font-size:var(--id-text-xs,11px);color:rgb(255 255 255/.38);min-height:1em}
+.slogan{font-size:var(--id-text-xs,11px);font-style:italic;color:rgb(255 255 255/.42);line-height:1.4}
+.bottom-right{font-size:var(--id-text-xs,10px);color:rgb(255 255 255/.35);text-align:right;white-space:nowrap}
 /* Row 2: spinner + status (left) + site (right) */
 .progress-row{display:flex;align-items:center;gap:8px;padding-bottom:8px}
 .spinner{width:14px;height:14px;border:2px solid rgb(255 255 255/.18);
@@ -42,19 +46,19 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
   animation:spin .8s linear infinite;
   filter:drop-shadow(0 0 3px rgb(255 255 255/.25))}
 @keyframes spin{to{transform:rotate(360deg)}}
-.status{font-size:11px;color:rgb(255 255 255/.50);flex:1;overflow:hidden;
+.status{font-size:var(--id-text-xs,11px);color:rgb(255 255 255/.50);flex:1;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 /* Row 3: rainbow progress bar. The fill and its glow share one gradient laid
    out over the full track width, so the colours are revealed as the bar
    grows instead of being squeezed. The glow is a blurred copy of the fill;
    the page clips it (body overflow), so it never leaves the splash card. */
-.bar-wrap{position:relative;height:9px;margin-bottom:16px;border-radius:999px;
+.bar-wrap{position:relative;height:9px;margin-bottom:16px;border-radius:var(--id-radius-pill,999px);
   background:rgb(255 255 255/.13);box-shadow:inset 0 0 0 1px rgb(255 255 255/.07);
   --track:calc(100vw - 48px);
   --rainbow:linear-gradient(90deg,#ff3b6b 0%,#ff8a1f 16%,#ffd60a 33%,#3ddc68 50%,#22c8f0 66%,#5a6bff 83%,#c04dff 100%)}
-.bar,.bar-glow{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:999px;
+.bar,.bar-glow{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:var(--id-radius-pill,999px);
   background-image:var(--rainbow);background-size:var(--track) 100%;background-repeat:no-repeat;
-  transition:width 600ms cubic-bezier(.22,1,.36,1)}
+  transition:width 600ms var(--id-ease,cubic-bezier(.22,1,.36,1))}
 .bar-glow{filter:blur(9px) saturate(1.6);opacity:.95;transform:scaleY(1.9);pointer-events:none}
 .bar{overflow:hidden;box-shadow:inset 0 1px 0 rgb(255 255 255/.35)}
 /* Moving highlight along the filled part */

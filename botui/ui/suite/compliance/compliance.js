@@ -17,7 +17,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
             document.body.appendChild(el);
         }
         el.textContent = msg;
-        el.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+        el.style.background = type === 'error' ? 'var(--id-danger-icon)' : 'var(--id-success)';
         el.style.color = '#fff';
         el.style.opacity = '1';
         setTimeout(function() { el.style.opacity = '0'; }, 3000);

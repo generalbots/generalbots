@@ -12,11 +12,11 @@ window.SheetChartEditor = (function () {
     row.style.cssText = "display:block;margin-bottom:8px;";
     const span = document.createElement("span");
     span.textContent = labelText;
-    span.style.cssText = "display:block;font-size:11px;color:var(--sheet-muted,#94a3b8);margin-bottom:3px;";
+    span.style.cssText = "display:block;font-size:11px;color:var(--sheet-muted,var(--id-gray-400));margin-bottom:3px;";
     control.style.cssText =
       "width:100%;box-sizing:border-box;padding:5px 7px;border-radius:5px;" +
-      "border:1px solid var(--sheet-border,#334155);background:var(--sheet-bg,#0f172a);" +
-      "color:var(--sheet-fg,#f8fafc);font:13px system-ui,sans-serif;";
+      "border:1px solid var(--sheet-border,var(--id-ink));background:var(--sheet-bg,var(--id-ink));" +
+      "color:var(--sheet-fg,var(--id-gray-100));font:13px system-ui,sans-serif;";
     row.appendChild(span);
     row.appendChild(control);
     return row;
@@ -32,8 +32,8 @@ window.SheetChartEditor = (function () {
     box.setAttribute("aria-label", "Edit chart");
     box.style.cssText =
       "position:fixed;z-index:var(--z-overlay);min-width:250px;padding:14px;border-radius:8px;" +
-      "background:var(--sheet-bg-elevated,#1e293b);color:var(--sheet-fg,#f8fafc);" +
-      "border:1px solid var(--sheet-border,#334155);box-shadow:0 10px 30px rgba(0,0,0,.45);" +
+      "background:var(--sheet-bg-elevated,var(--id-ink));color:var(--sheet-fg,var(--id-gray-100));" +
+      "border:1px solid var(--sheet-border,var(--id-ink));box-shadow:0 10px 30px color-mix(in srgb, var(--id-ink) 45%, transparent);" +
       "font:13px system-ui,sans-serif;";
 
     const titleInput = document.createElement("input");
@@ -63,15 +63,15 @@ window.SheetChartEditor = (function () {
     cancel.type = "button";
     cancel.textContent = "Cancel";
     cancel.style.cssText =
-      "padding:5px 12px;border-radius:5px;border:1px solid var(--sheet-border,#334155);" +
-      "background:transparent;color:var(--sheet-fg,#f8fafc);cursor:pointer;";
+      "padding:5px 12px;border-radius:5px;border:1px solid var(--sheet-border,var(--id-ink));" +
+      "background:transparent;color:var(--sheet-fg,var(--id-gray-100));cursor:pointer;";
     const save = document.createElement("button");
     save.type = "button";
     save.textContent = "Apply";
     save.id = "ssChartApply";
     save.style.cssText =
-      "padding:5px 12px;border-radius:5px;border:1px solid #10b981;background:#10b981;" +
-      "color:#fff;cursor:pointer;";
+      "padding:5px 12px;border-radius:5px;border:1px solid var(--id-success);background:var(--id-success);" +
+      "color:var(--id-surface-solid);cursor:pointer;";
 
     actions.appendChild(cancel);
     actions.appendChild(save);

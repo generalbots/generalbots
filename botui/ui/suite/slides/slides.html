@@ -129,19 +129,19 @@
                     </select>
                     <input class="sl-select sl-font-size" id="slFontSize" type="text" inputmode="decimal" title="Font size" aria-label="Font size" placeholder="18" data-i18n-title="slides-font-size" data-i18n-aria-label="slides-font-size" style="width:64px;" />
                     <span class="sl-color gb-cp-wrap" title="Text colour">
-                        <input type="hidden" id="slTextColor" value="#f8fafc" />
+                        <input type="hidden" id="slTextColor" value="var(--id-gray-100)" />
                         <button type="button" class="gb-cp-trigger" data-gb-color-for="slTextColor" title="Text colour" aria-label="Text colour"><span style="font-weight:700;">A</span><span class="gb-cp-swatch"></span></button>
                     </span>
                     <span class="sl-color gb-cp-wrap" title="Shape fill">
-                        <input type="hidden" id="slFillColor" value="#3b82f6" />
+                        <input type="hidden" id="slFillColor" value="var(--id-accent)" />
                         <button type="button" class="gb-cp-trigger" data-gb-color-for="slFillColor" title="Shape fill" aria-label="Shape fill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg><span class="gb-cp-swatch"></span></button>
                     </span>
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group" id="rotation-group" style="display:none;">
-                    <label style="color:#94a3b8;font-size:var(--text-2xs);margin-right:4px;" data-i18n="slides-rotate-label">Rotate</label>
-                    <input type="number" id="rotationInput" value="0" min="-180" max="180" step="15" style="width:50px;padding:2px 4px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#f8fafc;font-size:12px;text-align:center;" title="Rotation degrees">
-                    <span style="color:#94a3b8;font-size:var(--text-2xs);">°</span>
+                    <label style="color:var(--id-gray-400);font-size:var(--text-2xs);margin-right:4px;" data-i18n="slides-rotate-label">Rotate</label>
+                    <input type="number" id="rotationInput" value="0" min="-180" max="180" step="15" style="width:50px;padding:2px 4px;background:var(--id-ink);border:1px solid var(--id-ink);border-radius:4px;color:var(--id-gray-100);font-size:12px;text-align:center;" title="Rotation degrees">
+                    <span style="color:var(--id-gray-400);font-size:var(--text-2xs);">°</span>
                     <button class="btn-icon" id="resetRotationBtn" title="Reset rotation" style="margin-left:2px;" aria-label="Reset rotation">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
                     </button>
@@ -176,16 +176,16 @@
     </div>
 
     <div class="slides-main">
-        <aside class="slides-sidebar" id="slides-sidebar" style="width:200px;background:#0f172a;border-right:1px solid #334155;display:flex;flex-direction:column;overflow:hidden;">
-            <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid #334155;">
-                <button class="sidebar-tab active" data-sidebar-tab="thumbs" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;" data-i18n-title="slides-title" title="Slides"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><line x1="7" y1="5" x2="7" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="2.5" y1="12" x2="21.5" y2="12"/></svg> <span data-i18n="slides-title">Slides</span></button>
-                <button class="sidebar-tab" data-sidebar-tab="files" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;" aria-label="Files" data-i18n-aria-label="slides-files" title="Files" data-i18n-title="slides-files"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+        <aside class="slides-sidebar" id="slides-sidebar" style="width:200px;background:var(--id-ink);border-right:1px solid var(--id-ink);display:flex;flex-direction:column;overflow:hidden;">
+            <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid var(--id-ink);">
+                <button class="sidebar-tab active" data-sidebar-tab="thumbs" style="flex:1;padding:8px;background:var(--id-ink);color:var(--id-gray-100);border:none;cursor:pointer;font-size:12px;" data-i18n-title="slides-title" title="Slides"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><line x1="7" y1="5" x2="7" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="2.5" y1="12" x2="21.5" y2="12"/></svg> <span data-i18n="slides-title">Slides</span></button>
+                <button class="sidebar-tab" data-sidebar-tab="files" style="flex:1;padding:8px;background:var(--id-ink);color:var(--id-gray-400);border:none;cursor:pointer;font-size:12px;" aria-label="Files" data-i18n-aria-label="slides-files" title="Files" data-i18n-title="slides-files"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             </div>
             <div class="sidebar-content" id="sidebar-thumbs" data-sidebar-content="thumbs" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;"></div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/suite/slides/fragments/presentation-list" hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="display:none;flex:1;overflow-y:auto;padding:8px;"></div>
         </aside>
 
-        <div class="slides-content" id="slides-content" style="flex:1;display:flex;flex-direction:column;background:#0f172a;overflow:auto;min-height:0;">
+        <div class="slides-content" id="slides-content" style="flex:1;display:flex;flex-direction:column;background:var(--id-ink);overflow:auto;min-height:0;">
         </div>
     </div>
     <div class="modal-host" id="slides-modal-container"></div>

@@ -143,10 +143,10 @@ function openNewBotModal() {
     modal.id = "new-bot-modal";
     modal.className = "modal-overlay";
     modal.innerHTML = '<div class="modal-content" style="max-width:480px">'
-        + '<div class="editor-header"><div class="editor-title"><span class="editor-icon">\uD83E\uDD16</span><span class="editor-filename">Create New Bot</span></div><button class="btn-icon" onclick="closeNewBotModal()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">\u00D7</button></div>'
+        + '<div class="editor-header"><div class="editor-title"><span class="editor-icon">\uD83E\uDD16</span><span class="editor-filename">Create New Bot</span></div><button class="btn-icon" onclick="closeNewBotModal()" style="background:none;border:none;color:var(--palette-94a3b8);font-size:24px;cursor:pointer;">\u00D7</button></div>'
         + '<div style="padding:24px">'
         + '<label style="display:block;margin-bottom:8px;color:var(--text-secondary);font-size:14px">Bot Name</label>'
-        + '<input type="text" id="new-bot-name" placeholder="my-new-bot" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid var(--border);border-radius:6px;color:#f8fafc;font-size:14px;box-sizing:border-box;margin-bottom:12px" oninput="document.getElementById(\'new-bot-preview\').textContent=this.value + \'.gbai\'" />'
+        + '<input type="text" id="new-bot-name" placeholder="my-new-bot" style="width:100%;padding:10px 14px;background:var(--palette-0f172a);border:1px solid var(--border);border-radius:6px;color:var(--palette-f8fafc);font-size:14px;box-sizing:border-box;margin-bottom:12px" oninput="document.getElementById(\'new-bot-preview\').textContent=this.value + \'.gbai\'" />'
         + '<p style="color:var(--text-secondary);font-size:12px;margin-bottom:16px">Lowercase letters, numbers, and hyphens only (3-50 chars). Creates bucket: <code id="new-bot-preview" style="color:var(--primary)">my-new-bot.gbai</code></p>'
         + '<div style="display:flex;gap:8px;justify-content:flex-end">'
         + '<button class="btn-secondary" onclick="closeNewBotModal()">Cancel</button>'

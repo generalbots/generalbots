@@ -20,7 +20,7 @@ function showFeedback(msg,type){
     el.setAttribute('role',isError?'alert':'status');
     el.setAttribute('aria-live',isError?'assertive':'polite');
     el.textContent=msg;
-    el.style.background=isError?'#ef4444':'#22c55e';
+    el.style.background=isError?'var(--id-danger-icon)':'var(--id-success)';
     el.style.color='#fff';
     el.style.opacity='1';
     setTimeout(function(){el.style.opacity='0'},3000);
@@ -77,7 +77,7 @@ function renderCertifications(){
             +'<div class="learn-app-card-header"><span class="learn-app-card-icon">'+(isEarned?'🏆':'📋')+'</span><span class="learn-app-card-title">'+(c.name||'')+'</span><span class="learn-app-badge '+(isEarned?'earned':'available')+'">'+(isEarned?'Earned':'Available')+'</span></div>'
             +'<div class="learn-app-card-desc">'+(c.description||'')+'</div>'
             +'<div class="learn-app-checklist">'+(c.requirements||[]).map(function(r){return '<div class="learn-app-check '+(r.completed?'done':'pending')+'"><span>'+(r.completed?'✅':'⬜')+'</span><span>'+(r.text||'')+'</span></div>'}).join('')+'</div>'
-            +(isEarned?'<div style="margin-top:8px;font-size:12px;color:var(--text-secondary,#94a3b8)">Earned: '+(c.earned_date||'')+'</div>':'')
+            +(isEarned?'<div style="margin-top:8px;font-size:12px;color:var(--text-secondary,var(--palette-94a3b8))">Earned: '+(c.earned_date||'')+'</div>':'')
             +'</div>';
     }).join('');
 }
@@ -94,7 +94,7 @@ function renderProgress(){
             {label:'Avg Session',value:(progress.avg_session||0)+' min'}
         ];
         statsList.innerHTML=stats.map(function(s){
-            return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color,#334155);font-size:13px"><span style="color:var(--text-secondary,#94a3b8)">'+s.label+'</span><span style="font-weight:600">'+s.value+'</span></div>';
+            return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color,#334155);font-size:13px"><span style="color:var(--text-secondary,var(--palette-94a3b8))">'+s.label+'</span><span style="font-weight:600">'+s.value+'</span></div>';
         }).join('');
     }
     var badgesGrid=document.getElementById('la-badges-grid');
@@ -129,9 +129,9 @@ function previewCourse(courseId){
     var body=document.getElementById('la-preview-body');
     if(title)title.textContent=selectedCourse.title||'Course Preview';
     if(body){
-        body.innerHTML='<div style="margin-bottom:16px"><span class="learn-app-badge '+(selectedCourse.difficulty||'beginner')+'">'+(selectedCourse.difficulty||'beginner')+'</span> <span style="margin-left:8px;font-size:13px;color:var(--text-secondary,#94a3b8)">'+(selectedCourse.duration||'')+' | '+(selectedCourse.lessons||0)+' lessons</span></div>'
-            +'<p style="font-size:14px;line-height:1.6;color:var(--text-secondary,#94a3b8)">'+(selectedCourse.description||'')+'</p>'
-            +(selectedCourse.features?'<div style="margin-top:16px"><h4 style="font-size:13px;font-weight:600;margin:0 0 8px 0">Features</h4><div style="display:flex;flex-direction:column;gap:4px">'+(selectedCourse.features||[]).map(function(f){return '<div style="font-size:13px;color:var(--text-secondary,#94a3b8)">✅ '+f+'</div>'}).join('')+'</div></div>':'');
+        body.innerHTML='<div style="margin-bottom:16px"><span class="learn-app-badge '+(selectedCourse.difficulty||'beginner')+'">'+(selectedCourse.difficulty||'beginner')+'</span> <span style="margin-left:8px;font-size:13px;color:var(--text-secondary,var(--palette-94a3b8))">'+(selectedCourse.duration||'')+' | '+(selectedCourse.lessons||0)+' lessons</span></div>'
+            +'<p style="font-size:14px;line-height:1.6;color:var(--text-secondary,var(--palette-94a3b8))">'+(selectedCourse.description||'')+'</p>'
+            +(selectedCourse.features?'<div style="margin-top:16px"><h4 style="font-size:13px;font-weight:600;margin:0 0 8px 0">Features</h4><div style="display:flex;flex-direction:column;gap:4px">'+(selectedCourse.features||[]).map(function(f){return '<div style="font-size:13px;color:var(--text-secondary,var(--palette-94a3b8))">✅ '+f+'</div>'}).join('')+'</div></div>':'');
     }
     showModal('la-preview-modal');
 }

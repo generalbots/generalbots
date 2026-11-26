@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 6, 23, 0.72);
+  background: color-mix(in srgb, var(--id-ink) 72%, transparent);
   backdrop-filter: blur(2px);
 }
 .sl-insert-dialog {
@@ -34,7 +34,7 @@
   color: var(--palette-f8fafc);
   border: 1px solid var(--palette-334155);
   border-radius: 10px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--id-ink) 55%, transparent);
   overflow: hidden;
   font-size: var(--text-xs)
 }
@@ -325,7 +325,7 @@
 .sl-insert-input:focus-visible {
   outline: none;
   border-color: var(--palette-3b82f6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--id-accent) 35%, transparent);
 }
 .sl-insert-resolve {
   padding: 7px 10px;
@@ -376,7 +376,7 @@
 .sl-insert-insert {
   background: var(--palette-3b82f6);
   border: 1px solid var(--palette-3b82f6);
-  color: #fff;
+  color: var(--id-surface-solid);
 }
 .sl-insert-insert:hover:not([disabled]) { background: var(--palette-2563eb); }
 .sl-insert-insert[disabled] { opacity: 0.45; cursor: not-allowed; }

@@ -250,18 +250,18 @@
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "sync-settings-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var supported = supportsFolderSync();
-    modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:460px;padding:24px;">'
-      + '<h3 style="margin:0 0 16px;color:#f8fafc;">Offline Sync</h3>'
-      + '<p style="color:#94a3b8;font-size:13px;margin:0 0 12px;">Chosen folder: <strong style="color:#e2e8f0;">' + (syncState.folder ? escapeHtml(syncState.folder) : "none") + '</strong></p>'
-      + '<p style="color:#64748b;font-size:12px;margin:0 0 16px;">' + (supported
+    modal.innerHTML = '<div style="background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:90%;max-width:460px;padding:24px;">'
+      + '<h3 style="margin:0 0 16px;color:var(--palette-f8fafc);">Offline Sync</h3>'
+      + '<p style="color:var(--palette-94a3b8);font-size:13px;margin:0 0 12px;">Chosen folder: <strong style="color:var(--palette-e2e8f0);">' + (syncState.folder ? escapeHtml(syncState.folder) : "none") + '</strong></p>'
+      + '<p style="color:var(--palette-64748b);font-size:12px;margin:0 0 16px;">' + (supported
           ? "The folder is mirrored both ways with the currently open Drive folder. Changed files keep both copies: the Drive revision stays canonical and your local edit is saved next to it as a conflict copy."
           : "This platform does not expose a local folder picker, so folder sync is unavailable. Offline caching and queued uploads keep working.") + '</p>'
-      + '<div id="gb-sync-status" role="status" aria-live="polite" aria-atomic="true" style="color:#94a3b8;font-size:12px;margin-bottom:16px;">' + escapeHtml(syncState.state) + (syncState.lastSync ? " · last sync " + escapeHtml(gbFormatDateTime(new Date(syncState.lastSync))) : "") + '</div>'
+      + '<div id="gb-sync-status" role="status" aria-live="polite" aria-atomic="true" style="color:var(--palette-94a3b8);font-size:12px;margin-bottom:16px;">' + escapeHtml(syncState.state) + (syncState.lastSync ? " · last sync " + escapeHtml(gbFormatDateTime(new Date(syncState.lastSync))) : "") + '</div>'
       + '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">'
-      + '<button type="button" data-sync-action="choose" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:8px 16px;cursor:pointer;"' + (supported ? "" : " disabled") + '>Choose folder</button>'
-      + '<button type="button" data-sync-action="sync" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:8px 16px;cursor:pointer;"' + (syncState.folder ? "" : " disabled") + '>Sync now</button>'
+      + '<button type="button" data-sync-action="choose" style="background:#334155;border:none;border-radius:6px;color:var(--palette-f8fafc);padding:8px 16px;cursor:pointer;"' + (supported ? "" : " disabled") + '>Choose folder</button>'
+      + '<button type="button" data-sync-action="sync" style="background:var(--palette-3b82f6);border:none;border-radius:6px;color:var(--id-surface-solid);padding:8px 16px;cursor:pointer;"' + (syncState.folder ? "" : " disabled") + '>Sync now</button>'
       + '</div></div>';
     modal.addEventListener("click", async function (e) {
       if (e.target === modal) { modal.remove(); return; }

@@ -250,7 +250,7 @@
             node.setAttribute('aria-live', 'polite');
             node.style.cssText =
                 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
-                'background:rgba(17,24,39,.92);color:#fff;padding:8px 14px;' +
+                'background:color-mix(in srgb, var(--palette-111827) 92%, transparent);color:var(--id-surface-solid);padding:8px 14px;' +
                 'border-radius:999px;font:13px system-ui,sans-serif;z-index:var(--z-top);' +
                 'opacity:0;transition:opacity .18s;pointer-events:none;';
             host.appendChild(node);

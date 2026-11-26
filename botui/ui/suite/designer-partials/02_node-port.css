@@ -184,7 +184,7 @@
     border-radius: 6px;
     padding: 4px;
     min-width: 160px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 40%, transparent);
     z-index: var(--z-dropdown);
     display: none;
 }
@@ -221,7 +221,7 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
     display: none;
     align-items: center;
     justify-content: center;
@@ -240,7 +240,7 @@
     max-width: 600px;
     max-height: 80vh;
     overflow: hidden;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 16px 48px color-mix(in srgb, var(--palette-000000) 50%, transparent);
 }
 
 .modal-header {
@@ -369,7 +369,7 @@
 .minimap-viewport {
     position: absolute;
     border: 1px solid var(--accent-blue);
-    background: rgba(137, 180, 250, 0.1);
+    background: color-mix(in srgb, var(--palette-89b4fa) 10%, transparent);
 }
 
 .minimap-node {

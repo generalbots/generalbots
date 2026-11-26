@@ -13,11 +13,11 @@ async function showVersionHistory(path) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "version-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:color-mix(in srgb, var(--palette-0f172a) 85%, transparent);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var container = document.createElement("div");
-    container.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);overflow:hidden;";
-    var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:1.125rem;">Version History: ' + escapeHtml(fileName) + '</h3><button onclick="document.getElementById(\'version-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>';
-    container.innerHTML = header + '<div style="padding:24px;overflow-y:auto;flex:1;color:#94a3b8;">Loading versions…</div>';
+    container.style.cssText = "background:var(--palette-1e293b);border:1px solid #334155;border-radius:12px;width:90%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 50%, transparent);overflow:hidden;";
+    var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:var(--palette-f8fafc);font-size:1.125rem;">Version History: ' + escapeHtml(fileName) + '</h3><button onclick="document.getElementById(\'version-modal\').remove()" style="background:none;border:none;color:var(--palette-94a3b8);font-size:24px;cursor:pointer;">×</button></div>';
+    container.innerHTML = header + '<div style="padding:24px;overflow-y:auto;flex:1;color:var(--palette-94a3b8);">Loading versions…</div>';
     modal.appendChild(container);
     modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -39,20 +39,20 @@ async function showVersionHistory(path) {
 
     var body = '<div style="padding:24px;overflow-y:auto;flex:1;">';
     if (serverVersions.length === 0 && localVersions.length === 0) {
-        body += '<p style="color:#94a3b8;text-align:center;">No previous versions recorded.<br>Versions are saved automatically when you overwrite a file.</p>';
+        body += '<p style="color:var(--palette-94a3b8);text-align:center;">No previous versions recorded.<br>Versions are saved automatically when you overwrite a file.</p>';
     } else {
         serverVersions.forEach(function(version) {
             var date = version.stamp || "";
             body += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #334155;border-radius:8px;margin-bottom:8px;">'
-                + '<div><div style="color:#f8fafc;font-size:14px;">' + escapeHtml(date) + '</div><div style="color:#64748b;font-size:12px;">' + formatFileSize(version.size || 0) + ' &middot; stored in Drive</div></div>'
-                + '<button onclick="DriveModule.restoreServerVersion(\'' + escapeJs(path) + '\',\'' + escapeJs(version.version) + '\',\'' + escapeJs(bucket || '') + '\')" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
+                + '<div><div style="color:var(--palette-f8fafc);font-size:14px;">' + escapeHtml(date) + '</div><div style="color:var(--palette-64748b);font-size:12px;">' + formatFileSize(version.size || 0) + ' &middot; stored in Drive</div></div>'
+                + '<button onclick="DriveModule.restoreServerVersion(\'' + escapeJs(path) + '\',\'' + escapeJs(version.version) + '\',\'' + escapeJs(bucket || '') + '\')" style="background:var(--palette-3b82f6);border:none;border-radius:6px;color:var(--id-surface-solid);padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
                 + '</div>';
         });
         localVersions.forEach(function(v, i) {
             var date = gbFormatDateTime(new Date(v.timestamp));
             body += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px dashed #334155;border-radius:8px;margin-bottom:8px;">'
-                + '<div><div style="color:#f8fafc;font-size:14px;">' + escapeHtml(v.label || "Local version") + '</div><div style="color:#64748b;font-size:12px;">' + escapeHtml(date) + ' &middot; ' + formatFileSize(v.size || 0) + ' &middot; this device</div></div>'
-                + '<button onclick="DriveModule.restoreVersion(\'' + escapeJs(path) + '\',' + i + ',\'' + escapeJs(bucket || '') + '\')" style="background:#475569;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
+                + '<div><div style="color:var(--palette-f8fafc);font-size:14px;">' + escapeHtml(v.label || "Local version") + '</div><div style="color:var(--palette-64748b);font-size:12px;">' + escapeHtml(date) + ' &middot; ' + formatFileSize(v.size || 0) + ' &middot; this device</div></div>'
+                + '<button onclick="DriveModule.restoreVersion(\'' + escapeJs(path) + '\',' + i + ',\'' + escapeJs(bucket || '') + '\')" style="background:#475569;border:none;border-radius:6px;color:var(--id-surface-solid);padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
                 + '</div>';
         });
     }

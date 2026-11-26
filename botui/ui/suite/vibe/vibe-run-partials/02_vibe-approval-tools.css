@@ -198,8 +198,8 @@
     font-family: var(--mono, ui-monospace, monospace);
     font-size: var(--text-2xs);
     line-height: 1.5;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--border, #222);
+    background: color-mix(in srgb, var(--id-ink) 25%, transparent);
+    border: 1px solid var(--border, var(--id-ink));
     border-radius: 6px;
     padding: 6px 8px;
 }
@@ -228,5 +228,5 @@
 }
 
 .vibe-runner-log-text {
-    color: var(--text-muted, #999);
+    color: var(--text-muted, var(--id-muted));
 }
