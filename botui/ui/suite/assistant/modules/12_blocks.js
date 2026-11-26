@@ -86,13 +86,13 @@ function fileIcon(name) {
 function fileTint(name) {
     if (!name) return "";
     var ext = (name.split(".").pop() || "").toLowerCase();
-    if ("jpg jpeg png gif webp bmp svg ico".split(" ").indexOf(ext) >= 0) return "color:#7c3aed";
-    if (ext === "pdf") return "color:#dc2626";
-    if ("doc docx odt rtf".split(" ").indexOf(ext) >= 0) return "color:#2563eb";
-    if ("xls xlsx ods csv".split(" ").indexOf(ext) >= 0) return "color:#059669";
-    if ("ppt pptx odp".split(" ").indexOf(ext) >= 0) return "color:#d97706";
-    if ("zip gz tar rar 7z".split(" ").indexOf(ext) >= 0) return "color:#6b7280";
-    if ("js ts py rs html css json xml yaml toml sh bas".split(" ").indexOf(ext) >= 0) return "color:#0d9488";
+    if ("jpg jpeg png gif webp bmp svg ico".split(" ").indexOf(ext) >= 0) return "color:var(--id-hl-keyword)";
+    if (ext === "pdf") return "color:var(--id-hl-tag)";
+    if ("doc docx odt rtf".split(" ").indexOf(ext) >= 0) return "color:var(--id-hl-function)";
+    if ("xls xlsx ods csv".split(" ").indexOf(ext) >= 0) return "color:var(--id-hl-string)";
+    if ("ppt pptx odp".split(" ").indexOf(ext) >= 0) return "color:var(--id-hl-number)";
+    if ("zip gz tar rar 7z".split(" ").indexOf(ext) >= 0) return "color:var(--id-gray-500)";
+    if ("js ts py rs html css json xml yaml toml sh bas".split(" ").indexOf(ext) >= 0) return "color:var(--id-hl-attr)";
     return "";
 }
 A.fileTypeIcon = fileIcon;
@@ -135,16 +135,16 @@ A.blockAttachmentRead = function (ev) {
     var el = block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
         summary: s.name || s.file || failLabel || "", status: mapStatus(ev.status), activityId: ev.id,
         bodyHtml: (isFailed && failLabel
-                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(failLabel) + '</span></div>'
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn)">' + esc(failLabel) + '</span></div>'
                 : "") +
             (noTextLabel
-                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(noTextLabel) + '</span></div>'
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn)">' + esc(noTextLabel) + '</span></div>'
                 : "") +
             row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
             (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + A.t("blocks.unit-chars", "chars")) : "") +
-            (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#a16207">' + t("Truncado","Truncated") + '</span></div>' : "") });
+            (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn)">' + t("Truncado","Truncated") + '</span></div>' : "") });
     /* Make the block clickable to open the file preview */
     if (typeof A.makeAttachClickable === "function" && (s.name || s.file)) {
         var hdr = el.querySelector(".gb-block-header");
@@ -332,7 +332,7 @@ A.onActivityEvent = function (frame) {
         updateBlockStatus(existing, mapStatus(payload.status));
         if (payload.error) {
             var body = existing.querySelector(".gb-block-body");
-            if (body) body.innerHTML = '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#dc2626">' + esc(payload.error) + '</span></div>';
+            if (body) body.innerHTML = '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-danger)">' + esc(payload.error) + '</span></div>';
         }
         /* Refresh the body on attachment_read completion with the final
            summary data (chars_read, drive_path, etc.). */

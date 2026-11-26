@@ -17,15 +17,15 @@
     background: var(--gb-surface);
     border: 1px solid var(--gb-border);
     border-radius: 22px;
-    box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--palette-111827) 5%, transparent);
     transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 #chat-app .input-container:focus-within {
-    border-color: rgba(22, 163, 74, 0.55);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 55%, transparent);
     /* Exactly one border, no halo: the old double outline made the composer
        look like a focused form control instead of a writing surface. */
-    box-shadow: 0 4px 16px rgba(16, 24, 40, 0.06);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--palette-111827) 6%, transparent);
 }
 
 #chat-app .gb-attachment {
@@ -136,7 +136,7 @@
 
 #chat-app .suggestion-chip:hover,
 #chat-app .suggestion-button:hover {
-    border-color: rgba(22, 163, 74, 0.5);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 50%, transparent);
     color: var(--gb-accent);
     transform: translateY(-1px);
     background: var(--gb-surface);
@@ -179,7 +179,7 @@
 
 #chat-app .gb-tab.active {
     background: var(--gb-accent-soft);
-    border-color: rgba(22, 163, 74, 0.25);
+    border-color: color-mix(in srgb, var(--palette-16a34a) 25%, transparent);
     color: var(--gb-accent);
     font-weight: 600;
 }
@@ -249,7 +249,7 @@
     border-radius: 12px;
     border: 1px solid var(--gb-border, color-mix(in srgb, var(--text) 14%, transparent));
     background: var(--gb-surface, var(--surface));
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 16px 48px color-mix(in srgb, var(--palette-000000) 22%, transparent);
 }
 
 .gb-tab-overflow-item {
@@ -268,7 +268,7 @@
 }
 
 .gb-tab-overflow-item:hover {
-    background: var(--gb-accent-soft, rgba(22, 163, 74, 0.10));
+    background: var(--gb-accent-soft, color-mix(in srgb, var(--palette-16a34a) 10%, transparent));
 }
 
 .gb-tab-overflow-item.active {

@@ -105,23 +105,31 @@ var VDI = window.VDI = window.VDI || {};
         }).join("");
     }
 
+    /* Canvas 2D cannot consume var(), so resolve the palette token to its
+       computed colour before painting the placeholder status screen. */
+    function canvasColor(name) {
+        var style = getComputedStyle(document.documentElement);
+        return style.getPropertyValue(name).trim()
+            || style.getPropertyValue("--palette-000000").trim();
+    }
+
     function drawStatusScreen(canvas, host, port, statusText) {
         var ctx = canvas.getContext("2d");
         var w = canvas.width = canvas.parentElement.clientWidth || 800;
         var h = canvas.height = canvas.parentElement.clientHeight || 600;
-        ctx.fillStyle = "#1a1b26";
+        ctx.fillStyle = canvasColor("--palette-1a1a2e");
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = "#7aa2f7";
+        ctx.fillStyle = canvasColor("--palette-7aa2ff");
         ctx.font = "bold 20px monospace";
         ctx.textAlign = "center";
         ctx.fillText("Desktop VDI", w / 2, h / 2 - 60);
-        ctx.fillStyle = "#565f89";
+        ctx.fillStyle = canvasColor("--id-muted");
         ctx.font = "14px monospace";
         ctx.fillText("Target: " + host + ":" + port, w / 2, h / 2 - 20);
-        ctx.fillStyle = "#9ece6a";
+        ctx.fillStyle = canvasColor("--palette-a6e3a1");
         ctx.font = "16px monospace";
         ctx.fillText(statusText || "Connecting...", w / 2, h / 2 + 20);
-        ctx.fillStyle = "#565f89";
+        ctx.fillStyle = canvasColor("--id-muted");
         ctx.font = "12px monospace";
         ctx.fillText("VNC rendering requires noVNC library", w / 2, h / 2 + 60);
         ctx.fillText("Place noVNC files in /suite/desktop/vendor/novnc/", w / 2, h / 2 + 80);

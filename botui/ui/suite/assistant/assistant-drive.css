@@ -132,7 +132,7 @@
 }
 .gb-drv-col-btn:hover { color: var(--id-ink); }
 .gb-drv-col-active { color: var(--id-accent-text); }
-.gb-drv-sort-arrow { font-size: var(--text-2xs); }
+.gb-drv-sort-arrow { font-size: var(--id-text-xs); }
 
 /* == File list ======================================================= */
 .gb-drv-list {
@@ -193,7 +193,7 @@
     outline: none;
 }
 .gb-drv-rename-input.gb-drv-input-error {
-    border-color: var(--id-warn, var(--palette-dc2626));
+    border-color: var(--id-danger);
     animation: gb-drv-shake 0.3s ease;
 }
 @keyframes gb-drv-shake {
@@ -294,7 +294,7 @@
 /* == Drag-and-drop overlay =========================================== */
 .gb-drv-drop-overlay {
     display: none; position: absolute; inset: 0; z-index: var(--z-sticky);
-    background: rgba(var(--id-accent-rgb, 99,102,241), .06);
+    background: var(--id-accent-soft);
     border: 2px dashed var(--id-accent);
     border-radius: var(--id-radius-card);
     align-items: center; justify-content: center;
@@ -353,18 +353,18 @@
     flex-shrink: 0;
     display: flex; gap: var(--id-space-1);
     padding: 0 0 var(--id-space-3) 0;
-    border-bottom: 1px solid var(--id-border, var(--palette-e2e8f0));
+    border-bottom: 1px solid var(--id-border, var(--id-line));
     margin-bottom: var(--id-space-3);
 }
 .gb-drv-tab {
     background: none; border: none; cursor: pointer;
     padding: var(--id-space-2) var(--id-space-3);
-    font: inherit; font-size: 0.8125rem; color: var(--id-text-secondary, var(--palette-64748b));
-    border-radius: var(--id-radius, 6px); transition: background 0.15s, color 0.15s;
+    font: inherit; font-size: var(--id-text-sm); color: var(--id-text-secondary, var(--id-muted));
+    border-radius: var(--id-radius, var(--id-radius-sm)); transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
 }
-.gb-drv-tab:hover { background: var(--id-surface-hover, var(--palette-f1f5f9)); }
+.gb-drv-tab:hover { background: var(--id-surface-hover, var(--id-fill)); }
 .gb-drv-tab.active {
-    color: var(--id-accent, var(--palette-2563eb));
+    color: var(--id-accent);
     font-weight: 600;
-    background: var(--id-accent-bg, rgba(37,99,235,0.08));
+    background: var(--id-accent-bg, var(--id-accent-soft));
 }

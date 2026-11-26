@@ -53,7 +53,7 @@
     gap: 8px;
     cursor: pointer;
 }
-.botcoder-file-item:hover { background-color: rgba(255,255,255,0.05); }
+.botcoder-file-item:hover { background-color: color-mix(in srgb, var(--palette-ffffff) 5%, transparent); }
 
 .file-icon { font-size: var(--text-sm); }
 

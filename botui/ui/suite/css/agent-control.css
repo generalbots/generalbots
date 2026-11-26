@@ -7,7 +7,7 @@
 .gb-ac-table th { text-transform: capitalize; color: var(--gb-text-dim, var(--text-secondary)); font-weight: 600; }
 .gb-ac-table select { padding: 0.2rem 0.3rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 4px; background: var(--gb-surface, var(--surface)); }
 .gb-ac-table code { font-size: var(--text-2xs); color: var(--gb-text-dim, var(--text-secondary)); }
-.gb-ac-btn { margin-top: 0.8rem; padding: 0.4rem 1rem; border: none; border-radius: 5px; background: var(--gb-accent, var(--primary)); color: #fff; cursor: pointer; }
+.gb-ac-btn { margin-top: 0.8rem; padding: 0.4rem 1rem; border: none; border-radius: 5px; background: var(--gb-accent, var(--primary)); color: var(--palette-ffffff); cursor: pointer; }
 .gb-ac-btn.danger { background: var(--error); }
 .gb-ac-ask { font-family: system-ui, sans-serif; }
 .gb-ac-ask p { margin: 0 0 0.75rem; font-size: 0.85rem; line-height: 1.5; }

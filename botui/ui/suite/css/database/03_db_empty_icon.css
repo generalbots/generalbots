@@ -128,7 +128,7 @@
 .db-modal-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--palette-000000) 60%, transparent);
   backdrop-filter: blur(2px);
 }
 
@@ -141,7 +141,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--palette-000000) 50%, transparent);
   z-index: 1;
 }
 
@@ -284,7 +284,7 @@
 
 .db-field-card:hover {
   border-color: var(--border-light);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--palette-000000) 30%, transparent);
   transform: translateY(-1px);
 }
 

@@ -10,12 +10,12 @@
 :root {
   --wall: linear-gradient(135deg,
     var(--palette-0a0a0a) 0%,
-    hsla(210, 80%, 60%, 0.04) 30%,
-    hsla(160, 70%, 50%, 0.03) 60%,
+    color-mix(in srgb, var(--palette-4c9ee9) 4%, transparent) 30%,
+    color-mix(in srgb, var(--palette-34d399) 3%, transparent) 60%,
     var(--palette-0a0a0a) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 50%, hsla(160, 70%, 50%, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--palette-4c9ee9) 8%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, color-mix(in srgb, var(--palette-34d399) 6%, transparent) 0%, transparent 50%);
 }
 
 .workspace-v15 {
@@ -47,24 +47,24 @@ body[data-wallpaper="mountains"] .workspace-v15 {
     url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMjAwIDUwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0nbm9uZSc+PHBhdGggZD0nTTAsNTAwIEwwLDMzMCBMMTYwLDE1MCBMMzQwLDMwMCBMNTIwLDEyMCBMNzAwLDI4MCBMODgwLDE3MCBMMTA2MCwyOTAgTDEyMDAsMjMwIEwxMjAwLDUwMCBaJyBmaWxsPScjMzQ0OTZlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDM4MCBMMjIwLDI2MCBMNDAwLDM2MCBMNTgwLDI0MCBMNzgwLDM1MCBMMTAwMCwyNzAgTDEyMDAsMzUwIEwxMjAwLDUwMCBaJyBmaWxsPScjMmIzYjVlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDQzMCBMMTgwLDM0MCBMMzgwLDQxMCBMNjIwLDMzMCBMODYwLDQyMCBMMTA0MCwzNjAgTDEyMDAsNDEwIEwxMjAwLDUwMCBaJyBmaWxsPScjMWUyYjQ3Jy8+PC9zdmc+") center bottom / 100% 60% no-repeat,
     linear-gradient(180deg, var(--palette-7ea8d8) 0%, var(--palette-b8d4ef) 35%, var(--palette-6b96c9) 70%, var(--palette-3b5a8c) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.25) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 55%, rgba(10, 16, 32, 0.4) 100%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--palette-ffffff) 25%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--palette-0b1220) 40%, transparent) 100%);
 }
 
 body[data-wallpaper="clean"] .workspace-v15 {
   --wall: linear-gradient(160deg, var(--palette-f5f7fa) 0%, var(--palette-e8ecf1) 55%, var(--palette-d6dde6) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.9) 0%, transparent 65%),
-    radial-gradient(ellipse at 80% 80%, rgba(90, 120, 160, 0.12) 0%, transparent 55%);
+    radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--palette-ffffff) 90%, transparent) 0%, transparent 65%),
+    radial-gradient(ellipse at 80% 80%, color-mix(in srgb, var(--palette-6264a7) 12%, transparent) 0%, transparent 55%);
 }
 
 body[data-wallpaper="ocean"] .workspace-v15 {
   --wall:
-    radial-gradient(ellipse at 50% 120%, rgba(20, 80, 140, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--palette-0b3d91) 55%, transparent) 0%, transparent 60%),
     linear-gradient(180deg, var(--palette-0a2e4d) 0%, var(--palette-0d4470) 45%, var(--palette-0a2e4d) 80%, var(--palette-061c30) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 20% 20%, rgba(120, 190, 240, 0.18) 0%, transparent 50%),
-    linear-gradient(180deg, transparent 70%, rgba(0, 10, 20, 0.5) 100%);
+    radial-gradient(ellipse at 20% 20%, color-mix(in srgb, var(--palette-74c7ec) 18%, transparent) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 70%, color-mix(in srgb, var(--palette-020617) 50%, transparent) 100%);
 }
 
 body[data-wallpaper="forest"] .workspace-v15 {
@@ -72,121 +72,121 @@ body[data-wallpaper="forest"] .workspace-v15 {
     url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMjAwIDUwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0nbm9uZSc+PHBhdGggZD0nTTAsNTAwIEwwLDM2MCBMMTIwLDMyMCBMMjAwLDIxMCBMMzAwLDMzMCBMNDMwLDI0MCBMNTYwLDM0MCBMNjgwLDI1MCBMODIwLDMzMCBMOTUwLDIzMCBMMTA4MCwzMjAgTDEyMDAsMjcwIEwxMjAwLDUwMCBaJyBmaWxsPScjMWQ0ZDJlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDQxMCBMMTgwLDM2MCBMMzIwLDQzMCBMNDgwLDM2MCBMNjQwLDQyMCBMODAwLDM1MCBMOTgwLDQzMCBMMTIwMCwzODAgTDEyMDAsNTAwIFonIGZpbGw9JyMxNjNkMjQnLz48L3N2Zz4=") center bottom / 100% 55% no-repeat,
     linear-gradient(180deg, var(--palette-102b1a) 0%, var(--palette-1d4d2e) 40%, var(--palette-0f2a19) 75%, var(--palette-081a0f) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 0%, rgba(120, 220, 160, 0.12) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 60%, rgba(0, 15, 6, 0.5) 100%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--palette-7fe3a1) 12%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--palette-06120a) 50%, transparent) 100%);
 }
 
 body[data-wallpaper="sunset"] .workspace-v15 {
   --wall:
     radial-gradient(circle at 50% 85%, var(--palette-ffd166) 0%, var(--palette-ff9e5e) 22%, var(--palette-ef476f) 48%, var(--palette-6a4c93) 75%, var(--palette-2d2440) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 80%, rgba(255, 220, 150, 0.35) 0%, transparent 40%),
-    linear-gradient(180deg, transparent 65%, rgba(30, 20, 50, 0.45) 100%);
+    radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--palette-fed7aa) 35%, transparent) 0%, transparent 40%),
+    linear-gradient(180deg, transparent 65%, color-mix(in srgb, var(--palette-1a1a2e) 45%, transparent) 100%);
 }
 
 body[data-wallpaper="night"] .workspace-v15 {
   --wall:
-    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.9) 0 1px, transparent 2px),
-    radial-gradient(circle at 34% 40%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
-    radial-gradient(circle at 70% 15%, rgba(255, 255, 255, 0.8) 0 1px, transparent 2px),
-    radial-gradient(circle at 84% 32%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
-    radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
-    radial-gradient(circle at 12% 70%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
-    radial-gradient(circle at 92% 60%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 18% 22%, color-mix(in srgb, var(--palette-ffffff) 90%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 34% 40%, color-mix(in srgb, var(--palette-ffffff) 70%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 15%, color-mix(in srgb, var(--palette-ffffff) 80%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 32%, color-mix(in srgb, var(--palette-ffffff) 60%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--palette-ffffff) 50%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 12% 70%, color-mix(in srgb, var(--palette-ffffff) 50%, transparent) 0 1px, transparent 2px),
+    radial-gradient(circle at 92% 60%, color-mix(in srgb, var(--palette-ffffff) 45%, transparent) 0 1px, transparent 2px),
     linear-gradient(180deg, var(--palette-0b1026) 0%, var(--palette-131a3a) 50%, var(--palette-0a0e22) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 30%, rgba(90, 120, 220, 0.12) 0%, transparent 60%),
-    linear-gradient(180deg, transparent 70%, rgba(0, 0, 10, 0.55) 100%);
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--palette-667eea) 12%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 70%, color-mix(in srgb, var(--palette-02040b) 55%, transparent) 100%);
 }
 
 body[data-wallpaper="aurora"] .workspace-v15 {
   --wall:
-    radial-gradient(ellipse at 30% 20%, rgba(72, 255, 168, 0.35) 0%, transparent 45%),
-    radial-gradient(ellipse at 70% 30%, rgba(56, 189, 248, 0.3) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 90%, rgba(167, 139, 250, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--palette-6ee7b7) 35%, transparent) 0%, transparent 45%),
+    radial-gradient(ellipse at 70% 30%, color-mix(in srgb, var(--palette-38bdf8) 30%, transparent) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 90%, color-mix(in srgb, var(--palette-a78bfa) 22%, transparent) 0%, transparent 55%),
     linear-gradient(180deg, var(--palette-060a1a) 0%, var(--palette-0d1530) 55%, var(--palette-0a0e22) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 15%, rgba(120, 255, 200, 0.15) 0%, transparent 50%),
-    linear-gradient(180deg, transparent 70%, rgba(0, 0, 10, 0.5) 100%);
+    radial-gradient(ellipse at 50% 15%, color-mix(in srgb, var(--palette-6ee7b7) 15%, transparent) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 70%, color-mix(in srgb, var(--palette-02040b) 50%, transparent) 100%);
 }
 
 body[data-wallpaper="retro"] .workspace-v15 {
   --wall:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 14px, transparent 14px 28px),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--palette-ffffff) 3%, transparent) 0 14px, transparent 14px 28px),
     linear-gradient(180deg, var(--palette-f72585) 0%, var(--palette-7209b7) 45%, var(--palette-3a0ca3) 75%, var(--palette-190c38) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 150, 220, 0.2) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 60%, rgba(10, 4, 30, 0.5) 100%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--palette-efb8cc) 20%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--palette-060a1a) 50%, transparent) 100%);
 }
 
 body[data-wallpaper="paper"] .workspace-v15 {
   --wall:
-    radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.045) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 70% 40%, rgba(0, 0, 0, 0.04) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 40% 70%, rgba(0, 0, 0, 0.035) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--palette-000000) 4.5%, transparent) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 40%, color-mix(in srgb, var(--palette-000000) 4%, transparent) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 40% 70%, color-mix(in srgb, var(--palette-000000) 3.5%, transparent) 0 1px, transparent 1.5px),
     linear-gradient(180deg, var(--palette-fbfaf6) 0%, var(--palette-f4f1e8) 60%, var(--palette-eae5d8) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 60%),
-    radial-gradient(ellipse at 85% 85%, rgba(150, 120, 60, 0.1) 0%, transparent 55%);
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--palette-ffffff) 80%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--palette-8f7542) 10%, transparent) 0%, transparent 55%);
 }
 
 /* #1293 — six additional wallpaper samples (16 total with the originals) */
 
 body[data-wallpaper="desert"] .workspace-v15 {
   --wall:
-    radial-gradient(ellipse at 50% 110%, rgba(220, 140, 50, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 110%, color-mix(in srgb, var(--palette-d98a3d) 35%, transparent) 0%, transparent 60%),
     linear-gradient(180deg, var(--palette-2a1a0a) 0%, var(--palette-8a4a1a) 45%, var(--palette-d98a3d) 75%, var(--palette-f0b060) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 220, 150, 0.25) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 60%, rgba(40, 20, 5, 0.45) 100%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--palette-fed7aa) 25%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--palette-2a1a0a) 45%, transparent) 100%);
 }
 
 body[data-wallpaper="sakura"] .workspace-v15 {
   --wall:
-    radial-gradient(circle at 15% 20%, rgba(255, 180, 200, 0.35) 0 2px, transparent 2.5px),
-    radial-gradient(circle at 45% 60%, rgba(255, 160, 190, 0.3) 0 3px, transparent 3.5px),
-    radial-gradient(circle at 80% 30%, rgba(255, 190, 210, 0.35) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--palette-efb8cc) 35%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 45% 60%, color-mix(in srgb, var(--palette-fca5a5) 30%, transparent) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--palette-fecaca) 35%, transparent) 0 2px, transparent 2.5px),
     linear-gradient(180deg, var(--palette-fdf0f5) 0%, var(--palette-f8d8e4) 45%, var(--palette-efb8cc) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.7) 0%, transparent 60%),
-    radial-gradient(ellipse at 90% 90%, rgba(200, 100, 140, 0.15) 0%, transparent 55%);
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--palette-ffffff) 70%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 90%, color-mix(in srgb, var(--palette-d68170) 15%, transparent) 0%, transparent 55%);
 }
 
 body[data-wallpaper="mint"] .workspace-v15 {
   --wall: linear-gradient(160deg, var(--palette-eafaf4) 0%, var(--palette-c8f0e0) 40%, var(--palette-a0e0c8) 75%, var(--palette-78c8a8) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, rgba(40, 140, 100, 0.15) 0%, transparent 55%);
+    radial-gradient(ellipse at 30% 30%, color-mix(in srgb, var(--palette-ffffff) 80%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, color-mix(in srgb, var(--palette-30a46c) 15%, transparent) 0%, transparent 55%);
 }
 
 body[data-wallpaper="graphite"] .workspace-v15 {
   --wall:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--palette-ffffff) 1.5%, transparent) 0 2px, transparent 2px 6px),
     linear-gradient(180deg, var(--palette-1a1d24) 0%, var(--palette-242830) 50%, var(--palette-16181e) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 20%, rgba(120, 140, 180, 0.12) 0%, transparent 55%),
-    linear-gradient(180deg, transparent 65%, rgba(0, 0, 0, 0.4) 100%);
+    radial-gradient(ellipse at 50% 20%, color-mix(in srgb, var(--palette-8888aa) 12%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 65%, color-mix(in srgb, var(--palette-000000) 40%, transparent) 100%);
 }
 
 body[data-wallpaper="nebula"] .workspace-v15 {
   --wall:
-    radial-gradient(ellipse at 25% 30%, rgba(140, 80, 220, 0.4) 0%, transparent 45%),
-    radial-gradient(ellipse at 75% 60%, rgba(60, 140, 220, 0.35) 0%, transparent 50%),
-    radial-gradient(ellipse at 55% 85%, rgba(220, 80, 160, 0.25) 0%, transparent 45%),
+    radial-gradient(ellipse at 25% 30%, color-mix(in srgb, var(--palette-8250df) 40%, transparent) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 60%, color-mix(in srgb, var(--palette-3b78ea) 35%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 55% 85%, color-mix(in srgb, var(--palette-ec4899) 25%, transparent) 0%, transparent 45%),
     linear-gradient(180deg, var(--palette-0b0714) 0%, var(--palette-150d26) 55%, var(--palette-0a0612) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 50%, rgba(180, 140, 255, 0.1) 0%, transparent 60%),
-    linear-gradient(180deg, transparent 60%, rgba(5, 2, 12, 0.5) 100%);
+    radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--palette-a78bfa) 10%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--palette-02040b) 50%, transparent) 100%);
 }
 
 body[data-wallpaper="coral"] .workspace-v15 {
   --wall:
-    radial-gradient(ellipse at 20% 80%, rgba(255, 110, 90, 0.4) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(255, 160, 120, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, color-mix(in srgb, var(--palette-ff5f57) 40%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--palette-f5a882) 35%, transparent) 0%, transparent 50%),
     linear-gradient(160deg, var(--palette-fff4ec) 0%, var(--palette-ffd8c2) 45%, var(--palette-f5a882) 100%);
   --wall-vignette:
-    radial-gradient(ellipse at 50% 45%, rgba(255, 255, 255, 0.65) 0%, transparent 60%),
-    radial-gradient(ellipse at 85% 85%, rgba(200, 80, 50, 0.15) 0%, transparent 55%);
+    radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--palette-ffffff) 65%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--palette-c0392b) 15%, transparent) 0%, transparent 55%);
 }
 
 /* Wallpaper picker (used inside the Settings window) */
@@ -216,7 +216,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
 
 .wallpaper-option.active {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--palette-3b82f6) 35%, transparent);
 }
 
 .wallpaper-thumb {
@@ -248,7 +248,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
   height: 22px;
   border-radius: 50%;
   background: var(--primary);
-  color: #fff;
+  color: var(--palette-ffffff);
   display: flex;
   align-items: center;
   justify-content: center;

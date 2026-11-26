@@ -23,7 +23,7 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.1;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 12px color-mix(in srgb, var(--palette-000000) 35%, transparent);
 }
 
 .gb-widget-clock-date {
@@ -51,7 +51,7 @@
 }
 
 .gb-widget-calendar-cell:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
 }
 
 .gb-widget-calendar-cell.today {
@@ -82,7 +82,7 @@
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.12));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   overflow: hidden;
 }
 
@@ -104,8 +104,8 @@
 }
 
 .gb-wcalc-screen {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 6%, transparent));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 8px;
   padding: 6px 10px;
   text-align: right;
@@ -136,8 +136,8 @@
 }
 
 .gb-wcalc-key {
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent));
   color: var(--text);
   border-radius: 6px;
   font-size: var(--text-xs);
@@ -149,7 +149,7 @@
 }
 
 .gb-wcalc-key:hover {
-  background: var(--win-caption-hover, rgba(255, 255, 255, 0.14));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 14%, transparent));
 }
 
 .gb-wcalc-key[data-key="="] {
@@ -197,8 +197,8 @@
   width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent));
   color: var(--text);
   font-size: var(--text-2xs);
   outline: none;
@@ -230,7 +230,7 @@
 }
 
 .gb-wtodo-item:hover {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 5%, transparent));
 }
 
 .gb-wtodo-item.done .gb-wtodo-text {
@@ -262,7 +262,7 @@
   flex: 1;
   height: 10px;
   border-radius: 5px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.18));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 18%, transparent));
   padding: 1px;
 }
 

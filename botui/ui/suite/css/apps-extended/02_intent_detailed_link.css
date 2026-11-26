@@ -90,7 +90,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in srgb, var(--palette-f59e0b) 15%, transparent);
     color: var(--warning);
     border-radius: 12px;
     font-size: var(--text-2xs);
@@ -155,7 +155,7 @@
     background: var(--surface-hover);
     border: 1px solid var(--accent, var(--primary));
     border-radius: 12px;
-    box-shadow: 0 0 30px rgba(212, 245, 5, 0.1);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--palette-d4f505) 10%, transparent);
 }
 
 .decision-header {
@@ -218,7 +218,7 @@
 
 .decision-btn-primary:hover {
     background: var(--accent-hover, var(--primary-hover));
-    box-shadow: 0 0 15px rgba(212, 245, 5, 0.3);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--palette-d4f505) 30%, transparent);
 }
 
 .decision-btn-secondary {

@@ -201,7 +201,7 @@
             }).then(function () { D.refreshFiles(); })
               .catch(function (e) {
                   bar.innerHTML =
-                      '<span class="gb-drv-confirm-text" style="color:#dc2626">' +
+                      '<span class="gb-drv-confirm-text" style="color:var(--id-danger)">' +
                       esc(e.message || "Error") + '</span>' +
                       '<button class="gb-drv-confirm-btn" data-act="no">OK</button>';
                   bar.querySelector('[data-act="no"]').addEventListener("click", function (ev) {

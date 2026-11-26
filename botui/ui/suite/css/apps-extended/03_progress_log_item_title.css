@@ -90,7 +90,7 @@
 
 .search-bar:focus-within {
     border-color: var(--accent, var(--primary));
-    box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-d4f505) 10%, transparent);
 }
 
 .search-bar-icon {
@@ -313,7 +313,7 @@
 
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(212, 245, 5, 0.4);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--palette-d4f505) 40%, transparent);
     }
     50% {
         box-shadow: 0 0 0 8px transparent;

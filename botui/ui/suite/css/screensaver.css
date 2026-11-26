@@ -15,7 +15,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.62) 100%);
+  background: radial-gradient(ellipse at center, transparent 52%, color-mix(in srgb, var(--palette-000000) 62%, transparent) 100%);
 }
 
 #gb-screensaver-canvas {
@@ -40,7 +40,7 @@
   width: min(58vmin, 470px);
   height: auto;
   overflow: visible;
-  filter: drop-shadow(0 0 22px rgba(90, 216, 255, 0.16));
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--palette-5ad8ff) 16%, transparent));
 }
 
 .gb-ss-halo {
@@ -121,8 +121,8 @@
   font-weight: 500;
   letter-spacing: 0.44em;
   text-transform: uppercase;
-  color: rgba(234, 246, 255, 0.88);
-  text-shadow: 0 0 18px rgba(90, 216, 255, 0.32);
+  color: color-mix(in srgb, var(--palette-e8f4fd) 88%, transparent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--palette-5ad8ff) 32%, transparent);
 }
 
 .gb-screensaver-wordmark small {
@@ -131,7 +131,7 @@
   font-size: var(--text-2xs);
   letter-spacing: 0.36em;
   text-transform: uppercase;
-  color: rgba(212, 245, 5, 0.62);
+  color: color-mix(in srgb, var(--palette-d4f505) 62%, transparent);
 }
 
 .gb-screensaver-hint {
@@ -142,7 +142,7 @@
   text-align: center;
   font-size: var(--text-2xs);
   letter-spacing: 0.08em;
-  color: rgba(232, 244, 255, 0.45);
+  color: color-mix(in srgb, var(--palette-e8f4fd) 45%, transparent);
   pointer-events: none;
   animation: gbssFadeIn 2.4s 2.6s ease-out both;
 }

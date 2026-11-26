@@ -22,16 +22,24 @@ function parseColor(color) {
   return null;
 }
 
+/* Read a resolved colour from the identity/palette tokens instead of carrying
+ * a second literal palette in this module. */
+function tokenColor(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function getContrastYIQ(color) {
   var rgb = parseColor(color);
-  if (!rgb) return "#ffffff";
+  if (!rgb) return "var(--palette-ffffff)";
   var yiq = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
-  return yiq >= 128 ? "#000000" : "#ffffff";
+  return yiq >= 128 ? "var(--palette-000000)" : "var(--palette-ffffff)";
 }
 
 function applyThemeData(themeData) {
-  var color1 = themeData.color1 || themeData.data && themeData.data.color1 || "black";
-  var color2 = themeData.color2 || themeData.data && themeData.data.color2 || "white";
+  var color1 = themeData.color1 || themeData.data && themeData.data.color1
+    || tokenColor("--id-ink");
+  var color2 = themeData.color2 || themeData.data && themeData.data.color2
+    || tokenColor("--id-surface-solid");
   var logo = themeData.logo_url || themeData.data && themeData.data.logo_url || "";
   var title = themeData.title || themeData.data && themeData.data.title || window.__INITIAL_BOT_NAME__ || "Chat";
 
@@ -55,8 +63,10 @@ function loadBotConfig() {
     .then(function (config) {
       if (!config) return;
 
-      var color1 = config.theme_color1 || config["theme-color1"] || config["Theme Color"] || "#2563eb";
-      var color2 = config.theme_color2 || config["theme-color2"] || config["theme-color2"] || "#f5deb3";
+      var color1 = config.theme_color1 || config["theme-color1"] || config["Theme Color"]
+        || tokenColor("--id-accent") || tokenColor("--palette-2563eb");
+      var color2 = config.theme_color2 || config["theme-color2"] || config["theme-color2"]
+        || tokenColor("--id-paper") || tokenColor("--id-surface-solid");
       var title = config.theme_title || config["theme-title"] || botName;
       var logo = config.theme_logo || config["theme-logo"] || "";
 

@@ -267,7 +267,7 @@
 .gb-error-actions button {
     background: none; border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
-    font-size: var(--id-text-xs); color: var(--id-fg);
+    font-size: var(--id-text-xs); color: var(--id-fg, var(--id-text));
     cursor: pointer; transition: background .15s;
 }
 .gb-error-actions button:hover { background: var(--id-fill); }
@@ -286,7 +286,7 @@
 .gb-load-error .gb-btn-retry {
     background: none; border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
-    font-size: var(--id-text-xs); color: var(--id-fg);
+    font-size: var(--id-text-xs); color: var(--id-fg, var(--id-text));
     cursor: pointer; transition: background .15s;
 }
 .gb-load-error .gb-btn-retry:hover { background: var(--id-fill); }

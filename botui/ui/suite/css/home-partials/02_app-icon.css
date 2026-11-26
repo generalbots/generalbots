@@ -185,7 +185,7 @@
 /* Lists in user messages */
 .message.user .message-content ul li::marker,
 .message.user .message-content ol li::marker {
-    color: rgba(255, 255, 255, 0.9);
+    color: color-mix(in srgb, var(--palette-ffffff) 90%, transparent);
 }
 
 /* Lists in bot messages */
@@ -230,7 +230,7 @@
 .message-content pre {
     margin: 12px 0;
     padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, var(--palette-000000) 20%, transparent);
     border-radius: 8px;
     overflow-x: auto;
     font-size: var(--text-xs);
@@ -240,13 +240,13 @@
 /* Inline code */
 .message-content code {
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.15);
+    background: color-mix(in srgb, var(--palette-000000) 15%, transparent);
     border-radius: 4px;
     font-size: 0.9em;
 }
 
 .message.user .message-content code {
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--palette-ffffff) 20%, transparent);
 }
 
 /* Blockquotes */
@@ -261,14 +261,14 @@
 .message-content hr {
     margin: 16px 0;
     border: none;
-    border-top: 1px solid rgba(128, 128, 128, 0.3);
+    border-top: 1px solid color-mix(in srgb, var(--palette-808789) 30%, transparent);
 }
 
 /* Links in messages */
 .message-content a {
     color: inherit;
     text-decoration: underline;
-    text-decoration-color: rgba(128, 128, 128, 0.5);
+    text-decoration-color: color-mix(in srgb, var(--palette-808789) 50%, transparent);
     transition: text-decoration-color 0.2s;
 }
 

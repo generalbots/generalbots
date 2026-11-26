@@ -6,11 +6,11 @@
   min-width: 220px;
   max-width: 280px;
   padding: 4px;
-  border: 1px solid var(--gb-border, rgba(0, 0, 0, 0.14));
+  border: 1px solid var(--gb-border, color-mix(in srgb, var(--palette-000000) 14%, transparent));
   border-radius: 8px;
   background: var(--gb-surface, var(--surface));
   color: var(--gb-text, inherit);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--palette-000000) 18%, transparent);
 }
 
 .gb-save-menu-item {
@@ -30,7 +30,7 @@
 
 .gb-save-menu-item:hover,
 .gb-save-menu-item:focus-visible {
-  background: var(--gb-hover, rgba(0, 0, 0, 0.07));
+  background: var(--gb-hover, color-mix(in srgb, var(--palette-000000) 7%, transparent));
   outline: none;
 }
 

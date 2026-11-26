@@ -67,7 +67,7 @@
     padding: 1px 6px;
     border-radius: 999px;
     background: var(--success);
-    color: #fff;
+    color: var(--palette-ffffff);
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.04em;

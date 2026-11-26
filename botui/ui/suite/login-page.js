@@ -72,7 +72,7 @@
                 : "Your session expired. Please sign in again.";
             if (subtitle) {
                 subtitle.textContent = expMsg;
-                subtitle.style.color = "var(--id-warn, #92400e)";
+                subtitle.style.color = "var(--id-warn)";
             }
         }
     } catch (e) { /* storage disabled */ }

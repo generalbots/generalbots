@@ -79,35 +79,42 @@ function toCssColor(value, fallback) {
   return parseHsl(normalized) ? `hsl(${normalized})` : normalized;
 }
 
+// Foregrounds are token references, never baked-in colours: the identity
+// palette owns the exact neutral and resolves per theme at paint time.
+const FG_ON_LIGHT = "var(--palette-000000)";
+const FG_ON_DARK = "var(--palette-ffffff)";
 function getContrastYIQ(hexcolor) {
-  if (!hexcolor) return "#ffffff";
+  if (!hexcolor) return FG_ON_DARK;
   hexcolor = hexcolor.replace("#", "");
   if (hexcolor.length === 3) hexcolor = hexcolor.split("").map((c) => c + c).join("");
-  if (hexcolor.length !== 6) return "#ffffff";
+  if (hexcolor.length !== 6) return FG_ON_DARK;
   const r = parseInt(hexcolor.slice(0, 2), 16);
   const g = parseInt(hexcolor.slice(2, 4), 16);
   const b = parseInt(hexcolor.slice(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? "#000000" : "#ffffff";
+  return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? FG_ON_LIGHT : FG_ON_DARK;
 }
 
 /* Publish both token vocabularies as inline root variables. */
 function bridge(themeId, themeName, onDone) {
   const rootStyle = getComputedStyle(document.documentElement);
-  const primary = rootStyle.getPropertyValue("--primary")?.trim() || "#3b82f6";
-  const background = rootStyle.getPropertyValue("--background")?.trim() || "0 0% 100%";
-  const foreground = rootStyle.getPropertyValue("--foreground")?.trim() || "222 47% 11%";
-  const mutedForeground = rootStyle.getPropertyValue("--muted-foreground")?.trim() || foreground;
-  const card = rootStyle.getPropertyValue("--card")?.trim() || "0 0% 98%";
-  const border = rootStyle.getPropertyValue("--border")?.trim() || "214 32% 91%";
+  const cssVar = (name) => rootStyle.getPropertyValue(name).trim();
+  // Fallbacks are token references: every theme supplies these tokens, and a
+  // missing one resolves from the identity palette instead of a baked colour.
+  const primary = cssVar("--primary") || cssVar("--id-accent") || cssVar("--palette-3b82f6");
+  const background = cssVar("--background") || cssVar("--id-paper");
+  const foreground = cssVar("--foreground") || cssVar("--id-ink");
+  const mutedForeground = cssVar("--muted-foreground") || foreground;
+  const card = cssVar("--card") || cssVar("--id-surface-solid");
+  const border = cssVar("--border") || cssVar("--id-line");
 
   const bgHsl = parseHsl(background);
   const fgHsl = parseHsl(foreground);
-  const bgColor = toCssColor(background, "#ffffff");
-  const primaryColor = toCssColor(primary, "#3b82f6");
-  const cardColor = toCssColor(card, "#fafafa");
-  const secondaryBgColor = rootStyle.getPropertyValue("--gb-bg-secondary")?.trim() || cardColor;
-  const surfaceColor = rootStyle.getPropertyValue("--gb-surface")?.trim() || cardColor;
-  const borderColor = toCssColor(border, "#e2e8f0");
+  const bgColor = toCssColor(background, cssVar("--id-surface-solid"));
+  const primaryColor = toCssColor(primary, cssVar("--id-accent"));
+  const cardColor = toCssColor(card, cssVar("--id-surface-solid"));
+  const secondaryBgColor = cssVar("--gb-bg-secondary") || cardColor;
+  const surfaceColor = cssVar("--gb-surface") || cardColor;
+  const borderColor = toCssColor(border, cssVar("--id-line"));
   const borderLightColor = rootStyle.getPropertyValue("--gb-border-light")?.trim() || borderColor;
   const hoverColor = rootStyle.getPropertyValue("--gb-surface-hover")?.trim() || `color-mix(in srgb, ${surfaceColor} 94%, ${primaryColor})`;
   const activeColor = rootStyle.getPropertyValue("--gb-surface-active")?.trim() || `color-mix(in srgb, ${surfaceColor} 86%, ${primaryColor})`;

@@ -1,4 +1,4 @@
-/* Sign-in page — identity design, light theme.
+/* Sign-in page — identity design (light and dark themes).
    Loaded by login.html; identity tokens are imported first. */
 
 html, body {
@@ -10,10 +10,10 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
-    background: var(--id-paper, var(--palette-fff8f2));
-    color: var(--id-ink, var(--palette-2c2c2c));
-    font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
-    font-size: var(--id-text-base, 0.875rem);
+    background: var(--id-paper);
+    color: var(--id-ink);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-base);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -32,28 +32,28 @@ body {
 .gb-login-card {
     width: min(380px, calc(100vw - 48px));
     padding: var(--id-space-8, 32px);
-    background: var(--id-surface-solid, #fff);
-    border: 1px solid var(--id-line, rgba(229,231,235,.8));
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
     border-radius: var(--id-radius-card, 20px);
-    box-shadow: var(--id-shadow-card, 0 1px 2px rgba(0,0,0,.05));
+    box-shadow: var(--id-shadow-card);
 }
 
 /* -- Wordmark -- */
 .gb-login-wordmark {
-    font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
+    font-family: var(--id-font-logo);
     font-weight: 600;
-    font-size: var(--id-text-3xl, 1.5rem);
-    color: var(--id-ink, var(--palette-2c2c2c));
+    font-size: var(--id-text-3xl);
+    color: var(--id-ink);
     margin-bottom: var(--id-space-1, 4px);
 }
 .gb-login-dot {
-    color: var(--id-accent, var(--palette-f28c28));
+    color: var(--id-accent);
 }
 
 /* -- Subtitle -- */
 .gb-login-subtitle {
-    font-size: var(--id-text-sm, 0.75rem);
-    color: var(--id-muted, var(--palette-5f6673));
+    font-size: var(--id-text-sm);
+    color: var(--id-muted);
     margin-bottom: var(--id-space-6, 24px);
 }
 
@@ -63,9 +63,9 @@ body {
 }
 .gb-login-field label {
     display: block;
-    font-size: var(--id-text-sm, 0.75rem);
+    font-size: var(--id-text-sm);
     font-weight: 500;
-    color: var(--id-text, var(--palette-4b5563));
+    color: var(--id-text);
     margin-bottom: var(--id-space-1, 4px);
 }
 
@@ -73,25 +73,25 @@ body {
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
-    border: 1px solid var(--id-gray-300, var(--palette-d1d5db));
+    border: 1px solid var(--id-gray-300);
     border-radius: var(--id-radius-sm, 8px);
-    background: var(--id-surface-solid, #fff);
-    color: var(--id-ink, var(--palette-2c2c2c));
-    font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
-    font-size: var(--id-text-base, 0.875rem);
+    background: var(--id-surface-solid);
+    color: var(--id-ink);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-base);
     transition: border-color var(--id-dur-fast, 150ms) var(--id-ease-standard);
     outline: none;
 }
 .gb-login-field input::placeholder {
-    color: var(--id-gray-400, var(--palette-9ca3af));
+    color: var(--id-gray-400);
 }
 .gb-login-field input:focus {
-    border-color: var(--id-accent, var(--palette-f28c28));
-    box-shadow: 0 0 0 3px var(--id-accent-soft, rgba(242,140,40,.1));
+    border-color: var(--id-accent);
+    box-shadow: 0 0 0 3px var(--id-accent-soft);
 }
 .gb-login-field input.gb-login-input-error {
-    border-color: var(--palette-dc2626);
-    box-shadow: 0 0 0 3px rgba(220,38,38,.08);
+    border-color: var(--id-danger);
+    box-shadow: 0 0 0 3px var(--id-danger-soft);
 }
 
 /* -- Password wrapper with toggle -- */
@@ -114,16 +114,16 @@ body {
     border: none;
     border-radius: var(--id-radius-sm, 8px);
     background: transparent;
-    color: var(--id-gray-400, var(--palette-9ca3af));
+    color: var(--id-gray-400);
     cursor: pointer;
     transition: color var(--id-dur-fast, 150ms) var(--id-ease-standard);
 }
 .gb-login-pw-toggle:hover {
-    color: var(--id-text, var(--palette-4b5563));
+    color: var(--id-text);
 }
 .gb-login-pw-toggle:focus-visible {
     outline: none;
-    box-shadow: var(--id-focus, 0 0 0 2px var(--palette-b45309));
+    box-shadow: var(--id-focus);
 }
 
 /* -- Submit button -- */
@@ -134,10 +134,10 @@ body {
     border: none;
     border-radius: var(--id-radius-sm, 8px);
     background: var(--id-accent, var(--palette-f28c28));
-    color: var(--id-on-accent, #fff);
-    font-family: var(--id-font-heading, 'Fira Sans', sans-serif);
+    color: var(--id-on-accent);
+    font-family: var(--id-font-heading);
     font-weight: 600;
-    font-size: var(--id-text-md, 1rem);
+    font-size: var(--id-text-md);
     cursor: pointer;
     transition: background var(--id-dur-fast, 150ms) var(--id-ease-standard);
 }
@@ -146,7 +146,7 @@ body {
 }
 .gb-login-submit:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px var(--id-accent-glow, rgba(242,140,40,.26));
+    box-shadow: 0 0 0 3px var(--id-accent-glow);
 }
 .gb-login-submit:disabled {
     opacity: .6;
@@ -159,14 +159,14 @@ body {
     margin-top: var(--id-space-3, 12px);
     padding: var(--id-space-3, 12px);
     border-radius: var(--id-radius-sm, 8px);
-    background: rgba(220, 38, 38, .06);
-    border: 1px solid rgba(220, 38, 38, .18);
-    color: var(--palette-b91c1c);
-    font-size: var(--id-text-sm, 0.75rem);
+    background: var(--id-danger-soft);
+    border: 1px solid var(--id-danger-line);
+    color: var(--id-danger-text);
+    font-size: var(--id-text-sm);
     line-height: 1.5;
 }
 .gb-login-error a {
-    color: var(--palette-b91c1c);
+    color: var(--id-danger-text);
     text-decoration: underline;
     cursor: pointer;
 }
@@ -175,7 +175,7 @@ body {
 @media (max-width: 480px) {
     .gb-login-card {
         padding: var(--id-space-6, 24px) var(--id-space-4, 16px);
-        border-radius: var(--id-radius-panel, 18px);
+        border-radius: var(--id-radius-panel);
     }
 }
 

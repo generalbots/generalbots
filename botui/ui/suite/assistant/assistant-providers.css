@@ -34,11 +34,11 @@
 .gb-prov-co { font-weight: 400; font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-prov-desc { margin-top: 2px; font-size: var(--id-text-sm); color: var(--id-muted); overflow-wrap: anywhere; }
 .gb-prov-badge { align-self: center; padding: 1px 8px; border-radius: 999px; font-size: var(--id-text-xs); font-weight: 600;
-    background: var(--id-accent); color: var(--id-on-accent, #fff); }
+    background: var(--id-accent); color: var(--id-on-accent); }
 .gb-prov-btn { flex-shrink: 0; padding: 6px 14px; border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
     background: var(--id-surface-solid); color: var(--id-ink); font: inherit; font-size: var(--id-text-sm); font-weight: 500; cursor: pointer; }
 .gb-prov-row:hover .gb-prov-btn { border-color: var(--id-accent); color: var(--id-accent-text); }
-.gb-prov-btn:focus-visible, .gb-prov-row:focus-visible { outline: 2px solid var(--id-focus); outline-offset: 2px; }
+.gb-prov-btn:focus-visible, .gb-prov-row:focus-visible { outline: none; box-shadow: var(--id-focus); }
 .gb-prov-none { padding: var(--id-space-3) 0; }
 
 .gb-prov-setup .gb-prov-back { margin-left: 0; align-self: flex-start; }
@@ -111,7 +111,7 @@
 .gb-km-id { min-width: 0; overflow-wrap: anywhere; font-family: var(--id-font-mono, monospace);
     font-size: var(--id-text-sm); color: var(--id-ink); }
 .gb-km-row .gb-set-toggle { flex-shrink: 0; margin: 0; }
-.gb-km-row .gb-set-toggle:focus-visible { outline: 2px solid var(--id-focus); outline-offset: 2px; }
+.gb-km-row .gb-set-toggle:focus-visible { outline: none; box-shadow: var(--id-focus); }
 .gb-km-none { padding: var(--id-space-3); }
 .gb-km-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--id-space-3); }
 @media (prefers-reduced-motion: reduce) {

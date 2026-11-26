@@ -2,11 +2,11 @@
 
 
 .chat-sidebar-conv-item:hover {
-  background: var(--win-caption-hover, rgba(255,255,255,0.06));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 6%, transparent));
 }
 
 .chat-sidebar-conv-item.active {
-  background: var(--surface-active, rgba(255,255,255,0.10));
+  background: var(--surface-active, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
 }
 
 .chat-sidebar-conv-info {
@@ -44,7 +44,7 @@
 }
 
 .chat-sidebar-signin-hint {
-  border: 1px dashed var(--shell-border, rgba(255,255,255,0.15));
+  border: 1px dashed var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 15%, transparent));
   cursor: pointer;
   transition: all 150ms;
 }
@@ -64,7 +64,7 @@
   width: 100%;
   padding: 7px 26px 7px 10px;
   border-radius: 8px;
-  border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   font-size: var(--text-2xs);
 }
 
@@ -84,13 +84,13 @@
   border-radius: 10px;
   cursor: pointer;
   border-top: 1px solid transparent;
-  background: var(--surface-hover, rgba(255,255,255,0.04));
+  background: var(--surface-hover, color-mix(in srgb, var(--palette-ffffff) 4%, transparent));
   transition: background 150ms;
   user-select: none;
 }
 
 .chat-sidebar-user:hover {
-  background: var(--win-caption-hover, rgba(255,255,255,0.08));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
 }
 
 .sidebar-user-avatar {
@@ -101,14 +101,14 @@
   justify-content: center;
   border-radius: 50%;
   background: var(--primary, var(--accent, var(--primary)));
-  color: #111;
+  color: var(--palette-111111);
   font-size: var(--text-2xs);
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .sidebar-user-avatar-anon {
-  background: var(--surface-active, rgba(255,255,255,0.12));
+  background: var(--surface-active, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   color: var(--text-secondary);
 }
 
@@ -155,7 +155,7 @@
 }
 
 .chat-sidebar-collapsed-icon:hover {
-  background: var(--win-caption-hover, rgba(255,255,255,0.08));
+  background: var(--win-caption-hover, color-mix(in srgb, var(--palette-ffffff) 8%, transparent));
   color: var(--text);
 }
 
@@ -208,7 +208,7 @@ body.fullscreen .chat-sidebar {
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--accent, var(--primary));
-  color: #fff;
+  color: var(--palette-ffffff);
   cursor: pointer;
 }
 .gb-sidebar-feedback-btn:disabled {

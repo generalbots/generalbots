@@ -1,5 +1,5 @@
 /* Assistant shell — base layout, sidebar, main area.
- * Light theme only, identity tokens. Chat in assistant-chat.css. */
+ * Identity tokens (light and dark themes). Chat in assistant-chat.css. */
 
 /* == Reset & base ================================================= */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

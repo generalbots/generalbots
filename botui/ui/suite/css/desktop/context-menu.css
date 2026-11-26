@@ -12,7 +12,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 6px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--palette-000000) 55%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   /* Theme-aware hover fallback when --surface-hover is undefined. */

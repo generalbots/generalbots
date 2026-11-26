@@ -1,7 +1,7 @@
 .app-icon {
     background: var(--surface-hover);
     border: 1px solid var(--border);
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0px 4px 6px color-mix(in srgb, var(--palette-000000) 5%, transparent);
     /* removed border */
     /* removed border bottom */
 }
@@ -40,7 +40,7 @@
     height: 500px;
     background-color: var(--surface, white);
     border-radius: 8px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 25%, transparent);
     display: flex;
     flex-direction: column;
     border: 1px solid hsl(var(--border));
@@ -152,13 +152,13 @@
     height: 500px;
 }
 .bg-white {
-    background-color: #fff;
+    background-color: var(--palette-ffffff);
 }
 .rounded-lg {
     border-radius: 0.5rem;
 }
 .shadow-2xl {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--palette-000000) 25%, transparent);
 }
 .flex {
     display: flex;
@@ -184,7 +184,7 @@
     height: 2.5rem;
 }
 .bg-white\/95 {
-    background-color: var(--surface, rgba(255, 255, 255, 0.95));
+    background-color: var(--surface, color-mix(in srgb, var(--palette-ffffff) 95%, transparent));
 }
 .backdrop-blur {
     backdrop-filter: blur(8px);
@@ -318,7 +318,7 @@ select.theme-dropdown {
 .start-menu-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--palette-000000) 50%, transparent);
     backdrop-filter: blur(6px);
     z-index: var(--z-system);
     display: flex;
@@ -336,12 +336,12 @@ select.theme-dropdown {
     width: 660px;
     max-width: 94vw;
     max-height: 560px;
-    background: var(--glass-bg, rgba(20, 22, 35, 0.82));
+    background: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 82%, transparent));
     backdrop-filter: var(--glass-backdrop, blur(24px) saturate(180%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(24px) saturate(180%));
-    border: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
+    border: 2px solid var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
     border-radius: 20px;
-    box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.4));
+    box-shadow: var(--glass-shadow, 0 8px 32px color-mix(in srgb, var(--palette-000000) 40%, transparent));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -355,7 +355,7 @@ select.theme-dropdown {
 
 .start-menu-search-wrap {
     padding: 16px 20px;
-    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
+    border-bottom: 2px solid var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 10%, transparent));
 }
 
 .start-menu-search {
@@ -363,16 +363,16 @@ select.theme-dropdown {
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--palette-ffffff) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
     border-radius: 12px;
     transition: all 0.2s ease;
 }
 
 .start-menu-search:focus-within {
     border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 3px rgba(136, 204, 255, 0.15);
+    background: color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--palette-93c5fd) 15%, transparent);
 }
 
 .start-menu-search svg {

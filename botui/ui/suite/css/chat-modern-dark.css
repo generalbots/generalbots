@@ -142,8 +142,8 @@
 }
 
 [data-color-scheme="dark"] #chat-app .input-container:focus-within {
-    border-color: rgba(74, 222, 128, 0.55);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    border-color: color-mix(in srgb, var(--palette-4ade80) 55%, transparent);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--palette-000000) 35%, transparent);
 }
 
 

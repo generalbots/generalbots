@@ -131,9 +131,9 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 
 .quick-action-chip:hover {
     border-color: var(--accent);
-    background: rgba(132, 214, 105, 0.08);
+    background: color-mix(in srgb, var(--palette-84d669) 8%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(132, 214, 105, 0.15);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--palette-84d669) 15%, transparent);
 }
 
 .quick-action-chip:active {

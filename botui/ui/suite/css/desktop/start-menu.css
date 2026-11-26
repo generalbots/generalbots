@@ -5,7 +5,7 @@
 .start-menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: color-mix(in srgb, var(--palette-000000) 55%, transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   z-index: var(--z-system);
@@ -24,14 +24,14 @@
   width: 660px;
   max-width: 94vw;
   max-height: 560px;
-  background: var(--glass-bg, rgba(20,22,35,0.82));
+  background: var(--glass-bg, color-mix(in srgb, var(--palette-141623) 82%, transparent));
   backdrop-filter: var(--glass-backdrop, var(--shell-blur, blur(24px) saturate(180%)));
   -webkit-backdrop-filter: var(--glass-backdrop, var(--shell-blur, blur(24px) saturate(180%)));
-  border: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.12)));
+  border: 1px solid var(--shell-border, var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 12%, transparent)));
   border-radius: 20px;
   box-shadow:
-    0 4px 20px rgba(0,0,0,0.35),
-    0 24px 80px rgba(0,0,0,0.45);
+    0 4px 20px color-mix(in srgb, var(--palette-000000) 35%, transparent),
+    0 24px 80px color-mix(in srgb, var(--palette-000000) 45%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -46,7 +46,7 @@
 /* Search */
 .start-menu-search-wrap {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.10)));
+  border-bottom: 1px solid var(--shell-border, var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 10%, transparent)));
 }
 
 .start-menu-search {
@@ -54,15 +54,15 @@
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: color-mix(in srgb, var(--palette-ffffff) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
   border-radius: 12px;
   transition: all 180ms var(--ease-spring, cubic-bezier(0.2,0,0,1));
 }
 
 .start-menu-search:focus-within {
   border-color: var(--primary, var(--accent, var(--primary)));
-  background: rgba(255,255,255,0.1);
+  background: color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
   box-shadow: 0 0 0 3px hsla(var(--primary-hue, 210), var(--primary-sat, 80%), var(--primary-lit, 60%), 0.15);
 }
 
@@ -157,14 +157,14 @@
 }
 
 .start-menu-app:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
+  background: color-mix(in srgb, var(--palette-ffffff) 8%, transparent);
+  border-color: color-mix(in srgb, var(--palette-ffffff) 12%, transparent);
   transform: scale(1.04);
 }
 
 .start-menu-app:active {
   transform: scale(0.95);
-  background: rgba(255,255,255,0.12);
+  background: color-mix(in srgb, var(--palette-ffffff) 12%, transparent);
 }
 
 .start-menu-app-icon {
@@ -200,7 +200,7 @@
 
 /* Recent */
 .start-menu-recent {
-  border-top: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.06)));
+  border-top: 1px solid var(--shell-border, var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 6%, transparent)));
   padding: 4px 8px 8px;
 }
 
@@ -210,7 +210,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border-top: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.08)));
+  border-top: 1px solid var(--shell-border, var(--glass-border-color, color-mix(in srgb, var(--palette-ffffff) 8%, transparent)));
 }
 
 .start-menu-user {
@@ -229,7 +229,7 @@
   justify-content: center;
   font-size: var(--text-sm);
   font-weight: 600;
-  color: #000;
+  color: var(--palette-000000);
 }
 
 .start-menu-user-name {
@@ -252,7 +252,7 @@
 }
 
 .start-menu-power:hover {
-  background: rgba(239,68,68,0.2);
+  background: color-mix(in srgb, var(--palette-ef4444) 20%, transparent);
   color: var(--error);
 }
 
@@ -292,7 +292,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, var(--palette-000000) 45%, transparent);
 }
 .gb-power-box {
   min-width: 240px;
@@ -301,7 +301,7 @@
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--palette-000000) 30%, transparent);
 }
 .gb-power-title {
   font-size: var(--text-2xs);
@@ -328,7 +328,7 @@
 }
 .gb-power-item:hover,
 .gb-power-item:focus-visible {
-  background: rgba(127, 127, 127, 0.14);
+  background: color-mix(in srgb, var(--palette-747a7c) 14%, transparent);
   outline: none;
 }
 .gb-power-item:focus-visible {

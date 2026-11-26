@@ -269,7 +269,7 @@
         if (!elAgentLog) return;
         const div = document.createElement('div');
         div.className = 'log-entry';
-        div.style.color = type === 'error' ? '#e74c3c' : (type === 'action' || type === 'nav') ? '#4caf50' : '';
+        div.style.color = type === 'error' ? 'var(--palette-e74c3c)' : (type === 'action' || type === 'nav') ? 'var(--palette-4caf50)' : '';
         stepCount++;
         div.innerHTML = '<span class="step-num">[' + stepCount + ']</span> <span class="step-' + (type === 'error' ? 'reason' : 'action') + '">' + escapeHtml(String(msg == null ? '' : msg)) + '</span>';
         elAgentLog.appendChild(div);
@@ -289,9 +289,9 @@
         elChromeStatus.style.display = 'block';
         elChromeStatus.style.padding = '0.4rem 1.5rem';
         elChromeStatus.style.fontSize = '0.8rem';
-        elChromeStatus.style.borderBottom = '1px solid var(--border-color, #2a2a4a)';
-        elChromeStatus.style.background = kind === 'error' ? '#3b1d1d' : 'var(--bg-card, #1e1e3a)';
-        elChromeStatus.style.color = kind === 'error' ? '#ffb4b4' : 'var(--text-primary, #e0e0e0)';
+        elChromeStatus.style.borderBottom = '1px solid var(--border-color, var(--palette-2a2a4a))';
+        elChromeStatus.style.background = kind === 'error' ? 'var(--palette-7f1d1d)' : 'var(--bg-card, var(--palette-1e1e3a))';
+        elChromeStatus.style.color = kind === 'error' ? 'var(--palette-fca5a5)' : 'var(--text-primary, var(--palette-e0e0e0))';
         if (!persistOnce) {
             chromeStatusTimer = setTimeout(function () {
                 if (elChromeStatus) { elChromeStatus.style.display = 'none'; elChromeStatus.textContent = ''; }
@@ -304,16 +304,16 @@
         if (!elOverlay) return;
         elOverlay.innerHTML =
             '<div style="font-size:1.1rem;font-weight:600;margin-bottom:0.5rem">' + escapeHtml(title || 'Navigation failed') + '</div>' +
-            '<div style="font-size:0.85rem;color:#ffb4b4;margin-bottom:0.5rem">' + escapeHtml(detail || 'The page could not be loaded.') + '</div>' +
-            (target ? '<div style="font-size:0.75rem;color:#a0a0b0;word-break:break-all">URL: ' + escapeHtml(target) + '</div>' : '');
+            '<div style="font-size:0.85rem;color:var(--palette-fca5a5);margin-bottom:0.5rem">' + escapeHtml(detail || 'The page could not be loaded.') + '</div>' +
+            (target ? '<div style="font-size:0.75rem;color:var(--palette-a0a0b0);word-break:break-all">URL: ' + escapeHtml(target) + '</div>' : '');
         elOverlay.style.display = 'flex';
         elOverlay.style.flexDirection = 'column';
         elOverlay.style.alignItems = 'center';
         elOverlay.style.justifyContent = 'center';
         elOverlay.style.textAlign = 'center';
         elOverlay.style.padding = '1.5rem';
-        elOverlay.style.background = 'rgba(13, 13, 26, 0.94)';
-        elOverlay.style.color = '#e0e0e0';
+        elOverlay.style.background = 'color-mix(in srgb, var(--palette-0d0d1a) 94%, transparent)';
+        elOverlay.style.color = 'var(--palette-e0e0e0)';
         elOverlay.style.pointerEvents = 'none';
     }
 

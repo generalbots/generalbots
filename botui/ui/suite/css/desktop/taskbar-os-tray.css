@@ -14,7 +14,7 @@
   height: 7px;
   border-radius: 50%;
   background: var(--warning, darkorange);
-  border: 1px solid rgba(20,22,35,0.8);
+  border: 1px solid color-mix(in srgb, var(--palette-141623) 80%, transparent);
 }
 .os-tray-dot[hidden] { display: none; }
 .os-tray-overflow-btn[hidden] { display: none !important; }
@@ -27,11 +27,11 @@
   bottom: calc(var(--gb-chrome-bottom, 30px) + 6px);
   min-width: 220px;
   max-width: 280px;
-  background: var(--shell-bg, rgba(20,22,35,0.94));
+  background: var(--shell-bg, color-mix(in srgb, var(--palette-141623) 94%, transparent));
   color: var(--text, lightgray);
-  border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
+  border: 1px solid var(--shell-border, color-mix(in srgb, var(--palette-ffffff) 12%, transparent));
   border-radius: 10px;
-  box-shadow: var(--shell-shadow, 0 4px 24px rgba(0,0,0,0.3));
+  box-shadow: var(--shell-shadow, 0 4px 24px color-mix(in srgb, var(--palette-000000) 30%, transparent));
   backdrop-filter: var(--shell-blur, blur(24px));
   -webkit-backdrop-filter: var(--shell-blur, blur(24px));
   padding: 10px;
@@ -57,7 +57,7 @@
   border-radius: 4px;
 }
 .os-tray-popover-close:hover,
-.os-tray-popover-close:focus-visible { background: rgba(127,127,127,0.18); outline: none; }
+.os-tray-popover-close:focus-visible { background: color-mix(in srgb, var(--palette-747a7c) 18%, transparent); outline: none; }
 .os-tray-popover-status { margin: 0 0 10px; font-size: var(--text-xs); color: var(--text-secondary, darkgray); }
 .os-tray-popover-actions { display: flex; justify-content: flex-end; }
 .os-tray-overflow-menu { min-width: 180px; padding: 6px; }
@@ -73,7 +73,7 @@
   font-size: var(--text-xs);
 }
 .os-tray-overflow-item:hover,
-.os-tray-overflow-item:focus-visible { background: rgba(127,127,127,0.18); outline: none; }
+.os-tray-overflow-item:focus-visible { background: color-mix(in srgb, var(--palette-747a7c) 18%, transparent); outline: none; }
 
 @media (max-width: 1280px) {
   .toolbar-v15 .taskbar-tray.is-tray-compact .os-tray-btn[data-priority="low"] { display: none; }

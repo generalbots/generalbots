@@ -10,7 +10,7 @@
             #gbBootSplash.gb-boot-hidden { opacity: 0; pointer-events: none; }
             .gb-boot-spinner {
                 width: 34px; height: 34px; border-radius: 50%;
-                border: 3px solid rgba(132, 214, 105, 0.25);
+                border: 3px solid color-mix(in srgb, var(--palette-84d669) 25%, transparent);
                 border-top-color: var(--primary, var(--palette-84d669));
             }
             .gb-boot-text { font-size: var(--text-xs); letter-spacing: 0.08em; opacity: 0.75; }

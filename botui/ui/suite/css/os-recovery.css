@@ -72,7 +72,7 @@ body.gb-a11y-large-pointer button, body.gb-a11y-large-pointer a, body.gb-a11y-la
   position: fixed; z-index: var(--z-blocker); left: 50%; bottom: 16px;
   transform: translateX(-50%); padding: 10px; border-radius: 10px;
   background: var(--surface); color: var(--text); border: 1px solid var(--border);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--palette-000000) 45%, transparent);
 }
 .gb-osk[hidden] { display: none; }
 .gb-osk-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }

@@ -99,29 +99,28 @@ function activeThemeId() {
   return document.documentElement.getAttribute("data-theme") || "sentient";
 }
 
-function updateThemeColor(theme) {
-  const themeColors = {
-    dark: "#3b82f6", light: "#3b82f6", blue: "#0ea5e9", purple: "#a855f7",
-    green: "#22c55e", orange: "#f97316", sentient: "#d4f505",
-    cyberpunk: "#ff00ff", retrowave: "#ff6b9d", vapordream: "#a29bfe",
-    y2kglow: "#00ff00", "3dbevel": "#0000ff", arcadeflash: "#ffff00",
-    discofever: "#ff1493", grungeera: "#8b4513", jazzage: "#d4af37",
-    mellowgold: "#daa520", midcenturymod: "#e07b39",
-    polaroidmemories: "#e6b89c", saturdaycartoons: "#ff6347",
-    seasidepostcard: "#20b2aa", typewriter: "#2f2f2f", xeroxui: "#4a86cf",
-    xtreegold: "#ffff00",
-  };
+// The browser chrome colour comes from the active theme's own accent token,
+// not from a second, hardcoded palette that drifts from the theme catalogue.
+function themeMetaColor() {
+  const style = getComputedStyle(document.documentElement);
+  const primary = style.getPropertyValue("--primary").trim()
+    || style.getPropertyValue("--id-accent").trim();
+  if (!primary) return style.getPropertyValue("--palette-84d669").trim();
+  return /^(#|hsl\(|rgb\()/i.test(primary) ? primary : `hsl(${primary})`;
+}
+
+function updateThemeColor() {
   const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) metaTheme.setAttribute("content", themeColors[theme] || "#d4f505");
+  if (metaTheme) metaTheme.setAttribute("content", themeMetaColor());
 }
 function reflectTheme(theme) {
   themeOptions.forEach((o) => o.classList.toggle("active", o.getAttribute("data-theme") === theme));
   document.querySelectorAll(".theme-option").forEach((opt) => {
     opt.classList.toggle("active", opt.getAttribute("data-theme") === theme);
   });
-  updateThemeColor(theme);
+  updateThemeColor();
 }
-updateThemeColor(activeThemeId());
+updateThemeColor();
 reflectTheme(activeThemeId());
 
 themeOptions.forEach((option) => {

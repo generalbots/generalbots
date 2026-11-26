@@ -69,7 +69,7 @@
     color: var(--id-ink); text-align: left; cursor: pointer; font: inherit;
     transition: border-color var(--id-dur-fast) var(--id-ease), box-shadow var(--id-dur-fast) var(--id-ease), transform var(--id-dur-fast) var(--id-ease); }
 .gb-gar-choice:hover { border-color: var(--id-accent); box-shadow: var(--id-shadow-card-hover); transform: translateY(-1px); }
-.gb-gar-choice:focus-visible { outline: 2px solid var(--id-focus); outline-offset: 2px; }
+.gb-gar-choice:focus-visible { outline: none; box-shadow: var(--id-focus); }
 .gb-gar-choice-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center;
     justify-content: center; background: var(--id-accent-soft); color: var(--id-accent); }
 .gb-gar-choice-icon svg { width: 22px; height: 22px; }
@@ -106,7 +106,7 @@
 .gb-set-mode-card.gb-gar-head.gb-set-mode-active { background: var(--id-surface-solid); color: var(--id-ink); }
 .gb-set-mode-card.gb-gar-head.gb-set-mode-selected { border: 2px solid var(--id-accent); background: var(--id-accent-soft);
     padding: calc(var(--id-space-3) - 1px) calc(var(--id-space-3) - 1px) calc(var(--id-space-2) - 1px); }
-.gb-set-mode-card.gb-gar-head:focus-visible { outline: 2px solid var(--id-focus); outline-offset: 2px; }
+.gb-set-mode-card.gb-gar-head:focus-visible { outline: none; box-shadow: var(--id-focus); }
 .gb-gar-head .gb-set-mode-icon { color: var(--id-accent); }
 .gb-gar-head .gb-set-mode-label { font-weight: 600; }
 .gb-gar-head-badges { display: flex; flex-wrap: wrap; gap: 4px; min-height: 0; }

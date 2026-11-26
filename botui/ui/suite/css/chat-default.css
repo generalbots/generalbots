@@ -25,10 +25,10 @@
     --gb-border-soft: var(--palette-f3f4f6);
     --gb-border-strong: var(--palette-d1d5db);
     --gb-accent: var(--palette-f28c28);
-    --gb-accent-soft: rgb(242 140 40 / .1);
-    --gb-shadow-bubble: 0 1px 2px rgb(0 0 0 / .05);
-    --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .04),
-        0 4px 6px -4px rgb(0 0 0 / .04);
+    --gb-accent-soft: color-mix(in srgb, var(--palette-f28c28) 10%, transparent);
+    --gb-shadow-bubble: 0 1px 2px color-mix(in srgb, var(--palette-000000) 5%, transparent);
+    --gb-shadow-raised: 0 10px 15px -3px color-mix(in srgb, var(--palette-000000) 4%, transparent),
+        0 4px 6px -4px color-mix(in srgb, var(--palette-000000) 4%, transparent);
     --gb-focus-ring: 0 0 0 2px var(--palette-b45309);
 }
 
@@ -39,14 +39,14 @@
     --gb-surface-muted: var(--palette-2a2a36);
     --gb-text: var(--palette-e4e4ea);
     --gb-muted: var(--palette-808898);
-    --gb-border: rgb(255 255 255 / .1);
-    --gb-border-soft: rgb(255 255 255 / .06);
-    --gb-border-strong: rgb(255 255 255 / .18);
+    --gb-border: color-mix(in srgb, var(--palette-ffffff) 10%, transparent);
+    --gb-border-soft: color-mix(in srgb, var(--palette-ffffff) 6%, transparent);
+    --gb-border-strong: color-mix(in srgb, var(--palette-ffffff) 18%, transparent);
     --gb-accent: var(--palette-f28c28);
-    --gb-accent-soft: rgb(242 140 40 / .16);
-    --gb-shadow-bubble: 0 1px 3px rgb(0 0 0 / .3);
-    --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .3),
-        0 4px 6px -4px rgb(0 0 0 / .2);
+    --gb-accent-soft: color-mix(in srgb, var(--palette-f28c28) 16%, transparent);
+    --gb-shadow-bubble: 0 1px 3px color-mix(in srgb, var(--palette-000000) 30%, transparent);
+    --gb-shadow-raised: 0 10px 15px -3px color-mix(in srgb, var(--palette-000000) 30%, transparent),
+        0 4px 6px -4px color-mix(in srgb, var(--palette-000000) 20%, transparent);
     --gb-focus-ring: 0 0 0 2px var(--palette-fdb96a);
 }
 
@@ -114,12 +114,12 @@
     color: var(--palette-b45309) !important;
     text-decoration: underline;
     text-underline-offset: 2px;
-    text-decoration-color: rgb(180 83 9 / .4);
+    text-decoration-color: color-mix(in srgb, var(--palette-b45309) 40%, transparent);
 }
 
 :root[data-theme="default"][data-color-scheme="dark"] #chat-app .bot-message a {
     color: var(--palette-fdb96a) !important;
-    text-decoration-color: rgb(253 185 106 / .4);
+    text-decoration-color: color-mix(in srgb, var(--palette-fdb96a) 40%, transparent);
 }
 
 /* The person's turn is the white card with the hairline stroke. */
@@ -214,7 +214,7 @@
 :root[data-theme="default"] #chat-app .copy-msg-btn:hover,
 :root[data-theme="default"] #chat-app .copy-msg-btn.copied {
     color: var(--palette-b45309);
-    border-color: rgb(242 140 40 / .45);
+    border-color: color-mix(in srgb, var(--palette-f28c28) 45%, transparent);
 }
 
 /* == Suggestions ==================================================== */
@@ -253,14 +253,14 @@
     background: var(--gb-surface);
     border: 1px solid var(--gb-border);
     border-radius: 20px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / .05);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--palette-000000) 5%, transparent);
     padding: 8px 10px 8px 8px;
     transition: border-color 150ms ease, box-shadow 200ms ease;
 }
 
 :root[data-theme="default"] #chat-app .input-container:focus-within {
     border-color: var(--gb-accent);
-    box-shadow: 0 8px 20px -10px rgb(0 0 0 / .12), 0 1px 2px rgb(0 0 0 / .05);
+    box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--palette-000000) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--palette-000000) 5%, transparent);
 }
 
 :root[data-theme="default"] #chat-app #messageInput {
@@ -276,7 +276,7 @@
 :root[data-theme="default"] #chat-app #sendBtn {
     background: var(--gb-accent);
     color: var(--palette-ffffff);
-    box-shadow: 0 1px 2px rgb(0 0 0 / .08);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--palette-000000) 8%, transparent);
 }
 
 :root[data-theme="default"] #chat-app #sendBtn:hover {
