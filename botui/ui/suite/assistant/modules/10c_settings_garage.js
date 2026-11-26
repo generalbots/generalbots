@@ -4,6 +4,7 @@
  * workshop: the engine in use on top, the four engines as cards with a
  * privacy meter, the details of the one being viewed in lettered panels, the
  * full comparison in a side panel, a two-question guide and the tooltips.
+ * It also words where the local model in use runs (graphics card or not).
  * The cards are the mode buttons (data-mode) that 10_settings_model.js binds.
  */
 (function () {
@@ -282,7 +283,65 @@ function bindDialog(panel, buttonId, dialog, onOpen) {
   bindTips(dialog);
 }
 
+/* ---- Where the model in use runs: "last_launch" of /api/llm/local/models ----
+   gpu: a quiet line in its row; split or cpu: a notice above the list. Nothing
+   when the field is absent, the placement is unknown, the engine is stopped
+   or the record is about another model. */
+function launchOf(rec, active, lr) {
+  if (!rec || !active || !active.file || !rec.model_file || (lr && lr.running === false)) { return null; }
+  var a = String(active.file), b = String(rec.model_file);
+  if (a.slice(-b.length) !== b && b.slice(-a.length) !== a) { return null; }
+  return ["gpu", "split", "cpu"].indexOf(rec.placement) >= 0 ? rec : null;
+}
+function gbOf(mib) {
+  var n = Number(mib) / 1024, s = n >= 10 ? String(Math.round(n)) : n.toFixed(1);
+  return (pt() ? s.replace(".", ",") : s) + " GB";
+}
+function placeLine(rec) {
+  if (!rec || rec.placement !== "gpu") { return ""; }
+  return '<span class="gb-of-place">' + svg(I.check, 12, 2.4) + esc(tr("Rodando inteiramente na placa de vídeo.", "Running entirely on the graphics card.")) + '</span>';
+}
+function placeNotice(rec) {
+  if (!rec || (rec.placement !== "split" && rec.placement !== "cpu")) { return ""; }
+  var before = rec.vram_free_before_mib, after = rec.vram_free_after_mib, has = typeof before === "number";
+  var head, body, step1 = "";
+  if (rec.placement === "split") {
+    head = tr("Este modelo não cabe inteiro na placa de vídeo agora", "This model does not fully fit on the graphics card right now");
+    body = (has ? tr("A placa de vídeo tinha só %f livres quando o modelo abriu.", "The graphics card had only %f free when the model opened.").replace("%f", gbOf(before))
+      : tr("A placa de vídeo não tinha espaço livre suficiente quando o modelo abriu.", "The graphics card did not have enough free space when the model opened.")) + " " +
+      tr("Por isso, uma parte roda no processador e as respostas demoram bem mais para começar.", "So part of it runs on the processor, and answers take much longer to start.");
+    step1 = esc(tr("Feche os programas que usam a placa de vídeo (editores de imagem, navegadores com muitas abas, jogos) e reinicie o modelo.",
+      "Close the programs that use the graphics card (image editors, browsers with many tabs, games) and restart the model."));
+  } else {
+    head = tr("Este modelo roda só no processador", "This model runs on the processor only");
+    body = tr("A placa de vídeo não está sendo usada, então as respostas vão ser lentas. Um modelo menor responde mais rápido.",
+      "The graphics card is not being used, so answers will be slow. A smaller model answers faster.");
+  }
+  var steps = (step1 ? '<li>' + step1 + '</li>' : '') +
+    '<li>' + esc(tr("Ou escolha um modelo menor, que caiba na placa.", "Or choose a smaller model that fits on the card.")) + '</li>';
+  var used = has && typeof after === "number" && before - after >= 103 ? gbOf(before - after) : "";
+  var detail = has ? tr("Memória da placa de vídeo: %f livres antes de abrir", "Graphics card memory: %f free before opening").replace("%f", gbOf(before)) +
+    (used ? tr(" · %u usados pelo modelo", " · %u used by the model").replace("%u", used) : "") : "";
+  var restart = '<button type="button" class="gb-of-btn sm pri" data-restart-model>' + esc(tr("Reiniciar o modelo", "Restart the model")) + '</button>';
+  var smaller = '<button type="button" class="gb-of-btn sm" data-pick-smaller>' + esc(tr("Escolher um modelo menor", "Choose a smaller model")) + '</button>';
+  return '<div class="gb-of-placen" role="status"><span class="gb-of-placen-i">' + svg(I.info, 16, 1.8) + '</span><div><b>' + esc(head) + '</b><p>' + esc(body) + '</p>' +
+    '<ul>' + steps + '</ul>' + (detail ? '<small>' + esc(detail) + '</small>' : '') +
+    '<div class="gb-of-placen-msg" id="gbPlaceMsg"></div>' +
+    '<div class="gb-of-row">' + restart + smaller + '</div></div></div>';
+}
+/* Called by 10b when the server returns 404 (endpoint not available). */
+function placeFallbackAdvice(box) {
+  var btn = box && box.querySelector("[data-restart-model]");
+  if (btn) { btn.remove(); }
+  var li = box && box.querySelector("ul li");
+  if (li && li.textContent.indexOf("reinicie") >= 0) {
+    li.textContent = tr("Feche os programas que usam a placa de vídeo (editores de imagem, navegadores com muitas abas, jogos). Depois feche e abra o aplicativo para reiniciar o modelo.",
+      "Close the programs that use the graphics card (image editors, browsers with many tabs, games). Then close and reopen the app to restart the model.");
+  }
+}
+
 A._modelGarage = {
+  launchOf: launchOf, placeLine: placeLine, placeNotice: placeNotice, placeFallbackAdvice: placeFallbackAdvice,
   dashboard: dashboard, runCard: runCard, markInUse: markInUse, inUseKind: inUseKind,
   modeButtons: modeButtons, dialogs: dialogs, modeLabel: modeLabel, setDetail: setDetail, help: help, svg: svg, sl: sl,
   bind: function (panel, modes, viewed) {
