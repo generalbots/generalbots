@@ -2,4 +2,5 @@
 # One .ftl per feature; keys are identical across all eight locales.
 
 status-sending = 送信中…
+status-slow = プロバイダーが遅いです… まだ待機中
 chat-slow-hint = モデルの応答が遅いです — 停止して再試行できます。
