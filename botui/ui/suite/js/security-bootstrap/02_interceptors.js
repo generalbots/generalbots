@@ -5,6 +5,61 @@
   var S = N.s;
   var GBSecurity = N.GBSecurity;
   var AUTH_KEYS = N.AUTH_KEYS;
+
+  /* #2943 — one silent session gate for all suite fetches; the collab
+   * scheduler owns the tab's single sign-in hint. */
+  var NO_SESSION_PUBLIC = [
+    "/api/product",
+    "/api/i18n/",
+    "/api/auth",
+    "/api/client-errors",
+  ];
+
+  function hasSession() {
+    try {
+      return !!(typeof window.getGBAccessToken === "function" && window.getGBAccessToken());
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isPublicNoSessionPath(url) {
+    if (typeof url !== "string") return false;
+    var path = url;
+    try {
+      path = new URL(url, window.location.href).pathname;
+    } catch (e) {
+      // Opaque URLs still match the literal prefixes.
+    }
+    for (var i = 0; i < NO_SESSION_PUBLIC.length; i++) {
+      var prefix = NO_SESSION_PUBLIC[i];
+      // Match on a path boundary (no /api/autotask false hit).
+      var suffix = prefix.charAt(prefix.length - 1) === "/" ? "" : "/";
+      if (
+        path === prefix ||
+        path.indexOf(prefix + suffix) === 0 ||
+        path.indexOf(prefix + "?") === 0
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Minimal Response-shaped sentinel: no network, all callers keep working.
+  function noSessionResponse(url) {
+    return {
+      ok: false,
+      status: 401,
+      statusText: "",
+      url: url,
+      headers: { get: function () { return null; } },
+      json: function () { return Promise.resolve({}); },
+      text: function () { return Promise.resolve(""); },
+      clone: function () { return noSessionResponse(url); },
+    };
+  }
+
   Object.assign(GBSecurity, {
     init: function () {
       if (this.initialized) {
@@ -14,13 +69,8 @@
 
       var self = this;
 
-      // Restore tokens from sessionStorage into memory closure.
-      // Access token is stored in sessionStorage by setTokens() as a
-      // fallback, so it survives page navigation. Primary storage is
-      // the closure for XSS protection (Issue #575).
-      // Prefer localStorage over sessionStorage: freshly minted tokens
-      // (suite-sso hop, login redirect) land in localStorage while
-      // sessionStorage can still hold the previous (stale) session token.
+      // Restore tokens from session/local storage into the memory closure
+      // (Issue #575); localStorage wins over a stale sessionStorage token.
       var storedAccess =
         localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
         sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
@@ -33,22 +83,19 @@
       if (storedRefresh) {
         S._refreshToken = storedRefresh;
       }
-      // If localStorage holds a newer token than the one restored above
-      // (e.g. suite-sso hop wrote localStorage after a stale sessionStorage
-      // token from a previous login), promote it into the closure so every
-      // request uses the freshly acquired credential.
+      // Promote a newer localStorage token into the closure (suite-sso hop).
       var localToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
       if (localToken && localToken !== storedAccess) {
         S._accessToken = localToken;
         gbLog.debug("[GBSecurity] Promoted localStorage token over stale sessionStorage copy");
       }
-      // Also check token expiry from sessionStorage
+      // Check stored token expiry.
       var storedExpires = sessionStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES);
       if (storedExpires) {
         var expires = parseInt(storedExpires, 10);
         if (!isNaN(expires)) {
           S._tokenExpires = expires;
-          // If already expired, refresh immediately
+          // Expired: refresh now.
           if (Date.now() > expires) {
             S._accessToken = null;
             gbLog.debug("[GBSecurity] Stored token expired, will refresh");
@@ -70,16 +117,14 @@
 
       window.dispatchEvent(new CustomEvent("gb:security:ready"));
 
-      // Asynchronously refresh token in background if refresh token exists.
-      // This ensures we have a fresh access token even if the stored one
-      // is expired or about to expire.
+      // Refresh in background when possible so the access token stays fresh.
       if (S._refreshToken && !S._accessToken) {
         gbLog.debug("[GBSecurity] No access token, attempting refresh...");
         setTimeout(function () {
           self.refreshTokenFromStorage();
         }, 100);
       } else if (S._refreshToken && S._accessToken) {
-        // Even with a token, refresh in background to extend session
+        // Refresh in background even with a token.
         setTimeout(function () {
           self.refreshTokenFromStorage();
         }, 1000);
@@ -105,11 +150,8 @@
           token ? token.substring(0, 20) + "..." : "NONE",
         );
 
-        // Do NOT overwrite an existing Authorization header: htmx passes
-        // event.detail.headers straight into the XHR, and the XHR interceptor
-        // below would then attach a second copy (Bearer A, Bearer A), which
-        // breaks server-side token parsing and silently degrades the request
-        // to anonymous. Only attach when absent.
+        // Never overwrite an Authorization header: a second Bearer breaks
+        // server-side parsing and silently degrades the request to anonymous.
         var sameOrigin = self.isSameOrigin(event.detail.path);
         if (!token) {
           console.warn(
@@ -121,8 +163,7 @@
           event.detail.headers["Authorization"] = "Bearer " + token;
           gbLog.debug("[GBSecurity] Authorization header added");
         } else {
-          // Token exists but the header is already attached (previous pass)
-          // — the request is authenticated, not anonymous.
+          // Header already attached: request is authenticated.
           gbLog.debug("[GBSecurity] Authorization header already present");
         }
         if (sessionId && sameOrigin) {
@@ -147,6 +188,16 @@
         var url = typeof input === "string" ? input : input.url;
         init = init || {};
         init.headers = init.headers || {};
+
+        // #2943: drop guaranteed-401 private fetches; public routes pass.
+        if (
+          self.isSameOrigin(url) &&
+          !self.isPublicEndpoint(url) &&
+          !isPublicNoSessionPath(url) &&
+          !hasSession()
+        ) {
+          return Promise.resolve(noSessionResponse(url));
+        }
 
         gbLog.debug(
           "[GBSecurity] fetch intercepted:",

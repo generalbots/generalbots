@@ -8,25 +8,42 @@
 
   // #2933 — all non-critical chrome load work joins ONE coalesced idle/rAF pass.
   var chromeWork = [], chromeWorkQueued = false;
-  function drainChromeWork() {
-    chromeWorkQueued = false;
-    var jobs = chromeWork;
-    chromeWork = [];
-    jobs.forEach(function (job) { job(); });
-  }
-  function queueChromeWork(job) {
-    chromeWork.push(job);
+  // Boot used to drain every job in one ~160 ms task: flag first, then bounded slices; geometry stays in the clamp callback.
+  var chromeBootFlipped = false, chromeCursor = 0, CHROME_CHUNK = 8;
+  function scheduleChromeWork() {
     if (chromeWorkQueued) return;
     chromeWorkQueued = true;
     if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(drainChromeWork, { timeout: 800 });
     else window.requestAnimationFrame(drainChromeWork);
   }
+  function drainChromeWork() {
+    chromeWorkQueued = false;
+    if (!chromeBootFlipped) {
+      // Cheap boot task: flag/class flip only.
+      chromeBootFlipped = true;
+      document.documentElement.classList.add("gb-chrome-idle-ready");
+      if (chromeWork.length) scheduleChromeWork();
+      return;
+    }
+    var jobs = chromeWork;
+    // Bounded write-only slice; reclamps keep their own idle task below.
+    var end = Math.min(jobs.length, chromeCursor + CHROME_CHUNK);
+    for (; chromeCursor < end; chromeCursor += 1) jobs[chromeCursor]();
+    if (chromeCursor >= jobs.length) {
+      chromeWork = [];
+      chromeCursor = 0;
+    } else {
+      scheduleChromeWork();
+    }
+  }
+  function queueChromeWork(job) {
+    chromeWork.push(job);
+    scheduleChromeWork();
+  }
 
   WM.defineMethods(WindowManager.prototype, {
 
-  // #2410 — one geometry source for clamping, sheet mode and the resize grip.
-  // visualViewport.height is the only reliable visible height once the
-  // on-screen keyboard is up (innerHeight stays unchanged on iOS Safari).
+  // #2410 — one geometry source; visualViewport.height survives the iOS keyboard (innerHeight does not).
   _viewportBounds() {
     const margin = 8;
     const vv = window.visualViewport;
@@ -51,9 +68,7 @@
     };
   },
 
-  // Input mode is driven by the pointer device, not by width alone. A coarse
-  // phone is a pinned sheet (no free drag/resize); a coarse tablet (>=768px)
-  // keeps one-finger title-bar drag per the issue's C1 acceptance criterion.
+  // Pointer device, not width alone, decides the mode: coarse phone = pinned sheet; coarse tablet keeps drag.
   _isCoarsePointer() {
     return !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
   },
@@ -119,9 +134,8 @@
     win.style.left = `${Math.max(b.margin, left)}px`;
   },
 
-  // #2341 — universal per-app sanity affordance. Every window exposes the
-  // same entry point for Refresh / Copy ID / Copy link / Diagnose. The menu
-  // and diagnostics panel are built on demand by 08_app_actions.js.
+  // #2341 — universal per-app sanity affordance.
+  // Menu and diagnostics are built on demand by 08_app_actions.js.
   _sanityButton(id) {
     const label = window.gbT ? window.gbT("app-actions", "App actions") : "App actions";
     return `<button type="button" class="window-sanity-btn" data-app-id="${id}" ` +
@@ -165,11 +179,7 @@
     return `<div id="window-body-${id}" class="window-body relative flex-1 overflow-y-auto"></div>`;
   },
 
-  // Issue #725/#1849: every app window carries an inverted 3D bevel status
-  // bar. The markup is the shared live contract renderer sink (see
-  // 07_status.js): state LED + primary text, progress, metrics, selection,
-  // connection and the window title. Apps publish through GBStatus and never
-  // write these nodes directly.
+  // #725/#1849 — status-bar sink for GBStatus (see 07_status.js); apps never write these nodes.
   _statusBar(id) {
     const title = ((this.openWindows.find((w) => w.id === id)) || {}).title || "";
     const statusText = window.gbT ? window.gbT("status-ready", "Ready") : "Ready";
@@ -194,9 +204,7 @@
     const body = document.getElementById(`window-body-${id}`);
     if (!body) return;
     body.dataset.windowId = id;
-    // #2356 — `open(id)` with no content used to set innerHTML = undefined,
-    // which renders the literal word "undefined" in the app body and reads
-    // like a broken mount. Never let a missing fragment become visible text.
+    // #2356 — never let a missing fragment render the word "undefined".
     const html = (htmlContent == null) ? "" : String(htmlContent);
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
@@ -233,24 +241,18 @@
       content.appendChild(s);
     });
     if (window.htmx) htmx.process(content);
-    // Localize the fragment: the i18n boot pass ran before this window
-    // existed, so its [data-i18n] nodes otherwise keep authored text or a
-    // raw key (seen as "drive-starred"/"drive-recent" in the Drive nav).
+    // Localize late: the boot i18n pass ran before this window existed.
     if (window.i18n && typeof window.i18n.translatePage === "function") {
       window.i18n.translatePage(content);
     }
     this._revealWhenReady(body);
   },
 
-  // Reveal the app body once every local stylesheet of the fragment has
-  // loaded (or failed). A timeout guards apps whose CSS 404s or hangs.
+  // Reveal the body once its stylesheets settle; timeout guards missing CSS.
   _revealWhenReady(body) {
     const links = Array.from(body.querySelectorAll('link[rel="stylesheet"]'));
     const reclampAfterReveal = () => {
-      // #1278 — the open-time clamp runs before the app content settles;
-      // a popup whose body grows after reveal (New Project modal) can end
-      // up extending under the taskbar. Clamp once more now that the
-      // window has its final height.
+      // #1278 — clamp again after reveal; content can grow under the taskbar.
       const wid = body.dataset && body.dataset.windowId;
       if (!wid || !this._clampWindowIntoView) return;
       // #2933 — clamp reads getBoundingClientRect; reveal first, clamp on idle.
@@ -317,8 +319,7 @@
   },
 
   _trackRecent(id, title) {
-    // #1632 item 6 — Vibe is opened from its own entry and must not show up
-    // in the launcher's quick-access (Recent) grid.
+    // #1632 — Vibe has its own entry; never put it in Recent.
     if (id === "vibe" || String(id).indexOf("vibe-") === 0) return;
     try {
       let recent = gbStoreGet("gb-recent-apps", []);
@@ -333,11 +334,7 @@
     try {
       const recent = gbStoreGet("gb-recent-apps", []);
       const registry = window.APPS_REGISTRY || APPS_REGISTRY;
-      // #2015 — an app that left the registry (e.g. the duplicate "Sales"
-      // surface folded into CRM) must not linger as a Recent tile with an
-      // empty hxGet: it looks like a launcher entry but opens nothing. Keep
-      // only entries the registry still resolves and drop the rest from
-      // storage so the stale ids do not accumulate.
+      // #2015 — drop stale Recent ids the registry no longer resolves.
       const resolved = recent
         .filter((r) => r && r.id !== "vibe" && String(r.id).indexOf("vibe-") !== 0)
         .map((r) => registry.find((a) => a.id === r.id))
