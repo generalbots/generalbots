@@ -1600,7 +1600,7 @@ jobs:
       GB_ACCOUNT_FILE: /tmp/gb-smoke-account.json
       # Blocking chat computer-use UAT: real terminal consent flow against a
       # CI-only Incus test double (GitHub-hosted runners have no Incus daemon).
-      GB_CI_INCUS_ROOT: ${{ runner.temp }}/gb-ci-incus-root
+      GB_CI_INCUS_ROOT: /tmp/gb-ci-incus-root
       GB_VM_PROFILE: base
       # Free Kilo endpoint, no key. state_builder only falls back to a local
       # LLM for z.ai/openai.com/anthropic.com URLs without a key, so this URL
