@@ -166,7 +166,7 @@ self_test() {
         "printf x > '$sentinel'; echo agent-bootstrap.log" || return 1
     [ ! -e "$sentinel" ] || { log "self-test: provisioning script escaped the no-op"; return 1; }
 
-    [ "$(cat "$ROOT/opt/vibe/.provisioned")" = "v7-office" ] || {
+    [ "$(cat "$ROOT/opt/vibe/.provisioned")" = "v7-${GB_VM_PROFILE:-office}" ] || {
         log "self-test: provision marker missing"; return 1;
     }
 

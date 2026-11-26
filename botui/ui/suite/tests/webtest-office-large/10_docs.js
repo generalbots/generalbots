@@ -12,6 +12,7 @@ var M = require("./01_matrix");
 
 var STATE = "botui/ui/suite/docs/modules/84_large_state.js";
 var WINDOW = "botui/ui/suite/docs/modules/86_large_window.js";
+var EXPORT = "botui/ui/suite/docs/modules/02b_export.js";
 
 function anchor(rel, pattern) { return H.findLine(rel, pattern); }
 
@@ -24,13 +25,18 @@ H.matrixCell("Docs", "windowed_reads", "PASS", function () {
 }, anchor(WINDOW, "function visibleRange"),
   "visibleRange()+mountPlan() bound mounted blocks to viewport+overscan; LOCAL preview only (#2533), not the server load path");
 
-// Progress + cancel on import/export — ABSENT.
-H.matrixCell("Docs", "progress_cancel", "GAP", function () {
-  H.equal(M.scanAppJs(H, "Docs", M.PATTERNS.progressCancel), 0,
-    "no AbortController/progress-bar/cancel affordance expected in Docs large modules");
-  H.assert(anchor(STATE, "Deferred: streaming import").line > 0);
-}, anchor(STATE, "Deferred: streaming import"),
-  "no progress/cancel affordance; large modules are a local simulation and list streaming/async export as deferred");
+// Progress + cancel on export — PRESENT after the merged export-control work.
+// Streaming IMPORT is still deferred in the local preview, but the export
+// path now wires an AbortController, a progress timer and a cancel affordance.
+H.matrixCell("Docs", "progress_cancel", "PASS", function () {
+  H.assert(M.scanAppJs(H, "Docs", M.PATTERNS.progressCancel) > 0,
+    "Docs export must carry an AbortController/progress/cancel marker");
+  H.assert(anchor(EXPORT, "new AbortCtor()").line > 0,
+    "the export path must construct an AbortController");
+  H.assert(anchor(EXPORT, "onStart: function ()").line > 0,
+    "progress reporting must be wired into the export call");
+}, anchor(EXPORT, "new AbortCtor()"),
+  "export wires AbortController + progress timer + cancel affordance (#2534); LOCAL preview only, streaming import remains deferred");
 
 // Virtualized rendering — PRESENT for the preview (bounded window mount).
 H.matrixCell("Docs", "virtualized_render", "PASS", function () {
