@@ -13,15 +13,6 @@
 
     // DOM Elements
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
     /**
      * Bind UI listeners. The implementation lives in calendar-more.js (loaded
      * after this file), which registers it on window.CalendarModule.
@@ -392,7 +383,13 @@
         fetch(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
             .then(r => r.json())
             .then(data => {
-                CS.events = data || [];
+                // #2941 — a 401/500 body is not an event list: normalize, show the shipped error state.
+                var valid = Array.isArray(data);
+                CS.events = valid ? data : [];
+                if (window.GBAppLifecycle && typeof window.GBAppLifecycle.setState === 'function' && valid !== !CS.eventsLoadError) {
+                    CS.eventsLoadError = !valid;
+                    window.GBAppLifecycle.setState(valid ? null : 'error');
+                }
                 drawEvents();
             })
             .catch(err => {

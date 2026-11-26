@@ -2,6 +2,13 @@
     'use strict';
     var CS = window.__calCS;
 
+    /** #2941 — never iterate a non-array 401/500 error body. */
+    function events() {
+        if (!CS) return [];
+        if (!Array.isArray(CS.events)) CS.events = [];
+        return CS.events;
+    }
+
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -31,7 +38,7 @@
             var cellMonth = parseInt(parts[1], 10) - 1;
             var cellDay = parseInt(parts[2], 10);
 
-            var dayEvents = CS.events.filter(function (evt) {
+            var dayEvents = events().filter(function (evt) {
                 var d = new Date(evt.start_time);
                 return d.getFullYear() === cellYear && d.getMonth() === cellMonth && d.getDate() === cellDay;
             });
@@ -53,7 +60,7 @@
         });
 
         var weekStart = getWeekStart(CS.selectedDate);
-        CS.events.forEach(function (evt) {
+        events().forEach(function (evt) {
             var start = new Date(evt.start_time);
             var end = new Date(evt.end_time);
             var diffDays = Math.floor((start.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
@@ -85,7 +92,7 @@
         var cellMonth = CS.selectedDate.getMonth();
         var cellDay = CS.selectedDate.getDate();
 
-        var dayEvents = CS.events.filter(function (evt) {
+        var dayEvents = events().filter(function (evt) {
             var d = new Date(evt.start_time);
             return d.getFullYear() === cellYear && d.getMonth() === cellMonth && d.getDate() === cellDay;
         });
@@ -108,6 +115,8 @@
     }
 
     function drawEvents() {
+        if (!CS) return;
+        events(); // #2941 normalize before the painters iterate
         if (CS.currentView === 'month') return drawEventsMonth();
         if (CS.currentView === 'week') return drawEventsWeek();
         return drawEventsDay();
@@ -116,7 +125,7 @@
     function checkConflict(start, end) {
         var s = new Date(start).getTime();
         var e = new Date(end).getTime();
-        return CS.events.some(function (evt) {
+        return events().some(function (evt) {
             var evtS = new Date(evt.start_time).getTime();
             var evtE = new Date(evt.end_time).getTime();
             return (s < evtE && e > evtS);
@@ -124,7 +133,7 @@
     }
 
     function showEventPopup(e, eventId) {
-        var evt = CS.events.find(function (x) { return x.id === eventId; });
+        var evt = events().find(function (x) { return x.id === eventId; });
         if (!evt) return;
 
         var popup = document.getElementById('event-popup');

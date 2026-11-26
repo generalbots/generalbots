@@ -87,8 +87,10 @@ require("./webtest-office-fidelity/81_i18n_cache_revision");
 require("./webtest-office-fidelity/82_chat_access_failure");
 require("./webtest-office-fidelity/83_local_partials_serving");
 require("./webtest-office-fidelity/84_export_progress_cancel");
+require("./webtest-office-fidelity/85_slides_import_persistence");
 require("./webtest-office-fidelity/86_sweep_null_dropdown_resolve");
 require("./webtest-office-fidelity/87_tasks_reinit_idempotence");
+require("./webtest-office-fidelity/88_calendar_events_normalize");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
