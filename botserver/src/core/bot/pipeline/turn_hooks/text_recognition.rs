@@ -47,12 +47,14 @@ fn bounded(text: &str) -> String {
 }
 
 /// Whether the recognised text is worth handing to the model: a photo often
-/// yields a few stray characters, which are not text.
+/// yields a few stray characters, which are not text, while a poster or a
+/// sign may carry a single word.
 fn has_words(text: &str) -> bool {
-    text.split_whitespace()
-        .filter(|word| word.chars().filter(|c| c.is_alphanumeric()).count() >= 2)
-        .count()
-        >= 3
+    let sizes: Vec<usize> = text
+        .split_whitespace()
+        .map(|word| word.chars().filter(|c| c.is_alphanumeric()).count())
+        .collect();
+    sizes.iter().any(|&size| size >= 4) || sizes.iter().filter(|&&size| size >= 2).count() >= 3
 }
 
 #[cfg(windows)]
@@ -71,7 +73,7 @@ mod platform {
         let engine = engine()?;
         let source = stream_from(data)?;
         if !pdf {
-            return read_image(&engine, &source);
+            return read_picture(&engine, &source);
         }
         let document = PdfDocument::LoadFromStreamAsync(&source)?.get()?;
         let pages = document.PageCount()?.min(super::MAX_PDF_PAGES);
@@ -86,7 +88,7 @@ mod platform {
             options.SetDestinationWidth(width.min(largest))?;
             page.RenderWithOptionsToStreamAsync(&rendered, &options)?
                 .get()?;
-            let page_text = read_image(&engine, &rendered)?;
+            let page_text = read_image(&engine, &rendered, 1.0)?;
             if !page_text.trim().is_empty() {
                 if !text.is_empty() {
                     text.push_str("\n\n");
@@ -126,17 +128,34 @@ mod platform {
         Ok(stream)
     }
 
-    fn read_image(engine: &OcrEngine, stream: &InMemoryRandomAccessStream) -> Result<String> {
+    /// The recognizer sometimes finds no line in a picture at its own size
+    /// (a single word in large print beside a shape) and finds it at half or
+    /// twice that size, so a picture with no text is read again at those.
+    fn read_picture(engine: &OcrEngine, stream: &InMemoryRandomAccessStream) -> Result<String> {
+        for scale in [1.0, 0.5, 2.0] {
+            let text = read_image(engine, stream, scale)?;
+            if !text.trim().is_empty() {
+                return Ok(text);
+            }
+        }
+        Ok(String::new())
+    }
+
+    fn read_image(
+        engine: &OcrEngine,
+        stream: &InMemoryRandomAccessStream,
+        scale: f64,
+    ) -> Result<String> {
         stream.Seek(0)?;
         let decoder = BitmapDecoder::CreateAsync(stream)?.get()?;
-        let largest = OcrEngine::MaxImageDimension()?;
-        let (width, height) = (decoder.PixelWidth()?, decoder.PixelHeight()?);
-        let transform = BitmapTransform::new()?;
+        let largest = f64::from(OcrEngine::MaxImageDimension()?);
+        let (width, height) = (f64::from(decoder.PixelWidth()?), f64::from(decoder.PixelHeight()?));
         // The engine refuses an image larger than its maximum on either side.
-        if width > largest || height > largest {
-            let scale = f64::from(largest) / f64::from(width.max(height));
-            transform.SetScaledWidth(((f64::from(width) * scale) as u32).max(1))?;
-            transform.SetScaledHeight(((f64::from(height) * scale) as u32).max(1))?;
+        let scale = scale.min(largest / width.max(height).max(1.0));
+        let transform = BitmapTransform::new()?;
+        if (scale - 1.0).abs() > f64::EPSILON {
+            transform.SetScaledWidth(((width * scale) as u32).max(1))?;
+            transform.SetScaledHeight(((height * scale) as u32).max(1))?;
             transform.SetInterpolationMode(BitmapInterpolationMode::Fant)?;
         }
         let bitmap = decoder
@@ -176,6 +195,7 @@ mod tests {
         assert!(!has_words("a | ~ 1"));
         assert!(!has_words("IV ."));
         assert!(has_words("Ofício nº 1.234/2026 Coordenação de Tecnologia"));
+        assert!(has_words("AZUL"));
     }
 
     #[test]

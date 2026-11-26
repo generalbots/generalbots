@@ -41,6 +41,16 @@ pub fn unavailable_reason(name: &str) -> Option<&'static str> {
     Some("upstream publishes no Windows build; use the container image or run this component on Linux")
 }
 
+/// The `3rdparty.toml` entry that provides component `name`: the `vault`
+/// component is served by the OpenBao binary.
+#[must_use]
+pub fn download_entry(name: &str) -> &str {
+    match name {
+        "vault" => "openbao",
+        other => other,
+    }
+}
+
 pub fn get_component_url(name: &str) -> Option<String> {
     if !component_available_here(name) {
         log::warn!(
@@ -50,7 +60,7 @@ pub fn get_component_url(name: &str) -> Option<String> {
     }
     get_thirdparty_config()
         .components
-        .get(name)
+        .get(download_entry(name))
         .map(|c| c.effective_url().to_string())
 }
 
@@ -111,5 +121,21 @@ mod tests {
         }
         assert!(component_available_here("vault"));
         assert_eq!(unavailable_reason("vault"), None);
+    }
+
+    #[test]
+    fn the_vault_component_downloads_pinned_openbao() {
+        let config = super::get_thirdparty_config();
+        assert!(!config.components.contains_key("vault"));
+        let entry = config.components.get(download_entry("vault"));
+        let Some(entry) = entry else {
+            panic!("3rdparty.toml must carry the openbao entry");
+        };
+        let url = get_component_url("vault").unwrap_or_default();
+        assert!(url.contains("github.com/openbao/openbao/releases/download/"), "{url}");
+        assert!(!url.contains("hashicorp"), "{url}");
+        assert_eq!(checksum_for_url(&url).map(|d| d.len()), Some(64));
+        assert!(entry.effective_url().contains("openbao_"));
+        assert_eq!(download_entry("tables"), "tables");
     }
 }

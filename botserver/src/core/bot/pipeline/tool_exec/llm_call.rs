@@ -3,10 +3,8 @@
 
 use super::super::types::SessionIdentity;
 use super::is_placeholder_value::all_args_are_placeholder;
-use super::parse::{
-    extract_tool_call, parse_dsml_tool_call, parse_xml_tool_use, recover_tool_name,
-    salvage_tool_call,
-};
+use super::envelope::read_call;
+use super::parse::{parse_dsml_tool_call, parse_xml_tool_use, recover_tool_name};
 use super::script::run_script_tool;
 
 pub async fn run_llm_tool_call(
@@ -43,7 +41,7 @@ pub async fn run_llm_tool_call(
         None => return String::new(),
     };
     let tc_json = &full_response[tc_start..];
-    let tool_call = match extract_tool_call(tc_json).or_else(|| salvage_tool_call(tc_json)) {
+    let tool_call = match read_call(tc_json) {
         Some(value) => value,
         None => {
             botlog::safe_warn!(
@@ -138,11 +136,16 @@ pub async fn run_llm_tool_call(
         }
         let tool_args: &str = tool_args_owned.as_str();
 
-        log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
+        // Arguments can carry personal data (an address's query string, a
+        // command): only the tool, the argument size and, for a page, its site.
+        log::info!(
+            "LLM tool_call: executing tool '{raw_tool_name}' {}",
+            super::args_summary(&raw_tool_name, tool_args)
+        );
         if raw_tool_name.is_empty() {
             botlog::safe_warn!(
-                "tool_call: the model sent a call without a tool name; raw: {}",
-                tc_json.chars().take(200).collect::<String>()
+                "tool_call: the model sent a call without a tool name; raw_bytes={}",
+                tc_json.len()
             );
             let msg = "Não consegui identificar qual ferramenta executar para esse pedido. \
                        Pode repetir o que você precisa?";
@@ -163,7 +166,7 @@ pub async fn run_llm_tool_call(
             log::info!(
                 "All tool args are placeholder - asking user for real data instead of executing"
             );
-            let msg = "I need the actual values before I can run that tool. Please provide the requested details.".to_string();
+            let msg = "Preciso dos dados reais antes de executar essa ferramenta. Informe os detalhes pedidos.".to_string();
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
                 session_id.to_string(),

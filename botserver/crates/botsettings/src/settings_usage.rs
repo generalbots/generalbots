@@ -41,6 +41,20 @@ struct UsageRow {
     messages: i64,
 }
 
+#[derive(diesel::QueryableByName)]
+struct EngineRow {
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    engine: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    provider: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    model: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    messages: i64,
+}
+
 fn parse_price_list(raw: &str) -> BTreeMap<String, f64> {
     if raw.trim().is_empty() {
         return BTreeMap::new();
@@ -203,6 +217,9 @@ pub async fn usage_summary(
     }
 
     let pricing_available = !prices.is_empty();
+
+    let engines = build_engines_array(&mut conn, user_id, days, &prices);
+
     (
         axum::http::StatusCode::OK,
         Json(json!({
@@ -216,8 +233,144 @@ pub async fn usage_summary(
             },
             "models": per_model,
             "per_day": per_day.into_values().collect::<Vec<_>>(),
+            "engines": engines,
         })),
     )
+}
+
+fn build_engines_array(
+    conn: &mut diesel::PgConnection,
+    user_id: Uuid,
+    days: i64,
+    prices: &BTreeMap<String, f64>,
+) -> Vec<serde_json::Value> {
+    use super::usage_engine::{classify_model_fallback, provider_label, ENGINE_UNKNOWN};
+
+    // Attribute every row to the assistant row that answered it (the next
+    // role=2 row of the same session), so the groups add up to the report's
+    // total — not just assistant rows.
+    let engine_rows = diesel::sql_query(
+        "SELECT COALESCE(m.llm_engine, a.llm_engine)     AS engine, \
+                COALESCE(m.llm_provider, a.llm_provider) AS provider, \
+                COALESCE(m.llm_model, a.llm_model)       AS model, \
+                COALESCE(SUM(m.token_count), 0)::bigint  AS tokens, \
+                COUNT(*)::bigint                         AS messages \
+         FROM message_history m \
+         LEFT JOIN LATERAL ( \
+             SELECT llm_engine, llm_provider, llm_model \
+             FROM message_history a \
+             WHERE m.role <> 2 AND a.session_id = m.session_id AND a.role = 2 \
+               AND a.message_index > m.message_index \
+             ORDER BY a.message_index ASC LIMIT 1 \
+         ) a ON TRUE \
+         WHERE m.user_id = $1 \
+           AND m.created_at >= NOW() - ($2::text || ' days')::interval \
+         GROUP BY 1, 2, 3",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Text, _>(days.to_string())
+    .load::<EngineRow>(conn);
+    let engine_rows = match engine_rows {
+        Ok(r) => r,
+        Err(error) => {
+            log::warn!("engine usage query failed: {error}");
+            return Vec::new();
+        }
+    };
+
+    // key = (engine, provider, model)
+    struct ModelBucket {
+        tokens: i64,
+        messages: i64,
+    }
+    let mut tree: BTreeMap<(String, String), BTreeMap<String, ModelBucket>> = BTreeMap::new();
+    for row in &engine_rows {
+        let model_name = row.model.clone().unwrap_or_else(|| "unknown".to_string());
+        let (eng, prov) = match (&row.engine, &row.provider) {
+            (Some(e), Some(p))
+                if !e.trim().is_empty()
+                    && e.trim() != ENGINE_UNKNOWN
+                    && p.trim() != ENGINE_UNKNOWN =>
+            {
+                (e.clone(), p.clone())
+            }
+            _ => {
+                let (fe, fp) = classify_model_fallback(&model_name);
+                (fe.to_string(), fp.to_string())
+            }
+        };
+        let models = tree.entry((eng, prov)).or_default();
+        let bucket = models.entry(model_name).or_insert(ModelBucket { tokens: 0, messages: 0 });
+        bucket.tokens += row.tokens;
+        bucket.messages += row.messages;
+    }
+
+    // Aggregate into the three-level structure.
+    let mut engine_map: BTreeMap<String, (i64, i64, Option<f64>, BTreeMap<String, (i64, i64, Option<f64>, Vec<serde_json::Value>)>)> = BTreeMap::new();
+    for ((eng, prov), models) in &tree {
+        let engine_entry = engine_map.entry(eng.clone()).or_insert((0, 0, None, BTreeMap::new()));
+        let prov_entry = engine_entry.3.entry(prov.clone()).or_insert((0, 0, None, Vec::new()));
+        for (model_name, bucket) in models {
+            let cost = prices
+                .get(&model_name.to_ascii_lowercase())
+                .map(|p| (bucket.tokens as f64 / 1_000_000.0) * p);
+            prov_entry.0 += bucket.tokens;
+            prov_entry.1 += bucket.messages;
+            if let Some(c) = cost {
+                *prov_entry.2.get_or_insert(0.0) += c;
+            }
+            engine_entry.0 += bucket.tokens;
+            engine_entry.1 += bucket.messages;
+            if let Some(c) = cost {
+                *engine_entry.2.get_or_insert(0.0) += c;
+            }
+            prov_entry.3.push(json!({
+                "model": model_name,
+                "tokens": bucket.tokens,
+                "messages": bucket.messages,
+                "cost": cost,
+            }));
+        }
+    }
+
+    // Sort by tokens descending at each level.
+    let mut engines: Vec<(String, i64, i64, Option<f64>, BTreeMap<String, (i64, i64, Option<f64>, Vec<serde_json::Value>)>)> =
+        engine_map.into_iter().map(|(e, (t, m, c, p))| (e, t, m, c, p)).collect();
+    engines.sort_by(|a, b| b.1.cmp(&a.1));
+
+    engines
+        .into_iter()
+        .map(|(eng, tokens, messages, cost, providers)| {
+            let mut provs: Vec<_> = providers.into_iter().collect();
+            provs.sort_by(|a, b| (b.1).0.cmp(&(a.1).0));
+            let provider_arr: Vec<serde_json::Value> = provs
+                .into_iter()
+                .map(|(prov_id, (pt, pm, pc, mut model_arr))| {
+                    model_arr.sort_by(|a, b| {
+                        let at = a.get("tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let bt = b.get("tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+                        bt.cmp(&at)
+                    });
+                    let label = provider_label(&prov_id);
+                    json!({
+                        "provider": prov_id,
+                        "label": label,
+                        "tokens": pt,
+                        "messages": pm,
+                        "cost": pc,
+                        "models": model_arr,
+                    })
+                })
+                .collect();
+            json!({
+                "engine": if eng.is_empty() { ENGINE_UNKNOWN } else { &eng },
+                "tokens": tokens,
+                "messages": messages,
+                "cost": cost,
+                "providers": provider_arr,
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]

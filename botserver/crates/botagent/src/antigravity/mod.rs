@@ -2,7 +2,10 @@
 //!
 //! Mirrors the Claude flow: CLI/login helper runs inside the agent VM,
 //! auth URL is surfaced to the UI, user pastes code back, credentials stay in VM.
+//! Chat turns run over ACP ([`acp::run_acp_turn`]); print mode
+//! ([`run_prompt`]) answers only when the CLI does not speak ACP.
 
+pub mod acp;
 mod login;
 mod paths;
 mod prompt;
@@ -13,7 +16,7 @@ use axum::http::StatusCode;
 use base64::Engine;
 
 pub use login::{logout, start_login, submit_code};
-pub use paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, CREDENTIALS_PATH};
+pub use paths::{credentials_test, ANTIGRAVITY_HOME, ANTIGRAVITY_USER, CREDENTIALS_DIRS};
 pub use prompt::run_prompt;
 pub use status::{extract_auth_code, extract_auth_url, status, AntigravityStatus};
 

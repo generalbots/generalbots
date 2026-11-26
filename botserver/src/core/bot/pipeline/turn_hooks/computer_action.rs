@@ -16,7 +16,7 @@ pub(crate) async fn propose_computer_action(
         user_id,
         ..
     } = *identity;
-    if msg_type != 1 || !sink.supports_raw_frames() {
+    if msg_type != 1 || !sink.supports_raw_frames() || !shell_renders_consent_cards() {
         return false;
     }
     if let Some(action) = crate::core::computer_use::propose_from_text(user_text) {
@@ -53,7 +53,7 @@ pub(crate) async fn propose_computer_action(
                 bot_uuid.to_string(),
                 session_id.to_string(),
                 user_id.to_string(),
-                super::super::agent_turn::DISABLED_MESSAGE,
+                super::super::agent_turn::DISABLED_FOR_PERSON,
                 "web",
             );
             if let Err(e) = sink.send_bot_response(&resp).await {
@@ -87,4 +87,46 @@ pub(crate) async fn propose_computer_action(
         return true;
     }
     false
+}
+
+/// The assistant shell has no consent-card renderer: it drops the
+/// `browser_action` and `terminal_action` frames, so a turn answered with one
+/// looked hung until the client's own timeout. With that shell the request
+/// goes to the model, whose tools report through frames the shell renders.
+fn shell_renders_consent_cards() -> bool {
+    let shell = botcore::product::PRODUCT_CONFIG
+        .read()
+        .ok()
+        .and_then(|config| config.shell.clone());
+    renders_consent_cards(shell.as_deref())
+}
+
+fn renders_consent_cards(shell: Option<&str>) -> bool {
+    shell != Some("assistant")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::renders_consent_cards;
+
+    #[test]
+    fn the_assistant_shell_gets_no_consent_cards() {
+        assert!(!renders_consent_cards(Some("assistant")));
+    }
+
+    #[test]
+    fn the_suite_shells_keep_their_consent_cards() {
+        assert!(renders_consent_cards(None));
+        assert!(renders_consent_cards(Some("desktop")));
+    }
+
+    /// The sentence that hung the assistant shell is still a terminal
+    /// proposal for the shells that render one.
+    #[test]
+    fn a_run_request_in_portuguese_is_a_terminal_proposal() {
+        let proposal = crate::core::computer_use::propose_terminal_from_text(
+            "Rode uname -a e cat /etc/os-release e me diga em que sistema você está.",
+        );
+        assert!(proposal.is_some());
+    }
 }

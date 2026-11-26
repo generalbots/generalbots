@@ -1,5 +1,10 @@
 use super::*;
 
+/// How often a starting service's health check is repeated.
+const READY_POLL: Duration = Duration::from_millis(500);
+/// How long a wave waits for the services it depends on before starting anyway.
+const DEPENDENCY_WAIT: Duration = Duration::from_secs(60);
+
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
         let stack_path = PathBuf::from(get_stack_path());
@@ -16,7 +21,7 @@ impl BootstrapManager {
     }
 
     pub fn vault_bin(&self) -> String {
-        self.stack_dir("bin/vault/vault")
+        botcorepkg::secrets_engine::cli_path(&self.stack_path)
             .to_str()
             .unwrap_or(&get_stack_path())
             .to_string()
@@ -118,32 +123,67 @@ impl BootstrapManager {
             ]
         };
 
+        let pm = std::sync::Arc::new(pm);
+        let planned: Vec<ServiceConfig> = other_services
+            .into_iter()
+            .filter(|(name, ..)| {
+                if skip_local_directory && *name == "directory" {
+                    info!("Skipping local directory service for this Windows development run");
+                    return false;
+                }
+                pm.is_installed(name)
+            })
+            .collect();
+        let names: Vec<&'static str> = planned.iter().map(|(name, ..)| *name).collect();
+
         type WaitService = (&'static str, fn() -> bool, u32);
         let mut wait_services: Vec<WaitService> = Vec::new();
 
-        for (name, check_fn, max_wait, need_wait) in &other_services {
-            if skip_local_directory && *name == "directory" {
-                info!("Skipping local directory service for this Windows development run");
-                continue;
+        // Independent services start together; a service that needs another
+        // one (Zitadel needs PostgreSQL) starts in a later wave, once that
+        // dependency answers its health check.
+        for wave in start_plan::start_waves(&names) {
+            for dep in wave.iter().flat_map(|name| start_plan::depends_on(name)) {
+                if let Some((dep, check_fn, ..)) = planned.iter().copied().find(|(n, ..)| n == dep) {
+                    let ready = tokio::task::spawn_blocking(move || {
+                        start_plan::wait_ready(check_fn, DEPENDENCY_WAIT, READY_POLL)
+                    })
+                    .await
+                    .ok()
+                    .flatten();
+                    if ready.is_none() {
+                        warn!("{} is not answering yet; starting its dependents anyway", dep);
+                    }
+                }
             }
-            if !pm.is_installed(name) {
-                continue;
-            }
-            let already_running = check_fn();
-            if already_running {
-                info!("{} is already running", name);
-            } else {
-                info!("Starting {}...", name);
-                match pm.start(name) {
-                    Ok(_) => {
-                        info!("{} started", name);
-                        if *need_wait {
-                            wait_services.push((*name, *check_fn, *max_wait));
+            let mut starts = Vec::new();
+            for (name, check_fn, max_wait, need_wait) in
+                planned.iter().copied().filter(|(n, ..)| wave.contains(n))
+            {
+                let pm = std::sync::Arc::clone(&pm);
+                starts.push(tokio::task::spawn_blocking(move || {
+                    if check_fn() {
+                        info!("{} is already running", name);
+                        return None;
+                    }
+                    info!("Starting {}...", name);
+                    match pm.start(name) {
+                        Ok(_) => {
+                            info!("{} started", name);
+                            need_wait.then_some((name, check_fn, max_wait))
+                        }
+                        Err(e) => {
+                            warn!("Failed to start {}: {}", name, e);
+                            None
                         }
                     }
-                    Err(e) => {
-                        warn!("Failed to start {}: {}", name, e);
-                    }
+                }));
+            }
+            for start in starts {
+                match start.await {
+                    Ok(Some(wait)) => wait_services.push(wait),
+                    Ok(None) => {}
+                    Err(e) => warn!("service start task failed: {}", e),
                 }
             }
         }
@@ -161,20 +201,20 @@ impl BootstrapManager {
                 let check_fn = *check_fn;
                 let max_wait = *max_wait;
                 let handle = tokio::task::spawn_blocking(move || {
-                    let start = std::time::Instant::now();
-                    for _ in 0..max_wait {
-                        if check_fn() {
-                            let elapsed = start.elapsed().as_secs();
-                            info!("{} is responding after {}s", name, elapsed);
-                            return true;
+                    let limit = Duration::from_secs(u64::from(max_wait));
+                    match start_plan::wait_ready(check_fn, limit, READY_POLL) {
+                        Some(took) => {
+                            info!("{} is responding after {:.1}s", name, took.as_secs_f32());
+                            true
                         }
-                        std::thread::sleep(Duration::from_secs(1));
+                        None => {
+                            warn!(
+                                "{} did not respond after {} seconds, continuing anyway",
+                                name, max_wait
+                            );
+                            false
+                        }
                     }
-                    warn!(
-                        "{} did not respond after {} seconds, continuing anyway",
-                        name, max_wait
-                    );
-                    false
                 });
                 handles.push((name, max_wait, handle));
             }

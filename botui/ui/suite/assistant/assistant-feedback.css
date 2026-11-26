@@ -14,7 +14,7 @@
 .gb-feedback-btn:hover { background: var(--id-surface-alt, var(--palette-f1f5f9)); color: var(--id-text); }
 .gb-feedback-btn.active { color: var(--id-accent); }
 .gb-feedback-comment {
-    display: flex; gap: 4px; margin-top: 4px; padding: 4px 0;
+    display: flex; gap: 4px; max-width: 420px; margin-top: 6px; padding: 4px 0;
 }
 .gb-feedback-input {
     flex: 1; font-size: var(--id-text-sm); font-family: var(--id-font-sans);
@@ -54,7 +54,7 @@
     .gb-composer-card,
     .gb-status-bar,
     .gb-msg-toolbar,
-    .gb-feedback-wrap,
+    .gb-feedback-comment,
     .gb-suggestions,
     .gb-scroll-bottom,
     .gb-empty-state,

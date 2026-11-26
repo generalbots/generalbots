@@ -447,6 +447,18 @@
           "markdownDescription": "Allow the list_remotes command"
         },
         {
+          "description": "Allow the local_password_reset command",
+          "type": "string",
+          "const": "allow-local-password-reset",
+          "markdownDescription": "Allow the local_password_reset command"
+        },
+        {
+          "description": "Allow the open_download command",
+          "type": "string",
+          "const": "allow-open-download",
+          "markdownDescription": "Allow the open_download command"
+        },
+        {
           "description": "Allow the open_release_url command",
           "type": "string",
           "const": "allow-open-release-url",

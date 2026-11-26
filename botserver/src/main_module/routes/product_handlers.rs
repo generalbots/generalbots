@@ -43,6 +43,7 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
             "terminal_available".to_string(),
             serde_json::json!(cfg!(feature = "terminal") && cfg!(feature = "agent-vm")),
         );
+        object.insert("fast_available".into(), serde_json::json!(cfg!(feature = "chat")));
         // Whether a chat turn can be grounded on a web search. The assistant
         // shows its switch (Settings > Modelo) only when this is true.
         object.insert(

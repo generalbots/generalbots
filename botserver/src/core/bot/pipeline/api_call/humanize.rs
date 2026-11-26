@@ -198,6 +198,13 @@ fn with_deep_link(mut text: String, result: &serde_json::Value) -> String {
     text
 }
 
+/// What the person sees when a command fails: a sentence in their language,
+/// never the raw (English, internal) error, which goes to the server log only.
+pub(super) fn failure_text(pool: &botcore::shared::utils::DbPool, user_id: uuid::Uuid) -> String {
+    let locale = botcore::i18n::locale_for_user_pool(pool, user_id);
+    botcore::i18n::t(&locale, "error-command-failed")
+}
+
 #[cfg(test)]
 mod humanize_tests {
     use super::{grounded_numbers, humanize_result};
@@ -259,3 +266,4 @@ mod humanize_tests {
         ));
     }
 }
+

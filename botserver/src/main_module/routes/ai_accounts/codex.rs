@@ -26,6 +26,7 @@ pub(super) async fn connect_codex(
     if status.state == "linked" {
         ai_accounts::mark_linked(&state.conn, user_id, ai_accounts::CODEX_CLI, None, None, Some(&row.vm_name), None)
             .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        crate::core::bot::engine_precheck::after_sign_in(user_id, ai_accounts::CODEX_CLI, row.vm_name.clone());
     } else {
         ai_accounts::update_status(&state.conn, user_id, ai_accounts::CODEX_CLI, map_claude_state(&status.state), None, None, Some(&row.vm_name))
             .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
@@ -62,6 +63,7 @@ pub async fn codex_code(
     if status.state == "linked" {
         ai_accounts::mark_linked(&state.conn, user.user_id, ai_accounts::CODEX_CLI, None, None, Some(&row.vm_name), None)
             .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        crate::core::bot::engine_precheck::after_sign_in(user.user_id, ai_accounts::CODEX_CLI, row.vm_name.clone());
     } else {
         ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CODEX_CLI, map_claude_state(&status.state), None, None, Some(&row.vm_name))
             .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;

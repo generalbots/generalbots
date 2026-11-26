@@ -5,7 +5,7 @@ use super::super::types::SessionIdentity;
 use super::super::workspace_progress::{WorkspaceProgress, PHASE_TOOL};
 use super::program_repair::repair_program;
 use super::render::render_result;
-use super::send;
+use super::{send, tell_model, ModelOnly};
 use super::vm_budget::{
     timeout_cap_ms, workspace_budget_ms, workspace_failure_message,
 };
@@ -16,15 +16,15 @@ use super::vm_trace::trace_event;
 /// "fixing it automatically…" with no terminal state.
 const REPAIR_TIMEOUT_SECS: u64 = 45;
 
+/// What the tool writes is its result for the model; the person sees the
+/// run on its step and reads the model's answer, so the program output is
+/// not repeated in the chat. Files left in `output/` reach the person as the
+/// turn's attachments (`output_publish::publish_and_attach`).
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let parsed: serde_json::Value = match super::super::native_args::parse_args(args) {
         Ok(value) => value,
         Err(e) => {
-            send(
-                identity,
-                &format!("Could not read the execution request: {e}"),
-            )
-            .await;
+            tell_model(identity.session_id, &format!("Could not read the execution request: {e}"));
             return;
         }
     };
@@ -45,19 +45,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .unwrap_or(trimmed)
         .trim_end();
     if code.trim().is_empty() {
-        send(
-            identity,
-            "The execution request had no code. Send the program to run in `code`.",
-        )
-        .await;
+        tell_model(identity.session_id, "The execution request had no code. Send the program to run in `code`.");
         return;
     }
     if !matches!(language, "python" | "node" | "shell") {
-        send(
-            identity,
-            "Unsupported language. Use `python`, `node` or `shell`.",
-        )
-        .await;
+        tell_model(identity.session_id, "Unsupported language. Use `python`, `node` or `shell`.");
         return;
     }
 
@@ -92,37 +84,35 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .get("background")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    let action = super::super::vm_consent::tools::program_action(language, code, &packages, background, false);
+    let Some(ticket) = super::super::vm_consent::tools::gate_or_explain(identity, &action).await else {
+        return;
+    };
+    let receipt = ticket.receipt();
+    let scope = ModelOnly::begin(session_id);
 
     if background {
-        // #1580: a long job must outlive the tab. Run it in its own task and
-        // save the outcome into the conversation it belongs to.
-        let worker_state = state.clone();
-        let code = code.to_string();
-        let language = language.to_string();
-        tokio::spawn(async move {
-            let result = crate::core::bot::agent_vm_hook::exec_with_wake_result(
-                user_id, session_id, bot_uuid, &language, &code, timeout_ms, &packages,
-            )
-            .await;
-            let message = match result {
-                Err((status, reason)) => {
-                    botlog::safe_warn!("background job workspace failure ({status}): {reason}");
-                    workspace_failure_message(&reason, timeout_ms)
-                }
-                Ok(None) => {
-                    "The workspace became unavailable and the background job could not finish."
-                        .to_string()
-                }
-                Ok(Some((ok, stdout, stderr))) => {
-                    let stdout = super::vm_trace::strip_trace_lines(&stdout);
-                    render_result(user_id, session_id, ok, &stdout, &stderr).await
-                }
-            };
-            super::persist(&worker_state, session_id, user_id, &message).await;
-        });
         let started = "Started in the background. The result will be saved to this conversation.";
         send(identity, started).await;
-        super::persist(&state, session_id, user_id, started).await;
+        let outcome = super::super::vm_consent::VmOutcome {
+            ok: true,
+            reason: Some(super::super::vm_consent::reason::BACKGROUND_STARTED),
+            ..Default::default()
+        };
+        super::super::vm_consent::report(identity, &receipt, &outcome).await;
+        // #1580: the job outlives the tab; the person reads its result.
+        drop(scope);
+        super::vm_background::spawn(super::vm_background::BackgroundJob {
+            state: state.clone(),
+            ticket,
+            user_id,
+            session_id,
+            bot_uuid,
+            language: language.to_string(),
+            code: code.to_string(),
+            timeout_ms,
+            packages,
+        });
         return;
     }
 
@@ -175,21 +165,6 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             .await;
     }
 
-    // Every run gets a visible status in the chat: the turn otherwise looks
-    // frozen while the program executes, and users cannot tell whether the bot
-    // is working or stuck.
-    {
-        let note = if packages.is_empty() {
-            format!("⏳ Executando no workspace ({language}, orçamento {budget_secs}s)…")
-        } else {
-            format!(
-                "⏳ Executando no workspace ({language}, orçamento {budget_secs}s)… instalando {}",
-                packages.join(", ")
-            )
-        };
-        send(identity, &note).await;
-    }
-
     botlog::safe_info!(
         "vm_exec start: session={session_id} language={language} bytes={} packages={:?}",
         code.len(),
@@ -200,9 +175,10 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     // rows while it runs. A run without markers behaves like before.
     let (trace_tx, mut trace_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut trace_rows: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut exit_code: Option<i32> = None;
     let streamed = async {
         let exec = crate::core::bot::agent_vm_hook::exec_with_wake_events(
-            user_id, session_id, bot_uuid, language, code, timeout_ms, &packages, trace_tx,
+            ticket, user_id, session_id, bot_uuid, language, code, timeout_ms, &packages, trace_tx,
         );
         tokio::pin!(exec);
         let mut channel_open = true;
@@ -211,6 +187,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 tokio::select! {
                     event = trace_rx.recv() => match event {
                         Some(event) => {
+                            note_exit_code(&mut exit_code, &event);
                             trace_event(progress.as_ref(), &mut trace_rows, event).await;
                         }
                         None => channel_open = false,
@@ -225,6 +202,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let outcome = tokio::time::timeout(budget, streamed).await;
     // Frames that arrived just before the timeout must still reach the card.
     while let Ok(event) = trace_rx.try_recv() {
+        note_exit_code(&mut exit_code, &event);
         trace_event(progress.as_ref(), &mut trace_rows, event).await;
     }
     let result = match outcome {
@@ -312,6 +290,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             .and_then(|outcome| outcome.as_ref().map(|r| r.0))
     );
 
+    super::super::turn_record::note_command(identity.session_id, code, exit_code);
+    super::super::vm_consent::tools::report_run(identity, &receipt, &result, exit_code).await;
     match result {
         Err((status, reason)) => {
             botlog::safe_warn!(
@@ -329,12 +309,22 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         }
         Ok(Some((ok, stdout, stderr))) => {
             let mut repair_failed = false;
-            if !ok && super::program_repair::looks_like_syntax_error(&stderr) {
+            let mut repair_refused = None;
+            if !ok
+                && super::program_repair::looks_like_syntax_error(&stderr)
+                && super::program_repair::offered(session_id)
+            {
                 send(
                     identity,
                     "🔧 The generated program had a syntax error; fixing it automatically…",
                 )
                 .await;
+                // The repair is its own step on the run card.
+                if let Some(progress) = progress.as_ref() {
+                    progress
+                        .start(PHASE_TOOL, "repair", "Fixing the program", "One automatic repair pass")
+                        .await;
+                }
                 // One repair pass: long generated programs occasionally carry a
                 // broken string/indent and the user should not have to retype
                 // the request. #2152 — the repair call talks to the same provider
@@ -343,11 +333,15 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 // out. Past the budget the error is reported instead.
                 let repaired = tokio::time::timeout(
                     std::time::Duration::from_secs(REPAIR_TIMEOUT_SECS),
-                    repair_program(state, bot_uuid, language, code, &stderr),
+                    repair_program(state, bot_uuid, session_id, language, code, &stderr),
                 )
                 .await;
                 let fixed = match repaired {
-                    Ok(found) => found,
+                    Ok(Ok(found)) => Some(found),
+                    Ok(Err(refused)) => {
+                        repair_refused = refused;
+                        None
+                    }
                     Err(_) => {
                         botlog::safe_warn!(
                             "program repair gave up after {REPAIR_TIMEOUT_SECS}s: session={session_id}"
@@ -356,12 +350,13 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                     }
                 };
                 if let Some(fixed) = fixed {
-                    let retry = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
-                        user_id, session_id, language, &fixed, timeout_ms, &packages,
+                    let retry = super::super::vm_consent::tools::run_repaired(
+                        identity, language, &fixed, timeout_ms, &packages,
                     )
                     .await;
                     if let Some((true, fixed_out, _)) = retry {
                         if let Some(progress) = progress.as_ref() {
+                            progress.finish(PHASE_TOOL, "repair", "ok", "").await;
                             progress
                                 .start(
                                     PHASE_TOOL,
@@ -383,6 +378,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 }
                 // Reaching here means the repair produced nothing usable (no
                 // provider, timeout, or a retry that failed again).
+                if let Some(progress) = progress.as_ref() {
+                    progress.finish(PHASE_TOOL, "repair", "error", "").await;
+                }
                 repair_failed = true;
             }
             if let Some(progress) = progress.as_ref() {
@@ -398,7 +396,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             // #2046 — the trace table replaces the raw markers.
             let stdout = super::vm_trace::strip_trace_lines(&stdout);
             let rendered = render_result(user_id, session_id, ok, &stdout, &stderr).await;
-            let message = if repair_failed {
+            let message = if let Some(why) = repair_refused {
+                format!("The automatic fix was not used because {why}. Here is the original error.
+
+{rendered}")
+            } else if repair_failed {
                 format!(
                     "The automatic fix did not work, so here is the original error.\n\n{rendered}"
                 )
@@ -415,3 +417,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     }
 }
 
+/// Keeps the exit code of the run's `Finished` event for its step row.
+fn note_exit_code(slot: &mut Option<i32>, event: &botagent::stream::ExecEvent) {
+    if let botagent::stream::ExecEvent::Finished { exit_code, .. } = event {
+        *slot = *exit_code;
+    }
+}

@@ -44,6 +44,9 @@ pub struct ClaudeRequest {
     pub stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thinking: Option<ClaudeThinking>,
+    /// Server tools only (Anthropic's web search, `web_search`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,3 +214,5 @@ mod tests {
 mod azure;
 mod stream_single_attempt;
 mod generate;
+mod utf8_tail;
+pub mod web_search;

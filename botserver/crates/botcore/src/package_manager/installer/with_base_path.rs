@@ -53,6 +53,16 @@ impl PackageManager {
             let conf_path = self.base_path.join("conf");
             let logs_path = self.base_path.join("logs").join(&component.name);
 
+            // Desktop stack: loopback-only configs (existing installs are
+            // rewritten here), database auth and port checks before a start.
+            #[cfg(windows)]
+            {
+                botcorepkg::desktop_hardening::harden_stack_configs(&self.base_path);
+                if component.name == "tables" {
+                    return Self::start_windows_tables(&bin_path, &data_path, &logs_path, &self.base_path);
+                }
+            }
+
             let check_cmd = component
                 .effective_check_cmd()
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -73,11 +83,9 @@ impl PackageManager {
                     .map_err(|e| anyhow::anyhow!("Failed to create noop process: {}", e));
             }
 
-            // Generate qdrant config.yaml if missing
             #[cfg(windows)]
-            if component.name == "tables" {
-                return Self::start_windows_tables(&bin_path, &data_path, &logs_path);
-            }
+            botcorepkg::port_guard::ensure_ports_free(&component.name, &component.ports, &self.base_path)
+                .map_err(|message| anyhow::anyhow!(message))?;
 
             if component.name == "vector_db" {
                 let qdrant_conf = conf_path.join("vector_db/config.yaml");
@@ -91,9 +99,10 @@ impl PackageManager {
                         log::warn!("Could not create qdrant snapshots dir {}: {e}", snapshots.display());
                     }
                     let yaml = format!(
-                        "storage:\n  storage_path: {}\n  snapshots_path: {}\n\nservice:\n  host: 0.0.0.0\n  http_port: 6333\n  grpc_port: 6334\n  enable_tls: false\n\nlog_level: INFO\n",
+                        "storage:\n  storage_path: {}\n  snapshots_path: {}\n\nservice:\n  host: {}\n  http_port: 6333\n  grpc_port: 6334\n  enable_tls: false\n\nlog_level: INFO\n",
                         storage.display(),
-                        snapshots.display()
+                        snapshots.display(),
+                        if cfg!(windows) { botcorepkg::desktop_hardening::LOOPBACK } else { "0.0.0.0" }
                     );
                     if let Err(e) = std::fs::write(&qdrant_conf, yaml) {
                         warn!("Failed to write qdrant config: {}", e);
@@ -116,6 +125,7 @@ impl PackageManager {
 
             let rendered_cmd = component
                 .effective_exec_cmd()
+                .replace(botcorepkg::secrets_engine::CLI_PLACEHOLDER, botcorepkg::secrets_engine::active_engine(&self.base_path).binary_name())
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
@@ -200,6 +210,13 @@ impl PackageManager {
                         command = command.env(key, value)?;
                     }
                 }
+                // The database asks for passwords now: the first-run setup logs
+                // in as the database owner with the password Vault holds.
+                if let Some(owner) = vault_credentials.get("TABLES_PASSWORD").filter(|p| !p.is_empty()) {
+                    if evaluated_envs.get("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD").is_none_or(|p| p.is_empty()) {
+                        command = command.env("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD", owner)?;
+                    }
+                }
                 command = command.stdout(std::process::Stdio::from(log.try_clone()?))
                     .stderr(std::process::Stdio::from(log));
                 return command.spawn().map_err(Into::into);
@@ -225,18 +242,9 @@ impl PackageManager {
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));
 
+            // No fixed wait here: the caller polls the service's health check
+            // (and Vault's initialisation below polls Vault itself).
             trace!("Spawn result for {}: {:?}", component.name, child.is_ok());
-            std::thread::sleep(std::time::Duration::from_secs(2));
-
-            trace!(
-                "Checking if {} process exists after 2s sleep...",
-                component.name
-            );
-            let check_proc = safe_pgrep(&["-f", &component.name]);
-            if let Some(output) = check_proc {
-                let pids = String::from_utf8_lossy(&output.stdout);
-                trace!("pgrep '{}' result: '{}'", component.name, pids.trim());
-            }
 
             match child {
                 Ok(c) => {
@@ -280,48 +288,6 @@ impl PackageManager {
         }
     }
 
-    #[cfg(windows)]
-    fn start_windows_tables(bin: &std::path::Path, data: &std::path::Path, logs: &std::path::Path) -> Result<std::process::Child> {
-        let pgdata = data.join("pgdata");
-        std::fs::create_dir_all(data)?;
-        std::fs::create_dir_all(logs)?;
-        if !pgdata.join("PG_VERSION").is_file() {
-            let result = SafeCommand::new(&bin.join("bin/initdb.exe").to_string_lossy())?
-                .args(&["--encoding=UTF8", "--no-locale", "-D", &pgdata.to_string_lossy(), "-U", "gbuser", "--auth=trust"])?
-                .execute()?;
-            if !result.status.success() {
-                return Err(anyhow::anyhow!("Local database initialization failed; check the database logs"));
-            }
-        }
-        let sql = |statement: &str| -> Result<std::process::Output> {
-            Ok(SafeCommand::new(&bin.join("bin/psql.exe").to_string_lossy())?
-                .args(&["-w", "-v", "ON_ERROR_STOP=1", "-h", "localhost", "-p", "5432", "-U", "gbuser", "-d", "postgres", "-tAc", statement])?
-                .env("PGCONNECT_TIMEOUT", "5")?.env("PGOPTIONS", "-c statement_timeout=30000")?
-                .execute()?)
-        };
-        if !sql("SELECT 1")?.status.success() {
-            let log = std::fs::OpenOptions::new().create(true).append(true).open(logs.join("pgctl.log"))?;
-            let mut command = SafeCommand::new(&bin.join("bin/pg_ctl.exe").to_string_lossy())?
-                .args(&["-D", &pgdata.to_string_lossy(), "-l", &logs.join("postgresql.log").to_string_lossy(), "start", "-w", "-t", "30"])?
-                .stdout(std::process::Stdio::from(log.try_clone()?)).stderr(std::process::Stdio::from(log));
-            // Wait for pg_ctl itself, never for EOF on pipes inherited by the
-            // long-lived Windows postgres/cmd descendants.
-            if !command.spawn()?.wait()?.success() {
-                return Err(anyhow::anyhow!("Local database startup failed; check pgctl.log"));
-            }
-        }
-        let exists = sql("SELECT 1 FROM pg_database WHERE datname = 'botserver'")?;
-        if !exists.status.success() {
-            return Err(anyhow::anyhow!("Local database did not accept SQL connections"));
-        }
-        if String::from_utf8_lossy(&exists.stdout).trim() != "1" {
-            if !sql("CREATE DATABASE botserver WITH OWNER gbuser")?.status.success() {
-                return Err(anyhow::anyhow!("Could not create the local application database"));
-            }
-        }
-        SafeCommand::noop_child().map_err(Into::into)
-    }
-
     /// Resolves the on-disk program for a component, if it can be determined
     /// from its binary name or exec command. Used by the first-run wizard to
     /// report a missing bundled binary immediately instead of waiting for a
@@ -340,7 +306,9 @@ impl PackageManager {
             } else {
                 first
             };
-            let resolved = candidate.replace("{{BIN_PATH}}", &bin_root.to_string_lossy());
+            let resolved = candidate
+                .replace(botcorepkg::secrets_engine::CLI_PLACEHOLDER, botcorepkg::secrets_engine::active_engine(&self.base_path).binary_name())
+                .replace("{{BIN_PATH}}", &bin_root.to_string_lossy());
             if resolved.contains('/') || resolved.contains('\\') {
                 return Some(std::path::PathBuf::from(resolved));
             }

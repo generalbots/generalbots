@@ -276,7 +276,7 @@ async fn apply_llm_choice() {
         .unwrap_or(true)
     {
         let init = stack.join("conf/vault/init.json");
-        if let Ok(raw) = std::fs::read_to_string(&init) {
+        if let Ok(raw) = botcorepkg::protected_file::read_secret(&init) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if let Some(token) = json.get("root_token").and_then(|t| t.as_str()) {
                     std::env::set_var("VAULT_TOKEN", token);

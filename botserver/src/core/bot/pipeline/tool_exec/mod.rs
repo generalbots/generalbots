@@ -8,12 +8,15 @@
 //! Split out of a single 751-line file: the public surface (`run_tool_exec`,
 //! `run_llm_tool_call`, the placeholder and greeting gates) is unchanged.
 
+mod args_log;
 mod direct;
+mod envelope;
 mod is_placeholder_value;
 mod llm_call;
 mod parse;
 mod script;
 
+pub(crate) use args_log::args_summary;
 pub use direct::run_tool_exec;
 #[cfg(feature = "agent-vm")]
 pub(crate) use is_placeholder_value::bot_llm_credentials;

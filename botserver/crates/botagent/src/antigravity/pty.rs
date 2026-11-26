@@ -6,7 +6,27 @@ TMP = os.environ.get("GB_ANTIGRAVITY_TMP", "/tmp")
 LOG = TMP + "/gb-antigravity-login.log"
 STATUS = TMP + "/gb-antigravity-login.status"
 CODE = TMP + "/gb-antigravity-code"
-CRED = HOME + "/.gemini/antigravity-cli/settings.json"
+CRED_DIRS = (HOME + "/.gemini", HOME + "/.config/antigravity")
+
+def signed_in():
+    # Same rule as the server's status check: a non-empty file whose name
+    # marks a stored token or credential (MCP server tokens excluded).
+    for root_dir in CRED_DIRS:
+        base_depth = root_dir.rstrip("/").count("/")
+        for current, dirs, files in os.walk(root_dir):
+            if current.count("/") - base_depth >= 3:
+                dirs[:] = []
+            for name in files:
+                lower = name.lower()
+                if lower == "mcp_oauth_tokens.json":
+                    continue
+                if "token" in lower or "cred" in lower or "oauth" in lower or lower.startswith("auth"):
+                    try:
+                        if os.path.getsize(os.path.join(current, name)) > 0:
+                            return True
+                    except OSError:
+                        pass
+    return False
 
 def set_status(value):
     try:
@@ -96,19 +116,11 @@ while time.time() < deadline:
                 os.unlink(CODE)
             except OSError:
                 pass
-    # Check for credential file (settings.json with auth info)
-    if os.path.exists(CRED):
-        try:
-            import json
-            with open(CRED, "r") as handle:
-                data = json.load(handle)
-            if data.get("auth") or data.get("credentials") or data.get("token"):
-                set_status("linked")
-                time.sleep(2)
-                break
-        except Exception:
-            pass
-if os.path.exists(CRED):
+    if signed_in():
+        set_status("linked")
+        time.sleep(2)
+        break
+if signed_in():
     set_status("linked")
 elif sent:
     set_status("error")

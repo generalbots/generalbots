@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::ConsentScope;
+use crate::models::{ConsentScope, Decision};
 use crate::DbPool;
 
 /// How long a pending (or approved allow-once) request stays in memory.
@@ -62,6 +62,8 @@ pub struct ConsentService {
     pub approvals: std::sync::Arc<crate::approvals::ApprovalStore>,
     pub(crate) pending: tokio::sync::Mutex<PendingMap>,
     pub(crate) approved_once: tokio::sync::Mutex<PendingMap>,
+    /// One waiter per blocking request, woken by `resolve` after the DB write.
+    pub(crate) waiters: tokio::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<Decision>>>,
     sweeper_started: Arc<AtomicBool>,
 }
 
@@ -72,6 +74,7 @@ impl ConsentService {
             approvals: std::sync::Arc::new(crate::approvals::ApprovalStore::new()),
             pending: tokio::sync::Mutex::new(HashMap::new()),
             approved_once: tokio::sync::Mutex::new(HashMap::new()),
+            waiters: tokio::sync::Mutex::new(HashMap::new()),
             sweeper_started: Arc::new(AtomicBool::new(false)),
         }
     }

@@ -39,11 +39,17 @@
   /* ---------------- in-browser harness (no Tauri) ---------------- */
 
   var now = function () { return Date.now(); };
+  /* ?slow=1 makes the in-memory bridge pause between install steps so the
+     headless harness can capture the install screen mid-progress. */
+  var slowParam = false;
+  try { slowParam = new URLSearchParams(location.search).get("slow") === "1"; } catch (e) {}
+
   var mock = {
     startedAt: 0,
     timer: null,
     cancelled: false,
     completed: [],
+    slow: slowParam,
     draftKey: "gb_wizard_draft_v1",
     context: function () {
       var stack = "/home/user/.local/share/generalbots/stack";
@@ -180,7 +186,8 @@
             elapsed_ms: now() - mock.startedAt
           });
           i += 1;
-          mock.timer = setTimeout(step, 320);
+          var delay = mock.slow ? 1800 : 320;
+          mock.timer = setTimeout(step, delay);
         }
         step();
       });

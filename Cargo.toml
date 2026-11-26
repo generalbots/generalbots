@@ -515,6 +515,14 @@ debug = false
 incremental = false
 opt-level = "s"
 
+# Image decoding in an unoptimised build takes seconds per photo.
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.image]
+opt-level = 3
+
 [profile.dev]
 debug = false
 incremental = false

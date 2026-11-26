@@ -22,7 +22,7 @@ pub use auth::{
 pub use files::{vm_file, vm_files};
 pub use sandbox::sandbox_exec;
 pub use sessions::{current_session, set_agent_mode};
-pub use vm::{switch_conversation, user_vm_status, vm_exec};
+pub use vm::{switch_conversation, user_vm_resources, user_vm_status, vm_exec};
 
 static MODE_LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::new);
 static EXEC_LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::new);

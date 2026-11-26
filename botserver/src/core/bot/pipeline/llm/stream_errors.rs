@@ -10,7 +10,7 @@ use super::error_classify::LlmErrorCode;
 ///
 /// The frame carries stable error codes so the client renders the right card
 /// with retry and settings buttons.
-pub(super) async fn send_classified_error(
+pub(crate) async fn send_classified_error(
     sink: &dyn ChannelSink,
     identity: &SessionIdentity<'_>,
     code: LlmErrorCode,
@@ -70,6 +70,73 @@ pub(super) async fn send_classified_error(
             log::error!("LLM error response not delivered: {error}");
         }
     }
+}
+
+/// Sends a refusal error frame carrying a stable `error_code` and typed
+/// `error_params` so the shell renders its own sentence.
+///
+/// When the refusal is unclassified (no code) the frame still carries
+/// `is_error` / `turn_status` so the client shows the English fallback.
+pub(super) async fn send_refusal_error(
+    sink: &dyn ChannelSink,
+    identity: &SessionIdentity<'_>,
+    refusal: &super::refusal::RefusalError,
+) {
+    let bot_uuid_s = identity.bot_uuid.to_string();
+    let session_id_s = identity.session_id.to_string();
+    let mut frame = serde_json::json!({
+        "bot_id": bot_uuid_s,
+        "user_id": identity.user_id.to_string(),
+        "session_id": session_id_s,
+        "channel": "web",
+        "content": refusal.message,
+        "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
+        "is_complete": true,
+        "is_error": true,
+        "error": true,
+        "retryable": false,
+        "status": "failed",
+        "turn_status": "failed",
+        "suggestions": [],
+        "switchers": [],
+        "context_length": 0,
+        "context_max_length": 0,
+    });
+    if let Some(code) = refusal.code {
+        frame["error_code"] = serde_json::Value::String(code.to_string());
+        let params: serde_json::Map<String, serde_json::Value> = refusal
+            .params
+            .iter()
+            .map(|(k, v)| (k.to_string(), serde_json::Value::String(v.clone())))
+            .collect();
+        frame["error_params"] = serde_json::Value::Object(params);
+    }
+    if sink.supports_raw_frames() {
+        if let Err(error) = sink.send_raw_json(&frame).await {
+            log::error!("refusal frame not delivered: {error}");
+        }
+    } else {
+        let err_resp = botlib::models::BotResponse::new(
+            &bot_uuid_s,
+            &session_id_s,
+            identity.user_id.to_string(),
+            &refusal.message,
+            "web",
+        );
+        if let Err(error) = sink.send_bot_response(&err_resp).await {
+            log::error!("refusal response not delivered: {error}");
+        }
+    }
+}
+
+/// Sends the refusal and ends the turn (no retry follows a refusal).
+pub(super) async fn refuse(
+    sink: &dyn ChannelSink,
+    identity: &SessionIdentity<'_>,
+    refusal: &super::refusal::RefusalError,
+) -> super::super::types::PipelineResult<()> {
+    send_refusal_error(sink, identity, refusal).await;
+    Ok(())
 }
 
 /// Sends an empty-response error frame after all retries are exhausted.

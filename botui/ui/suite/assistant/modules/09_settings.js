@@ -1,7 +1,9 @@
 "use strict";
 /**
- * 09_settings.js - Native Settings view for the assistant shell.
- * Sections: Conta, Aparencia, Idioma, Modelo, Sobre.
+ * 09_settings.js - Settings frame for the assistant shell: the numbered section
+ * list in the rail, the page heading and the section router. The pages live in
+ * 09c (Persona), 09f (Memória), 09d (Conta, Sobre), 09e (Idioma, Atalhos), 10* (Modelo) and
+ * 10i (Limites). Appearance is a window next to the gear (09b_patterns.js).
  */
 
 (function () {
@@ -15,10 +17,20 @@
             .replace(/&/g, "&amp;").replace(/</g, "&lt;")
             .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
+    A.settingsEsc = esc;
 
-    /* ================================================================
-       Build the settings shell (nav + panel)
-       ================================================================ */
+    /* Stroke icon used by the settings pages: one path, Mantis line weight. */
+    A.settingsIcon = function (path, size, stroke) {
+        return '<svg aria-hidden="true" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +
+            (stroke || 1.7) + '" stroke-linecap="round" stroke-linejoin="round"><path d="' + path + '"/></svg>';
+    };
+
+    A.settingsHeading = function (kicker, title, description) {
+        return '<header class="gb-set-heading"><span class="gb-set-kicker">' +
+            esc(kicker) + '</span><h1>' + esc(title) + '</h1>' +
+            (description ? '<p>' + esc(description) + '</p>' : '') + '</header>';
+    };
+
     A.renderSettings = function () {
         var container = document.getElementById("gbSettingsContainer");
         if (!container) { return; }
@@ -57,71 +69,56 @@
                 });
                 renderSection(currentSection);
             });
-        });
-        var backBtn = document.getElementById("gbSetBack");
-        if (backBtn) {
-            backBtn.addEventListener("click", function () { A.switchView("chat"); });
         }
-        /* Esc key */
-        container._escHandler = function (e) {
-            if (e.key === "Escape" && A.currentView === "settings") {
-                A.switchView("chat");
-            }
-        };
-        document.addEventListener("keydown", container._escHandler);
         renderSection(currentSection);
     };
 
-    function sectionIcon(name) {
-        var icons = {
-            user: '<circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/>',
-            palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.17-4.36-9-10-9z"/>',
-            globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-            cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
-            info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
-            keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
-            message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-        };
-        return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
-    }
-
-    /* ================================================================
-       Section renderers
-       ================================================================ */
     function renderSection(id) {
-        var panel = document.getElementById("gbSetPanel");
-        if (!panel) { return; }
+        var scroller = document.getElementById("gbSettingsScroll");
+        if (!scroller) { return; }
+        currentSection = id;
+        document.querySelectorAll("#gbSettingsNav [data-section]").forEach(function (button) {
+            var active = button.dataset.section === id;
+            button.classList.toggle("active", active);
+            if (active) { button.setAttribute("aria-current", "page"); }
+            else { button.removeAttribute("aria-current"); }
+        });
+        if (A.updateBreadcrumb) { A.updateBreadcrumb(); }
+        var panel = document.createElement("div");
+        panel.id = "gbSetPanel";
+        panel.dataset.section = id;
+        panel.className = "gb-set-panel";
+        scroller.replaceChildren(panel);
+        scroller.scrollTop = 0;
         var renderers = {
-            account: renderAccount,
-            instructions: renderInstructions,
-            appearance: renderAppearance,
-            language: renderLanguage,
-            model: renderModel,
-            shortcuts: renderShortcuts,
-            about: renderAbout,
+            account: A.renderAccount,
+            instructions: A.renderInstructions,
+            memory: A.renderMemory,
+            language: A.renderLanguage,
+            model: A.renderModelFull,
+            shortcuts: A.renderShortcuts,
+            about: A.renderAbout,
+            limits: A.renderLimits
         };
         EXTRA_SECTIONS.forEach(function (s) { renderers[s.id] = s.render; });
         var fn = renderers[id];
-        if (fn) {
-            /* Show a loading indicator; the renderer replaces it. */
-            panel.innerHTML = '<div class="gb-set-loading">' +
-                '<span class="gb-set-loading-dot"></span>' +
-                esc(A.t("assistant.connecting", "Loading...")) + '</div>';
-            try { fn(panel); } catch (e) {
-                panel.innerHTML = sectionError(e);
-            }
-        } else {
-            panel.innerHTML = "";
+        if (typeof fn !== "function") { panel.innerHTML = ""; return; }
+        panel.innerHTML = '<div class="gb-set-loading"><span class="gb-set-loading-dot"></span>' +
+            esc(A.t("assistant.connecting", "Loading...")) + '</div>';
+        try {
+            Promise.resolve(fn(panel)).catch(function (e) {
+                if (panel.isConnected) { panel.innerHTML = sectionError(e); }
+            });
+        } catch (e) {
+            panel.innerHTML = sectionError(e);
         }
     }
 
     function sectionError(e) {
         var msg = e && e.message ? e.message : String(e);
-        return '<div class="gb-set-error">' +
-            '<p>' + esc(msg) + '</p>' +
-            '<button class="gb-set-btn-sm" onclick="' +
-            "var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();" +
-            '">' + esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
+        return '<div class="gb-set-error"><p>' + esc(msg) + '</p>' +
+            '<button class="gb-set-btn-sm" onclick="var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();">' +
+            esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
     }
 
     /* -- Account -- */
@@ -434,16 +431,23 @@
        Open settings to a specific section (e.g. from error card)
        ================================================================ */
     A.openSettings = function (section) {
-        if (section) { currentSection = section; }
-        A.switchView("settings");
+        if (section === "appearance") {
+            var opener = document.getElementById("gbNavAppearance");
+            if (opener) { opener.click(); }
+            return;
+        }
+        if (sections.some(function (entry) { return entry[0] === section; })) { currentSection = section; }
+        if (A.currentView === "settings") { renderSection(currentSection); }
+        else { A.switchView("settings"); }
     };
 
     /* Accent boot: restore from server or localStorage */
     A.restoreAccent = function () {
         var serverAccent = A.productConfig && A.productConfig.accent;
         if (serverAccent && window.GBIdentity) { window.GBIdentity.apply(serverAccent); return; }
-        try { var stored = localStorage.getItem("gb-accent");
+        try {
+            var stored = localStorage.getItem("gb-accent");
             if (stored && window.GBIdentity) { window.GBIdentity.apply(stored); }
-        } catch (e) { /* */ }
+        } catch (e) { /* storage unavailable */ }
     };
 })();

@@ -175,6 +175,25 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     }
 }
 
+/// A plain `redis://localhost` URL pointed at `127.0.0.1`.
+///
+/// The cache binds the IPv4 loopback only (the probe below assumes it too),
+/// while `localhost` resolves to `::1` first. Every new connection then waits
+/// for the refused IPv6 attempt before falling back: about 2 s on Windows, paid
+/// by each synchronous cache read in a chat turn.
+fn ipv4_loopback(cache_url: &str) -> String {
+    let Ok(mut parsed) = url::Url::parse(cache_url) else {
+        return cache_url.to_string();
+    };
+    if parsed.scheme() != "redis" || parsed.host_str() != Some("localhost") {
+        return cache_url.to_string();
+    }
+    if parsed.set_host(Some("127.0.0.1")).is_err() {
+        return cache_url.to_string();
+    }
+    parsed.to_string()
+}
+
 /// Quick TCP probe — returns `true` when the port accepts a connection.
 fn cache_port_open(port: u16) -> bool {
     let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
@@ -183,7 +202,23 @@ fn cache_port_open(port: u16) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::cache_port_open;
+    use super::{cache_port_open, ipv4_loopback};
+
+    #[test]
+    fn localhost_cache_urls_use_the_ipv4_loopback() {
+        assert_eq!(ipv4_loopback("redis://localhost:6379"), "redis://127.0.0.1:6379");
+        assert_eq!(
+            ipv4_loopback("redis://:secret@localhost:6379/2"),
+            "redis://:secret@127.0.0.1:6379/2"
+        );
+    }
+
+    #[test]
+    fn other_cache_urls_are_left_alone() {
+        assert_eq!(ipv4_loopback("rediss://localhost:6380"), "rediss://localhost:6380");
+        assert_eq!(ipv4_loopback("redis://cache.internal:6379"), "redis://cache.internal:6379");
+        assert_eq!(ipv4_loopback(""), "");
+    }
 
     #[test]
     fn closed_port_returns_false() {

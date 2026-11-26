@@ -79,6 +79,11 @@ impl Sidecar {
         paths::resolve_stack(explicit.as_deref(), dirs::data_local_dir())
     }
 
+    /// The file the sidecar's output is appended to.
+    pub(crate) fn log_path() -> PathBuf {
+        bootlog::log_path(&Self::stack_path())
+    }
+
     #[cfg(target_os = "windows")]
     pub(crate) fn prepare_windows_runtime(installers: &std::path::Path) -> anyhow::Result<std::ffi::OsString> {
         let stack = Self::stack_path();
@@ -215,9 +220,10 @@ impl Sidecar {
         // the tool-call parser outcome are visible on a packaged desktop run.
         // Capture both streams into the stack so a failed generation can be
         // diagnosed without a debugger or a terminal.
-        let log_dir = stack.join("logs");
-        std::fs::create_dir_all(&log_dir)?;
-        let log_path = log_dir.join("botserver-sidecar.log");
+        let log_path = bootlog::log_path(&stack);
+        if let Some(log_dir) = log_path.parent() {
+            std::fs::create_dir_all(log_dir)?;
+        }
         let log_file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)

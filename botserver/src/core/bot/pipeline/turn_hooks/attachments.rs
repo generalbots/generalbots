@@ -17,12 +17,18 @@ pub(crate) struct AttachmentResult {
     /// When set, the attachment was stored but its media content could not be
     /// read; the value is a short reason code (e.g. `image_reader_unavailable`).
     pub media_fail_reason: Option<&'static str>,
+    /// When set, the file could not be kept in Drive: `storage_full` when the
+    /// disk is full (HTTP 507), `store_failed` for any other store error.
+    pub store_fail_reason: Option<&'static str>,
     /// Images and PDFs for a model that can see them (`botllm::media_parts`).
     pub media: Vec<Value>,
 }
 
 /// Largest image a vision model receives (Anthropic's limit per image).
 const MAX_VISION_IMAGE: usize = 5 * 1024 * 1024;
+/// Largest picture accepted for a vision model before shrinking; the shrunk
+/// copy must still fit [`MAX_VISION_IMAGE`] (the providers' per-image cap).
+const MAX_VISION_SOURCE: usize = 25 * 1024 * 1024;
 /// Largest PDF Claude receives as a document.
 const MAX_VISION_PDF: usize = 32 * 1024 * 1024;
 
@@ -65,11 +71,13 @@ pub(crate) async fn ingest_attachment(
     let mut text = user_text;
     let mut notes: Vec<String> = Vec::new();
     let mut media: Vec<Value> = Vec::new();
+    let mut store_fail_reason: Option<&'static str> = None;
     for file in files {
         let single = serde_json::json!({ "file": file });
         let result = ingest_single_attachment(state, bot_uuid, bot_name, &single, text, vision).await;
         text = result.user_text;
         media.extend(result.media);
+        store_fail_reason = store_fail_reason.or(result.store_fail_reason);
         if let Some(note) = result.note {
             notes.push(note);
         }
@@ -82,6 +90,7 @@ pub(crate) async fn ingest_attachment(
             Some(notes.join("\n\n"))
         },
         media_fail_reason: None,
+        store_fail_reason,
         media,
     }
 }
@@ -101,6 +110,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     };
@@ -118,6 +128,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     }
@@ -137,6 +148,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     }
@@ -151,6 +163,7 @@ async fn ingest_single_attachment(
                 user_text,
                 note: attachment_note,
                 media_fail_reason: None,
+                store_fail_reason: None,
                 media: Vec::new(),
             };
         }
@@ -172,8 +185,22 @@ async fn ingest_single_attachment(
     // signatures, layout and pictures are lost in plain text.
     let mut vision_media: Vec<Value> = Vec::new();
     if vision {
-        if let Some(mt) = image_media_type(&fname).filter(|_| data.len() <= MAX_VISION_IMAGE) {
-            vision_media.push(serde_json::json!({ "type": "image", "media_type": mt, "data": b64 }));
+        if let Some(mt) = image_media_type(&fname).filter(|_| data.len() <= MAX_VISION_SOURCE) {
+            // Shrunk like the providers' own chat apps do, so any size works.
+            let raw = data.clone();
+            let prepared = tokio::task::spawn_blocking(move || super::vision_image::prepare(&raw, mt))
+                .await
+                .ok()
+                .flatten()
+                .filter(|(bytes, _)| bytes.len() <= MAX_VISION_IMAGE);
+            match prepared {
+                Some((bytes, out_type)) => {
+                    log::info!("vision image: {fname}: {} -> {} bytes", data.len(), bytes.len());
+                    let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    vision_media.push(serde_json::json!({ "type": "image", "media_type": out_type, "data": encoded }));
+                }
+                None => log::warn!("vision image: {fname} could not be prepared; text recognition only"),
+            }
         } else if pdf && data.len() <= MAX_VISION_PDF {
             vision_media.push(serde_json::json!({ "type": "pdf", "media_type": "application/pdf", "data": b64 }));
         }
@@ -188,6 +215,7 @@ async fn ingest_single_attachment(
         excerpt = recognised;
     }
     let mut stored = false;
+    let mut store_fail_reason: Option<&'static str> = None;
     if let Some(drive) = state.drive.as_ref() {
         // Same resolution as the channel stagers: an org-hosted bot lives under
         // `{slug}.gborg`, so the bucket cannot be derived from the bot name.
@@ -319,6 +347,28 @@ async fn ingest_single_attachment(
         user_text,
         note: attachment_note,
         media_fail_reason,
+        store_fail_reason,
         media: vision_media,
+    }
+}
+
+/// MinIO answers a full disk with HTTP 507 and `XMinioStorageFull`; the
+/// store error carries the status and the body.
+fn is_storage_full(raw: &str) -> bool {
+    raw.contains("StorageFull") || raw.contains("HTTP 507") || raw.contains("Insufficient Storage")
+}
+
+#[cfg(test)]
+mod store_failure_tests {
+    use super::is_storage_full;
+
+    #[test]
+    fn a_full_disk_is_recognised_from_the_store_error() {
+        assert!(is_storage_full(
+            "Got HTTP 507 with content '<?xml version=\"1.0\"?><Error><Code>XMinioStorageFull</Code></Error>'"
+        ));
+        assert!(is_storage_full("HTTP 507 Insufficient Storage"));
+        assert!(!is_storage_full("Got HTTP 403 with content 'AccessDenied'"));
+        assert!(!is_storage_full("connection refused"));
     }
 }

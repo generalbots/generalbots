@@ -6,37 +6,11 @@ use super::*;
 /// dead-end "workspace is not available" phrase.
 pub type WorkspaceError = (u16, String);
 
-/// Execute code in the user's VM within the conversation folder. Returns
-/// (success, stdout, stderr) or None if the service is absent.
-pub async fn exec_in_user_vm(
-    user_id: uuid::Uuid,
-    session_id: uuid::Uuid,
-    language: &str,
-    code: &str,
-) -> Option<(bool, String, String)> {
-    exec_in_user_vm_with_timeout(user_id, session_id, language, code, 60_000, &[]).await
-}
-
-/// Same as [`exec_in_user_vm`] with an explicit timeout (bounded by the
-/// native tool to 120s) and optional third-party packages to install first.
-pub async fn exec_in_user_vm_with_timeout(
-    user_id: uuid::Uuid,
-    session_id: uuid::Uuid,
-    language: &str,
-    code: &str,
-    timeout_ms: u64,
-    packages: &[String],
-) -> Option<(bool, String, String)> {
-    exec_in_user_vm_result(user_id, session_id, language, code, timeout_ms, packages)
-        .await
-        .ok()
-        .flatten()
-}
-
 /// Detailed sibling of [`exec_in_user_vm_with_timeout`]. `Ok(None)` still
 /// means "wake the workspace and retry"; `Err` carries the concrete failure
 /// so callers can show the true reason.
 pub async fn exec_in_user_vm_result(
+    ticket: &crate::core::bot::pipeline::vm_consent::VmConsent,
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
     language: &str,
@@ -44,8 +18,14 @@ pub async fn exec_in_user_vm_result(
     timeout_ms: u64,
     packages: &[String],
 ) -> Result<Option<(bool, String, String)>, WorkspaceError> {
+    if !ticket.covers(session_id) {
+        return Err(not_allowed_here());
+    }
     if workspace_disabled(session_id) {
         return Err(workspace_disabled_error());
+    }
+    if rig_fake::enabled() {
+        return Ok(Some(rig_fake::run(language, code)));
     }
     let Some(service) = SERVICE.get() else {
         return Ok(None);
@@ -98,6 +78,9 @@ pub async fn ensure_agent_vm_result(
     if workspace_disabled(session_id) {
         botlog::safe_info!("workspace run refused for session {session_id}: Agent/VM is off");
         return Err(workspace_disabled_error());
+    }
+    if rig_fake::enabled() {
+        return Ok(rig_fake::session_row(session_id, user_id, bot_uuid));
     }
     let Some(service) = SERVICE.get() else {
         return Err((
@@ -175,37 +158,6 @@ pub async fn read_session_file(
     botagent::transfer::read_file(service, &row.vm_name, &session_id.to_string(), rel_path)
         .await
         .map_err(|(_, e)| e)
-}
-
-/// Writes a file into the conversation folder (#1584 Drive → VM).
-#[cfg(feature = "agent-vm")]
-pub async fn write_session_file(
-    user_id: uuid::Uuid,
-    session_id: uuid::Uuid,
-    rel_path: &str,
-    bytes: &[u8],
-) -> Result<usize, String> {
-    if workspace_disabled(session_id) {
-        return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
-    }
-    let service = SERVICE
-        .get()
-        .ok_or_else(|| "workspace unavailable".to_string())?;
-    let row = botagent::vm::get_user_vm(service, &user_id)
-        .map_err(|(_, e)| e)?
-        .ok_or_else(|| "no workspace".to_string())?;
-    if row.status != botagent::vm::STATUS_RUNNING {
-        return Err("workspace is not running".to_string());
-    }
-    botagent::transfer::write_file(
-        service,
-        &row.vm_name,
-        &session_id.to_string(),
-        rel_path,
-        bytes,
-    )
-    .await
-    .map_err(|(_, e)| e)
 }
 
 /// Lists `output/` or `data/` with file sizes (#1584 folder card / save).

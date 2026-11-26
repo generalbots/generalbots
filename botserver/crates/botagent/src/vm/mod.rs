@@ -14,7 +14,17 @@ mod exec;
 mod identity;
 mod incus;
 mod incus_errors;
+mod incus_duplex;
+mod incus_ready;
+pub use incus_ready::{service_code, SERVICE_FAILED_CODE, SERVICE_RESTARTING_CODE};
+mod incus_stdin;
+pub(crate) mod incus_run;
 mod launch;
+mod metrics;
+pub(crate) use incus_run::kill_tree;
+pub use incus_run::{is_timeout, within_budget, INCUS_TIMEOUT_CODE, PROBE_DEADLINE};
+pub(crate) use metrics::resource_summary;
+pub use metrics::{workspace_state, WorkspaceState};
 mod lifecycle;
 mod profile;
 mod retry;
@@ -25,11 +35,13 @@ use axum::http::StatusCode;
 pub use exec::{exec_in_conversation, exec_in_conversation_streamed, run_root_shell};
 pub(crate) use identity::allow_unregistered_identities;
 pub use identity::sanitize_id;
-pub use incus::{exec_in_vm, exec_in_vm_streaming, ExecOutcome};
+pub use incus::{exec_in_vm, exec_in_vm_streaming, exec_in_vm_within, ExecOutcome};
+pub use incus_duplex::exec_in_vm_duplex;
+pub use incus_stdin::exec_in_vm_with_input;
 pub(crate) use incus::{is_running, wait_for_running};
 pub use lifecycle::{
-    delete_vm, ensure_vm, ensure_vm_by_session, expiry_from_now, get_user_vm, stop_vm,
-    stop_vm_for_user,
+    delete_vm, ensure_vm, ensure_vm_by_session, expiry_from_now, get_user_vm, start_in_progress,
+    stop_vm, stop_vm_for_user,
 };
 pub use workspace::{
     delete_conversation_folder, ensure_conversation_folder, list_conversation_output,

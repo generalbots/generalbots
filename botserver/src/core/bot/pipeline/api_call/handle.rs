@@ -101,7 +101,7 @@ pub(crate) async fn handle_api_call(
     if super::super::agent_turn::command_runs_in_workspace(&name, &params)
         && !super::super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled)
     {
-        let msg = super::super::agent_turn::DISABLED_MESSAGE;
+        let msg = super::super::agent_turn::DISABLED_FOR_PERSON;
         botlog::safe_info!(
             "api_call '{name}' refused for session {session_id}: Agent/VM is off"
         );
@@ -424,7 +424,7 @@ pub(crate) async fn handle_api_call(
         }
         Err(e) => {
             // #2562 — failed activity.
-            let fail = cmd_act.failed(&e.to_string());
+            let fail = cmd_act.failed(&super::humanize::failure_text(&state.conn, user_id));
             crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &fail).await;
 
             let keys = params
@@ -436,7 +436,7 @@ pub(crate) async fn handle_api_call(
                 bot_uuid.to_string(),
                 session_id.to_string(),
                 user_id.to_string(),
-                format!("Falha ao executar {name}: {e}"),
+                super::humanize::failure_text(&state.conn, user_id),
                 &channel,
             );
             if let Err(e) = sink.send_bot_response(&resp).await {

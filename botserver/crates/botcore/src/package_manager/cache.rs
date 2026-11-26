@@ -174,7 +174,7 @@ impl DownloadCache {
     }
 
     pub fn get_component(&self, component: &str) -> Option<&ComponentDownload> {
-        self.config.components.get(component)
+        self.config.components.get(botcorepkg::installer::download_entry(component))
     }
 
     pub fn get_model(&self, model: &str) -> Option<&ComponentDownload> {

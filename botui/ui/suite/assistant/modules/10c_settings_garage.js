@@ -1,318 +1,301 @@
 "use strict";
 /**
- * 10c_settings_garage.js - Settings > Modelo laid out as a workshop where the
- * person tunes the assistant: a dashboard of the setup in use, a two-question
- * guide for someone who does not know which option to pick, and the three
- * ways to run the assistant compared side by side. The column headers are the
- * mode buttons (data-mode) that 10_settings_model.js binds.
+ * 10c_settings_garage.js - Settings > Modelo laid out as the assistant's
+ * workshop: the engine in use on top, the four engines as cards with a
+ * privacy meter, the details of the one being viewed in lettered panels, the
+ * full comparison in a side panel, a two-question guide and the tooltips.
+ * The cards are the mode buttons (data-mode) that 10_settings_model.js binds.
  */
 (function () {
 var A = window.GBAssistant;
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function S() { return A._modelShared || {}; }
+function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
+function tr(p, e) { return pt() ? p : e; }
 
-var L = {"pt-BR":{
-  title:"Oficina do assistente", lead:"Ajuste onde e como o seu assistente pensa.",
-  dash:"Painel", engine:"Motor em uso", privacy:"Privacidade", features:"Recursos ligados",
-  fDocs:"Documentos", fOcr:"Texto em imagens", fWeb:"Pesquisa na web", fWebOff:"Pesquisa na web (desligada)", fPhotos:"Fotos e gráficos",
-  where:"Escolha o motor", whereSub:"Compare as quatro formas de usar o assistente. Clique no cartão de uma delas para ver os detalhes e ativar.",
-  acp:"Agente (ACP)", subAcp:"Sua assinatura de agente", soon:"Em breve",
-  goAgent:"Vão ao provedor do agente", costSub:"Sua assinatura (Claude, ChatGPT, Gemini…)", agentDoes:"O agente faz", dependsAgent:"Depende do agente",
-  needAcp:"Instalar o agente e entrar na sua conta",
-  local:"Neste computador", own:"Servidor ou chave própria", free:"Modelo gratuito",
-  subLocal:"Privado e sem internet", subOwn:"O da sua organização", subFree:"Pronto para usar",
-  inUse:"Em uso", suggested:"Sugerido", ctaOpen:"Ver e ativar", ctaAdjust:"Ver ajustes",
-  rPrivacy:"Seus textos", rOffline:"Sem internet", rCost:"Custo", rDocs:"PDF, Word e texto",
-  rOcr:"Texto em imagens e digitalizações", rWeb:"Pesquisa na web", rPhotos:"Entender fotos e gráficos", rNeeds:"Você precisa de",
-  stayHere:"Ficam neste computador", goServer:"Vão ao servidor que você indicar", goNet:"Ficam na rede da sua organização", goExt:"Vão a um provedor externo",
-  works:"Funciona", onlyNet:"Só com servidor na sua rede", noWork:"Não funciona",
-  costFree:"Grátis", costContract:"Conforme o contrato", costFreeLimit:"Grátis, com limite de uso",
-  reads:"Lê", noRead:"Não lê", optional:"Opcional, você liga", unavailable:"Indisponível", notYet:"Ainda não",
-  needLocal:"Placa de vídeo com 6 GB ou mais e um download de 4 a 6 GB", needOwn:"Endereço do servidor e uma chave", needFree:"Nada",
-  machineOk:"Este computador tem: %d, %v GB", machineSlow:"Este computador não tem placa de vídeo adequada: funcionaria devagar",
-  guide:"Não sabe qual escolher?", guideSub:"Responda duas perguntas.",
-  q1:"O que você escreve pode sair deste computador?", q1no:"Não, precisa ficar aqui", q1yes:"Sim, pode sair",
-  q2:"Sua organização fornece um servidor ou uma chave de IA?", q2yes:"Sim", q2no:"Não, ou não sei",
-  recLocal:"Use Neste computador: nada sai daqui, e esta máquina tem placa de vídeo para isso.",
-  recLocalSlow:"Esta máquina não tem placa de vídeo para um modelo local. Use o servidor da sua organização, dentro da sua rede.",
-  recOwn:"Use o servidor ou a chave da sua organização: o contrato define o custo e os limites.",
-  recFree:"Comece pelo modelo gratuito: não precisa configurar nada. Para assuntos sigilosos, prefira Neste computador.",
-  showMe:"Ver como ativar", restart:"Recomeçar"},
-en:{
-  title:"Assistant workshop", lead:"Tune where and how your assistant thinks.",
-  dash:"Dashboard", engine:"Engine in use", privacy:"Privacy", features:"Features on",
-  fDocs:"Documents", fOcr:"Text in images", fWeb:"Web search", fWebOff:"Web search (off)", fPhotos:"Photos and charts",
-  where:"Choose the engine", whereSub:"Compare the four ways to use the assistant. Click one to see the details and turn it on.",
-  acp:"Agent (ACP)", subAcp:"Your agent subscription", soon:"Coming soon",
-  goAgent:"Goes to the agent’s provider", costSub:"Your subscription (Claude, ChatGPT, Gemini…)", agentDoes:"The agent does it", dependsAgent:"Depends on the agent",
-  needAcp:"Install the agent and sign in to your account",
-  local:"On this computer", own:"Own server or key", free:"Free model",
-  subLocal:"Private and offline", subOwn:"Your organization’s", subFree:"Ready to use",
-  inUse:"In use", suggested:"Suggested", ctaOpen:"See and turn on", ctaAdjust:"See settings",
-  rPrivacy:"Your text", rOffline:"Without internet", rCost:"Cost", rDocs:"PDF, Word and text",
-  rOcr:"Text in images and scans", rWeb:"Web search", rPhotos:"Understand photos and charts", rNeeds:"You need",
-  stayHere:"Stays on this computer", goServer:"Goes to the server you set", goNet:"Stays in your organization’s network", goExt:"Goes to an external provider",
-  works:"Works", onlyNet:"Only with a server on your network", noWork:"Does not work",
-  costFree:"Free", costContract:"Per your contract", costFreeLimit:"Free, with usage limits",
-  reads:"Reads", noRead:"Does not read", optional:"Optional, you turn it on", unavailable:"Unavailable", notYet:"Not yet",
-  needLocal:"A graphics card with 6 GB or more and a 4 to 6 GB download", needOwn:"The server address and a key", needFree:"Nothing",
-  machineOk:"This computer has: %d, %v GB", machineSlow:"This computer has no suitable graphics card: it would be slow",
-  guide:"Not sure which to pick?", guideSub:"Answer two questions.",
-  q1:"Can what you write leave this computer?", q1no:"No, it must stay here", q1yes:"Yes, it can",
-  q2:"Does your organization provide an AI server or key?", q2yes:"Yes", q2no:"No, or I don’t know",
-  recLocal:"Use On this computer: nothing leaves it, and this machine has a graphics card for it.",
-  recLocalSlow:"This machine has no graphics card for a local model. Use your organization’s server, inside your network.",
-  recOwn:"Use your organization’s server or key: the contract sets the cost and the limits.",
-  recFree:"Start with the free model: nothing to set up. For confidential matters, prefer On this computer.",
-  showMe:"See how to turn it on", restart:"Start over"}};
-function g(k) { var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en"; return (L[lang] && L[lang][k]) || L.en[k] || k; }
-
-var ICONS = {
-  local: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-  own_key: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  acp: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01"/></svg>',
-  free: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-  wrench: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
-};
 var MODES = ["local", "own_key", "free", "acp"];
-
-function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
-function webAvailable() { return typeof A.webSearchAvailable === "function" && A.webSearchAvailable(); }
-function webOn() { return typeof A.webSearchOn === "function" && A.webSearchOn(); }
-function localHardware(modes) {
-  var m = (modes || []).find(function (x) { return x.id === "local"; });
-  return (m && m.hardware) || {};
-}
-/* A local model is realistic when a CUDA card has the 6 GB the smallest one needs. */
-function machineFits(hw) { return !!(hw.cuda_usable && hw.vram_gb >= 6); }
-
-/* ---- Dashboard ---- */
-function privacyLevel(mode, scope) {
-  if (mode === "local" || scope === "machine") return 5;
-  if (scope === "network") return 4;
-  if (mode === "own_key") return 2;
-  return 1;
-}
-function gauge(level, label) {
-  var segs = "";
-  for (var i = 1; i <= 5; i++) { segs += '<i class="' + (i <= level ? "on" : "") + '"></i>'; }
-  return '<span class="gb-gar-gauge gb-gar-level-' + level + '" role="img" aria-label="' + esc(label + ": " + level + "/5") + '">' + segs + '</span>';
-}
-function chip(on, text) {
-  return '<span class="gb-gar-chip' + (on ? " on" : "") + '"><span class="gb-gar-mark ' + (on ? "yes" : "no") + '" aria-hidden="true"></span>' + esc(text) + '</span>';
-}
-function dashboard(cfg, shortName, privacyText) {
-  var mode = cfg ? cfg.mode : "";
-  var scope = cfg ? cfg.endpoint_scope : "";
-  var name = shortName(cfg ? cfg.model : (A.defaultModel || A.selectedModel || "")).replace(/\.gguf$/i, "");
-  var where = mode ? g(mode === "own_key" ? "own" : mode) : "";
-  var html = '<div class="gb-gar-hero">' + ICONS.wrench +
-    '<div><h2 class="gb-gar-title">' + esc(g("title")) + '</h2><p class="gb-gar-lead">' + esc(g("lead")) + '</p></div></div>';
-  html += '<div class="gb-set-card gb-gar-dash">' +
-    '<div class="gb-gar-dash-main"><div><span class="gb-gar-kicker">' + esc(g("engine")) + '</span>' +
-    '<div class="gb-gar-engine gb-set-model-name">' + esc(name) + '</div></div>' +
-    (where ? '<span class="gb-gar-where">' + (ICONS[mode] || "") + esc(where) + '</span>' : '') + '</div>';
-  if (mode) {
-    var level = privacyLevel(mode, scope);
-    html += '<div class="gb-gar-dash-row"><span class="gb-gar-dash-label">' + esc(g("privacy")) + '</span>' +
-      gauge(level, g("privacy")) + '<span class="gb-gar-dash-text">' + privacyText + '</span></div>';
-  }
-  html += '<div class="gb-gar-dash-row"><span class="gb-gar-dash-label">' + esc(g("features")) + '</span><span class="gb-gar-chips">' +
-    chip(true, g("fDocs")) + chip(isWindows(), g("fOcr")) +
-    (webAvailable() ? chip(webOn(), webOn() ? g("fWeb") : g("fWebOff")) : '') +
-    chip(false, g("fPhotos")) + '</span></div></div>';
-  return html;
-}
-
-/* ---- Guide: two questions as cards; the answer selects the option below ---- */
-var GI = {
-  lock: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  globe: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>',
-  server: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01M6 17.5h.01"/></svg>',
-  none: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>'
+/* name, sub, destination, tone, privacy level, icon path */
+var INFO = {
+  local: [["Neste computador", "On this computer"], ["Privado e sem internet", "Private and offline"], ["Fica neste computador", "Stays on this computer"], "ok", 5, "M3 4h18v12H3zM8 20h8M12 16v4"],
+  own_key: [["Servidor ou chave própria", "Own server or key"], ["O da sua organização ou de um provedor", "Your organization’s or a provider’s"], ["Vai ao servidor indicado", "Goes to the server you set"], "mid", 3, "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01"],
+  free: [["Modelo gratuito", "Free model"], ["Pronto para usar, sem chave", "Ready to use, no key"], ["Vai a um provedor externo", "Goes to an external provider"], "out", 1, "M13 2 3 14h9l-1 8 10-12h-9z"],
+  acp: [["Agente por assinatura", "Subscription agent"], ["Sua assinatura, num espaço isolado neste computador", "Your subscription, in an isolated space on this computer"], ["Vai ao provedor do agente", "Goes to the agent’s provider"], "out", 2, "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3"]
 };
-var GL = {"pt-BR":{
-  step:"Pergunta %n de 2", back:"Voltar",
-  q1help:"Pense em processos, dados pessoais e documentos internos. Na dúvida, considere que não podem.",
-  q1noD:"Processos, dados pessoais, documentos internos", q1yesD:"Textos públicos, rascunhos, pesquisas",
-  q2s:"Sua organização tem um servidor de IA dentro da rede interna?",
-  q2sHelp:"Pergunte à equipe de TI. É um endereço como https://ia.orgao.gov.br.",
-  q2sYesD:"A TI fornece o endereço e a chave", q2sNoD:"Usar só este computador",
-  q2help:"Por exemplo, uma chave da OpenAI ou do Azure contratada pelo órgão, ou um servidor próprio.",
-  q2yesD:"Tenho o endereço e a chave", q2noD:"Quero começar sem configurar nada",
-  pick:"Indicamos para você", gains:"O que você tem com esta opção",
-  recOwnNet:"Use o servidor da sua organização: os textos ficam dentro da rede, e a TI cuida da capacidade.",
-  recLocalTight:"Use Neste computador: nada sai daqui. A placa de vídeo dá conta dos modelos menores; feche outros programas pesados antes de usar.",
-  open:"Abrir esta opção"},
-en:{
-  step:"Question %n of 2", back:"Back",
-  q1help:"Think of case files, personal data and internal documents. If in doubt, assume they cannot.",
-  q1noD:"Case files, personal data, internal documents", q1yesD:"Public text, drafts, research",
-  q2s:"Does your organization have an AI server inside its internal network?",
-  q2sHelp:"Ask your IT team. It is an address such as https://ai.agency.gov.",
-  q2sYesD:"IT provides the address and the key", q2sNoD:"Use this computer only",
-  q2help:"For example an OpenAI or Azure key your organization pays for, or its own server.",
-  q2yesD:"I have the address and the key", q2noD:"I want to start without setting anything up",
-  pick:"Our suggestion for you", gains:"What you get with this option",
-  recOwnNet:"Use your organization’s server: your text stays inside the network, and IT looks after the capacity.",
-  recLocalTight:"Use On this computer: nothing leaves it. The graphics card handles the smaller models; close other heavy programs first.",
-  open:"Open this option"}};
-function gl(k) { var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en"; return (GL[lang] && GL[lang][k]) || GL.en[k] || g(k); }
-
-function guide() {
-  return '<div class="gb-set-card gb-gar-guide" id="gbGarGuide"><div class="gb-gar-guide-head"><strong>' + esc(g("guide")) + '</strong> ' +
-    '<span class="gb-set-hint">' + esc(g("guideSub")) + '</span></div><div class="gb-gar-guide-body" aria-live="polite"></div></div>';
+function L2(pair) { return pair[pt() ? 0 : 1]; }
+function modeLabel(mode) { return A.engineName(mode, "detail") || mode; }
+function svg(d, size, w) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 1.7) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+var I = { info: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 11v5M12 8h.01", help: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01",
+  table: "M3 4h18v16H3zM3 10h18M9 4v16", check: "M20 6 9 17l-5-5", arrow: "M5 12h14M13 6l6 6-6 6", next: "m9 18 6-6-6-6", close: "M18 6 6 18M6 6l12 12",
+  warn: "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01",
+  lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4", globe: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20" };
+function sl() { return '<span class="gb-of-sl">//</span>'; }
+function help(text, label) { return '<span class="gb-of-help" tabindex="0" data-tip="' + esc(text) + '">' + svg(I.info, 13, 1.8) + (label ? esc(label) : '') + '</span>'; }
+function segDesc(n) {
+  if (n >= 5) { return tr("Nada sai deste computador", "Nothing leaves this computer"); }
+  if (n >= 4) { return tr("O texto fica na sua rede", "Your text stays on your network"); }
+  if (n >= 3) { return tr("O texto vai a um servidor externo que você escolheu", "Your text goes to an external server you chose"); }
+  return tr("O texto vai a um provedor externo", "Your text goes to an external provider");
 }
-function bindGuide(panel, modes) {
-  var box = panel.querySelector("#gbGarGuide .gb-gar-guide-body");
-  if (!box) return;
-  var hw = localHardware(modes);
-  function choice(i, icon, title, desc) {
-    return '<button type="button" class="gb-gar-choice" data-a="' + i + '"><span class="gb-gar-choice-icon">' + icon + '</span>' +
-      '<span class="gb-gar-choice-text"><strong>' + esc(title) + '</strong><small>' + esc(desc) + '</small></span></button>';
+function segs(n, tone, cls) {
+  var label = tr("Privacidade", "Privacy") + " " + n + "/5: " + segDesc(n);
+  var h = ""; for (var i = 0; i < 5; i++) { h += '<i class="' + (i < n ? "on" : "") + '"></i>'; }
+  return '<span class="gb-of-segs' + (cls ? " " + cls : "") + '" data-tone="' + tone + '" role="img" aria-label="' + esc(label) + '" title="' + esc(label) + '">' + h + '</span>';
+}
+function cap(kind, text, tip) { return '<span class="gb-of-cap' + (kind === "yes" ? "" : kind === "part" ? " part" : " no") + '"' + (tip ? ' tabindex="0" data-tip="' + esc(tip) + '"' : '') + '><b>' + (kind === "yes" ? "✓" : kind === "part" ? "~" : "–") + '</b>' + esc(text) + '</span>'; }
+function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
+function localHardware(modes) { var m = (modes || []).find(function (x) { return x.id === "local"; }); return (m && m.hardware) || {}; }
+function machineFits(hw) { return !!(hw.cuda_usable && hw.vram_gb >= 6); }
+function tone(level) { return level >= 4 ? "ok" : level === 3 ? "mid" : "out"; }
+
+/* ---- Header and the engine in use ---- */
+function dashboard(cfg, showTools) {
+  var html = '<div class="gb-of-head"><div><span class="gb-of-k">' + sl() + tr("OFICINA DO ASSISTENTE", "ASSISTANT WORKSHOP") + '</span>' +
+    '<h1>' + tr("Onde o seu assistente pensa.", "Where your assistant thinks.") + '</h1></div>';
+  if (showTools) {
+    html += '<div class="gb-of-tools"><button type="button" class="gb-of-btn" id="gbOpenGuide">' + svg(I.help, 14, 1.8) + tr("Me ajude a escolher", "Help me choose") +
+      '</button><button type="button" class="gb-of-btn" id="gbOpenCompare">' + svg(I.table, 14, 1.8) + tr("Comparar os 4 motores", "Compare the 4 engines") + '</button></div>';
   }
-  /* opts: [{icon, title, desc, go}] */
-  function ask(step, q, help, opts, back) {
-    box.innerHTML = '<div class="gb-gar-step"><span class="gb-gar-dots"><i class="on"></i><i class="' + (step > 1 ? "on" : "") + '"></i></span>' +
-      esc(gl("step").replace("%n", String(step))) + (back ? '<button type="button" class="gb-gar-back" data-back="1">' + esc(gl("back")) + '</button>' : '') + '</div>' +
-      '<p class="gb-gar-q">' + esc(q) + '</p><p class="gb-set-hint gb-gar-help">' + esc(help) + '</p>' +
-      '<div class="gb-gar-choices">' + opts.map(function (o, i) { return choice(i, o.icon, o.title, o.desc); }).join("") + '</div>';
-    opts.forEach(function (o, i) { box.querySelector('[data-a="' + i + '"]').addEventListener("click", o.go); });
-    if (back) { box.querySelector('[data-back="1"]').addEventListener("click", back); }
-    var first = box.querySelector(".gb-gar-choice");
-    if (first && step > 1) { first.focus(); }
-  }
-  function scrollTo(el) {
-    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (el && el.scrollIntoView) { el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" }); }
-  }
-  function result(mode, text) {
-    var grid = panel.querySelector("#gbGarGrid");
-    if (grid) grid.setAttribute("data-rec", mode);
-    /* The suggested option is selected in the table and its details open below. */
-    var head = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
-    if (head && !head.disabled) { head.click(); }
-    var f = facts(mode, A._modelShared && A._modelShared.cfg, hw);
-    var gains = ["privacy", "offline", "cost", "needs"].map(function (k) {
-      return '<li><span class="gb-gar-mark ' + f[k].k + '" aria-hidden="true"></span><span><b>' + esc(g(ROWS.filter(function (r) { return r[0] === k; })[0][1])) +
-        ':</b> ' + esc(f[k].t) + '</span></li>';
-    }).join("");
-    box.innerHTML = '<div class="gb-gar-result"><span class="gb-gar-kicker">' + esc(gl("pick")) + '</span>' +
-      '<div class="gb-gar-result-name">' + (ICONS[mode] || "") + esc(g(mode === "own_key" ? "own" : mode)) + '</div>' +
-      '<p class="gb-gar-rec">' + esc(text) + '</p>' +
-      '<p class="gb-gar-gains-title">' + esc(gl("gains")) + '</p><ul class="gb-gar-gains">' + gains + '</ul>' +
-      '<div class="gb-gar-answers"><button class="gb-set-btn-sm gb-set-btn-accent" data-go="1">' + esc(gl("open")) + '</button>' +
-      '<button class="gb-set-btn-sm" data-again="1">' + esc(g("restart")) + '</button></div></div>';
-    box.querySelector('[data-go="1"]').addEventListener("click", function () {
-      var h = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
-      if (h && !h.classList.contains("gb-set-mode-selected")) { h.click(); }
-      scrollTo(document.getElementById("gbModeDetail"));
-    });
-    box.querySelector('[data-again="1"]').addEventListener("click", start);
-  }
-  function secret() {
-    ask(2, gl("q2s"), gl("q2sHelp"), [
-      { icon: GI.server, title: g("q2yes"), desc: gl("q2sYesD"), go: function () { result("own_key", gl("recOwnNet")); } },
-      { icon: ICONS.local, title: g("q2no"), desc: gl("q2sNoD"), go: function () {
-        if (!machineFits(hw)) { result("own_key", g("recLocalSlow")); return; }
-        result("local", hw.vram_gb >= 10 ? g("recLocal") : gl("recLocalTight"));
-      } }
-    ], start);
-  }
-  function open() {
-    ask(2, g("q2"), gl("q2help"), [
-      { icon: GI.server, title: g("q2yes"), desc: gl("q2yesD"), go: function () { result("own_key", g("recOwn")); } },
-      { icon: GI.none, title: g("q2no"), desc: gl("q2noD"), go: function () { result("free", g("recFree")); } }
-    ], start);
-  }
-  function start() {
-    var grid = panel.querySelector("#gbGarGrid");
-    if (grid) grid.removeAttribute("data-rec");
-    ask(1, g("q1"), gl("q1help"), [
-      { icon: GI.lock, title: g("q1no"), desc: gl("q1noD"), go: secret },
-      { icon: GI.globe, title: g("q1yes"), desc: gl("q1yesD"), go: open }
-    ], null);
-  }
-  start();
+  return html + '</div>' + runCard(cfg);
+}
+/* The engine the chat uses now (10j_engine_now.js), not only the stored runtime. */
+function now(cfg) { return A._engineNow ? A._engineNow.describe(cfg) : { kind: cfg && cfg.mode, name: (cfg && cfg.model) || "—", dest: "", level: 1 }; }
+function inUseKind(cfg) { return now(cfg).kind || ""; }
+function runCard(cfg) {
+  var E = A._engineNow, info = now(cfg), mode = info.kind;
+  var rt = cfg && cfg.local_runtime;
+  var state = !mode ? "" : mode !== "local" ? ['gb-of-ok', tr("EM USO", "IN USE")]
+    : rt && rt.running ? ['gb-of-ok', tr("EM EXECUÇÃO", "RUNNING")] : ['gb-of-muc', tr("PARADO", "STOPPED")];
+  var meta = mode === "local" && rt && rt.build ? tr("motor ", "engine ") + rt.build : info.dest;
+  var priv = E ? E.privacy(info) : "";
+  var list = E ? E.caps(info) : [];
+  return '<section class="gb-of-card gb-of-run" data-engine="' + esc(info.value || "") + '"><div class="gb-of-run-h"><div>' + sl() + '<span>' + tr("MOTOR EM USO", "ENGINE IN USE") + '</span></div>' +
+    (state ? '<div class="gb-of-state ' + state[0] + '"><span class="gb-of-sq"></span>' + state[1] + '</div>' : '') + '</div>' +
+    '<div class="gb-of-run-cells"><div><span class="gb-of-engine">' + esc(info.name) + '</span><div class="gb-of-row">' +
+    (mode ? '<span class="gb-of-chip">' + esc(modeLabel(mode)) + '</span>' : '') + (meta ? '<span class="gb-of-meta">' + esc(meta) + '</span>' : '') + '</div></div>' +
+    '<div><div class="gb-of-row sb"><span class="gb-of-lab">' + tr("PRIVACIDADE", "PRIVACY") + '</span>' + (mode ? segs(info.level, tone(info.level)) : '') + '</div>' +
+    (priv ? '<p class="gb-of-priv">' + priv + '</p>' : '') +
+    '<div class="gb-of-caps"><span class="gb-of-lab">' + tr("RECURSOS", "FEATURES") + '</span>' +
+    list.map(function (c) { return cap(c[0], c[1], c[2]); }).join("") + '</div></div></div></section>';
+}
+/* After a new pick: the "in use" chip moves to the card of the engine's kind. */
+function markInUse(panel, kind, cfg) {
+  panel.querySelectorAll(".gb-of-mode .gb-of-inuse").forEach(function (c) { c.remove(); });
+  var card = kind && panel.querySelector('.gb-of-mode[data-mode="' + kind + '"] .gb-of-sp');
+  if (card) { card.insertAdjacentHTML("afterend", '<span class="gb-of-chip sm gb-of-inuse">' + tr("EM USO", "IN USE") + '</span>'); }
+  var viewed = panel.querySelector('#gbOfModes .gb-of-mode[aria-pressed="true"]'), act = S().activate;
+  if (viewed && act) { setDetail(panel, viewed.getAttribute("data-mode"), cfg, act); }
 }
 
-/* ---- Comparison ---- */
-/* What each way of running the assistant does in this version. Every cell is
-   yes, part (depends) or no, with a short sentence. */
-function cell(kind, text) { return { k: kind, t: text }; }
+/* ---- What each engine does in this version (the comparison) ---- */
+function cell(kind, text, note) { return { k: kind, t: text, n: note || "" }; }
 function facts(mode, cfg, hw) {
   var scope = cfg && cfg.mode === "own_key" ? cfg.endpoint_scope : "";
-  var ocr = isWindows() ? cell("yes", g("reads")) : cell("no", g("noRead"));
-  var web = webAvailable() ? cell("part", g("optional")) : cell("no", g("unavailable"));
+  var ocr = isWindows() ? cell("yes", tr("Lê", "Reads")) : cell("no", tr("Não lê", "Does not read"));
+  var reads = cell("yes", tr("Lê", "Reads")), notYet = cell("no", tr("Ainda não", "Not yet"));
   if (mode === "local") {
-    var machine = machineFits(hw)
-      ? g("machineOk").replace("%d", hw.device || "").replace("%v", String(hw.vram_gb || 0))
-      : g("machineSlow");
     var V = A._modelMachine ? A._modelMachine.verdict(hw, S().localModels) : null;
-    if (V && V.tone !== "none") { machine += " · " + V.short; }
+    var note = hw.device ? tr("Este computador: ", "This computer: ") + hw.device.replace(/^NVIDIA (GeForce )?/, "").replace(/ GPU$/, "") + ", " + (hw.vram_gb || 0) + " GB" : "";
+    if (V && V.tone !== "none") { note += (note ? " · " : "") + V.short.toLowerCase(); }
     var kind = !V ? (machineFits(hw) ? "yes" : "no") : V.tone === "good" ? "yes" : V.tone === "mid" ? "part" : "no";
-    return { privacy: cell("yes", g("stayHere")), offline: cell("yes", g("works")), cost: cell("yes", g("costFree")),
-      docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")),
-      needs: cell(kind, g("needLocal")), note: machine };
+    return { privacy: cell("yes", tr("Ficam neste computador", "Stay on this computer")), offline: cell("yes", tr("Funciona", "Works")), cost: cell("yes", tr("Grátis", "Free")),
+      docs: reads, ocr: ocr, photos: notYet, needs: cell(kind, tr("Placa de vídeo com 6 GB ou mais e um download de 4 a 6 GB", "A graphics card with 6 GB or more and a 4 to 6 GB download"), note) };
   }
   if (mode === "own_key") {
-    return { privacy: cell(scope === "network" ? "yes" : "part", scope === "network" ? g("goNet") : g("goServer")),
-      offline: cell("part", g("onlyNet")), cost: cell("part", g("costContract")),
-      docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")), needs: cell("part", g("needOwn")) };
+    return { privacy: cell(scope === "network" ? "yes" : "part", scope === "network" ? tr("Ficam na rede da sua organização", "Stay in your organization’s network") : tr("Vão ao servidor que você indicar", "Go to the server you set")),
+      offline: cell("part", tr("Só com servidor na sua rede", "Only with a server on your network")), cost: cell("part", tr("Conforme o contrato", "Per your contract")),
+      docs: reads, ocr: ocr, photos: cell("part", tr("Depende do servidor", "Depends on the server")), needs: cell("part", tr("Endereço do servidor e uma chave", "The server address and a key")) };
   }
   if (mode === "acp") {
-    return { privacy: cell("part", g("goAgent")), offline: cell("no", g("noWork")), cost: cell("part", g("costSub")),
-      docs: cell("yes", g("agentDoes")), ocr: cell("part", g("dependsAgent")), web: cell("yes", g("agentDoes")),
-      photos: cell("part", g("dependsAgent")), needs: cell("part", g("needAcp")) };
+    var does = cell("yes", tr("O agente faz", "The agent does it"));
+    return { privacy: cell("part", tr("Vão ao provedor do agente", "Go to the agent’s provider")), offline: cell("no", tr("Não funciona", "Does not work")),
+      cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: does, photos: does,
+      needs: cell("part", tr("Instalar o agente e entrar na sua conta", "Install the agent and sign in to your account")) };
   }
-  return { privacy: cell("no", g("goExt")), offline: cell("no", g("noWork")), cost: cell("yes", g("costFreeLimit")),
-    docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")), needs: cell("yes", g("needFree")) };
+  return { privacy: cell("no", tr("Vão a um provedor externo", "Go to an external provider")), offline: cell("no", tr("Não funciona", "Does not work")),
+    cost: cell("yes", tr("Grátis, com limite de uso", "Free, with usage limits")), docs: reads, ocr: ocr, photos: notYet, needs: cell("yes", tr("Nada", "Nothing")) };
 }
-var ROWS = [["privacy", "rPrivacy"], ["offline", "rOffline"], ["cost", "rCost"], ["docs", "rDocs"],
-  ["ocr", "rOcr"], ["web", "rWeb"], ["photos", "rPhotos"], ["needs", "rNeeds"]];
+var ROWS = [
+  ["privacy", ["Seus textos", "Your text"], ["Para onde vai o que você escreve e anexa.", "Where what you write and attach goes."]],
+  ["offline", ["Sem internet", "Without internet"], ["Se o assistente continua funcionando com a rede desligada.", "Whether the assistant keeps working with the network off."]],
+  ["cost", ["Custo", "Cost"], null], ["docs", ["PDF, Word e texto", "PDF, Word and text"], null],
+  ["ocr", ["Texto em imagens e digitalizações", "Text in images and scans"], ["O texto de fotos e documentos digitalizados é lido neste computador antes de ir ao modelo.", "The text of photos and scanned documents is read on this computer before it goes to the model."]],
+  ["photos", ["Entender fotos e gráficos", "Understand photos and charts"], ["Interpretar o conteúdo de uma imagem, não só o texto escrito nela.", "Interpreting what an image shows, not only the text written in it."]],
+  ["needs", ["Você precisa de", "You need"], null]];
+var MK = { yes: "✓", part: "~", no: "–" };
 
-function compare(currentMode, modes, cfg) {
-  var hw = localHardware(modes);
-  var all = {}; MODES.forEach(function (m) { all[m] = facts(m, cfg, hw); });
-  var html = '<h3 class="gb-set-section-title">' + esc(g("where")) + '</h3><p class="gb-set-hint gb-gar-sub">' + esc(g("whereSub")) + '</p>' +
-    '<div class="gb-gar-compare" id="gbModelModes"><div class="gb-gar-grid" id="gbGarGrid" role="table">';
-  html += '<div class="gb-gar-corner" role="columnheader"></div>';
-  MODES.forEach(function (m) {
-    var md = (modes || []).find(function (x) { return x.id === m; });
-    var avail = !md || md.available !== false;
-    var active = currentMode === m;
-    html += '<button class="gb-set-mode-card gb-gar-head' + (active ? " gb-set-mode-active" : "") + '" data-mode="' + m + '" data-col="' + m + '"' + (avail ? "" : " disabled") + ' role="columnheader">' +
-      ICONS[m] + '<span class="gb-set-mode-label">' + esc(g(m === "own_key" ? "own" : m)) + '</span>' +
-      '<span class="gb-set-mode-sub">' + esc(g({ own_key: "subOwn", local: "subLocal", free: "subFree", acp: "subAcp" }[m])) + '</span>' +
-      '<span class="gb-gar-head-badges">' + (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
-      (m === "acp" ? '<span class="gb-badge gb-gar-soon">' + esc(g("soon")) + '</span>' : '') +
-      '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
-      '<span class="gb-gar-head-cta">' + esc(active ? g("ctaAdjust") : g("ctaOpen")) +
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></button>';
-  });
-  ROWS.forEach(function (row) {
-    html += '<div class="gb-gar-label" role="rowheader">' + esc(g(row[1])) + '</div>';
-    MODES.forEach(function (m) {
-      var c = all[m][row[0]];
-      var note = row[0] === "needs" && all[m].note ? '<small class="gb-gar-note">' + esc(all[m].note) + '</small>' : '';
-      html += '<div class="gb-gar-cell" data-col="' + m + '" role="cell"><span class="gb-gar-mark ' + c.k + '" aria-hidden="true"></span>' +
-        '<span>' + esc(c.t) + note + '</span></div>';
+/* ---- The four engines, the detail frame ---- */
+var rec = null;
+function modeButtons(currentMode, modes) {
+  return '<section class="gb-of-pick" id="gbOfModes"><div class="gb-of-pick-h"><span class="gb-of-k">' + sl() + tr("ESCOLHA O MOTOR", "CHOOSE THE ENGINE") + '</span>' +
+    '<span class="gb-of-hint">' + tr("Clique para ver os detalhes. Nada muda até você ativar.", "Click to see the details. Nothing changes until you turn it on.") + '</span></div>' +
+    '<div class="gb-of-card"><div class="gb-of-grid" id="gbGarModeGrid"' + (rec ? ' data-rec="' + rec + '"' : '') + '>' + MODES.map(function (mode, i) {
+      var info = (modes || []).find(function (e) { return e.id === mode; });
+      var off = !info || info.available === false;
+      // The server's mode list has no entry for subscription agents: they are
+      // available whenever the agent workspace is (product config says so).
+      if (mode === "acp" && !info) {
+        var pc = A.productConfig || {};
+        off = pc.agent_backend_unavailable !== null && pc.agent_backend_unavailable !== undefined;
+      }
+      var f = INFO[mode];
+      return '<button type="button" class="gb-of-mode" data-mode="' + mode + '" aria-controls="gbModeDetail" aria-pressed="false"' + (off ? " disabled" : "") + '>' +
+        '<span class="gb-of-mode-top"><span class="gb-of-ico">' + svg(f[5], 15) + '</span><span class="gb-of-num">0' + (i + 1) + '</span><span class="gb-of-sp"></span>' +
+        (currentMode === mode ? '<span class="gb-of-chip sm gb-of-inuse">' + tr("EM USO", "IN USE") + '</span>' : '') +
+        (off ? '<span class="gb-of-chip sm mute">' + tr("INDISPONÍVEL", "UNAVAILABLE") + '</span>' : '') +
+        '<span class="gb-of-chip sm line gb-of-rec">' + tr("RECOMENDADO", "RECOMMENDED") + '</span></span>' +
+        '<span class="gb-of-mode-txt"><strong>' + esc(L2(f[0])) + '</strong><span>' + esc(L2(f[1])) + '</span></span>' +
+        '<span class="gb-of-mode-foot"><span class="gb-of-dest" data-tone="' + f[3] + '"><span class="gb-of-sq"></span>' + esc(L2(f[2])) + '</span>' + segs(f[4], f[3], "sm") + '</span></button>';
+    }).join("") + '</div><div class="gb-of-dhead"><div><span class="gb-of-k">' + sl() + tr("DETALHES", "DETAILS") + '</span><span class="gb-of-dname" id="gbOfDName"></span>' +
+    '<span class="gb-of-sp"></span><span id="gbOfDState"></span></div></div><div class="gb-of-dbody"><div class="gb-of-gut"></div><div class="gb-of-tray">' +
+    '<div id="gbOfConfirm"></div><div id="gbOfActMsg" class="gb-of-say"></div><div id="gbModeDetail"></div></div></div></div></section>';
+}
+var ACT = { local: ["Usar neste computador", "Use on this computer"], own_key: ["Usar este servidor", "Use this server"],
+  free: ["Usar modelo gratuito", "Use the free model"], acp: ["Usar agente por assinatura", "Use the subscription agent"] };
+/* The head of the detail frame: the engine viewed and either "in use now" or the button that turns it on. */
+function setDetail(panel, mode, cfg, onActivate) {
+  var name = panel.querySelector("#gbOfDName"), st = panel.querySelector("#gbOfDState");
+  ["#gbOfConfirm", "#gbOfActMsg"].forEach(function (s) { var n = panel.querySelector(s); if (n) { n.innerHTML = ""; } });
+  if (name) { name.textContent = modeLabel(mode); }
+  if (!st) { return; }
+  if (inUseKind(cfg) === mode) {
+    st.innerHTML = '<span class="gb-of-now">' + svg(I.check, 13, 2.2) + tr("EM USO AGORA", "IN USE NOW") + '</span>';
+  } else {
+    st.innerHTML = '<button type="button" class="gb-of-btn acc" id="gbOfActivate">' + esc(L2(ACT[mode])) + svg(I.arrow, 14, 3) + '</button>';
+    st.querySelector("#gbOfActivate").addEventListener("click", function () { onActivate(mode, st.querySelector("#gbOfActivate")); });
+  }
+}
+
+function compare(modes, cfg, viewed) {
+  var hw = localHardware(modes), all = {};
+  MODES.forEach(function (m) { all[m] = facts(m, cfg, hw); });
+  return '<div class="gb-of-cmp"><div><div class="gb-of-cr hd"><div></div>' + MODES.map(function (m, i) {
+    return '<div class="gb-of-ch' + (m === viewed ? " sel" : "") + '"><div><span class="gb-of-num">0' + (i + 1) + '</span>' +
+      (inUseKind(cfg) === m ? '<span class="gb-of-chip xs">' + tr("EM USO", "IN USE") + '</span>' : '') + '</div><strong>' + esc(modeLabel(m)) + '</strong>' +
+      '<button type="button" data-cmp-go="' + m + '">' + tr("Ver detalhes", "See details") + svg(I.next, 12, 3) + '</button></div>';
+  }).join("") + '</div>' + ROWS.map(function (r) {
+    return '<div class="gb-of-cr"><div class="gb-of-cl"><span>' + esc(L2(r[1])) + '</span>' + (r[2] ? help(L2(r[2])) : '') + '</div>' + MODES.map(function (m) {
+      var c = all[m][r[0]];
+      return '<div class="gb-of-cc' + (m === viewed ? " sel" : "") + '"><span class="gb-of-mk ' + c.k + '">' + MK[c.k] + '</span><div><span>' + esc(c.t) + '</span>' +
+        (c.n ? '<small>' + esc(c.n) + '</small>' : '') + '</div></div>';
+    }).join("") + '</div>';
+  }).join("") + '<div class="gb-of-leg"><span><b class="gb-of-ok">✓</b>' + tr("atende", "meets it") + '</span><span><b class="gb-of-warnc">~</b>' +
+    tr("em parte ou depende", "partly or it depends") + '</span><span><b>–</b>' + tr("não atende", "does not meet it") + '</span></div></div></div>';
+}
+
+function dialogs() {
+  var x = '<button type="button" class="gb-of-x" data-close-dialog aria-label="' + tr("Fechar", "Close") + '">' + svg(I.close, 15, 1.8) + '</button>';
+  return '<dialog id="gbGarageGuideDialog" class="gb-of-dlg gb-of-guide" aria-labelledby="gbGarageGuideTitle"><div class="gb-of-dlg-h"><span id="gbGarageGuideTitle">' + sl() +
+    tr("ME AJUDE A ESCOLHER", "HELP ME CHOOSE") + '</span><span class="gb-of-sp"></span><span class="gb-of-dots"><i></i><i></i><i></i></span>' + x + '</div>' +
+    '<div class="gb-of-gbody" aria-live="polite"></div></dialog><dialog id="gbGarageCompareDialog" class="gb-of-dlg gb-of-side" aria-labelledby="gbGarageCompareTitle">' +
+    '<div class="gb-of-dlg-h"><span id="gbGarageCompareTitle">' + sl() + tr("COMPARAR OS 4 MOTORES", "COMPARE THE 4 ENGINES") + '</span><span class="gb-of-sp"></span>' + x + '</div>' +
+    '<div class="gb-of-cmpslot"></div></dialog>';
+}
+
+/* ---- Guide: two questions, then the engine it suggests ---- */
+function bindGuide(panel, modes, dialog) {
+  var box = dialog.querySelector(".gb-of-gbody"), hw = localHardware(modes);
+  function dots(n) { dialog.querySelectorAll(".gb-of-dots i").forEach(function (d, i) { d.classList.toggle("on", i < n); }); }
+  function ask(step, q, hint, opts) {
+    dots(step);
+    box.innerHTML = '<div class="gb-of-gb"><span class="gb-of-lab">' + esc(tr("PERGUNTA %n DE 2", "QUESTION %n OF 2").replace("%n", step)) + '</span><div><span class="gb-of-gq">' +
+      esc(q) + '</span><span class="gb-of-gh">' + esc(hint) + '</span></div><div class="gb-of-opts">' + opts.map(function (o, i) {
+        return '<button type="button" class="gb-of-opt" data-a="' + i + '"><span>' + svg(o[2], 15) + '</span><span><b>' + esc(o[0]) + '</b><small>' + esc(o[1]) + '</small></span>' + svg(I.next, 14, 3) + '</button>';
+      }).join("") + '</div></div>';
+    opts.forEach(function (o, i) { box.querySelector('[data-a="' + i + '"]').addEventListener("click", o[3]); });
+  }
+  function result(mode) {
+    dots(3);
+    rec = mode;
+    var grid = panel.querySelector("#gbGarModeGrid"); if (grid) { grid.setAttribute("data-rec", mode); }
+    var V = A._modelMachine ? A._modelMachine.verdict(hw, S().localModels) : null;
+    var why = { local: tr("Nada sai deste computador e funciona sem internet.", "Nothing leaves this computer and it works offline.") +
+        (V && V.tone !== "none" ? " " + tr("A sua placa de vídeo: ", "Your graphics card: ") + V.short.toLowerCase() + "." : ""),
+      own_key: tr("Os textos vão só ao servidor que a sua organização indicar.", "Your text goes only to the server your organization sets."),
+      acp: tr("Usa a assinatura que você já paga, num espaço isolado neste computador.", "Uses the subscription you already pay for, in an isolated space on this computer."),
+      free: tr("Não precisa de chave nem de placa de vídeo. Os textos vão a um provedor externo.", "Needs no key and no graphics card. Your text goes to an external provider.") }[mode];
+    var card = panel.querySelector('.gb-of-mode[data-mode="' + mode + '"]');
+    if (card && card.disabled) {
+      why += " " + tr("Ainda não está disponível neste computador.", "It is not available on this computer yet.");
+    }
+    box.innerHTML = '<div class="gb-of-gb"><span class="gb-of-lab gb-of-ok">' + tr("RECOMENDADO PARA VOCÊ", "RECOMMENDED FOR YOU") + '</span><div><span class="gb-of-gr">' +
+      esc(modeLabel(mode)) + '</span><span class="gb-of-gh">' + esc(why) + '</span></div><div class="gb-of-gend"><button type="button" class="gb-of-btn" data-again>' +
+      tr("Recomeçar", "Start over") + '</button><button type="button" class="gb-of-btn acc" data-go>' + tr("Ver este motor", "See this engine") + svg(I.arrow, 14, 3) + '</button></div></div>';
+    box.querySelector("[data-again]").addEventListener("click", start);
+    box.querySelector("[data-go]").addEventListener("click", function () {
+      dialog.close();
+      var h = panel.querySelector('.gb-of-mode[data-mode="' + mode + '"]');
+      if (h && !h.disabled) { h.click(); h.focus({ preventScroll: true }); }
+      var d = panel.querySelector(".gb-of-dhead");
+      if (d && d.scrollIntoView) { d.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
     });
+  }
+  function start() {
+    ask(1, tr("O que você escreve pode sair deste computador?", "Can what you write leave this computer?"),
+      tr("Pense em processos, dados pessoais e documentos internos. Na dúvida, considere que não podem.", "Think of case files, personal data and internal documents. If in doubt, assume they cannot."), [
+      [tr("Não, precisa ficar aqui", "No, it must stay here"), tr("Processos, dados pessoais, documentos internos", "Case files, personal data, internal documents"), I.lock, function () {
+        ask(2, tr("Este computador tem placa de vídeo com 6 GB ou mais?", "Does this computer have a graphics card with 6 GB or more?"),
+          hw.device ? tr("Já examinamos: %d, com %v GB.", "We already checked: %d, with %v GB.").replace("%d", hw.device).replace("%v", String(hw.vram_gb || 0)) : tr("Não conseguimos examinar a placa deste computador.", "We could not check this computer’s card."), [
+          [tr("Sim, quero usar este computador", "Yes, I want to use this computer"), tr("Nada sai daqui", "Nothing leaves it"), INFO.local[5], function () { result("local"); }],
+          [tr("Não, ou prefiro o servidor da organização", "No, or I prefer the organization’s server"), tr("Os textos vão à rede da organização", "Your text goes to the organization’s network"), INFO.own_key[5], function () { result("own_key"); }]]);
+      }],
+      [tr("Sim, pode sair", "Yes, it can"), tr("Textos públicos, rascunhos, pesquisas", "Public text, drafts, research"), I.globe, function () {
+        ask(2, tr("Você já paga Claude, ChatGPT ou Gemini?", "Do you already pay for Claude, ChatGPT or Gemini?"),
+          tr("Uma assinatura que você já tem pode virar o motor do assistente.", "A subscription you already have can become the assistant’s engine."), [
+          [tr("Sim, tenho assinatura", "Yes, I have a subscription"), tr("Usa a sua conta, num espaço isolado", "Uses your account, in an isolated space"), INFO.acp[5], function () { result("acp"); }],
+          [tr("Não", "No"), tr("Use o modelo gratuito, sem chave", "Use the free model, no key"), INFO.free[5], function () { result("free"); }]]);
+      }]]);
+  }
+  return start;
+}
+
+/* ---- Tooltips: any [data-tip] in the page or its dialogs ---- */
+var tipEl = null;
+function tipShow(t) {
+  if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "gb-of-tip"; tipEl.setAttribute("role", "tooltip"); }
+  (t.closest("dialog[open]") || document.body).appendChild(tipEl);
+  tipEl.textContent = t.getAttribute("data-tip");
+  var z = window.GBZoom ? window.GBZoom.factor() : 1;
+  var r = t.getBoundingClientRect(), below = r.top / z < 90;
+  tipEl.style.left = Math.max(160, Math.min(innerWidth / z - 160, (r.left + r.width / 2) / z)) + "px";
+  tipEl.style.top = (below ? r.bottom / z + 8 : r.top / z - 8) + "px";
+  tipEl.style.transform = below ? "translateX(-50%)" : "translate(-50%,-100%)";
+}
+function tipHide() { if (tipEl && tipEl.parentNode) { tipEl.remove(); } }
+function bindTips(root) {
+  ["mouseover", "focusin"].forEach(function (ev) { root.addEventListener(ev, function (e) { var t = e.target.closest && e.target.closest("[data-tip]"); if (t) { tipShow(t); } }); });
+  ["mouseout", "focusout"].forEach(function (ev) { root.addEventListener(ev, function (e) { var t = e.target.closest && e.target.closest("[data-tip]"); if (t && !t.contains(e.relatedTarget)) { tipHide(); } }); });
+}
+
+function bindDialog(panel, buttonId, dialog, onOpen) {
+  var button = panel.querySelector("#" + buttonId);
+  if (!button || !dialog) { return; }
+  dialog.tabIndex = -1;
+  button.onclick = function () { if (onOpen) { onOpen(); } dialog.showModal(); dialog.focus(); };
+  dialog.querySelector("[data-close-dialog]").onclick = function () { dialog.close(); };
+  dialog.addEventListener("close", tipHide);
+  dialog.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); } });
+  dialog.addEventListener("click", function (e) {
+    if (e.target !== dialog) { return; }
+    var r = dialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) { dialog.close(); }
   });
-  return html + '</div></div>';
+  bindTips(dialog);
 }
 
 A._modelGarage = {
-  dashboard: function (cfg, privacyText) {
-    return dashboard(cfg, S().shortName || function (m) { return m || "—"; }, privacyText);
-  },
-  guide: guide,
-  bindGuide: bindGuide,
-  compare: compare,
-  /* The column of the card being viewed is lit across the table. */
-  markView: function (mode) {
-    var grid = document.getElementById("gbGarGrid");
-    if (grid) { grid.setAttribute("data-view", mode); }
+  dashboard: dashboard, runCard: runCard, markInUse: markInUse, inUseKind: inUseKind,
+  modeButtons: modeButtons, dialogs: dialogs, modeLabel: modeLabel, setDetail: setDetail, help: help, svg: svg, sl: sl,
+  bind: function (panel, modes, viewed) {
+    var cmp = panel.querySelector("#gbGarageCompareDialog"), guide = panel.querySelector("#gbGarageGuideDialog");
+    bindDialog(panel, "gbOpenCompare", cmp, function () {
+      cmp.querySelector(".gb-of-cmpslot").outerHTML = compare(modes, S().cfg, viewed());
+      cmp.querySelectorAll("[data-cmp-go]").forEach(function (b) {
+        b.addEventListener("click", function () { cmp.close(); var h = panel.querySelector('.gb-of-mode[data-mode="' + b.getAttribute("data-cmp-go") + '"]'); if (h && !h.disabled) { h.click(); } });
+      });
+      cmp.querySelector(".gb-of-cmp").classList.add("gb-of-cmpslot");
+    });
+    if (guide) { bindDialog(panel, "gbOpenGuide", guide, bindGuide(panel, modes, guide)); }
+    bindTips(panel);
   }
 };
 })();

@@ -19,12 +19,30 @@
         window.setTimeout(signalBootReady, 6000);
     });
 
+    function backgroundAuthRetry() {
+        var timer = setInterval(async function () {
+            try {
+                var d = await A.authenticate();
+                if (!d) { return; }
+                A._authReady = Boolean(A.sessionId && A.userId);
+                if (!A._authReady) { return; }
+                clearInterval(timer);
+                A.connectWs();
+                if (A.loadUserProfile) { await A.loadUserProfile(); }
+                if (A.loadModels) { await A.loadModels().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } }); }
+                if (A.loadSessions) { await A.loadSessions().then(function () { if (A.refreshSidebar) { A.refreshSidebar(); } }); }
+                if (A.renderUser) { A.renderUser(); }
+            } catch (e) { /* next interval */ }
+        }, 8000);
+    }
+
     document.addEventListener("DOMContentLoaded", async function () {
         /* 1. Locale (before any label is rendered) */
         A.initLocale();
 
         /* 2. Translate static data-i18n elements */
         translatePage();
+        A.initMantisShell();
 
         /* 3. Product config + accent + pattern */
         await A.loadProduct();
@@ -46,17 +64,31 @@
             if (!token) { A.goToLogin(window.location.href); return; }
         }
 
-        /* 6. Authenticate (new session -- no session_id) */
-        await A.authenticate();
+        /* 6. Authenticate (new session -- no session_id), with retry. */
+        var authData = await A.authenticate();
+        if (!authData) {
+            var delays = [1000, 2000, 4000, 8000, 8000, 8000, 8000, 8000, 8000, 8000];
+            for (var ri = 0; ri < delays.length; ri++) {
+                await new Promise(function (r) { setTimeout(r, delays[ri]); });
+                authData = await A.authenticate();
+                if (authData) { break; }
+            }
+        }
+        if (!authData) {
+            console.warn("[assistant] auth failed after retries; proceeding without identity");
+            backgroundAuthRetry();
+        }
 
         /* 7. User profile */
         await A.loadUserProfile();
+        if (A.loadChatProfile) { await A.loadChatProfile(); }
 
         /* 8. Models */
         await A.loadModels();
 
         /* 9. Render static UI */
-        A.renderWordmark();
+        A.renderEdition();
+        A.refreshMachineStatus();
         A.renderUser();
         A.renderGreeting();
         A.renderModelPickers();
@@ -73,7 +105,10 @@
         if (typeof A.initScroll === "function") { A.initScroll(); }
         if (typeof A.initExportActions === "function") { A.initExportActions(); }
 
-        /* 11. Connect WebSocket (uses the new session) */
+        /* 11. Connect WebSocket (uses the new session).
+           The gate opens only when auth returned a session and user id;
+           focus/reconnect listeners in 02_api.js check the same flag. */
+        A._authReady = Boolean(A.sessionId && A.userId);
         A.connectWs();
 
         /* 12. Load conversation list (sidebar) */

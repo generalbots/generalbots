@@ -10,7 +10,8 @@ use tokio::sync::mpsc;
 use crate::stream::ExecEvent;
 use crate::AgentService;
 
-use super::super::incus::exec_in_vm;
+use super::super::incus::exec_in_vm_within;
+use super::super::incus_run::is_timeout;
 
 pub(super) fn exec_channel_not_ready(stderr: &str) -> bool {
     let text = stderr.to_ascii_lowercase();
@@ -32,16 +33,22 @@ pub(super) async fn run_with_timeout(
     timeout_ms: u64,
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     for attempt in 0..EXEC_RETRY_ATTEMPTS {
-        let result = tokio::time::timeout(
+        // The limit is enforced on the process itself, so a program that
+        // runs over it is killed instead of being left behind.
+        let result = exec_in_vm_within(
+            state,
+            vm_name,
+            &["sh".into(), "-c".into(), command.clone()],
             std::time::Duration::from_millis(timeout_ms),
-            exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), command.clone()]),
         )
         .await;
         match result {
-            Err(_) => return Ok((false, String::new(), "Execution timed out".to_string())),
-            Ok(Err(exec_error)) => return Err(exec_error),
-            Ok(Ok((true, stdout, stderr))) => return Ok((true, stdout, stderr)),
-            Ok(Ok((false, stdout, stderr))) => {
+            Err(exec_error) if is_timeout(&exec_error) => {
+                return Ok((false, String::new(), "Execution timed out".to_string()))
+            }
+            Err(exec_error) => return Err(exec_error),
+            Ok((true, stdout, stderr)) => return Ok((true, stdout, stderr)),
+            Ok((false, stdout, stderr)) => {
                 if !exec_channel_not_ready(&stderr) || attempt + 1 >= EXEC_RETRY_ATTEMPTS {
                     return Ok((false, stdout, stderr));
                 }

@@ -91,7 +91,10 @@ pub async fn check_and_bootstrap_admin(client: &ZitadelClient) -> Result<Option<
 
     let result = create_bootstrap_admin(client).await?;
 
-    print_bootstrap_credentials(&result);
+    match current_disclosure() {
+        InitialPasswordDisclosure::SaveAndShow => print_bootstrap_credentials(&result),
+        InitialPasswordDisclosure::Withhold => print_desktop_bootstrap_notice(&result),
+    }
 
     Ok(Some(result))
 }
@@ -242,9 +245,10 @@ pub(super) async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<Boo
         setup_url: setup_url.clone(),
     };
 
-    save_setup_credentials(&result);
-
-    create_password_change_reminder(&user_id);
+    if current_disclosure() == InitialPasswordDisclosure::SaveAndShow {
+        save_setup_credentials(&result);
+        create_password_change_reminder(&user_id);
+    }
 
     let bootstrap_state = BootstrapState {
         user_id: user_id.clone(),

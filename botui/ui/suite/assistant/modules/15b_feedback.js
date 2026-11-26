@@ -49,39 +49,46 @@
         saveStore(store);
     };
 
-    /** Add feedback buttons to an assistant message element. */
-    A.addFeedbackButtons = function (el) {
+    function voteButton(title, svg, on) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "gb-msg-toolbar-btn gb-feedback-btn";
+        b.title = title;
+        b.setAttribute("aria-label", title);
+        b.innerHTML = svg;
+        mark(b, on);
+        return b;
+    }
+
+    function mark(b, on) {
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    /** Add the thumbs to the answer's action row, after Copy and Regenerate,
+     *  so every action shares one row. The comment box opens under the row. */
+    A.addFeedbackButtons = function (el, bar) {
         var sessId = A.currentSessionId || A.sessionId || "";
         var idx = el.dataset.messageIndex;
-        if (idx == null || !sessId) { return; }
+        var wrap = bar || el.querySelector(".gb-msg-toolbar");
+        if (idx == null || !sessId || !wrap) { return; }
         idx = parseInt(idx, 10);
 
-        var wrap = document.createElement("span");
-        wrap.className = "gb-feedback-wrap";
-
         var existing = A.getFeedback(sessId, idx);
-
-        var up = document.createElement("button");
-        up.className = "gb-feedback-btn" + (existing && existing.vote === "up" ? " active" : "");
-        up.title = pt() ? "Boa resposta" : "Good answer";
-        up.setAttribute("aria-label", up.title);
-        up.innerHTML = thumbUpSvg(14);
-
-        var down = document.createElement("button");
-        down.className = "gb-feedback-btn" + (existing && existing.vote === "down" ? " active" : "");
-        down.title = pt() ? "Resposta ruim" : "Bad answer";
-        down.setAttribute("aria-label", down.title);
-        down.innerHTML = thumbDownSvg(14);
+        var up = voteButton(pt() ? "Boa resposta" : "Good answer", thumbUpSvg(14),
+            !!(existing && existing.vote === "up"));
+        var down = voteButton(pt() ? "Resposta ruim" : "Bad answer", thumbDownSvg(14),
+            !!(existing && existing.vote === "down"));
 
         up.addEventListener("click", function () {
             var cur = A.getFeedback(sessId, idx);
             if (cur && cur.vote === "up") {
                 A.setFeedback(sessId, idx, null);
-                up.classList.remove("active");
+                mark(up, false);
             } else {
                 A.setFeedback(sessId, idx, "up");
-                up.classList.add("active");
-                down.classList.remove("active");
+                mark(up, true);
+                mark(down, false);
                 removeCommentBox(wrap);
             }
         });
@@ -90,23 +97,23 @@
             var cur = A.getFeedback(sessId, idx);
             if (cur && cur.vote === "down") {
                 A.setFeedback(sessId, idx, null);
-                down.classList.remove("active");
+                mark(down, false);
                 removeCommentBox(wrap);
             } else {
                 A.setFeedback(sessId, idx, "down");
-                down.classList.add("active");
-                up.classList.remove("active");
+                mark(down, true);
+                mark(up, false);
                 showCommentBox(wrap, sessId, idx);
             }
         });
 
         wrap.appendChild(up);
         wrap.appendChild(down);
-        el.appendChild(wrap);
     };
 
     function showCommentBox(wrap, sessId, idx) {
-        if (wrap.querySelector(".gb-feedback-comment")) { return; }
+        var next = wrap.nextElementSibling;
+        if (next && next.classList.contains("gb-feedback-comment")) { return; }
         var box = document.createElement("div");
         box.className = "gb-feedback-comment";
         var input = document.createElement("input");
@@ -128,13 +135,13 @@
         });
         box.appendChild(input);
         box.appendChild(send);
-        wrap.appendChild(box);
+        wrap.after(box);
         input.focus();
     }
 
     function removeCommentBox(wrap) {
-        var box = wrap.querySelector(".gb-feedback-comment");
-        if (box) { box.remove(); }
+        var box = wrap.nextElementSibling;
+        if (box && box.classList.contains("gb-feedback-comment")) { box.remove(); }
     }
 
     function thumbUpSvg(size) {

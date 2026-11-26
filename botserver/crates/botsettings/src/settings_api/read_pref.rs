@@ -22,6 +22,15 @@ pub fn write_pref(
     key: &str,
     value: &serde_json::Value,
 ) {
+    let _ = try_write_pref(conn, user_id, key, value);
+}
+
+pub fn try_write_pref(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+    key: &str,
+    value: &serde_json::Value,
+) -> diesel::QueryResult<usize> {
     let json = value.to_string();
     if let Err(e) = diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at)

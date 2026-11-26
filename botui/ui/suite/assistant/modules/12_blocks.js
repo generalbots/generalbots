@@ -1,6 +1,6 @@
 "use strict";
 /**
- * 12_blocks.js - Block renderers for the conversation.
+ * 12_blocks.js - Activity block shell and registry.
  *
  * Server event contract (gb.activity):
  * { gb_event:true, type:"CUSTOM", data:{ name:"gb.activity", payload:{
@@ -9,55 +9,62 @@
  *
  * The same id arrives twice (started -> completed/failed). Update in place.
  * Activities of a turn group into one stack above the answer text.
+ * Renderers per kind live in 12a_block_kinds.js, the live frame handler and
+ * the workspace run block in 12b_block_live.js, attachment cards and the
+ * answer toolbar in 12c_attach_card.js.
  */
 (function () {
 var A = window.GBAssistant;
 var I = window.GBIcon || function () { return ""; };
-function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function fmtBytes(b) {
-    if (!b && b !== 0) return "0 B";
-    if (b < 1024) return b + " B";
-    if (b < 1048576) return (b/1024).toFixed(0) + " KB";
-    if (b < 1073741824) return (b/1048576).toFixed(1) + " MB";
-    return (b/1073741824).toFixed(1) + " GB";
+    if (!b && b !== 0) { return "0 B"; }
+    if (b < 1024) { return b + " B"; }
+    if (b < 1048576) { return (b / 1024).toFixed(0) + " KB"; }
+    if (b < 1073741824) { return (b / 1048576).toFixed(1) + " MB"; }
+    return (b / 1073741824).toFixed(1) + " GB";
 }
-var pt = function () { return A.locale && A.locale.startsWith("pt"); };
-function t(ptT, enT) { return pt() ? ptT : enT; }
+function t(ptT, enT) { return A.locale && A.locale.startsWith("pt") ? ptT : enT; }
 
 /* ---- Status mapping ---- */
 function mapStatus(s) {
-    if (s === "started") return "running";
-    if (s === "completed") return "done";
-    if (s === "needs_input") return "needs-you";
-    if (s === "failed") return "failed";
+    if (s === "started") { return "running"; }
+    if (s === "completed") { return "done"; }
+    if (s === "needs_input") { return "needs-you"; }
+    if (s === "failed") { return "failed"; }
     return s || "done";
 }
-function chipHtml(status) {
-    var labels = { running: t("Executando","Running"), done: t("Concluído","Done"),
-        failed: t("Falhou","Failed"), "needs-you": t("Precisa de você","Needs you") };
-    return '<span class="gb-block-chip gb-block-chip--' + esc(status) + '">' + esc(labels[status]||status) + '</span>';
+function statusLabel(status) {
+    var labels = { running: t("Executando", "Running"), done: t("Concluído", "Done"),
+        failed: t("Falhou", "Failed"), "needs-you": t("Precisa de você", "Needs you") };
+    return labels[status] || status;
 }
-function chevron() { return I("caret-right", 14, "gb-block-chevron"); }
+function chipHtml(status) {
+    return '<span class="gb-block-chip gb-block-chip--' + esc(status) + '">' + esc(statusLabel(status)) + '</span>';
+}
+function countHtml(text) {
+    return text ? '<span class="gb-block-count">' + esc(text) + '</span>' : "";
+}
 
 /* ---- Generic block shell ---- */
 function block(opts) {
     var status = opts.status || "done";
-    var openByDefault = status === "running" || status === "needs-you";
-    var cls = "gb-block gb-block--" + status + (openByDefault ? " open" : "");
+    var openByDefault = opts.open !== undefined ? opts.open : (status === "running" || status === "needs-you");
     var el = document.createElement("div");
-    el.className = cls;
-    if (opts.activityId) el.dataset.activityId = opts.activityId;
+    el.className = "gb-block gb-block--" + status + (opts.kind ? " gb-block-kind--" + opts.kind : "") + (openByDefault ? " open" : "");
+    if (opts.activityId) { el.dataset.activityId = opts.activityId; }
     el.innerHTML =
         '<div class="gb-block-header" tabindex="0" role="button" aria-expanded="' + openByDefault + '">' +
-            '<div class="gb-block-icon-wrap">' + I(opts.icon || "info", 16) + '</div>' +
+            I("caret-right", 14, "gb-block-chevron") + '<div class="gb-block-icon-wrap">' + I(opts.icon || "info", 16) + '</div>' +
             '<span class="gb-block-title">' + esc(opts.title) + '</span>' +
             '<span class="gb-block-summary">' + esc(opts.summary || "") + '</span>' +
-            chipHtml(status) + chevron() +
+            countHtml(opts.count) + chipHtml(status) +
         '</div>' +
         '<div class="gb-block-body">' + (opts.bodyHtml || "") + '</div>' +
         (opts.footerHtml ? '<div class="gb-block-footer">' + opts.footerHtml + '</div>' : '');
     var hdr = el.querySelector(".gb-block-header");
     hdr.addEventListener("click", function () {
+        el.dataset.userToggled = "1";
         var open = el.classList.toggle("open");
         hdr.setAttribute("aria-expanded", String(open));
     });
@@ -67,33 +74,45 @@ function block(opts) {
     return el;
 }
 
-/* ---- File-type icon with tint ---- */
+function row(label, value) {
+    return '<div class="gb-block-row"><span class="gb-block-row-label">' + esc(label) + '</span><span class="gb-block-row-value">' + esc(value || "") + '</span></div>';
+}
+function noteRow(text, tone) {
+    return '<div class="gb-block-row gb-block-note' + (tone ? " gb-block-note--" + tone : "") + '"><span class="gb-block-row-value">' + esc(text) + '</span></div>';
+}
+
+/* ---- File types: icon and a short mono badge (PDF, XLS, DOC...) ---- */
+var TYPES = [
+    ["image", "IMG", "jpg jpeg png gif webp bmp svg ico"],
+    ["pdf", "PDF", "pdf"],
+    ["doc", "DOC", "doc docx odt rtf"],
+    ["sheet", "XLS", "xls xlsx ods csv"],
+    ["slides", "PPT", "ppt pptx odp"],
+    ["audio", "AUD", "mp3 wav ogg flac aac m4a"],
+    ["video", "VID", "mp4 webm mkv avi mov"],
+    ["archive", "ZIP", "zip gz tar rar 7z"],
+    ["code", "COD", "js ts py rs html css json xml yaml toml sh bas"],
+    ["text", "TXT", "txt md log"]
+];
+function fileType(name) {
+    var ext = (String(name || "").split(".").pop() || "").toLowerCase();
+    for (var i = 0; i < TYPES.length; i++) {
+        if (TYPES[i][2].split(" ").indexOf(ext) >= 0) { return { kind: TYPES[i][0], badge: TYPES[i][1] }; }
+    }
+    return { kind: "file", badge: ext && ext.length <= 4 && ext !== String(name || "").toLowerCase() ? ext.toUpperCase() : t("ARQ", "FILE") };
+}
 function fileIcon(name) {
-    if (!name) return "file";
-    var ext = (name.split(".").pop() || "").toLowerCase();
-    if ("jpg jpeg png gif webp bmp svg ico".split(" ").indexOf(ext) >= 0) return "image";
-    if (ext === "pdf") return "file";
-    if ("doc docx odt rtf".split(" ").indexOf(ext) >= 0) return "file";
-    if ("xls xlsx ods csv".split(" ").indexOf(ext) >= 0) return "file";
-    if ("ppt pptx odp".split(" ").indexOf(ext) >= 0) return "file";
-    if ("mp3 wav ogg flac aac m4a".split(" ").indexOf(ext) >= 0) return "file";
-    if ("mp4 webm mkv avi mov".split(" ").indexOf(ext) >= 0) return "file";
-    if ("zip gz tar rar 7z".split(" ").indexOf(ext) >= 0) return "download";
-    if ("js ts py rs html css json xml yaml toml sh bas".split(" ").indexOf(ext) >= 0) return "terminal";
-    if ("txt md log".split(" ").indexOf(ext) >= 0) return "file";
+    var kind = fileType(name).kind;
+    if (kind === "image") { return "image"; }
+    if (kind === "archive") { return "download"; }
+    if (kind === "code") { return "terminal"; }
     return "file";
 }
-function fileTint(name) {
-    if (!name) return "";
-    var ext = (name.split(".").pop() || "").toLowerCase();
-    if ("jpg jpeg png gif webp bmp svg ico".split(" ").indexOf(ext) >= 0) return "color:#7c3aed";
-    if (ext === "pdf") return "color:#dc2626";
-    if ("doc docx odt rtf".split(" ").indexOf(ext) >= 0) return "color:#2563eb";
-    if ("xls xlsx ods csv".split(" ").indexOf(ext) >= 0) return "color:#059669";
-    if ("ppt pptx odp".split(" ").indexOf(ext) >= 0) return "color:#d97706";
-    if ("zip gz tar rar 7z".split(" ").indexOf(ext) >= 0) return "color:#6b7280";
-    if ("js ts py rs html css json xml yaml toml sh bas".split(" ").indexOf(ext) >= 0) return "color:#0d9488";
-    return "";
+/** Class that tints a file icon or badge with a state token by type. */
+function fileTint(name) { return "gb-ft--" + fileType(name).kind; }
+function fileBadge(name) {
+    var type = fileType(name);
+    return '<span class="gb-file-badge gb-ft--' + type.kind + '" aria-hidden="true">' + esc(type.badge) + '</span>';
 }
 A.fileTypeIcon = fileIcon;
 A.fileTint = fileTint;
@@ -290,22 +309,29 @@ function row(label, value) {
 }
 
 function updateBlockStatus(el, newStatus) {
-    el.className = el.className.replace(/gb-block--\w+/g, "") + " gb-block--" + newStatus;
+    Array.from(el.classList).filter(function (name) {
+        return name.indexOf("gb-block--") === 0;
+    }).forEach(function (name) { el.classList.remove(name); });
+    el.classList.add("gb-block--" + newStatus);
     var chip = el.querySelector(".gb-block-chip");
-    if (chip) { chip.className = "gb-block-chip gb-block-chip--" + newStatus; chip.textContent = { running: t("Executando","Running"), done: t("Concluído","Done"), failed: t("Falhou","Failed") }[newStatus] || newStatus; }
+    if (chip) { chip.outerHTML = chipHtml(newStatus); }
 }
 
-/* ---- Render a stack of blocks ---- */
-A.renderBlockStack = function (events) {
-    if (!events || !events.length) return null;
-    if (events.length === 1) return renderSingleBlock(events[0]);
-    var stack = document.createElement("div");
-    stack.className = "gb-block-stack";
-    events.forEach(function (ev) { var el = renderSingleBlock(ev); if (el) stack.appendChild(el); });
-    return stack;
+/* Shared helpers for the split block modules. */
+A._blk = {
+    esc: esc, t: t, fmtBytes: fmtBytes, mapStatus: mapStatus, statusLabel: statusLabel,
+    block: block, row: row, noteRow: noteRow, chipHtml: chipHtml,
+    fileIcon: fileIcon, fileBadge: fileBadge, updateStatus: updateBlockStatus
 };
 
-function renderSingleBlock(ev) {
+/* ---- Registry ---- */
+A.setPermissionActivityStatus = function (requestId, status) {
+    document.querySelectorAll(".gb-block[data-permission-id]").forEach(function (el) {
+        if (el.dataset.permissionId === requestId) { updateBlockStatus(el, status); }
+    });
+};
+
+A.renderSingleBlock = function (ev) {
     var kind = ev.kind || ev.type || ev.event_type || "";
     var R = {
         "thinking": A.blockThinking, "attachment_read": A.blockAttachmentRead,
@@ -313,77 +339,11 @@ function renderSingleBlock(ev) {
         "drive_read": A.blockDriveRead, "kb_search": A.blockKbSearch,
         "api_command": A.blockApiCommand, "tool_run": A.blockToolRun,
         "permission": A.blockPermission, "notice": A.blockNotice, "error": A.blockError,
+        "file_generated": A.blockFileGenerated, "task_scheduled": A.blockTaskScheduled
     };
-    var fn = R[kind]; if (fn) return fn(ev);
-    return A.blockGeneric(ev);
-}
-
-/* ---- Live activity event handler (from WS gb_event frames) ---- */
-var pendingActivities = []; /* accumulate during a turn */
-
-A.onActivityEvent = function (frame) {
-    if (!frame.data || frame.data.name !== "gb.activity") return;
-    var payload = frame.data.payload;
-    if (!payload || !payload.id) return;
-    /* Check if this activity already has a block rendered */
-    var existing = document.querySelector('[data-activity-id="' + payload.id + '"]');
-    if (existing) {
-        /* Update in place */
-        updateBlockStatus(existing, mapStatus(payload.status));
-        if (payload.error) {
-            var body = existing.querySelector(".gb-block-body");
-            if (body) body.innerHTML = '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#dc2626">' + esc(payload.error) + '</span></div>';
-        }
-        /* Refresh the body on attachment_read completion with the final
-           summary data (chars_read, drive_path, etc.). */
-        if (payload.kind === "attachment_read" && payload.summary &&
-            (payload.status === "completed" || payload.status === "failed")) {
-            var ev2 = { id: payload.id, kind: payload.kind, status: payload.status,
-                summary: payload.summary, data: payload.summary };
-            if (payload.error) ev2.error = payload.error;
-            var fresh = A.blockAttachmentRead(ev2);
-            var freshBody = fresh.querySelector(".gb-block-body");
-            var existBody = existing.querySelector(".gb-block-body");
-            if (freshBody && existBody) existBody.innerHTML = freshBody.innerHTML;
-        }
-        return;
-    }
-    /* New activity: render and append to the current turn's stack */
-    var ev = { id: payload.id, kind: payload.kind, status: payload.status,
-        summary: payload.summary || {}, data: payload.summary || {} };
-    if (payload.error) ev.data.error = payload.error;
-    var blockEl = renderSingleBlock(ev);
-    if (!blockEl) return;
-    var msgs = document.getElementById("gbMessages");
-    if (!msgs) return;
-    /* Find or create the turn's activity stack (only after the last
-       user message to avoid adopting a previous turn's stack). */
-    var stack = null, children = msgs.children;
-    var lastUserIdx = -1;
-    for (var ui = children.length - 1; ui >= 0; ui--) { if (children[ui].classList.contains("gb-msg-user")) { lastUserIdx = ui; break; } }
-    for (var ci = children.length - 1; ci > lastUserIdx && ci >= Math.max(0, children.length - 4); ci--) {
-        var ch = children[ci];
-        if (ch.classList.contains("gb-msg-assistant")) {
-            var s = ch.querySelector(".gb-block-stack");
-            if (s) { stack = s; break; }
-        }
-    }
-    if (!stack) {
-        stack = document.createElement("div");
-        stack.className = "gb-block-stack";
-        /* Insert BEFORE the streaming element if one exists, so blocks group above the answer */
-        var streamingEl = msgs.querySelector(".gb-streaming");
-        var turn = document.createElement("div");
-        turn.className = "gb-msg-assistant";
-        turn.appendChild(stack);
-        if (streamingEl && streamingEl.parentElement === msgs) {
-            msgs.insertBefore(turn, streamingEl);
-        } else {
-            msgs.appendChild(turn);
-        }
-    }
-    stack.appendChild(blockEl);
-    if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }
+    var fn = R[kind];
+    if (typeof fn === "function") { return fn(ev); }
+    return A.blockGeneric ? A.blockGeneric(ev) : null;
 };
 
 /* ---- Attachment card ---- */

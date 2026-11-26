@@ -31,7 +31,7 @@
     background: transparent;
     color: var(--id-text);
     font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     cursor: pointer;
     text-align: left;
     white-space: nowrap;

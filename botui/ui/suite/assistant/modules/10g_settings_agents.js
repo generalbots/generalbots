@@ -1,6 +1,6 @@
 "use strict";
 /**
- * 10g_settings_agents.js - Settings > Modelo > "Agente": subscription agents.
+ * 10g_settings_agents.js - Settings > Modelo > "Agente por assinatura".
  *
  * Claude Code, Codex and Antigravity connect through the agent workspace: an
  * isolated VM where the agent's own program runs and the person signs in
@@ -16,21 +16,26 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 function tr(ptText, enText) { return A.locale && A.locale.startsWith("pt") ? ptText : enText; }
 
 var AGENTS = [
-  { id:"claude-code", logo:"anthropic", name:"Claude Code", co:"Anthropic", paste:true },
-  { id:"codex-cli", logo:"openai", name:"Codex", co:"OpenAI", paste:false },
-  { id:"antigravity", logo:"gemini", name:"Antigravity", co:"Google", paste:true },
-  { logo:"copilot", name:"GitHub Copilot", co:"GitHub" }, { logo:"cursor", name:"Cursor Agent", co:"Cursor" },
-  { logo:"qwen", name:"Qwen Code", co:"Alibaba" }, { logo:"kimi", name:"Kimi CLI", co:"Moonshot AI" },
-  { logo:"mistral", name:"Mistral Vibe", co:"Mistral" }, { logo:"zhipu", name:"GLM Agent", co:"Zhipu" },
-  { logo:"ibm", name:"Bob", co:"IBM" }, { logo:"", name:"Junie", co:"JetBrains" }
+  { id:"claude-code", logo:"anthropic", name:"Claude Code", sub:"Claude", co:"Anthropic", paste:true },
+  { id:"codex-cli", logo:"openai", name:"Codex", sub:"ChatGPT", co:"OpenAI", paste:false },
+  { id:"antigravity", logo:"gemini", name:"Antigravity", sub:"Gemini", co:"Google", paste:true }
 ];
 
 function logo(id) {
   var svg = (A._providerLogos || {})[id];
-  return '<span class="gb-prov-logo">' + (svg || '') + '</span>';
+  return '<span class="gb-of-logo" aria-hidden="true">' + (svg || '') + '</span>';
 }
-function api(path, body) {
-  return A.apiFetch(path, body === undefined ? undefined : { method: "POST", body: JSON.stringify(body) })
+/* Reads carry a 15 s deadline (02b_requests.js); connect and sign-in calls
+ * run as long as the server needs. */
+function api(path, body, method) {
+  if (body === undefined) {
+    return A.fetchJSON(path, null, 15000).then(function (res) {
+      var d = res.data || {};
+      if (!res.ok) { throw new Error(d.message || d.error || ("HTTP " + res.status)); }
+      return d;
+    });
+  }
+  return A.apiFetch(path, { method: method || "POST", body: JSON.stringify(body) })
     .then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok) { throw new Error(d.message || d.error || ("HTTP " + r.status)); }
@@ -59,9 +64,47 @@ function rowHtml(a, st) {
     btn + '</div><div class="gb-prov-flow" data-flow="' + a.id + '"></div></div>';
 }
 
-/** The sign-in step: link, code to type there, or a box for the code it returns. */
-function showFlow(el, a, d) {
-  var box = el.querySelector('[data-flow="' + a.id + '"]');
+/* One status poll per agent whose sign-in is in progress. */
+var polls = {};
+function stopPoll(id) { if (polls[id]) { polls[id].stop(); delete polls[id]; } }
+var WATCH_MS = 3000, WATCH_BACKOFF = 30000;
+var VM_BADGE = { stopped: ["gb-of-muc", "vmStopped"], starting: ["gb-of-warnc", "vmStarting"], unavailable: ["gb-of-muc", "vmUnavailable"] };
+function stopAll() { Object.keys(polls).forEach(stopPoll); }
+var PENDING = ["connecting", "waiting", "verifying", "starting"];
+/* Sign-ins this page started. A sign-in left half-done earlier (status
+ * "connecting": the CLI is starting, waiting or verifying) is offered again. */
+var started = {};
+function badge(status, vm) {
+  var k = VM_BADGE[vm] || (status === "linked" ? ["gb-of-ok", "linked"] : status === "connecting" ? ["gb-of-warnc", "connecting"] : ["gb-of-muc", "off"]);
+  return '<span class="gb-of-ag-st ' + k[0] + '"><span class="gb-of-sq"></span>' + esc(g(k[1])) + '</span>';
+}
+function markRow(el, a, connecting, vm) {
+  var b = el.querySelector('[data-agent="' + a.id + '"] .gb-of-ag-st');
+  var html = badge(connecting ? "connecting" : "unlinked", vm);
+  if (b && b.outerHTML !== html) { b.outerHTML = html; }
+}
+function statusOf(a, st) {
+  var s = (st && st.status) || "unlinked";
+  return s === "connecting" && !started[a.id] ? "unlinked" : s;
+}
+
+function rowHtml(a, st) {
+  var status = statusOf(a, st);
+  var btn = status === "linked"
+    ? '<button type="button" class="gb-of-btn" data-agent-use="' + a.id + '">' + esc(g("useNow")) + '</button>' +
+      '<button type="button" class="gb-of-btn" data-agent-off="' + a.id + '">' + esc(g("disconnect")) + '</button>'
+    : '<button type="button" class="gb-of-btn" data-agent-on="' + a.id + '">' + esc(g("connect")) + '</button>';
+  return '<div class="gb-of-ag" data-agent="' + a.id + '" role="listitem"><div class="gb-of-ag-r">' + logo(a.logo) +
+    '<div><b>' + esc(a.sub) + '</b><span class="tool">' + esc(a.name + " · " + a.co) + '</span></div>' + badge(status) + btn + '</div>' +
+    '<div class="gb-prov-flow" data-flow="' + a.id + '"></div>' + (status === "linked" ? '<div data-agm="' + a.id + '"></div>' : '') + '</div>';
+}
+
+/* The agent's models (/api/ai-accounts/:provider/models): the ones switched
+ * on appear in the chat's model menu; the list folds under its header. */
+var openModels = {};
+var HINT = 'class="gb-of-hint" style="margin:0;padding:10px 16px;border-top:1px solid var(--id-line)"';
+function mountModels(el, a) {
+  var box = el.querySelector('[data-agm="' + a.id + '"]');
   if (!box) { return; }
   var code = d.device_code || d.auth_code || "";
   var html = '<p class="gb-set-hint">' + esc(d.message || tr(
@@ -81,10 +124,86 @@ function showFlow(el, a, d) {
       '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" data-send="' + a.id + '">' +
       esc(tr("Enviar código", "Send code")) + '</button></div>';
   }
-  var focused = document.activeElement && document.activeElement.getAttribute("data-paste") === a.id;
-  if (!focused) { box.innerHTML = html; }
-  var send = box.querySelector('[data-send="' + a.id + '"]');
-  if (send) {
+  function draw() {
+    count();
+    if (!list.length) { body.innerHTML = '<p ' + HINT + '>' + esc(g("none")) + '</p>'; return; }
+    body.innerHTML = '<div class="gb-of-km-list" role="group" aria-label="' + esc(g("models")) + '">' + list.map(function (m) {
+      return '<label class="gb-of-km-r' + (on[m.id] ? ' on' : '') + '"><i></i><span><b>' + esc(A.agentModelLabel(m)) + '</b>' +
+        (m["default"] ? '<span class="gb-of-chip xs mute">' + esc(g("def")) + '</span>' : '') +
+        '<input type="checkbox" class="gb-of-tg" data-model="' + esc(m.id) + '"' + (on[m.id] ? ' checked' : '') + '/></span></label>';
+    }).join("") + '</div>';
+    body.querySelectorAll(".gb-of-km-r input").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        on[cb.getAttribute("data-model")] = cb.checked;
+        cb.closest(".gb-of-km-r").classList.toggle("on", cb.checked);
+        count();
+        scheduleSave();
+      });
+    });
+  }
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    if (saving) { pendingSave = true; return; }
+    saveTimer = setTimeout(doSave, 400);
+  }
+  function revertSwitches() {
+    list.forEach(function (m) { on[m.id] = !!savedOn[m.id]; });
+    draw(); fold();
+  }
+  function doSave() {
+    saving = true;
+    say("gb-set-hint", g("saving"));
+    var enabled = list.filter(function (m) { return on[m.id]; }).map(function (m) { return m.id; });
+    var snapshot = {};
+    list.forEach(function (m) { snapshot[m.id] = !!on[m.id]; });
+    api("/api/ai-accounts/" + a.id + "/models", { enabled: enabled }, "PUT")
+      .then(function () {
+        list.forEach(function (m) { savedOn[m.id] = !!snapshot[m.id]; });
+        say("gb-set-hint gb-set-ok", g("saved"));
+        if (A.loadModels) { return A.loadModels().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } }); }
+      })
+      .catch(function (e) {
+        say("gb-set-warn", g("saveFail") + " " + e.message);
+        pendingSave = false;
+        revertSwitches();
+      })
+      .then(function () {
+        saving = false;
+        if (pendingSave) { pendingSave = false; scheduleSave(); }
+      });
+  }
+  head.addEventListener("click", function () { openModels[a.id] = !openModels[a.id]; fold(); });
+  fold();
+  body.innerHTML = '<p ' + HINT + '>' + esc(g("loading")) + '</p>';
+  api("/api/ai-accounts/" + a.id + "/models").then(function (d) {
+    list = (d && d.models) || [];
+    list.forEach(function (m) { on[m.id] = !!m.enabled; savedOn[m.id] = !!m.enabled; });
+    draw();
+  }).catch(function (e) { body.innerHTML = '<p class="gb-set-warn" style="margin:0;padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(g("readFail") + " " + e.message) + '</p>'; });
+}
+
+/* What the sign-in has shown so far, per agent: a status poll that comes
+ * back without the link or the code never takes them off the screen. */
+var flows = {};
+function show(node, on) { if (node) { node.style.display = on ? "" : "none"; } }
+function setText(node, text) { if (node && node.textContent !== text) { node.textContent = text; } }
+
+/** The box is built once per sign-in; later polls only change what differs. */
+function flowParts(el, a) {
+  var box = el.querySelector('[data-flow="' + a.id + '"]');
+  if (!box) { return null; }
+  if (!box.querySelector('[data-role="msg"]')) {
+    box.innerHTML = '<div class="gb-ag-wait" data-role="wait" role="status"><span class="gb-ag-spin" data-role="spin" aria-hidden="true"></span><span data-role="msg"></span></div>' +
+      '<a class="gb-of-btn acc gb-prov-open" data-role="open" target="_blank" rel="noopener noreferrer" style="display:none">' + esc(g("open")) + ' ↗</a>' +
+      '<div data-role="codewrap" style="display:none"><p class="gb-set-hint">' + esc(g("codeHelp")) + '</p><div class="gb-prov-url gb-prov-code" data-role="code"></div></div>' +
+      '<div class="gb-set-form-actions" data-role="pastewrap" style="display:none"><input class="gb-of-in" data-paste="' + a.id + '" placeholder="' + esc(g("paste")) + '" autocomplete="off" aria-label="' + esc(g("paste")) + '"/>' +
+        '<button type="button" class="gb-of-btn pri" data-send="' + a.id + '">' + esc(g("send")) + '</button></div>' +
+      '<div data-role="err"></div>';
+    box.querySelector('[data-role="open"]').addEventListener("click", function (e) {
+      var href = e.currentTarget.getAttribute("href");
+      if (href && openOutside(href)) { e.preventDefault(); }
+    });
+    var send = box.querySelector('[data-send="' + a.id + '"]');
     send.addEventListener("click", function () {
       var input = box.querySelector('[data-paste="' + a.id + '"]');
       var value = input ? input.value.trim() : "";
@@ -97,6 +216,124 @@ function showFlow(el, a, d) {
           box.insertAdjacentHTML("beforeend", '<p class="gb-set-warn">' + esc(tr("Não foi possível conectar:", "Could not connect:") + " " + e.message) + '</p>');
         })
         .then(function () { send.disabled = false; });
+    });
+  }
+  return box;
+}
+
+/* The desktop app opens the page in the person's own browser (opener
+ * plugin); a plain browser keeps the visible button. */
+function openOutside(url) {
+  var tauri = window.__TAURI_INTERNALS__;
+  if (!tauri || typeof tauri.invoke !== "function" || !/^https:\/\//.test(url)) { return false; }
+  tauri.invoke("plugin:opener|open_url", { url: url }).catch(function () { window.open(url, "_blank", "noopener"); });
+  return true;
+}
+
+/** The sign-in step: link, code to type there, or a box for the code it returns.
+ *  The words are the shell's own per step; a workspace message (vm*Msg)
+ *  replaces them while the machine is off or starting. */
+function showFlow(el, a, d) {
+  var f = flows[a.id] || (flows[a.id] = { url: "", code: "", msg: "", opened: false });
+  if (d.url) { f.url = d.url; }
+  if (d.device_code || d.auth_code) { f.code = d.device_code || d.auth_code; }
+  f.msg = d.vmMsg || "";
+  var box = flowParts(el, a);
+  if (!box) { return; }
+  var busy = !f.url || d.state === "verifying" || !!d.vmMsg;
+  var text = f.msg || (d.state === "verifying" ? g("verifying") : !f.url ? g("preparing") : a.paste ? g("signInPaste") : g("signIn"));
+  setText(box.querySelector('[data-role="msg"]'), text);
+  show(box.querySelector('[data-role="spin"]'), busy);
+  box.querySelector('[data-role="wait"]').classList.toggle("idle", !busy);
+  if (f.url && !f.opened && started[a.id]) { f.opened = true; openOutside(f.url); }
+  var open = box.querySelector('[data-role="open"]');
+  if (f.url && open.getAttribute("href") !== f.url) { open.setAttribute("href", f.url); }
+  show(open, !!f.url);
+  setText(box.querySelector('[data-role="code"]'), f.code);
+  show(box.querySelector('[data-role="codewrap"]'), !!f.code && !a.paste);
+  show(box.querySelector('[data-role="pastewrap"]'), !!f.url && !!a.paste);
+}
+
+function watch(el, a) {
+  stopPoll(a.id);
+  var p = polls[a.id] = A.poller(function () {
+    if (!document.body.contains(el)) { stopAll(); return; }
+    return statusPoll(a).then(function (res) {
+      if (polls[a.id] !== p || res.skipped) { return WATCH_MS; }
+      if (res.vm) {
+        markRow(el, a, true, res.vm);
+        showFlow(el, a, { vmMsg: g("vm" + res.vm.charAt(0).toUpperCase() + res.vm.slice(1) + "Msg") });
+        return res.vm === "starting" ? WATCH_MS : WATCH_BACKOFF;
+      }
+      if (res.failed) { return WATCH_BACKOFF; }
+      var d = res.account;
+      if (PENDING.indexOf(d.status) >= 0) { markRow(el, a, true); showFlow(el, a, d); return; }
+      stopPoll(a.id);
+      delete started[a.id];
+      delete flows[a.id];
+      redrawRow(el, a, d);
+    });
+  }, { every: WATCH_MS, backoff: WATCH_BACKOFF });
+  p.start(WATCH_MS);
+}
+
+/** The sign-in ended (linked, error or back to unlinked): this row only is drawn again. */
+function redrawRow(el, a, d) {
+  var row = el.querySelector('[data-agent="' + a.id + '"]');
+  if (!row) { return; }
+  row.outerHTML = rowHtml(a, d);
+  bindRow(el, a);
+  var box = el.querySelector('[data-flow="' + a.id + '"]');
+  if (d.status === "error" && box) {
+    box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + (d.message ? " " + d.message : "")) + '</p>';
+  }
+  if (d.status === "linked") { refreshPickers(); }
+}
+
+function bindRow(el, a) {
+  mountModels(el, a);
+  var on = el.querySelector('[data-agent-on="' + a.id + '"]');
+  if (on && A.productConfig && A.productConfig.agent_backend_unavailable) { on.disabled = true; }
+  if (on) {
+    on.addEventListener("click", function () {
+      on.disabled = true;
+      started[a.id] = true;
+      delete flows[a.id];
+      markRow(el, a, true);
+      var fresh = el.querySelector('[data-flow="' + a.id + '"]');
+      if (fresh) { fresh.innerHTML = ""; }
+      showFlow(el, a, {});
+      api("/api/ai-accounts/" + a.id + "/connect", {})
+        .then(function (d) { showFlow(el, a, d); watch(el, a); })
+        .catch(function (e) {
+          delete started[a.id];
+          markRow(el, a, false);
+          on.disabled = false;
+          var box = el.querySelector('[data-flow="' + a.id + '"]');
+          if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; }
+        });
+    });
+  }
+  /* Same as picking the agent in the chat's model menu (the conversation's
+   * Agent switch turns on and the next message goes to this agent), but the
+   * page stays open: the choice shows in "Motor em uso" and in the row. */
+  var use = el.querySelector('[data-agent-use="' + a.id + '"]');
+  if (use) {
+    use.addEventListener("click", function () {
+      var box = el.querySelector('[data-flow="' + a.id + '"]');
+      var off = A.productConfig && A.productConfig.agent_backend_unavailable;
+      if (off) { if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("unavailable") + " " + off) + '</p>'; } return; }
+      var current = A.selectedModel || "";
+      var value = current === "sub:" + a.id || current.indexOf("sub:" + a.id + "/") === 0 ? current : "sub:" + a.id;
+      A.pickEngine(value, use, function () { if (box) { box.innerHTML = '<p class="gb-set-hint gb-set-ok gb-of-picked">' + esc(g("picked")) + '</p>'; } });
+    });
+  }
+  var off = el.querySelector('[data-agent-off="' + a.id + '"]');
+  if (off) {
+    off.addEventListener("click", function () {
+      off.disabled = true;
+      delete started[a.id];
+      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); refreshPickers(); });
     });
   }
 }

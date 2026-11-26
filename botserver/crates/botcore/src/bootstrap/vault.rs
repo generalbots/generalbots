@@ -18,7 +18,7 @@ pub fn has_installed_stack() -> bool {
     }
 
     let indicators = [
-        stack_dir.join("bin/vault/vault"),
+        stack_dir.join(botcorepkg::secrets_engine::BIN_DIR),
         stack_dir.join("data/vault"),
         stack_dir.join("conf/vault/config.hcl"),
     ];
@@ -101,7 +101,9 @@ pub fn get_db_password_from_vault() -> Option<String> {
     }
     let vault_cacert = env::var("VAULT_CACERT")
         .unwrap_or_else(|_| format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path()));
-    let vault_bin = format!("{}/bin/vault/vault", get_stack_path());
+    let vault_bin = botcorepkg::secrets_engine::cli_path(std::path::Path::new(&get_stack_path()))
+        .display()
+        .to_string();
 
     let invocation =
         build_vault_kv_invocation(&vault_bin, &vault_addr, &vault_cacert, &vault_token);

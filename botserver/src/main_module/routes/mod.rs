@@ -1,6 +1,8 @@
 pub mod advisories;
 #[cfg(feature = "agent-vm")]
 pub mod agent_drive;
+#[cfg(feature = "drive")]
+pub mod agent_drive_files;
 #[cfg(feature = "agent-vm")]
 pub mod ai_accounts;
 pub mod anonymous_auth;
@@ -8,6 +10,7 @@ pub mod appearance;
 pub mod api_setup;
 mod dlp_admin;
 pub mod custom_instructions;
+pub mod chat_profile;
 pub mod bot_tree;
 pub mod catalog;
 pub mod channel_support;
@@ -23,6 +26,8 @@ pub mod computer_use_routes;
 pub mod conversation_autotasks;
 pub mod desktop_status;
 pub mod drive_sync;
+#[cfg(feature = "llm")]
+pub mod llm_limits;
 pub mod feature_merge_office;
 pub mod feature_merge_platform;
 pub mod feature_routers;

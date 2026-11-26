@@ -18,7 +18,7 @@ pub(super) async fn search_google_news(
     let encoded = urlencoding::encode(query).to_string();
     let url = format!("https://news.google.com/rss/search?q={encoded}&hl={hl}&gl={gl}&ceid={ceid}");
 
-    debug!("Searching Google News RSS: {query}");
+    debug!("Searching Google News RSS: query_chars={}", query.chars().count());
 
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
     let status = response.status();

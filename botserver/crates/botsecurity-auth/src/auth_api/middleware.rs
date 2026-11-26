@@ -1,6 +1,6 @@
 use super::{
     auth_api_auth::authenticate_with_extracted_data,
-    auth_api_utils::ExtractedAuthData,
+    auth_api_utils::{authorization_scheme, ExtractedAuthData},
     config::AuthConfig,
     error::AuthError,
     types::{AuthenticatedUser, Permission, PublicPathAllowed, Role},
@@ -106,7 +106,8 @@ pub async fn auth_middleware_with_providers(
         }
     }
 
-    let auth_header = request
+    // Only presence and scheme are logged: no part of the credential itself.
+    match request
         .headers()
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok());

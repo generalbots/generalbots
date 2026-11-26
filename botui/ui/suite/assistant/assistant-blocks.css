@@ -22,7 +22,7 @@
 .gb-block {
     background: var(--id-surface-solid);
     border: 1px solid var(--id-line);
-    border-radius: 12px;
+    border-radius: var(--id-radius-panel);
     overflow: hidden;
 }
 /* Standalone blocks (outside a stack) keep a small margin */
@@ -37,9 +37,9 @@
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; cursor: pointer; user-select: none;
 }
-.gb-block-header:focus-visible { outline: none; box-shadow: var(--id-focus); border-radius: 8px; }
+.gb-block-header:focus-visible { outline: none; box-shadow: var(--id-focus); border-radius: var(--id-radius-panel); }
 .gb-block-icon-wrap {
-    width: 28px; height: 28px; border-radius: 8px;
+    width: 28px; height: 28px; border-radius: var(--id-radius-sm);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; background: var(--id-fill);
     color: var(--id-muted);
@@ -316,8 +316,8 @@
     position: absolute; inset: 0; background: var(--id-overlay-heavy);
 }
 .gb-lightbox-img {
-    position: relative; z-index: 1; max-width: 90vw; max-height: 90vh;
-    border-radius: 8px; object-fit: contain;
+    position: relative; z-index: 1; max-width: calc(90vw / var(--gb-zoom, 1)); max-height: calc(90vh / var(--gb-zoom, 1));
+    border-radius: var(--id-radius-panel); object-fit: contain;
 }
 .gb-lightbox-close {
     position: absolute; top: 16px; right: 16px; z-index: 2;
@@ -337,8 +337,8 @@
 .gb-model-btn {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 4px 10px; border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-pill); background: var(--id-surface-solid);
-    color: var(--id-text); font-family: var(--id-font-sans);
+    border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
+    color: var(--id-text); font-family: var(--id-font);
     font-size: var(--id-text-xs); cursor: pointer; white-space: nowrap;
     transition: background var(--id-dur-fast) var(--id-ease),
                 border-color var(--id-dur-fast) var(--id-ease);
@@ -357,7 +357,7 @@
     display: flex; flex-direction: column; gap: 1px;
     width: 100%; padding: 6px 10px;
     border: none; border-radius: 4px; background: transparent;
-    color: var(--id-text); font-family: var(--id-font-sans);
+    color: var(--id-text); font-family: var(--id-font);
     font-size: var(--id-text-sm); cursor: pointer; text-align: left;
     transition: background var(--id-dur-fast) var(--id-ease);
 }
@@ -370,7 +370,7 @@
     display: flex; align-items: center; gap: 6px;
     width: 100%; padding: 6px 10px;
     border: none; border-radius: 4px; background: transparent;
-    color: var(--id-accent-text); font-family: var(--id-font-sans);
+    color: var(--id-accent-text); font-family: var(--id-font);
     font-size: var(--id-text-sm); cursor: pointer; text-align: left;
 }
 .gb-model-menu-action:hover { background: var(--id-accent-soft); }

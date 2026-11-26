@@ -229,6 +229,15 @@ async fn probe(result: &mut WebSearchResult) -> Probe {
     Probe::Keep
 }
 
+/// The host of a source address, for logs: the full address (its query
+/// string) stays out of them.
+fn site(address: &str) -> String {
+    url::Url::parse(address)
+        .ok()
+        .and_then(|parsed| parsed.host_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
 /// Removes index pages and repeated stories, then fills in the publish date of
 /// each surviving hit. An empty answer means every hit was unusable.
 pub async fn refine(results: Vec<WebSearchResult>) -> Vec<WebSearchResult> {
@@ -238,14 +247,14 @@ pub async fn refine(results: Vec<WebSearchResult>) -> Vec<WebSearchResult> {
     for result in results {
         let url = result.url.trim().to_string();
         if url.is_empty() || is_index_page(&url) {
-            log::info!("web context: skipped index or empty source {url}");
+            log::info!("web context: skipped index or empty source site={}", site(&url));
             continue;
         }
         let key = headline_key(&result.title);
         let is_duplicate_url = !seen_urls.insert(url.clone());
         let is_duplicate_title = !key.is_empty() && !seen_titles.insert(key);
         if is_duplicate_url || is_duplicate_title {
-            log::info!("web context: dropped duplicate source {url}");
+            log::info!("web context: dropped duplicate source site={}", site(&url));
             continue;
         }
         kept.push(result);

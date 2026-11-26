@@ -22,6 +22,14 @@ pub struct MessageMeta {
     pub reasoning: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub attachments: Vec<AttachmentInfo>,
+    /// Model-only record of what this turn received or did (a page read, a
+    /// command run). Replayed with the message in later turns, never shown.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub model_note: String,
+    /// Structured events of the turn (`memory_event`, `agent_enable_request`,
+    /// `files_produced`), each as the frame the shell received.
+    #[serde(default, flatten, skip_serializing_if = "serde_json::Map::is_empty")]
+    pub events: serde_json::Map<String, serde_json::Value>,
 }
 
 /// Attachment detail stored with user messages.
@@ -36,7 +44,11 @@ pub struct AttachmentInfo {
 
 /// Appends metadata to content for storage. Returns the combined string.
 pub fn encode(content: &str, meta: &MessageMeta) -> String {
-    if meta.reasoning.is_empty() && meta.attachments.is_empty() {
+    if meta.reasoning.is_empty()
+        && meta.attachments.is_empty()
+        && meta.model_note.is_empty()
+        && meta.events.is_empty()
+    {
         return content.to_string();
     }
     let json = match serde_json::to_string(meta) {
@@ -102,7 +114,7 @@ mod tests {
     fn roundtrip_with_reasoning() {
         let meta = MessageMeta {
             reasoning: "I think this is about X".to_string(),
-            attachments: Vec::new(),
+            ..Default::default()
         };
         let encoded = encode("Hello world", &meta);
         let (content, decoded) = decode(&encoded);
@@ -121,6 +133,7 @@ mod tests {
                 size: 1024,
                 drive_path: "inbox/doc.pdf".to_string(),
             }],
+            ..Default::default()
         };
         let encoded = encode("check this file", &meta);
         let (content, decoded) = decode(&encoded);

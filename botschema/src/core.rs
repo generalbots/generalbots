@@ -243,6 +243,8 @@ diesel::table! {
         message_index -> Int4,
         run_id -> Nullable<Uuid>,
         thread_id -> Nullable<Text>,
+        llm_engine -> Nullable<Varchar>,
+        llm_provider -> Nullable<Varchar>,
     }
 }
 

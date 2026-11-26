@@ -21,7 +21,7 @@
     padding: var(--id-space-2) var(--id-space-3);
     border: none; border-radius: var(--id-radius-sm);
     background: transparent; color: var(--id-accent-text);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm); font-family: var(--id-font);
     cursor: pointer; margin-bottom: var(--id-space-3);
     transition: background var(--id-dur-fast) var(--id-ease);
 }
@@ -31,7 +31,7 @@
     padding: var(--id-space-2) var(--id-space-3);
     border: none; border-radius: var(--id-radius-sm);
     background: transparent; color: var(--id-text);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm); font-family: var(--id-font);
     cursor: pointer; text-align: left; width: 100%;
     transition: background var(--id-dur-fast) var(--id-ease);
 }
@@ -54,13 +54,13 @@
 .gb-set-panel::-webkit-scrollbar-track { background: transparent; margin: var(--id-space-2) 0; }
 .gb-set-panel::-webkit-scrollbar-thumb {
     background: var(--id-scrollbar-thumb); background-clip: padding-box;
-    border: 4px solid transparent; border-radius: 999px; min-height: 48px; }
+    border: 4px solid transparent; border-radius: var(--id-radius-sm); min-height: 48px; }
 .gb-set-panel::-webkit-scrollbar-thumb:hover { background-color: var(--id-muted); }
 
 /* -- Card -- */
 .gb-set-card {
     background: var(--id-surface-solid); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-card); padding: var(--id-space-5);
+    border-radius: var(--id-radius-panel); padding: var(--id-space-5);
     margin-bottom: var(--id-space-4);
 }
 .gb-set-title {
@@ -89,7 +89,7 @@
     padding: var(--id-space-2) var(--id-space-5);
     border: 1px solid var(--id-danger-line); border-radius: var(--id-radius-sm);
     background: transparent; color: var(--id-danger);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm); font-family: var(--id-font);
     cursor: pointer; transition: background var(--id-dur-fast) var(--id-ease);
 }
 .gb-set-signout:hover { background: var(--id-danger-soft); }
@@ -134,7 +134,7 @@
     padding: var(--id-space-1) var(--id-space-3);
     border: none; border-radius: var(--id-radius-sm);
     background: var(--id-accent); color: var(--id-on-accent);
-    font-size: var(--id-text-xs); font-family: var(--id-font-sans);
+    font-size: var(--id-text-xs); font-family: var(--id-font);
     cursor: default;
 }
 .gb-set-preview-link {
@@ -172,7 +172,7 @@
     padding: var(--id-space-3) var(--id-space-4);
     border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
     background: var(--id-surface-solid); color: var(--id-text);
-    font-size: var(--id-text-md); font-family: var(--id-font-sans);
+    font-size: var(--id-text-md); font-family: var(--id-font);
     cursor: pointer; text-align: left; margin-bottom: var(--id-space-2);
     transition: background var(--id-dur-fast) var(--id-ease),
                 border-color var(--id-dur-fast) var(--id-ease);
@@ -220,7 +220,7 @@
     padding: var(--id-space-4);
     border: 1px solid var(--id-line); border-radius: var(--id-radius-control);
     background: var(--id-surface-solid); color: var(--id-text);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm); font-family: var(--id-font);
     cursor: pointer; text-align: left;
     display: flex; flex-direction: column; align-items: flex-start; gap: var(--id-space-2);
     transition: border-color var(--id-dur-fast) var(--id-ease),
@@ -255,7 +255,7 @@
 .gb-set-btn-sm {
     padding: var(--id-space-1) var(--id-space-3); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
-    color: var(--id-text); font-size: var(--id-text-xs); font-family: var(--id-font-sans);
+    color: var(--id-text); font-size: var(--id-text-xs); font-family: var(--id-font);
     cursor: pointer; transition: background var(--id-dur-fast) var(--id-ease); }
 .gb-set-btn-sm:hover { background: var(--id-fill); }
 .gb-set-btn-accent { background: var(--id-accent); color: var(--id-on-accent); border-color: var(--id-accent); }
@@ -263,8 +263,8 @@
 .gb-set-btn-danger { color: var(--id-danger); border-color: var(--id-danger-line); }
 .gb-set-btn-danger:hover { background: var(--id-danger-soft); }
 .gb-dl-progress { display: flex; align-items: center; gap: var(--id-space-2); flex-wrap: wrap; width: 100%; }
-.gb-dl-bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: var(--id-fill); overflow: hidden; }
-.gb-dl-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--id-accent);
+.gb-dl-bar { flex: 1 1 100%; height: 6px; border-radius: var(--id-radius-sm); background: var(--id-fill); overflow: hidden; }
+.gb-dl-bar > i { display: block; height: 100%; width: 0; border-radius: var(--id-radius-sm); background: var(--id-accent);
     transition: width var(--id-dur-fast) var(--id-ease); }
 .gb-dl-bar-wait > i { width: 35%; animation: gbDlWait 1.4s ease-in-out infinite; }
 @keyframes gbDlWait { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
@@ -283,10 +283,12 @@
 .gb-set-model-row-busy:last-child { border-bottom: 1px solid var(--id-accent); }
 .gb-dl-text { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-set-form { display: flex; flex-direction: column; gap: var(--id-space-2); }
+/* Fields sit a shade off the card: darker in light theme, lighter in dark. */
+:root { --gb-field: color-mix(in srgb, var(--id-surface-solid) 97%, var(--id-ink)); }
 .gb-set-input {
     padding: var(--id-space-2) var(--id-space-3); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    border-radius: var(--id-radius-sm); background: var(--gb-field);
+    font-size: var(--id-text-sm); font-family: var(--id-font);
     color: var(--id-ink); outline: none; }
 .gb-set-input:focus { border-color: var(--id-accent); }
 .gb-set-form-actions { display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2); }
@@ -330,7 +332,7 @@
 .gb-set-bg-tile {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 6px; border: 2px solid transparent; border-radius: var(--id-radius-sm);
-    background: transparent; cursor: pointer; font-family: var(--id-font-sans);
+    background: transparent; cursor: pointer; font-family: var(--id-font);
     transition: border-color var(--id-dur-fast) var(--id-ease);
 }
 .gb-set-bg-tile:hover { border-color: var(--id-gray-300); }
@@ -346,7 +348,7 @@
 .gb-set-textarea {
     display: block; width: 100%; box-sizing: border-box;
     padding: 8px 10px; font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans); line-height: 1.5;
+    font-family: var(--id-font); line-height: 1.5;
     border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
     background: var(--id-paper); color: var(--id-text);
     resize: vertical; min-height: 60px;
@@ -356,7 +358,7 @@
 .gb-set-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .gb-set-toggle {
     appearance: none; -webkit-appearance: none;
-    width: 36px; height: 20px; border-radius: 10px;
+    width: 36px; height: 20px; border-radius: var(--id-radius-sm);
     background: var(--id-gray-300); position: relative; cursor: pointer;
     transition: background var(--id-dur-fast) var(--id-ease);
 }

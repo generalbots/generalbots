@@ -27,6 +27,7 @@ impl LLMProvider for ClaudeClient {
             system,
             stream: None,
             thinking: None,
+            tools: None,
         };
 
         let body = Self::body_with_media(&request, messages)?;
@@ -52,6 +53,7 @@ impl LLMProvider for ClaudeClient {
             .body(body)
             .send()
             .await?;
+        crate::rate_limits::record(&url, response.headers());
 
         let status = response.status();
         if !status.is_success() {

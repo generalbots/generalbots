@@ -22,18 +22,7 @@
         return title;
     }
 
-    /* ---- Wordmark ---- */
-    A.renderWordmark = function () {
-        var el = document.getElementById("gbWordmark");
-        if (!el) { return; }
-        var name = (A.productConfig && A.productConfig.name) || "General Bots";
-        if (name.charAt(name.length - 1) === ".") {
-            el.innerHTML = escText(name.slice(0, -1)) +
-                '<span class="gb-wordmark-dot">.</span>';
-        } else {
-            el.innerHTML = escText(name) + '<span class="gb-wordmark-dot">.</span>';
-        }
-    };
+    function say(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
 
     /* ---- Conversation list ---- */
     A.refreshSidebar = function () {
@@ -43,8 +32,12 @@
     function renderConversationList() {
         var container = document.getElementById("gbConversations");
         if (!container) { return; }
+        var scroll = container.scrollTop;
         container.innerHTML = "";
-        if (!A.sessions || A.sessions.length === 0) { return; }
+        var count = document.getElementById("gbConvCount");
+        var loaded = (A.sessions || []).length;
+        if (count) { count.textContent = String(A.sessionsTotal != null ? A.sessionsTotal : loaded); }
+        if (!loaded) { return; }
 
         var groups = groupByDate(A.sessions);
         var order = ["today", "yesterday", "earlier"];
@@ -65,6 +58,37 @@
                 container.appendChild(createConvItem(items[i]));
             }
         }
+        if (A.sessionsMore) { container.appendChild(moreRow()); }
+        container.scrollTop = scroll;
+    }
+
+    /* The list arrives a page at a time: the last row loads the next page
+       when it scrolls into view, or when clicked. */
+    var moreSeen = null;
+    function moreRow() {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "gb-conv-item gb-conv-more";
+        var text = document.createElement("span");
+        text.className = "gb-conv-item-text";
+        text.textContent = say("Carregar mais", "Load more");
+        btn.appendChild(text);
+        function more() {
+            if (btn.disabled) { return; }
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+            text.textContent = say("Carregando…", "Loading…");
+            A.loadMoreSessions().then(function () { renderConversationList(); });
+        }
+        btn.addEventListener("click", more);
+        if (moreSeen) { moreSeen.disconnect(); }
+        if (window.IntersectionObserver) {
+            moreSeen = new IntersectionObserver(function (seen) {
+                if (seen.some(function (e) { return e.isIntersecting; })) { more(); }
+            });
+            moreSeen.observe(btn);
+        }
+        return btn;
     }
 
     function groupByDate(sessions) {
@@ -102,7 +126,7 @@
         renameBtn.className = "gb-conv-action-btn";
         renameBtn.setAttribute("aria-label", A.t("assistant.rename", "Rename"));
         renameBtn.title = A.t("assistant.rename", "Rename");
-        renameBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+        renameBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
         renameBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handleRename(session.id, textSpan);
@@ -113,29 +137,12 @@
         deleteBtn.className = "gb-conv-action-btn";
         deleteBtn.setAttribute("aria-label", A.t("assistant.delete", "Delete"));
         deleteBtn.title = A.t("assistant.delete", "Delete");
-        deleteBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+        deleteBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
         deleteBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handleDelete(session.id);
         });
         actions.appendChild(deleteBtn);
-
-        /* Export Markdown */
-        if (typeof A.exportConversation === "function") {
-            var exportBtn = document.createElement("button");
-            exportBtn.className = "gb-conv-action-btn";
-            exportBtn.setAttribute("aria-label", A.t("assistant.export", "Export"));
-            exportBtn.title = A.t("assistant.export", "Exportar");
-            exportBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-            exportBtn.addEventListener("click", function (e) {
-                e.stopPropagation();
-                /* Load this conversation and export it */
-                var sid = session.id;
-                A.currentSessionId = sid;
-                A.exportConversation();
-            });
-            actions.appendChild(exportBtn);
-        }
 
         btn.appendChild(actions);
 
@@ -143,12 +150,17 @@
         return btn;
     }
 
+    /* Opening a conversation: only the last click counts. A slower answer
+       for an earlier click is dropped, so its messages never appear under
+       another conversation's title. */
+    var loadSeq = 0, pendingSeq = 0;
     function loadConversation(sessId) {
         /* Settings or Drive may be open: a conversation picked in the
            sidebar is shown, so the chat view comes back first. */
         if (A.currentView !== "chat" && typeof A.switchView === "function") { A.switchView("chat"); }
+        var seq = ++loadSeq;
         A.currentSessionId = sessId;
-        renderConversationList();
+        markActive(sessId);
         /* Sync the agent toggle for this conversation's stored state */
         if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
         /* Update titlebar with the conversation title */
@@ -156,15 +168,47 @@
         if (typeof window.gbSetTitlebarTitle === "function") {
             window.gbSetTitlebarTitle(sess ? formatTitle(sess.title) : "");
         }
+        showLoading(seq, sessId);
+        function current() {
+            if (seq !== loadSeq || sessId !== A.currentSessionId) { return false; }
+            pendingSeq = 0;
+            var msgs = document.getElementById("gbMessages");
+            if (msgs) { msgs.removeAttribute("aria-busy"); }
+            return true;
+        }
         A.loadSessionMessages(sessId).then(function (msgs) {
+            if (!current()) { return; }
             A.renderHistory(msgs);
             A.reconnectWs();
         }).catch(function (err) {
+            if (!current()) { return; }
             console.warn("[assistant] loadConversation failed:", err);
             showLoadError(sessId);
         });
         /* Narrow viewports: auto-close the slide-over sidebar */
         if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+    }
+
+    function markActive(sessId) {
+        document.querySelectorAll("#gbConversations .gb-conv-item[data-session-id]").forEach(function (row) {
+            row.classList.toggle("active", row.getAttribute("data-session-id") === sessId);
+        });
+    }
+
+    /* The previous conversation leaves at once; a short wait passes before
+       the loading line appears, so a quick answer does not flicker. */
+    function showLoading(seq, sessId) {
+        A.showConversation();
+        if (typeof A.hideThinking === "function") { A.hideThinking(); }
+        var msgs = document.getElementById("gbMessages"); if (!msgs) return;
+        msgs.innerHTML = "";
+        msgs.setAttribute("aria-busy", "true");
+        pendingSeq = seq;
+        setTimeout(function () {
+            if (pendingSeq !== seq || A.currentSessionId !== sessId) { return; }
+            msgs.innerHTML = '<div class="gb-load-error gb-load-wait" role="status">' +
+                '<span>' + escText(say("Abrindo conversa…", "Opening conversation…")) + '</span></div>';
+        }, 150);
     }
 
     function showLoadError(sessId) {
@@ -321,7 +365,15 @@
         var avatarEl = document.getElementById("gbUserAvatar");
         var name = A.userName || A.userEmail || "";
         if (nameEl) { nameEl.textContent = name || A.t("assistant.user", "User"); }
+        var roleEl = document.getElementById("gbUserRole"), roles = A.userRoles || [];
+        if (roleEl) {
+            var pt = A.locale && A.locale.startsWith("pt");
+            var admin = roles.some(function (r) { return /admin/i.test(r); });
+            roleEl.textContent = !roles.length ? "" : admin ? (pt ? "Administrador" : "Administrator") : (pt ? "Usuário" : "User");
+        }
         if (avatarEl) {
+            var own = /^#[0-9a-f]{6}$/i.test(A.avatarColor || "") && A.avatarColor.toLowerCase() !== "#171717";
+            avatarEl.style.backgroundColor = own ? A.avatarColor : "";
             avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
         }
     };
@@ -338,18 +390,13 @@
 
     var userMenuEl = null;
     function toggleUserMenu(anchor) {
-        if (userMenuEl) { userMenuEl.remove(); userMenuEl = null; return; }
+        if (userMenuEl) { userMenuEl.remove(); userMenuEl = null; anchor.setAttribute("aria-expanded", "false"); return; }
         userMenuEl = document.createElement("div");
         userMenuEl.className = "gb-user-menu";
-        var settingsLabel = A.t("assistant.settings", "Settings");
+        anchor.setAttribute("aria-expanded", "true");
         var signOutLabel = A.t("assistant.sign-out", "Sign out");
-        userMenuEl.innerHTML =
-            '<button class="gb-user-menu-item" data-action="settings">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' +
-                '<span>' + escText(settingsLabel) + '</span></button>' +
-            '<button class="gb-user-menu-item gb-user-menu-danger" data-action="signout">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
-                '<span>' + escText(signOutLabel) + '</span></button>';
+        userMenuEl.innerHTML = '<button class="gb-user-menu-item gb-user-menu-danger" data-action="signout">' +
+            GBIcon("sign-out", 16) + escText(signOutLabel) + '</button>';
         anchor.parentElement.insertBefore(userMenuEl, anchor.nextSibling);
         userMenuEl.addEventListener("click", function (ev) {
             var item = ev.target.closest("[data-action]");
@@ -357,10 +404,10 @@
             var action = item.getAttribute("data-action");
             if (action === "settings") { A.switchView("settings"); }
             if (action === "signout") { A.signOut(); }
-            userMenuEl.remove(); userMenuEl = null;
+            userMenuEl.remove(); userMenuEl = null; anchor.setAttribute("aria-expanded", "false");
         });
         document.addEventListener("click", function close() {
-            if (userMenuEl) { userMenuEl.remove(); userMenuEl = null; }
+            if (userMenuEl) { userMenuEl.remove(); userMenuEl = null; anchor.setAttribute("aria-expanded", "false"); }
             document.removeEventListener("click", close);
         }, { once: true });
     }
@@ -368,66 +415,17 @@
     /* ---- Sidebar toggle ---- */
     function isNarrow() { return window.innerWidth <= 960; }
 
-    function collapseSidebar() {
-        var sidebar = document.getElementById("gb-sidebar");
-        if (sidebar) { sidebar.classList.add("collapsed"); }
-        A.sidebarCollapsed = true;
-        var bd = document.getElementById("gbSidebarBackdrop");
-        if (bd) { bd.style.display = "none"; }
+    function collapseSidebar() { setCollapsed(true); }
+    function setCollapsed(value) {
+        A.sidebarCollapsed = value;
+        document.getElementById("gb-sidebar").classList.toggle("collapsed", value);
+        document.getElementById("gbSidebarToggle").setAttribute("aria-expanded", String(!value));
     }
-
-    function expandSidebar() {
-        var sidebar = document.getElementById("gb-sidebar");
-        if (sidebar) { sidebar.classList.remove("collapsed"); }
-        A.sidebarCollapsed = false;
-        if (isNarrow()) {
-            var bd = document.getElementById("gbSidebarBackdrop");
-            if (bd) { bd.style.display = "block"; }
-        }
-    }
-
-    /** The title bar's button uses this, so both buttons share one state. */
-    A.toggleSidebar = function () {
-        if (A.sidebarCollapsed) { expandSidebar(); } else { collapseSidebar(); }
-    };
-
+    A.toggleSidebar = function () { setCollapsed(!A.sidebarCollapsed); };
     A.initSidebarToggle = function () {
-        var btn = document.getElementById("gbSidebarToggle");
-        if (!btn) { return; }
-        btn.addEventListener("click", function () {
-            if (A.sidebarCollapsed) { expandSidebar(); }
-            else { collapseSidebar(); }
-        });
-
-        /* Backdrop element for closing on outside click */
-        var bd = document.createElement("div");
-        bd.id = "gbSidebarBackdrop";
-        bd.className = "gb-sidebar-backdrop";
-        bd.style.display = "none";
-        bd.addEventListener("click", collapseSidebar);
-        var app = document.querySelector(".gb-app");
-        if (app) { app.appendChild(bd); }
-
-        /* Expand button (shown when collapsed) */
-        var expand = document.createElement("button");
-        expand.className = "gb-btn-icon gb-expand-sidebar";
-        expand.setAttribute("aria-label", A.t("assistant.expand-sidebar", "Expand sidebar"));
-        expand.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
-        expand.addEventListener("click", expandSidebar);
-        var main = document.getElementById("gb-main");
-        if (main) { main.insertBefore(expand, main.firstChild); }
-
-        /* Auto-collapse on narrow viewports */
-        if (isNarrow()) { collapseSidebar(); }
-        window.addEventListener("resize", function () {
-            if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
-        });
-
-        /* Close sidebar on Esc */
-        document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape" && !A.sidebarCollapsed && isNarrow()) {
-                collapseSidebar();
-            }
-        });
+        var narrow = window.matchMedia("(max-width: 960px)");
+        setCollapsed(narrow.matches);
+        document.getElementById("gbSidebarToggle").addEventListener("click", A.toggleSidebar);
+        narrow.addEventListener("change", function (e) { setCollapsed(e.matches); });
     };
 })();

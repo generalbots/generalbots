@@ -46,47 +46,27 @@
     }
   ];
 
+  /* Four engines, same order and words as the app's Settings > Modelo page
+     (10c_settings_garage.js INFO map). Subscription agents (Claude Code, Codex,
+     Antigravity) are connected AFTER setup, inside the app. */
   var MODELS = [
-    {
-      id: "claude-code",
-      titleKey: "model.claude.title",
-      descKey: "model.claude.desc",
-      logo: "/wizard/logo-claude.svg",
-      badgeKey: "model.subscription"
-    },
-    {
-      id: "chatgpt-plan",
-      titleKey: "model.chatgpt.title",
-      descKey: "model.chatgpt.desc",
-      logo: "/wizard/logo-chatgpt.svg",
-      badgeKey: "model.subscription"
-    },
-    {
-      id: "local",
-      titleKey: "model.local.title",
-      descKey: "model.local.desc"
-    },
-    {
-      id: "free",
-      titleKey: "model.free.title",
-      descKey: "model.free.desc"
-    },
-    {
-      id: "own-key",
-      titleKey: "model.ownkey.title",
-      descKey: "model.ownkey.desc"
-    }
+    { id: "local",   num: "01", titleKey: "model.local.title",  descKey: "model.local.desc",  consequenceKey: "model.local.consequence",  tone: "ok",  privacy: 5, icon: "M3 4h18v12H3zM8 20h8M12 16v4" },
+    { id: "own-key", num: "02", titleKey: "model.ownkey.title", descKey: "model.ownkey.desc", consequenceKey: "model.ownkey.consequence", tone: "mid", privacy: 3, icon: "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01" },
+    { id: "free",    num: "03", titleKey: "model.free.title",   descKey: "model.free.desc",   consequenceKey: "model.free.consequence",   tone: "out", privacy: 1, icon: "M13 2 3 14h9l-1 8 10-12h-9z" },
+    { id: "acp",     num: "04", titleKey: "model.acp.title",    descKey: "model.acp.desc",    consequenceKey: "model.acp.consequence",    tone: "out", privacy: 2, icon: "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3" }
   ];
 
   // The free tier ships a single keyless provider. Kilo's gateway is the only
   // free endpoint verified to follow the native vm_exec JSON protocol and to
   // return well-formed tool calls (OVH answers in prose, LLM7 requires a key).
+  // The model id must match FREE_MODEL in botserver/crates/botsettings.
+  var FREE_MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b:free";
   var FREE_PROVIDERS = [
     {
       id: "kilo",
       name: "Kilo Code",
       endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
-      model: "dots-studio/dots-3-note-preview:free",
+      model: FREE_MODEL_ID,
       needsKey: false
     }
   ];
@@ -98,6 +78,34 @@
     return null;
   }
 
+  /* Setup always starts on the free engine: the other three need the running
+     app (machine scan, provider lists, key tests, agent sign-in) and are set
+     in Settings > Modelo afterwards. */
+  function freeModel() {
+    var free = FREE_PROVIDERS[0];
+    return { mode: "free", provider: free.id, endpoint: free.endpoint, model: free.model, api_key: "", tested: false };
+  }
+
+  /* A service is on when its switch is on; drafts saved before the switch
+     existed count as on when they already carry a client ID. */
+  function serviceEnabled(saved) {
+    if (!saved) { return false; }
+    return typeof saved.enabled === "boolean" ? saved.enabled : !!saved.client_id;
+  }
+
+  /* What the provisioning and finish requests carry: only switched-on
+     services that have a client ID, in the ServiceClient shape. */
+  function sentServices(services) {
+    var out = {};
+    Object.keys(services || {}).forEach(function (id) {
+      var s = services[id];
+      if (serviceEnabled(s) && s.client_id) {
+        out[id] = { client_id: s.client_id, client_secret: s.client_secret || "" };
+      }
+    });
+    return out;
+  }
+
   var state = {
     step: 1,
     totalSteps: STEPS.length,
@@ -106,10 +114,7 @@
     draft: {
       display_name: "",
       admin: { email: "admin@localhost", password: "", user_id: "" },
-      // Default to the keyless free tier (Kilo). It needs no download, answers
-      // immediately, and keeps the first install small; the bundled local model
-      // stays available as an explicit choice.
-      model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
+      model: freeModel(),
       workspace: { path: "", size: "standard" },
       services: {},
       network: { mode: "p2p" },
@@ -203,6 +208,9 @@
     MODELS: MODELS,
     FREE_PROVIDERS: FREE_PROVIDERS,
     freeProviderById: freeProviderById,
+    freeModel: freeModel,
+    serviceEnabled: serviceEnabled,
+    sentServices: sentServices,
     state: state,
     clone: clone,
     providerById: providerById,

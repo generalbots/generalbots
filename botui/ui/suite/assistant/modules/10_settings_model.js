@@ -11,8 +11,7 @@ function fmtSpeed(bps){return bps?fmtBytes(bps)+"/s":"";}
 function fmtEta(s){if(!s&&s!==0)return"";if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m "+(s%60)+"s";return Math.floor(s/3600)+"h "+Math.floor((s%3600)/60)+"m";}
 var jobPollers = {};
 var T = {"pt-BR":{
-  now:"Agora",where:"Onde o assistente pensa",local:"Neste computador",
-  own:"Servidor ou chave própria",free:"Modelo gratuito",
+  now:"Agora",where:"Onde o assistente pensa",
   subLocal:"Nada sai deste computador",subOwn:"Servidor da sua organização ou chave de um provedor",
   subFree:"Hospedado fora deste computador",
   useFree:"Usar o modelo gratuito",useOwn:"Usar este servidor",inUse:"Em uso agora.",
@@ -58,8 +57,7 @@ var T = {"pt-BR":{
   serverDown:"O serviço do assistente não está respondendo. Tente de novo em alguns segundos; se continuar, feche o aplicativo e abra outra vez.",
   retry:"Tentar de novo"},
 en:{
-  now:"Now",where:"Where the assistant thinks",local:"On this computer",
-  own:"Own server or key",free:"Free model",
+  now:"Now",where:"Where the assistant thinks",
   subLocal:"Nothing leaves this computer",subOwn:"Your organization’s server or a provider key",
   subFree:"Hosted outside this computer",
   useFree:"Use the free model",useOwn:"Use this server",inUse:"In use now.",
@@ -109,13 +107,25 @@ function t(key) {
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
 }
 
-/* ---- In-page confirm (replaces window.confirm) ---- */
+/* ---- In-page confirm: a banner at the top of the detail tray, or a dialog ---- */
 function inlineConfirm(text, onYes) {
-  var overlay = document.createElement("div");
-  overlay.className = "gb-inline-dialog";
   var A2 = window.GBAssistant;
   var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue") : "OK";
   var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
+  var slot = document.getElementById("gbOfConfirm");
+  if (slot && slot.isConnected) {
+    slot.innerHTML = '<div class="gb-of-confirm" role="alertdialog" aria-label="' + esc(text) + '">' + (A._modelGarage ? A._modelGarage.svg("M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", 16, 1.8).replace('stroke="currentColor"', 'stroke="var(--id-warn)"') : '') +
+      '<span>' + esc(text) + '</span><div><button type="button" class="gb-of-btn" data-act="no">' + esc(noLabel) + '</button>' +
+      '<button type="button" class="gb-of-btn pri" data-act="yes">' + esc(yesLabel) + '</button></div></div>';
+    var no = slot.querySelector('[data-act="no"]');
+    no.focus({ preventScroll: true });
+    if (slot.scrollIntoView) { slot.scrollIntoView({ block: "nearest" }); }
+    no.addEventListener("click", function () { slot.innerHTML = ""; });
+    slot.querySelector('[data-act="yes"]').addEventListener("click", function () { slot.innerHTML = ""; onYes(); });
+    return;
+  }
+  var overlay = document.createElement("div");
+  overlay.className = "gb-inline-dialog";
   overlay.innerHTML =
     '<div class="gb-inline-dialog-backdrop"></div>' +
     '<div class="gb-inline-dialog-box">' +
@@ -125,8 +135,7 @@ function inlineConfirm(text, onYes) {
         '<button class="gb-set-btn-sm gb-set-btn-accent" data-act="yes">' + esc(yesLabel) + '</button>' +
       '</div></div>';
   document.body.appendChild(overlay);
-  var noBtn = overlay.querySelector('[data-act="no"]');
-  if (noBtn) noBtn.focus();
+  overlay.querySelector('[data-act="no"]').focus();
   function close() { overlay.remove(); document.removeEventListener("keydown", escH); }
   function escH(e) { if (e.key === "Escape") { e.preventDefault(); close(); } }
   document.addEventListener("keydown", escH);
@@ -145,7 +154,7 @@ function errText(code) {
 }
 /* One switch at a time: every mode and action button waits while it runs. */
 function setBusy(on, msgEl, text) {
-  var panel = document.getElementById("gbSetPanel");
+  var panel = document.querySelector('#gbSetPanel[data-section="model"]');
   if (panel) { if (on) panel.setAttribute("aria-busy", "true"); else panel.removeAttribute("aria-busy"); }
   if (on && msgEl) { msgEl.innerHTML = '<p class="gb-set-busy" role="status">' + esc(text || t("switching")) + '</p>'; }
 }
@@ -154,6 +163,7 @@ function setBusy(on, msgEl, text) {
 var cfg = null, modes = null, localModels = null, readOnly = false;
 var cfgError = null;
 var pendingStatus = null; /* {html, isOk} shown after the next re-render */
+var modelRender = 0;
 var viewMode = null;      /* the mode card being viewed; kept when a list refreshes */
 A._modelShared = {
   get cfg() { return cfg; },
@@ -165,10 +175,11 @@ A._modelShared = {
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
   doSwitchMode: function (body, msgEl, btn) { return doSwitchMode(body, msgEl, btn); },
-  refreshAfterChange: function () { return refreshAfterChange(); },
+  activate: function (mode, btn) { return activate(mode, btn); },
+  refreshAfterChange: function (picked) { return refreshAfterChange(picked); },
   /* Lists changed (download, removal, engine install) but the model in use did not. */
   refreshKeepingView: function () {
-    var panel = document.getElementById("gbSetPanel");
+    var panel = document.querySelector('#gbSetPanel[data-section="model"]');
     return panel ? A.renderModelFull(panel, true) : null;
   },
   /* A switch asked from the chat's model menu failed: Modelo opens with the reason. */
@@ -179,6 +190,7 @@ A._modelShared = {
 };
 
 A.renderModelFull = function (panel, keepView) {
+  var revision = ++modelRender;
   if (!keepView) { viewMode = null; }
   readOnly = false;
   cfgError = null;
@@ -195,6 +207,7 @@ A.renderModelFull = function (panel, keepView) {
   return Promise.all([
     getJson("/api/llm/config"), getJson("/api/llm/config/modes"), getJson("/api/llm/runtime/status")
   ]).then(function (res) {
+    if (!panel.isConnected || revision !== modelRender) { return; }
     var c = res[0], m = res[1], rt = res[2];
     if (c.status === 401 || c.status === 403) { readOnly = true; }
     else if (c.data) { cfg = c.data; }
@@ -214,8 +227,9 @@ function renderFull(panel) {
   var G = A._modelGarage;
 
   var html;
+  var editable = !readOnly && !cfgError;
   if (G) {
-    html = G.dashboard(cfg, privacyText(scope, host)) + '<div class="gb-gar-dash-warn">';
+    html = '<div class="gb-of">' + G.dashboard(cfg, editable) + '<div class="gb-gar-dash-warn">';
   } else {
     html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
       '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
@@ -254,27 +268,19 @@ function renderFull(panel) {
 
   /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
   if (!readOnly && G && !cfgError) {
-    html += G.guide() + G.compare(currentMode, modes, cfg);
+    html += G.modeButtons(G.inUseKind(cfg), modes, cfg) + G.dialogs(modes, cfg);
   }
+  if (G) { html += '</div>'; }
 
   if (pendingStatus) {
     html += '<div class="gb-set-card" id="gbModelStatus">' + pendingStatus.html + '</div>';
     pendingStatus = null;
   }
   panel.innerHTML = html;
-  if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
   var retry = document.getElementById("gbModelRetry");
   if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
-  if (!readOnly) { bindModeCards(panel); if (G) { G.bindGuide(panel, modes); } }
-}
-
-/* The dashboard's privacy line, already escaped. */
-function privacyText(scope, host) {
-  if (scope === "machine") return esc(t("privLocal"));
-  if (scope === "network") return esc(t("privNet").replace("%h", host || ""));
-  if (scope === "external") return '<span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span>';
-  return '';
+  if (!readOnly) { bindModeCards(panel); if (G) { G.bind(panel, modes, function () { return viewMode; }); } }
 }
 
 function shortName(m) { if (!m) return "—"; var s=m; var i=s.lastIndexOf("/"); if(i>=0)s=s.substring(i+1); var c=s.indexOf(":"); if(c>0)s=s.substring(0,c); return s||m; }
@@ -318,7 +324,7 @@ function doSwitchMode(body, msgEl, disableBtn) {
         var label = d.provider_swapped ? t("swapped") : t("saved");
         pendingStatus = { html: '<p class="gb-set-hint gb-set-ok">' + esc(label) + '</p>' };
       }
-      refreshAfterChange();
+      refreshAfterChange(true);
     })
     .catch(function () {
       setBusy(false);
@@ -328,33 +334,55 @@ function doSwitchMode(body, msgEl, disableBtn) {
 }
 
 function bindModeCards(panel) {
-  panel.querySelectorAll(".gb-set-mode-card").forEach(function(btn) {
+  panel.querySelectorAll(".gb-of-mode").forEach(function(btn) {
     btn.addEventListener("click", function() {
       var mode = btn.getAttribute("data-mode");
       renderModeDetail(panel, mode);
     });
   });
-  if (cfg) renderModeDetail(panel, viewMode || cfg.mode || "local");
+  if (cfg) renderModeDetail(panel, viewMode || (A._modelGarage && A._modelGarage.inUseKind(cfg)) || cfg.mode || "local");
 }
 
 function renderModeDetail(panel, mode) {
-  panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) {
-    b.classList.toggle("gb-set-mode-selected", b.getAttribute("data-mode") === mode);
+  panel.querySelectorAll("#gbOfModes .gb-of-mode").forEach(function(b) {
+    b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === mode));
   });
-  if (A._modelGarage) { A._modelGarage.markView(mode); }
   viewMode = mode;
-  var existing = document.getElementById("gbModeDetail");
-  if (existing) existing.remove();
-  var detail = document.createElement("div");
-  detail.id = "gbModeDetail";
-  detail.className = "gb-set-card gb-set-mode-detail";
-  var modesDiv = document.getElementById("gbModelModes");
-  if (modesDiv) modesDiv.after(detail);
-  else panel.appendChild(detail);
-  if (mode === "local") renderLocalDetail(detail);
-  else if (mode === "own_key") renderOwnKeyDetail(detail);
-  else if (mode === "free") renderFreeDetail(detail);
-  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(detail);
+  var content = document.getElementById("gbModeDetail");
+  if (!content) { return; }
+  content.innerHTML = "";
+  if (A._modelGarage) { A._modelGarage.setDetail(panel, mode, cfg, activate); }
+  if (mode === "local") renderLocalDetail(content);
+  else if (mode === "own_key") renderOwnKeyDetail(content);
+  else if (mode === "free") renderFreeDetail(content);
+  else if (mode === "acp" && A._modelProviders && A._modelProviders.renderAcp) A._modelProviders.renderAcp(content);
+}
+
+/* The head button of the detail frame turns the viewed engine on with the
+   action its own panel offers: a local model, the provider form, the free
+   model or a connected agent. */
+function activate(mode, btn) {
+  var msg = document.getElementById("gbOfActMsg");
+  function say(text) { if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(text) + '</p>'; } }
+  if (mode === "free") { askFree(btn); return; }
+  if (mode === "local") {
+    var lm = localModels || {}, pick = null;
+    (lm.tiers || []).forEach(function (tier) { (tier.models || []).forEach(function (m) {
+      if (m.downloaded && (!pick || m.id === lm.recommended)) { pick = m; }
+    }); });
+    if (pick && A._modelLocal && A._modelLocal.activate) { A._modelLocal.activate(pick.id); return; }
+    say(A.settingsText("Instale um modelo da lista abaixo primeiro.", "Install a model from the list below first."));
+    return;
+  }
+  var target = document.querySelector(mode === "own_key" ? "#gbProvSave" : "[data-agent-use]");
+  if (target) { target.click(); return; }
+  say(A.settingsText("Conecte um agente abaixo primeiro.", "Connect an agent below first."));
+}
+function freeHost() { return cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost"); }
+function askFree(btn) {
+  inlineConfirm(t("confirmExt").replace("%h", freeHost()), function () {
+    doSwitchMode({ mode: "free" }, document.getElementById("gbOfActMsg"), btn);
+  });
 }
 
 function renderLocalDetail(el) {
@@ -420,28 +448,29 @@ function doSaveOwnKey() {
 
 /* ---- Free detail ---- */
 function renderFreeDetail(el) {
-  var note = t("freeLimits");
-  var host = cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost");
-  el.innerHTML = '<p class="gb-set-desc">' + esc(t("freeNote").replace("%h", host)) + '</p>' +
-    (note ? '<p class="gb-set-hint">' + esc(note) + '</p>' : '') +
-    (cfg && cfg.mode !== "free" ? '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbFreeSave">' + esc(t("useFree")) + '</button>'
-      : '<p class="gb-set-hint gb-set-ok">' + esc(t("inUse")) + '</p>') +
-    '<div id="gbFreeMsg"></div>';
-  var saveBtn = document.getElementById("gbFreeSave");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", function() {
-      inlineConfirm(t("confirmExt").replace("%h", host), function () {
-        doSwitchMode({ mode: "free" }, document.getElementById("gbFreeMsg"), saveBtn);
-      });
-    });
-  }
+  var G = A._modelGarage;
+  el.innerHTML = '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' +
+    esc(A.settingsText("Antes de usar", "Before you use it")) + '</span><span class="gb-of-sp"></span><span class="gb-of-meta">' +
+    esc(A.settingsText("SEM CHAVE · LIMITES MENORES", "NO KEY · LOWER LIMITS")) + '</span></div>' +
+    '<div class="gb-of-sec-b" style="max-width:720px"><div class="gb-of-alert">' + (G ? G.svg("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01", 16, 1.8) : '') +
+    '<div><b>' + esc(t("freeNote").replace("%h", freeHost())) + '</b><span>' +
+    esc(A.settingsText("Use para textos públicos, rascunhos e pesquisas. Não precisa de chave; os limites de uso são menores.",
+      "Use it for public text, drafts and research. No key needed; usage limits are lower.")) + '</span></div></div></div></div>';
 }
 
-async function refreshAfterChange() {
+/* `picked`: the person turned an engine on here, so the chat leaves the agent
+   or key model it had chosen in the menu and uses this one. */
+async function refreshAfterChange(picked) {
+  if (A._engineNow) { A._engineNow.refreshHosts(); }
+  if (picked && /^(sub|acct):/.test(A.selectedModel || "")) {
+    A.selectedModel = "";
+    try { localStorage.removeItem("gb-model-preference"); } catch (e) { /* private window */ }
+  }
   if (typeof A.loadModels === "function") { await A.loadModels(); }
+  if (picked && typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
   if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
   if (typeof A.renderStatus === "function") { A.renderStatus(); }
-  var panel = document.getElementById("gbSetPanel");
+  var panel = document.querySelector('#gbSetPanel[data-section="model"]');
   if (panel) { A.renderModelFull(panel); }
 }
 })();

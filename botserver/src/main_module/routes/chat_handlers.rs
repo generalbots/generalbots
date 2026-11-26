@@ -369,11 +369,25 @@ pub async fn handle_chat_models(
 
     // Models switched on in Settings > Modelo, grouped by provider account.
     let accounts = botsettings::model_config::accounts::chat_groups().await;
+    // Linked subscription agents with the models switched on for the menu.
+    #[cfg(all(feature = "agent-vm", feature = "security"))]
+    let subscriptions = crate::core::ai_accounts::models::chat_subscriptions(
+        &state.conn,
+        extensions
+            .get::<crate::security::auth_api::types::AuthenticatedUser>()
+            .map_or(Uuid::nil(), |user| user.user_id),
+    );
+    #[cfg(not(all(feature = "agent-vm", feature = "security")))]
+    let subscriptions: Vec<serde_json::Value> = {
+        drop(extensions);
+        Vec::new()
+    };
 
     Json(serde_json::json!({
         "default_model": default_model,
         "destination": destination,
         "accounts": accounts,
+        "subscriptions": subscriptions,
         "tiers": [
             {
                 "id": "auto",

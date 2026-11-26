@@ -57,6 +57,13 @@ pub(super) fn recover_tool_name(call: &serde_json::Value, raw: &str) -> String {
 }
 
 pub(super) fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
+    let (start, end) = first_object_span(raw)?;
+    parse_object(&raw[start..end])
+}
+
+/// Byte range of the first balanced JSON object in `raw`, quotes and escapes
+/// respected.
+pub(super) fn first_object_span(raw: &str) -> Option<(usize, usize)> {
     let start = raw.find('{')?;
     let slice = &raw[start..];
     let mut depth = 0usize;
@@ -87,7 +94,12 @@ pub(super) fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
             _ => {}
         }
     }
-    let object = &slice[..end?];
+    end.map(|end| (start, start + end))
+}
+
+/// Parses one JSON object, escaping raw control characters inside its string
+/// literals when the strict parse fails.
+pub(super) fn parse_object(object: &str) -> Option<serde_json::Value> {
     if let Ok(value) = serde_json::from_str(object) {
         return Some(normalize_tool_call(value));
     }

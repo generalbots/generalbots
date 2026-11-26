@@ -60,7 +60,14 @@ pub struct WsQuery {
     /// Suite/cloud token. When valid it determines the identity; the
     /// `user_id` query parameter alone is never trusted for an authenticated
     /// session (a stale client id used to scope Drive and files to a guest).
+    /// The desktop shell sends the token as `token=`; serde alias accepts both.
+    #[serde(alias = "token")]
     pub access_token: Option<String>,
+}
+
+/// Treats empty or whitespace-only strings as absent.
+fn non_blank(value: Option<String>) -> Option<String> {
+    value.filter(|s| !s.trim().is_empty())
 }
 
 pub fn validate_bot_name(input: &str) -> Result<String, String> {
@@ -326,4 +333,88 @@ pub async fn websocket_handler_with_bot(
     }
 
     websocket_handler_inner(ws, state, params, headers, token_user).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_alias_deserialises() {
+        let json = r#"{"token":"gb_abc123","session_id":"","user_id":""}"#;
+        let parsed: WsQuery = serde_json::from_str(json).expect("deserialise WsQuery with token alias");
+        assert_eq!(parsed.access_token.as_deref(), Some("gb_abc123"));
+    }
+
+    #[test]
+    fn test_access_token_field_still_works() {
+        let json = r#"{"access_token":"gb_xyz"}"#;
+        let parsed: WsQuery = serde_json::from_str(json).expect("deserialise WsQuery");
+        assert_eq!(parsed.access_token.as_deref(), Some("gb_xyz"));
+    }
+
+    #[test]
+    fn test_non_blank_filters_empty() {
+        assert!(non_blank(Some(String::new())).is_none());
+        assert!(non_blank(Some("  ".to_string())).is_none());
+        assert!(non_blank(None).is_none());
+        assert_eq!(non_blank(Some("abc".to_string())).as_deref(), Some("abc"));
+    }
+
+    #[test]
+    fn test_handshake_user_precedence() {
+        // Stale cookie (returns None), valid query token -> query wins.
+        let result = handshake_user_with(
+            Some("stale_cookie"),
+            Some("valid_query"),
+            |token| {
+                if token == "valid_query" {
+                    Some(("user-123".to_string(), vec![]))
+                } else {
+                    None
+                }
+            },
+        );
+        assert_eq!(result.as_deref(), Some("user-123"));
+    }
+
+    #[test]
+    fn test_handshake_user_cookie_wins_when_valid() {
+        let result = handshake_user_with(
+            Some("good_cookie"),
+            Some("good_query"),
+            |token| {
+                if token == "good_cookie" {
+                    Some(("cookie-user".to_string(), vec![]))
+                } else if token == "good_query" {
+                    Some(("query-user".to_string(), vec![]))
+                } else {
+                    None
+                }
+            },
+        );
+        assert_eq!(result.as_deref(), Some("cookie-user"));
+    }
+
+    #[test]
+    fn test_handshake_user_empty_token_is_absent() {
+        let result = handshake_user_with(Some(""), Some("   "), |_| {
+            panic!("resolver should not be called for blank tokens");
+        });
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_handshake_user_none_tokens() {
+        let result = handshake_user_with(None, None, |_| panic!("should not be called"));
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_empty_user_id_does_not_derive_guest() {
+        let constant_guest = crate::security::user_role::derive_stable_user_uuid("");
+        assert!(non_blank(Some(String::new())).is_none());
+        let uid = crate::security::user_role::derive_stable_user_uuid("real-user");
+        assert_ne!(uid, constant_guest);
+    }
 }

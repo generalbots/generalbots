@@ -124,6 +124,14 @@ fn a_failed_start_is_classified_from_the_engine_log() {
 }
 
 #[test]
+fn health_timeout_allows_slow_cold_loads() {
+    // A cold disk-cache load of a 5+ GB model can take over 2 minutes.
+    // The timeout must be generous enough for that case.
+    assert!(HEALTH_TIMEOUT.as_secs() >= 240, "HEALTH_TIMEOUT too short for cold loads");
+    assert!(HEALTH_TIMEOUT.as_secs() <= 600, "HEALTH_TIMEOUT unreasonably long");
+}
+
+#[test]
 fn the_failure_code_is_read_back_from_the_message() {
     assert_eq!(failure_code("engine_too_old: Chat runtime exited during startup"), CODE_ENGINE_TOO_OLD);
     assert_eq!(failure_code("not_enough_memory: Chat runtime exited during startup"), CODE_NOT_ENOUGH_MEMORY);

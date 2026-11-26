@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/wizard/logo-mark.svg" />
   <link rel="stylesheet" href="/suite/identity/fonts.css" />
   <link rel="stylesheet" href="/suite/identity/tokens.css" />
+  <link rel="stylesheet" href="/suite/identity/lockup.css" />
   <link rel="stylesheet" href="/wizard/wizard.css" />
 </head>
 <body>
@@ -18,11 +19,10 @@
   <main class="wizard" id="wizardRoot" data-state="loading">
     <aside class="rail" aria-label="Setup steps">
       <div class="rail-brand">
-        <img class="rail-mark" src="/wizard/logo-mark.svg" alt="" aria-hidden="true" />
-        <img class="rail-wordmark" src="/wizard/logo-text.svg" alt="General Bots" />
+        <span class="id-lockup" role="img" aria-label="General Bots Lite"><span class="id-lockup-mark" aria-hidden="true"></span><span class="id-lockup-tag" aria-hidden="true">LITE</span></span>
       </div>
+      <div class="rail-section-label" id="railSectionLabel">// INITIAL SETUP</div>
       <ol class="rail-steps" id="railSteps" role="list"></ol>
-      <p class="rail-note" id="railNote">Nothing is installed until you choose Start setup.</p>
     </aside>
 
     <section class="pane" aria-live="polite">
@@ -74,6 +74,7 @@
   <script src="/wizard/wizard-i18n.js"></script>
   <script src="/wizard/wizard-state.js"></script>
   <script src="/wizard/wizard-bridge.js"></script>
+  <script src="/wizard/wizard-steps-engine.js"></script>
   <script src="/wizard/wizard-steps.js"></script>
   <script src="/wizard/wizard-host.js"></script>
   <script src="/wizard/modules/00_core.js"></script>

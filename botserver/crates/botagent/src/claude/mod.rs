@@ -1,18 +1,18 @@
 //! Claude Code subscription provider (#1652).
 //!
 //! The CLI and its credentials live inside the user's agent VM:
-//! `claude setup-token` runs under the `claude` Unix user, prints an OAuth
+//! `claude auth login --claudeai` runs under the `claude` Unix user, prints an OAuth
 //! URL, and accepts the authorization code through a small PTY bridge. The
-//! botserver never sees the token itself — it only reads the status of
-//! `/home/claude/.claude/.credentials.json`.
+//! botserver never sees the token itself — it only checks
+//! `/home/claude/.claude/.credentials.json` or `claude auth status`.
 //!
 //! Every VM command goes through `vm::exec_in_vm`, which uses `SafeCommand`.
-//! User-supplied text (the authorization code and the prompt) is base64
-//! encoded before it reaches a shell.
+//! The authorization code is base64 encoded before it reaches a shell; a
+//! chat turn's prompt travels over the [`bridge`] session's stdin.
 
+pub mod bridge;
 mod login;
 mod paths;
-mod prompt;
 mod pty;
 mod status;
 
@@ -21,7 +21,6 @@ use base64::Engine;
 
 pub use login::{logout, start_login, submit_code};
 pub use paths::{CLAUDE_HOME, CLAUDE_USER, CREDENTIALS_PATH};
-pub use prompt::run_prompt;
 pub use status::{extract_oauth_url, status, ClaudeStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {

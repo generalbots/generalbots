@@ -8,6 +8,8 @@
 
 (function () {
     var A = window.GBAssistant;
+    var root = document.documentElement;
+    var mantis = root.dataset.identity === "mantis";
 
     var PATTERNS = [
         { id: "none", css: "" },
@@ -21,14 +23,33 @@
     /* "image" = the shipped pattern.png (dot composition) */
     PATTERNS.splice(1, 0, { id: "image", css: "__IMAGE__" });
 
+    var MANTIS_PATTERNS = [
+        { id: "none", en: "None", pt: "Nenhum" },
+        { id: "dots", en: "Dots", pt: "Pontos" },
+        { id: "microdots", en: "Micro", pt: "Micro" },
+        { id: "grid", en: "Grid", pt: "Grade" },
+        { id: "blueprint", en: "Blueprint", pt: "Planta" },
+        { id: "weave", en: "Weave", pt: "Tecido" },
+        { id: "mosaic", en: "Mosaic", pt: "Mosaico" }
+    ];
+
     function getCurrentPattern() {
-        try { return localStorage.getItem("gb-chat-pattern") || "image"; } catch (e) { return "image"; }
+        var stored;
+        try { stored = localStorage.getItem("gb-chat-pattern"); } catch (e) { /* storage unavailable */ }
+        if (mantis) {
+            return MANTIS_PATTERNS.some(function (pattern) { return pattern.id === stored; }) ? stored : "dots";
+        }
+        return stored || "image";
     }
     function setCurrentPattern(id) {
         try { localStorage.setItem("gb-chat-pattern", id); } catch (e) { /* */ }
     }
 
     function applyPattern(id) {
+        if (mantis) {
+            root.dataset.gbPattern = id === "image" ? "dots" : id;
+            return;
+        }
         var main = document.querySelector(".gb-main");
         if (!main) { return; }
         main.classList.remove("gb-pattern-none", "gb-pattern-css", "gb-pattern-image");
@@ -74,6 +95,11 @@
         return isNaN(v) ? cfg.def : Math.min(cfg.max, Math.max(cfg.min, v));
     }
     function applySliders() {
+        if (mantis) {
+            root.style.setProperty("--gb-pat-strength", String(getSlider("strength") / 100));
+            root.style.setProperty("--gb-pat-scale", String(getSlider("scale") / 100));
+            return;
+        }
         var main = document.querySelector(".gb-main");
         if (!main) { return; }
         var scale = getSlider("scale"), frost = getSlider("frost");
@@ -90,14 +116,6 @@
         }
         if (layer) { layer.hidden = frost <= 0; }
     }
-    A._sliderRow = function (name) {
-        var cfg = SLIDERS[name], v = getSlider(name);
-        return '<div class="gb-set-range-row"><label class="gb-set-label" for="gbRange_' + name + '">' + A.t(cfg.key, cfg.en) + '</label>' +
-            '<input type="range" class="gb-set-range" id="gbRange_' + name + '" data-slider="' + name + '" min="' + cfg.min +
-            '" max="' + cfg.max + '" step="' + cfg.step + '" value="' + v + '" />' +
-            '<output class="gb-set-range-value" for="gbRange_' + name + '">' + v + '%</output>' +
-            '<button type="button" class="gb-set-range-reset" data-reset="' + name + '" title="' + A.t("settings.slider-reset", "Default") + '">&#8634;</button></div>';
-    };
     A._syncSliders = function (panel) {
         var none = getCurrentPattern() === "none";
         ["strength", "scale"].forEach(function (name) {
@@ -114,7 +132,7 @@
             if (out) { out.textContent = value + "%"; }
             applySliders();
         }
-        panel.querySelectorAll(".gb-set-range").forEach(function (input) {
+        panel.querySelectorAll(".gb-set-range[data-slider]").forEach(function (input) {
             input.addEventListener("input", function () { set(input, parseInt(input.value, 10)); });
         });
         panel.querySelectorAll("[data-reset]").forEach(function (btn) {
@@ -124,23 +142,6 @@
             });
         });
         A._syncSliders(panel);
-    };
-
-    /* The small preview inside a pattern tile of Settings > Appearance. */
-    A._previewPattern = function (div) {
-        var patId = div.getAttribute("data-pat-id");
-        if (!patId || patId === "none") { return; }
-        if (patId === "image") {
-            /* The shipped dot composition is too detailed for a 64x40 tile: a dot cluster stands for it. */
-            var dots = [["1.5px", "20% 30%"], ["2px", "55% 20%"], ["1px", "40% 60%"], ["2.5px", "70% 55%"], ["1.5px", "30% 80%"],
-                ["1px", "80% 35%"], ["2px", "15% 55%"], ["1.5px", "60% 75%"], ["1px", "85% 70%"]];
-            div.style.cssText = "background:" + dots.map(function (d) {
-                return "radial-gradient(" + d[0] + " " + d[0] + " at " + d[1] + ", var(--id-accent) 60%, transparent 100%)";
-            }).join(",") + ",var(--id-paper);opacity:0.6;";
-            return;
-        }
-        var pat = PATTERNS.filter(function (p) { return p.id === patId; })[0];
-        if (pat && pat.css) { div.style.cssText = pat.css + "opacity:0.3;"; }
     };
 
     A.bootPattern = function () {
@@ -155,4 +156,152 @@
     A._setCurrentPattern = setCurrentPattern;
     A._applyPattern = applyPattern;
     A._applyPatternCSS = applyPatternCSS;
+
+    function seg(name, items, selected) {
+        return '<div class="gb-ap-seg" style="grid-template-columns:repeat(' + items.length + ',1fr)">' + items.map(function (item) {
+            return '<button type="button" data-' + name + '="' + item[0] + '" aria-pressed="' + (selected === item[0]) + '">' + item[1] + '</button>';
+        }).join("") + '</div>';
+    }
+
+    function syncChoices(panel, type, selected) {
+        panel.querySelectorAll("[data-" + type + "]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.getAttribute("data-" + type) === selected));
+        });
+    }
+
+    function saveAccent(hex) {
+        try { localStorage.setItem("gb-accent", hex); } catch (e) { /* storage unavailable */ }
+        if (A.apiFetch) {
+            A.apiFetch("/api/appearance", {
+                method: "PUT",
+                body: JSON.stringify({ accent: hex })
+            }).catch(function () { /* The device preference is already saved. */ });
+        }
+    }
+
+    function sliderRow(name, label) {
+        var cfg = SLIDERS[name], v = getSlider(name), id = "gbAppearanceRange_" + name;
+        return '<div class="gb-ap-slider"><label class="gb-ap-label" for="' + id + '">' + label + '</label>' +
+            '<input type="range" class="gb-set-range" id="' + id + '" data-slider="' + name + '" min="' + cfg.min + '" max="' + cfg.max +
+            '" step="' + cfg.step + '" value="' + v + '"><output for="' + id + '">' + v + '%</output><button type="button" data-reset="' + name +
+            '" title="' + A.t("settings.slider-reset", "Default") + '" aria-label="' + A.t("settings.slider-reset", "Default") + '">' +
+            RESET_ICON + '</button></div>';
+    }
+    var RESET_ICON = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>';
+
+    /* App zoom (identity/zoom.js): the value follows the slider while it moves
+       and the page rescales when it is released, so the thumb stays under the pointer. */
+    function zoomRow(label) {
+        var z = window.GBZoom, reset = A.t("settings.slider-reset", "Default");
+        return '<div class="gb-ap-sec gb-ap-zoom"><label class="gb-ap-label" for="gbAppearanceZoom">' + label + '</label>' +
+            '<div class="gb-ap-slider"><input type="range" class="gb-set-range" id="gbAppearanceZoom" min="' + z.min + '" max="' + z.max +
+            '" step="' + z.increment + '" value="' + z.get() + '"><output for="gbAppearanceZoom">' + z.get() + '%</output>' +
+            '<button type="button" data-zoom-reset title="' + reset + '" aria-label="' + reset + '">' + RESET_ICON + '</button></div></div>';
+    }
+    function showZoom(value) {
+        var input = document.getElementById("gbAppearanceZoom");
+        if (!input) { return; }
+        input.value = value;
+        input.nextElementSibling.textContent = value + "%";
+    }
+    function bindZoom(panel) {
+        var input = panel.querySelector("#gbAppearanceZoom");
+        if (!input) { return; }
+        input.addEventListener("input", function () { input.nextElementSibling.textContent = input.value + "%"; });
+        input.addEventListener("change", function () { window.GBZoom.set(input.value); });
+        panel.querySelector("[data-zoom-reset]").addEventListener("click", function () { window.GBZoom.reset(); });
+    }
+    window.addEventListener("gb-zoom-change", function (event) { showZoom(event.detail.value); });
+
+    A.renderMantisAppearance = function (container) {
+        var theme = window.GBTheme;
+        var size = window.GBTextSize;
+        var identity = window.GBIdentity;
+        var portuguese = root.lang.toLowerCase().startsWith("pt");
+        function tr(pt, en) { return portuguese ? pt : en; }
+        var activeAccent = root.style.getPropertyValue("--id-accent").trim().toUpperCase();
+        var hue = Math.round(identity.hueOf(activeAccent)) % 360;
+        var pattern = getCurrentPattern();
+        function accentName(hex) {
+            var preset = identity.presets.find(function (item) { return item.hex.toUpperCase() === String(hex).toUpperCase(); });
+            return preset ? (portuguese ? preset.pt : preset.en) : tr("Personalizado", "Custom");
+        }
+        var track = "linear-gradient(90deg, " + Array.from({ length: 13 }, function (_, i) {
+            return identity.fromHue(i * 30) + " " + (i / 12 * 100).toFixed(1) + "%";
+        }).join(", ") + ")";
+        var px = { small: 14, "default": 16, large: 18, xlarge: 20 };
+        var short = { small: tr("P", "S"), "default": tr("M", "M"), large: tr("G", "L"), xlarge: tr("XG", "XL") };
+        container.innerHTML = '<div class="gb-ap">' +
+            '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Tema", "Theme") + '</span>' +
+            seg("appearance-theme", ["light", "dark", "system"].map(function (id) { return [id, A.escapeHtml(A.t("settings.theme-" + id, id))]; }), theme.get()) + '</div>' +
+            (window.GBZoom ? zoomRow(tr("Zoom do aplicativo", "App zoom")) : '') +
+            '<div class="gb-ap-sec"><div class="gb-ap-label gb-ap-pair"><span>' + tr("Acento", "Accent") + '</span><span class="gb-ap-ink" id="gbAppearanceAccentName">' +
+            A.escapeHtml(accentName(activeAccent)) + '</span></div><div class="gb-ap-swatches">' + identity.presets.map(function (preset) {
+                var label = A.escapeHtml(portuguese ? preset.pt : preset.en);
+                return '<button type="button" data-acc="' + preset.hex + '" title="' + label + '" aria-label="' + label + '" aria-pressed="' +
+                    (preset.hex.toUpperCase() === activeAccent) + '"><i style="background:' + preset.hex + '"></i></button>';
+            }).join("") + '</div><div class="gb-ap-hue"><div class="gb-ap-label gb-ap-pair gb-ap-small"><span>' + tr("Matiz", "Hue") +
+            '</span><span class="gb-ap-ink"><output for="gbAppearanceHue">' + hue + '°</output></span></div><div class="gb-ap-track" style="--gb-hue-track:' +
+            track + ';--gb-hue-pct:' + (hue / 359 * 100).toFixed(1) + '%"><i class="gb-ap-rail"></i><i class="gb-ap-thumb"></i>' +
+            '<input type="range" id="gbAppearanceHue" min="0" max="359" value="' + hue + '" aria-label="' + tr("Matiz do acento", "Accent hue") + '"></div>' +
+            '<span class="gb-ap-hint">' + tr("Muda só a cor. O brilho e a intensidade ficam fixos para manter o contraste.",
+                "Changes only the colour. Brightness and intensity stay fixed to keep the contrast.") + '</span></div></div>' +
+            '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Fundo", "Background") + '</span><div class="gb-ap-pats">' +
+            MANTIS_PATTERNS.map(function (item) {
+                return '<button type="button" data-gb-pick="' + item.id + '" aria-pressed="' + (pattern === item.id) + '"><i class="gb-ap-tile" data-gb-pattern="' +
+                    item.id + '"></i><span>' + A.escapeHtml(portuguese ? item.pt : item.en) + '</span></button>';
+            }).join("") + '</div></div>' +
+            '<div class="gb-ap-sliders">' + sliderRow("strength", tr("Opacidade", "Opacity")) + sliderRow("scale", tr("Escala", "Scale")) + '</div>' +
+            '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Tamanho do texto", "Text size") + '</span>' +
+            seg("appearance-size", size.steps.map(function (id) {
+                return [id, '<span aria-hidden="true">' + short[id] + '</span><small aria-hidden="true">' + (px[id] || "") +
+                    '</small><span class="gb-sr-only">' + A.escapeHtml(A.t("settings.text-" + id, id)) + '</span>'];
+            }), size.get()) + '</div></div>';
+
+        var panel = container.querySelector(".gb-ap");
+        var hueInput = panel.querySelector("#gbAppearanceHue");
+        var hueOutput = panel.querySelector('output[for="gbAppearanceHue"]');
+        var hueTrack = panel.querySelector(".gb-ap-track");
+        function showAccent(accent) {
+            hueInput.value = Math.round(identity.hueOf(accent)) % 360;
+            hueOutput.value = hueInput.value + "°";
+            hueTrack.style.setProperty("--gb-hue-pct", (hueInput.value / 359 * 100).toFixed(1) + "%");
+            panel.querySelector("#gbAppearanceAccentName").textContent = accentName(accent);
+            syncChoices(panel, "acc", accent);
+        }
+        panel.addEventListener("click", function (event) {
+            var button = event.target.closest("button");
+            if (!button) { return; }
+            var data = button.dataset;
+            if (data.appearanceTheme) {
+                theme.set(data.appearanceTheme);
+                syncChoices(panel, "appearance-theme", data.appearanceTheme);
+            } else if (data.appearanceSize) {
+                size.set(data.appearanceSize);
+                syncChoices(panel, "appearance-size", data.appearanceSize);
+            } else if (data.acc) {
+                var accent = identity.apply(data.acc).accent;
+                showAccent(accent);
+                saveAccent(accent);
+            } else if (data.gbPick) {
+                setCurrentPattern(data.gbPick);
+                applyPattern(data.gbPick);
+                syncChoices(panel, "gb-pick", data.gbPick);
+                A._syncSliders(panel);
+            }
+        });
+        hueInput.addEventListener("input", function () {
+            var accent = identity.apply(identity.fromHue(Number(hueInput.value))).accent;
+            showAccent(accent);
+            try { localStorage.setItem("gb-accent", accent); } catch (e) { /* storage unavailable */ }
+        });
+        hueInput.addEventListener("change", function () {
+            saveAccent(root.style.getPropertyValue("--id-accent"));
+        });
+        A._bindSliders(panel);
+        A._syncSliders(panel);
+        bindZoom(panel);
+    };
+
+    if (mantis) { A.bootPattern(); }
 })();

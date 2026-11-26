@@ -5,7 +5,9 @@ use axum::body::Body;
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use super::extraction::{extract_bot_id_from_request, extract_session_from_cookies};
+use super::extraction::{
+    authorization_scheme, extract_bot_id_from_request, extract_session_from_cookies,
+};
 use super::tokens::basic_password_as_token;
 
 pub struct ExtractedAuthData {
@@ -42,17 +44,17 @@ impl ExtractedAuthData {
             })
             .map(|v| v.replace("%20", " ").replace("%2B", "+").trim().to_string());
 
-        // Debug: log raw Authorization header
         let raw_auth = request
             .headers()
             .get(axum::http::header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok());
 
         if let Some(auth) = raw_auth {
-            // Truncate on a character boundary: slicing a fixed byte offset can
-            // split a multi-byte character and panic.
-            let preview: String = auth.chars().take(50).collect();
-            debug!("Raw Authorization header: {preview}");
+            // Only the scheme is logged: no part of the credential itself.
+            debug!(
+                "Authorization header present, scheme {}",
+                authorization_scheme(auth)
+            );
         } else {
             // An absent Authorization header is the normal case for anonymous
             // traffic on public endpoints (/health, /ws, /api/bot/public, the
@@ -84,10 +86,10 @@ impl ExtractedAuthData {
                     return Some(s[prefix_len..].to_string());
                 }
             }
-            let preview: String = s.chars().take(20).collect();
             warn!(
-                "Authorization header present but failed to extract bearer token. Prefix expected: '{}', raw: '{preview}...'",
+                "Authorization header present but failed to extract bearer token. Prefix expected: '{}', scheme received: {}",
                 config.bearer_prefix,
+                authorization_scheme(s),
             );
             None
         }));

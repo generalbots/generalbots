@@ -11,6 +11,9 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
     let mut scored_cmds: Vec<(i32, &AppCommand)> = commands_list()
         .iter()
         .filter_map(|cmd| {
+            if !super::chat_executable::is_chat_executable(cmd.name) {
+                return None;
+            }
             if cmd.admin_only && role != crate::security::user_role::ROLE_ADMIN {
                 return None;
             }

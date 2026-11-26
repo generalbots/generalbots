@@ -16,7 +16,7 @@ use super::unseal::{recover_existing_vault, unseal_vault};
 pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
     info!("Initializing Vault locally (non-LXC mode)...");
 
-    let vault_bin = base_path.join("bin/vault/vault");
+    let vault_bin = crate::secrets_engine::cli_path(&base_path);
     let vault_data = base_path.join("data/vault");
     let vault_data_exists = vault_data.exists();
 

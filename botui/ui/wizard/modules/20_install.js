@@ -83,19 +83,28 @@
 
   /* -- toggle details (show/hide live output column) ------------------ */
 
+  var detailsOpen = false;
+
+  function setDetailsOpen(open) {
+    detailsOpen = open;
+    var output = document.getElementById("installOutputCol");
+    var cols = document.getElementById("installColumns");
+    var icon = document.getElementById("toggleDetailsIcon");
+    var toggle = document.getElementById("toggleInstallDetails");
+    if (!output || !cols) { return; }
+    output.style.display = open ? "" : "none";
+    cols.style.gridTemplateColumns = open ? "45% 1fr" : "1fr";
+    if (icon) { icon.textContent = open ? "▼" : "▶"; }
+    if (toggle) { toggle.lastChild.textContent = " " + t(open ? "install.hide-details" : "install.show-details"); }
+  }
+
   function bindToggleDetails() {
     var toggle = document.getElementById("toggleInstallDetails");
     if (!toggle) { return; }
+    /* Details closed by default; a first-time user sees only the step list. */
+    setDetailsOpen(false);
     toggle.addEventListener("click", function () {
-      var output = document.getElementById("installOutputCol");
-      var cols = document.getElementById("installColumns");
-      var icon = document.getElementById("toggleDetailsIcon");
-      if (!output || !cols) { return; }
-      var hidden = output.style.display === "none";
-      output.style.display = hidden ? "" : "none";
-      cols.style.gridTemplateColumns = hidden ? "45% 1fr" : "1fr";
-      if (icon) { icon.textContent = hidden ? "▼" : "▶"; }
-      toggle.lastChild.textContent = " " + t(hidden ? "install.hide-details" : "install.show-details");
+      setDetailsOpen(!detailsOpen);
     });
   }
 
@@ -106,23 +115,6 @@
 
   function renderHostCheck() {
     window.GBWizardHost.render(state);
-    collapseHostIfReady();
-  }
-
-  function collapseHostIfReady() {
-    var details = document.getElementById("hostReadiness");
-    var summary = document.getElementById("hostSummaryText");
-    if (!details || !summary) { return; }
-    var result = state.host.result;
-    var allReady = result && result.status === "ready";
-    var skippedOk = result && result.desktop_ready && result.media_ready &&
-      draft.skip_all_agentic_work;
-    if (state.host.checked && (allReady || skippedOk)) {
-      summary.textContent = result.message || t("host.status-ready");
-      details.removeAttribute("open");
-    } else if (state.host.checked && result) {
-      details.setAttribute("open", "");
-    }
   }
 
   function checkHost(autoStart) {
@@ -163,7 +155,7 @@
   function renderComponents() {
     var list = document.getElementById("componentList");
     if (!list) { return; }
-    list.innerHTML = (state.context.components || []).map(componentTemplate).join("");
+    list.innerHTML = plannedComponents().map(componentTemplate).join("");
     (state.provisioning.components || []).forEach(updateComponent);
     updateInstallProgress();
     renderLog();
@@ -246,7 +238,7 @@
     } else if (event.state === "failed") {
       node.className = "install-step-item done";
       icon.textContent = "✗";
-      icon.style.color = "#b3352a";
+      icon.style.color = "var(--id-danger-text)";
       if (dur) { dur.textContent = ""; }
     }
     updateInstallProgress();
@@ -264,6 +256,8 @@
   function setProvisionUi(running) {
     var cancel = document.getElementById("cancelSetupBtn");
     if (cancel) { cancel.disabled = !running; }
+    var reset = document.getElementById("resetStackBtn");
+    if (reset) { reset.hidden = running; }
     if (running) {
       state.provisioning.running = true;
       state.provisioning.failed = null;
@@ -287,6 +281,7 @@
     var start = document.getElementById("startSetupBtn");
     if (start) { start.textContent = t("install.complete"); start.disabled = true; }
     updateInstallProgress();
+    renderHostCheck();
     renderFooter();
     if (state.step === 7) { goTo(8); }
   }
@@ -322,7 +317,7 @@
     pollStatus();
     B.provision({
       model: draft.model, workspace: draft.workspace,
-      services: draft.services, display_name: draft.display_name,
+      services: App.W.sentServices(draft.services), display_name: draft.display_name,
       skip_all_agentic_work: draft.skip_all_agentic_work === true
     }).then(function () { handleDone(); }).catch(function (e) {
       state.provisioning.running = false;
@@ -340,6 +335,8 @@
       var retry = document.getElementById("retryComponentBtn");
       if (retry) { retry.addEventListener("click", startProvisioning); }
     }
+    /* Reveal the log on failure so the user can see what went wrong. */
+    setDetailsOpen(true);
     setProvisionUi(false);
   }
 

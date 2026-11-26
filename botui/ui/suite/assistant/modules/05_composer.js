@@ -123,17 +123,25 @@
     }
 
     /* ---- Send ---- */
-    /* Attachments travel inside the socket frame as base64; a larger file
-       fails the frame and the chat would stay silent. Same limit as the server
-       expects from the existing client. */
+    /* Attachments travel inside the socket message as base64. The server
+       takes 50 MB per file (68 MiB of base64) and 96 MiB per message, so the
+       files of one message stay under 70 MB together; above that the message
+       would be dropped and the chat would stay silent. */
     var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
+    var MAX_ATTACH_TOTAL = 70 * 1024 * 1024;
 
+    /* The same path as the send button, for a card that sends a request again. */
+    A.sendFromComposer = function (text) { doSend(text); };
     function doSend(text, messageType) {
         text = (text || "").trim();
         var files = A.pendingFiles.slice();
         if (!text && files.length === 0) { return; }
-        /* Block sends while streaming (message would be lost). */
+        /* Not while streaming (the message would be lost): 05g asks first. */
         if (A.isStreaming) {
+            if (typeof A.onSendWhileBusy === "function") {
+                A.onSendWhileBusy(function () { doSend(text, messageType); });
+                return;
+            }
             A.announce(A.t("assistant.wait-response",
                 "Aguarde a resposta terminar"));
             return;
@@ -149,24 +157,39 @@
                 "File too large (50 MB per file limit): ") + names);
             return;
         }
+        var total = files.reduce(function (sum, f) { return sum + f.size; }, 0);
+        if (total > MAX_ATTACH_TOTAL) {
+            A.renderError(A.t("attach.too-big-total",
+                "Anexos grandes demais para uma só mensagem (até 70 MB no total; estes somam ") +
+                (total / 1048576).toLocaleString(A.locale || undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " MB).");
+            return;
+        }
         var empty = files.filter(function (f) { return f.size === 0; });
         if (empty.length) {
             A.renderError(A.t("attach.empty-file",
                 "Empty file: ") + empty.map(function (f) { return f.name; }).join(", "));
             return;
         }
-        A.renderUserMessage(text, files);
-        /* The wait shows at once: the server's first frame can take seconds
-           (reading an attachment, a web search) and the screen stood still. */
-        A.showThinking();
-        clearInputs();
-        if (files.length > 0) {
-            A.pendingFiles = [];
-            clearFileChips();
-            encodeAndSend(text, files, messageType);
-            return;
+        /* The guard checks whether the destination needs consent BEFORE we
+           clear the composer. On decline nothing happens: the person's text
+           and attachment chips stay exactly as they were. */
+        function proceed() {
+            A.renderUserMessage(text, files);
+            A.showThinking();
+            clearInputs();
+            if (files.length > 0) {
+                A.pendingFiles = [];
+                clearFileChips();
+                encodeAndSend(text, files, messageType);
+                return;
+            }
+            sendNow(text, null, messageType);
         }
-        sendNow(text, null, messageType);
+        if (typeof A.preSendGuard === "function") {
+            A.preSendGuard(proceed);
+        } else {
+            proceed();
+        }
     }
 
     /* A message that could not leave (connection closed) must not keep the
@@ -206,8 +229,10 @@
         });
     }
     function clearFileChips() {
-        var c = document.getElementById("gbFileChips");
-        if (c) { c.innerHTML = ""; }
+        ["gbFileChips", "gbFileChipsEmpty"].forEach(function (id) {
+            var c = document.getElementById(id);
+            if (c) { c.innerHTML = ""; }
+        });
     }
 
     function autoGrow(el) {
@@ -267,42 +292,42 @@
     }
 
     function renderFileChips() {
-        var container = document.getElementById("gbFileChips");
-        if (!container) { return; }
-        container.innerHTML = "";
-        for (var i = 0; i < A.pendingFiles.length; i++) {
-            if (typeof A.attachCard === "function") {
-                (function (idx) {
-                    var card = A.attachCard(A.pendingFiles[idx], {
-                        removable: true,
-                        onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
-                    });
-                    /* Keyboard: Delete/Backspace removes this chip */
-                    card.setAttribute("tabindex", "0");
-                    card.addEventListener("keydown", function (e) {
-                        if (e.key === "Delete" || e.key === "Backspace") {
-                            e.preventDefault();
-                            A.pendingFiles.splice(idx, 1);
-                            renderFileChips();
-                            /* Move focus to the next chip or the input. */
-                            var next = container.querySelector(".gb-attach-card");
-                            if (next) { next.focus(); }
-                            else {
-                                var inp = document.getElementById("gbInputDock") ||
-                                          document.getElementById("gbInputEmpty");
-                                if (inp) { inp.focus(); }
+        var containers = [document.getElementById("gbFileChips"), document.getElementById("gbFileChipsEmpty")].filter(Boolean);
+        containers.forEach(function (c) { c.innerHTML = ""; });
+        if (!containers.length) { return; }
+        containers.forEach(function (container) {
+            for (var i = 0; i < A.pendingFiles.length; i++) {
+                if (typeof A.attachCard === "function") {
+                    (function (idx) {
+                        var card = A.attachCard(A.pendingFiles[idx], {
+                            removable: true,
+                            onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
+                        });
+                        card.setAttribute("tabindex", "0");
+                        card.addEventListener("keydown", function (e) {
+                            if (e.key === "Delete" || e.key === "Backspace") {
+                                e.preventDefault();
+                                A.pendingFiles.splice(idx, 1);
+                                renderFileChips();
+                                var next = container.querySelector(".gb-attach-card");
+                                if (next) { next.focus(); }
+                                else {
+                                    var inp = document.getElementById("gbInputDock") ||
+                                              document.getElementById("gbInputEmpty");
+                                    if (inp) { inp.focus(); }
+                                }
                             }
-                        }
-                    });
-                    container.appendChild(card);
-                })(i);
-            } else {
-                var chip = document.createElement("span");
-                chip.className = "gb-file-chip";
-                chip.textContent = A.pendingFiles[i].name;
-                container.appendChild(chip);
+                        });
+                        container.appendChild(card);
+                    })(i);
+                } else {
+                    var chip = document.createElement("span");
+                    chip.className = "gb-file-chip";
+                    chip.textContent = A.pendingFiles[i].name;
+                    container.appendChild(chip);
+                }
             }
-        }
+        });
     }
 
     /* ---- Bind events ---- */
@@ -380,6 +405,9 @@
                 var blob = new Blob([text], { type: "text/plain" });
                 var name = A.t("attach.pasted-text", "texto-colado") + ".txt";
                 var file = new File([blob], name, { type: "text/plain" });
+                /* The attachment card shows the real length of what was pasted. */
+                A.pastedChars = A.pastedChars || {};
+                A.pastedChars[name + "|" + file.size] = text.length;
                 A.pendingFiles.push(file);
                 renderFileChips();
             }

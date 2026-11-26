@@ -285,6 +285,7 @@ pub fn create_container_service(
     };
     let rendered_cmd = exec_cmd
         .replace("{{DB_PASSWORD}}", &db_password)
+        .replace(crate::secrets_engine::CLI_PLACEHOLDER, crate::secrets_engine::Engine::OpenBao.binary_name())
         .replace("{{BIN_PATH}}", "/opt/gbo/bin")
         .replace("{{DATA_PATH}}", "/opt/gbo/data")
         .replace("{{CONF_PATH}}", "/opt/gbo/conf")

@@ -6,6 +6,7 @@
  * Ctrl+K                   Focus search
  * Ctrl+B                   Toggle sidebar
  * Ctrl+,                   Open Settings
+ * Ctrl+= / Ctrl++ / Ctrl+- / Ctrl+0   App zoom in / out / reset
  * Esc                      Close topmost layer / stop generation
  * Up arrow (empty input)   Edit last message
  */
@@ -14,6 +15,35 @@
 
     function isMod(e) {
         return e.ctrlKey || e.metaKey;
+    }
+
+    /* 1 zooms in, -1 zooms out, 0 resets, null is not a zoom key. */
+    function zoomDirection(e) {
+        if (e.key === "=" || e.key === "+" || e.code === "NumpadAdd") return 1;
+        if (e.key === "-" || e.code === "NumpadSubtract") return -1;
+        if (e.key === "0" || e.code === "Numpad0") return 0;
+        return null;
+    }
+
+    /* Open layers, topmost last: windows, menus, panels and drawers. */
+    var LAYERS = 'dialog[open], [role="dialog"], [role="alertdialog"], [role="menu"], ' +
+        ".gb-model-menu, .gb-user-menu, .gb-drv-ctx, .gb-attach-panel, .gb-lightbox, .gb-quota-drawer";
+    function topLayer() {
+        var open = Array.prototype.filter.call(document.querySelectorAll(LAYERS), function (el) {
+            return !el.hidden && el.getClientRects().length > 0;
+        });
+        return open[open.length - 1] || null;
+    }
+
+    /* Esc closes the topmost layer and does nothing else. An open <dialog>
+       and the user menu are closed here; every other layer closes itself
+       through its own Esc handler, so the event is left untouched for it. */
+    function closeTopLayer(e) {
+        var layer = topLayer();
+        if (!layer) return false;
+        if (layer.tagName === "DIALOG") { e.preventDefault(); layer.close(); }
+        else if (layer.classList.contains("gb-user-menu")) { e.preventDefault(); document.dispatchEvent(new MouseEvent("click")); }
+        return true;
     }
 
     document.addEventListener("keydown", function (e) {
@@ -65,6 +95,14 @@
             return;
         }
 
+        /* Ctrl+= / Ctrl++ / Ctrl+- / Ctrl+0 — app zoom (identity/zoom.js) */
+        var zoomKey = isMod(e) && !e.altKey && window.GBZoom ? zoomDirection(e) : null;
+        if (zoomKey !== null) {
+            e.preventDefault();
+            if (zoomKey === 0) { window.GBZoom.reset(); } else { window.GBZoom.step(zoomKey); }
+            return;
+        }
+
         /* Ctrl+, — open Settings */
         if (isMod(e) && e.key === ",") {
             e.preventDefault();
@@ -77,12 +115,12 @@
         }
 
         /* Esc — layered close:
-           1. Stop generation (if streaming)
-           2. Close attachment panel
-           3. Close Drive / Settings view
-           4. Close slide-over sidebar (narrow) */
+           1. Close the topmost open window, menu, panel or drawer
+           2. Stop generation (if streaming)
+           3. Close Drive / Settings / Machine view */
         if (e.key === "Escape") {
-            /* Stop generation takes priority */
+            if (e.defaultPrevented || closeTopLayer(e)) { return; }
+            /* Then stopping generation */
             if (A.isStreaming) {
                 e.preventDefault();
                 A.cancelGeneration();
@@ -90,8 +128,8 @@
             }
             /* Attachment panel (13_attachpanel.js manages its own Esc
                handler; we do not duplicate it here.) */
-            /* Drive or Settings: return to chat */
-            if (A.currentView === "drive" || A.currentView === "settings") {
+            /* Drive, Settings or Machine: return to chat */
+            if (A.currentView === "drive" || A.currentView === "settings" || A.currentView === "machine") {
                 e.preventDefault();
                 A.switchView("chat");
                 return;

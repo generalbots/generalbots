@@ -29,9 +29,6 @@
     outline: 2px solid var(--id-accent); outline-offset: 1px;
 }
 .gb-toolbar-label { font-weight: 500; }
-/* Regenerate belongs to the last answer only: on an older one it would
-   discard the turns that came after it. */
-.gb-msg-assistant:has(~ .gb-msg-user) .gb-regen-btn { display: none; }
 .gb-msg-retry { color: var(--id-accent-text); }
 
 /* ================================================================
@@ -92,9 +89,8 @@
    Syntax highlighting theme (highlight.js, identity-aware)
    Based on the accent colour tokens; AA contrast on both backgrounds.
    ================================================================ */
-.gb-msg-assistant pre code.hljs {
-    background: transparent; padding: 0;
-}
+/* Highlighted blocks keep the padding of every code block (assistant-chat.css). */
+.gb-msg-assistant pre code.hljs { background: transparent; }
 .hljs { color: var(--id-ink); }
 .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type {
     color: var(--id-hl-keyword); font-weight: 600; }

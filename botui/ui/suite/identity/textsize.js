@@ -1,7 +1,8 @@
 "use strict";
 /* Text-size manager — scales the root font size.
  * Sizes: small (14px), default (16px), large (18px), xlarge (20px).
- * Stored in localStorage, applied before first paint. Ctrl+= / Ctrl+- / Ctrl+0.
+ * Stored in localStorage, applied before first paint. Ctrl+= / Ctrl+- / Ctrl+0
+ * on pages without the app zoom (zoom.js owns those keys where it is loaded).
  * Exposes window.GBTextSize.
  */
 (function () {
@@ -54,7 +55,7 @@
 
     /* Keyboard shortcuts: Ctrl+= (increase), Ctrl+- (decrease), Ctrl+0 (reset) */
     document.addEventListener("keydown", function (e) {
-        if (!(e.ctrlKey || e.metaKey)) { return; }
+        if (!(e.ctrlKey || e.metaKey) || window.GBZoom) { return; }
         if (e.key === "=" || e.key === "+") {
             e.preventDefault();
             step(1);

@@ -15,25 +15,31 @@
   function persistDraft() { return App.persistDraft(); }
 
   function renderRail() {
+    var label = document.getElementById("railSectionLabel");
+    if (label) { label.textContent = "// " + t("rail.section-label"); }
     el.rail.innerHTML = W.STEPS.map(function (step, index) {
       var n = index + 1;
+      var num = (n < 10 ? "0" : "") + n;
       var current = n === state.step;
       var done = n < state.step || (state.provisioning.ready && n <= 5);
       return '<li class="rail-step' + (done ? " done" : "") + '"' +
         (current ? ' aria-current="step"' : "") + ">" +
-        '<span class="num" aria-hidden="true">' + (done ? "✓" : n) + "</span>" +
-        '<span class="name">' + esc(t(step.key)) + "</span></li>";
+        '<span class="rail-step-name">' + esc(t(step.key)) + "</span>" +
+        '<span class="rail-step-num" aria-hidden="true">' +
+          (done ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : num) +
+        "</span></li>";
     }).join("");
   }
 
   function renderFooter() {
     var last = state.step === state.totalSteps;
     el.back.disabled = state.step === 1 || state.provisioning.running;
-    el.next.textContent = last ? t("wizard.open-assistant") : t("wizard.next");
+    el.next.innerHTML = esc(last ? t("wizard.open-assistant") : t("wizard.next")) +
+      (last ? "" : ' <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
     el.next.disabled = !canAdvance();
     el.progress.style.width = Math.round((state.step / state.totalSteps) * 100) + "%";
     el.footLabel.textContent = t("wizard.foot-step", { current: state.step, total: state.totalSteps });
-    el.counter.textContent = t("wizard.step-counter", { current: state.step, total: state.totalSteps });
+    el.counter.innerHTML = '<span class="wiz-sl">//</span>' + esc(t("wizard.step-counter", { current: state.step, total: state.totalSteps }));
   }
 
   function canAdvance() {
@@ -71,40 +77,6 @@
       if (App.bindAccentPicker) { App.bindAccentPicker(); }
     }
 
-    if (state.step === 2) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-model-mode]'), function (card) {
-        card.addEventListener("click", function () {
-          var mode = card.getAttribute("data-model-mode");
-          draft.model.mode = mode;
-          if (mode === "claude-code" || mode === "chatgpt-plan") {
-            draft.model.provider = mode;
-            draft.model.endpoint = "";
-            draft.model.model = W.defaultModelName(mode);
-            draft.model.api_key = "";
-            draft.model.tested = true;
-          } else if (mode === "free") {
-            draft.model.provider = "kilo";
-            draft.model.endpoint = W.defaultModelEndpoint("kilo");
-            draft.model.model = W.defaultModelName("kilo");
-            draft.model.api_key = "";
-            draft.model.tested = false;
-          } else if (mode === "own-key" || mode === "hosted") {
-            if (!W.defaultModelEndpoint(draft.model.provider)) {
-              draft.model.provider = "openai";
-            }
-            draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
-            draft.model.model = W.defaultModelName(draft.model.provider);
-            draft.model.tested = false;
-          } else if (mode === "local") {
-            draft.model.tested = true;
-          }
-          persistDraft();
-          render();
-        });
-      });
-      bindModelDetail();
-    }
-
     if (state.step === 3) {
       var path = document.getElementById("workspacePath");
       var size = document.getElementById("workspaceSize");
@@ -131,72 +103,6 @@
     if (state.step === 8) { bindFinish(); }
   }
 
-  function bindModelDetail() {
-    var provider = document.getElementById("modelProvider");
-    var endpoint = document.getElementById("modelEndpoint");
-    var modelName = document.getElementById("modelName");
-    var key = document.getElementById("modelKey");
-    var test = document.getElementById("testModelBtn");
-    if (provider) {
-      provider.addEventListener("change", function () {
-        draft.model.provider = provider.value;
-        if (draft.model.mode === "free") {
-          draft.model.endpoint = W.defaultModelEndpoint(provider.value);
-          draft.model.model = W.defaultModelName(provider.value);
-          draft.model.tested = false;
-          document.getElementById("modelDetail").innerHTML = S.modelDetail(draft);
-          bindModelDetail();
-          renderFooter();
-          persistDraft();
-          return;
-        }
-        if (provider.value !== "custom") {
-          endpoint.value = W.defaultModelEndpoint(provider.value);
-          modelName.value = W.defaultModelName(provider.value);
-        }
-        draft.model.endpoint = endpoint.value;
-        draft.model.model = modelName.value;
-        draft.model.tested = false;
-        document.getElementById("modelTestStatus").textContent = t("model.untested");
-        renderFooter();
-      });
-    }
-    if (endpoint) { endpoint.addEventListener("input", function () { draft.model.endpoint = endpoint.value.trim(); draft.model.tested = false; renderFooter(); }); }
-    if (modelName) { modelName.addEventListener("input", function () { draft.model.model = modelName.value.trim(); draft.model.tested = false; renderFooter(); }); }
-    if (key) { key.addEventListener("input", function () { draft.model.api_key = key.value; draft.model.tested = false; renderFooter(); }); }
-    if (test) {
-      test.addEventListener("click", function () {
-        var status = document.getElementById("modelTestStatus");
-        status.textContent = t("model.testing");
-        status.className = "note";
-        test.disabled = true;
-        draft.model.endpoint = endpoint ? endpoint.value.trim() : "";
-        draft.model.model = modelName ? modelName.value.trim() : "";
-        draft.model.api_key = key ? key.value : "";
-        B.testModel({
-          mode: draft.model.mode,
-          provider: draft.model.provider,
-          endpoint: draft.model.endpoint,
-          model: draft.model.model,
-          api_key: draft.model.api_key
-        }).then(function (result) {
-          draft.model.tested = !!result.ok;
-          status.textContent = result.message;
-          status.className = "note " + (result.ok ? "ok" : "err");
-          say(result.message);
-        }).catch(function (e) {
-          draft.model.tested = false;
-          status.textContent = String(e && e.message ? e.message : e);
-          status.className = "note err";
-        }).then(function () {
-          test.disabled = false;
-          renderFooter();
-          persistDraft();
-        });
-      });
-    }
-  }
-
   function checkWorkspace() {
     var status = document.getElementById("workspaceStatus");
     var free = document.getElementById("workspaceFree");
@@ -206,8 +112,8 @@
     status.textContent = t("workspace.checking");
     B.checkWorkspace(path).then(function (result) {
       draft.workspace.blocked = !result.writable;
-      draft.workspace.block_reason = result.reason || "";
-      status.textContent = result.writable ? t("workspace.writable") : (result.reason || t("workspace.not-writable"));
+      draft.workspace.block_reason = result.writable ? "" : t("workspace.not-writable");
+      status.textContent = result.writable ? t("workspace.writable") : t("workspace.not-writable");
       status.className = "hint " + (result.writable ? "ok" : "err");
       if (free) { free.textContent = t("workspace.free", { size: W.formatBytes(result.free_bytes) }); }
       renderFooter();
@@ -218,7 +124,28 @@
     });
   }
 
+  function setServiceEnabled(id, on) {
+    draft.services[id] = draft.services[id] || {};
+    draft.services[id].enabled = on;
+    var card = document.querySelector('[data-service="' + id + '"]');
+    var body = document.getElementById("serviceBody-" + id);
+    var badge = card ? card.querySelector(".badge") : null;
+    var saved = draft.services[id];
+    if (card) { card.classList.toggle("off", !on); }
+    if (body) { body.hidden = !on; }
+    if (badge) {
+      badge.textContent = !on ? t("services.off") : (saved.client_id ? t("services.attention") : t("services.not-connected"));
+      badge.className = "badge " + (on && saved.client_id ? "warn" : "");
+    }
+    persistDraft();
+  }
+
   function bindServices() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-service-toggle]"), function (toggle) {
+      toggle.addEventListener("change", function () {
+        setServiceEnabled(toggle.getAttribute("data-service-toggle"), toggle.checked);
+      });
+    });
     Array.prototype.forEach.call(document.querySelectorAll("[data-service-id]"), function (input) {
       input.addEventListener("input", function () {
         var id = input.getAttribute("data-service-id");
@@ -267,9 +194,9 @@
   App.syncChrome = syncChrome;
   App.render = render;
   App.bindStep = bindStep;
-  App.bindModelDetail = bindModelDetail;
   App.checkWorkspace = checkWorkspace;
   App.bindServices = bindServices;
+  App.setServiceEnabled = setServiceEnabled;
   App.bindPrivacy = bindPrivacy;
   App.bindNetwork = bindNetwork;
 })();

@@ -62,6 +62,8 @@ pub async fn handle_delete_chat_history_session(
     }
     #[cfg(feature = "agent-vm")]
     crate::core::bot::agent_vm_hook::delete_conversation_folder(user_uuid, session_id).await;
+    #[cfg(feature = "consent")]
+    crate::core::bot::pipeline::vm_consent::forget_conversation(session_id).await;
     Ok(Json(serde_json::json!({
         "deleted": true,
         "session_id": session_id,

@@ -109,6 +109,7 @@ impl LLMProvider for AzureGPT5Client {
             }))
             .send()
             .await?;
+        crate::rate_limits::record(&full_url, response.headers());
 
         let status = response.status();
         if status != reqwest::StatusCode::OK {

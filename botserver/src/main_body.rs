@@ -40,6 +40,14 @@ pub(super) async fn main() -> std::io::Result<()> {
             if let Err(e) = dotenvy::from_path(path) { warn!("stack .env load failed: {e}"); }
         } else if let Err(e) = dotenvy::dotenv() { warn!("local .env load failed: {e}"); }
     }
+    // A stack still on the former HashiCorp Vault storage is moved to OpenBao
+    // here, before any secrets client exists: a client made earlier would
+    // keep the former token and read defaults instead of the real secrets.
+    let openbao_notes = botcore::package_manager::openbao_boot::prepare(std::path::Path::new(&botcore::shared::utils::get_stack_path())).await;
+    // Windows desktop: the server's own limited Vault token, before any reader
+    // of VAULT_TOKEN runs (it is no longer kept in `.env`).
+    #[cfg(windows)]
+    botcore::package_manager::server_token::load_early(std::path::Path::new(&botcore::shared::utils::get_stack_path()));
 
     let env_path_early = std::path::Path::new("./.env");
     let stack = botcore::shared::utils::get_stack_path();
@@ -53,6 +61,7 @@ pub(super) async fn main() -> std::io::Result<()> {
         std::fs::read_to_string(env_path_early)
             .map(|content| content.contains("VAULT_TOKEN="))
             .unwrap_or(false)
+            || (cfg!(windows) && std::env::var("VAULT_TOKEN").is_ok_and(|t| !t.is_empty()))
     });
 
     if bootstrap_ready {
@@ -84,6 +93,7 @@ pub(super) async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", &rust_log);
 
     init_logging_and_i18n(no_console, no_ui);
+    openbao_notes.emit();
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<botcore::shared::state::AppState>>(1);
@@ -154,6 +164,13 @@ pub(super) async fn main() -> std::io::Result<()> {
     main_module::init_tls::init_internal_tls(&install_mode, is_remote_vault);
 
     let cfg = run_bootstrap(install_mode, tenant, &progress_tx).await?;
+    #[cfg(windows)]
+    {
+        let stack = std::path::PathBuf::from(botcore::shared::utils::get_stack_path());
+        tokio::task::spawn_blocking(move || botcore::package_manager::server_token::ensure_scoped_token(&stack))
+            .await
+            .ok();
+    }
 
     trace!("Bootstrap config phase complete");
     trace!("Reloading dotenv...");
@@ -235,6 +252,8 @@ pub(super) async fn main() -> std::io::Result<()> {
     {
         // Wire the DB pool so suite sessions persist across restarts.
         botcoredirectory::auth_routes::set_session_pool(app_state.conn.clone());
+        // Desktop edition: password recovery from this computer (loopback only).
+        crate::main_module::local_recovery::spawn(app_state.clone());
         // #1364 — teach /api/auth/me about cloud management JWTs so signed-in
         // cloud users are not reported anonymous by the suite sidebar.
         botcoredirectory::auth_routes::set_external_token_verifier(

@@ -8,6 +8,11 @@ use log::info;
 mod context;
 mod finish;
 
+mod attachment;
+mod context;
+mod frames;
+mod prompt;
+
 pub async fn process_message_internal(
     identity: &SessionIdentity<'_>,
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
@@ -127,10 +132,11 @@ pub async fn process_message_internal(
     #[cfg(feature = "integrations")]
     let mentions = super::mentions::parse_lenient_mentions(&parsed);
 
-    {
+    super::turn_watch::bounded("session lookup", super::turn_watch::STEP_LIMIT, async {
         let mut sm = state.session_manager.lock().await;
         let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
-    }
+    })
+    .await;
 
     info!(
         "WS message: type={msg_type} content_chars={} session={session_id} bot={bot_name}",
@@ -141,9 +147,12 @@ pub async fn process_message_internal(
         return Ok(());
     }
 
+    // What this turn reads or runs is recorded with its answer (`turn_record`).
+    super::turn_record::begin(session_id);
+
     let mut is_switcher_replay = false;
     if msg_type == 8 {
-        let last_user_msg = {
+        let last_user_msg = super::turn_watch::bounded("session history", super::turn_watch::STEP_LIMIT, async {
             let mut sm = state.session_manager.lock().await;
             let history = sm
                 .get_conversation_history(session_id, user_id, Some(1))
@@ -153,7 +162,9 @@ pub async fn process_message_internal(
                     .find(|(role, _)| role == "user")
                     .map(|(_, c)| c)
             })
-        };
+        })
+        .await
+        .flatten();
         if let Some(last_content) = last_user_msg {
             user_text = last_content;
             is_switcher_replay = true;
@@ -168,16 +179,27 @@ pub async fn process_message_internal(
     // stored session value so the toggle is the single source of truth.
     // Resolved BEFORE `start.bas` and TOOL_EXEC so no path (script, tool chip,
     // workspace route) can reach the VM while the switch is off.
-    let agent_enabled = super::chat_controls::resolve_agent_enabled(
+    let mut agent_enabled = super::chat_controls::resolve_agent_enabled(
         state,
         session_id,
         user_id,
         parsed.get("agent_enabled").and_then(|v| v.as_bool()),
     )
     .await;
+    // An explicit subscription choice (`sub:claude-code`, …) in the model
+    // menu means the agent is ON for this turn regardless of the per-
+    // conversation switch — do not persist it; just override the resolved
+    // value so the workspace starts.
+    #[cfg(feature = "agent-vm")]
+    if !agent_enabled {
+        agent_enabled = super::chat_controls::subscription_implies_agent(
+            &model_preference,
+        );
+    }
     // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
     // path in this turn (native tools, provider resolution, workspace bridges).
     let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);
+    super::turn_watch::stage("agent switch resolved");
     let ui_automation_enabled = parsed
         .get("ui_automation")
         .and_then(|v| v.as_bool())
@@ -241,7 +263,6 @@ pub async fn process_message_internal(
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
-    let media_fail_reason = attachment.media_fail_reason;
 
     // Emit the completed/failed attachment activity.
     if let Some(act) = attach_activity {
@@ -296,16 +317,13 @@ pub async fn process_message_internal(
             super::activity::emit_activity(sink, &early_run, &fail).await;
         }
     }
-
-    // #1642 — the assistant finally has a writer. An explicit "remember …"
-    // turn is persisted to chat_preferences; the prompt already reads that
-    // table, so the next session starts knowing the preference.
-    if msg_type == 1 {
-        let memory_reply = crate::core::user_memory::capture_from_message(
-            &state.conn,
-            user_id,
-            Some(bot_uuid),
-            &user_text,
+    if let Some(reply) = crate::core::user_memory::forget_reply(&state.conn, user_id, &memory_turn) {
+        let resp = botlib::models::BotResponse::new(
+            bot_uuid.to_string(),
+            session_id.to_string(),
+            user_id.to_string(),
+            format!("<p>{reply}</p>"),
+            "web",
         );
         // #1790 — a forget turn must answer with the real outcome (including
         // "no stored memory matched") instead of letting the LLM claim it
@@ -329,6 +347,7 @@ pub async fn process_message_internal(
     }
 
     // #1644/#1645 — an explicit URL or command request becomes a consent card.
+    super::turn_watch::stage("consent check");
     if super::turn_hooks::propose_computer_action(identity, msg_type, &user_text).await {
         return Ok(());
     }
@@ -388,6 +407,7 @@ pub async fn process_message_internal(
     }
 
     // #1580 — hearing, start.bas and the opening frames.
+    super::turn_watch::stage("start gate");
     if super::start_gate::gate_turn(identity, rx, start_bas_ran, &user_text).await? {
         return Ok(());
     }

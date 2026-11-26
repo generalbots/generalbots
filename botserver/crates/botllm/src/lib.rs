@@ -7,6 +7,7 @@ pub mod kiro;
 pub mod llm_models;
 pub mod media_parts;
 pub mod rate_limiter;
+pub mod rate_limits;
 pub mod retry;
 pub mod vertex;
 pub mod cache;

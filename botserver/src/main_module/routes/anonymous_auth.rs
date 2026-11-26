@@ -230,13 +230,13 @@ pub(crate) fn resolve_token_user(token: &str) -> Option<(String, Vec<String>)> {
     if token.is_empty() {
         return None;
     }
-    let cache = botcoredirectory::auth_routes::SESSION_CACHE
-        .try_read()
-        .ok()?;
-    if let Some(user_data) = cache.get(token) {
-        return Some((user_data.user_id.clone(), user_data.roles.clone()));
+    // A cache busy with a write (another sign-in) must not turn a valid token
+    // into "no identity": fall through to the persisted sessions instead.
+    if let Ok(cache) = botcoredirectory::auth_routes::SESSION_CACHE.try_read() {
+        if let Some(user_data) = cache.get(token) {
+            return Some((user_data.user_id.clone(), user_data.roles.clone()));
+        }
     }
-    drop(cache);
 
     // In-memory cache miss — rehydrate from the persisted login_sessions
     // table (parity with the auth middleware lookup in main.rs) so tokens

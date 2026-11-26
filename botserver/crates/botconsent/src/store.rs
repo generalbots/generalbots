@@ -127,6 +127,26 @@ pub fn revoke(conn: &mut PgConnection, permission_id: Uuid, owner_user_id: Uuid)
     Ok(deleted > 0)
 }
 
+/// `LIKE` pattern of every virtual machine grant of one conversation: the
+/// gate stores them under `app_id = "vm:<agent>:<thread>"`. A `Uuid` has no
+/// `LIKE` wildcard characters, so the pattern matches that thread only.
+#[must_use]
+pub fn conversation_vm_app_pattern(thread_id: Uuid) -> String {
+    format!("vm:%:{thread_id}")
+}
+
+/// Deletes every virtual machine grant of a conversation that was deleted,
+/// for every agent. Returns how many rows went.
+pub fn revoke_conversation_vm_grants(conn: &mut PgConnection, thread_id: Uuid) -> Result<usize, String> {
+    use app_permissions::dsl;
+    diesel::delete(
+        app_permissions::dsl::app_permissions
+            .filter(dsl::app_id.like(conversation_vm_app_pattern(thread_id))),
+    )
+    .execute(conn)
+    .map_err(|e| format!("revoke conversation grants failed: {e}"))
+}
+
 /// Lists every stored grant (including expired/revoked rows) for a user.
 pub fn list_for_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Vec<AppPermissionRow>, String> {
     use app_permissions::dsl;
@@ -156,8 +176,8 @@ pub fn effective_grant(
 }
 
 /// Scope-aware lookup. A `run` grant only matches the same run; a `workspace`
-/// grant only matches the same thread; a legacy empty scope keeps the old
-/// always-until-expiry behavior.
+/// or `conversation` grant only matches the same thread; a legacy empty scope
+/// keeps the old always-until-expiry behavior.
 pub fn effective_grant_for(
     conn: &mut PgConnection,
     user_id: Uuid,
@@ -180,19 +200,21 @@ pub fn effective_grant_for(
     }))
 }
 
-/// Whether a stored scope covers this call.
+/// Whether a stored scope covers this call. A thread-bound kind without a
+/// stored thread covers nothing (it used to cover every thread), and an
+/// unknown kind covers nothing (it used to be treated as global).
 #[must_use]
 pub fn scope_allows(scope: &Value, context: &crate::enforce::ConsentContext) -> bool {
     let kind = scope.get("kind").and_then(Value::as_str).unwrap_or("");
+    let same_thread = || match (scope.get("thread_id").and_then(Value::as_str), context.thread_id.as_deref()) {
+        (Some(stored), Some(current)) => !stored.is_empty() && stored == current,
+        _ => false,
+    };
     match kind {
+        "" | "always" => true,
         "run" => {
-            let stored_thread = scope.get("thread_id").and_then(Value::as_str);
             let stored_run = scope.get("run_id").and_then(Value::as_str);
-            let thread_ok = match (stored_thread, context.thread_id.as_deref()) {
-                (Some(stored), Some(current)) => stored == current,
-                (None, _) => true,
-                (Some(_), None) => false,
-            };
+            let thread_ok = same_thread();
             let run_ok = match (stored_run, context.run_id.as_deref()) {
                 (Some(stored), Some(current)) => stored == current,
                 (None, _) => true,
@@ -200,12 +222,8 @@ pub fn scope_allows(scope: &Value, context: &crate::enforce::ConsentContext) -> 
             };
             thread_ok && run_ok
         }
-        "workspace" => match (scope.get("thread_id").and_then(Value::as_str), context.thread_id.as_deref()) {
-            (Some(stored), Some(current)) => stored == current,
-            (None, _) => true,
-            (Some(_), None) => false,
-        },
-        _ => true,
+        "workspace" | "conversation" => same_thread(),
+        _ => false,
     }
 }
 
@@ -327,12 +345,13 @@ mod tests {
     }
 
     #[test]
-    fn legacy_and_unknown_scopes_cover_every_call() {
-        let ctx = context(None, None);
+    fn legacy_scope_covers_every_call_and_unknown_kinds_cover_none() {
+        let ctx = context(Some("t"), Some("r"));
 
         assert!(scope_allows(&serde_json::json!({}), &ctx));
-        assert!(scope_allows(&serde_json::json!({ "kind": "unknown" }), &ctx));
-        assert!(scope_allows(&serde_json::json!({ "kind": "run" }), &ctx));
+        assert!(scope_allows(&serde_json::json!({ "kind": "always" }), &ctx));
+        assert!(!scope_allows(&serde_json::json!({ "kind": "unknown" }), &ctx));
+        assert!(!scope_allows(&serde_json::json!({ "kind": "once" }), &ctx));
     }
 
     #[test]
@@ -346,11 +365,23 @@ mod tests {
     }
 
     #[test]
-    fn run_scope_without_ids_matches_any_context() {
-        let scope = serde_json::json!({ "kind": "run" });
+    fn thread_bound_scopes_without_a_thread_match_nothing() {
+        for kind in ["run", "workspace", "conversation"] {
+            let scope = serde_json::json!({ "kind": kind });
+            assert!(!scope_allows(&scope, &context(None, None)), "{kind}");
+            assert!(!scope_allows(&scope, &context(Some("t"), Some("r"))), "{kind}");
+            let empty = serde_json::json!({ "kind": kind, "thread_id": "" });
+            assert!(!scope_allows(&empty, &context(Some(""), Some("r"))), "{kind}");
+        }
+    }
 
-        assert!(scope_allows(&scope, &context(None, None)));
-        assert!(scope_allows(&scope, &context(Some("t"), Some("r"))));
+    #[test]
+    fn conversation_scope_matches_only_the_same_thread() {
+        let scope = serde_json::json!({ "kind": "conversation", "thread_id": "t1" });
+
+        assert!(scope_allows(&scope, &context(Some("t1"), None)));
+        assert!(!scope_allows(&scope, &context(Some("t2"), None)));
+        assert!(!scope_allows(&scope, &context(None, None)));
     }
 
     #[test]
@@ -360,9 +391,5 @@ mod tests {
         assert!(scope_allows(&scope, &context(Some("t1"), None)));
         assert!(!scope_allows(&scope, &context(Some("t2"), None)));
         assert!(!scope_allows(&scope, &context(None, None)));
-        assert!(scope_allows(
-            &serde_json::json!({ "kind": "workspace" }),
-            &context(None, None)
-        ));
     }
 }

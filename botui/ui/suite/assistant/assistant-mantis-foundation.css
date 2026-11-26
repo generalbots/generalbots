@@ -1,0 +1,206 @@
+/* Mantis components shared by the assistant: labels, letters, segmented
+   control, buttons, toggle, status and the Appearance window. Token values
+   live in /suite/identity/tokens.css. */
+[data-identity="mantis"] .gb-label {
+    color: var(--id-text);
+    font: 600 var(--id-text-xs)/1.4 var(--id-font-mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+[data-identity="mantis"] .gb-label::before {
+    content: "//" / "";
+    margin-inline-end: .55em;
+    color: var(--id-muted);
+    font-family: var(--id-font-mark);
+    font-weight: 700;
+    letter-spacing: -.05em;
+}
+[data-identity="mantis"] .gb-letter {
+    display: inline-grid;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    place-items: center;
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    color: var(--id-accent-text);
+    font: 600 var(--id-text-xs)/1 var(--id-font-mono);
+}
+[data-identity="mantis"] .gb-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--id-fill);
+    border-radius: var(--id-radius-seg);
+}
+[data-identity="mantis"] .gb-seg > button {
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: var(--id-radius-control);
+    background: transparent;
+    color: var(--id-text);
+    font: inherit;
+    cursor: pointer;
+}
+[data-identity="mantis"] .gb-seg > button:is([aria-pressed="true"], [aria-selected="true"]) {
+    border-color: var(--id-line);
+    background: var(--id-surface-solid);
+    color: var(--id-ink);
+    box-shadow: var(--id-shadow-btn);
+}
+[data-identity="mantis"] .gb-seg > button:focus-visible {
+    box-shadow: var(--id-focus);
+}
+
+.gb-appearance {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    color: var(--id-ink);
+    font-size: var(--id-text-sm);
+}
+.gb-appearance fieldset {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    border: 0;
+}
+.gb-appearance legend { margin-bottom: 8px; }
+.gb-appearance .gb-seg { justify-self: start; flex-wrap: wrap; }
+.gb-appearance-swatches,
+.gb-appearance-patterns { display: flex; flex-wrap: wrap; gap: 6px; }
+.gb-appearance-swatches button,
+.gb-appearance-patterns button {
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
+    color: var(--id-ink);
+    font: inherit;
+    cursor: pointer;
+}
+.gb-appearance-swatches button {
+    width: 30px;
+    height: 30px;
+    background: var(--gb-swatch);
+}
+.gb-appearance-patterns button {
+    position: relative;
+    width: 65px;
+    height: 45px;
+    display: grid;
+    align-items: end;
+    overflow: hidden;
+    background: var(--id-paper);
+}
+.gb-appearance-patterns button span {
+    z-index: 1;
+    font-size: var(--id-text-xs);
+    background: var(--id-surface-solid);
+}
+.gb-appearance button[aria-pressed="true"] {
+    border-color: var(--id-accent-text);
+}
+.gb-appearance-swatches button[aria-pressed="true"]::after {
+    content: "✓" / "";
+    color: var(--id-on-accent);
+    font-weight: 700;
+}
+.gb-appearance .gb-set-range-row {
+    margin-top: 0;
+    grid-template-columns: minmax(70px, 1fr) minmax(45px, 2fr) auto auto;
+}
+.gb-appearance-hue {
+    display: grid;
+    grid-template-columns: minmax(70px, 1fr) minmax(45px, 2fr) auto;
+    align-items: center;
+    gap: 12px;
+}
+.gb-appearance output {
+    color: var(--id-text);
+    font: 600 var(--id-text-xs)/1.4 var(--id-font-mono);
+}
+
+[data-identity="mantis"] .gb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 10px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
+    background: var(--id-surface-solid);
+    color: var(--id-ink);
+    box-shadow: var(--id-shadow-btn);
+    font: 500 var(--id-text-sm)/1.25 var(--id-font);
+    cursor: pointer;
+}
+[data-identity="mantis"] .gb-btn:not(:disabled):hover { background: var(--id-fill); }
+[data-identity="mantis"] .gb-btn-pri,
+[data-identity="mantis"] .gb-btn-pri:not(:disabled):hover {
+    border-color: var(--id-ink);
+    background: var(--id-ink);
+    color: var(--id-surface-solid);
+    box-shadow: var(--id-shadow-btn-pri);
+}
+[data-identity="mantis"] .gb-btn-acc,
+[data-identity="mantis"] .gb-btn-acc:not(:disabled):hover {
+    border-color: var(--id-accent);
+    background: var(--id-accent);
+    color: var(--id-on-accent);
+}
+[data-identity="mantis"] .gb-btn-danger { color: var(--id-danger-text); }
+[data-identity="mantis"] .gb-btn:focus-visible { box-shadow: var(--id-focus); }
+[data-identity="mantis"] .gb-btn:disabled { opacity: .55; cursor: default; }
+
+[data-identity="mantis"] button.gb-toggle {
+    display: inline-flex;
+    align-items: center;
+    width: 32px;
+    height: 16px;
+    padding: 2px;
+    border: 1px solid var(--id-gray-400);
+    border-radius: var(--id-radius-sm);
+    background: var(--id-fill);
+    cursor: pointer;
+}
+[data-identity="mantis"] button.gb-toggle::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--id-muted);
+}
+[data-identity="mantis"] button.gb-toggle[aria-checked="true"] {
+    justify-content: end;
+    border-color: var(--id-accent-text);
+    background: var(--id-accent);
+}
+[data-identity="mantis"] button.gb-toggle[aria-checked="true"]::before { background: var(--id-on-accent); }
+
+[data-identity="mantis"] .gb-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--id-text);
+    font: 600 var(--id-text-xs)/1.3 var(--id-font-mono);
+    text-transform: uppercase;
+}
+[data-identity="mantis"] .gb-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 1px;
+    background: currentColor;
+}
+[data-identity="mantis"] .gb-status[data-state="success"] { color: var(--id-success-text); }
+[data-identity="mantis"] .gb-status[data-state="warning"] { color: var(--id-warn-text); }
+[data-identity="mantis"] .gb-status[data-state="danger"] { color: var(--id-danger-text); }
+[data-identity="mantis"] .gb-status[data-state="running"] { color: var(--id-accent-text); }
+@media (prefers-reduced-motion: no-preference) {
+    [data-identity="mantis"] .gb-status[data-state="running"]::before {
+        animation: gb-mantis-status-pulse 1.5s ease-in-out infinite alternate;
+    }
+}
+@keyframes gb-mantis-status-pulse { to { opacity: .45; } }

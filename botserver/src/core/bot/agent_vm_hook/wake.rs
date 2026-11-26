@@ -7,6 +7,7 @@
 use super::*;
 
 pub(crate) async fn exec_with_wake_result(
+    ticket: crate::core::bot::pipeline::vm_consent::VmConsent,
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
     bot_uuid: uuid::Uuid,
@@ -15,7 +16,10 @@ pub(crate) async fn exec_with_wake_result(
     timeout_ms: u64,
     packages: &[String],
 ) -> Result<Option<(bool, String, String)>, WorkspaceError> {
-    match exec_in_user_vm_result(user_id, session_id, language, code, timeout_ms, packages).await {
+    if !ticket.covers(session_id) {
+        return Err(not_allowed_here());
+    }
+    match exec_in_user_vm_result(&ticket, user_id, session_id, language, code, timeout_ms, packages).await {
         Ok(Some(outcome)) => return Ok(Some(outcome)),
         Ok(None) => {}
         Err((status, error)) => {
@@ -54,6 +58,7 @@ pub(crate) async fn exec_with_wake_result(
 /// would have produced no events anyway, and the wake path is the one that
 /// runs the program.
 pub(crate) async fn exec_with_wake_events(
+    ticket: crate::core::bot::pipeline::vm_consent::VmConsent,
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
     bot_uuid: uuid::Uuid,
@@ -63,6 +68,12 @@ pub(crate) async fn exec_with_wake_events(
     packages: &[String],
     events: tokio::sync::mpsc::UnboundedSender<botagent::stream::ExecEvent>,
 ) -> Result<Option<(bool, String, String)>, WorkspaceError> {
+    if !ticket.covers(session_id) {
+        return Err(not_allowed_here());
+    }
+    if rig_fake::enabled() {
+        return Ok(Some(rig_fake::run(language, code)));
+    }
     let row = ensure_agent_vm_result(session_id, user_id, bot_uuid).await?;
     let Some(service) = SERVICE.get() else {
         return Err((

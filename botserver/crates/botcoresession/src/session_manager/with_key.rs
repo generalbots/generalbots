@@ -331,6 +331,31 @@ impl SessionManager {
         Ok(())
     }
 
+    /// Records the engine type and provider on the latest assistant message so
+    /// the usage summary can group costs by subscription/api_key/local/free.
+    pub fn record_message_engine(
+        &mut self,
+        sess_id: Uuid,
+        engine: &str,
+        provider: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        if engine.trim().is_empty() {
+            return Ok(());
+        }
+        let mut conn = self.pool.get()?;
+        diesel::sql_query(
+            "UPDATE message_history SET llm_engine = $2, llm_provider = $3 \
+             WHERE id = (SELECT id FROM message_history \
+                         WHERE session_id = $1 AND role = 2 \
+                         ORDER BY message_index DESC LIMIT 1)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(sess_id)
+        .bind::<diesel::sql_types::Text, _>(engine.trim())
+        .bind::<diesel::sql_types::Text, _>(provider.trim())
+        .execute(&mut conn)?;
+        Ok(())
+    }
+
     pub fn update_session_context(
         &mut self,
         session_id: &Uuid,

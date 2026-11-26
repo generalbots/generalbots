@@ -1,8 +1,9 @@
 //! `POST /api/agent/drive/save` — publish conversation output to Drive (#1584).
 //!
 //! The chat folder card calls this when the user clicks "Save to Drive". The
-//! native tool does the same from the model side; both share
-//! [`crate::core::bot::drive_bridge`].
+//! native tool does the same from the model side; both write into the
+//! person's own Drive area, `Conversas/<title>-<id8>/`
+//! ([`crate::core::bot::person_drive`]), the one copy of the file.
 
 use axum::extract::{Json, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -13,7 +14,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::core::bot::{agent_vm_hook, drive_bridge};
+use crate::core::bot::{agent_vm_hook, drive_bridge, person_drive};
 
 #[derive(Debug, Deserialize)]
 pub struct ShareOutputRequest {
@@ -149,7 +150,7 @@ pub async fn save_output(
             )
         })?;
     let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
-    let bot_uuid = session_bot(&locale, &state, req.conversation_id, user_id)?;
+    session_bot(&locale, &state, req.conversation_id, user_id)?;
     let available = agent_vm_hook::list_session_folder(user_id, req.conversation_id, "output")
         .await
         .ok_or_else(|| {
@@ -191,7 +192,7 @@ pub async fn save_output(
         let path = format!("output/{name}");
         match agent_vm_hook::read_session_file(user_id, req.conversation_id, &path).await {
             Ok(bytes) => {
-                match drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes).await {
+                match person_drive::save_conversation_file(&state, user_id, &folder, &name, bytes).await {
                     Some(drive_path) => saved.push(json!({ "name": name, "path": drive_path })),
                     None => failed.push(name),
                 }
@@ -241,7 +242,7 @@ pub async fn share_output(
             )
         })?;
     let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
-    let bot_uuid = session_bot(&locale, &state, req.conversation_id, user_id)?;
+    session_bot(&locale, &state, req.conversation_id, user_id)?;
     let name = safe_name(&req.file);
     let bytes =
         agent_vm_hook::read_session_file(user_id, req.conversation_id, &format!("output/{name}"))
@@ -255,7 +256,7 @@ pub async fn share_output(
             })?;
 
     let folder = drive_bridge::conversation_title(&state, req.conversation_id).await;
-    let stored = drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes)
+    let stored = person_drive::save_conversation_file(&state, user_id, &folder, &name, bytes)
         .await
         .ok_or_else(|| {
             err(
@@ -264,13 +265,9 @@ pub async fn share_output(
                 "error-agent-drive-save-one-failed",
             )
         })?;
-    let (bucket, key) = stored.split_once('/').ok_or_else(|| {
-        err(
-            &locale,
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "error-agent-drive-bad-path",
-        )
-    })?;
+    // The file is in the person's own Drive area, so the link is too.
+    let bucket = person_drive::bucket(user_id);
+    let key = person_drive::key(user_id, &stored);
 
     use diesel::sql_types::Text;
     let share_token = Uuid::new_v4().simple().to_string();
@@ -287,10 +284,10 @@ pub async fn share_output(
          VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind::<Text, _>(user_id.to_string())
-    .bind::<Text, _>(bucket)
+    .bind::<Text, _>(&bucket)
     .bind::<Text, _>(&name)
-    .bind::<Text, _>(key)
-    .bind::<Text, _>("bot")
+    .bind::<Text, _>(&key)
+    .bind::<Text, _>("user")
     .bind::<Text, _>(&share_token)
     .bind::<diesel::sql_types::Timestamptz, _>(expires)
     .execute(&mut conn)

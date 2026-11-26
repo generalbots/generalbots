@@ -113,10 +113,10 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
                 "if not exist \"{{DATA_PATH}}\\pgdata\\PG_VERSION\" \"{{BIN_PATH}}\\bin\\initdb.exe\" --encoding=UTF8 --no-locale -D \"{{DATA_PATH}}\\pgdata\" -U gbuser --auth=trust".to_string(),
                 "echo data_directory = '{{DATA_PATH}}\\pgdata' > \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo port = 5432 >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
-                "echo listen_addresses = '*' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
+                "echo listen_addresses = '127.0.0.1,::1' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo log_directory = '{{LOGS_PATH}}' >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
                 "echo logging_collector = on >> \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),
-                "echo host all all all trust > \"{{CONF_PATH}}\\pg_hba.conf\"".to_string(),
+                "echo host all all 127.0.0.1/32 scram-sha-256 > \"{{CONF_PATH}}\\pg_hba.conf\"".to_string(),
                 "type nul > \"{{CONF_PATH}}\\pg_ident.conf\"".to_string(),
             ],
             env_vars: HashMap::new(),
@@ -124,7 +124,8 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
             exec_cmd: "if [ $(id -u) -eq 0 ]; then id postgres 2>/dev/null || useradd -r -s /bin/false postgres; chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null; su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30\"; else cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30; fi > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
             check_cmd: "if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres\"; else {{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres; fi >/dev/null 2>&1".to_string(),
             exec_cmd_windows: Some("start /B {{BIN_PATH}}\\bin\\pg_ctl -D {{DATA_PATH}}\\pgdata -l {{LOGS_PATH}}\\postgresql.log start -w -t 30 > {{LOGS_PATH}}\\stdout.log 2>&1".to_string()),
-            check_cmd_windows: Some("set \"PGCONNECT_TIMEOUT=5\" && \"{{BIN_PATH}}\\bin\\psql.exe\" -w -h localhost -p 5432 -U gbuser -d botserver -tAc \"SELECT 1\" >NUL 2>&1".to_string()),
+            // Logins need the Vault password; readiness does not.
+            check_cmd_windows: Some("\"{{BIN_PATH}}\\bin\\pg_isready.exe\" -h localhost -p 5432 -t 5 >NUL 2>&1".to_string()),
             container: None,
         },
     );

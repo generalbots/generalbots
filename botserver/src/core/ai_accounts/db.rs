@@ -188,7 +188,7 @@ pub fn choose_for_request(
     Ok(choose_llm(None, bot, global))
 }
 
-fn provider_label(provider: &str) -> &'static str {
+pub fn provider_label(provider: &str) -> &'static str {
     match provider {
         CLAUDE_CODE => "Claude Code",
         CHATGPT_PLAN => "ChatGPT plan",

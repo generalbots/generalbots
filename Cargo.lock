@@ -1206,6 +1206,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "webkit2gtk",
+ "windows-sys 0.61.2",
  "zstd",
 ]
 
@@ -2021,9 +2022,11 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tar",
+ "tempfile",
  "tokio",
  "toml 0.8.2",
  "uuid",
+ "windows-sys 0.61.2",
  "zip",
 ]
 
@@ -3414,6 +3417,7 @@ dependencies = [
  "hex",
  "hmac 0.12.1",
  "icalendar",
+ "image",
  "imap",
  "jsonwebtoken",
  "lettre",
@@ -11407,6 +11411,22 @@ dependencies = [
  "thiserror 2.0.21",
  "time",
  "url",
+ "zbus",
+]
+
+[[package]]
+name = "tauri-plugin-single-instance"
+version = "2.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "726b6da0dd5bd1344f84f4108a622c07d01923baacb5c803a605189672c5352f"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "windows-sys 0.61.2",
  "zbus",
 ]
 

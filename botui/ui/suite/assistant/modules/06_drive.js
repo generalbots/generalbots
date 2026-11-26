@@ -45,8 +45,9 @@
         if (!b || b <= 0) return "";
         if (b < 1024) return b + " B";
         if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
-        if (b < 1073741824) return (b / 1048576).toFixed(1) + " MB";
-        return (b / 1073741824).toFixed(1) + " GB";
+        var sep = (A.locale || document.documentElement.lang || "").toLowerCase().indexOf("pt") === 0 ? "," : ".";
+        if (b < 1073741824) return (b / 1048576).toFixed(1).replace(".", sep) + " MB";
+        return (b / 1073741824).toFixed(1).replace(".", sep) + " GB";
     };
 
     D.fmtDate = function (iso) {
@@ -67,13 +68,6 @@
     D.fileExt = function (name) {
         if (!name || name.indexOf(".") === -1) return "";
         return name.split(".").pop().toLowerCase();
-    };
-
-    D.fileIcon = function (name, isDir) {
-        if (isDir) return I("folder", 18);
-        var ext = D.fileExt(name);
-        if ("jpg jpeg png gif webp bmp svg ico avif".split(" ").indexOf(ext) >= 0) return I("image", 18);
-        return I("file", 18);
     };
 
     /* ---- JSON request via A.apiFetch ---- */
@@ -149,9 +143,6 @@
         });
     };
 
-    /* ================================================================
-       States
-       ================================================================ */
     D.showLoading = function () {
         var list = document.getElementById("gbDrvList");
         if (!list) return;
@@ -186,7 +177,11 @@
             '<button class="gb-drv-btn" id="gbDrvRetry">' + esc(A.t("assistant.retry", "Tentar novamente")) + '</button>' +
             '</div>';
         var retry = document.getElementById("gbDrvRetry");
-        if (retry) retry.addEventListener("click", function () { D.refreshFiles(); });
+        if (retry) retry.addEventListener("click", function () {
+            if (D.inboxMode) D.loadInboxFiles();
+            else if (D.searching) D.searchFiles(document.getElementById("gbDrvSearchInput").value);
+            else D.refreshFiles();
+        });
     };
 
     /* ================================================================
@@ -203,6 +198,7 @@
     };
 
     D.refreshFiles = function () {
+        var request = D.listRequest = (D.listRequest || 0) + 1;
         D.showLoading();
         var params = new URLSearchParams();
         params.set("scope", D.scope);
@@ -211,10 +207,12 @@
 
         D.req("/list?" + params.toString())
             .then(function (files) {
+                if (request !== D.listRequest) return;
                 D.files = D.sortFiles(files || []);
                 D.renderFileList();
             })
             .catch(function (e) {
+                if (request !== D.listRequest) return;
                 console.error("[drive] list failed:", e);
                 D.showError(e.message);
             });
@@ -225,6 +223,10 @@
        ================================================================ */
     A.switchView = function (view) {
         A.currentView = view;
+        document.body.dataset.screen = view;
+        document.getElementById("gbMachineView").hidden = view !== "machine";
+        if (view === "machine") A.renderMachine();
+        A.updateBreadcrumb();
         var chatView = document.getElementById("gbChatView");
         var driveView = document.getElementById("gbDriveView");
         var settingsView = document.getElementById("gbSettingsView");
@@ -237,6 +239,7 @@
         for (var i = 0; i < navItems.length; i++) {
             var v = navItems[i].getAttribute("data-view");
             navItems[i].classList.toggle("active", v === view);
+            navItems[i].setAttribute("aria-pressed", String(v === view));
         }
 
         if (view === "drive" && !D.initialised) loadDrive();
@@ -250,20 +253,10 @@
         var container = document.getElementById("gbDriveContainer");
         if (!container) return;
         D.renderShell(container);
-        D.showLoading();
-
-        D.req("/list?scope=user").then(function (files) {
-            D.files = D.sortFiles(files || []);
-            D.initialised = true;
-            D.renderFileList();
-        }).catch(function (e) {
-            console.error("[drive] init failed:", e);
-            D.showError(e.message || String(e));
-        });
+        D.initialised = true;
+        D.refreshFiles();
     }
 
-    /* renderShell lives in 06b_drive_shell.js (D.renderShell) */
-    /* loadInboxFiles lives in 06a_drive_actions.js */
     D.inboxMode = false;
 
     /* ================================================================
@@ -272,10 +265,14 @@
     D.renderBreadcrumb = function () {
         var el = document.getElementById("gbDrvBreadcrumb");
         if (!el) return;
-        var parts = D.path ? D.path.split("/").filter(Boolean) : [];
+        if (D.inboxMode) {
+            el.textContent = A.t("drive.chat-attachments", "Conversation attachments");
+            return;
+        }
+        var prefix = D.pathPrefix ? D.pathPrefix(D.path) : "", parts = (D.path || "").slice(prefix.length).split("/").filter(Boolean);
         var html = '<button class="gb-drv-crumb' + (parts.length === 0 ? " gb-drv-crumb-current" : "") +
             '" data-path="">' + esc(A.t("drive.root", "Drive")) + '</button>';
-        var running = "";
+        var running = prefix.replace(/\/$/, "");
         for (var i = 0; i < parts.length; i++) {
             running += (running ? "/" : "") + parts[i];
             var isCurrent = i === parts.length - 1;
@@ -284,11 +281,11 @@
                 '" data-path="' + esc(running) + '">' + esc(parts[i]) + '</button>';
         }
         el.innerHTML = html;
-        el.addEventListener("click", function (e) {
+        el.onclick = function (e) {
             var btn = e.target.closest("[data-path]");
             if (!btn || btn.classList.contains("gb-drv-crumb-current")) return;
             D.navigateTo(btn.getAttribute("data-path"));
-        });
+        };
     };
 
     /* ================================================================
@@ -311,6 +308,7 @@
         var container = document.getElementById("gbDriveContainer");
         if (container) {
             container.classList.toggle("gb-drv-no-date", !hasAnyDate);
+            container.classList.toggle("gb-drv-empty", D.files.length === 0);
         }
 
         /* Update column headers */
@@ -320,8 +318,7 @@
                 var c = btns[j].getAttribute("data-col");
                 var act = c === D.sort.col;
                 btns[j].classList.toggle("gb-drv-col-active", act);
-                var arrow = btns[j].querySelector(".gb-drv-sort-arrow");
-                if (arrow) arrow.textContent = act ? (D.sort.asc ? "▲" : "▼") : "";
+                btns[j].classList.toggle("gb-drv-sort-desc", act && !D.sort.asc);
             }
         }
 
@@ -337,13 +334,14 @@
             html += '<div class="gb-drv-row' + (selected ? " gb-drv-selected" : "") +
                 '" data-path="' + esc(path) + '" data-name="' + esc(name) +
                 '" data-is-dir="' + isDir + '" tabindex="0">' +
-                '<div class="gb-drv-name-cell">' + D.fileIcon(name, isDir) +
+                '<div class="gb-drv-name-cell">' + D.fileBadge(name, isDir) +
                 '<span class="gb-drv-name-text">' + esc(name) + '</span></div>' +
-                '<div class="gb-drv-size-cell">' + (isDir ? "" : D.fmtBytes(f.size)) + '</div>' +
+                '<div class="gb-drv-size-cell">' + (isDir ? "—" : D.fmtBytes(f.size)) + '</div>' +
                 (hasAnyDate ? '<div class="gb-drv-date-cell">' + D.fmtDate(f.modified) + '</div>' : '') +
                 '<div class="gb-drv-action-cell">' +
-                '<button class="gb-drv-row-menu" aria-label="Menu" title="Menu">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>' +
+                '<button type="button" class="gb-drv-row-menu" aria-haspopup="true" aria-expanded="false" aria-label="' +
+                esc(A.t("drive.actions", "File actions")) + '">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>' +
                 '</button></div></div>';
         }
         list.innerHTML = html;
@@ -358,29 +356,25 @@
     };
 
     D.bindOneRow = function (row) {
-        row.addEventListener("click", function (e) {
-            if (e.target.closest(".gb-drv-row-menu")) return;
+        row.onclick = function (e) {
+            if (e.target.closest("button, input")) return;
             D.selected = row.getAttribute("data-path");
             D.highlightRow(D.selected);
-        });
-        row.addEventListener("dblclick", function () {
+        };
+        function openRow() {
             var path = row.getAttribute("data-path");
             var isDir = row.getAttribute("data-is-dir") === "true";
-            if (isDir) D.navigateTo(D.path ? D.path + "/" + row.getAttribute("data-name") : row.getAttribute("data-name"));
+            if (isDir) D.navigateTo(path);
             else D.previewFile(path, row.getAttribute("data-name"));
-        });
-        row.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") {
-                var path = row.getAttribute("data-path");
-                var isDir = row.getAttribute("data-is-dir") === "true";
-                if (isDir) D.navigateTo(D.path ? D.path + "/" + row.getAttribute("data-name") : row.getAttribute("data-name"));
-                else D.previewFile(path, row.getAttribute("data-name"));
-            }
-        });
+        }
+        row.ondblclick = function (e) { if (!e.target.closest("button, input")) openRow(); };
+        row.onkeydown = function (e) { if (e.target === row && e.key === "Enter") openRow(); };
         var menuBtn = row.querySelector(".gb-drv-row-menu");
         if (menuBtn) {
             menuBtn.addEventListener("click", function (e) {
                 e.stopPropagation();
+                D.selected = row.getAttribute("data-path");
+                D.highlightRow(D.selected);
                 var ctxOpts = {};
                 if (D.inboxMode) {
                     ctxOpts.noDelete = true;
@@ -400,8 +394,15 @@
     };
 
     /* Context menu close (shared with 06a) */
-    D.closeCtx = function () {
-        if (D.ctxEl) { D.ctxEl.remove(); D.ctxEl = null; }
+    D.closeCtx = function (restoreFocus) {
+        if (!D.ctxEl) return;
+        if (D.ctxTrigger) {
+            D.ctxTrigger.setAttribute("aria-expanded", "false");
+            if (restoreFocus) D.ctxTrigger.focus();
+        }
+        D.ctxEl.remove();
+        D.ctxEl = null;
+        D.ctxTrigger = null;
     };
 
     /* ================================================================

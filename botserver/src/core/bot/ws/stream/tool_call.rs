@@ -40,9 +40,8 @@ pub(super) async fn maybe_execute(
         .and_then(|v| v.as_str())
         .unwrap_or("");
     log::info!(
-        "LLM tool_call: executing tool '{}' with args: {}",
-        raw_tool_name,
-        tool_args
+        "LLM tool_call: executing tool '{raw_tool_name}' {}",
+        crate::core::bot::pipeline::tool_exec::args_summary(&raw_tool_name, tool_args)
     );
     if raw_tool_name.is_empty() {
         return false;

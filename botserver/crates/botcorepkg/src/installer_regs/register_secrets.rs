@@ -11,14 +11,15 @@ pub fn register_vault(components: &mut HashMap<String, ComponentConfig>) {
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: get_component_url("vault"),
-            binary_name: Some("vault".to_string()),
+            binary_name: Some(crate::secrets_engine::Engine::OpenBao.binary_name().to_string()),
             pre_install_cmds_linux: vec![
                 "mkdir -p {{DATA_PATH}}/vault".to_string(),
                 "mkdir -p {{CONF_PATH}}/vault".to_string(),
                 "mkdir -p {{LOGS_PATH}}".to_string(),
                 r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
-storage "file" {
+storage "raft" {
   path = "{{DATA_PATH}}/vault"
+  node_id = "gbo-local"
 }
 
 listener "tcp" {
@@ -60,8 +61,9 @@ EOF"#.to_string(),
                 "mkdir -p {{CONF_PATH}}/vault".to_string(),
                 "mkdir -p {{LOGS_PATH}}".to_string(),
                 r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
-storage "file" {
+storage "raft" {
   path = "{{DATA_PATH}}/vault"
+  node_id = "gbo-local"
 }
 
 listener "tcp" {
@@ -83,12 +85,14 @@ EOF"#.to_string(),
                 "if not exist {{DATA_PATH}}\\vault mkdir {{DATA_PATH}}\\vault".to_string(),
                 "if not exist {{CONF_PATH}}\\vault mkdir {{CONF_PATH}}\\vault".to_string(),
                 "if not exist {{LOGS_PATH}}\\vault mkdir {{LOGS_PATH}}\\vault".to_string(),
-                "echo storage \"file\" { > {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo storage \"raft\" { > {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo   path = \"{{DATA_PATH_FWD}}\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   node_id = \"gbo-local\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo } >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo. >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo listener \"tcp\" { >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
-                "echo   address = \"0.0.0.0:8200\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   address = \"127.0.0.1:8200\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   cluster_address = \"127.0.0.1:8201\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo   tls_disable = true >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo } >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
                 "echo. >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
@@ -114,11 +118,11 @@ EOF"#.to_string(),
                 env
             },
             data_download_list: Vec::new(),
-            exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
+            exec_cmd: "nohup {{BIN_PATH}}/{{SECRETS_CLI}} server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                 .to_string(),
             check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; fi"
                 .to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\vault.exe server -config={{CONF_PATH}}\\vault\\config.hcl > {{LOGS_PATH}}\\vault.log 2>&1".to_string()),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\{{SECRETS_CLI}}.exe server -config={{CONF_PATH}}\\vault\\config.hcl > {{LOGS_PATH}}\\vault.log 2>&1".to_string()),
             // #1960 — the Windows listener is plain HTTP (tls_disable = true).
             // Probe the literal address instead of `%VAULT_ADDR%`: the check can
             // run before the component's env block is applied, and a stale or

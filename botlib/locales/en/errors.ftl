@@ -329,3 +329,43 @@ error-service-price-required = This service has no price; provide a value.
 # Service-tax value validation (#2094)
 error-invalid-value = The supplied value could not be parsed.
 error-value-required = A value is required for this service.
+
+# Language model errors shown in the chat
+error-model-unreachable = Could not reach the language model. Check the connection and try again.
+error-model-auth = The language model rejected the credentials. Check the key in Settings.
+error-model-rate-limited = The language model is limiting requests right now. Wait a moment and try again.
+error-model-error = The language model returned an error. Try again.
+error-model-timeout = The language model took too long to answer. Try again.
+error-model-context = The conversation is longer than the model can read at once. Start a new conversation or shorten the message.
+
+# Agent workspace start before a subscription turn
+workspace-step-starting-vm = Starting the virtual machine
+workspace-step-starting-vm-detail = The first start can take a few minutes.
+error-workspace-start-timeout = The virtual machine did not start in time. It keeps starting in the background; try again in a few minutes.
+error-workspace-start-failed = The virtual machine could not be started. Try again; if it keeps failing, check the virtual machine in Settings.
+error-workspace-service-restarting = Restarting the Virtual Machine service…
+error-workspace-service-failed = The Virtual Machine service did not respond. Restart the computer or WSL.
+
+# Chat attachments that could not be kept in Drive
+error-attachment-storage-full = The disk of this computer is full: the file was not saved. Free some space and attach it again.
+error-attachment-not-stored = The file could not be saved in Drive.
+error-attachment-too-large = The file exceeds the 50 MB limit.
+error-attachment-not-read = The file could not be stored or read.
+
+# Chat answers given without the model
+error-memory-not-updated = I could not update your stored memory. Try again.
+memory-forgot-none = Nothing in your memory matched that, so nothing was removed.
+memory-forgot-one = Done: I removed 1 item from your memory.
+memory-forgot-many = Done: I removed { $count } items from your memory.
+error-command-failed = I could not complete that action. Try again, or ask in other words.
+error-tool-invalid-name = Invalid tool name: { $name }
+error-tool-not-available = The tool “{ $name }” is not available here.
+
+# Drive listing in the chat (the model reads its own English copy)
+chat-drive-unavailable = Drive is not available for this workspace.
+chat-drive-list-failed = Could not list the files in your Drive.
+chat-drive-list-empty = No files found in your Drive.
+chat-drive-list-empty-query = No files matching “{ $query }” were found in your Drive.
+chat-drive-list-heading = Files in your Drive (newest first, up to { $limit }):
+chat-drive-list-heading-query = Files in your Drive matching “{ $query }” (newest first, up to { $limit }):
+chat-drive-open = Open in Drive

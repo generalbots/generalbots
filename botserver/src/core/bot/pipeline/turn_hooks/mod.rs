@@ -15,6 +15,7 @@ mod doc_open;
 mod informational;
 mod media;
 mod text_recognition;
+pub(crate) mod vision_image;
 
 pub(super) use attachments::ingest_attachment;
 pub(super) use canvas_flowchart::maybe_create_purchase_flowchart;

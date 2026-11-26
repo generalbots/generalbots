@@ -61,19 +61,30 @@
     });
   }
 
+  /* A uniform random index below `limit` (rejection sampling, no modulo bias). */
+  function randomBelow(limit) {
+    var buf = new Uint8Array(1);
+    var ceiling = 256 - (256 % limit);
+    for (;;) {
+      if (window.crypto && window.crypto.getRandomValues) { window.crypto.getRandomValues(buf); }
+      else { buf[0] = Math.floor(Math.random() * 256); }
+      if (buf[0] < ceiling) { return buf[0] % limit; }
+    }
+  }
+
+  /* 18 characters with at least one upper case letter, lower case letter,
+     digit and symbol: the directory's default password rules refuse a
+     password that lacks one of them. */
   function generatePassword() {
-    var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
-    var bytes = new Uint8Array(18);
-    if (window.crypto && window.crypto.getRandomValues) {
-      window.crypto.getRandomValues(bytes);
-    } else {
-      for (var i = 0; i < bytes.length; i += 1) { bytes[i] = Math.floor(Math.random() * 256); }
+    var classes = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!@#$%&*"];
+    var alphabet = classes.join("");
+    var chars = classes.map(function (set) { return set.charAt(randomBelow(set.length)); });
+    while (chars.length < 18) { chars.push(alphabet.charAt(randomBelow(alphabet.length))); }
+    for (var i = chars.length - 1; i > 0; i -= 1) {
+      var j = randomBelow(i + 1);
+      var tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
     }
-    var out = "";
-    for (var j = 0; j < bytes.length; j += 1) {
-      out += alphabet.charAt(bytes[j] % alphabet.length);
-    }
-    return out;
+    return chars.join("");
   }
 
   function ensureAdmin() {

@@ -92,11 +92,12 @@
 .gb-gar-sub { margin: 0 0 var(--id-space-3); }
 .gb-gar-compare { overflow-x: auto; margin-bottom: var(--id-space-4); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-card); background: var(--id-surface-solid); }
-.gb-gar-grid { display: grid; grid-template-columns: minmax(110px, .9fr) repeat(4, minmax(130px, 1fr)); min-width: 700px; }
+/* The columns share the box; the table scrolls inside its own box only below 480 px. */
+.gb-gar-grid { display: grid; grid-template-columns: minmax(min-content, .8fr) repeat(4, minmax(0, 1fr)); min-width: 480px; }
 .gb-gar-corner { border-bottom: 1px solid var(--id-line); }
 /* Column headers are cards you press: raised, with an action line at the foot. */
 .gb-set-mode-card.gb-gar-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;
-    margin: var(--id-space-3) var(--id-space-2); padding: var(--id-space-3) var(--id-space-3) var(--id-space-2);
+    margin: var(--id-space-3) var(--id-space-1); padding: var(--id-space-3) var(--id-space-2) var(--id-space-2); overflow-wrap: break-word;
     border: 1px solid var(--id-line); border-radius: var(--id-radius-card); background: var(--id-surface-solid);
     box-shadow: var(--id-shadow-card); color: var(--id-ink); text-align: left; cursor: pointer;
     transition: border-color var(--id-dur-fast) var(--id-ease), box-shadow var(--id-dur-fast) var(--id-ease), transform var(--id-dur-fast) var(--id-ease); }
@@ -105,7 +106,7 @@
 .gb-set-mode-card.gb-gar-head:disabled { cursor: not-allowed; opacity: .55; }
 .gb-set-mode-card.gb-gar-head.gb-set-mode-active { background: var(--id-surface-solid); color: var(--id-ink); }
 .gb-set-mode-card.gb-gar-head.gb-set-mode-selected { border: 2px solid var(--id-accent); background: var(--id-accent-soft);
-    padding: calc(var(--id-space-3) - 1px) calc(var(--id-space-3) - 1px) calc(var(--id-space-2) - 1px); }
+    padding: calc(var(--id-space-3) - 1px) calc(var(--id-space-2) - 1px) calc(var(--id-space-2) - 1px); }
 .gb-set-mode-card.gb-gar-head:focus-visible { outline: 2px solid var(--id-focus); outline-offset: 2px; }
 .gb-gar-head .gb-set-mode-icon { color: var(--id-accent); }
 .gb-gar-head .gb-set-mode-label { font-weight: 600; }
@@ -115,10 +116,11 @@
     font-size: var(--id-text-sm); font-weight: 600; color: var(--id-accent-text); }
 .gb-gar-head:hover .gb-gar-head-cta svg { transform: translateX(2px); }
 .gb-gar-head-cta svg { transition: transform var(--id-dur-fast) var(--id-ease); }
-.gb-gar-label { padding: 10px var(--id-space-3); font-size: var(--id-text-sm); font-weight: 500; color: var(--id-ink);
+.gb-gar-label { padding: 10px var(--id-space-2) 10px var(--id-space-3); font-size: var(--id-text-sm); font-weight: 500; color: var(--id-ink);
     border-bottom: 1px solid var(--id-line-soft); }
-.gb-gar-cell { display: flex; gap: 8px; align-items: flex-start; padding: 10px var(--id-space-3); font-size: var(--id-text-sm);
+.gb-gar-cell { display: flex; gap: 6px; align-items: flex-start; min-width: 0; overflow-wrap: break-word; padding: 10px var(--id-space-2); font-size: var(--id-text-sm);
     color: var(--id-text); border-left: 1px solid var(--id-line-soft); border-bottom: 1px solid var(--id-line-soft); }
+.gb-gar-cell > span:last-child { min-width: 0; }
 .gb-gar-note { display: block; margin-top: 3px; font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-gar-grid[data-view="local"] [data-col="local"],
 .gb-gar-grid[data-view="own_key"] [data-col="own_key"],

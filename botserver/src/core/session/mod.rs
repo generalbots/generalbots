@@ -120,6 +120,10 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
         content: &str,
         message_type: i32,
     ) -> Result<(), String> {
+        // The turn's record (pages read, commands run) rides with its answer.
+        let recorded =
+            crate::core::bot::pipeline::turn_record::attach(session_id, role, content);
+        let content = recorded.as_deref().unwrap_or(content);
         self.0
             .save_message(session_id, user_id, role, content, message_type)
             .map_err(|e| e.to_string())
@@ -127,6 +131,11 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
     fn record_message_model(&mut self, session_id: uuid::Uuid, model: &str) -> Result<(), String> {
         self.0
             .record_message_model(session_id, model)
+            .map_err(|e| e.to_string())
+    }
+    fn record_message_engine(&mut self, session_id: uuid::Uuid, engine: &str, provider: &str) -> Result<(), String> {
+        self.0
+            .record_message_engine(session_id, engine, provider)
             .map_err(|e| e.to_string())
     }
     fn get_conversation_history(

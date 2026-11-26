@@ -119,3 +119,17 @@ fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
     assert!(message.chars().count() < 500, "message stays readable");
     assert!(message.ends_with("Start a new message to retry."));
 }
+
+#[test]
+fn a_background_failure_reads_in_portuguese_without_the_raw_reason() {
+    let timeout = background_failure_for_person(
+        "the run budget elapsed during 'execute' before the workspace answered",
+        60_000,
+    );
+    assert!(timeout.starts_with("O trabalho em segundo plano passou do limite de"));
+    assert!(!timeout.contains("execute"));
+    let other = background_failure_for_person("incus: image pull failed", 60_000);
+    assert!(other.starts_with("O espaço de trabalho não conseguiu"));
+    assert!(!other.contains("incus"));
+    assert!(BACKGROUND_UNAVAILABLE_FOR_PERSON.contains("segundo plano"));
+}

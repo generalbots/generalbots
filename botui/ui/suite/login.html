@@ -13,12 +13,12 @@
         <link rel="stylesheet" href="/suite/assistant/titlebar.css" />
         <link rel="stylesheet" href="/suite/login-page.css" />
     </head>
-    <body>
+    <body data-pending>
         <script src="/suite/identity/accent.js"></script>
         <script src="/suite/assistant/titlebar.js"></script>
         <main class="gb-login-main">
             <div class="gb-login-card" role="main">
-                <div class="gb-login-wordmark">
+                <div class="gb-login-wordmark" id="loginWordmark">
                     General Bots<span class="gb-login-dot">.</span>
                 </div>
                 <p class="gb-login-subtitle" id="loginSubtitle"></p>
@@ -64,6 +64,21 @@
         </main>
         <script src="/suite/login-page.js"></script>
         <script>
+            /* Editions on the assistant shell show the edition lockup, in the card and in the title bar. */
+            (function () {
+                function reveal() { document.body.removeAttribute("data-pending"); }
+                fetch((window.__GB_SERVER_ORIGIN__ || "") + "/api/product", { credentials: "same-origin" })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (p) {
+                        if (p && p.shell === "assistant") {
+                            var lockup = '<span class="id-lockup" role="img" aria-label="General Bots Lite"><span class="id-lockup-mark" aria-hidden="true"></span>' +
+                                '<span class="id-lockup-tag" aria-hidden="true">LITE</span></span>';
+                            document.querySelectorAll("#loginWordmark, .gb-titlebar-wordmark").forEach(function (el) { el.innerHTML = lockup; });
+                        }
+                        reveal();
+                    }, reveal);
+            })();
+
             /* Signal the Tauri splash to close. */
             if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
                 try {

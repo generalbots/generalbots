@@ -263,4 +263,105 @@
 
     /* ---- focus: email first ---- */
     if (emailInput) { emailInput.focus(); }
+
+    /* ---- forgot password: desktop app only, reset through the shell ---- */
+    var tauri = window.__TAURI__ && window.__TAURI__.core;
+    if (!form || !tauri || typeof tauri.invoke !== "function") { return; }
+    var R = {
+        pt: {
+            link: "Esqueci minha senha", title: "Criar uma nova senha",
+            note: "Isto troca a senha do administrador deste computador e encerra as outras sessões. Só funciona aqui, no aplicativo.",
+            fresh: "Nova senha", again: "Confirme a nova senha",
+            hint: "Pelo menos 8 caracteres, com letra maiúscula, letra minúscula, número e símbolo.",
+            save: "Salvar e entrar", saving: "Salvando…", back: "Voltar para entrar",
+            mismatch: "As duas senhas não são iguais.",
+            password_too_short: "A nova senha precisa ter pelo menos 8 caracteres.",
+            password_too_long: "A nova senha pode ter no máximo 128 caracteres.",
+            password_needs_lowercase: "A nova senha precisa de uma letra minúscula.",
+            password_needs_uppercase: "A nova senha precisa de uma letra maiúscula.",
+            password_needs_digit: "A nova senha precisa de um número.",
+            password_needs_symbol: "A nova senha precisa de um símbolo, como ! ou #.",
+            recovery_unavailable: "Não foi possível falar com o assistente neste computador. Feche e abra o aplicativo e tente de novo.",
+            recovery_refused: "A recuperação de senha só funciona pelo aplicativo, neste computador.",
+            no_local_administrator: "Este computador não tem uma conta de administrador para recuperar.",
+            password_not_saved: "Não foi possível salvar a nova senha.",
+            failed: "Não foi possível trocar a senha. Tente de novo."
+        },
+        en: {
+            link: "Forgot password", title: "Create a new password",
+            note: "This replaces the password of this computer's administrator and signs out other sessions. It only works here, in the app.",
+            fresh: "New password", again: "Confirm the new password",
+            hint: "At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.",
+            save: "Save and sign in", saving: "Saving…", back: "Back to sign in",
+            mismatch: "The two passwords are not the same.",
+            password_too_short: "The new password needs at least 8 characters.",
+            password_too_long: "The new password can have at most 128 characters.",
+            password_needs_lowercase: "The new password needs a lowercase letter.",
+            password_needs_uppercase: "The new password needs an uppercase letter.",
+            password_needs_digit: "The new password needs a number.",
+            password_needs_symbol: "The new password needs a symbol, such as ! or #.",
+            recovery_unavailable: "Could not reach the assistant on this computer. Close and reopen the app, then try again.",
+            recovery_refused: "Password recovery only works from the app, on this computer.",
+            no_local_administrator: "This computer has no administrator account to recover.",
+            password_not_saved: "The new password could not be saved.",
+            failed: "Could not change the password. Try again."
+        }
+    };
+    var r = R[lang] || R.pt;
+    var forgot = document.createElement("button");
+    forgot.type = "button";
+    forgot.className = "gb-login-forgot";
+    forgot.textContent = r.link;
+    form.appendChild(forgot);
+    var box = document.createElement("form");
+    box.className = "gb-login-recovery";
+    box.noValidate = true;
+    box.hidden = true;
+    box.innerHTML = '<p class="gb-login-recovery-title">' + esc(r.title) + '</p>' +
+        '<p class="gb-login-note">' + esc(r.note) + '</p>' +
+        '<div class="gb-login-field"><label for="recovery-new">' + esc(r.fresh) + '</label>' +
+        '<input id="recovery-new" type="password" autocomplete="new-password" aria-describedby="recovery-hint" required /></div>' +
+        '<div class="gb-login-field"><label for="recovery-again">' + esc(r.again) + '</label>' +
+        '<input id="recovery-again" type="password" autocomplete="new-password" required /></div>' +
+        '<label class="gb-login-reveal"><input type="checkbox" id="recovery-reveal" /> ' + esc(t.showPw) + '</label>' +
+        '<p class="gb-login-note" id="recovery-hint">' + esc(r.hint) + '</p>' +
+        '<button type="submit" class="gb-login-submit" id="recovery-save">' + esc(r.save) + '</button>' +
+        '<div class="gb-login-error" id="recovery-error" role="alert" aria-live="polite"></div>' +
+        '<button type="button" class="gb-login-forgot" id="recovery-back">' + esc(r.back) + '</button>';
+    form.parentNode.insertBefore(box, form.nextSibling);
+    var fresh = box.querySelector("#recovery-new");
+    var again = box.querySelector("#recovery-again");
+    var save = box.querySelector("#recovery-save");
+    var recErr = box.querySelector("#recovery-error");
+    function recoveryError(text) {
+        recErr.textContent = text;
+        recErr.style.display = text ? "block" : "none";
+    }
+    function showRecovery(open) {
+        form.hidden = open;
+        box.hidden = !open;
+        recoveryError("");
+        (open ? fresh : emailInput || forgot).focus();
+    }
+    forgot.addEventListener("click", function () { showRecovery(true); });
+    box.querySelector("#recovery-back").addEventListener("click", function () { showRecovery(false); });
+    box.querySelector("#recovery-reveal").addEventListener("change", function (e) {
+        fresh.type = again.type = e.target.checked ? "text" : "password";
+    });
+    box.addEventListener("submit", function (e) {
+        e.preventDefault();
+        recoveryError("");
+        if (fresh.value !== again.value) { recoveryError(r.mismatch); again.focus(); return; }
+        save.disabled = true;
+        save.textContent = r.saving;
+        tauri.invoke("local_password_reset", { newPassword: fresh.value }).then(function (result) {
+            redirect(result.access_token, result.email || "");
+        }).catch(function (code) {
+            if (String(code) === "recovery_cancelled") { recoveryError(""); }
+            else { recoveryError(r[String(code)] || r.failed); }
+            save.disabled = false;
+            save.textContent = r.save;
+            fresh.focus();
+        });
+    });
 })();

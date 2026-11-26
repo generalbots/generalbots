@@ -34,12 +34,14 @@ pub async fn tracing_middleware_fn(
     let parent = extract_context(req.headers());
     let span = start_span(&name, parent.as_ref());
     let method = req.method().clone();
-    let uri = req.uri().clone();
+    // Path only: a query string can carry an access token (`?token=`,
+    // `?access_token=`), and request logs must never hold a credential.
+    let path = req.uri().path().to_owned();
     log::info!(
         "tracing.span.start name={} method={} uri={} trace_id={}",
         name,
         method,
-        uri,
+        path,
         span.trace_id
     );
     let mut response = next.run(req).await;

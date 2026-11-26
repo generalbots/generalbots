@@ -41,13 +41,21 @@ pub mod tool_exec;
 pub mod tool_paths;
 pub mod turn_context;
 pub mod turn_hooks;
+pub mod turn_progress;
+pub mod turn_record;
+pub mod turn_events;
+pub mod turn_watch;
 pub mod types;
+#[cfg(feature = "agent-vm")]
+pub mod vm_consent;
 pub mod vibe_route;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_context;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_sources;
 pub mod workspace_progress;
+#[cfg(feature = "agent-vm")]
+mod workspace_start;
 
 pub use channel_entry::run_pipeline_for_channel;
 pub use exec::{process_message_internal, PipelineFn};

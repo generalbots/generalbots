@@ -7,14 +7,21 @@ use uuid::Uuid;
 
 use super::sink::ChannelSink;
 
+pub(crate) mod agent_limit;
 mod attempt;
 pub(crate) mod error_classify;
 mod markdown;
 pub(crate) mod message_meta;
 mod stream;
-mod stream_errors;
+pub(crate) mod stream_errors;
+pub(crate) mod refusal;
 mod stream_tools;
+mod turn_end;
 mod svg_contract;
+#[cfg(feature = "gbgov")]
+mod local_recovery;
+#[cfg(feature = "gbgov")]
+mod free_model_fallback;
 
 pub use stream::stream_llm_response;
 

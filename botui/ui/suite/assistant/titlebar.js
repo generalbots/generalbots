@@ -55,12 +55,16 @@
             var sidebar = document.getElementById("gb-sidebar");
             if (sidebar) { sidebar.classList.toggle("collapsed"); }
         });
-        left.appendChild(toggle);
+        var lite = document.documentElement.dataset.identity === "mantis";
+        if (!lite) left.appendChild(toggle);
 
         var wm = document.createElement("span");
         wm.className = "gb-titlebar-wordmark";
         wm.setAttribute("data-tauri-drag-region", "");
-        wm.innerHTML = 'General Bots<span class="gb-titlebar-dot">.</span>';
+        if (lite) {
+            wm.innerHTML = '<span class="id-lockup" role="img" aria-label="General Bots Lite"><span class="id-lockup-mark" aria-hidden="true"></span>' +
+                '<span class="id-lockup-tag" aria-hidden="true">LITE</span></span><small id="gbBuildVersion"></small>';
+        } else wm.innerHTML = 'General Bots<span class="gb-titlebar-dot">.</span>';
         left.appendChild(wm);
 
         bar.appendChild(left);

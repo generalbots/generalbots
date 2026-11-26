@@ -83,7 +83,8 @@ pub async fn panic_handler_middleware_with_config(
     config: &PanicHandlerConfig,
 ) -> Response {
     let method = request.method().clone();
-    let uri = request.uri().clone();
+    // Path only: a query string can carry an access token.
+    let uri = request.uri().path().to_string();
     let request_id = request
         .headers()
         .get("x-request-id")
@@ -114,7 +115,7 @@ pub async fn panic_handler_middleware_with_config(
             }
 
             if config.notify_on_panic {
-                notify_panic(&request_id, method.as_ref(), &uri.to_string(), &panic_message);
+                notify_panic(&request_id, method.as_ref(), &uri, &panic_message);
             }
 
             create_panic_response(&request_id, config)

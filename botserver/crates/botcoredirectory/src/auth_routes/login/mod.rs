@@ -11,6 +11,15 @@ pub async fn login(
 ) -> Result<Json<LoginResponse>, (StatusCode, Json<ErrorResponse>)> {
     info!("Login attempt for: {}", req.email);
 
+    // Desktop edition: the wizard's administrator record is the account of
+    // record, checked first so the session identity never depends on whether
+    // the directory happens to accept the same password.
+    if is_desktop_edition() {
+        if let Some(response) = local_admin_login(&state, &req.email, &req.password).await {
+            return Ok(Json(response));
+        }
+    }
+
     let auth_service = state
         .auth_service
         .as_ref()

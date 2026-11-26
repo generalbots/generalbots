@@ -74,15 +74,9 @@
   B.context().then(function (context) {
     state.context = context;
     if (!draft.workspace.path) { draft.workspace.path = state.context.workspace_path; }
-    if (!draft.model.endpoint && draft.model.mode !== "local") {
-      draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
-      draft.model.model = W.defaultModelName(draft.model.provider);
-    }
     return B.loadDraft().then(function (saved) {
       if (saved) {
         draft.display_name = saved.display_name || draft.display_name;
-        draft.model = Object.assign(draft.model, saved.model || {});
-        draft.model.api_key = "";
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
@@ -98,6 +92,8 @@
         // First run: Chat/Drive is the default mode, not an error to dismiss.
         draft.skip_all_agentic_work = true;
       }
+      // Setup always provisions the free engine, whatever an older draft held.
+      draft.model = W.freeModel();
       state.resumed = !!state.context.resume_step;
       state.provisioning.components = (state.context.completed_components || []).map(function (id) {
         return { id: id, state: "ready", message: "Ready", elapsed_ms: 0 };

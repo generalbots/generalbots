@@ -39,6 +39,7 @@
             }
             el.appendChild(cards);
         }
+        A.addMessageHeading(el, true, Date.now());
         addUserActions(el, text);
         /* #2562 — sequential index for truncation. */
         var allMsgs = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
@@ -88,7 +89,7 @@
             el.insertAdjacentHTML("beforeend", A.reasoningHtml(reasoning, elapsed));
         }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
-        if (card) { el.appendChild(card); }
+        if (card) { A.queueConsentCard(card); }
         if (leaked && !card) {
             if (typeof A.blockNotice === "function") {
                 el.appendChild(A.blockNotice({ summary: { message: raw }, status: "completed" }));
@@ -114,8 +115,10 @@
                 if (allLive[mi] === el) { el.dataset.messageIndex = String(mi); break; }
             }
         }
-        addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
-        if (!opts.isError && raw && A.tagAnswer) { A.tagAnswer(el, raw, opts.model); }
+        if (!card) {
+            addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
+            if (!opts.isError && raw && A.tagAnswer) { A.tagAnswer(el, raw, opts.model); }
+        }
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };
@@ -124,7 +127,7 @@
     A.renderError = function (text) {
         A.showConversation(); A.hideThinking();
         var el = document.createElement("div");
-        el.className = "gb-msg-assistant";
+        el.className = "gb-msg-assistant gb-msg-error";
         if (typeof A.blockError === "function") {
             el.appendChild(A.blockError({ summary: { message: text || A.t("assistant.error-generic", "An error occurred.") }, status: "failed" }));
             document.getElementById("gbMessages").appendChild(el);
@@ -269,9 +272,11 @@
                     if (typeof A.renderMath === "function") { A.renderMath(bd); }
                     el.appendChild(bd);
                 }
+                if (A.renderTurnExtras) { A.renderTurnExtras(el, m); }
                 addAssistantActions(el, m.content, false);
-                if (A.answerModel) { A.attachModelTag(el, m.model || A.answerModel(m.content)); }
+                if (A.answerModel) { A.attachModelTag(el, A.answerModel(m.content) || m.model); }
             }
+            A.addMessageHeading(el, m.role === "user", m.created_at || m.timestamp);
             msgs.appendChild(el);
         }
         A.scrollToBottom(false); hideDockSuggestions();
@@ -343,15 +348,17 @@
             if (fc || fr) {
                 /* #2562 — classified error from the server: show the right card. */
                 if (isError && data.error_code) {
-                    A.renderErrorCode(data.error_code, fc);
+                    if (!A.renderEngineError || !A.renderEngineError(data.error_code, data.error_params)) {
+                    A.renderErrorCode(data.error_code, fc); }
                 } else {
                     A.renderAssistantMessage(fc, fr, {
-                        citations: data.citations, model: data.model,
+                        citations: data.citations, model: data.llm_model || data.model,
                         retryable: !!(data.retryable || isError), isError: isError
                     });
                 }
             } else if (isError) {
-                A.renderErrorCode(data.error_code || "model_error", data.content || "");
+                if (!A.renderEngineError || !A.renderEngineError(data.error_code, data.error_params)) {
+                A.renderErrorCode(data.error_code || "model_error", data.content || ""); }
             }
             if (data.suggestions && data.suggestions.length) {
                 A.suggestions = data.suggestions;

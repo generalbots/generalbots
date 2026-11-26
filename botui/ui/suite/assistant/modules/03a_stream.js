@@ -65,6 +65,17 @@
     var thinkingStartTime = 0;
     var thinkingWatchdog = null;
     var THINKING_TIMEOUT_S = 90;
+    var thinkingObserver = null;
+
+    /* The indicator is always the last item of the conversation: a reasoning,
+       run or permission card added while it shows moves above it. The card
+       moves, not the indicator: moving the indicator restarted its pulse. */
+    function keepThinkingLast() {
+        var el = document.getElementById("gbThinking");
+        if (!el || !el.parentNode || !el.nextElementSibling) { return; }
+        while (el.nextElementSibling) { el.parentNode.insertBefore(el.nextElementSibling, el); }
+        if (!userScrolledUp) { A.scrollToBottom(false); }
+    }
 
     A.showThinking = function () {
         if (!A.isStreaming && !document.getElementById("gbThinking")) {
@@ -82,6 +93,8 @@
                 '<span class="gb-thinking-elapsed"></span>';
             msgs.appendChild(el);
             if (!userScrolledUp) { A.scrollToBottom(false); }
+            if (!thinkingObserver && typeof MutationObserver === "function") { thinkingObserver = new MutationObserver(keepThinkingLast); }
+            if (thinkingObserver) { thinkingObserver.observe(msgs, { childList: true }); }
             thinkingTimer = setInterval(function () {
                 var secs = Math.floor((Date.now() - thinkingStartTime) / 1000);
                 var elapsedEl = el.querySelector(".gb-thinking-elapsed");
@@ -91,6 +104,7 @@
         // Safety watchdog: if no server frame arrives within the timeout,
         // replace the indicator with a timeout error card (#2562). Every
         // call (the server's keep-alive frames included) starts it again.
+        keepThinkingLast();
         if (document.getElementById("gbThinking")) {
             if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); }
             thinkingWatchdog = setTimeout(function () {
@@ -108,6 +122,7 @@
 
     A.hideThinking = function () {
         var el = document.getElementById("gbThinking");
+        if (thinkingObserver) { thinkingObserver.disconnect(); }
         if (el) { el.remove(); }
         if (thinkingTimer) { clearInterval(thinkingTimer); thinkingTimer = null; }
         if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); thinkingWatchdog = null; }
@@ -135,6 +150,8 @@
         el.setAttribute("aria-busy", "true");
         document.getElementById("gbMessages").appendChild(el);
         A.streamingEl = el;
+        el.dataset.streamStarted = String(Date.now());
+        if (A.addMessageHeading) { A.addMessageHeading(el, false, Number(el.dataset.streamStarted)); }
         toggleStopBtn(true);
         if (!userScrolledUp) { A.scrollToBottom(false); }
     };
@@ -159,22 +176,29 @@
         renderStreamContent();
     };
 
+    /* The heading and the reasoning card stay; only the answer text after
+       them is redrawn on each frame. */
     function renderStreamContent() {
-        if (!A.streamingEl) { return; }
+        var host = A.streamingEl;
+        if (!host) { return; }
         var elapsed = A.thinkingElapsed();
-        var html = "";
+        var card = host.querySelector(":scope > .gb-reasoning");
         if (A.streamingReasoning) {
             var answering = !!A.streamingContent;
-            html += A.reasoningHtml(A.streamingReasoning, answering ? (A._thoughtSeconds || elapsed) : elapsed, !answering);
+            card = A.updateReasoning(host, card, A.streamingReasoning,
+                answering ? (A._thoughtSeconds || elapsed) : elapsed, !answering);
         }
         var cleaned = typeof A.cleanProtocol === "function"
             ? A.cleanProtocol(A.streamingContent) : A.streamingContent;
         if (typeof A.consentStripMarker === "function") {
             cleaned = A.consentStripMarker(cleaned);
         }
-        html += A.mdToHtml(cleaned);
-        A.streamingEl.innerHTML = html;
-        A.enhanceCodeBlocks(A.streamingEl);
+        if (A.addMessageHeading) { A.addMessageHeading(host, false, Number(host.dataset.streamStarted)); }
+        var keep = card || host.querySelector(":scope > .gb-msg-heading");
+        while (keep && keep.nextSibling) { host.removeChild(keep.nextSibling); }
+        if (!keep) { host.textContent = ""; }
+        host.insertAdjacentHTML("beforeend", A.mdToHtml(cleaned));
+        A.enhanceCodeBlocks(host);
         if (!userScrolledUp) { A.scrollToBottom(false); }
     }
 
@@ -233,6 +257,7 @@
         if (conv) { conv.style.display = ""; }
         if (dock) { dock.style.display = ""; }
         if (above) { above.style.display = ""; }
+        if (A.syncPermissionDock) { A.syncPermissionDock(); }
     };
 
     A.showEmptyState = function () {
@@ -246,6 +271,7 @@
         if (dock) { dock.style.display = "none"; }
         if (above) { above.style.display = "none"; }
         if (msgs) { msgs.innerHTML = ""; }
+        if (A.syncPermissionDock) { A.syncPermissionDock(); }
         A.hideThinking();
         A.hasUserSent = false;
         A.greetingReceived = false;

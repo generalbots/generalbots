@@ -8,9 +8,7 @@
     var BASE_DELAY = 1000;
     var MAX_DELAY = 15000;
 
-    /* ------------------------------------------------------------------ */
-    /*  REST helpers                                                       */
-    /* ------------------------------------------------------------------ */
+    /* ---- REST helpers ---- */
 
     function authHeaders() {
         var h = { "Content-Type": "application/json" };
@@ -28,9 +26,7 @@
         });
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Product config                                                     */
-    /* ------------------------------------------------------------------ */
+    /* ---- Product config ---- */
 
     A.loadProduct = async function () {
         try {
@@ -46,9 +42,7 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Auth + user profile                                                */
-    /* ------------------------------------------------------------------ */
+    /* ---- Auth + user profile ---- */
 
     /** Authenticate and get a NEW session (no session_id param). */
     A.authenticate = async function () {
@@ -69,7 +63,7 @@
         }
     };
 
-    /** Load user profile (display name, email). */
+    /** Load user profile (display name, email, roles). */
     A.loadUserProfile = async function () {
         try {
             var r = await A.apiFetch("/api/auth/me");
@@ -77,14 +71,13 @@
             var data = await r.json();
             A.userName = data.display_name || data.first_name || data.username || "";
             A.userEmail = data.email || "";
+            A.userRoles = Array.isArray(data.roles) ? data.roles : [];
         } catch (e) {
             console.warn("[assistant] user profile failed:", e);
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Models                                                             */
-    /* ------------------------------------------------------------------ */
+    /* ---- Models ---- */
 
     A.loadModels = async function () {
         try {
@@ -121,48 +114,9 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Sessions                                                           */
-    /* ------------------------------------------------------------------ */
+    /* ---- Sessions ---- */
 
-    A.loadSessions = async function () {
-        try {
-            var r = await A.apiFetch(
-                "/api/chat/history/sessions?limit=50&bot_name=" +
-                    encodeURIComponent(A.botName)
-            );
-            if (!r.ok) { return; }
-            var data = await r.json();
-            /* Server returns session_id, not id */
-            A.sessions = (data.sessions || []).map(function (s) {
-                return {
-                    id: s.session_id || s.id,
-                    title: s.title,
-                    updated_at: s.updated_at || s.created_at
-                };
-            });
-        } catch (e) {
-            console.warn("[assistant] sessions fetch failed:", e);
-        }
-    };
-
-    A.loadSessionMessages = async function (sessId) {
-        try {
-            var r = await A.apiFetch(
-                "/api/chat/history/sessions/" +
-                    encodeURIComponent(sessId) +
-                    "/messages?limit=500&offset=0&include_activities=1"
-            );
-            if (!r.ok) { return []; }
-            var data = await r.json();
-            /* #2562 — stash activities so renderHistory can show step cards. */
-            A._lastHistoryActivities = data.activities || [];
-            return data.messages || [];
-        } catch (e) {
-            console.warn("[assistant] messages fetch failed:", e);
-            return [];
-        }
-    };
+    /* The conversation list and messages: 02b_requests.js. */
 
     /** #2562 — Truncate history from a given message index (for regenerate/edit). */
     A.truncateHistory = async function (sessId, fromIndex) {
@@ -227,9 +181,7 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  WebSocket                                                          */
-    /* ------------------------------------------------------------------ */
+    /* ---- WebSocket ---- */
 
     function wsUrl() {
         var loc = window.location;
@@ -238,9 +190,10 @@
             ? A.origin.replace(/^https?:/, proto)
             : proto + "//" + loc.host;
         var token = A.getToken() || "";
+        A.wsSessionId = A.currentSessionId || A.sessionId || "";
         return (
             host + "/ws" +
-            "?token=" + encodeURIComponent(token) +
+            "?access_token=" + encodeURIComponent(token) +
             "&session_id=" + encodeURIComponent(A.currentSessionId || A.sessionId || "") +
             "&user_id=" + encodeURIComponent(A.userId || "") +
             "&bot_name=" + encodeURIComponent(A.botName)
@@ -248,6 +201,7 @@
     }
 
     A.connectWs = function () {
+        if (!A._authReady) { return; }
         if (A.ws && A.ws.readyState <= 1) { return; }
         try { A.ws = new WebSocket(wsUrl()); }
         catch (e) { scheduleReconnect(); return; }
@@ -349,6 +303,12 @@
 
     /* ---- WS dispatch ---- */
 
+    /* The server names the socket's conversation. A frame that arrives
+       after another conversation was picked must not take the choice back. */
+    function adoptSession(id) {
+        if (id && (!A.currentSessionId || A.currentSessionId === A.wsSessionId)) { A.currentSessionId = id; }
+    }
+
     function dispatch(data) {
         /* Suggestions (can arrive on any frame) */
         if (data.suggestions && data.suggestions.length) {
@@ -359,8 +319,19 @@
         }
 
         if (data.type === "connected") {
-            if (data.user_id) { A.userId = data.user_id; }
-            if (data.session_id) { A.currentSessionId = data.session_id; }
+            if (data.user_id) {
+                if (A._authReady && A.userId && data.user_id !== A.userId) {
+                    console.warn("[assistant] connected frame user_id mismatch: keeping authenticated id");
+                    if (!A._wsIdMismatchRetried) {
+                        A._wsIdMismatchRetried = true;
+                        A.reconnectWs();
+                    }
+                } else {
+                    A.userId = data.user_id;
+                    A._wsIdMismatchRetried = false;
+                }
+            }
+            adoptSession(data.session_id);
             return;
         }
 
@@ -388,7 +359,7 @@
         }
 
         if (data.type === "message_received") {
-            if (data.session_id) { A.currentSessionId = data.session_id; }
+            adoptSession(data.session_id);
             return;
         }
 
@@ -396,6 +367,12 @@
             if (typeof A.onChatStatus === "function") {
                 A.onChatStatus(data);
             }
+            return;
+        }
+
+        /* Structured turn frames (agent switch, files, memory): 19_*.js. */
+        if (data.type && A.frameHandlers && typeof A.frameHandlers[data.type] === "function") {
+            A.frameHandlers[data.type](data);
             return;
         }
 
@@ -424,6 +401,7 @@
                and disables agent mode gracefully when unavailable. */
             agent_enabled: A.agentEnabled || false,
             ui_automation: false,
+            fast: typeof A.fastOn === "function" && A.fastOn(),
             /* The person's switch in Settings > Modelo (05b), off until they
                turn it on. Always sent: the server never decides to search. */
             web_search: typeof A.webSearchOn === "function" && A.webSearchOn(),

@@ -2,6 +2,7 @@
 description = "Default permissions for app commands (wizard, tray, sync, drive)"
 permissions = [
     "allow-save-download",
+    "allow-open-download",
     "allow-list-files",
     "allow-upload-file",
     "allow-create-folder",
@@ -58,12 +59,18 @@ permissions = [
     "allow-wizard-ai-code",
     "allow-wizard-ai-use-chat",
     "allow-wizard-finish",
+    "allow-local-password-reset",
 ]
 
 [[permission]]
 identifier = "allow-save-download"
 description = "Allow the save_download command"
 commands.allow = ["save_download"]
+
+[[permission]]
+identifier = "allow-open-download"
+description = "Allow the open_download command"
+commands.allow = ["open_download"]
 
 [[permission]]
 identifier = "allow-list-files"
@@ -344,3 +351,8 @@ commands.allow = ["wizard_ai_use_chat"]
 identifier = "allow-wizard-finish"
 description = "Allow the wizard_finish command"
 commands.allow = ["wizard_finish"]
+
+[[permission]]
+identifier = "allow-local-password-reset"
+description = "Allow the local_password_reset command"
+commands.allow = ["local_password_reset"]

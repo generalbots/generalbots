@@ -243,9 +243,9 @@ gbgov = [
     # backend is unavailable without a WSL2/Incus wrapper; the server
     # detects this at startup and disables agent mode gracefully.
     "agent-vm",
-    # Web search for a chat turn. Compiled in, off for every turn unless the
-    # person turns the switch on in Settings > Modelo (the pipeline never
-    # searches by itself in this edition).
+    # Web search for a chat turn: the model's `web_search` and `web_fetch`
+    # tools are offered on every turn (always on in this edition) and each
+    # search or page read is a visible step.
     "web-search",
     "embed-ui",
     # Infrastructure the two apps rely on; `botcore/default` is deliberately
@@ -335,6 +335,8 @@ once_cell = { workspace = true }
 portable-pty = "0.9"
 rand = { workspace = true }
 regex = { workspace = true }
+# Attached pictures are shrunk before they go to a vision model.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif"] }
 reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json", "blocking"] }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }

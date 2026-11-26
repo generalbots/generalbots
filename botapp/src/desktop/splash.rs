@@ -8,6 +8,7 @@ use log::{info, warn};
 use serde_json::json;
 use std::time::{Duration, Instant};
 use super::i18n;
+use tauri::window::Color;
 use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 /// Whether the splash stays above every other window and takes the focus.
@@ -16,10 +17,10 @@ use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 /// on the computer, so there it is an ordinary window.
 const TOPMOST: bool = !cfg!(feature = "gbgov");
 
-/// Splash dimensions: the edition uses a wide animated hero (760x428);
+/// Splash dimensions: the edition uses a wide animated hero (776x443);
 /// the standard build keeps the square logo (420x420).
-const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 760.0 } else { 420.0 };
-const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 428.0 } else { 420.0 };
+const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 776.0 } else { 420.0 };
+const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 443.0 } else { 420.0 };
 
 /// Minimum time the splash stays on screen (milliseconds). The edition's hero
 /// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
@@ -40,6 +41,21 @@ pub(crate) fn park_offscreen(window: &WebviewWindow) {
     let _ = window.set_always_on_top(false);
 }
 
+/// Fully transparent colour for the splash window and its webview. WebView2
+/// paints white behind a transparent page unless its own background is cleared.
+const TRANSPARENT: Color = Color(0, 0, 0, 0);
+
+/// Clears the webview background and drops the system shadow, whose 1px border
+/// draws a white rounded outline around an undecorated window on Windows 11.
+fn clear_backdrop(window: &WebviewWindow) {
+    if let Err(e) = window.set_background_color(Some(TRANSPARENT)) {
+        warn!("splash: could not clear the background: {e}");
+    }
+    if let Err(e) = window.set_shadow(false) {
+        warn!("splash: could not remove the shadow: {e}");
+    }
+}
+
 /// Reads the minimum splash duration from the environment or the compile-time
 /// default.
 fn splash_min_duration() -> Duration {
@@ -56,19 +72,23 @@ pub fn show(app: &tauri::AppHandle) {
     let window_created_at = Instant::now();
     let rig = is_test_rig();
     if let Some(window) = app.get_webview_window("splash") {
-        let _ = window.show();
+        // Test rig: park before showing, so the splash never appears on screen.
         if rig {
             park_offscreen(&window);
-        } else {
+        }
+        clear_backdrop(&window);
+        // Resize to the edition dimensions (the conf declares 420x420) while
+        // the window is still hidden, so the square size never shows.
+        let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
+        if !rig {
+            let _ = window.center();
+        }
+        let _ = window.show();
+        if !rig {
             if TOPMOST {
                 let _ = window.set_focus();
             }
             let _ = window.set_always_on_top(TOPMOST);
-        }
-        // Resize to the edition dimensions (the conf declares 420x420).
-        let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
-        if !rig {
-            let _ = window.center();
         }
         push_version(&window);
         watch_splash_painted(app, window_created_at);
@@ -82,7 +102,9 @@ pub fn show(app: &tauri::AppHandle) {
         .resizable(false)
         .decorations(false)
         .transparent(true)
-        .skip_taskbar(true)
+        .background_color(TRANSPARENT)
+        .shadow(false)
+        .skip_taskbar(rig)
         .visible(true);
     if rig {
         builder = builder
@@ -109,6 +131,11 @@ pub fn show(app: &tauri::AppHandle) {
 /// this instant so that the 10 s minimum counts from visible content, not
 /// from process start.
 static SPLASH_SHOWN_AT: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+/// Whether the splash page has painted (or its paint deadline has passed).
+pub(crate) fn painted() -> bool {
+    SPLASH_SHOWN_AT.get().is_some()
+}
 
 /// Fragment the splash page stamps into its URL when it has finished the
 /// first paint. The page sets `location.hash = '#splash-painted'` in its
@@ -160,6 +187,7 @@ fn watch_splash_painted(app: &tauri::AppHandle, created_at: Instant) {
 /// Hides (closes) the splash window once the real UI is ready, respecting the
 /// minimum display duration so the edition's hero animation completes.
 pub fn hide(app: &tauri::AppHandle) {
+    leave_taskbar(app);
     // Callers include the setup code on the main thread, so the minimum
     // display time is waited on a thread of its own: sleeping here froze the
     // event loop, and every window with it, for the whole remainder.
@@ -197,6 +225,14 @@ fn close(app: &tauri::AppHandle) {
     }
 }
 
+/// Takes the splash's button off the taskbar once another window (the suite
+/// or the setup wizard) has its own, so the person never sees two buttons.
+pub fn leave_taskbar(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("splash") {
+        let _ = window.set_skip_taskbar(true);
+    }
+}
+
 /// Keeps the splash above the freshly revealed suite window.
 ///
 /// #1830 — the main window opens while the suite is still booting, so a plain
@@ -204,11 +240,13 @@ fn close(app: &tauri::AppHandle) {
 /// re-asserts the always-on-top flag and pulls focus; a splash that was closed
 /// earlier stays closed.
 pub fn raise(app: &tauri::AppHandle) {
+    leave_taskbar(app);
     if let Some(window) = app.get_webview_window("splash") {
-        let _ = window.show();
         if is_test_rig() {
             park_offscreen(&window);
-        } else {
+        }
+        let _ = window.show();
+        if !is_test_rig() {
             let _ = window.set_always_on_top(TOPMOST);
             if TOPMOST {
                 let _ = window.set_focus();
@@ -268,17 +306,12 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
         let deadline = Instant::now() + BOOT_WATCH_DEADLINE;
-        let mut saw_main = false;
         loop {
             let Some(splash) = handle.get_webview_window("splash") else {
                 // The splash was closed somewhere else (wizard, restart flow).
                 return;
             };
             if let Some(main) = handle.get_webview_window("main") {
-                if !saw_main {
-                    saw_main = true;
-                    push_progress_key(&splash, 70, "splash-loading-interface");
-                }
                 if let Ok(url) = main.url() {
                     if url.as_str().contains(BOOT_READY_FRAGMENT) {
                         info!("splash: boot-ready fragment seen; closing");
@@ -288,8 +321,6 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
                         return;
                     }
                 }
-            } else if !saw_main {
-                push_progress_key(&splash, 15, "splash-starting-services");
             }
             if Instant::now() >= deadline {
                 warn!("splash: boot-ready fragment never arrived; hiding the splash");
@@ -410,7 +441,7 @@ mod tests {
     #[test]
     fn splash_dimensions_match_edition() {
         if cfg!(feature = "gbgov") {
-            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (760.0, 428.0));
+            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (776.0, 443.0));
         } else {
             assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (420.0, 420.0));
         }

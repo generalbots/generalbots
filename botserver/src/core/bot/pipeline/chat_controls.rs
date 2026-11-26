@@ -22,14 +22,20 @@ async fn read_agent_enabled(
     user_id: Uuid,
     session_id: Uuid,
 ) -> Option<bool> {
+    use super::turn_watch::{bounded, REDIS_STEP_LIMIT};
     let cache = state.cache.as_ref()?;
-    let mut conn = cache.get_multiplexed_async_connection().await.ok()?;
-    let raw: Option<String> = redis::cmd("GET")
-        .arg(controls_key(user_id, session_id))
-        .query_async(&mut conn)
-        .await
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_str(raw.as_deref()?).ok()?;
+    let raw = bounded("agent switch read", REDIS_STEP_LIMIT, async {
+        let mut conn = cache.get_multiplexed_async_connection().await.ok()?;
+        let raw: Option<String> = redis::cmd("GET")
+            .arg(controls_key(user_id, session_id))
+            .query_async(&mut conn)
+            .await
+            .ok()?;
+        raw
+    })
+    .await
+    .flatten()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
     value.get("agent_enabled").and_then(|v| v.as_bool())
 }
 
@@ -49,18 +55,22 @@ async fn write_agent_enabled(
     session_id: Uuid,
     agent_enabled: bool,
 ) {
+    use super::turn_watch::{bounded, REDIS_STEP_LIMIT};
     let Some(cache) = state.cache.as_ref() else {
         return;
     };
-    let Ok(mut conn) = cache.get_multiplexed_async_connection().await else {
-        return;
-    };
-    let payload = serde_json::json!({ "agent_enabled": agent_enabled }).to_string();
-    let _: Result<(), redis::RedisError> = redis::cmd("SET")
-        .arg(controls_key(user_id, session_id))
-        .arg(payload)
-        .query_async(&mut conn)
-        .await;
+    bounded("agent switch write", REDIS_STEP_LIMIT, async {
+        let Ok(mut conn) = cache.get_multiplexed_async_connection().await else {
+            return;
+        };
+        let payload = serde_json::json!({ "agent_enabled": agent_enabled }).to_string();
+        let _: Result<(), redis::RedisError> = redis::cmd("SET")
+            .arg(controls_key(user_id, session_id))
+            .arg(payload)
+            .query_async(&mut conn)
+            .await;
+    })
+    .await;
 }
 
 #[cfg(not(feature = "cache"))]
@@ -115,6 +125,36 @@ pub async fn resolve_agent_enabled(
         .unwrap_or(DEFAULT_AGENT_ENABLED)
 }
 
+/// Does the model-preference string name a subscription provider?
+///
+/// Pure parsing check with no platform dependency — used by the tests and
+/// by [`subscription_implies_agent`].
+#[cfg(feature = "agent-vm")]
+fn is_subscription_choice(model_preference: &str) -> bool {
+    use crate::core::ai_accounts::models::parse_choice;
+    parse_choice(model_preference).is_some()
+}
+
+/// When the turn's `model_preference` explicitly names a subscription
+/// provider (`sub:claude-code`, …), the agent is implicitly ON for this
+/// turn even when the per-conversation switch is off — the person
+/// deliberately chose it in the model menu.
+///
+/// Returns `true` only when both conditions hold:
+/// 1. The preference is a subscription choice.
+/// 2. The backend is available on this platform.
+#[cfg(feature = "agent-vm")]
+pub fn subscription_implies_agent(model_preference: &str) -> bool {
+    if !is_subscription_choice(model_preference) {
+        return false;
+    }
+    #[cfg(windows)]
+    if !agent_backend_available() {
+        return false;
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,5 +164,25 @@ mod tests {
         let user = Uuid::nil();
         let session = Uuid::nil();
         assert_eq!(controls_key(user, session), "chat_controls:00000000-0000-0000-0000-000000000000:00000000-0000-0000-0000-000000000000");
+    }
+
+    #[cfg(feature = "agent-vm")]
+    mod subscription_override {
+        use super::super::is_subscription_choice;
+
+        #[test]
+        fn explicit_sub_choice_is_recognised() {
+            assert!(is_subscription_choice("sub:claude-code"));
+            assert!(is_subscription_choice("sub:codex-cli/gpt-6.2-sol"));
+            assert!(is_subscription_choice("sub:antigravity"));
+        }
+
+        #[test]
+        fn non_subscription_preference_is_not_a_choice() {
+            assert!(!is_subscription_choice("auto"));
+            assert!(!is_subscription_choice("fast"));
+            assert!(!is_subscription_choice("acct:openai/gpt-4o"));
+            assert!(!is_subscription_choice(""));
+        }
     }
 }

@@ -205,6 +205,7 @@ impl PackageManager {
             };
             let rendered_cmd = component
                 .effective_exec_cmd()
+                .replace(crate::secrets_engine::CLI_PLACEHOLDER, crate::secrets_engine::active_engine(&self.base_path).binary_name())
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())

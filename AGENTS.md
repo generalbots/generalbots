@@ -1477,3 +1477,46 @@ validates them.
 curl -s http://localhost:8080/api/product | python -m json.tool
 # Expected: apps=[chat,drive], no_security=true, suite_default_app=chat
 ```
+
+### gbgov Edition (branch `gbgov`, Windows desktop)
+
+The government edition builds on desktop-local with the `gbgov` feature (botserver and botapp) and `.product.gbgov`. Its shell is `botui/ui/suite/assistant/assistant.html` (ordered `"use strict"` IIFE modules in `assistant/modules/NN_*.js` on the shared `A` namespace, `--id-*` tokens, pt-BR + en strings, 450 lines per file). Build, live-check and rig instructions for Windows are in `.claude/CLAUDE.md`.
+
+**Identity: one user, two paths.** HTTP requests resolve the signed-in owner through the auth middleware (`botsecurity-auth/src/auth_api/middleware.rs`). The chat WebSocket resolves its own identity in `botserver/src/core/bot/ws/handler.rs`:
+1. a token (cookie `gb-access-token`, then the query field `access_token`, also accepted as `token`) resolved by `anonymous_auth::resolve_token_user`;
+2. with no token that resolves, the `user_id` query value, which is the id `/api/auth` gave the page;
+3. with neither, a new guest (`guest_<id>@anonymous.local` in `users`).
+
+Each handshake logs which of the three it used (`WS handshake: identity=...`). The shell must open the socket only after `/api/auth` has answered (`A._authReady` in `assistant/modules/99_init.js` gates `A.connectWs`). A socket opened earlier carries empty ids. Before the fix, that plus a token sent under a field name the server did not read made every such start run as one fixed guest (`7a724f50-...`, the id derived from an empty string).
+
+When a turn runs as a guest, every per-user lookup does too: subscription accounts, enabled models and the agent workspace (a second `ag-u<guest>` container gets created). Symptom: "Connect your Claude Code / Codex account" while Settings shows the agent as connected. Check the handshake log line, then `user_sessions.user_id` and `message_history.user_id` against `user_llm_accounts.user_id`.
+
+**Subscription agents (`sub:<provider>[/<model>]`).**
+- Accounts live in `user_llm_accounts` (status `linked`, per-user `metadata.enabled_models`).
+- The CLI's real sign-in lives in the user's Incus container (`/home/claude/.claude/.credentials.json` for Claude Code; `/tmp/gb-<agent>-login.status` is cleared on container restart).
+- Disconnecting Claude Code deletes `/home/claude/.claude` entirely.
+- A turn re-checks the VM (`relink_from_vm`, 5 s budget) before it refuses.
+- Incus calls have deadlines (`botagent/src/vm/incus_run.rs`). A stuck call is killed with its process tree.
+- Other containers in the WSL distro belong to other people: never exec into them.
+
+**Database on the desktop.** PostgreSQL on 127.0.0.1:5432, user `gbuser`, trust auth, database `botserver`. Message text is encrypted (`content_encrypted`); use `role`, `llm_model`, `llm_engine`, `llm_provider` and `created_at` to reconstruct a turn. Refused turns log `Subscription turn refused: … code=…`; every turn logs stage lines (`turn stage: …`) and a stalled turn logs `turn stalled before the model call: stage=…`.
+
+**Engines.** Four engine types with one vocabulary everywhere (`assistant/modules/00_engine_names.js`): Local / Modelos locais / Neste computador; Gratuito / Modelo gratuito; Chave própria / Chaves próprias / Servidor ou chave própria; Assinatura / Assinaturas / Agente por assinatura.
+- Free model: `FREE_MODEL` in `botsettings/src/model_config/mod.rs`, chosen by measured time to first token. `pipeline/llm/free_model_fallback.rs` replaces it automatically when the gateway says it no longer exists (guarded against loops). The wizard's `FREE_MODEL_ID` must match it.
+- Engine refusals travel as `error_code` + `error_params` on the error frame (`pipeline/llm/refusal.rs`, shell `03g_engine_errors.js`): `agent_not_linked`, `agent_switch_off`, `agent_model_unavailable`, `agent_workspace_failed`, `account_model_off`, `free_model_unavailable`, `agent_limit_reached` (shows the CLI's own message verbatim, never retried), `agent_unsafe_version`.
+- A selected `sub:` model implies the Agent switch for that turn (`chat_controls::subscription_implies_agent`); the shell shows the switch on and locked.
+- The local engine is started inside the turn when it is down (`pipeline/llm/local_recovery.rs`, step `local_engine_start`); engine starts are serialised (`runtime_ctl` `ENSURE_LOCK`). Turn time limits count time without progress (`pipeline/turn_progress.rs`), not total time.
+- In the assistant shell, `turn_hooks/computer_action.rs` (the "Rode/Run …" text shortcut) is skipped: those messages go to the model.
+
+**Permissions in the Virtual Machine (rule: nothing runs without a decision, and everything is shown).**
+- One gate: `pipeline/vm_consent/` (`ask(identity, VmAction) -> VmDecision`, `report(...)`). VM exec functions require the ticket only the gate issues (`agent_vm_hook/ticketed.rs`). Grants live in `app_permissions` as `vm:<agent>:<thread>` with a conversation scope; "Permitir tudo" is VM-only and never covers protected paths (agent credentials).
+- Card in the waiting answer (`08_consent.js`, `08b_consent_vm.js`, bar `08c_consent_vm_bar.js`, send-confirm `08d_consent_vm_wait.js`), steps in `12d_block_vm.js`. Only the owner may resolve a card (`botconsent/src/enforce/resolve.rs`); a card lives as long as its turn; a new message while a card waits replaces the turn (`runs/bus/admit.rs`). Texts for the model go through `native_tools::tell_model` / `ModelOnly`, never the visible answer.
+- CLI bridges over a two-way session in the container (`botagent/src/duplex`, `vm::exec_in_vm_duplex`; sessions are tagged and reaped on close): Codex = `codex app-server` with `approvalPolicy:"untrusted"` (`botagent/src/codex/{bridge,turn_loop,app_server}.rs`, `src/llm/subscription/codex_bridge.rs`, pinned `@openai/codex@0.171.0` + bubblewrap, web search disabled); Claude Code = stream-json with `--permission-prompt-tool stdio`, restricted tools + settings so every tool asks (`botagent/src/claude/bridge/`, `src/llm/subscription/claude_bridge.rs`, pinned 2.1.330). Both run a self-check that the CLI really asks; otherwise turns refuse with `agent_unsafe_version`. Antigravity has no bridge yet.
+- WSL stops the distro ~15 s after the last client, wiping `/tmp` and `/run` in every container: nothing a bridge needs may live in tmpfs.
+- Rig: `GB_RIG_FAKE_VM=1` (rig server only) fakes VM execution behind the ticket check.
+
+**Accounts and passwords (desktop).** The wizard's administrator record (`admin-credentials.json` in the stack) is checked first and the directory admin is synced to it; the desktop edition writes no plain-text `~/.gb-setup-credentials`. `POST /api/auth/password` changes it (Settings › Conta). "Esqueci minha senha" works only inside the desktop app: a 127.0.0.1-only listener with a secret file in `<stack>\conf\directory\local-recovery.json` and the Tauri command `local_password_reset`. Never log any part of a token or a query string.
+
+**First-run wizard (`botui/ui/wizard/`, embedded in `generalbots.exe`).** Follows the app's identity and Settings › Modelo pattern; always provisions the free engine; logo is the shared lockup (`identity/brand-mark.svg` + "LITE" tag, `identity/lockup.css`; never name a file with "-log": `botui/.gitignore` ignores `*-log*`). Preview it only hidden and isolated: `GB_TEST_RIG=1`, an empty `BOTSERVER_STACK_PATH`, its own `WEBVIEW2_USER_DATA_FOLDER`; never press install.
+
+**Releases are committed.** Every release that reaches the owner's install (a full swap or a hot swap of `botserver.exe`, `generalbots.exe`, `ui/` or `agent/incus.exe`) is built from committed code: commit the changes by area first (exact `git add -- <paths>`, never `git add -A`; messages describe the change only, no co-author lines; reset `botapp/gen/schemas` if a build rewrote it), push to `origin gbgov`, and only then stage and swap. Installed binaries must match a pushed commit, so the build, the rollback copies (`*.prev`, `undo.ps1`) and the board (`GBGOV/MVP.md` section 0, which names the installed commit) always point to a known version. A fix found while checking a release live is committed and pushed before it is swapped in, even when only one file changed.

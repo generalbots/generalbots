@@ -123,8 +123,6 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         return;
     }
 
-    let run_id = Uuid::new_v4().to_string();
-    bus::bus().start(thread_id, &run_id);
     let task_start_bas_ran = *start_bas_ran;
     *start_bas_ran = true;
     run_task::spawn(run_task::RunSpec {
@@ -137,4 +135,15 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         text,
         start_bas_ran: task_start_bas_ran,
     });
+}
+
+/// Whether the conversation's current run waits on a blocking permission
+/// request (a virtual machine card the person has not answered).
+#[cfg(feature = "consent")]
+async fn card_waiting(thread_id: &str) -> bool {
+    let Some(service) = crate::core::bot::consent_gate::shared_service() else {
+        return false;
+    };
+    let run = bus::bus().current_run_id(thread_id);
+    botconsent::has_blocking_request(&service, thread_id, run.as_deref()).await
 }

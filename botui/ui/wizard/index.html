@@ -8,7 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="/wizard/logo-mark.svg" />
   <link rel="stylesheet" href="/suite/identity/fonts.css?v=1" />
   <link rel="stylesheet" href="/suite/identity/tokens.css?v=1" />
-  <link rel="stylesheet" href="/wizard/wizard.css?v=6" />
+  <link rel="stylesheet" href="/suite/identity/lockup.css" />
+  <link rel="stylesheet" href="/wizard/wizard.css?v=7" />
 </head>
 <body>
   <!--
@@ -23,9 +24,9 @@
   <main class="wizard" id="wizardRoot" data-state="loading">
     <aside class="rail" aria-label="Setup steps">
       <div class="rail-brand">
-        <img class="rail-mark" src="/wizard/logo-mark.svg" alt="" aria-hidden="true" />
-        <img class="rail-wordmark" src="/wizard/logo-text.svg" alt="General Bots" />
+        <span class="id-lockup" role="img" aria-label="General Bots Lite"><span class="id-lockup-mark" aria-hidden="true"></span><span class="id-lockup-tag" aria-hidden="true">LITE</span></span>
       </div>
+      <div class="rail-section-label" id="railSectionLabel">// CONFIGURACAO INICIAL</div>
       <ol class="rail-steps" id="railSteps" role="list"></ol>
     </aside>
 
@@ -83,18 +84,19 @@
   <script src="/wizard/i18n/ko.js"></script>
   <script src="/wizard/i18n/zh-CN.js"></script>
   <script src="/wizard/wizard-i18n.js?v=3"></script>
-  <script src="/wizard/wizard-state.js?v=5"></script>
+  <script src="/wizard/wizard-state.js?v=6"></script>
   <script src="/wizard/wizard-bridge.js?v=4"></script>
-  <script src="/wizard/wizard-steps.js?v=5"></script>
-  <script src="/wizard/wizard-host.js?v=1"></script>
+  <script src="/wizard/wizard-steps-engine.js?v=2"></script>
+  <script src="/wizard/wizard-steps.js?v=7"></script>
+  <script src="/wizard/wizard-host.js?v=2"></script>
   <script src="/wizard/modules/00_core.js?v=1"></script>
-  <script src="/wizard/modules/05_accent.js?v=1"></script>
-  <script src="/wizard/modules/10_render.js?v=1"></script>
-  <script src="/wizard/modules/20_install.js?v=1"></script>
+  <script src="/wizard/modules/05_accent.js?v=2"></script>
+  <script src="/wizard/modules/10_render.js?v=2"></script>
+  <script src="/wizard/modules/20_install.js?v=2"></script>
   <script src="/wizard/modules/30_account.js?v=1"></script>
   <script src="/wizard/modules/40_finish.js?v=1"></script>
   <script src="/wizard/modules/50_modal.js?v=1"></script>
-  <script src="/wizard/modules/60_nav.js?v=1"></script>
-  <script src="/wizard/modules/70_init.js?v=1"></script>
+  <script src="/wizard/modules/60_nav.js?v=2"></script>
+  <script src="/wizard/modules/70_init.js?v=2"></script>
 </body>
 </html>

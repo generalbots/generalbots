@@ -82,6 +82,9 @@
   }
 
   function bindFinishAccount() {
+    /* Subscription agents are connected after setup, in the app's Settings >
+       Modelo > Agente por assinatura. The wizard never does in-wizard sign-in
+       for this edition. */
     var provider = draft.model.mode;
     if (provider !== "claude-code" && provider !== "chatgpt-plan") { return; }
     ensureAdmin();

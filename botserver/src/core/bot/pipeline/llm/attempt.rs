@@ -14,6 +14,9 @@ pub(super) enum AttemptOutcome {
     Stopped,
     /// The per-run cap was hit and reported; the run ends.
     Capped,
+    /// The turn is refused for a reason only the person can clear (a spent
+    /// subscription plan); it is never retried.
+    Refused(super::refusal::RefusalError),
     /// The LLM provider returned an error (classified for the client).
     Failed {
         code: super::error_classify::LlmErrorCode,
@@ -44,6 +47,8 @@ pub(super) struct Attempt<'a> {
     pub style_css: &'a str,
     pub budget: &'a mut RunBudget,
     pub attempt: usize,
+    pub engine_type: Option<&'a str>,
+    pub engine_provider: Option<&'a str>,
 }
 
 /// Aborts a spawned task when dropped, ensuring the LLM HTTP request and the
@@ -75,6 +80,8 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         style_css,
         budget,
         attempt,
+        engine_type,
+        engine_provider,
     } = request;
 
     let mut full_response = String::new();
@@ -140,7 +147,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             log::warn!("attempt: init frame not delivered: {e}");
         }
     } else {
-        log::warn!("LLM retry attempt {}/{}", attempt, super::LLM_RETRY_MAX);
+        log::warn!("LLM attempt {}/{} (retry)", attempt + 1, super::LLM_RETRY_MAX + 1);
     }
 
     // #1700 — first content chunk latency for this attempt.
@@ -182,8 +189,14 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             chunk = retry_rx.recv() => {
                 match chunk {
                     Some(chunk) => {
+                        crate::core::bot::pipeline::turn_progress::touch(session_id_s);
                         // #2562 — detect error sentinel from the LLM task.
                         if let Some(err_msg) = super::error_classify::parse_sentinel(&chunk) {
+                            if let Some(refusal) = super::agent_limit::refusal_for(err_msg)
+                                .or_else(|| super::refusal::from_coded(err_msg))
+                            {
+                                return AttemptOutcome::Refused(refusal);
+                            }
                             let code = super::error_classify::classify(err_msg);
                             return AttemptOutcome::Failed {
                                 code,
@@ -216,6 +229,21 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                 }
                             }
                             continue;
+                        }
+                        if chunk.contains(botllm::claude::web_search::WEB_STEP_MARKER) {
+                            use crate::core::bot::pipeline::native_tools::web_steps;
+                            if let Some((tool, text, sites, ok)) = web_steps::parse_marker(&chunk) {
+                                botlog::safe_info!(
+                                    "web step from the model: tool={tool} ok={ok} sites={} {}",
+                                    sites.len(),
+                                    web_steps::query_fingerprint(&text)
+                                );
+                                let run = crate::core::bot::pipeline::event_sink::RunContext::new(session_id_s, "chat")
+                                    .with_state(state.clone())
+                                    .with_scope(bot_uuid, user_id, None);
+                                web_steps::noted_on(sink, run, tool, &text, ok, &sites).await;
+                                continue;
+                            }
                         }
                         if chunk.contains("\"__tool_call__\"") {
                             // Each __tool_call__ chunk arrives as one

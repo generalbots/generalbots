@@ -1,0 +1,44 @@
+{
+  "productName": "General Bots",
+  "identifier": "org.generalbots.botapp",
+  "bundle": {
+    "targets": [
+      "nsis",
+      "msi"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "resources": {
+      "../botserver/.product.gbgov": ".product.gbgov",
+      "../botserver/botserver-installers/*": "installers/",
+      "../botui/ui": "ui"
+    },
+    "externalBin": [
+      "binaries/botserver"
+    ],
+    "windows": {
+      "nsis": {
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
+        "displayLanguageSelector": true,
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "language": [
+          "pt-BR",
+          "en-US"
+        ]
+      }
+    },
+    "shortDescription": "General Bots — assistant with Chat and Drive",
+    "longDescription": "Desktop assistant with Chat and Drive that runs on the person's own computer.",
+    "category": "Productivity",
+    "copyright": "© 2026 Pragmatismo.cloud. All rights reserved.",
+    "publisher": "Pragmatismo"
+  }
+}

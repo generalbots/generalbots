@@ -2,7 +2,7 @@
 //!
 //! The Drive bridge moves bytes between an object store and the user's agent
 //! container. Container IO runs through `vm::exec_in_vm`; this module only owns
-//! path validation, chunked writes and base64 reads.
+//! path validation, writes fed through standard input and base64 reads.
 
 use axum::http::StatusCode;
 use base64::Engine;
@@ -16,9 +16,8 @@ use crate::AgentService;
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
 pub const MAX_TURN_BYTES: usize = 200 * 1024 * 1024;
 
-/// Base64 characters per exec: big enough to keep the round-trip count low,
-/// small enough to stay well under the kernel argument limit.
-const CHUNK: usize = 60_000;
+/// Longest a single file write may take (100 MB through the WSL pipe).
+const WRITE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
 #[derive(Debug, Clone)]
 pub struct FolderFile {
@@ -133,46 +132,20 @@ pub async fn write_file(
         .rsplit_once('/')
         .map(|(dir, _)| dir.to_string())
         .unwrap_or(folder);
-    let tmp = format!("{target}.b64tmp");
-    let prep = format!(
-        "mkdir -p {parent} && : > {tmp}",
+    // One exec, the bytes on standard input: no piece of the file ever
+    // travels as a shell argument (the guard caps a script at 16 KB).
+    let tmp = format!("{target}.gbpart");
+    let script = format!(
+        "mkdir -p {parent} && cat > {tmp} && mv -f {tmp} {target}",
         parent = shell_quote(&parent),
-        tmp = shell_quote(&tmp)
-    );
-    let (ok, _, stderr) = run(state, vm_name, prep, 30_000).await?;
-    if !ok {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("failed to prepare target: {}", stderr.trim()),
-        ));
-    }
-
-    let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
-    let raw = encoded.as_bytes();
-    let mut offset = 0;
-    while offset < raw.len() {
-        let end = (offset + CHUNK).min(raw.len());
-        let chunk = &encoded[offset..end];
-        let cmd = format!("printf '%s' '{chunk}' >> {tmp}", tmp = shell_quote(&tmp));
-        let (ok, _, stderr) = run(state, vm_name, cmd, 30_000).await?;
-        if !ok {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("failed to write chunk: {}", stderr.trim()),
-            ));
-        }
-        offset = end;
-    }
-    let finish = format!(
-        "base64 -d {tmp} > {target} && rm -f {tmp}",
         tmp = shell_quote(&tmp),
         target = shell_quote(&target)
     );
-    let (ok, _, stderr) = run(state, vm_name, finish, 60_000).await?;
+    let (ok, _, stderr) = vm::exec_in_vm_with_input(state, vm_name, &script, bytes.to_vec(), WRITE_TIMEOUT).await?;
     if !ok {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("failed to decode file: {}", stderr.trim()),
+            format!("failed to write file: {}", stderr.trim()),
         ));
     }
     Ok(bytes.len())

@@ -6,6 +6,8 @@ pub mod installer;
 pub mod os;
 pub mod safe_staging;
 pub mod setup;
+pub mod server_token;
+pub mod openbao_boot;
 pub mod alm_setup;
 
 // #1347/#1732 — the plugin registry's single implementation lives in

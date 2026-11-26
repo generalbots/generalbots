@@ -4,11 +4,13 @@
 //! only reached Drive when the user clicked Save/Open or the model remembered
 //! to call `drive_save`. Closing the conversation threw the artifact away.
 //!
-//! At the end of a turn that produced files, this module publishes the new or
-//! changed ones through [`drive_bridge::save_object`] (the same bridge the
-//! Save button uses) and attaches the resulting `vmfile:` link to the turn, so
-//! the chat shows the attachment card for a file that now outlives the
-//! session folder.
+//! When a step leaves new or changed files in `output/`, the person is asked
+//! inside the turn ([`offer_in_turn`]); allowed files are written into the
+//! person's own Drive area, `Conversas/<title>-<id8>/` ([`person_drive`]). At
+//! the end of the turn the resulting `vmfile:` links are attached, so the chat
+//! shows the attachment card for a file that now outlives the session folder.
+//! The turn's end never asks: it copies only on a stored conversation grant
+//! and lists the other new files as not saved (see `offer`).
 //!
 //! Rules:
 //! - **Bounded.** At most [`MAX_PUBLISH_FILES`] files, [`MAX_PUBLISH_FILE_BYTES`]
@@ -204,7 +206,8 @@ pub fn candidates(files: &[OutputFile], seen: &HashMap<String, PublishedFile>) -
 #[async_trait]
 pub trait ArtifactPublisher: Send + Sync {
     async fn read(&self, name: &str) -> Result<Vec<u8>, String>;
-    /// Returns `bucket/key`, or `None` when Drive is unavailable.
+    /// Returns the file's path in the person's Drive, or `None` when Drive is
+    /// unavailable.
     async fn publish(&self, name: &str, bytes: Vec<u8>) -> Option<String>;
 }
 

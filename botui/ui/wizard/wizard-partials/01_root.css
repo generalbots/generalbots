@@ -1,28 +1,10 @@
-/* First-run wizard — static, OS-neutral, no external assets. */
-:root {
-  color-scheme: light;
-  --bg: #ffffff;
-  --surface: #f6f6f7;
-  --surface-2: #ececef;
-  --border: #e2e2e7;
-  --text: #16161a;
-  --muted: #6b6b75;
-  --accent: #16161a;
-  --accent-ink: #ffffff;
-  --danger: #b3352a;
-  --warn: #9a6200;
-  --ok: #1f7a4d;
-  /* Graphite rail (the site's black-and-white lockup sits on it). */
-  --rail-bg: #151517;
-  --rail-surface: #1f1f23;
-  --rail-border: #2e2e34;
-  --rail-text: #f7f7f7;
-  --rail-muted: #a6a6ae;
-  /* The thin section rule used across generalbots.org. */
-  --rainbow: linear-gradient(90deg, #ff4d00, #fbbf24, #10b981, #06b6d4, #6366f1, #ec4899, #ff4d00);
-  --radius: 12px;
-  --focus: 0 0 0 3px rgba(22, 22, 26, 0.18);
-}
+/*
+ * First-run wizard — base layout, controls and structure.
+ *
+ * Uses --id-* tokens from /suite/identity/tokens.css directly. No legacy
+ * colour variables. The identity overlay (03_identity.css) adds the edition's
+ * visual language on top.
+ */
 
 * { box-sizing: border-box; }
 
@@ -33,20 +15,14 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.5 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  background: var(--id-paper);
+  color: var(--id-ink);
+  font-family: var(--id-font);
+  font-size: var(--id-text-base);
+  line-height: 1.55;
 }
 
-/* A little rainbow line, as on generalbots.org. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--rainbow);
-  z-index: 60;
-}
+body::before { display: none; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 
@@ -57,92 +33,95 @@ button, input, select, textarea { font: inherit; color: inherit; }
   height: 100vh;
   min-height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--id-paper);
 }
 
 /* ---------- left rail ---------- */
 .rail {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 24px 18px;
-  border-right: 1px solid var(--rail-border);
-  background: linear-gradient(180deg, #19191c, var(--rail-bg));
-  color: var(--rail-text);
+  gap: var(--id-space-5);
+  padding: var(--id-space-6) var(--id-space-5);
+  border-right: var(--id-stroke) solid var(--id-line);
+  background: var(--id-surface);
+  color: var(--id-ink);
 }
 
+/* -- Brand block: the same lockup the app's title bar shows ---- */
 .rail-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
   min-height: 30px;
+}
+.rail-brand .id-lockup { --lockup-h: 18px; }
+
+/* -- Section label: // CONFIGURACAO INICIAL ---- */
+.rail-section-label {
+  font-family: var(--id-font-mono);
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.2px;
-}
-/* Both official variants: the mark alone and the text lockup. */
-.rail-mark {
-  height: 22px;
-  width: auto;
-  flex: 0 0 auto;
-  filter: brightness(0) invert(1);
-}
-.rail-wordmark {
-  height: 10px;
-  width: auto;
-  max-width: 140px;
-  filter: brightness(0) invert(1);
+  letter-spacing: .06em;
+  color: var(--id-muted);
+  margin-top: var(--id-space-2);
 }
 
+/* -- Step list: rows with right-aligned mono two-digit numbers ---- */
 .rail-steps {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
 .rail-step {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: var(--id-space-3);
   padding: 8px 10px;
-  border-radius: 10px;
-  color: var(--rail-muted);
-  border: 1px solid transparent;
+  color: var(--id-muted);
+  border: none;
+  border-left: 2px solid transparent;
+  transition: background-color var(--id-dur-fast) var(--id-ease-standard),
+              border-color var(--id-dur-fast) var(--id-ease-standard);
 }
-.rail-step .num {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  border: 1px solid var(--rail-border);
-  font-size: 16px;
-  font-weight: 700;
+.rail-step + .rail-step {
+  border-top: var(--id-stroke) solid var(--id-line);
+}
+.rail-step-name {
+  font-size: var(--id-text-sm);
+  font-weight: 500;
+}
+.rail-step-num {
+  font-family: var(--id-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--id-muted);
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
-.rail-step .name { font-size: 13px; font-weight: 500; }
 .rail-step[aria-current="step"] {
-  color: var(--rail-text);
-  background: var(--rail-surface);
-  border-color: var(--rail-border);
+  color: var(--id-ink);
+  background: var(--id-accent-soft);
+  border-left-color: var(--id-accent);
 }
-.rail-step[aria-current="step"] .num {
-  border-color: var(--rail-text);
-  color: var(--rail-text);
+.rail-step[aria-current="step"] .rail-step-num {
+  color: var(--id-accent-text);
 }
-.rail-step.done { color: var(--rail-text); }
-.rail-step.done .num {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--rail-text);
-  color: var(--rail-text);
+.rail-step.done {
+  color: var(--id-text);
+}
+.rail-step.done .rail-step-num {
+  color: var(--id-accent-text);
 }
 
 .rail-note {
   margin-top: auto;
-  font-size: 11.5px;
-  color: var(--rail-muted);
+  font-size: 11px;
+  color: var(--id-muted);
   line-height: 1.45;
 }
 
@@ -152,65 +131,79 @@ button, input, select, textarea { font: inherit; color: inherit; }
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--bg);
+  background: transparent;
 }
 
 .pane-head {
-  padding: 20px 32px 0;
+  padding: var(--id-space-5) var(--id-space-8) 0;
   position: relative;
 }
+
 /* Language selector: always available, including the very first screen. */
 .pane-lang {
   position: absolute;
   top: 18px;
-  right: 32px;
+  right: var(--id-space-8);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--id-space-2);
 }
 .pane-lang label {
-  font-size: 12px;
+  font-size: var(--id-text-sm);
   font-weight: 600;
-  color: var(--muted);
+  color: var(--id-muted);
 }
+/* Styled select matching the app's control pattern: same border, radius, height
+   and focus ring as .gb-set-lang-btn. The native arrow is kept but re-coloured. */
 .pane-lang select {
-  padding: 6px 28px 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 12.5px;
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: var(--id-stroke) solid var(--id-line);
+  border-radius: var(--id-radius-sm);
+  background: var(--id-surface-solid);
+  color: var(--id-ink);
+  font: 500 var(--id-text-sm) var(--id-font);
   cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23737373' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  box-shadow: var(--id-shadow-btn);
+  transition: background-color var(--id-dur-fast), border-color var(--id-dur-fast);
 }
+.pane-lang select:hover { background: var(--id-fill); }
 .pane-lang select:focus-visible {
   outline: none;
-  box-shadow: var(--focus);
-}
-.step-counter {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--muted);
+  box-shadow: var(--id-focus);
 }
 
-/* Full General Bots lockup (mark + wordmark) on the welcome screen. */
-.brand-hero {
-  display: flex;
-  justify-content: center;
-  padding: 0 0 10px;
+/* Step counter: // STEP N OF M in mono caps (Mantis label pattern). */
+.step-counter {
+  margin: 0 0 var(--id-space-1);
+  font-family: var(--id-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--id-accent-text);
 }
-.brand-hero img {
-  width: 132px;
-  height: auto;
-  filter: brightness(0);
+/* The // marker: same pattern everywhere (step counter, engine labels, rail). */
+.wiz-sl {
+  font-family: "Open Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--id-muted);
+  margin-right: 6px;
 }
+
 .step-heading {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -1.1px;
+  color: var(--id-ink);
+  font-family: var(--id-font);
   outline: none;
 }
 
@@ -218,40 +211,101 @@ button, input, select, textarea { font: inherit; color: inherit; }
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px 32px 16px;
+  padding: var(--id-space-3) var(--id-space-8) var(--id-space-4);
+  display: flex;
+  flex-direction: column;
 }
 
-.lead { margin: 0 0 12px; color: var(--muted); max-width: 62ch; }
+.lead {
+  margin: 0 0 var(--id-space-3);
+  color: var(--id-text);
+  font-size: var(--id-text-md);
+  line-height: 1.55;
+  max-width: 62ch;
+}
 
 /* ---------- controls ---------- */
-.field-grid { display: flex; flex-direction: column; gap: 12px; max-width: 620px; }
+.field-grid { display: flex; flex-direction: column; gap: var(--id-space-3); max-width: 620px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field > label, .field-label { font-size: 12.5px; font-weight: 600; }
-.field .hint { font-size: 12px; color: var(--muted); }
-.field input[type="text"], .field input[type="password"], .field select, .field input[type="number"] {
-  padding: 10px 12px;
-  border-radius: 9px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  outline: none;
+.field > label, .field-label {
+  font-size: var(--id-text-sm);
+  font-weight: 600;
+  color: var(--id-ink);
 }
-.field input:focus, .field select:focus { border-color: var(--accent); box-shadow: var(--focus); }
-.field input[aria-invalid="true"] { border-color: var(--danger); }
+.field .hint {
+  font-size: var(--id-text-sm);
+  color: var(--id-muted);
+}
+.field input[type="text"],
+.field input[type="password"],
+.field input[type="email"],
+.field input[type="number"],
+.field select {
+  padding: 10px 12px;
+  border-radius: var(--id-radius-control);
+  border: var(--id-stroke) solid var(--id-line);
+  background: var(--id-surface);
+  font-family: var(--id-font);
+  outline: none;
+  transition: border-color var(--id-dur-fast);
+}
+.field input:focus, .field select:focus {
+  border-color: var(--id-accent);
+  box-shadow: var(--id-focus);
+}
+.field input[aria-invalid="true"] { border-color: var(--id-danger); }
 
-.choice-list { display: grid; gap: 8px; }
+.choice-list { display: grid; gap: var(--id-space-2); }
 .choice {
   display: flex;
-  gap: 12px;
+  gap: var(--id-space-3);
   align-items: flex-start;
   padding: 11px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: var(--id-stroke) solid var(--id-line);
+  border-radius: var(--id-radius-control);
+  background: var(--id-surface);
   cursor: pointer;
   text-align: left;
+  transition: border-color var(--id-dur-fast), box-shadow var(--id-dur-fast);
 }
-.choice:hover { border-color: #b9b9c2; }
-.choice.selected { border-color: var(--accent); background: #f1f1f4; }
-.choice input { margin-top: 3px; accent-color: var(--accent); }
+.choice:hover { border-color: var(--id-gray-300); }
+.choice.selected {
+  border-color: var(--id-accent);
+  background: var(--id-accent-soft);
+  box-shadow: 0 0 0 1px var(--id-accent);
+}
+.choice input { margin-top: 3px; accent-color: var(--id-accent); }
 .choice .choice-title { display: block; font-weight: 600; margin-bottom: 2px; }
-.choice .choice-desc { display: block; font-size: 12.5px; color: var(--muted); }
+.choice .choice-desc { display: block; font-size: var(--id-text-sm); color: var(--id-muted); }
+
+/* -- Narrow window: rail becomes a horizontal strip --------------------- */
+@media (max-width: 900px) {
+  .wizard { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .rail {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: var(--id-space-3) var(--id-space-4);
+    border-right: 0;
+    border-bottom: var(--id-stroke) solid var(--id-line);
+    overflow-x: auto;
+  }
+  .rail-brand .id-lockup { --lockup-h: 14px; }
+  .rail-note, .rail-section-label { display: none; }
+  .rail-steps { flex-direction: row; gap: var(--id-space-1); }
+  .rail-step {
+    padding: var(--id-space-1) 6px;
+    border-left: none;
+    border-top: none !important;
+    border-bottom: 2px solid transparent;
+  }
+  .rail-step[aria-current="step"] { border-left-color: transparent; border-bottom-color: var(--id-accent); }
+  .rail-step-name { display: none; }
+  .rail-step-num { font-size: 12px; }
+  .pane-head { padding: var(--id-space-5) var(--id-space-4) 0; }
+  .pane-lang { top: 14px; right: var(--id-space-4); }
+  .pane-lang label { display: none; }
+  .pane-body { padding: var(--id-space-3) var(--id-space-4) var(--id-space-5); }
+  .pane-foot { padding: 12px var(--id-space-4); }
+  .step-heading { font-size: var(--id-text-2xl); }
+}

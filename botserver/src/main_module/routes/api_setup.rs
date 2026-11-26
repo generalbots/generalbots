@@ -32,6 +32,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
                 .put(super::appearance::handle_put_appearance),
         )
         .route(
+            "/api/settings/chat-profile",
+            get(super::chat_profile::get).put(super::chat_profile::put),
+        )
+        .route(
             "/api/settings/custom-instructions",
             get(super::custom_instructions::handle_get)
                 .put(super::custom_instructions::handle_put),
@@ -301,6 +305,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route(
                 "/api/files/public/:token",
                 axum_get(crate::drive::drive_handlers::public_link_download),
+            )
+            .route(
+                "/api/agent/drive/conversations",
+                axum_get(super::agent_drive_files::list_conversation_folders),
+            )
+            .route(
+                "/api/agent/drive/file",
+                axum_get(super::agent_drive_files::conversation_file),
             );
         #[cfg(feature = "agent-vm")]
         {
@@ -325,6 +337,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     // Merged here (not in the feature-gated drive block) because the backing
     // tables are created at boot regardless of the `drive` feature.
     api_router = api_router.merge(botdrive::external::routes::configure());
+    #[cfg(feature = "llm")]
+    {
+        api_router = api_router.merge(super::llm_limits::router());
+    }
     // Subscription accounts run inside the agent workspace.
     #[cfg(feature = "agent-vm")]
     {

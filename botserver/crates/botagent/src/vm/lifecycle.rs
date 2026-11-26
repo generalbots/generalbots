@@ -29,7 +29,7 @@ use super::{
 /// launch/row update and the user saw the generic "Agent VM operation failed"
 /// on the first cold start (issue #1798). The second call now waits for the
 /// first provisioning to finish and then observes the RUNNING row.
-fn provision_lock(user_id: &Uuid) -> Arc<tokio::sync::Mutex<()>> {
+pub(super) fn provision_lock(user_id: &Uuid) -> Arc<tokio::sync::Mutex<()>> {
     static LOCKS: OnceLock<StdMutex<HashMap<String, Weak<tokio::sync::Mutex<()>>>>> =
         OnceLock::new();
     let map = LOCKS.get_or_init(|| StdMutex::new(HashMap::new()));
@@ -47,6 +47,13 @@ fn provision_lock(user_id: &Uuid) -> Arc<tokio::sync::Mutex<()>> {
     let lock = Arc::new(tokio::sync::Mutex::new(()));
     guard.insert(key, Arc::downgrade(&lock));
     lock
+}
+
+/// True while an `ensure_vm` for this user holds the provisioning lock, i.e.
+/// the workspace is being checked, started or provisioned right now. Status
+/// reads use it to answer "starting" instead of queueing more Incus calls.
+pub fn start_in_progress(user_id: &Uuid) -> bool {
+    provision_lock(user_id).try_lock().is_err()
 }
 
 // ─── Core: per-user VM guarantee ──────────────────────────────────────────
@@ -349,7 +356,7 @@ pub fn get_user_vm(
 
 #[cfg(test)]
 mod provision_lock_tests {
-    use super::provision_lock;
+    use super::{provision_lock, start_in_progress};
     use std::sync::Arc;
     use uuid::Uuid;
 
@@ -366,5 +373,16 @@ mod provision_lock_tests {
         let first = provision_lock(&Uuid::new_v4());
         let second = provision_lock(&Uuid::new_v4());
         assert!(!Arc::ptr_eq(&first, &second));
+    }
+
+    #[tokio::test]
+    async fn a_held_provision_lock_reads_as_starting() {
+        let user = Uuid::new_v4();
+        assert!(!start_in_progress(&user));
+        let lock = provision_lock(&user);
+        let guard = lock.lock().await;
+        assert!(start_in_progress(&user));
+        drop(guard);
+        assert!(!start_in_progress(&user));
     }
 }

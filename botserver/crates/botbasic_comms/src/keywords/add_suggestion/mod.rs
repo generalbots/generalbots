@@ -8,9 +8,17 @@ pub(crate) use serde_json::json;
 pub(crate) use std::sync::Arc;
 pub(crate) use std::time::Duration;
 
+/// Bound for each read and write on the blocking connection.
+const REPLY_TIMEOUT: Duration = Duration::from_millis(500);
+
+/// The reads run on the chat turn's async worker: a server that accepts the
+/// connection and never answers must not hold that worker (and the turn).
 fn get_redis_connection(cache_client: &Arc<redis::Client>) -> Option<redis::Connection> {
     let timeout = Duration::from_millis(50);
-    cache_client.get_connection_with_timeout(timeout).ok()
+    let conn = cache_client.get_connection_with_timeout(timeout).ok()?;
+    conn.set_read_timeout(Some(REPLY_TIMEOUT)).ok()?;
+    conn.set_write_timeout(Some(REPLY_TIMEOUT)).ok()?;
+    Some(conn)
 }
 
 #[derive(Debug, Clone)]
