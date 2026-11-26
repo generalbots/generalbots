@@ -35,6 +35,10 @@ window.clearBlockedChatTurn = clearBlockedChatTurn;
   }
 })();
 
+// A terminal probe can strand a composed message after the composer was cleared.
+function gbRestoreBlockedComposer() { var i = document.getElementById("messageInput"), p = ChatState.lastUserTurnPayload; if (!i || !p || !p.content || i.value) return false; i.value = p.content; if (Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = ChatState.offlineQueue.filter(function (q) { return q !== p; }); ChatState.lastUserTurnPayload = null; return true; }
+window.gbRestoreBlockedComposer = gbRestoreBlockedComposer;
+
 function armChatPending(text) {
   clearChatPending();
   ChatState.pendingResponseAt = Date.now();
@@ -128,8 +132,7 @@ function sendMessage(messageContent, extra) {
     input.focus({ preventScroll: true });
   }
 
-  // #2163 — read the reader's position BEFORE the new bubble changes the
-  // scroll height, so sending never yanks someone who scrolled up to read.
+  // #2163 — capture scroll position before the bubble changes scroll height.
   var wasAtBottom = true;
   var pane = document.getElementById("messages");
   if (pane) wasAtBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 80;
@@ -237,11 +240,8 @@ function sendMessage(messageContent, extra) {
       }
     }
   }
-  // The vibe shell knows the running project even when the mention picker
-  // never loaded its catalog: a typed (or toolbar pre-filled) `@<project>`
-  // resolves against the SELECTED project, so the message carries
-  // project_context and the server routes it deterministically to the vibe
-  // agent instead of the bot's generic LLM answering with a clarification.
+  // The vibe shell resolves a typed `@<project>` against the SELECTED project
+  // even without a loaded catalog, so the server routes it to the vibe agent.
   if (!projectMention && typeof window.currentProjectId !== "undefined" && window.currentProjectId) {
     var vibeName = String(window.currentProject || "").trim();
     var vibeMatch = content.match(/(?:^|\s)@([A-Za-z0-9][A-Za-z0-9_.-]*)/);
@@ -277,12 +277,9 @@ function sendMessage(messageContent, extra) {
   var finalSend = function () {
     var sentPayload = payload;
     ChatState.ws.send(JSON.stringify(sentPayload));
-    // `file` is not defined in this scope: referencing it threw a
-    // ReferenceError right after ws.send and skipped the delivery guard.
+    // A stray `file` reference here threw and skipped the delivery guard.
     armChatPending(content || "");
-    // Delivery guard: a send that never reaches the server used to look like a
-    // bot that ignores the user. Watch for any frame of this conversation for
-    // a few seconds; if nothing arrives, reopen the socket and resend once.
+    // Delivery guard: no server receipt within seconds means reopen and resend once.
     ChatState.pendingSend = {
       payload: sentPayload,
       at: Date.now(),
@@ -386,9 +383,5 @@ function sendMessage(messageContent, extra) {
   }
 }
 
-// #1275 — messages composed while the socket is down are kept here (most
-// recent last) and flushed in order after the WebSocket reconnects. The
-// queue is capped so a stuck socket cannot grow memory without bound.
-// Shared by the composer chip and the send path: it used to live inside the
-// file-button IIFE, so `sendMessage` threw "formatAttachSize is not defined"
-// as soon as a file was attached and the message never left the browser.
+// #1275 — messages composed while the socket is down are kept here, flushed in order on
+// reconnect and capped at 50 so a stuck socket cannot grow memory without bound.

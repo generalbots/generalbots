@@ -21,10 +21,13 @@
  *   (b) the block branch precedes every turn/queue call and never queues;
  *   (c) late auth_required / probe_error handlers also reset state;
  *   (d) only an existing i18n key is reused (all catalogs verified);
- *   (e) runtime: auth_required -> reset + restored composer + one error toast,
+ *   (e) probe_failed is cleared at its source, even when connectWebSocket_b's
+ *       seq guard drops the callback so no UI handler runs;
+ *   (f) a terminal access state never queues or promises "will be sent";
+ *   (g) runtime: auth_required -> reset + restored composer + one error toast,
  *       no turn, no send, no retry; probe_error -> reset, no turn; allowed ->
- *       the authenticated send path is untouched;
- *   (f) non-vacuity: small modules, pinned APIs, guard-75 .focus() count,
+ *       the authenticated send path is untouched; stranded payload is dropped;
+ *   (h) non-vacuity: small modules, pinned APIs, guard-75 .focus() count,
  *       runner require.
  *
  * GB_CHAT_ACCESS_PROBE_ROOT can point at a /tmp tree for mutation probes
@@ -120,6 +123,42 @@ h.staticTest("late auth denial and probe failure also clear a stuck turn", funct
   contains(helper, 'gbT("' + KEY + '", "' + FALLBACK + '")',
     "the one existing catalogue lookup for the auth message lives here");
   h.assertEqual(countIn(src, 'gbT("' + KEY + '"'), 1, "exactly one gbT call for " + KEY + " in the WS module");
+});
+
+h.staticTest("probe_failed is resolved at its source, before a stale callback can drop it", function () {
+  var ws = readSrc(WS_A);
+  var probe = span(ws, "function probeBotAccess(done) {", "function chatPrivateSigninMessage()");
+  h.assert(probe.indexOf('throw new Error("probe_failed")') !== -1,
+    "non-vacuity: the failed-probe signal is still raised here");
+  var caught = span(probe, ".catch(function (err) {", "    });");
+  contains(caught, 'ChatState.botAccess = "probe_error"', "failure is recorded even without a UI handler");
+  contains(caught, "window.clearBlockedChatTurn();", "the stuck turn clears at the source");
+  contains(caught, "window.gbRestoreBlockedComposer()", "the stranded composer text is restored");
+  contains(caught, "Failed to connect to chat server", "an honest failure replaces the optimistic toast");
+  var atClear = caught.indexOf("window.clearBlockedChatTurn();");
+  var atDone = caught.indexOf("done(\"probe_error\")");
+  h.assert(atClear !== -1 && atDone > atClear,
+    "reset must run before handing the result to a possibly-stale callback");
+  var send = readSrc(SEND_A);
+  h.assert(send.indexOf("function gbRestoreBlockedComposer()") !== -1 &&
+    send.indexOf("window.gbRestoreBlockedComposer = gbRestoreBlockedComposer;") !== -1,
+    "composer recovery helper is shipped and shared");
+  contains(send, "ChatState.offlineQueue.filter(", "a stranded payload is not left queued for a later send");
+});
+
+h.staticTest("offline queue never promises delivery in a terminal access state", function () {
+  var src = readSrc(SEND_B);
+  var queue = span(src, "function queueOfflineMessage(payload) {", "// #2155 UI-REG-01b");
+  contains(queue, 'ChatState.botAccess === "auth_required" || ChatState.botAccess === "probe_error"',
+    "terminal access gates the optimistic path");
+  var atGate = queue.indexOf("if (ChatState.botAccess ===");
+  var atReturn = queue.indexOf("return;", atGate);
+  var atPromise = queue.indexOf("chat-reconnecting-queued", atGate);
+  h.assert(atGate !== -1 && atReturn > atGate && atPromise > atReturn,
+    "the delivery promise must be unreachable after the terminal gate");
+  contains(queue, "window.gbRestoreBlockedComposer()", "queued text is put back in the composer");
+  contains(queue, "window.clearBlockedChatTurn()", "the stuck turn is cleared without a socket");
+  contains(queue, "chat-reconnecting-queued", "normal reconnect keeps its existing queued toast");
 });
 
 h.staticTest("the reused auth-failure key is catalogued in all eight locales", function () {
@@ -230,6 +269,65 @@ h.test("allowed access keeps the authenticated send path unchanged", function ()
   h.assertEqual(t.calls.notify.length, 0, "no auth failure for a signed-in user");
 });
 
+/** Probe sandbox: real shipped WS module, failing /api/bot/public fetch. */
+function makeProbe(composerRestored) {
+  var calls = { reset: 0, restored: 0, notify: [] };
+  var state = { botAccess: null, currentBotName: "default", offlineQueue: [] };
+  var sandbox = {
+    console: { warn: function () {}, error: function () {}, info: function (m) { calls.notify.push({ message: m, type: "info" }); } },
+    Math: Math, Date: Date, JSON: JSON, Array: Array, Object: Object, String: String,
+    encodeURIComponent: encodeURIComponent,
+    ChatState: state,
+    gbT: function (key, fallback) { return "LOC:" + key + ":" + fallback; },
+    fetch: function () { return { then: function () { return this; }, catch: function (fn) { fn(new Error("probe_failed")); return this; } }; },
+  };
+  sandbox.window = sandbox;
+  sandbox.window.GBSecurity = { getToken: function () { return null; } };
+  sandbox.window.clearBlockedChatTurn = function () { calls.reset++; };
+  sandbox.window.gbRestoreBlockedComposer = function () { calls.restored++; return composerRestored; };
+  h.vm.createContext(sandbox);
+  h.vm.runInContext(readSrc(WS_A), sandbox, { filename: WS_A });
+  return { sandbox: sandbox, state: state, calls: calls };
+}
+
+h.test("probe_failed clears the stuck turn even when a later dial drops the callback", function () {
+  var t = makeProbe(true);
+  // Simulate connectWebSocket_b's seq guard: the done() result is ignored, so
+  // showProbeError()/showAuthRequired() never get a chance to reset anything.
+  t.sandbox.probeBotAccess(function () { /* stale callback */ });
+  h.assertEqual(t.calls.reset, 1, "reset ran at the probe source, not in a stale UI handler");
+  h.assertEqual(t.calls.restored, 1, "composer recovery was attempted at the source");
+  h.assertEqual(t.state.botAccess, "probe_error", "the terminal state is still recorded");
+  h.assertEqual(t.calls.notify.length, 1, "one honest failure is surfaced");
+  h.assert(t.calls.notify[0].message.indexOf("LOC:chat-connect-retrying:") === 0,
+    "the failure reuses an existing catalogue key: " + t.calls.notify[0].message);
+});
+
+h.test("terminal access does not queue or promise a delivery that cannot happen", function () {
+  var t = makeChat("auth_required", false);
+  var payload = { content: "stranded text" };
+  t.state.lastUserTurnPayload = payload;
+  t.sandbox.queueOfflineMessage(payload);
+  h.assertEqual(t.state.offlineQueue.length, 0, "the message was not queued");
+  h.assertEqual(t.input.value, "stranded text", "the typed text is back in the composer");
+  h.assertEqual(t.calls.notify.length, 1, "one visible failure");
+  h.assert(t.calls.notify[0].message.indexOf("LOC:" + KEY + ":") === 0,
+    "the existing auth-failure key is used: " + t.calls.notify[0].message);
+  h.assert(t.calls.notify[0].message.indexOf("will be sent when the connection is back") === -1,
+    "no false reconnect promise");
+});
+
+h.test("composer recovery is idempotent and drops the stranded payload", function () {
+  var t = makeChat("probe_error", false);
+  var payload = { content: "stranded" };
+  t.state.lastUserTurnPayload = payload;
+  t.state.offlineQueue = [payload];
+  h.assertEqual(t.sandbox.gbRestoreBlockedComposer(), true, "recovery applies to a stranded turn");
+  h.assertEqual(t.input.value, "stranded", "text restored to the composer");
+  h.assertEqual(t.state.offlineQueue.length, 0, "payload removed so a later socket cannot duplicate it");
+  h.assertEqual(t.sandbox.gbRestoreBlockedComposer(), false, "a second call is a no-op");
+});
+
 h.staticTest("non-vacuity: shipped modules, pinned APIs and required guard", function () {
   [SEND_A, SEND_B, WS_A, INIT_A].forEach(function (rel) {
     var src = readSrc(rel);
@@ -239,6 +337,7 @@ h.staticTest("non-vacuity: shipped modules, pinned APIs and required guard", fun
   contains(readSrc(SEND_A), "function sendMessage(messageContent, extra) {", "send API preserved");
   contains(readSrc(SEND_A), "function armChatPending(text) {", "pending watchdog preserved");
   contains(readSrc(SEND_B), 'window.sendMessage = sendMessage;', "global send export preserved");
+  contains(readSrc(SEND_B), "function queueOfflineMessage(payload) {", "offline queue API preserved");
   contains(readSrc(WS_A), "function showBotUnavailable(botName) {", "missing-bot handler preserved");
   h.assertEqual(countIn(readSrc(INIT_A), ".focus("), 1,
     "guard 75's single-focus pin in chat-init_a is untouched");

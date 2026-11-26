@@ -144,8 +144,10 @@ function probeBotAccess(done) {
       done(ChatState.botAccess);
     })
     .catch(function (err) {
-      // Fail closed: an unreachable or invalid probe must not be treated as public.
+      // Fail closed at the SOURCE: connectWebSocket may drop this callback via seq.
       ChatState.botAccess = "probe_error";
+      if (typeof window.clearBlockedChatTurn === "function") window.clearBlockedChatTurn();
+      if (typeof window.gbRestoreBlockedComposer === "function" && window.gbRestoreBlockedComposer()) notify(chatFriendlyError("Failed to connect to chat server"), "error");
       console.warn("[WS] bot access probe failed for '" + bot + "':", err);
       done("probe_error");
     });
