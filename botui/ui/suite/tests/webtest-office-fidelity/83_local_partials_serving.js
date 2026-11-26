@@ -138,7 +138,11 @@ h.staticTest("#2935 local serving is restricted to static suite suffixes, never 
   contains(gate, "Method::GET", "only GET requests are eligible");
   contains(gate, "Method::HEAD", "HEAD requests are eligible");
   contains(gate, 'strip_prefix("/suite/")', "the path must be under /suite/");
-  contains(gate, "LOCAL_SEGMENTS.contains(&kind)", "the segment allowlist must be enforced");
+  // #2471 — the top-level /suite/partials/<file> nest is also served locally;
+  // the predicate resolves `kind` from either the second or the first segment,
+  // then enforces the same allowlist. See 99_monitoring_partials_route.js.
+  contains(gate, "(_, Some(segment)) if LOCAL_SEGMENTS.contains(&segment)",
+    "the segment allowlist must be enforced on the nested shape");
   contains(gate, "is_safe_relative_path(rest)", "traversal must be rejected before any file lookup");
   contains(gate, "STATIC_SUFFIXES.iter().any", "a static extension must be required");
 });
