@@ -5,6 +5,21 @@ const READY_POLL: Duration = Duration::from_millis(500);
 /// How long a wave waits for the services it depends on before starting anyway.
 const DEPENDENCY_WAIT: Duration = Duration::from_secs(60);
 
+/// Whether the `llm` component's boot engines answer. On Windows the package
+/// manager starts only the embedding engine (8082); the chat engine (8081)
+/// belongs to the stored-model check, so the chat port says nothing here.
+fn llm_engines_health_check() -> bool {
+    if cfg!(target_os = "windows") {
+        std::net::TcpStream::connect_timeout(
+            &std::net::SocketAddr::from(([127, 0, 0, 1], 8082)),
+            Duration::from_millis(300),
+        )
+        .is_ok()
+    } else {
+        llm_health_check()
+    }
+}
+
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
         let stack_path = PathBuf::from(get_stack_path());
@@ -107,7 +122,7 @@ impl BootstrapManager {
                 // The wizard installs and starts the local model once; without
                 // this a restart left chat without any model (llama.cpp was
                 // never relaunched) and every answer waited for a dead port.
-                ("llm", llm_health_check, 60, false),
+                ("llm", llm_engines_health_check, 60, false),
             ]
         } else {
             vec![
@@ -119,6 +134,11 @@ impl BootstrapManager {
                 ("alm", alm_health_check, 0, false),
             ]
         };
+
+        // Services the product file switches off are never started or awaited;
+        // their binaries and data stay on disk for when they are switched on.
+        let other_services =
+            crate::product::services_on(other_services, |service| service.0, crate::product::is_service_off);
 
         let pm = std::sync::Arc::new(pm);
         let planned: Vec<ServiceConfig> = other_services
@@ -271,7 +291,10 @@ impl BootstrapManager {
 
         // Directory OAuth setup (needs Zitadel running). The desktop edition
         // keeps Zitadel for local accounts/admin login.
-        if !skip_local_directory && pm.is_installed("directory") {
+        if !skip_local_directory
+            && !crate::product::is_service_off("directory")
+            && pm.is_installed("directory")
+        {
             let config_path = self.stack_dir("conf/system/directory_config.json");
             if !config_path.exists() {
                 info!("Creating OAuth client for Directory service...");

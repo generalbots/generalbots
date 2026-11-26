@@ -100,6 +100,10 @@ pub struct ProductConfig {
     /// path-relative `/api/files/public/{token}`. The desktop keeps this
     /// optional: without it, links still work on the local machine.
     pub public_base_url: Option<String>,
+
+    /// Bundled local services this edition does without (`services_off=`,
+    /// see `services.rs`): never installed, started or awaited.
+    pub services_off: HashSet<String>,
 }
 
 /// Error type for product configuration
@@ -247,5 +251,7 @@ pub mod appearance;
 pub mod build_info;
 mod get_product_name;
 mod load;
+mod services;
 
 pub use get_product_name::*;
+pub use services::{is_service_off, services_on, uses_builtin_cache, SERVICES_ON_ENV, SWITCHABLE_SERVICES};

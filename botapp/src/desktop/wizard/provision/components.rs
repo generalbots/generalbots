@@ -12,11 +12,11 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
-
 use crate::desktop::i18n;
 use crate::desktop::no_window::NoConsoleWindow;
 use crate::desktop::sidecar::Sidecar;
 
+mod directory_wait;
 fn api_product() -> String {
     crate::desktop::sidecar::probe::api_product_url()
 }
@@ -305,9 +305,10 @@ pub(super) async fn start_assistant(
     // never duplicate the app-startup sidecar (the double boot this issue
     // reports). The only restart the wizard performs is the explicit one below.
     let directory_config = stack_path().join("conf/system/directory_config.json");
-    // Capture whether the identity-provider config predates this start: if it
-    // does, the running assistant booted with it and must be reused as is.
-    let config_before_start = directory_config.exists();
+    // A config that predates this start (or a directory switched off) means
+    // the running assistant is reused as is: no wait, no restart.
+    let config_before_start =
+        directory_config.exists() || directory_wait::directory_switched_off(&stack_path());
 
     sidecar
         .start(resource_dir.clone())

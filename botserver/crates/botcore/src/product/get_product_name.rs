@@ -142,6 +142,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "no_security": c.no_security,
             "shell_mode": c.shell_mode || cfg!(feature = "desktop-local"),
             "public_base_url": get_public_base_url(),
+            "services_off": c.get_services_off(),
         }),
         None => serde_json::json!({
             "name": "General Bots",

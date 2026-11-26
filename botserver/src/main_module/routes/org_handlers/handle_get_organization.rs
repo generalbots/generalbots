@@ -115,9 +115,11 @@ pub async fn handle_delete_organization(
     info!("Organization deletion requested");
     let locale = botcore::i18n::locale_from_headers(&headers);
 
+    // No directory service (switched off in this edition, or not configured)
+    // is a state of the deployment, not a server fault.
     let auth = state.auth_service.as_ref().ok_or_else(|| {
         (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
             Json(botcore::i18n::error_body(
                 &locale,
                 "error-org-auth-service-unavailable",

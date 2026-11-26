@@ -45,3 +45,12 @@ edition=desktop
 
 # Front end the suite opens (desktop | assistant): the chat-first shell.
 shell=assistant
+
+# Bundled local services this edition does without (cache, vector_db,
+# directory). A listed service is never installed, started or waited for;
+# binaries and data an earlier version left on disk stay untouched, so
+# removing a name here (or naming it in the GB_SERVICES_ON environment
+# variable, e.g. GB_SERVICES_ON=directory) starts it again as before.
+# `cache` means the assistant's built-in cache replaces the cache service.
+# Without `directory` sign-in uses the local administrator only.
+services_off=cache,vector_db,directory

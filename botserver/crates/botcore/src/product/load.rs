@@ -98,6 +98,7 @@ impl Default for ProductConfig {
             edition: None,
             shell: None,
             public_base_url: None,
+            services_off: HashSet::new(),
         }
     }
 }
@@ -323,6 +324,9 @@ impl ProductConfig {
                             config.public_base_url =
                                 Some(value.trim().trim_end_matches('/').to_string());
                         }
+                    }
+                    "services_off" => {
+                        config.services_off = super::services::parse_services_off(value);
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);

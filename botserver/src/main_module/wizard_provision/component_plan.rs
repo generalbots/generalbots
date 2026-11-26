@@ -76,13 +76,17 @@ pub(super) fn component_plan() -> Vec<Component> {
             unavailable: None,
         },
     ];
+    switch_off_services(&mut plan, botcore::product::is_service_off);
     if wants_local {
         plan.push(Component {
             id: "llm",
             label: "Local model runtime",
             timeout_secs: 120,
             optional: true,
-            start: true,
+            // Windows: the assistant's boot starts the embedding engine and the
+            // stored local model itself; a start here would wait for a chat
+            // engine that nothing launches yet.
+            start: !cfg!(target_os = "windows"),
             unavailable: None,
         });
     }
@@ -110,6 +114,23 @@ pub(super) fn component_plan() -> Vec<Component> {
     plan
 }
 
+/// Services the product file switches off stay in the plan so the wizard
+/// shows them as done, but are never downloaded, started or awaited.
+fn switch_off_services(plan: &mut [Component], is_off: impl Fn(&str) -> bool) {
+    for component in plan.iter_mut().filter(|component| is_off(component.id)) {
+        component.optional = true;
+        component.start = false;
+        component.unavailable = Some(
+            if component.id == "cache" {
+                "Built into the assistant"
+            } else {
+                "Not used in this edition"
+            }
+            .to_string(),
+        );
+    }
+}
+
 /// Whether setup installs the AI media service. The government desktop edition
 /// reads text in images through Windows and has no other use for it, so it
 /// never downloads the box; elsewhere `GB_WIZARD_WITH_BOTMODELS=0` opts out.
@@ -127,5 +148,27 @@ mod media_service_tests {
         assert!(!wants_media_service("0", false));
         assert!(!wants_media_service("", true));
         assert!(!wants_media_service("1", true));
+    }
+}
+
+#[cfg(test)]
+mod switched_off_tests {
+    use super::*;
+
+    #[test]
+    fn switched_off_services_are_reported_and_never_provisioned() {
+        let mut plan = component_plan();
+        switch_off_services(&mut plan, |id| matches!(id, "cache" | "vector_db" | "directory"));
+        for component in &plan {
+            if matches!(component.id, "cache" | "vector_db" | "directory") {
+                assert!(component.unavailable.is_some(), "{}", component.id);
+                assert!(component.optional && !component.start, "{}", component.id);
+            }
+            if matches!(component.id, "vault" | "tables" | "drive") {
+                assert!(component.unavailable.is_none(), "{}", component.id);
+            }
+        }
+        let tables = plan.iter().find(|component| component.id == "tables");
+        assert!(tables.is_some_and(|component| component.start && !component.optional));
     }
 }
