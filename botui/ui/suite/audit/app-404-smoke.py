@@ -212,17 +212,21 @@ async def run(args) -> int:
                     recoveries += 1
                 bucket["items"] = []
                 forbidden_bucket["items"] = []
-                # Each app is an independent test case. A Vibe project selected
-                # by an earlier app is not owned by the throwaway CI user, so
-                # later apps probing /api/vibe/projects/<id>/files get a 403.
-                # Clear only that selection; auth tokens stay intact.
+                # Each app is an independent test case. Persisted app state
+                # (notably the Vibe project selection, which the throwaway CI
+                # user is only a viewer of) leaks between launches and causes
+                # 403s on /api/vibe/projects/<id>/files. Reset web storage but
+                # keep the injected auth tokens.
                 try:
                     await page.evaluate("""() => {
-                      ['gb-vibe-project-id', 'gb-vibe-project-name', 'gb-vibe-project-kind']
-                        .forEach(function (key) {
-                          try { localStorage.removeItem(key); sessionStorage.removeItem(key); }
-                          catch (e) { /* storage may be unavailable */ }
-                        });
+                      var keep = ['gb-access-token', 'management_token', 'gb-ws-token', 'token', 'id_token'];
+                      [window.localStorage, window.sessionStorage].forEach(function (store) {
+                        try {
+                          Object.keys(store).forEach(function (key) {
+                            if (keep.indexOf(key) === -1) store.removeItem(key);
+                          });
+                        } catch (e) { /* storage may be unavailable */ }
+                      });
                     }""")
                 except Exception:
                     pass
