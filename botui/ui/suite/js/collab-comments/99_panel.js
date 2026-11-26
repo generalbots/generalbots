@@ -21,6 +21,7 @@
   var heartbeat = N.heartbeat;
   var stopHeartbeat = N.stopHeartbeat;
   var req = N.req;
+  var schedule = N.schedule;
   var esc = N.esc;
   var T = N.T;
   function build() {
@@ -196,8 +197,9 @@
       });
     }
     S.badgeRefreshFn = refresh;
-    refresh();
-    if (!container.__gbcBadgeTimer) container.__gbcBadgeTimer = setInterval(refresh, 30000);
+    if (!container.__gbcBadgeTimer) {
+      container.__gbcBadgeTimer = schedule(refresh, 30000);
+    }
     return badge;
   }
 
@@ -225,11 +227,13 @@
         console.debug("[gb-collab-comments] Mention poll failed:", err);
       });
   }
+  function scheduleMentions() {
+    schedule(pollMentions, 60000);
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () { pollMentions(); setInterval(pollMentions, 60000); });
+    document.addEventListener("DOMContentLoaded", scheduleMentions);
   } else {
-    pollMentions();
-    setInterval(pollMentions, 60000);
+    scheduleMentions();
   }
 
   window.GBCollabComments = { open: open, close: close, post: post, mountButton: mountButton, bindBadge: bindBadge, resolve: resolve };

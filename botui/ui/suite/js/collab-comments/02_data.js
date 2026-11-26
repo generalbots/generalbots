@@ -5,6 +5,7 @@
   var S = N.s;
   var state = N.state;
   var req = N.req;
+  var schedule = N.schedule;
   var node = N.node;
   var esc = N.esc;
   var T = N.T;
@@ -81,8 +82,7 @@
   function heartbeat() {
     stopHeartbeat();
     if (!state.resourceId) return;
-    sendPresence(false);
-    S.heartbeatTimer = setInterval(function () { sendPresence(S.typingSent); }, HEARTBEAT_MS);
+    S.heartbeatTimer = schedule(function () { sendPresence(S.typingSent); }, HEARTBEAT_MS);
   }
 
   function stopHeartbeat() {

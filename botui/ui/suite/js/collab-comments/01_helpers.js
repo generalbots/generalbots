@@ -92,6 +92,36 @@
     } catch (_) { return ""; }
   }
 
+  /* #2943 — the one scheduler for every poller that calls an authenticated
+   * endpoint. The session check lives here, never in an endpoint caller:
+   * with no token no timer is armed, so an unauthenticated tab issues zero
+   * guaranteed-401 requests. A single localized sign-in hint covers the tab. */
+  var pollHintShown = false;
+
+  function hasSession() {
+    return !!(typeof window.getGBAccessToken === "function" && window.getGBAccessToken());
+  }
+
+  function showPollHintOnce() {
+    if (pollHintShown) return;
+    pollHintShown = true;
+    var message = T("cloud-settings-signin-first", "Please sign in first.");
+    if (window.GBToasts && typeof window.GBToasts.show === "function") {
+      window.GBToasts.show(message, "", "info");
+    } else if (window.GBAppLifecycle && typeof window.GBAppLifecycle.announce === "function") {
+      window.GBAppLifecycle.announce(message);
+    }
+  }
+
+  function schedule(fn, ms) {
+    if (!hasSession()) {
+      showPollHintOnce();
+      return null;
+    }
+    fn();
+    return setInterval(fn, ms);
+  }
+
   function req(endpoint, options) {
     var headers = { "Content-Type": "application/json" };
     var t = token();
@@ -184,6 +214,9 @@
   N.ensureCss = ensureCss;
   N.esc = esc;
   N.token = token;
+  N.hasSession = hasSession;
+  N.schedule = schedule;
+  window.GBCollabPollScheduler = { hasSession: hasSession, schedule: schedule };
   N.req = req;
   N.renderBody = renderBody;
   N.timeFmt = timeFmt;

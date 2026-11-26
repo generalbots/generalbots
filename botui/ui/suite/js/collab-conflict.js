@@ -161,8 +161,7 @@
     state.resourceType = opts.resourceType;
     state.resourceId = opts.resourceId;
     state.pollMs = opts.pollMs || POLL_MS;
-    refresh();
-    state.timer = setInterval(refresh, state.pollMs);
+    state.timer = window.GBCollabPollScheduler.schedule(refresh, state.pollMs);
   }
 
   function stop() {
