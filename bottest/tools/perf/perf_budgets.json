@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "issue": 2459,
+  "status": "enforced-offline-gate",
+  "description": "Office performance budgets for #2459. Machine-readable source of truth consumed by check_perf_budgets.py. Values mirror the budgets declared in ops/office-slo.yaml; this file makes them enforceable by a gate. It does NOT implement telemetry, RUM, dashboards or alerting.",
+  "reference_profile": {
+    "device_class": "mid-range-laptop-5y",
+    "network_class": "vpn-constrained",
+    "window": "7d"
+  },
+  "metrics": {
+    "open_p75_ms": {
+      "unit": "ms",
+      "direction": "max",
+      "label": "Open a 1 MB artifact (doc/deck/workbook), p75"
+    },
+    "keystroke_p95_ms": {
+      "unit": "ms",
+      "direction": "max",
+      "label": "Keystroke-to-paint latency, p95"
+    },
+    "scroll_fps": {
+      "unit": "fps",
+      "direction": "min",
+      "label": "Scroll frames per second (sustained)"
+    },
+    "export_pdf_25_pages_p95_s": {
+      "unit": "s",
+      "direction": "max",
+      "label": "Export a 25-page PDF, p95"
+    },
+    "memory_per_tab_mb": {
+      "unit": "mb",
+      "direction": "max",
+      "label": "Resident memory per active editor tab"
+    },
+    "coedit_propagation_50_editors_p95_ms": {
+      "unit": "ms",
+      "direction": "max",
+      "label": "Co-edit propagation with 50 editors, p95"
+    }
+  },
+  "core_metrics": [
+    "open_p75_ms",
+    "keystroke_p95_ms",
+    "scroll_fps",
+    "export_pdf_25_pages_p95_s",
+    "memory_per_tab_mb"
+  ],
+  "apps": {
+    "docs": {
+      "note": "Whole-article render path; open budget targets the optimized path.",
+      "budgets": {
+        "open_p75_ms": 1000,
+        "keystroke_p95_ms": 16,
+        "scroll_fps": 60,
+        "export_pdf_25_pages_p95_s": 5,
+        "memory_per_tab_mb": 300,
+        "coedit_propagation_50_editors_p95_ms": 150
+      }
+    },
+    "slides": {
+      "note": "Fixed canvas/full-slide render path; slide-transition budget is in ops/office-slo.yaml.",
+      "budgets": {
+        "open_p75_ms": 1000,
+        "keystroke_p95_ms": 16,
+        "scroll_fps": 60,
+        "export_pdf_25_pages_p95_s": 5,
+        "memory_per_tab_mb": 300,
+        "coedit_propagation_50_editors_p95_ms": 150
+      }
+    },
+    "sheets": {
+      "note": "Virtual grid exists; recalculation/export targets are declarative pending worker isolation.",
+      "budgets": {
+        "open_p75_ms": 1000,
+        "keystroke_p95_ms": 16,
+        "scroll_fps": 60,
+        "export_pdf_25_pages_p95_s": 5,
+        "memory_per_tab_mb": 300,
+        "coedit_propagation_50_editors_p95_ms": 150
+      }
+    }
+  },
+  "deferred": [
+    "Telemetry / Web Vitals / custom-mark collection (needs running server)",
+    "Backend Prometheus metrics exposure (needs running server)",
+    "RUM dashboards, alerting and p75-doubling alerts (needs running server)",
+    "Perf CI job on the fidelity corpus with trace links (needs CI hardware)",
+    "Baseline-driven regression thresholds beyond the absolute budgets declared here"
+  ]
+}

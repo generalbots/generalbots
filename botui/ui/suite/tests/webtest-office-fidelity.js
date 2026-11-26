@@ -101,6 +101,7 @@ require("./webtest-office-fidelity/95_open_close_null_classlist");
 require("./webtest-office-fidelity/96_designer_reopen");
 require("./webtest-office-fidelity/97_browser_toolbar_resolve");
 require("./webtest-office-fidelity/98_integrations_connections_guards");
+require("./webtest-office-fidelity/99_monitoring_partials_route");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
