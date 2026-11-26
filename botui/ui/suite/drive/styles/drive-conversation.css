@@ -9,18 +9,18 @@
     height: 16px;
     padding: 0 3px;
     border-radius: 3px;
-    background: var(--palette-1e293b);
-    color: var(--palette-94a3b8);
+    background: var(--id-surface-alt);
+    color: var(--id-muted);
     font-size: 9px;
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0.02em;
 }
-.drive-file-badge-dir { background: transparent; color: var(--palette-60a5fa); font-size: 12px; }
-.drive-file-badge-danger { color: var(--palette-f87171); background: rgba(248, 113, 113, 0.14); }
-.drive-file-badge-image { color: var(--palette-86efac); background: rgba(134, 239, 172, 0.14); }
-.drive-file-badge-ink { color: var(--palette-93c5fd); background: rgba(147, 197, 253, 0.14); }
-.drive-file-badge-ok { color: var(--palette-6ee7b7); background: rgba(110, 231, 183, 0.14); }
+.drive-file-badge-dir { background: transparent; color: var(--id-accent); font-size: 12px; }
+.drive-file-badge-danger { color: var(--id-danger); background: var(--id-danger-soft); }
+.drive-file-badge-image { color: var(--id-success); background: var(--id-success-soft); }
+.drive-file-badge-ink { color: var(--id-accent); background: var(--id-accent-soft); }
+.drive-file-badge-ok { color: var(--id-success); background: var(--id-success-soft); }
 .file-card-preview .drive-file-badge { position: absolute; top: 6px; left: 6px; }
 .file-name-col .drive-file-badge { margin-right: 4px; }
 
@@ -31,7 +31,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 4px;
-    color: var(--palette-e2e8f0);
+    color: var(--id-text);
     font-size: var(--text-sm);
 }
 .drive-conv-title { font-weight: 600; }
@@ -43,17 +43,17 @@
     height: 18px;
     padding: 0 5px;
     border-radius: 999px;
-    background: var(--palette-1e293b);
-    color: var(--palette-94a3b8);
+    background: var(--id-surface-alt);
+    color: var(--id-muted);
     font-size: var(--text-2xs);
 }
 .drive-conv-row .file-name-col { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .drive-conv-row-sub {
     margin-left: 4px;
-    color: var(--palette-64748b);
+    color: var(--id-muted);
     font-size: var(--text-2xs);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.drive-conv-empty svg { color: var(--palette-94a3b8); }
+.drive-conv-empty svg { color: var(--id-muted); }
