@@ -114,12 +114,19 @@ function gbDocsSaveBlob(blob, name) {
     link.remove();
     setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
 }
-function GBDocsExport(format, id) {
+/* #2459 — optional third argument wires an AbortSignal and onStart/onSettle
+   hooks for the export menu; two arguments keep the old fast path unchanged. */
+function GBDocsExport(format, id, opts) {
+    var options = opts || {};
+    function settle(outcome) { if (typeof options.onSettle === "function") options.onSettle(outcome); }
     var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
         window.localStorage.getItem("gb-access-token") ||
         window.sessionStorage.getItem("gb-access-token") || "";
     var headers = token ? { Authorization: "Bearer " + token } : {};
-    fetch("/api/docs/export/" + encodeURIComponent(format) + "?id=" + encodeURIComponent(id), { headers: headers })
+    var fetchOptions = { headers: headers };
+    if (options.signal) fetchOptions.signal = options.signal;
+    if (typeof options.onStart === "function") options.onStart();
+    fetch("/api/docs/export/" + encodeURIComponent(format) + "?id=" + encodeURIComponent(id), fetchOptions)
         .then(function (response) {
             if (!response.ok) throw new Error("HTTP " + response.status);
             return response.blob();
@@ -129,51 +136,32 @@ function GBDocsExport(format, id) {
                 "document";
             var slug = title.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "document";
             gbDocsSaveBlob(blob, slug + "." + format);
+            settle("success");
         })
-        .catch(function () {
+        .catch(function (error) {
+            if (options.signal && options.signal.aborted) { settle("cancelled"); return; }
             var article = document.querySelector("[id^=window-body-docs] #doc-content") ||
                 document.querySelector("#doc-content");
             var html = article ? article.innerHTML : "";
             if (!html) {
                 if (window.GBToasts) GBToasts.show("Export", "Nothing to export yet.", "error");
+                settle("error");
                 return;
             }
             if (format === "pdf") {
-                // #2251 — the fallback printed unstyled HTML, so headings,
-                // list numbering and page breaks collapsed. Carry the page
-                // CSS (A4 sheet, hanging list indents, real page breaks).
-                // #2340 — `srcdoc` in an off-screen frame instead of
-                // `document.write` into a popup.
-                var printHtml =
-                    "<!doctype html><html><head><meta charset='utf-8'><title>Print</title>" +
-                    "<style>" +
-                    "@page{size:A4;margin:20mm;}" +
-                    "body{font:11pt/1.45 Helvetica,Arial,sans-serif;color:#111;}" +
-                    "h1{font-size:18pt;}h2{font-size:14pt;}h3{font-size:12.5pt;}" +
-                    "h1,h2,h3,h4,h5,h6{break-after:avoid;page-break-after:avoid;}" +
-                    "ol,ul{margin:0 0 6pt 18pt;padding:0;}" +
-                    "li{margin:0 0 2pt;}" +
-                    "p{margin:0 0 5pt;}" +
-                    ".gb-doc-page-break,hr.gb-page-break{break-after:page;page-break-after:always;" +
-                    "border:0;height:0;margin:0;padding:0;}" +
-                    ".gb-doc-page-break::after{content:none;}" +
-                    "</style></head><body>" +
-                    html + "</body></html>";
+                // #2251/#2340: A4 page CSS in an off-screen srcdoc frame.
+                var printHtml = "<!doctype html><html><head><meta charset='utf-8'><title>Print</title><style>@page{size:A4;margin:20mm;}body{font:11pt/1.45 Helvetica,Arial,sans-serif;color:#111;}h1{font-size:18pt;}h2{font-size:14pt;}h3{font-size:12.5pt;}h1,h2,h3,h4,h5,h6{break-after:avoid;page-break-after:avoid;}ol,ul{margin:0 0 6pt 18pt;padding:0;}li{margin:0 0 2pt;}p{margin:0 0 5pt;}.gb-doc-page-break,hr.gb-page-break{break-after:page;page-break-after:always;border:0;height:0;margin:0;padding:0;}.gb-doc-page-break::after{content:none;}</style></head><body>" + html + "</body></html>";
                 gbPrintHtml(printHtml);
+                settle("fallback");
                 return;
             }
-            // The stored-document export 404s for a file opened from Drive:
-            // there is no saved copy to convert. Save the live editor content
-            // as HTML and say so, instead of naming an HTML file ".docx".
+            // A Drive-opened document has no stored copy: save live HTML.
             var fallbackTitle = (document.getElementById("docTitle") && document.getElementById("docTitle").value) ||
                 "document";
             var fallbackSlug = fallbackTitle.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "document";
-            if (window.GBToasts) {
-                GBToasts.show("Export",
-                    "This document has no stored copy yet, so the editor content was saved as HTML.",
-                    "info");
-            }
+            if (window.GBToasts) GBToasts.show("Export", "This document has no stored copy yet, so the editor content was saved as HTML.", "info");
             gbDocsSaveBlob(new Blob([html], { type: "text/html" }), fallbackSlug + ".html");
+            settle("fallback");
         });
 }
 window.GBDocsExport = GBDocsExport;
