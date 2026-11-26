@@ -1612,6 +1612,10 @@ jobs:
       # /api/files/recent call therefore returns 503; report it as an
       # environment note without masking any other console error or 404.
       GB_SMOKE_ALLOW_503: /api/files/recent
+      # The throwaway account is a viewer on seeded Vibe projects; a background
+      # canvas save can 403 on /api/vibe/projects/<id>/files. Path-scoped note,
+      # never a blanket console-error exemption.
+      GB_SMOKE_ALLOW_403: /api/vibe/projects/
       # Blocking chat computer-use UAT: real terminal consent flow against a
       # CI-only Incus test double (GitHub-hosted runners have no Incus daemon).
       GB_CI_INCUS_ROOT: /tmp/gb-ci-incus-root
