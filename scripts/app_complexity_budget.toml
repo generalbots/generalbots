@@ -1,7 +1,8 @@
 # ─── Complexity ceiling relock — 2026-11-26 (OS slice + concurrent suite) ────
 # Re-baselined with `python3 scripts/app_complexity_budget.py --update`.
-# Rises justified by the merged commit that grew each surface:
-#   settings +42 (#2470 data-protection safety); chat +26 (#2933/#2945–#2953);
+# Rises justified by the commit that grew each surface:
+#   settings +42 (#2470 data-protection safety); chat +31 (#2933/#2945–#2953
+#   poller/route fixes and the console-smoke admin-gate for /api/llm/accounts);
 #   automations +19 (#2945 poller gate); mail js_modules +2, loc +428 (#2953
 #   sanitizer module — CDN-like strings are split hostile-input fixtures, so
 #   adequacy_guard stays at 0); slides +22 (#2945);
@@ -10,7 +11,8 @@
 #   designer +39 (ad5974c96 app-kit/designer reopen);
 #   handoff +20 (097b85bd1 branch scope/fraud route/token fallback);
 #   pos +20 (43e77f678 retail POS work);
-#   notepad +8, store +12 (ec3d670bb suite work).
+#   notepad +8, store +12 (ec3d670bb suite work);
+#   events +17 (admin-only DLQ gating to stop 403 console errors in CI).
 # Tightened because the surface shrank: calendar -1, crm -23, docs -9.
 # No route ceiling changed. Future growth needs an owner note or a code split.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,7 +94,7 @@ loc = 3366
 [apps."chat"]
 routes = 30
 js_modules = 98
-loc = 30954
+loc = 30959
 
 [apps."clock"]
 routes = 0
@@ -152,7 +154,7 @@ loc = 967
 [apps."events"]
 routes = 0
 js_modules = 6
-loc = 823
+loc = 840
 
 [apps."fraud"]
 routes = 8
