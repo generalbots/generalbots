@@ -263,6 +263,16 @@ pub fn configure_cloud_router() -> Router {
             .route("/cloud/signup", get(redirect_to_signup))
             .route("/cloud/signup/", get(redirect_to_signup))
             .route("/cloud/*path", get(serve_cloud))
+            // #2942: shared suite CSS and the site-root PWA manifest are
+            // requested from the cloud origin too. Literal routes keep the
+            // allowlist narrow and win over the cloud-page fallback, so these
+            // assets are served from botui/ui with pinned MIME types instead
+            // of falling through to a 404 with an empty Content-Type.
+            .route(
+                "/suite/css/palette-tokens.css",
+                get(serve_cloud_shared_asset),
+            )
+            .route("/manifest.webmanifest", get(serve_cloud_shared_asset))
             // API, UI, WS nests
             .nest("/api", create_api_router())
             .nest("/ui", create_ui_router())

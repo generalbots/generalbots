@@ -24,6 +24,34 @@ fn get_platform_domain() -> String {
     std::env::var("GB_PLATFORM_DOMAIN").unwrap_or_else(|_| "generalbots.org".to_string())
 }
 
+/// Shared static assets that suite apps request from the cloud origin (#2942).
+///
+/// Cloud pages are served statically by this router, so when a suite app is
+/// embedded in a cloud page its `/suite/...` CSS and the site-root PWA manifest
+/// resolve against port 4000 as well as port 3000. There was no static route on
+/// 4000: both requests fell through to `serve_cloud_fallback`, which returned a
+/// 404 with an empty Content-Type. With the global `nosniff` header Chrome then
+/// refused the stylesheet (strict-MIME) and could not parse the manifest.
+///
+/// MIME types are pinned here instead of inferred with `mime_guess`: it does
+/// not reliably map `.webmanifest` to `application/manifest+json`, and a wrong
+/// Content-Type is exactly what triggers the strict-MIME refusal. The list is
+/// an allowlist, not a wildcard — no other cloud path becomes file-served.
+const CLOUD_SHARED_ASSETS: &[(&str, &str)] = &[
+    ("suite/css/palette-tokens.css", "text/css"),
+    ("manifest.webmanifest", "application/manifest+json"),
+];
+
+/// Pinned Content-Type for an allowlisted shared asset, or `None` for every
+/// other path. Keeping the mapping in one place makes the served bytes and the
+/// header impossible to drift apart.
+fn cloud_shared_asset_mime(path: &str) -> Option<&'static str> {
+    CLOUD_SHARED_ASSETS
+        .iter()
+        .find(|(asset, _)| *asset == path)
+        .map(|(_, mime)| *mime)
+}
+
 pub async fn redirect_to_login() -> Response {
     Redirect::to(&get_login_url()).into_response()
 }
@@ -156,6 +184,53 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
     }
 }
 
+/// Serve an allowlisted shared asset from botui's own `ui/` tree (#2942).
+///
+/// The routes are registered as literal paths (one per `CLOUD_SHARED_ASSETS`
+/// entry), so the handler must not declare a `Path` extractor: axum would
+/// reject the request with "Expected 1 but got 0". The filename comes from the
+/// request URI instead, exactly like `handle_site_root_asset` on port 3000.
+/// Unknown paths are never served — there is no wildcard file serving here.
+pub async fn serve_cloud_shared_asset(
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+) -> Response {
+    let filename = uri.path().trim_start_matches('/');
+    let Some(mime) = cloud_shared_asset_mime(filename) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+
+    #[cfg(feature = "embed-ui")]
+    {
+        return match Assets::get(filename) {
+            Some(content) => (
+                [(axum::http::header::CONTENT_TYPE, mime)],
+                content.data,
+            )
+                .into_response(),
+            None => StatusCode::NOT_FOUND.into_response(),
+        };
+    }
+
+    #[cfg(not(feature = "embed-ui"))]
+    {
+        let root = get_ui_root();
+        let Some(safe_path) = resolve_static_path(&root, &root.join(filename)) else {
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        match tokio::fs::read(&safe_path).await {
+            Ok(bytes) => (
+                [
+                    (axum::http::header::CONTENT_TYPE, mime),
+                    (axum::http::header::CACHE_CONTROL, "no-cache"),
+                ],
+                bytes,
+            )
+                .into_response(),
+            Err(_) => StatusCode::NOT_FOUND.into_response(),
+        }
+    }
+}
+
 /// Resolve a path to a cloud file and serve it.
 /// Used by both `/cloud/*path` (legacy) and root-level page fallback.
 async fn resolve_and_serve_cloud(path: &str) -> Response {
@@ -209,6 +284,22 @@ pub async fn serve_cloud_fallback(original_uri: OriginalUri) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cloud_shared_assets_pin_their_content_types() {
+        assert_eq!(
+            cloud_shared_asset_mime("suite/css/palette-tokens.css"),
+            Some("text/css")
+        );
+        assert_eq!(
+            cloud_shared_asset_mime("manifest.webmanifest"),
+            Some("application/manifest+json")
+        );
+        assert_eq!(CLOUD_SHARED_ASSETS.len(), 2);
+        assert_eq!(cloud_shared_asset_mime("store.html"), None);
+        assert_eq!(cloud_shared_asset_mime("suite/css/other.css"), None);
+        assert_eq!(cloud_shared_asset_mime("../.env"), None);
+    }
 
     #[test]
     fn cloud_wildcards_reject_traversal_before_join() {

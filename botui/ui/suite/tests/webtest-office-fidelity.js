@@ -91,6 +91,7 @@ require("./webtest-office-fidelity/85_slides_import_persistence");
 require("./webtest-office-fidelity/86_sweep_null_dropdown_resolve");
 require("./webtest-office-fidelity/87_tasks_reinit_idempotence");
 require("./webtest-office-fidelity/88_calendar_events_normalize");
+require("./webtest-office-fidelity/89_cloud_shared_assets");
 require("./webtest-office-fidelity/30_coverage");
 
 harness.finish();
