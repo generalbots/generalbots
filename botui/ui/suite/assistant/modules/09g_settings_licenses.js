@@ -63,8 +63,7 @@
             esc(tr("O aplicativo usa programas de outros autores, cada um com a sua licença. Os textos completos e onde obter o código-fonte também ficam na pasta “licenses”, dentro da pasta de instalação.",
                 "The app uses programs by other authors, each under its own license. The full texts, and where to get the source code, are also in the “licenses” folder, inside the install folder.")) +
             '</p><button type="button" class="gb-sp-btn" id="gbLicToggle" aria-controls="gbLicBody" aria-expanded="' + open + '">' + esc(toggleLabel()) +
-            '</button><div id="gbLicBody"' + (open ? "" : " hidden") + '>' + (open ? body() : "") + '</div></div><div class="gb-sp-about-foot"><span>' +
-            esc(tr("Sentient LTDA: feito no Brasil com carinho desmedido.", "Sentient LTDA: made in Brazil with boundless care.")) + '</span></div></section>';
+            '</button><div id="gbLicBody"' + (open ? "" : " hidden") + '>' + (open ? body() : "") + '</div></div></section>';
     }
 
     function bind(panel) {
