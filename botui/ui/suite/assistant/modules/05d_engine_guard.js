@@ -116,6 +116,7 @@ A.confirmExternal = function (target, anchor, onYes, kind) {
     var host = document.createElement("strong");
     host.textContent = target.host;
     text.append(tr("Você escolheu ", "You picked "), model, ". " + parts[0], host, parts.slice(1).join(target.host));
+    var D = A._freeDisclosure;
     var actions = document.createElement("div");
     actions.className = "gb-confirm-actions";
     var stay = document.createElement("button");
@@ -128,7 +129,17 @@ A.confirmExternal = function (target, anchor, onYes, kind) {
     go.className = "gb-block-btn gb-block-btn--acc";
     go.textContent = tr("Continuar", "Continue");
     actions.append(stay, go);
-    card.append(head, text, actions);
+    if (D && target.mode === "free") {
+      var disc = document.createElement("p");
+      disc.className = "gb-confirm-text gb-free-disclosure";
+      disc.textContent = D.notice();
+      var links = document.createElement("p");
+      links.className = "gb-free-disclosure-links";
+      links.innerHTML = D.linksHtml();
+      card.append(head, text, disc, links, actions);
+    } else {
+      card.append(head, text, actions);
+    }
     stay.addEventListener("click", function () { card.remove(); });
     go.addEventListener("click", function () { card.remove(); accept(target.host); onYes(); });
     card.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); card.remove(); } });

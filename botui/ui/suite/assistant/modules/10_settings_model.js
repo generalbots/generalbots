@@ -43,8 +43,8 @@ var T = {"pt-BR":{
   restartNeeded:"Ativado. Reinicie o aplicativo para usar o novo modelo.",
   inconsistent:"A configuração do modelo está inconsistente.",
   restoreFree:"Restaurar modelo gratuito",
-  freeNote:"Tudo que você escrever e anexar é enviado a %h.",
-  freeHost:"um provedor externo",freeLimits:"Não precisa de chave. Os limites de uso são menores.",
+  freeNote:"Sua mensagem, a conversa e os anexos são enviados a %h.",
+  freeHost:"o serviço Kilo (NVIDIA), nos EUA",freeLimits:"Não precisa de chave. Os limites de uso são menores.",
   noModels:"Nenhum modelo local disponível.",
   comfortable:"confortável nesta máquina",tight:"apertado nesta máquina",
   wontRun:"não roda (precisa de %v GB)",
@@ -89,8 +89,8 @@ en:{
   restartNeeded:"Activated. Restart the app to use the new model.",
   inconsistent:"The model configuration is inconsistent.",
   restoreFree:"Restore free model",
-  freeNote:"Everything you write and attach is sent to %h.",
-  freeHost:"an external provider",freeLimits:"No key needed. Usage limits are lower.",
+  freeNote:"Your message, the conversation and attachments are sent to %h.",
+  freeHost:"the Kilo service (NVIDIA), in the US",freeLimits:"No key needed. Usage limits are lower.",
   noModels:"No local models available.",
   comfortable:"comfortable for this machine",tight:"tight for this machine",
   wontRun:"won’t run (needs %v GB)",
@@ -381,9 +381,12 @@ function activate(mode, btn) {
 }
 function freeHost() { return cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost"); }
 function askFree(btn) {
-  inlineConfirm(t("confirmExt").replace("%h", freeHost()), function () {
+  var D = A._freeDisclosure;
+  var body = esc(t("confirmExt").replace("%h", freeHost()));
+  if (D) { body += D.noticeHtml(); }
+  inlineConfirm(body, function () {
     doSwitchMode({ mode: "free" }, document.getElementById("gbOfActMsg"), btn);
-  });
+  }, true);
 }
 
 function renderLocalDetail(el) {
@@ -400,13 +403,13 @@ function renderOwnKeyDetail(el) {
 /* ---- Free detail ---- */
 function renderFreeDetail(el) {
   var G = A._modelGarage;
+  var D = A._freeDisclosure;
   el.innerHTML = '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' +
     esc(A.settingsText("Antes de usar", "Before you use it")) + '</span><span class="gb-of-sp"></span><span class="gb-of-meta">' +
     esc(A.settingsText("SEM CHAVE · LIMITES MENORES", "NO KEY · LOWER LIMITS")) + '</span></div>' +
     '<div class="gb-of-sec-b" style="max-width:720px"><div class="gb-of-alert">' + (G ? G.svg("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01", 16, 1.8) : '') +
-    '<div><b>' + esc(t("freeNote").replace("%h", freeHost())) + '</b><span>' +
-    esc(A.settingsText("Use para textos públicos, rascunhos e pesquisas. Não precisa de chave; os limites de uso são menores.",
-      "Use it for public text, drafts and research. No key needed; usage limits are lower.")) + '</span></div></div></div></div>';
+    '<div>' + (D ? D.noticeHtml() : '<b>' + esc(t("freeNote").replace("%h", freeHost())) + '</b>') +
+    '</div></div></div></div>';
 }
 
 /* `picked`: the person turned an engine on here, so the chat leaves the agent

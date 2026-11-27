@@ -19,7 +19,7 @@ var MODES = ["local", "own_key", "free", "acp"];
 var INFO = {
   local: [["Neste computador", "On this computer"], ["Privado e sem internet", "Private and offline"], ["Fica neste computador", "Stays on this computer"], "ok", 5, "M3 4h18v12H3zM8 20h8M12 16v4"],
   own_key: [["Servidor ou chave própria", "Own server or key"], ["O da sua organização ou de um provedor", "Your organization’s or a provider’s"], ["Vai ao servidor indicado", "Goes to the server you set"], "mid", 3, "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01"],
-  free: [["Modelo gratuito", "Free model"], ["Pronto para usar, sem chave", "Ready to use, no key"], ["Vai a um provedor externo", "Goes to an external provider"], "out", 1, "M13 2 3 14h9l-1 8 10-12h-9z"],
+  free: [["Modelo gratuito", "Free model"], ["Pronto para usar, sem chave", "Ready to use, no key"], ["Vai ao serviço Kilo (NVIDIA), nos EUA", "Goes to the Kilo service (NVIDIA), in the US"], "out", 1, "M13 2 3 14h9l-1 8 10-12h-9z"],
   acp: [["Agente por assinatura", "Subscription agent"], ["Sua assinatura, num espaço isolado neste computador", "Your subscription, in an isolated space on this computer"], ["Vai ao provedor do agente", "Goes to the agent’s provider"], "out", 2, "M4 4h16v16H4zM8 9l3 3-3 3M13 15h3"]
 };
 function L2(pair) { return pair[pt() ? 0 : 1]; }
@@ -35,7 +35,7 @@ function segDesc(n) {
   if (n >= 5) { return tr("Nada sai deste computador", "Nothing leaves this computer"); }
   if (n >= 4) { return tr("O texto fica na sua rede", "Your text stays on your network"); }
   if (n >= 3) { return tr("O texto vai a um servidor externo que você escolheu", "Your text goes to an external server you chose"); }
-  return tr("O texto vai a um provedor externo", "Your text goes to an external provider");
+  return tr("O texto vai ao serviço Kilo (NVIDIA), nos EUA", "Your text goes to the Kilo service (NVIDIA), in the US");
 }
 function segs(n, tone, cls) {
   var label = tr("Privacidade", "Privacy") + " " + n + "/5: " + segDesc(n);
@@ -112,7 +112,7 @@ function facts(mode, cfg, hw) {
       cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: does, photos: does,
       needs: cell("part", tr("Instalar o agente e entrar na sua conta", "Install the agent and sign in to your account")) };
   }
-  return { privacy: cell("no", tr("Vão a um provedor externo", "Go to an external provider")), offline: cell("no", tr("Não funciona", "Does not work")),
+  return { privacy: cell("no", tr("Vão ao serviço Kilo (NVIDIA), nos EUA", "Go to the Kilo service (NVIDIA), in the US")), offline: cell("no", tr("Não funciona", "Does not work")),
     cost: cell("yes", tr("Grátis, com limite de uso", "Free, with usage limits")), docs: reads, ocr: ocr, photos: notYet, needs: cell("yes", tr("Nada", "Nothing")) };
 }
 var ROWS = [
@@ -213,7 +213,7 @@ function bindGuide(panel, modes, dialog) {
         (V && V.tone !== "none" ? " " + tr("A sua placa de vídeo: ", "Your graphics card: ") + V.short.toLowerCase() + "." : ""),
       own_key: tr("Os textos vão só ao servidor que a sua organização indicar.", "Your text goes only to the server your organization sets."),
       acp: tr("Usa a assinatura que você já paga, num espaço isolado neste computador.", "Uses the subscription you already pay for, in an isolated space on this computer."),
-      free: tr("Não precisa de chave nem de placa de vídeo. Os textos vão a um provedor externo.", "Needs no key and no graphics card. Your text goes to an external provider.") }[mode];
+      free: tr("Não precisa de chave nem de placa de vídeo. Os textos vão ao serviço Kilo (NVIDIA), nos EUA.", "Needs no key and no graphics card. Your text goes to the Kilo service (NVIDIA), in the US.") }[mode];
     var card = panel.querySelector('.gb-of-mode[data-mode="' + mode + '"]');
     if (card && card.disabled) {
       why += " " + tr("Ainda não está disponível neste computador.", "It is not available on this computer yet.");
