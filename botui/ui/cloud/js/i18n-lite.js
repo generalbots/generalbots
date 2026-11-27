@@ -25,7 +25,7 @@
   var CACHE_PREFIX = "gb-i18n-lite-";
   var CACHE_TTL_MS = 3600000;
   var RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
-  var FALLBACK_LOCALES = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
+  var FALLBACK_LOCALES = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "it", "ru", "ja", "ko"];
 
   var ATTRIBUTES = [
     "data-i18n",

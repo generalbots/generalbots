@@ -34,7 +34,7 @@ JS_FILE = PAGES / "i18n.js"
 AUTHORITATIVE = "pt-BR"
 SECOND_LOCALE = "en"
 REQUIRED_LOCALES = {
-    "pt-BR", "en", "es", "fr", "de", "ja", "ko", "zh-CN",
+    "pt-BR", "en", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
 }
 I18N_ATTRS = (
     "data-i18n", "data-i18n-aria-label", "data-i18n-title",

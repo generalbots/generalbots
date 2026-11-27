@@ -34,7 +34,7 @@ presentation metadata a language picker and a formatter need.
 
 ```json
 {
-  "locales": ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"],
+  "locales": ["en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"],
   "default": "en",
   "details": [
     {

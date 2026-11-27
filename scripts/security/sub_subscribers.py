@@ -31,7 +31,9 @@ EMAIL_RE = re.compile(
     r"(?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
     r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
 )
-LOCALES = frozenset({"en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"})
+LOCALES = frozenset({
+    "en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN",
+})
 ALLOWED_FIELDS = frozenset({"email", "locale", "status", "consent_at"})
 STATUSES = frozenset({"pending", "active"})
 MAX_EMAIL = 254

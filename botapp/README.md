@@ -69,6 +69,8 @@ webview, so they cannot use `window.gbT` / the Fluent catalogue in
 botapp/i18n/en.json      # source of truth — every key lives here
 botapp/i18n/pt-BR.json   # translated values, identical key set
 botapp/i18n/es.json
+botapp/i18n/it.json
+botapp/i18n/ru.json
 ```
 
 `src/desktop/i18n.rs` embeds those files with `include_str!` (no i18n crate, no
@@ -101,7 +103,7 @@ errors (`src/desktop/download.rs`), wizard setup progress and errors
 `shortDescription`/`longDescription` in `tauri*.conf.json` are bundle metadata —
 one build carries one value, so they stay in the brand language (English).
 The setup *wizard content* itself is HTML and lives in `botui/ui/wizard/i18n/`
-(8 locale dictionaries), not in this catalogue.
+(10 locale dictionaries), not in this catalogue.
 
 ---
 

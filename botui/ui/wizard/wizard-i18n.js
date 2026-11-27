@@ -16,6 +16,8 @@
     { id: "es", label: "Español" },
     { id: "fr", label: "Français" },
     { id: "de", label: "Deutsch" },
+    { id: "it", label: "Italiano" },
+    { id: "ru", label: "Русский" },
     { id: "ja", label: "日本語" },
     { id: "ko", label: "한국어" },
     { id: "zh-CN", label: "简体中文" }

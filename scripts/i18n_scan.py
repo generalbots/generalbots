@@ -89,7 +89,7 @@ ALLOWLIST = frozenset(
         "Localhost", "Ok", "OK",
         "PT-BR", "en", "pt-BR",
         "es", "fr", "de",
-        "ja", "ko", "zh-CN",
+        "it", "ru", "ja", "ko", "zh-CN",
     }
 )
 

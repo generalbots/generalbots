@@ -47,7 +47,7 @@ const en = loadLocale("en");
 const missingEn = [...keys].filter((key) => !en.has(key));
 check(missingEn.length === 0, "English defines every catalog key" + (missingEn.length ? ": " + missingEn.slice(0, 8).join(", ") : ""));
 
-for (const locale of ["pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"]) {
+for (const locale of ["pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"]) {
   const dict = loadLocale(locale);
   // Every catalog key is either translated or resolved by the English fallback.
   const uncovered = [...keys].filter((key) => !dict.has(key) && !en.has(key));
@@ -57,7 +57,7 @@ for (const locale of ["pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"]) {
 // Chat keys added for the composer must exist in every locale (these are
 // visible in the first screen, so an English fallback would be jarring).
 const chatKeys = ["chat-format", "chat-attach", "chat-web-on", "chat-web-off", "chat-private-signin"];
-for (const locale of ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"]) {
+for (const locale of ["en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"]) {
   const dict = loadLocale(locale);
   const missing = chatKeys.filter((key) => !dict.has(key));
   check(missing.length === 0, locale + " translates the chat composer keys");

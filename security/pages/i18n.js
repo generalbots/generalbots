@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  var supported = ["pt-BR", "en", "es", "fr", "de", "ja", "ko", "zh-CN"];
+  var supported = ["pt-BR", "en", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"];
   var authoritative = "pt-BR";
   var fallback = "en";
   var storageKey = "gb-security-locale";

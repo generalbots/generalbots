@@ -59,7 +59,7 @@ REL_DOCS_SHARE_MODAL = "botserver/crates/botdocs/src/ui_fragments/mod.rs"
 APPS = ("docs", "sheet", "slides")
 APP_TITLES = {"docs": "Docs", "sheet": "Sheets", "slides": "Slides"}
 APP_ENTRIES = {app: f"botui/ui/suite/{app}/{app}.html" for app in APPS}
-LOCALES = ("en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN")
+LOCALES = ("en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN")
 LOCALE_DIR = "botlib/locales"
 
 # Office feature namespaces that actually ship in all 8 catalogs (docs-nav.ftl

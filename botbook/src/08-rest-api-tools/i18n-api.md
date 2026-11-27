@@ -33,7 +33,7 @@ List all available locales supported by the system.
 **Response:**
 ```json
 {
-  "locales": ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"],
+  "locales": ["en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"],
   "default": "en"
 }
 ```

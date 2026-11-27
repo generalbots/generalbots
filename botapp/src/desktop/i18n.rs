@@ -26,6 +26,8 @@ const CATALOGUES: &[(&str, &str)] = &[
     ("en", include_str!("../../i18n/en.json")),
     ("pt-BR", include_str!("../../i18n/pt-BR.json")),
     ("es", include_str!("../../i18n/es.json")),
+    ("it", include_str!("../../i18n/it.json")),
+    ("ru", include_str!("../../i18n/ru.json")),
 ];
 
 const FALLBACK_LOCALE: &str = "en";

@@ -12,7 +12,7 @@
   const CATALOG_REVISION = "r3";
   const CACHE_TTL_MS = 3600000;
   // Server list wins; the bundled one is only a first-paint fallback.
-  let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
+  let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "it", "ru", "ja", "ko"];
 
   const MINIMAL_FALLBACK = {
     "label-loading": "Loading...",
@@ -406,7 +406,7 @@
     } catch (e) {
       console.warn("i18n: Failed to fetch available locales", e);
     }
-    return ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
+    return ["en", "pt-BR", "es", "zh-CN", "fr", "de", "it", "ru", "ja", "ko"];
   }
 
   function getCurrentLocale() {

@@ -14,7 +14,7 @@ const vm = require("vm");
 
 const ROOT = path.join(__dirname, "..", "..");
 const WIZARD = path.join("botui", "ui", "wizard");
-const LOCALES = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+const LOCALES = ["en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"];
 
 let passed = 0;
 let failed = 0;

@@ -33,7 +33,7 @@ STATUS_PAGE = ROOT / "security/pages/security/status.html"
 HALL_PAGE = ROOT / "security/pages/security/hall-of-fame.html"
 BULLETIN = ROOT / "security/pages/security/index.html"
 LANG_DIR = ROOT / "security/pages/lang"
-LOCALES = ("pt-BR", "en", "es", "fr", "de", "ja", "ko", "zh-CN")
+LOCALES = ("pt-BR", "en", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN")
 
 PUBLIC_MAILBOX = "security@generalbots.org"
 RATING = re.compile(r"^(critical|high|medium|low|info)$")

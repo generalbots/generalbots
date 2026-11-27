@@ -3,13 +3,15 @@
  * workbook-scoped localStorage; nothing here is sent to the server or written
  * into the workbook file. */
 (function () {
-  var LOCALES = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+  var LOCALES = ["en", "pt-BR", "es", "fr", "de", "it", "ru", "ja", "ko", "zh-CN"];
   var SEPARATORS = {
     en: { decimal: ".", group: "," },
     "pt-BR": { decimal: ",", group: "." },
     es: { decimal: ",", group: "." },
     fr: { decimal: ",", group: " " },
     de: { decimal: ",", group: "." },
+    it: { decimal: ",", group: "." },
+    ru: { decimal: ",", group: " " },
     ja: { decimal: ".", group: "," },
     ko: { decimal: ".", group: "," },
     "zh-CN": { decimal: ".", group: "," },
