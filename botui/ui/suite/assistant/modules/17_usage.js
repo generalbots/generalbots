@@ -12,7 +12,7 @@
         var available = Boolean(A.productConfig && A.productConfig.fast_available);
         document.querySelectorAll(".gb-fast-toggle").forEach(function (button) {
             button.disabled = !available;
-            button.title = available ? tr("Respostas mais rápidas e curtas", "Faster, shorter answers")
+            button.title = available ? tr("Respostas mais rápidas e curtas. Aumenta o consumo.", "Faster, shorter answers. Increases usage.")
                 : tr("Rápido indisponível neste motor", "Fast is unavailable on this engine");
             button.setAttribute("aria-pressed", String(A.fastOn()));
         });
