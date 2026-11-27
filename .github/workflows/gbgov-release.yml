@@ -239,10 +239,9 @@ jobs:
       - name: Install the Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
-      # D1 decided: productName is "General Bots Lite" in both Tauri configs
-      # (botapp/tauri.conf.json:3, botapp/tauri.gblite.conf.json:2). The bundle
-      # identifier stays org.generalbots.botapp: changing it breaks upgrades and
-      # moves the user-data folder. No further D1 change is pending.
+      # The Lite edition's bundle identifier is org.generalbots.desktop
+      # (botapp/tauri.gblite.conf.json). The platform desktop keeps
+      # org.generalbots.botapp (botapp/tauri.conf.json).
       - name: Package the NSIS and MSI installers
         shell: pwsh
         working-directory: botapp

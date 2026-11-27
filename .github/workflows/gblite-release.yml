@@ -225,7 +225,7 @@ jobs:
           }
           $conf = Get-Content 'botapp/tauri.gblite.conf.json' -Raw | ConvertFrom-Json
           if ($conf.productName -ne 'General Bots Lite') { throw "productName is '$($conf.productName)'" }
-          if ($conf.identifier -ne 'org.generalbots.botapp') { throw "identifier is '$($conf.identifier)'" }
+          if ($conf.identifier -ne 'org.generalbots.desktop') { throw "identifier is '$($conf.identifier)'" }
           $resources = $conf.bundle.resources.PSObject.Properties
           if (-not ($resources.Name -contains '../botserver/botserver-installers/*')) {
             throw 'tauri config does not embed the installer cache as installers/'

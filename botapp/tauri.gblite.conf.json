@@ -1,6 +1,6 @@
 {
   "productName": "General Bots Lite",
-  "identifier": "org.generalbots.botapp",
+  "identifier": "org.generalbots.desktop",
   "bundle": {
     "targets": [
       "nsis",

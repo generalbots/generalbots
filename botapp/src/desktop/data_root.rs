@@ -24,6 +24,8 @@ pub const STACK_FOLDER: &str = "stack";
 /// Product file the Lite edition keeps in its stack (the shell writes it at
 /// every sidecar start), and the one every other desktop build keeps.
 pub const LITE_MARKER: &str = ".product.gblite";
+/// Old builds wrote `.product.gbgov` instead; treat it equally.
+pub const LITE_MARKER_LEGACY: &str = ".product.gbgov";
 pub const OTHER_MARKER: &str = ".product.desktop-local";
 
 /// Which edition a stack folder belongs to, read from its product files.
@@ -54,7 +56,7 @@ pub fn owner_from_markers(exists: bool, lite: bool, other: bool) -> StackOwner {
 pub fn owner_of(stack: &Path) -> StackOwner {
     owner_from_markers(
         stack.is_dir(),
-        stack.join(LITE_MARKER).is_file(),
+        stack.join(LITE_MARKER).is_file() || stack.join(LITE_MARKER_LEGACY).is_file(),
         stack.join(OTHER_MARKER).is_file(),
     )
 }
@@ -169,6 +171,18 @@ mod tests {
         } else {
             assert_eq!(stack_under(&root), legacy);
         }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn the_legacy_gbgov_marker_counts_as_lite() {
+        assert_eq!(owner_from_markers(true, false, false), StackOwner::Unmarked);
+        let root = std::env::temp_dir().join(format!("gb-data-root-legacy-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let stack = root.join("stack");
+        std::fs::create_dir_all(&stack).expect("stack");
+        std::fs::write(stack.join(LITE_MARKER_LEGACY), "x").expect("legacy marker");
+        assert_eq!(owner_of(&stack), StackOwner::Lite);
         let _ = std::fs::remove_dir_all(&root);
     }
 }

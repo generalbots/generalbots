@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // The suite and the first-run wizard are embedded from botui/ui at build
     // time, so a change there must relink the application.
     println!("cargo:rerun-if-changed=../botui/ui");
-    if std::env::var_os("CARGO_FEATURE_GBGOV").is_some() {
+    if std::env::var_os("CARGO_FEATURE_GBLITE").is_some() {
         apply_identity(GBGOV_CONFIG)?;
     }
     tauri_build::build();

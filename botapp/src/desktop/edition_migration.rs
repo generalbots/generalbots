@@ -21,10 +21,13 @@ use super::data_root::{edition_stack, legacy_stack, owner_of, StackOwner};
 use std::path::Path;
 
 /// The identifier the edition shared with the platform desktop.
-const OLD_IDENTIFIER: &str = "org.generalbots.botapp";
+const PLATFORM_IDENTIFIER: &str = "org.generalbots.botapp";
+
+/// The identifier the gbgov builds used before the rename to `desktop`.
+const PREV_IDENTIFIER: &str = "org.generalbots.lite";
 
 /// The edition's identifier, as in `tauri.gblite.conf.json`.
-pub const IDENTIFIER: &str = "org.generalbots.lite";
+pub const IDENTIFIER: &str = "org.generalbots.desktop";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StackMove {
@@ -130,18 +133,32 @@ pub fn migrate(compiled_identifier: &str) {
 }
 
 fn migrate_profile(root: &Path, owner: StackOwner) {
-    let old = root.join(OLD_IDENTIFIER);
     let new = root.join(IDENTIFIER);
+    if new.exists() {
+        return;
+    }
+    // The gbgov builds wrote under PREV_IDENTIFIER; older builds under
+    // PLATFORM_IDENTIFIER. Take the most recent one first.
+    let prev = root.join(PREV_IDENTIFIER);
+    if prev.is_dir() {
+        apply_profile_move(&prev, &new, owner);
+        return;
+    }
+    let platform = root.join(PLATFORM_IDENTIFIER);
+    apply_profile_move(&platform, &new, owner);
+}
+
+fn apply_profile_move(old: &Path, new: &Path, owner: StackOwner) {
     match plan_profile(new.exists(), old.is_dir(), owner) {
         ProfileMove::Skip => {}
-        ProfileMove::Move => match std::fs::rename(&old, &new) {
+        ProfileMove::Move => match std::fs::rename(old, new) {
             Ok(()) => log::info!("app data moved from {} to {}", old.display(), new.display()),
             Err(e) => {
                 log::warn!("could not move {} ({e}); copying it instead", old.display());
-                copy_profile(&old, &new);
+                copy_profile(old, new);
             }
         },
-        ProfileMove::Copy => copy_profile(&old, &new),
+        ProfileMove::Copy => copy_profile(old, new),
     }
 }
 
@@ -190,7 +207,7 @@ fn migrate_stack(legacy: &Path, edition: &Path, legacy_owner: StackOwner) {
 mod tests {
     use super::*;
     use crate::desktop::data_root::{
-        stack_under, DATA_FOLDER, LEGACY_FOLDER, LITE_MARKER, OTHER_MARKER,
+        stack_under, DATA_FOLDER, LEGACY_FOLDER, LITE_MARKER, LITE_MARKER_LEGACY, OTHER_MARKER,
     };
     use std::path::PathBuf;
 
@@ -214,9 +231,10 @@ mod tests {
 
     #[test]
     fn a_build_with_another_identifier_never_migrates() {
-        assert!(!identity_matches(OLD_IDENTIFIER));
+        assert!(!identity_matches(PLATFORM_IDENTIFIER));
+        assert!(!identity_matches(PREV_IDENTIFIER));
         assert!(!identity_matches(""));
-        assert!(!identity_matches("org.generalbots.lite.dev"));
+        assert!(!identity_matches("org.generalbots.desktop.dev"));
         assert!(identity_matches(IDENTIFIER));
     }
 
@@ -300,13 +318,13 @@ mod tests {
     }
 
     #[test]
-    fn the_profile_is_moved_once_and_never_overwritten() {
-        let root = temp_root("profile");
-        let old = root.join(OLD_IDENTIFIER).join("EBWebView");
+    fn the_prev_profile_is_moved_once_and_never_overwritten() {
+        let root = temp_root("profile-prev");
+        let old = root.join(PREV_IDENTIFIER).join("EBWebView");
         std::fs::create_dir_all(&old).expect("profile");
         std::fs::write(old.join("Local State"), "old").expect("state");
         migrate_profile(&root, StackOwner::Lite);
-        assert!(!root.join(OLD_IDENTIFIER).exists());
+        assert!(!root.join(PREV_IDENTIFIER).exists());
         let moved = root.join(IDENTIFIER).join("EBWebView").join("Local State");
         assert_eq!(std::fs::read_to_string(&moved).expect("moved"), "old");
 
@@ -318,9 +336,50 @@ mod tests {
     }
 
     #[test]
+    fn the_platform_profile_is_taken_when_prev_is_absent() {
+        let root = temp_root("profile-platform");
+        let old = root.join(PLATFORM_IDENTIFIER).join("EBWebView");
+        std::fs::create_dir_all(&old).expect("profile");
+        std::fs::write(old.join("Local State"), "platform").expect("state");
+        migrate_profile(&root, StackOwner::Lite);
+        assert!(!root.join(PLATFORM_IDENTIFIER).exists());
+        let moved = root.join(IDENTIFIER).join("EBWebView").join("Local State");
+        assert_eq!(std::fs::read_to_string(&moved).expect("moved"), "platform");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn prev_profile_wins_over_platform_profile() {
+        let root = temp_root("profile-priority");
+        let prev = root.join(PREV_IDENTIFIER);
+        std::fs::create_dir_all(&prev).expect("prev profile");
+        std::fs::write(prev.join("flag"), "prev").expect("flag");
+        let platform = root.join(PLATFORM_IDENTIFIER);
+        std::fs::create_dir_all(&platform).expect("platform profile");
+        std::fs::write(platform.join("flag"), "platform").expect("flag");
+        migrate_profile(&root, StackOwner::Lite);
+        assert!(!prev.exists());
+        assert!(platform.join("flag").is_file());
+        let moved = root.join(IDENTIFIER).join("flag");
+        assert_eq!(std::fs::read_to_string(moved).expect("moved"), "prev");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_legacy_gbgov_stack_is_recognised_and_moved() {
+        let root = temp_root("gbgov-marker");
+        let (legacy, edition) = (legacy_stack(&root), edition_stack(&root));
+        make_stack(&legacy, &[LITE_MARKER_LEGACY]);
+        migrate_stack(&legacy, &edition, owner_of(&legacy));
+        assert!(!legacy.exists());
+        assert!(edition.join("data").join("PG_VERSION").is_file());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn a_shared_profile_is_copied_and_kept() {
         let root = temp_root("shared");
-        let old = root.join(OLD_IDENTIFIER);
+        let old = root.join(PLATFORM_IDENTIFIER);
         std::fs::create_dir_all(&old).expect("profile");
         std::fs::write(old.join("flag"), "1").expect("flag");
         migrate_profile(&root, StackOwner::Shared);
