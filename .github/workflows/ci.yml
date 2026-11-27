@@ -1615,7 +1615,11 @@ jobs:
       # The throwaway account is a viewer on seeded Vibe projects; a background
       # canvas save can 403 on /api/vibe/projects/<id>/files. Path-scoped note,
       # never a blanket console-error exemption.
-      GB_SMOKE_ALLOW_403: /api/vibe/projects/
+      # Docs' share dialog lists links for a seeded document the throwaway
+      # account does not own; /api/collab/links correctly answers 403. Both
+      # entries are path-scoped, reported as environment notes, never blanket
+      # console-error exemptions.
+      GB_SMOKE_ALLOW_403: /api/vibe/projects/,/api/collab/links
       # Blocking chat computer-use UAT: real terminal consent flow against a
       # CI-only Incus test double (GitHub-hosted runners have no Incus daemon).
       GB_CI_INCUS_ROOT: /tmp/gb-ci-incus-root

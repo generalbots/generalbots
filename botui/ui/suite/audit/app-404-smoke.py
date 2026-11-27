@@ -89,20 +89,23 @@ async def run(args) -> int:
     # after another app selected it. Narrow, path-scoped and reported as an
     # environment note; no 404 or any other console error is exempted.
     allow_403 = [v.strip() for v in os.environ.get(
-        "GB_SMOKE_ALLOW_403", "/api/vibe/projects/").split(",") if v.strip()]
+        "GB_SMOKE_ALLOW_403", "/api/vibe/projects/,/api/collab/links").split(",") if v.strip()]
 
     def allowed_cross_owner_403():
         urls = forbidden_bucket["items"]
         forbidden_bucket["items"] = []
-        if not urls or not all(
-            any(urlsplit(url).path.startswith(p) and "/files" in urlsplit(url).path
-                for p in allow_403)
-            for url in urls
-        ):
+        def allowed(url):
+            path = urlsplit(url).path
+            return any(
+                path.startswith(p) and ("/files" in path if p.startswith("/api/vibe/") else True)
+                for p in allow_403
+            )
+
+        if not urls or not all(allowed(url) for url in urls):
             forbidden_bucket["items"] = urls
             return
         allowed_bucket["items"].extend(
-            {"source": "http.403 (allowed cross-owner Vibe project files)", "text": url}
+            {"source": "http.403 (allowed cross-owner scoped read)", "text": url}
             for url in urls)
         console_bucket["items"] = [h for h in console_bucket["items"]
                                    if "403" not in h["text"]]
