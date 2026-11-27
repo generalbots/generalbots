@@ -9,6 +9,8 @@
 (function () {
     var A = window.GBAssistant;
     var currentSection = "model";
+    var EXTRA_SECTIONS = [];
+    A.registerSettingsSection = function (section) { EXTRA_SECTIONS.push(section); };
     var sections = [
         ["account", "Conta", "Account", "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
         ["instructions", "Persona", "Persona", "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"],
@@ -55,6 +57,11 @@
                 nav += '<button type="button" class="gb-set-tab" data-section="' + section[0] +
                     '"><i class="gb-set-gutter" aria-hidden="true"></i><span class="gb-set-tab-in" data-num="0' + (index + 1) + '">' + A.settingsIcon(section[3], 15) +
                     '<span class="gb-set-tab-label">' + esc(tr(section[1], section[2])) + '</span></span></button>';
+            });
+            EXTRA_SECTIONS.forEach(function (s) {
+                nav += '<button type="button" class="gb-set-tab" data-section="' + s.id +
+                    '"><i class="gb-set-gutter" aria-hidden="true"></i><span class="gb-set-tab-in">' + sectionIcon(s.icon) +
+                    '<span class="gb-set-tab-label">' + esc(A.t(s.key, s.id)) + '</span></span></button>';
             });
             nav += '<button type="button" class="gb-set-tab gb-set-nav-signout" id="gbSetNavSignOut"><i class="gb-set-gutter" aria-hidden="true"></i>' +
                 '<span class="gb-set-tab-in">' + A.settingsIcon(signOutPath, 15, 1.8) + '<span class="gb-set-tab-label">' +
@@ -113,6 +120,7 @@
             about: A.renderAbout,
             limits: A.renderLimits
         };
+        EXTRA_SECTIONS.forEach(function (s) { renderers[s.id] = s.render; });
         var fn = renderers[id];
         if (typeof fn !== "function") { panel.innerHTML = ""; return; }
         panel.innerHTML = '<div class="gb-set-loading"><span class="gb-set-loading-dot"></span>' +
@@ -140,7 +148,8 @@
             if (opener) { opener.click(); }
             return;
         }
-        if (sections.some(function (entry) { return entry[0] === section; })) { currentSection = section; }
+        if (sections.some(function (entry) { return entry[0] === section; }) ||
+            EXTRA_SECTIONS.some(function (s) { return s.id === section; })) { currentSection = section; }
         if (A.currentView === "settings") { renderSection(currentSection); }
         else { A.switchView("settings"); }
     };
