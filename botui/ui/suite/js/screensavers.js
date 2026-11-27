@@ -316,7 +316,7 @@
       overlay.addEventListener(ev, stop, { once: true });
     });
     overlay.addEventListener("pointerdown", dismissAndForward, { once: true });
-    overlay.addEventListener("touchstart", dismissAndForward, { once: true });
+    overlay.addEventListener("touchstart", dismissAndForward, { once: true, passive: true });
   }
 
   function stop() {
