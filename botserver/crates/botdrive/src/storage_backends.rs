@@ -9,7 +9,7 @@
 //!
 //! | Backend  | Storage | Egress                    | Minimums                    |
 //! |----------|---------|---------------------------|-----------------------------|
-//! | MinIO    | n/a     | none (self-hosted)        | none                        |
+//! | OtterIO    | n/a     | none (self-hosted)        | none                        |
 //! | Backblaze B2 | $6.95 | free to 3x stored, then $0.01/GB | none           |
 //! | Cloudflare R2 | $15.00 | **$0 unlimited**     | none                        |
 //! | Wasabi   | $7.99   | $0, fair use 1:1          | **1 TB floor, 90-day term**  |
@@ -27,8 +27,8 @@ use log::warn;
 /// The storage backends the platform can drive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageBackend {
-    /// Self-hosted MinIO — the runtime default, unchanged.
-    Minio,
+    /// Self-hosted OtterIO — the runtime default, unchanged.
+    Otterio,
     BackblazeB2,
     Wasabi,
     CloudflareR2,
@@ -39,14 +39,14 @@ impl StorageBackend {
     #[must_use]
     pub const fn config_name(self) -> &'static str {
         match self {
-            Self::Minio => "minio",
+            Self::Otterio => "otterio",
             Self::BackblazeB2 => "b2",
             Self::Wasabi => "wasabi",
             Self::CloudflareR2 => "r2",
         }
     }
 
-    /// Resolves a configured name. Unknown names fall back to MinIO rather than
+    /// Resolves a configured name. Unknown names fall back to OtterIO rather than
     /// failing the boot: a typo in a Vault value should not take Drive down.
     #[must_use]
     pub fn from_name(name: &str) -> Self {
@@ -54,19 +54,19 @@ impl StorageBackend {
             "b2" | "backblaze" | "backblaze-b2" | "backblazeb2" => Self::BackblazeB2,
             "wasabi" => Self::Wasabi,
             "r2" | "cloudflare" | "cloudflare-r2" => Self::CloudflareR2,
-            _ => Self::Minio,
+            _ => Self::Otterio,
         }
     }
 
     /// Region this backend needs when the operator has not set one.
     ///
-    /// B2 and R2 both require an explicit region; MinIO accepts the
+    /// B2 and R2 both require an explicit region; OtterIO accepts the
     /// conventional `auto` sentinel and Wasabi ignores it in favour of the
     /// endpoint.
     #[must_use]
     pub const fn default_region(self) -> &'static str {
         match self {
-            Self::Minio => "auto",
+            Self::Otterio => "auto",
             Self::BackblazeB2 => "us-west-004",
             Self::Wasabi => "us-east-1",
             Self::CloudflareR2 => "auto",
@@ -85,7 +85,7 @@ impl StorageBackend {
     #[must_use]
     pub const fn minimum_billable_gb(self) -> u64 {
         match self {
-            Self::Minio => 0,
+            Self::Otterio => 0,
             Self::BackblazeB2 => 0,
             Self::Wasabi => 1_024,
             Self::CloudflareR2 => 0,
@@ -108,7 +108,7 @@ impl StorageBackend {
     #[must_use]
     pub const fn free_egress_ratio(self) -> f64 {
         match self {
-            Self::Minio => f64::INFINITY,
+            Self::Otterio => f64::INFINITY,
             Self::BackblazeB2 => 3.0,
             Self::Wasabi => 1.0,
             Self::CloudflareR2 => f64::INFINITY,

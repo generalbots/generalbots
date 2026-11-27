@@ -162,7 +162,6 @@ class Audit:
             return
 
         pins: dict[str, set[str]] = {}
-        source_pinned: set[str] = set()
         for section in ("components", "models"):
             for entry in cfg.get(section, {}).values():
                 if not isinstance(entry, dict):
@@ -177,14 +176,6 @@ class Audit:
                     pins.setdefault(name, set())
                     if isinstance(digest, str) and digest.strip():
                         pins[name].add(digest.strip())
-                # MinIO binary digest is toolchain-dependent; the bundle pins
-                # its immutable source archive instead (documented in toml).
-                if str(entry.get("source_sha256") or "").strip() and entry.get("build_script"):
-                    for key in ("filename", "filename_arm64", "filename_win"):
-                        name = entry.get(key)
-                        if isinstance(name, str) and name:
-                            source_pinned.add(name)
-
         installer_dir = self.bundled_installer_dir()
         if installer_dir is None:
             self.check(aid, False, "no botserver-installers/* resource mapping in tauri config")
@@ -201,10 +192,7 @@ class Audit:
             self.check(aid, False, f"cannot list {installer_dir}: {exc}")
             return
 
-        missing = [
-            name for name in bundled
-            if not pins.get(name) and name not in source_pinned
-        ]
+        missing = [name for name in bundled if not pins.get(name)]
         self.check(
             aid,
             not missing and bool(bundled),

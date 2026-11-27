@@ -129,7 +129,7 @@
     <!-- Storage Backend -->
     <g transform="translate(750, 160)">
       <rect x="0" y="0" width="200" height="70" rx="6.5" fill="none" class="neon-green"/>
-      <text x="100" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="main-text">MinIO</text>
+      <text x="100" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="main-text">OtterIO</text>
       <text x="100" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Object Storage</text>
     </g>
 
@@ -239,7 +239,7 @@
     <text x="275" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Context menu actions</text>
 
     <rect x="500" y="20" width="16" height="16" rx="3" fill="none" class="neon-green" stroke-width="2"/>
-    <text x="525" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">MinIO object storage</text>
+    <text x="525" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">OtterIO object storage</text>
 
     <rect x="780" y="20" width="16" height="16" rx="3" fill="none" class="neon-cyan" stroke-width="2"/>
     <text x="805" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Grid/List view toggle</text>

@@ -165,8 +165,8 @@ $env:VIBE_WSL_APP_PORT = "80"
 
 $vaultBin = Join-Path $stackRoot "bin\vault\vault.exe"
 $vaultAddr = if ($env:VAULT_ADDR) { $env:VAULT_ADDR } else { "http://127.0.0.1:8200" }
-$minioAccessKey = & $vaultBin kv get -field=accesskey -tls-skip-verify -address=$vaultAddr secret/gbo/drive 2>$null
-$minioSecretKey = & $vaultBin kv get -field=secret -tls-skip-verify -address=$vaultAddr secret/gbo/drive 2>$null
+$otterioAccessKey = & $vaultBin kv get -field=accesskey -tls-skip-verify -address=$vaultAddr secret/gbo/drive 2>$null
+$otterioSecretKey = & $vaultBin kv get -field=secret -tls-skip-verify -address=$vaultAddr secret/gbo/drive 2>$null
 $databaseName = & $vaultBin kv get -field=database -tls-skip-verify -address=$vaultAddr secret/gbo/tables 2>$null
 $databaseUser = & $vaultBin kv get -field=username -tls-skip-verify -address=$vaultAddr secret/gbo/tables 2>$null
 $databasePassword = & $vaultBin kv get -field=password -tls-skip-verify -address=$vaultAddr secret/gbo/tables 2>$null
@@ -180,11 +180,11 @@ if ($databaseName -and $databaseUser -and $databasePort) {
 Write-Host "Starting botserver..."
 $env:PORT = "8080"
 $env:RUST_LOG = "info"
-$env:MINIO_ACCESS_KEY = $minioAccessKey
-$env:MINIO_SECRET_KEY = $minioSecretKey
-$env:MINIO_ENDPOINT = "http://127.0.0.1:9100"
-$env:MINIO_BUCKET = "default.gbai"
-$env:MINIO_SERVER = "http://127.0.0.1:9100"
+$env:OTTERIO_ACCESS_KEY = $otterioAccessKey
+$env:OTTERIO_SECRET_KEY = $otterioSecretKey
+$env:OTTERIO_ENDPOINT = "http://127.0.0.1:9100"
+$env:OTTERIO_BUCKET = "default.gbai"
+$env:OTTERIO_SERVER = "http://127.0.0.1:9100"
 $env:BOTMODELS_HOST = "http://localhost:8085"
 $env:BOTMODELS_API_KEY = "starter"
 $processPath = [Environment]::GetEnvironmentVariable("Path", "Process")

@@ -99,7 +99,7 @@ impl McpCsvLoader {
             McpServerType::Search
         } else if name_lower.contains("storage")
             || name_lower.contains("s3")
-            || name_lower.contains("minio")
+            || name_lower.contains("otterio")
         {
             McpServerType::Storage
         } else if conn_type == "http" || conn_type == "websocket" {

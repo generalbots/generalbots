@@ -50,7 +50,7 @@ pub fn seed_all(pool: &DbPool) {
 }
 
 /// Seeds the fiscal Drive objects (invoice folder + cash-flow spreadsheets)
-/// into the default bot's MinIO bucket. Must run after the drive client is
+/// into the default bot's OtterIO bucket. Must run after the drive client is
 /// available; guards every object with existence checks.
 pub async fn seed_drive_fiscal(pool: &DbPool, drive: &dyn botlib::traits::DriveRepository) {
     match drive::seed_drive_objects(pool, drive).await {

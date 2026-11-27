@@ -16,7 +16,7 @@ Declared in `botserver/src/main_module/mod.rs`:
 | `init` / `init_tasks` | bootstrap sequence, task scheduler start-up |
 | `server/` | Axum server, auth layer, rate limits, fallback responses |
 | `routes/` | hand-written route modules (`chat_handlers.rs`, `product_handlers.rs`, `catalog.rs`, `org_handlers/`, `feature_routers/`, …) |
-| `drive_monitors/` | Drive (MinIO `.gbai`) scanning, bot discovery, reload on ETag change |
+| `drive_monitors/` | Drive (OtterIO `.gbai`) scanning, bot discovery, reload on ETag change |
 | `git_bot_monitor/` | pulls git-owned bots every 15 s into the work dir |
 | `state_builder.rs` | assembles `AppState` from config, pools and caches |
 | `background.rs`, `auto_service.rs` | long-running loops |

@@ -37,8 +37,8 @@ pub const BLOCKED_PORTS: &[u16] = &[
     6443,  // kubernetes api
     8200,  // vault
     8500,  // consul
-    9000,  // minio api (also php-fpm)
-    9001,  // minio console
+    9000,  // otterio api (also php-fpm)
+    9001,  // otterio console
     9100,  // node exporter
     10250, // kubelet
     10255, // kubelet (read-only)

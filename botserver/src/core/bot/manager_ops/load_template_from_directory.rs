@@ -92,14 +92,14 @@ impl BotManager {
         }
     }
 
-    pub(crate) async fn create_minio_bucket(
+    pub(crate) async fn create_otterio_bucket(
         &self,
         bucket_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Creating MinIO bucket: {}", bucket_name);
+        info!("Creating OtterIO bucket: {}", bucket_name);
 
         let bucket_arg = format!("local/{}", bucket_name);
-        if let Ok(cmd) = SafeCommand::new("mc")
+        if let Ok(cmd) = SafeCommand::new("oc")
             .and_then(|c| c.arg("mb"))
             .and_then(|c| c.arg(&bucket_arg))
             .and_then(|c| c.arg("--ignore-existing"))
@@ -201,7 +201,7 @@ TALK response
         let temp_str = temp_file.to_string_lossy();
 
         let dest_path = format!("local/{bucket}/{path}");
-        if let Ok(cmd) = SafeCommand::new("mc")
+        if let Ok(cmd) = SafeCommand::new("oc")
             .and_then(|c| c.arg("cp"))
             .and_then(|c| c.arg(temp_str.as_ref()))
             .and_then(|c| c.arg(&dest_path))
@@ -252,7 +252,7 @@ TALK response
         info!("Deleting bot: {} ({})", bot.name, bot_id);
 
         let bucket_path = format!("local/{}", bot.bucket);
-        if let Ok(cmd) = SafeCommand::new("mc")
+        if let Ok(cmd) = SafeCommand::new("oc")
             .and_then(|c| c.arg("rm"))
             .and_then(|c| c.arg("--recursive"))
             .and_then(|c| c.arg("--force"))

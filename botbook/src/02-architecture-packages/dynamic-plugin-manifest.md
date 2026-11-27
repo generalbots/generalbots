@@ -4,12 +4,12 @@
 
 ## Overview
 
-The Dynamic Plugin Manifest Engine enables bots to dynamically load and execute manifests of native, custom, and partner integration plugins. Plugins are defined as JSON/YAML manifest files stored in MinIO Drive buckets (`{bot}.gbai/{bot}.gbplugins/`) and are hot-reloaded by DriveMonitor on change.
+The Dynamic Plugin Manifest Engine enables bots to dynamically load and execute manifests of native, custom, and partner integration plugins. Plugins are defined as JSON/YAML manifest files stored in OtterIO Drive buckets (`{bot}.gbai/{bot}.gbplugins/`) and are hot-reloaded by DriveMonitor on change.
 
 ## Architecture
 
 ```
-MinIO Drive
+OtterIO Drive
   └── {bot}.gbai/
       └── {bot}.gbplugins/
           └── plugin-name/

@@ -105,7 +105,7 @@ pub async fn serve_vendor_file(
     let key = format!("{}.gblib/vendor/{}", sanitized_bot_name, file_path);
 
     trace!(
-        "Trying MinIO for vendor file: bucket={}, key={}",
+        "Trying OtterIO for vendor file: bucket={}, key={}",
         bucket,
         key
     );
@@ -183,7 +183,7 @@ pub(super) fn rewrite_cdn_urls(html: &str) -> String {
 }
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     let router = Router::new()
-    // Serve shared vendor files from MinIO: /js/vendor/*
+    // Serve shared vendor files from OtterIO: /js/vendor/*
     .route("/js/vendor/*file_path", get(serve_vendor_file))
     // Serve suite JS files (i18n.js, theme-manager.js, etc.)
     .route("/js/*file_path", get(serve_suite_js_file));

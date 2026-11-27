@@ -72,8 +72,8 @@ impl BotServerInstance {
             .env("DIRECTORY_URL", ctx.zitadel_url())
             .env("ZITADEL_CLIENT_ID", "test-client-id")
             .env("ZITADEL_CLIENT_SECRET", "test-client-secret")
-            .env("DRIVE_ACCESSKEY", "minioadmin")
-            .env("DRIVE_SECRET", "minioadmin");
+            .env("DRIVE_ACCESSKEY", "otterio-admin")
+            .env("DRIVE_SECRET", "otterio-admin");
 
         // Self-contained offline wiring: when the harness provides a mock LLM,
         // point the spawned botserver at it (OpenAI-compatible) so chat/KR flows
@@ -176,7 +176,7 @@ impl TestHarness {
             "vault",
             "postgres",
             "zitadel",
-            "minio",
+            "otterio",
             "llama-server",
             "valkey-server",
             "valkey",
@@ -222,7 +222,7 @@ impl TestHarness {
         let ports = if use_existing_stack {
             TestPorts {
                 postgres: DefaultPorts::POSTGRES,
-                minio: DefaultPorts::MINIO,
+                otterio: DefaultPorts::OTTERIO,
                 redis: DefaultPorts::REDIS,
                 botserver: PortAllocator::allocate(),
                 mock_zitadel: PortAllocator::allocate(),
@@ -246,7 +246,7 @@ impl TestHarness {
             use_existing_stack,
             test_id,
             postgres: None,
-            minio: None,
+            otterio: None,
             redis: None,
             mock_zitadel: None,
             mock_llm: None,
@@ -263,9 +263,9 @@ impl TestHarness {
             ctx.postgres = Some(pg);
         }
 
-        if config.minio {
-            log::info!("Starting MinIO on port {}...", ctx.ports.minio);
-            ctx.minio = Some(MinioService::start(ctx.ports.minio, &data_dir_str).await?);
+        if config.otterio {
+            log::info!("Starting OtterIO on port {}...", ctx.ports.otterio);
+            ctx.otterio = Some(OtterioService::start(ctx.ports.otterio, &data_dir_str).await?);
         }
 
         if config.redis {

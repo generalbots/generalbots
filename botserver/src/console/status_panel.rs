@@ -31,7 +31,7 @@ impl ComponentStatusCache {
         let components = vec![
             ("Tables", "postgres", "5432"),
             ("Cache", "valkey-server", "6379"),
-            ("Drive", "minio", "9000"),
+            ("Drive", "otterio", "9000"),
             ("LLM", "llama-server", "8081"),
         ];
 

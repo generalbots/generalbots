@@ -172,7 +172,7 @@ fn modified_rfc3339(meta: &std::fs::Metadata) -> Option<String> {
     Some(chrono::DateTime::<chrono::Utc>::from(modified).to_rfc3339())
 }
 
-/// Lists one local folder using the same file model as the MinIO listing.
+/// Lists one local folder using the same file model as the OtterIO listing.
 pub async fn list_local_files(
     root_name: Option<&str>,
     path: Option<&str>,
@@ -237,7 +237,7 @@ pub async fn list_local_files(
 }
 
 /// Recursively searches a local root for files whose name contains `query`
-/// (case-insensitive). Returns the same file model as the MinIO search so the
+/// (case-insensitive). Returns the same file model as the OtterIO search so the
 /// Drive UI can render the hits unchanged.
 pub async fn search_local_files(
     root_name: Option<&str>,
@@ -374,6 +374,6 @@ mod tests {
         assert_eq!(parse_local_bucket(&bucket), Some("home"));
         assert!(is_local_backend(Some("local"), None));
         assert!(is_local_backend(None, Some(&bucket)));
-        assert!(!is_local_backend(Some("minio"), Some("default.gbai")));
+        assert!(!is_local_backend(Some("otterio"), Some("default.gbai")));
     }
 }

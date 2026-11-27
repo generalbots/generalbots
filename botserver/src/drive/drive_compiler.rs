@@ -1,7 +1,7 @@
 /// DriveCompiler - Compilador unificado para GBDialog
 ///
 /// Fluxo CORRETO:
-/// 1. DriveMonitor (S3) lê MinIO diretamente
+/// 1. DriveMonitor (S3) lê OtterIO diretamente
 /// 2. Baixa .bas para /opt/gbo/work/{bot}.gbai/{bot}.gbdialog/
 /// 3. Compila .bas → .ast (no mesmo work dir)
 /// 4. drive_files table controla etag/status

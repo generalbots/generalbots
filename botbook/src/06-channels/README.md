@@ -15,7 +15,7 @@ Infrastructure services (database, storage, cache) are automatically managed by 
 | LLM Providers | OpenAI, Groq, Anthropic, Azure OpenAI | `config.csv` |
 | Weather | OpenWeatherMap | `config.csv` |
 | Messaging Channels | WhatsApp, Teams, Instagram, Telegram | `config.csv` |
-| Storage | S3-Compatible (MinIO, etc.) | Vault (automatic) |
+| Storage | S3-Compatible (OtterIO, etc.) | Vault (automatic) |
 | Directory | Zitadel | `VAULT_*` environment variables |
 | Email | Stalwart / IMAP/SMTP | Vault (automatic) |
 | Calendar | CalDAV servers | `config.csv` |

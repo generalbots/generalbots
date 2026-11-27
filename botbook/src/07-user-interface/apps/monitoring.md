@@ -8,7 +8,7 @@
 
 ## Overview
 
-Monitoring is the system health dashboard in General Bots Suite. Track CPU, RAM, disk, and network usage in real time. Monitor service status across BotServer, PostgreSQL, Valkey, MinIO, and all other components. Investigate logs, configure alerts, and ensure your infrastructure remains healthy.
+Monitoring is the system health dashboard in General Bots Suite. Track CPU, RAM, disk, and network usage in real time. Monitor service status across BotServer, PostgreSQL, Valkey, OtterIO, and all other components. Investigate logs, configure alerts, and ensure your infrastructure remains healthy.
 
 ---
 
@@ -31,7 +31,7 @@ Monitoring is the system health dashboard in General Bots Suite. Track CPU, RAM,
 | BotServer | Running, stopped, degraded |
 | PostgreSQL | Connection pool, query latency |
 | Valkey | Memory, hit rate, connections |
-| MinIO | Storage, request throughput |
+| OtterIO | Storage, request throughput |
 | Qdrant | Vector operations, indexing |
 | Zitadel | Authentication, session count |
 
@@ -99,7 +99,7 @@ Monitoring is the system health dashboard in General Bots Suite. Track CPU, RAM,
       <p>✅ BotServer: Running</p>
       <p>✅ PostgreSQL: Running (3ms avg)</p>
       <p>✅ Valkey: Running (98% hit rate)</p>
-      <p>✅ MinIO: Running (12GB used)</p>
+      <p>✅ OtterIO: Running (12GB used)</p>
       <p>Uptime: 14 days, 6 hours</p>
       <div class="wa-time">09:00</div>
     </div>
@@ -179,7 +179,7 @@ Monitoring is the system health dashboard in General Bots Suite. Track CPU, RAM,
         "botserver": { "status": "running", "pid": 1234 },
         "postgresql": { "status": "running", "connections": 12 },
         "valkey": { "status": "running", "memory_used_mb": 256 },
-        "minio": { "status": "running", "storage_gb": 12.4 }
+        "otterio": { "status": "running", "storage_gb": 12.4 }
     }
 }
 ```

@@ -72,7 +72,7 @@ The `force_path_style(true)` setting ensures compatibility with S3-compatible st
 
 ### Local Mode
 
-The default mode runs drive on the same machine. The MinIO binary is copied from the offline installer cache to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`. There is no download URL for the server: upstream publishes no binary for the patched release.
+The default mode runs drive on the same machine. The OtterIO binary is copied from the offline installer cache to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`. There is no download URL for the server: upstream publishes no binary for the patched release.
 
 ### Container Mode (Incus)
 
@@ -85,7 +85,7 @@ incus config device add default-drive data disk \
 
 ### External S3-Compatible Storage
 
-botserver can use existing S3-compatible infrastructure. The Directory service manages the connection and supports providers including MinIO (the default local installation), Backblaze B2, Wasabi, DigitalOcean Spaces, Cloudflare R2, and any other S3-compatible service.
+botserver can use existing S3-compatible infrastructure. The Directory service manages the connection and supports providers including OtterIO (the default local installation), Backblaze B2, Wasabi, DigitalOcean Spaces, Cloudflare R2, and any other S3-compatible service.
 
 To use external storage, configure it through the Directory service admin console.
 
@@ -93,22 +93,23 @@ To use external storage, configure it through the Directory service admin consol
 
 Credentials are managed by the Directory service for centralized security. TLS can be enabled for secure communication between components. Bucket policies control access on a per-bot basis, and credential rotation is handled automatically without service interruption.
 
-## MinIO build provenance (CVE-2025-62506)
+## OtterIO release provenance
 
-MinIO releases before `RELEASE.2025-10-15T17-29-55Z` are affected by CVE-2025-62506, a privilege escalation through session-policy bypass for service and STS accounts. Upstream fixed it in that tag but published **no binary assets** for it, and the `dl.min.io` download host is gone. The last published binary is the vulnerable `RELEASE.2025-09-07T16-13-09Z` build.
+OtterIO is Apache-2.0, forked from the last Apache-2.0 baseline of the
+upstream S3-compatible server (2021) with selective backports. It does not
+automatically inherit fixes published after that fork; review each release
+before changing the pin.
 
-General Bots therefore ships a MinIO binary built from the official source tag. This is an exception to the usual "download the pinned release" rule, recorded in `botserver/3rdparty.toml` under `[components.drive]`:
+`botserver/3rdparty.toml` records the pinned release under `[components.drive]`:
 
 | Field | Value |
 |---|---|
-| `source_tag` | `RELEASE.2025-10-15T17-29-55Z` |
-| `source_commit` | `9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a` |
-| `source_sha256` | SHA-256 of the upstream GitHub tag archive, fetched twice and byte-identical |
-| `build_script` | `scripts/build-minio-fixed.sh` |
+| `url`, `url_win`, `url_arm64` | release assets from `https://github.com/soulteary/otterio` |
+| `filename` | `otterio` (`otterio.exe` on Windows) |
+| `sha256`, `sha256_arm64`, `sha256_win` | digests published with the release |
 
-No `url`, `url_win` or `url_arm64` is configured for the drive component, so no install path can fetch the vulnerable release. The binary is built with the tag and commit baked in, and `minio --version` reports them; both the release pipeline and `scripts/check_component_checksums.py --verify-minio` check that report. Because the compiled binary's digest depends on the Go toolchain, integrity is anchored to the immutable source archive rather than a fabricated binary hash. The build script writes the actual binary digest to `minio.sha256` next to the cached copy and the release job verifies the vendored binary before packaging it.
-
-An install whose cached binary does not report the fixed tag fails closed instead of falling back to a download. To build and verify one locally, run `scripts/build-minio-fixed.sh /tmp/minio-fixed`, then `python3 scripts/check_component_checksums.py --verify-minio /tmp/minio-fixed`, and copy the result into the installer cache.
+The installer verifies each downloaded binary against its published SHA-256
+before use. There is no source-build gate and no sidecar digest file.
 
 ## Monitoring
 
@@ -147,15 +148,15 @@ Back up the drive data directory regularly to prevent data loss. Monitor disk us
 
 ## Using a Different Object-Storage Backend
 
-MinIO is the default, but Drive can run against Backblaze B2, Cloudflare R2 or
+OtterIO is the default, but Drive can run against Backblaze B2, Cloudflare R2 or
 Wasabi without a rebuild. The `secret/gbo/drive` Vault secret gains three keys:
 
 | Key | Meaning |
 |---|---|
-| `backend` | `minio` (default), `b2`, `r2`, `wasabi` |
+| `backend` | `otterio` (default), `b2`, `r2`, `wasabi` |
 | `region` | signing region; defaults per backend |
 | `fallback_endpoint` | secondary endpoint for read failover |
-| `endpoint` | full URL; overrides `host`/`port` for non-MinIO backends |
+| `endpoint` | full URL; overrides `host`/`port` for non-OtterIO backends |
 
 ```bash
 vault kv put secret/gbo/drive \

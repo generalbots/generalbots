@@ -1,5 +1,5 @@
 //! Deterministic #2928 tests: org-owned and standalone bots resolve from the
-//! DB row, and a wrong org scope is denied. Pure logic — no DB, no MinIO.
+//! DB row, and a wrong org scope is denied. Pure logic — no DB, no OtterIO.
 
 use super::bucket_scope::{reconcile_bucket, DriveBucketContext};
 use botbasic_core::utils::resolve_bot_drive_location;

@@ -1,5 +1,5 @@
 use super::{
-    check_llm, check_minio, check_postgres, check_redis, HealthStatus, MonitoringState,
+    check_llm, check_otterio, check_postgres, check_redis, HealthStatus, MonitoringState,
 };
 use axum::{extract::State, response::Html};
 use std::sync::Arc;
@@ -84,7 +84,7 @@ pub(super) async fn services<S: MonitoringState>(_state: State<Arc<S>>) -> Html<
     let services = vec![
         ("PostgreSQL", check_postgres(), "Database"),
         ("Redis", check_redis(), "Cache"),
-        ("MinIO", check_minio(), "Storage"),
+        ("OtterIO", check_otterio(), "Storage"),
         ("LLM Server", check_llm(), "AI Backend"),
     ];
 

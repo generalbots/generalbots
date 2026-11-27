@@ -28,7 +28,7 @@ Requirements
     install them first (see Runtime packages below)
   - About 4 GB of free disk space for the service stack
   - Internet access on first run for components that are not bundled; see
-    Platform availability below. The MinIO/mc drive binaries are bundled.
+    Platform availability below. The OtterIO/OC drive binaries are bundled.
 
 Install and run
 ---------------
@@ -169,22 +169,22 @@ Platform availability (runtime components)
 The first-run wizard provisions the stack from botserver/3rdparty.toml. The
 component matrix is not identical on every platform:
 
-  Linux x86_64   PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel,
+  Linux x86_64   PostgreSQL, Valkey, OtterIO/OC, Qdrant, Vault, Zitadel,
                  llama.cpp and the BotModels pythonbox are available.
-  Linux aarch64  PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
+  Linux aarch64  PostgreSQL, Valkey, OtterIO/OC, Qdrant, Vault, Zitadel and
                  llama.cpp have arm64 builds. There is no aarch64 BotModels
                  pythonbox, so vision/STT/TTS are reported unavailable. The
                  arm64 desktop uses llama.cpp b12189 (the x86_64 pin b7345 has
                  no ubuntu-arm64 asset); that release publishes no checksum, so
                  its download is not hash-verified.
-  Windows x64    MinIO/mc, Redis, Qdrant, Zitadel, Caddy and the BotModels
+  Windows x64    OtterIO/OC, Redis, Qdrant, Zitadel, Caddy and the BotModels
                  pythonbox are bundled offline. PostgreSQL, Vault and llama.cpp
                  (plus models) are downloaded once. The Windows pythonbox uses
                  an offline win_amd64 wheelhouse, so vision/STT/TTS need no
                  network access after the first-use venv build.
 
 Optional add-ons that are not part of the first-run stack (Caddy, Stalwart,
-InfluxDB, Vector, Forgejo/runner, NocoDB, LiveKit, CoreDNS) still have x86_64
+InfluxDB, Vector, Forgejo/runner, LiveKit, CoreDNS) still have x86_64
 URLs only on Linux. They are not installed by the desktop wizard.
 
 Offline installation
@@ -194,10 +194,10 @@ before the first run (the same layout as botserver-installers in the source
 tree). Archives found there are preferred over the network. Set
 GB_DESKTOP_OFFLINE=1 to refuse any download at all.
 
-The download already bundles MinIO (object store) because upstream archived it
-and removed the binaries from dl.min.io. The Linux tarballs carry the matching
-x86_64 or arm64 MinIO/mc pair. Those files are AGPL-3.0; see
-https://github.com/minio/minio and https://github.com/minio/mc for the source.
+The download already bundles OtterIO (object store) and OC (its CLI), so the
+drive stack needs no network on first run. The Linux tarballs carry the matching
+x86_64 or arm64 pair. Both are Apache-2.0; see
+https://github.com/soulteary/otterio and https://github.com/soulteary/oc for the source.
 
 Troubleshooting
 ---------------

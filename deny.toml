@@ -7,9 +7,9 @@
 #   cargo deny --all-features check advisories bans licenses sources
 #
 # The project itself is MIT (see LICENSE). Third-party binaries we *bundle*
-# (MinIO, Stalwart, Forgejo, Garage, Skytable) keep their own AGPL notices in
-# LICENSES-desktop.md / 3rdparty.toml — they are not Rust dependencies and are
-# therefore out of scope for this file.
+# (Stalwart, Forgejo, Garage, Skytable) keep their own AGPL notices in
+# LICENSES-desktop.md / 3rdparty.toml; OtterIO and OC are Apache-2.0. They are
+# not Rust dependencies and are therefore out of scope for this file.
 #
 # The two office-document crates (`docx-rs`, `umya-spreadsheet`) are vendored
 # under `3rdparty/` as path dependencies with only their `zip` requirement

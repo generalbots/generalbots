@@ -223,7 +223,7 @@ pub(super) async fn run_components(
                 failure = Some(event.message.clone());
             }
             // On Windows the services the provisioner starts with `start /B`
-            // (vault, postgres, minio, qdrant, zitadel) inherit this stdout
+            // (vault, postgres, otterio, qdrant, zitadel) inherit this stdout
             // pipe and keep it open after the provisioner exits, so waiting for
             // EOF blocks forever and the wizard stays at "Assistant service
             // pending" (7 of 8, 88%). The terminal event ends the read instead.

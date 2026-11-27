@@ -250,7 +250,7 @@ botserver --start
 
 ### Storage Backends
 - AWS S3
-- MinIO
+- OtterIO
 - Any S3-compatible storage
 - Local filesystem
 

@@ -191,4 +191,4 @@ Files are stored under `/tmp/gb-editor/{bucket}` on the server workspace.
 ## See Also
 
 - [Files API](files-api.md) — Upload, download, and manage bot files
-- [Storage API](storage-api.md) — MinIO/Drive storage operations
+- [Storage API](storage-api.md) — OtterIO/Drive storage operations

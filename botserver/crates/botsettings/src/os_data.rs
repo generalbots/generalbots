@@ -14,7 +14,7 @@ pub(crate) const SERVICES: &[(&str, &str, &str)] = &[
     ("botserver", "botserver", "botserver"),
     ("postgresql", "postgresql", "postgres"),
     ("valkey", "valkey", "valkey-server"),
-    ("minio", "minio", "minio"),
+    ("otterio", "otterio", "otterio"),
     ("qdrant", "qdrant", "qdrant"),
     ("vault", "vault", "vault"),
     ("zitadel", "zitadel", "zitadel"),

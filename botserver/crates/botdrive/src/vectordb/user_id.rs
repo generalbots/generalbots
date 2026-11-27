@@ -6,7 +6,7 @@ use botqdrant::drive_vectordb::{chunk_is_authorized, AccessVerifier, VectorScope
 use std::sync::OnceLock;
 
 /// Process-wide current-ACL verifier for Drive vector search (#2820). Installed
-/// once at startup from a trusted source (Drive/MinIO object + `drive_shares`).
+/// once at startup from a trusted source (Drive/OtterIO object + `drive_shares`).
 /// The first installation wins; a second attempt is returned for logging.
 #[cfg(feature = "vectordb")]
 static ACCESS_VERIFIER: OnceLock<Arc<AccessVerifier>> = OnceLock::new();

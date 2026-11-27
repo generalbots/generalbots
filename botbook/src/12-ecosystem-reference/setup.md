@@ -40,7 +40,7 @@ The `.env` file is created automatically during bootstrap with secure random cre
 ```bash
 # Bootstrap creates everything automatically
 ./botserver
-DRIVE_SECRET=minioadmin
+DRIVE_SECRET=otterio-admin
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
 ```
@@ -340,12 +340,12 @@ incus exec botserver-dev-db -- sh -c "
   psql -U postgres -c \"CREATE DATABASE botserver OWNER gbuser;\"
 "
 
-# Configure MinIO (Drive) container
+# Configure OtterIO (Drive) container
 incus start botserver-dev-drive
 incus exec botserver-dev-drive -- sh -c "
-  wget https://dl.min.io/server/minio/release/linux-amd64/minio
-  chmod +x minio
-  MINIO_ROOT_USER=driveadmin MINIO_ROOT_PASSWORD=driveadmin ./minio server /data --console-address ':9001' &
+  wget https://github.com/soulteary/otterio/releases/download/RELEASE.2026-11-25T20-30-00Z/otterio-linux-amd64 -O otterio
+  chmod +x otterio
+  OTTERIO_ROOT_USER=driveadmin OTTERIO_ROOT_PASSWORD=driveadmin ./otterio server /data --console-address ':9001' &
 "
 
 # Configure Redis (Cache) container

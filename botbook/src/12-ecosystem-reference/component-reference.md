@@ -107,21 +107,21 @@ https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-linux-amd64
 
 ---
 
-### MinIO (Drive/Object Storage)
+### OtterIO (Drive/Object Storage)
 
 | Property | Value |
 |----------|-------|
-| **Service** | MinIO |
+| **Service** | OtterIO |
 | **Current Version** | Latest |
 | **Default Ports** | 9000 (API), 9001 (Console) |
-| **Binary Path** | `botserver-stack/bin/drive/minio` |
+| **Binary Path** | `botserver-stack/bin/drive/otterio` |
 | **Config Path** | `botserver-stack/conf/drive/` |
 | **Data Path** | `botserver-stack/data/drive/` |
-| **Log File** | `botserver-stack/logs/minio.log` |
+| **Log File** | `botserver-stack/logs/otterio.log` |
 
 **Download URL:**
 ```
-https://dl.min.io/server/minio/release/linux-amd64/minio
+https://github.com/soulteary/otterio/releases/download/RELEASE.2026-11-25T20-30-00Z/otterio-linux-amd64
 ```
 
 **Purpose:**

@@ -1,7 +1,7 @@
 //! Drive-related utilities
 
 #[cfg(feature = "drive")]
-pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S3Repository) {
+pub async fn ensure_vendor_files_in_otterio(drive: &crate::drive::s3_repository::S3Repository) {
     use log::{info, warn};
 
     if let Err(e) = drive.create_bucket_if_not_exists("default.gborg").await {
@@ -27,8 +27,8 @@ pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S
             )
             .await
         {
-            Ok(_) => info!("Uploaded vendor file to MinIO: s3://default.gborg/{}", key),
-            Err(e) => warn!("Failed to upload vendor file to MinIO: {}", e),
+            Ok(_) => info!("Uploaded vendor file to OtterIO: s3://default.gborg/{}", key),
+            Err(e) => warn!("Failed to upload vendor file to OtterIO: {}", e),
         }
     } else {
         warn!("Could not find htmx.min.js in botui, skipping vendor upload");
@@ -71,7 +71,7 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
         }
     }
 
-    info!("Uploading bot files to MinIO from {:?}", source);
+    info!("Uploading bot files to OtterIO from {:?}", source);
 
     let mut count = 0u32;
     let mut stack = vec![source.to_path_buf()];
@@ -114,7 +114,7 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
     }
 
     if count > 0 {
-        info!("Uploaded {} bot files to MinIO: s3://default.gbai/", count);
+        info!("Uploaded {} bot files to OtterIO: s3://default.gbai/", count);
     }
 }
 

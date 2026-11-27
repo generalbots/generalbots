@@ -2,7 +2,7 @@
 //!
 //! Allows users to create Instagram campaigns by providing a natural-language
 //! prompt. The system generates images (via botmodels / Stable Diffusion),
-//! stores them in MinIO Drive, creates a caption with LLM, and registers the
+//! stores them in OtterIO Drive, creates a caption with LLM, and registers the
 //! campaign for publishing via the Instagram Graph API.
 //!
 //! # Endpoints
@@ -94,7 +94,7 @@ pub struct CampaignResponse {
 /// Describes a single image generated for a campaign.
 #[derive(Debug, Serialize)]
 pub struct CampaignImage {
-    /// URL or path to the image in MinIO Drive.
+    /// URL or path to the image in OtterIO Drive.
     pub url: String,
     /// Short description of the image content.
     pub description: String,
@@ -216,7 +216,7 @@ pub async fn list_campaigns(
 /// Retrieves a specific image for a campaign.
 ///
 /// Returns placeholder metadata; the actual image is served from
-/// MinIO Drive once generated.
+/// OtterIO Drive once generated.
 pub async fn get_campaign_media(
     axum::extract::Path((_campaign_id, _image_id)): axum::extract::Path<(String, String)>,
 ) -> impl IntoResponse {

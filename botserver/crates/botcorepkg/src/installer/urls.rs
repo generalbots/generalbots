@@ -3,8 +3,8 @@ use super::*;
 /// Components whose upstream project ships **no Windows build** (#1966).
 ///
 /// Their `3rdparty.toml` entry used to carry a `url_win` that answered 404
-/// (Forgejo, the Forgejo runner, NocoDB) or fell back to the Linux archive
-/// (Roundcube). A Windows install must refuse them with a reason instead of
+/// (Forgejo, the Forgejo runner, the retired table editor) or fell back to
+/// the Linux archive (Roundcube). A Windows install must refuse them with a reason instead of
 /// downloading a broken URL or the wrong platform's binary.
 const NO_WINDOWS_BUILD: &[&str] = &["alm", "alm_ci", "table_editor", "webmail"];
 

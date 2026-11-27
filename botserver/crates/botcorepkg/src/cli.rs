@@ -21,7 +21,7 @@ pub fn get_all_components() -> Vec<ComponentInfo> {
         },
         ComponentInfo {
             name: "drive",
-            termination_command: "minio",
+            termination_command: "otterio",
         },
         ComponentInfo {
             name: "llm",

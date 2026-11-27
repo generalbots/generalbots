@@ -8,8 +8,8 @@
 # <arch> is `x86_64` (default) or `aarch64` and selects the package/stable
 # asset/checksum names. <installers-dir>
 # is optional: when it contains archives, they are bundled as `installers/` next
-# to start.sh (used for the vendors whose upstream binaries disappeared, e.g.
-# MinIO). The same script produces the artifact that CI publishes, so a local
+# to start.sh (used for the vendors that must be available offline, e.g.
+# OtterIO and OC). The same script produces the artifact that CI publishes, so a local
 # download simulation and the release asset are byte-for-byte the same layout.
 set -euo pipefail
 

@@ -82,7 +82,7 @@ impl BootstrapManager {
     }
 
     /// Copy template bots into the org work path (`{work}/{org}.gborg/`)
-    /// so the drive monitor discovers and loads them into MinIO. Existing
+    /// so the drive monitor discovers and loads them into OtterIO. Existing
     /// copies are replaced recursively; the whole pass is best-effort and
     /// never fails startup when a template is malformed.
     pub async fn upload_templates_to_drive(&self, _cfg: &AppConfig) -> anyhow::Result<()> {

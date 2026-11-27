@@ -62,13 +62,13 @@ done
 VAULT_BIN="${VAULT_BIN:-./botserver-stack/bin/vault/vault}"
 # Only resolve Drive credentials when they were not provided by the caller;
 # never overwrite working env with an empty Vault read.
-if [ -z "${MINIO_ACCESS_KEY:-}" ]; then
-  MINIO_ACCESS_KEY=$($VAULT_BIN kv get -field=accesskey -tls-skip-verify secret/gbo/drive 2>/dev/null)
-  MINIO_SECRET_KEY=$($VAULT_BIN kv get -field=secret -tls-skip-verify secret/gbo/drive 2>/dev/null)
+if [ -z "${OTTERIO_ACCESS_KEY:-}" ]; then
+  OTTERIO_ACCESS_KEY=$($VAULT_BIN kv get -field=accesskey -tls-skip-verify secret/gbo/drive 2>/dev/null)
+  OTTERIO_SECRET_KEY=$($VAULT_BIN kv get -field=secret -tls-skip-verify secret/gbo/drive 2>/dev/null)
 fi
-MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://127.0.0.1:9100}"
-MINIO_BUCKET="${MINIO_BUCKET:-default.gbai}"
-MINIO_SERVER="${MINIO_SERVER:-http://127.0.0.1:9100}"
+OTTERIO_ENDPOINT="${OTTERIO_ENDPOINT:-http://127.0.0.1:9100}"
+OTTERIO_BUCKET="${OTTERIO_BUCKET:-default.gbai}"
+OTTERIO_SERVER="${OTTERIO_SERVER:-http://127.0.0.1:9100}"
 BOTMODELS_HOST="http://localhost:8085" RUST_LOG=info nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 echo "  botserver PID: $!"
 

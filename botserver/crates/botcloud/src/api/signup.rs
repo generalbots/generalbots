@@ -196,11 +196,11 @@ pub(crate) async fn handle_signup(
         seed_default_products(&mut conn, branch_id);
     }
 
-    // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
+    // 9. Create org bucket `.gborg` in OtterIO with bot files inside (non-fatal — outside tx)
     if let Err(e) = integration::create_bot_bucket(
         &service.config, &org_slug, &org_slug, &bot_name, body.template.as_deref(),
     ) {
-        tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
+        tracing::warn!("OtterIO bucket creation skipped (non-fatal): {e}");
     }
 
     // #1500 — Vibe bootstrap: the branch's default bot becomes a git-mode

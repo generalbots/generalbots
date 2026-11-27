@@ -163,7 +163,7 @@ Query parameters:
 
 **Data at Rest**
 
-- The platform does not encrypt all stored data, database columns or MinIO objects at rest; operators must provide that control at the storage layer
+- The platform does not encrypt all stored data, database columns or OtterIO objects at rest; operators must provide that control at the storage layer
 - Field-level encryption via `encrypt_field` is applied to attendance content, external Drive content and session content
 
 **Data in Transit**
@@ -297,7 +297,7 @@ All vendors handling customer data undergo:
 | Vendor | Service | SOC 2 | Data Access |
 |--------|---------|-------|-------------|
 | PostgreSQL | Database | N/A (self-hosted) | Full |
-| MinIO | Object Storage | N/A (self-hosted) | Full |
+| OtterIO | Object Storage | N/A (self-hosted) | Full |
 | Qdrant | Vector DB | N/A (self-hosted) | Full |
 | Redis | Caching | N/A (self-hosted) | Session data |
 

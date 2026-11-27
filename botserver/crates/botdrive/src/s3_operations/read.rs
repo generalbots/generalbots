@@ -191,7 +191,7 @@ impl S3Repository {
         Ok(Arc::new((*target).clone()))
     }
 
-    /// List all buckets in S3/MinIO using rust-s3 crate's list_buckets
+    /// List all buckets in S3/OtterIO using rust-s3 crate's list_buckets
     pub async fn list_all_buckets(&self) -> Result<Vec<String>> {
         debug!("Listing all buckets from S3");
 

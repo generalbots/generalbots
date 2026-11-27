@@ -206,7 +206,9 @@ pub fn configure_remote(
         .and_then(|c| c.arg(remote_name))
         .and_then(|c| c.arg("s3"))
         .and_then(|c| c.arg("provider"))
-        .and_then(|c| c.arg("Minio"))
+        // Use rclone's generic S3 provider: OtterIO is S3-compatible and
+        // rclone has no dedicated provider entry for it.
+        .and_then(|c| c.arg("S3"))
         .and_then(|c| c.arg("endpoint"))
         .and_then(|c| c.arg(endpoint))
         .and_then(|c| c.arg("access_key_id"))

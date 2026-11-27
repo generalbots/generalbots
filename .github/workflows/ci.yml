@@ -1340,7 +1340,7 @@ jobs:
       DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
       CACHE_URL: redis://127.0.0.1:6379
       # Treat Vault as remote so bootstrap does not try to provision the local
-      # desktop stack (Vault/PostgreSQL/MinIO/Zitadel) inside the runner.
+      # desktop stack (Vault/PostgreSQL/OtterIO/Zitadel) inside the runner.
       VAULT_ADDR: https://vault.a11y.invalid:8200
       BOTSERVER_DISABLE_TLS: "1"
       # Smoke jobs have no Vault/CSRF secret: use the dev posture so the
@@ -1608,7 +1608,7 @@ jobs:
       GB_API_BASE: http://127.0.0.1:8080
       GB_MOCK_ZITADEL_URL: http://127.0.0.1:8099
       GB_ACCOUNT_FILE: /tmp/gb-smoke-account.json
-      # Drive/MinIO is intentionally absent in this job. The sidebar's
+      # Drive/OtterIO is intentionally absent in this job. The sidebar's
       # /api/files/recent call therefore returns 503; report it as an
       # environment note without masking any other console error or 404.
       GB_SMOKE_ALLOW_503: /api/files/recent
@@ -1676,7 +1676,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$BOTSERVER_STACK_PATH/conf/system" "$BOTSERVER_STACK_PATH/conf/directory"
           cat > "$BOTSERVER_STACK_PATH/conf/system/directory_config.json" <<'JSON'
-          {"base_url":"http://127.0.0.1:8099","saas_base_url":"http://127.0.0.1:8080","service_token":"ci-smoke-token","allow_insecure_http":true,"mc_path":"/tmp/mc"}
+          {"base_url":"http://127.0.0.1:8099","saas_base_url":"http://127.0.0.1:8080","service_token":"ci-smoke-token","allow_insecure_http":true,"oc_path":"/tmp/oc"}
           JSON
           printf '%s' 'ci-smoke-token' > "$BOTSERVER_STACK_PATH/conf/directory/admin-pat.txt"
           nohup ./target/debug/botserver --noconsole > /tmp/botserver-smoke.log 2>&1 &

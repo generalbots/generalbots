@@ -6,7 +6,7 @@ The .gbdrive system provides centralized file storage for all bot packages, leve
 
 Every bot requires storage for its various components—scripts, documents, configuration files, user uploads, and generated content. Rather than managing files across disparate locations, General Bots consolidates storage through the .gbdrive system, which provides a consistent interface regardless of the underlying storage backend.
 
-The storage system builds on S3-compatible object storage, meaning it works with self-hosted solutions like MinIO as well as cloud providers like AWS S3, Backblaze B2, or DigitalOcean Spaces. This flexibility allows deployments to choose storage solutions that match their requirements for cost, performance, and data residency.
+The storage system builds on S3-compatible object storage, meaning it works with self-hosted solutions like OtterIO as well as cloud providers like AWS S3, Backblaze B2, or DigitalOcean Spaces. This flexibility allows deployments to choose storage solutions that match their requirements for cost, performance, and data residency.
 
 Beyond simple file storage, the system provides versioning capabilities, access control, automatic synchronization, and integration with other bot components like knowledge bases and themes.
 

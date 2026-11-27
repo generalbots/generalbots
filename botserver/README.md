@@ -66,7 +66,7 @@ Each application is backed by a crate in [`crates/`](./crates) and a UI under `b
 | <img src="icons/auth.svg" width="32"> | **Auth / Identity**<br><sub>Core Platform</sub> | OAuth 2.0, OpenID Connect, JWT validation and session management, with role-based access control on every endpoint. SSO-ready. |
 | <img src="icons/database.svg" width="32"> | **Shared / Database**<br><sub>Core Platform</sub> | PostgreSQL with managed schema definitions, shared models and common utilities used across every application. |
 | <img src="icons/ai-engine.svg" width="32"> | **AI Engine**<br><sub>Core Platform</sub> | LLM provider orchestration across DeepSeek, Qwen, GLM, Kimi, MiniMax, Yi or any OpenAI-compatible API. Automatic failover, token counting, streaming and cost tracking. |
-| <img src="icons/drive.svg" width="32"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with MinIO, AWS S3 and Wasabi. |
+| <img src="icons/drive.svg" width="32"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with OtterIO, AWS S3 and Wasabi. |
 | <img src="icons/dashboards.svg" width="32"> | **Dashboards / Analytics**<br><sub>Core Platform</sub> | Real-time dashboards covering system health, business KPIs and custom visualisations. Exportable and embeddable. |
 | <img src="icons/ai-search.svg" width="32"> | **AI Search**<br><sub>Capabilities</sub> | Retrieval-augmented generation over PDFs, Word and Excel with sub-second semantic retrieval and cited answers. |
 | <img src="icons/bot-factory.svg" width="32"> | **Bot Factory**<br><sub>Capabilities</sub> | Rapid prototyping and multi-bot orchestration. Run many bots with distinct personalities from one dashboard. |
@@ -139,7 +139,7 @@ Business logic belongs in `crates/`. The `src/<feature>/` directories exist only
 
 ## Getting Started
 
-The supported path is the repository root script — it builds botserver and botui together and lets BotServer provision its own stack (PostgreSQL, Vault, MinIO, Valkey, Zitadel, Qdrant, llama.cpp):
+The supported path is the repository root script — it builds botserver and botui together and lets BotServer provision its own stack (PostgreSQL, Vault, OtterIO, Valkey, Zitadel, Qdrant, llama.cpp):
 
 ```bash
 ./restart.sh        # from the repository root

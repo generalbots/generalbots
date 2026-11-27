@@ -35,7 +35,7 @@ pub async fn get_project_types() -> Result<Json<ProjectTypesResponse>, Deploymen
             deploy_target: "none".to_string(),
             features: vec![
                 "Runs in BotServer chat mode".to_string(),
-                "Stored in MinIO .gbai bucket".to_string(),
+                "Stored in OtterIO .gbai bucket".to_string(),
                 "No ALM repository needed".to_string(),
                 "Instant deployment via .bas scripts".to_string(),
             ],

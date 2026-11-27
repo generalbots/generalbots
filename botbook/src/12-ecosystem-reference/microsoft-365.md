@@ -11,8 +11,8 @@ Microsoft 365 (formerly Office 365) includes multiple services that need to be m
 | Microsoft 365 Service | Self-Hosted Alternative | Migration Tool |
 |----------------------|------------------------|----------------|
 | Exchange Online | Mail server (Stalwart, etc.) | imapsync |
-| OneDrive | MinIO or Nextcloud | rclone |
-| SharePoint | MinIO + Wiki/CMS | rclone + export tools |
+| OneDrive | OtterIO or Nextcloud | rclone |
+| SharePoint | OtterIO + Wiki/CMS | rclone + export tools |
 | Teams | Mattermost, General Bots, etc. | Export/Import APIs |
 | Azure AD | Keycloak, Authentik, Zitadel | LDAP export |
 

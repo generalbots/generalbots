@@ -371,7 +371,7 @@ When botserver implements `--temp-stack`, E2E tests will run in isolated environ
 ```bash
 botserver --temp-stack
 # Creates: /tmp/botserver-test-{timestamp}-{random}/
-# With isolated: PostgreSQL, Redis, MinIO, Mock LLM
+# With isolated: PostgreSQL, Redis, OtterIO, Mock LLM
 # Auto-cleanup after test completion
 ```
 

@@ -385,4 +385,4 @@ Retrieves a dialog with all its files.
 - [File Operations](./files-api.md) — raw file management
 - [Compilation](./compilation.md) — BASIC compilation pipeline
 - [Tool Definition](./tool-definition.md) — how tools are registered
-- [Storage API](./storage-api.md) — Drive (MinIO) integration
+- [Storage API](./storage-api.md) — Drive (OtterIO) integration

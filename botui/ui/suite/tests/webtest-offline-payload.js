@@ -127,7 +127,7 @@ payloads.forEach(function (p, i) {
       "manifest=" + manifestPin + " 3rdparty=" + sourcePin);
   } else {
     // Empty pins are allowed only where the source has no pin (e.g. the
-    // minio sidecar and the digest-free pythonbox releases).
+    // otterio sidecar and the digest-free pythonbox releases).
     check(id + " empty pin is documented by source", sourcePin === "",
       "3rdparty has pin " + sourcePin);
   }

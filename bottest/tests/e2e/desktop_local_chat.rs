@@ -317,7 +317,7 @@ async fn desktop_local_suite_chat_hi() -> Result<()> {
 /// LLM without requiring a browser, botserver, or database. Safe to run offline.
 #[tokio::test]
 async fn desktop_local_chat_mock_llm_wiring_smoke() -> Result<()> {
-    // Minimal context: mocks only, no postgres/minio/redis/services.
+    // Minimal context: mocks only, no postgres/otterio/redis/services.
     let mut ctx = match bottest::TestHarness::minimal().await {
         Ok(c) => c,
         Err(e) => {

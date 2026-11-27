@@ -60,7 +60,7 @@ fn registry_defaults_register_every_internal_service() {
         "qdrant",
         "redis",
         "postgres",
-        "minio",
+        "otterio",
         "directory",
         "email",
         "meet",

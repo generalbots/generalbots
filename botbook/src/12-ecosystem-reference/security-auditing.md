@@ -100,12 +100,14 @@ Monitor security advisories for each component:
 |-----------|---------------|
 | PostgreSQL | [postgresql.org/support/security](https://www.postgresql.org/support/security/) |
 | Vault | [security.hashicorp.com](https://www.hashicorp.com/security) |
-| MinIO | [github.com/minio/minio/security](https://github.com/minio/minio/security/advisories) |
+| OtterIO | [github.com/soulteary/otterio/releases](https://github.com/soulteary/otterio/releases) |
 | Zitadel | [github.com/zitadel/zitadel/security](https://github.com/zitadel/zitadel/security/advisories) |
 | llama.cpp | [github.com/ggml-org/llama.cpp/security](https://github.com/ggml-org/llama.cpp/security/advisories) |
 | Valkey | [github.com/valkey-io/valkey/security](https://github.com/valkey-io/valkey/security/advisories) |
 | Caddy | [github.com/caddyserver/caddy/security](https://github.com/caddyserver/caddy/security/advisories) |
 | Stalwart | [github.com/stalwartlabs/mail-server/security](https://github.com/stalwartlabs/mail-server/security/advisories) |
+
+OtterIO forks the 2021 Apache-2.0 baseline and backports fixes selectively; do not assume later advisories are inherited. Verify each pinned release.
 
 ### Trivy Container Scanning
 
@@ -150,8 +152,8 @@ ss -tlnp | grep LISTEN
 # 8200  - Vault
 # 5432  - PostgreSQL
 # 8080  - Zitadel / API
-# 9000  - MinIO API
-# 9001  - MinIO Console
+# 9000  - OtterIO API
+# 9001  - OtterIO Console
 # 6379  - Valkey
 # 8081  - LLM Server
 # 8082  - Embedding Server

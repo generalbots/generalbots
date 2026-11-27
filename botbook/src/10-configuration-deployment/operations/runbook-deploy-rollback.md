@@ -67,7 +67,7 @@ sudo incus file push -r /opt/gbo/bin/ui.previous bot/opt/gbo/bin/ui
 ```
 
 A migration is **not** rolled back by the binary rollback. If the release
-included a migration, follow [restore PostgreSQL/MinIO](./runbook-restore-backup.md)
+included a migration, follow [restore PostgreSQL/OtterIO](./runbook-restore-backup.md)
 before assuming the old binary will boot.
 
 ## Verification

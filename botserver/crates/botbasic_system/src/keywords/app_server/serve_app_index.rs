@@ -58,7 +58,7 @@ pub(super) async fn serve_app_file_internal(state: &AppState, app_name: &str, fi
     let bot_name = state.bucket_name.trim_end_matches(".gbai").to_string();
     let sanitized_bot_name = bot_name.to_lowercase().replace([' ', '_'], "-");
 
-    // MinIO bucket and path: botname.gbai / botname.gbapp/appname/file
+    // OtterIO bucket and path: botname.gbai / botname.gbapp/appname/file
     let bucket = format!("{}.gbai", sanitized_bot_name);
     let key = format!(
         "{}.gbapp/{}/{}",
@@ -66,11 +66,11 @@ pub(super) async fn serve_app_file_internal(state: &AppState, app_name: &str, fi
     );
 
     info!(
-        "Serving app file from MinIO: bucket={}, key={}",
+        "Serving app file from OtterIO: bucket={}, key={}",
         bucket, key
     );
 
-    // Try to serve from MinIO
+    // Try to serve from OtterIO
     #[cfg(feature = "drive")]
     if let Some(ref drive) = state.drive {
         match drive.get_object(&bucket, &key).await {
@@ -104,7 +104,7 @@ pub(super) async fn serve_app_file_internal(state: &AppState, app_name: &str, fi
         }
     }
 
-// Fallback to filesystem if MinIO fails
+// Fallback to filesystem if OtterIO fails
     let site_path = state
         .config
         .as_ref()

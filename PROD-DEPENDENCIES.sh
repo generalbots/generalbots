@@ -96,7 +96,7 @@ macOS desktop bundle: BEST EFFORT (UNSIGNED)
     desktop-local resources.
   - GitHub Actions builds it in .github/workflows/desktop-macos.yml.
   - Signing/notarization is future work; the published .dmg is unsigned.
-  - The Linux service stack (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault,
+  - The Linux service stack (PostgreSQL, Valkey, Qdrant, Vault,
     Zitadel, llama.cpp), the BotModels pythonbox and the Incus agent have no
     native darwin builds. Use a Linux VM or a remote Incus host.
   - Gatekeeper bypass for the unsigned app:

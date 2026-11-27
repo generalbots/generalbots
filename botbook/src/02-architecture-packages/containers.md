@@ -42,7 +42,7 @@ Images are tried in order: `ubuntu:24.04`, `ubuntu:22.04`, `images:debian/12`,
 | Instance | Component |
 |---|---|
 | `{tenant}-tables` | PostgreSQL |
-| `{tenant}-drive` | object storage (MinIO) |
+| `{tenant}-drive` | object storage (OtterIO) |
 | `{tenant}-cache` | Valkey |
 | `{tenant}-llm` | llama.cpp (optional) |
 | `{tenant}-email` | mail server (optional) |

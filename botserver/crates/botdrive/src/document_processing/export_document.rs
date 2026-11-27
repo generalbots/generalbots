@@ -78,7 +78,7 @@ pub async fn import_document(
     let content = if let Some(url) = &req.source_url {
         // #2131 — `source_url` is caller-supplied. The shared guard restricts
         // the fetch to public http(s) targets, re-validates every redirect hop
-        // and caps the body, so a request can never read Vault, MinIO or the
+        // and caps the body, so a request can never read Vault, OtterIO or the
         // cloud metadata endpoint and return it as document content.
         let policy = botsecurity_core::validation::FetchPolicy::default()
             .with_timeout(std::time::Duration::from_secs(30))

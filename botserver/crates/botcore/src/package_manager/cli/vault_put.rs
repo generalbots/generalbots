@@ -98,7 +98,7 @@ pub(super) async fn vault_get(path: &str, key: Option<&str>) -> Result<()> {
 pub(super) fn vault_list() -> Result<()> {
     println!("Configured secret paths:");
     println!("  {} - Database credentials", SecretPaths::TABLES);
-    println!("  {} - S3/MinIO credentials", SecretPaths::DRIVE);
+    println!("  {} - S3/OtterIO credentials", SecretPaths::DRIVE);
     println!("  {} - Redis credentials", SecretPaths::CACHE);
     println!("  {} - SMTP credentials", SecretPaths::EMAIL);
     println!("  {} - Zitadel credentials", SecretPaths::DIRECTORY);

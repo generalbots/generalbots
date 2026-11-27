@@ -153,10 +153,10 @@ mod tests {
 
     #[test]
     fn windows_binary_name_from_exec_with_forward_slash() {
-        let c = stub(None, Some("start /B {{BIN_PATH}}/minio.exe server data"));
+        let c = stub(None, Some("start /B {{BIN_PATH}}/otterio.exe server data"));
         assert_eq!(
             c.windows_binary_name_from_exec(),
-            Some("minio.exe".into())
+            Some("otterio.exe".into())
         );
     }
 

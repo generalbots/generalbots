@@ -114,7 +114,7 @@ pub async fn start_background_services(
         trace!("ensure_llama_servers_running completed");
     }
 
-    // Start DriveMonitor for S3/MinIO file watching and syncing
+    // Start DriveMonitor for S3/OtterIO file watching and syncing
     #[cfg(feature = "drive")]
     start_drive_monitors(app_state.clone(), _pool).await;
 

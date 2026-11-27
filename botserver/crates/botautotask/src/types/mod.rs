@@ -193,7 +193,7 @@ pub trait ConfigOps: Send + Sync {
 }
 
 pub trait DriveOps: Send + Sync {
-    /// Upload a file to MinIO/Drive. Bucket follows the Drive layout
+    /// Upload a file to OtterIO/Drive. Bucket follows the Drive layout
     /// (`{bot}.gbai`), key is the object path inside it.
     fn put_object(
         &self,

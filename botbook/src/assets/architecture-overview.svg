@@ -163,7 +163,7 @@
     <!-- Data services bar -->
     <rect x="20" y="235" width="410" height="35" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
     <text x="60" y="257" text-anchor="middle" font-size="9" class="mono-text">PostgreSQL</text>
-    <text x="140" y="257" text-anchor="middle" font-size="9" class="mono-text">MinIO</text>
+    <text x="140" y="257" text-anchor="middle" font-size="9" class="mono-text">OtterIO</text>
     <text x="220" y="257" text-anchor="middle" font-size="9" class="mono-text">Valkey</text>
     <text x="300" y="257" text-anchor="middle" font-size="9" class="mono-text">Zitadel</text>
     <text x="380" y="257" text-anchor="middle" font-size="9" class="mono-text">Stalwart</text>

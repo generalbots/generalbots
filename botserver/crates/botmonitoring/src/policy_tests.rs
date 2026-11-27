@@ -224,12 +224,12 @@ fn service_host_port_accepts_the_configured_url_shapes() {
 #[test]
 fn host_port_from_url_is_the_public_entry_point() {
     assert_eq!(
-        host_port_from_url("http://minio:9100/api", 9000),
-        Some(("minio".to_string(), 9100))
+        host_port_from_url("http://otterio:9100/api", 9000),
+        Some(("otterio".to_string(), 9100))
     );
     assert_eq!(
-        host_port_from_url("minio", 9000),
-        Some(("minio".to_string(), 9000))
+        host_port_from_url("otterio", 9000),
+        Some(("otterio".to_string(), 9000))
     );
     assert_eq!(host_port_from_url("", 9000), None);
 }

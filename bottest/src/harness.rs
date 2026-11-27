@@ -1,7 +1,7 @@
 use crate::fixtures::{Bot, Customer, Message, QueueEntry, Session, User};
 use crate::mocks::{MockLLM, MockZitadel};
 use crate::ports::{PortAllocator, TestPorts};
-use crate::services::{MinioService, PostgresService, RedisService};
+use crate::services::{OtterioService, PostgresService, RedisService};
 use anyhow::Result;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
@@ -14,7 +14,7 @@ pub use botlib::db_pool::DbPool;
 #[derive(Debug, Clone)]
 pub struct TestConfig {
     pub postgres: bool,
-    pub minio: bool,
+    pub otterio: bool,
     pub redis: bool,
     pub mock_zitadel: bool,
     pub mock_llm: bool,
@@ -25,7 +25,7 @@ impl Default for TestConfig {
     fn default() -> Self {
         Self {
             postgres: true,
-            minio: false,
+            otterio: false,
             redis: false,
             mock_zitadel: true,
             mock_llm: true,
@@ -39,7 +39,7 @@ impl TestConfig {
     pub const fn minimal() -> Self {
         Self {
             postgres: false,
-            minio: false,
+            otterio: false,
             redis: false,
             mock_zitadel: false,
             mock_llm: false,
@@ -51,7 +51,7 @@ impl TestConfig {
     pub const fn full() -> Self {
         Self {
             postgres: false,
-            minio: false,
+            otterio: false,
             redis: false,
             mock_zitadel: true,
             mock_llm: true,
@@ -63,7 +63,7 @@ impl TestConfig {
     pub const fn auto_install() -> Self {
         Self {
             postgres: false,
-            minio: false,
+            otterio: false,
             redis: false,
             mock_zitadel: true,
             mock_llm: true,
@@ -84,7 +84,7 @@ impl TestConfig {
     pub const fn use_existing_stack() -> Self {
         Self {
             postgres: false,
-            minio: false,
+            otterio: false,
             redis: false,
             mock_zitadel: true,
             mock_llm: true,
@@ -97,7 +97,7 @@ pub struct DefaultPorts;
 
 impl DefaultPorts {
     pub const POSTGRES: u16 = 5432;
-    pub const MINIO: u16 = 9000;
+    pub const OTTERIO: u16 = 9000;
     pub const REDIS: u16 = 6379;
     pub const ZITADEL: u16 = 8080;
 }
@@ -109,7 +109,7 @@ pub struct TestContext {
     pub use_existing_stack: bool,
     test_id: Uuid,
     postgres: Option<PostgresService>,
-    minio: Option<MinioService>,
+    otterio: Option<OtterioService>,
     redis: Option<RedisService>,
     mock_zitadel: Option<MockZitadel>,
     mock_llm: Option<MockLLM>,
@@ -141,11 +141,11 @@ impl TestContext {
         }
     }
 
-    pub fn minio_endpoint(&self) -> String {
+    pub fn otterio_endpoint(&self) -> String {
         if self.use_existing_stack {
-            format!("http://127.0.0.1:{}", DefaultPorts::MINIO)
+            format!("http://127.0.0.1:{}", DefaultPorts::OTTERIO)
         } else {
-            format!("http://127.0.0.1:{}", self.ports.minio)
+            format!("http://127.0.0.1:{}", self.ports.otterio)
         }
     }
 
@@ -193,8 +193,8 @@ impl TestContext {
         self.postgres.as_ref()
     }
 
-    pub const fn minio(&self) -> Option<&MinioService> {
-        self.minio.as_ref()
+    pub const fn otterio(&self) -> Option<&OtterioService> {
+        self.otterio.as_ref()
     }
 
     pub const fn redis(&self) -> Option<&RedisService> {
@@ -249,8 +249,8 @@ impl TestContext {
             let _ = pg.stop().await;
         }
 
-        if let Some(ref mut minio) = self.minio {
-            let _ = minio.stop().await;
+        if let Some(ref mut otterio) = self.otterio {
+            let _ = otterio.stop().await;
         }
 
         if let Some(ref mut redis) = self.redis {
@@ -274,8 +274,8 @@ impl Drop for TestContext {
             let _ = pg.cleanup();
         }
 
-        if let Some(ref mut minio) = self.minio {
-            let _ = minio.cleanup();
+        if let Some(ref mut otterio) = self.otterio {
+            let _ = otterio.cleanup();
         }
 
         if let Some(ref mut redis) = self.redis {
@@ -361,7 +361,7 @@ mod tests {
     fn test_config_default() {
         let config = TestConfig::default();
         assert!(config.postgres);
-        assert!(!config.minio);
+        assert!(!config.otterio);
         assert!(!config.redis);
         assert!(config.mock_zitadel);
         assert!(config.mock_llm);
@@ -372,7 +372,7 @@ mod tests {
     fn test_config_full() {
         let config = TestConfig::full();
         assert!(!config.postgres);
-        assert!(!config.minio);
+        assert!(!config.otterio);
         assert!(!config.redis);
         assert!(config.mock_zitadel);
         assert!(config.mock_llm);
@@ -383,7 +383,7 @@ mod tests {
     fn test_config_minimal() {
         let config = TestConfig::minimal();
         assert!(!config.postgres);
-        assert!(!config.minio);
+        assert!(!config.otterio);
         assert!(!config.redis);
         assert!(!config.mock_zitadel);
         assert!(!config.mock_llm);
@@ -394,7 +394,7 @@ mod tests {
     fn test_config_database_only() {
         let config = TestConfig::database_only();
         assert!(config.postgres);
-        assert!(!config.minio);
+        assert!(!config.otterio);
         assert!(!config.redis);
         assert!(!config.mock_zitadel);
         assert!(!config.mock_llm);

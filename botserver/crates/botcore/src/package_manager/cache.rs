@@ -163,8 +163,8 @@ impl DownloadCache {
     }
 
     /// Configured cache filename for a URL, including the arm64/Windows
-    /// variants. Vendored installers use these stable names (`minio`,
-    /// `minio.exe`) rather than the upstream asset basename.
+    /// variants. Vendored installers use these stable names (`otterio`,
+    /// `otterio.exe`) rather than the upstream asset basename.
     pub fn filename_for_url(&self, url: &str) -> Option<String> {
         self.config
             .components
@@ -207,7 +207,7 @@ impl DownloadCache {
     pub fn resolve_component_url(&self, component: &str, url: &str) -> CacheResult {
         if let Some(comp) = self.get_component(component) {
             // Use the configured filename for the URL actually in use. This is
-            // what lets a bundled `minio`/`minio.exe` satisfy the upstream
+            // what lets a bundled `otterio`/`otterio.exe` satisfy the upstream
             // release URL, and keeps the arm64 variant separate from x86_64.
             let filename = comp
                 .filename_for_url(url)

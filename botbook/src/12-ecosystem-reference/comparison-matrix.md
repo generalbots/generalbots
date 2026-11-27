@@ -31,7 +31,7 @@ General Bots uniquely combines self-hosted deployment, open source licensing, na
 |------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
 | Email | ✅ Stalwart | ✅ Exchange | ✅ Gmail | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ⚠️ Acts on your inbox | ⚠️ Via integrations |
 | Calendar | ✅ CalDAV | ✅ Outlook | ✅ Calendar | ❌ None | ❌ Basic | ❌ None | ❌ None | ❌ None | ⚠️ Acts on your calendar | ⚠️ Via integrations |
-| File storage | ✅ MinIO | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None | ⚠️ Local filesystem | ⚠️ Connects existing repositories |
+| File storage | ✅ OtterIO | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None | ⚠️ Local filesystem | ⚠️ Connects existing repositories |
 | Tasks/Projects | ✅ Full | ✅ Planner | ✅ Tasks | ❌ None | ✅ Strong | ❌ None | ❌ None | ❌ None | ⚠️ Agent run history | ⚠️ Agent execution engine |
 | Video meetings | ✅ LiveKit | ✅ Teams | ✅ Meet | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
 | Team chat | ✅ Multi-channel | ✅ Teams | ✅ Chat | ❌ None | ⚠️ Comments | ❌ None | ❌ None | ❌ None | ✅ WhatsApp, Telegram, Slack, Teams | ❌ None |

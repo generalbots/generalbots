@@ -290,7 +290,7 @@ fn display_name(key: &str) -> &str {
         "cache" => "Cache",
         "vector_db" => "Vector DB",
         "llm" => "LLM",
-        "minio" => "Storage",
+        "otterio" => "Storage",
         _ => key,
     }
 }

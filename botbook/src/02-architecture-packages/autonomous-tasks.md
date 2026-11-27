@@ -44,7 +44,7 @@ Autonomous Tasks let you describe what you want and the system builds it. No cod
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              PostgreSQL + MinIO + LLM                           │
+│              PostgreSQL + OtterIO + LLM                           │
 │              (user_data virtual table)                          │
 └─────────────────────────────────────────────────────────────────┘
 ```

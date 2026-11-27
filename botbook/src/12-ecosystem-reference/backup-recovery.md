@@ -10,9 +10,9 @@ Protecting your botserver data requires regular backups of databases, configurat
 |-----------|---------------|----------|--------|
 | PostgreSQL | `botserver-stack/data/tables/` | **Critical** | pg_dump |
 | Vault | `botserver-stack/data/vault/` | **Critical** | Vault snapshot |
-| MinIO | `botserver-stack/data/drive/` | **Critical** | mc mirror |
+| OtterIO | `botserver-stack/data/drive/` | **Critical** | oc mirror |
 | Configurations | `botserver-stack/conf/` | High | File copy |
-| Bot Packages | S3 buckets (*.gbai) | High | mc mirror |
+| Bot Packages | S3 buckets (*.gbai) | High | oc mirror |
 | Models | `botserver-stack/data/llm/` | Medium | File copy |
 | Logs | `botserver-stack/logs/` | Low | Optional |
 
@@ -137,42 +137,42 @@ tar -xzvf vault-data-backup.tar.gz -C botserver-stack/data/
 
 ---
 
-## Object Storage Backup (MinIO)
+## Object Storage Backup (OtterIO)
 
-### Using MinIO Client (mc)
+### Using OtterIO Client (oc)
 
 ```bash
-# Configure mc
-mc alias set local http://localhost:9000 $DRIVE_ACCESS_KEY $DRIVE_SECRET_KEY
+# Configure oc
+oc alias set local http://localhost:9000 $DRIVE_ACCESS_KEY $DRIVE_SECRET_KEY
 
 # Backup all buckets
-mc mirror local/ /backup/minio/
+oc mirror local/ /backup/otterio/
 
 # Backup specific bot
-mc mirror local/mybot.gbai /backup/bots/mybot.gbai/
+oc mirror local/mybot.gbai /backup/bots/mybot.gbai/
 ```
 
 ### Sync to Remote Storage
 
 ```bash
 # Backup to S3
-mc mirror local/ s3/botserver-backup/
+oc mirror local/ s3/botserver-backup/
 
 # Backup to Backblaze B2
-mc mirror local/ b2/botserver-backup/
+oc mirror local/ b2/botserver-backup/
 
-# Backup to another MinIO
-mc mirror local/ remote/botserver-backup/
+# Backup to another OtterIO
+oc mirror local/ remote/botserver-backup/
 ```
 
 ### Restore from Backup
 
 ```bash
 # Restore all buckets
-mc mirror /backup/minio/ local/
+oc mirror /backup/otterio/ local/
 
 # Restore specific bucket
-mc mirror /backup/bots/mybot.gbai/ local/mybot.gbai/
+oc mirror /backup/bots/mybot.gbai/ local/mybot.gbai/
 ```
 
 ---
@@ -240,7 +240,7 @@ VAULT_ADDR=http://localhost:8200 vault operator raft snapshot save "$BACKUP_DIR/
 
 # 3. Object storage
 echo "Backing up drive..."
-mc mirror local/ "$BACKUP_DIR/drive/" --quiet
+oc mirror local/ "$BACKUP_DIR/drive/" --quiet
 
 # 4. Configurations
 echo "Backing up configurations..."
@@ -321,7 +321,7 @@ Add to crontab:
 5. **Restore object storage**
    ```bash
    ./botserver start drive
-   mc mirror /backup/drive/ local/
+   oc mirror /backup/drive/ local/
    ```
 
 6. **Start remaining services**
@@ -359,7 +359,7 @@ pg_restore --list database.dump
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM bots;"
 
 # Verify drive contents
-mc ls local/
+oc ls local/
 ```
 
 ### Backup Integrity Checks

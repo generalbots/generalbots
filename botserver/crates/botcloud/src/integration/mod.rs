@@ -4,7 +4,7 @@
 //! - **CRM**: creates contact and deal (opportunity) in pipeline
 //! - **ERP (GL)**: posts entry to general ledger when invoice is paid
 //! - **Subscription**: creates recurring record in `billing_recurring`
-//! - **Signup**: creates tenant, org, branch, bot, MinIO bucket, trial subscription, workspace
+//! - **Signup**: creates tenant, org, branch, bot, OtterIO bucket, trial subscription, workspace
 
 pub(crate) use chrono::{Utc, Duration};
 pub(crate) use diesel::deserialize::QueryableByName;

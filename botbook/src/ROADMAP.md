@@ -205,7 +205,7 @@ Ordered by what unlocks the most, not by what is most visible:
 | Async runtime | Tokio |
 | Database | PostgreSQL with **Diesel** and `diesel_migrations` |
 | Cache | Valkey |
-| Object storage | MinIO |
+| Object storage | OtterIO |
 | Vector search | Qdrant |
 | Identity | Zitadel |
 | UI | HTMX with Askama templates |

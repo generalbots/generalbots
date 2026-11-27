@@ -68,15 +68,15 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
                 }
             };
 
-            println!("⚠️  WARNING: You must update MinIO with the new credentials!");
+            println!("⚠️  WARNING: You must update OtterIO with the new credentials!");
             println!();
             println!("Run these commands:");
             println!(
-                "  mc admin user add myminio {} [REDACTED — see Vault secret/gbo/drive]",
+                "  oc admin user add myotterio {} [REDACTED — see Vault secret/gbo/drive]",
                 new_accesskey
             );
             println!(
-                "  mc admin policy attach myminio readwrite --user {}",
+                "  oc admin policy attach myotterio readwrite --user {}",
                 new_accesskey
             );
             println!();

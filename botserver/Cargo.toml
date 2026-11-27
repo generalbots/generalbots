@@ -379,7 +379,7 @@ rust_xlsxwriter = { workspace = true, optional = true }
 umya-spreadsheet = { workspace = true, optional = true }
 
 # File Storage & Drive (drive feature)
-# minio removed - use rust-s3 via S3Repository instead
+# Object-store SDK removed - use rust-s3 via S3Repository instead
 pdf-extract = { workspace = true, optional = true }
 quick-xml = { workspace = true }
 flate2 = { workspace = true }

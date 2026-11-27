@@ -10,7 +10,7 @@
  *   rust: "1.75.0",
  *   postgresql: "16.1",
  *   valkey: "7.2.4",
- *   minio: "2024-01-20T00:00:00Z",
+ *   otterio: "2024-01-20T00:00:00Z",
  *   qdrant: "1.7.0",
  *   vault: "1.15.0",
  *   zitadel: "2.45.0"
@@ -33,7 +33,7 @@ var VersionComponents = [
   { id: "rust", name: "Rust", icon: "\u{1F7E2}" },
   { id: "postgresql", name: "PostgreSQL", icon: "\u{1F4BE}" },
   { id: "valkey", name: "Valkey / Redis", icon: "\u{1F5C4}\uFE0F" },
-  { id: "minio", name: "MinIO", icon: "\u{1F4E6}" },
+  { id: "otterio", name: "OtterIO", icon: "\u{1F4E6}" },
   { id: "qdrant", name: "Qdrant", icon: "\u{1F9EA}" },
   { id: "vault", name: "Vault", icon: "\u{1F512}" },
   { id: "zitadel", name: "Zitadel", icon: "\u{1F464}" }

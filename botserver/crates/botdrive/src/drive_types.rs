@@ -137,7 +137,7 @@ pub struct ListFilesParams {
     pub page_size: Option<u32>,
     pub sort: Option<String>,
     pub order: Option<String>,
-    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    /// #1801 — storage backend selector: `otterio` (default) or `local`.
     pub backend: Option<String>,
     /// #1801 — allowlisted local root for `backend=local`
     /// (`home`, `documents`, `music`, `pictures`, `downloads`, `desktop`).
@@ -211,7 +211,7 @@ pub struct DownloadFileBody {
     pub path: String,
     pub scope: Option<FileScope>,
     pub user_id: Option<String>,
-    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    /// #1801 — storage backend selector: `otterio` (default) or `local`.
     #[serde(default)]
     pub backend: Option<String>,
     /// #1801 — allowlisted local root for `backend=local`.
@@ -251,7 +251,7 @@ pub struct SearchQueryParams {
     /// #1638 — also match text extracted from the file body. Defaults to on
     /// for toolbox search; the scan is bounded (size + file count).
     pub content: Option<bool>,
-    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    /// #1801 — storage backend selector: `otterio` (default) or `local`.
     pub backend: Option<String>,
     /// #1801 — allowlisted local root for `backend=local`.
     pub root: Option<String>,

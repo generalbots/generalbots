@@ -241,7 +241,7 @@ pub fn current_org_id() -> uuid::Uuid {
 /// Build a relative bot path with org isolation (.gborg wrapping).
 /// Returns: "{org_id}.gborg/{bot_bucket}.gbai/{sub_path}"
 ///
-/// This mirrors the MinIO Drive bucket structure where each org's bots
+/// This mirrors the OtterIO Drive bucket structure where each org's bots
 /// are stored under `{org_id}.gborg/` and each bot under `{bot_name}.gbai/`.
 ///
 /// When `org_id` is not available, use `current_org_id()` which returns

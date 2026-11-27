@@ -92,8 +92,8 @@ Gatekeeper bypass above can be removed.
 The macOS bundle cannot provision the Linux service stack natively. The wizard
 must report these components as unavailable instead of failing provisioning:
 
-- **Service stack:** PostgreSQL, Valkey, MinIO and `mc`, Qdrant, Vault,
-  Zitadel and llama.cpp have no darwin builds. Run them in a Linux VM or on a
+- **Service stack:** PostgreSQL, Valkey, Qdrant, Vault, Zitadel and llama.cpp
+  have no darwin builds. Run them in a Linux VM or on a
   remote Incus host (`incus remote add`) and point botserver at it.
 - **BotModels:** the published pythonboxes are
   `botmodels-pythonbox-linux-x86_64.tar.gz` and

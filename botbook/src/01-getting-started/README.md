@@ -69,7 +69,7 @@ Everything installs automatically on first run—PostgreSQL, storage, cache, and
   <div class="wa-message bot">
     <div class="wa-bubble">
       <p>PostgreSQL (database)</p>
-      <p>MinIO (file storage)</p>
+      <p>OtterIO (file storage)</p>
       <p>Cache (Redis-compatible)</p>
       <p>Default bot templates</p>
       <p>All in <code>botserver-stack/</code> — no system-wide installation!</p>

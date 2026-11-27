@@ -358,7 +358,7 @@ EOF
 chmod 0440 /etc/sudoers.d/gb-power
 
 # 10. #2477 — a laptop joins untrusted networks. Default-deny inbound; the
-#     whole provisioned stack (botserver, Vault, PostgreSQL, Valkey, MinIO,
+#     whole provisioned stack (botserver, Vault, PostgreSQL, Valkey, OtterIO,
 #     Qdrant, Zitadel) listens on loopback only, so nothing on the café Wi-Fi
 #     can reach the login form or the API. Outbound is unrestricted (the
 #     setup wizard, model downloads and normal browsing need it), and the

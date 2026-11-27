@@ -66,14 +66,14 @@ impl DriveConfig {
                     let server = format!("{}:{}", host, port);
                     // Optional backend selection (#1468). `endpoint` wins when set,
                     // so an operator can point at B2 or R2 by URL alone; `host`
-                    // and `port` remain the MinIO-shaped default.
+                    // and `port` remain the OtterIO-shaped default.
                     let endpoint_override = secret_data.get("endpoint").and_then(|v| v.as_str()).unwrap_or("");
                     let endpoint = if endpoint_override.trim().is_empty() {
                         format!("http://{}:{}", host, port)
                     } else {
                         endpoint_override.trim_end_matches('/').to_string()
                     };
-                    let backend = secret_data.get("backend").and_then(|v| v.as_str()).unwrap_or("minio");
+                    let backend = secret_data.get("backend").and_then(|v| v.as_str()).unwrap_or("otterio");
                     let region = secret_data.get("region").and_then(|v| v.as_str()).unwrap_or("");
                     let region = if region.trim().is_empty() { "auto".to_string() } else { region.to_string() };
                     let fallback_endpoint = secret_data.get("fallback_endpoint").and_then(|v| v.as_str()).unwrap_or("");
@@ -102,23 +102,23 @@ impl DriveConfig {
     /// NÃO faz fallback para credenciais hardcoded — se as env vars não existirem,
     /// retorna `Err`.
     pub fn from_env() -> Result<Self, String> {
-        let access_key = std::env::var("MINIO_ACCESS_KEY")
-            .map_err(|_| "MINIO_ACCESS_KEY not set".to_string())?;
-        let secret_key = std::env::var("MINIO_SECRET_KEY")
-            .map_err(|_| "MINIO_SECRET_KEY not set".to_string())?;
-        let endpoint = std::env::var("MINIO_ENDPOINT")
-            .map_err(|_| "MINIO_ENDPOINT not set".to_string())?;
-        let bucket = std::env::var("MINIO_BUCKET")
-            .map_err(|_| "MINIO_BUCKET not set".to_string())?;
-        let server = std::env::var("MINIO_SERVER")
-            .map_err(|_| "MINIO_SERVER not set".to_string())?;
+        let access_key = std::env::var("OTTERIO_ACCESS_KEY")
+            .map_err(|_| "OTTERIO_ACCESS_KEY not set".to_string())?;
+        let secret_key = std::env::var("OTTERIO_SECRET_KEY")
+            .map_err(|_| "OTTERIO_SECRET_KEY not set".to_string())?;
+        let endpoint = std::env::var("OTTERIO_ENDPOINT")
+            .map_err(|_| "OTTERIO_ENDPOINT not set".to_string())?;
+        let bucket = std::env::var("OTTERIO_BUCKET")
+            .map_err(|_| "OTTERIO_BUCKET not set".to_string())?;
+        let server = std::env::var("OTTERIO_SERVER")
+            .map_err(|_| "OTTERIO_SERVER not set".to_string())?;
 
-        // MINIO_REGION / MINIO_BACKEND / MINIO_FALLBACK_ENDPOINT let an operator
+        // OTTERIO_REGION / OTTERIO_BACKEND / OTTERIO_FALLBACK_ENDPOINT let an operator
         // select an external backend (#1468) without a Vault round trip; all are
-        // optional so the MinIO-only deployment is unchanged.
-        let region = std::env::var("MINIO_REGION").unwrap_or_else(|_| "auto".to_string());
-        let backend = std::env::var("MINIO_BACKEND").unwrap_or_else(|_| "minio".to_string());
-        let fallback_endpoint = match std::env::var("MINIO_FALLBACK_ENDPOINT") {
+        // optional so the OtterIO-only deployment is unchanged.
+        let region = std::env::var("OTTERIO_REGION").unwrap_or_else(|_| "auto".to_string());
+        let backend = std::env::var("OTTERIO_BACKEND").unwrap_or_else(|_| "otterio".to_string());
+        let fallback_endpoint = match std::env::var("OTTERIO_FALLBACK_ENDPOINT") {
             Ok(endpoint) => endpoint,
             Err(_) => String::new(),
         };

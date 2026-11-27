@@ -65,7 +65,7 @@ ALLOWLIST = frozenset(
         "Discord", "Zoom", "Stripe",
         "PayPal", "PIX", "NFe",
         "NFSe", "SPED", "Zitadel",
-        "MinIO", "Vault", "PostgreSQL",
+        "OtterIO", "OC", "Vault", "PostgreSQL",
         "Valkey", "Redis", "Qdrant",
         "LiveKit", "Stalwart", "Forgejo",
         "Incus", "Caddy", "CoreDNS",

@@ -435,7 +435,7 @@ CREATE INDEX IF NOT EXISTS idx_connection_config_active ON connection_configurat
 
 -- ============================================================================
 -- COMPONENT INSTALLATIONS TABLE
--- Tracks installed components (postgres, minio, qdrant, etc.)
+-- Tracks installed components (postgres, otterio, qdrant, etc.)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS component_installations (
     id TEXT PRIMARY KEY,

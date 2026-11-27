@@ -170,7 +170,7 @@ mod tests {
             "http://",
             "https://",
             "s3://",
-            "minio",
+            "otterio",
         ] {
             assert!(
                 !rendered.contains(marker),

@@ -91,7 +91,7 @@ function bindFileEvents() {
         // hit's own bucket before navigating so the path resolves.
         var hitBucket = item.dataset.bucket || "";
         // #1801 — local rows: folders navigate on the local backend, files
-        // open in the preview modal (the editor apps only speak MinIO).
+        // open in the preview modal (the editor apps only speak OtterIO).
         if (parseLocalBucket(hitBucket)) {
             if (type === "folder") loadFiles(path, hitBucket);
             else previewFile(path, hitBucket);

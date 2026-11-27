@@ -49,7 +49,7 @@ Returns version information for all system components.
       "version": "7.2.4"
     },
     "storage": {
-      "engine": "MinIO",
+      "engine": "OtterIO",
       "version": "2024-01-18T22:51:28Z"
     },
     "vectordb": {
@@ -149,9 +149,9 @@ Applies system configuration. Used during initial setup or to update environment
 | `llm_key` | string | No | LLM API key |
 | `llm_model` | string | No | Default LLM model name |
 | `llm_provider` | string | No | LLM provider type (openai, anthropic, nvidia) |
-| `drive_host` | string | No | MinIO/Drive host address |
-| `drive_access_key` | string | No | MinIO access key |
-| `drive_secret` | string | No | MinIO secret key |
+| `drive_host` | string | No | OtterIO/Drive host address |
+| `drive_access_key` | string | No | OtterIO access key |
+| `drive_secret` | string | No | OtterIO secret key |
 | `encryption_key` | string | No | System encryption key |
 
 **Request Body:**

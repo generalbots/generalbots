@@ -134,7 +134,7 @@
     </circle>
     <path id="pathToCore2" d="M250,500 Q350,500 450,450" fill="none" stroke="none"/>
 
-    <!-- MinIO to Core -->
+    <!-- OtterIO to Core -->
     <path d="M250,700 Q400,650 500,500" stroke="#10b981" opacity="0.4">
       <animate attributeName="stroke-dasharray" values="0,1000;200,800;400,600" dur="2.8s" repeatCount="indefinite"/>
     </path>
@@ -298,8 +298,8 @@
     <text x="0" y="46" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="9">• RAG Embeddings</text>
   </g>
 
-  <!-- MinIO -->
-  <g id="minio" transform="translate(150, 740)">
+  <!-- OtterIO -->
+  <g id="otterio" transform="translate(150, 740)">
     <rect x="-80" y="-50" width="160" height="100" rx="12" fill="url(#storageGradient)" filter="url(#softGlow)"/>
 
     <!-- Folder icons -->
@@ -307,7 +307,7 @@
     <text x="-20" y="-10" fill="white" font-size="20">📄</text>
     <text x="10" y="-10" fill="white" font-size="20">🖼️</text>
 
-    <text x="0" y="15" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">MinIO Drive</text>
+    <text x="0" y="15" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">OtterIO Drive</text>
     <text x="0" y="32" text-anchor="middle" fill="#a7f3d0" font-family="monospace" font-size="10">Storage: 45.2 GB</text>
     <text x="0" y="45" text-anchor="middle" fill="#a7f3d0" font-family="monospace" font-size="10">Objects: 12,847</text>
 

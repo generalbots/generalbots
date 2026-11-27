@@ -164,10 +164,10 @@ WantedBy=multi-user.target
 "#
     }
 
-    /// MinIO drive service template
-    pub fn minio_service() -> &'static str {
+    /// OtterIO drive service template
+    pub fn otterio_service() -> &'static str {
         r#"[Unit]
-Description=MinIO Object Storage
+Description=OtterIO Object Storage
 After=network-online.target
 Wants=network-online.target
 
@@ -175,7 +175,7 @@ Wants=network-online.target
 User=gbuser
 Group=gbuser
 WorkingDirectory=/opt/gbo
-ExecStart=/opt/gbo/bin/minio server --console-address :4646 /opt/gbo/data
+ExecStart=/opt/gbo/bin/otterio server --console-address :4646 /opt/gbo/data
 Restart=always
 RestartSec=10
 

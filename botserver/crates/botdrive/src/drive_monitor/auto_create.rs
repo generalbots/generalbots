@@ -1,4 +1,4 @@
-//! Auto-criação de bots a partir de buckets no MinIO (Issue #506).
+//! Auto-criação de bots a partir de buckets no OtterIO (Issue #506).
 //!
 //! A lógica de auto-criação foi integrada diretamente no método `scan_bucket`
 //! em `types.rs`. Quando o DriveMonitor escaneia um bucket `{nome}.gbai`,
@@ -31,11 +31,11 @@ pub async fn ensure_bot_exists(bot_name: &str) -> Result<bool, String> {
     Ok(false)
 }
 
-/// Sincroniza todos os buckets .gbai do MinIO com a tabela `bots`.
+/// Sincroniza todos os buckets .gbai do OtterIO com a tabela `bots`.
 /// A implementação real percorre cada bucket do drive e chama o
 /// DriveMonitor.scan_bucket() correspondente.
 pub async fn sync_bots_from_buckets() -> Result<u32, String> {
-    // TODO(#506): Listar todos os buckets .gbai no MinIO (/tmp/mc ls local/),
+    // TODO(#506): Listar todos os buckets .gbai no OtterIO (/tmp/oc ls local/),
     // extrair bot_name de cada bucket, chamar ensure_bot_exists para cada um.
     // Retornar total de bots criados vs já existentes.
     Ok(0)

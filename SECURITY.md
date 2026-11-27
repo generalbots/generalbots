@@ -24,8 +24,8 @@ infrastructure follow the rules of engagement in the internal tracker.
 
 ## Third-Party Runtime Components
 
-The services botserver provisions on first boot — PostgreSQL, Valkey, MinIO and
-`mc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, LiveKit, NocoDB, llama.cpp — are
+The services botserver provisions on first boot — PostgreSQL, Valkey, OtterIO and
+`oc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, LiveKit, llama.cpp — are
 pinned in `botserver/3rdparty.toml` by `version`, `url` and `sha256`. That file
 is a security boundary: it decides which binaries a user's machine downloads and
 then executes. It applies to the server and to the desktop edition alike.

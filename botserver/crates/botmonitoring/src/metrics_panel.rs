@@ -71,7 +71,7 @@ pub async fn logs_services<S: MonitoringState, U: MonitoringUrls>(_state: State<
         "botserver",
         "postgresql",
         "valkey",
-        "minio",
+        "otterio",
         "qdrant",
         "llm",
         "drive-monitor",

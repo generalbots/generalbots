@@ -248,14 +248,14 @@ fn check_redis() -> bool {
     checker.check("redis", url, 6379)
 }
 
-fn check_minio() -> bool {
+fn check_otterio() -> bool {
     static CHECKER: std::sync::OnceLock<ServiceChecker> = std::sync::OnceLock::new();
     let checker = CHECKER.get_or_init(ServiceChecker::new);
-    let url = std::env::var("MINIO_URL")
+    let url = std::env::var("OTTERIO_URL")
         .or_else(|_| std::env::var("S3_ENDPOINT"))
-        .or_else(|_| std::env::var("MINIO_ENDPOINT"))
+        .or_else(|_| std::env::var("OTTERIO_ENDPOINT"))
         .ok();
-    checker.check("minio", url, 9000)
+    checker.check("otterio", url, 9000)
 }
 
 fn check_llm() -> bool {

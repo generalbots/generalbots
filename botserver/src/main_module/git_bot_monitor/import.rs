@@ -1,7 +1,7 @@
 //! Reform #1501 — one-shot import of bot sources from Drive into git.
 //!
 //! For every bot-kind Vibe project of a branch, list the bot's
-//! `{branch}.gbai/{bot}.gbdialog/*` (and `.gbot`) objects in MinIO, copy them
+//! `{branch}.gbai/{bot}.gbdialog/*` (and `.gbot`) objects in OtterIO, copy them
 //! into the project's git workspace, and commit+push `main`. Idempotent via
 //! `payload.source_imported_at`. Drive keeps `.gbkb`/`.gbdrive` — only bot
 //! **sources** move to git.

@@ -2,7 +2,7 @@
 //!
 //! The guard exists to stop a *caller-supplied* URL from reaching the local
 //! node, the private network or a cloud metadata endpoint. Platform code also
-//! talks to its own services (Vault, MinIO, Valkey, the LLM, BotModels) with
+//! talks to its own services (Vault, OtterIO, Valkey, the LLM, BotModels) with
 //! URLs the **server** built from configuration — never from a request body,
 //! a bot script or an LLM tool call. Those calls are allowed through
 //! [`super::fetch_internal_service_url`], and only when the host matches one of
@@ -56,7 +56,7 @@ pub const INTERNAL_SERVICES: &[InternalService] = &[
     InternalService {
         host: "drive",
         port: 9000,
-        reason: "MinIO object storage",
+        reason: "OtterIO object storage",
     },
     InternalService {
         host: "directory",

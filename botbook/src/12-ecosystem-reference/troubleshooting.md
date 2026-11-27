@@ -44,7 +44,7 @@ free -h
 df -h botserver-stack/
 
 # Process list
-ps aux | grep -E "llama|postgres|minio|vault|valkey"
+ps aux | grep -E "llama|postgres|otterio|vault|valkey"
 
 # Open ports
 ss -tlnp | grep LISTEN
@@ -213,15 +213,15 @@ ss -tlnp | grep LISTEN
    ./botserver start llm
    ```
 
-### Drive (MinIO) Issues
+### Drive (OtterIO) Issues
 
 **Symptom:** File uploads/downloads fail
 
 **Solutions:**
 
-1. **Check MinIO status**
+1. **Check OtterIO status**
    ```bash
-   curl http://localhost:9000/minio/health/live
+   curl http://localhost:9000/otterio/health/live
    ```
 
 2. **Credential issues**
@@ -229,9 +229,9 @@ ss -tlnp | grep LISTEN
    # Verify credentials from Vault
    ./botserver show-secret drive
    
-   # Test with mc client
-   mc alias set local http://localhost:9000 ACCESS_KEY SECRET_KEY
-   mc ls local/
+   # Test with oc client
+   oc alias set local http://localhost:9000 ACCESS_KEY SECRET_KEY
+   oc ls local/
    ```
 
 3. **Disk full**
@@ -239,7 +239,7 @@ ss -tlnp | grep LISTEN
    df -h botserver-stack/data/drive/
    
    # Clean old versions
-   mc rm --recursive --force local/bucket/.minio.sys/
+   oc rm --recursive --force local/bucket/.otterio.sys/
    ```
 
 ### Cache (Valkey) Issues
@@ -454,7 +454,7 @@ ss -tlnp | grep LISTEN
 
 4. **Prune drive storage**
    ```bash
-   mc rm --recursive --older-than 30d local/bucket/
+   oc rm --recursive --older-than 30d local/bucket/
    ```
 
 ---

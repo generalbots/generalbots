@@ -287,7 +287,7 @@ Returns an object with generation details:
 
 | Property | Description |
 |----------|-------------|
-| `result.url` | Full URL to the generated PDF (S3/MinIO path) |
+| `result.url` | Full URL to the generated PDF (S3/OtterIO path) |
 | `result.localName` | Local filename of the generated PDF |
 
 ---
@@ -370,7 +370,7 @@ No specific configuration required. Uses bot's standard drive settings from `con
 
 ```csv
 name,value
-drive-provider,minio
+drive-provider,otterio
 drive-url,http://localhost:8333
 drive-bucket,my-bot
 ```

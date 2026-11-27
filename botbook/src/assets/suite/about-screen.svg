@@ -165,7 +165,7 @@
     </g>
     <g transform="translate(160, 58)">
       <text x="0" y="0" font-size="12" class="muted-text">Storage</text>
-      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">MinIO / S3</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">OtterIO / S3</text>
     </g>
     <g transform="translate(300, 58)">
       <text x="0" y="0" font-size="12" class="muted-text">License</text>

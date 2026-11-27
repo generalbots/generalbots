@@ -1,10 +1,10 @@
 mod browser_service;
-mod minio;
+mod otterio;
 mod postgres;
 mod redis;
 
 pub use browser_service::{BrowserService, DEFAULT_DEBUG_PORT};
-pub use minio::MinioService;
+pub use otterio::OtterioService;
 pub use postgres::PostgresService;
 pub use redis::RedisService;
 
