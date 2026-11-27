@@ -13,6 +13,7 @@ use std::path::Path;
 
 const WRAPPER_FILE: &str = "incus.exe";
 const PRODUCT_DISTRO: &str = "GeneralBotsLite";
+const PRODUCT_BRIDGE: &str = "gblbr0";
 
 /// Variables to set on the sidecar, given whether the wrapper file exists
 /// and how the current environment answers `lookup`.
@@ -33,6 +34,7 @@ pub(super) fn agent_env_for(
         ("AGENT_INCUS_BIN", installers.join(WRAPPER_FILE).into_os_string()),
         ("GBO_WSL_DISTRO", OsString::from(PRODUCT_DISTRO)),
         ("GBO_AGENT_RUNTIME_MARKER", marker.into_os_string()),
+        ("AGENT_VM_BRIDGE", OsString::from(PRODUCT_BRIDGE)),
     ]
     .into_iter()
     .filter(|(name, _)| !present(name))
@@ -65,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn bundled_wrapper_sets_the_product_trio() {
+    fn bundled_wrapper_sets_the_product_vars() {
         let env = run(true, &[]);
         assert_eq!(
             env,
@@ -76,6 +78,7 @@ mod tests {
                     "GBO_AGENT_RUNTIME_MARKER",
                     Path::new(STACK).join("agent-runtime").join("ready.json").into_os_string()
                 ),
+                ("AGENT_VM_BRIDGE", OsString::from("gblbr0")),
             ]
         );
     }
@@ -98,12 +101,13 @@ mod tests {
     #[test]
     fn existing_distro_or_marker_values_win() {
         let env = run(true, &[("GBO_WSL_DISTRO", "Other"), ("GBO_AGENT_RUNTIME_MARKER", r"D:\m.json")]);
-        assert_eq!(env.len(), 1);
+        assert_eq!(env.len(), 2);
         assert_eq!(env[0].0, "AGENT_INCUS_BIN");
+        assert_eq!(env[1].0, "AGENT_VM_BRIDGE");
     }
 
     #[test]
     fn a_blank_wrapper_variable_counts_as_unset() {
-        assert_eq!(run(true, &[("AGENT_INCUS_BIN", "  ")]).len(), 3);
+        assert_eq!(run(true, &[("AGENT_INCUS_BIN", "  ")]).len(), 4);
     }
 }

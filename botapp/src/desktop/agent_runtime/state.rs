@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub(crate) const PINNED_RUNTIME_VERSION: &str = "1.0.0";
+pub(crate) const PINNED_RUNTIME_VERSION: &str = "1.0.1";
 
 pub(crate) const RELEASE_BASE_URL: &str =
     "https://github.com/generalbots/generalbots/releases/download";

@@ -45,9 +45,12 @@ Inside the distro:
 - `gb-incus-firstboot.service` runs once:
   `incus admin init --preseed` with
   `/usr/local/share/generalbots/incus-preseed.yaml` (storage pool `default`
-  on the `dir` driver, bridge `incusbr0` with IPv4 NAT and no IPv6, the
+  on the `dir` driver, bridge `gblbr0` with IPv4 NAT and no IPv6, the
   default profile on both, no `core.https_address`, so the Incus API is only
-  on the local unix socket). It then disables itself.
+  on the local unix socket). The bridge is named `gblbr0` instead of the
+  Incus default `incusbr0` so the product does not collide with another Incus
+  in a sibling WSL distro (all WSL2 distros share one kernel and network
+  namespace). It then disables itself.
 - `/var/lib/generalbots/incus-firstboot.status` holds one line:
   `running`, `ok` or `failed: <reason>`. After `ok` the file
   `/var/lib/generalbots/incus-firstboot.done` exists. A failure keeps the unit

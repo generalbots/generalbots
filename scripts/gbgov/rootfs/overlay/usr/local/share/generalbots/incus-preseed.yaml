@@ -3,7 +3,7 @@
 # the Incus API is reachable only through the local unix socket.
 config: {}
 networks:
-  - name: incusbr0
+  - name: gblbr0
     type: bridge
     description: General Bots workspaces (NAT)
     config:
@@ -23,5 +23,5 @@ profiles:
         type: disk
       eth0:
         name: eth0
-        network: incusbr0
+        network: gblbr0
         type: nic

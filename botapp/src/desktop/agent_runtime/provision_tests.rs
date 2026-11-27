@@ -43,8 +43,8 @@ impl ProvisionEvents for TestEvents {
 fn manifest_json() -> Vec<u8> {
     serde_json::to_vec(&serde_json::json!({
         "schema_version": 1,
-        "runtime_version": "1.0.0",
-        "release_tag": "gbgov-agent-runtime-v1.0.0",
+        "runtime_version": "1.0.1",
+        "release_tag": "gbgov-agent-runtime-v1.0.1",
         "commit": "a".repeat(40),
         "built_at": "2026-01-01T00:00:00Z",
         "debian_snapshot": "20261120T000000Z",

@@ -5,7 +5,7 @@
 # `GeneralBotsLite` (`wsl --import GeneralBotsLite <dir> <file> --version 2`):
 # Debian 13 (trixie) from a pinned snapshot.debian.org timestamp, systemd as
 # init, Incus from Debian main, and a one-time unit that initialises Incus
-# (dir storage pool, incusbr0 NAT bridge, no network listener) on first boot.
+# (dir storage pool, gblbr0 NAT bridge, no network listener) on first boot.
 #
 # Reproducible: the package set comes from one snapshot timestamp,
 # SOURCE_DATE_EPOCH is that timestamp, mmdebstrap sorts and clamps the tar
@@ -40,7 +40,7 @@ DRY_RUN=0
 
 # Everything beyond minbase. incus-base runs containers only (the `incus`
 # package adds QEMU for virtual machines, which WSL does not need);
-# dnsmasq-base is only a Recommends of incus-base but incusbr0 needs it for
+# dnsmasq-base is only a Recommends of incus-base but the NAT bridge needs it for
 # DHCP and DNS.
 PACKAGES=(
     systemd systemd-sysv dbus
