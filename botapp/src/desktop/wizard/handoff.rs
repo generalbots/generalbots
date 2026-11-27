@@ -193,6 +193,13 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
         serde_json::to_string_pretty(&marker).map_err(|e| format!("serialize marker: {e}"))?;
     std::fs::write(marker_path(), raw).map_err(|e| format!("write marker: {e}"))?;
 
+    // Mark first-run as done BEFORE closing the wizard, so the window-close
+    // handler in main.rs sees this and does not trigger the abort path.
+    if let Some(ws) = app.try_state::<super::WizardState>() {
+        ws.handoff_complete
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+
     // The credentials file keeps only a salted digest, so this is the last
     // moment the password is available for the automatic sign-in.
     reveal_suite_signed_in(

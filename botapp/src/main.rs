@@ -400,42 +400,94 @@ fn main() {
 
             app.run(move |app, event| {
                 #[cfg(feature = "desktop-local")]
-                if let tauri::RunEvent::ExitRequested { api, .. } = &event {
-                    use desktop::exit_decision::{on_exit_requested, ExitAction};
-                    let main_visible = app
-                        .get_webview_window("main")
-                        .and_then(|w| w.is_visible().ok())
-                        .unwrap_or(false);
-                    let action = on_exit_requested(
-                        desktop::tray::quit_requested(),
-                        main_visible,
-                        desktop::activity::is_busy(),
-                    );
-                    match action {
-                        ExitAction::Exit => {
-                            info!("quitting: stopping the sidecar");
+                match &event {
+                    // --- Per-window close: the first-run wizard phase ---
+                    //
+                    // During first run two windows exist: "wizard" (visible)
+                    // and "main" (hidden, created by the Tauri config). The
+                    // hidden window keeps Tauri from firing ExitRequested
+                    // when the wizard closes, so ExitRequested alone is not
+                    // enough. Catch Destroyed on each window instead.
+                    tauri::RunEvent::WindowEvent {
+                        label,
+                        event: tauri::WindowEvent::Destroyed,
+                        ..
+                    } if label == "wizard" || label == "main" => {
+                        use desktop::exit_decision::{on_window_destroyed, WindowAction};
+                        let ws = app.state::<WizardState>();
+                        let action = on_window_destroyed(
+                            label,
+                            ws.handoff_complete
+                                .load(std::sync::atomic::Ordering::SeqCst),
+                            desktop::wizard::is_first_run(),
+                        );
+                        if action == WindowAction::AbortFirstRun {
+                            // Guard against double-processing when both
+                            // windows are destroyed in sequence.
+                            ws.handoff_complete
+                                .store(true, std::sync::atomic::Ordering::SeqCst);
+                            info!(
+                                "window '{label}' destroyed during first run: \
+                                 cancelling setup and exiting"
+                            );
+                            desktop::wizard::cancel_provision(&ws);
                             sidecar.stop();
                             desktop::stack_stop::stop_stack();
-                        }
-                        ExitAction::KeepAlive => {
-                            info!("keeping the app alive: the suite window is visible");
-                            api.prevent_exit();
-                        }
-                        ExitAction::KeepAliveAndRecreate => {
-                            // #1620 — a reply is still being generated.
-                            info!("a reply is in progress: keeping the app alive and reopening the suite");
-                            api.prevent_exit();
-                            desktop::wizard::ensure_suite_window(app);
-                        }
-                        ExitAction::CancelAndExit => {
-                            // The wizard was the last visible window, or it
-                            // was closed during first-run setup.
-                            info!("no visible window remains: cancelling setup and exiting");
-                            desktop::wizard::cancel_provision(&app.state::<WizardState>());
-                            sidecar.stop();
-                            desktop::stack_stop::stop_stack();
+                            // Destroy any remaining window so the process
+                            // does not linger.
+                            for (name, window) in app.webview_windows() {
+                                if name != *label {
+                                    let _ = window.destroy();
+                                }
+                            }
+                            app.exit(0);
                         }
                     }
+
+                    // --- Last-window exit: the normal (post-setup) path ---
+                    //
+                    // ExitRequested fires when no OS windows remain, which
+                    // is the main window closing after first run completed.
+                    tauri::RunEvent::ExitRequested { api, .. } => {
+                        use desktop::exit_decision::{on_exit_requested, ExitAction};
+                        let action = on_exit_requested(
+                            desktop::tray::quit_requested(),
+                            app.get_webview_window("main").is_some(),
+                            desktop::activity::is_busy(),
+                        );
+                        match action {
+                            ExitAction::Exit => {
+                                info!("quitting: stopping the sidecar");
+                                sidecar.stop();
+                                desktop::stack_stop::stop_stack();
+                            }
+                            ExitAction::KeepAlive => {
+                                info!(
+                                    "keeping the app alive: the suite window still exists"
+                                );
+                                api.prevent_exit();
+                            }
+                            ExitAction::KeepAliveAndRecreate => {
+                                info!(
+                                    "a reply is in progress: keeping the app alive \
+                                     and reopening the suite"
+                                );
+                                api.prevent_exit();
+                                desktop::wizard::ensure_suite_window(app);
+                            }
+                            ExitAction::CancelAndExit => {
+                                info!(
+                                    "no visible window remains: cancelling setup and exiting"
+                                );
+                                desktop::wizard::cancel_provision(
+                                    &app.state::<WizardState>(),
+                                );
+                                sidecar.stop();
+                                desktop::stack_stop::stop_stack();
+                            }
+                        }
+                    }
+                    _ => {}
                 }
                 let _ = (&app, &event);
             });

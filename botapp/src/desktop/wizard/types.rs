@@ -28,6 +28,10 @@ pub struct WizardState {
     /// subscribes late).
     pub progress: Mutex<Vec<ProgressEvent>>,
     pub failed: Mutex<Option<String>>,
+    /// Set by the handoff when first-run setup completes successfully. The
+    /// window-close handler reads it to tell "user closed the wizard" apart
+    /// from "wizard closed because setup finished and the suite is showing".
+    pub handoff_complete: AtomicBool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
