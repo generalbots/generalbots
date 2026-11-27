@@ -41,7 +41,8 @@ pub(crate) async fn resolve_bot_llm_provider(
     user_id: Uuid,
     session_id: Uuid,
     model_preference: &str,
-) -> Result<Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)>, String> {
+) -> Result<Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)>, super::super::llm::refusal::RefusalError> {
+    use super::super::llm::refusal::{self, RefusalError};
     use botcore::config::ConfigManager;
     let cfg = ConfigManager::new(state.conn.clone());
     let mut llm_url = cfg
@@ -57,50 +58,83 @@ pub(crate) async fn resolve_bot_llm_provider(
         .get_config(&bot_uuid, "llm-provider", Some(""))
         .map_or_else(|_| { log::warn!("defaulting after error at {}:{}", file!(), line!()); Default::default() }, |v| v);
 
-    // A connected subscription agent picked in the chat's model menu answers
-    // this turn (`sub:<provider>`); the bot's own default is left untouched.
+    // A connected subscription agent picked in the chat's menu
+    // (`sub:<provider>` or `sub:<provider>/<model>`) answers this turn; the
+    // bot's default stays as it is.
     #[cfg(feature = "agent-vm")]
-    let agent_choice = model_preference
-        .trim()
-        .strip_prefix("sub:")
-        .filter(|agent| crate::core::ai_accounts::is_subscription_provider(*agent))
-        .map(|agent| {
-            (
-                agent.to_string(),
-                crate::core::ai_accounts::default_model(agent).to_string(),
-            )
-        });
-    #[cfg(not(feature = "agent-vm"))]
-    let agent_choice: Option<(String, String)> = None;
-
-    let (llm_provider, mut llm_model) = match agent_choice {
-        Some((provider, model)) => (provider, model),
-        None => (configured_provider, configured_model),
+    let (mut llm_provider, mut llm_model) = {
+        if let Some((agent, model)) = crate::core::ai_accounts::models::parse_choice(model_preference) {
+            if crate::core::ai_accounts::is_subscription_provider(agent) {
+                let resolved_model = match model {
+                    Some(model) => {
+                        crate::core::ai_accounts::models::choose_model(user_id, agent, model).await
+                            .map_err(|reason| {
+                                let label = crate::core::ai_accounts::provider_label(agent);
+                                botlog::safe_warn!(
+                                    "Subscription turn refused: code=agent_model_unavailable agent=[{agent}] model=[{model}] user={user_id}, session={session_id}"
+                                );
+                                RefusalError::new(refusal::AGENT_MODEL_UNAVAILABLE, reason)
+                                    .param("agent", agent)
+                                    .param("label", label)
+                                    .param("model", model)
+                            })?
+                    }
+                    None => crate::core::ai_accounts::default_model(agent).to_string(),
+                };
+                (agent.to_string(), resolved_model)
+            } else {
+                (configured_provider, configured_model)
+            }
+        } else {
+            (configured_provider, configured_model)
+        }
     };
+    #[cfg(not(feature = "agent-vm"))]
+    let (mut llm_provider, mut llm_model) = (configured_provider, configured_model);
 
     // A model picked in the chat's menu from a provider account (Settings >
     // Modelo): that account's address, key and model answer this turn.
-    if let Some(choice) = botsettings::model_config::accounts::resolve_choice(model_preference).await {
-        let host = url::Url::parse(&choice.url)
-            .ok()
-            .and_then(|u| u.host_str().map(str::to_string))
-            .unwrap_or_else(|| "<unparseable>".to_string());
-        botlog::safe_info!("BOT {bot_uuid} account model: host=[{host}] model=[{}]", choice.model);
-        let provider = crate::llm::provider_factory::create_llm_provider_from_url(
-            &choice.url,
-            Some(choice.model.clone()),
-            None,
-            None,
-        );
-        return Ok(Some((
-            Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
-                provider,
-                choice.model.clone(),
-                choice.key.clone(),
-            )) as Arc<dyn botlib::traits::LLMProvider>,
-            choice.key,
-            choice.model,
-        )));
+    // Part B: when the preference is `acct:<provider>/<model>` but the account
+    // is missing or the model is not switched on, refuse with a stable code
+    // instead of falling through to the bot's default model.
+    if let Some((acct_id, acct_model)) = botsettings::model_config::accounts::parse_preference(model_preference) {
+        match botsettings::model_config::accounts::resolve_choice(model_preference).await {
+            Some(choice) => {
+                let host = url::Url::parse(&choice.url)
+                    .ok()
+                    .and_then(|u| u.host_str().map(str::to_string))
+                    .unwrap_or_else(|| "<unparseable>".to_string());
+                botlog::safe_info!("BOT {bot_uuid} account model: host=[{host}] model=[{}]", choice.model);
+                let provider = crate::llm::provider_factory::create_llm_provider_from_url(
+                    &choice.url,
+                    Some(choice.model.clone()),
+                    None,
+                    None,
+                );
+                return Ok(Some((
+                    Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
+                        provider,
+                        choice.model.clone(),
+                        choice.key.clone(),
+                    )) as Arc<dyn botlib::traits::LLMProvider>,
+                    choice.key,
+                    choice.model,
+                )));
+            }
+            None => {
+                let label = botsettings::model_config::accounts::account_label(acct_id).await;
+                botlog::safe_warn!(
+                    "Subscription turn refused: code=account_model_off provider=[{acct_id}] model=[{acct_model}], user={user_id}, session={session_id}"
+                );
+                return Err(RefusalError::new(
+                    refusal::ACCOUNT_MODEL_OFF,
+                    format!("The model \u{201c}{acct_model}\u{201d} is switched off for {label}. Switch it on in Settings or choose another model."),
+                )
+                .param("provider", acct_id)
+                .param("label", label)
+                .param("model", acct_model));
+            }
+        }
     }
 
     // #1652/#1653/#1654 — subscription accounts are resolved per user before
@@ -108,13 +142,16 @@ pub(crate) async fn resolve_bot_llm_provider(
     // when the requested provider is a subscription and no account is linked.
     #[cfg(not(feature = "agent-vm"))]
     if matches!(llm_provider.trim(), "claude-code" | "chatgpt-plan" | "codex-cli" | "antigravity") {
-        botlog::safe_info!(
-            "BOT {bot_uuid} user {user_id} session {session_id}: provider [{llm_provider}] needs the agent workspace, which this build does not include"
+        let label = crate::core::ai_accounts::provider_label(&llm_provider);
+        botlog::safe_warn!(
+            "Subscription turn refused: code=agent_unavailable provider=[{llm_provider}] user={user_id}, session={session_id}"
         );
-        return Err(
-            "Subscription accounts are not available in this edition. Choose another model in Settings."
-                .to_string(),
-        );
+        return Err(RefusalError::new(
+            refusal::AGENT_UNAVAILABLE,
+            "Subscription accounts are not available in this edition. Choose another model in Settings.",
+        )
+        .param("agent", llm_provider.trim())
+        .param("label", label));
     }
     #[cfg(feature = "agent-vm")]
     if crate::core::ai_accounts::is_subscription_provider(&llm_provider) {
@@ -124,7 +161,16 @@ pub(crate) async fn resolve_bot_llm_provider(
             linked.as_ref(),
             Some((llm_provider.as_str(), llm_model.as_str())),
             None,
-        )?;
+        )
+        .map_err(|reason| {
+            let label = crate::core::ai_accounts::provider_label(&llm_provider);
+            botlog::safe_warn!(
+                "Subscription turn refused: code=agent_not_linked provider=[{llm_provider}] user={user_id}, session={session_id}"
+            );
+            RefusalError::new(refusal::AGENT_NOT_LINKED, reason)
+                .param("agent", llm_provider.trim())
+                .param("label", label)
+        })?;
         let Some(resolved) = resolved else {
             return Ok(None);
         };
@@ -135,11 +181,22 @@ pub(crate) async fn resolve_bot_llm_provider(
             || resolved.provider == crate::core::ai_accounts::ANTIGRAVITY)
             && !super::super::agent_turn::is_enabled(session_id)
         {
-            return Err(super::super::agent_turn::DISABLED_MESSAGE.to_string());
+            let label = crate::core::ai_accounts::provider_label(&resolved.provider);
+            botlog::safe_warn!(
+                "Subscription turn refused: code=agent_switch_off provider=[{}] user={user_id}, session={session_id}",
+                resolved.provider
+            );
+            return Err(RefusalError::new(
+                refusal::AGENT_SWITCH_OFF,
+                super::super::agent_turn::DISABLED_FOR_PERSON,
+            )
+            .param("agent", &resolved.provider)
+            .param("label", label));
         }
         let provider =
             crate::llm::subscription::build(state, user_id, session_id, bot_uuid, &resolved)
-                .await?;
+                .await
+                .map_err(RefusalError::from)?;
         botlog::safe_info!(
             "BOT {bot_uuid} subscription LLM: provider=[{}] model=[{}] source=[{}]",
             resolved.provider,

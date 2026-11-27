@@ -46,31 +46,39 @@ impl ArtifactPublisher for DrivePublisher {
     }
 }
 
-/// Publishes `output/` for the turn. Never returns an error: a Drive outage
-/// leaves the artifacts in the VM and they are retried on the next turn.
-pub async fn publish_turn_output(
-    state: &Arc<AppState>,
-    bot_uuid: Uuid,
-    user_id: Uuid,
-    session_id: Uuid,
-) -> PublishReport {
-    let listing: Vec<OutputFile> =
-        match agent_vm_hook::list_session_folder_meta(user_id, session_id, "output").await {
-            Some(files) => files
-                .into_iter()
-                .map(|(name, size, modified)| OutputFile {
-                    name,
-                    size,
-                    modified,
-                })
-                .collect(),
-            None => return PublishReport::default(),
-        };
-    let mut seen = load_durable(state, session_id).await;
-    let selected = candidates(&listing, &seen);
-    if selected.is_empty() {
-        return PublishReport::default();
+/// The turn's end: what was copied during the turn, plus the new files not
+/// asked about yet. Those are copied only on a grant this conversation
+/// already holds; this never raises a card and never waits on the person.
+/// Without a grant they stay in `output/` and are listed as not saved.
+pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishReport {
+    let session_id = identity.session_id;
+    let kept = super::offer::take_turn(session_id);
+    let mut report = PublishReport {
+        folder: kept.folder.unwrap_or_default(),
+        published: kept.published,
+        unsaved: kept
+            .unsaved
+            .iter()
+            .map(|name| super::output_link(name, session_id))
+            .collect(),
+    };
+    let Some(files) = super::fresh_output(identity).await else {
+        return report;
+    };
+    if files.is_empty() {
+        return report;
     }
+    let receipt = vm_consent::ask_if_granted(identity, &super::drive_save_action(&files))
+        .await
+        .map(|ticket| ticket.receipt());
+    let SessionIdentity {
+        state,
+        bot_uuid,
+        user_id,
+        ..
+    } = *identity;
+    let names: Vec<String> = files.iter().map(|file| file.name.clone()).collect();
+    let mut seen = super::snapshot(session_id);
     let folder = drive_bridge::conversation_title(state, session_id).await;
     let publisher = DrivePublisher {
         state: state.clone(),
@@ -79,12 +87,29 @@ pub async fn publish_turn_output(
         session_id,
         folder: folder.clone(),
     };
-    let published = publish_candidates(session_id, selected, &mut seen, &publisher).await;
-    // Store even when every upload failed: successful and identical files
-    // advanced, failed ones kept their old stamp and stay candidates. The
-    // mirrored copy survives a restart; the in-memory copy is the fallback.
-    save_durable(state, session_id, &seen).await;
-    PublishReport { folder, published, unsaved: Vec::new() }
+    let (published, unsaved) = super::offer::settle_turn_end(
+        session_id,
+        files,
+        receipt.is_some(),
+        &mut seen,
+        &publisher,
+    )
+    .await;
+    if let Some(receipt) = receipt {
+        super::store(session_id, seen);
+        let outcome = VmOutcome {
+            ok: !published.is_empty(),
+            files: names,
+            ..VmOutcome::default()
+        };
+        vm_consent::report(identity, &receipt, &outcome).await;
+        report.folder = folder;
+    }
+    report.published.extend(published);
+    report
+        .unsaved
+        .extend(unsaved.iter().map(|name| super::output_link(name, session_id)));
+    report
 }
 
 /// Ceiling on one turn's publishing work (listing + reads + uploads). The
@@ -148,11 +173,8 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
         user_id,
         ..
     } = *identity;
-    let report = match tokio::time::timeout(
-        PUBLISH_TIMEOUT,
-        publish_turn_output(state, bot_uuid, user_id, session_id),
-    )
-    .await
+    let report = match tokio::time::timeout(PUBLISH_TIMEOUT, publish_turn_output(identity))
+        .await
     {
         Ok(report) => report,
         Err(_) => {
@@ -162,6 +184,18 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     };
     if report.is_empty() {
         return;
+    }
+    let listing: Vec<OutputFile> = agent_vm_hook::list_session_folder_meta(user_id, session_id, "output")
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(name, size, modified)| OutputFile { name, size, modified })
+        .collect();
+    let produced = super::produced::files_frame(&report, &listing);
+    if let Some(frame) = &produced {
+        if let Err(error) = sink.send_raw_json(frame).await {
+            botlog::safe_warn!("output publish: files frame not sent for {session_id}: {error}");
+        }
     }
     let count = report.published.len();
     botlog::safe_info!("output publish: {count} file(s) for {session_id}");
@@ -190,5 +224,17 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
         return;
     }
     send(identity, &message).await;
-    persist(state, session_id, user_id, &message).await;
+    // The files frame stays with this message, so a reload shows the cards.
+    let stored = match produced {
+        Some(frame) => {
+            let mut meta = super::super::llm::message_meta::MessageMeta::default();
+            meta.events.insert(
+                super::super::turn_events::FILES_PRODUCED.to_string(),
+                frame,
+            );
+            super::super::llm::message_meta::encode(&message, &meta)
+        }
+        None => message,
+    };
+    persist(state, session_id, user_id, &stored).await;
 }

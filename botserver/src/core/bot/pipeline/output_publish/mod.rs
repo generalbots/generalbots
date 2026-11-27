@@ -167,7 +167,7 @@ fn ledger() -> &'static Mutex<BoundedMap<Uuid, HashMap<String, PublishedFile>>> 
     })
 }
 
-fn snapshot(session_id: Uuid) -> HashMap<String, PublishedFile> {
+pub(super) fn snapshot(session_id: Uuid) -> HashMap<String, PublishedFile> {
     match ledger().lock() {
         Ok(mut map) => map.get(&session_id).cloned().map_or_else(Default::default, |v| v),
         Err(error) => {
@@ -177,7 +177,7 @@ fn snapshot(session_id: Uuid) -> HashMap<String, PublishedFile> {
     }
 }
 
-fn store(session_id: Uuid, entries: HashMap<String, PublishedFile>) {
+pub(super) fn store(session_id: Uuid, entries: HashMap<String, PublishedFile>) {
     let Ok(mut map) = ledger().lock() else {
         botlog::safe_warn!("output publish: ledger lock failed on write");
         return;
@@ -401,6 +401,8 @@ pub async fn offer_in_turn(identity: &SessionIdentity<'_>) {
 
 mod drive;
 pub use drive::{publish_and_attach, publish_turn_output};
+
+pub(super) mod produced;
 
 mod offer;
 

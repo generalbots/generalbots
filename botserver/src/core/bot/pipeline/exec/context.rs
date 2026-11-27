@@ -142,7 +142,7 @@ pub(super) async fn prepare_messages_and_maybe_finish(
     };
     messages.push(serde_json::json!({
         "role": "system",
-        "content": turn_instruction
+        "content": format!("{turn_instruction} {}", super::super::turn_record::RECORDS_ARE_FACTS)
     }));
 
     // #1670 — structured answers and approved plans shape this turn's prompt.

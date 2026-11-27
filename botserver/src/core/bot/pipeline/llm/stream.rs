@@ -58,7 +58,6 @@ async fn stream_llm_response_inner(
     {
         Ok(provider) => provider,
         Err(refusal) => {
-            let refusal = super::refusal::RefusalError::from(refusal);
             super::stream_errors::send_refusal_error(sink, identity, &refusal).await;
             return Ok(());
         }
@@ -338,12 +337,16 @@ async fn stream_llm_response_inner(
                         continue;
                     }
                     log::warn!("LLM empty response after {LLM_RETRY_MAX} retries, using fallback");
-                    super::stream_errors::send_empty_response_error(sink, identity).await;
-                    {
+                    let saved = if final_round {
+                        super::turn_end::send_unfinished(identity).await.to_string()
+                    } else {
+                        super::stream_errors::send_empty_response_error(sink, identity).await;
                         let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
-                        let err_msg = super::llm_empty_message(&locale);
+                        super::llm_empty_message(&locale)
+                    };
+                    {
                         let mut sm = state.session_manager.lock().await;
-                        if let Err(e) = sm.save_message(session_id, user_id, 2, &err_msg, 2) {
+                        if let Err(e) = sm.save_message(session_id, user_id, 2, &saved, 2) {
                             log::warn!("stream: empty-response notice not persisted: {e}");
                         }
                         if let Err(e) = sm.record_message_model(session_id, llm_model) {

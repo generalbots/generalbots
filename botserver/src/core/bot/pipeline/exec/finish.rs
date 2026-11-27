@@ -18,6 +18,25 @@ pub(super) async fn stream_and_finalize(
         ..
     } = *identity;
 
+    // An agent-off request for a file or a command: the answer carries a card
+    // to turn the Agent on (kept with the answer; sent once it is complete).
+    let agent_request = (cfg!(feature = "agent-vm")
+        && !agent_enabled
+        && super::super::turn_events::needs_vm(user_text))
+    .then(|| {
+        super::super::turn_events::agent_enable_frame(
+            super::super::turn_events::AGENT_REASON,
+            user_text,
+        )
+    });
+    if let Some(frame) = &agent_request {
+        super::super::turn_events::record(
+            session_id,
+            super::super::turn_events::AGENT_ENABLE_REQUEST,
+            frame.clone(),
+        );
+    }
+
     let turn_timeout_secs = super::super::enriched_llm::turn_timeout_secs();
     if tokio::time::timeout(
         std::time::Duration::from_secs(turn_timeout_secs),
@@ -41,6 +60,12 @@ pub(super) async fn stream_and_finalize(
         return Err(PipelineError::LLM(format!(
             "Turn timed out after {turn_timeout_secs}s"
         )));
+    }
+
+    if let Some(frame) = agent_request {
+        if let Err(e) = sink.send_raw_json(&frame).await {
+            log::warn!("exec: agent-enable frame not delivered: {e}");
+        }
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no

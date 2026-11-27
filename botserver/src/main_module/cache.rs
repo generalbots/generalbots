@@ -77,6 +77,10 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         urls.push("redis://localhost:6379".to_string());
     }
 
+    // On Windows, `localhost` resolves to IPv6 `::1` on some configurations,
+    // but Redis only listens on IPv4 `127.0.0.1`. Normalize before connecting.
+    let mut urls: Vec<String> = urls.iter().map(String::as_str).map(ipv4_loopback).collect();
+
     // #2590 — with the mTLS opt-in active every candidate must be a `rediss`
     // URL; no plaintext fallback is kept. If the redis TLS feature is not
     // compiled in, the client fails closed instead of downgrading.

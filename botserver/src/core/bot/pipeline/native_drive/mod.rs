@@ -203,11 +203,13 @@ pub async fn fetch_referenced(
     text: &str,
     messages: &mut Vec<serde_json::Value>,
 ) {
+    attached::clear(session_id);
     // #2239 — never provision/invoke the workspace when Agent/VM is off.
     if !super::agent_turn::is_enabled(session_id) {
         return;
     }
-    let names = referenced_names(text);
+    attached::stage_attachments(state, bot_uuid, user_id, session_id, text, messages).await;
+    let names = referenced_names(&attached::without_attachment_lines(text));
     log::info!("drive bridge: referenced names {:?}", names);
     if names.is_empty() {
         return;
