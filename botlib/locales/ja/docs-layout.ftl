@@ -1,4 +1,4 @@
-# Docs deterministic layout/pagination preview (#2424) — ja catalog. Identical key sets in all 8 locales.
+# Docs deterministic layout/pagination preview (#2424) — ja catalog. Identical key sets in all 10 locales.
 
 docs-layout-note-local = ローカルのみ — プレビューであり PDF レンダラーではありません
 docs-layout-open = ページナビゲーション（計算済みレイアウト）

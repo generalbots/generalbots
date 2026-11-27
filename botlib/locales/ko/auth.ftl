@@ -80,10 +80,9 @@ passkey-login-try-another = 다른 방법을 시도해 보세요
 # -----------------------------------------------------------------------------
 passkey-manage-title = 패스키 관리
 passkey-manage-subtitle = 등록된 암호키 보기 및 관리
-passkey-manage-count = { $개수 ->
-    [one] { $count } passkey registered
-   *[other] { $count } passkeys registered
-}
+passkey-manage-count = { $count ->
+       *[other] passkey { $count }개 등록됨
+    }
 passkey-manage-add = 새 패스키 추가
 passkey-manage-rename = 이름 바꾸기
 passkey-manage-delete = 삭제

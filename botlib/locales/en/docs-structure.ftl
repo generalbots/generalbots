@@ -1,4 +1,4 @@
-# Docs long-document structure (#2426) - frontend catalog. Identical key sets in all 8 locales.
+# Docs long-document structure (#2426) - frontend catalog. Identical key sets in all 10 locales.
 
 docs-structure-open = Document structure
 docs-structure-status-no-article = Open a document first

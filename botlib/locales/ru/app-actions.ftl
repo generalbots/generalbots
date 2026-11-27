@@ -1,0 +1,14 @@
+app-actions = Аппаратные действия
+app-action-refresh = Обновить
+app-copy-id = Копировать идентификатор
+app-copy-link = Копировать ссылку
+app-diagnose = Диагноз
+app-actions-refreshed = Обновленные
+app-actions-copied = Копированная
+app-diagnostics-app = Прием
+app-diagnostics-status = Статус
+app-diagnostics-online = Сеть
+app-diagnostics-updated = Проверить
+app-comments = Замечания
+app-activity = Вид деятельности
+app-actions-unavailable = Данные отсутствуют

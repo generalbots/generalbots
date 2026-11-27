@@ -59,10 +59,9 @@ compliance-type-config = 구성 문제
 # Results Table
 # -----------------------------------------------------------------------------
 compliance-results = 결과
-compliance-results-count = { $개수 ->
-    [one] { $count } issue found
-   *[other] { $count } issues found
-}
+compliance-results-count = { $count ->
+       *[other] 문제 { $count }건 발견
+    }
 compliance-col-severity = 심각도
 compliance-col-issue = 이슈
 compliance-col-location = 위치

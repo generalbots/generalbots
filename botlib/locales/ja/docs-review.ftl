@@ -1,4 +1,4 @@
-# Docs enterprise review workflow (#2425) — ja frontend catalog. Identical key sets in all 8 locales.
+# Docs enterprise review workflow (#2425) — ja frontend catalog. Identical key sets in all 10 locales.
 
 docs-review-title = レビュー作業領域
 docs-review-group = レビュー

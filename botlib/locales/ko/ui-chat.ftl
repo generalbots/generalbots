@@ -438,3 +438,25 @@ chat-engine-error-limit-reached = %label 요금제의 사용 한도에 도달했
 chat-engine-error-unsafe-version = %label (%version) 버전은 작업 전에 권한을 요청하지 않아 차단되었습니다. 다른 모델을 선택하세요.
 chat-engine-error-choose-model = 다른 모델 선택
 chat-engine-error-back-at = %when 에 다시 사용할 수 있습니다.
+
+# ── Completed translations (issue #2970) ──
+chat-conversation-clear = 컨텍스트 지우기
+chat-conversation-cleared = 대화 컨텍스트가 지워졌습니다
+chat-conversation-copy-link = 링크 복사
+chat-conversation-delete = 삭제
+chat-conversation-delete-confirm = 이 대화를 삭제하시겠습니까?
+chat-conversation-delete-failed = 대화를 삭제하지 못했습니다
+chat-conversation-delete-title = 대화 삭제
+chat-conversation-delete-unavailable = 확인 대화상자를 사용할 수 없습니다
+chat-conversation-deleted = 대화가 삭제되었습니다
+chat-conversation-export-json = 대화 기록 내보내기 (.json)
+chat-conversation-export-md = 대화 기록 내보내기 (.md)
+chat-conversation-exported = 대화가 내보내졌습니다
+chat-conversation-link-copied = 대화 링크가 복사되었습니다
+chat-conversation-link-copy-failed = 링크를 복사하지 못했습니다
+chat-conversation-menu = 대화 메뉴
+chat-conversation-rename = 이름 바꾸기
+chat-conversation-rename-failed = 대화 이름을 변경하지 못했습니다
+chat-conversation-renamed = 대화 이름이 변경되었습니다
+chat-conversation-title = 대화 제목
+chat-conversation-untitled = 제목 없는 대화

@@ -1,4 +1,4 @@
-# Docs structured document model (#2423) — ko frontend catalog. Identical key sets in all 8 locales.
+# Docs structured document model (#2423) — ko frontend catalog. Identical key sets in all 10 locales.
 
 docs-model-note-local = 로컬 전용 — 서버에 저장되지 않습니다
 docs-model-title = 구조화된 문서 모델

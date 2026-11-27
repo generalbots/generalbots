@@ -1,4 +1,4 @@
-# Docs deterministic layout/pagination preview (#2424) — zh-CN catalog. Identical key sets in all 8 locales.
+# Docs deterministic layout/pagination preview (#2424) — zh-CN catalog. Identical key sets in all 10 locales.
 
 docs-layout-note-local = 仅限本地 — 预览，不是 PDF 渲染器
 docs-layout-open = 页面导航（计算布局）

@@ -130,10 +130,9 @@ admin-group-join-invite = 초대만 가능
 admin-group-join-request = 가입 요청
 admin-group-join-open = 열기
 admin-group-members = 회원
-admin-group-member-count = { $개수 ->
-    [one] { $count } member
-   *[other] { $count } members
-}
+admin-group-member-count = { $count ->
+       *[other] { $count }명의 구성원
+    }
 admin-group-add-member = 회원 추가
 admin-group-remove-member = 회원 삭제
 admin-group-permissions = 권한
@@ -551,10 +550,9 @@ admin-bulk-delete = 선택 항목 삭제
 admin-bulk-export = 선택 내보내기
 admin-bulk-activate = 선택 항목 활성화
 admin-bulk-deactivate = 선택 항목 비활성화
-admin-selected-count = { $개수 ->
-    [one] { $count } item selected
-   *[other] { $count } items selected
-}
+admin-selected-count = { $count ->
+       *[other] { $count }개 항목 선택됨
+    }
 
 admin-audit-subtitle = 시스템 활동 기록
 admin-users-subtitle = 이 작업 공간에 접근할 수 있는 구성원

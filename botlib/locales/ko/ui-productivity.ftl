@@ -22,11 +22,9 @@ tasks-add-subtask = 하위 할 일 추가
 tasks-mark-complete = 완료로 표시
 tasks-mark-incomplete = 미완료로 표시
 tasks-delete-confirm = 이 할 일을 삭제하시겠습니까?
-tasks-count = { $개수 ->
-    [zero] No tasks
-    [one] { $count } task
-   *[other] { $count } tasks
-}
+tasks-count = { $count ->
+       *[other] 작업 { $count }개
+    }
 
 # -----------------------------------------------------------------------------
 # Calendar
@@ -61,10 +59,9 @@ meet-share-screen = 화면 공유
 meet-stop-sharing = 공유 중지
 meet-end-call = 통화 종료
 meet-leave = 회의 나가기
-meet-participants = { $개수 ->
-    [one] { $count } participant
-   *[other] { $count } participants
-}
+meet-participants = { $count ->
+       *[other] 참가자 { $count }명
+    }
 meet-waiting-room = 대기실
 meet-admit = 인정하다
 meet-remove = 제거
@@ -99,10 +96,9 @@ mail-send = 보내기
 mail-discard = 폐기
 mail-save-draft = 초안 저장
 mail-attach = 파일 첨부
-mail-unread = { $개수 ->
-    [one] { $count } unread
-   *[other] { $count } unread
-}
+mail-unread = { $count ->
+       *[other] 읽지 않음 { $count }개
+    }
 mail-empty-inbox = 받은편지함이 비어 있습니다.
 mail-no-subject = (제목 없음)
 
@@ -650,3 +646,17 @@ calendar-state-empty-calendars-desc = 캘린더에는 일정이 들어 있습니
 calendar-state-empty-upcoming-title = 예정된 일정이 없습니다
 calendar-state-empty-upcoming-desc = 다음 일정이 여기에 표시되어 하루를 놓치지 않습니다.
 calendar-state-empty-upcoming-action = 일정 잡기
+
+# ── Completed translations (issue #2970) ──
+paper-save-failed = 저장되지 않음 — 다시 시도
+paper-save-retry-hint = 클릭하여 저장 다시 시도
+paper-saved-locally = 이 기기에 저장됨
+paper-status-bar = 문서 상태
+tasks-detail-region = 작업 세부 정보
+tasks-filters = 작업 필터
+tasks-progress-bar = 작업 진행률 표시줄
+tasks-progress-close = 진행률 닫기
+tasks-progress-minimize = 진행률 최소화
+tasks-progress-output = 작업 출력
+tasks-progress-region = 작업 진행률
+tasks-terminal-log = 실시간 상담원 활동

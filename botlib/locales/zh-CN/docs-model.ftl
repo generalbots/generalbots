@@ -1,4 +1,4 @@
-# Docs structured document model (#2423) — zh-CN frontend catalog. Identical key sets in all 8 locales.
+# Docs structured document model (#2423) — zh-CN frontend catalog. Identical key sets in all 10 locales.
 
 docs-model-note-local = 仅本地 — 不保存到服务器
 docs-model-title = 结构化文档模型

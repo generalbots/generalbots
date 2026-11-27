@@ -1,4 +1,4 @@
-# Docs enterprise review workflow (#2425) — es frontend catalog. Identical key sets in all 8 locales.
+# Docs enterprise review workflow (#2425) — es frontend catalog. Identical key sets in all 10 locales.
 
 docs-review-title = Espacio de revisión
 docs-review-group = Revisión

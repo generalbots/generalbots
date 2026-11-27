@@ -1,5 +1,5 @@
 # General Bots — zh-CN — Chat turn indicator (#2098)
-# One .ftl per feature; keys are identical across all eight locales.
+# One .ftl per feature; keys are identical across all ten locales.
 
 status-sending = 发送中…
 status-slow = 提供商响应较慢… 仍在等待

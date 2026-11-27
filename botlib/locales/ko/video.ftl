@@ -34,3 +34,7 @@ video-rtsp-url = RTSP URL
 video-placeholder-camera-name = 예: 정문
 video-placeholder-rtsp-url = rtsp://user:pass@ip:port/stream
 video-placeholder-location = 예: A동 1층
+
+# ── Completed translations (issue #2970) ──
+label-location = 위치
+video-add-camera-dialog = 카메라 추가

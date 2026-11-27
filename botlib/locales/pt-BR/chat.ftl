@@ -1,5 +1,5 @@
 # General Bots — pt-BR — Chat turn indicator (#2098)
-# One .ftl per feature; keys are identical across all eight locales.
+# One .ftl per feature; keys are identical across all ten locales.
 
 status-sending = Enviando…
 status-slow = O provedor está lento… ainda aguardando

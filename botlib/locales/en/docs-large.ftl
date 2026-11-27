@@ -1,4 +1,4 @@
-# Docs large .docx load path (#2533) — en catalog. Identical key sets in all 8 locales.
+# Docs large .docx load path (#2533) — en catalog. Identical key sets in all 10 locales.
 
 docs-large-note-local = Local only — preview, not the server load path
 docs-large-deferred = Deferred: streaming import, server body limits, gzip/brotli transport, server ETag/If-Match enforcement, async export and measured baseline.

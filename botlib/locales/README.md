@@ -7,8 +7,14 @@ exists. There is no second list to keep in sync.
 ```
 botlib/locales/
 ├── en/        ← the source of truth: every key is authored here first
-├── pt-BR/     es/   fr/   de/   ja/   ko/   zh-CN/
+├── it/        ru/   pt-BR/   es/   fr/   de/   ja/   ko/   zh-CN/
 ```
+
+Italian (`it`), Russian (`ru`) and Korean (`ko`) are full catalogues: `it` and
+`ru` ship all English topic files and `ko` has no gaps against `en` (issue
+#2970). `locale_meta.rs` supplies their picker names, direction and CLDR
+formats; the picker itself lists them in `language-selector.html` and
+`02_language.html`.
 
 Each directory holds topic files (`admin.ftl`, `common.ftl`, `errors.ftl`,
 `suite-*.ftl`, and the fifteen `ui-*.ftl` files split out of the old
@@ -84,22 +90,20 @@ that is the translator handoff, and it never rewrites existing translations.
 The gate's baseline (`.github/i18n-baseline.json`) is **shrink-only**: a
 violation it records passes, a new one fails the build. It is empty today.
 
-## Known translation debt (measured 2026-11-10)
+## Translation coverage (measured 2026-11-27)
 
-`en` defines 6,057 keys. The per-locale gaps are recorded here so they are
+`en` defines 12,855 keys. The per-locale gaps are recorded here so they are
 explicit rather than silent; they are **not** gated yet, and
 `scripts/i18n_report.py` is the command that measures them.
 
 | Locale | Keys | Missing vs `en` | Where |
 |--------|------|-----------------|-------|
-| `en` | 6,057 | 0 | — |
-| `pt-BR` | 6,031 | 26 | `ui-navigation` 18, `ui-chat` 8 |
-| `es` | 6,031 | 26 | `ui-navigation` 18, `ui-chat` 8 |
-| `fr`, `de`, `ja`, `ko`, `zh-CN` | 5,392 | 665 each | `ui-apps-runtime` 191, `bot-templates` 147, `ui-business` 73, `ui-apps` 68, `ui-crm` 59, `errors` 56, `ui-navigation` 54, `desktop` 8 |
+| `en`, `it`, `ru`, `pt-BR`, `ko` | 12,855 | 0 | — |
+| `es` | 12,772 | 83 | `errors` 30, `ui-chat` 20, `ui-productivity` 12, `suite-apps-extra` 6, `ui-apps-runtime` 5 |
+| `fr`, `de`, `ja`, `zh-CN` | 12,583 | 272 each | `ui-apps-runtime` 194, `errors` 30, `ui-chat` 20, `ui-productivity` 12, `suite-apps-extra` 6 |
 
-The 665 are the office/business bundles added by #2091/#2092 plus the email and
-desktop chrome keys of #2094/#2089; the 26 are the settings-navigation/tour
-block and the `chat-camera-*` keys. Closing them is translation work, tracked
-by the i18n epic (#2096) and its content issue (#2095). A key with no
-translation falls back to English at runtime, which is why the gap is invisible
-in the UI until someone reads the locale.
+Italian and Russian were added and Korean's 272 gaps closed under issue #2970;
+English fallbacks still cover the remaining gaps in the other locales. The
+background for that work is the i18n epic (#2096) and its content issue
+(#2095). A key with no translation falls back to English at runtime, which is
+why a gap is invisible in the UI until someone reads the locale.

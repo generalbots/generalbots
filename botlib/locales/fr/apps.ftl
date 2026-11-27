@@ -493,6 +493,12 @@ language-japanese = Japonais
 language-korean = Coréen
 
 # semantic i18n key (#2542)
+language-italian = Italien
+
+# semantic i18n key (#2542)
+language-russian = Russe
+
+# semantic i18n key (#2542)
 dashboards-chart-line = Graphique linéaire
 
 # semantic i18n key (#2542)

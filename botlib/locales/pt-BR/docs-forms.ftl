@@ -1,4 +1,4 @@
-# Docs forms, templates, mail merge and document protection (#2427) — pt-BR frontend catalog. Identical key sets and placeholders in all 8 locales.
+# Docs forms, templates, mail merge and document protection (#2427) — pt-BR frontend catalog. Identical key sets and placeholders in all 10 locales.
 
 docs-forms-group = Formulários e proteção
 docs-forms-templates = Modelos

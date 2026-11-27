@@ -19,17 +19,16 @@ drive-sort-size = 크기
 drive-sort-type = 유형
 drive-view-grid = 그리드 보기
 drive-view-list = 목록 보기
-drive-selected = { $개수 ->
-    [one] { $count } item selected
-   *[other] { $count } items selected
-}
-drive-file-size = { $크기 ->
-    [bytes] { $value } B
-    [kb] { $value } KB
-    [mb] { $value } MB
-    [gb] { $value } GB
-   *[other] { $value } bytes
-}
+drive-selected = { $count ->
+       *[other] { $count }개 항목 선택됨
+    }
+drive-file-size = { $size ->
+       [bytes] { $value } B
+       [kb] { $value } KB
+       [mb] { $value } MB
+       [gb] { $value } GB
+      *[other] { $value } 바이트
+    }
 drive-drop-files = 업로드할 파일을 여기에 드롭하세요.
 
 # Drive translations

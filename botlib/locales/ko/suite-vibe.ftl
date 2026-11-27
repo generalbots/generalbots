@@ -132,3 +132,9 @@ vibe-transfer-ownership = 소유권 이전
 
 # semantic i18n key (#2542)
 vibe-run-telemetry = 실행 원격 측정
+
+# ── Completed translations (issue #2970) ──
+vibe-members-list = 프로젝트 구성원 목록
+vibe-members-transfer-title = 소유권 이전
+vibe-project-delete-title = 프로젝트 삭제
+vibe-transfer-search-placeholder = 사람 검색...

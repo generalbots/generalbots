@@ -1,4 +1,4 @@
-# Docs deterministic layout/pagination preview (#2424) — en catalog. Identical key sets in all 8 locales.
+# Docs deterministic layout/pagination preview (#2424) — en catalog. Identical key sets in all 10 locales.
 
 docs-layout-note-local = Local only — preview, not the PDF renderer
 docs-layout-open = Page navigation (computed layout)

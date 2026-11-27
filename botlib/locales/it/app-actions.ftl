@@ -1,0 +1,14 @@
+app-actions = Azioni dell'app
+app-action-refresh = Aggiorna
+app-copy-id = Copi ID
+app-copy-link = Copi link
+app-diagnose = Diagnostica
+app-actions-refreshed = Aggiornato
+app-actions-copied = Copiato
+app-diagnostics-app = App
+app-diagnostics-status = Stato
+app-diagnostics-online = Rete
+app-diagnostics-updated = Controllo
+app-comments = Commenti
+app-activity = Attività
+app-actions-unavailable = Egli ha proposto alla Corte di dichiarare quanto segue:

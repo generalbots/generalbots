@@ -1,4 +1,4 @@
-# Docs structured document model (#2423) — ja frontend catalog. Identical key sets in all 8 locales.
+# Docs structured document model (#2423) — ja frontend catalog. Identical key sets in all 10 locales.
 
 docs-model-note-local = ローカルのみ — サーバーには保存されません
 docs-model-title = 構造化ドキュメントモデル

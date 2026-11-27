@@ -179,10 +179,7 @@ status-away = 떨어져
 # -----------------------------------------------------------------------------
 confirm-delete = 정말로 삭제하시겠습니까?
 confirm-delete-item = 정말로 '{ $name }'을 삭제하시겠습니까?
-confirm-delete-items = 정말로 { $count ->를 삭제하시겠습니까?
-    [one] this item
-   *[other] these { $count } items
-}?
+confirm-delete-items = 선택한 { $count }개 항목을 삭제하시겠습니까?
 confirm-discard-changes = 저장되지 않은 변경사항이 있습니다. 정말로 삭제하시겠습니까?
 confirm-logout = 정말로 로그아웃하시겠습니까?
 confirm-cancel = 취소하시겠습니까?
@@ -191,50 +188,39 @@ confirm-cancel = 취소하시겠습니까?
 # Time and Dates
 # -----------------------------------------------------------------------------
 time-now = 방금
-time-seconds-ago = { $개수 ->
-    [one] { $count } second ago
-   *[other] { $count } seconds ago
-}
-time-minutes-ago = { $개수 ->
-    [one] { $count } minute ago
-   *[other] { $count } minutes ago
-}
-time-hours-ago = { $개수 ->
-    [one] { $count } hour ago
-   *[other] { $count } hours ago
-}
-time-days-ago = { $개수 ->
-    [one] { $count } day ago
-   *[other] { $count } days ago
-}
-time-weeks-ago = { $개수 ->
-    [one] { $count } week ago
-   *[other] { $count } weeks ago
-}
-time-months-ago = { $개수 ->
-    [one] { $count } month ago
-   *[other] { $count } months ago
-}
-time-years-ago = { $개수 ->
-    [one] { $count } year ago
-   *[other] { $count } years ago
-}
-time-in-seconds = { $개수 ->
-    [one] in { $count } second
-   *[other] in { $count } seconds
-}
-time-in-minutes = { $개수 ->
-    [one] in { $count } minute
-   *[other] in { $count } minutes
-}
-time-in-hours = { $개수 ->
-    [one] in { $count } hour
-   *[other] in { $count } hours
-}
-time-in-days = { $개수 ->
-    [one] in { $count } day
-   *[other] in { $count } days
-}
+time-seconds-ago = { $count ->
+       *[other] { $count }초 전
+    }
+time-minutes-ago = { $count ->
+       *[other] { $count }분 전
+    }
+time-hours-ago = { $count ->
+       *[other] { $count }시간 전
+    }
+time-days-ago = { $count ->
+       *[other] { $count }일 전
+    }
+time-weeks-ago = { $count ->
+       *[other] { $count }주 전
+    }
+time-months-ago = { $count ->
+       *[other] { $count }개월 전
+    }
+time-years-ago = { $count ->
+       *[other] { $count }년 전
+    }
+time-in-seconds = { $count ->
+       *[other] { $count }초 후
+    }
+time-in-minutes = { $count ->
+       *[other] { $count }분 후
+    }
+time-in-hours = { $count ->
+       *[other] { $count }시간 후
+    }
+time-in-days = { $count ->
+       *[other] { $count }일 후
+    }
 time-today = 오늘
 time-yesterday = 어제
 time-tomorrow = 내일

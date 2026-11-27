@@ -1,4 +1,4 @@
-# Docs structured document model (#2423) — de frontend catalog. Identical key sets in all 8 locales.
+# Docs structured document model (#2423) — de frontend catalog. Identical key sets in all 10 locales.
 
 docs-model-note-local = Nur lokal — nicht auf dem Server gespeichert
 docs-model-title = Strukturiertes Dokumentmodell

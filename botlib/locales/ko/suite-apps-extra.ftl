@@ -240,3 +240,11 @@ lists-state-empty-desc = 목록은 연락처나 기업을 묶어 함께 대상�
 lists-state-empty-action = 첫 목록 만들기
 minutes-state-empty-title = 예정된 회의가 없습니다
 minutes-state-empty-desc = 회의를 예약하면 기록, 요약, 할 일이 여기에 남습니다.
+
+# ── Completed translations (issue #2970) ──
+docs-bibliography-title = 참고 문헌
+docs-citations-empty = 인용 없음
+docs-footnotes-empty = 각주 없음
+docs-page-x-of-y = 페이지 X / Y
+docs-toc-empty = 제목을 찾을 수 없습니다.
+tax-emit = 이슈

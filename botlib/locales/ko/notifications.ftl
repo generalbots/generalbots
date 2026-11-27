@@ -17,10 +17,7 @@ notification-title-warning = 경고
 notification-title-info = 정보
 
 notification-message-new = { $sender } 님으로부터 새 메시지가 왔습니다.
-notification-message-unread = 귀하는 { $count ->
-    [one] { $count } unread message
-   *[other] { $count } unread messages
-}
+notification-message-unread = 읽지 않은 메시지 { $count }개가 있습니다
 notification-task-due-soon = '{ $task }' 작업이 { $time }에 마감됩니다.
 notification-task-due-today = '{ $task }' 작업이 오늘 마감입니다
 notification-task-due-overdue = '{ $task }' 작업이 { $time }까지 기한이 지났습니다.
@@ -89,22 +86,18 @@ notification-action-accept = 수락
 notification-action-decline = 거절하다
 
 notification-time-just-now = 지금 막
-notification-time-minutes = { $개수 ->
-    [one] { $count } minute ago
-   *[other] { $count } minutes ago
-}
-notification-time-hours = { $개수 ->
-    [one] { $count } hour ago
-   *[other] { $count } hours ago
-}
-notification-time-days = { $개수 ->
-    [one] { $count } day ago
-   *[other] { $count } days ago
-}
-notification-time-weeks = { $개수 ->
-    [one] { $count } week ago
-   *[other] { $count } weeks ago
-}
+notification-time-minutes = { $count ->
+       *[other] { $count }분 전
+    }
+notification-time-hours = { $count ->
+       *[other] { $count }시간 전
+    }
+notification-time-days = { $count ->
+       *[other] { $count }일 전
+    }
+notification-time-weeks = { $count ->
+       *[other] { $count }주 전
+    }
 
 notification-preference-all = 모든 알림
 notification-preference-important = 중요한 것만

@@ -372,3 +372,7 @@ plugins-upload-bad-response = 업로드 응답이 유효하지 않습니다
 
 # --- #2921 missing keys added to every locale catalogue ---
 about-dependency-tree-missing = 종속성 트리를 사용할 수 없습니다
+
+# ── Completed translations (issue #2970) ──
+recycle-empty-failed = 비우기 실패.
+recycle-restore-failed = 복원 실패.

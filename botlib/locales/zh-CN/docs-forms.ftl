@@ -1,4 +1,4 @@
-# Docs forms, templates, mail merge and document protection (#2427) — zh-CN frontend catalog. Identical key sets and placeholders in all 8 locales.
+# Docs forms, templates, mail merge and document protection (#2427) — zh-CN frontend catalog. Identical key sets and placeholders in all 10 locales.
 
 docs-forms-group = 表单与保护
 docs-forms-templates = 模板

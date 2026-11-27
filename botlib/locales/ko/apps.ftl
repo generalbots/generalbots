@@ -493,6 +493,12 @@ language-japanese = 일본어
 language-korean = 한국어
 
 # semantic i18n key (#2542)
+language-italian = 이탈리아어
+
+# semantic i18n key (#2542)
+language-russian = 러시아어
+
+# semantic i18n key (#2542)
 dashboards-chart-line = 꺾은선형 차트
 
 # semantic i18n key (#2542)
@@ -1303,3 +1309,6 @@ calendar-save-event = 이벤트 저장
 calendar-weekly = 매주
 calendar-yearly = 매년
 label-color = 색상
+
+# ── Completed translations (issue #2970) ──
+notes-board = 메모 보드

@@ -1,4 +1,4 @@
-# Docs enterprise review workflow (#2425) — zh-CN frontend catalog. Identical key sets in all 8 locales.
+# Docs enterprise review workflow (#2425) — zh-CN frontend catalog. Identical key sets in all 10 locales.
 
 docs-review-title = 审阅工作区
 docs-review-group = 审阅

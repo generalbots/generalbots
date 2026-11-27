@@ -118,10 +118,9 @@ ai-status-offline = 오프라인
 # -----------------------------------------------------------------------------
 search-placeholder = 검색...
 search-no-results = 검색결과가 없습니다
-search-results = { $개수 ->
-    [one] { $count } result
-   *[other] { $count } results
-}
+search-results = { $count ->
+       *[other] 검색 결과 { $count }개
+    }
 search-in-progress = 검색 중...
 search-advanced = 고급 검색
 search-filters = 필터
@@ -380,3 +379,6 @@ chat-vm-engine-sub-group = 구독
 chat-vm-engine-sub-detail = 구독 에이전트
 chat-vm-agent-locked-tip = 선택한 에이전트는 가상 머신에서 실행됩니다. 끄려면 다른 모델을 선택하세요
 chat-vm-agent-locked-note = 가상 머신에서 실행되므로 선택되어 있는 동안 에이전트 스위치가 켜진 상태로 유지됩니다. 끄려면 다른 모델을 선택하세요.
+
+# ── Completed translations (issue #2970) ──
+atende = 참석

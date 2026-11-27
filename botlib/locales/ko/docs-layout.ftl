@@ -1,4 +1,4 @@
-# Docs deterministic layout/pagination preview (#2424) — ko catalog. Identical key sets in all 8 locales.
+# Docs deterministic layout/pagination preview (#2424) — ko catalog. Identical key sets in all 10 locales.
 
 docs-layout-note-local = 로컬 전용 — 미리보기이며 PDF 렌더러가 아닙니다
 docs-layout-open = 페이지 탐색 (계산된 레이아웃)
